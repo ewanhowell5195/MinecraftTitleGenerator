@@ -1,7 +1,17 @@
 [
   {
+    "id": "cracked",
+    "name": "Cracked",
+    "author": "MrBrose, ShrimpSnail, & Ewan Howell"
+  },
+  {
     "id": "smooth",
     "name": "Smooth",
+    "author": "Ewan Howell"
+  },
+  {
+    "id": "smooth",
+    "name": "Smooth (old)",
     "author": "Ewan Howell"
   },
   {
