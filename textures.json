@@ -1,5 +1,10 @@
 [
   {
+    "id": "cracked",
+    "name": "Cracked",
+    "author": "MrBrose & ShrimpSnail"
+  },
+  {
     "id": "smooth",
     "name": "Smooth",
     "author": "Ewan Howell"
