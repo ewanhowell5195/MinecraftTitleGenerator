@@ -2,11 +2,16 @@
   {
     "id": "cracked",
     "name": "Cracked",
-    "author": "MrBrose & ShrimpSnail"
+    "author": "MrBrose, ShrimpSnail, & Ewan Howell"
   },
   {
     "id": "smooth",
     "name": "Smooth",
+    "author": "Ewan Howell"
+  },
+  {
+    "id": "smooth_old",
+    "name": "Smooth (old)",
     "author": "Ewan Howell"
   },
   {
