@@ -3,5 +3,10 @@
     "id": "smooth",
     "name": "Smooth",
     "author": "Ewan Howell"
+  },
+  {
+    "id": "bevelled_gold",
+    "name": "Bevelled Gold",
+    "author": "CL697 & ShrimpSnail"
   }
 ]
