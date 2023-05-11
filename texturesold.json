@@ -1,0 +1,42 @@
+[
+  {
+    "id": "cracked",
+    "name": "Cracked",
+    "author": "MrBrose"
+  },
+  {
+    "id": "cracked_old",
+    "name": "Cracked (old)",
+    "author": "Yanuar Mohendra"
+  },
+  {
+    "id": "smooth",
+    "name": "Smooth",
+    "author": "Yanuar Mohendra"
+  },
+  {
+    "id": "bevelled_gold",
+    "name": "Bevelled Gold",
+    "author": "CL697 & ShrimpSnail"
+  },
+  {
+    "id": "wild",
+    "name": "Wild",
+    "author": "Narrator2 & TheAnnoying"
+  },
+  {
+    "id": "mineimator",
+    "name": "Mine-Imator Family (ModelBench)",
+    "author": "ModelBench"
+  },
+  {
+    "id": "story_mode",
+    "name": "Story Mode (Season 1)",
+    "author": "Yanuar Mohendra"
+  },
+  {
+    "id": "story_mode_2",
+    "name": "Story Mode (Season 2)",
+    "author": "Yanuar Mohendra"
+  }
+]
