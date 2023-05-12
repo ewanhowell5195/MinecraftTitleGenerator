@@ -33,5 +33,15 @@
     "id": "wild",
     "name": "Wild Update",
     "author": "Narrator2 & TheAnnoying"
+  },
+  {
+    "id": "mineimator",
+    "name": "Mine-Imator Family (ModelBench)",
+    "author": "ModelBench & ShrimpSnail"
+  },
+  {
+    "id": "story_mode",
+    "name": "Story Mode (Season 1)",
+    "author": "Yanuar Mohendra & ShrimpSnail"
   }
 ]
