@@ -10,18 +10,8 @@
     "author": "Ewan Howell"
   },
   {
-    "id": "smooth_inverted",
-    "name": "Smooth (Inverted Highlight)",
-    "author": "Ewan Howell"
-  },
-  {
-    "id": "smooth_old",
-    "name": "Smooth (Old)",
-    "author": "Ewan Howell"
-  },
-  {
-    "id": "smooth_inverted_old",
-    "name": "Smooth (Old) (Inverted Highlight)",
+    "id": "gradinet",
+    "name": "Gradient",
     "author": "Ewan Howell"
   },
   {
@@ -43,5 +33,20 @@
     "id": "story_mode",
     "name": "Story Mode (Season 1)",
     "author": "Yanuar Mohendra & ShrimpSnail"
+  },
+  {
+    "id": "smooth_inverted",
+    "name": "Smooth (Inverted Highlight)",
+    "author": "Ewan Howell"
+  },
+  {
+    "id": "smooth_old",
+    "name": "Smooth (Old)",
+    "author": "Ewan Howell"
+  },
+  {
+    "id": "smooth_inverted_old",
+    "name": "Smooth (Old) (Inverted Highlight)",
+    "author": "Ewan Howell"
   }
 ]
