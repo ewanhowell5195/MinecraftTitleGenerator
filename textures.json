@@ -10,8 +10,18 @@
     "author": "Ewan Howell"
   },
   {
+    "id": "smooth_inverted",
+    "name": "Smooth (Inverted Highlight)",
+    "author": "Ewan Howell"
+  },
+  {
     "id": "smooth_old",
-    "name": "Smooth (old)",
+    "name": "Smooth (Old)",
+    "author": "Ewan Howell"
+  },
+  {
+    "id": "smooth_inverted_old",
+    "name": "Smooth (Old) (Inverted Highlight)",
     "author": "Ewan Howell"
   },
   {
