@@ -48,5 +48,10 @@
     "id": "smooth_inverted_old",
     "name": "Smooth (Old) (Inverted Highlight)",
     "author": "Ewan Howell"
+  },
+  {
+    "id": "flat_colored",
+    "name": "Flat Colored",
+    "author": "TheAnnoying"
   }
 ]
