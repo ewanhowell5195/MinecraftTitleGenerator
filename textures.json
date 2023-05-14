@@ -83,5 +83,10 @@
     "id": "minecon",
     "name": "Minecon",
     "author": "Ewan Howell"
+  },
+  {
+    "id": "classic_cobblestone",
+    "name": "Classic Cobblestone",
+    "author": "Bold_Muddy"
   }
 ]
