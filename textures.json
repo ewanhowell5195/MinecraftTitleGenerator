@@ -21,8 +21,13 @@
   },
   {
     "id": "wild_update",
-    "name": "Wild Update",
+    "name": "Wild Update (Mangrove)",
     "author": "Narrator2 & TheAnnoying"
+  },
+  {
+    "id": "deep_dark",
+    "name": "Wild Update (Sculk)",
+    "author": "Banjoei & Shrimpsnail"
   },
   {
     "id": "mineimator",
