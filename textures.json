@@ -5,6 +5,11 @@
     "author": "MrBrose, ShrimpSnail, & Ewan Howell"
   },
   {
+    "id": "cracked_old",
+    "name": "Cracked (Old)",
+    "author": "Yanuar Mohendra & ShrimpSnail"
+  },
+  {
     "id": "smooth",
     "name": "Smooth",
     "author": "Ewan Howell"
@@ -58,11 +63,6 @@
     "id": "smooth_inverted",
     "name": "Smooth (Inverted Highlight)",
     "author": "Ewan Howell"
-  },
-  {
-    "id": "cracked_old",
-    "name": "Cracked (Old)",
-    "author": "Yanuar Mohendra & ShrimpSnail"
   },
   {
     "id": "smooth_old",
