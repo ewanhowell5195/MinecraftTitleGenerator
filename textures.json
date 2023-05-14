@@ -73,5 +73,10 @@
     "id": "flat_coloured",
     "name": "Flat Coloured",
     "author": "TheAnnoying"
+  },
+  {
+    "id": "minecon",
+    "name": "Minecon",
+    "author": "Ewan Howell"
   }
 ]
