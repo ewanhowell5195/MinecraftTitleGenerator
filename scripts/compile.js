@@ -24,7 +24,7 @@ fonts.push({
   ends: [[0, 22]]
 })
 
-function outline(canvas, size) {
+function outline(canvas, size, colour) {
   const ctx = canvas.getContext("2d")
   const width = canvas.width
   const height = canvas.height
@@ -47,9 +47,9 @@ function outline(canvas, size) {
         }
       }
       if (!a) continue
-      data2[i] = 0
-      data2[i + 1] = 0
-      data2[i + 2] = 0
+      data2[i] = colour[0]
+      data2[i + 1] = colour[1]
+      data2[i + 2] = colour[2]
       data2[i + 3] = 255
     }
   }
@@ -95,8 +95,8 @@ for (const font of fonts) {
     ctx.drawImage(canvas, width * m + 2 * m, depth * m, width * m, height * m, 2 * m, 2 * m, width * m, height * m)
     ctx.drawImage(canvas, width * m * 2 + 4 * m, depth * m, width * m, height * m, 6 * m + width * m, 2 * m, width * m, height * m)
     ctx.drawImage(canvas, width * m * 3 + 6 * m, depth * m, width * m, height * m, 10 * m + width * m * 2, 2 * m, width * m, height * m)
-    
-    outline(thumbnail, 2 * m)
+
+    outline(thumbnail, 2 * m, context.getImageData(0, font.border * m, 1, 1).data)
 
     thumbnail.saveAs(`temp/${font.id}/thumbnails/${file}`)
   }
