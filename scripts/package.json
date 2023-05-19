@@ -1,0 +1,8 @@
+{
+  "type": "module",
+  "dependencies": {
+    "compress-images": "^2.0.5",
+    "optipng-bin": "^7.0.1",
+    "skia-canvas": "^1.0.1"
+  }
+}

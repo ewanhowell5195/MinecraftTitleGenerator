@@ -3,12 +3,13 @@
     "id": "minecraft-five-bold",
     "name": "Minecraft Five Bold",
     "author": "Ewan Howell",
+    "width": 36,
     "height": 36,
+    "border": 212,
     "ends": [
       [0, 16, 48, 64],
       [66, 82, 114, 130],
       [132, 148, 194, 210]
-    ],
-    "border": 212
+    ]
   }
 ]
