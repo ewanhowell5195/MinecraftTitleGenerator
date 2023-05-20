@@ -108,5 +108,25 @@
     "id": "wooden_planks",
     "name": "Wooden Planks",
     "author": "TheAnnoying"
+  },
+  {
+    "id": "inner_shadow",
+    "name": "Inner Shadow",
+    "author": "justwilly"
+  },
+  {
+    "id": "smoked",
+    "name": "Smoked",
+    "author": "justwilly"
+  },
+  {
+    "id": "wavey",
+    "name": "Wavey",
+    "author": "justwilly"
+  },
+  {
+    "id": "smooth_beveled",
+    "name": "Smooth Beveled",
+    "author": "justwilly"
   }
 ]
