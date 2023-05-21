@@ -1,0 +1,44 @@
+{
+	"credit": "By Ewan Howell",
+	"texture_size": [1000, 320],
+	"elements": [
+		{
+			"from": [-6, 2, -3],
+			"to": [22, 42, 19],
+			"faces": {
+				"north": {"uv": [9.76, 1.1, 10.208, 3.1], "texture": "#missing"},
+				"south": {"uv": [10.208, 1.1, 9.76, 3.1], "texture": "#missing"},
+				"up": {"uv": [10.208, 1.1, 9.76, 0], "texture": "#missing"},
+				"down": {"uv": [10.208, 4.2, 9.76, 3.1], "texture": "#missing"}
+			}
+		},
+		{
+			"from": [14, 0, -5],
+			"to": [24, 32, 21],
+			"faces": {
+				"west": {"uv": [0, 13.3, 0.032, 13.35], "texture": "#missing"},
+				"up": {"uv": [0, 13.3, 0.032, 13.35], "texture": "#missing"}
+			}
+		},
+		{
+			"from": [-8, 0, -5],
+			"to": [2, 32, 21],
+			"faces": {
+				"east": {"uv": [0, 13.3, 0.016, 13.35], "texture": "#missing"},
+				"up": {"uv": [0, 13.3, 0.016, 13.35], "texture": "#missing"}
+			}
+		},
+		{
+			"from": [24, 44, 21],
+			"to": [-8, 0, -5],
+			"faces": {
+				"north": {"uv": [1.84, 13.8, 2.096, 13.25], "texture": "#missing"},
+				"east": {"uv": [1.84, 13.8, 1.888, 13.25], "texture": "#missing"},
+				"south": {"uv": [1.84, 13.8, 2.096, 13.25], "texture": "#missing"},
+				"west": {"uv": [1.84, 13.8, 1.888, 13.25], "texture": "#missing"},
+				"up": {"uv": [1.84, 13.8, 2.096, 13.75], "texture": "#missing"},
+				"down": {"uv": [0, 13.3, 0.016, 13.35], "texture": "#missing"}
+			}
+		}
+	]
+}
