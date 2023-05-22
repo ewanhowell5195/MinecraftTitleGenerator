@@ -3,5 +3,10 @@
     "id": "flat",
     "name": "Flat",
     "author": "Ewan Howell"
+  },
+  {
+    "id": "bubbles",
+    "name": "Bubbles",
+    "author": "Cubeoidal"
   }
 ]
