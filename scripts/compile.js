@@ -116,6 +116,5 @@ compress_images("temp/**/*.png", "../fonts/", {
   { svg: { engine: false, command: false } },
   { gif: { engine: false, command: false } },
 (err, comp, stat) => {
-  console.log(stat)
   if (fs.existsSync(stat.path_out_new + ".bak")) fs.unlinkSync(stat.path_out_new + ".bak")
 })
