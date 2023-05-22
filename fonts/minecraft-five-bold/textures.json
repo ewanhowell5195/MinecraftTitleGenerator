@@ -5,8 +5,18 @@
     "author": "Ewan Howell"
   },
   {
+    "id": "edition",
+    "name": "Edition",
+    "author": "Patred"
+  },
+  {
     "id": "bubbles",
     "name": "Bubbles",
     "author": "Cubeoidal"
+  },
+  {
+    "id": "flat_coloured",
+    "name": "Flat Coloured",
+    "author": "Ewan Howell"
   }
 ]
