@@ -7,11 +7,13 @@ const charMap = {
   backwardslash: "\\",
   colon: ":",
   creeper: "😳",
+  end: "┣",
   forwardslash: "/",
   greaterthan: ">",
   lessthan: "<",
   openquote: "😩",
-  questionmark: "?"
+  questionmark: "?",
+  start: "┫"
 }
 
 const fonts = JSON.parse(fs.readFileSync("../fonts.json"))

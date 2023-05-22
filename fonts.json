@@ -10,8 +10,10 @@
       [0, 16, 48, 64],
       [66, 82, 114, 130],
       [132, 148, 194, 210]
-    ]
-  },{
+    ],
+    "terminatorSpace": true
+  },
+  {
     "id": "minecraft-dungeons",
     "name": "Dungeons",
     "author": "Shrimpsnail",
@@ -22,6 +24,8 @@
       [0, 16, 48, 64],
       [66, 82, 114, 130],
       [132, 148, 194, 210]
-    ]
+    ],
+    "terminatorSpace": false
+    
   }
 ]
