@@ -18,5 +18,15 @@
     "id": "flat_coloured",
     "name": "Flat Coloured",
     "author": "Ewan Howell"
+  },
+  {
+    "id": "gradient",
+    "name": "Gradient",
+    "author": "Cubeoidal"
+  },
+  {
+    "id": "wild_update",
+    "name": "Wild Update (Mangrove)",
+    "author": "Cubeoidal"
   }
 ]
