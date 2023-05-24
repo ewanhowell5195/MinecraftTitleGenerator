@@ -26,6 +26,6 @@
       [164, 180, 228, 244]
     ],
     "autoBorder": true,
-    "terminators": [310, 180, 318, 180, 6, 48]
+    "forcedTerminators": [310, 180, 318, 180, 6, 48]
   }
 ]

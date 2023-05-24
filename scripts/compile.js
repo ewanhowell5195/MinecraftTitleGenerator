@@ -95,14 +95,14 @@ for (const font of fonts) {
 
     let thumbnail
     if (font.autoBorder) {
-      if (font.terminators) {
-        thumbnail = new Canvas(font.width * 3 * m - 8 + font.terminators[4] * 2, font.height * m)
+      if (font.forcedTerminators) {
+        thumbnail = new Canvas(font.width * 3 * m - 8 + font.forcedTerminators[4] * 2, font.height * m)
       } else {
         thumbnail = new Canvas(font.width * 3 * m - 8, font.height * m)
       }
     } else {
-      if (font.terminators) {
-        thumbnail = new Canvas(font.width * 3 * m + 8 + font.terminators[4] * 2, font.height * m)
+      if (font.forcedTerminators) {
+        thumbnail = new Canvas(font.width * 3 * m + 8 + font.forcedTerminators[4] * 2, font.height * m)
       } else {
         thumbnail = new Canvas(font.width * 3 * m, font.height * m)
       }
@@ -110,26 +110,26 @@ for (const font of fonts) {
     const ctx = thumbnail.getContext("2d")
     
     if (font.autoBorder) {
-      if (font.terminators) {
-        const terminatorWidth = font.terminators[4] * m
-        ctx.drawImage(canvas, font.terminators[0] * m, font.terminators[1] * m, terminatorWidth, font.terminators[5] * m, 2 * m, 2 * m, terminatorWidth, font.terminators[5] * m)
+      if (font.forcedTerminators) {
+        const terminatorWidth = font.forcedTerminators[4] * m
+        ctx.drawImage(canvas, font.forcedTerminators[0] * m, font.forcedTerminators[1] * m, terminatorWidth, font.forcedTerminators[5] * m, 2 * m, 2 * m, terminatorWidth, font.forcedTerminators[5] * m)
         ctx.drawImage(canvas, width * m + 2 * m, depth * m, width * m, height * m, 2 * m + terminatorWidth, 2 * m, width * m, height * m)
         ctx.drawImage(canvas, width * m * 2 + 2 * 2 * m, depth * m, width * m, height * m, 2 * m + width * m + terminatorWidth, 2 * m, width * m, height * m)
         ctx.drawImage(canvas, width * m * 3 + 2 * 3 * m, depth * m, width * m, height * m, 2 * m + width * m * 2 + terminatorWidth, 2 * m, width * m, height * m)
-        ctx.drawImage(canvas, font.terminators[2] * m, font.terminators[3] * m, terminatorWidth, font.terminators[5] * m, 2 * m + width * m * 3 + terminatorWidth, 2 * m, terminatorWidth, font.terminators[5] * m)
+        ctx.drawImage(canvas, font.forcedTerminators[2] * m, font.forcedTerminators[3] * m, terminatorWidth, font.forcedTerminators[5] * m, 2 * m + width * m * 3 + terminatorWidth, 2 * m, terminatorWidth, font.forcedTerminators[5] * m)
       } else {
         ctx.drawImage(canvas, width * m + 2 * m, depth * m, width * m, height * m, 2 * m, 2 * m, width * m, height * m)
         ctx.drawImage(canvas, width * m * 2 + 2 * 2 * m, depth * m, width * m, height * m, 2 * m + width * m, 2 * m, width * m, height * m)
         ctx.drawImage(canvas, width * m * 3 + 2 * 3 * m, depth * m, width * m, height * m, 2 * m + width * m * 2, 2 * m, width * m, height * m)
       }
     } else {
-      if (font.terminators) {
-        const terminatorWidth = font.terminators[4] * m
-        ctx.drawImage(canvas, font.terminators[0] * m, font.terminators[1] * m, terminatorWidth, font.terminators[5] * m, 2 * m, 2 * m, terminatorWidth, font.terminators[5] * m)
+      if (font.forcedTerminators) {
+        const terminatorWidth = font.forcedTerminators[4] * m
+        ctx.drawImage(canvas, font.forcedTerminators[0] * m, font.forcedTerminators[1] * m, terminatorWidth, font.forcedTerminators[5] * m, 2 * m, 2 * m, terminatorWidth, font.forcedTerminators[5] * m)
         ctx.drawImage(canvas, width * m + 2 * m, depth * m, width * m, height * m, 2 * m * 3 + terminatorWidth, 2 * m, width * m, height * m)
         ctx.drawImage(canvas, width * m * 2 + 2 * 2 * m, depth * m, width * m, height * m, 2 * 5 * m + width * m + terminatorWidth, 2 * m, width * m, height * m)
         ctx.drawImage(canvas, width * m * 3 + 2 * 3 * m, depth * m, width * m, height * m, 2 * 7 * m + width * m * 2 + terminatorWidth, 2 * m, width * m, height * m)
-        ctx.drawImage(canvas, font.terminators[2] * m, font.terminators[3] * m, terminatorWidth, font.terminators[5] * m, 2 * 9 * m + width * m * 3 + terminatorWidth, 2 * m, terminatorWidth, font.terminators[5] * m)
+        ctx.drawImage(canvas, font.forcedTerminators[2] * m, font.forcedTerminators[3] * m, terminatorWidth, font.forcedTerminators[5] * m, 2 * 9 * m + width * m * 3 + terminatorWidth, 2 * m, terminatorWidth, font.forcedTerminators[5] * m)
       } else {
         ctx.drawImage(canvas, width * m + 2 * m, depth * m, width * m, height * m, 2 * m, 2 * m, width * m, height * m)
         ctx.drawImage(canvas, width * m * 2 + 2 * 2 * m, depth * m, width * m, height * m, 2 * 3 * m + width * m, 2 * m, width * m, height * m)
