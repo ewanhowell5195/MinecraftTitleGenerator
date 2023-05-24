@@ -1,0 +1,19 @@
+{
+	"credit": "By Ewan Howell",
+	"texture_size": [1000, 320],
+	"textures": {
+		"0": "minecraft-five-bold-block:flat"
+	},
+	"elements": [
+		{
+			"from": [-4, 2, 0],
+			"to": [20, 50, 16],
+			"faces": {
+				"north": {"uv": [4.192, 2.45, 4.384, 3.65], "texture": "#0"},
+				"south": {"uv": [4.384, 2.45, 4.192, 3.65], "texture": "#0"},
+				"up": {"uv": [4.384, 2.45, 4.192, 2.05], "texture": "#0"},
+				"down": {"uv": [4.384, 4.05, 4.192, 3.65], "texture": "#0"}
+			}
+		}
+	]
+}
