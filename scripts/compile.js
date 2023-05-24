@@ -79,15 +79,9 @@ for (const font of fonts) {
   fs.mkdirSync(`temp/${font.id}/textures`, { recursive: true })
   fs.mkdirSync(`temp/${font.id}/thumbnails`, { recursive: true })
 
-  let width
-  if (font.autoBorder) {
-    width = font.width
-  } else {
-    width = font.width - 4
-  }
-  const height = (font.heightTexture ?? font.height) - 4
+  const width = font.width - 4
+  const height = font.height - 4
   const depth = font.ends[0][1]
-  const spacing = font.textureSpacing ?? 2
 
   for (const file of fs.readdirSync(`../fonts/${font.id}/textures`)) {
     const img = await loadImage(`../fonts/${font.id}/textures/${file}`)
@@ -100,18 +94,47 @@ for (const font of fonts) {
     const m = canvas.width / 1000
 
     let thumbnail
-    if (font.autoBorder) thumbnail = new Canvas(font.width * 3 * m + 4, (font.heightTexture ?? font.height) * m - 4)
-    else thumbnail = new Canvas(font.width * 3 * m, (font.heightTexture ?? font.height) * m)
+    if (font.autoBorder) {
+      if (font.terminators) {
+        thumbnail = new Canvas(font.width * 3 * m - 8 + font.terminators[4] * 2, font.height * m)
+      } else {
+        thumbnail = new Canvas(font.width * 3 * m - 8, font.height * m)
+      }
+    } else {
+      if (font.terminators) {
+        thumbnail = new Canvas(font.width * 3 * m + 8 + font.terminators[4] * 2, font.height * m)
+      } else {
+        thumbnail = new Canvas(font.width * 3 * m, font.height * m)
+      }
+    }
     const ctx = thumbnail.getContext("2d")
     
     if (font.autoBorder) {
-      ctx.drawImage(canvas, width * m + spacing * m, depth * m, width * m, height * m, spacing * m, spacing * m, width * m, height * m)
-      ctx.drawImage(canvas, width * m * 2 + spacing * 2 * m, depth * m, width * m, height * m, spacing * m + width * m, spacing * m, width * m, height * m)
-      ctx.drawImage(canvas, width * m * 3 + spacing * 3 * m, depth * m, width * m, height * m, spacing * m + width * m * 2, spacing * m, width * m, height * m)
+      if (font.terminators) {
+        const terminatorWidth = font.terminators[4] * m
+        ctx.drawImage(canvas, font.terminators[0] * m, font.terminators[1] * m, terminatorWidth, font.terminators[5] * m, 2 * m, 2 * m, terminatorWidth, font.terminators[5] * m)
+        ctx.drawImage(canvas, width * m + 2 * m, depth * m, width * m, height * m, 2 * m + terminatorWidth, 2 * m, width * m, height * m)
+        ctx.drawImage(canvas, width * m * 2 + 2 * 2 * m, depth * m, width * m, height * m, 2 * m + width * m + terminatorWidth, 2 * m, width * m, height * m)
+        ctx.drawImage(canvas, width * m * 3 + 2 * 3 * m, depth * m, width * m, height * m, 2 * m + width * m * 2 + terminatorWidth, 2 * m, width * m, height * m)
+        ctx.drawImage(canvas, font.terminators[2] * m, font.terminators[3] * m, terminatorWidth, font.terminators[5] * m, 2 * m + width * m * 3 + terminatorWidth, 2 * m, terminatorWidth, font.terminators[5] * m)
+      } else {
+        ctx.drawImage(canvas, width * m + 2 * m, depth * m, width * m, height * m, 2 * m, 2 * m, width * m, height * m)
+        ctx.drawImage(canvas, width * m * 2 + 2 * 2 * m, depth * m, width * m, height * m, 2 * m + width * m, 2 * m, width * m, height * m)
+        ctx.drawImage(canvas, width * m * 3 + 2 * 3 * m, depth * m, width * m, height * m, 2 * m + width * m * 2, 2 * m, width * m, height * m)
+      }
     } else {
-      ctx.drawImage(canvas, width * m + spacing * m, depth * m, width * m, height * m, spacing * m, spacing * m, width * m, height * m)
-      ctx.drawImage(canvas, width * m * 2 + spacing * 2 * m, depth * m, width * m, height * m, spacing * 3 * m + width * m, spacing * m, width * m, height * m)
-      ctx.drawImage(canvas, width * m * 3 + spacing * 3 * m, depth * m, width * m, height * m, spacing * 5 * m + width * m * 2, spacing * m, width * m, height * m)
+      if (font.terminators) {
+        const terminatorWidth = font.terminators[4] * m
+        ctx.drawImage(canvas, font.terminators[0] * m, font.terminators[1] * m, terminatorWidth, font.terminators[5] * m, 2 * m, 2 * m, terminatorWidth, font.terminators[5] * m)
+        ctx.drawImage(canvas, width * m + 2 * m, depth * m, width * m, height * m, 2 * m * 3 + terminatorWidth, 2 * m, width * m, height * m)
+        ctx.drawImage(canvas, width * m * 2 + 2 * 2 * m, depth * m, width * m, height * m, 2 * 5 * m + width * m + terminatorWidth, 2 * m, width * m, height * m)
+        ctx.drawImage(canvas, width * m * 3 + 2 * 3 * m, depth * m, width * m, height * m, 2 * 7 * m + width * m * 2 + terminatorWidth, 2 * m, width * m, height * m)
+        ctx.drawImage(canvas, font.terminators[2] * m, font.terminators[3] * m, terminatorWidth, font.terminators[5] * m, 2 * 9 * m + width * m * 3 + terminatorWidth, 2 * m, terminatorWidth, font.terminators[5] * m)
+      } else {
+        ctx.drawImage(canvas, width * m + 2 * m, depth * m, width * m, height * m, 2 * m, 2 * m, width * m, height * m)
+        ctx.drawImage(canvas, width * m * 2 + 2 * 2 * m, depth * m, width * m, height * m, 2 * 3 * m + width * m, 2 * m, width * m, height * m)
+        ctx.drawImage(canvas, width * m * 3 + 2 * 3 * m, depth * m, width * m, height * m, 2 * 5 * m + width * m * 2, 2 * m, width * m, height * m)
+      }
     }
 
     outline(thumbnail, 2 * m, context.getImageData(0, font.border * m, 1, 1).data)
