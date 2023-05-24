@@ -21,6 +21,7 @@
     "height": 50,
     "heightTexture": 28,
     "border": 123,
+    "depth": 16,
     "ends": [
       [0, 8, 32, 40], 
       [41, 49, 73, 81],
