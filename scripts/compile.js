@@ -161,6 +161,7 @@ for (const font of fonts) {
       overlayBackgroundCtx.globalCompositeOperation = "destination-in"
       overlayBackgroundCtx.fillRect(0, 0, thumbnail.width, thumbnail.height)
       overlayBackgroundCtx.globalCompositeOperation = "source-over"
+      overlayBackground.saveAs(`temp/${font.id}/thumbnails/none.png`)
     }
   }
 }
