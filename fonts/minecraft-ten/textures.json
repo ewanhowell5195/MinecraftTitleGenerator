@@ -1,122 +1,86 @@
-[
-  {
-    "id": "cracked",
-    "name": "Cracked",
-    "author": "ShrimpSnail, Ewan Howell, & MrBrose"
+{
+  "textures": {
+    "cracked": {
+      "author": "ShrimpSnail, Ewan Howell, & MrBrose"
+    },
+    "cracked_old": {
+      "name": "Cracked (Old)",
+      "author": "Yanuar Mohendra & ShrimpSnail"
+    },
+    "smooth": {
+      "author": "Ewan Howell"
+    },
+    "smooth_inverted": {
+      "name": "Smooth (Inverted Highlight)",
+      "author": "Ewan Howell"
+    },
+    "smooth_old": {
+      "name": "Smooth (Old)",
+      "author": "Ewan Howell"
+    },
+    "smooth_inverted_old": {
+      "name": "Smooth (Old) (Inverted Highlight)",
+      "author": "Ewan Howell"
+    },
+    "flat_coloured": {
+      "author": "TheAnnoying"
+    },
+    "story_mode": {
+      "name": "Story Mode (Season 1)",
+      "author": "Yanuar Mohendra, ShrimpSnail, & Ewan Howell"
+    },
+    "story_mode2": {
+      "name": "Story Mode (Season 2)",
+      "author": "Yanuar Mohendra, ShrimpSnail, & Ewan Howell"
+    },
+    "mineimator": {
+      "name": "Mine-Imator Family",
+      "author": "ModelBench & ShrimpSnail"
+    },
+    "gradient": {
+      "author": "Ewan Howell"
+    },
+    "bevelled_gold": {
+      "author": "CL697 & ShrimpSnail"
+    },
+    "mangrove": {
+      "name": "Mangrove (Wild Update)",
+      "author": "Narrator2 & TheAnnoying"
+    },
+    "deep_dark": {
+      "name": "Deep Dark (Wild Update)",
+      "author": "Banjoei & Shrimpsnail"
+    },
+    "neon": {
+      "author": "Ewan Howell"
+    },
+    "neon_glow": {
+      "author": "Ewan Howell"
+    },
+    "fruit": {
+      "author": "Ewan Howell & DamienBrittan"
+    },
+    "grass": {
+      "author": "ShrimpSnail & DamienBrittan"
+    },
+    "bubbles": {
+      "author": "oliver.mp3"
+    },
+    "minecon": {
+      "author": "Ewan Howell"
+    },
+    "classic_cobblestone": {
+      "author": "Bold_Muddy"
+    },
+    "wooden_planks": {
+      "author": "TheAnnoying"
+    },
+    "dunes": {
+      "author": "Ewan Howell"
+    },
+    "bee": {
+      "author": "Bold_Muddy & Ewan Howell"
+    }
   },
-  {
-    "id": "cracked_old",
-    "name": "Cracked (Old)",
-    "author": "Yanuar Mohendra & ShrimpSnail"
-  },
-  {
-    "id": "smooth",
-    "name": "Smooth",
-    "author": "Ewan Howell"
-  },
-  {
-    "id": "gradient",
-    "name": "Gradient",
-    "author": "Ewan Howell"
-  },
-  {
-    "id": "bevelled_gold",
-    "name": "Bevelled Gold",
-    "author": "CL697 & ShrimpSnail"
-  },
-  {
-    "id": "wild_update",
-    "name": "Wild Update (Mangrove)",
-    "author": "Narrator2 & TheAnnoying"
-  },
-  {
-    "id": "deep_dark",
-    "name": "Wild Update (Sculk)",
-    "author": "Banjoei & Shrimpsnail"
-  },
-  {
-    "id": "mineimator",
-    "name": "Mine-Imator Family (ModelBench)",
-    "author": "ModelBench & ShrimpSnail"
-  },
-  {
-    "id": "neon",
-    "name": "Neon",
-    "author": "Ewan Howell"
-  },
-  {
-    "id": "neon_glow",
-    "name": "Neon Glow",
-    "author": "Ewan Howell"
-  },
-  {
-    "id": "fruit",
-    "name": "Fruit",
-    "author": "Ewan Howell & DamienBrittan"
-  },
-  {
-    "id": "grass",
-    "name": "Grass",
-    "author": "Shrimpsnail & DamienBrittan"
-  },
-  {
-    "id": "bubbles",
-    "name": "Bubbles",
-    "author": "oliver.mp3"
-  },
-  {
-    "id": "story_mode",
-    "name": "Story Mode (Season 1)",
-    "author": "Yanuar Mohendra, ShrimpSnail, & Ewan Howell"
-  },
-  {
-    "id": "story_mode2",
-    "name": "Story Mode (Season 2)",
-    "author": "Yanuar Mohendra, ShrimpSnail, & Ewan Howell"
-  },
-  {
-    "id": "smooth_inverted",
-    "name": "Smooth (Inverted Highlight)",
-    "author": "Ewan Howell"
-  },
-  {
-    "id": "smooth_old",
-    "name": "Smooth (Old)",
-    "author": "Ewan Howell"
-  },
-  {
-    "id": "smooth_inverted_old",
-    "name": "Smooth (Old) (Inverted Highlight)",
-    "author": "Ewan Howell"
-  },
-  {
-    "id": "flat_coloured",
-    "name": "Flat Coloured",
-    "author": "TheAnnoying"
-  },
-  {
-    "id": "minecon",
-    "name": "Minecon",
-    "author": "Ewan Howell"
-  },
-  {
-    "id": "classic_cobblestone",
-    "name": "Classic Cobblestone",
-    "author": "Bold_Muddy"
-  },
-  {
-    "id": "wooden_planks",
-    "name": "Wooden Planks",
-    "author": "TheAnnoying"
-  },
-  {
-    "id": "dunes",
-    "name": "Dunes",
-    "author": "Ewan Howell"
-  },
-  {
-    "id": "bee",
-    "name": "Bee",
-    "author": "Bold_Muddy & Ewan Howell"
-  }
-]
+  "overlays": {}
+}

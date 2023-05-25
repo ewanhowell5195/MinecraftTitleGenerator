@@ -1,32 +1,24 @@
-[
-  {
-    "id": "flat",
-    "name": "Flat",
-    "author": "Ewan Howell"
+{
+  "textures": {
+    "flat": {
+      "author": "Ewan Howell"
+    },
+    "edition": {
+      "author": "Patred"
+    },
+    "flat_coloured": {
+      "author": "Ewan Howell"
+    },
+    "gradient": {
+      "author": "Cubeoidal"
+    },
+    "bubbles": {
+      "author": "Cubeoidal"
+    },
+    "mangrove": {
+      "name": "Mangrove (Wild Update)"
+      "author": "Cubeoidal"
+    }
   },
-  {
-    "id": "edition",
-    "name": "Edition",
-    "author": "Patred"
-  },
-  {
-    "id": "bubbles",
-    "name": "Bubbles",
-    "author": "Cubeoidal"
-  },
-  {
-    "id": "flat_coloured",
-    "name": "Flat Coloured",
-    "author": "Ewan Howell"
-  },
-  {
-    "id": "gradient",
-    "name": "Gradient",
-    "author": "Cubeoidal"
-  },
-  {
-    "id": "wild_update",
-    "name": "Wild Update (Mangrove)",
-    "author": "Cubeoidal"
-  }
-]
+  "overlays": {}
+}
