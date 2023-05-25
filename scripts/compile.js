@@ -79,21 +79,24 @@ for (const font of fonts) {
   console.log(`Done ${font.id} characters`)
 
   fs.mkdirSync(`temp/${font.id}/textures`, { recursive: true })
+  fs.mkdirSync(`temp/${font.id}/overlays`, { recursive: true })
   fs.mkdirSync(`temp/${font.id}/thumbnails`, { recursive: true })
 
   const width = font.width - 4
   const height = font.height - 4
   const depth = font.ends[0][1]
 
-  for (const file of fs.readdirSync(`../fonts/${font.id}/textures`)) {
-    if (file === "overlay.png") continue
+  let overlayBackground
+  const textures = fs.readdirSync(`../fonts/${font.id}/textures`).map(e => ["textures", e]).concat(fs.readdirSync(`../fonts/${font.id}/overlays`).map(e => ["overlays", e]))
+  for (const file of textures) {
+    if (file[1] === "overlay.png") continue
 
-    const img = await loadImage(`../fonts/${font.id}/textures/${file}`)
+    const img = await loadImage(`../fonts/${font.id}/${file[0]}/${file[1]}`)
     
     const canvas = new Canvas(img.width, img.height)
     const context = canvas.getContext("2d")
     context.drawImage(img, 0, 0)
-    canvas.saveAs(`temp/${font.id}/textures/${file}`)
+    canvas.saveAs(`temp/${font.id}/${file[0]}/${file[1]}`)
     
     const m = canvas.width / 1000
 
@@ -141,9 +144,24 @@ for (const font of fonts) {
       }
     }
 
-    outline(thumbnail, 2 * m, context.getImageData(0, font.border * m, 1, 1).data)
+    if (file[0] === "textures") {
+      outline(thumbnail, 2 * m, context.getImageData(0, font.border * m, 1, 1).data)
+    } else {
+      ctx.globalCompositeOperation = "destination-over"
+      ctx.drawImage(overlayBackground, 0, 0, thumbnail.width, thumbnail.height)
+    }
 
-    thumbnail.saveAs(`temp/${font.id}/thumbnails/${file}`)
+    thumbnail.saveAs(`temp/${font.id}/thumbnails/${file[1]}`)
+
+    if (file[1] === "flat.png") {
+      overlayBackground = new Canvas(thumbnail.width, thumbnail.height)
+      const overlayBackgroundCtx = overlayBackground.getContext("2d")
+      overlayBackgroundCtx.drawImage(thumbnail, 0, 0)
+      overlayBackgroundCtx.fillStyle = "rgb(0,0,0,0.25)"
+      overlayBackgroundCtx.globalCompositeOperation = "destination-in"
+      overlayBackgroundCtx.fillRect(0, 0, thumbnail.width, thumbnail.height)
+      overlayBackgroundCtx.globalCompositeOperation = "source-over"
+    }
   }
 }
 
