@@ -90,6 +90,9 @@
     "highlights_top": {
       "name": "Highlights (Top)",
       "author": "Ewan Howell"
+    },
+    "bevel": {
+      "author": "Ewan Howell"
     }
   }
 }
