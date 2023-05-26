@@ -80,6 +80,12 @@
     },
     "bee": {
       "author": "Bold_Muddy & Ewan Howell"
+    },
+    "inner_shadow": {
+      "author": "justwilly"
+    },
+    "smooth_bevelled": {
+      "author": "justwilly"
     }
   },
   "overlays": {
