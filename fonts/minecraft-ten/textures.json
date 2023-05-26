@@ -105,6 +105,12 @@
     },
     "shine": {
       "author": "Ewan Howell"
+    },
+    "outline": {
+      "author": "Ewan Howell"
+    },
+    "inset_outline": {
+      "author": "Ewan Howell"
     }
   }
 }
