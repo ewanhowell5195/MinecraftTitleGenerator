@@ -148,6 +148,7 @@ for (const font of fonts) {
       outline(thumbnail, 2 * m, context.getImageData(0, font.border * m, 1, 1).data)
     } else {
       ctx.globalCompositeOperation = "destination-over"
+      ctx.imageSmoothingEnabled = false
       ctx.drawImage(overlayBackground, 0, 0, thumbnail.width, thumbnail.height)
     }
 
