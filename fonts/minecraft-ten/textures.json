@@ -72,8 +72,31 @@
     "classic_cobblestone": {
       "author": "Bold_Muddy"
     },
-    "wooden_planks": {
-      "author": "TheAnnoying"
+    "oak_planks": {
+      "author": "TheAnnoying",
+      "variants": {
+        "spruce_planks": {
+          "author": "OliviaTheVampire"
+        },
+        "birch_planks": {
+          "author": "OliviaTheVampire"
+        },
+        "acacia_planks": {
+          "author": "OliviaTheVampire"
+        },
+        "dark_oak_planks": {
+          "author": "OliviaTheVampire"
+        },
+        "crimson_planks": {
+          "author": "OliviaTheVampire"
+        },
+        "warped_planks": {
+          "author": "OliviaTheVampire"
+        },
+        "cherry_planks": {
+          "author": "OliviaTheVampire"
+        }
+      }
     },
     "dunes": {
       "author": "Ewan Howell"
