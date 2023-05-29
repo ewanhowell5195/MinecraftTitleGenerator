@@ -1,7 +1,6 @@
 [
   {
     "id": "minecraft-five-bold",
-    "name": "Minecraft Five Bold",
     "author": "Ewan Howell",
     "width": 36,
     "height": 36,
@@ -20,7 +19,6 @@
   },
   {
     "id": "minecraft-five-bold-block",
-    "name": "Minecraft Five Bold Block",
     "author": "Ewan Howell",
     "width": 40,
     "height": 52,
@@ -37,6 +35,26 @@
     ],
     "autoBorder": true,
     "forcedTerminators": [310, 180, 318, 180, 6, 48],
+    "overlay": true
+  },
+  {
+    "id": "minecraft-ten-outline",
+    "author": "Ewan Howell",
+    "width": 32,
+    "height": 60,
+    "border": 186,
+    "faces": [
+      [0, 60],
+      [62, 122],
+      [124, 184]
+    ],
+    "ends": [
+      [0, 0, 60, 60],
+      [62, 62, 122, 122],
+      [124, 124, 184, 184]
+    ],
+    "borderless": true,
+    "forcedTerminators": [254, 124, 264, 124, 8, 60],
     "overlay": true
   }
 ]
