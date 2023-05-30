@@ -51,10 +51,10 @@
       "name": "Deep Dark (Wild Update)",
       "author": "Banjoei & Shrimpsnail"
     },
-    "neon": {
+    "neon_glow": {
       "author": "Ewan Howell",
       "variants": {
-        "neon_glow": {}
+        "neon": {}
       }
     },
     "fruit": {
