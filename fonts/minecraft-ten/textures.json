@@ -26,6 +26,7 @@
       "author": "TheAnnoying"
     },
     "story_mode": {
+      "category": "Story Mode",
       "name": "Story Mode (Season 1)",
       "author": "Yanuar Mohendra, ShrimpSnail, & Ewan Howell",
       "variants": {
@@ -53,6 +54,7 @@
       "author": "Banjoei & Shrimpsnail"
     },
     "neon_glow": {
+      "category": "Neon",
       "author": "Ewan Howell",
       "variants": {
         "neon": {}
@@ -74,6 +76,7 @@
       "author": "Bold_Muddy"
     },
     "oak_planks": {
+      "category": "Planks",
       "author": "TheAnnoying",
       "variants": {
         "spruce_planks": {
