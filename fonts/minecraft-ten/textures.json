@@ -27,11 +27,12 @@
     },
     "story_mode": {
       "name": "Story Mode (Season 1)",
-      "author": "Yanuar Mohendra, ShrimpSnail, & Ewan Howell"
-    },
-    "story_mode2": {
-      "name": "Story Mode (Season 2)",
-      "author": "Yanuar Mohendra, ShrimpSnail, & Ewan Howell"
+      "author": "Yanuar Mohendra, ShrimpSnail, & Ewan Howell",
+      "variants": {
+        "story_mode2": {
+          "name": "Story Mode (Season 2)"
+        }
+      }
     },
     "mineimator": {
       "name": "Mine-Imator Family",
