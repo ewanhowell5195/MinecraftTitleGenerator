@@ -1,26 +1,26 @@
 {
   "textures": {
     "cracked": {
-      "author": "ShrimpSnail, Ewan Howell, & MrBrose"
-    },
-    "cracked_old": {
-      "name": "Cracked (Old)",
-      "author": "Yanuar Mohendra & ShrimpSnail"
+      "author": "ShrimpSnail, Ewan Howell, & MrBrose",
+      "variants": {
+        "cracked_old": {
+          "author": "Yanuar Mohendra & ShrimpSnail"
+        }
+      }
     },
     "smooth": {
-      "author": "Ewan Howell"
-    },
-    "smooth_inverted": {
-      "name": "Smooth (Inverted Highlight)",
-      "author": "Ewan Howell"
-    },
-    "smooth_old": {
-      "name": "Smooth (Old)",
-      "author": "Ewan Howell"
-    },
-    "smooth_inverted_old": {
-      "name": "Smooth (Old) (Inverted Highlight)",
-      "author": "Ewan Howell"
+      "author": "Ewan Howell",
+      "variants": {
+        "smooth_inverted": {
+          "name": "Smooth (Inverted Highlight)"
+        },
+        "smooth_old": {
+          "name": "Smooth (Old)"
+        },
+        "smooth_inverted_old": {
+          "name": "Smooth (Old) (Inverted Highlight)"
+        }
+      }
     },
     "flat_coloured": {
       "author": "TheAnnoying"
@@ -51,11 +51,11 @@
       "name": "Deep Dark (Wild Update)",
       "author": "Banjoei & Shrimpsnail"
     },
-    "neon": {
-      "author": "Ewan Howell"
-    },
     "neon_glow": {
-      "author": "Ewan Howell"
+      "author": "Ewan Howell",
+      "variants": {
+        "neon": {}
+      }
     },
     "fruit": {
       "author": "Ewan Howell & DamienBrittan"
