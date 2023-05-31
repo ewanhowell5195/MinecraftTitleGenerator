@@ -18,6 +18,21 @@
     "mangrove": {
       "name": "Mangrove (Wild Update)",
       "author": "Cubeoidal"
+    },
+    "oak_planks": {
+      "author": "OliviaTheVampire",
+      "variants": {
+        "spruce_planks": {},
+        "birch_planks": {},
+        "jungle_planks": {},
+        "acacia_planks": {},
+        "dark_oak_planks": {},
+        "mangrove_planks": {},
+        "cherry_planks": {},
+        "bamboo_planks": {},
+        "crimson_planks": {},
+        "warped_planks": {}
+      }
     }
   },
   "overlays": {}
