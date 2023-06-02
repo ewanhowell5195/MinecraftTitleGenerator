@@ -3,6 +3,10 @@
     "cracked": {
       "author": "ShrimpSnail, Ewan Howell, & MrBrose",
       "variants": {
+        "cracked_left": {
+        },
+        "cracked_right": {
+        },
         "cracked_old": {
           "author": "Yanuar Mohendra & ShrimpSnail"
         }
