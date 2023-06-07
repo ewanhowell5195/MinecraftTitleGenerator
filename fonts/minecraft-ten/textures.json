@@ -129,7 +129,11 @@
       "author": "Bold_Muddy"
     },
     "copper": {
-      "author": "Ewan Howell"
+      "author": "Ewan Howell",
+      "variants": {
+        "oxidised_copper": {},
+        "oxidising_copper": {}
+      }
     }
   },
   "overlays": {
