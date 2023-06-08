@@ -136,7 +136,10 @@
       }
     },
     "cake": {
-      "author": "Magminer"
+      "author": "Magminer",
+      "variants": {
+        "cake_plain": {}
+      }
     },
     "fired": {
       "author": "FloideN"
