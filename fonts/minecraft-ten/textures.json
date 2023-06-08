@@ -134,6 +134,9 @@
         "oxidised_copper": {},
         "oxidising_copper": {}
       }
+    },
+    "cake": {
+      "author": "Magminer"
     }
   },
   "overlays": {
