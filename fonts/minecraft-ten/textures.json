@@ -29,11 +29,11 @@
     },
     "story_mode": {
       "category": "Story Mode",
-      "name": "Story Mode (Season 1)",
+      "name": "Story Mode (Season 2)",
       "author": "Yanuar Mohendra, ShrimpSnail, & Ewan Howell",
       "variants": {
-        "story_mode2": {
-          "name": "Story Mode (Season 2)"
+        "story_mode1": {
+          "name": "Story Mode (Season 1)"
         }
       }
     },
