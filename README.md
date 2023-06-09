@@ -1,4 +1,3 @@
-
 # Minecraft Title Generator
 This plugin adds a new format that allows you to create Minecraft styled title models that you can render in high quality.
 
@@ -18,6 +17,21 @@ Anyone can submit fonts and textures to this plugin, as long as they meet the re
 To make a submission, create a fork of this repository and edit/upload the necessary files. After all changes are made, create a pull request and explain what you are adding.
 
 For larger submissions like fonts, it will be a lot easier to clone the repo to your PC and use an app like [GitHub Desktop](https://desktop.github.com/) to manage changes.
+
+### Compiling
+
+After making a subission of either a font, or a texture, it would be really helpful if you could compile it. If you dont understand how to do this, you can skip this step and I can do it for you.
+
+#### First time setup:
+1. Install [Node.js](https://nodejs.org/)
+2. Clone the repo to your PC, add your changes, then navigate to the `scripts` directory in the repo.
+3. Open a terminal inside this directory. On Windows this can be done my typing `cmd` into the address bar in file explorer.
+4. Run the command `npm i`
+
+#### Compiling:
+- If on Windows, just run the `compile.bat` file
+- If on MacOS or Linux, run the command `node compile.js`
+- Wait until the script finishes
 
 # Textures
 1. To create a new texture, start by using another texture as a template. `flat.png` is the best 2. template for general textures.
@@ -47,6 +61,8 @@ Save your texture to the either the `textures` or `overlays` folder, depending o
 }
 ```
 <sub>Overlays do not support variants</sub>
+
+Thumbnails are generated through the compile script. Do not make them manually.
 
 ### Texture rules
 - Textures must use the exact same shapes as the `flat.png` texture. This means no extra cut-outs or filling parts in.
