@@ -217,7 +217,7 @@ If you want to make a font using different characters, please make an issue abou
 ```
 
 ## Testing your font
-The easiest way to test your font is to modify the plugin to use your fork of this repo instead of the offifical one.
+The easiest way to test your font is to modify the plugin to use your fork of this repo instead of the official one.
 
 1. Download the plugin file from the [Blockbench Plugins](https://github.com/JannisX11/blockbench-plugins/blob/master/plugins/minecraft_title_generator.js) repository.
 2. Edit the `repo` variable on line 2 to be your repo.
