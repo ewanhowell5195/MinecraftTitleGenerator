@@ -172,7 +172,7 @@ If you want to make a font using different characters, please make an issue abou
    - You can have as many rows as you need, as long as you leave room for the border UV at the bottom.
    - 2px wide spaces must be between the characters and the rows.
    - The orders of the characters doesn't matter, apart from the first 4, which must be: `Creeper A`, `A`, `B`, `C`. These 4 characters must also all be the same width.
-   - If some characters are taller than others, they can go into their own rows.
+   - If some characters are taller than the standard character height, they can go into their own rows.
    - You do not need to worry about making the border UVs at this time.
    - See the `minecraft-ten` and `minecraft-five-bold` textures for example UVs.
    - Font UVs must be `1000x320`
