@@ -143,7 +143,12 @@
     "cake": {
       "author": "Magminer",
       "variants": {
-        "cake_plain": {}
+        "cake_no_drops": {
+          "name": "Cake (No Drops)"
+        },
+        "cake_plain": {
+          "name": "Cake (Plain)"
+        }
       }
     },
     "fired": {
@@ -179,6 +184,9 @@
     },
     "edge_fade": {
       "author": "Ewan Howell"
+    },
+    "tiles": {
+      "author": "SzyszaDev"
     }
   }
 }
