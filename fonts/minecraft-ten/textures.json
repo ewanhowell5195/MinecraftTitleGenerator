@@ -148,6 +148,10 @@
         },
         "cake_plain": {
           "name": "Cake (Plain)"
+        },
+        "cake_minecraft": {
+          "name": "Cake (Minecraft)",
+          "author": "Ewan Howell & SzyszaDev"
         }
       }
     },
