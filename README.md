@@ -25,7 +25,7 @@ After making a subission of either a font or a texture, it would be really helpf
 #### First time setup:
 1. Install [Node.js](https://nodejs.org/)
 2. Clone the repo to your PC, add your changes, then navigate to the `scripts` directory in the repo.
-3. Open a terminal inside this directory. On Windows this can be done my typing `cmd` into the address bar in file explorer.
+3. Open a terminal inside this directory. On Windows this can be done by typing `cmd` into the address bar in file explorer.
 4. Run the command `npm i`
 
 #### Compiling:
