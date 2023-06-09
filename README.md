@@ -42,13 +42,13 @@ Save your texture to the either the `textures` or `overlays` folder, depending o
 {
   "textures": { // If you are adding a texture, it goes in here
     "texture_id": { // The ID of the texture you are adding (required)
-    "name": "Texture Name", // The name of the texture if it doesn't match the ID (optional)
+      "name": "Texture Name", // The name of the texture if it doesn't match the ID (optional)
       "author": "Author Name", // Your name (required)
       "variants": { // The variants for this texture (optional)
-      "variant_id": {
-      "name": "Variant Name", // (optional)
-      "author": "Author Name" // Only needed if different from texture author (optional)
-      }
+        "variant_id": {
+          "name": "Variant Name", // (optional)
+          "author": "Author Name" // Only needed if different from texture author (optional)
+        }
       }
     }
   },
@@ -67,8 +67,9 @@ Thumbnails are generated through the compile script. Do not make them manually.
 ### Texture rules
 - Textures must use the exact same shapes as the `flat.png` texture. This means no extra cut-outs or filling parts in.
 - Textures must be one of these three sizes: `1000x320`, `2000x640`, `4000x1280`
-- Do not add too many variants to a single texture. If I feel a variant is unneccesary, or there are two many, it will be denied.
+- Do not add too many variants to a single texture. If I feel a variant is unnecessary, or there are too many, it will be denied.
 - The border colour at the bottom (under all character lines) must be the same colour for the entire thing. It will not work if you try to use multiple colours.
+- Do not submit textures generated using the plugin.
 
 # Fonts
 
