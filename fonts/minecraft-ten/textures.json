@@ -176,6 +176,9 @@
     },
     "inset_outline": {
       "author": "Ewan Howell"
+    },
+    "edge_fade": {
+      "author": "Ewan Howell"
     }
   }
 }
