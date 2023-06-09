@@ -20,7 +20,7 @@ For larger submissions like fonts, it will be a lot easier to clone the repo to 
 
 ### Compiling
 
-After making a subission of either a font, or a texture, it would be really helpful if you could compile it. If you dont understand how to do this, you can skip this step and I can do it for you.
+After making a subission of either a font or a texture, it would be really helpful if you could compile it. If you dont understand how to do this, you can skip this step and I can do it for you.
 
 #### First time setup:
 1. Install [Node.js](https://nodejs.org/)
@@ -34,7 +34,7 @@ After making a subission of either a font, or a texture, it would be really help
 - Wait until the script finishes
 
 # Textures
-1. To create a new texture, start by using another texture as a template. `flat.png` is the best 2. template for general textures.
+1. To create a new texture, start by using another texture as a template. `flat.png` is the best template for general textures.
 2. Textures can be found at `fonts/fontname/textures`, and overlays can be found in `fonts/fontname/overlays`.
 Save your texture to the either the `textures` or `overlays` folder, depending on what you made.
 3. Edit the `textures.json` file located at `fonts/fontname/textures.json` and add your texture to it. This file follows the following formatting:
