@@ -207,7 +207,7 @@ If you want to make a font using different characters, please make an issue abou
       [0, 16, 48, 64], // First two values are the top and bottom Y coordinates of the top face, second two are the bottom face
       [132, 132, 186, 186] // If your font does not have top and bottom faces, you can make the top and bottom the same values, which should match the top and bottom of the front faces.
     ],
-    "terminatorSpace": true, // The terminator characters should have a space before them (optional)
+    "terminatorSpace": true, // The terminator characters should have a space between itself and the text (optional)
     "forcedTerminators": true, // The terminator characters will always be used and cannot be disabled (optional)
     "autoBorder": true, // Will generate an automatic border which is a single element around the entire row (optional)
     "borderless": true, // The font has no border
