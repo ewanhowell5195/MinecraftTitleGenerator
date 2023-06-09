@@ -192,21 +192,21 @@
     "tiles": {
       "author": "SzyszaDev"
     },
-  "bevel_highlight_bottom": {
-	  "name": "Bevel Highlight (Bottom)",
-	  "author": "FloideN"
-  },
-  "bevel_highlight_top": {
-	  "name": "Bevel Highlight (Top)",
-	  "author": "FloideN"
-  },
-  "texture_highlight_1": {
-	  "name": "Texture Highlight (1)",
-	  "author": "FloideN"
-  },
-  "texture_highlight_2": {
-	  "name": "Texture Highlight (2)",
-	  "author": "FloideN"
-  }
+    "bevel_highlight_bottom": {
+      "name": "Bevel Highlight (Bottom)",
+      "author": "FloideN"
+    },
+    "bevel_highlight_top": {
+      "name": "Bevel Highlight (Top)",
+      "author": "FloideN"
+    },
+    "texture_highlight_1": {
+      "name": "Texture Highlight (1)",
+      "author": "FloideN"
+    },
+    "texture_highlight_2": {
+      "name": "Texture Highlight (2)",
+      "author": "FloideN"
+    }
   }
 }
