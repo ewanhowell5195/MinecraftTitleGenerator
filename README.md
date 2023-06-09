@@ -157,6 +157,7 @@ Some characters use a name instead since the characters are invalid for file nam
   <summary>Optional characters</summary>
   <ul>
     <li><code>space</code> - The font will use this character instead of automatically generating a space</li>
+    <li><code>spacer</code> - A 1px wide model to use when character spacing is used. This model will be stretched to fill the space.</li>
   </ul>
 </details>
 
