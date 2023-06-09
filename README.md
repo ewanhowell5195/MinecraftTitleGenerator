@@ -20,7 +20,7 @@ To make a submission, create a fork of this repository and edit/upload the neces
 For larger submissions like fonts, it will be a lot easier to clone the repo to your PC and use an app like [GitHub Desktop](https://desktop.github.com/) to manage changes.
 
 ### Compiling
-After making a subission of either a font or a texture, it would be really helpful if you could compile it. If you dont understand how to do this, you can skip this step and I can do it for you.
+After making a submission of either a font or a texture, it would be really helpful if you could compile it. If you dont understand how to do this, you can skip this step and I can do it for you.
 
 #### First time setup:
 1. Install [Node.js](https://nodejs.org/)
