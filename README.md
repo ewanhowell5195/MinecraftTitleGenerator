@@ -1,37 +1,37 @@
 # Minecraft Title Generator
-This plugin adds a new format that allows you to create Minecraft styled title models that you can render in high quality.
+This plugin adds a new format that allows you to create Minecraft-styled title models that you can render in high quality.
 
-Plugin Homepage: [ewanhowell.com](https://ewanhowell.com/plugins/minecraft-title-generator), [blockbench.net](https://www.blockbench.net/plugins/minecraft_title_generator)
+Plugin Homepages: [ewanhowell.com](https://ewanhowell.com/plugins/minecraft-title-generator) and [blockbench.net](https://www.blockbench.net/plugins/minecraft_title_generator)
 
-This repo contains the fonts and textures that the plugin uses. To download and use the plugin, go to the plugin store within Blockbench and install it. For more information, go to the plugin homepage.
+This repo contains the fonts and textures that the plugin uses. To download and use the plugin, go to the plugin store within Blockbench (`File > Plugins > Available`) and install it. For more information, please see the plugin homepage.
 
 # Submissions
 Anyone can submit fonts and textures to this plugin, as long as they meet the requirements and follow the rules.
 
 ### General rules
-- Fonts/textures must be of a somewhat high quality. No low effort submissions.
+- Fonts/textures must be somewhat high quality. No low-effort submissions.
 - Fonts/textures must be somewhat unique from other fonts/textures. Try not to re-use other textures.
 - Full credit must be provided. If you are basing a font/texture off of someone elses design, credit them too!
-- Font/texture IDs must be in the snake_case format, and only use a-z, 0-9, and underscores.
+- Font/texture IDs must be in the snake_case format, and only use `a-z`, `0-9`, and underscores.
 
 ## How to make a submission
-To make a submission, create a fork of this repository and edit/upload the necessary files. After all changes are made, create a pull request and explain what you are adding.
+To make a submission, create a fork of this repository and edit/upload the necessary files. After all of the changes are made, create a pull request and explain what you are adding.
 
 For larger submissions like fonts, it will be a lot easier to clone the repo to your PC and use an app like [GitHub Desktop](https://desktop.github.com/) to manage changes.
 
 ### Compiling
-After making a submission of either a font or a texture, it would be really helpful if you could compile it. If you dont understand how to do this, you can skip this step and I can do it for you.
+After making a submission of either a font or a texture, it would be really helpful if you could compile it. If you don't understand how to do this, you can skip this step and I can do it for you.
 
 #### First time setup:
-1. Install [Node.js](https://nodejs.org/)
-2. Clone the repo to your PC, add your changes, then navigate to the `scripts` directory in the repo.
-3. Open a terminal inside this directory. On Windows this can be done by typing `cmd` into the address bar in file explorer.
-4. Run the command `npm i`
+1. Install [Node.js](https://nodejs.org/).
+2. Clone the repo to your PC, add your changes, and then navigate to the `scripts` directory in the repo.
+3. Open a terminal inside this directory. On Windows, this can be done by typing `cmd` into the address bar in file explorer.
+4. Run the command `npm i`.
 
 #### Compiling:
-- If on Windows, just run the `compile.bat` file
-- If on MacOS or Linux, run the command `node compile.js`
-- Wait until the script finishes
+- If on Windows, just run the `compile.bat` file.
+- If on MacOS or Linux, run the command `node compile.js`.
+- Wait until the script finishes.
 
 # Textures
 ## Creating a texture
@@ -61,13 +61,13 @@ Save your texture to the either the `textures` or `overlays` folder, depending o
   }
 }
 ```
-<sub>Overlays do not support variants</sub>
+<sub>Note: Overlays do not support variants</sub>
 
 Thumbnails are generated through the compile script. Do not make them manually.
 
 ### Texture rules
 - Textures must use the exact same shapes as the `flat.png` texture. This means no extra cut-outs or filling parts in.
-- Textures must be one of these three sizes: `1000x320`, `2000x640`, `4000x1280`
+- Textures must be one of these three sizes: `1000x320`, `2000x640`, or `4000x1280`.
 - Do not add too many variants to a single texture. If I feel a variant is unnecessary, or there are too many, it will be denied.
 - The border colour at the bottom (under all character lines) must be the same colour for the entire thing. It will not work if you try to use multiple colours.
 - Do not submit textures generated using the plugin.
@@ -165,30 +165,30 @@ If you want to make a font using different characters, please make an issue abou
 
 ## Creating a font
 1. To create a font, create a new folder inside the `fonts` directory with the ID of your font.
-2. Inside this new folder, create the folders `characters`, `textures`, and `overlays`
+2. Inside this new folder, create the folders `characters`, `textures`, and `overlays`.
 3. Create a `flat.png` texture inside the `textures` folder. This will be used for your UV.
 4. Create the full layout for your UV.
    - Characters need to be arranged into rows, with the top face directly above the character, and the bottom face directly below.
    - You can have as many rows as you need, as long as you leave room for the border UV at the bottom.
-   - 2px wide spaces must be between the characters and the rows.
+   - 2px-wide spaces must be between the characters and the rows.
    - The orders of the characters doesn't matter, apart from the first 4, which must be: `Creeper A`, `A`, `B`, `C`. These 4 characters must also all be the same width.
    - If some characters are taller than the standard character height, they can go into their own rows.
    - You do not need to worry about making the border UVs at this time.
    - See the `minecraft-ten` and `minecraft-five-bold` textures for example UVs.
-   - Font UVs must be `1000x320`
+   - Font UVs must be `1000x320`.
 5. Now it is time to create the models. For every character, create a model for it and save it to the characters folder using the name listed above in the characters list.
    - Characters are modelled using the `Java Block/Item` format. You will probably need to enable the `Deactivate Size Limit` Blockbench setting.
    - The borders for each character must be 2px thick (if your font has borders).
    - You can now add the border UVs to the texture as you create the borders. If you are unsure on how borders should work, see the `minecraft-ten` and `minecraft-five-bold` models for examples.
-   - The UV for the borders must be located underneath all the character rows.
-   - The baseline for the text must be at Y level 2, with the border going to Y level 0. If the font does not have a border, the text baseline is Y level 0.
+   - The UV for the borders must be located underneath all of the character rows.
+   - The baseline for the text must be at Y level 2, with the border going to Y level 0. If the font does not have a border, the text baseline needs to be Y level 0.
    - Keep characters centred in the scene.
    - Groups and textures in the model do not matter, they will be ignored when the font is compiled.
-   - Try to create optimised models. Avoid adding unnecessary elements.
+   - Try to create optimised models without unnecessary elements.
 6. Create a `textures.json` file, following the formatting explained in the textures section.
    - The first texture must be `flat`, and is required for all fonts.
-   - The second texture is the main texture, and will be the automatically selected one.
-   - All other textures will be sorted by popularity over the last week.
+   - The second texture is the main texture, and will be the one that is automatically selected in the plugin.
+   - All of the other textures will be sorted by popularity over the last week.
 7. Create at least one overlay texture. It doesn't matter what it is, but at least one is required.
 8. Add your font to the `fonts.json` file found at the root of the repo. This file follows the following formatting:
 ```js
@@ -221,5 +221,5 @@ The easiest way to test your font is to modify the plugin to use your fork of th
 
 1. Download the plugin file from the [Blockbench Plugins](https://github.com/JannisX11/blockbench-plugins/blob/master/plugins/minecraft_title_generator.js) repository.
 2. Edit the `repo` variable on line 2 to be your repo.
-3. Uninstall the official plugin and install your modified one by drag-dropping it onto Blockbench.
+3. Uninstall the official plugin and install your modified one by dragging and dropping the file into Blockbench.
 4. Compile the font using the compile script and commit the font to your fork, then view the font from within Blockbench!
