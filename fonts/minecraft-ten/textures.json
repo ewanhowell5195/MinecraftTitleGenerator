@@ -41,10 +41,6 @@
       "name": "Mine-Imator Family",
       "author": "ModelBench & ShrimpSnail"
     },
-    "pixel": {
-      "name": "Pixels",
-      "author": "MrBrose"
-    },
     "gradient": {
       "author": "Ewan Howell"
     },
@@ -164,6 +160,10 @@
     },
     "beach": {
       "author": "Ewan Howell"
+    },
+    "pixel": {
+      "name": "Pixels",
+      "author": "MrBrose"
     }
   },
   "overlays": {
