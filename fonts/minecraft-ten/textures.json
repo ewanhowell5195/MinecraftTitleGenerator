@@ -160,6 +160,10 @@
     },
     "beach": {
       "author": "Ewan Howell"
+    },
+    "pixel": {
+      "name": "Pixels",
+      "author": "MrBrose"
     }
   },
   "overlays": {
