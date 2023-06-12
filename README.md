@@ -69,7 +69,7 @@ Thumbnails are generated through the compile script. Do not make them manually.
 - Textures must use the exact same shapes as the `flat.png` texture. This means no extra cut-outs or filling parts in.
 - Textures must be one of these three sizes: `1000x320`, `2000x640`, or `4000x1280`.
 - Do not add too many variants to a single texture. If I feel a variant is unnecessary, or there are too many, it will be denied.
-- The border color at the bottom (under all character lines) must be the same color for the entire thing. It will not work if you try to use multiple colors.
+- The border colour at the bottom (under all character lines) must be the same colour for the entire thing. It will not work if you try to use multiple colours.
 - Do not submit textures generated using the plugin.
 
 # Fonts
@@ -182,9 +182,9 @@ If you want to make a font using different characters, please make an issue abou
    - You can now add the border UV's to the texture as you create the borders. If you are unsure on how borders should work, see the `minecraft-ten` and `minecraft-five-bold` models for examples.
    - The UV for the borders must be located underneath all the character rows.
    - The baseline for the text must be at Y level 2, with the border going to Y level 0. If the font does not have a border, the text baseline needs to be Y level 0.
-   - Keep characters centered in the scene.
+   - Keep characters centred in the scene.
    - Groups and textures in the model do not matter, they will be ignored when the font is compiled.
-   - Try to create optimized models without unnecessary elements.
+   - Try to create optimised models without unnecessary elements.
 6. Create a `textures.json` file, following the formatting explained in the textures section.
    - The first texture must be `flat`, and is required for all fonts.
    - The second texture is the main texture, and will be the one that is automatically selected in the plugin.
