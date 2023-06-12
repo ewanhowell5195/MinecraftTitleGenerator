@@ -211,7 +211,7 @@ If you want to make a font using different characters, please make an issue abou
     "forcedTerminators": true, // The terminator characters will always be used and cannot be disabled (optional)
     "autoBorder": true, // Will generate an automatic border which is a single element around the entire text row (optional)
     "borderless": true, // The font has no border (optional)
-    "overlay": true // The font as an overlay texture that is applied over the top of the "gradient" texture mode. Requires an "overlay.png" in the textures folder. See the "minecraft-five-bold-block" for an example (optional)
+    "overlay": true // The font has an overlay texture that is applied over the top of the "gradient" texture mode. Requires an "overlay.png" in the textures folder. See the "minecraft-five-bold-block" for an example (optional)
   }
 ]
 ```
