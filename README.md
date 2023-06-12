@@ -11,11 +11,11 @@ Anyone can submit fonts and textures to this plugin, as long as they meet the re
 ### General rules
 - Fonts/textures must be somewhat high quality. No low-effort submissions.
 - Fonts/textures must be somewhat unique from other fonts/textures. Try not to re-use other textures.
-- Full credit must be provided. If you are basing a font/texture off of someone elses design, credit them too!
+- Full credit must be provided. If you are basing a font/texture off of someone else's design, credit them too!
 - Font/texture IDs must be in the snake_case format, and only use `a-z`, `0-9`, and underscores.
 
 ## How to make a submission
-To make a submission, create a fork of this repository and edit/upload the necessary files. After all of the changes are made, create a pull request and explain what you are adding.
+To make a submission, create a fork of this repository and edit/upload the necessary files. After all the changes are made, create a pull request and explain what you are adding.
 
 For larger submissions like fonts, it will be a lot easier to clone the repo to your PC and use an app like [GitHub Desktop](https://desktop.github.com/) to manage changes.
 
@@ -30,14 +30,14 @@ After making a submission of either a font or a texture, it would be really help
 
 #### Compiling:
 - If on Windows, just run the `compile.bat` file.
-- If on MacOS or Linux, run the command `node compile.js`.
+- If on macOS or Linux, run the command `node compile.js`.
 - Wait until the script finishes.
 
 # Textures
 ## Creating a texture
 1. To create a new texture, start by using another texture as a template. `flat.png` is the best template for general textures.
 2. Textures can be found at `fonts/fontname/textures`, and overlays can be found in `fonts/fontname/overlays`.
-Save your texture to the either the `textures` or `overlays` folder, depending on what you made.
+Save your texture to either the `textures` or `overlays` folder, depending on what you made.
 3. Edit the `textures.json` file located at `fonts/fontname/textures.json` and add your texture to it. This file follows the following formatting:
 ```js
 {
@@ -76,7 +76,7 @@ Thumbnails are generated through the compile script. Do not make them manually.
 Fonts require you to create a model for every character.
 
 These are the characters for a font.
-Some characters use a name instead since the characters are invalid for file names.
+Some characters use a name instead, since the characters are invalid for file names.
 <details>
   <summary>Required characters</summary>
   <ul>
@@ -180,7 +180,7 @@ If you want to make a font using different characters, please make an issue abou
    - Characters are modelled using the `Java Block/Item` format. You will probably need to enable the `Deactivate Size Limit` Blockbench setting.
    - The borders for each character must be 2px thick (if your font has borders).
    - You can now add the border UVs to the texture as you create the borders. If you are unsure on how borders should work, see the `minecraft-ten` and `minecraft-five-bold` models for examples.
-   - The UV for the borders must be located underneath all of the character rows.
+   - The UV for the borders must be located underneath all the character rows.
    - The baseline for the text must be at Y level 2, with the border going to Y level 0. If the font does not have a border, the text baseline needs to be Y level 0.
    - Keep characters centred in the scene.
    - Groups and textures in the model do not matter, they will be ignored when the font is compiled.
@@ -188,7 +188,7 @@ If you want to make a font using different characters, please make an issue abou
 6. Create a `textures.json` file, following the formatting explained in the textures section.
    - The first texture must be `flat`, and is required for all fonts.
    - The second texture is the main texture, and will be the one that is automatically selected in the plugin.
-   - All of the other textures will be sorted by popularity over the last week.
+   - All the other textures will be sorted by popularity over the last week.
 7. Create at least one overlay texture. It doesn't matter what it is, but at least one is required.
 8. Add your font to the `fonts.json` file found at the root of the repo. This file follows the following formatting:
 ```js
