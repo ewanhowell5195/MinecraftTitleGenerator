@@ -173,13 +173,13 @@ If you want to make a font using different characters, please make an issue abou
    - 2px-wide spaces must be between the characters and the rows.
    - The orders of the characters doesn't matter, apart from the first 4, which must be: `Creeper A`, `A`, `B`, `C`. These 4 characters must also all be the same width.
    - If some characters are taller than the standard character height, they can go into their own rows.
-   - You do not need to worry about making the border UV's at this time.
-   - See the `minecraft-ten` and `minecraft-five-bold` textures for example UV's.
-   - Font UV's must be `1000x320`.
+   - You do not need to worry about making the border UVs at this time.
+   - See the `minecraft-ten` and `minecraft-five-bold` textures for example UVs.
+   - Font UVs must be `1000x320`.
 5. Now it is time to create the models. For every character, create a model for it and save it to the characters folder using the name listed above in the characters list.
    - Characters are modelled using the `Java Block/Item` format. You will probably need to enable the `Deactivate Size Limit` Blockbench setting.
    - The borders for each character must be 2px thick (if your font has borders).
-   - You can now add the border UV's to the texture as you create the borders. If you are unsure on how borders should work, see the `minecraft-ten` and `minecraft-five-bold` models for examples.
+   - You can now add the border UVs to the texture as you create the borders. If you are unsure on how borders should work, see the `minecraft-ten` and `minecraft-five-bold` models for examples.
    - The UV for the borders must be located underneath all the character rows.
    - The baseline for the text must be at Y level 2, with the border going to Y level 0. If the font does not have a border, the text baseline needs to be Y level 0.
    - Keep characters centred in the scene.
