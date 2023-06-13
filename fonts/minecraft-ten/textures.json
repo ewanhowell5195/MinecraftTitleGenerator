@@ -176,11 +176,6 @@
     },
     "midnight": {
       "author": "Ninjaabdullah"
-      "variants": {
-      "midnight": {},
-      "midnight_no_stars": {
-      "name": "Midnight (No Stars)"}
-      }
     }
   },
   "overlays": {
