@@ -70,6 +70,9 @@
       "variants": {
         "flowers": {
           "author": "SzyszaDev"
+        },
+        "grass_side": {
+          "author": "Magminer & Ewan Howell"
         }
       }
     },
