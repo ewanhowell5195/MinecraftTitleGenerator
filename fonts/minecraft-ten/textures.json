@@ -178,9 +178,14 @@
       "author": "Ninjaabdullah"
     },
       "dock": {
-      "name": "Sky (Dock)",
-      "author": "RyanCR"
-  },
+      "author": "RyanCR",
+        "variants": {
+        "dock_clear": {
+          "name": "Dock (Clear)"
+        }
+      }
+  }
+},
   "overlays": {
     "highlights_bottom": {
       "name": "Highlights (Bottom)",
