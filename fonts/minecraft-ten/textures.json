@@ -176,7 +176,10 @@
     },
     "midnight": {
       "author": "Ninjaabdullah"
-    }
+    },
+      "dock": {
+      "name": "Sky (Dock)",
+      "author": "RyanCR"
   },
   "overlays": {
     "highlights_bottom": {
