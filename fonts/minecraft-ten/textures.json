@@ -177,15 +177,15 @@
     "midnight": {
       "author": "Ninjaabdullah"
     },
-      "dock": {
+    "dock": {
       "author": "RyanCR",
-        "variants": {
+      "variants": {
         "dock_clear": {
           "name": "Dock (Clear)"
         }
       }
-  }
-},
+    }
+  },
   "overlays": {
     "highlights_bottom": {
       "name": "Highlights (Bottom)",
