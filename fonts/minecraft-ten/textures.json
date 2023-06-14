@@ -1,4 +1,4 @@
-{
+  {
   "textures": {
     "cracked": {
       "author": "ShrimpSnail, Ewan Howell, & MrBrose",
@@ -184,6 +184,9 @@
           "name": "Dock (Clear)"
         }
       }
+    },
+    "Trails_&_Tales": {
+      "author": "Abe H"
     }
   },
   "overlays": {
