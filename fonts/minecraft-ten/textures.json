@@ -176,8 +176,16 @@
     },
     "midnight": {
       "author": "Ninjaabdullah"
-    }
-  },
+    },
+      "dock": {
+      "author": "RyanCR",
+        "variants": {
+        "dock_clear": {
+          "name": "Dock (Clear)"
+        }
+      }
+  }
+},
   "overlays": {
     "highlights_bottom": {
       "name": "Highlights (Bottom)",
