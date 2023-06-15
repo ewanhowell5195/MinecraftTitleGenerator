@@ -34,6 +34,9 @@
         "crimson_planks": {},
         "warped_planks": {}
       }
+    },
+    "dots": {
+      "author": "Ewan Howell"
     }
   },
   "overlays": {
