@@ -211,6 +211,13 @@
         "lesbian": {},
         "trans": {}
       }
+    },
+    "dirt_side": {
+      "author": "HARYA_",
+      "variants": {
+        "dirt_path": {},
+        "snow_side": {}
+      }
     }
   },
   "overlays": {
