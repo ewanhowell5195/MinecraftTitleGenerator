@@ -193,7 +193,9 @@
     "create": {
       "name": "Create Mod",
       "author": "FeDoT_Dev"
-    }
+    },
+    "dungeons_terracotta": {
+      "author": "HARYA_"
   },
   "overlays": {
     "highlights_bottom": {
