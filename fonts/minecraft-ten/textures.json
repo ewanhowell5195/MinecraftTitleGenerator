@@ -196,6 +196,21 @@
     },
     "dungeons_terracotta": {
       "author": "HARYA_"
+    },
+    "pride": {
+      "author": "Snuzzle",
+      "variants": {
+        "aroace": {},
+        "aromantic": {},
+        "asexual": {},
+        "bisexual": {},
+        "enby": {},
+        "fluid": {},
+        "gay": {},
+        "intersex": {},
+        "lesbian": {},
+        "trans": {}
+      }
     }
   },
   "overlays": {
