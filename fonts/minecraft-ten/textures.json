@@ -189,6 +189,10 @@
           "name": "Dock (Clear)"
         }
       }
+    },
+    "create": {
+      "name": "Create mod",
+      "author": "FeDoT_Dev"
     }
   },
   "overlays": {
