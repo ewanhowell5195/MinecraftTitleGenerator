@@ -166,7 +166,12 @@
       "author": "FloideN"
     },
     "beach": {
-      "author": "Ewan Howell"
+      "author": "Ewan Howell",
+      "variants": {
+        "sand": {
+          "author": "Magminer"
+        }
+      }
     },
     "pixel": {
       "author": "MrBrose"
