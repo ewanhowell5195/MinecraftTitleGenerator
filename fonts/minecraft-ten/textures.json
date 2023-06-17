@@ -211,15 +211,9 @@
         "lesbian": {},
         "trans": {}
       }
+    "starry_night": {
+      "author": "HARYA_"
     },
-    "dirt_side": {
-      "author": "HARYA_",
-      "variants": {
-        "dirt_path": {},
-        "snow_side": {}
-      }
-    }
-  },
   "overlays": {
     "highlights_bottom": {
       "name": "Highlights (Bottom)",
