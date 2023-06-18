@@ -1,0 +1,18 @@
+{
+    "textures": {
+      "flat": {
+        "name": "Flat",
+        "author": "xllifi"
+      },
+      "flat2": {
+        "name": "Flat2",
+        "author": "xllifi"
+      }
+    },
+    "overlays": {
+      "none": {
+        "name": "None",
+        "author": "xllifi"
+      }
+    }
+  }
