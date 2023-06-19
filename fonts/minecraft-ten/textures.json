@@ -217,6 +217,12 @@
     "bricks": {
       "author": "IAmMaker"
     }
+    "netherite": {
+      "name": "Netherite Block",
+      "author": "DragonSlayr15001"
+      "variants": {
+        "gilded_netherite": {}
+    },
   },
   "overlays": {
     "highlights_bottom": {
