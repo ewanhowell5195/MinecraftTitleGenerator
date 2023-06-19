@@ -225,8 +225,9 @@
     },
     "tnt": {
       "author": "PavelDobCZ23",
+      "name": "TNT",
       "variants": {
-        "tnt_no_text":{
+        "tnt_no_text": {
           "name":"TNT without text"
         }
       }
