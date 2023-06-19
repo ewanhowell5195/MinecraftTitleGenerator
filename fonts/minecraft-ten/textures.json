@@ -214,6 +214,14 @@
         "trans": {}
       }
     }
+    "netherite": {
+      "name": "Netherite Block",
+      "author": "DragonSlayr15001"
+      "variants": {
+        "gildednetherite": {
+          "name": "Gilded Netherite"
+        }
+    },
   },
   "overlays": {
     "highlights_bottom": {
