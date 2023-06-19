@@ -2,8 +2,8 @@
 	"credit": "By Ewan Howell",
 	"texture_size": [1000, 320],
 	"textures": {
-		"1": "minecraft-ten-cyrillic:Downloads/dagfsd",
-		"particle": "minecraft-ten-cyrillic:Downloads/dagfsd"
+		"1": "minecraft-ten-cyrillic:flat",
+		"particle": "minecraft-ten-cyrillic:flat"
 	},
 	"elements": [
 		{
@@ -47,7 +47,7 @@
 				"north": {"uv": [5.6, 12.25, 5.728, 12.65], "texture": "#1"},
 				"south": {"uv": [5.6, 12.25, 5.728, 12.65], "texture": "#1"},
 				"west": {"uv": [0, 13.85, 0.016, 13.9], "texture": "#1"},
-				"down": {"uv": [5.76, 13.75, 5.888, 12.65], "texture": "#1"}
+				"down": {"uv": [5.888, 13.75, 5.76, 12.65], "texture": "#1"}
 			}
 		}
 	]
