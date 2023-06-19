@@ -57,8 +57,8 @@
     "forcedTerminators": [254, 124, 264, 124, 8, 60]
   },
   {
-    "id": "minecraft-ten-rus",
-    "author": "xllifi",
+    "id": "minecraft-ten-cyrillic",
+    "author": "xllifi, Original authors",
     "width": 32,
     "height": 44,
     "border": 277,
