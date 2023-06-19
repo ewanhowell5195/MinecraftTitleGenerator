@@ -59,7 +59,11 @@
   {
     "id": "minecraft-ten-cyrillic",
     "name": "Minecraft Ten (Cyrillic)",
-    "author": "xllifi, Original authors",
+    "author": "xllifi",
+    "example": [
+      "ПРИМЕР",
+      "ТЕКСТ😳"
+    ],
     "width": 32,
     "height": 44,
     "border": 277,
