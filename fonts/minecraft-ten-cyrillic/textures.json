@@ -2,21 +2,21 @@
     "textures": {
       "flat": {
         "name": "Flat",
-        "author": "xllifi, Original authors"
+        "author": "xllifi"
       },
       "cracked": {
         "name": "Cracked",
-        "author": "xllifi, Original authors"
+        "author": "xllifi"
       }
     },
     "overlays": {
       "highlights_bottom": {
         "name": "Highlights (Bottom)",
-        "author": "xllifi, Original authors"
+        "author": "xllifi"
       },
       "highlights_top": {
         "name": "Highlights (Top)",
-        "author": "xllifi, Original authors"
+        "author": "xllifi"
       }
     }
   }
