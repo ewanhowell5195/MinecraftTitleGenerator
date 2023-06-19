@@ -2,8 +2,8 @@
 	"credit": "By Ewan Howell",
 	"texture_size": [1000, 320],
 	"textures": {
-		"1": "minecraft-ten-rus:flat",
-		"particle": "minecraft-ten-rus:flat"
+		"1": "minecraft-ten-cyrillic:flat",
+		"particle": "minecraft-ten-cyrillic:flat"
 	},
 	"elements": [
 		{
@@ -82,7 +82,7 @@
 			"from": [-3, 2, -3],
 			"to": [21, 2, 19],
 			"faces": {
-				"down": {"uv": [2.816, 12.65, 3.2, 13.75], "texture": "#1"}
+				"down": {"uv": [2.816, 13.75, 3.2, 12.65], "texture": "#1"}
 			}
 		}
 	]
