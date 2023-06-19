@@ -218,9 +218,7 @@
       "name": "Netherite Block",
       "author": "DragonSlayr15001"
       "variants": {
-        "gildednetherite": {
-          "name": "Gilded Netherite"
-        }
+        "gilded_netherite": {}
     },
   },
   "overlays": {
