@@ -211,7 +211,11 @@ If you want to make a font using different characters, please make an issue abou
     "forcedTerminators": true, // The terminator characters will always be used and cannot be disabled (optional)
     "autoBorder": true, // Will generate an automatic border which is a single element around the entire text row (optional)
     "borderless": true, // The font has no border (optional)
-    "overlay": true // The font has an overlay texture that is applied over the top of the "gradient" texture mode. Requires an "overlay.png" in the textures folder. See the "minecraft-five-bold-block" for an example (optional)
+    "overlay": true, // The font has an overlay texture that is applied over the top of the "gradient" texture mode. Requires an "overlay.png" in the textures folder. See the "minecraft-five-bold-block" for an example (optional)
+    "example": [ // The example text to display in the dialog text preview. Only provide if you are creating characters for a different alphabet (optional)
+      "ex😳mple", // The top text
+      "text" // The bottom text
+    ]
   }
 ]
 ```
@@ -223,3 +227,5 @@ The easiest way to test your font is to modify the plugin to use your fork of th
 2. Edit the `repo` variable on line 2 to be your repo.
 3. Uninstall the official plugin and install your modified one by dragging and dropping the file into Blockbench.
 4. Compile the font using the compile script and commit the font to your fork, then view the font from within Blockbench!
+
+To view all characters in your font, you can use `Help > Developer > Load Debug Minecraft Title Text`
