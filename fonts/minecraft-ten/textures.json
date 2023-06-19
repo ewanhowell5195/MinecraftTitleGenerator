@@ -222,6 +222,14 @@
       "variants": {
         "gilded_netherite": {}
       }
+    },
+    "tnt": {
+      "author": "PavelDobCZ23",
+      "variants": {
+        "tnt_no_text":{
+          "name":"TNT without text"
+        }
+      }
     }
   },
   "overlays": {
