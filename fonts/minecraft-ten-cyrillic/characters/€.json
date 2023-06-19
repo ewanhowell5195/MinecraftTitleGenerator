@@ -2,18 +2,18 @@
 	"credit": "By Ewan Howell",
 	"texture_size": [1000, 320],
 	"textures": {
-		"1": "minecraft-ten-rus:flat",
-		"particle": "minecraft-ten-rus:flat"
+		"1": "minecraft-ten-cyrillic:flat",
+		"particle": "minecraft-ten-cyrillic:flat"
 	},
 	"elements": [
 		{
 			"from": [-6, 2, -3],
 			"to": [22, 42, 19],
 			"faces": {
-				"north": {"uv": [7.712, 10.25, 8.16, 12.25], "texture": "#1"},
-				"south": {"uv": [8.16, 10.25, 7.712, 12.25], "texture": "#1"},
-				"up": {"uv": [8.16, 9.7, 7.712, 8.6], "texture": "#1"},
-				"down": {"uv": [8.16, 13.75, 7.712, 12.65], "texture": "#1"}
+				"north": {"uv": [6.88, 10.25, 7.328, 12.25], "texture": "#1"},
+				"south": {"uv": [7.328, 10.25, 6.88, 12.25], "texture": "#1"},
+				"up": {"uv": [7.328, 9.7, 6.88, 8.6], "texture": "#1"},
+				"down": {"uv": [7.328, 13.75, 6.88, 12.65], "texture": "#1"}
 			}
 		},
 		{
