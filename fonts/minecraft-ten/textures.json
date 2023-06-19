@@ -210,7 +210,8 @@
         "intersex": {},
         "lesbian": {},
         "trans": {}
-      },
+      }
+    },
       "bricks": {
         "author": "IAmMaker"
     }
@@ -266,5 +267,4 @@
       "author": "FloideN"
     }
   }
-}
 }
