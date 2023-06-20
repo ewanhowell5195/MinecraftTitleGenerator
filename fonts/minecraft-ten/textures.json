@@ -215,7 +215,12 @@
       }
     },
     "bricks": {
-      "author": "IAmMaker"
+      "author": "IAmMaker",
+      "variants": {
+        "bricks_minecraft": {
+          "name": "Bricks (Minecraft)"
+        }
+      }
     },
     "netherite": {
       "author": "DragonSlayr15001",
