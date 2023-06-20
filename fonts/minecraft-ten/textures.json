@@ -222,6 +222,9 @@
       "variants": {
         "gilded_netherite": {}
       }
+    },
+    "simplacity": {
+      "author": "ShinyDragon96 & ShiNeaL"
     }
   },
   "overlays": {
