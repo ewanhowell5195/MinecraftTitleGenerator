@@ -213,7 +213,12 @@
       }
     },
       "bricks": {
-        "author": "IAmMaker"
+        "author": "IAmMaker",
+        "variants": {
+          "fancy_bricks":{
+            "name": "Fancy Bricks"
+          }
+        }
     }
   },
   "overlays": {
