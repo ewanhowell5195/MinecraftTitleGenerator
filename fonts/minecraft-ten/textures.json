@@ -215,9 +215,7 @@
       "bricks": {
         "author": "IAmMaker",
         "variants": {
-          "fancy_bricks":{
-            "name": "Fancy Bricks"
-          }
+          "fancy_bricks":{}
         }
     }
   },
