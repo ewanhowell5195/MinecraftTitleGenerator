@@ -23,6 +23,7 @@
 			"faces": {
 				"north": {"uv": [0.224, 10.1, 0.416, 12.1], "texture": "#particle"},
 				"south": {"uv": [0.416, 10.1, 0.224, 12.1], "texture": "#particle"},
+				"up": {"uv": [0.416, 9.7, 0.224, 8.6], "texture": "#particle"},
 				"down": {"uv": [0.416, 13.2, 0.224, 12.1], "texture": "#particle"}
 			}
 		},
