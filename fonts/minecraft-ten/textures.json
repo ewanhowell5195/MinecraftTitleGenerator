@@ -185,13 +185,8 @@
         }
       }
     },
-    "Trails_and_Tales": {
-      "author": "Abe",
-      "variants": {
-        "Trails_and_Tales_Ampersand": {
-          "name": "Ampersand"
-        }
-      }
+    "trails_and_tales": {
+      "author": "Abe"
     }
   },
   "overlays": {
