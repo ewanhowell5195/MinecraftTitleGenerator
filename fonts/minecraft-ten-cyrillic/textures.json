@@ -1,22 +1,23 @@
 {
-    "textures": {
-      "flat": {
-        "name": "Flat",
-        "author": "xllifi"
-      },
-      "cracked": {
-        "name": "Cracked",
-        "author": "xllifi"
-      }
+  "textures": {
+    "flat": {
+      "author": "xllifi"
     },
-    "overlays": {
-      "highlights_bottom": {
-        "name": "Highlights (Bottom)",
-        "author": "xllifi"
-      },
-      "highlights_top": {
-        "name": "Highlights (Top)",
-        "author": "xllifi"
-      }
+    "cracked": {
+      "author": "xllifi"
+    },
+    "pixel": {
+      "author": "Sawiq"
+    }
+  },
+  "overlays": {
+    "highlights_bottom": {
+      "name": "Highlights (Bottom)",
+      "author": "xllifi"
+    },
+    "highlights_top": {
+      "name": "Highlights (Top)",
+      "author": "xllifi"
     }
   }
+}
