@@ -207,14 +207,39 @@
         "enby": {},
         "fluid": {},
         "gay": {},
+        "heterosexual": {},
         "intersex": {},
         "lesbian": {},
+        "pansexual": {},
         "trans": {}
       }
     },
-    "starry_night": {
+    "bricks": {
+      "author": "IAmMaker",
+      "variants": {
+        "bricks_minecraft": {
+          "name": "Bricks (Minecraft)"
+        }
+      }
+    },
+    "netherite": {
+      "author": "DragonSlayr15001",
+      "variants": {
+        "gilded_netherite": {}
+      }
+    },
+    "simplacity": {
+      "author": "ShinyDragon96 & ShiNeaL"
+    },
+    "trails_and_tales": {
+      "author": "Abe"
+    },
+    "blueprint": {
+      "author": "WassMan"
+    },
+    "earth": {
       "author": "HARYA_"
-    }
+    },
   },
   "overlays": {
     "highlights_bottom": {
