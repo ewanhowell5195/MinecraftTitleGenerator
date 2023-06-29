@@ -242,6 +242,14 @@
     },
     "creeper": {
       "author": "Andre_601"
+    },
+    "nether_update_purple": {
+      "name": "Nether Update (Purple)",
+      "author": "TruMiner"
+    },
+    "nether_update_blue": {
+      "name": "Nether Update (Blue)",
+      "author": "TruMiner"
     }
   },
   "overlays": {
@@ -293,14 +301,6 @@
     "texture_highlight_2": {
       "name": "Texture Highlight (Offset)",
       "author": "FloideN"
-    },
-    "nether_update_purple": {
-      "name": "Nether Update (Purple)",
-      "author": "TruMiner"
-    },
-    "nether_update_blue": {
-      "name": "Nether Update (Blue)",
-      "author": "TruMiner"
     }
   }
 }
