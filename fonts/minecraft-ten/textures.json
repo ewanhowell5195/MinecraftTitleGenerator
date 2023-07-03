@@ -231,9 +231,6 @@
     "simplacity": {
       "author": "ShinyDragon96 & ShiNeaL"
     },
-    "haunted": {
-      "author": "Ninjaabdullah"
-    },
     "trails_and_tales": {
       "author": "Abe"
     },
@@ -245,6 +242,9 @@
     },
     "creeper": {
       "author": "Andre_601"
+    },
+    "haunted": {
+      "author": "Ninjaabdullah"
     }
   },
   "overlays": {
