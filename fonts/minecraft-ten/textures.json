@@ -190,6 +190,17 @@
         }
       }
     },
+    "flames": {
+      "author": "RyanCR",
+      "variants": {
+        "flames_soul": {
+          "name": "Soul Flames"
+        },
+        "flames_grayscale": {
+          "name": "Grayscale Flames"
+        }
+      }
+    },
     "create": {
       "name": "Create Mod",
       "author": "FeDoT_Dev"
