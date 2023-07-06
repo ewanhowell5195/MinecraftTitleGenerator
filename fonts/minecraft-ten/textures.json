@@ -245,6 +245,14 @@
     },
     "haunted": {
       "author": "Ninjaabdullah"
+    },
+    "flames": {
+      "author": "RyanCR",
+      "variants": {
+        "flames_soul": {
+          "name": "Soul Flames"
+        }
+      }
     }
   },
   "overlays": {
