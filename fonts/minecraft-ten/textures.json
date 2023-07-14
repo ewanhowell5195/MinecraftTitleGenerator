@@ -253,6 +253,9 @@
           "name": "Soul Flames"
         }
       }
+    },
+    "iron_block": {
+      "author": "Andre_601"
     }
   },
   "overlays": {
