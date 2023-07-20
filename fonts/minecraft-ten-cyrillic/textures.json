@@ -30,6 +30,15 @@
         "cherry_planks": {
           "name": "Cherry Planks"
         },
+        "crimson_planks": {
+          "name": "Crimson Planks"
+        },
+        "bamboo_planks": {
+          "name": "Bamboo Planks"
+        },
+      "warped_planks": {
+          "name": "Warped Planks"
+        }
       }
     },
   },
