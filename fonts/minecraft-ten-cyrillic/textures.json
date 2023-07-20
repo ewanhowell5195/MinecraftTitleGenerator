@@ -8,7 +8,30 @@
     },
     "pixel": {
       "author": "Sawiq"
-    }
+    } 
+    "oak_planks": {
+      "author": "Pikelz, TheAnnoying & OliviaTheVampire",
+      "variants":
+        "birch_planks": {
+          "name": "Birch Planks"
+        },
+        "spruce_planks": {
+          "name": "Spruce Planks"
+        },
+        "jungle_planks": {
+          "name": "Jungle Planks"
+        },
+        "acacia_planks": {
+          "name": "Acacia Planks"
+        },
+        "dark_oak_planks": {
+          "name": "Dark Oak Planks"
+        },
+        "cherry_planks": {
+          "name": "Cherry Planks"
+        },
+      }
+    },
   },
   "overlays": {
     "highlights_bottom": {
