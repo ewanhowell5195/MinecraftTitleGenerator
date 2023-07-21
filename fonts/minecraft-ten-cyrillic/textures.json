@@ -10,38 +10,21 @@
       "author": "Sawiq"
     } 
     "oak_planks": {
-      "author": "Pikelz, TheAnnoying & OliviaTheVampire",
-      "variants":
-        "birch_planks": {
-          "name": "Birch Planks"
-        },
-        "spruce_planks": {
-          "name": "Spruce Planks"
-        },
-        "jungle_planks": {
-          "name": "Jungle Planks"
-        },
-        "acacia_planks": {
-          "name": "Acacia Planks"
-        },
-        "dark_oak_planks": {
-          "name": "Dark Oak Planks"
-        },
-        "cherry_planks": {
-          "name": "Cherry Planks"
-        },
-        "crimson_planks": {
-          "name": "Crimson Planks"
-        },
-        "bamboo_planks": {
-          "name": "Bamboo Planks"
-        },
-      "warped_planks": {
-          "name": "Warped Planks"
-        }
+      "category": "Planks",
+      "author": "Pikelz, TheAnnoying And OliviaTheVampire",
+      "variants": {
+        "spruce_planks": {},
+        "birch_planks": {},
+        "jungle_planks": {},
+        "acacia_planks": {},
+        "dark_oak_planks": {},
+        "mangrove_planks": {},
+        "cherry_planks": {},
+        "bamboo_planks": {},
+        "crimson_planks": {},
+        "warped_planks": {}
       }
     },
-  },
   "overlays": {
     "highlights_bottom": {
       "name": "Highlights (Bottom)",
