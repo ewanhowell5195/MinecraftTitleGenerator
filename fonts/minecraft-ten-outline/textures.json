@@ -5,6 +5,12 @@
     },
     "marketplace": {
       "author": "Ewan Howell"
+    },
+    "neon": {
+      "author": "MCAlexisYT",
+      "variants": {
+        "neon_glow": {}
+      }
     }
   },
   "overlays": {

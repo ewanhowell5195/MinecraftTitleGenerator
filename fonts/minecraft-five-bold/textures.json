@@ -57,6 +57,12 @@
         "pansexual": {},
         "trans": {}
       }
+    },
+    "neon": {
+      "author": "MCAlexisYT",
+      "variants": {
+        "neon_glow": {}
+      }
     }
   },
   "overlays": {
