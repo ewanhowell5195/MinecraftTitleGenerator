@@ -58,6 +58,13 @@
         "trans": {}
       }
     },
+    "neon_glow": {
+      "category": "Neon",
+      "author": "MCAlexisYT",
+      "variants": {
+        "neon": {}
+      }
+    },
     "midnight": {
       "author": "Ninjaabdullah"
     }
