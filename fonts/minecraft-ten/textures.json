@@ -307,6 +307,10 @@
     "texture_highlight_2": {
       "name": "Texture Highlight (Offset)",
       "author": "FloideN"
-    }
+    },
+        "sniffer": {
+      "name": "Sniffer Style",
+      "author": "SmarterCob"
+    },
   }
 }
