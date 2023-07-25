@@ -256,6 +256,10 @@
     },
     "iron_block": {
       "author": "Andre_601"
+    },
+        "sniffer": {
+      "name": "Sniffer Style",
+      "author": "SmarterCob"
     }
   },
   "overlays": {
@@ -307,10 +311,6 @@
     "texture_highlight_2": {
       "name": "Texture Highlight (Offset)",
       "author": "FloideN"
-    },
-        "sniffer": {
-      "name": "Sniffer Style",
-      "author": "SmarterCob"
-    },
+    }
   }
 }
