@@ -64,6 +64,9 @@
       "variants": {
         "neon": {}
       }
+    },
+    "midnight": {
+      "author": "Ninjaabdullah"
     }
   },
   "overlays": {
