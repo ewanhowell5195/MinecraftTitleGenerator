@@ -256,6 +256,12 @@
     },
     "iron_block": {
       "author": "Andre_601"
+    },
+    "pastel": {
+      "author": "MCAlexisYT",
+      "variants": {
+        "smeared_pastel": {}
+      }
     }
   },
   "overlays": {
