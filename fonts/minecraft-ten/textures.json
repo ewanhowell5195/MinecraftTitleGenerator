@@ -307,6 +307,9 @@
     "texture_highlight_2": {
       "name": "Texture Highlight (Offset)",
       "author": "FloideN"
+    },
+    "cartoon": {
+      "author": "leosz13"
     }
   }
 }
