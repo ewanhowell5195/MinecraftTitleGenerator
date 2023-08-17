@@ -173,6 +173,57 @@
         }
       }
     },
+    "white_wool": {
+      "category": "Wool",
+      "author": "Splatube",
+      "variants": {
+        "red_wool": {
+          "author": "Splatube"
+        },
+        "orange_wool": {
+          "author": "Splatube"
+        },
+        "yellow_wool": {
+          "author": "Splatube"
+        },
+        "lime_wool": {
+          "author": "Splatube"
+        },
+        "green_wool": {
+          "author": "Splatube"
+        },
+        "cyan_wool": {
+          "author": "Splatube"
+        },
+        "light_blue_wool": {
+          "author": "Splatube"
+        },
+        "blue_wool": {
+          "author": "Splatube"
+        },
+        "purple_wool": {
+          "author": "Splatube"
+        },
+        "magenta_wool": {
+          "author": "Splatube"
+        },
+        "pink_wool": {
+          "author": "Splatube"
+        },
+        "brown_wool": {
+          "author": "Splatube"
+        },
+        "light_gray_wool": {
+          "author": "Splatube"
+        },
+        "gray_wool": {
+          "author": "Splatube"
+        },
+        "Black_wool": {
+          "author": "Splatube"
+        }
+      }
+    },
     "pixel": {
       "author": "MrBrose"
     },
