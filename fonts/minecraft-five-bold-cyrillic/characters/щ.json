@@ -2,7 +2,7 @@
 	"credit": "By Ewan Howell",
 	"texture_size": [1000, 320],
 	"textures": {
-		"0": "minecraft-five-bold-cyrillic:flat"
+		"0": "minecraft-five-bold-cyrillic:debug"
 	},
 	"elements": [
 		{
@@ -12,7 +12,7 @@
 				"north": {"uv": [6.528, 8.1, 7.136, 9.7], "texture": "#0"},
 				"south": {"uv": [7.136, 8.1, 6.528, 9.7], "texture": "#0"},
 				"up": {"uv": [7.136, 7.4, 6.528, 6.6], "texture": "#0"},
-				"down": {"uv": [7.136, 10.1, 6.528, 10.9], "texture": "#0"}
+				"down": {"uv": [7.136, 10.9, 6.528, 10.1], "texture": "#0"}
 			}
 		},
 		{
@@ -22,7 +22,7 @@
 				"north": {"uv": [6.208, 9.7, 6.336, 10.1], "texture": "#0"},
 				"south": {"uv": [6.336, 9.7, 6.208, 10.1], "texture": "#0"},
 				"west": {"uv": [0, 11, 0.016, 11.05], "texture": "#0"},
-				"down": {"uv": [6.496, 10.1, 6.368, 10.9], "texture": "#0"}
+				"down": {"uv": [6.496, 10.9, 6.368, 10.1], "texture": "#0"}
 			}
 		},
 		{
