@@ -75,11 +75,11 @@
         "flowers": {
           "author": "SzyszaDev"
         },
-        "flowers_side": {
-          "author": "Miersetnik"
-        },
         "grass_side": {
           "author": "Magminer & Ewan Howell"
+        },
+        "flowers_side": {
+          "author": "Miersetnik"
         }
       }
     },
