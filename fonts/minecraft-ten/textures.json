@@ -1,5 +1,9 @@
 {
   "textures": {
+    "atmosphere": {
+      "name": "Atmosphere",
+      "author": "Zodiuss"
+    },
     "cracked": {
       "author": "ShrimpSnail, Ewan Howell, & MrBrose",
       "variants": {
