@@ -1,9 +1,5 @@
 {
   "textures": {
-    "atmosphere": {
-      "name": "Atmosphere",
-      "author": "Zodiuss"
-    },
     "cracked": {
       "author": "ShrimpSnail, Ewan Howell, & MrBrose",
       "variants": {
@@ -263,6 +259,10 @@
     },
     "sniffer": {
       "author": "SmarterCob"
+    },
+    "atmosphere": {
+      "name": "Atmosphere",
+      "author": "Zodiuss"
     }
   },
   "overlays": {
