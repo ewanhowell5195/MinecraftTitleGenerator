@@ -1,0 +1,23 @@
+{
+  "textures": {
+    "flat": {
+      "author": "xllifi"
+    },
+    "edition": {
+      "author": "xllifi"
+    },
+    "flat_coloured": {
+      "author": "xllifi"
+    }
+  },
+  "overlays": {
+    "highlights_bottom": {
+      "name": "Highlights (Bottom)",
+      "author": "xllifi"
+    },
+    "highlights_top": {
+      "name": "Highlights (Top)",
+      "author": "xllifi"
+    }
+  }
+}
