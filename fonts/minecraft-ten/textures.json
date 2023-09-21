@@ -259,6 +259,10 @@
     },
     "sniffer": {
       "author": "SmarterCob"
+    },
+    "atmosphere": {
+      "name": "Atmosphere",
+      "author": "Zodiuss"
     }
   },
   "overlays": {
