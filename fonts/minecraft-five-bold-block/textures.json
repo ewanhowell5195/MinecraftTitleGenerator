@@ -6,12 +6,8 @@
     "live": {
       "author": "Ewan Howell"
     },
-    "neon_glow": {
-      "category": "Neon",
-      "author": "MCAlexisYT",
-      "variants": {
-        "neon": {}
-      }
+    "neon": {
+      "author": "MCAlexisYT"
     }
   },
   "overlays": {
