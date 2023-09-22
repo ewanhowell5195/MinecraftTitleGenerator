@@ -1,5 +1,31 @@
 [
   {
+    "id": "minecraft-ten",
+    "width": 32,
+    "variants": [
+      {
+        "id": "minecraft-ten-cyrillic",
+        "name": "Minecraft Ten (Cyrillic)",
+        "author": "xllifi",
+        "example": [
+          "пример",
+          "текст😳"
+        ],
+        "border": 277,
+        "faces": [
+          [22, 62],
+          [108, 148],
+          [194, 205, 245, 253]
+        ],
+        "ends": [
+          [0, 22, 62, 84],
+          [86, 108, 148, 170],
+          [172, 194, 253, 275]
+        ]
+      }
+    ]
+  },
+  {
     "id": "minecraft-five-bold",
     "author": "Ewan Howell",
     "width": 36,
@@ -15,7 +41,29 @@
       [66, 82, 114, 130],
       [132, 148, 186, 194]
     ],
-    "terminatorSpace": true
+    "terminatorSpace": true,
+    "variants": [
+      {
+        "id": "minecraft-five-bold-cyrillic",
+        "name": "Minecraft Five Bold (Cyrillic)",
+        "author": "xllifi",
+        "example": [
+          "пример",
+          "текст😳"
+        ],
+        "border": 220,
+        "faces": [
+          [16, 48],
+          [82, 114],
+          [148, 162, 194, 202]
+        ],
+        "ends": [
+          [0, 16, 48, 64],
+          [66, 82, 114, 130],
+          [132, 148, 202, 218]
+        ]
+      }
+    ]
   },
   {
     "id": "minecraft-five-bold-block",
@@ -72,51 +120,5 @@
       [86, 108, 148, 170],
       [172, 194, 242, 264]
     ]
-  },
-  {
-    "id": "minecraft-ten-cyrillic",
-    "name": "Minecraft Ten (Cyrillic)",
-    "author": "xllifi",
-    "example": [
-      "пример",
-      "текст😳"
-    ],
-    "width": 32,
-    "height": 44,
-    "border": 277,
-    "faces": [
-      [22, 62],
-      [108, 148],
-      [194, 205, 245, 253]
-    ],
-    "ends": [
-      [0, 22, 62, 84],
-      [86, 108, 148, 170],
-      [172, 194, 253, 275]
-    ],
-    "terminatorSpace": true
-  },
-  {
-    "id": "minecraft-five-bold-cyrillic",
-    "name": "Minecraft Five Bold (Cyrillic)",
-    "author": "xllifi",
-    "example": [
-      "пример",
-      "текст😳"
-    ],
-    "width": 36,
-    "height": 36,
-    "border": 220,
-    "faces": [
-      [16, 48],
-      [82, 114],
-      [148, 162, 194, 202]
-    ],
-    "ends": [
-      [0, 16, 48, 64],
-      [66, 82, 114, 130],
-      [132, 148, 202, 218]
-    ],
-    "terminatorSpace": true
   }
 ]

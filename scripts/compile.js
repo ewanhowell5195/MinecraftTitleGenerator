@@ -22,12 +22,17 @@ const charMap = {
 
 const fonts = JSON.parse(fs.readFileSync("../fonts.json"))
 
-fonts.push({
-  id: "minecraft-ten",
-  width: 32,
-  height: 44,
-  border: 266,
-  ends: [[0, 22]]
+const ten = fonts.find(e => e.id === "minecraft-ten")
+ten.height = 44
+ten.border = 266
+ten.ends = [[0, 22]]
+
+fonts.forEach(font => {
+  if (font.variants) {
+    for (const variant of font.variants) {
+      fonts.push(Object.assign(Object.fromEntries(Object.entries(font).filter(e => e[0] !== "variants")), variant))
+    }
+  }
 })
 
 function outline(canvas, size, colour) {
