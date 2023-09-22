@@ -21,6 +21,22 @@
     },
     "fruit": {
       "author": "Ewan Howell"
+    },
+    "oak_planks": {
+      "category": "Planks",
+      "author": "Ewan Howell",
+      "variants": {
+        "spruce_planks": {},
+        "birch_planks": {},
+        "jungle_planks": {},
+        "acacia_planks": {},
+        "dark_oak_planks": {},
+        "mangrove_planks": {},
+        "cherry_planks": {},
+        "bamboo_planks": {},
+        "crimson_planks": {},
+        "warped_planks": {}
+      }
     }
   },
   "overlays": {
