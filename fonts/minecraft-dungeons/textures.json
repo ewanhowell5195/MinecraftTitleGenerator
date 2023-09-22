@@ -18,6 +18,9 @@
       "variants": {
         "neon": {}
       }
+    },
+    "fruit": {
+      "author": "Ewan Howell"
     }
   },
   "overlays": {
