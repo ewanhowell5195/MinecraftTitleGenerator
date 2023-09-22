@@ -4,7 +4,13 @@
       "author": "Shrimpsnail & Ewan Howell"
     },
     "gradient": {
-      "author": "Ewan Howell"
+      "author": "Ewan Howell",
+      "variants": {
+        "gradient_prerelease": {
+          "name": "Gradient (Early)",
+          "author": "blank3times"
+        }
+      }
     },
     "neon_glow": {
       "category": "Neon",
