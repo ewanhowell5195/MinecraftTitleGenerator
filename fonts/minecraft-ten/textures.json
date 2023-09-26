@@ -323,6 +323,13 @@
     },
     "outline_fade": {
       "author": "blank3times"
+    },
+    "glass": {
+      "author": "Bit sek"
+    },
+    "glass_old": {
+      "name": "Glass (Old)",
+      "author": "Bit sek"
     }
   }
 }
