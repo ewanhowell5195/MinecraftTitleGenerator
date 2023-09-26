@@ -5,7 +5,7 @@
     "variants": [
       {
         "id": "minecraft-ten-cyrillic",
-        "name": "Minecraft Ten (Cyrillic)",
+        "name": "Cyrillic",
         "author": "xllifi",
         "example": [
           "пример",
@@ -45,7 +45,7 @@
     "variants": [
       {
         "id": "minecraft-five-bold-cyrillic",
-        "name": "Minecraft Five Bold (Cyrillic)",
+        "name": "Cyrillic",
         "author": "xllifi",
         "example": [
           "пример",
