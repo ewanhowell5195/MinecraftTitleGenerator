@@ -320,6 +320,13 @@
     },
     "cartoon": {
       "author": "leosz13"
+    },
+    "glass": {
+      "author": "Bit sek"
+    },
+    "glass_old": {
+      "name": "Glass (Old)",
+      "author": "Bit sek"
     }
   }
 }
