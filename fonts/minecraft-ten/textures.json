@@ -257,6 +257,12 @@
         }
       }
     },
+    "gurgles": {
+      "category": "gurgles",
+      "author": "Bit sek",
+      "variants": {
+        "gurgles": {}
+      }
     "iron_block": {
       "author": "Andre_601"
     },
