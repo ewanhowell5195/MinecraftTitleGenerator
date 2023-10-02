@@ -257,12 +257,6 @@
         }
       }
     },
-    "gurgles": {
-      "category": "gurgles",
-      "author": "Bit sek",
-      "variants": {
-        "gurgles": {}
-      }
     "iron_block": {
       "author": "Andre_601"
     },
@@ -273,6 +267,11 @@
       "name": "Atmosphere",
       "author": "Zodiuss"
     }
+  },
+    "gurgles": {
+      "name": "gurgles",
+      "author": "Bit sek",
+      }
   },
   "overlays": {
     "highlights_bottom": {
