@@ -264,8 +264,10 @@
       "author": "SmarterCob"
     },
     "atmosphere": {
-      "name": "Atmosphere",
       "author": "Zodiuss"
+    },
+    "gurgles": {
+      "author": "Bit sek"
     }
   },
   "overlays": {
