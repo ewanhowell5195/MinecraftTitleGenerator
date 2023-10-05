@@ -69,10 +69,11 @@
       "author": "Ninjaabdullah"
     },
     "mob_vote": {
-      "author": "PopitTart"
+      "author": "PopitTart",
       "variants": {
-        "mob_vote_gold":{}
+        "mob_vote_gold": {}
       }
+    }
   },
   "overlays": {
     "highlights_bottom": {
