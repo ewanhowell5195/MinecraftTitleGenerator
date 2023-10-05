@@ -141,7 +141,13 @@
       "author": "justwilly"
     },
     "amethyst": {
-      "author": "Bold_Muddy"
+      "author": "Bold_Muddy",
+      "variants": {
+        "amethyst_c&c": {
+          "name": "Amethyst (Caves & Cliffs)",
+          "author": "blank3times"
+        }
+      }
     },
     "copper": {
       "author": "Ewan Howell",
