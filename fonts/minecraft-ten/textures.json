@@ -141,13 +141,7 @@
       "author": "justwilly"
     },
     "amethyst": {
-      "author": "Bold_Muddy",
-      "variants": {
-        "amethyst_c&c": {
-          "name": "Amethyst (Caves & Cliffs)",
-          "author": "blank3times"
-        }
-      }
+      "author": "Bold_Muddy"
     },
     "copper": {
       "author": "Ewan Howell",
@@ -274,6 +268,9 @@
     },
     "gurgles": {
       "author": "Bit sek"
+    },
+    "crystal": {
+      "author": "blank3times"
     }
   },
   "overlays": {
