@@ -102,7 +102,8 @@
       [124, 124, 184, 184]
     ],
     "borderless": true,
-    "forcedTerminators": [254, 124, 264, 124, 8, 60]
+    "forcedTerminators": [254, 124, 264, 124, 8, 60],
+    "flat": true
   },
   {
     "id": "minecraft-dungeons",
@@ -139,6 +140,7 @@
     ],
     "autoBorder": true,
     "forcedTerminators": [684, 84, 688, 84, 2, 40],
-    "overlay": true
+    "overlay": true,
+    "flat": true
   }
 ]

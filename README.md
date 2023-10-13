@@ -215,7 +215,8 @@ If you want to make a font using different characters, please make an issue abou
     "example": [ // The example text to display in the dialog text preview. Only provide if you are creating characters for a different alphabet (optional)
       "exmple", // The top text
       "text" // The bottom text
-    ]
+    ],
+    "flat": true // The font is a flat plane with no depth (optional)
   }
 ]
 ```
