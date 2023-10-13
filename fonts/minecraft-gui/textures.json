@@ -2,6 +2,9 @@
   "textures": {
     "flat": {
       "author": "Ewan Howell"
+    },
+    "diamond": {
+      "author": "Ewan Howell"
     }
   },
   "overlays": {
@@ -11,6 +14,12 @@
     },
     "highlights_top": {
       "name": "Highlights (Top)",
+      "author": "Ewan Howell"
+    },
+    "shadow": {
+      "author": "Ewan Howell"
+    },
+    "outline": {
       "author": "Ewan Howell"
     }
   }
