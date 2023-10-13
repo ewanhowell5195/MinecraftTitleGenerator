@@ -120,5 +120,25 @@
       [86, 108, 148, 170],
       [172, 194, 242, 264]
     ]
+  },
+  {
+    "id": "minecraft-gui",
+    "author": "Ewan Howell",
+    "width": 40,
+    "height": 44,
+    "border": 126,
+    "faces": [
+      [0, 40],
+      [42, 82],
+      [84, 124 ]
+    ],
+    "ends": [
+      [0, 0, 40, 40],
+      [42, 42, 82, 82],
+      [84, 84, 124, 124]
+    ],
+    "autoBorder": true,
+    "forcedTerminators": [684, 84, 688, 84, 2, 40],
+    "overlay": true
   }
 ]

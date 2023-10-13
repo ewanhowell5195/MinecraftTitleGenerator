@@ -2,7 +2,7 @@ import { Canvas, loadImage, ImageData } from "skia-canvas"
 import compress_images from "compress-images"
 import fs from "node:fs"
 
-fs.rmSync("temp", { recursive: true, force: true })
+// fs.rmSync("temp", { recursive: true, force: true })
 
 const charMap = {
   asterisk: "*",
@@ -101,7 +101,7 @@ for (const font of fonts) {
   let overlayBackground
   const textures = fs.readdirSync(`../fonts/${font.id}/textures`).map(e => ["textures", e]).concat(fs.readdirSync(`../fonts/${font.id}/overlays`).map(e => ["overlays", e]))
   for (const file of textures) {
-    if (file[1] === "overlay.png") continue
+    if (!file[1].endsWith(".png") || file[1] === "overlay.png") continue
 
     const img = await loadImage(`../fonts/${font.id}/${file[0]}/${file[1]}`)
     
