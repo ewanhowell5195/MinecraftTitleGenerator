@@ -11,6 +11,10 @@
       "variants": {
         "chambered_panel": {}
       }
+    },
+    "oled": {
+      "name": "OLED",
+      "author": "Ewan Howell"
     }
   },
   "overlays": {
