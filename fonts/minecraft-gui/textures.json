@@ -17,6 +17,11 @@
       "author": "Ewan Howell"
     }
   },
+  "map": {
+      "name": "map",
+      "author": "Bit sek"
+    }
+  },
   "overlays": {
     "highlights_bottom": {
       "name": "Highlights (Bottom)",
