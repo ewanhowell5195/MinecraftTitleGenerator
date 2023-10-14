@@ -7,7 +7,10 @@
       "author": "Ewan Howell"
     },
     "chambered": {
-      "author": "blank3times"
+      "author": "blank3times",
+      "variants": {
+        "chambered_panel": {}
+      }
     }
   },
   "overlays": {
