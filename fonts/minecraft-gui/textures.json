@@ -15,7 +15,6 @@
     "oled": {
       "name": "OLED",
       "author": "Ewan Howell"
-    }
   },
   "map": {
       "name": "map",
