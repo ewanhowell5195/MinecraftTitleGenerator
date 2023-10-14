@@ -15,8 +15,8 @@
     "oled": {
       "name": "OLED",
       "author": "Ewan Howell"
-  },
-  "map": {
+    },
+    "map": {
       "name": "map",
       "author": "Bit sek"
     }
