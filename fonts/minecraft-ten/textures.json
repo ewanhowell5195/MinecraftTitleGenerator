@@ -335,6 +335,14 @@
     "glass_old": {
       "name": "Glass (Old)",
       "author": "Bit sek"
+    },
+    "highlights_right": {
+      "name": "highlights right",
+      "author": "Bit sek"
+    },
+    "highlights_left": {
+      "name": "highlights left",
+      "author": "Bit sek"
     }
   }
 }
