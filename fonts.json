@@ -1,5 +1,31 @@
 [
   {
+    "id": "minecraft-ten",
+    "width": 32,
+    "variants": [
+      {
+        "id": "minecraft-ten-cyrillic",
+        "name": "Cyrillic",
+        "author": "xllifi",
+        "example": [
+          "пример",
+          "текст😳"
+        ],
+        "border": 277,
+        "faces": [
+          [22, 62],
+          [108, 148],
+          [194, 205, 245, 253]
+        ],
+        "ends": [
+          [0, 22, 62, 84],
+          [86, 108, 148, 170],
+          [172, 194, 253, 275]
+        ]
+      }
+    ]
+  },
+  {
     "id": "minecraft-five-bold",
     "author": "Ewan Howell",
     "width": 36,
@@ -15,7 +41,29 @@
       [66, 82, 114, 130],
       [132, 148, 186, 194]
     ],
-    "terminatorSpace": true
+    "terminatorSpace": true,
+    "variants": [
+      {
+        "id": "minecraft-five-bold-cyrillic",
+        "name": "Cyrillic",
+        "author": "xllifi",
+        "example": [
+          "пример",
+          "текст😳"
+        ],
+        "border": 220,
+        "faces": [
+          [16, 48],
+          [82, 114],
+          [148, 162, 194, 202]
+        ],
+        "ends": [
+          [0, 16, 48, 64],
+          [66, 82, 114, 130],
+          [132, 148, 202, 218]
+        ]
+      }
+    ]
   },
   {
     "id": "minecraft-five-bold-block",
@@ -54,52 +102,45 @@
       [124, 124, 184, 184]
     ],
     "borderless": true,
-    "forcedTerminators": [254, 124, 264, 124, 8, 60]
+    "forcedTerminators": [254, 124, 264, 124, 8, 60],
+    "flat": true
   },
   {
-    "id": "minecraft-ten-cyrillic",
-    "name": "Minecraft Ten (Cyrillic)",
-    "author": "xllifi",
-    "example": [
-      "пример",
-      "текст😳"
-    ],
+    "id": "minecraft-dungeons",
+    "author": "ShrimpSnail & Ewan Howell",
     "width": 32,
     "height": 44,
-    "border": 277,
+    "border": 266,
     "faces": [
       [22, 62],
       [108, 148],
-      [194, 205, 245, 253]
+      [194, 194, 234, 242]
     ],
     "ends": [
       [0, 22, 62, 84],
       [86, 108, 148, 170],
-      [172, 194, 253, 275]
-    ],
-    "terminatorSpace": true
+      [172, 194, 242, 264]
+    ]
   },
   {
-    "id": "minecraft-five-bold-cyrillic",
-    "name": "Minecraft Five Bold (Cyrillic)",
-    "author": "xllifi",
-    "example": [
-      "пример",
-      "текст😳"
-    ],
-    "width": 36,
-    "height": 36,
-    "border": 220,
+    "id": "minecraft-gui",
+    "author": "Ewan Howell",
+    "width": 40,
+    "height": 44,
+    "border": 126,
     "faces": [
-      [16, 48],
-      [82, 114],
-      [148, 162, 194, 202]
+      [0, 40],
+      [42, 82],
+      [84, 124 ]
     ],
     "ends": [
-      [0, 16, 48, 64],
-      [66, 82, 114, 130],
-      [132, 148, 202, 218]
+      [0, 0, 40, 40],
+      [42, 42, 82, 82],
+      [84, 84, 124, 124]
     ],
-    "terminatorSpace": true
+    "autoBorder": true,
+    "forcedTerminators": [684, 84, 688, 84, 2, 40],
+    "overlay": true,
+    "flat": true
   }
 ]

@@ -2,7 +2,7 @@ import { Canvas, loadImage, ImageData } from "skia-canvas"
 import compress_images from "compress-images"
 import fs from "node:fs"
 
-fs.rmSync("temp", { recursive: true, force: true })
+// fs.rmSync("temp", { recursive: true, force: true })
 
 const charMap = {
   asterisk: "*",
@@ -22,12 +22,17 @@ const charMap = {
 
 const fonts = JSON.parse(fs.readFileSync("../fonts.json"))
 
-fonts.push({
-  id: "minecraft-ten",
-  width: 32,
-  height: 44,
-  border: 266,
-  ends: [[0, 22]]
+const ten = fonts.find(e => e.id === "minecraft-ten")
+ten.height = 44
+ten.border = 266
+ten.ends = [[0, 22]]
+
+fonts.forEach(font => {
+  if (font.variants) {
+    for (const variant of font.variants) {
+      fonts.push(Object.assign(Object.fromEntries(Object.entries(font).filter(e => e[0] !== "variants")), variant))
+    }
+  }
 })
 
 function outline(canvas, size, colour) {
@@ -96,7 +101,7 @@ for (const font of fonts) {
   let overlayBackground
   const textures = fs.readdirSync(`../fonts/${font.id}/textures`).map(e => ["textures", e]).concat(fs.readdirSync(`../fonts/${font.id}/overlays`).map(e => ["overlays", e]))
   for (const file of textures) {
-    if (file[1] === "overlay.png") continue
+    if (!file[1].endsWith(".png") || file[1] === "overlay.png") continue
 
     const img = await loadImage(`../fonts/${font.id}/${file[0]}/${file[1]}`)
     

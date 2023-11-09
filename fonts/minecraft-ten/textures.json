@@ -77,6 +77,9 @@
         },
         "grass_side": {
           "author": "Magminer & Ewan Howell"
+        },
+        "grass_side_flowers": {
+          "author": "Magminer & Ewan Howell & SzyszaDev"
         }
       }
     },
@@ -260,8 +263,14 @@
     "sniffer": {
       "author": "SmarterCob"
     },
-    "pastel": {
-      "author": "MCAlexisYT"
+    "atmosphere": {
+      "author": "Zodiuss"
+    },
+    "gurgles": {
+      "author": "Bit sek"
+    },
+    "crystal": {
+      "author": "blank3times"
     }
   },
   "overlays": {
@@ -316,6 +325,16 @@
     },
     "cartoon": {
       "author": "leosz13"
+    },
+    "outline_fade": {
+      "author": "blank3times"
+    },
+    "glass": {
+      "author": "Bit sek"
+    },
+    "glass_old": {
+      "name": "Glass (Old)",
+      "author": "Bit sek"
     }
   }
 }

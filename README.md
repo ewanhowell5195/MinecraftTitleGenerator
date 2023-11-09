@@ -213,9 +213,10 @@ If you want to make a font using different characters, please make an issue abou
     "borderless": true, // The font has no border (optional)
     "overlay": true, // The font has an overlay texture that is applied over the top of the "gradient" texture mode. Requires an "overlay.png" in the textures folder. See the "minecraft-five-bold-block" for an example (optional)
     "example": [ // The example text to display in the dialog text preview. Only provide if you are creating characters for a different alphabet (optional)
-      "ex😳mple", // The top text
+      "exmple", // The top text
       "text" // The bottom text
-    ]
+    ],
+    "flat": true // The font is a flat plane with no depth (optional)
   }
 ]
 ```
@@ -229,3 +230,24 @@ The easiest way to test your font is to modify the plugin to use your fork of th
 4. Compile the font using the compile script and commit the font to your fork, then view the font from within Blockbench!
 
 To view all characters in your font, you can use `Help > Developer > Load Debug Minecraft Title Text`
+
+## Font Variants
+Fonts have support for variants. These are alternative versions of an existing font, such as slightly different character designs, or different character sets.
+
+The characters in font variants do not matter, but the first 4 characters must all be the same width, where character 2, 3, and 4 are the ones that appear in the thumbnail. There is a minimum requirement of 4 characters for a font variant.
+
+To create a font variant, follow the same process as creating a normal font. When it comes to adding to the `fonts.json`, instead of adding a new entry, instead add to a `variants` array of the parent font.
+```js
+[
+  {
+    "id": "parent-font",
+    // rest of parent font details
+    "variants": [
+      {
+        "id": "variant-id"
+      }
+    ]
+  }
+]
+```
+Variant fonts use the same properties as normal fonts. The only required property of a variant is its ID. Any missing properties will be inherited from the parent font.

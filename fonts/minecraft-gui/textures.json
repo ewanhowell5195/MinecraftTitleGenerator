@@ -1,0 +1,39 @@
+{
+  "textures": {
+    "flat": {
+      "author": "Ewan Howell"
+    },
+    "diamond": {
+      "author": "Ewan Howell"
+    },
+    "chambered": {
+      "author": "blank3times",
+      "variants": {
+        "chambered_panel": {}
+      }
+    },
+    "oled": {
+      "name": "OLED",
+      "author": "Ewan Howell"
+    },
+    "map": {
+      "author": "Bit sek"
+    }
+  },
+  "overlays": {
+    "highlights_bottom": {
+      "name": "Highlights (Bottom)",
+      "author": "Ewan Howell"
+    },
+    "highlights_top": {
+      "name": "Highlights (Top)",
+      "author": "Ewan Howell"
+    },
+    "shadow": {
+      "author": "Ewan Howell"
+    },
+    "outline": {
+      "author": "Ewan Howell"
+    }
+  }
+}

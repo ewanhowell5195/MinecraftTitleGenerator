@@ -68,11 +68,11 @@
     "midnight": {
       "author": "Ninjaabdullah"
     },
-    "pastel": {
-      "author": "MCAlexisYT"
-    },
-    "netherite": {
-      "author": "MCAlexisYT"
+    "mob_vote": {
+      "author": "PopitTart",
+      "variants": {
+        "mob_vote_gold": {}
+      }
     }
   },
   "overlays": {
