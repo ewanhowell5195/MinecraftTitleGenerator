@@ -73,6 +73,15 @@
       "variants": {
         "mob_vote_gold": {}
       }
+    },
+    "pastel": {
+      "author": "MCAlexisYT"
+    },
+    "netherite": {
+      "author": "MCAlexisYT"
+    },
+    "pacman_maze": {
+      "author": "MCAlexisYT, Ewan Howell"
     }
   },
   "overlays": {
