@@ -39,6 +39,10 @@
       }
     }
   },
+    "netherite": {
+      "name": "Netherite",
+      "author": "Doharbdjr",
+    },
   "overlays": {
     "highlights_bottom": {
       "name": "Highlights (Bottom)",
