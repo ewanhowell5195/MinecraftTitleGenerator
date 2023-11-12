@@ -15,6 +15,10 @@
     },
     "realms": {
       "author": "blank3times"
+    },
+    "sherd": {
+      "name": "Pottery Sherd",
+      "author": "blank3times"
     }
   },
   "overlays": {
