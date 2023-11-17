@@ -271,12 +271,12 @@
     },
     "crystal": {
       "author": "blank3times"
+    },
+    
+    "steel": {
+      "author": "Doharbdjr"
     }
   },
-      "steel": {
-      "name": "Steel",
-      "author": "Doharbdjr"
-    },
   "overlays": {
     "highlights_bottom": {
       "name": "Highlights (Bottom)",
