@@ -275,7 +275,10 @@
     "end_crystal": {
       "author": "blank3times"
     }
-  },
+    "poison": {
+      "author": "Doharbdjr"
+    }
+   },
   "overlays": {
     "highlights_bottom": {
       "name": "Highlights (Bottom)",
