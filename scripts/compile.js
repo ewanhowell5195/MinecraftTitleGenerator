@@ -75,6 +75,7 @@ for (const font of fonts) {
     characters[char] = JSON.parse(fs.readFileSync(`../fonts/${font.id}/characters/${file}`, "utf8")).elements
     for (const element of characters[char]) {
       for (const [direction, face] of Object.entries(element.faces)) {
+        if (face.rotation === 180) face.uv = [face.uv.slice(2), face.uv.slice(0, 2)].flat()
         element.faces[direction] = face.uv
       }
     }
