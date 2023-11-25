@@ -7,6 +7,56 @@
       "author": "Ewan Howell"
     }
   },
+    "sign_text": {
+      "category": "Sign text",
+      "author": "Bit seK",
+      "variants": {
+        "sign_text_grey": {
+          "author": "Bit seK"
+        },
+        "sign_text_light_grey": {
+          "author": "Bit seK"
+        },
+        "sign_text_white": {
+          "author": "Bit seK"
+        },
+        "sign_text_red": {
+          "author": "Bit seK"
+        },
+        "sign_text_orange": {
+          "author": "Bit seK"
+        },
+        "sign_text_yellow": {
+          "author": "Bit seK"
+        },
+        "sign_text_green": {
+          "author": "Bit seK"
+        },
+        "sign_text_lime": {
+          "author": "Bit seK"
+        },
+        "sign_text_blue": {
+          "author": "Bit seK"
+        },
+        "sign_text_light_blue": {
+          "author": "Bit seK"
+        },
+        "sign_text_cyan": {
+          "author": "Bit seK"
+        },
+        "sign_text_violet": {
+          "author": "Bit seK"
+        },
+        "sign_text_purple": {
+          "author": "Bit seK"
+        },
+        "sign_text_pink": {
+          "author": "Bit seK"
+        },
+        "sign_text_brown": {
+          "author": "Bit seK"
+       }
+    },
   "overlays": {
     "highlights_bottom": {
       "name": "Highlights (Bottom)",
