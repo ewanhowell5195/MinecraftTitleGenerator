@@ -17,6 +17,10 @@
       "author": "blank3times"
     }
   },
+    "mob_vote_icon": {
+          "author": "Bit seK"
+    }
+  },
   "overlays": {
     "bottom_depth": {
       "name": "Bottom depth",
