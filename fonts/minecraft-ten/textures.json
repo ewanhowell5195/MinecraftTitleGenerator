@@ -275,17 +275,14 @@
     "end_crystal": {
       "author": "blank3times"
     },
-    "glow_squid": {
-      "author": "Bit sek"
-    },
     "cherry_blossom": {
-      "author": "Klayv":
-            "variants": {
+      "author": "Klayv",
+      "variants": {
         "cherry_blossom_small": {
-          "name": "Cherry Blossom Small"
+          "name": "Cherry Blossom small"
         }
       }
-  },
+    },
   "overlays": {
     "highlights_bottom": {
       "name": "Highlights (Bottom)",
