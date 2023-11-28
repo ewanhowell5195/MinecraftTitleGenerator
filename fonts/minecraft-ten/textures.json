@@ -279,10 +279,11 @@
       "author": "Klayv",
       "variants": {
         "cherry_blossom_small": {
-          "name": "Cherry Blossom small"
+          "name": "Cherry Blossom (Small)",
+          "author": "NotAGanesh"
         }
       }
-    },
+    }
   "overlays": {
     "highlights_bottom": {
       "name": "Highlights (Bottom)",
