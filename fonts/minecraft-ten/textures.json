@@ -282,8 +282,9 @@
       "author": "Klayv"
             "variants": {
         "cherry_blossom_small": {
-          "name": "Cherry Blossom(Small)"
-    }
+          "name": "Cherry Blossom Small"
+        }
+      }
   },
   "overlays": {
     "highlights_bottom": {
