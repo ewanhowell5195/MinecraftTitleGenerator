@@ -84,7 +84,7 @@
       }
     },
     "bubbles": {
-      "author": "oliver.mp3"
+      "author": "7px"
     },
     "minecon": {
       "author": "Ewan Howell"
@@ -275,12 +275,14 @@
     "end_crystal": {
       "author": "blank3times"
     },
-    "steel": {
-      "author": "Doharbdjr"
-    }
-        },
-    "cherry_blossom(small)": {
-      "author": "NotAGanesh"
+    "glow_squid": {
+      "author": "Bit sek"
+    },
+    "cherry_blossom": {
+      "author": "Klayv"
+            "variants": {
+        "cherry_blossom(small)": {
+          "name": "Cherry Blossom(Small)"
     }
   },
   "overlays": {
