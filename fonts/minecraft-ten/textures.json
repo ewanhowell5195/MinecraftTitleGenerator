@@ -280,6 +280,9 @@
     },
     "cherry_blossom": {
       "author": "Klayv"
+            "variants": {
+        "cherry_blossom(small)": {
+          "name": "Cherry Blossom(Small)"
     }
   },
   "overlays": {
