@@ -85,7 +85,7 @@ for (const font of fonts) {
 
   console.log(`Done ${font.id} characters`)
 
-  fs.writeFileSync(`../fonts/${font.id}/textures.json`, JSON.stringify(JSON.parse(fs.readFileSync(`../fonts/${font.id}/textures.json`)), null, 2))
+  fs.writeFileSync(`../fonts/${font.id}/textures.json`, JSON.stringify(JSON.parse(fs.readFileSync(`../fonts/${font.id}/textures.json`)), null, 2) + "\n")
 
   fs.mkdirSync(`temp/${font.id}/textures`, { recursive: true })
   fs.mkdirSync(`temp/${font.id}/overlays`, { recursive: true })

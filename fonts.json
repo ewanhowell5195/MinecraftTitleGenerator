@@ -4,6 +4,11 @@
     "width": 32,
     "variants": [
       {
+        "id": "minecraft-ten-v2",
+        "name": "Version 2",
+        "author": "Ewan Howell"
+      },
+      {
         "id": "minecraft-ten-cyrillic",
         "name": "Cyrillic",
         "author": "xllifi",
