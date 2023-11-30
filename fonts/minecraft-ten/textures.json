@@ -222,9 +222,9 @@
       "variants": {
         "bricks_minecraft": {
           "name": "Bricks (Minecraft)"
-    },
-        "cake_minecraft": {
-          "name": "bricks_bare_bone",
+        },
+        "bricks_bare_bone": {
+          "name": "bricks bare bone",
           "author": "Klayv"
         }
       }
