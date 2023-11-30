@@ -223,8 +223,8 @@
         "bricks_minecraft": {
           "name": "Bricks (Minecraft)"
         },
-        "bricks_bare_bone": {
-          "name": "bricks bare bone",
+        "bricks_bare_bons": {
+          "name": "Bricks (Bare Bones)",
           "author": "Klayv"
         }
       }
@@ -298,6 +298,7 @@
           "name": "stripped bamboo"
         }
       }
+    }
     },
   "overlays": {
     "highlights_bottom": {
