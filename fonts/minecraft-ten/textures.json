@@ -294,10 +294,11 @@
     "bamboo": {
       "author": "Klayv",
       "variants": {
-        "stripped_bamboo": {
-          "name": "stripped bamboo"
-        }
+        "stripped_bamboo": {}
       }
+    },
+    "terracotta": {
+      "author": "Klayv"
     }
   },
   "overlays": {
