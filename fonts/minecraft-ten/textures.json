@@ -222,6 +222,10 @@
       "variants": {
         "bricks_minecraft": {
           "name": "Bricks (Minecraft)"
+        },
+        "bricks_bare_bones": {
+          "name": "Bricks (Bare Bones)",
+          "author": "Klayv"
         }
       }
     },
@@ -286,6 +290,24 @@
           "author": "NotAGanesh"
         }
       }
+    },
+    "barrel": {
+          "author": "Klayv"
+    },
+    "hay_bale": {
+          "author": "Klayv"
+    },
+    "winter": {
+          "author": "Klayv"
+    },
+    "bamboo": {
+      "author": "Klayv",
+      "variants": {
+        "stripped_bamboo": {}
+      }
+    },
+    "terracotta": {
+      "author": "Klayv"
     }
   },
   "overlays": {
