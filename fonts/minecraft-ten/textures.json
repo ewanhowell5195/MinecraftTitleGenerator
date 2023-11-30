@@ -292,6 +292,14 @@
           "author": "Klayv"
     }
   },
+    "bamboo": {
+      "author": "Klayv",
+      "variants": {
+        "stripped_bamboo": {
+          "name": "stripped bamboo"
+        }
+      }
+    },
   "overlays": {
     "highlights_bottom": {
       "name": "Highlights (Bottom)",
