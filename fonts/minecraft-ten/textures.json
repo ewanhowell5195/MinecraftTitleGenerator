@@ -277,7 +277,17 @@
     },
     "steel": {
       "author": "Doharbdjr"
-    }
+    },
+    "barrel": {
+          "author": "Klayv"
+    },
+    "hay": {
+          "author": "Klayv"
+    },
+    "winter": {
+          "author": "Klayv"
+    },
+
   },
   "overlays": {
     "highlights_bottom": {
