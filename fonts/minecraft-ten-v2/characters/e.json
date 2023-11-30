@@ -1,0 +1,61 @@
+{
+	"credit": "By Ewan Howell",
+	"texture_size": [1000, 320],
+	"textures": {
+		"2": "minecraft-ten-v2:flat",
+		"particle": "minecraft-ten-v2:flat"
+	},
+	"elements": [
+		{
+			"from": [-6, 2, -3],
+			"to": [22, 42, 19],
+			"faces": {
+				"north": {"uv": [2.4, 1.1, 2.848, 3.1], "texture": "#2"},
+				"south": {"uv": [2.848, 1.1, 2.4, 3.1], "texture": "#2"},
+				"up": {"uv": [2.848, 1.1, 2.4, 0], "texture": "#2"},
+				"down": {"uv": [2.848, 4.2, 2.4, 3.1], "texture": "#2"}
+			}
+		},
+		{
+			"from": [24, 44, 21],
+			"to": [-8, 0, -5],
+			"rotation": {"angle": 0, "axis": "y", "origin": [16, 0, 0]},
+			"faces": {
+				"north": {"uv": [1.744, 13.5, 1.616, 14.05], "texture": "#2"},
+				"east": {"uv": [1.744, 13.5, 1.728, 14.05], "texture": "#2"},
+				"south": {"uv": [1.616, 13.5, 1.744, 14.05], "texture": "#2"},
+				"west": {"uv": [0, 13.3, 0.016, 13.35], "texture": "#2"},
+				"up": {"uv": [0.016, 13.3, 0, 13.35], "texture": "#2"},
+				"down": {"uv": [0.016, 13.3, 0, 13.35], "texture": "#2"}
+			}
+		},
+		{
+			"from": [-8, 28, -5],
+			"to": [8, 32, 21],
+			"rotation": {"angle": 0, "axis": "y", "origin": [16, 0, 0]},
+			"faces": {
+				"east": {"uv": [0.016, 13.3, 0, 13.35], "texture": "#2"},
+				"up": {"uv": [0.016, 13.3, 0, 13.35], "texture": "#2"},
+				"down": {"uv": [0.064, 13.3, 0, 13.35], "texture": "#2"}
+			}
+		},
+		{
+			"from": [-8, 12, -5],
+			"to": [8, 16, 21],
+			"rotation": {"angle": 0, "axis": "y", "origin": [16, 0, 0]},
+			"faces": {
+				"east": {"uv": [0.016, 13.3, 0, 13.35], "texture": "#2"},
+				"up": {"uv": [0.064, 13.3, 0, 13.35], "texture": "#2"},
+				"down": {"uv": [0.016, 13.3, 0, 13.35], "texture": "#2"}
+			}
+		},
+		{
+			"from": [-4, 16, -5],
+			"to": [-4, 28, 21],
+			"rotation": {"angle": 0, "axis": "y", "origin": [16, 0, 0]},
+			"faces": {
+				"east": {"uv": [0.016, 13.3, 0, 13.35], "texture": "#2"}
+			}
+		}
+	]
+}

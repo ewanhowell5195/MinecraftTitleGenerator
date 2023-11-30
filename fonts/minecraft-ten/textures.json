@@ -6,7 +6,7 @@
         "cracked_left": {},
         "cracked_right": {},
         "cracked_old": {
-          "author": "Yanuar Mohendra, MrBrose & ShrimpSnail"
+          "author": "Yanuar Mohendra, MrBrose, & ShrimpSnail"
         },
         "cracked_old_pixelated": {
           "name": "Cracked Old (Pixelated)",
@@ -282,10 +282,22 @@
     "steel": {
       "author": "Doharbdjr"
     },
+    "glow_squid": {
+      "author": "Bit sek"
+    },
+    "cherry_blossom": {
+      "author": "Klayv",
+      "variants": {
+        "cherry_blossom_small": {
+          "name": "Cherry Blossom (Small)",
+          "author": "NotAGanesh"
+        }
+      }
+    },
     "barrel": {
           "author": "Klayv"
     },
-    "hay": {
+    "hay_bale": {
           "author": "Klayv"
     },
     "winter": {

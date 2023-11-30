@@ -2,7 +2,7 @@ import { Canvas, loadImage, ImageData } from "skia-canvas"
 import compress_images from "compress-images"
 import fs from "node:fs"
 
-// fs.rmSync("temp", { recursive: true, force: true })
+fs.rmSync("temp", { recursive: true, force: true })
 
 const charMap = {
   asterisk: "*",
@@ -84,6 +84,8 @@ for (const font of fonts) {
   fs.writeFileSync(`../fonts/${font.id}/characters.json`, JSON.stringify(characters))
 
   console.log(`Done ${font.id} characters`)
+
+  fs.writeFileSync(`../fonts/${font.id}/textures.json`, JSON.stringify(JSON.parse(fs.readFileSync(`../fonts/${font.id}/textures.json`)), null, 2) + "\n")
 
   fs.mkdirSync(`temp/${font.id}/textures`, { recursive: true })
   fs.mkdirSync(`temp/${font.id}/overlays`, { recursive: true })
