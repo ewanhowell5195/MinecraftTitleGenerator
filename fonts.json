@@ -4,6 +4,12 @@
     "width": 32,
     "variants": [
       {
+        "id": "minecraft-ten-v2",
+        "name": "Version 2",
+        "description": "Minecraft Ten Version 2 is a newer version of Minecraft Ten with some tweaks to some characters, most notably `&` and `?`.",
+        "author": "Ewan Howell"
+      },
+      {
         "id": "minecraft-ten-cyrillic",
         "name": "Cyrillic",
         "author": "xllifi",
@@ -142,5 +148,23 @@
     "forcedTerminators": [684, 84, 688, 84, 2, 40],
     "overlay": true,
     "flat": true
+  },
+  {
+    "id": "minecraft-seven",
+    "author": "Ewan Howell",
+    "width": 34,
+    "height": 46,
+    "border": 234,
+    "faces": [
+      [16, 58],
+      [92, 134],
+      [168, 168, 210, 216]
+    ],
+    "ends": [
+      [0, 16, 58, 74],
+      [76, 92, 134, 150],
+      [152, 168, 216, 232]
+    ],
+    "terminatorSpace": true
   }
 ]

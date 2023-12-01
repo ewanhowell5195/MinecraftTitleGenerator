@@ -6,7 +6,7 @@
         "cracked_left": {},
         "cracked_right": {},
         "cracked_old": {
-          "author": "Yanuar Mohendra, MrBrose & ShrimpSnail"
+          "author": "Yanuar Mohendra, MrBrose, & ShrimpSnail"
         },
         "cracked_old_pixelated": {
           "name": "Cracked Old (Pixelated)",
@@ -84,7 +84,7 @@
       }
     },
     "bubbles": {
-      "author": "oliver.mp3"
+      "author": "7px"
     },
     "minecon": {
       "author": "Ewan Howell"
@@ -222,6 +222,10 @@
       "variants": {
         "bricks_minecraft": {
           "name": "Bricks (Minecraft)"
+        },
+        "bricks_bare_bones": {
+          "name": "Bricks (Bare Bones)",
+          "author": "Klayv"
         }
       }
     },
@@ -271,6 +275,39 @@
     },
     "crystal": {
       "author": "blank3times"
+    },
+    "end_crystal": {
+      "author": "blank3times"
+    },
+    "glow_squid": {
+      "author": "Bit sek"
+    },
+    "cherry_blossom": {
+      "author": "Klayv",
+      "variants": {
+        "cherry_blossom_small": {
+          "name": "Cherry Blossom (Small)",
+          "author": "NotAGanesh"
+        }
+      }
+    },
+    "barrel": {
+      "author": "Klayv"
+    },
+    "hay_bale": {
+      "author": "Klayv"
+    },
+    "winter": {
+      "author": "Klayv"
+    },
+    "bamboo": {
+      "author": "Klayv",
+      "variants": {
+        "stripped_bamboo": {}
+      }
+    },
+    "terracotta": {
+      "author": "Klayv"
     }
   },
   "overlays": {
