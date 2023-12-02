@@ -199,6 +199,8 @@ If you want to make a font using different characters, please make an issue abou
 [
   {
     "id": "font-id", // Font ID (required)
+    "name": "Font Name", // The name of the font if it doesn't match the ID (optional)
+    "description": "A description", // A description of what the font is (optional)
     "author": "Ewan Howell", // Font author (required)
     "height": 36, // Character height, including border, but not characters that go above or below the baselines, such as a comma (required)
     "border": 212, // The Y coordinate of the top of the border UV (required)
