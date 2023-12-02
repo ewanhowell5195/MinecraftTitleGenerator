@@ -98,7 +98,7 @@ for (const font of fonts) {
       ctx.drawImage(overlayBackground, 0, 0, texture.image.width, texture.image.height)
     }
 
-    let text = font.thumbnail ?? "abc"
+    let text = font.preview ?? "abc"
     if (font.forcedTerminators) {
       if (font.terminatorSpace) text = `┫ ${text} ┣`
       else text = `┫${text}┣`
