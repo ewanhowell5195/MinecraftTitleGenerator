@@ -7,12 +7,14 @@
         "id": "minecraft-ten-v2",
         "name": "Version 2",
         "description": "Minecraft Ten Version 2 is a newer version of Minecraft Ten with some tweaks to some characters, most notably `&` and `?`.",
-        "author": "Ewan Howell"
+        "author": "Ewan Howell",
+        "thumbnail": "e&?"
       },
       {
         "id": "minecraft-ten-cyrillic",
         "name": "Cyrillic",
         "author": "xllifi",
+        "thumbnail": "абв",
         "example": [
           "пример",
           "текст😳"
@@ -53,6 +55,7 @@
         "id": "minecraft-five-bold-cyrillic",
         "name": "Cyrillic",
         "author": "xllifi",
+        "thumbnail": "абв",
         "example": [
           "пример",
           "текст😳"
