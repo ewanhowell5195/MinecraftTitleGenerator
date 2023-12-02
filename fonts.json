@@ -1,7 +1,6 @@
 [
   {
     "id": "minecraft-ten",
-    "width": 32,
     "variants": [
       {
         "id": "minecraft-ten-v2",
@@ -36,7 +35,6 @@
   {
     "id": "minecraft-five-bold",
     "author": "Ewan Howell",
-    "width": 36,
     "height": 36,
     "border": 212,
     "faces": [
@@ -77,7 +75,6 @@
   {
     "id": "minecraft-five-bold-block",
     "author": "Ewan Howell",
-    "width": 40,
     "height": 52,
     "border": 246,
     "faces": [
@@ -91,13 +88,12 @@
       [164, 180, 228, 244]
     ],
     "autoBorder": true,
-    "forcedTerminators": [310, 180, 318, 180, 6, 48],
+    "forcedTerminators": true,
     "overlay": true
   },
   {
     "id": "minecraft-ten-outline",
     "author": "Ewan Howell",
-    "width": 32,
     "height": 60,
     "border": 186,
     "faces": [
@@ -111,13 +107,12 @@
       [124, 124, 184, 184]
     ],
     "borderless": true,
-    "forcedTerminators": [254, 124, 264, 124, 8, 60],
+    "forcedTerminators": true,
     "flat": true
   },
   {
     "id": "minecraft-dungeons",
     "author": "ShrimpSnail & Ewan Howell",
-    "width": 32,
     "height": 44,
     "border": 266,
     "faces": [
@@ -134,7 +129,6 @@
   {
     "id": "minecraft-gui",
     "author": "Ewan Howell",
-    "width": 40,
     "height": 44,
     "border": 126,
     "faces": [
@@ -148,14 +142,13 @@
       [84, 84, 124, 124]
     ],
     "autoBorder": true,
-    "forcedTerminators": [684, 84, 688, 84, 2, 40],
+    "forcedTerminators": true,
     "overlay": true,
     "flat": true
   },
   {
     "id": "minecraft-seven",
     "author": "Ewan Howell",
-    "width": 34,
     "height": 46,
     "border": 234,
     "faces": [
