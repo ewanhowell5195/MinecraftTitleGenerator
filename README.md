@@ -218,7 +218,7 @@ If you want to make a font using different characters, please make an issue abou
     "borderless": true, // The font has no border (optional)
     "overlay": true, // The font has an overlay texture that is applied over the top of the "gradient" texture mode. Requires an "overlay.png" in the textures folder. See the "minecraft-five-bold-block" for an example (optional)
     "thumbnail": "abc", // The text to use in the generated thumbnail images. Normally 3 characters, but I may allow exceptions (optional)
-    "example": [ // The example text to display in the dialog text preview. Only provide if you are creating characters for a different alphabet (optional)
+    "example": [ // The example text to display in the dialog text preview. Only provide if you are creating characters for a different alphabet, or if your font does not contain any letters (optional)
       "exmple", // The top text
       "text" // The bottom text
     ],
