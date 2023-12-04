@@ -10,10 +10,7 @@
       "author": "blank3times",
       "variants": {
         "chambered_panel": {}
-      },
-    "shields": {
-      "author": "Doharbdjr"
-    },
+      }
     },
     "oled": {
       "name": "OLED",
@@ -21,6 +18,9 @@
     },
     "map": {
       "author": "Bit sek"
+    },
+    "shields": {
+      "author": "Doharbdjr"
     }
   },
   "overlays": {
