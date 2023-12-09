@@ -1,8 +1,16 @@
-import { Canvas, loadImage, ImageData } from "skia-canvas"
+import { Canvas, Image, loadImage, ImageData } from "skia-canvas"
 import compress_images from "compress-images"
+import getTHREE from "node-three"
+import createContext from "gl"
+import sharp from "sharp"
 import fs from "node:fs"
 
-// fs.rmSync("temp", { recursive: true, force: true })
+const { THREE, loadTexture } = await getTHREE({ Canvas, Image, ImageData, fetch, Request, Response, Headers })
+
+const w = 160
+const h = 96
+
+fs.rmSync("temp", { recursive: true, force: true })
 
 const charMap = {
   asterisk: "*",
@@ -30,42 +38,13 @@ ten.ends = [[0, 22]]
 fonts.forEach(font => {
   if (font.variants) {
     for (const variant of font.variants) {
-      fonts.push(Object.assign(Object.fromEntries(Object.entries(font).filter(e => e[0] !== "variants")), variant))
+      const variantFont = Object.assign(Object.fromEntries(Object.entries(font).filter(e => e[0] !== "variants")), variant)
+      variantFont.characters = JSON.parse(fs.readFileSync(`../fonts/${variant.id}/characters.json`))
+      fonts.push(variantFont)
     }
   }
+  font.characters = JSON.parse(fs.readFileSync(`../fonts/${font.id}/characters.json`))
 })
-
-function outline(canvas, size, colour) {
-  const ctx = canvas.getContext("2d")
-  const width = canvas.width
-  const height = canvas.height
-  const data = ctx.getImageData(0, 0, width, height).data
-  const data2 = data.slice()
-  const length = data.length
-
-  for (let i = 0; i < length; i += 4) {
-    let a = data[i + 3]
-    if (a !== 255) {
-      const x = i / 4 % width
-      const y = Math.floor(i / 4 / width)
-      const cx =  Math.min(width - 1, x + size) - x
-      const cy = Math.min(height - 1, y + size) - y
-      loop:
-      for (let sy = Math.max(0, y - size) - y; sy <= cy; sy++) {
-        for (let sx = Math.max(0, x - size) - x; sx <= cx; sx++) {
-          a = Math.max(a, data[i + (sx + sy * width) * 4 + 3])
-          if (a === 255) break loop
-        }
-      }
-      if (!a) continue
-      data2[i] = colour[0]
-      data2[i + 1] = colour[1]
-      data2[i + 2] = colour[2]
-      data2[i + 3] = 255
-    }
-  }
-  ctx.putImageData(new ImageData(data2, width, height), 0, 0)
-}
 
 for (const font of fonts) {
   const characters = {}
@@ -85,105 +64,85 @@ for (const font of fonts) {
 
   console.log(`Done ${font.id} characters`)
 
+  fs.writeFileSync(`../fonts/${font.id}/textures.json`, JSON.stringify(JSON.parse(fs.readFileSync(`../fonts/${font.id}/textures.json`)), null, 2) + "\n")
+
   fs.mkdirSync(`temp/${font.id}/textures`, { recursive: true })
   fs.mkdirSync(`temp/${font.id}/overlays`, { recursive: true })
   fs.mkdirSync(`temp/${font.id}/thumbnails`, { recursive: true })
 
-  let borderSize
-  if (font.borderless) {
-    borderSize = 0
-  } else {
-    borderSize = 2
-  }
-  const width = font.width - borderSize * 2
-  const height = font.height - borderSize * 2
-  const depth = font.ends[0][1]
-
-  let overlayBackground
   const textures = fs.readdirSync(`../fonts/${font.id}/textures`).map(e => ["textures", e]).concat(fs.readdirSync(`../fonts/${font.id}/overlays`).map(e => ["overlays", e]))
+
+  const flat = await loadImage(`../fonts/${font.id}/textures/flat.png`)
+  const overlayBackground = new Canvas(flat.width, flat.height)
+  const overlayBackgroundCtx = overlayBackground.getContext("2d")
+  overlayBackgroundCtx.drawImage(flat, 0, 0)
+  overlayBackgroundCtx.fillStyle = "rgb(0,0,0,0.3)"
+  overlayBackgroundCtx.globalCompositeOperation = "destination-in"
+  overlayBackgroundCtx.fillRect(0, 0, flat.width, flat.height)
+  overlayBackgroundCtx.globalCompositeOperation = "source-over"
+  textures.push([null, "none.png", overlayBackground])
+  
   for (const file of textures) {
     if (!file[1].endsWith(".png") || file[1] === "overlay.png") continue
 
-    const img = await loadImage(`../fonts/${font.id}/${file[0]}/${file[1]}`)
-    
-    const canvas = new Canvas(img.width, img.height)
-    const context = canvas.getContext("2d")
-    context.drawImage(img, 0, 0)
-    canvas.saveAs(`temp/${font.id}/${file[0]}/${file[1]}`)
-    
-    const m = canvas.width / 1000
+    const texture = await loadTexture(file[0] ? `../fonts/${font.id}/${file[0]}/${file[1]}` : file[2])
+    if (file[0]) texture.image.saveAs(`temp/${font.id}/${file[0]}/${file[1]}`)
 
-    let thumbnail
-    if (font.autoBorder || font.borderless) {
-      if (font.forcedTerminators) {
-        thumbnail = new Canvas(font.width * 3 * m - borderSize * 4 + font.forcedTerminators[4] * 2, font.height * m)
-      } else {
-        thumbnail = new Canvas(font.width * 3 * m - borderSize * 4, font.height * m)
-      }
-    } else {
-      if (font.forcedTerminators) {
-        thumbnail = new Canvas(font.width * 3 * m + borderSize * 4 + font.forcedTerminators[4] * 2, font.height * m)
-      } else {
-        thumbnail = new Canvas(font.width * 3 * m, font.height * m)
-      }
-    }
-    const ctx = thumbnail.getContext("2d")
-    
-    if (font.autoBorder || font.borderless) {
-      if (font.forcedTerminators) {
-        const terminatorWidth = font.forcedTerminators[4] * m
-        ctx.drawImage(canvas, font.forcedTerminators[0] * m, font.forcedTerminators[1] * m, terminatorWidth, font.forcedTerminators[5] * m, borderSize * m, borderSize * m, terminatorWidth, font.forcedTerminators[5] * m)
-        ctx.drawImage(canvas, width * m + 2 * m, depth * m, width * m, height * m, borderSize * m + terminatorWidth, borderSize * m, width * m, height * m)
-        ctx.drawImage(canvas, width * m * 2 + 2 * 2 * m, depth * m, width * m, height * m, borderSize * m + width * m + terminatorWidth, borderSize * m, width * m, height * m)
-        ctx.drawImage(canvas, width * m * 3 + 2 * 3 * m, depth * m, width * m, height * m, borderSize * m + width * m * 2 + terminatorWidth, borderSize * m, width * m, height * m)
-        ctx.drawImage(canvas, font.forcedTerminators[2] * m, font.forcedTerminators[3] * m, terminatorWidth, font.forcedTerminators[5] * m, borderSize * m + width * m * 3 + terminatorWidth, borderSize * m, terminatorWidth, font.forcedTerminators[5] * m)
-      } else {
-        ctx.drawImage(canvas, width * m + 2 * m, depth * m, width * m, height * m, borderSize * m, borderSize * m, width * m, height * m)
-        ctx.drawImage(canvas, width * m * 2 + 2 * 2 * m, depth * m, width * m, height * m, borderSize * m + width * m, borderSize * m, width * m, height * m)
-        ctx.drawImage(canvas, width * m * 3 + 2 * 3 * m, depth * m, width * m, height * m, borderSize * m + width * m * 2, borderSize * m, width * m, height * m)
-      }
-    } else {
-      if (font.forcedTerminators) {
-        const terminatorWidth = font.forcedTerminators[4] * m
-        ctx.drawImage(canvas, font.forcedTerminators[0] * m, font.forcedTerminators[1] * m, terminatorWidth, font.forcedTerminators[5] * m, borderSize * m, borderSize * m, terminatorWidth, font.forcedTerminators[5] * m)
-        ctx.drawImage(canvas, width * m + 2 * m, depth * m, width * m, height * m, borderSize * m * 3 + terminatorWidth, borderSize * m, width * m, height * m)
-        ctx.drawImage(canvas, width * m * 2 + 2 * 2 * m, depth * m, width * m, height * m, borderSize * 5 * m + width * m + terminatorWidth, borderSize * m, width * m, height * m)
-        ctx.drawImage(canvas, width * m * 3 + 2 * 3 * m, depth * m, width * m, height * m, borderSize * 7 * m + width * m * 2 + terminatorWidth, borderSize * m, width * m, height * m)
-        ctx.drawImage(canvas, font.forcedTerminators[2] * m, font.forcedTerminators[3] * m, terminatorWidth, font.forcedTerminators[5] * m, borderSize * 9 * m + width * m * 3 + terminatorWidth, borderSize * m, terminatorWidth, font.forcedTerminators[5] * m)
-      } else {
-        ctx.drawImage(canvas, width * m + 2 * m, depth * m, width * m, height * m, borderSize * m, borderSize * m, width * m, height * m)
-        ctx.drawImage(canvas, width * m * 2 + 2 * 2 * m, depth * m, width * m, height * m, borderSize * 3 * m + width * m, borderSize * m, width * m, height * m)
-        ctx.drawImage(canvas, width * m * 3 + 2 * 3 * m, depth * m, width * m, height * m, borderSize * 5 * m + width * m * 2, borderSize * m, width * m, height * m)
-      }
-    }
+    const scaleFactor = texture.image.width / 1000
+    const [scene, camera] = makeTitleScene(scaleFactor)
 
-    if (file[0] === "textures") {
-      if (!font.borderless) outline(thumbnail, 2 * m, context.getImageData(0, font.border * m, 1, 1).data)
-    } else {
+    if (file[0] === "overlays") {
+      const ctx = texture.image.getContext("2d")
       ctx.globalCompositeOperation = "destination-over"
       ctx.imageSmoothingEnabled = false
-      ctx.drawImage(overlayBackground, 0, 0, thumbnail.width, thumbnail.height)
+      ctx.drawImage(overlayBackground, 0, 0, texture.image.width, texture.image.height)
     }
 
-    thumbnail.saveAs(`temp/${font.id}/thumbnails/${file[1]}`)
-
-    if (file[1] === "flat.png") {
-      overlayBackground = new Canvas(thumbnail.width, thumbnail.height)
-      const overlayBackgroundCtx = overlayBackground.getContext("2d")
-      overlayBackgroundCtx.drawImage(thumbnail, 0, 0)
-      overlayBackgroundCtx.fillStyle = "rgb(0,0,0,0.25)"
-      overlayBackgroundCtx.globalCompositeOperation = "destination-in"
-      overlayBackgroundCtx.fillRect(0, 0, thumbnail.width, thumbnail.height)
-      overlayBackgroundCtx.globalCompositeOperation = "source-over"
-      overlayBackground.saveAs(`temp/${font.id}/thumbnails/none.png`)
+    let text = font.preview ?? "abc"
+    if (font.forcedTerminators) {
+      if (font.terminatorSpace) text = `┫ ${text} ┣`
+      else text = `┫${text}┣`
     }
+
+    await addTitleText(scene, text, {
+      font: font.id,
+      texture
+    })
+
+    let canvas = await renderTitleScene(scene, camera, scaleFactor)
+
+    if (font.autoBorder) {
+      let colour = [0, 0, 0]
+      if (file[0] === "textures") {
+        const ctx = texture.image.getContext("2d")
+        colour = ctx.getImageData(0, font.border * scaleFactor, 1, 1).data
+      }
+      const bordered = new Canvas(canvas.width + 4 * scaleFactor, canvas.height + 4 * scaleFactor)
+      const ctx = bordered.getContext("2d")
+      ctx.drawImage(canvas, 2 * scaleFactor, 2 * scaleFactor)
+      const { data } = ctx.getImageData(0, 0, bordered.width, bordered.height)
+      const opacity = file[0] === "textures" ? 255 : 77
+      for (let i = data.length - 4; i >= 0; i -= 4) {
+        if (data[i + 3] === 0) {
+          data[i] = colour[0]
+          data[i + 1] = colour[1]
+          data[i + 2] = colour[2]
+          data[i + 3] = opacity
+        }
+      }
+      ctx.putImageData(new ImageData(data, bordered.width, bordered.height), 0, 0)
+      canvas = bordered
+    }
+
+    canvas.saveAs(`temp/${font.id}/thumbnails/${file[1]}`)
+    console.log(`Done ${font.id} ${file[1]}`)
   }
 }
 
 console.log("Compressing textures...")
 
 compress_images("temp/**/*.png", "../fonts/", {
-  statistic: true,
+  statistic: false,
   autoupdate: true,
   compress_force: true,
 }, false,
@@ -194,3 +153,200 @@ compress_images("temp/**/*.png", "../fonts/", {
 (err, comp, stat) => {
   if (fs.existsSync(stat.path_out_new + ".bak")) fs.unlinkSync(stat.path_out_new + ".bak")
 })
+
+function makeTitleScene(scaleFactor) {
+  const scene = new THREE.Scene()
+  const camera = new THREE.OrthographicCamera(
+    -w / 2,
+    w / 2,
+    h / 2,
+    -h / 2,
+    1,
+    1000
+  )
+  camera.position.x = 0
+  camera.position.y = 22
+  camera.position.z = -320
+  camera.lookAt(new THREE.Vector3(0, 22, 0))
+  camera.up.set(0, 1, 0)
+  return [scene, camera]
+}
+
+async function addTitleText(scene, str, args) {
+  const font = fonts.find(e => e.id === args.font)
+
+  args.texture.colorSpace = THREE.SRGBColorSpace
+  args.texture.magFilter = THREE.NearestFilter
+  args.texture.minFilter = THREE.NearestFilter
+  args.texture.flipY = true
+
+  const material = new THREE.MeshBasicMaterial({
+    map: args.texture,
+    transparent: true,
+    alphaTest: 0.01
+  })
+
+  let width = 0
+  const cubes = []
+  const group = new THREE.Group()
+  for (const char of str) {
+    if (char === " ") {
+      width += 8
+      continue
+    }
+    if (!font.characters[char]) continue
+    let min = Infinity
+    let max = -Infinity
+    const character = new THREE.Group()
+    for (let cube of font.characters[char]) {
+      if (!cube.parsed) {
+        cube.parsed = true
+        for (const [direction, uv] of Object.entries(cube.faces)) {
+          cube.faces[direction] = { uv }
+        }
+      }
+
+      cube = JSON.parse(JSON.stringify(cube))
+      min = Math.min(min, cube.from[0], cube.to[0])
+      max = Math.max(max, cube.from[0], cube.to[0])
+
+      if (args.type === "bottom") {
+        if (cube.to[2] > cube.from[2]) {
+          cube.to[2] += 20
+        } else {
+          cube.from[2] += 20
+        }
+      }
+
+      const geometry = new THREE.BoxGeometry(cube.to[0] - cube.from[0], cube.to[1] - cube.from[1], cube.to[2] - cube.from[2])
+      const mesh = new THREE.Mesh(geometry, material)
+
+      mesh.position.fromArray([
+        (cube.from[0] + cube.to[0]) / 2,
+        (cube.from[1] + cube.to[1]) / 2,
+        (cube.from[2] + cube.to[2]) / 2
+      ])
+
+      const indexes = {
+        north: 40,
+        east: 0,
+        south: 32,
+        west: 8,
+        up: 16,
+        down: 24
+      }
+
+      for (const key of Object.keys(indexes)) {
+        const face = cube.faces[key]
+        const i = indexes[key]
+        if (face) {
+          const uv = [
+            [face.uv[0] / 16, 1 - (face.uv[1] / 16)],
+            [face.uv[2] / 16, 1 - (face.uv[1] / 16)],
+            [face.uv[0] / 16, 1 - (face.uv[3] / 16)],
+            [face.uv[2] / 16, 1 - (face.uv[3] / 16)]
+          ]
+          mesh.geometry.attributes.uv.array.set(uv[0], i + 0)
+          mesh.geometry.attributes.uv.array.set(uv[1], i + 2)
+          mesh.geometry.attributes.uv.array.set(uv[2], i + 4)
+          mesh.geometry.attributes.uv.array.set(uv[3], i + 6)
+        } else {
+          mesh.geometry.attributes.uv.array.set([1, 1], i + 0)
+          mesh.geometry.attributes.uv.array.set([1, 1], i + 2)
+          mesh.geometry.attributes.uv.array.set([1, 1], i + 4)
+          mesh.geometry.attributes.uv.array.set([1, 1], i + 6)
+        }
+      }
+      character.add(mesh)
+      cubes.push(mesh)
+    }
+    for (const cube of character.children) {
+      cube.position.x -= width + max
+    }
+    group.add(character)
+    width += max - min
+  }
+
+  for (const cube of cubes) {
+    cube.position.x += width / 2
+  }
+
+  if (args.row) {
+    group.position.y += font.height * args.row
+  }
+
+  if (args.type === "bottom") {
+    group.scale.setX(0.75)
+    group.scale.setY(1.6)
+    group.scale.setZ(0.75)
+    group.rotation.fromArray([torad(-90), 0, 0])
+    group.position.z += font.height + 49
+    group.position.y -= 25 - font.depth
+  } else if (args.type === "small") {
+    group.scale.setX(0.35)
+    group.scale.setY(0.35)
+    group.scale.setZ(0.35)
+    group.position.y -= font.height * 0.35
+  }
+
+  if (args.scale) {
+    group.scale.setX(group.scale.x * args.scale[0])
+    group.scale.setY(group.scale.y * args.scale[1])
+    group.scale.setZ(group.scale.z * args.scale[2])
+  }
+
+  if (args.rotation) {
+    const old = group.rotation.toArray()
+    group.rotation.fromArray(args.rotation.map((e, i) => torad(e) + old[i]))
+  }
+
+  scene.add(group)
+}
+
+async function renderTitleScene(scene, camera, scaleFactor) {
+  const gl = createContext(w * scaleFactor, h * scaleFactor)
+  const renderer = new THREE.WebGLRenderer({
+    context: gl
+  })
+  renderer.render(scene, camera, new THREE.WebGLRenderTarget(w * scaleFactor, h * scaleFactor))
+  const buff = Buffer.alloc(w * scaleFactor * h * scaleFactor * 4)
+  gl.readPixels(0, 0, w * scaleFactor, h * scaleFactor, gl.RGBA, gl.UNSIGNED_BYTE, buff)
+  const img = await loadImage(await sharp(buff, {
+    raw: {
+      width: w * scaleFactor,
+      height: h * scaleFactor,
+      channels: 4
+    }
+  }).flip().png().toBuffer())
+  const canvas = new Canvas(img.width, img.height)
+  canvas.getContext("2d").drawImage(img, 0, 0)
+  return trim(canvas)
+}
+
+function rowBlank(imageData, width, y) {
+  for (let x = 0; x < width; ++x) if (imageData.data[y * width * 4 + x * 4 + 3] !== 0) return false
+  return true
+}
+
+function columnBlank(imageData, width, x, top, bottom) {
+  for (let y = top; y < bottom; ++y) if (imageData.data[y * width * 4 + x * 4 + 3] !== 0) return false
+  return true
+}
+
+function trim(canvas) {
+  const ctx = canvas.getContext("2d")
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+  let top = 0, bottom = imageData.height, left = 0, right = imageData.width
+  while (top < bottom && rowBlank(imageData, canvas.width, top)) ++top
+  while (bottom - 1 > top && rowBlank(imageData, canvas.width, bottom - 1)) --bottom
+  while (left < right && columnBlank(imageData, canvas.width, left, top, bottom)) ++left
+  while (right - 1 > left && columnBlank(imageData, canvas.width, right - 1, top, bottom)) --right
+  if (left === right && top === bottom) return canvas
+  const trimmed = ctx.getImageData(left, top, right - left, bottom - top);
+  const copy = new Canvas(canvas.width, canvas.height)
+  const copyCtx = copy.getContext("2d")
+  copy.width = trimmed.width
+  copy.height = trimmed.height
+  copyCtx.putImageData(trimmed, 0, 0)
+  return copy
+}

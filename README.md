@@ -12,12 +12,14 @@ Anyone can submit fonts and textures to this plugin, as long as they meet the re
 - Fonts/textures must be somewhat high quality. No low-effort submissions.
 - Fonts/textures must be somewhat unique from other fonts/textures. Try not to re-use other textures.
 - Full credit must be provided. If you are basing a font/texture off of someone else's design, credit them too!
-- Font/texture IDs must be in the snake_case format, and only use `a-z`, `0-9`, and underscores.
+- Font/texture IDs must be in the snake_case format, and only use the characters `a-z`, `0-9`, and underscores.
 
 ## How to make a submission
 To make a submission, create a fork of this repository and edit/upload the necessary files. After all the changes are made, create a pull request and explain what you are adding.
 
 For larger submissions like fonts, it will be a lot easier to clone the repo to your PC and use an app like [GitHub Desktop](https://desktop.github.com/) to manage changes.
+
+[Texture submissions video tutorial](https://youtu.be/7OrHBIKknMU)
 
 ### Compiling
 After making a submission of either a font or a texture, it would be really helpful if you could compile it. If you don't understand how to do this, you can skip this step and I can do it for you.
@@ -69,8 +71,9 @@ Thumbnails are generated through the compile script. Do not make them manually.
 - Textures must use the exact same shapes as the `flat.png` texture. This means no extra cut-outs or filling parts in.
 - Textures must be one of these three sizes: `1000x320`, `2000x640`, or `4000x1280`.
 - Do not add too many variants to a single texture. If I feel a variant is unnecessary, or there are too many, it will be denied.
-- The border colour at the bottom (under all character lines) must be the same colour for the entire thing. It will not work if you try to use multiple colours.
-- Do not submit textures generated using the plugin.
+- The border colour at the bottom (under all character lines) must be the same colour for the entire thing. It will not work if you try to use multiple colours. This may not apply for certain fonts. Please check the `flat.png` to see if it is a solid colour there.
+- Do not submit textures generated using the plugin, or that could be easily recreated using the plugin.
+- Semi transparency is not supported for regular textures. It is supported for overlays.
 
 # Fonts
 Fonts require you to create a model for every character.
@@ -161,6 +164,8 @@ Some characters use a name instead, since the characters are invalid for file na
   </ul>
 </details>
 
+Different alphabets are allowed (such as Cyrillic), but all non-letter characters must still be present in the font.
+
 If you want to make a font using different characters, please make an issue about it first.
 
 ## Creating a font
@@ -171,7 +176,6 @@ If you want to make a font using different characters, please make an issue abou
    - Characters need to be arranged into rows, with the top face directly above the character, and the bottom face directly below.
    - You can have as many rows as you need, as long as you leave room for the border UV at the bottom.
    - 2px-wide spaces must be between the characters and the rows.
-   - The orders of the characters doesn't matter, apart from the first 4, which must be: `Creeper A`, `A`, `B`, `C`. These 4 characters must also all be the same width.
    - If some characters are taller than the standard character height, they can go into their own rows.
    - You do not need to worry about making the border UVs at this time.
    - See the `minecraft-ten` and `minecraft-five-bold` textures for example UVs.
@@ -195,8 +199,9 @@ If you want to make a font using different characters, please make an issue abou
 [
   {
     "id": "font-id", // Font ID (required)
+    "name": "Font Name", // The name of the font if it doesn't match the ID (optional)
+    "description": "A description", // A description of what the font is (optional)
     "author": "Ewan Howell", // Font author (required)
-    "width": 36, // Width of first 4 characters, including border (required)
     "height": 36, // Character height, including border, but not characters that go above or below the baselines, such as a comma (required)
     "border": 212, // The Y coordinate of the top of the border UV (required)
     "faces": [ // List of coordinates defining the front faces of the rows of characters (required)
@@ -212,7 +217,8 @@ If you want to make a font using different characters, please make an issue abou
     "autoBorder": true, // Will generate an automatic border which is a single element around the entire text row (optional)
     "borderless": true, // The font has no border (optional)
     "overlay": true, // The font has an overlay texture that is applied over the top of the "gradient" texture mode. Requires an "overlay.png" in the textures folder. See the "minecraft-five-bold-block" for an example (optional)
-    "example": [ // The example text to display in the dialog text preview. Only provide if you are creating characters for a different alphabet (optional)
+    "preview": "abc", // The text to use in the generated thumbnail images. Normally 3 characters, but I may allow exceptions (optional)
+    "example": [ // The example text to display in the dialog text preview. Only provide if you are creating characters for a different alphabet, or if your font does not contain any letters (optional)
       "exmple", // The top text
       "text" // The bottom text
     ],

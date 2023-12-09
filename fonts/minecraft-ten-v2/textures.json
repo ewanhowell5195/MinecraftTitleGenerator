@@ -1,0 +1,42 @@
+{
+  "textures": {
+    "flat": {
+      "author": "Ewan Howell"
+    },
+    "cracked": {
+      "author": "ShrimpSnail, Ewan Howell, & MrBrose",
+      "variants": {
+        "cracked_left": {},
+        "cracked_right": {},
+        "cracked_old": {
+          "author": "Yanuar Mohendra, MrBrose, ShrimpSnail, & Ewan Howell"
+        },
+        "cracked_old_pixelated": {
+          "name": "Cracked Old (Pixelated)",
+          "author": "Yanuar Mohendra, ShrimpSnail, & Ewan Howell"
+        }
+      }
+    },
+    "trails_and_tales": {
+      "author": "Abe & Ewan Howell"
+    },
+    "mangrove": {
+      "name": "Mangrove (Wild Update)",
+      "author": "Narrator2, TheAnnoying, & blank3times"
+    },
+    "deep_dark": {
+      "name": "Deep Dark (Wild Update)",
+      "author": "Banjoei, Shrimpsnail, & blank3times"
+    }
+  },
+  "overlays": {
+    "highlights_bottom": {
+      "name": "Highlights (Bottom)",
+      "author": "Ewan Howell"
+    },
+    "highlights_top": {
+      "name": "Highlights (Top)",
+      "author": "Ewan Howell"
+    }
+  }
+}
