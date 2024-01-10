@@ -9,12 +9,6 @@
     "flat_coloured": {
       "author": "xllifi" 
     },
-  "textures": {
-    "texture_id": { 1453
-      "name": "Winter", 
-      "author": "Limoro",
-      }
-    }
   },
   "overlays": {
     "highlights_bottom": {
