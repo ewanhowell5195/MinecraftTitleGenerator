@@ -19,5 +19,11 @@
       "name": "Highlights (Top)",
       "author": "xllifi"
     }
+  },
+  "textures": {
+    "texture_id": { 1453
+      "name": "Winter", 
+      "author": "Limoro",
+    }
   }
 }
