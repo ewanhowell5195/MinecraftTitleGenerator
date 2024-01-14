@@ -1,33 +1,35 @@
 {
-  "textures": {
-    "flat": {
-      "author": "xllifi"
+    "textures": {
+        "flat": {
+            "author": "xllifi"
+        },
+        "cracked": {
+            "author": "xllifi",
+            "variants": {
+                "cracked_old": {
+                    "author": "Yozhenka"
+                }
+            }
+        },
+        "pixel": {
+            "author": "Sawiq"
+        },
+        "neon_glow": {
+            "category": "Neon",
+            "author": "MCAlexisYT",
+            "variants": {
+                "neon": {}
+            }
+        }
     },
-    "cracked": {
-      "author": "xllifi"
-      "variants": {
-        "cracked_old": {
-          "author": "Yozhenka"
-    },
-    "pixel": {
-      "author": "Sawiq"
-    },
-    "neon_glow": {
-      "category": "Neon",
-      "author": "MCAlexisYT",
-      "variants": {
-        "neon": {}
-      }
+    "overlays": {
+        "highlights_bottom": {
+            "name": "Highlights (Bottom)",
+            "author": "xllifi"
+        },
+        "highlights_top": {
+            "name": "Highlights (Top)",
+            "author": "xllifi"
+        }
     }
-  },
-  "overlays": {
-    "highlights_bottom": {
-      "name": "Highlights (Bottom)",
-      "author": "xllifi"
-    },
-    "highlights_top": {
-      "name": "Highlights (Top)",
-      "author": "xllifi"
-    }
-  }
 }
