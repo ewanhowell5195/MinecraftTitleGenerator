@@ -4,7 +4,12 @@
       "author": "xllifi"
     },
     "cracked": {
-      "author": "xllifi"
+      "author": "xllifi",
+      "variants": {
+        "cracked_old": {
+          "author": "Yozhenka"
+        }
+      }
     },
     "pixel": {
       "author": "Sawiq"
