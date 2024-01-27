@@ -8,8 +8,24 @@
     },
     "flat_coloured": {
       "author": "xllifi"
-    }
-  },
+    },
+    "pride": {
+      "author": "Yozhenka",
+      "variants": {
+        "aroace": {},
+        "aromantic": {},
+        "asexual": {},
+        "bisexual": {},
+        "enby": {},
+        "fluid": {},
+        "gay": {},
+        "heterosexual": {},
+        "intersex": {},
+        "lesbian": {},
+        "pansexual": {},
+        "trans": {}
+      }
+    },
   "overlays": {
     "highlights_bottom": {
       "name": "Highlights (Bottom)",
