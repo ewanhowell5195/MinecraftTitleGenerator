@@ -39,20 +39,18 @@ fonts.forEach(font => {
   if (font.variants) {
     for (const variant of font.variants) {
       const variantFont = Object.assign(Object.fromEntries(Object.entries(font).filter(e => e[0] !== "variants")), variant)
-      variantFont.characters = JSON.parse(fs.readFileSync(`../fonts/${variant.id}/characters.json`))
       fonts.push(variantFont)
     }
   }
-  font.characters = JSON.parse(fs.readFileSync(`../fonts/${font.id}/characters.json`))
 })
 
 for (const font of fonts) {
-  const characters = {}
+  font.characters = {}
 
   for (const file of fs.readdirSync(`../fonts/${font.id}/characters`)) {
     const char = charMap[file.slice(0, -5)] ?? file.slice(0, -5)
-    characters[char] = JSON.parse(fs.readFileSync(`../fonts/${font.id}/characters/${file}`, "utf8")).elements
-    for (const element of characters[char]) {
+    font.characters[char] = JSON.parse(fs.readFileSync(`../fonts/${font.id}/characters/${file}`, "utf8")).elements
+    for (const element of font.characters[char]) {
       for (const [direction, face] of Object.entries(element.faces)) {
         if (face.rotation === 180) face.uv = [face.uv.slice(2), face.uv.slice(0, 2)].flat()
         element.faces[direction] = face.uv
@@ -60,7 +58,7 @@ for (const font of fonts) {
     }
   }
 
-  fs.writeFileSync(`../fonts/${font.id}/characters.json`, JSON.stringify(characters))
+  fs.writeFileSync(`../fonts/${font.id}/characters.json`, JSON.stringify(font.characters))
 
   console.log(`Done ${font.id} characters`)
 
