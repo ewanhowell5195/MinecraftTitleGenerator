@@ -2,6 +2,9 @@
   "textures": {
     "flat": {
       "author": "Ewan Howell"
+    },
+    "edition": {
+      "author": "Ewan Howell"
     }
   },
   "overlays": {
