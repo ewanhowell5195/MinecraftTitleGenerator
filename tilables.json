@@ -10,7 +10,7 @@
   },
   "oak_planks": {
     "category": "Planks",
-    "path": "minecraft/planks"
+    "path": "minecraft/planks",
     "variants": {
       "spruce_planks": {},
       "birch_planks": {},
