@@ -1,9 +1,16 @@
 {
-  "cobblestone": {},
-  "basalt": {},
-  "sponge": {},
+  "cobblestone": {
+    "path": "minecraft"
+  },
+  "basalt": {
+    "path": "minecraft"
+  },
+  "sponge": {
+    "path": "minecraft"
+  },
   "oak_planks": {
     "category": "Planks",
+    "path": "minecraft/planks"
     "variants": {
       "spruce_planks": {},
       "birch_planks": {},
