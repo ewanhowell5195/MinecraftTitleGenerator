@@ -1,0 +1,19 @@
+{
+  "cobblestone": {},
+  "basalt": {},
+  "sponge": {},
+  "oak_planks": {
+    "category": "Planks",
+    "variants": {
+      "spruce_planks": {},
+      "birch_planks": {},
+      "jungle_planks": {},
+      "acacia_planks": {},
+      "dark_oak_planks": {},
+      "mangrove_planks": {},
+      "cherry_blossom_planks": {},
+      "crimson_planks": {},
+      "warped_planks": {}
+    }
+  }
+}
