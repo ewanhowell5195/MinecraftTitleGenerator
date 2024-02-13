@@ -17,5 +17,9 @@
       "crimson_planks": {},
       "warped_planks": {}
     }
+  },
+  "twisted_wood": {
+    "author": "CCCode",
+    "path": "dokucraft"
   }
 }
