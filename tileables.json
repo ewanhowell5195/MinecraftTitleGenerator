@@ -1,0 +1,25 @@
+{
+  "cobblestone": {},
+  "basalt": {},
+  "sponge": {},
+  "oak_planks": {
+    "category": "Planks",
+    "path": "minecraft/planks",
+    "variants": {
+      "spruce_planks": {},
+      "birch_planks": {},
+      "jungle_planks": {},
+      "acacia_planks": {},
+      "dark_oak_planks": {},
+      "mangrove_planks": {},
+      "cherry_planks": {},
+      "bamboo_planks": {},
+      "crimson_planks": {},
+      "warped_planks": {}
+    }
+  },
+  "twisted_wood": {
+    "author": "CCCode",
+    "path": "dokucraft"
+  }
+}

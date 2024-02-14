@@ -230,7 +230,7 @@ If you want to make a font using different characters, please make an issue abou
 ## Testing your font
 The easiest way to test your font is to modify the plugin to use your fork of this repo instead of the official one.
 
-1. Download the plugin file from the [Blockbench Plugins](https://github.com/JannisX11/blockbench-plugins/blob/master/plugins/minecraft_title_generator.js) repository.
+1. Download the plugin file from the [Blockbench Plugins](https://github.com/JannisX11/blockbench-plugins/blob/master/plugins/minecraft_title_generator/minecraft_title_generator.js) repository.
 2. Edit the `repo` variable on line 2 to be your repo.
 3. Uninstall the official plugin and install your modified one by dragging and dropping the file into Blockbench.
 4. Compile the font using the compile script and commit the font to your fork, then view the font from within Blockbench!

@@ -18,6 +18,18 @@
     "highlights_top": {
       "name": "Highlights (Top)",
       "author": "Shrimpsnail"
+    },
+    "drop_shadow": {
+      "name": "Drop Shadow",
+      "author": "Ewan Howell"
+    },
+    "drop_shadow_left": {
+      "name": "Drop Shadow (Left)",
+      "author": "Ewan Howell"
+    },
+    "drop_shadow_right": {
+      "name": "Drop Shadow (Right)",
+      "author": "Ewan Howell"
     }
   }
 }
