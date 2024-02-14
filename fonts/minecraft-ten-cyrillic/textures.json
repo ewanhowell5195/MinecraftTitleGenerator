@@ -20,6 +20,23 @@
       "variants": {
         "neon": {}
       }
+    },
+    "pride": {
+      "author": "Yozhenka",
+      "variants": {
+        "aroace": {},
+        "aromantic": {},
+        "asexual": {},
+        "bisexual": {},
+        "enby": {},
+        "fluid": {},
+        "gay": {},
+        "heterosexual": {},
+        "intersex": {},
+        "lesbian": {},
+        "pansexual": {},
+        "trans": {}
+      }
     }
   },
   "overlays": {
