@@ -20,8 +20,7 @@
       "variants": {
         "neon": {}
       }
-    }
-  },
+    },
     "pride": {
       "author": "Yozhenka",
       "variants": {
@@ -38,7 +37,8 @@
         "pansexual": {},
         "trans": {}
       }
-    },
+    }
+  },
   "overlays": {
     "highlights_bottom": {
       "name": "Highlights (Bottom)",

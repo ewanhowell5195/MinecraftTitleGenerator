@@ -25,12 +25,12 @@
         "pansexual": {},
         "trans": {}
       }
-    },
+    }
+  },
   "overlays": {
     "highlights_bottom": {
       "name": "Highlights (Bottom)",
       "author": "xllifi"
-      }
     },
     "highlights_top": {
       "name": "Highlights (Top)",
