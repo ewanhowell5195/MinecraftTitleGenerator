@@ -21,5 +21,9 @@
   "twisted_wood": {
     "author": "CCCode",
     "path": "dokucraft"
+  },
+  "checkerboard": {
+    "author": "Ewan Howell",
+    "path": "patterns"
   }
 }
