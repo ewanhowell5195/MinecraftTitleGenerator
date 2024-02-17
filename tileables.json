@@ -14,6 +14,8 @@
       "tuff": {},
       "bedrock": {},
       "netherrack": {},
+      "blackstone": {},
+      "blackstone_top": {},
       "basalt": {},
       "end_stone": {}
     }
@@ -87,6 +89,9 @@
       "mangrove_log": {},
       "cherry_log": {},
       "bamboo_block": {},
+      "bamboo_block_top": {},
+      "stripped_bamboo_block": {},
+      "stripped_bamboo_block_top": {},
       "crimson_stem": {},
       "warped_stem": {}
     }
@@ -112,25 +117,6 @@
       "pink_glazed_terracotta": {}
     }
   },
-  "oak_log": {
-    "category": "Logs",
-    "path": "minecraft/log",
-    "variants": {
-      "spruce_log": {},
-      "birch_log": {},
-      "jungle_log": {},
-      "acacia_log": {},
-      "dark_oak_log": {},
-      "mangrove_log": {},
-      "cherry_log": {},
-      "bamboo_block": {},
-      "bamboo_block_top": {},
-      "stripped_bamboo_block": {},
-      "stripped_bamboo_block_top": {},
-      "crimson_stem": {},
-      "warped_stem": {}
-    }
-  },
   "dirt": {
     "path": "minecraft/dirt",
     "variants": {
@@ -151,6 +137,28 @@
       "red_sandstone_top": {},
       "soul_sand": {},
       "soul_soil": {}
+    }
+  },
+  "amethyst": {},
+  "melon": {},
+  "ancient_debris": {},
+  "bricks": {
+    "path": "minecraft/bricks",
+    "variants": {
+      "stone_bricks": {},
+      "cracked_stone_bricks": {},
+      "mossy_stone_bricks": {},
+      "deepslate_bricks": {},
+      "cracked_deepslate_bricks": {},
+      "tuff_bricks": {},
+      "quartz_bricks": {},
+      "mud_bricks": {},
+      "nether_bricks": {},
+      "cracked_nether_bricks": {},
+      "red_nether_bricks": {},
+      "polished_blackstone_bricks": {},
+      "cracked_polished_blackstone_bricks": {},
+      "end_stone_bricks": {}
     }
   }
 }
