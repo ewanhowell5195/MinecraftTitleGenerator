@@ -291,7 +291,7 @@ To create a font variant, follow the same process as creating a normal font. Whe
 ```
 Variant fonts use the same properties as normal fonts. The only required property of a variant is its ID. Any missing properties will be inherited from the parent font.
 
-## Official Minecraft Assets
+# Official Minecraft Assets
 Some textures in this repository are official Minecraft assets, or contain parts of official Minecraft assets. These will be licensed under the Minecraft End User License Agreement (see [LICENSE.md](./LICENSE.md)).
 
 When submitting textures or tileables that include official Minecraft assets, please add them to the [LICENSE.md](./LICENSE.md).
