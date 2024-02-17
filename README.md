@@ -78,7 +78,7 @@ Thumbnails are generated through the compile script. Do not make them manually.
 
 # Tileables
 ## Creating a tileable
-1. To create a new tileable, add the tileable to the `/tileables` folder, under a fitting subdirectory.
+1. To create a new tileable, add the tileable to the `tileables` folder under a fitting subdirectory.
 3. Edit the `tileables.json` file and add your tileable to it. This file follows the following formatting:
 ```js
 {

@@ -4,10 +4,10 @@ By downloading any of the following files, you agree to the [Minecraft End User 
 
 ## Directories
 Any textures within the following directories
-- /tileables/minecraft
+- tileables/minecraft
 
 ## Textures
 Any of these specific textures
-- /fonts/minecraft-ten/textures/classic_cobblestone.png
-- /fonts/minecraft-ten/textures/dungeons_terracotta.png
-- /fonts/minecraft-ten/textures/iron_block.png
+- fonts/minecraft-ten/textures/classic_cobblestone.png
+- fonts/minecraft-ten/textures/dungeons_terracotta.png
+- fonts/minecraft-ten/textures/iron_block.png
