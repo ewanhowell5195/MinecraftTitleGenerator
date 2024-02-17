@@ -45,12 +45,13 @@ Save your texture to either the `textures` or `overlays` folder, depending on wh
 {
   "textures": { // If you are adding a texture, it goes in here
     "texture_id": { // The ID of the texture you are adding (required)
+      "category": "Category Name", // If the texture has variants, the name of the category (optional)
       "name": "Texture Name", // The name of the texture if it doesn't match the ID (optional)
       "author": "Author Name", // Your name (required)
       "variants": { // The variants for this texture (optional)
         "variant_id": {
           "name": "Variant Name", // (optional)
-          "author": "Author Name" // Only needed if different from texture author (optional)
+          "author": "Author Name" // Only needed if different from the texture author (optional)
         }
       }
     }
@@ -74,6 +75,32 @@ Thumbnails are generated through the compile script. Do not make them manually.
 - The border colour at the bottom (under all character lines) must be the same colour for the entire thing. It will not work if you try to use multiple colours. This may not apply for certain fonts. Please check the `flat.png` to see if it is a solid colour there.
 - Do not submit textures generated using the plugin, or that could be easily recreated using the plugin.
 - Semi transparency is not supported for regular textures. It is supported for overlays.
+
+# Tileables
+## Creating a tileable
+1. To create a new tileable, add the tileable to the `/tileables` folder, under a fitting subdirectory.
+3. Edit the `tileables.json` file and add your tileable to it. This file follows the following formatting:
+```js
+{
+  "tileable_id": { // The ID of the tileable you are adding (required)
+  "category": "Category Name", // If the tileable has variants, the name of the category (optional)
+    "name": "Tileable Name", // The name of the tileable if it doesn't match the ID (optional)
+    "author": "Author Name", // Your name (optional, defaults to "Mojang")
+    "path": "directory/path", // Where the tileable is located inside the tileables folder (optional, defaults to "minecraft")
+    "variants": { // The variants for this tileable (optional)
+      "variant_id": {
+        "name": "Variant Name", // (optional)
+        "author": "Author Name" // Only needed if different from the tileable author (optional)
+      }
+    }
+  }
+}
+```
+
+### Tileable rules
+- Tileables must be `8x8` minimum, and `128x128` maximum, but do not have to be square.
+- Tileables must **tile**. Tiling is not required when random rotations and random mirroring are enabled.
+- Do not add too many variants to a single tileable. If I feel a variant is unnecessary, or there are too many, it will be denied.
 
 # Fonts
 Fonts require you to create a model for every character.
@@ -222,7 +249,13 @@ If you want to make a font using different characters, please make an issue abou
       "exmple", // The top text
       "text" // The bottom text
     ],
-    "flat": true // The font is a flat plane with no depth (optional)
+    "flat": true, // The font is a flat plane with no depth (optional)
+    "variants": [ // The variants for this font (optional)
+      {
+        "id": "variant-id", // The ID of the variant
+        // All other properties for variants are the same as the base font and optional. Any missing properties will be inherited from the base font
+      }
+    ]
   }
 ]
 ```
@@ -260,3 +293,5 @@ Variant fonts use the same properties as normal fonts. The only required propert
 
 ## Official Minecraft Assets
 Some textures in this repository are official Minecraft assets, or contain parts of official Minecraft assets. These will be licensed under the Minecraft End User License Agreement (see [LICENSE.md](./LICENSE.md)).
+
+When submitting textures or tileables that include official Minecraft assets, please add them to the [LICENSE.md](./LICENSE.md).
