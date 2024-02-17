@@ -160,5 +160,12 @@
       "cracked_polished_blackstone_bricks": {},
       "end_stone_bricks": {}
     }
+  },
+  "diagonal_up": {
+    "category": "diagonal"
+    "path": "minecraft/patterns",
+    "variants": {
+      "diagonal_down": {}
+    }
   }
 }
