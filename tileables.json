@@ -31,6 +31,7 @@
       "mangrove_planks": {},
       "cherry_planks": {},
       "bamboo_planks": {},
+      "bamboo_mosaic": {},
       "crimson_planks": {},
       "warped_planks": {}
     }
@@ -109,6 +110,47 @@
       "purple_glazed_terracotta": {},
       "magenta_glazed_terracotta": {},
       "pink_glazed_terracotta": {}
+    }
+  },
+  "oak_log": {
+    "category": "Logs",
+    "path": "minecraft/log",
+    "variants": {
+      "spruce_log": {},
+      "birch_log": {},
+      "jungle_log": {},
+      "acacia_log": {},
+      "dark_oak_log": {},
+      "mangrove_log": {},
+      "cherry_log": {},
+      "bamboo_block": {},
+      "bamboo_block_top": {},
+      "stripped_bamboo_block": {},
+      "stripped_bamboo_block_top": {},
+      "crimson_stem": {},
+      "warped_stem": {}
+    }
+  },
+  "dirt": {
+    "path": "minecraft/dirt",
+    "variants": {
+      "coarse_dirt": {},
+      "rooted_dirt": {},
+      "farmland": {},
+      "moist_farmland": {}
+    }
+  },
+  "gravel": {},
+  "sand": {
+    "path": "minecraft/sand",
+    "variants": {
+      "sandstone": {},
+      "sandstone_top": {},
+      "red_sand": {},
+      "red_sandstone": {},
+      "red_sandstone_top": {},
+      "soul_sand": {},
+      "soul_soil": {}
     }
   }
 }
