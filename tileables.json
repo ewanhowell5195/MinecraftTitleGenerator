@@ -25,5 +25,26 @@
   "checkerboard": {
     "author": "Ewan Howell",
     "path": "patterns"
+  },
+  "white_wool": {
+    "category": "Wool",
+    "path": "minecraft/wool",
+    "variants": {
+      "light_gray_wool": {},
+      "gray_wool": {},
+      "black_wool": {},
+      "brown_wool": {},
+      "red_wool": {},
+      "orange_wool": {},
+      "yellow_wool": {},
+      "lime_wool": {},
+      "green_wool": {},
+      "cyan_wool": {},
+      "light_blue_wool": {},
+      "blue_wool": {},
+      "purple_wool": {},
+      "magenta_wool": {},
+      "pink_wool": {}
+    }
   }
 }
