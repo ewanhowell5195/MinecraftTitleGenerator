@@ -22,7 +22,7 @@ For larger submissions like fonts, it will be a lot easier to clone the repo to 
 [Texture submissions video tutorial](https://youtu.be/7OrHBIKknMU)
 
 ### Compiling
-After making a submission of either a font or a texture, it would be really helpful if you could compile it. If you don't understand how to do this, you can skip this step and I can do it for you.
+After making a submission, it would be really helpful if you could compile it. If you don't understand how to do this, you can skip this step and I can do it for you.
 
 #### First time setup:
 1. Install [Node.js](https://nodejs.org/).
