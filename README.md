@@ -83,7 +83,7 @@ Thumbnails are generated through the compile script. Do not make them manually.
 ```js
 {
   "tileable_id": { // The ID of the tileable you are adding (required)
-  "category": "Category Name", // If the tileable has variants, the name of the category (optional)
+    "category": "Category Name", // If the tileable has variants, the name of the category (optional)
     "name": "Tileable Name", // The name of the tileable if it doesn't match the ID (optional)
     "author": "Author Name", // Your name (optional, defaults to "Mojang")
     "path": "directory/path", // Where the tileable is located inside the tileables folder (optional, defaults to "minecraft")
