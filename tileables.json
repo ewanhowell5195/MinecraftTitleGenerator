@@ -162,7 +162,7 @@
     }
   },
   "diagonal_up": {
-    "category": "diagonal"
+    "category": "diagonal",
     "path": "minecraft/patterns",
     "variants": {
       "diagonal_down": {}
