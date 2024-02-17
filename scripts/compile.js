@@ -152,6 +152,19 @@ compress_images("temp/**/*.png", "../fonts/", {
   if (fs.existsSync(stat.path_out_new + ".bak")) fs.unlinkSync(stat.path_out_new + ".bak")
 })
 
+compress_images("../tileables/**/*.png", "../tileables/", {
+  statistic: false,
+  autoupdate: true,
+  compress_force: true,
+}, false,
+  { jpg: { engine: false, command: false } },
+  { png: { engine: "optipng", command: ["-backup"] } },
+  { svg: { engine: false, command: false } },
+  { gif: { engine: false, command: false } },
+(err, comp, stat) => {
+  if (fs.existsSync(stat.path_out_new + ".bak")) fs.unlinkSync(stat.path_out_new + ".bak")
+})
+
 function makeTitleScene(scaleFactor) {
   const scene = new THREE.Scene()
   const camera = new THREE.OrthographicCamera(
