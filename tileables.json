@@ -2,21 +2,21 @@
   "cobblestone": {
     "category": "Stone",
     "path": "minecraft/stone",
-    "variants": [
-      "stone",
-      "deepslate",
-      "deepslate_top",
-      "cobbled_deepslate",
-      "andesite",
-      "diorite",
-      "granite",
-      "calcite",
-      "tuff",
-      "bedrock",
-      "netherrack",
-      "basalt",
-      "end_stone"
-    ]
+    "variants": {
+      "stone": {},
+      "deepslate": {},
+      "deepslate_top": {},
+      "cobbled_deepslate": {},
+      "andesite": {},
+      "diorite": {},
+      "granite": {},
+      "calcite": {},
+      "tuff": {},
+      "bedrock": {},
+      "netherrack": {},
+      "basalt": {},
+      "end_stone": {},
+    }
   },
   "sponge": {},
   "oak_planks": {
@@ -75,7 +75,7 @@
     }
   },
   "oak_log": {
-    "category": "Planks",
+    "category": "Logs",
     "path": "minecraft/log",
     "variants": {
       "spruce_log": {},
