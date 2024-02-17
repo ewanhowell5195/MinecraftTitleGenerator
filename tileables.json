@@ -1,6 +1,23 @@
 {
-  "cobblestone": {},
-  "basalt": {},
+  "cobblestone": {
+    "category": "Stone",
+    "path": "minecraft/stone",
+    "variants": [
+      "stone",
+      "deepslate",
+      "deepslate_top",
+      "cobbled_deepslate",
+      "andesite",
+      "diorite",
+      "granite",
+      "calcite",
+      "tuff",
+      "bedrock",
+      "netherrack",
+      "basalt",
+      "end_stone"
+    ]
+  },
   "sponge": {},
   "oak_planks": {
     "category": "Planks",
@@ -45,6 +62,53 @@
       "purple_wool": {},
       "magenta_wool": {},
       "pink_wool": {}
+    }
+  },
+  "grass": {
+    "path": "minecraft/grass",
+    "variants": {
+      "dirt_path": {},
+      "podzol": {},
+      "mycelium": {},
+      "crimson_nylium": {},
+      "warped_nylium": {}
+    }
+  },
+  "oak_log": {
+    "category": "Planks",
+    "path": "minecraft/log",
+    "variants": {
+      "spruce_log": {},
+      "birch_log": {},
+      "jungle_log": {},
+      "acacia_log": {},
+      "dark_oak_log": {},
+      "mangrove_log": {},
+      "cherry_log": {},
+      "bamboo_block": {},
+      "crimson_stem": {},
+      "warped_stem": {}
+    }
+  },
+  "white_glazed_terracotta": {
+    "category": "Glazed Terracotta",
+    "path": "minecraft/glazed_terracotta",
+    "variants": {
+      "light_gray_glazed_terracotta": {},
+      "gray_glazed_terracotta": {},
+      "black_glazed_terracotta": {},
+      "brown_glazed_terracotta": {},
+      "red_glazed_terracotta": {},
+      "orange_glazed_terracotta": {},
+      "yellow_glazed_terracotta": {},
+      "lime_glazed_terracotta": {},
+      "green_glazed_terracotta": {},
+      "cyan_glazed_terracotta": {},
+      "light_blue_glazed_terracotta": {},
+      "blue_glazed_terracotta": {},
+      "purple_glazed_terracotta": {},
+      "magenta_glazed_terracotta": {},
+      "pink_glazed_terracotta": {}
     }
   }
 }
