@@ -31,6 +31,9 @@
     "crystal": {
       "name": "Crystal (Caves & Cliffs)",
       "author": "blank3times"
+    },
+    "cherry_blossom": {
+      "author": "Klayv & blank3times"
     }
   },
   "overlays": {
