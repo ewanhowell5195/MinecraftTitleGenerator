@@ -26,9 +26,10 @@ After making a submission, it would be really helpful if you could compile it. I
 
 #### First time setup:
 1. Install [Node.js](https://nodejs.org/).
-2. Clone the repo to your PC, add your changes, and then navigate to the `scripts` directory in the repo.
-3. Open a terminal inside this directory. On Windows, this can be done by typing `cmd` into the address bar in file explorer.
-4. Run the command `npm i`.
+2. Install [Visual Studio Installer](https://visualstudio.microsoft.com/downloads/) and install `Desktop development with C++` using it.
+3. Clone the repo to your PC, add your changes, and then navigate to the `scripts` directory in the repo.
+4. Open a terminal inside this directory. On Windows, this can be done by typing `cmd` into the address bar in file explorer.
+5. Run the command `npm i`.
 
 #### Compiling:
 - If on Windows, just run the `compile.bat` file.
