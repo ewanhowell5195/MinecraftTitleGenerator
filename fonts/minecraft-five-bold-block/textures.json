@@ -12,10 +12,9 @@
     "bedrock_button": {      
       "name": "Bedrock button",
       "author": "Klayv"
-    },
-    "pressed_button": {      
-      "name": "Pressed bedrock button",
-      "author": "Klayv"
+      "variants": {
+        "pressed_bedrock_button": {      
+        "name": "Pressed bedrock button",
     }
   },
   "overlays": {
