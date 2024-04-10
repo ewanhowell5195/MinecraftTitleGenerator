@@ -12,7 +12,7 @@
     "bedrock_button": {
       "author": "Klayv",
       "variants": {
-        "pressed_bedrock_button": {}
+        "bedrock_button_unpressed": {}
       }
     }
   },
