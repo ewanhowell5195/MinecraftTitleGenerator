@@ -54,6 +54,18 @@
     "highlights_top": {
       "name": "Highlights (Top)",
       "author": "xllifi"
+    },
+    "glass": {
+          "author": "BitseK & unknown"
+    },
+    "old_glass": {
+          "author": "BitseK"
+    },
+    "tempered_glass": {
+          "author": "BitseK"
+    },
+    "outline": {
+          "author": "BitseK &"
     }
   }
 }
