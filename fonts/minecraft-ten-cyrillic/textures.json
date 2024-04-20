@@ -44,6 +44,22 @@
     "flat_color": {
       "flat (coloured)",
       "author": "BitseK & TheAnnoying"
+    },
+    "oak_planks": {
+      "category": "planks",
+      "author": "BitseK & TheAnnoying",
+      "variants": {
+        "spruce_planks": {},
+        "birch_planks": {},
+        "jungle_planks": {},
+        "acacia_planks": {},
+        "dark_oak_planks": {},
+        "mangrove_planks": {},
+        "cherry_planks": {},
+        "bamboo_planks": {},
+        "crimson_planks": {},
+        "warped_planks": {}
+      }
     }
   },
   "overlays": {
