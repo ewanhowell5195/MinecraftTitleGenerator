@@ -42,7 +42,7 @@
       "author": "BitseK & 7px"
     },
     "flat_color": {
-      "flat coloured",
+      "flat (coloured)",
       "author": "BitseK & TheAnnoying"
     }
   },
@@ -59,9 +59,11 @@
       "author": "BitseK & unknown"
     },
     "old_glass": {
+      "name": "glass (old)",
       "author": "BitseK"
     },
     "tempered_glass": {
+      "name": "glass (tempered)",
       "author": "BitseK"
     },
     "outline": {
