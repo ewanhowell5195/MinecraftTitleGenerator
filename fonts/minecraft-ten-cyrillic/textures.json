@@ -38,12 +38,11 @@
         "trans": {}
       }
     },
-    "bubbles_curilic": {
-      "bubbles (curilic)",
+    "bubbles": {
       "author": "BitseK & 7px"
     },
-    "flat_color_curilic": {
-      "flat coloured (curilic)",
+    "flat_color": {
+      "flat coloured",
       "author": "BitseK & TheAnnoying"
     }
   },
