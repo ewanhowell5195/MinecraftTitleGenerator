@@ -27,6 +27,7 @@
       }
     },
     "oak_planks": {
+      "category": "Planks",
       "author": "BitseK & TheAnnoying",
       "variants": {
         "spruce_planks": {},
