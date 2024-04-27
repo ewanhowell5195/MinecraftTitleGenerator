@@ -37,6 +37,19 @@
         "pansexual": {},
         "trans": {}
       }
+    },
+    "bubbles": {
+      "author": "BitseK & 7px"
+    },
+    "flat_coloured": {
+      "flat (coloured)",
+      "author": "BitseK & TheAnnoying"
+    },
+    "lagoona": {
+      "author": "BitseK & Ewan Howell"
+    },
+    "gurgles": {
+      "author": "BitseK"
     }
   },
   "overlays": {
@@ -47,6 +60,21 @@
     "highlights_top": {
       "name": "Highlights (Top)",
       "author": "xllifi"
+    }
+  },
+    "glass": {
+      "author": "BitseK & unknown"
+    },
+    "glass_old": {
+      "name": "glass (old)",
+      "author": "BitseK"
+    },
+    "glass_tempered": {
+      "name": "glass (tempered)",
+      "author": "BitseK"
+    },
+    "outline": {
+      "author": "BitseK & Ewan Howell"
     }
   }
 }
