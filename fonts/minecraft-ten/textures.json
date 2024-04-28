@@ -292,6 +292,22 @@
     },
     "lagoona": {
       "author": "BitseK & Ewan Howell"
+    },
+    "create_andesite_casing": {
+      "category": "Create Casing",
+      "name": "Andesite Casing",
+      "author": "MoonArts",
+      "variants": {
+        "create_brass_casing": {
+          "name": "Brass Casing"
+        },
+        "create_copper_casing": {
+          "name": "Copper Casing"
+        },
+        "create_train_casing": {
+          "name": "Train Casing"
+        }
+      }
     }
   },
   "overlays": {
