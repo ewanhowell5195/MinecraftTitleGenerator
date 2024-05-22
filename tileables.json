@@ -170,8 +170,6 @@
       "peelgrass": {},
       "corrupted_peelgrass": {},
       "poison_path": {},
-      "poison_farmland": {},
-      "poison_farmland_moist": {},
       "potato_stem": {},
       "potato_planks": {},
       "potone": {},
@@ -180,8 +178,7 @@
       "baked_potato_bricks": {},
       "charred_baked_potato_bricks": {},
       "expired_baked_potato_bricks": {},
-      "floatato": {},
-      "cheese": {}
+      "floatato": {}
     }
   },
   "diagonal_up": {
