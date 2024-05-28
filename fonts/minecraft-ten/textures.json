@@ -80,7 +80,11 @@
         },
         "grass_side_flowers": {
           "author": "Magminer & Ewan Howell & SzyszaDev"
-        }
+        },
+        "podzol": {},
+        "mycelium": {},
+        "crimson_nylium": {},
+        "warped_nylium": {}
       }
     },
     "bubbles": {
