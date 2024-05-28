@@ -162,8 +162,8 @@
     }
   },
   "poisonous_potato": {
-    "category": "April Fools",
-    "path": "minecraft/april_fools",
+    "category": "Poisonous Potato Update",
+    "path": "poisonous_potato",
     "variants": {
       "terre_de_pomme": {},
       "potato_peels_block": {},
