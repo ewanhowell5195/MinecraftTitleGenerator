@@ -17,7 +17,10 @@ jobs:
         run: npm install -g ajv-cli
 
       - name: Validate textures.json
-        run: ajv validate -s .github/schema/textures.json -d fonts/*/textures.json
+        run: |
+          for file in $(find fonts -name 'textures.json'); do
+            ajv validate -s .github/schema/textures.json -d $file || exit 1
+          done
 
       - name: Validate fonts.json
         run: ajv validate -s .github/schema/fonts.json -d fonts.json
