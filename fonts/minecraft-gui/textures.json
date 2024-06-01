@@ -30,6 +30,7 @@
       "variants": {
         "hotbar": {},
         "achievement": {}
+      }
     }
   },
   "overlays": {
