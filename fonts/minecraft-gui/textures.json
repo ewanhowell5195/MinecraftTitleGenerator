@@ -28,8 +28,8 @@
     "menu_button": {
       "author": "B1tseK",
       "variants": {
-        "hotbar": {
-        "achievement": {}
+        "hotbar": {},
+        "achievement": {},
       }
     }
   },
