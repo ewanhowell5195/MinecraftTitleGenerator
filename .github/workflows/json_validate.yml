@@ -2,25 +2,25 @@ name: JSON Validator
 on: [push, pull_request]
 
 jobs:
-  verify-json-validation:
+  validate-json:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: 20
+
+      - name: Install ajv-cli
+        run: npm install -g ajv-cli
 
       - name: Validate textures.json
-        uses: docker://orrosenblatt/validate-json-action:latest
-        env:
-          INPUT_SCHEMA: .github/schema/textures.json
-          INPUT_JSONS: fonts/*/textures.json
+        run: ajv validate -s .github/schema/textures-schema.json -d fonts/*/textures.json
 
       - name: Validate fonts.json
-        uses: docker://orrosenblatt/validate-json-action:latest
-        env:
-          INPUT_SCHEMA: .github/schema/fonts.json
-          INPUT_JSONS: fonts.json
+        run: ajv validate -s .github/schema/fonts-schema.json -d fonts.json
 
       - name: Validate tileables.json
-        uses: docker://orrosenblatt/validate-json-action:latest
-        env:
-          INPUT_SCHEMA: .github/schema/tileables.json
-          INPUT_JSONS: tileables.json
+        run: ajv validate -s .github/schema/tileables-schema.json -d tileables.json
