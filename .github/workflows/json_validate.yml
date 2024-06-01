@@ -17,10 +17,10 @@ jobs:
         run: npm install -g ajv-cli
 
       - name: Validate textures.json
-        run: ajv validate -s .github/schema/textures-schema.json -d fonts/*/textures.json
+        run: ajv validate -s .github/schema/textures.json -d fonts/*/textures.json
 
       - name: Validate fonts.json
-        run: ajv validate -s .github/schema/fonts-schema.json -d fonts.json
+        run: ajv validate -s .github/schema/fonts.json -d fonts.json
 
       - name: Validate tileables.json
-        run: ajv validate -s .github/schema/tileables-schema.json -d tileables.json
+        run: ajv validate -s .github/schema/tileables.json -d tileables.json
