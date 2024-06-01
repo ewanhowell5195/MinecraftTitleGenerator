@@ -1,0 +1,26 @@
+name: JSON Validator
+on: [push, pull_request]
+
+jobs:
+  verify-json-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Validate textures.json
+        uses: docker://orrosenblatt/validate-json-action:latest
+        env:
+          INPUT_SCHEMA: .github/schema/textures.json
+          INPUT_JSONS: fonts/*/textures.json
+
+      - name: Validate fonts.json
+        uses: docker://orrosenblatt/validate-json-action:latest
+        env:
+          INPUT_SCHEMA: .github/schema/fonts.json
+          INPUT_JSONS: fonts.json
+
+      - name: Validate tileables.json
+        uses: docker://orrosenblatt/validate-json-action:latest
+        env:
+          INPUT_SCHEMA: .github/schema/tileables.json
+          INPUT_JSONS: tileables.json

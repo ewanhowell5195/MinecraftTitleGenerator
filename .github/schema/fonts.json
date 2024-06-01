@@ -1,0 +1,184 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "array",
+  "items": {
+    "oneOf": [
+      {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "const": "minecraft-ten" },
+          "variants": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+                "name": { "type": "string" },
+                "description": { "type": "string" },
+                "author": { "type": "string" },
+                "height": { "type": "integer" },
+                "border": { "type": "integer" },
+                "faces": {
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "items": { "type": "integer" }
+                      },
+                      {
+                        "type": "array",
+                        "minItems": 4,
+                        "maxItems": 4,
+                        "items": { "type": "integer" }
+                      }
+                    ]
+                  }
+                },
+                "ends": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "minItems": 4,
+                    "maxItems": 4,
+                    "items": { "type": "integer" }
+                  }
+                },
+                "terminatorSpace": { "type": "boolean" },
+                "forcedTerminators": { "type": "boolean" },
+                "autoBorder": { "type": "boolean" },
+                "borderless": { "type": "boolean" },
+                "overlay": { "type": "boolean" },
+                "preview": { "type": "string" },
+                "example": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "flat": { "type": "boolean" }
+              },
+              "required": ["id"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["id"],
+        "additionalProperties": true
+      },
+      {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "author": { "type": "string" },
+          "height": { "type": "integer" },
+          "border": { "type": "integer" },
+          "faces": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": { "type": "integer" }
+                },
+                {
+                  "type": "array",
+                  "minItems": 4,
+                  "maxItems": 4,
+                  "items": { "type": "integer" }
+                }
+              ]
+            }
+          },
+          "ends": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "minItems": 4,
+              "maxItems": 4,
+              "items": { "type": "integer" }
+            }
+          },
+          "terminatorSpace": { "type": "boolean" },
+          "forcedTerminators": { "type": "boolean" },
+          "autoBorder": { "type": "boolean" },
+          "borderless": { "type": "boolean" },
+          "overlay": { "type": "boolean" },
+          "preview": { "type": "string" },
+          "example": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "flat": { "type": "boolean" },
+          "variants": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+                "name": { "type": "string" },
+                "description": { "type": "string" },
+                "author": { "type": "string" },
+                "height": { "type": "integer" },
+                "border": { "type": "integer" },
+                "faces": {
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "items": { "type": "integer" }
+                      },
+                      {
+                        "type": "array",
+                        "minItems": 4,
+                        "maxItems": 4,
+                        "items": { "type": "integer" }
+                      }
+                    ]
+                  }
+                },
+                "ends": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "minItems": 4,
+                    "maxItems": 4,
+                    "items": { "type": "integer" }
+                  }
+                },
+                "terminatorSpace": { "type": "boolean" },
+                "forcedTerminators": { "type": "boolean" },
+                "autoBorder": { "type": "boolean" },
+                "borderless": { "type": "boolean" },
+                "overlay": { "type": "boolean" },
+                "preview": { "type": "string" },
+                "example": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "flat": { "type": "boolean" }
+              },
+              "required": ["id"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["id", "author", "height", "border", "faces", "ends"],
+        "additionalProperties": false
+      }
+    ]
+  }
+}
