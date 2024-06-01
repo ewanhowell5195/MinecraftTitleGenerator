@@ -80,7 +80,11 @@
         },
         "grass_side_flowers": {
           "author": "Magminer & Ewan Howell & SzyszaDev"
-        }
+        },
+        "podzol": {},
+        "mycelium": {},
+        "crimson_nylium": {},
+        "warped_nylium": {}
       }
     },
     "bubbles": {
@@ -251,7 +255,7 @@
       "author": "Zodiuss"
     },
     "gurgles": {
-      "author": "Bit sek"
+      "author": "BitseK"
     },
     "crystal": {
       "name": "Crystal (Caves & Cliffs)",
@@ -261,7 +265,7 @@
       "author": "blank3times"
     },
     "glow_squid": {
-      "author": "Bit sek"
+      "author": "BitseK"
     },
     "cherry_blossom": {
       "author": "Klayv",
@@ -289,6 +293,25 @@
     },
     "terracotta": {
       "author": "Klayv"
+    },
+    "lagoona": {
+      "author": "BitseK & Ewan Howell"
+    },
+    "create_andesite_casing": {
+      "category": "Create Casing",
+      "name": "Andesite Casing",
+      "author": "MoonArts",
+      "variants": {
+        "create_brass_casing": {
+          "name": "Brass Casing"
+        },
+        "create_copper_casing": {
+          "name": "Copper Casing"
+        },
+        "create_train_casing": {
+          "name": "Train Casing"
+        }
+      }
     }
   },
   "overlays": {
@@ -348,19 +371,23 @@
       "author": "blank3times"
     },
     "glass": {
-      "author": "Bit sek"
+      "author": "BitseK"
     },
     "glass_old": {
       "name": "Glass (Old)",
-      "author": "Bit sek"
+      "author": "BitseK"
     },
     "highlights_right": {
-      "name": "highlights right",
-      "author": "Bit sek"
+      "name": "Highlights (Right)",
+      "author": "BitseK"
     },
     "highlights_left": {
-      "name": "highlights left",
-      "author": "Bit sek"
+      "name": "Highlights (Left)",
+      "author": "BitseK"
+    },
+    "glass_tempered": {
+      "name": "Glass (Tempered)",
+      "author": "BitseK"
     }
   }
 }

@@ -37,6 +37,35 @@
         "pansexual": {},
         "trans": {}
       }
+    },
+    "oak_planks": {
+      "category": "Planks",
+      "author": "BitseK & TheAnnoying",
+      "variants": {
+        "spruce_planks": {},
+        "birch_planks": {},
+        "jungle_planks": {},
+        "acacia_planks": {},
+        "dark_oak_planks": {},
+        "mangrove_planks": {},
+        "cherry_planks": {},
+        "bamboo_planks": {},
+        "crimson_planks": {},
+        "warped_planks": {}
+      }
+    },
+    "bubbles": {
+      "author": "BitseK & 7px"
+    },
+    "flat_coloured": {
+      "name": "Flat (Coloured)",
+      "author": "BitseK & TheAnnoying"
+    },
+    "lagoona": {
+      "author": "BitseK & Ewan Howell"
+    },
+    "gurgles": {
+      "author": "BitseK"
     }
   },
   "overlays": {
@@ -47,6 +76,20 @@
     "highlights_top": {
       "name": "Highlights (Top)",
       "author": "xllifi"
+    },
+    "glass": {
+      "author": "BitseK"
+    },
+    "glass_old": {
+      "name": "Glass (Old)",
+      "author": "BitseK"
+    },
+    "glass_tempered": {
+      "name": "Glass (Tempered)",
+      "author": "BitseK"
+    },
+    "outline": {
+      "author": "BitseK & Ewan Howell"
     }
   }
 }

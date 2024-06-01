@@ -161,6 +161,26 @@
       "end_stone_bricks": {}
     }
   },
+  "poisonous_potato": {
+    "category": "Poisonous Potato Update",
+    "path": "poisonous_potato",
+    "variants": {
+      "terre_de_pomme": {},
+      "potato_peels_block": {},
+      "peelgrass": {},
+      "corrupted_peelgrass": {},
+      "poison_path": {},
+      "potato_stem": {},
+      "potato_planks": {},
+      "potone": {},
+      "taterstone": {},
+      "gravtater": {},
+      "baked_potato_bricks": {},
+      "charred_baked_potato_bricks": {},
+      "expired_baked_potato_bricks": {},
+      "floatato": {}
+    }
+  },
   "diagonal_up": {
     "category": "Diagonal",
     "path": "patterns",
