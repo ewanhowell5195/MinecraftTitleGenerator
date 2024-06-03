@@ -17,13 +17,20 @@
       "author": "Ewan Howell"
     },
     "map": {
-      "author": "Bit sek"
+      "author": "B1tseK"
     },
     "shields": {
       "author": "Doharbdjr"
     },
     "lightness": {
       "author": "Doharbdjr"
+    },
+    "menu_button": {
+      "author": "B1tseK",
+      "variants": {
+        "hotbar": {},
+        "achievement": {}
+      }
     }
   },
   "overlays": {

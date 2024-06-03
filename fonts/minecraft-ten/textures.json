@@ -312,6 +312,12 @@
           "name": "Train Casing"
         }
       }
+    },
+    "furnace": {
+      "author": "B1tseK"
+    },
+    "enderman": {
+      "author": "B1tseK"
     }
   },
   "overlays": {
