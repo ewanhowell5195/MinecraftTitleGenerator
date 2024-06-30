@@ -1,0 +1,1 @@
+{"credit":"Made with Blockbench","texture_size":[1000,320],"textures":{"0":"flat","particle":"flat"},"elements":[{"from":[-10,0,8],"to":[26,40,8],"rotation":{"angle":0,"axis":"y","origin":[-10,0,7]},"faces":{"north":{"uv":[0,2.1,0.576,4.1],"texture":"#0"},"south":{"uv":[0.576,2.1,0,4.1],"texture":"#0"}}}],"groups":[{"name":"ш","origin":[8,8,8],"color":0,"children":[0]}]}
