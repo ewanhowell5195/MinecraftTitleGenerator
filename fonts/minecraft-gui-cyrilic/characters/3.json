@@ -1,0 +1,1 @@
+{"credit":"Made with Blockbench","texture_size":[1000,320],"textures":{"0":"flat","particle":"flat"},"elements":[{"from":[-10,0,8],"to":[26,40,8],"rotation":{"angle":0,"axis":"y","origin":[-10,0,7]},"faces":{"north":{"uv":[7.296,2.1,7.872,4.1],"texture":"#0"},"south":{"uv":[7.872,2.1,7.296,4.1],"texture":"#0"}}}],"groups":[{"name":"3","origin":[8,8,8],"color":0,"children":[0]}]}
