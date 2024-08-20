@@ -41,6 +41,10 @@
         }
       }
     },
+    "guacamole": {
+      "name": "Guacamole",
+      "author": "Supermugget"
+    },
     "mineimator": {
       "name": "Mine-Imator Family",
       "author": "ModelBench & ShrimpSnail"
