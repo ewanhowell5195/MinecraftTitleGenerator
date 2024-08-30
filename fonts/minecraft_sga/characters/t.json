@@ -1,0 +1,45 @@
+{
+	"credit": "By Westbot",
+	"texture_size": [1000, 320],
+	"textures": {
+		"0": "minecraft_sga:flat",
+		"particle": "minecraft_sga:flat"
+	},
+	"elements": [
+		{
+			"from": [-7, 2, -3],
+			"to": [23, 44, 19],
+			"faces": {
+				"north": {"uv": [7.52, 1.1, 8, 3.2], "texture": "#0"},
+				"south": {"uv": [8, 1.1, 7.52, 3.2], "texture": "#0"},
+				"up": {"uv": [7.52, 0, 8, 1.1], "texture": "#0"},
+				"down": {"uv": [8, 3.2, 7.52, 4.3], "texture": "#0"}
+			}
+		},
+		{
+			"from": [1, 0, -5],
+			"to": [-9, 36, 21],
+			"rotation": {"angle": 0, "axis": "y", "origin": [1, 0, 0]},
+			"faces": {
+				"north": {"uv": [1.632, 4.95, 1.648, 5], "texture": "#0"},
+				"east": {"uv": [1.632, 4.95, 1.648, 5], "texture": "#0"},
+				"south": {"uv": [1.632, 4.95, 1.648, 5], "texture": "#0"},
+				"west": {"uv": [1.632, 4.95, 1.648, 5], "texture": "#0"},
+				"down": {"uv": [1.632, 4.95, 1.648, 5], "texture": "#0"}
+			}
+		},
+		{
+			"from": [25, 36, -5],
+			"to": [-9, 46, 21],
+			"rotation": {"angle": 0, "axis": "y", "origin": [1, 36, 0]},
+			"faces": {
+				"north": {"uv": [1.632, 4.95, 1.648, 5], "texture": "#0"},
+				"east": {"uv": [1.632, 4.95, 1.648, 5], "texture": "#0"},
+				"south": {"uv": [1.632, 4.95, 1.648, 5], "texture": "#0"},
+				"west": {"uv": [1.632, 4.95, 1.648, 5], "texture": "#0"},
+				"up": {"uv": [1.632, 4.95, 1.648, 5], "texture": "#0"},
+				"down": {"uv": [1.488, 5.2, 1.76, 5.25], "texture": "#0"}
+			}
+		}
+	]
+}
