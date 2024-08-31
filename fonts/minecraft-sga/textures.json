@@ -3,5 +3,10 @@
     "flat": {
       "author": "Westbot"
     }
+  },
+  "overlays": {
+    "outline": {
+      "author": "Westbot"
+    }
   }
 }
