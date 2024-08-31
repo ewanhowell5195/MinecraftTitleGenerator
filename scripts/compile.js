@@ -200,7 +200,7 @@ async function addTitleText(scene, str, args) {
   let width = 0
   const cubes = []
   const group = new THREE.Group()
-  for (const char of str) {
+  for (const [i, char] of Array.from(str).entries()) {
     if (char === " ") {
       width += 8
       continue
@@ -271,6 +271,7 @@ async function addTitleText(scene, str, args) {
       character.add(mesh)
       cubes.push(mesh)
     }
+    if (i) max += font.characterSpacing ?? 0
     for (const cube of character.children) {
       cube.position.x -= width + max
     }
