@@ -2,11 +2,20 @@
   "textures": {
     "flat": {
       "author": "Westbot"
+    },
+    "smooth": {
+      "author": "Ewan Howell"
     }
   },
   "overlays": {
     "outline": {
       "author": "Westbot"
+    },
+    "highlights_top": {
+      "author": "Ewan Howell"
+    },
+    "highlights_bottom": {
+      "author": "Ewan Howell"
     }
   }
 }
