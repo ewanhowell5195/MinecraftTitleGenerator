@@ -185,6 +185,7 @@
     "author": "Westbot",
     "height": 44,
     "border": 268,
+    "spacing": 4,
     "preview": "abh",
     "faces": [
       [22, 63]
