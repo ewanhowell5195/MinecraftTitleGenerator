@@ -4,7 +4,7 @@
     "compress-images": "^2.0.5",
     "gl": "^8.0.2",
     "node-three": "github:EvenTorset/node-three",
-    "optipng-bin": "^9.0.0",
+    "optipng-bin": "^7.0.1",
     "sharp": "^0.33.5",
     "skia-canvas": "^1.0.2"
   }
