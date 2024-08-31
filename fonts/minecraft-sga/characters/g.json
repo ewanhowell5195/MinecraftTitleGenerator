@@ -2,8 +2,8 @@
 	"credit": "By Westbot",
 	"texture_size": [1000, 320],
 	"textures": {
-		"0": "minecraft_sga:flat",
-		"particle": "minecraft_sga:flat"
+		"0": "minecraft-sga:flat",
+		"particle": "minecraft-sga:flat"
 	},
 	"elements": [
 		{
@@ -24,7 +24,7 @@
 				"north": {"uv": [1.616, 5.1, 1.632, 5.15], "texture": "#0"},
 				"east": {"uv": [1.616, 5.1, 1.632, 5.15], "texture": "#0"},
 				"south": {"uv": [1.616, 5.1, 1.632, 5.15], "texture": "#0"},
-				"west": {"uv": [0, 5.55, 0.032, 6.7], "texture": "#0"},
+				"west": {"uv": [0, 5.55, 0.016, 6.7], "texture": "#0"},
 				"up": {"uv": [1.616, 5.1, 1.632, 5.15], "texture": "#0"},
 				"down": {"uv": [1.616, 5.1, 1.632, 5.15], "texture": "#0"}
 			}
