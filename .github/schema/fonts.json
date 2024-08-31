@@ -118,6 +118,7 @@
             "maxItems": 2
           },
           "flat": { "type": "boolean" },
+          "characterSpacing": { "type": "integer" },
           "variants": {
             "type": "array",
             "items": {
@@ -169,7 +170,8 @@
                   "minItems": 2,
                   "maxItems": 2
                 },
-                "flat": { "type": "boolean" }
+                "flat": { "type": "boolean" },
+                "characterSpacing": { "type": "integer" }
               },
               "required": ["id"],
               "additionalProperties": false
