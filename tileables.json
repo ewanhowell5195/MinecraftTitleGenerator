@@ -13,6 +13,8 @@
       "calcite": {},
       "tuff": {},
       "bedrock": {},
+	  "obsidian": {},
+	  "crying_obsidian": {},
       "netherrack": {},
       "blackstone": {},
       "blackstone_top": {},
@@ -35,7 +37,8 @@
       "bamboo_planks": {},
       "bamboo_mosaic": {},
       "crimson_planks": {},
-      "warped_planks": {}
+      "warped_planks": {},
+	  "painting_back": {}
     }
   },
   "twisted_wood": {
@@ -141,6 +144,7 @@
   },
   "amethyst": {},
   "melon": {},
+  "honeycomb": {},
   "ancient_debris": {},
   "bricks": {
     "path": "minecraft/bricks",
