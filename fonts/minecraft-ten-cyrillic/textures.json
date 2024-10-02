@@ -11,6 +11,9 @@
         }
       }
     },
+    "bevelled_gold": {
+      "author": "CL697 & ShrimpSnail & jackeyrolz"
+    },
     "pixel": {
       "author": "Sawiq"
     },
@@ -20,6 +23,9 @@
       "variants": {
         "neon": {}
       }
+    },
+    "atmosphere": {
+      "author": "Zodiuss & jackeyrolz"
     },
     "pride": {
       "author": "Yozhenka",

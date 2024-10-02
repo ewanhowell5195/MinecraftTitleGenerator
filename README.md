@@ -12,7 +12,8 @@ Anyone can submit fonts and textures to this plugin, as long as they meet the re
 - Fonts/textures must be somewhat high quality. No low-effort submissions.
 - Fonts/textures must be somewhat unique from other fonts/textures. Try not to re-use other textures.
 - Full credit must be provided. If you are basing a font/texture off of someone else's design, credit them too!
-- Font/texture IDs must be in the snake_case format, and only use the characters `a-z`, `0-9`, and underscores.
+- Texture IDs must be in the snake_case format, and only use the characters `a-z`, `0-9`, and underscores.
+- Font IDs must be in the kebab-case format, and only use the characters `a-z`, `0-9`, and hyphens.
 
 ## How to make a submission
 To make a submission, create a fork of this repository and edit/upload the necessary files. After all the changes are made, create a pull request and explain what you are adding.
@@ -251,6 +252,7 @@ If you want to make a font using different characters, please make an issue abou
       "text" // The bottom text
     ],
     "flat": true, // The font is a flat plane with no depth (optional)
+    "characterSpacing": 8, // A default amount of character spacing to use (optional)
     "variants": [ // The variants for this font (optional)
       {
         "id": "variant-id", // The ID of the variant
