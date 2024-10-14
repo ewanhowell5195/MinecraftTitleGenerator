@@ -1,46 +1,47 @@
 {
-  "textures": {
-    "flat": {
-      "author": "Ewan Howell"
-    },
-    "marketplace": {
-      "author": "Ewan Howell"
-    },
-    "neon_glow": {
-      "category": "Neon",
-      "author": "MCAlexisYT",
-      "variants": {
-        "neon": {}
-      }
-    },
-    "realms": {
-      "author": "blank3times"
-    },
-    "mob_vote_icon": {
-      "author": "B1tseK",
-      "variants": {
-        "mob_vote_icon_gradient": {},
-        "discord": {
-          "author": "Aurora_123_"
+    "textures": {
+        "flat": {
+            "author": "Ewan Howell"
         },
-        "mint_and black": {
-          "author": "Aurora_123_"
+        "marketplace": {
+            "author": "Ewan Howell"
         },
-        "pink_and_black": {
-          "author": "Aurora_123_"
+        "neon_glow": {
+            "category": "Neon",
+            "author": "MCAlexisYT",
+            "variants": {
+                "neon": {}
+            }
         },
-        "white_and_black": {
-          "author": "Aurora_123_"
+        "realms": {
+            "author": "blank3times"
         },
-        "white_and_red": {
-          "author": "Aurora_123_"
+        "mob_vote_icon": {
+            "author": "B1tseK",
+            "variants": {
+                "mob_vote_icon_gradient": {},
+                "discord": {
+                    "author": "Aurora_123_"
+                },
+                "mint_and black": {
+                    "author": "Aurora_123_"
+                },
+                "pink_and_black": {
+                    "author": "Aurora_123_"
+                },
+                "white_and_black": {
+                    "author": "Aurora_123_"
+                },
+                "white_and_red": {
+                    "author": "Aurora_123_"
+                }
+            }
+        },
+        "overlays": {
+            "bottom_depth": {
+                "name": "Bottom depth",
+                "author": "Shrimpsnail"
+            }
         }
-      }
-    },
-  "overlays": {
-    "bottom_depth": {
-      "name": "Bottom depth",
-      "author": "Shrimpsnail"
     }
-  }
 }
