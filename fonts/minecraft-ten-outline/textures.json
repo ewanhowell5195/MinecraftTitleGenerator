@@ -21,6 +21,24 @@
       "variants": {
         "mob_vote_icon_gradient": {}
       }
+    },
+    "discord": {
+      "author": "Aurora_123_",
+      "variants": {}
+    },
+    "oreo": {
+      "author": "Aurora_123_",
+      "variants": {
+        "oreo_pink": {},
+        "oreo_mint": {},
+        "gold_oreo_peach": {},
+        "gold_oreo_white": {},
+        "gold_oreo_lemon": {}
+      }
+    },
+    "white_and_red": {
+      "author": "Aurora_123_",
+      "variants": {}
     }
   },
   "overlays": {
