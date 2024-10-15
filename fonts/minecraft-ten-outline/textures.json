@@ -36,12 +36,12 @@
           "author": "Aurora_123_"
         }
       }
-    },
-    "overlays": {
-      "bottom_depth": {
-        "name": "Bottom depth",
-        "author": "Shrimpsnail"
-      }
+    }
+  },
+  "overlays": {
+    "bottom_depth": {
+      "name": "Bottom depth",
+      "author": "Shrimpsnail"
     }
   }
 }
