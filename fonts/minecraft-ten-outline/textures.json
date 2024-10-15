@@ -19,7 +19,22 @@
     "mob_vote_icon": {
       "author": "B1tseK",
       "variants": {
-        "mob_vote_icon_gradient": {}
+        "mob_vote_icon_gradient": {},
+        "discord": {
+          "author": "Aurora_123_"
+        },
+        "mint_and_black": {
+          "author": "Aurora_123_"
+        },
+        "pink_and_black": {
+          "author": "Aurora_123_"
+        },
+        "white_and_black": {
+          "author": "Aurora_123_"
+        },
+        "white_and_red": {
+          "author": "Aurora_123_"
+        }
       }
     }
   },
