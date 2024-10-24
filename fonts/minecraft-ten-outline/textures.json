@@ -17,7 +17,25 @@
       "author": "blank3times"
     },
     "mob_vote_icon": {
-      "author": "Bit seK"
+      "author": "B1tseK",
+      "variants": {
+        "mob_vote_icon_gradient": {},
+        "discord": {
+          "author": "Aurora_123_"
+        },
+        "mint_and_black": {
+          "author": "Aurora_123_"
+        },
+        "pink_and_black": {
+          "author": "Aurora_123_"
+        },
+        "white_and_black": {
+          "author": "Aurora_123_"
+        },
+        "white_and_red": {
+          "author": "Aurora_123_"
+        }
+      }
     }
   },
   "overlays": {

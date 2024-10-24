@@ -11,6 +11,9 @@
         }
       }
     },
+    "bevelled_gold": {
+      "author": "CL697 & ShrimpSnail & jackeyrolz"
+    },
     "pixel": {
       "author": "Sawiq"
     },
@@ -20,6 +23,9 @@
       "variants": {
         "neon": {}
       }
+    },
+    "atmosphere": {
+      "author": "Zodiuss & jackeyrolz"
     },
     "pride": {
       "author": "Yozhenka",
@@ -37,6 +43,41 @@
         "pansexual": {},
         "trans": {}
       }
+    },
+    "oak_planks": {
+      "category": "Planks",
+      "author": "B1tseK & TheAnnoying",
+      "variants": {
+        "spruce_planks": {},
+        "birch_planks": {},
+        "jungle_planks": {},
+        "acacia_planks": {},
+        "dark_oak_planks": {},
+        "mangrove_planks": {},
+        "cherry_planks": {},
+        "bamboo_planks": {},
+        "crimson_planks": {},
+        "warped_planks": {}
+      }
+    },
+    "bubbles": {
+      "author": "B1tseK & 7px"
+    },
+    "flat_coloured": {
+      "name": "Flat (Coloured)",
+      "author": "B1tseK & TheAnnoying"
+    },
+    "lagoona": {
+      "author": "B1tseK & Ewan Howell"
+    },
+    "gurgles": {
+      "author": "B1tseK"
+    },
+    "furnace": {
+      "author": "B1tseK"
+    },
+    "enderman": {
+      "author": "B1tseK"
     }
   },
   "overlays": {
@@ -47,6 +88,20 @@
     "highlights_top": {
       "name": "Highlights (Top)",
       "author": "xllifi"
+    },
+    "glass": {
+      "author": "BitseK"
+    },
+    "glass_old": {
+      "name": "Glass (Old)",
+      "author": "BitseK"
+    },
+    "glass_tempered": {
+      "name": "Glass (Tempered)",
+      "author": "BitseK"
+    },
+    "outline": {
+      "author": "BitseK & Ewan Howell"
     }
   }
 }

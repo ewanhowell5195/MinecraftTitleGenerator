@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "patternProperties": {
+    "^[a-z0-9_]+$": {
+      "type": "object",
+      "properties": {
+        "category": { "type": "string" },
+        "name": { "type": "string" },
+        "author": { "type": "string" },
+        "path": { "type": "string" },
+        "variants": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-z0-9_]+$": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "author": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
