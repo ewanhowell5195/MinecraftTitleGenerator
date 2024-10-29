@@ -26,11 +26,13 @@
       "author": "Doharbdjr"
     },
     "menu_button": {
-      "author": "B1tseK",
-      "variants": {
-        "hotbar": {},
-        "achievement": {}
-      }
+      "author": "B1tseK"
+    },
+    "hotbar": {
+      "author": "B1tseK"
+    },
+    "achievement": {
+      "author": "B1tseK"
     }
   },
   "overlays": {
