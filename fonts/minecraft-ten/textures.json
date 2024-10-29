@@ -265,7 +265,12 @@
       "author": "blank3times"
     },
     "glow_squid": {
-      "author": "BitseK"
+      "author": "BitseK",
+      "variants": {
+        "glow_squid_old": {
+          "name": "Glow Squid (Old)"
+        }
+      }
     },
     "cherry_blossom": {
       "author": "Klayv",
