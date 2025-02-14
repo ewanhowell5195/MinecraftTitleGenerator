@@ -1,0 +1,191 @@
+{
+  "cobblestone": {
+    "category": "Stone",
+    "path": "minecraft/stone",
+    "variants": {
+      "stone": {},
+      "deepslate": {},
+      "deepslate_top": {},
+      "cobbled_deepslate": {},
+      "andesite": {},
+      "diorite": {},
+      "granite": {},
+      "calcite": {},
+      "tuff": {},
+      "bedrock": {},
+      "netherrack": {},
+      "blackstone": {},
+      "blackstone_top": {},
+      "basalt": {},
+      "end_stone": {}
+    }
+  },
+  "sponge": {},
+  "oak_planks": {
+    "category": "Planks",
+    "path": "minecraft/planks",
+    "variants": {
+      "spruce_planks": {},
+      "birch_planks": {},
+      "jungle_planks": {},
+      "acacia_planks": {},
+      "dark_oak_planks": {},
+      "mangrove_planks": {},
+      "cherry_planks": {},
+      "bamboo_planks": {},
+      "bamboo_mosaic": {},
+      "crimson_planks": {},
+      "warped_planks": {}
+    }
+  },
+  "twisted_wood": {
+    "author": "CCCode",
+    "path": "dokucraft"
+  },
+  "checkerboard": {
+    "author": "Ewan Howell",
+    "path": "patterns"
+  },
+  "white_wool": {
+    "category": "Wool",
+    "path": "minecraft/wool",
+    "variants": {
+      "light_gray_wool": {},
+      "gray_wool": {},
+      "black_wool": {},
+      "brown_wool": {},
+      "red_wool": {},
+      "orange_wool": {},
+      "yellow_wool": {},
+      "lime_wool": {},
+      "green_wool": {},
+      "cyan_wool": {},
+      "light_blue_wool": {},
+      "blue_wool": {},
+      "purple_wool": {},
+      "magenta_wool": {},
+      "pink_wool": {}
+    }
+  },
+  "grass": {
+    "path": "minecraft/grass",
+    "variants": {
+      "dirt_path": {},
+      "podzol": {},
+      "mycelium": {},
+      "crimson_nylium": {},
+      "warped_nylium": {}
+    }
+  },
+  "oak_log": {
+    "category": "Logs",
+    "path": "minecraft/log",
+    "variants": {
+      "spruce_log": {},
+      "birch_log": {},
+      "jungle_log": {},
+      "acacia_log": {},
+      "dark_oak_log": {},
+      "mangrove_log": {},
+      "cherry_log": {},
+      "bamboo_block": {},
+      "bamboo_block_top": {},
+      "stripped_bamboo_block": {},
+      "stripped_bamboo_block_top": {},
+      "crimson_stem": {},
+      "warped_stem": {}
+    }
+  },
+  "white_glazed_terracotta": {
+    "category": "Glazed Terracotta",
+    "path": "minecraft/glazed_terracotta",
+    "variants": {
+      "light_gray_glazed_terracotta": {},
+      "gray_glazed_terracotta": {},
+      "black_glazed_terracotta": {},
+      "brown_glazed_terracotta": {},
+      "red_glazed_terracotta": {},
+      "orange_glazed_terracotta": {},
+      "yellow_glazed_terracotta": {},
+      "lime_glazed_terracotta": {},
+      "green_glazed_terracotta": {},
+      "cyan_glazed_terracotta": {},
+      "light_blue_glazed_terracotta": {},
+      "blue_glazed_terracotta": {},
+      "purple_glazed_terracotta": {},
+      "magenta_glazed_terracotta": {},
+      "pink_glazed_terracotta": {}
+    }
+  },
+  "dirt": {
+    "path": "minecraft/dirt",
+    "variants": {
+      "coarse_dirt": {},
+      "rooted_dirt": {},
+      "farmland": {},
+      "moist_farmland": {}
+    }
+  },
+  "gravel": {},
+  "sand": {
+    "path": "minecraft/sand",
+    "variants": {
+      "sandstone": {},
+      "sandstone_top": {},
+      "red_sand": {},
+      "red_sandstone": {},
+      "red_sandstone_top": {},
+      "soul_sand": {},
+      "soul_soil": {}
+    }
+  },
+  "amethyst": {},
+  "melon": {},
+  "ancient_debris": {},
+  "bricks": {
+    "path": "minecraft/bricks",
+    "variants": {
+      "stone_bricks": {},
+      "cracked_stone_bricks": {},
+      "mossy_stone_bricks": {},
+      "deepslate_bricks": {},
+      "cracked_deepslate_bricks": {},
+      "tuff_bricks": {},
+      "quartz_bricks": {},
+      "mud_bricks": {},
+      "nether_bricks": {},
+      "cracked_nether_bricks": {},
+      "red_nether_bricks": {},
+      "polished_blackstone_bricks": {},
+      "cracked_polished_blackstone_bricks": {},
+      "end_stone_bricks": {}
+    }
+  },
+  "poisonous_potato": {
+    "category": "Poisonous Potato Update",
+    "path": "poisonous_potato",
+    "variants": {
+      "terre_de_pomme": {},
+      "potato_peels_block": {},
+      "peelgrass": {},
+      "corrupted_peelgrass": {},
+      "poison_path": {},
+      "potato_stem": {},
+      "potato_planks": {},
+      "potone": {},
+      "taterstone": {},
+      "gravtater": {},
+      "baked_potato_bricks": {},
+      "charred_baked_potato_bricks": {},
+      "expired_baked_potato_bricks": {},
+      "floatato": {}
+    }
+  },
+  "diagonal_up": {
+    "category": "Diagonal",
+    "path": "patterns",
+    "variants": {
+      "diagonal_down": {}
+    }
+  }
+}

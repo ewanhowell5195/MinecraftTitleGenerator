@@ -8,6 +8,30 @@
     },
     "neon": {
       "author": "MCAlexisYT"
+    },
+    "bedrock_button": {
+      "author": "Klayv",
+      "variants": {
+        "bedrock_button_unpressed": {
+          "name": "Bedrock Button (Unpressed)"
+        }
+      }
+    },
+    "oak_planks": {
+      "category": "Planks",
+      "author": "BitseK & TheAnnoying",
+      "variants": {
+        "spruce_planks": {},
+        "birch_planks": {},
+        "jungle_planks": {},
+        "acacia_planks": {},
+        "dark_oak_planks": {},
+        "mangrove_planks": {},
+        "cherry_planks": {},
+        "bamboo_planks": {},
+        "crimson_planks": {},
+        "warped_planks": {}
+      }
     }
   },
   "overlays": {
@@ -18,6 +42,21 @@
     "highlights_top": {
       "name": "Highlights (Top)",
       "author": "Shrimpsnail"
+    },
+    "drop_shadow": {
+      "author": "Ewan Howell"
+    },
+    "drop_shadow_left": {
+      "name": "Drop Shadow (Left)",
+      "author": "Ewan Howell"
+    },
+    "drop_shadow_right": {
+      "name": "Drop Shadow (Right)",
+      "author": "Ewan Howell"
+    },
+    "bedrock": {
+      "name": "Bedrock Button",
+      "author": "Klayv"
     }
   }
 }

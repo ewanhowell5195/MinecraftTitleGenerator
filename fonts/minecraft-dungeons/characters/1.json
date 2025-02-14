@@ -2,23 +2,23 @@
 	"credit": "By Ewan Howell",
 	"texture_size": [1000, 320],
 	"textures": {
-		"0": "minecraft-dungeons:flat",
-		"particle": "minecraft-dungeons:flat"
+		"0": "minecraft-dungeons:gradient",
+		"particle": "minecraft-dungeons:gradient"
 	},
 	"elements": [
 		{
-			"from": [-2, 2, -3],
-			"to": [18, 42, 19],
+			"from": [-4, 2, -3],
+			"to": [20, 42, 19],
 			"faces": {
-				"north": {"uv": [0.48, 5.4, 0.8, 7.4], "texture": "#0"},
-				"south": {"uv": [0.8, 5.4, 0.48, 7.4], "texture": "#0"},
-				"up": {"uv": [0.8, 5.4, 0.48, 4.3], "texture": "#0"},
-				"down": {"uv": [0.8, 8.5, 0.48, 7.4], "texture": "#0"}
+				"north": {"uv": [0.48, 5.4, 0.864, 7.4], "texture": "#0"},
+				"south": {"uv": [0.864, 5.4, 0.48, 7.4], "texture": "#0"},
+				"up": {"uv": [0.864, 5.4, 0.48, 4.3], "texture": "#0"},
+				"down": {"uv": [0.864, 8.5, 0.48, 7.4], "texture": "#0"}
 			}
 		},
 		{
-			"from": [12, 44, 21],
-			"to": [0, 0, -5],
+			"from": [14, 44, 21],
+			"to": [2, 0, -5],
 			"faces": {
 				"north": {"uv": [0.016, 13.35, 0, 13.3], "texture": "#0"},
 				"east": {"uv": [0.224, 13.85, 0.24, 13.3], "texture": "#0"},
@@ -29,8 +29,8 @@
 			}
 		},
 		{
-			"from": [20, 36, 21],
-			"to": [12, 24, -5],
+			"from": [22, 36, 21],
+			"to": [14, 24, -5],
 			"faces": {
 				"north": {"uv": [0.016, 13.35, 0, 13.3], "texture": "#0"},
 				"south": {"uv": [0.016, 13.35, 0, 13.3], "texture": "#0"},
@@ -40,8 +40,8 @@
 			}
 		},
 		{
-			"from": [20, 12, 21],
-			"to": [12, 0, -5],
+			"from": [22, 12, 21],
+			"to": [14, 0, -5],
 			"faces": {
 				"north": {"uv": [0.016, 13.35, 0, 13.3], "texture": "#0"},
 				"south": {"uv": [0.016, 13.35, 0, 13.3], "texture": "#0"},
@@ -51,8 +51,8 @@
 			}
 		},
 		{
-			"from": [0, 12, 21],
-			"to": [-4, 0, -5],
+			"from": [2, 12, 21],
+			"to": [-6, 0, -5],
 			"faces": {
 				"north": {"uv": [0.016, 13.35, 0, 13.3], "texture": "#0"},
 				"east": {"uv": [0.016, 13.35, 0, 13.3], "texture": "#0"},

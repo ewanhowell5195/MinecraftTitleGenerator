@@ -70,7 +70,7 @@
       "author": "Ewan Howell & DamienBrittan"
     },
     "grass": {
-      "author": "ShrimpSnail & DamienBrittan",
+      "author": "ShrimpSnail, DamienBrittan, & blank3times",
       "variants": {
         "flowers": {
           "author": "SzyszaDev"
@@ -80,7 +80,11 @@
         },
         "grass_side_flowers": {
           "author": "Magminer & Ewan Howell & SzyszaDev"
-        }
+        },
+        "podzol": {},
+        "mycelium": {},
+        "crimson_nylium": {},
+        "warped_nylium": {}
       }
     },
     "bubbles": {
@@ -96,36 +100,16 @@
       "category": "Planks",
       "author": "TheAnnoying",
       "variants": {
-        "spruce_planks": {
-          "author": "OliviaTheVampire"
-        },
-        "birch_planks": {
-          "author": "OliviaTheVampire"
-        },
-        "jungle_planks": {
-          "author": "OliviaTheVampire"
-        },
-        "acacia_planks": {
-          "author": "OliviaTheVampire"
-        },
-        "dark_oak_planks": {
-          "author": "OliviaTheVampire"
-        },
-        "mangrove_planks": {
-          "author": "OliviaTheVampire"
-        },
-        "cherry_planks": {
-          "author": "OliviaTheVampire"
-        },
-        "bamboo_planks": {
-          "author": "OliviaTheVampire"
-        },
-        "crimson_planks": {
-          "author": "OliviaTheVampire"
-        },
-        "warped_planks": {
-          "author": "OliviaTheVampire"
-        }
+        "spruce_planks": {},
+        "birch_planks": {},
+        "jungle_planks": {},
+        "acacia_planks": {},
+        "dark_oak_planks": {},
+        "mangrove_planks": {},
+        "cherry_planks": {},
+        "bamboo_planks": {},
+        "crimson_planks": {},
+        "warped_planks": {}
       }
     },
     "dunes": {
@@ -271,16 +255,22 @@
       "author": "Zodiuss"
     },
     "gurgles": {
-      "author": "Bit sek"
+      "author": "BitseK"
     },
     "crystal": {
+      "name": "Crystal (Caves & Cliffs)",
       "author": "blank3times"
     },
     "end_crystal": {
       "author": "blank3times"
     },
     "glow_squid": {
-      "author": "Bit sek"
+      "author": "BitseK",
+      "variants": {
+        "glow_squid_old": {
+          "name": "Glow Squid (Old)"
+        }
+      }
     },
     "cherry_blossom": {
       "author": "Klayv",
@@ -308,6 +298,31 @@
     },
     "terracotta": {
       "author": "Klayv"
+    },
+    "lagoona": {
+      "author": "BitseK & Ewan Howell"
+    },
+    "create_andesite_casing": {
+      "category": "Create Casing",
+      "name": "Andesite Casing",
+      "author": "MoonArts",
+      "variants": {
+        "create_brass_casing": {
+          "name": "Brass Casing"
+        },
+        "create_copper_casing": {
+          "name": "Copper Casing"
+        },
+        "create_train_casing": {
+          "name": "Train Casing"
+        }
+      }
+    },
+    "furnace": {
+      "author": "B1tseK"
+    },
+    "enderman": {
+      "author": "B1tseK"
     }
   },
   "overlays": {
@@ -367,19 +382,23 @@
       "author": "blank3times"
     },
     "glass": {
-      "author": "Bit sek"
+      "author": "BitseK"
     },
     "glass_old": {
       "name": "Glass (Old)",
-      "author": "Bit sek"
+      "author": "BitseK"
     },
     "highlights_right": {
-      "name": "highlights right",
-      "author": "Bit sek"
+      "name": "Highlights (Right)",
+      "author": "BitseK"
     },
     "highlights_left": {
-      "name": "highlights left",
-      "author": "Bit sek"
+      "name": "Highlights (Left)",
+      "author": "BitseK"
+    },
+    "glass_tempered": {
+      "name": "Glass (Tempered)",
+      "author": "BitseK"
     }
   }
 }

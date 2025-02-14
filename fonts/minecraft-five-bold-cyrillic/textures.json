@@ -8,6 +8,39 @@
     },
     "flat_coloured": {
       "author": "xllifi"
+    },
+    "pride": {
+      "author": "Yozhenka",
+      "variants": {
+        "aroace": {},
+        "aromantic": {},
+        "asexual": {},
+        "bisexual": {},
+        "enby": {},
+        "fluid": {},
+        "gay": {},
+        "heterosexual": {},
+        "intersex": {},
+        "lesbian": {},
+        "pansexual": {},
+        "trans": {}
+      }
+    },
+    "oak_planks": {
+      "category": "Planks",
+      "author": "BitseK & TheAnnoying",
+      "variants": {
+        "spruce_planks": {},
+        "birch_planks": {},
+        "jungle_planks": {},
+        "acacia_planks": {},
+        "dark_oak_planks": {},
+        "mangrove_planks": {},
+        "cherry_planks": {},
+        "bamboo_planks": {},
+        "crimson_planks": {},
+        "warped_planks": {}
+      }
     }
   },
   "overlays": {

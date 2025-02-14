@@ -28,6 +28,8 @@ const charMap = {
   start: "┫"
 }
 
+console.log("Processing fonts...")
+
 const fonts = JSON.parse(fs.readFileSync("../fonts.json"))
 
 const ten = fonts.find(e => e.id === "minecraft-ten")
@@ -39,20 +41,18 @@ fonts.forEach(font => {
   if (font.variants) {
     for (const variant of font.variants) {
       const variantFont = Object.assign(Object.fromEntries(Object.entries(font).filter(e => e[0] !== "variants")), variant)
-      variantFont.characters = JSON.parse(fs.readFileSync(`../fonts/${variant.id}/characters.json`))
       fonts.push(variantFont)
     }
   }
-  font.characters = JSON.parse(fs.readFileSync(`../fonts/${font.id}/characters.json`))
 })
 
 for (const font of fonts) {
-  const characters = {}
+  font.characters = {}
 
   for (const file of fs.readdirSync(`../fonts/${font.id}/characters`)) {
     const char = charMap[file.slice(0, -5)] ?? file.slice(0, -5)
-    characters[char] = JSON.parse(fs.readFileSync(`../fonts/${font.id}/characters/${file}`, "utf8")).elements
-    for (const element of characters[char]) {
+    font.characters[char] = JSON.parse(fs.readFileSync(`../fonts/${font.id}/characters/${file}`, "utf8")).elements
+    for (const element of font.characters[char]) {
       for (const [direction, face] of Object.entries(element.faces)) {
         if (face.rotation === 180) face.uv = [face.uv.slice(2), face.uv.slice(0, 2)].flat()
         element.faces[direction] = face.uv
@@ -60,15 +60,15 @@ for (const font of fonts) {
     }
   }
 
-  fs.writeFileSync(`../fonts/${font.id}/characters.json`, JSON.stringify(characters))
+  fs.writeFileSync(`../fonts/${font.id}/characters.json`, JSON.stringify(font.characters))
 
   console.log(`Done ${font.id} characters`)
 
   fs.writeFileSync(`../fonts/${font.id}/textures.json`, JSON.stringify(JSON.parse(fs.readFileSync(`../fonts/${font.id}/textures.json`)), null, 2) + "\n")
 
-  fs.mkdirSync(`temp/${font.id}/textures`, { recursive: true })
-  fs.mkdirSync(`temp/${font.id}/overlays`, { recursive: true })
-  fs.mkdirSync(`temp/${font.id}/thumbnails`, { recursive: true })
+  fs.mkdirSync(`temp/fonts/${font.id}/textures`, { recursive: true })
+  fs.mkdirSync(`temp/fonts/${font.id}/overlays`, { recursive: true })
+  fs.mkdirSync(`temp/fonts/${font.id}/thumbnails`, { recursive: true })
 
   const textures = fs.readdirSync(`../fonts/${font.id}/textures`).map(e => ["textures", e]).concat(fs.readdirSync(`../fonts/${font.id}/overlays`).map(e => ["overlays", e]))
 
@@ -86,7 +86,7 @@ for (const font of fonts) {
     if (!file[1].endsWith(".png") || file[1] === "overlay.png") continue
 
     const texture = await loadTexture(file[0] ? `../fonts/${font.id}/${file[0]}/${file[1]}` : file[2])
-    if (file[0]) texture.image.saveAs(`temp/${font.id}/${file[0]}/${file[1]}`)
+    if (file[0]) texture.image.saveAs(`temp/fonts/${font.id}/${file[0]}/${file[1]}`)
 
     const scaleFactor = texture.image.width / 1000
     const [scene, camera] = makeTitleScene(scaleFactor)
@@ -104,7 +104,7 @@ for (const font of fonts) {
       else text = `┫${text}┣`
     }
 
-    await addTitleText(scene, text, {
+    addTitleText(scene, text, {
       font: font.id,
       texture
     })
@@ -134,14 +134,67 @@ for (const font of fonts) {
       canvas = bordered
     }
 
-    canvas.saveAs(`temp/${font.id}/thumbnails/${file[1]}`)
+    canvas.saveAs(`temp/fonts/${font.id}/thumbnails/${file[1]}`)
     console.log(`Done ${font.id} ${file[1]}`)
   }
 }
 
+console.log("Processed fonts")
+console.log("Processing shapes...")
+
+const shapes = {}
+
+const shapesList = JSON.parse(fs.readFileSync("../shapes.json"))
+
+for (const [id, shape] of Object.entries(shapesList)) {
+  shapes[id] = JSON.parse(fs.readFileSync(`../shapes/${id}/model.json`)).elements
+  for (const element of shapes[id]) {
+    for (const [direction, face] of Object.entries(element.faces)) {
+      if (face.rotation === 180) face.uv = [face.uv.slice(2), face.uv.slice(0, 2)].flat()
+      element.faces[direction] = face.uv
+    }
+  }
+
+  fs.mkdirSync(`temp/shapes/${id}/textures`, { recursive: true })
+  fs.mkdirSync(`temp/shapes/${id}/thumbnails`, { recursive: true })
+
+  const textures = Object.entries(JSON.parse(fs.readFileSync(`../shapes/${id}/textures.json`))).flatMap(([id, data]) => [id, ...(data.variants ? Object.keys(data.variants) : [])])
+
+  for (const name of textures) {
+    const texture = await loadTexture(`../shapes/${id}/textures/${name}.png`)
+    texture.image.saveAs(`temp/shapes/${id}/textures/${name}.png`)
+
+    const scaleFactor = texture.image.width / shape.width
+    const [scene, camera] = makeTitleScene(scaleFactor)
+
+    addShape(scene, shapes[id], texture)
+
+    let canvas = await renderTitleScene(scene, camera, scaleFactor)
+
+    canvas.saveAs(`temp/shapes/${id}/thumbnails/${name}.png`)
+    console.log(`Done ${id} ${name}.png`)
+  }
+}
+
+fs.writeFileSync("../shapes/shapes.json", JSON.stringify(shapes))
+
+console.log("Processed shapes")
 console.log("Compressing textures...")
 
-compress_images("temp/**/*.png", "../fonts/", {
+compress_images("temp/**/*.png", "../", {
+  statistic: false,
+  autoupdate: true,
+  compress_force: true,
+}, false,
+  { jpg: { engine: false, command: false } },
+  { png: { engine: "optipng", command: ["-backup"] } },
+  { svg: { engine: false, command: false } },
+  { gif: { engine: false, command: false } },
+(err, comp, stat) => {
+  if (fs.existsSync(stat.path_out_new + ".bak")) fs.unlinkSync(stat.path_out_new + ".bak")
+})
+
+compress_images("../tileables/**/*.png", "../tileables/", {
   statistic: false,
   autoupdate: true,
   compress_force: true,
@@ -172,7 +225,81 @@ function makeTitleScene(scaleFactor) {
   return [scene, camera]
 }
 
-async function addTitleText(scene, str, args) {
+function addModel(scene, model, group, material, cubes, i, font, width, args) {
+  let min = Infinity
+  let max = -Infinity
+  const character = new THREE.Group()
+  for (let cube of model) {
+    if (!cube.parsed) {
+      cube.parsed = true
+      for (const [direction, uv] of Object.entries(cube.faces)) {
+        cube.faces[direction] = { uv }
+      }
+    }
+
+    cube = JSON.parse(JSON.stringify(cube))
+    min = Math.min(min, cube.from[0], cube.to[0])
+    max = Math.max(max, cube.from[0], cube.to[0])
+
+    if (args.type === "bottom") {
+      if (cube.to[2] > cube.from[2]) {
+        cube.to[2] += 20
+      } else {
+        cube.from[2] += 20
+      }
+    }
+
+    const geometry = new THREE.BoxGeometry(cube.to[0] - cube.from[0], cube.to[1] - cube.from[1], cube.to[2] - cube.from[2])
+    const mesh = new THREE.Mesh(geometry, material)
+
+    mesh.position.fromArray([
+      (cube.from[0] + cube.to[0]) / 2,
+      (cube.from[1] + cube.to[1]) / 2,
+      (cube.from[2] + cube.to[2]) / 2
+    ])
+
+    const indexes = {
+      north: 40,
+      east: 0,
+      south: 32,
+      west: 8,
+      up: 16,
+      down: 24
+    }
+
+    for (const key of Object.keys(indexes)) {
+      const face = cube.faces[key]
+      const i = indexes[key]
+      if (face) {
+        const uv = [
+          [face.uv[0] / 16, 1 - (face.uv[1] / 16)],
+          [face.uv[2] / 16, 1 - (face.uv[1] / 16)],
+          [face.uv[0] / 16, 1 - (face.uv[3] / 16)],
+          [face.uv[2] / 16, 1 - (face.uv[3] / 16)]
+        ]
+        mesh.geometry.attributes.uv.array.set(uv[0], i + 0)
+        mesh.geometry.attributes.uv.array.set(uv[1], i + 2)
+        mesh.geometry.attributes.uv.array.set(uv[2], i + 4)
+        mesh.geometry.attributes.uv.array.set(uv[3], i + 6)
+      } else {
+        mesh.geometry.attributes.uv.array.set([1, 1], i + 0)
+        mesh.geometry.attributes.uv.array.set([1, 1], i + 2)
+        mesh.geometry.attributes.uv.array.set([1, 1], i + 4)
+        mesh.geometry.attributes.uv.array.set([1, 1], i + 6)
+      }
+    }
+    character.add(mesh)
+    cubes.push(mesh)
+  }
+  if (i) max += font.characterSpacing ?? 0
+  for (const cube of character.children) {
+    cube.position.x -= width + max
+  }
+  group.add(character)
+  return max - min
+}
+
+function addTitleText(scene, str, args) {
   const font = fonts.find(e => e.id === args.font)
 
   args.texture.colorSpace = THREE.SRGBColorSpace
@@ -189,115 +316,43 @@ async function addTitleText(scene, str, args) {
   let width = 0
   const cubes = []
   const group = new THREE.Group()
-  for (const char of str) {
+  for (const [i, char] of Array.from(str).entries()) {
     if (char === " ") {
       width += 8
       continue
     }
     if (!font.characters[char]) continue
-    let min = Infinity
-    let max = -Infinity
-    const character = new THREE.Group()
-    for (let cube of font.characters[char]) {
-      if (!cube.parsed) {
-        cube.parsed = true
-        for (const [direction, uv] of Object.entries(cube.faces)) {
-          cube.faces[direction] = { uv }
-        }
-      }
-
-      cube = JSON.parse(JSON.stringify(cube))
-      min = Math.min(min, cube.from[0], cube.to[0])
-      max = Math.max(max, cube.from[0], cube.to[0])
-
-      if (args.type === "bottom") {
-        if (cube.to[2] > cube.from[2]) {
-          cube.to[2] += 20
-        } else {
-          cube.from[2] += 20
-        }
-      }
-
-      const geometry = new THREE.BoxGeometry(cube.to[0] - cube.from[0], cube.to[1] - cube.from[1], cube.to[2] - cube.from[2])
-      const mesh = new THREE.Mesh(geometry, material)
-
-      mesh.position.fromArray([
-        (cube.from[0] + cube.to[0]) / 2,
-        (cube.from[1] + cube.to[1]) / 2,
-        (cube.from[2] + cube.to[2]) / 2
-      ])
-
-      const indexes = {
-        north: 40,
-        east: 0,
-        south: 32,
-        west: 8,
-        up: 16,
-        down: 24
-      }
-
-      for (const key of Object.keys(indexes)) {
-        const face = cube.faces[key]
-        const i = indexes[key]
-        if (face) {
-          const uv = [
-            [face.uv[0] / 16, 1 - (face.uv[1] / 16)],
-            [face.uv[2] / 16, 1 - (face.uv[1] / 16)],
-            [face.uv[0] / 16, 1 - (face.uv[3] / 16)],
-            [face.uv[2] / 16, 1 - (face.uv[3] / 16)]
-          ]
-          mesh.geometry.attributes.uv.array.set(uv[0], i + 0)
-          mesh.geometry.attributes.uv.array.set(uv[1], i + 2)
-          mesh.geometry.attributes.uv.array.set(uv[2], i + 4)
-          mesh.geometry.attributes.uv.array.set(uv[3], i + 6)
-        } else {
-          mesh.geometry.attributes.uv.array.set([1, 1], i + 0)
-          mesh.geometry.attributes.uv.array.set([1, 1], i + 2)
-          mesh.geometry.attributes.uv.array.set([1, 1], i + 4)
-          mesh.geometry.attributes.uv.array.set([1, 1], i + 6)
-        }
-      }
-      character.add(mesh)
-      cubes.push(mesh)
-    }
-    for (const cube of character.children) {
-      cube.position.x -= width + max
-    }
-    group.add(character)
-    width += max - min
+    const model = font.characters[char]
+    width += addModel(scene, model, group, material, cubes, i, font, width, args)
   }
 
   for (const cube of cubes) {
     cube.position.x += width / 2
   }
 
-  if (args.row) {
-    group.position.y += font.height * args.row
-  }
+  scene.add(group)
+}
 
-  if (args.type === "bottom") {
-    group.scale.setX(0.75)
-    group.scale.setY(1.6)
-    group.scale.setZ(0.75)
-    group.rotation.fromArray([torad(-90), 0, 0])
-    group.position.z += font.height + 49
-    group.position.y -= 25 - font.depth
-  } else if (args.type === "small") {
-    group.scale.setX(0.35)
-    group.scale.setY(0.35)
-    group.scale.setZ(0.35)
-    group.position.y -= font.height * 0.35
-  }
+function addShape(scene, model, texture) {
+  texture.colorSpace = THREE.SRGBColorSpace
+  texture.magFilter = THREE.NearestFilter
+  texture.minFilter = THREE.NearestFilter
+  texture.flipY = true
 
-  if (args.scale) {
-    group.scale.setX(group.scale.x * args.scale[0])
-    group.scale.setY(group.scale.y * args.scale[1])
-    group.scale.setZ(group.scale.z * args.scale[2])
-  }
+  const material = new THREE.MeshBasicMaterial({
+    map: texture,
+    transparent: true,
+    alphaTest: 0.01
+  })
 
-  if (args.rotation) {
-    const old = group.rotation.toArray()
-    group.rotation.fromArray(args.rotation.map((e, i) => torad(e) + old[i]))
+  let width = 0
+  const cubes = []
+  const group = new THREE.Group()
+
+  width += addModel(scene, model, group, material, cubes, 0, {}, width, {})
+
+  for (const cube of cubes) {
+    cube.position.x += width / 2
   }
 
   scene.add(group)

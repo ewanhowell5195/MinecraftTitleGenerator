@@ -1,0 +1,59 @@
+{
+	"credit": "By Westbot",
+	"texture_size": [1000, 320],
+	"textures": {
+		"0": "minecraft_sga:flat",
+		"particle": "minecraft_sga:flat"
+	},
+	"elements": [
+		{
+			"from": [-1, 2, -3],
+			"to": [17, 44, 19],
+			"faces": {
+				"north": {"uv": [4.384, 1.1, 4.672, 3.2], "texture": "#0"},
+				"south": {"uv": [4.672, 1.1, 4.384, 3.2], "texture": "#0"},
+				"up": {"uv": [4.672, 1.1, 4.384, 0], "texture": "#0"},
+				"down": {"uv": [4.672, 4.3, 4.384, 3.2], "texture": "#0"}
+			}
+		},
+		{
+			"from": [19, 0, -5],
+			"to": [9, 46, 21],
+			"rotation": {"angle": 0, "axis": "y", "origin": [19, 0, 0]},
+			"faces": {
+				"north": {"uv": [1.584, 5, 1.6, 5.05], "texture": "#0"},
+				"east": {"uv": [1.584, 5, 1.6, 5.05], "texture": "#0"},
+				"south": {"uv": [1.584, 5, 1.6, 5.05], "texture": "#0"},
+				"west": {"uv": [1.584, 5, 1.6, 5.05], "texture": "#0"},
+				"up": {"uv": [1.584, 5, 1.6, 5.05], "texture": "#0"},
+				"down": {"uv": [1.584, 5, 1.6, 5.05], "texture": "#0"}
+			}
+		},
+		{
+			"from": [7, 6, -5],
+			"to": [-3, 16, 21],
+			"rotation": {"angle": 0, "axis": "y", "origin": [7, 6, 0]},
+			"faces": {
+				"north": {"uv": [1.584, 5, 1.6, 5.05], "texture": "#0"},
+				"east": {"uv": [1.584, 5, 1.6, 5.05], "texture": "#0"},
+				"south": {"uv": [1.584, 5, 1.6, 5.05], "texture": "#0"},
+				"west": {"uv": [1.584, 5, 1.6, 5.05], "texture": "#0"},
+				"up": {"uv": [1.584, 5, 1.6, 5.05], "texture": "#0"},
+				"down": {"uv": [1.584, 5, 1.6, 5.05], "texture": "#0"}
+			}
+		},
+		{
+			"from": [7, 30, -5],
+			"to": [-3, 40, 21],
+			"rotation": {"angle": 0, "axis": "y", "origin": [7, 30, 0]},
+			"faces": {
+				"north": {"uv": [1.584, 5, 1.6, 5.05], "texture": "#0"},
+				"east": {"uv": [1.584, 5, 1.6, 5.05], "texture": "#0"},
+				"south": {"uv": [1.584, 5, 1.6, 5.05], "texture": "#0"},
+				"west": {"uv": [1.584, 5, 1.6, 5.05], "texture": "#0"},
+				"up": {"uv": [1.584, 5, 1.6, 5.05], "texture": "#0"},
+				"down": {"uv": [1.584, 5, 1.6, 5.05], "texture": "#0"}
+			}
+		}
+	]
+}
