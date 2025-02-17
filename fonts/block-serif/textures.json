@@ -1,0 +1,22 @@
+{
+  "textures": {
+    "flat": { // The ID of the texture you are adding (required)
+      "name": "Flat", // The name of the texture if it doesn't match the ID (optional)
+      "author": "Dragonslayr15001",
+    }
+    "colorful": { // The ID of the texture you are adding (required)
+      "name": "Colorful", // The name of the texture if it doesn't match the ID (optional)
+      "author": "Dragonslayr15001",
+    }
+    "brass": { // The ID of the texture you are adding (required)
+      "name": "Brass", // The name of the texture if it doesn't match the ID (optional)
+      "author": "Dragonslayr15001",
+    }
+  },
+  "overlays": { // If you are adding an overlay, it goes in here
+    "highlight_top": { // The ID of the overlay you are adding (required)
+      "name": "Highlight Top", // The name of the overlay if it doesn't match the ID (optional)
+      "author": "Dragonslayr15001" // Your name (required)
+    }
+  }
+}
