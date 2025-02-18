@@ -17,6 +17,10 @@
     "highlight_top": {
       "name": "Highlight Top",
       "author": "Dragonslayr15001"
+    },
+    "highlight_bottom": {
+      "name": "Highlight Bottom",
+      "author": "Dragonslayr15001"
     }
   }
 }
