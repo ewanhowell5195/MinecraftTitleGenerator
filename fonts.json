@@ -198,7 +198,7 @@
       "enchanting",
       "minecraft"
     ]
-  }
+  },
   {
     "id": "block-serif",
     "name": "Block Serif",
@@ -215,5 +215,5 @@
       [86, 108, 148, 170],
       [172, 194, 242, 264]
     ]
-  },
+  }
 ]
