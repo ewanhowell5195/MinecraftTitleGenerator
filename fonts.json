@@ -206,7 +206,7 @@
     "height": 44,
     "border": 266,
     "overlay": true,
-    "spaceWidth": 16,
+    "spaceWidth": 12,
     "faces": [
       [22, 62],
       [108, 148],
@@ -221,9 +221,7 @@
       "😳w": 8,
       "aw": 8,
       "w😳": 8,
-      "wa": 8,
-      "pl": 16,
-      "le": 16
+      "wa": 8
     }
   }
 ]

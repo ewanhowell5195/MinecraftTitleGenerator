@@ -61,17 +61,25 @@
                 "flat": { "type": "boolean" },
                 "characterSpacing": { "type": "integer" },
                 "spaceWidth": { "type": "integer" },
-                "shifts": {
-                  "type": "object",
-                  "minProperties": 1,
-                  "patternProperties": {
-                    "^(.|😳|😩){2}$": {
-                      "type": "integer",
-                      "not": { "const": 0 }
+                "shifts": [
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "minProperties": 1,
+                      "patternProperties": {
+                        "^(.|😳|😩){2}$": {
+                          "type": "integer",
+                          "not": { "const": 0 }
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "string",
+                      "const": "inherit"
                     }
-                  },
-                  "additionalProperties": false
-                }
+                  ]
+                ]
               },
               "required": ["id"],
               "additionalProperties": false
@@ -198,17 +206,25 @@
                 "flat": { "type": "boolean" },
                 "characterSpacing": { "type": "integer" },
                 "spaceWidth": { "type": "integer" },
-                "shifts": {
-                  "type": "object",
-                  "minProperties": 1,
-                  "patternProperties": {
-                    "^(.|😳|😩){2}$": {
-                      "type": "integer",
-                      "not": { "const": 0 }
+                "shifts": [
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "minProperties": 1,
+                      "patternProperties": {
+                        "^(.|😳|😩){2}$": {
+                          "type": "integer",
+                          "not": { "const": 0 }
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "string",
+                      "const": "inherit"
                     }
-                  },
-                  "additionalProperties": false
-                }
+                  ]
+                ]
               },
               "required": ["id"],
               "additionalProperties": false
