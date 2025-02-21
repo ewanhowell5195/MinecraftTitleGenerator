@@ -206,6 +206,7 @@ If you want to make a font using different characters, please make an issue abou
    - You can have as many rows as you need, as long as you leave room for the border UV at the bottom.
    - 2px-wide spaces must be between the characters and the rows.
    - If some characters are taller than the standard character height, they can go into their own rows.
+   - A single pixel of the border colour is required. This must be the very top left pixel of the border area.
    - You do not need to worry about making the border UVs at this time.
    - See the `minecraft-ten` and `minecraft-five-bold` textures for example UVs.
    - Font UVs must be `1000x320`.
@@ -254,9 +255,14 @@ If you want to make a font using different characters, please make an issue abou
     "flat": true, // The font is a flat plane with no depth (optional)
     "characterSpacing": 8, // A default amount of character spacing to use (optional)
     "spaceWidth": 8, // The size of the space between words (optional, defaults to "8")
+    "shifts": { // Shifts characters around based on what characters they appear next to (optional)
+      "aw": 8 // Shifts the character "w" 8 pixels to the left when after the character "a",
+      "()": -4 // Shifts the character ")" 4 pixels to the right when after the character "("
+    },
     "variants": [ // The variants for this font (optional)
       {
         "id": "variant-id", // The ID of the variant
+        "shifts": "inherit", // Shifts to use for the variant. Either an object, or set to "inherit" to inherit the base shifts (optional)
         // All other properties for variants are the same as the base font and optional. Any missing properties will be inherited from the base font
       }
     ]
