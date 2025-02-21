@@ -61,7 +61,7 @@
                 "flat": { "type": "boolean" },
                 "characterSpacing": { "type": "integer" },
                 "spaceWidth": { "type": "integer" },
-                "shifts": [
+                "shifts": {
                   "oneOf": [
                     {
                       "type": "object",
@@ -79,7 +79,7 @@
                       "const": "inherit"
                     }
                   ]
-                ]
+                }
               },
               "required": ["id"],
               "additionalProperties": false
@@ -206,7 +206,7 @@
                 "flat": { "type": "boolean" },
                 "characterSpacing": { "type": "integer" },
                 "spaceWidth": { "type": "integer" },
-                "shifts": [
+                "shifts": {
                   "oneOf": [
                     {
                       "type": "object",
@@ -224,7 +224,7 @@
                       "const": "inherit"
                     }
                   ]
-                ]
+                }
               },
               "required": ["id"],
               "additionalProperties": false
