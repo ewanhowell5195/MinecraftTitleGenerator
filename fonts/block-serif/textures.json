@@ -4,12 +4,12 @@
       "name": "Flat",
       "author": "Dragonslayr15001"
     },
-    "colourful": {
-      "name": "Colourful",
-      "author": "Dragonslayr15001"
-    },
     "brass": {
       "name": "Brass",
+      "author": "Dragonslayr15001"
+    },
+    "colourful": {
+      "name": "Colourful",
       "author": "Dragonslayr15001"
     }
   },
@@ -20,6 +20,10 @@
     },
     "highlight_bottom": {
       "name": "Highlight Bottom",
+      "author": "Dragonslayr15001"
+    },
+    "half_gradient": {
+      "name": "Half Gradient",
       "author": "Dragonslayr15001"
     }
   }
