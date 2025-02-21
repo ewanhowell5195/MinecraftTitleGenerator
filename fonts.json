@@ -198,5 +198,24 @@
       "enchanting",
       "minecraft"
     ]
+  },
+  {
+    "id": "block-serif",
+    "name": "Block Serif",
+    "author": "DragonSlayr15001",
+    "height": 44,
+    "border": 266,
+    "overlay": true,
+    "spaceWidth": 16,
+    "faces": [
+      [22, 62],
+      [108, 148],
+      [194, 194, 234, 242]
+    ],
+    "ends": [
+      [0, 22, 62, 84],
+      [86, 108, 148, 170],
+      [172, 194, 242, 264]
+    ]
   }
 ]
