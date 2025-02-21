@@ -58,7 +58,9 @@
                   "minItems": 2,
                   "maxItems": 2
                 },
-                "flat": { "type": "boolean" }
+                "flat": { "type": "boolean" },
+                "characterSpacing": { "type": "integer" },
+                "spaceWidth": { "type": "integer" }
               },
               "required": ["id"],
               "additionalProperties": false
@@ -119,6 +121,7 @@
           },
           "flat": { "type": "boolean" },
           "characterSpacing": { "type": "integer" },
+          "spaceWidth": { "type": "integer" },
           "variants": {
             "type": "array",
             "items": {
@@ -171,7 +174,8 @@
                   "maxItems": 2
                 },
                 "flat": { "type": "boolean" },
-                "characterSpacing": { "type": "integer" }
+                "characterSpacing": { "type": "integer" },
+                "spaceWidth": { "type": "integer" }
               },
               "required": ["id"],
               "additionalProperties": false

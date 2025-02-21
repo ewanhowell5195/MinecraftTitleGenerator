@@ -253,6 +253,7 @@ If you want to make a font using different characters, please make an issue abou
     ],
     "flat": true, // The font is a flat plane with no depth (optional)
     "characterSpacing": 8, // A default amount of character spacing to use (optional)
+    "spaceWidth": 8, // The size of the space between words (optional, defaults to "8")
     "variants": [ // The variants for this font (optional)
       {
         "id": "variant-id", // The ID of the variant
