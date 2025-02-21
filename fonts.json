@@ -203,9 +203,10 @@
     "id": "block-serif",
     "name": "Block Serif",
     "author": "DragonSlayr15001",
-    "height": 40,
+    "height": 44,
     "border": 266,
     "overlay": true,
+    "spaceWidth": 16,
     "faces": [
       [22, 62],
       [108, 148],
