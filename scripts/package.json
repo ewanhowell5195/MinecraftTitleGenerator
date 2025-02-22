@@ -2,10 +2,10 @@
   "type": "module",
   "dependencies": {
     "compress-images": "^2.0.5",
-    "gl": "^8.0.2",
+    "gl": "^8.1.6",
     "node-three": "github:EvenTorset/node-three",
     "optipng-bin": "^7.0.1",
     "sharp": "^0.33.5",
-    "skia-canvas": "^1.0.2"
+    "skia-canvas": "^2.0.2"
   }
 }
