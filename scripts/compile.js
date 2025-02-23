@@ -245,7 +245,10 @@ for (const file of main) {
 }
 
 for (const [to, from] of toCompress) {
-  execFile(optipng, ["-o7", "-backup", "-strip", "all", "-out", to, from])
+  execFile(optipng, ["-o7", "-backup", "-strip", "all", "-out", to, from], err => {
+    if (err) console.error(err)
+    if (fs.existsSync(to + ".bak")) fs.unlinkSync(to + ".bak")
+  })
 }
 
 fs.writeFileSync("compressed.json", JSON.stringify(compressed, null, 2))

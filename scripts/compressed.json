@@ -116,7 +116,7 @@
   "fonts/minecraft-ten/thumbnails/bevel.png": "15434b4574ffc5b8b34a1a714dff265e5b507f629afcfa34bd7d591b2a90ee3f",
   "fonts/minecraft-ten/thumbnails/bevel_highlight_bottom.png": "2ccfa8a91e34ce8c739d168be5acf964a14438c08f086bd675aaf17ec55de76f",
   "fonts/minecraft-ten/thumbnails/bevel_highlight_top.png": "37203f9eca8d0c375e2885146fd8d616bb1d4c672be3f66d8bffd74dd708afed",
-  "fonts/minecraft-ten/thumbnails/cartoon.png": "0104ddfb0dc9706a31bf2c4b8edafb3922607c0555d71530ccaa5622c43f8e91",
+  "fonts/minecraft-ten/thumbnails/cartoon.png": "721470b3cc2143b9df745cafb69567d8b077ecfa03ed3d39a829faa4c07056a7",
   "fonts/minecraft-ten/thumbnails/cracks.png": "3557920b3bb521316d354e41c72e055166ea9179717be52ffb0f438b710d3102",
   "fonts/minecraft-ten/thumbnails/edge_fade.png": "ddfa49044dce181883c1f77656b45ca53b55b570d8622e921db23b22928d61d2",
   "fonts/minecraft-ten/thumbnails/glass.png": "a39ed3205e8605f89733c51d38b411ce786314c12863ab90affa93ff4319f8b3",
@@ -864,5 +864,7 @@
   "shapes/minecraft-ten-blank/textures/villager.png": "458f579b77c9ca48de0dc9be6830a69aa75bf156a12e68ec10b988d16640c837",
   "shapes/minecraft-ten-blank/textures/vindicator.png": "66a07fc8e2bb2d7e7fed2efb2bee7a12c5e21450fdf99c9c8d05fc0f60a51c6d",
   "shapes/minecraft-ten-blank/textures/witch.png": "47ab9a66b8c332a3e48441ea88942333f4791c23f2d4962277cf9717e4fb9011",
-  "shapes/minecraft-ten-blank/textures/zombie_villager.png": "f0096b5c398b294b64cc977a7fa2df7b0dbb88bca8dbb73dd8078838b1d29faa"
+  "shapes/minecraft-ten-blank/textures/zombie_villager.png": "f0096b5c398b294b64cc977a7fa2df7b0dbb88bca8dbb73dd8078838b1d29faa",
+  "fonts/minecraft-ten/thumbnails/sunset.png": "445eb4cce465c696602daba4bf9af5c991d5b4f0473d2ca410a2466795147585",
+  "fonts/minecraft-ten/textures/sunset.png": "6bfb6ebde332c164e0cc5b93d20db12a506e774105df3d15ef23bc06f8958987"
 }
