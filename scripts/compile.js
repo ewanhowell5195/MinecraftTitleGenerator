@@ -1,7 +1,11 @@
 import { Canvas, Image, loadImage, ImageData } from "skia-canvas"
-import compress_images from "compress-images"
+import compressed from "./compressed.json" with { type: "json" }
+import { execFile } from "node:child_process"
+import { createHash } from "node:crypto"
 import getTHREE from "node-three"
+import optipng from "optipng-bin"
 import createContext from "gl"
+import path from "node:path"
 import sharp from "sharp"
 import fs from "node:fs"
 
@@ -66,8 +70,6 @@ for (const font of fonts) {
 
   fs.writeFileSync(`../fonts/${font.id}/textures.json`, JSON.stringify(JSON.parse(fs.readFileSync(`../fonts/${font.id}/textures.json`)), null, 2) + "\n")
 
-  fs.mkdirSync(`temp/fonts/${font.id}/textures`, { recursive: true })
-  fs.mkdirSync(`temp/fonts/${font.id}/overlays`, { recursive: true })
   fs.mkdirSync(`temp/fonts/${font.id}/thumbnails`, { recursive: true })
 
   const textures = fs.readdirSync(`../fonts/${font.id}/textures`).map(e => ["textures", e]).concat(fs.readdirSync(`../fonts/${font.id}/overlays`).map(e => ["overlays", e]))
@@ -86,7 +88,6 @@ for (const font of fonts) {
     if (!file[1].endsWith(".png") || file[1] === "overlay.png") continue
 
     const texture = await loadTexture(file[0] ? `../fonts/${font.id}/${file[0]}/${file[1]}` : file[2])
-    if (file[0]) texture.image.saveAs(`temp/fonts/${font.id}/${file[0]}/${file[1]}`)
 
     const scaleFactor = texture.image.width / 1000
     const [scene, camera] = makeTitleScene(scaleFactor)
@@ -134,7 +135,16 @@ for (const font of fonts) {
       canvas = bordered
     }
 
-    canvas.saveAs(`temp/fonts/${font.id}/thumbnails/${file[1]}`)
+    const hash = hashCanvas(canvas)
+    const texturePath = `fonts/${font.id}/thumbnails/${file[1]}`
+    if (compressed[texturePath] === hash) {
+      console.log(`Done ${font.id} ${file[1]}`)
+      continue
+    }
+
+    compressed[texturePath] = hash
+
+    canvas.saveAs("temp/" + texturePath)
     console.log(`Done ${font.id} ${file[1]}`)
   }
 }
@@ -155,14 +165,12 @@ for (const [id, shape] of Object.entries(shapesList)) {
     }
   }
 
-  fs.mkdirSync(`temp/shapes/${id}/textures`, { recursive: true })
   fs.mkdirSync(`temp/shapes/${id}/thumbnails`, { recursive: true })
 
   const textures = Object.entries(JSON.parse(fs.readFileSync(`../shapes/${id}/textures.json`))).flatMap(([id, data]) => [id, ...(data.variants ? Object.keys(data.variants) : [])])
 
   for (const name of textures) {
     const texture = await loadTexture(`../shapes/${id}/textures/${name}.png`)
-    texture.image.saveAs(`temp/shapes/${id}/textures/${name}.png`)
 
     const scaleFactor = texture.image.width / shape.width
     const [scene, camera] = makeTitleScene(scaleFactor)
@@ -171,7 +179,16 @@ for (const [id, shape] of Object.entries(shapesList)) {
 
     let canvas = await renderTitleScene(scene, camera, scaleFactor)
 
-    canvas.saveAs(`temp/shapes/${id}/thumbnails/${name}.png`)
+    const hash = hashCanvas(canvas)
+    const texturePath = `shapes/${id}/thumbnails/${name}.png`
+    if (compressed[texturePath] === hash) {
+      console.log(`Done ${id} ${name}.png`)
+      continue
+    }
+
+    compressed[texturePath] = hash
+
+    canvas.saveAs("temp/" + texturePath)
     console.log(`Done ${id} ${name}.png`)
   }
 }
@@ -181,31 +198,63 @@ fs.writeFileSync("../shapes/shapes.json", JSON.stringify(shapes))
 console.log("Processed shapes")
 console.log("Compressing textures...")
 
-compress_images("temp/**/*.png", "../", {
-  statistic: false,
-  autoupdate: true,
-  compress_force: true,
-}, false,
-  { jpg: { engine: false, command: false } },
-  { png: { engine: "optipng", command: ["-backup"] } },
-  { svg: { engine: false, command: false } },
-  { gif: { engine: false, command: false } },
-(err, comp, stat) => {
-  if (fs.existsSync(stat.path_out_new + ".bak")) fs.unlinkSync(stat.path_out_new + ".bak")
-})
+async function* getFiles(dir) {
+  const dirents = await fs.promises.readdir(dir, { withFileTypes: true })
+  for (const dirent of dirents) {
+    const res = path.resolve(dir, dirent.name)
+    if (dirent.isDirectory()) {
+      yield* getFiles(res)
+    } else {
+      yield res
+    }
+  }
+}
 
-compress_images("../tileables/**/*.png", "../tileables/", {
-  statistic: false,
-  autoupdate: true,
-  compress_force: true,
-}, false,
-  { jpg: { engine: false, command: false } },
-  { png: { engine: "optipng", command: ["-backup"] } },
-  { svg: { engine: false, command: false } },
-  { gif: { engine: false, command: false } },
-(err, comp, stat) => {
-  if (fs.existsSync(stat.path_out_new + ".bak")) fs.unlinkSync(stat.path_out_new + ".bak")
-})
+const toCompress = new Map
+
+for await (let file of getFiles("temp")) {
+  file = path.relative("./temp", file)
+  toCompress.set(path.join("../", file), path.join("temp", file))
+}
+
+const main = []
+
+for await (let file of getFiles("../fonts")) {
+  if (!file.endsWith(".png")) continue
+  main.push(path.relative("../", file))
+}
+
+for await (let file of getFiles("../tileables")) {
+  if (!file.endsWith(".png")) continue
+  main.push(path.relative("../", file))
+}
+
+for await (let file of getFiles("../shapes")) {
+  if (!file.endsWith(".png")) continue
+  main.push(path.relative("../", file))
+}
+
+for (const file of main) {
+  const filePath = path.join("../", file)
+  if (toCompress.get(filePath)) continue
+  const { data } = await sharp(path.join("..", file)).raw().ensureAlpha().toBuffer({ resolveWithObject: true })
+  const hash = createHash("sha256").update(data).digest("hex")
+  if (compressed[file.replaceAll("\\", "/")] === hash) continue
+  compressed[file.replaceAll("\\", "/")] = hash
+  toCompress.set(filePath, filePath)
+}
+
+for (const [to, from] of toCompress) {
+  execFile(optipng, ["-o7", "-backup", "-strip", "all", "-out", to, from])
+}
+
+fs.writeFileSync("compressed.json", JSON.stringify(compressed, null, 2))
+
+function hashCanvas(canvas) {
+  const ctx = canvas.getContext("2d")
+  let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data
+  return createHash("sha256").update(Buffer.from(imageData)).digest("hex")
+}
 
 function makeTitleScene(scaleFactor) {
   const scene = new THREE.Scene()
