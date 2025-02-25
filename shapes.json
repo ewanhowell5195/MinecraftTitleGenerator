@@ -1,5 +1,11 @@
 [
   {
     "id": "minecraft-ten-blank"
+  },
+  {
+    "id": "dungeons-skull",
+    "height": 46,
+    "textureWidth": 110,
+    "border": 90
   }
 ]

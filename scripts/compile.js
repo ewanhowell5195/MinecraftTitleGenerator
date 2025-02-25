@@ -38,13 +38,9 @@ const fonts = JSON.parse(fs.readFileSync("../fonts.json"))
 const shapes = JSON.parse(fs.readFileSync("../shapes.json"))
 
 const ten = fonts.find(e => e.id === "minecraft-ten")
-ten.height = 44
-ten.border = 266
 
 const tenShape = shapes.find(e => e.id === "minecraft-ten-blank")
-tenShape.height = 44
 tenShape.textureWidth = 28
-tenShape.border = 86
 
 for (const font of fonts) {
   font.type = "font"
@@ -103,6 +99,7 @@ for (const font of fonts) {
 
   fs.writeFileSync(`../${font.type}s/${font.id}/textures.json`, JSON.stringify(JSON.parse(fs.readFileSync(`../${font.type}s/${font.id}/textures.json`)), null, 2) + "\n")
 
+  fs.mkdirSync(`../${font.type}s/${font.id}/thumbnails`, { recursive: true })
   fs.mkdirSync(`temp/${font.type}s/${font.id}/thumbnails`, { recursive: true })
 
   const textures = fs.readdirSync(`../${font.type}s/${font.id}/textures`).map(e => ["textures", e]).concat(fs.readdirSync(`../${font.type}s/${font.id}/overlays`).map(e => ["overlays", e]))
@@ -182,7 +179,7 @@ for (const font of fonts) {
 
     compressed[texturePath] = hash
 
-    canvas.saveAs("temp/" + texturePath)
+    await canvas.saveAs("temp/" + texturePath)
     console.log(`Done ${font.id} ${file[1]}`)
   }
 }
