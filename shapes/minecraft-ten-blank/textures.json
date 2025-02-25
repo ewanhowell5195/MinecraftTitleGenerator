@@ -1,18 +1,30 @@
 {
-  "flat": {
-    "author": "Ewan Howell"
+  "textures": {
+    "flat": {
+      "author": "Ewan Howell"
+    },
+    "creeper": {
+      "category": "Heads",
+      "author": "BitseK",
+      "variants": {
+        "creaking": {},
+        "enderman": {},
+        "glow_squid": {},
+        "villager": {},
+        "vindicator": {},
+        "witch": {},
+        "zombie_villager": {}
+      }
+    }
   },
-  "creeper": {
-    "category": "Heads",
-    "author": "BitseK",
-    "variants": {
-      "creaking": {},
-      "enderman": {},
-      "glow_squid": {},
-      "villager": {},
-      "vindicator": {},
-      "witch": {},
-      "zombie_villager": {}
+  "overlays": {
+    "highlights_bottom": {
+      "name": "Highlights (Bottom)",
+      "author": "Ewan Howell"
+    },
+    "highlights_top": {
+      "name": "Highlights (Top)",
+      "author": "Ewan Howell"
     }
   }
 }

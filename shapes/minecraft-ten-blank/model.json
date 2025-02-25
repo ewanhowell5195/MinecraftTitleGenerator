@@ -1,32 +1,32 @@
 {
-	"credit": "By Ewan Howell",
-	"texture_size": [28, 86],
-	"textures": {
-		"1": "minecraft_ten_blank:flat",
-		"particle": "minecraft_ten_blank:flat"
-	},
-	"elements": [
-		{
-			"from": [-6, 2, -3],
-			"to": [22, 42, 19],
-			"faces": {
-				"north": {"uv": [0, 4.09302, 16, 11.53488], "texture": "#1"},
-				"south": {"uv": [16, 4.09302, 0, 11.53488], "texture": "#1"},
-				"up": {"uv": [16, 4.09302, 0, 0], "texture": "#1"},
-				"down": {"uv": [16, 15.62791, 0, 11.53488], "texture": "#1"}
-			}
-		},
-		{
-			"from": [24, 44, 21],
-			"to": [-8, 0, -5],
-			"faces": {
-				"north": {"uv": [0, 15.81395, 0.57143, 16], "texture": "#1"},
-				"east": {"uv": [0, 15.81395, 0.57143, 16], "texture": "#1"},
-				"south": {"uv": [0, 15.81395, 0.57143, 16], "texture": "#1"},
-				"west": {"uv": [0, 15.81395, 0.57143, 16], "texture": "#1"},
-				"up": {"uv": [0, 15.81395, 0.57143, 16], "texture": "#1"},
-				"down": {"uv": [0, 15.81395, 0.57143, 16], "texture": "#1"}
-			}
-		}
-	]
+  "credit": "By Ewan Howell",
+  "texture_size": [28, 88],
+  "textures": {
+    "1": "minecraft-ten-blank:flat",
+    "particle": "minecraft-ten-blank:flat"
+  },
+  "elements": [
+    {
+      "from": [-6, 2, -3],
+      "to": [22, 42, 19],
+      "faces": {
+        "north": {"uv": [0, 4, 16, 11.27273], "texture": "#1"},
+        "south": {"uv": [16, 4, 0, 11.27273], "texture": "#1"},
+        "up": {"uv": [16, 4, 0, 0], "texture": "#1"},
+        "down": {"uv": [16, 15.27273, 0, 11.27273], "texture": "#1"}
+      }
+    },
+    {
+      "from": [24, 44, 21],
+      "to": [-8, 0, -5],
+      "faces": {
+        "north": {"uv": [0, 15.63636, 0.57143, 15.81818], "texture": "#1"},
+        "east": {"uv": [0, 15.63636, 0.57143, 15.81818], "texture": "#1"},
+        "south": {"uv": [0, 15.63636, 0.57143, 15.81818], "texture": "#1"},
+        "west": {"uv": [0, 15.63636, 0.57143, 15.81818], "texture": "#1"},
+        "up": {"uv": [0, 15.63636, 0.57143, 15.81818], "texture": "#1"},
+        "down": {"uv": [0, 15.63636, 0.57143, 15.81818], "texture": "#1"}
+      }
+    }
+  ]
 }
