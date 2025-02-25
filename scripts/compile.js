@@ -32,31 +32,60 @@ const charMap = {
   start: "┫"
 }
 
-console.log("Processing fonts...")
+console.log("Processing...")
 
 const fonts = JSON.parse(fs.readFileSync("../fonts.json"))
+const shapes = JSON.parse(fs.readFileSync("../shapes.json"))
 
 const ten = fonts.find(e => e.id === "minecraft-ten")
 ten.height = 44
 ten.border = 266
-ten.ends = [[0, 22]]
 
-fonts.forEach(font => {
+const tenShape = shapes.find(e => e.id === "minecraft-ten-blank")
+tenShape.height = 44
+tenShape.textureWidth = 28
+tenShape.border = 86
+
+for (const font of fonts) {
+  font.type = "font"
+  font.textureWidth = 1000
   if (font.variants) {
-    for (const variant of font.variants) {
-      const variantFont = Object.assign(Object.fromEntries(Object.entries(font).filter(e => e[0] !== "variants")), variant)
-      fonts.push(variantFont)
+    for (const v of font.variants) {
+      const variant = Object.assign({}, font, v)
+      delete variant.variants
+      if (variant.shifts) {
+        if (v.shifts === "inherit") {
+          variant.shifts = font.shifts
+        } else if (!v.shifts) {
+          delete variant.shifts
+        }
+      }
+      fonts.push(variant)
     }
   }
-})
+}
+
+for (const shape of shapes) {
+  shape.type = "shape"
+  fonts.push(shape)
+}
+
+const shapeModels = {}
 
 for (const font of fonts) {
   font.characters = {}
 
-  for (const file of fs.readdirSync(`../fonts/${font.id}/characters`)) {
-    const char = charMap[file.slice(0, -5)] ?? file.slice(0, -5)
-    font.characters[char] = JSON.parse(fs.readFileSync(`../fonts/${font.id}/characters/${file}`, "utf8")).elements
-    for (const element of font.characters[char]) {
+  if (font.type === "font") {
+    for (const file of fs.readdirSync(`../fonts/${font.id}/characters`)) {
+      const char = charMap[file.slice(0, -5)] ?? file.slice(0, -5)
+      font.characters[char] = JSON.parse(fs.readFileSync(`../fonts/${font.id}/characters/${file}`, "utf8")).elements
+    }
+  } else if (font.type === "shape") {
+    font.characters.a = JSON.parse(fs.readFileSync(`../shapes/${font.id}/model.json`, "utf8")).elements
+  }
+
+  for (const char of Object.values(font.characters)) {
+    for (const element of char) {
       for (const [direction, face] of Object.entries(element.faces)) {
         if (face.rotation === 180) face.uv = [face.uv.slice(2), face.uv.slice(0, 2)].flat()
         element.faces[direction] = face.uv
@@ -64,17 +93,21 @@ for (const font of fonts) {
     }
   }
 
-  fs.writeFileSync(`../fonts/${font.id}/characters.json`, JSON.stringify(font.characters))
+  if (font.type === "font") {
+    fs.writeFileSync(`../fonts/${font.id}/characters.json`, JSON.stringify(font.characters))
+    console.log(`Done ${font.id} characters`)
+  } else if (font.type === "shape") {
+    shapeModels[font.id] = font.characters.a
+    console.log(`Done ${font.id} model`)
+  }
 
-  console.log(`Done ${font.id} characters`)
+  fs.writeFileSync(`../${font.type}s/${font.id}/textures.json`, JSON.stringify(JSON.parse(fs.readFileSync(`../${font.type}s/${font.id}/textures.json`)), null, 2) + "\n")
 
-  fs.writeFileSync(`../fonts/${font.id}/textures.json`, JSON.stringify(JSON.parse(fs.readFileSync(`../fonts/${font.id}/textures.json`)), null, 2) + "\n")
+  fs.mkdirSync(`temp/${font.type}s/${font.id}/thumbnails`, { recursive: true })
 
-  fs.mkdirSync(`temp/fonts/${font.id}/thumbnails`, { recursive: true })
+  const textures = fs.readdirSync(`../${font.type}s/${font.id}/textures`).map(e => ["textures", e]).concat(fs.readdirSync(`../${font.type}s/${font.id}/overlays`).map(e => ["overlays", e]))
 
-  const textures = fs.readdirSync(`../fonts/${font.id}/textures`).map(e => ["textures", e]).concat(fs.readdirSync(`../fonts/${font.id}/overlays`).map(e => ["overlays", e]))
-
-  const flat = await loadImage(`../fonts/${font.id}/textures/flat.png`)
+  const flat = await loadImage(`../${font.type}s/${font.id}/textures/flat.png`)
   const overlayBackground = new Canvas(flat.width, flat.height)
   const overlayBackgroundCtx = overlayBackground.getContext("2d")
   overlayBackgroundCtx.drawImage(flat, 0, 0)
@@ -83,13 +116,13 @@ for (const font of fonts) {
   overlayBackgroundCtx.fillRect(0, 0, flat.width, flat.height)
   overlayBackgroundCtx.globalCompositeOperation = "source-over"
   textures.push([null, "none.png", overlayBackground])
-  
+
   for (const file of textures) {
     if (!file[1].endsWith(".png") || file[1] === "overlay.png") continue
 
-    const texture = await loadTexture(file[0] ? `../fonts/${font.id}/${file[0]}/${file[1]}` : file[2])
+    const texture = await loadTexture(file[0] ? `../${font.type}s/${font.id}/${file[0]}/${file[1]}` : file[2])
 
-    const scaleFactor = texture.image.width / 1000
+    const scaleFactor = texture.image.width / font.textureWidth
     const [scene, camera] = makeTitleScene(scaleFactor)
 
     if (file[0] === "overlays") {
@@ -99,10 +132,15 @@ for (const font of fonts) {
       ctx.drawImage(overlayBackground, 0, 0, texture.image.width, texture.image.height)
     }
 
-    let text = font.preview ?? "abc"
-    if (font.forcedTerminators) {
-      if (font.terminatorSpace) text = `┫ ${text} ┣`
-      else text = `┫${text}┣`
+    let text
+    if (font.type === "font") {
+      text = font.preview ?? "abc"
+      if (font.forcedTerminators) {
+        if (font.terminatorSpace) text = `┫ ${text} ┣`
+        else text = `┫${text}┣`
+      }
+    } else if (font.type === "shape") {
+      text = "a"
     }
 
     addTitleText(scene, text, {
@@ -136,7 +174,7 @@ for (const font of fonts) {
     }
 
     const hash = hashCanvas(canvas)
-    const texturePath = `fonts/${font.id}/thumbnails/${file[1]}`
+    const texturePath = `${font.type}s/${font.id}/thumbnails/${file[1]}`
     if (compressed[texturePath] === hash) {
       console.log(`Done ${font.id} ${file[1]}`)
       continue
@@ -149,53 +187,9 @@ for (const font of fonts) {
   }
 }
 
-console.log("Processed fonts")
-console.log("Processing shapes...")
+fs.writeFileSync("../shapes/shapes.json", JSON.stringify(shapeModels))
 
-const shapes = {}
-
-const shapesList = JSON.parse(fs.readFileSync("../shapes.json"))
-
-for (const [id, shape] of Object.entries(shapesList)) {
-  shapes[id] = JSON.parse(fs.readFileSync(`../shapes/${id}/model.json`)).elements
-  for (const element of shapes[id]) {
-    for (const [direction, face] of Object.entries(element.faces)) {
-      if (face.rotation === 180) face.uv = [face.uv.slice(2), face.uv.slice(0, 2)].flat()
-      element.faces[direction] = face.uv
-    }
-  }
-
-  fs.mkdirSync(`temp/shapes/${id}/thumbnails`, { recursive: true })
-
-  const textures = Object.entries(JSON.parse(fs.readFileSync(`../shapes/${id}/textures.json`))).flatMap(([id, data]) => [id, ...(data.variants ? Object.keys(data.variants) : [])])
-
-  for (const name of textures) {
-    const texture = await loadTexture(`../shapes/${id}/textures/${name}.png`)
-
-    const scaleFactor = texture.image.width / shape.width
-    const [scene, camera] = makeTitleScene(scaleFactor)
-
-    addShape(scene, shapes[id], texture)
-
-    let canvas = await renderTitleScene(scene, camera, scaleFactor)
-
-    const hash = hashCanvas(canvas)
-    const texturePath = `shapes/${id}/thumbnails/${name}.png`
-    if (compressed[texturePath] === hash) {
-      console.log(`Done ${id} ${name}.png`)
-      continue
-    }
-
-    compressed[texturePath] = hash
-
-    canvas.saveAs("temp/" + texturePath)
-    console.log(`Done ${id} ${name}.png`)
-  }
-}
-
-fs.writeFileSync("../shapes/shapes.json", JSON.stringify(shapes))
-
-console.log("Processed shapes")
+console.log("Processed")
 console.log("Compressing textures...")
 
 async function* getFiles(dir) {
@@ -368,40 +362,19 @@ function addTitleText(scene, str, args) {
   let width = 0
   const cubes = []
   const group = new THREE.Group()
+  let lastCharacter
   for (const [i, char] of Array.from(str).entries()) {
-    if (char === " ") {
+    if (char === " " && !font.characters[" "]) {
       width += 8
       continue
     }
-    if (!font.characters[char]) continue
+    if (lastCharacter && font.shifts?.[lastCharacter + char]) {
+      width -= font.shifts[lastCharacter + char]
+    }
     const model = font.characters[char]
     width += addModel(scene, model, group, material, cubes, i, font, width, args)
+    lastCharacter = char
   }
-
-  for (const cube of cubes) {
-    cube.position.x += width / 2
-  }
-
-  scene.add(group)
-}
-
-function addShape(scene, model, texture) {
-  texture.colorSpace = THREE.SRGBColorSpace
-  texture.magFilter = THREE.NearestFilter
-  texture.minFilter = THREE.NearestFilter
-  texture.flipY = true
-
-  const material = new THREE.MeshBasicMaterial({
-    map: texture,
-    transparent: true,
-    alphaTest: 0.01
-  })
-
-  let width = 0
-  const cubes = []
-  const group = new THREE.Group()
-
-  width += addModel(scene, model, group, material, cubes, 0, {}, width, {})
 
   for (const cube of cubes) {
     cube.position.x += width / 2
