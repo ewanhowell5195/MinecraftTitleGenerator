@@ -6,6 +6,7 @@
     "id": "dungeons-skull",
     "height": 46,
     "textureWidth": 110,
+    "textureHeight": 130,
     "border": 90
   }
 ]
