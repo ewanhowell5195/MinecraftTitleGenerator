@@ -13,7 +13,20 @@
         "villager": {},
         "vindicator": {},
         "witch": {},
-        "zombie_villager": {}
+        "zombie_villager": {},
+        "iron_golem": {},
+        "skeleton": {},
+        "zombie": {},
+        "husk": {},
+        "drowner": {},
+        "bogged": {},
+        "fox": {},
+        "cold_fox": {},
+        "magma_slime": {},
+        "slime": {},
+        "orange_frog": {},
+        "green_frog": {},
+        "white_frog": {},
       }
     }
   },
