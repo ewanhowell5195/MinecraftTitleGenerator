@@ -310,10 +310,20 @@ function addModel(scene, model, group, material, cubes, i, font, width, args) {
       down: 24
     }
 
+    const fontTextureWidth = fonts.find(e => e.id === args.font).textureWidth
+
     for (const key of Object.keys(indexes)) {
       const face = cube.faces[key]
       const i = indexes[key]
       if (face) {
+        if (cube.to[0] < cube.from[0] ^ face.uv[0] < face.uv[2]) {
+          const diff = face.uv[2] - face.uv[0]
+          const width = Math.round(diff / 16 * fontTextureWidth) % 2
+          if (width === 1) {
+            face.uv[0] += 1 / fontTextureWidth * 16
+            face.uv[2] += 1 / fontTextureWidth * 16
+          }
+        }
         const uv = [
           [face.uv[0] / 16, 1 - (face.uv[1] / 16)],
           [face.uv[2] / 16, 1 - (face.uv[1] / 16)],
