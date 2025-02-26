@@ -27,7 +27,8 @@
         "orange_frog": {},
         "green_frog": {},
         "white_frog": {},
-        "bee": {
+        "bee_text": {
+          "name": "Bee (Text version)",
           "author": "B1tseK & Bold_Muddy & Ewan Howell"
       }
     }
