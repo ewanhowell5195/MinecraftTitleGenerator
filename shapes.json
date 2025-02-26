@@ -7,6 +7,12 @@
     "height": 46,
     "textureWidth": 110,
     "textureHeight": 130,
-    "border": 90
+    "border": 90,
+    "faces": [
+      [22, 66]
+    ],
+    "ends": [
+      [0, 22, 66, 88]
+    ]
   }
 ]
