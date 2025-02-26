@@ -874,5 +874,11 @@
   "shapes/minecraft-ten-blank/textures/villager.png": "ea060f93e724afdd3c526e557590a75ae2abee9e0f234e9280ee1cd1cebe4fe0",
   "shapes/minecraft-ten-blank/textures/vindicator.png": "4a86451d5539c0b1f0d344498e2e8a4790b8b0a82c893cbf5fa5fab537eedf0c",
   "shapes/minecraft-ten-blank/textures/witch.png": "4788228fddebfd1e33fe4ad7d08a7aa5ce65aa9f9449c0cb98d3630c6f372692",
-  "shapes/minecraft-ten-blank/textures/zombie_villager.png": "0c741e9861e37822977687f158096e708388fdfad55193a79bee8ada79cdfea2"
+  "shapes/minecraft-ten-blank/textures/zombie_villager.png": "0c741e9861e37822977687f158096e708388fdfad55193a79bee8ada79cdfea2",
+  "shapes/dungeons-skull/thumbnails/dungeons.png": "008007ce7dcfe942ea216a41495b4db07387ea90eb4b19eef74dfb46c83ad693",
+  "shapes/dungeons-skull/thumbnails/highlights_bottom.png": "0e3ba29eba6ddde49878c6f3fc3744af394b9ba3eabf301e6f3eac0f0507cad9",
+  "shapes/dungeons-skull/thumbnails/highlights_top.png": "7c06af0fe6bdaa142a048ea9d973bcf46a07697631ef962ff93745e5c7776a45",
+  "shapes/dungeons-skull/overlays/highlights_bottom.png": "dccdc8a4d1ec58fe78563d823173dd4f7ce428352c2452272b23139feccbb46c",
+  "shapes/dungeons-skull/overlays/highlights_top.png": "183f0698335eb7470af5ba3bd57e95bd01c85c4c387b394052784c180b7a45c4",
+  "shapes/dungeons-skull/textures/dungeons.png": "0322921efd181b1449f82ca0cd9a19a580cd5afeaa3ad460563bfeed23e5cb86"
 }
