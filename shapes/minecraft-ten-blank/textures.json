@@ -40,6 +40,25 @@
     "highlights_top": {
       "name": "Highlights (Top)",
       "author": "Ewan Howell"
+    },
+    "glass": {
+      "author": "B1tseK"
+    },
+    "glass_old": {
+      "name": "Glass (Old)",
+      "author": "B1tseK"
+    },
+    "highlights_right": {
+      "name": "Highlights (Right)",
+      "author": "B1tseK"
+    },
+    "highlights_left": {
+      "name": "Highlights (Left)",
+      "author": "B1tseK"
+    },
+    "glass_tempered": {
+      "name": "Glass (Tempered)",
+      "author": "B1tseK"
     }
   }
 }
