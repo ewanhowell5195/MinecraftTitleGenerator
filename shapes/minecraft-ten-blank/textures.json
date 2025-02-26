@@ -5,7 +5,7 @@
     },
     "creeper": {
       "category": "Heads",
-      "author": "BitseK",
+      "author": "B1tseK",
       "variants": {
         "creaking": {},
         "enderman": {},
@@ -27,6 +27,8 @@
         "orange_frog": {},
         "green_frog": {},
         "white_frog": {},
+        "bee": {
+          "author": "B1tseK & ?"
       }
     }
   },
