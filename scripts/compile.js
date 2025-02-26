@@ -93,7 +93,7 @@ for (const font of fonts) {
     fs.writeFileSync(`../fonts/${font.id}/characters.json`, JSON.stringify(font.characters))
     console.log(`Done ${font.id} characters`)
   } else if (font.type === "shape") {
-    shapeModels[font.id] = font.characters.a
+    shapeModels[font.id] = structuredClone(font.characters.a)
     console.log(`Done ${font.id} model`)
   }
 
