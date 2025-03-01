@@ -4,15 +4,39 @@
       "author": "Ewan Howell"
     },
     "creeper": {
-      "category": "Heads",
-      "author": "BitseK",
+      "category": "Entities",
+      "author": "B1tseK & Ewan Howell",
       "variants": {
+        "bee": {},
+        "bogged": {},
+        "cold_frog": {
+          "name": "Frog (Cold)"
+        },
         "creaking": {},
+        "creeper": {},
+        "drowned": {},
         "enderman": {},
+        "flat": {},
+        "fox": {},
         "glow_squid": {},
+        "husk": {},
+        "iron_golem": {},
+        "magma_cube": {},
+        "skeleton": {},
+        "slime": {},
+        "snow_fox": {
+          "name": "Fox (Snow)"
+        },
+        "temperate_frog": {
+          "name": "Frog (Temperate)"
+        },
         "villager": {},
         "vindicator": {},
+        "warm_frog": {
+          "name": "Frog (Warm)"
+        },
         "witch": {},
+        "zombie": {},
         "zombie_villager": {}
       }
     }
