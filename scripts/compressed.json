@@ -117,7 +117,7 @@
   "fonts/minecraft-ten/thumbnails/bevel.png": "15434b4574ffc5b8b34a1a714dff265e5b507f629afcfa34bd7d591b2a90ee3f",
   "fonts/minecraft-ten/thumbnails/bevel_highlight_bottom.png": "2ccfa8a91e34ce8c739d168be5acf964a14438c08f086bd675aaf17ec55de76f",
   "fonts/minecraft-ten/thumbnails/bevel_highlight_top.png": "37203f9eca8d0c375e2885146fd8d616bb1d4c672be3f66d8bffd74dd708afed",
-  "fonts/minecraft-ten/thumbnails/cartoon.png": "0104ddfb0dc9706a31bf2c4b8edafb3922607c0555d71530ccaa5622c43f8e91",
+  "fonts/minecraft-ten/thumbnails/cartoon.png": "721470b3cc2143b9df745cafb69567d8b077ecfa03ed3d39a829faa4c07056a7",
   "fonts/minecraft-ten/thumbnails/cracks.png": "3557920b3bb521316d354e41c72e055166ea9179717be52ffb0f438b710d3102",
   "fonts/minecraft-ten/thumbnails/edge_fade.png": "ddfa49044dce181883c1f77656b45ca53b55b570d8622e921db23b22928d61d2",
   "fonts/minecraft-ten/thumbnails/glass.png": "a39ed3205e8605f89733c51d38b411ce786314c12863ab90affa93ff4319f8b3",
@@ -910,5 +910,15 @@
   "shapes/minecraft-ten-blank/textures/snow_fox.png": "d95843acd0af4b64327461421f3060c78ceb190b51eb12835cc5627bd6d5b865",
   "shapes/minecraft-ten-blank/textures/temperate_frog.png": "eba10f29495f2b47006058a0512745d561e6b6083bad74a8f98b7d92f8f1ec07",
   "shapes/minecraft-ten-blank/textures/warm_frog.png": "97f0c1ad80e72557cec5ab01d54bfd2b229fc4d80b72ffe0dcefc7d8eca1048c",
-  "shapes/minecraft-ten-blank/textures/zombie.png": "958afa8b10e80eabd01f5fb7f1c6eb4e946deff718ae3efe0ff753a8b7a9a26c"
+  "shapes/minecraft-ten-blank/textures/zombie.png": "958afa8b10e80eabd01f5fb7f1c6eb4e946deff718ae3efe0ff753a8b7a9a26c",
+  "shapes/minecraft-ten-blank/thumbnails/glass.png": "cefb10aaff9ab8ede3ab6a73952abcf76f26f676ca62cfc3854f85fd8a00b8c7",
+  "shapes/minecraft-ten-blank/thumbnails/glass_old.png": "c7e85fd18727ebc607df5f21600de93157a390f18c539cd56d91426e75802648",
+  "shapes/minecraft-ten-blank/thumbnails/glass_tempered.png": "c4fd6e7225d6c27e22e1ac5e648d7badee630a3b4c0d285c719b997881a43e34",
+  "shapes/minecraft-ten-blank/thumbnails/highlights_left.png": "26cfe67e2103268c2fc04586975f28705f6d17b9eb9f0fdd5674aae2f6541eae",
+  "shapes/minecraft-ten-blank/thumbnails/highlights_right.png": "0977c3c7d4b5645b1b5d894f03d5243a4edfe3ce909c0816b95cc09431e2f3b9",
+  "shapes/minecraft-ten-blank/overlays/glass.png": "d5d621db99de8ae63c2815dad864e1c17a2c16d9021fc9c008858f14f60a1834",
+  "shapes/minecraft-ten-blank/overlays/glass_old.png": "fed199c3bd0d1da162e77b94359b0fb7a94075214741fc05a4db70fddc01c865",
+  "shapes/minecraft-ten-blank/overlays/glass_tempered.png": "3832b3d10330b609e6b24b5dd148b6e7ee7c6411f720e1957fed48e05d97971b",
+  "shapes/minecraft-ten-blank/overlays/highlights_left.png": "39bf2f1a80e0321f701d55d1def441f25592cd2446f2a3d099dacb7f9a8ea063",
+  "shapes/minecraft-ten-blank/overlays/highlights_right.png": "cb22ae8a5d693220d07fff3f6aaa51d4d142acf4aeb2fc2a2b36cfc04c43f5d6"
 }
