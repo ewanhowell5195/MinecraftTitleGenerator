@@ -29,5 +29,19 @@
     "ends": [
       [0, 32, 64, 96]
     ]
+  },
+  {
+    "id": "sword",
+    "author": "Ewan Howell",
+    "height": 36,
+    "textureWidth": 20,
+    "textureHeight": 26,
+    "border": 20,
+    "faces": [
+      [1, 17]
+    ],
+    "ends": [
+      [0, 1, 17, 18]
+    ]
   }
 ]
