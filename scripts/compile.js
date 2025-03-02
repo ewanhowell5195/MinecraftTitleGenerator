@@ -83,6 +83,7 @@ for (const font of fonts) {
 
   for (const char of Object.values(font.characters)) {
     for (const element of char) {
+      delete element.name
       for (const [direction, face] of Object.entries(element.faces)) {
         if (face.rotation === 180) face.uv = [face.uv.slice(2), face.uv.slice(0, 2)].flat()
         element.faces[direction] = face.uv
