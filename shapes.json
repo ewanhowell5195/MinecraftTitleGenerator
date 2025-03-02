@@ -15,5 +15,19 @@
     "ends": [
       [0, 22, 66, 88]
     ]
+  },
+  {
+    "id": "cube",
+    "author": "Ewan Howell",
+    "height": 36,
+    "textureWidth": 128,
+    "textureHeight": 102,
+    "border": 100,
+    "faces": [
+      [32, 64]
+    ],
+    "ends": [
+      [0, 32, 64, 96]
+    ]
   }
 ]

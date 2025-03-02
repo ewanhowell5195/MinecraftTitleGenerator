@@ -117,7 +117,7 @@
   "fonts/minecraft-ten/thumbnails/bevel.png": "15434b4574ffc5b8b34a1a714dff265e5b507f629afcfa34bd7d591b2a90ee3f",
   "fonts/minecraft-ten/thumbnails/bevel_highlight_bottom.png": "2ccfa8a91e34ce8c739d168be5acf964a14438c08f086bd675aaf17ec55de76f",
   "fonts/minecraft-ten/thumbnails/bevel_highlight_top.png": "37203f9eca8d0c375e2885146fd8d616bb1d4c672be3f66d8bffd74dd708afed",
-  "fonts/minecraft-ten/thumbnails/cartoon.png": "721470b3cc2143b9df745cafb69567d8b077ecfa03ed3d39a829faa4c07056a7",
+  "fonts/minecraft-ten/thumbnails/cartoon.png": "0104ddfb0dc9706a31bf2c4b8edafb3922607c0555d71530ccaa5622c43f8e91",
   "fonts/minecraft-ten/thumbnails/cracks.png": "3557920b3bb521316d354e41c72e055166ea9179717be52ffb0f438b710d3102",
   "fonts/minecraft-ten/thumbnails/edge_fade.png": "ddfa49044dce181883c1f77656b45ca53b55b570d8622e921db23b22928d61d2",
   "fonts/minecraft-ten/thumbnails/glass.png": "a39ed3205e8605f89733c51d38b411ce786314c12863ab90affa93ff4319f8b3",
@@ -952,5 +952,16 @@
   "shapes/minecraft-ten-blank/textures/mineimator.png": "3c1ad9c56ddc6c8e467c2b19abffa6f4b67ae307de0c1bfb9bb972813eb15044",
   "shapes/minecraft-ten-blank/textures/neon.png": "58d78914b88d5f649a009926cdbf977c68aec2df169eff69c1cc269904048d49",
   "shapes/minecraft-ten-blank/textures/neon_glow.png": "88c1fc63712073e3eecf1989ef96dd6d3490d68e6b7c8a03d6c2178824c77066",
-  "shapes/minecraft-ten-blank/textures/sunset.png": "9ba9ac24172cbcf540f7cf6a3ec773a4d37583fca10dc3399c201c6c7c4271ac"
+  "shapes/minecraft-ten-blank/textures/sunset.png": "9ba9ac24172cbcf540f7cf6a3ec773a4d37583fca10dc3399c201c6c7c4271ac",
+  "shapes/cube/thumbnails/cobblestone.png": "f2300f660684ead4b9c9e5cf814ed826f1b1603d5db040ccc62e40e250ee95a1",
+  "shapes/cube/thumbnails/flat.png": "625d33ee4150c018885c6a7492cac97eeb72fe54373665d0d090f64568b65f78",
+  "shapes/cube/thumbnails/grass.png": "d9b4792d0520ff96b68bdcf91fe1c53a3a0386c82164a317da9153f94492ce19",
+  "shapes/cube/thumbnails/borders.png": "fe7d965ec05be6b7802e133cec1b09d0cb2610dc26da6c6fc0148b10dad5a265",
+  "shapes/cube/thumbnails/borders_thin.png": "1487e279ce9b1a8a7b96d890fd62c112a413d8f2b2e016be60e53cc4a83ef4c3",
+  "shapes/cube/thumbnails/none.png": "3a64f8a65d82c328907a290d06ff9ad8efcace13fb688c31e365f2878d363e10",
+  "shapes/cube/overlays/borders.png": "444f79f2024d2881f3ff52b8725bb35c09865c069acf140e5e3273d7ecaa056a",
+  "shapes/cube/overlays/borders_thin.png": "373b600a7704c525895beb90b3adbfe6fc0f09a85769bda06fbc39ecc43f79ca",
+  "shapes/cube/textures/cobblestone.png": "a49b92acab293b56c5f09ce56ddb0bfb4d63f2d1e48d86a049e5fc944eff742e",
+  "shapes/cube/textures/flat.png": "4991e29659f974b6eb92b1531cb2d260bc75a70158a5a359e65fc0e07390591c",
+  "shapes/cube/textures/grass.png": "103710a2cbb3c22dba8e4d20ea81103f9ebdcf2eebf7fb3dd63b869c7dc4545b"
 }

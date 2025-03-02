@@ -1,0 +1,22 @@
+{
+  "textures": {
+    "flat": {
+      "author": "Ewan Howell"
+    },
+    "grass": {
+      "author": "Ewan Howell"
+    },
+    "cobblestone": {
+      "author": "Ewan Howell"
+    }
+  },
+  "overlays": {
+    "borders": {
+      "author": "Ewan Howell"
+    },
+    "borders_thin": {
+      "name": "Borders (Thin)",
+      "author": "Ewan Howell"
+    }
+  }
+}
