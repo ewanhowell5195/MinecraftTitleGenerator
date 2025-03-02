@@ -3,6 +3,29 @@
     "flat": {
       "author": "Ewan Howell"
     },
+    "cracked": {
+      "author": "Ewan Howell",
+      "variants": {
+        "cracked_left": {},
+        "cracked_right": {},
+        "cracked_old": {},
+        "cracked_old_pixelated": {}
+      }
+    },
+    "smooth": {
+      "author": "Ewan Howell",
+      "variants": {
+        "smooth_inverted": {
+          "name": "Smooth (Inverted Highlight)"
+        },
+        "smooth_old": {
+          "name": "Smooth (Old)"
+        },
+        "smooth_inverted_old": {
+          "name": "Smooth (Old) (Inverted Highlight)"
+        }
+      }
+    },
     "creeper": {
       "category": "Entities",
       "author": "B1tseK & Ewan Howell",
