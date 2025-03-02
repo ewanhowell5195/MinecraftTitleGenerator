@@ -13,6 +13,7 @@ const { THREE, loadTexture } = await getTHREE({ Canvas, Image, ImageData, fetch,
 
 const w = 160
 const h = 96
+const alphaThreshold = 10
 
 fs.rmSync("temp", { recursive: true, force: true })
 
@@ -120,7 +121,7 @@ for (const font of fonts) {
     const texture = await loadTexture(file[0] ? `../${font.type}s/${font.id}/${file[0]}/${file[1]}` : file[2])
 
     const scaleFactor = texture.image.width / font.textureWidth
-    const [scene, camera] = makeTitleScene(scaleFactor)
+    const [scene, camera] = makeTitleScene(font, scaleFactor)
 
     if (file[0] === "overlays") {
       const ctx = texture.image.getContext("2d")
@@ -145,7 +146,7 @@ for (const font of fonts) {
       texture
     })
 
-    let canvas = await renderTitleScene(scene, camera, scaleFactor)
+    let canvas = await renderTitleScene(scene, camera, font.thumbnail?.antialias ? scaleFactor * 2 : scaleFactor, font)
 
     if (font.autoBorder) {
       let colour = [0, 0, 0]
@@ -250,20 +251,23 @@ function hashCanvas(canvas) {
   return createHash("sha256").update(Buffer.from(imageData)).digest("hex")
 }
 
-function makeTitleScene(scaleFactor) {
+function makeTitleScene(font, scaleFactor) {
   const scene = new THREE.Scene()
   const camera = new THREE.OrthographicCamera(
-    -w / 2,
-    w / 2,
-    h / 2,
-    -h / 2,
+    -(font.thumbnail?.antialias ? w * 2 : w) / 2,
+    (font.thumbnail?.antialias ? w * 2 : w) / 2,
+    (font.thumbnail?.antialias ? h * 2 : h) / 2,
+    -(font.thumbnail?.antialias ? h * 2 : h) / 2,
     1,
     1000
   )
-  camera.position.x = 0
-  camera.position.y = 22
-  camera.position.z = -320
-  camera.lookAt(new THREE.Vector3(0, 22, 0))
+  camera.position.x = font.thumbnail?.position?.[0] ?? 0
+  camera.position.y = font.thumbnail?.position?.[1] ?? 22
+  camera.position.z = font.thumbnail?.position?.[2] ?? -320
+  if (font.thumbnail?.antialias) {
+    scene.scale.set(2, 2, 2)
+  }
+  camera.lookAt(new THREE.Vector3(font.thumbnail?.lookat?.[0] ?? 0, font.thumbnail?.lookat?.[1] ?? 22, font.thumbnail?.lookat?.[2] ?? 0))
   camera.up.set(0, 1, 0)
   return [scene, camera]
 }
@@ -390,7 +394,7 @@ function addTitleText(scene, str, args) {
   scene.add(group)
 }
 
-async function renderTitleScene(scene, camera, scaleFactor) {
+async function renderTitleScene(scene, camera, scaleFactor, font) {
   const gl = createContext(w * scaleFactor, h * scaleFactor)
   const renderer = new THREE.WebGLRenderer({
     context: gl
@@ -398,25 +402,29 @@ async function renderTitleScene(scene, camera, scaleFactor) {
   renderer.render(scene, camera, new THREE.WebGLRenderTarget(w * scaleFactor, h * scaleFactor))
   const buff = Buffer.alloc(w * scaleFactor * h * scaleFactor * 4)
   gl.readPixels(0, 0, w * scaleFactor, h * scaleFactor, gl.RGBA, gl.UNSIGNED_BYTE, buff)
-  const img = await loadImage(await sharp(buff, {
+  let img = sharp(buff, {
     raw: {
       width: w * scaleFactor,
       height: h * scaleFactor,
       channels: 4
     }
-  }).flip().png().toBuffer())
+  }).flip()
+  if (font.thumbnail?.antialias) {
+    img = img.resize(Math.floor(w * scaleFactor / 2), Math.floor(h * scaleFactor / 2))
+  }
+  img = await loadImage(await img.png().toBuffer())
   const canvas = new Canvas(img.width, img.height)
   canvas.getContext("2d").drawImage(img, 0, 0)
   return trim(canvas)
 }
 
 function rowBlank(imageData, width, y) {
-  for (let x = 0; x < width; ++x) if (imageData.data[y * width * 4 + x * 4 + 3] !== 0) return false
+  for (let x = 0; x < width; ++x) if (imageData.data[y * width * 4 + x * 4 + 3] > alphaThreshold) return false
   return true
 }
 
 function columnBlank(imageData, width, x, top, bottom) {
-  for (let y = top; y < bottom; ++y) if (imageData.data[y * width * 4 + x * 4 + 3] !== 0) return false
+  for (let y = top; y < bottom; ++y) if (imageData.data[y * width * 4 + x * 4 + 3] > alphaThreshold) return false
   return true
 }
 
