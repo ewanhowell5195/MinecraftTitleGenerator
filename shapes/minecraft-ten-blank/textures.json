@@ -9,32 +9,31 @@
       "variants": {
         "bee": {},
         "bogged": {},
-        "cold_frog": {
-          "name": "Frog (Cold)"
-        },
         "creaking": {},
         "creeper": {},
         "drowned": {},
         "enderman": {},
-        "flat": {},
         "fox": {},
+        "snow_fox": {
+          "name": "Fox (Snow)"
+        },
+        "cold_frog": {
+          "name": "Frog (Cold)"
+        },
+        "temperate_frog": {
+          "name": "Frog (Temperate)"
+        },
+        "warm_frog": {
+          "name": "Frog (Warm)"
+        },
         "glow_squid": {},
         "husk": {},
         "iron_golem": {},
         "magma_cube": {},
         "skeleton": {},
         "slime": {},
-        "snow_fox": {
-          "name": "Fox (Snow)"
-        },
-        "temperate_frog": {
-          "name": "Frog (Temperate)"
-        },
         "villager": {},
         "vindicator": {},
-        "warm_frog": {
-          "name": "Frog (Warm)"
-        },
         "witch": {},
         "zombie": {},
         "zombie_villager": {}
