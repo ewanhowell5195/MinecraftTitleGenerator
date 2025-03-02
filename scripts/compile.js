@@ -146,7 +146,7 @@ for (const font of fonts) {
       texture
     })
 
-    let canvas = await renderTitleScene(scene, camera, font.thumbnail?.antialias ? scaleFactor * 2 : scaleFactor, font)
+    let canvas = await renderTitleScene(scene, camera, font.thumbnailConfig?.antialias ? scaleFactor * 2 : scaleFactor, font)
 
     if (font.autoBorder) {
       let colour = [0, 0, 0]
@@ -254,20 +254,20 @@ function hashCanvas(canvas) {
 function makeTitleScene(font, scaleFactor) {
   const scene = new THREE.Scene()
   const camera = new THREE.OrthographicCamera(
-    -(font.thumbnail?.antialias ? w * 2 : w) / 2,
-    (font.thumbnail?.antialias ? w * 2 : w) / 2,
-    (font.thumbnail?.antialias ? h * 2 : h) / 2,
-    -(font.thumbnail?.antialias ? h * 2 : h) / 2,
+    -(font.thumbnailConfig?.antialias ? w * 2 : w) / 2,
+    (font.thumbnailConfig?.antialias ? w * 2 : w) / 2,
+    (font.thumbnailConfig?.antialias ? h * 2 : h) / 2,
+    -(font.thumbnailConfig?.antialias ? h * 2 : h) / 2,
     1,
     1000
   )
-  camera.position.x = font.thumbnail?.position?.[0] ?? 0
-  camera.position.y = font.thumbnail?.position?.[1] ?? 22
-  camera.position.z = font.thumbnail?.position?.[2] ?? -320
-  if (font.thumbnail?.antialias) {
+  camera.position.x = font.thumbnailConfig?.position?.[0] ?? 0
+  camera.position.y = font.thumbnailConfig?.position?.[1] ?? 22
+  camera.position.z = font.thumbnailConfig?.position?.[2] ?? -320
+  if (font.thumbnailConfig?.antialias) {
     scene.scale.set(2, 2, 2)
   }
-  camera.lookAt(new THREE.Vector3(font.thumbnail?.lookat?.[0] ?? 0, font.thumbnail?.lookat?.[1] ?? 22, font.thumbnail?.lookat?.[2] ?? 0))
+  camera.lookAt(new THREE.Vector3(font.thumbnailConfig?.lookat?.[0] ?? 0, font.thumbnailConfig?.lookat?.[1] ?? 22, font.thumbnailConfig?.lookat?.[2] ?? 0))
   camera.up.set(0, 1, 0)
   return [scene, camera]
 }
@@ -409,7 +409,7 @@ async function renderTitleScene(scene, camera, scaleFactor, font) {
       channels: 4
     }
   }).flip()
-  if (font.thumbnail?.antialias) {
+  if (font.thumbnailConfig?.antialias) {
     img = img.resize(Math.floor(w * scaleFactor / 2), Math.floor(h * scaleFactor / 2))
   }
   img = await loadImage(await img.png().toBuffer())
