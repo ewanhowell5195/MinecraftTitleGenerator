@@ -26,6 +26,30 @@
         }
       }
     },
+    "atmosphere": {
+      "author": "Ewan Howell"
+    },
+    "bevelled_gold": {
+      "author": "Ewan Howell"
+    },
+    "bubbles": {
+      "author": "Ewan Howell"
+    },
+    "grass": {
+      "author": "Ewan Howell"
+    },
+    "mineimator": {
+      "author": "Ewan Howell"
+    },
+    "neon": {
+      "author": "Ewan Howell"
+    },
+    "neon_glow": {
+      "author": "Ewan Howell"
+    },
+    "sunset": {
+      "author": "Ewan Howell"
+    },
     "creeper": {
       "category": "Entities",
       "author": "B1tseK & Ewan Howell",
