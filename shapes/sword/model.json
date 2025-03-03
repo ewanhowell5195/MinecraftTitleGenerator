@@ -2,8 +2,8 @@
   "credit": "By Ewan Howell",
   "texture_size": [20, 26],
   "textures": {
-    "0": "sword:diamond",
-    "particle": "sword:diamond"
+    "0": "sword:blank",
+    "particle": "sword:blank"
   },
   "elements": [
     {
@@ -273,9 +273,8 @@
       }
     },
     {
-      "from": [48, 14, 11],
-      "to": [40, 6, 5],
-      "rotation": {"angle": 0, "axis": "y", "origin": [28, 0, 0]},
+      "from": [20, 14, 11],
+      "to": [12, 6, 5],
       "faces": {
         "north": {"uv": [0.8, 15.38462, 4, 12.92308], "texture": "#0"},
         "south": {"uv": [4, 15.38462, 0.8, 12.92308], "texture": "#0"},
@@ -402,9 +401,8 @@
       }
     },
     {
-      "from": [38, 16, 11],
-      "to": [28, 6, 5],
-      "rotation": {"angle": 0, "axis": "z", "origin": [18, 0, 0]},
+      "from": [20, 16, 11],
+      "to": [10, 6, 5],
       "faces": {
         "north": {"uv": [6.4, 16, 2.4, 12.92307], "texture": "#0"},
         "south": {"uv": [2.4, 16, 6.4, 12.92307], "texture": "#0"},

@@ -335,15 +335,18 @@ function addModel(scene, model, group, material, cubes, i, font, width, args) {
           [face.uv[0] / 16, 1 - (face.uv[3] / 16)],
           [face.uv[2] / 16, 1 - (face.uv[3] / 16)]
         ]
-        mesh.geometry.attributes.uv.array.set(uv[0], i + 0)
-        mesh.geometry.attributes.uv.array.set(uv[1], i + 2)
-        mesh.geometry.attributes.uv.array.set(uv[2], i + 4)
-        mesh.geometry.attributes.uv.array.set(uv[3], i + 6)
+        geometry.attributes.uv.array.set(uv[0], i + 0)
+        geometry.attributes.uv.array.set(uv[1], i + 2)
+        geometry.attributes.uv.array.set(uv[2], i + 4)
+        geometry.attributes.uv.array.set(uv[3], i + 6)
       } else {
-        mesh.geometry.attributes.uv.array.set([1, 1], i + 0)
-        mesh.geometry.attributes.uv.array.set([1, 1], i + 2)
-        mesh.geometry.attributes.uv.array.set([1, 1], i + 4)
-        mesh.geometry.attributes.uv.array.set([1, 1], i + 6)
+        const offset = i / 8 * 6
+        geometry.index.array[offset] = 0
+        geometry.index.array[offset + 1] = 0
+        geometry.index.array[offset + 2] = 0
+        geometry.index.array[offset + 3] = 0
+        geometry.index.array[offset + 4] = 0
+        geometry.index.array[offset + 5] = 0
       }
     }
     character.add(mesh)
