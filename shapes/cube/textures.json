@@ -8,6 +8,38 @@
     },
     "cobblestone": {
       "author": "Ewan Howell"
+    },
+    "steve": {
+      "category": "Vanilla heads",
+      "author": "B1tseK",
+      "variants": {
+        "steve": {},
+        "alex": {},
+        "noor": {},
+        "sunny": {},
+        "zuri": {},
+        "makena": {},
+        "pale_lamberjack": {
+          "name": "Jack"
+        },
+        "creaking_guy": {
+          "name": "Creaking guy"
+        },
+        "air": {},
+        "efe": {},
+        "kai": {}
+      },
+      "ewan_howell": {
+        "category": "MTG Contributors",
+      "author": "B1tseK",
+      "variants": {
+        "ewan_howell": {
+          "name": "Ewan Howell"
+        },
+        "b1tsek": {
+          "name": "B1tseK"
+        },
+      }
     }
   },
   "overlays": {
@@ -20,3 +52,4 @@
     }
   }
 }
+  
