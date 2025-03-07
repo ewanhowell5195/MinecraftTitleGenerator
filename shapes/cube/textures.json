@@ -13,19 +13,16 @@
       "category": "Vanilla heads",
       "author": "B1tseK",
       "variants": {
-        "steve": {},
         "alex": {},
         "noor": {},
         "sunny": {},
         "zuri": {},
         "makena": {},
-        "pale_lamberjack": {
-          "name": "Jack"
+        "pale_lamberjack": {},
+        "creaking": {
+          "name": "Creaking Mask"
         },
-        "creaking_guy": {
-          "name": "Creaking guy"
-        },
-        "air": {},
+        "ari": {},
         "efe": {},
         "kai": {}
       }
