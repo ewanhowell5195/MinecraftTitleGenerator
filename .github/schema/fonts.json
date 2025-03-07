@@ -20,6 +20,7 @@
                 "border": { "type": "integer" },
                 "faces": {
                   "type": "array",
+                  "minItems": 1,
                   "items": {
                     "oneOf": [
                       {
@@ -39,6 +40,7 @@
                 },
                 "ends": {
                   "type": "array",
+                  "minItems": 1,
                   "items": {
                     "type": "array",
                     "minItems": 4,
@@ -49,7 +51,6 @@
                 "terminatorSpace": { "type": "boolean" },
                 "forcedTerminators": { "type": "boolean" },
                 "autoBorder": { "type": "boolean" },
-                "borderless": { "type": "boolean" },
                 "overlay": { "type": "boolean" },
                 "preview": { "type": "string" },
                 "example": {
@@ -87,7 +88,7 @@
           }
         },
         "required": ["id"],
-        "additionalProperties": true
+        "additionalProperties": false
       },
       {
         "type": "object",
@@ -100,6 +101,7 @@
           "border": { "type": "integer" },
           "faces": {
             "type": "array",
+            "minItems": 1,
             "items": {
               "oneOf": [
                 {
@@ -119,6 +121,7 @@
           },
           "ends": {
             "type": "array",
+            "minItems": 1,
             "items": {
               "type": "array",
               "minItems": 4,
@@ -129,7 +132,6 @@
           "terminatorSpace": { "type": "boolean" },
           "forcedTerminators": { "type": "boolean" },
           "autoBorder": { "type": "boolean" },
-          "borderless": { "type": "boolean" },
           "overlay": { "type": "boolean" },
           "preview": { "type": "string" },
           "example": {
@@ -165,6 +167,7 @@
                 "border": { "type": "integer" },
                 "faces": {
                   "type": "array",
+                  "minItems": 1,
                   "items": {
                     "oneOf": [
                       {
@@ -184,6 +187,7 @@
                 },
                 "ends": {
                   "type": "array",
+                  "minItems": 1,
                   "items": {
                     "type": "array",
                     "minItems": 4,
@@ -194,7 +198,6 @@
                 "terminatorSpace": { "type": "boolean" },
                 "forcedTerminators": { "type": "boolean" },
                 "autoBorder": { "type": "boolean" },
-                "borderless": { "type": "boolean" },
                 "overlay": { "type": "boolean" },
                 "preview": { "type": "string" },
                 "example": {

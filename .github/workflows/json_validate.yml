@@ -18,7 +18,7 @@ jobs:
 
       - name: Validate textures.json
         run: |
-          for file in $(find fonts -name 'textures.json'); do
+          for file in $(find fonts shapes -name 'textures.json'); do
             ajv validate -s .github/schema/textures.json -d $file || exit 1
           done
 
@@ -27,3 +27,6 @@ jobs:
 
       - name: Validate tileables.json
         run: ajv validate -s .github/schema/tileables.json -d tileables.json
+
+      - name: Validate shapes.json
+        run: ajv validate -s .github/schema/shapes.json -d shapes.json

@@ -107,7 +107,6 @@
       [62, 62, 122, 122],
       [124, 124, 184, 184]
     ],
-    "borderless": true,
     "forcedTerminators": true,
     "flat": true
   },

@@ -245,7 +245,6 @@ If you want to make a font using different characters, please make an issue abou
     "terminatorSpace": true, // The terminator characters should have a space between itself and the text (optional)
     "forcedTerminators": true, // The terminator characters will always be used and cannot be disabled (optional)
     "autoBorder": true, // Will generate an automatic border which is a single element around the entire text row (optional)
-    "borderless": true, // The font has no border (optional)
     "overlay": true, // The font has an overlay texture that is applied over the top of the "gradient" texture mode. Requires an "overlay.png" in the textures folder. See the "minecraft-five-bold-block" for an example (optional)
     "preview": "abc", // The text to use in the generated thumbnail images. Normally 3 characters, but I may allow exceptions (optional)
     "example": [ // The example text to display in the dialog text preview. Only provide if you are creating characters for a different alphabet, or if your font does not contain any letters (optional)
