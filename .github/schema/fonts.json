@@ -9,6 +9,7 @@
           "id": { "type": "string", "const": "minecraft-ten" },
           "variants": {
             "type": "array",
+            "minItems": 1,
             "items": {
               "type": "object",
               "properties": {
@@ -156,6 +157,7 @@
           },
           "variants": {
             "type": "array",
+            "minItems": 1,
             "items": {
               "type": "object",
               "properties": {
