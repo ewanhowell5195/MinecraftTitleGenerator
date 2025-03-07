@@ -14,17 +14,15 @@
       "author": "B1tseK",
       "variants": {
         "alex": {},
-        "noor": {},
-        "sunny": {},
-        "zuri": {},
-        "makena": {},
-        "pale_lamberjack": {},
-        "creaking": {
-          "name": "Creaking Mask"
-        },
         "ari": {},
+        "creaking_mask": {},
         "efe": {},
-        "kai": {}
+        "kai": {},
+        "makena": {},
+        "noor": {},
+        "pale_lamberjack": {},
+        "sunny": {},
+        "zuri": {}
       }
     }
   },
