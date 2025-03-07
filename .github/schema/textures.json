@@ -4,19 +4,6 @@
   "properties": {
     "textures": {
       "type": "object",
-      "required": ["flat"],
-      "properties": {
-        "flat": {
-          "type": "object",
-          "properties": {
-            "category": { "type": "string" },
-            "name": { "type": "string" },
-            "author": { "type": "string" }
-          },
-          "required": ["author"],
-          "additionalProperties": false
-        }
-      },
       "patternProperties": {
         "^[a-z0-9_]+$": {
           "type": "object",
