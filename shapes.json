@@ -47,5 +47,19 @@
     "ends": [
       [0, 1, 17, 18]
     ]
+  },
+  {
+    "id": "heart",
+    "author": "Ewan Howell",
+    "height": 32,
+    "textureWidth": 94,
+    "textureHeight": 70,
+    "border": 62,
+    "faces": [
+      [16, 44]
+    ],
+    "ends": [
+      [0, 16, 44, 60]
+    ]
   }
 ]
