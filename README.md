@@ -342,7 +342,7 @@ Shapes are similar to fonts, but instead of many characters, they only consist o
 ]
 ```
 
-### Testing shapes
+## Testing your shape
 Testing shapes is the same as testing fonts.
 
 # Official Minecraft Assets
