@@ -303,4 +303,4 @@ Variant fonts use the same properties as normal fonts. The only required propert
 # Official Minecraft Assets
 Some textures in this repository are official Minecraft assets, or contain parts of official Minecraft assets. These will be licensed under the Minecraft End User License Agreement (see [LICENSE.md](./LICENSE.md)).
 
-When submitting textures or tileables that include official Minecraft assets, please add them to the [LICENSE.md](./LICENSE.md).
+When submitting textures, shapes, or tileables that include official Minecraft assets, please add them to the [LICENSE.md](./LICENSE.md).
