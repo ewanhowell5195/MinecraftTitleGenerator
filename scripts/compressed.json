@@ -1016,6 +1016,10 @@
   "shapes/cube/textures/creaking_mask.png": "c6e9bcf82c4f3f3b9b5111771460fff35dcdfe4c493563c1c3e32943ad30c143",
   "shapes/heart/overlays/highlights_bottom.png": "979a47a2f77149c5d1cfa48479d7758d0450326dc42f4bf8d74e7240513f2a2e",
   "shapes/heart/overlays/highlights_top.png": "9f871d63ef1994b191d58546a31ae952ddd43cc136806f9d037be5042deea3e2",
-  "shapes/heart/textures/flat.png": "54f53896ac79c1bacc8219f4d5078d0e387612858f53427d58cb0f4179657e99",
-  "shapes/heart/textures/red.png": "20446c18af693edd4ece21c222ebc908c83c5025c4c38df8cbd91ff537680618"
+  "shapes/heart/textures/flat.png": "e4d4cf1eb69a969c69d81da523a6b97f0e6b92205c5a28c50572e1c5e1702732",
+  "shapes/heart/textures/red.png": "035ec49805b49107528e07a3948d2096f714c9838f8cd8c4b30d37f2b98fb28c",
+  "shapes/heart/thumbnails/yellow.png": "20738231e5f8aa64f033f0f6902874b5484fd4c67e6cd0dd9739fb2319b99bf6",
+  "shapes/heart/textures/yellow.png": "33b1b7bb58bedb6892c67fbfbc4d759b2e70b3d27a3841ddc5427b18287c6ab5",
+  "shapes/heart/thumbnails/hardcore.png": "1e8a8a4ff2d67d95af555cd3c03ab3d2e6c501607b77c84d84ee71de8a6ab456",
+  "shapes/heart/textures/hardcore.png": "1b539db6324dc827f21e9bad2dca06f20997ba155c54c41db8d5b5f6cd995346"
 }

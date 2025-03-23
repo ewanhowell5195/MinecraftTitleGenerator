@@ -4,7 +4,10 @@
       "author": "Ewan Howell"
     },
     "red": {
-      "author": "Ewan Howell"
+      "author": "Ewan Howell",
+      "variants": {
+        "yellow": {}
+      }
     }
   },
   "overlays": {
