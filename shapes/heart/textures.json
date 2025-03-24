@@ -8,6 +8,9 @@
       "variants": {
         "yellow": {}
       }
+    },
+    "hardcore": {
+      "author": "Ewan Howell"
     }
   },
   "overlays": {
