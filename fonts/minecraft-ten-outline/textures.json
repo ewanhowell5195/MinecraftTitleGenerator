@@ -38,6 +38,7 @@
       }
     },
     "dungeon": {
+      "category": "Dungeon",
       "author": "B1tseK",
       "variants": {
         "dungeon_background": {}
