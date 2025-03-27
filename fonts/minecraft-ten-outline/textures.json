@@ -39,7 +39,7 @@
       "dungeon": {
         "author": "B1tseK",
         "variants": {
-          "dungeon_background": {}
+          "dungeon_background": {
         }
       }
     }
