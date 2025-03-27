@@ -30,7 +30,20 @@
         "cherry_planks": {},
         "bamboo_planks": {},
         "crimson_planks": {},
-        "warped_planks": {}
+        "warped_planks": {},
+        "pale_oak_planks": {}
+      }
+    },
+    "pale_oak_log": {
+      "category": "Log",
+      "author": "B1tseK",
+      "variants": {
+        "creaking_heart": {},
+        "creaking_heart_active": {
+          "name": "Creaking heart (Active)"},
+        "creaking_heart_dormant": {
+          "name": "Creaking heart (Dormant)"
+        }
       }
     }
   },
