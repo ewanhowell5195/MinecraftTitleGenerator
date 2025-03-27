@@ -35,12 +35,12 @@
         "white_and_red": {
           "author": "Aurora_123_"
         }
-      },
-      "dungeon": {
-        "author": "B1tseK",
-        "variants": {
-          "dungeon_background": {
-        }
+      }
+    },
+    "dungeon": {
+      "author": "B1tseK",
+      "variants": {
+        "dungeon_background": {}
       }
     }
   },
