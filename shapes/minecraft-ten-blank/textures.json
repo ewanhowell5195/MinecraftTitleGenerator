@@ -84,6 +84,22 @@
         "zombie": {},
         "zombie_villager": {}
       }
+    },
+    "fired": {
+      "author": "Ewan Howell"
+    },
+    "coconut": {
+      "author": "B1tseK"
+    },
+    "lagoona": {
+      "author": "B1tseK & Ewan Howell"
+    },
+    "glow_squid_text": {
+      "name": "Glow squid (text)",
+      "author": "B1tseK"
+    },
+    "furnace": {
+      "author": "B1tseK"
     }
   },
   "overlays": {
