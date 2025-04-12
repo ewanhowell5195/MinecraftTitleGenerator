@@ -6,12 +6,69 @@
     "red": {
       "author": "Ewan Howell",
       "variants": {
-        "yellow": {}
+        "yellow": {},
+        "poisoned": {
+          "author": "B1tseK"
+        },
+        "withered": {
+          "author": "B1tseK"
+        },
+        "frozen": {
+          "author": "B1tseK"
+        },
+        "heartless": {
+          "author": "B1tseK"
+        },
+        "vehicle": {
+          "author": "B1tseK"
+        }
       }
     },
     "hardcore": {
       "author": "Ewan Howell"
-    }
+      "variants": {
+        "yellow_hardcore": {
+          "author": "B1tseK"
+        },
+        "poisoned_hardcore": {
+          "author": "B1tseK"
+        },
+        "withered_hardcore": {
+          "author": "B1tseK"
+        },
+        "frozen_hardcore": {
+          "author": "B1tseK"
+        },
+        "heartless_hardcore": {
+          "author": "B1tseK"
+        },
+        "vehicle_hardcore": {
+          "author": "B1tseK"
+        }
+      }
+    },
+    "sea_heart": {
+      "author": "B1tseK",
+      "variants": {
+        "sea_heart_hardcore": {}
+      }
+    },
+    "mineimator": {
+      "author": "Ewan Howell & B1tseK",
+      "variants": {
+        "mineimator_hardcore": {}
+      }
+    },
+    "neon": {
+      "author": "Ewan Howell & B1tseK",
+      "variants": {
+        "neon_hardcore": {}
+      }
+    },
+    "bedrock_button_unpressed": {
+      "author": "???",
+      "variants": {
+        "yellow": {},
   },
   "overlays": {
     "highlights_bottom": {
