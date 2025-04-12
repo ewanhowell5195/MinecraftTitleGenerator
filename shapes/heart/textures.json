@@ -66,9 +66,13 @@
       }
     },
     "bedrock_button_unpressed": {
-      "author": "???",
+      "author": "Klayv & B1tseK",
       "variants": {
-        "yellow": {},
+        "bedrock_button_unpressed_hardcore": {},
+        "bedrock_button": {},
+        "bedrock_button_hardcore": {}
+      }
+    }
   },
   "overlays": {
     "highlights_bottom": {
@@ -78,6 +82,10 @@
     "highlights_top": {
       "name": "Highlights (Top)",
       "author": "Ewan Howell"
+    },
+    "hardcore_shadow": {
+      "name": "Shadow (Hardcore)",
+      "author": "B1tseK"
     }
   }
 }
