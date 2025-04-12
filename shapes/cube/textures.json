@@ -25,11 +25,19 @@
         "zuri": {}
       }
     },
-    "hmm": {
+    "smile": {
       "category": "Emojis",
       "author": "B1tseK",
       "variants": {
-        "for_me": {}
+        "for_me": {},
+        "grinning": {},
+        "nauseated": {},
+        "scream": {},
+        "smiling_divel:": {},
+        "frown": {},
+        "cool": {},
+        "smile": {},
+        "heart_eyes": {}
       }
     }
   },
