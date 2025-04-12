@@ -33,7 +33,9 @@
         "grinning": {},
         "nauseated": {},
         "scream": {},
-        "smiling_divel:": {},
+        "smiling_divel:": {
+          "name": "Smiling (Divel)"
+        },
         "frown": {},
         "cool": {},
         "smile": {},
