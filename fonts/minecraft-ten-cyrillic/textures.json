@@ -8,6 +8,10 @@
       "variants": {
         "cracked_old": {
           "author": "Yozhenka"
+        },
+        "cracked_beta": {
+          "name": "Cracked Beta",
+          "author": "ShrikerChestTrees, Yozhenka"
         }
       }
     },
