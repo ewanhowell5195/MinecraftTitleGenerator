@@ -24,6 +24,23 @@
         "sunny": {},
         "zuri": {}
       }
+    },
+    "smile": {
+      "category": "Emojis",
+      "author": "B1tseK",
+      "variants": {
+        "for_me": {},
+        "grinning": {},
+        "nauseated": {},
+        "scream": {},
+        "smiling_divel:": {
+          "name": "Smiling (Divel)"
+        },
+        "frown": {},
+        "cool": {},
+        "smile": {},
+        "heart_eyes": {}
+      }
     }
   },
   "overlays": {
