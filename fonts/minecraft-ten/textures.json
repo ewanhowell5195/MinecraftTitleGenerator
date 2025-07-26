@@ -329,6 +329,10 @@
     },
     "sunset": {
       "author": "Ewan Howell"
+    },
+    "rough_stone": {
+      "name": "Rough Stone",
+      "author": "c0mpl3x"
     }
   },
   "overlays": {
