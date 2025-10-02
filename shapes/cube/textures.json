@@ -1,0 +1,53 @@
+{
+  "textures": {
+    "flat": {
+      "author": "Ewan Howell"
+    },
+    "grass": {
+      "author": "Ewan Howell"
+    },
+    "cobblestone": {
+      "author": "Ewan Howell"
+    },
+    "steve": {
+      "category": "Skins",
+      "author": "B1tseK",
+      "variants": {
+        "alex": {},
+        "ari": {},
+        "creaking_mask": {},
+        "efe": {},
+        "kai": {},
+        "makena": {},
+        "noor": {},
+        "pale_lamberjack": {},
+        "sunny": {},
+        "zuri": {}
+      }
+    },
+    "smile": {
+      "category": "Emojis",
+      "author": "B1tseK",
+      "variants": {
+        "for_me": {},
+        "grinning": {},
+        "nauseated": {},
+        "scream": {},
+        "devil": {},
+        "frown": {},
+        "cool": {},
+        "smile": {},
+        "heart_eyes": {}
+      }
+    }
+  },
+  "overlays": {
+    "borders": {
+      "author": "Ewan Howell"
+    },
+    "borders_thin": {
+      "name": "Borders (Thin)",
+      "author": "Ewan Howell"
+    }
+  }
+}

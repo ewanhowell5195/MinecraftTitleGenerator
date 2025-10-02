@@ -13,6 +13,7 @@
             "author": { "type": "string" },
             "variants": {
               "type": "object",
+              "minProperties": 1,
               "patternProperties": {
                 "^[a-z0-9_]+$": {
                   "type": "object",
@@ -32,6 +33,7 @@
     },
     "overlays": {
       "type": "object",
+      "minProperties": 1,
       "patternProperties": {
         "^[a-z0-9_]+$": {
           "type": "object",
@@ -45,5 +47,6 @@
       }
     }
   },
+  "required": ["textures", "overlays"],
   "additionalProperties": false
 }

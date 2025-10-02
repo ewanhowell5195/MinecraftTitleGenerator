@@ -9,6 +9,7 @@
           "id": { "type": "string", "const": "minecraft-ten" },
           "variants": {
             "type": "array",
+            "minItems": 1,
             "items": {
               "type": "object",
               "properties": {
@@ -20,6 +21,7 @@
                 "border": { "type": "integer" },
                 "faces": {
                   "type": "array",
+                  "minItems": 1,
                   "items": {
                     "oneOf": [
                       {
@@ -39,6 +41,7 @@
                 },
                 "ends": {
                   "type": "array",
+                  "minItems": 1,
                   "items": {
                     "type": "array",
                     "minItems": 4,
@@ -49,7 +52,6 @@
                 "terminatorSpace": { "type": "boolean" },
                 "forcedTerminators": { "type": "boolean" },
                 "autoBorder": { "type": "boolean" },
-                "borderless": { "type": "boolean" },
                 "overlay": { "type": "boolean" },
                 "preview": { "type": "string" },
                 "example": {
@@ -58,7 +60,28 @@
                   "minItems": 2,
                   "maxItems": 2
                 },
-                "flat": { "type": "boolean" }
+                "flat": { "type": "boolean" },
+                "characterSpacing": { "type": "integer" },
+                "spaceWidth": { "type": "integer" },
+                "shifts": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "minProperties": 1,
+                      "patternProperties": {
+                        "^(.|😳|😩){2}$": {
+                          "type": "integer",
+                          "not": { "const": 0 }
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "string",
+                      "const": "inherit"
+                    }
+                  ]
+                }
               },
               "required": ["id"],
               "additionalProperties": false
@@ -66,7 +89,7 @@
           }
         },
         "required": ["id"],
-        "additionalProperties": true
+        "additionalProperties": false
       },
       {
         "type": "object",
@@ -79,6 +102,7 @@
           "border": { "type": "integer" },
           "faces": {
             "type": "array",
+            "minItems": 1,
             "items": {
               "oneOf": [
                 {
@@ -98,6 +122,7 @@
           },
           "ends": {
             "type": "array",
+            "minItems": 1,
             "items": {
               "type": "array",
               "minItems": 4,
@@ -108,7 +133,6 @@
           "terminatorSpace": { "type": "boolean" },
           "forcedTerminators": { "type": "boolean" },
           "autoBorder": { "type": "boolean" },
-          "borderless": { "type": "boolean" },
           "overlay": { "type": "boolean" },
           "preview": { "type": "string" },
           "example": {
@@ -118,8 +142,22 @@
             "maxItems": 2
           },
           "flat": { "type": "boolean" },
+          "characterSpacing": { "type": "integer" },
+          "spaceWidth": { "type": "integer" },
+          "shifts": {
+            "type": "object",
+            "minProperties": 1,
+            "patternProperties": {
+              "^(.|😳|😩){2}$": {
+                "type": "integer",
+                "not": { "const": 0 }
+              }
+            },
+            "additionalProperties": false
+          },
           "variants": {
             "type": "array",
+            "minItems": 1,
             "items": {
               "type": "object",
               "properties": {
@@ -131,6 +169,7 @@
                 "border": { "type": "integer" },
                 "faces": {
                   "type": "array",
+                  "minItems": 1,
                   "items": {
                     "oneOf": [
                       {
@@ -150,6 +189,7 @@
                 },
                 "ends": {
                   "type": "array",
+                  "minItems": 1,
                   "items": {
                     "type": "array",
                     "minItems": 4,
@@ -160,7 +200,6 @@
                 "terminatorSpace": { "type": "boolean" },
                 "forcedTerminators": { "type": "boolean" },
                 "autoBorder": { "type": "boolean" },
-                "borderless": { "type": "boolean" },
                 "overlay": { "type": "boolean" },
                 "preview": { "type": "string" },
                 "example": {
@@ -169,7 +208,28 @@
                   "minItems": 2,
                   "maxItems": 2
                 },
-                "flat": { "type": "boolean" }
+                "flat": { "type": "boolean" },
+                "characterSpacing": { "type": "integer" },
+                "spaceWidth": { "type": "integer" },
+                "shifts": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "minProperties": 1,
+                      "patternProperties": {
+                        "^(.|😳|😩){2}$": {
+                          "type": "integer",
+                          "not": { "const": 0 }
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "string",
+                      "const": "inherit"
+                    }
+                  ]
+                }
               },
               "required": ["id"],
               "additionalProperties": false

@@ -7,7 +7,8 @@
         "name": "Version 2",
         "description": "Minecraft Ten Version 2 is a newer version of Minecraft Ten with some tweaks to some characters, most notably `&` and `?`.",
         "author": "Ewan Howell",
-        "preview": "e&?"
+        "preview": "e&?",
+        "shifts": "inherit"
       },
       {
         "id": "minecraft-ten-cyrillic",
@@ -106,7 +107,6 @@
       [62, 62, 122, 122],
       [124, 124, 184, 184]
     ],
-    "borderless": true,
     "forcedTerminators": true,
     "flat": true
   },
@@ -179,5 +179,95 @@
       [128, 144, 188, 204]
     ],
     "terminatorSpace": true
+  },
+  {
+    "id": "minecraft-sga",
+    "name": "Minecraft SGA",
+    "author": "Westbot",
+    "height": 44,
+    "border": 268,
+    "characterSpacing": 5,
+    "preview": "abh",
+    "faces": [
+      [22, 64]
+    ],
+    "ends": [
+      [0, 22, 64, 86]
+    ],
+    "example": [
+      "enchanting",
+      "minecraft"
+    ]
+  },
+  {
+    "id": "block-serif",
+    "name": "Block Serif",
+    "author": "DragonSlayr15001",
+    "height": 44,
+    "border": 266,
+    "overlay": true,
+    "spaceWidth": 12,
+    "faces": [
+      [22, 62],
+      [108, 148],
+      [194, 194, 234, 242]
+    ],
+    "ends": [
+      [0, 22, 62, 84],
+      [86, 108, 148, 170],
+      [172, 194, 242, 264]
+    ],
+    "terminatorSpace": true,
+    "shifts": {
+      "//": 12,
+      "\\\\": 12,
+      "😳v": 12,
+      "av": 12,
+      "v😳": 12,
+      "va": 12,
+      "😳w": 8,
+      "aw": 8,
+      "w😳": 8,
+      "wa": 8,
+      "😳7": 8,
+      "a7": 8,
+      "7😳": 8,
+      "7a": 8,
+      "f😳": 8,
+      "fa": 8,
+      "fj": 8,
+      "lt": 8,
+      "tj": 8,
+      "ly": 8,
+      "yj": 8,
+      "lv": 8,
+      "vj": 8,
+      "l-": 12,
+      "l?": 12,
+      "t-": 8,
+      "-t": 8,
+      "t.": 8,
+      ".t": 8,
+      "t,": 8,
+      ",t": 8,
+      "t_": 8,
+      "_t": 8,
+      "y-": 8,
+      "-y": 8,
+      "y.": 8,
+      ".y": 8,
+      "y,": 8,
+      ",y": 8,
+      "y_": 8,
+      "_y": 8,
+      "v/": 12,
+      "\\v": 12,
+      "w/": 8,
+      "\\w": 8,
+      "/a": 12,
+      "/😳": 12,
+      "a\\": 12,
+      "😳\\": 12
+    }
   }
 ]

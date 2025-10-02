@@ -1,5 +1,8 @@
 {
   "textures": {
+    "flat": {
+      "author": "Ewan Howell"
+    },
     "cracked": {
       "author": "ShrimpSnail, Ewan Howell, & MrBrose",
       "variants": {
@@ -70,16 +73,16 @@
       "author": "Ewan Howell & DamienBrittan"
     },
     "grass": {
-      "author": "ShrimpSnail & DamienBrittan",
+      "author": "ShrimpSnail, DamienBrittan, & blank3times",
       "variants": {
         "flowers": {
-          "author": "SzyszaDev"
+          "author": "0Szysza"
         },
         "grass_side": {
           "author": "Magminer & Ewan Howell"
         },
         "grass_side_flowers": {
-          "author": "Magminer & Ewan Howell & SzyszaDev"
+          "author": "Magminer & Ewan Howell & 0Szysza"
         },
         "podzol": {},
         "mycelium": {},
@@ -145,7 +148,7 @@
         },
         "cake_minecraft": {
           "name": "Cake (Minecraft)",
-          "author": "Ewan Howell & SzyszaDev"
+          "author": "Ewan Howell & 0Szysza"
         }
       }
     },
@@ -265,7 +268,12 @@
       "author": "blank3times"
     },
     "glow_squid": {
-      "author": "BitseK"
+      "author": "BitseK",
+      "variants": {
+        "glow_squid_old": {
+          "name": "Glow Squid (Old)"
+        }
+      }
     },
     "cherry_blossom": {
       "author": "Klayv",
@@ -318,6 +326,9 @@
     },
     "enderman": {
       "author": "B1tseK"
+    },
+    "sunset": {
+      "author": "Ewan Howell"
     }
   },
   "overlays": {
@@ -352,7 +363,7 @@
       "author": "Ewan Howell"
     },
     "tiles": {
-      "author": "SzyszaDev"
+      "author": "0Szysza"
     },
     "bevel_highlight_bottom": {
       "name": "Bevel Highlight (Bottom)",

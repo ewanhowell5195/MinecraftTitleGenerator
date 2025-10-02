@@ -1,0 +1,62 @@
+{
+	"credit": "Made with Blockbench",
+	"texture_size": [1000, 320],
+	"textures": {
+		"0": "mcfont-serif-template",
+		"particle": "mcfont-serif-template"
+	},
+	"elements": [
+		{
+			"name": "main",
+			"from": [-7, 2, -3],
+			"to": [25, 42, 19],
+			"rotation": {"angle": 0, "axis": "y", "origin": [0, 0, -1]},
+			"faces": {
+				"north": {"uv": [11.968, 1.1, 12.48, 3.1], "texture": "#0"},
+				"south": {"uv": [12.48, 1.1, 11.968, 3.1], "texture": "#0"},
+				"up": {"uv": [11.968, 0, 12.48, 1.1], "rotation": 180, "texture": "#0"},
+				"down": {"uv": [11.968, 3.1, 12.48, 4.2], "rotation": 180, "texture": "#0"}
+			}
+		},
+		{
+			"name": "border",
+			"from": [27, 44, 21],
+			"to": [-9, 0, -5],
+			"rotation": {"angle": 0, "axis": "y", "origin": [0, 0, -1]},
+			"faces": {
+				"north": {"uv": [6.208, 14.5, 5.92, 13.4], "texture": "#0"},
+				"east": {"uv": [5.888, 14.5, 5.92, 13.4], "texture": "#0"},
+				"south": {"uv": [5.92, 14.5, 6.208, 13.4], "texture": "#0"},
+				"west": {"uv": [6.208, 14.5, 6.24, 13.4], "texture": "#0"},
+				"up": {"uv": [5.92, 14.5, 6.208, 14.6], "texture": "#0"},
+				"down": {"uv": [5.92, 13.3, 6.208, 13.4], "texture": "#0"}
+			}
+		},
+		{
+			"from": [-9, 0, -5],
+			"to": [-1, 28, 21],
+			"rotation": {"angle": 0, "axis": "y", "origin": [0, 0, -1]},
+			"faces": {
+				"north": {"uv": [3.056, 8.85, 3.12, 9.05], "texture": "#0"},
+				"east": {"uv": [0.032, 14.5, 0.064, 14.6], "texture": "#0"},
+				"south": {"uv": [3.056, 8.9, 3.12, 9.1], "texture": "#0"},
+				"west": {"uv": [3.136, 9, 3.168, 9.1], "texture": "#0"},
+				"up": {"uv": [0.032, 14.5, 0.064, 14.6], "texture": "#0"},
+				"down": {"uv": [3.072, 8.9, 3.104, 9], "texture": "#0"}
+			}
+		},
+		{
+			"from": [19, 0, -5],
+			"to": [27, 28, 21],
+			"rotation": {"angle": 0, "axis": "y", "origin": [0, 0, -1]},
+			"faces": {
+				"north": {"uv": [3.056, 8.85, 3.12, 9.05], "texture": "#0"},
+				"east": {"uv": [3.12, 8.9, 3.152, 9], "texture": "#0"},
+				"south": {"uv": [3.056, 8.9, 3.12, 9.1], "texture": "#0"},
+				"west": {"uv": [0.032, 14.5, 0.064, 14.6], "texture": "#0"},
+				"up": {"uv": [0.032, 14.5, 0.064, 14.6], "texture": "#0"},
+				"down": {"uv": [3.072, 8.9, 3.104, 9], "texture": "#0"}
+			}
+		}
+	]
+}

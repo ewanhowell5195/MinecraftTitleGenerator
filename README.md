@@ -12,7 +12,8 @@ Anyone can submit fonts and textures to this plugin, as long as they meet the re
 - Fonts/textures must be somewhat high quality. No low-effort submissions.
 - Fonts/textures must be somewhat unique from other fonts/textures. Try not to re-use other textures.
 - Full credit must be provided. If you are basing a font/texture off of someone else's design, credit them too!
-- Font/texture IDs must be in the snake_case format, and only use the characters `a-z`, `0-9`, and underscores.
+- Texture IDs must be in the snake_case format, and only use the characters `a-z`, `0-9`, and underscores.
+- Font IDs must be in the kebab-case format, and only use the characters `a-z`, `0-9`, and hyphens.
 
 ## How to make a submission
 To make a submission, create a fork of this repository and edit/upload the necessary files. After all the changes are made, create a pull request and explain what you are adding.
@@ -41,7 +42,7 @@ After making a submission, it would be really helpful if you could compile it. I
 1. To create a new texture, start by using another texture as a template. `flat.png` is the best template for general textures.
 2. Textures can be found at `fonts/fontname/textures`, and overlays can be found in `fonts/fontname/overlays`.
 Save your texture to either the `textures` or `overlays` folder, depending on what you made.
-3. Edit the `textures.json` file located at `fonts/fontname/textures.json` and add your texture to it. This file follows the following formatting:
+3. Edit the `textures.json` file located at `fonts/fontname/textures.json` and add your texture to it. This file uses the following formatting:
 ```js
 {
   "textures": { // If you are adding a texture, it goes in here
@@ -80,7 +81,7 @@ Thumbnails are generated through the compile script. Do not make them manually.
 # Tileables
 ## Creating a tileable
 1. To create a new tileable, add the tileable to the `tileables` folder under a fitting subdirectory.
-3. Edit the `tileables.json` file and add your tileable to it. This file follows the following formatting:
+3. Edit the `tileables.json` file and add your tileable to it. This file uses the following formatting:
 ```js
 {
   "tileable_id": { // The ID of the tileable you are adding (required)
@@ -205,6 +206,7 @@ If you want to make a font using different characters, please make an issue abou
    - You can have as many rows as you need, as long as you leave room for the border UV at the bottom.
    - 2px-wide spaces must be between the characters and the rows.
    - If some characters are taller than the standard character height, they can go into their own rows.
+   - A single pixel of the border colour is required. This must be the very top left pixel of the border area.
    - You do not need to worry about making the border UVs at this time.
    - See the `minecraft-ten` and `minecraft-five-bold` textures for example UVs.
    - Font UVs must be `1000x320`.
@@ -222,14 +224,14 @@ If you want to make a font using different characters, please make an issue abou
    - The second texture is the main texture, and will be the one that is automatically selected in the plugin.
    - All the other textures will be sorted by popularity over the last week.
 7. Create at least one overlay texture. It doesn't matter what it is, but at least one is required.
-8. Add your font to the `fonts.json` file found at the root of the repo. This file follows the following formatting:
+8. Add your font to the `fonts.json` file found at the root of the repo. This file uses the following formatting:
 ```js
 [
   {
     "id": "font-id", // Font ID (required)
     "name": "Font Name", // The name of the font if it doesn't match the ID (optional)
     "description": "A description", // A description of what the font is (optional)
-    "author": "Ewan Howell", // Font author (required)
+    "author": "Author Name", // Font author (required)
     "height": 36, // Character height, including border, but not characters that go above or below the baselines, such as a comma (required)
     "border": 212, // The Y coordinate of the top of the border UV (required)
     "faces": [ // List of coordinates defining the front faces of the rows of characters (required)
@@ -243,17 +245,23 @@ If you want to make a font using different characters, please make an issue abou
     "terminatorSpace": true, // The terminator characters should have a space between itself and the text (optional)
     "forcedTerminators": true, // The terminator characters will always be used and cannot be disabled (optional)
     "autoBorder": true, // Will generate an automatic border which is a single element around the entire text row (optional)
-    "borderless": true, // The font has no border (optional)
-    "overlay": true, // The font has an overlay texture that is applied over the top of the "gradient" texture mode. Requires an "overlay.png" in the textures folder. See the "minecraft-five-bold-block" for an example (optional)
+    "overlay": true, // The font has an overlay texture that is applied over the top of the "gradient" and "tileable" texture mode. Requires an "overlay.png" in the textures folder. See the "minecraft-five-bold-block" for an example (optional)
     "preview": "abc", // The text to use in the generated thumbnail images. Normally 3 characters, but I may allow exceptions (optional)
     "example": [ // The example text to display in the dialog text preview. Only provide if you are creating characters for a different alphabet, or if your font does not contain any letters (optional)
       "exmple", // The top text
       "text" // The bottom text
     ],
     "flat": true, // The font is a flat plane with no depth (optional)
+    "characterSpacing": 8, // A default amount of character spacing to use (optional)
+    "spaceWidth": 8, // The size of the space between words (optional, defaults to "8")
+    "shifts": { // Shifts characters around based on what characters they appear next to (optional)
+      "aw": 8 // Shifts the character "w" 8 pixels to the left when after the character "a",
+      "()": -4 // Shifts the character ")" 4 pixels to the right when after the character "("
+    },
     "variants": [ // The variants for this font (optional)
       {
         "id": "variant-id", // The ID of the variant
+        "shifts": "inherit", // Shifts to use for the variant. Either an object, or set to "inherit" to inherit the base shifts (optional)
         // All other properties for variants are the same as the base font and optional. Any missing properties will be inherited from the base font
       }
     ]
@@ -292,7 +300,52 @@ To create a font variant, follow the same process as creating a normal font. Whe
 ```
 Variant fonts use the same properties as normal fonts. The only required property of a variant is its ID. Any missing properties will be inherited from the parent font.
 
+# Shapes
+Shapes are similar to fonts, but instead of many characters, they only consist of a single model.
+
+## Creating a shape
+1. To create a shape, create a new folder inside the `shapes` directory with the ID of your shape.
+2. Inside this new folder, create the folders `textures` and `overlays`.
+3. Create your shape model and save it as `model.json` in the root of your shape folder.
+   - This model uses the `Java Block/Item` format.
+4. Add a `flat.png` texture inside the `textures` folder. This will be used for your UV.
+5. You can include additional textures and overlays, following the same format and rules as fonts.
+   - Texture sizes must be even dimensions, but do not have to be `1000x320`.
+   - All other texture rules from fonts apply (e.g. border requirements, variants, etc.)
+6. Create a `textures.json` file, following the same format as font textures.
+7. Add your shape to the `shapes.json` file at the root of the repo. This file uses the following format:
+```js
+[
+  {
+    "id": "shape-id", // Shape ID (required, kebab-case)
+    "name": "Shape Name", // The name of the shape if it doesn't match the ID (optional)
+    "description": "A description", // A description of what the shape is (optional)
+    "author": "Author Name", // Shape author (required)
+    "height": 36, // Same as fonts (required)
+    "textureWidth": 1000, // Width of the UV texture (required)
+    "textureHeight": 320, // Height of the UV texture (required)
+    "border": 212, // Same as fonts (required)
+    "faces": [ // Front faces of the shape, same as fonts (required)
+      [16, 48]
+    ],
+    "ends": [ // Same as fonts (required)
+      [0, 16, 48, 64]
+    ],
+    "overlay": true, // Same as fonts (optional)
+    "flat": true, // Same as fonts (optional)
+    "thumbnailConfig": { // Changes how the thumbnail renders (optional)
+      "position": [0, 22, -320], // Position of the camera (optional)
+      "lookat": [0, 22, 0],  // Where the camera looks to (optional)
+      "antialias": false  // If antialiasing should be enabled (optional)
+    }
+  }
+]
+```
+
+## Testing your shape
+Testing shapes is the same as testing fonts.
+
 # Official Minecraft Assets
 Some textures in this repository are official Minecraft assets, or contain parts of official Minecraft assets. These will be licensed under the Minecraft End User License Agreement (see [LICENSE.md](./LICENSE.md)).
 
-When submitting textures or tileables that include official Minecraft assets, please add them to the [LICENSE.md](./LICENSE.md).
+When submitting textures, shapes, or tileables that include official Minecraft assets, please add them to the [LICENSE.md](./LICENSE.md).
