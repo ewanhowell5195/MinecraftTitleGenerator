@@ -41,6 +41,7 @@
       }
     },
     "creeper_head": {
+      "category": "Mobs",
       "author": "Patrow1"
     }
   },
