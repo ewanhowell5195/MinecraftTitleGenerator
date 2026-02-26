@@ -39,6 +39,10 @@
         "smile": {},
         "heart_eyes": {}
       }
+    },
+    "creeper_head": {
+      "category": "Mobs",
+      "author": "Patrow1"
     }
   },
   "overlays": {
