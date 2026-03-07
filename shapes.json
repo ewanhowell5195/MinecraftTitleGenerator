@@ -61,5 +61,19 @@
     "ends": [
       [0, 16, 44, 60]
     ]
+  },
+  {
+    "id": "mace",
+    "author": "Patrow1",
+    "height": 18,
+    "textureWidth": 140,
+    "textureHeight": 93,
+    "border": 76,
+    "faces": [
+      [4, 68]
+    ],
+    "ends": [
+      [0, 4, 68, 72]
+    ]
   }
 ]
