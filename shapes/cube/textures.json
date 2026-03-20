@@ -39,6 +39,18 @@
         "smile": {},
         "heart_eyes": {}
       }
+    },
+    "creeper": {
+      "category": "Entities",
+      "author": "Patrow1",
+      "variants": {
+        "creeper": {},
+        "zombie": {},
+        "husky": {},
+        "skeleton": {},
+        "skeleton_wither": {},
+        "enderman": {}
+      }
     }
   },
   "overlays": {
