@@ -39,6 +39,35 @@
         "smile": {},
         "heart_eyes": {}
       }
+    },
+    "zombie": {
+      "category": "Entities",
+      "author": "Ewan Howell",
+      "variants": {
+        "blaze": {},
+        "bogged": {},
+        "breeze": {},
+        "cave_spider": {},
+        "creeper": {},
+        "drowned": {},
+        "drowned_baby": {},
+        "enderman": {},
+        "ghast": {},
+        "ghast_shooting": {},
+        "happy_ghast": {},
+        "ghastling": {},
+        "husk": {},
+        "husk_baby": {},
+        "parched": {},
+        "skeleton": {},
+        "snow_golem": {},
+        "spider": {},
+        "stray": {},
+        "wither": {},
+        "wither_invulnerable": {},
+        "wither_skeleton": {},
+        "zombie_baby": {}
+      }
     }
   },
   "overlays": {
