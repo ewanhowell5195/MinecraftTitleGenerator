@@ -187,5 +187,27 @@
     "variants": {
       "diagonal_down": {}
     }
+  },
+  "white_concrete": {
+    "category": "Concrete",
+    "path": "minecraft/concrete",
+	"author": "29bburkle",
+    "variants": {
+      "light_gray_concrete": {},
+      "gray_concrete": {},
+      "black_concrete": {},
+      "brown_concrete": {},
+      "red_concrete": {},
+      "orange_concrete": {},
+      "yellow_concrete": {},
+      "lime_concrete": {},
+      "green_concrete": {},
+      "cyan_concrete": {},
+      "light_blue_concrete": {},
+      "blue_concrete": {},
+      "purple_concrete": {},
+      "magenta_concrete": {},
+      "pink_concrete": {}
+    }
   }
 }
