@@ -191,7 +191,7 @@
   "white_concrete": {
     "category": "Concrete",
     "path": "minecraft/concrete",
-	"author": "29bburkle",
+    "author": "29bburkle",
     "variants": {
       "light_gray_concrete": {},
       "gray_concrete": {},
