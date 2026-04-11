@@ -65,9 +65,9 @@
   {
     "id": "mace",
     "author": "Patrow1",
-    "height": 18,
+    "height": 36,
     "textureWidth": 140,
-    "textureHeight": 93,
+    "textureHeight": 72,
     "border": 76,
     "faces": [
       [4, 68]
