@@ -210,7 +210,6 @@
       "pink_concrete": {}
     }
   },
-  {
   "ores": {
     "category": "Ores",
     "path": "minecraft/ore",
@@ -229,7 +228,7 @@
       "deepslate_emerald_ore": {},
       "deepslate_lapis_ore": {},
       "deepslate_redstone_ore": {},
-      "deepslate_copper_ore": {},
+      "deepslate_copper_ore": {}
     }
   }
 }
