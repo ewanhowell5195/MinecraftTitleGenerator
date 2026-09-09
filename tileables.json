@@ -209,5 +209,27 @@
       "magenta_concrete": {},
       "pink_concrete": {}
     }
+  },
+  {
+  "ores": {
+    "category": "Ores",
+    "path": "minecraft/ore",
+    "author": "idktoast",
+    "variants": {
+      "iron_ore": {},
+      "gold_ore": {},
+      "diamond_ore": {},
+      "emerald_ore": {},
+      "lapis_ore": {},
+      "redstone_ore": {},
+      "copper_ore": {},
+      "deepslate_iron_ore": {},
+      "deepslate_gold_ore": {},
+      "deepslate_diamond_ore": {},
+      "deepslate_emerald_ore": {},
+      "deepslate_lapis_ore": {},
+      "deepslate_redstone_ore": {},
+      "deepslate_copper_ore": {},
+    }
   }
 }
