@@ -13,9 +13,12 @@
       "calcite": {},
       "tuff": {},
       "bedrock": {},
+      "obsidian": {},
+      "crying_obsidian": {},
       "netherrack": {},
       "blackstone": {},
       "blackstone_top": {},
+      "gilded_blackstone": {},
       "basalt": {},
       "end_stone": {}
     }
@@ -32,10 +35,13 @@
       "dark_oak_planks": {},
       "mangrove_planks": {},
       "cherry_planks": {},
+      "pale_oak_planks": {},
+      "poplar_oak_planks": {},
       "bamboo_planks": {},
       "bamboo_mosaic": {},
       "crimson_planks": {},
-      "warped_planks": {}
+      "warped_planks": {},
+      "painting": {}
     }
   },
   "twisted_wood": {
@@ -88,12 +94,53 @@
       "dark_oak_log": {},
       "mangrove_log": {},
       "cherry_log": {},
+      "pale_oak_log": {},
+      "poplar_oak_log": {},
       "bamboo_block": {},
       "bamboo_block_top": {},
-      "stripped_bamboo_block": {},
-      "stripped_bamboo_block_top": {},
       "crimson_stem": {},
       "warped_stem": {}
+    }
+  },
+  "stripped_oak_log": {
+    "category": "Stripped Logs",
+    "path": "minecraft/stripped_log",
+    "variants": {
+      "stripped_spruce_log": {},
+      "stripped_birch_log": {},
+      "stripped_jungle_log": {},
+      "stripped_acacia_log": {},
+      "stripped_dark_oak_log": {},
+      "stripped_mangrove_log": {},
+      "stripped_cherry_log": {},
+      "stripped_pale_oak_log": {},
+      "stripped_poplar_oak_log": {},
+      "stripped_bamboo_block": {},
+      "stripped_bamboo_block_top": {},
+      "stripped_crimson_stem": {},
+      "stripped_warped_stem": {}
+    }
+  },
+  "terracotta": {
+    "category": "Terracotta",
+    "path": "minecraft/terracotta",
+    "variants": {
+      "white_terracotta": {},
+      "light_gray_terracotta": {},
+      "gray_terracotta": {},
+      "black_terracotta": {},
+      "brown_terracotta": {},
+      "red_terracotta": {},
+      "orange_terracotta": {},
+      "yellow_terracotta": {},
+      "lime_terracotta": {},
+      "green_terracotta": {},
+      "cyan_terracotta": {},
+      "light_blue_terracotta": {},
+      "blue_terracotta": {},
+      "purple_terracotta": {},
+      "magenta_terracotta": {},
+      "pink_terracotta": {}
     }
   },
   "white_glazed_terracotta": {

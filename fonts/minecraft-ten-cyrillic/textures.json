@@ -64,12 +64,15 @@
         "dark_oak_planks": {},
         "mangrove_planks": {},
         "cherry_planks": {},
-        "bamboo_planks": {},
-        "crimson_planks": {},
-        "warped_planks": {},
         "pale_oak_planks": {
           "author": "0Szysza"
-        }
+        },
+        "poplar_oak_planks": {
+          "author": "Yozhenka"
+        },
+        "bamboo_planks": {},
+        "crimson_planks": {},
+        "warped_planks": {}
       }
     },
     "bubbles": {
