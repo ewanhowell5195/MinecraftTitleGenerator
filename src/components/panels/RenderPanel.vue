@@ -17,7 +17,7 @@ import Segments from "../Segments.vue"
 import Slider from "../Slider.vue"
 import Toggle from "../Toggle.vue"
 
-const PRESETS = [{ value: 1024, label: "1K" }, { value: 2048, label: "2K" }, { value: 4096, label: "4K" }, { value: 8192, label: "8K" }, { value: 16384, label: "16K" }]
+const PRESETS = [{ value: 1024, label: "1K" }, { value: 2048, label: "2K" }, { value: 4096, label: "4K" }, { value: 8192, label: "8K" }]
 
 const custom = ref(!PRESETS.some(({ value }) => value === view.resolution))
 const progress = ref(null)
