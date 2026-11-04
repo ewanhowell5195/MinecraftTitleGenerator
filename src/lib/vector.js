@@ -18,8 +18,11 @@ const STEP_EDGE = 6
 const PIXEL_STEP = 2
 const PIXEL_FLAT = 1
 const PIXEL_REACH = 2
-const JOIN_TOLERANCE = 6
 const SLIDE_CONTRAST = 48
+const BAND_STEP = 16
+const BAND_WOBBLE = 2
+const MIN_BANDS = 4
+const MIN_BAND_ROWS = 2
 const SOFT_LABEL = 1 << 16
 const STEP_SLOPE = 3
 const MAX_STOPS = 128
@@ -31,6 +34,7 @@ const PEEL_SHARE = 0.1
 const MIN_BIN_SHARE = 0.2
 const SEAM = 0.5
 const JOIN_REACH = 2
+const JOIN_TRIM = 0.25
 const PLANE_ERROR = 1e-2
 const CROP_MARGIN = 1 / (SAMPLES * 2)
 const STAIR = 0.8
@@ -149,7 +153,60 @@ function simplifyStops(points) {
   return Array.from(keep).sort((a, b) => a - b).map(index => points[index])
 }
 
-function fitAxis(list, colours, width, axis, exact) {
+function stepSize(a, b) {
+  return Math.max(...change(a, b).map(Math.abs))
+}
+
+function averaged(values, from, to, row) {
+  const reach = Math.min(row - from, to - row, values.reach)
+  const sum = [0, 0, 0]
+  for (let other = row - reach; other <= row + reach; other++) {
+    for (let channel = 0; channel < 3; channel++) sum[channel] += values[other][channel]
+  }
+  return sum.map(value => value / (reach * 2 + 1))
+}
+
+function smoothRun(rows, from, to, smooth) {
+  const sizes = []
+  for (let row = from; row < to; row++) sizes.push(stepSize(rows[row], rows[row + 1]))
+  const largest = Math.max(...sizes)
+  if (largest < 2) return
+  const jumps = []
+  for (const [offset, size] of sizes.entries()) {
+    if (size * 2 >= largest) jumps.push(offset)
+  }
+  if (jumps.length < MIN_BANDS - 1) return
+  const gaps = jumps.slice(1).map((jump, index) => jump - jumps[index]).sort((a, b) => a - b)
+  const spacing = gaps[Math.floor(gaps.length * 0.75)]
+  if (spacing < MIN_BAND_ROWS) return
+  let values = rows.map(colour => [colour & 255, colour >> 8 & 255, colour >> 16 & 255])
+  values.reach = Math.floor(spacing / 2)
+  for (let pass = 0; pass < 2; pass++) {
+    const next = values.slice()
+    for (let row = from; row <= to; row++) next[row] = averaged(values, from, to, row)
+    next.reach = values.reach
+    values = next
+  }
+  for (let row = from; row <= to; row++) smooth.set(row, values[row].reduce((colour, value, channel) => colour | Math.round(value) << channel * 8, 0))
+}
+
+function smoothBands(rows) {
+  const smooth = new Map()
+  let from = 0
+  while (from < rows.length - 1) {
+    let to = from
+    while (to < rows.length - 1 && stepSize(rows[to], rows[to + 1]) <= BAND_STEP) {
+      const net = change(rows[from], rows[to])
+      if (change(rows[to], rows[to + 1]).some((value, channel) => value * net[channel] < 0 && Math.abs(value) > BAND_WOBBLE)) break
+      to++
+    }
+    if (to > from) smoothRun(rows, from, to, smooth)
+    from = Math.max(to, from + 1)
+  }
+  return smooth
+}
+
+function fitAxis(list, colours, width, axis, exact, bands) {
   const bins = new Map()
   const binOf = index => Math.floor((index % width + 0.5) * axis[0] + (Math.floor(index / width) + 0.5) * axis[1] + 1e-6)
   for (const index of list) {
@@ -172,6 +229,8 @@ function fitAxis(list, colours, width, axis, exact) {
     if (!jump(colour, expected)) chosen.set(bin, colour)
   }
   const edges = edgesOf(chosen)
+  const shown = axis[1] === 1 && bands?.size ? new Map(Array.from(chosen, ([bin, colour]) => [bin, bands.get(bin) ?? colour])) : chosen
+  const shownEdges = shown === chosen ? edges : edgesOf(shown)
   function fits(index) {
     const bin = binOf(index)
     const own = chosen.get(bin)
@@ -180,11 +239,11 @@ function fitAxis(list, colours, width, axis, exact) {
     return [bin - 1, bin + 1].some(other => chosen.has(other) && !edges.has(Math.min(bin, other)) && near(colours[index], chosen.get(other)))
   }
   const matched = list.filter(fits)
-  const ordered = Array.from(chosen).sort((a, b) => a[0] - b[0])
+  const ordered = Array.from(shown).sort((a, b) => a[0] - b[0])
   const points = [{ t: ordered[0][0], colour: ordered[0][1] }]
   for (const [position, [bin, colour]] of ordered.entries()) {
     const next = ordered[position + 1]
-    if (next && (next[0] !== bin + 1 || edges.has(bin))) points.push({ t: bin, colour }, { t: bin + 1, colour }, { t: bin + 1, colour: next[1] })
+    if (next && (next[0] !== bin + 1 || shownEdges.has(bin))) points.push({ t: bin, colour }, { t: bin + 1, colour }, { t: bin + 1, colour: next[1] })
     else points.push({ t: bin + 0.5, colour })
   }
   points.push({ t: ordered.at(-1)[0] + 1, colour: ordered.at(-1)[1] })
@@ -230,12 +289,12 @@ function flatOf(list, colours) {
   return { colour, matched: list.filter(index => near(colours[index], colour)) }
 }
 
-function modelOf(list, colours, width, height, share, exact) {
+function modelOf(list, colours, width, height, share, exact, bands) {
   const flat = flatOf(list, colours)
-  if (flat.matched.length >= list.length * 0.98) return flat
+  if (!bands?.size && flat.matched.length >= list.length * 0.98) return flat
   let best = null
   for (const axis of [[0, 1], [1, 0]]) {
-    const fit = fitAxis(list, colours, width, axis, exact)
+    const fit = fitAxis(list, colours, width, axis, exact, bands)
     if (fit.stops.length > MAX_STOPS) continue
     if (!best || fit.matched.length > best.matched.length) best = fit
   }
@@ -390,6 +449,61 @@ function analyse(image, rect) {
     return { ...model, stops: model.stops.map(stop => ({ t: stop.t + shift, colour: stop.colour })) }
   }
 
+  const [main, ...overlaid] = Array.from(regions.entries()).sort((a, b) => b[1].length - a[1].length)
+  const anySoft = main[0] >= SOFT_LABEL || overlaid.some(([label]) => label >= SOFT_LABEL)
+
+  function bandsOf(label) {
+    const COVERED = -1
+    function rowColour(y) {
+      const counts = new Map()
+      let solid = false
+      function tally(x) {
+        const at = (y * atlasWidth + x) * 4
+        if (data[at + 3] < 128) return
+        solid = true
+        if (labels && (labels[at] | labels[at + 1] << 8 | labels[at + 2] << 16) !== label) return
+        const colour = data[at] | data[at + 1] << 8 | data[at + 2] << 16
+        counts.set(colour, (counts.get(colour) ?? 0) + 1)
+      }
+      for (let x = rect.left; x < rect.right; x++) tally(x)
+      for (let reach = 1; !counts.size && (rect.left - reach >= 0 || rect.right - 1 + reach < atlasWidth); reach++) {
+        if (rect.left - reach >= 0) tally(rect.left - reach)
+        if (rect.right - 1 + reach < atlasWidth) tally(rect.right - 1 + reach)
+      }
+      return counts.size ? majority(counts) : solid ? COVERED : null
+    }
+    const rows = []
+    for (let y = rect.top; y < rect.bottom; y++) {
+      const colour = rowColour(y)
+      if (colour !== null && colour !== COVERED) rows.push({ y, colour })
+    }
+    if (!rows.length) return null
+    for (let y = rect.top - 1; y >= 0; y--) {
+      const colour = rowColour(y)
+      if (colour === COVERED) continue
+      if (colour === null || jump(colour, rows[0].colour)) break
+      rows.unshift({ y, colour })
+    }
+    for (let y = rect.bottom; y < image.height; y++) {
+      const colour = rowColour(y)
+      if (colour === COVERED) continue
+      if (colour === null || jump(rows.at(-1).colour, colour)) break
+      rows.push({ y, colour })
+    }
+    const inside = new Map()
+    for (const [row, colour] of smoothBands(rows.map(row => row.colour))) {
+      const { y } = rows[row]
+      if (y >= rect.top && y < rect.bottom) inside.set(y - rect.top, colour)
+    }
+    return inside
+  }
+
+  function isGentle(region) {
+    const present = new Set(region)
+    const gentle = (a, b) => change(colours[a], colours[b]).every(value => Math.abs(value) <= STEP_EDGE)
+    return region.every(index => (index % width === width - 1 || !present.has(index + 1) || gentle(index, index + 1)) && (!present.has(index + width) || gentle(index, index + width)))
+  }
+
   function decompose(region, exact) {
     let free = region
     function take(matched) {
@@ -397,14 +511,14 @@ function analyse(image, rect) {
       free = free.filter(index => !gone.has(index))
     }
     const layers = []
-    let fitted = modelOf(free, colours, width, height, BASE_SHARE, exact) ?? flatOf(free, colours)
+    let fitted = modelOf(free, colours, width, height, BASE_SHARE, exact, exact ? null : bandsOf(main[0])) ?? flatOf(free, colours)
     if (fitted.stops?.some((stop, index) => index && stop.t === fitted.stops[index - 1].t)) {
       const peeled = flatOf(free, colours)
       const gone = new Set(peeled.matched)
       const remainder = free.filter(index => !gone.has(index))
       const trial = peeled.matched.length >= free.length * PEEL_SHARE && remainder.length ? modelOf(remainder, colours, width, height, BASE_SHARE, exact) : null
       if (trial?.stops && trial.stops.every((stop, index) => !index || stop.t > trial.stops[index - 1].t)) {
-        layers.push({ ...peeled, pixels: peeled.matched, smooth: true })
+        layers.push({ ...peeled, pixels: peeled.matched, smooth: anySoft })
         take(peeled.matched)
         fitted = trial
       }
@@ -412,7 +526,8 @@ function analyse(image, rect) {
     const [largest, ...others] = segmentsOf(fitted, width).sort((a, b) => b.matched.length - a.matched.length)
     take(fitted.matched)
     for (const segment of others) layers.push({ ...placedOn(segment), pixels: segment.matched, smooth: false })
-    for (let round = 0; round < MAX_MODELS && free.length; round++) {
+    const continuous = anySoft || isGentle(region)
+    for (let round = 0; continuous && round < MAX_MODELS && free.length; round++) {
       const model = modelOf(free, colours, width, height, LAYER_SHARE, exact)
       if (!model) break
       for (const segment of segmentsOf(model, width)) layers.push({ ...placedOn(segment), pixels: segment.matched, smooth: true })
@@ -427,9 +542,7 @@ function analyse(image, rect) {
     return { base: placedOn(largest), layers }
   }
 
-  const [main, ...overlaid] = Array.from(regions.entries()).sort((a, b) => b[1].length - a[1].length)
   const { base, layers } = decompose(main[1], false)
-  const anySoft = main[0] >= SOFT_LABEL || overlaid.some(([label]) => label >= SOFT_LABEL)
   for (const [, region] of overlaid) {
     const part = decompose(region, true)
     layers.push({ ...part.base, pixels: part.base.matched, smooth: anySoft }, ...part.layers)
@@ -614,6 +727,14 @@ function area(polygon) {
   }, 0)) / 2
 }
 
+function sameWinding(polygon) {
+  const signed = polygon.reduce((sum, [x, y], index) => {
+    const [nextX, nextY] = polygon[(index + 1) % polygon.length]
+    return sum + x * nextY - nextX * y
+  }, 0)
+  return signed < 0 ? polygon.toReversed() : polygon
+}
+
 function insideFace(point, face) {
   return face.corners.every((corner, index) => {
     const next = face.corners[(index + 1) % face.corners.length]
@@ -657,13 +778,14 @@ function joinKind(face, others, toWorld, x, y, dx, dy) {
   const own = colourAt(face, x - dx, y - dy)
   const beyond = colourAt(other, texelX, texelY)
   if (own === null || beyond === null) return null
-  if (change(own, beyond).every(value => Math.abs(value) <= JOIN_TOLERANCE)) return "over"
-  return other.index > face.index && layerOwns(other, texelX, texelY) ? "under" : null
+  if (near(own, beyond)) return "over"
+  if (!layerOwns(other, texelX, texelY)) return other
+  return other.index > face.index ? "under" : null
 }
 
 function joinsOf(face, loop, others, toWorld) {
   const { left, top, right, bottom } = face.rect
-  const joins = { over: [], under: [] }
+  const joins = { over: [], under: [], covers: [] }
   for (const [index, point] of loop.entries()) {
     const next = loop[(index + 1) % loop.length]
     const dx = point[0] !== next[0] ? 0 : point[0] === left ? -SEAM : point[0] === right ? SEAM : 0
@@ -672,15 +794,33 @@ function joinsOf(face, loop, others, toWorld) {
     const stepX = Math.sign(next[0] - point[0])
     const stepY = Math.sign(next[1] - point[1])
     const length = Math.abs(next[0] - point[0]) + Math.abs(next[1] - point[1])
+    function endsHard(inside, outside) {
+      const x = point[0] + stepX * outside - dx
+      const y = point[1] + stepY * outside - dy
+      if (x < left || x >= right || y < top || y >= bottom) return true
+      const own = colourAt(face, point[0] + stepX * inside - dx, point[1] + stepY * inside - dy)
+      const other = colourAt(face, x, y)
+      return own === null || other === null || jump(own, other)
+    }
     let start = 0
     let kind = null
     for (let unit = 0; unit <= length; unit++) {
       const current = unit < length ? joinKind(face, others, toWorld, point[0] + stepX * (unit + 0.5), point[1] + stepY * (unit + 0.5), dx, dy) : null
       if (current === kind && unit < length) continue
-      if (kind) {
-        const from = [point[0] + stepX * start, point[1] + stepY * start]
-        const to = [point[0] + stepX * unit, point[1] + stepY * unit]
-        joins[kind].push([from, to, [to[0] + dx * JOIN_REACH, to[1] + dy * JOIN_REACH], [from[0] + dx * JOIN_REACH, from[1] + dy * JOIN_REACH]])
+      if (kind !== null) {
+        const head = start + (start === 0 && endsHard(0.5, -0.5) ? JOIN_TRIM : 0)
+        const tail = unit - (unit === length && endsHard(length - 0.5, length + 0.5) ? JOIN_TRIM : 0)
+        const from = [point[0] + stepX * head, point[1] + stepY * head]
+        const to = [point[0] + stepX * tail, point[1] + stepY * tail]
+        function quad(inset, reach, shrink) {
+          const [fromX, fromY] = [from[0] + stepX * shrink, from[1] + stepY * shrink]
+          const [toX, toY] = [to[0] - stepX * shrink, to[1] - stepY * shrink]
+          return [[fromX - dx * inset, fromY - dy * inset], [toX - dx * inset, toY - dy * inset], [toX + dx * reach, toY + dy * reach], [fromX + dx * reach, fromY + dy * reach]]
+        }
+        if (typeof kind === "object") {
+          joins.covers.push({ neighbour: kind, quad: quad(0, JOIN_REACH, 0) })
+          joins.over.push(quad(1, JOIN_REACH / 2, JOIN_TRIM / 2))
+        } else joins[kind].push(quad(kind === "under" ? 0 : 1, JOIN_REACH, 0))
       }
       start = unit
       kind = current
@@ -895,7 +1035,7 @@ function linesOf(segments, left, top) {
   return path
 }
 
-function markupOf({ base, silhouette, layers, joins, clipped }, index, left, top, bleed, output) {
+function markupOf({ base, silhouette, layers, joins, covers, clipped }, index, left, top, bleed, output) {
   const list = Array.from(base)
   const parts = []
   const filled = ([fill, segments]) => `<path fill="none" stroke="${fill}" d="${linesOf(segments, left, top)}"/>`
@@ -905,8 +1045,9 @@ function markupOf({ base, silhouette, layers, joins, clipped }, index, left, top
   for (const entry of list) parts.push(painted(entry))
   for (const entry of layers) parts.push(painted(entry))
   for (const entry of joins) parts.push(painted(entry))
+  for (const entry of covers) parts.push(painted(entry))
   for (const [shape, clip] of clipped.entries()) {
-    parts.push(`<clipPath id="f${index}-${shape}"><path d="${pathOf(clip.pieces, left, top)}"/></clipPath><g clip-path="url(#f${index}-${shape})">${clip.groups.concat(clip.joins).map(painted).join("")}</g>`)
+    parts.push(`<clipPath id="f${index}-${shape}"><path d="${pathOf(clip.pieces, left, top)}"/></clipPath><g clip-path="url(#f${index}-${shape})">${clip.groups.concat(clip.joins, Array.from(clip.covers)).map(painted).join("")}</g>`)
   }
   return parts.join("\n")
 }
@@ -985,18 +1126,23 @@ export function vectorTitle(scene, camera, size, resolution) {
     addInOrder(groups, fill, face.analysis.shapeOf(list, layer.smooth).map(loop => loop.map(([x, y]) => project(toWorld(x, y)))))
   }
 
-  function fillLayer(face, layer, { groups, joins }) {
+  function wholeFill(face, model) {
+    const gradient = model.stops ? fitGradient(face, face.rect, model, project, limits) : null
+    return gradient ? output.fill(model, gradient) : model.stops ? hexOf(model.stops[Math.floor(model.stops.length / 2)].colour) : output.fill(model)
+  }
+
+  function fillLayer(face, layer, { groups, joins, covers }) {
     const toWorld = worldMap(face)
     const found = layer.exact.map(loop => joinsOf(face, loop, sameMesh, toWorld))
     const placed = list => list.map(join => join.map(([x, y]) => project(toWorld(x, y))))
     const under = placed(found.flatMap(item => item.under))
-    const over = placed(found.flatMap(item => item.over))
+    const over = placed(found.flatMap(item => item.over)).map(sameWinding)
     if (under.length || over.length) {
-      const gradient = layer.stops ? fitGradient(face, face.rect, layer, project, limits) : null
-      const fill = gradient ? output.fill(layer, gradient) : layer.stops ? hexOf(layer.stops[Math.floor(layer.stops.length / 2)].colour) : output.fill(layer)
+      const fill = wholeFill(face, layer)
       addInOrder(groups, fill, under)
       addInOrder(joins, fill, over)
     }
+    for (const { neighbour, quad } of found.flatMap(item => item.covers)) addTo(covers, wholeFill(neighbour, neighbour.analysis.base), placed([quad]).map(sameWinding))
     paintPixels(face, layer, layer.edges?.length ? layer.pixels.concat(outerPixels(face, sameMesh, layer.edges)) : layer.pixels, face.rect, groups, 0)
   }
 
@@ -1014,7 +1160,7 @@ export function vectorTitle(scene, camera, size, resolution) {
     const faces = facesOf(mesh, view, project, cache)
     sameMesh = faces
     const own = mesh.material.depthWrite ? faces.map(face => occluderOf(face, view)) : []
-    const layer = { base: new Map(), layers: [], joins: [], clipped: [], silhouette: [] }
+    const layer = { base: new Map(), layers: [], joins: [], covers: new Map(), clipped: [], silhouette: [] }
     for (const face of faces) {
       const unhidden = hideAll([face.points], face, occluders)
       for (const piece of unhidden) layer.silhouette.push(grown(piece.map(project)))
@@ -1022,7 +1168,7 @@ export function vectorTitle(scene, camera, size, resolution) {
       if (!visible.length) continue
       const { base, layers: shapes } = face.analysis
       const whole = visible.length === 1 && visible[0] === face.corners
-      const target = whole ? { groups: layer.layers, joins: layer.joins } : { groups: [], joins: [] }
+      const target = whole ? { groups: layer.layers, joins: layer.joins, covers: layer.covers } : { groups: [], joins: [], covers: new Map() }
       if (base.masked) fillLayer(face, base, target)
       else {
         const trimmed = whole && shapes.length ? trimmedBase(face, sameMesh) : null
