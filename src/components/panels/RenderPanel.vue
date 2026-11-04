@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, shallowRef, watch } from "vue"
+import { computed, ref, shallowRef } from "vue"
 import { AUTO_BORDER } from "../../lib/build.js"
 import { canvasLimit } from "../../lib/canvas.js"
 import { FRAMINGS, MINECRAFT_MODES, framing, framingModified, outlineModified, paddingScale, renderFramed, resetFraming, resetOutline, resolutionLimit, setAspect, setResolution, textureSize, textureSizes } from "../../lib/framing.js"
@@ -30,10 +30,6 @@ const sizes = computed(() => textureSizes().map(size => ({ value: size, label: S
 const padding = computed({
   get: () => Math.round(framing.padding * paddingScale()),
   set: value => framing.padding = value / paddingScale()
-})
-
-watch(() => view.antialias, () => {
-  view.resolution = Math.min(view.resolution, resolutionLimit())
 })
 
 function toggleOutline(on) {
@@ -142,7 +138,7 @@ function fileName() {
       <Slider v-if="custom" label="Size" v-model="view.resolution" :min="128" :max="resolutionLimit()" log />
       <p class="hint">The longer side of the title, in pixels. The final size may differ slightly.</p>
     </template>
-    <Toggle label="Antialiasing" :hint="`Smoother edges, caps the size at ${Math.floor(max / 2)}`" v-model="view.antialias" />
+    <Toggle label="Antialiasing" hint="Smoother edges, renders take longer" v-model="view.antialias" />
     <button class="primary wide big" :disabled="progress !== null" @click="render">
       <Icon name="camera" :size="17" />
       <span>Render image</span>

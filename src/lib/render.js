@@ -5,6 +5,10 @@ import { clamp } from "./maths.js"
 
 const LIMIT = 6
 const TILE = 4096
+const SAMPLES = 4
+// wider than LIMIT so clean sees whole regions, and divisible by SAMPLES to keep tiles on the output pixel grid
+const MARGIN = 8
+const STRIDE = TILE - MARGIN * 2
 const region = new Int32Array(32)
 const around = new Int32Array(4)
 
@@ -70,12 +74,20 @@ function neighbours(p, width, height) {
   return count
 }
 
-function same(data, p, solid) {
-  return (data[p * 4 + 3] !== 0) === solid
+function same(pixels, p, solid) {
+  return (pixels[p] !== 0) === solid
 }
 
-function enclosed(data, p, x, y, width, height, solid) {
-  return x > 0 && y > 0 && x < width - 1 && y < height - 1 && same(data, p - 1, solid) && same(data, p + 1, solid) && same(data, p - width, solid) && same(data, p + width, solid) && same(data, p - width - 1, solid)
+// rows run bottom to top, as gl.readPixels returns them
+function enclosed(pixels, p, x, y, width, height) {
+  if (x === 0 || y === 0 || x === width - 1 || y === height - 1) return false
+  const a = pixels[p]
+  const b = pixels[p - 1]
+  const c = pixels[p + 1]
+  const d = pixels[p - width]
+  const e = pixels[p + width]
+  const f = pixels[p + width - 1]
+  return (a | b | c | d | e | f) === 0 || (a & b & c & d & e & f) >>> 24 === 255
 }
 
 function inRegion(q, found) {
@@ -85,7 +97,7 @@ function inRegion(q, found) {
   return false
 }
 
-function grow(data, start, width, height, solid) {
+function grow(pixels, start, width, height, solid) {
   region[0] = start
   let found = 1
   for (let read = 0; read < found; read++) {
@@ -93,7 +105,7 @@ function grow(data, start, width, height, solid) {
     const count = neighbours(region[read], width, height)
     for (let n = 0; n < count; n++) {
       const q = around[n]
-      if (same(data, q, solid) && !inRegion(q, found)) region[found++] = q
+      if (same(pixels, q, solid) && !inRegion(q, found)) region[found++] = q
     }
   }
   return found < LIMIT ? found : 0
@@ -113,36 +125,59 @@ function fill(data, p, width, height) {
   for (let c = 0; c < 4; c++) data[p * 4 + c] = sum[c] / solid
 }
 
-async function clean(canvas, step) {
-  const { width, height } = canvas
-  const ctx = canvas.getContext("2d")
-  const imageData = ctx.getImageData(0, 0, width, height)
-  const data = imageData.data
-  for (let y = height - 1; y >= 0; y--) {
-    await step(1 - y / height)
-    for (let x = width - 1; x >= 0; x--) {
-      const p = y * width + x
-      const solid = data[p * 4 + 3] !== 0
-      if (enclosed(data, p, x, y, width, height, solid)) continue
-      const size = grow(data, p, width, height, solid)
-      for (let k = 0; k < size; k++) {
-        if (solid) data[region[k] * 4 + 3] = 0
-        else fill(data, region[k], width, height)
-      }
+function cleanRow(data, pixels, y, width, height) {
+  let changed = false
+  for (let x = width - 1; x >= 0; x--) {
+    const p = y * width + x
+    if (enclosed(pixels, p, x, y, width, height)) continue
+    const solid = pixels[p] !== 0
+    const size = grow(pixels, p, width, height, solid)
+    if (size) changed = true
+    for (let k = 0; k < size; k++) {
+      if (solid) pixels[region[k]] = 0
+      else fill(data, region[k], width, height)
     }
   }
-  ctx.putImageData(imageData, 0, 0)
+  return changed
+}
+
+async function clean(data, width, height, step) {
+  const pixels = new Uint32Array(data.buffer, 0, width * height)
+  let changed = false
+  for (let y = 0; y < height; y++) {
+    await step(y / height)
+    if (cleanRow(data, pixels, y, width, height)) changed = true
+  }
+  return changed
+}
+
+function writeFlipped(ctx, data, width, height) {
+  const image = new ImageData(width, height)
+  for (let y = 0; y < height; y++) image.data.set(data.subarray((height - 1 - y) * width * 4, (height - y) * width * 4), y * width * 4)
+  ctx.putImageData(image, 0, 0)
 }
 
 function tracker({ signal, progress }) {
   let last = performance.now()
   return async function step(from, to, fraction) {
+    if (performance.now() - last < 100) return
     progress(from + (to - from) * fraction)
-    if (performance.now() - last < 30) return
     await new Promise(resolve => setTimeout(resolve))
     signal.throwIfAborted()
     last = performance.now()
   }
+}
+
+function resize({ canvas, ctx }, width, height) {
+  if (canvas.width !== width) canvas.width = width
+  if (canvas.height !== height) canvas.height = height
+  ctx.globalCompositeOperation = "copy"
+}
+
+function halve(image, out) {
+  resize(out, image.width / 2, image.height / 2)
+  out.ctx.drawImage(image, 0, 0, image.width / 2, image.height / 2)
+  return out.canvas
 }
 
 export async function renderTitle(renderer, scene, camera, resolution, antialias, task) {
@@ -154,7 +189,8 @@ export async function renderTitle(renderer, scene, camera, resolution, antialias
   const view = camera.view?.enabled ? camera.view : { fullWidth: size.x, fullHeight: size.y, offsetX: 0, offsetY: 0, width: size.x, height: size.y }
   const width = (bounds.maxX - bounds.minX) * view.width
   const height = (bounds.maxY - bounds.minY) * view.height
-  const target = antialias ? resolution * 2 : resolution
+  const samples = antialias ? SAMPLES : 1
+  const target = resolution * samples
   const outWidth = Math.max(1, Math.round(width * target / Math.max(width, height)))
   const outHeight = Math.max(1, Math.round(height * target / Math.max(width, height)))
   const scaleX = outWidth / width
@@ -163,44 +199,52 @@ export async function renderTitle(renderer, scene, camera, resolution, antialias
   const left = (view.offsetX + bounds.minX * view.width) * scaleX
   const top = (view.offsetY + bounds.minY * view.height) * scaleY
   const ratio = renderer.getPixelRatio()
-  const raw = canvasOf(outWidth, outHeight)
-  raw.ctx.fillRect(outWidth - 1, outHeight - 1, 1, 1)
-  if (raw.ctx.getImageData(outWidth - 1, outHeight - 1, 1, 1).data[3] !== 255) throw new Error(`the browser can't make a ${outWidth}x${outHeight} image`)
-  raw.ctx.clearRect(outWidth - 1, outHeight - 1, 1, 1)
+  const finalWidth = Math.ceil(outWidth / samples)
+  const finalHeight = Math.ceil(outHeight / samples)
+  const renderWidth = finalWidth * samples
+  const renderHeight = finalHeight * samples
+  const final = canvasOf(finalWidth, finalHeight)
+  final.ctx.fillRect(finalWidth - 1, finalHeight - 1, 1, 1)
+  if (final.ctx.getImageData(finalWidth - 1, finalHeight - 1, 1, 1).data[3] !== 255) throw new Error(`the browser can't make a ${finalWidth}x${finalHeight} image`)
+  final.ctx.clearRect(finalWidth - 1, finalHeight - 1, 1, 1)
+  final.ctx.imageSmoothingEnabled = false
+  const tile = canvasOf(1, 1)
+  const half = canvasOf(1, 1)
+  const quarter = canvasOf(1, 1)
+  const data = new Uint8ClampedArray(Math.min(TILE, renderWidth) * Math.min(TILE, renderHeight) * 4)
   try {
     renderer.setPixelRatio(1)
-    const tiles = Math.ceil(outWidth / TILE) * Math.ceil(outHeight / TILE)
+    const tiles = Math.ceil(renderWidth / STRIDE) * Math.ceil(renderHeight / STRIDE)
     let done = 0
-    for (let y = 0; y < outHeight; y += TILE) {
-      for (let x = 0; x < outWidth; x += TILE) {
-        await step(0, 0.35, done++ / tiles)
-        const tileWidth = Math.min(TILE, outWidth - x)
-        const tileHeight = Math.min(TILE, outHeight - y)
+    for (let y = 0; y < renderHeight; y += STRIDE) {
+      for (let x = 0; x < renderWidth; x += STRIDE) {
+        const tileLeft = Math.max(0, x - MARGIN)
+        const tileTop = Math.max(0, y - MARGIN)
+        const tileWidth = Math.min(renderWidth, x + STRIDE + MARGIN) - tileLeft
+        const tileHeight = Math.min(renderHeight, y + STRIDE + MARGIN) - tileTop
         renderer.setSize(tileWidth, tileHeight, false)
         const { drawingBufferWidth, drawingBufferHeight } = renderer.getContext()
         if (drawingBufferWidth !== tileWidth || drawingBufferHeight !== tileHeight) throw new Error(`the browser only allowed a ${drawingBufferWidth}x${drawingBufferHeight} tile of ${tileWidth}x${tileHeight}`)
-        shot.setViewOffset(view.fullWidth * scaleX, view.fullHeight * scaleY, left + x, top + y, tileWidth, tileHeight)
+        shot.setViewOffset(view.fullWidth * scaleX, view.fullHeight * scaleY, left + tileLeft, top + tileTop, tileWidth, tileHeight)
         renderer.render(scene, shot)
-        raw.ctx.drawImage(renderer.domElement, x, y)
+        resize(tile, tileWidth, tileHeight)
+        tile.ctx.imageSmoothingEnabled = false
+        tile.ctx.drawImage(renderer.domElement, 0, 0)
+        const gl = renderer.getContext()
+        gl.readPixels(0, 0, tileWidth, tileHeight, gl.RGBA, gl.UNSIGNED_BYTE, data)
+        if (await clean(data, tileWidth, tileHeight, fraction => step(0, 1, (done + fraction) / tiles))) writeFlipped(tile.ctx, data, tileWidth, tileHeight)
+        done++
+        const shrunk = antialias ? halve(halve(tile.canvas, half), quarter) : tile.canvas
+        const shownWidth = Math.min(STRIDE, renderWidth - x) / samples
+        const shownHeight = Math.min(STRIDE, renderHeight - y) / samples
+        final.ctx.drawImage(shrunk, (x - tileLeft) / samples, (y - tileTop) / samples, shownWidth, shownHeight, x / samples, y / samples, shownWidth, shownHeight)
       }
     }
   } finally {
     renderer.setPixelRatio(ratio)
     renderer.setSize(size.x, size.y, false)
   }
-  await step(0.35, 0.35, 0)
-  const cropped = autoCrop(raw.canvas)
-  if (!cropped) return null
-  await clean(cropped, fraction => step(0.4, 0.9, fraction))
-  const image = autoCrop(cropped)
-  if (!image || !antialias) return image
-  await step(0.95, 0.95, 0)
-  const blurred = canvasOf(image.width, image.height)
-  blurred.ctx.filter = "blur(0.75px)"
-  blurred.ctx.drawImage(image, 0, 0)
-  const out = canvasOf(Math.max(1, Math.floor(image.width / 2)), Math.max(1, Math.floor(image.height / 2)))
-  out.ctx.drawImage(blurred.canvas, 0, 0, out.canvas.width, out.canvas.height)
-  return out.canvas
+  return autoCrop(final.canvas)
 }
 
 export function minecraftLayout(mode, size) {

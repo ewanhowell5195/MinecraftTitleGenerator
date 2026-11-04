@@ -58,7 +58,7 @@ export function resetOutline() {
 }
 
 export function resolutionLimit() {
-  return Math.floor(canvasLimit() / (view.antialias ? 2 : 1))
+  return canvasLimit()
 }
 
 function renderResolution() {
