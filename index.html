@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Minecraft Title Generator</title>
     <meta name="description" content="Make your own Minecraft style 3D titles in your browser, then render them as images.">
     <meta name="color-scheme" content="dark">
@@ -12,9 +12,58 @@
     <meta property="og:url" content="https://mctitlegenerator.com/">
     <meta property="og:title" content="Minecraft Title Generator">
     <meta property="og:description" content="Make your own Minecraft style 3D titles in your browser, then render them as images.">
+    <style>
+      :root {
+        --background: #111214;
+        --text: #e8e9eb;
+        --faint: #a0a3aa;
+        --accent: #6cc24a;
+      }
+
+      body {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 64px 16px;
+        font: 16px/1.6 system-ui, sans-serif;
+        color: var(--faint);
+        background: var(--background);
+      }
+
+      h1,
+      h2 {
+        line-height: 1.2;
+        color: var(--text);
+      }
+
+      a {
+        color: var(--accent);
+      }
+
+      .button {
+        display: inline-block;
+        padding: 12px 20px;
+        font-weight: 600;
+        text-decoration: none;
+        color: var(--background);
+        background: var(--accent);
+        user-select: none;
+      }
+
+      footer {
+        margin-top: 48px;
+      }
+    </style>
   </head>
   <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
+    <main>
+      <h1>Minecraft Title Generator</h1>
+      <p>Make your own Minecraft style 3D titles in your browser, then render them as images.</p>
+      <a class="button" href="/app/">Open the generator</a>
+      <h2>Blockbench plugin</h2>
+      <p>For more advanced use, the <a href="https://ewanhowell.com/plugins/minecraft-title-generator">Blockbench plugin</a> creates your title as a 3D model that you can edit yourself.</p>
+    </main>
+    <footer>
+      <a href="https://github.com/ewanhowell5195/MinecraftTitleGenerator/blob/main/LICENSE.md">Licence</a>
+    </footer>
   </body>
 </html>
