@@ -1,12 +1,12 @@
 <script setup>
-import { computed } from "vue"
-import { usePanel } from "../../lib/panel.js"
-import Panel from "../Panel.vue"
-import Slider from "../Slider.vue"
-import Toggle from "../Toggle.vue"
+  import { computed } from "vue"
+  import { usePanel } from "../../lib/panel.js"
+  import Panel from "../Panel.vue"
+  import Slider from "../Slider.vue"
+  import Toggle from "../Toggle.vue"
 
-const { object, font, modified, reset } = usePanel("spacing")
-const hasKerning = computed(() => Object.keys(font.value?.kerning ?? {}).length > 0)
+  const { object, font, modified, reset } = usePanel("spacing")
+  const hasKerning = computed(() => Object.keys(font.value?.kerning ?? {}).length > 0)
 </script>
 
 <template>

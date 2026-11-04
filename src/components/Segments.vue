@@ -1,10 +1,10 @@
 <script setup>
-defineProps({
-  options: { type: Array, required: true },
-  modelValue: { required: true }
-})
+  defineProps({
+    options: { type: Array, required: true },
+    modelValue: { required: true }
+  })
 
-const emit = defineEmits(["update:modelValue"])
+  const emit = defineEmits(["update:modelValue"])
 </script>
 
 <template>

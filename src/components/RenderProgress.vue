@@ -1,11 +1,11 @@
 <script setup>
-import RenderDialog from "./RenderDialog.vue"
+  import RenderDialog from "./RenderDialog.vue"
 
-defineProps({
-  progress: { type: Number, required: true }
-})
+  defineProps({
+    progress: { type: Number, required: true }
+  })
 
-const emit = defineEmits(["close"])
+  const emit = defineEmits(["close"])
 </script>
 
 <template>
@@ -20,30 +20,30 @@ const emit = defineEmits(["close"])
 </template>
 
 <style scoped>
-.body {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 24px 20px;
-}
+  .body {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 24px 20px;
+  }
 
-.bar {
-  flex: 1;
-  height: 8px;
-  background: var(--field);
-  overflow: hidden;
-}
+  .bar {
+    flex: 1;
+    height: 8px;
+    background: var(--field);
+    overflow: hidden;
+  }
 
-.fill {
-  height: 100%;
-  background: var(--accent);
-}
+  .fill {
+    height: 100%;
+    background: var(--accent);
+  }
 
-.percent {
-  min-width: 40px;
-  text-align: right;
-  font-size: var(--font-md);
-  color: var(--faint);
-  font-variant-numeric: tabular-nums;
-}
+  .percent {
+    min-width: 40px;
+    text-align: right;
+    font-size: var(--font-md);
+    color: var(--faint);
+    font-variant-numeric: tabular-nums;
+  }
 </style>

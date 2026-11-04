@@ -1,100 +1,100 @@
 <script setup>
-import { computed, ref, shallowRef } from "vue"
-import { AUTO_BORDER } from "../../lib/build.js"
-import { canvasLimit } from "../../lib/canvas.js"
-import { FRAMINGS, MINECRAFT_MODES, framing, framingModified, outlineModified, paddingScale, renderFramed, renderVector, resetFraming, resetOutline, resolutionLimit, setAspect, setResolution, textureSize, textureSizes } from "../../lib/framing.js"
-import { runtime, scene, titleFileName } from "../../lib/scene.js"
-import { submitStats } from "../../lib/stats.js"
-import { download } from "../../lib/ui.js"
-import { DEFAULT_FOV, view } from "../../lib/view.js"
-import ColourPicker from "../ColourPicker.vue"
-import Dropdown from "../Dropdown.vue"
-import GradientEditor from "../GradientEditor.vue"
-import Icon from "../Icon.vue"
-import Panel from "../Panel.vue"
-import RenderProgress from "../RenderProgress.vue"
-import RenderResult from "../RenderResult.vue"
-import Segments from "../Segments.vue"
-import Slider from "../Slider.vue"
-import Toggle from "../Toggle.vue"
+  import { computed, ref, shallowRef } from "vue"
+  import { AUTO_BORDER } from "../../lib/build.js"
+  import { canvasLimit } from "../../lib/canvas.js"
+  import { FRAMINGS, MINECRAFT_MODES, framing, framingModified, outlineModified, paddingScale, renderFramed, renderVector, resetFraming, resetOutline, resolutionLimit, setAspect, setResolution, textureSize, textureSizes } from "../../lib/framing.js"
+  import { runtime, scene, titleFileName } from "../../lib/scene.js"
+  import { submitStats } from "../../lib/stats.js"
+  import { download } from "../../lib/ui.js"
+  import { DEFAULT_FOV, view } from "../../lib/view.js"
+  import ColourPicker from "../ColourPicker.vue"
+  import Dropdown from "../Dropdown.vue"
+  import GradientEditor from "../GradientEditor.vue"
+  import Icon from "../Icon.vue"
+  import Panel from "../Panel.vue"
+  import RenderProgress from "../RenderProgress.vue"
+  import RenderResult from "../RenderResult.vue"
+  import Segments from "../Segments.vue"
+  import Slider from "../Slider.vue"
+  import Toggle from "../Toggle.vue"
 
-const PRESETS = [{ value: 1024, label: "1K" }, { value: 2048, label: "2K" }, { value: 4096, label: "4K" }, { value: 8192, label: "8K" }]
+  const PRESETS = [{ value: 1024, label: "1K" }, { value: 2048, label: "2K" }, { value: 4096, label: "4K" }, { value: 8192, label: "8K" }]
 
-const custom = ref(!PRESETS.some(({ value }) => value === view.resolution))
-const progress = ref(null)
-const failed = ref("")
-const result = shallowRef(null)
+  const custom = ref(!PRESETS.some(({ value }) => value === view.resolution))
+  const progress = ref(null)
+  const failed = ref("")
+  const result = shallowRef(null)
 
-const max = canvasLimit()
-const presets = computed(() => PRESETS.filter(({ value }) => value <= resolutionLimit()).map(preset => ({ ...preset, title: `Around ${preset.value} pixels` })).concat([{ value: "custom", label: "Custom", title: "Custom size" }]))
-const sizes = computed(() => textureSizes().map(size => ({ value: size, label: String(size), title: `${size} pixel texture` })))
-const padding = computed({
-  get: () => Math.round(framing.padding * paddingScale()),
-  set: value => framing.padding = value / paddingScale()
-})
+  const max = canvasLimit()
+  const presets = computed(() => PRESETS.filter(({ value }) => value <= resolutionLimit()).map(preset => ({ ...preset, title: `Around ${preset.value} pixels` })).concat([{ value: "custom", label: "Custom", title: "Custom size" }]))
+  const sizes = computed(() => textureSizes().map(size => ({ value: size, label: String(size), title: `${size} pixel texture` })))
+  const padding = computed({
+    get: () => Math.round(framing.padding * paddingScale()),
+    set: value => framing.padding = value / paddingScale()
+  })
 
-function toggleOutline(on) {
-  const widths = scene.objects.filter(object => !object.hidden).map(object => runtime[object.id]?.font?.autoBorder ? AUTO_BORDER : object.wordBorder ?? object.border)
-  if (on && widths.length) framing.outlineWidth = Math.round(widths.reduce((sum, width) => sum + width, 0) / widths.length * 10) / 10
-  framing.outline = on
-}
-
-function pick(size) {
-  custom.value = size === "custom"
-  if (!custom.value) view.resolution = size
-}
-
-function nextFrame() {
-  return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
-}
-
-let rendering = null
-
-async function render() {
-  submitStats()
-  rendering = new AbortController()
-  progress.value = 0
-  failed.value = ""
-  try {
-    await nextFrame()
-    result.value = await renderFramed({ signal: rendering.signal, progress: value => progress.value = value })
-    if (!result.value) failed.value = "Nothing in frame."
-  } catch (err) {
-    if (rendering.signal.aborted) return
-    failed.value = `Render failed: ${err.message}`
-    throw err
-  } finally {
-    progress.value = null
-    rendering = null
+  function toggleOutline(on) {
+    const widths = scene.objects.filter(object => !object.hidden).map(object => runtime[object.id]?.font?.autoBorder ? AUTO_BORDER : object.wordBorder ?? object.border)
+    if (on && widths.length) framing.outlineWidth = Math.round(widths.reduce((sum, width) => sum + width, 0) / widths.length * 10) / 10
+    framing.outline = on
   }
-}
 
-function cancel() {
-  rendering?.abort()
-}
+  function pick(size) {
+    custom.value = size === "custom"
+    if (!custom.value) view.resolution = size
+  }
 
-function saveVector() {
-  submitStats()
-  failed.value = ""
-  try {
-    const svg = renderVector()
-    if (!svg) {
-      failed.value = "Nothing in frame."
-      return
+  function nextFrame() {
+    return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+  }
+
+  let rendering = null
+
+  async function render() {
+    submitStats()
+    rendering = new AbortController()
+    progress.value = 0
+    failed.value = ""
+    try {
+      await nextFrame()
+      result.value = await renderFramed({ signal: rendering.signal, progress: value => progress.value = value })
+      if (!result.value) failed.value = "Nothing in frame."
+    } catch (err) {
+      if (rendering.signal.aborted) return
+      failed.value = `Render failed: ${err.message}`
+      throw err
+    } finally {
+      progress.value = null
+      rendering = null
     }
-    const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }))
-    download(`${titleFileName()}.svg`, url)
-    setTimeout(() => URL.revokeObjectURL(url), 10000)
-  } catch (err) {
-    failed.value = `Render failed: ${err.message}`
-    throw err
   }
-}
 
-function resetCamera() {
-  view.fov = DEFAULT_FOV
-  view.fixedDistance = false
-}
+  function cancel() {
+    rendering?.abort()
+  }
+
+  function saveVector() {
+    submitStats()
+    failed.value = ""
+    try {
+      const svg = renderVector()
+      if (!svg) {
+        failed.value = "Nothing in frame."
+        return
+      }
+      const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }))
+      download(`${titleFileName()}.svg`, url)
+      setTimeout(() => URL.revokeObjectURL(url), 10000)
+    } catch (err) {
+      failed.value = `Render failed: ${err.message}`
+      throw err
+    }
+  }
+
+  function resetCamera() {
+    view.fov = DEFAULT_FOV
+    view.fixedDistance = false
+  }
 </script>
 
 <template>
@@ -180,24 +180,24 @@ function resetCamera() {
 </template>
 
 <style scoped>
-.big {
-  padding: 12px 16px;
-  font-size: var(--font-lg);
-}
+  .big {
+    padding: 12px 16px;
+    font-size: var(--font-lg);
+  }
 
-.row input[type="number"] {
-  flex: 1;
-  width: auto;
-  min-width: 0;
-}
+  .row input[type="number"] {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
 
-.times {
-  color: var(--faint);
-}
+  .times {
+    color: var(--faint);
+  }
 
-.failed {
-  margin: 0;
-  font-size: var(--font-md);
-  color: var(--danger);
-}
+  .failed {
+    margin: 0;
+    font-size: var(--font-md);
+    color: var(--danger);
+  }
 </style>

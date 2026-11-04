@@ -1,12 +1,12 @@
 <script setup>
-defineProps({
-  title: { type: String, default: "" },
-  modified: { type: Boolean, default: false }
-})
+  defineProps({
+    title: { type: String, default: "" },
+    modified: { type: Boolean, default: false }
+  })
 
-const enabled = defineModel("enabled", { default: null })
+  const enabled = defineModel("enabled", { default: null })
 
-defineEmits(["reset"])
+  defineEmits(["reset"])
 </script>
 
 <template>
@@ -28,25 +28,25 @@ defineEmits(["reset"])
 </template>
 
 <style scoped>
-.group {
-  padding: var(--group-padding, 20px);
-  border-top: 1px solid var(--line);
-}
+  .group {
+    padding: var(--group-padding, 20px);
+    border-top: 1px solid var(--line);
+  }
 
-header {
-  min-height: 28px;
-  margin-bottom: 14px;
-}
+  header {
+    min-height: 28px;
+    margin-bottom: 14px;
+  }
 
-.off header {
-  margin-bottom: 0;
-}
+  .off header {
+    margin-bottom: 0;
+  }
 
-h2 {
-  font-size: var(--font-lg);
-}
+  h2 {
+    font-size: var(--font-lg);
+  }
 
-.off h2 {
-  color: var(--muted);
-}
+  .off h2 {
+    color: var(--muted);
+  }
 </style>

@@ -1,19 +1,19 @@
 <script setup>
-import Icon from "./Icon.vue"
+  import Icon from "./Icon.vue"
 
-defineProps({
-  label: { type: String, required: true },
-  selected: { type: Boolean, default: false },
-  image: { type: String, default: null },
-  unit: { type: Number, default: null },
-  pattern: { type: Object, default: null },
-  author: { type: String, default: null },
-  badge: { type: Number, default: 0 },
-  save: { type: String, default: null },
-  keyboard: { type: Boolean, default: false }
-})
+  defineProps({
+    label: { type: String, required: true },
+    selected: { type: Boolean, default: false },
+    image: { type: String, default: null },
+    unit: { type: Number, default: null },
+    pattern: { type: Object, default: null },
+    author: { type: String, default: null },
+    badge: { type: Number, default: 0 },
+    save: { type: String, default: null },
+    keyboard: { type: Boolean, default: false }
+  })
 
-const emit = defineEmits(["pick", "save"])
+  const emit = defineEmits(["pick", "save"])
 </script>
 
 <template>
@@ -32,76 +32,76 @@ const emit = defineEmits(["pick", "save"])
 </template>
 
 <style scoped>
-.tile {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 6px 8px;
-  font-size: var(--font-sm);
-  font-weight: 600;
-  line-height: 1.25;
-  text-align: center;
-  color: var(--muted);
-  background: var(--card);
-  border: 2px solid transparent;
-  cursor: pointer;
-  user-select: none;
-  transition: background var(--duration), border-color var(--duration), color var(--duration);
-}
+  .tile {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 6px 8px;
+    font-size: var(--font-sm);
+    font-weight: 600;
+    line-height: 1.25;
+    text-align: center;
+    color: var(--muted);
+    background: var(--card);
+    border: 2px solid transparent;
+    cursor: pointer;
+    user-select: none;
+    transition: background var(--duration), border-color var(--duration), color var(--duration);
+  }
 
-.tile:hover {
-  color: var(--text);
-  background: var(--card-hover);
-}
+  .tile:hover {
+    color: var(--text);
+    background: var(--card-hover);
+  }
 
-.tile.selected {
-  color: var(--text);
-  background: var(--accent-soft);
-  border-color: var(--accent);
-}
+  .tile.selected {
+    color: var(--text);
+    background: var(--accent-soft);
+    border-color: var(--accent);
+  }
 
-.tile:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
+  .tile:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
 
-.thumb {
-  width: 100%;
-  aspect-ratio: 288 / 132;
-}
+  .thumb {
+    width: 100%;
+    aspect-ratio: 288 / 132;
+  }
 
-.thumb.pattern {
-  background-color: var(--field);
-  background-size: 64px 64px;
-  image-rendering: pixelated;
-}
+  .thumb.pattern {
+    background-color: var(--field);
+    background-size: 64px 64px;
+    image-rendering: pixelated;
+  }
 
-.save {
-  position: absolute;
-  top: 4px;
-  left: 4px;
-  display: none;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  color: var(--text);
-  background: var(--tile-overlay);
-}
-
-.save:hover {
-  background: #000d;
-}
-
-.tile:hover .save,
-.tile:focus-within .save {
-  display: inline-flex;
-}
-
-@media (hover: none) {
   .save {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    display: none;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    color: var(--text);
+    background: var(--tile-overlay);
+  }
+
+  .save:hover {
+    background: #000d;
+  }
+
+  .tile:hover .save,
+  .tile:focus-within .save {
     display: inline-flex;
   }
-}
+
+  @media (hover: none) {
+    .save {
+      display: inline-flex;
+    }
+  }
 </style>

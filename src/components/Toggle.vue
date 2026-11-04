@@ -1,12 +1,12 @@
 <script setup>
-defineProps({
-  label: { type: String, required: true },
-  hint: { type: String, default: "" }
-})
+  defineProps({
+    label: { type: String, required: true },
+    hint: { type: String, default: "" }
+  })
 
-defineEmits(["change"])
+  defineEmits(["change"])
 
-const value = defineModel({ type: Boolean, required: true })
+  const value = defineModel({ type: Boolean, required: true })
 </script>
 
 <template>
@@ -23,18 +23,18 @@ const value = defineModel({ type: Boolean, required: true })
 </template>
 
 <style scoped>
-.toggle {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 36px;
-  cursor: pointer;
-}
+  .toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 36px;
+    cursor: pointer;
+  }
 
-.text {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
+  .text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
 </style>

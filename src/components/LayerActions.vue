@@ -1,12 +1,12 @@
 <script setup>
-import { computed } from "vue"
-import { TYPES } from "../lib/settings.js"
-import { duplicateLine, lineHidden, lineText, removeLine, selection, toggleLine, words } from "../lib/scene.js"
-import Icon from "./Icon.vue"
+  import { computed } from "vue"
+  import { TYPES } from "../lib/settings.js"
+  import { duplicateLine, lineHidden, lineText, removeLine, selection, toggleLine, words } from "../lib/scene.js"
+  import Icon from "./Icon.vue"
 
-const line = computed(() => words(selection.value[0]))
-const grouped = computed(() => line.value.length > 1)
-const hidden = computed(() => lineHidden(line.value[0]))
+  const line = computed(() => words(selection.value[0]))
+  const grouped = computed(() => line.value.length > 1)
+  const hidden = computed(() => lineHidden(line.value[0]))
 </script>
 
 <template>
@@ -29,52 +29,52 @@ const hidden = computed(() => lineHidden(line.value[0]))
 </template>
 
 <style scoped>
-.actions {
-  grid-area: actions;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  min-width: 0;
-  padding: 6px 10px 6px 16px;
-  background: var(--surface);
-  border-right: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-}
-
-.kind {
-  color: var(--faint);
-}
-
-.summary {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  margin-left: 10px;
-}
-
-.name,
-.type {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.name {
-  font-size: var(--font-base);
-  font-weight: 600;
-}
-
-.type {
-  font-size: var(--font-xs);
-  color: var(--faint);
-}
-
-@media (max-width: 800px) {
   .actions {
-    padding: 4px 6px 4px 12px;
-    border-right: none;
-    border-top: 1px solid var(--line);
+    grid-area: actions;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    min-width: 0;
+    padding: 6px 10px 6px 16px;
+    background: var(--surface);
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
   }
-}
+
+  .kind {
+    color: var(--faint);
+  }
+
+  .summary {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    margin-left: 10px;
+  }
+
+  .name,
+  .type {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .name {
+    font-size: var(--font-base);
+    font-weight: 600;
+  }
+
+  .type {
+    font-size: var(--font-xs);
+    color: var(--faint);
+  }
+
+  @media (max-width: 800px) {
+    .actions {
+      padding: 4px 6px 4px 12px;
+      border-right: none;
+      border-top: 1px solid var(--line);
+    }
+  }
 </style>

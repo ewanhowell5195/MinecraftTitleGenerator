@@ -1,22 +1,22 @@
 <script setup>
-import { computed } from "vue"
-import { hasMarks } from "../../lib/font.js"
-import { usePanel } from "../../lib/panel.js"
-import { wordKey } from "../../lib/settings.js"
-import Panel from "../Panel.vue"
-import Segments from "../Segments.vue"
-import Slider from "../Slider.vue"
-import Toggle from "../Toggle.vue"
+  import { computed } from "vue"
+  import { hasMarks } from "../../lib/font.js"
+  import { usePanel } from "../../lib/panel.js"
+  import { wordKey } from "../../lib/settings.js"
+  import Panel from "../Panel.vue"
+  import Segments from "../Segments.vue"
+  import Slider from "../Slider.vue"
+  import Toggle from "../Toggle.vue"
 
-const props = defineProps({
-  word: { type: Boolean, default: false }
-})
+  const props = defineProps({
+    word: { type: Boolean, default: false }
+  })
 
-const MODES = [{ value: "stretch", label: "Stretch" }, { value: "move", label: "Move" }]
+  const MODES = [{ value: "stretch", label: "Stretch" }, { value: "move", label: "Move" }]
 
-const { object, font, modified, reset } = usePanel(props.word ? "wordArc" : "arc", props.word)
-const marked = computed(() => hasMarks(font.value))
-const k = key => props.word ? wordKey(key) : key
+  const { object, font, modified, reset } = usePanel(props.word ? "wordArc" : "arc", props.word)
+  const marked = computed(() => hasMarks(font.value))
+  const k = key => props.word ? wordKey(key) : key
 </script>
 
 <template>

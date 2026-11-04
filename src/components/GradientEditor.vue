@@ -1,85 +1,85 @@
 <script setup>
-import { computed, onBeforeUnmount, ref, watch } from "vue"
-import { trackPointer } from "../lib/events.js"
-import { blend, cssGradient } from "../lib/material.js"
-import { clamp } from "../lib/maths.js"
-import ColourPicker from "./ColourPicker.vue"
-import Icon from "./Icon.vue"
+  import { computed, onBeforeUnmount, ref, watch } from "vue"
+  import { trackPointer } from "../lib/events.js"
+  import { blend, cssGradient } from "../lib/material.js"
+  import { clamp } from "../lib/maths.js"
+  import ColourPicker from "./ColourPicker.vue"
+  import Icon from "./Icon.vue"
 
-const REMOVE_DISTANCE = 28
-const ENDS = { 0: ["Top", "Bottom"], 90: ["Right", "Left"], 180: ["Bottom", "Top"], 270: ["Left", "Right"], 360: ["Top", "Bottom"] }
+  const REMOVE_DISTANCE = 28
+  const ENDS = { 0: ["Top", "Bottom"], 90: ["Right", "Left"], 180: ["Bottom", "Top"], 270: ["Left", "Right"], 360: ["Top", "Bottom"] }
 
-const props = defineProps({
-  smooth: { type: Boolean, default: true },
-  angle: { type: Number, default: 0 },
-  min: { type: Number, default: 2 }
-})
+  const props = defineProps({
+    smooth: { type: Boolean, default: true },
+    angle: { type: Number, default: 0 },
+    min: { type: Number, default: 2 }
+  })
 
-const stops = defineModel({ type: Array, required: true })
-const track = ref(null)
-const selected = ref(0)
-const removing = ref(false)
-let drag = null
+  const stops = defineModel({ type: Array, required: true })
+  const track = ref(null)
+  const selected = ref(0)
+  const removing = ref(false)
+  let drag = null
 
-const ends = computed(() => ENDS[props.angle] ?? ["Start", "End"])
-const background = computed(() => cssGradient(stops.value, props.smooth, "to right"))
+  const ends = computed(() => ENDS[props.angle] ?? ["Start", "End"])
+  const background = computed(() => cssGradient(stops.value, props.smooth, "to right"))
 
-const stop = computed(() => stops.value[selected.value] ?? null)
-const removable = computed(() => stops.value.length > props.min)
+  const stop = computed(() => stops.value[selected.value] ?? null)
+  const removable = computed(() => stops.value.length > props.min)
 
-function colourAt(position) {
-  const list = stops.value.map(stop => ({ colour: stop.colour, position: clamp(stop.position, 0, 100) })).sort((a, b) => a.position - b.position)
-  const after = list.findIndex(item => item.position >= position)
-  if (after === -1) return list[list.length - 1].colour
-  if (after === 0) return list[0].colour
-  const from = list[after - 1]
-  const to = list[after]
-  return blend(from.colour, to.colour, (position - from.position) / (to.position - from.position))
-}
+  function colourAt(position) {
+    const list = stops.value.map(stop => ({ colour: stop.colour, position: clamp(stop.position, 0, 100) })).sort((a, b) => a.position - b.position)
+    const after = list.findIndex(item => item.position >= position)
+    if (after === -1) return list[list.length - 1].colour
+    if (after === 0) return list[0].colour
+    const from = list[after - 1]
+    const to = list[after]
+    return blend(from.colour, to.colour, (position - from.position) / (to.position - from.position))
+  }
 
-function positionAt(x) {
-  const rect = track.value.getBoundingClientRect()
-  return Math.round(clamp((x - rect.left) / rect.width, 0, 1) * 100)
-}
+  function positionAt(x) {
+    const rect = track.value.getBoundingClientRect()
+    return Math.round(clamp((x - rect.left) / rect.width, 0, 1) * 100)
+  }
 
-function begin(index, event) {
-  selected.value = index
-  drag = { index, top: track.value.getBoundingClientRect().bottom, stop: trackPointer(move, end) }
-  removing.value = false
-  event.preventDefault()
-}
+  function begin(index, event) {
+    selected.value = index
+    drag = { index, top: track.value.getBoundingClientRect().bottom, stop: trackPointer(move, end) }
+    removing.value = false
+    event.preventDefault()
+  }
 
-function add(event) {
-  const position = positionAt(event.clientX)
-  stops.value.push({ colour: colourAt(position), position })
-  begin(stops.value.length - 1, event)
-}
+  function add(event) {
+    const position = positionAt(event.clientX)
+    stops.value.push({ colour: colourAt(position), position })
+    begin(stops.value.length - 1, event)
+  }
 
-function move(event) {
-  stops.value[drag.index].position = positionAt(event.clientX)
-  removing.value = removable.value && event.clientY - drag.top > REMOVE_DISTANCE
-}
+  function move(event) {
+    stops.value[drag.index].position = positionAt(event.clientX)
+    removing.value = removable.value && event.clientY - drag.top > REMOVE_DISTANCE
+  }
 
-function remove(index) {
-  if (!removable.value) return
-  stops.value.splice(index, 1)
-}
+  function remove(index) {
+    if (!removable.value) return
+    stops.value.splice(index, 1)
+  }
 
-function end() {
-  if (removing.value) remove(drag.index)
-  removing.value = false
-  drag = null
-}
+  function end() {
+    if (removing.value) remove(drag.index)
+    removing.value = false
+    drag = null
+  }
 
-function nudge(event, by) {
-  stop.value.position = clamp(stop.value.position + by * (event.shiftKey ? 10 : 1), 0, 100)
-}
+  function nudge(event, by) {
+    stop.value.position = clamp(stop.value.position + by * (event.shiftKey ? 10 : 1), 0, 100)
+  }
 
-watch(() => stops.value.length, length => {
-  if (selected.value >= length) selected.value = length - 1
-})
+  watch(() => stops.value.length, length => {
+    if (selected.value >= length) selected.value = length - 1
+  })
 
-onBeforeUnmount(() => drag?.stop())
+  onBeforeUnmount(() => drag?.stop())
 </script>
 
 <template>
@@ -106,109 +106,109 @@ onBeforeUnmount(() => drag?.stop())
 </template>
 
 <style scoped>
-.gradient-editor {
-  display: flex;
-  flex-direction: column;
-}
+  .gradient-editor {
+    display: flex;
+    flex-direction: column;
+  }
 
-.bar {
-  height: 32px;
-  margin: 0 7px;
-  box-shadow: inset 0 0 0 1px #ffffff1a;
-}
+  .bar {
+    height: 32px;
+    margin: 0 7px;
+    box-shadow: inset 0 0 0 1px #ffffff1a;
+  }
 
-.track {
-  position: relative;
-  height: 26px;
-  margin: 0 7px;
-  cursor: copy;
-  touch-action: none;
-}
+  .track {
+    position: relative;
+    height: 26px;
+    margin: 0 7px;
+    cursor: copy;
+    touch-action: none;
+  }
 
-.stop {
-  position: absolute;
-  top: 0;
-  width: 14px;
-  height: 22px;
-  margin-left: -7px;
-  padding: 0;
-  background: none;
-  border: none;
-  cursor: ew-resize;
-  touch-action: none;
-}
+  .stop {
+    position: absolute;
+    top: 0;
+    width: 14px;
+    height: 22px;
+    margin-left: -7px;
+    padding: 0;
+    background: none;
+    border: none;
+    cursor: ew-resize;
+    touch-action: none;
+  }
 
-.stop::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 2px;
-  border: 5px solid transparent;
-  border-top: none;
-  border-bottom: 6px solid var(--muted);
-}
+  .stop::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 2px;
+    border: 5px solid transparent;
+    border-top: none;
+    border-bottom: 6px solid var(--muted);
+  }
 
-.stop span {
-  position: absolute;
-  top: 6px;
-  left: 0;
-  width: 14px;
-  height: 14px;
-  border: 2px solid var(--muted);
-}
+  .stop span {
+    position: absolute;
+    top: 6px;
+    left: 0;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--muted);
+  }
 
-.stop:hover,
-.stop:active:not(:disabled) {
-  background: none;
-  transform: none;
-}
+  .stop:hover,
+  .stop:active:not(:disabled) {
+    background: none;
+    transform: none;
+  }
 
-.stop.selected::before {
-  border-bottom-color: var(--accent);
-}
+  .stop.selected::before {
+    border-bottom-color: var(--accent);
+  }
 
-.stop.selected span {
-  border-color: var(--accent);
-}
+  .stop.selected span {
+    border-color: var(--accent);
+  }
 
-.stop.removing {
-  opacity: 0.3;
-}
+  .stop.removing {
+    opacity: 0.3;
+  }
 
-.stop:focus-visible {
-  outline: none;
-}
+  .stop:focus-visible {
+    outline: none;
+  }
 
-.stop:focus-visible span {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
+  .stop:focus-visible span {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
 
-.ends {
-  display: flex;
-  justify-content: space-between;
-  font-size: var(--font-sm);
-  color: var(--faint);
-  user-select: none;
-}
+  .ends {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--font-sm);
+    color: var(--faint);
+    user-select: none;
+  }
 
-.selected-stop {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 10px;
-}
+  .selected-stop {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+  }
 
-.location {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: var(--font-md);
-  color: var(--faint);
-}
+  .location {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: var(--font-md);
+    color: var(--faint);
+  }
 
-.location input[type="number"] {
-  width: 60px;
-  padding: 8px;
-}
+  .location input[type="number"] {
+    width: 60px;
+    padding: 8px;
+  }
 </style>

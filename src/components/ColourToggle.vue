@@ -1,11 +1,11 @@
 <script setup>
-import ColourPicker from "./ColourPicker.vue"
-import Toggle from "./Toggle.vue"
+  import ColourPicker from "./ColourPicker.vue"
+  import Toggle from "./Toggle.vue"
 
-defineEmits(["change"])
+  defineEmits(["change"])
 
-const enabled = defineModel("enabled", { type: Boolean, required: true })
-const colour = defineModel("colour", { type: String, required: true })
+  const enabled = defineModel("enabled", { type: Boolean, required: true })
+  const colour = defineModel("colour", { type: String, required: true })
 </script>
 
 <template>
@@ -16,9 +16,9 @@ const colour = defineModel("colour", { type: String, required: true })
 </template>
 
 <style scoped>
-.colour-toggle {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
+  .colour-toggle {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
 </style>

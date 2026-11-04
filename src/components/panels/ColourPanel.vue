@@ -1,14 +1,14 @@
 <script setup>
-import { usePanel } from "../../lib/panel.js"
-import { BLEND_OPTIONS } from "../../lib/settings.js"
-import ColourPicker from "../ColourPicker.vue"
-import ColourToggle from "../ColourToggle.vue"
-import Dropdown from "../Dropdown.vue"
-import Panel from "../Panel.vue"
-import Slider from "../Slider.vue"
+  import { usePanel } from "../../lib/panel.js"
+  import { BLEND_OPTIONS } from "../../lib/settings.js"
+  import ColourPicker from "../ColourPicker.vue"
+  import ColourToggle from "../ColourToggle.vue"
+  import Dropdown from "../Dropdown.vue"
+  import Panel from "../Panel.vue"
+  import Slider from "../Slider.vue"
 
-const { object, modified, reset } = usePanel("colour")
-const outline = usePanel("outline")
+  const { object, modified, reset } = usePanel("colour")
+  const outline = usePanel("outline")
 </script>
 
 <template>
