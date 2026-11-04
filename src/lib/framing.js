@@ -3,6 +3,7 @@ import { image } from "./assets.js"
 import { canvasLimit } from "./canvas.js"
 import { clamp } from "./maths.js"
 import { aspectOf, compose, fitTitle, fromAspect, minecraftLayout } from "./render.js"
+import { composeVector } from "./vector.js"
 import { view, viewport } from "./view.js"
 
 export const FRAMINGS = [{ value: "normal", label: "Normal" }, { value: "square", label: "Square" }, { value: "custom", label: "Custom" }, { value: "minecraft", label: "Minecraft" }]
@@ -88,6 +89,11 @@ function captureResolution() {
   if (!title) return renderResolution()
   const { scale } = fitTitle(minecraftLayout(framing.mode, textureSize()), title.width, title.height)
   return Math.min(Math.ceil(Math.max(title.width, title.height) * scale), resolutionLimit())
+}
+
+export function renderVector() {
+  const title = viewport.vector(captureResolution())
+  return title && composeVector(title, { ...framing, padding: paddingPixels() })
 }
 
 export async function renderFramed(task) {

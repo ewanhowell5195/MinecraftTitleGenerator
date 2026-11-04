@@ -5,7 +5,7 @@ import { clamp } from "./maths.js"
 
 const LIMIT = 6
 const TILE = 4096
-const SAMPLES = 4
+export const SAMPLES = 4
 // wider than LIMIT so clean sees whole regions, and divisible by SAMPLES to keep tiles on the output pixel grid
 const MARGIN = 8
 const STRIDE = TILE - MARGIN * 2
@@ -292,7 +292,7 @@ function minecraft(image, mode, base, size) {
   return result.canvas
 }
 
-function outputSize(image, settings, padding) {
+export function outputSize(image, settings, padding) {
   const side = Math.max(image.width, image.height)
   if (settings.tab === "square") return [side, side]
   if (settings.tab === "custom") return [settings.width, settings.height]

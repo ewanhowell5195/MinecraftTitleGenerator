@@ -42,6 +42,7 @@ function fill(entry, built) {
   entry.texture.minFilter = THREE.NearestFilter
   entry.texture.generateMipmaps = false
   entry.texture.colorSpace = THREE.SRGBColorSpace
+  entry.texture.userData.labels = built.labels
   entry.body.map = entry.texture
   entry.body.needsUpdate = true
   entry.border.map = entry.texture

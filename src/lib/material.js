@@ -308,17 +308,26 @@ export function buildAtlas(faces, options) {
   if (units.width > MAX_WIDTH || units.height > MAX_WIDTH) throw new Error(`texture would be ${units.width * SCALE}x${units.height * SCALE}, over the ${MAX_TEXTURE} limit`)
   const { canvas, ctx } = surface(units.width * SCALE, units.height * SCALE)
 
-  function copy(sx, sy, sw, sh, dx, dy, dw, dh) {
-    if (sw > 0 && sh > 0) ctx.drawImage(painted.canvas, sx * R, sy * R, sw * R, sh * R, dx * SCALE, dy * SCALE, dw * SCALE, dh * SCALE)
+  function copyBlocks(target, source) {
+    function copy(sx, sy, sw, sh, dx, dy, dw, dh) {
+      if (sw > 0 && sh > 0) target.drawImage(source, sx * R, sy * R, sw * R, sh * R, dx * SCALE, dy * SCALE, dw * SCALE, dh * SCALE)
+    }
+    for (const block of blocks) {
+      const entry = block.entry
+      if (!entry) continue
+      const faceTop = block.y + depth
+      copy(entry.x, entry.top, entry.width, entry.height, block.x, faceTop + block.bounds.maxY - block.own.maxY, entry.width, entry.height)
+      copy(entry.x, entry.up, entry.width, entry.upHeight, block.x, block.y, entry.width, depth)
+      copy(entry.x, entry.down, entry.width, entry.downHeight, block.x, faceTop + block.bounds.height, entry.width, depth)
+    }
   }
 
-  for (const block of blocks) {
-    const entry = block.entry
-    if (!entry) continue
-    const faceTop = block.y + depth
-    copy(entry.x, entry.top, entry.width, entry.height, block.x, faceTop + block.bounds.maxY - block.own.maxY, entry.width, entry.height)
-    copy(entry.x, entry.up, entry.width, entry.upHeight, block.x, block.y, entry.width, depth)
-    copy(entry.x, entry.down, entry.width, entry.downHeight, block.x, faceTop + block.bounds.height, entry.width, depth)
+  copyBlocks(ctx, painted.canvas)
+
+  function labels() {
+    const target = surface(canvas.width, canvas.height, { willReadFrequently: true })
+    copyBlocks(target.ctx, painted.labels())
+    return target.ctx.getImageData(0, 0, canvas.width, canvas.height).data
   }
 
   const clear = painted.border.replace("rgb(", "rgba(").replace(")", ", 0)")
@@ -406,5 +415,5 @@ export function buildAtlas(faces, options) {
   }
 
   const side = sideSum[3] ? hexOf(sideSum.slice(0, 3).map(value => value / sideSum[3] * options.sideBrightness / 100)) : null
-  return { canvas, units, swatch, side }
+  return { canvas, units, swatch, side, labels }
 }

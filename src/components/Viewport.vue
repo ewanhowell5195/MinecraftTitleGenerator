@@ -9,6 +9,7 @@ import { renderTitle, screenBounds } from "../lib/render.js"
 import { current, currentWord, setScale, shapingWord } from "../lib/scene.js"
 import { TRANSFORM_LIMITS } from "../lib/settings.js"
 import { createEntry, destroyEntry, frameCamera, gizmoPose, lineBounds, movedBy, rotatedTo, sortEntries, titleFraming, updateEntry, wordMovedBy, wordPose, wordRotatedTo } from "../lib/stage.js"
+import { vectorTitle } from "../lib/vector.js"
 import { view, viewport, viewportChanges } from "../lib/view.js"
 import Icon from "./Icon.vue"
 
@@ -248,6 +249,7 @@ onMounted(() => {
   })
   observer.observe(host.value)
   viewport.capture = capture
+  viewport.vector = vector
   viewport.titleRect = titleRect
   viewport.canvas = renderer.domElement
   viewport.redraw = invalidate
@@ -269,8 +271,15 @@ async function capture(resolution, antialias, task) {
   return await renderTitle(renderer.getSize(new THREE.Vector2()), scene, camera, resolution, antialias, task)
 }
 
+function vector(resolution) {
+  refit()
+  sortEntries(Array.from(entries.values()), camera)
+  return vectorTitle(scene, camera, renderer.getSize(new THREE.Vector2()), resolution)
+}
+
 onBeforeUnmount(() => {
   viewport.capture = null
+  viewport.vector = null
   viewport.titleRect = null
   viewport.canvas = null
   viewport.redraw = null

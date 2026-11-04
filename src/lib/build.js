@@ -102,6 +102,7 @@ export function buildText(font, options) {
   return {
     body: toBuffers(body, texture.units),
     texture: texture.canvas,
+    labels: texture.labels,
     depth,
     border,
     boxes: glyphs.flatMap(glyph => glyph.boxes.map(box => [box.from, box.to])),

@@ -7,6 +7,8 @@ import { clamp } from "./maths.js"
 export const R = 4
 
 const CACHED_OVERLAYS = 32
+const SOFT_LABEL = 16
+const WAVE_KINDS = new Set(["wave", "wave_inverted"])
 
 function fract(n) {
   return n - Math.floor(n)
@@ -299,6 +301,28 @@ function adjusted(source, look, options) {
   return out
 }
 
+function overlayLabels(sheet, layers, capHeight, width, height) {
+  const { ctx } = surface(width, height, { willReadFrequently: true })
+  const image = ctx.createImageData(width, height)
+  for (let at = 3; at < image.data.length; at += 4) image.data[at] = 255
+  let hard = 0
+  let soft = SOFT_LABEL
+  for (const { layer, source } of layers) {
+    if (!layer.opacity) continue
+    const index = PLACED_KINDS.has(source.generated) ? soft++ : hard++
+    if (index >= SOFT_LABEL * 1.5 || hard > SOFT_LABEL) continue
+    const threshold = WAVE_KINDS.has(source.generated) ? 128 : 1
+    const reader = surface(width, height, { willReadFrequently: true })
+    reader.ctx.drawImage(overlayLayer(sheet, layer, source, capHeight).canvas, 0, 0)
+    const alpha = reader.ctx.getImageData(0, 0, width, height).data
+    for (let at = 0; at < alpha.length; at += 4) {
+      if (alpha[at + 3] >= threshold) image.data[at + (index >> 3)] |= 1 << (index & 7)
+    }
+  }
+  ctx.putImageData(image, 0, 0)
+  return ctx.canvas
+}
+
 function borderOf(look, assets) {
   const pixel = surface(1, 1, { willReadFrequently: true })
   pixel.ctx.fillStyle = look.customBorder ? look.borderColour : assets.border
@@ -328,7 +352,8 @@ export function paintSheet(sheet, look, assets, capHeight, base = paintBase(shee
   const eager = layered && look.fade
   const faces = eager ? work.ctx.getImageData(0, 0, width, height) : layered ? copyOf(work.canvas) : null
 
-  for (const { layer, source } of assets.overlays.concat(assets.edgeOverlays.map(({ layer, generated }) => ({ layer, source: { edge: generated } })))) {
+  const overlayLayers = assets.overlays.concat(assets.edgeOverlays.map(({ layer, generated }) => ({ layer, source: { edge: generated } })))
+  for (const { layer, source } of overlayLayers) {
     const overlay = overlayLayer(sheet, layer, source, capHeight)
     work.ctx.globalCompositeOperation = layer.blend
     work.ctx.globalAlpha = layer.opacity / 100
@@ -370,5 +395,5 @@ export function paintSheet(sheet, look, assets, capHeight, base = paintBase(shee
   }
 
   const tiles = look.source === "tile" && look.tileableTileEdges ? adjusted(tileBlock(look, assets.tile), look).canvas : null
-  return { canvas: work.canvas, facePixels, border, edgeAverage, tiles }
+  return { canvas: work.canvas, facePixels, border, edgeAverage, tiles, labels: () => overlayLabels(sheet, overlayLayers, capHeight, width, height) }
 }

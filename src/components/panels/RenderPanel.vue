@@ -2,9 +2,10 @@
 import { computed, ref, shallowRef } from "vue"
 import { AUTO_BORDER } from "../../lib/build.js"
 import { canvasLimit } from "../../lib/canvas.js"
-import { FRAMINGS, MINECRAFT_MODES, framing, framingModified, outlineModified, paddingScale, renderFramed, resetFraming, resetOutline, resolutionLimit, setAspect, setResolution, textureSize, textureSizes } from "../../lib/framing.js"
+import { FRAMINGS, MINECRAFT_MODES, framing, framingModified, outlineModified, paddingScale, renderFramed, renderVector, resetFraming, resetOutline, resolutionLimit, setAspect, setResolution, textureSize, textureSizes } from "../../lib/framing.js"
 import { runtime, scene, titleFileName } from "../../lib/scene.js"
 import { submitStats } from "../../lib/stats.js"
+import { download } from "../../lib/ui.js"
 import { DEFAULT_FOV, view } from "../../lib/view.js"
 import ColourPicker from "../ColourPicker.vue"
 import Dropdown from "../Dropdown.vue"
@@ -70,6 +71,24 @@ async function render() {
 
 function cancel() {
   rendering?.abort()
+}
+
+function saveVector() {
+  submitStats()
+  failed.value = ""
+  try {
+    const svg = renderVector()
+    if (!svg) {
+      failed.value = "Nothing in frame."
+      return
+    }
+    const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }))
+    download(`${titleFileName()}.svg`, url)
+    setTimeout(() => URL.revokeObjectURL(url), 10000)
+  } catch (err) {
+    failed.value = `Render failed: ${err.message}`
+    throw err
+  }
 }
 
 function resetCamera() {
@@ -142,6 +161,10 @@ function resetCamera() {
     <button class="primary wide big" :disabled="progress !== null" @click="render">
       <Icon name="camera" :size="17" />
       <span>Render image</span>
+    </button>
+    <button v-if="framing.tab !== 'minecraft'" class="wide" :disabled="progress !== null" @click="saveVector">
+      <Icon name="download" :size="16" />
+      <span>Save SVG</span>
     </button>
     <p v-if="failed" class="failed">{{ failed }}</p>
   </Panel>
