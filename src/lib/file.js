@@ -1,5 +1,5 @@
 import { ref } from "vue"
-import { keptObject, lineText, runtime, scene, validSelection } from "./scene.js"
+import { keptObject, runtime, scene, titleFileName, validSelection } from "./scene.js"
 import { LAYER, LINE, createObject, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, snapshot, typeDefaults } from "./settings.js"
 import { submitStats } from "./stats.js"
 import { download } from "./ui.js"
@@ -86,11 +86,6 @@ function expandLine({ words, ...line }, group) {
   return words.map(word => expand({ ...line, ...word, group }))
 }
 
-function fileName() {
-  const text = scene.objects.length ? lineText(scene.objects[0]) : ""
-  return text.replace(/[\\/:*?"<>|\s]+/g, "_").replace(/^_+|_+$/g, "") || "title"
-}
-
 export function saveTitle() {
   submitStats()
   const list = lines()
@@ -101,7 +96,7 @@ export function saveTitle() {
     return line
   }) }
   const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }))
-  download(`${fileName()}.${EXTENSION}`, url)
+  download(`${titleFileName()}.${EXTENSION}`, url)
   setTimeout(() => URL.revokeObjectURL(url), 1000)
   fileError.value = null
 }

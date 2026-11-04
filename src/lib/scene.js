@@ -4,6 +4,7 @@ import { LINE, applyType, createObject, isModified, snapshot } from "./settings.
 import { view } from "./view.js"
 
 const STORAGE = "minecraft-title-scene"
+const FILE_NAME_LIMIT = 64
 
 export const keepTexture = new WeakSet()
 
@@ -77,6 +78,18 @@ export function setScale(object, key, value) {
 
 export function lineText(object) {
   return words(object).map((word, index) => (index && word.spaceBefore ? " " : "") + word.text.trim()).join("").trim()
+}
+
+export function titleFileName() {
+  let text = ""
+  let group = null
+  for (const word of scene.objects) {
+    if (word.hidden) continue
+    text += (word.group !== null && word.group === group && !word.spaceBefore ? "" : " ") + word.text.trim()
+    group = word.group
+  }
+  const name = text.toLowerCase().replace(/[\\/:*?"<>|\s]+/g, "_").replace(/^[_.]+|[_.]+$/g, "")
+  return Array.from(name).slice(0, FILE_NAME_LIMIT).join("").replace(/[_.]+$/, "") || "title"
 }
 
 function clone(value) {

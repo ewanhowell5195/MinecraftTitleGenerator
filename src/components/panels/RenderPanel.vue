@@ -3,7 +3,7 @@ import { computed, ref, shallowRef } from "vue"
 import { AUTO_BORDER } from "../../lib/build.js"
 import { canvasLimit } from "../../lib/canvas.js"
 import { FRAMINGS, MINECRAFT_MODES, framing, framingModified, outlineModified, paddingScale, renderFramed, resetFraming, resetOutline, resolutionLimit, setAspect, setResolution, textureSize, textureSizes } from "../../lib/framing.js"
-import { lineText, runtime, scene } from "../../lib/scene.js"
+import { runtime, scene, titleFileName } from "../../lib/scene.js"
 import { submitStats } from "../../lib/stats.js"
 import { DEFAULT_FOV, view } from "../../lib/view.js"
 import ColourPicker from "../ColourPicker.vue"
@@ -70,11 +70,6 @@ async function render() {
 
 function cancel() {
   rendering?.abort()
-}
-
-function fileName() {
-  const object = scene.objects.find(object => object.type === "top") ?? scene.objects[0]
-  return `${(object ? lineText(object) : "").replace(/\s+/g, "-") || "title"}-render.png`
 }
 </script>
 
@@ -147,7 +142,7 @@ function fileName() {
   </Panel>
 
   <RenderProgress v-if="progress !== null" :progress="progress" @close="cancel" />
-  <RenderResult v-if="result" :image="result" :name="fileName()" @close="result = null" />
+  <RenderResult v-if="result" :image="result" :name="`${titleFileName()}.png`" @close="result = null" />
 
   <Panel title="Camera" :modified="view.fov !== DEFAULT_FOV" @reset="view.fov = DEFAULT_FOV">
     <Slider label="Field of view" v-model="view.fov" :min="0" :max="90" />
