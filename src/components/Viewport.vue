@@ -14,6 +14,7 @@ import Icon from "./Icon.vue"
 
 const TOOLS = [[null, "pointer", "No gizmo"], ["translate", "move", "Move"], ["rotate", "rotate", "Rotate"], ["scale", "scale", "Scale"]]
 const SELECTION_LAYER = 1
+const MAX_SCALE = 5
 
 const props = defineProps({
   items: { type: Array, required: true },
@@ -205,7 +206,7 @@ function fitCamera() {
   invalidate()
   viewportChanges.value++
   const title = titleFraming(props.items)
-  if (title) frameCamera(camera, { ...title, fov: view.fov, ...frameSize, frame: view.render ? { rect: frameRect, bounds: frameBounds, pixels: framePixels } : null })
+  if (title) frameCamera(camera, { ...title, fov: view.fov, ...frameSize, maxScale: MAX_SCALE, frame: view.render ? { rect: frameRect, bounds: frameBounds, pixels: framePixels } : null })
 }
 
 onMounted(() => {

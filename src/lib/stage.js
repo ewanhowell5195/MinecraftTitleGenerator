@@ -260,7 +260,7 @@ export function cornersOf(box) {
   return corners
 }
 
-export function frameCamera(camera, { anchor, corners, size, fov, width, height, frame }) {
+export function frameCamera(camera, { anchor, corners, size, fov, width, height, frame, maxScale = Infinity }) {
   const target = anchor.getCenter(new THREE.Vector3())
   const aspect = width / height
   const orthographic = camera.isOrthographicCamera
@@ -297,7 +297,7 @@ export function frameCamera(camera, { anchor, corners, size, fov, width, height,
   const title = { left: 0, top: 0, width: maxX - minX, height: maxY - minY }
   const output = frame?.rect(title)
   const box = output ? frame.bounds(title) : title
-  const fitted = Math.max(box.height / 2, box.width / 2 / aspect) / 0.94
+  const fitted = Math.max(box.height / 2 / 0.94, box.width / 2 / aspect / 0.94, height / (2 * maxScale * (orthographic ? 1 : distance)))
   const span = output ? Math.max(fitted, height * devicePixelRatio / (2 * frame.pixels(title, output))) : fitted
   const centreX = minX + box.left + box.width / 2
   const centreY = maxY - box.top - box.height / 2
