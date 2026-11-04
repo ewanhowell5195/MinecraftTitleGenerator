@@ -134,5 +134,5 @@ function update() {
 }
 
 export function keepMatched() {
-  watch(() => [view.fov, scene.objects.map(object => [object.matchWidth, object.hidden, runtime[object.id]])], update)
+  watch(() => [view.fov, view.fixedDistance, scene.objects.map(object => [object.matchWidth, object.hidden, runtime[object.id]])], update)
 }

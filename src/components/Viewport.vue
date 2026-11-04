@@ -292,6 +292,7 @@ watch(() => view.fov, value => {
   fitCamera()
 })
 
+watch(() => view.fixedDistance, fitCamera)
 watch(() => view.gizmo, invalidate)
 watch([() => view.section, () => view.render], () => view.gizmo = null)
 watch(shapingWord, invalidate)

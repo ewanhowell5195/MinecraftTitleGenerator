@@ -1,9 +1,11 @@
 import * as THREE from "three"
 import { clamp, round } from "./maths.js"
 import { TRANSFORM_LIMITS } from "./settings.js"
+import { view } from "./view.js"
 
 const DIRECTION = new THREE.Vector3(0, -0.51007, 0.86013).normalize()
 const TILT = radians(7.285)
+const TITLE_REACH = 144
 
 function radians(degrees) {
   return degrees * Math.PI / 180
@@ -196,7 +198,7 @@ export function titleFraming(items) {
     if (!anchored || item.type === "top") anchor.union(restBounds(item))
   }
   if (box.isEmpty() || anchor.isEmpty()) return null
-  return { anchor, corners, size: box.getSize(new THREE.Vector3()).length() }
+  return { anchor, corners, size: box.getSize(new THREE.Vector3()).length(), reach: view.fixedDistance ? TITLE_REACH : null }
 }
 
 function place(entry, value) {
@@ -260,19 +262,20 @@ export function cornersOf(box) {
   return corners
 }
 
-export function frameCamera(camera, { anchor, corners, size, fov, width, height, frame, maxScale = Infinity }) {
+export function frameCamera(camera, { anchor, corners, size, fov, width, height, frame, maxScale = Infinity, reach }) {
   const target = anchor.getCenter(new THREE.Vector3())
   const aspect = width / height
   const orthographic = camera.isOrthographicCamera
   const right = new THREE.Vector3(0, 1, 0).cross(DIRECTION).normalize()
-  let reach = 0
+  let widest = 0
   let front = 0
   for (const corner of cornersOf(anchor)) {
     const offset = corner.clone().sub(target)
-    reach = Math.max(reach, Math.abs(offset.dot(right)))
+    widest = Math.max(widest, Math.abs(offset.dot(right)))
     front = Math.max(front, offset.dot(DIRECTION))
   }
-  const distance = orthographic ? size * 2 : reach / Math.tan(fov * Math.PI / 360) + front
+  const clearance = reach ? Math.max(...corners.map(corner => corner.clone().sub(target).dot(DIRECTION))) + reach : 0
+  const distance = orthographic ? size * 2 : Math.max((reach ?? widest) / Math.tan(fov * Math.PI / 360) + front, clearance)
   camera.position.copy(target).addScaledVector(DIRECTION, distance)
   camera.lookAt(target)
   if (!orthographic) camera.rotateX(TILT)

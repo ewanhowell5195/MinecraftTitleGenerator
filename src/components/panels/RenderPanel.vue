@@ -71,6 +71,11 @@ async function render() {
 function cancel() {
   rendering?.abort()
 }
+
+function resetCamera() {
+  view.fov = DEFAULT_FOV
+  view.fixedDistance = false
+}
 </script>
 
 <template>
@@ -144,9 +149,10 @@ function cancel() {
   <RenderProgress v-if="progress !== null" :progress="progress" @close="cancel" />
   <RenderResult v-if="result" :image="result" :name="`${titleFileName()}.png`" @close="result = null" />
 
-  <Panel title="Camera" :modified="view.fov !== DEFAULT_FOV" @reset="view.fov = DEFAULT_FOV">
+  <Panel title="Camera" :modified="view.fov !== DEFAULT_FOV || view.fixedDistance" @reset="resetCamera">
     <Slider label="Field of view" v-model="view.fov" :min="0" :max="90" />
     <p class="hint">0 is orthographic.</p>
+    <Toggle v-if="view.fov" label="Fixed camera distance" hint="Middle letters keep their perspective however long the title is, and letters further out get more distorted" v-model="view.fixedDistance" />
   </Panel>
 </template>
 

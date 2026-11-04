@@ -18,6 +18,7 @@ const DEFAULTS = {
   render: false,
   gizmo: null,
   fov: DEFAULT_FOV,
+  fixedDistance: false,
   resolution: 2048,
   antialias: true
 }
