@@ -1,0 +1,214 @@
+<script setup>
+import { computed, onBeforeUnmount, ref, watch } from "vue"
+import { trackPointer } from "../lib/events.js"
+import { blend, cssGradient } from "../lib/material.js"
+import { clamp } from "../lib/maths.js"
+import ColourPicker from "./ColourPicker.vue"
+import Icon from "./Icon.vue"
+
+const REMOVE_DISTANCE = 28
+const ENDS = { 0: ["Top", "Bottom"], 90: ["Right", "Left"], 180: ["Bottom", "Top"], 270: ["Left", "Right"], 360: ["Top", "Bottom"] }
+
+const props = defineProps({
+  smooth: { type: Boolean, default: true },
+  angle: { type: Number, default: 0 },
+  min: { type: Number, default: 2 }
+})
+
+const stops = defineModel({ type: Array, required: true })
+const track = ref(null)
+const selected = ref(0)
+const removing = ref(false)
+let drag = null
+
+const ends = computed(() => ENDS[props.angle] ?? ["Start", "End"])
+const background = computed(() => cssGradient(stops.value, props.smooth, "to right"))
+
+const stop = computed(() => stops.value[selected.value] ?? null)
+const removable = computed(() => stops.value.length > props.min)
+
+function colourAt(position) {
+  const list = stops.value.map(stop => ({ colour: stop.colour, position: clamp(stop.position, 0, 100) })).sort((a, b) => a.position - b.position)
+  const after = list.findIndex(item => item.position >= position)
+  if (after === -1) return list[list.length - 1].colour
+  if (after === 0) return list[0].colour
+  const from = list[after - 1]
+  const to = list[after]
+  return blend(from.colour, to.colour, (position - from.position) / (to.position - from.position))
+}
+
+function positionAt(x) {
+  const rect = track.value.getBoundingClientRect()
+  return Math.round(clamp((x - rect.left) / rect.width, 0, 1) * 100)
+}
+
+function begin(index, event) {
+  selected.value = index
+  drag = { index, top: track.value.getBoundingClientRect().bottom, stop: trackPointer(move, end) }
+  removing.value = false
+  event.preventDefault()
+}
+
+function add(event) {
+  const position = positionAt(event.clientX)
+  stops.value.push({ colour: colourAt(position), position })
+  begin(stops.value.length - 1, event)
+}
+
+function move(event) {
+  stops.value[drag.index].position = positionAt(event.clientX)
+  removing.value = removable.value && event.clientY - drag.top > REMOVE_DISTANCE
+}
+
+function remove(index) {
+  if (!removable.value) return
+  stops.value.splice(index, 1)
+}
+
+function end() {
+  if (removing.value) remove(drag.index)
+  removing.value = false
+  drag = null
+}
+
+function nudge(event, by) {
+  stop.value.position = clamp(stop.value.position + by * (event.shiftKey ? 10 : 1), 0, 100)
+}
+
+watch(() => stops.value.length, length => {
+  if (selected.value >= length) selected.value = length - 1
+})
+
+onBeforeUnmount(() => drag?.stop())
+</script>
+
+<template>
+  <div class="gradient-editor">
+    <div class="bar" :style="{ background }"></div>
+    <div class="track" ref="track" @pointerdown.self="add" title="Click to add a colour, drag a colour down to remove it">
+      <button v-for="(item, index) of stops" :key="index" class="stop" :class="{ selected: index === selected, removing: removing && index === selected }" :style="{ left: `${item.position}%` }" @pointerdown="begin(index, $event)" @keydown.left.prevent="nudge($event, -1)" @keydown.right.prevent="nudge($event, 1)" @keydown.delete.prevent="remove(index)" @focus="selected = index" :aria-label="`Colour at ${item.position}%`">
+        <span :style="{ background: item.colour }"></span>
+      </button>
+    </div>
+    <div class="ends">
+      <span>{{ ends[0] }}</span>
+      <span>{{ ends[1] }}</span>
+    </div>
+    <div class="selected-stop" v-if="stop">
+      <ColourPicker class="grow" v-model="stop.colour" />
+      <label class="location" title="Location">
+        <input type="number" v-model.number="stop.position" min="0" max="100" step="1">
+        <span>%</span>
+      </label>
+      <button class="icon-button small" :disabled="!removable" @click="remove(selected)" title="Remove colour"><Icon name="trash" :size="14" /></button>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.gradient-editor {
+  display: flex;
+  flex-direction: column;
+}
+
+.bar {
+  height: 32px;
+  margin: 0 7px;
+  box-shadow: inset 0 0 0 1px #ffffff1a;
+}
+
+.track {
+  position: relative;
+  height: 26px;
+  margin: 0 7px;
+  cursor: copy;
+  touch-action: none;
+}
+
+.stop {
+  position: absolute;
+  top: 0;
+  width: 14px;
+  height: 22px;
+  margin-left: -7px;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: ew-resize;
+  touch-action: none;
+}
+
+.stop::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 2px;
+  border: 5px solid transparent;
+  border-top: none;
+  border-bottom: 6px solid var(--muted);
+}
+
+.stop span {
+  position: absolute;
+  top: 6px;
+  left: 0;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--muted);
+}
+
+.stop:hover,
+.stop:active:not(:disabled) {
+  background: none;
+  transform: none;
+}
+
+.stop.selected::before {
+  border-bottom-color: var(--accent);
+}
+
+.stop.selected span {
+  border-color: var(--accent);
+}
+
+.stop.removing {
+  opacity: 0.3;
+}
+
+.stop:focus-visible {
+  outline: none;
+}
+
+.stop:focus-visible span {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.ends {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-sm);
+  color: var(--faint);
+  user-select: none;
+}
+
+.selected-stop {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.location {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-md);
+  color: var(--faint);
+}
+
+.location input[type="number"] {
+  width: 60px;
+  padding: 8px;
+}
+</style>

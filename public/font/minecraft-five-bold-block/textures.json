@@ -1,0 +1,91 @@
+{
+  "textures": {
+    "flat": {
+      "author": "Ewan Howell",
+      "border": "#000000"
+    },
+    "live": {
+      "author": "Ewan Howell",
+      "border": "#000000"
+    },
+    "bedrock_button": {
+      "author": "Klayv",
+      "border": "#181c1d",
+      "variants": {
+        "bedrock_button_unpressed": {
+          "name": "Bedrock Button (Unpressed)",
+          "border": "#1e1e1f"
+        }
+      }
+    },
+    "neon": {
+      "author": "MCAlexisYT",
+      "border": "#18041a"
+    },
+    "oak_planks": {
+      "category": "Planks",
+      "author": "BitseK & TheAnnoying",
+      "border": "#322414",
+      "variants": {
+        "spruce_planks": {
+          "border": "#322618"
+        },
+        "birch_planks": {
+          "border": "#4c3e2d"
+        },
+        "jungle_planks": {
+          "border": "#362314"
+        },
+        "acacia_planks": {
+          "border": "#4c220d"
+        },
+        "dark_oak_planks": {
+          "border": "#0d0804"
+        },
+        "mangrove_planks": {
+          "border": "#301011"
+        },
+        "cherry_planks": {
+          "border": "#704945"
+        },
+        "bamboo_planks": {
+          "border": "#4a4129"
+        },
+        "crimson_planks": {
+          "border": "#351624"
+        },
+        "warped_planks": {
+          "border": "#0a3431"
+        }
+      }
+    }
+  },
+  "overlays": {
+    "drop_shadow": {
+      "default": {
+        "colour": "#000000"
+      },
+      "author": "Ewan Howell"
+    },
+    "drop_shadow_left": {
+      "default": {
+        "colour": "#000000"
+      },
+      "name": "Drop Shadow (Left)",
+      "author": "Ewan Howell"
+    },
+    "drop_shadow_right": {
+      "default": {
+        "colour": "#000000"
+      },
+      "name": "Drop Shadow (Right)",
+      "author": "Ewan Howell"
+    },
+    "bedrock": {
+      "name": "Bedrock Button",
+      "author": "Klayv"
+    }
+  },
+  "primary": "live",
+  "secondary": "bedrock_button"
+}

@@ -1,0 +1,16 @@
+{
+  "textures": {
+    "flat": {
+      "author": "Ewan Howell",
+      "border": "#000000"
+    },
+    "flat_coloured": {
+      "type": "strip",
+      "author": "Ewan Howell",
+      "border": "#000000"
+    }
+  },
+  "overlays": {},
+  "primary": "flat_coloured",
+  "secondary": "flat_coloured"
+}

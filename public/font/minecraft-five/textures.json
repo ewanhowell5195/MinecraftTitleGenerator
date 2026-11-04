@@ -1,0 +1,24 @@
+{
+  "textures": {
+    "flat": {
+      "author": "Ewan Howell",
+      "border": "#000000"
+    },
+    "edition": {
+      "type": "strip",
+      "overlays": [
+        {
+          "overlay": "highlights_bottom",
+          "blend": "source-over",
+          "colour": "#fff9f7",
+          "opacity": 61
+        }
+      ],
+      "author": "Ewan Howell",
+      "border": "#000000"
+    }
+  },
+  "overlays": {},
+  "primary": "edition",
+  "secondary": "edition"
+}

@@ -1,0 +1,22 @@
+{
+  "textures": {
+    "flat": {
+      "author": "Westbot"
+    },
+    "smooth": {
+      "type": "strip",
+      "overlays": [
+        {
+          "overlay": "highlights_bottom",
+          "blend": "source-over",
+          "colour": "#faedea",
+          "opacity": 46
+        }
+      ],
+      "author": "Ewan Howell"
+    }
+  },
+  "overlays": {},
+  "primary": "smooth",
+  "secondary": "smooth"
+}

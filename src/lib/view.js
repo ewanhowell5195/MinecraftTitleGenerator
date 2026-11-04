@@ -1,0 +1,44 @@
+import { reactive, ref, watch } from "vue"
+
+export const DEFAULT_FOV = 43
+
+export const SECTIONS = {
+  text: { name: "Text", icon: "text" },
+  font: { name: "Font", icon: "font" },
+  shape: { name: "Shape", icon: "cube" },
+  texture: { name: "Texture", icon: "texture" },
+  colour: { name: "Colour", icon: "palette" },
+  faces: { name: "Faces", icon: "faces" },
+  overlays: { name: "Overlays", icon: "layers" }
+}
+
+const DEFAULTS = {
+  section: "text",
+  shapeTab: "line",
+  render: false,
+  gizmo: null,
+  fov: DEFAULT_FOV,
+  resolution: 2048,
+  antialias: true
+}
+
+function read() {
+  try {
+    const saved = JSON.parse(localStorage.getItem("minecraft-title-view") ?? "{}")
+    return { ...DEFAULTS, ...Object.fromEntries(Object.entries(saved).filter(([key]) => key in DEFAULTS)) }
+  } catch {
+    return { ...DEFAULTS }
+  }
+}
+
+export const view = reactive(read())
+
+export const viewport = { capture: null }
+
+export const viewportChanges = ref(0)
+
+watch(view, value => {
+  try {
+    localStorage.setItem("minecraft-title-view", JSON.stringify(value))
+  } catch {}
+}, { deep: true })

@@ -1,0 +1,197 @@
+[
+  {
+    "id": "minecraft-ten",
+    "height": 44,
+    "terminatorSpace": true,
+    "kerning": {
+      "//": 16,
+      "\\\\": 16,
+      "tj": 8,
+      "lt": 8,
+      "ly": 8,
+      "yj": 6,
+      "lv": 4,
+      "qt": 4,
+      "qv": 4,
+      "{{": 4,
+      "}}": 4,
+      "}]": 4,
+      "[{": 4,
+      "l?": 4,
+      "q?": 4,
+      "t.": 4,
+      "t,": 4,
+      "t_": 4,
+      "t-": 4,
+      "l-": 8,
+      "/j": 8,
+      "l\\": 8
+    },
+    "variants": [
+      {
+        "id": "minecraft-ten-v2",
+        "name": "Version 2",
+        "inherits": true,
+        "author": "Ewan Howell",
+        "description": "Minecraft Ten Version 2 is a newer version of Minecraft Ten with some tweaks to some characters, most notably `&` and `?`.",
+        "order": "cefn34&?-_",
+        "preview": "e&?"
+      },
+      {
+        "id": "minecraft-ten-cyrillic",
+        "name": "Cyrillic",
+        "author": "xllifi",
+        "height": 44,
+        "terminatorSpace": true,
+        "order": "😳0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣ёєіїабвгдежзийклмнопрстуфхцчшщъыьэюяґғқңүұәө₽",
+        "preview": "абв"
+      }
+    ]
+  },
+  {
+    "id": "minecraft-five-bold",
+    "author": "Ewan Howell",
+    "height": 36,
+    "depth": 16,
+    "terminatorSpace": true,
+    "variants": [
+      {
+        "id": "minecraft-five-bold-cyrillic",
+        "name": "Cyrillic",
+        "author": "xllifi",
+        "height": 36,
+        "depth": 16,
+        "terminatorSpace": true,
+        "order": "😳0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣ёіїабвгдежзийклмнопрстуфхцчшщъыьэюяґғқңүұһәө₽",
+        "preview": "абв"
+      }
+    ]
+  },
+  {
+    "id": "minecraft-five-bold-block",
+    "author": "Ewan Howell",
+    "height": 52,
+    "characterSpacing": -4,
+    "order": "😳abcdefghijklmnopqrstuvwxyz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣ ",
+    "depth": 16,
+    "forcedTerminators": true,
+    "autoBorder": true,
+    "overlay": true
+  },
+  {
+    "id": "minecraft-ten-outline",
+    "author": "Ewan Howell",
+    "height": 60,
+    "order": "😳abcdefghijklmnopqrstuvwxyz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣ ",
+    "depth": 0,
+    "border": 0,
+    "forcedTerminators": true,
+    "flat": true
+  },
+  {
+    "id": "minecraft-dungeons",
+    "author": "ShrimpSnail & Ewan Howell",
+    "height": 44
+  },
+  {
+    "id": "minecraft-gui",
+    "author": "Ewan Howell",
+    "height": 44,
+    "characterSpacing": -4,
+    "order": "😳abcdefghijklmnopqrstuvwxyz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣ ",
+    "depth": 0,
+    "forcedTerminators": true,
+    "autoBorder": true,
+    "flat": true,
+    "overlay": true
+  },
+  {
+    "id": "minecraft-seven",
+    "author": "Ewan Howell",
+    "height": 46,
+    "depth": 16,
+    "terminatorSpace": true
+  },
+  {
+    "id": "minecraft-five",
+    "author": "Ewan Howell",
+    "height": 34,
+    "depth": 16,
+    "terminatorSpace": true
+  },
+  {
+    "id": "minecraft-sga",
+    "name": "Minecraft SGA",
+    "author": "Westbot",
+    "height": 44,
+    "characterSpacing": 5,
+    "order": "abcdefghijklmnopqrstuvwxyz",
+    "preview": "abh"
+  },
+  {
+    "id": "block-serif",
+    "author": "DragonSlayr15001",
+    "height": 44,
+    "characterSpacing": -2,
+    "spaceWidth": 14,
+    "terminatorSpace": true,
+    "overlay": true,
+    "kerning": {
+      "//": 12,
+      "\\\\": 12,
+      "😳v": 12,
+      "av": 12,
+      "v😳": 12,
+      "va": 12,
+      "😳w": 8,
+      "aw": 8,
+      "w😳": 8,
+      "wa": 8,
+      "😳7": 8,
+      "a7": 8,
+      "7😳": 8,
+      "7a": 8,
+      "f😳": 8,
+      "fa": 8,
+      "fj": 8,
+      "lt": 8,
+      "tj": 8,
+      "ly": 8,
+      "yj": 8,
+      "lv": 8,
+      "vj": 8,
+      "l-": 12,
+      "l?": 12,
+      "t-": 8,
+      "-t": 8,
+      "t.": 8,
+      ".t": 8,
+      "t,": 8,
+      ",t": 8,
+      "t_": 8,
+      "_t": 8,
+      "y-": 8,
+      "-y": 8,
+      "y.": 8,
+      ".y": 8,
+      "y,": 8,
+      ",y": 8,
+      "y_": 8,
+      "_y": 8,
+      "v/": 12,
+      "\\v": 12,
+      "w/": 8,
+      "\\w": 8,
+      "/a": 12,
+      "/😳": 12,
+      "a\\": 12,
+      "😳\\": 12
+    }
+  },
+  {
+    "id": "minecraft-legends",
+    "author": "Patred",
+    "height": 34,
+    "spaceWidth": 16
+  }
+]

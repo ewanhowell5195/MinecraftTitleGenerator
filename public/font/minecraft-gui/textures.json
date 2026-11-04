@@ -1,0 +1,71 @@
+{
+  "textures": {
+    "flat": {
+      "author": "Ewan Howell",
+      "border": "#000000"
+    },
+    "diamond": {
+      "author": "Ewan Howell",
+      "border": "#000000"
+    },
+    "achievement": {
+      "author": "B1tseK",
+      "border": "#000000"
+    },
+    "chambered": {
+      "author": "blank3times",
+      "border": "#020202",
+      "variants": {
+        "chambered_panel": {
+          "border": "#584528"
+        }
+      }
+    },
+    "oled": {
+      "name": "OLED",
+      "author": "Ewan Howell",
+      "border": "#000000"
+    },
+    "map": {
+      "author": "B1tseK",
+      "border": "#322519"
+    },
+    "shields": {
+      "author": "Doharbdjr",
+      "border": "#86899e"
+    },
+    "lightness": {
+      "author": "Doharbdjr",
+      "border": "#edffef"
+    },
+    "menu_button": {
+      "author": "B1tseK",
+      "border": "#000000"
+    },
+    "hotbar": {
+      "author": "B1tseK",
+      "border": "#000000"
+    }
+  },
+  "overlays": {
+    "highlights_bottom": {
+      "name": "Bottom Highlight",
+      "author": "Ewan Howell"
+    },
+    "highlights_top": {
+      "name": "Top Highlight",
+      "author": "Ewan Howell"
+    },
+    "shadow": {
+      "default": {
+        "colour": "#000000"
+      },
+      "author": "Ewan Howell"
+    },
+    "outline": {
+      "author": "Ewan Howell"
+    }
+  },
+  "primary": "diamond",
+  "secondary": "achievement"
+}

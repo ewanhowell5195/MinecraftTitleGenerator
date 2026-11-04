@@ -1,5 +1,2 @@
-scripts/node_modules/
-scripts/temp/
-scripts/log/
-node_modules/
-*.bak
+node_modules
+dist

@@ -1,0 +1,122 @@
+{
+  "textures": {
+    "flat": {
+      "author": "xllifi",
+      "border": "#000000"
+    },
+    "edition": {
+      "type": "strip",
+      "overlays": [
+        {
+          "overlay": "highlights_bottom",
+          "blend": "source-over",
+          "colour": "#fff9f7",
+          "opacity": 61
+        }
+      ],
+      "author": "Ewan Howell",
+      "border": "#000000"
+    },
+    "oak_planks": {
+      "type": "strip",
+      "category": "Planks",
+      "author": "BitseK & TheAnnoying",
+      "border": "#322414",
+      "variants": {
+        "spruce_planks": {
+          "border": "#322618"
+        },
+        "birch_planks": {
+          "border": "#4a4129"
+        },
+        "jungle_planks": {
+          "border": "#362314"
+        },
+        "acacia_planks": {
+          "border": "#4c220d"
+        },
+        "dark_oak_planks": {
+          "border": "#1e1105"
+        },
+        "mangrove_planks": {
+          "border": "#301011"
+        },
+        "cherry_planks": {
+          "border": "#704945"
+        },
+        "bamboo_planks": {
+          "border": "#4a4129"
+        },
+        "crimson_planks": {
+          "border": "#260414"
+        },
+        "warped_planks": {
+          "border": "#072825"
+        }
+      }
+    },
+    "flat_coloured": {
+      "type": "strip",
+      "author": "Ewan Howell",
+      "border": "#000000"
+    },
+    "pride": {
+      "type": "strip",
+      "author": "Yozhenka",
+      "border": "#000000",
+      "variants": {
+        "aroace": {
+          "border": "#000000"
+        },
+        "aromantic": {
+          "border": "#000000"
+        },
+        "asexual": {
+          "border": "#000000"
+        },
+        "bisexual": {
+          "border": "#000000"
+        },
+        "enby": {
+          "border": "#000000"
+        },
+        "femboy": {
+          "author": "0Szysza",
+          "border": "#000000"
+        },
+        "fluid": {
+          "border": "#000000"
+        },
+        "gay": {
+          "border": "#000000"
+        },
+        "heterosexual": {
+          "border": "#000000"
+        },
+        "intersex": {
+          "type": "sheet",
+          "border": "#000000"
+        },
+        "lesbian": {
+          "border": "#000000"
+        },
+        "pansexual": {
+          "border": "#000000"
+        },
+        "trans": {
+          "border": "#000000"
+        },
+        "transfeminine": {
+          "author": "0Szysza",
+          "border": "#000000"
+        },
+        "transmasculine": {
+          "author": "0Szysza",
+          "border": "#000000"
+        }
+      }
+    }
+  },
+  "primary": "edition",
+  "secondary": "oak_planks"
+}
