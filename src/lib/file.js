@@ -89,7 +89,7 @@ function expandLine({ words, ...line }, group) {
 export function saveTitle() {
   submitStats()
   const list = lines()
-  const numbers = new Map(list.flatMap((words, index) => words.map(word => [word.id, index + 1])))
+  const numbers = new Map(list.flatMap((words, index) => words.map(word => [word.id, index])))
   const data = { format: FORMAT, version: VERSION, lines: list.map(words => {
     const line = trimLine(words)
     if ("matchWidth" in line) line.matchWidth = numbers.get(line.matchWidth)
@@ -109,14 +109,26 @@ function parse(text) {
   }
 }
 
+function matchLoops(lines, start) {
+  const seen = new Set()
+  for (let index = start; index !== undefined; index = lines[index].matchWidth) {
+    if (seen.has(index)) return true
+    seen.add(index)
+  }
+  return false
+}
+
 function readTitle(text) {
   const data = parse(text)
   if (data?.format !== FORMAT) throw new Error("this isn't a Minecraft title file")
   if (data.version > VERSION) throw new Error(`it was saved by a newer version of the generator (format ${data.version})`)
   if (!Array.isArray(data.lines) || !data.lines.length) throw new Error("it has no text in it")
   for (const line of data.lines) {
-    if (line.matchWidth !== undefined && !data.lines[line.matchWidth - 1]) throw new Error(`a line matches the width of line ${line.matchWidth}, which doesn't exist`)
+    if (line.matchWidth !== undefined && !data.lines[line.matchWidth]) throw new Error(`a line matches the width of line ${line.matchWidth}, which doesn't exist`)
   }
+  data.lines.forEach((line, index) => {
+    if (matchLoops(data.lines, index)) throw new Error(`line ${index} matches its own width`)
+  })
   return data.lines.map((line, index) => expandLine(line, index + 1))
 }
 
@@ -143,7 +155,7 @@ export async function openTitle(file, allow = () => true) {
     const lines = values.map(words => words.map(value => keptObject(value)))
     const objects = lines.flat()
     for (const object of objects) {
-      if (object.matchWidth !== null) object.matchWidth = lines[object.matchWidth - 1][0].id
+      if (object.matchWidth !== null) object.matchWidth = lines[object.matchWidth][0].id
     }
     scene.objects.splice(0, scene.objects.length, ...objects)
     Object.assign(scene, validSelection(objects, null, null))
