@@ -1160,6 +1160,10 @@ export function vectorTitle(scene, camera, size, resolution) {
     const faces = facesOf(mesh, view, project, cache)
     sameMesh = faces
     const own = mesh.material.depthWrite ? faces.map(face => occluderOf(face, view)) : []
+    if (!mesh.material.colorWrite) {
+      occluders.push(...own)
+      continue
+    }
     const layer = { base: new Map(), layers: [], joins: [], covers: new Map(), clipped: [], silhouette: [] }
     for (const face of faces) {
       const unhidden = hideAll([face.points], face, occluders)

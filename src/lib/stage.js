@@ -29,6 +29,7 @@ function clear(entry) {
   discard(entry, "halo")
   discard(entry, "outline")
   discard(entry, "solid")
+  discard(entry, "holes")
   entry.texture?.dispose()
   entry.texture = null
 }
@@ -205,6 +206,7 @@ export function titleFraming(items) {
 function place(entry, value) {
   if (entry.outline) entry.outline.scale.set(...entry.lines.scale.map(axis => 1 / axis))
   if (entry.halo) entry.halo.scale.set(...entry.rings.scale.map(axis => 1 / axis))
+  if (entry.holes) entry.holes.scale.set(...entry.gaps.scale.map(axis => 1 / axis))
   entry.group.matrixAutoUpdate = false
   entry.base = placementMatrix(value, entry.built && lineBounds(entry.built))
   entry.group.matrix.copy(objectMatrix(value, entry.built))
@@ -217,13 +219,16 @@ export function createEntry() {
     outline: null,
     halo: null,
     solid: null,
+    holes: null,
     body: new THREE.MeshBasicMaterial({ alphaTest: 0.5 }),
     border: new THREE.MeshBasicMaterial({ side: THREE.BackSide, depthWrite: false }),
     rim: new THREE.MeshBasicMaterial({ side: THREE.BackSide, depthWrite: false }),
+    clip: new THREE.MeshBasicMaterial({ colorWrite: false }),
     built: null,
     base: new THREE.Matrix4(),
     lines: null,
-    rings: null
+    rings: null,
+    gaps: null
   }
 }
 
@@ -233,6 +238,11 @@ export function updateEntry(entry, item) {
     fill(entry, item.built)
     entry.lines = null
     entry.rings = null
+    entry.gaps = null
+  }
+  if (entry.gaps !== (item.holes ?? null)) {
+    entry.gaps = item.holes ?? null
+    attachShell(entry, "holes", entry.gaps, entry.clip)
   }
   if (entry.lines !== item.outline) {
     entry.lines = item.outline
@@ -251,6 +261,7 @@ export function destroyEntry(entry) {
   entry.body.dispose()
   entry.border.dispose()
   entry.rim.dispose()
+  entry.clip.dispose()
 }
 
 export function cornersOf(box) {
@@ -327,6 +338,7 @@ export function sortEntries(entries, camera) {
   let order = 0
   for (const { words } of lines) {
     for (const { entry } of words) {
+      if (entry.holes) entry.holes.renderOrder = -2
       if (entry.halo) entry.halo.renderOrder = -1
       if (entry.outline) entry.outline.renderOrder = order++
     }

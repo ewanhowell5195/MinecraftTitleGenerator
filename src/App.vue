@@ -22,6 +22,7 @@ import TextPanel from "./components/panels/TextPanel.vue"
 import TexturePanel from "./components/panels/TexturePanel.vue"
 import TransformPanel from "./components/panels/TransformPanel.vue"
 import { loadTileables } from "./lib/assets.js"
+import { buildHoles } from "./lib/build.js"
 import { useWindowEvents } from "./lib/events.js"
 import { fileError, saveTitle } from "./lib/file.js"
 import { framing } from "./lib/framing.js"
@@ -46,10 +47,17 @@ const drawer = ref(null)
 
 const menuBar = ref(null)
 
-const items = computed(() => scene.objects.filter(object => !object.hidden).map(object => {
-  const state = runtime[object.id]
-  return { id: object.id, line: object.group === null || isModified(object, "wordTransform") ? `word-${object.id}` : `line-${object.group}`, type: object.type, built: state?.built ?? null, outline: state?.outline ?? null, halo: state?.halo ?? null, haloColour: framing.outlineColour, transform: state?.transform ?? null, settled: state?.settled ?? false }
-}))
+const items = computed(() => {
+  const list = scene.objects.filter(object => !object.hidden).map(object => {
+    const state = runtime[object.id]
+    return { id: object.id, line: object.group === null || isModified(object, "wordTransform") ? `word-${object.id}` : `line-${object.group}`, type: object.type, built: state?.built ?? null, outline: state?.outline ?? null, halo: state?.halo ?? null, haloColour: framing.outlineColour, transform: state?.transform ?? null, settled: state?.settled ?? false, clipHoles: object.clipHoles, holes: null }
+  })
+  for (const members of Map.groupBy(list, item => item.line).values()) {
+    const outlines = members.flatMap(item => item.outline ?? [])
+    if (members[0].clipHoles && outlines.length) members[0].holes = buildHoles(outlines)
+  }
+  return list
+})
 const selected = computed(() => {
   if (view.render) return []
   if (view.section === "shape") return (shapingWord.value ? [currentWord.value] : words(currentWord.value)).map(object => object.id)

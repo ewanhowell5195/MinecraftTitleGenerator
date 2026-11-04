@@ -4,6 +4,7 @@ import { usePanel } from "../../lib/panel.js"
 import { wordKey } from "../../lib/settings.js"
 import Panel from "../Panel.vue"
 import Slider from "../Slider.vue"
+import Toggle from "../Toggle.vue"
 
 const props = defineProps({
   word: { type: Boolean, default: false }
@@ -27,5 +28,6 @@ const border = setting("border")
   <Panel title="Depth and outline" :modified="modified" @reset="reset">
     <Slider label="Depth" v-model="depth" :min="0" :max="80" />
     <Slider v-if="!font?.autoBorder" label="Outline width" v-model="border" :min="0" :max="8" :step="0.1" />
+    <Toggle v-if="!word" label="See through holes" hint="Cuts away anything behind a gap that is fully closed in" v-model="object.clipHoles" />
   </Panel>
 </template>
