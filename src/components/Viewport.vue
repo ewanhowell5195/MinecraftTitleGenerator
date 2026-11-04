@@ -13,6 +13,7 @@ import { view, viewport, viewportChanges } from "../lib/view.js"
 import Icon from "./Icon.vue"
 
 const TOOLS = [[null, "pointer", "No gizmo"], ["translate", "move", "Move"], ["rotate", "rotate", "Rotate"], ["scale", "scale", "Scale"]]
+const SELECTION_LAYER = 1
 
 const props = defineProps({
   items: { type: Array, required: true },
@@ -26,7 +27,6 @@ let frameSize = { width: 1, height: 1 }
 let fitted = null
 let dirty = true
 let grabbed = null
-let capturing = false
 
 function invalidate() {
   dirty = true
@@ -35,7 +35,6 @@ function invalidate() {
 
 function render() {
   frame = 0
-  if (capturing) return
   refit()
   if (fitted === null || !dirty) return
   pose()
@@ -224,6 +223,9 @@ onMounted(() => {
   selection = wireBox(new THREE.LineBasicMaterial({ color: getComputedStyle(host.value).getPropertyValue("--accent").trim(), depthTest: false }))
   selection.matrixAutoUpdate = false
   selection.visible = false
+  for (const edge of selection.children) edge.layers.set(SELECTION_LAYER)
+  perspective.layers.enable(SELECTION_LAYER)
+  orthographic.layers.enable(SELECTION_LAYER)
   scene.add(selection)
   overlay = new THREE.Scene()
   proxy = new THREE.Object3D()
@@ -263,16 +265,7 @@ function titleRect() {
 async function capture(resolution, antialias, task) {
   refit()
   sortEntries(Array.from(entries.values()), camera)
-  const shown = selection.visible
-  selection.visible = false
-  capturing = true
-  try {
-    return await renderTitle(renderer, scene, camera, resolution, antialias, task)
-  } finally {
-    capturing = false
-    selection.visible = shown
-    invalidate()
-  }
+  return await renderTitle(renderer.getSize(new THREE.Vector2()), scene, camera, resolution, antialias, task)
 }
 
 onBeforeUnmount(() => {

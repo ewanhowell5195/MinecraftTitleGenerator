@@ -11,6 +11,7 @@ const MARGIN = 8
 const STRIDE = TILE - MARGIN * 2
 const region = new Int32Array(32)
 const around = new Int32Array(4)
+let hidden = null
 
 function autoCrop(canvas) {
   const { width, height } = canvas
@@ -180,13 +181,19 @@ function halve(image, out) {
   return out.canvas
 }
 
-export async function renderTitle(renderer, scene, camera, resolution, antialias, task) {
+function hiddenRenderer() {
+  if (hidden) return hidden
+  hidden = new THREE.WebGLRenderer({ antialias: false, alpha: true })
+  hidden.setPixelRatio(1)
+  return hidden
+}
+
+export async function renderTitle(size, scene, camera, resolution, antialias, task) {
   const step = tracker(task)
   camera.updateMatrixWorld()
   const bounds = screenBounds(scene, camera)
   if (!bounds) return null
-  const size = renderer.getSize(new THREE.Vector2())
-  const view = camera.view?.enabled ? camera.view : { fullWidth: size.x, fullHeight: size.y, offsetX: 0, offsetY: 0, width: size.x, height: size.y }
+  const view =camera.view?.enabled ? camera.view : { fullWidth: size.x, fullHeight: size.y, offsetX: 0, offsetY: 0, width: size.x, height: size.y }
   const width = (bounds.maxX - bounds.minX) * view.width
   const height = (bounds.maxY - bounds.minY) * view.height
   const samples = antialias ? SAMPLES : 1
@@ -196,9 +203,9 @@ export async function renderTitle(renderer, scene, camera, resolution, antialias
   const scaleX = outWidth / width
   const scaleY = outHeight / height
   const shot = camera.clone()
-  const left = (view.offsetX + bounds.minX * view.width) * scaleX
+  shot.layers.set(0)
+  const left =(view.offsetX + bounds.minX * view.width) * scaleX
   const top = (view.offsetY + bounds.minY * view.height) * scaleY
-  const ratio = renderer.getPixelRatio()
   const finalWidth = Math.ceil(outWidth / samples)
   const finalHeight = Math.ceil(outHeight / samples)
   const renderWidth = finalWidth * samples
@@ -212,8 +219,8 @@ export async function renderTitle(renderer, scene, camera, resolution, antialias
   const half = canvasOf(1, 1)
   const quarter = canvasOf(1, 1)
   const data = new Uint8ClampedArray(Math.min(TILE, renderWidth) * Math.min(TILE, renderHeight) * 4)
+  const renderer = hiddenRenderer()
   try {
-    renderer.setPixelRatio(1)
     const tiles = Math.ceil(renderWidth / STRIDE) * Math.ceil(renderHeight / STRIDE)
     let done = 0
     for (let y = 0; y < renderHeight; y += STRIDE) {
@@ -241,8 +248,7 @@ export async function renderTitle(renderer, scene, camera, resolution, antialias
       }
     }
   } finally {
-    renderer.setPixelRatio(ratio)
-    renderer.setSize(size.x, size.y, false)
+    renderer.setSize(1, 1, false)
   }
   return autoCrop(final.canvas)
 }
