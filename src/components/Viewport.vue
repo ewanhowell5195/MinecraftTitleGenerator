@@ -206,7 +206,7 @@ function fitCamera() {
   invalidate()
   viewportChanges.value++
   const title = titleFraming(props.items)
-  if (title) frameCamera(camera, { ...title, fov: view.fov, ...frameSize, maxScale: MAX_SCALE, frame: view.render ? { rect: frameRect, bounds: frameBounds, pixels: framePixels } : null })
+  if (title) frameCamera(camera, { ...title, fov: view.fov, ...frameSize, maxScale: view.render ? Infinity : MAX_SCALE, frame: view.render ? { rect: frameRect, bounds: frameBounds, pixels: framePixels } : null })
 }
 
 onMounted(() => {
