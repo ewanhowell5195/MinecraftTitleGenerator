@@ -1,4 +1,5 @@
 import { ref } from "vue"
+import { matchSolved } from "./match.js"
 import { keptObject, runtime, scene, titleFileName, validSelection } from "./scene.js"
 import { LAYER, LINE, createObject, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, snapshot, typeDefaults } from "./settings.js"
 import { submitStats } from "./stats.js"
@@ -27,7 +28,9 @@ const UNUSED = [
   [object => object.arcMode !== "move", ["arcMove"]],
   [object => object.arcMode === "move", ["arcTop", "arcBottom", "arcMarked", "arcGradient"]],
   [object => object.wordArcMode !== "move", ["wordArcMove"]],
-  [object => object.wordArcMode === "move", ["wordArcTop", "wordArcBottom", "wordArcMarked"]]
+  [object => object.wordArcMode === "move", ["wordArcTop", "wordArcBottom", "wordArcMarked"]],
+  [object => matchSolved(object), ["scaleX"]],
+  [object => matchSolved(object) && object.linkScale !== null, ["scaleY"]]
 ]
 
 const LAYERS = ["overlays", "edgeOverlays"]

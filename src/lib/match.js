@@ -83,6 +83,16 @@ export function leadsTo(start, target) {
   return false
 }
 
+function matchReference(object) {
+  let reference = find(object.matchWidth)
+  while (reference && find(reference.matchWidth)) reference = find(reference.matchWidth)
+  return reference
+}
+
+export function matchSolved(object) {
+  return matchReference(object)?.hidden === false
+}
+
 function depth(object) {
   let count = 0
   for (let current = find(object.matchWidth); current; current = find(current.matchWidth)) count++
@@ -104,8 +114,7 @@ function update() {
   const linked = scene.objects.filter(object => object.matchWidth !== null).sort((a, b) => depth(a) - depth(b))
   let camera = null
   for (const object of linked) {
-    let reference = find(object.matchWidth)
-    while (reference && find(reference.matchWidth)) reference = find(reference.matchWidth)
+    const reference = matchReference(object)
     if (!reference || !ready(object) || !ready(reference)) continue
     try {
       camera ??= titleCamera(items)
