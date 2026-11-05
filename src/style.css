@@ -190,7 +190,7 @@ button:active:not(:disabled) {
 
 button:disabled {
   opacity: 0.35;
-  cursor: default;
+  cursor: not-allowed;
 }
 
 button:disabled:hover {
@@ -246,6 +246,7 @@ button.ghost:hover {
 }
 
 .icon-button:disabled:hover {
+  color: var(--muted);
   background: transparent;
 }
 
