@@ -13,6 +13,6 @@ const presetPages = {
 
 export default defineConfig({
   plugins: [vue(), presetPages],
-  build: { rolldownOptions: { input: ["index.html", "app/index.html", "app/render.html"] } },
+  build: { rolldownOptions: { input: ["index.html", "app/index.html"] } },
   server: { host: "127.0.0.1", port: 9123, strictPort: true, proxy: { "/api": { target: "https://mctitlegenerator.com", changeOrigin: true } } }
 })

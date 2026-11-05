@@ -1,20 +1,19 @@
-import { reactive, watch } from "vue"
+import { watch } from "vue"
 import * as THREE from "three"
 import { AUTO_BORDER } from "./build.js"
 import { quietly } from "./history.js"
 import { round } from "./maths.js"
-import { runtime, scene } from "./scene.js"
+import { editorTitle } from "./scene.js"
 import { frameCamera, lineBounds, placementMatrix, titleFraming } from "./stage.js"
-import { view } from "./view.js"
 
-export const problems = reactive({})
+export const problems = editorTitle.problems
 
 const perspective = new THREE.PerspectiveCamera()
 const orthographic = new THREE.OrthographicCamera()
 
-function titleCamera(items) {
+function titleCamera(items, view) {
   const camera = view.fov ? perspective : orthographic
-  frameCamera(camera, { ...titleFraming(items.map(({ object, state }) => ({ ...state, type: object.type }))), fov: view.fov, width: 1, height: 1 })
+  frameCamera(camera, { ...titleFraming(items.map(({ object, state }) => ({ ...state, type: object.type })), view.fixedDistance), fov: view.fov, width: 1, height: 1 })
   return camera
 }
 
@@ -70,8 +69,8 @@ function solve(camera, target, reference) {
   return (solutions[0] + solutions[1]) / 2
 }
 
-function find(id) {
-  return scene.objects.find(object => object.id === id)
+function find(id, title = editorTitle) {
+  return title.objects.find(object => object.id === id)
 }
 
 export function leadsTo(start, target) {
@@ -83,9 +82,9 @@ export function leadsTo(start, target) {
   return false
 }
 
-function matchReference(object) {
-  let reference = find(object.matchWidth)
-  while (reference && find(reference.matchWidth)) reference = find(reference.matchWidth)
+function matchReference(object, title = editorTitle) {
+  let reference = find(object.matchWidth, title)
+  while (reference && find(reference.matchWidth, title)) reference = find(reference.matchWidth, title)
   return reference
 }
 
@@ -93,33 +92,33 @@ export function matchSolved(object) {
   return matchReference(object)?.hidden === false
 }
 
-function depth(object) {
+function depth(object, title) {
   let count = 0
-  for (let current = find(object.matchWidth); current; current = find(current.matchWidth)) count++
+  for (let current = find(object.matchWidth, title); current; current = find(current.matchWidth, title)) count++
   return count
 }
 
-function rested(object) {
-  const state = runtime[object.id]
+function rested(object, title) {
+  const state = title.runtime[object.id]
   return { ...state, transform: { ...state.transform, rotate: [0, 0, 0], translate: [0, 0, 0] } }
 }
 
-function ready(object) {
-  const state = runtime[object.id]
+function ready(object, title) {
+  const state = title.runtime[object.id]
   return !object.hidden && !!state?.built && !!state.transform && state.settled
 }
 
-function update() {
-  const items = scene.objects.filter(ready).map(object => ({ object, state: rested(object) }))
-  const linked = scene.objects.filter(object => object.matchWidth !== null).sort((a, b) => depth(a) - depth(b))
+function update(title) {
+  const items = title.objects.filter(object => ready(object, title)).map(object => ({ object, state: rested(object, title) }))
+  const linked = title.objects.filter(object => object.matchWidth !== null).sort((a, b) => depth(a, title) - depth(b, title))
   let camera = null
   for (const object of linked) {
-    const reference = matchReference(object)
-    if (!reference || !ready(object) || !ready(reference)) continue
+    const reference = matchReference(object, title)
+    if (!reference || !ready(object, title) || !ready(reference, title)) continue
     try {
-      camera ??= titleCamera(items)
-      const scaleX = round(solve(camera, { object, state: rested(object) }, { object: reference, state: rested(reference) }), 4)
-      delete problems[object.id]
+      camera ??= titleCamera(items, title.view)
+      const scaleX = round(solve(camera, { object, state: rested(object, title) }, { object: reference, state: rested(reference, title) }), 4)
+      delete title.problems[object.id]
       const scaleY = linkedY(object, scaleX)
       if (Math.abs(scaleX - object.scaleX) > 0.0001 || scaleY !== object.scaleY) {
         quietly(() => {
@@ -128,11 +127,11 @@ function update() {
         })
       }
     } catch (err) {
-      problems[object.id] = err.message
+      title.problems[object.id] = err.message
     }
   }
 }
 
-export function keepMatched() {
-  watch(() => [view.fov, view.fixedDistance, scene.objects.map(object => [object.matchWidth, object.hidden, runtime[object.id]])], update)
+export function keepMatched(title = editorTitle) {
+  watch(() => [title.view.fov, title.view.fixedDistance, title.objects.map(object => [object.matchWidth, object.hidden, title.runtime[object.id]])], () => update(title))
 }

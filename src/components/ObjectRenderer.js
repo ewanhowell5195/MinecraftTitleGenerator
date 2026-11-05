@@ -8,10 +8,9 @@ import { thumbnailItem } from "../lib/layout.js"
 import { blockTextureImage } from "../lib/minecraft.js"
 import { R, paintBase, paintKey, paintSheet } from "../lib/paint.js"
 import { quietly } from "../lib/history.js"
-import { DEFAULT_CAP_HEIGHT, DEFAULT_HEIGHT, heights, rowStart } from "../lib/rows.js"
-import { keepTexture, loadedFont, runtime, words } from "../lib/scene.js"
+import { DEFAULT_CAP_HEIGHT, DEFAULT_HEIGHT, rowStart } from "../lib/rows.js"
+import { editorTitle, keepTexture, loadedFont, words } from "../lib/scene.js"
 import { activeOverlays, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, setTexture, textureEntry } from "../lib/settings.js"
-import { view } from "../lib/view.js"
 
 const BASE = ["font", "source", "texture", "textureVariant", "tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "stops", "smooth", "gradientAngle", "arcGradient", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "tileablePerCharacter", "disableFontOverlay", "edgeBrightness"]
 
@@ -21,10 +20,12 @@ export default {
   props: {
     object: { type: Object, required: true },
     fonts: { type: Array, required: true },
-    tileables: { type: Object, required: true }
+    tileables: { type: Object, required: true },
+    title: { type: Object, default: () => editorTitle }
   },
   setup(props) {
     const object = props.object
+    const { heights, runtime, view } = props.title
     const font = shallowRef(null)
     const sheet = shallowRef(null)
     const list = shallowRef(null)
@@ -102,7 +103,7 @@ export default {
     const totalScale = computed(() => meshScale.value.map((value, axis) => value * wordScale.value[axis]))
     const outlineGrow = computed(() => meshScale.value.map((value, axis) => (object.scaleOutline ? 1 : value) * (object.wordScaleOutline ? 1 : wordScale.value[axis])))
 
-    const members = computed(() => words(object))
+    const members = computed(() => words(object, props.title))
 
     function wordShape(other) {
       return {
@@ -144,7 +145,7 @@ export default {
 
     const transform = computed(() => {
       const height = font.value?.height ?? DEFAULT_HEIGHT
-      const start = rowStart(object)
+      const start = rowStart(object, props.title)
       const arc = heights[object.id]?.arc ?? { top: 0, bottom: 0 }
       const scale = meshScale.value
       const word = { scale: wordScale.value, userScale: [object.wordScaleX, object.wordScaleY, object.wordScaleZ], rotate: [object.wordRotationX, object.wordRotationY, object.wordRotationZ], translate: [object.wordTranslateX, object.wordTranslateY, object.wordTranslateZ] }

@@ -177,12 +177,21 @@ export function resetTitle() {
   fileError.value = null
 }
 
-function applyTitle(values) {
+function titleObjects(values) {
   const lines = values.map(words => words.map(value => keptObject(value)))
   const objects = lines.flat()
   for (const object of objects) {
     if (object.matchWidth !== null) object.matchWidth = lines[object.matchWidth][0].id
   }
+  return objects
+}
+
+export function readTitleObjects(data) {
+  return titleObjects(readData(data))
+}
+
+function applyTitle(values) {
+  const objects = titleObjects(values)
   scene.objects.splice(0, scene.objects.length, ...objects)
   Object.assign(scene, validSelection(objects, null, null))
   fileError.value = null

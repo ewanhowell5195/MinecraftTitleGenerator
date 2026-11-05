@@ -188,7 +188,7 @@ function restBounds(item) {
   return bounds.applyMatrix4(placementMatrix({ ...item.transform, scale: [1, 1, 1], rotate: [0, 0, 0], translate: [0, 0, 0] }, lineBounds(item.built)))
 }
 
-export function titleFraming(items) {
+export function titleFraming(items, fixedDistance = view.fixedDistance) {
   const box = new THREE.Box3()
   const anchor = new THREE.Box3()
   const solid = items.filter(item => item.built?.body.triangles && item.transform)
@@ -201,7 +201,7 @@ export function titleFraming(items) {
     if (!anchored || item.type === "top") anchor.union(restBounds(item))
   }
   if (box.isEmpty() || anchor.isEmpty()) return null
-  return { anchor, corners, size: box.getSize(new THREE.Vector3()).length(), reach: view.fixedDistance ? TITLE_REACH : null }
+  return { anchor, corners, size: box.getSize(new THREE.Vector3()).length(), reach: fixedDistance ? TITLE_REACH : null }
 }
 
 function place(entry, value) {

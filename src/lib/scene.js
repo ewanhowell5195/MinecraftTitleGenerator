@@ -1,7 +1,8 @@
 import { computed, reactive, ref, shallowReactive, watch } from "vue"
 import { round } from "./maths.js"
 import { LINE, applyType, createObject, isModified, snapshot } from "./settings.js"
-import { persistence, view } from "./view.js"
+import { createTitle } from "./title.js"
+import { view } from "./view.js"
 
 const STORAGE = "minecraft-title-scene"
 const FILE_NAME_LIMIT = 64
@@ -35,7 +36,14 @@ const initial = load()
 
 export const scene = reactive({ objects: initial.objects, ...validSelection(initial.objects, initial.selected, initial.selectedGroup) })
 
-export const runtime = shallowReactive({})
+export const editorTitle = {
+  ...createTitle(scene.objects, view),
+  get objects() {
+    return scene.objects
+  }
+}
+
+export const runtime = editorTitle.runtime
 
 export const library = shallowReactive({ fonts: [], tileables: {} })
 
@@ -54,7 +62,7 @@ export function leaveSharedLink() {
 watch(scene, () => {
   clearTimeout(saving)
   saving = setTimeout(() => {
-    if (sharedLink.open || !persistence.on) return
+    if (sharedLink.open) return
     try {
       localStorage.setItem(STORAGE, JSON.stringify({ objects: scene.objects, selected: scene.selected, selectedGroup: scene.selectedGroup }))
       saveError.value = null
@@ -64,8 +72,8 @@ watch(scene, () => {
   }, 300)
 }, { deep: true })
 
-export function words(object) {
-  return object.group === null ? [object] : scene.objects.filter(other => other.group === object.group)
+export function words(object, title = editorTitle) {
+  return object.group === null ? [object] : title.objects.filter(other => other.group === object.group)
 }
 
 export function lineHidden(object) {
