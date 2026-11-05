@@ -36,9 +36,12 @@ export const view = reactive(read())
 
 export const viewport = { capture: null }
 
+export const persistence = { on: true }
+
 export const viewportChanges = ref(0)
 
 watch(view, value => {
+  if (!persistence.on) return
   try {
     localStorage.setItem("minecraft-title-view", JSON.stringify(value))
   } catch {}

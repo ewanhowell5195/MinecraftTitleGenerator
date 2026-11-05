@@ -1,7 +1,7 @@
 import { computed, reactive, ref, shallowReactive, watch } from "vue"
 import { round } from "./maths.js"
 import { LINE, applyType, createObject, isModified, snapshot } from "./settings.js"
-import { view } from "./view.js"
+import { persistence, view } from "./view.js"
 
 const STORAGE = "minecraft-title-scene"
 const FILE_NAME_LIMIT = 64
@@ -54,7 +54,7 @@ export function leaveSharedLink() {
 watch(scene, () => {
   clearTimeout(saving)
   saving = setTimeout(() => {
-    if (sharedLink.open) return
+    if (sharedLink.open || !persistence.on) return
     try {
       localStorage.setItem(STORAGE, JSON.stringify({ objects: scene.objects, selected: scene.selected, selectedGroup: scene.selectedGroup }))
       saveError.value = null

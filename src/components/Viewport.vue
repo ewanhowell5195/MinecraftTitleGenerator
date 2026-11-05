@@ -20,6 +20,8 @@
   const WHEEL_ZOOM = 0.002
   const PINCH_WHEEL_ZOOM = 0.01
   const LINE_HEIGHT = 16
+  const SNAPSHOT_SIZE = 360
+  const SNAPSHOT_QUALITY = 0.85
 
   const props = defineProps({
     items: { type: Array, required: true },
@@ -366,6 +368,7 @@
     observer.observe(host.value)
     viewport.capture = capture
     viewport.vector = vector
+    viewport.snapshot = snapshot
     viewport.titleRect = titleRect
     viewport.canvas = renderer.domElement
     viewport.redraw = invalidate
@@ -387,6 +390,21 @@
     return await renderTitle(renderer.getSize(new THREE.Vector2()), scene, camera, resolution, antialias, task)
   }
 
+  async function snapshot() {
+    refit()
+    camera.position.copy(basePosition)
+    camera.quaternion.copy(baseQuaternion)
+    camera.projectionMatrix.copy(baseProjection)
+    camera.projectionMatrixInverse.copy(baseProjection).invert()
+    sortEntries(Array.from(entries.values()), camera)
+    try {
+      const shot = await renderTitle(renderer.getSize(new THREE.Vector2()), scene, camera, SNAPSHOT_SIZE, true, { signal: new AbortController().signal, progress: () => {} })
+      return shot?.toDataURL("image/webp", SNAPSHOT_QUALITY) ?? null
+    } finally {
+      applyView()
+    }
+  }
+
   function vector(resolution) {
     refit()
     sortEntries(Array.from(entries.values()), camera)
@@ -396,6 +414,7 @@
   onBeforeUnmount(() => {
     viewport.capture = null
     viewport.vector = null
+    viewport.snapshot = null
     viewport.titleRect = null
     viewport.canvas = null
     viewport.redraw = null
