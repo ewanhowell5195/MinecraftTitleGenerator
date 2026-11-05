@@ -11,7 +11,9 @@ export const EXTENSION = "mctitle"
 
 const UNUSED = [
   [object => object.textureSource !== "premade", ["texture", "textureVariant"]],
-  [object => object.textureSource !== "tileable", ["tileable", "tileableVariant", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges"]],
+  [object => object.textureSource !== "tileable", ["tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges"]],
+  [object => object.tileableSource !== "minecraft", ["minecraftTexture", "minecraftVersion"]],
+  [object => object.tileableSource === "minecraft", ["tileable", "tileableVariant"]],
   [object => object.textureSource !== "gradient", ["stops", "smooth", "gradientAngle"]],
   [object => object.textureSource === "premade", ["disableFontOverlay"]],
   [object => object.overlayMode !== "custom", ["overlays"]],

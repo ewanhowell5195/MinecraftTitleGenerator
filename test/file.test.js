@@ -148,6 +148,13 @@ describe("saving trims settings", () => {
     assert.deepEqual(await savedLines(make("top", { ...values, textureSource: "gradient" })), [{ textureSource: "gradient", stops, smooth: false, gradientAngle: 10, disableFontOverlay: true }])
   })
 
+  test("only the settings of the current tileable source are saved", async () => {
+    const values = { textureSource: "tileable", tileable: "dirt", tileableVariant: "c", minecraftTexture: "stone", minecraftVersion: "1.8.9" }
+    assert.deepEqual(await savedLines(make("top", values)), [{ textureSource: "tileable", tileable: "dirt", tileableVariant: "c" }])
+    assert.deepEqual(await savedLines(make("top", { ...values, tileableSource: "minecraft" })), [{ textureSource: "tileable", tileableSource: "minecraft", minecraftTexture: "stone", minecraftVersion: "1.8.9" }])
+    assert.deepEqual(await savedLines(make("top", { ...values, textureSource: "premade", texture: "a", tileableSource: "minecraft" })), [{ texture: "a" }])
+  })
+
   test("overlay layers are only saved in custom mode", async () => {
     const layers = [{ ...LAYER, overlay: "dust" }]
     assert.deepEqual(await savedLines(make("top", { overlays: layers, edgeOverlays: layers })), [{}])

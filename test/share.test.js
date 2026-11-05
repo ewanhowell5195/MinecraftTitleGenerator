@@ -13,7 +13,7 @@ registerHooks({ load: withViteEnv })
 const posts = []
 
 async function recordPost(url, options) {
-  posts.push({ url, method: options.method, ids: JSON.parse(options.body).ids })
+  posts.push({ url, method: options.method, ...JSON.parse(options.body) })
   return { ok: true }
 }
 
@@ -43,6 +43,26 @@ describe("sharing a title", () => {
     assert.equal(posts[0].method, "POST")
     assert.match(posts[0].url, /minecrafttitlegenerator\/stats$/)
     assert.deepEqual(posts[0].ids, ["minecraft-ten", "minecraft-ten.grass"])
+  })
+
+  test("sends a Minecraft texture with its version, apart from the other ids", () => {
+    setTitle(createObject({ text: "block", textureSource: "tileable", tileable: "dirt", tileableSource: "minecraft", minecraftTexture: "stone", minecraftVersion: "1.8.9" }))
+    shareLink()
+    assert.deepEqual(posts[0].ids, ["minecraft-ten"])
+    assert.deepEqual(posts[0].minecraft, [{ texture: "stone", version: "1.8.9" }])
+  })
+
+  test("sends a texture once when two lines use it", () => {
+    const line = { textureSource: "tileable", tileableSource: "minecraft", minecraftTexture: "stone" }
+    setTitle(createObject({ ...line, text: "one", minecraftVersion: "1.8.9" }), createObject({ ...line, text: "two", minecraftVersion: "26.3" }))
+    shareLink()
+    assert.equal(posts[0].minecraft.length, 1)
+  })
+
+  test("leaves out the Minecraft list when no line uses one", () => {
+    setTitle(createObject({ text: "plain", texture: "grass" }))
+    shareLink()
+    assert.equal(posts[0].minecraft, undefined)
   })
 
   test("sharing the same title again does not count twice", () => {

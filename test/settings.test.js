@@ -61,6 +61,9 @@ const TOP_DEFAULTS = {
   textureVariant: null,
   tileable: "cobblestone",
   tileableVariant: null,
+  tileableSource: "premade",
+  minecraftTexture: "cobblestone",
+  minecraftVersion: null,
   stops: [{ colour: "#FFCF76", position: 0 }, { colour: "#DA371E", position: 100 }],
   smooth: true,
   gradientAngle: 0,
@@ -377,6 +380,14 @@ describe("resetPanel", () => {
     assert.equal(object.tileableScale, 2)
     assert.equal(object.texture, "other")
     assert.equal(object.smooth, false)
+  })
+
+  test("tileable texture also resets the Minecraft texture", () => {
+    const object = createObject({ textureSource: "tileable", tileableSource: "minecraft", minecraftTexture: "stone", minecraftVersion: "1.8.9" })
+    resetPanel(object, "texture")
+    assert.equal(object.tileableSource, "premade")
+    assert.equal(object.minecraftTexture, "cobblestone")
+    assert.equal(object.minecraftVersion, null)
   })
 })
 

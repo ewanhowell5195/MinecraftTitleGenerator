@@ -4,6 +4,7 @@ import { arcAssets, arcLayout } from "../lib/arc.js"
 import { buildOutline, buildText } from "../lib/build.js"
 import { framing } from "../lib/framing.js"
 import { hasMarks, loadFont, sheetFolder } from "../lib/font.js"
+import { blockTextureImage } from "../lib/minecraft.js"
 import { R, paintBase, paintKey, paintSheet } from "../lib/paint.js"
 import { quietly } from "../lib/history.js"
 import { DEFAULT_CAP_HEIGHT, DEFAULT_HEIGHT, heights, rowStart } from "../lib/rows.js"
@@ -11,7 +12,7 @@ import { keepTexture, loadedFont, runtime, words } from "../lib/scene.js"
 import { activeOverlays, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, setTexture, textureEntry } from "../lib/settings.js"
 import { view } from "../lib/view.js"
 
-const BASE = ["font", "source", "texture", "textureVariant", "tileable", "tileableVariant", "stops", "smooth", "gradientAngle", "arcGradient", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "disableFontOverlay", "edgeBrightness"]
+const BASE = ["font", "source", "texture", "textureVariant", "tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "stops", "smooth", "gradientAngle", "arcGradient", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "disableFontOverlay", "edgeBrightness"]
 
 const LAYOUT = new Set(["spacing", "kerning", "arcMode", "arcTop", "arcBottom", "arcMove", "arcMarked", "stretch", "terminators"])
 
@@ -53,6 +54,9 @@ export default {
       textureVariant: object.textureVariant,
       tileable: object.tileable,
       tileableVariant: object.tileableVariant,
+      tileableSource: object.tileableSource,
+      minecraftTexture: object.minecraftTexture,
+      minecraftVersion: object.minecraftVersion,
       stops: object.stops.map(stop => ({ colour: stop.colour, position: stop.position })),
       smooth: object.smooth,
       gradientAngle: object.gradientAngle,
@@ -194,7 +198,7 @@ export default {
         assets.densities.push(Math.max(1, density))
       }
       if (value.source === "tile") {
-        assets.tile = image(tileableUrl(props.tileables, object.tileable, object.tileableVariant))
+        assets.tile = object.tileableSource === "minecraft" ? blockTextureImage(object.minecraftVersion, object.minecraftTexture) : image(tileableUrl(props.tileables, object.tileable, object.tileableVariant))
         assets.densities.push(1 / object.tileableScale)
       }
       if (value.source !== "texture" && font.value.overlay && !object.disableFontOverlay) {

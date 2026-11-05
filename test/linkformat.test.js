@@ -64,6 +64,11 @@ describe("values", () => {
     assert.equal(writeLines([{ hue: 359 }]).length, 5)
   })
 
+  test("a Minecraft texture and its version", () => {
+    const line = { textureSource: "tileable", tileableSource: "minecraft", minecraftTexture: "stone", minecraftVersion: "26.4-snapshot-7" }
+    assert.deepEqual(roundTrip([line]), [line])
+  })
+
   test("true and false", () => {
     assert.deepEqual(roundTrip([{ fade: true, smooth: false }]), [{ fade: true, smooth: false }])
   })

@@ -18,13 +18,19 @@ export function popular(entries, id) {
   return entries.slice().sort((a, b) => (counts.value.get(id(b)) ?? 0) - (counts.value.get(id(a)) ?? 0))
 }
 
+export function minecraftStatId(id) {
+  return `tileable.minecraft.${id}`
+}
+
 function statIds() {
   const ids = new Set()
+  const minecraft = new Map()
   for (const object of scene.objects) {
     if (object.hidden || !object.text.trim()) continue
     ids.add(object.font)
     if (object.textureSource === "premade") ids.add(`${object.font}.${object.texture}`)
-    if (object.textureSource === "tileable") ids.add(`tileable.${object.tileable}`)
+    if (object.textureSource === "tileable" && object.tileableSource === "minecraft") minecraft.set(object.minecraftTexture, object.minecraftVersion)
+    if (object.textureSource === "tileable" && object.tileableSource !== "minecraft") ids.add(`tileable.${object.tileable}`)
     for (const [kind, mode] of Object.entries(OVERLAY_KINDS)) {
       if (object[mode] !== "custom") continue
       for (const layer of object[kind]) {
@@ -32,17 +38,17 @@ function statIds() {
       }
     }
   }
-  return Array.from(ids)
+  return { ids: Array.from(ids), minecraft: Array.from(minecraft, ([texture, version]) => ({ texture, version })) }
 }
 
 export async function submitStats() {
   if (import.meta.env.DEV) return
   const title = JSON.stringify(scene.objects)
-  const ids = statIds()
+  const { ids, minecraft } = statIds()
   if (title === submitted || !ids.length) return
   submitted = title
   try {
-    const response = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids }) })
+    const response = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(minecraft.length ? { ids, minecraft } : { ids }) })
     if (!response.ok) throw new Error(`failed to submit the title stats: ${response.status}`)
   } catch (err) {
     if (submitted === title) submitted = null

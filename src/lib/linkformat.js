@@ -254,7 +254,10 @@ const KEYS = [
   ["size", NUMBER],
   ["spread", NUMBER],
   ["thickness", NUMBER],
-  ["width", NUMBER]
+  ["width", NUMBER],
+  ["tileableSource", choice("premade", "minecraft")],
+  ["minecraftTexture", TEXT],
+  ["minecraftVersion", TEXT]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))
