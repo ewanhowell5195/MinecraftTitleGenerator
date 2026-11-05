@@ -1,6 +1,6 @@
 <script setup>
   import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue"
-  import { communityPreset, countDownload, listCommunity, randomCommunityPreset, voteOn } from "../lib/community.js"
+  import { communityPreset, countDownload, listCommunity, ownPresets, randomCommunityPreset, refreshUsage, voteOn } from "../lib/community.js"
   import { useWindowEvents } from "../lib/events.js"
   import { LIMITS } from "../lib/limits.js"
   import { addPreset, loadPreset, presets, removePreset, renamePreset } from "../lib/presets.js"
@@ -61,7 +61,7 @@
   }
 
   function isMine(preset) {
-    return preset.own || sharedByMe.value.has(preset.id)
+    return ownPresets.value.includes(preset.id) || sharedByMe.value.has(preset.id)
   }
 
   async function load(offset) {
@@ -84,6 +84,7 @@
   }
 
   function selectCommunity(preset) {
+    error.value = ""
     selectedCommunity.value = preset
     showPreset(preset.id)
   }
@@ -139,7 +140,6 @@
     try {
       Object.assign(preset, await voteOn(preset.id, value))
     } catch (err) {
-      if (err.status === 403) preset.own = true
       error.value = err.message
     }
   }
@@ -209,6 +209,7 @@
   })
 
   onMounted(() => {
+    refreshUsage()
     if (tab.value === "community") load(0)
     else ensureSelected()
     followAddress()
@@ -254,9 +255,12 @@
           <p v-else-if="error" class="message error">{{ error }}</p>
           <p v-else-if="tab === 'community' ? !results.length && !loading : !localShown.length" class="message">{{ emptyMessage }}</p>
           <div v-if="tab === 'community'" class="grid">
-            <div v-for="preset of results" :key="preset.id" class="card" :class="{ mine: isMine(preset), selected: selected?.id === preset.id }" @click="selectCommunity(preset)">
+            <div v-for="preset of results" :key="preset.id" class="card" :class="{ selected: selected?.id === preset.id }" @click="selectCommunity(preset)">
               <TitlePicture :code="preset.code" :title="preset.name" @open="selectCommunity(preset)" />
-              <strong :title="preset.name">{{ preset.name }}</strong>
+              <div class="details">
+                <strong :title="preset.name">{{ preset.name }}</strong>
+                <span v-if="isMine(preset)" class="yours">Shared by you</span>
+              </div>
             </div>
           </div>
           <div v-else class="grid">
@@ -389,7 +393,7 @@
 
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, clamp(320px, 21vw, 420px)), 1fr));
     gap: 12px;
   }
 
@@ -409,15 +413,22 @@
     background: var(--card-hover);
   }
 
-  .card.mine {
-    outline: 1px solid var(--accent);
-    outline-offset: -1px;
-  }
-
   .card.selected {
     outline: 2px solid var(--accent);
     outline-offset: -2px;
     background: var(--card-hover);
+  }
+
+  .details {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .yours {
+    flex: none;
+    color: var(--accent);
   }
 
   .card strong {

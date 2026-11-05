@@ -78,12 +78,10 @@
         <input v-if="renaming" v-selected class="name-field" type="text" :value="preset.name" :maxlength="NAME_LIMIT" :aria-label="`Name of ${preset.name}`" spellcheck="false" @blur="finishRenaming" @keydown.enter="$event.target.blur()" @keydown.esc.stop="renaming = false">
         <h2 v-else :title="preset.name">{{ preset.name }}</h2>
         <button v-if="local && !renaming" class="icon-button small" :title="`Rename ${preset.name}`" :aria-label="`Rename ${preset.name}`" @click="renaming = true"><Icon name="pencil" :size="14" /></button>
+        <span v-if="local && preset.shared" class="yours">Shared publicly</span>
+        <span v-else-if="mine" class="yours">Shared by you</span>
       </div>
-      <template v-if="local">
-        <p v-if="preset.shared" class="yours">Shared publicly</p>
-      </template>
-      <template v-else>
-        <p v-if="mine" class="yours">Shared by you</p>
+      <template v-if="!local">
         <PresetRating :rating="preset.rating" :votes="preset.votes" :mine="preset.vote" :own="mine" large @vote="emit('vote', $event)" />
         <p class="facts"><span>{{ uses }}</span><span>Shared {{ sharedOn }}</span></p>
       </template>
@@ -157,6 +155,10 @@
   }
 
   .yours {
+    flex: none;
+    margin-left: auto;
+    padding-left: 8px;
+    font-size: var(--font-md);
     color: var(--accent);
   }
 
