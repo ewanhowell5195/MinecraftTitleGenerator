@@ -84,7 +84,7 @@ export async function listCommunity({ sort, search, offset }) {
       persist()
     }
   }
-  const presets = sort === "needs" ? page.presets.filter(preset => !store.votes[preset.id]) : page.presets
+  const presets = sort === "needs" ? page.presets.filter(preset => !store.votes[preset.id] && !store.own.includes(preset.id)) : page.presets
   return { presets: presets.map(withMyVote), more: page.more, next: offset + page.presets.length }
 }
 
@@ -120,9 +120,8 @@ function showUsage() {
 export async function sharePublicly(code, name) {
   const result = await posted("", { code, name })
   store.own.push(result.preset.id)
-  for (const key of Object.keys(store.pages)) {
-    if (key.startsWith("new|") || key.startsWith("needs|")) delete store.pages[key]
-  }
+  store.pages = {}
+  store.pool = null
   store.usage = { day: currentDay(), used: (store.usage?.day === currentDay() ? store.usage.used : 0) + 1 }
   persist()
   showUsage()

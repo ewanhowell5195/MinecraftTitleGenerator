@@ -11,7 +11,7 @@ const MATCHES = "lower(name) LIKE ?1 ESCAPE '\\' OR lower(text) LIKE ?1 ESCAPE '
 const EDGE_SECONDS = 300
 const DAY = 86400000
 const WEEK_DAYS = 7
-const NEWEST_PAGE = "?sort=new&offset=0"
+const FIRST_PAGES = ["week", "popular", "top", "new", "needs"].map(sort => `?sort=${sort}&offset=0`)
 const COLUMNS = "id, code, name, text, downloads, votes, rating, created_at AS createdAt"
 
 const rude = new RegExpMatcher({ ...englishDataset.build(), ...englishRecommendedTransformers })
@@ -243,7 +243,7 @@ export const submitPreset = guarded(async context => {
     env.DB.prepare(`INSERT INTO presets (code, fingerprint, name, text, ip_hash, created_at) VALUES (?, ?, ?, ?, ?, ?) RETURNING ${COLUMNS}`).bind(body.code, fingerprint, name, facts.text, ip, Date.now()),
     env.DB.prepare("INSERT INTO preset_submissions (ip_hash, day, count) VALUES (?, ?, 1) ON CONFLICT (ip_hash, day) DO UPDATE SET count = count + 1").bind(ip, day)
   ])
-  await globalThis.caches?.default.delete(new Request(new URL(NEWEST_PAGE, request.url)))
+  for (const page of FIRST_PAGES) await globalThis.caches?.default.delete(new Request(new URL(page, request.url)))
   return reply(201, { preset: rated(inserted.results[0]) })
 })
 

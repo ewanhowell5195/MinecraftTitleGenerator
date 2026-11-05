@@ -764,12 +764,12 @@ describe("popular in the last 7 days", () => {
 })
 
 describe("sharing and the edge cache", () => {
-  test("clears the first Newest page there", async () => {
+  test("clears the first page of each sort there", async () => {
     const deleted = []
     globalThis.caches = { default: { match: async () => undefined, put: async () => {}, delete: async request => deleted.push(request.url) } }
     try {
       await share("a")
-      assert.deepEqual(deleted, ["https://example.test/api/presets?sort=new&offset=0"])
+      assert.deepEqual(deleted, ["week", "popular", "top", "new", "needs"].map(sort => `https://example.test/api/presets?sort=${sort}&offset=0`))
     } finally {
       delete globalThis.caches
     }

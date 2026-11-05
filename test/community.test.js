@@ -259,7 +259,7 @@ describe("daily usage", () => {
 })
 
 describe("sharing", () => {
-  test("clears the cached Newest and Needs votes pages so your title shows up", async () => {
+  test("clears the cached pages so your title shows up in every sort", async () => {
     replies.GET = page([1])
     replies.POST = { body: { preset: { id: 2 } } }
     const { listCommunity, sharePublicly } = await fresh()
@@ -270,11 +270,33 @@ describe("sharing", () => {
     await listCommunity({ ...POPULAR, sort: "new" })
     await listCommunity({ ...POPULAR, sort: "needs" })
     await listCommunity(POPULAR)
-    assert.equal(requests.filter(item => item.startsWith("GET")).length, 5)
+    assert.equal(requests.filter(item => item.startsWith("GET")).length, 6)
+  })
+})
+
+describe("needs votes", () => {
+  test("leaves out presets you shared", async () => {
+    replies.GET = page([1, 2])
+    replies.POST = { body: { preset: { id: 2 } } }
+    const { listCommunity, sharePublicly } = await fresh()
+    await sharePublicly("code", "name")
+    const { presets, next } = await listCommunity({ sort: "needs", search: "", offset: 0 })
+    assert.deepEqual(presets.map(preset => preset.id), [1])
+    assert.equal(next, 2)
   })
 })
 
 describe("random", () => {
+  test("sharing gets a new batch so your title can come up", async () => {
+    replies.GET = page([1])
+    replies.POST = { body: { preset: { id: 2 } } }
+    const { listCommunity, sharePublicly } = await fresh()
+    await listCommunity({ ...POPULAR, sort: "random" })
+    await sharePublicly("code", "name")
+    await listCommunity({ ...POPULAR, sort: "random" })
+    assert.equal(requests.filter(item => item.startsWith("GET")).length, 2)
+  })
+
   test("reuses one batch across tab views and random picks", async () => {
     replies.GET = page([1, 2, 3])
     const { listCommunity, randomCommunityPreset } = await fresh()
