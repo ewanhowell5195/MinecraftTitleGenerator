@@ -45,20 +45,20 @@
 </script>
 
 <template>
-  <RenderDialog title="Save preset" close-title="Cancel" dismissable @close="emit('close')">
+  <RenderDialog title="Save preset" close-title="Cancel" :wide="!namingShared" dismissable @close="emit('close')">
     <form class="body" @submit.prevent="savePreset(name)">
       <label>
         <span>Name</span>
         <input ref="field" type="text" v-model="name" :maxlength="NAME_LIMIT" :placeholder="suggested" spellcheck="false">
       </label>
-      <template v-if="!namingShared">
-        <p class="hint">Share your title so other people can find it in the community presets and use it for themselves.</p>
-        <SubmissionUsage />
-      </template>
+      <p v-if="!namingShared" class="hint">Share your title so other people can find it in the community presets and use it for themselves.</p>
       <p v-if="error" class="error">{{ error }}</p>
       <div class="footer">
-        <button type="submit" :class="{ primary: namingShared }">Save</button>
-        <button v-if="!namingShared" class="primary" type="button" :disabled="sending || usage && usage.used >= usage.limit" @click="saveAndShare">{{ sending ? "Sharing" : "Save and share" }}</button>
+        <SubmissionUsage v-if="!namingShared" class="usage" />
+        <div class="buttons">
+          <button type="submit" :class="{ primary: namingShared }">Save</button>
+          <button v-if="!namingShared" class="primary" type="button" :disabled="sending || usage && usage.used >= usage.limit" @click="saveAndShare">{{ sending ? "Sharing" : "Save and share" }}</button>
+        </div>
       </div>
     </form>
   </RenderDialog>
@@ -97,11 +97,23 @@
 
   .footer {
     display: flex;
-    justify-content: flex-end;
+    flex-wrap: wrap;
+    align-items: center;
     gap: 8px;
   }
 
-  .footer button {
+  .buttons {
+    display: flex;
+    flex: none;
+    gap: 8px;
+    margin-left: auto;
+  }
+
+  .buttons button {
     user-select: none;
+  }
+
+  .usage {
+    flex: 1 1 200px;
   }
 </style>

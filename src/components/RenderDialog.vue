@@ -6,6 +6,7 @@
     title: { type: String, required: true },
     closeTitle: { type: String, required: true },
     large: { type: Boolean, default: false },
+    wide: { type: Boolean, default: false },
     dismissable: { type: Boolean, default: false }
   })
 
@@ -20,7 +21,7 @@
 
 <template>
   <Teleport to="body">
-    <div class="backdrop" :class="{ large }" @pointerdown.self="dismissable && emit('close')">
+    <div class="backdrop" :class="{ large, wide }" @pointerdown.self="dismissable && emit('close')">
       <div class="dialog" role="dialog" :aria-label="title">
         <header class="row">
           <h2>{{ title }}</h2>
@@ -50,6 +51,10 @@
     background: var(--surface);
     border: 1px solid var(--line-strong);
     box-shadow: var(--shadow);
+  }
+
+  .wide .dialog {
+    width: min(560px, 100%);
   }
 
   .large .dialog {
