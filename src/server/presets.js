@@ -8,7 +8,7 @@ export { LIMITS }
 
 const SORTS = { week: "week DESC, downloads DESC, id DESC", popular: "downloads DESC, id DESC", top: "rating DESC, votes DESC, id DESC", new: "created_at DESC, id DESC", needs: "votes, id" }
 const MATCHES = "lower(name) LIKE ?1 ESCAPE '\\' OR lower(text) LIKE ?1 ESCAPE '\\'"
-const EDGE_SECONDS = 300
+const EDGE_SECONDS = 1800
 const DAY = 86400000
 const WEEK_DAYS = 7
 const FIRST_PAGES = ["week", "popular", "top", "new", "needs"].map(sort => `?sort=${sort}&offset=0`)

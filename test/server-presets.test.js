@@ -387,7 +387,7 @@ describe("listing", () => {
 
     test("responses say how long to keep them", async () => {
       await list("?sort=top")
-      assert.equal(entries.values().next().value.headers.get("Cache-Control"), "public, max-age=300")
+      assert.equal(entries.values().next().value.headers.get("Cache-Control"), "public, max-age=1800")
     })
 
     test("refusals aren't cached", async () => {
