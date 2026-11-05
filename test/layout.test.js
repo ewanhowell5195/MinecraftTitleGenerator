@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { SPACE, layout, lineLayout } from "../src/lib/layout.js"
+import { SPACE, layout, lineLayout, thumbnailItem } from "../src/lib/layout.js"
 
 const SMILE = "\u{1F633}"
 const QUOTE = "\u{1F629}"
@@ -26,6 +26,42 @@ function charsOf(placed) {
 function xsOf(placed) {
   return placed.map(item => item.x)
 }
+
+describe("thumbnailItem", () => {
+  const terminated = fontOf(`ab ${OPEN}${CLOSE}`, { terminatorSpace: true })
+
+  test("is the first letter of plain text", () => {
+    assert.equal(thumbnailItem(layout(fontOf("ab"), "ba", {})).glyph.char, "b")
+  })
+
+  test("skips the opening terminator", () => {
+    assert.equal(thumbnailItem(layout(fontOf(`ab${OPEN}${CLOSE}`), "ba", { terminators: true })).glyph.char, "b")
+  })
+
+  test("skips the space glyph after a terminator", () => {
+    assert.equal(thumbnailItem(layout(terminated, "ba", { terminators: true })).glyph.char, "b")
+  })
+
+  test("skips a space filler", () => {
+    const font = withGlyphs(fontOf("a "), { a: glyphOf("a", { width: 2, advance: 5, originX: 0 }), " ": glyphOf(" ", { width: 3, advance: 3, originX: 0 }) })
+    const placed = [{ glyph: { ...font.glyphs[" "], fill: true } }].concat(layout(font, "a", {}))
+    assert.equal(thumbnailItem(placed).glyph.char, "a")
+  })
+
+  test("reads the character out of a glyph's line key", () => {
+    const keyed = char => ({ glyph: { char: `${char}\u0000${0}` } })
+    assert.equal(thumbnailItem([keyed(OPEN), keyed(" "), keyed("z"), keyed(CLOSE)]).glyph.char, "z\u00000")
+  })
+
+  test("is nothing when only terminators and spaces are placed", () => {
+    assert.equal(thumbnailItem([{ glyph: { char: OPEN } }, { glyph: { char: " " } }, { glyph: { char: CLOSE } }]), undefined)
+  })
+
+  test("a word's first letter is used when an earlier word owns the space", () => {
+    const placed = lineLayout(terminated, [{ text: "a", space: false }, { text: "b", space: true }], { terminators: true })
+    assert.equal(thumbnailItem(placed.filter(item => item.word === 1)).glyph.char, "b")
+  })
+})
 
 describe("layout positions", () => {
   test("advances the pen and offsets each glyph by its origin", () => {

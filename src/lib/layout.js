@@ -1,5 +1,7 @@
 export const SPACE = 8
 
+const NOT_THUMBNAILS = new Set(["┫", "┣", " "])
+
 function normalise(text) {
   return text.replace(/A/g, "\u{1F633}").replace(/(\s|^)'/g, "$1\u{1F629}").replace(/(\s|^)"/g, "$1\u{1F629}\u{1F629}").replace(/"/g, "''").toLowerCase()
 }
@@ -9,6 +11,10 @@ function filler(glyph, width) {
   const mask = new Uint8Array(width * glyph.height)
   for (let row = 0; row < glyph.height; row++) mask.fill(glyph.mask[row * glyph.width + column], row * width, (row + 1) * width)
   return { ...glyph, width, mask, fill: true }
+}
+
+export function thumbnailItem(placed) {
+  return placed.find(({ glyph }) => !NOT_THUMBNAILS.has(glyph.char.split("\u0000")[0]))
 }
 
 export function layout(font, text, options) {

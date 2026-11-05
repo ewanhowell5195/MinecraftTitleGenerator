@@ -4,6 +4,7 @@ import { arcAssets, arcLayout } from "../lib/arc.js"
 import { buildOutline, buildText } from "../lib/build.js"
 import { framing } from "../lib/framing.js"
 import { hasMarks, loadFont, sheetFolder } from "../lib/font.js"
+import { thumbnailItem } from "../lib/layout.js"
 import { blockTextureImage } from "../lib/minecraft.js"
 import { R, paintBase, paintKey, paintSheet } from "../lib/paint.js"
 import { quietly } from "../lib/history.js"
@@ -319,7 +320,7 @@ export default {
           return
         }
         built.value = buildText(source, { ...options, lineDepth, placed: arced.placed, line: arced.line, sheet: arced.sheet, painted: own })
-        const first = arced.placed.find(item => !["┫", "┣"].includes(item.glyph.char.split("\u0000")[0]))
+        const first = thumbnailItem(arced.placed)
         preview.value = first ? previewFor(source, options, first, arced.sheet, own) : null
         error.value = null
       } catch (err) {
