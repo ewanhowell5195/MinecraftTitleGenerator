@@ -29,6 +29,7 @@
   import { titleItems } from "./lib/items.js"
   import { redo, undo } from "./lib/history.js"
   import { keepMatched } from "./lib/match.js"
+  import { notice } from "./lib/notices.js"
   import { active, addObject, currentWord, library, runtime, saveError, scene, selection, shapingWord, wordTabs, words } from "./lib/scene.js"
   import { openSharedLink } from "./lib/share.js"
   import { loadStats } from "./lib/stats.js"
@@ -147,6 +148,7 @@
       <Viewport :items="titleItems" :selected="selected" />
       <RenderFrame v-if="view.render" />
       <p v-if="status" class="error">{{ status }}</p>
+      <p v-if="notice" class="notice">{{ notice }}</p>
     </main>
 
     <template v-if="ready">
@@ -280,6 +282,20 @@
     color: var(--danger);
     background: #2c1513;
     border: 1px solid #5e2a25;
+  }
+
+  .notice {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 4;
+    max-width: calc(100% - 32px);
+    margin: 0;
+    padding: 6px 10px;
+    font-size: var(--font-md);
+    background: var(--card);
+    border: 1px solid var(--line);
+    pointer-events: none;
   }
 
   @media (max-width: 800px) {

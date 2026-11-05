@@ -205,7 +205,6 @@
         <Icon name="bookmark" :size="20" />
         <span>Presets</span>
       </button>
-      <p v-if="savedPreset && !savedPreset.skipped" class="saved">Saved as {{ savedPreset.name }}</p>
     </div>
     <div class="divider"></div>
     <div ref="list" class="list" :class="{ dragging: dragged !== null }" @dragstart.prevent>
@@ -457,26 +456,9 @@
   }
 
   .presets {
-    position: relative;
     flex: none;
     display: flex;
     flex-direction: column;
-  }
-
-  .saved {
-    position: absolute;
-    top: 50%;
-    left: calc(100% + 12px);
-    z-index: 5;
-    width: max-content;
-    max-width: min(320px, 70vw);
-    margin: 0;
-    padding: 6px 10px;
-    font-size: var(--font-md);
-    background: var(--card);
-    border: 1px solid var(--line);
-    transform: translateY(-50%);
-    pointer-events: none;
   }
 
   .skipped {
@@ -494,13 +476,6 @@
   }
 
   @media (max-width: 800px) {
-    .saved {
-      top: auto;
-      bottom: calc(100% + 8px);
-      left: 0;
-      transform: none;
-    }
-
     .layers {
       flex-direction: row;
       align-items: center;

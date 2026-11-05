@@ -3,19 +3,17 @@ import { fileError, isDefaultTitle, openTitleData, titleData } from "./file.js"
 import { LIMITS } from "./limits.js"
 import { decodeTitle, encodeTitle } from "./linkformat.js"
 import { capitalWords } from "./names.js"
+import { showNotice } from "./notices.js"
 import { titleText } from "./scene.js"
 import { submitStats } from "./stats.js"
 
 const STORAGE = "minecraft-title-presets"
 const FALLBACK_NAME = "Title"
-const NOTICE_TIME = 3000
 export const NAME_LIMIT = LIMITS.name
 
 export const presets = ref(read())
 export const savedPreset = ref(null)
 export const namingPreset = ref(null)
-
-let noticing = null
 
 function read() {
   try {
@@ -87,9 +85,8 @@ export function savePreset(name = "") {
     submitStats()
     const existing = savedWithCode(code)
     const preset = existing ? renamePreset(existing, name) : addPreset(name.trim().slice(0, NAME_LIMIT) || automaticName(), code)
-    clearTimeout(noticing)
     savedPreset.value = { name: preset.name, skipped }
-    if (!skipped) noticing = setTimeout(() => savedPreset.value = null, NOTICE_TIME)
+    if (!skipped) showNotice(`Saved as ${preset.name}`)
   } catch (err) {
     fileError.value = `Couldn't save this preset: ${err.message}`
   }

@@ -25,6 +25,7 @@ mock.timers.enable({ apis: ["setTimeout"] })
 const { createObject, LAYER } = await import("../src/lib/settings.js")
 const { scene, validSelection } = await import("../src/lib/scene.js")
 const { fileError } = await import("../src/lib/file.js")
+const { notice } = await import("../src/lib/notices.js")
 const { decodeTitle } = await import("../src/lib/linkformat.js")
 const { NAME_LIMIT, addPreset, loadPreset, markShared, namingPreset, presets, removePreset, renamePreset, savePreset, savedPreset, startSavingPreset } = await import("../src/lib/presets.js")
 
@@ -164,6 +165,30 @@ describe("presets", () => {
     savePreset("  My name  ")
     assert.deepEqual(savedList().map(preset => preset.name), ["My name"])
     assert.equal(savedPreset.value.name, "My name")
+  })
+
+  test("show a notice for a few seconds once saved", () => {
+    setTitle(createObject({ text: "plain" }))
+    savePreset("My name")
+    assert.equal(notice.value, "Saved as My name")
+    mock.timers.tick(3000)
+    assert.equal(notice.value, "")
+  })
+
+  test("keep the notice up for the latest save", () => {
+    setTitle(createObject({ text: "plain" }))
+    savePreset("First")
+    mock.timers.tick(2000)
+    savePreset("Second")
+    mock.timers.tick(2000)
+    assert.equal(notice.value, "Saved as Second")
+  })
+
+  test("show no notice when uploaded overlays were left out", () => {
+    notice.value = ""
+    setTitle(createObject({ text: "upload", overlayMode: "custom", overlays: [{ ...LAYER, source: "file", file: "data:image/png;base64,AAAA" }] }))
+    savePreset("")
+    assert.equal(notice.value, "")
   })
 
   test("fall back to the title text when no name is typed", () => {
