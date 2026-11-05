@@ -7,6 +7,7 @@
   import { loadFontList } from "../lib/font.js"
   import { titleItems } from "../lib/items.js"
   import { decodeTitle } from "../lib/linkformat.js"
+  import { keepMatched } from "../lib/match.js"
   import { library, runtime, scene } from "../lib/scene.js"
   import { DEFAULT_FOV, view, viewport } from "../lib/view.js"
 
@@ -15,6 +16,12 @@
   const ready = ref(false)
 
   Object.assign(view, { section: "text", render: false, gizmo: null, fov: DEFAULT_FOV, fixedDistance: false })
+
+  keepMatched()
+
+  function scales() {
+    return scene.objects.map(object => [object.scaleX, object.scaleY]).join()
+  }
 
   function settled() {
     return new Promise((fulfil, reject) => {
@@ -41,8 +48,12 @@
   async function render(code) {
     openTitleData(decodeTitle(code))
     await nextTick()
-    await settled()
-    await painted()
+    let before
+    do {
+      before = scales()
+      await settled()
+      await painted()
+    } while (scales() !== before)
     return viewport.snapshot()
   }
 

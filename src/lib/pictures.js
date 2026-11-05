@@ -2,6 +2,7 @@ import { decodeTitle } from "./linkformat.js"
 import { savedJars } from "./minecraft.js"
 
 const DATABASE = "minecraft-title-pictures"
+const RENDERER_VERSION = 2
 const PICTURES_KEPT = 500
 const FRAME_WIDTH = 1000
 const FRAME_HEIGHT = 500
@@ -73,10 +74,17 @@ async function next() {
 
 function openDatabase() {
   database ??= new Promise((fulfil, reject) => {
-    const opening = indexedDB.open(DATABASE, 1)
-    opening.onupgradeneeded = () => opening.result.createObjectStore("pictures", { keyPath: "code" }).createIndex("at", "at")
-    opening.onsuccess = () => fulfil(opening.result)
+    const opening = indexedDB.open(DATABASE, RENDERER_VERSION)
+    opening.onupgradeneeded = () => {
+      if (opening.result.objectStoreNames.contains("pictures")) opening.result.deleteObjectStore("pictures")
+      opening.result.createObjectStore("pictures", { keyPath: "code" }).createIndex("at", "at")
+    }
+    opening.onsuccess = () => {
+      opening.result.onversionchange = () => opening.result.close()
+      fulfil(opening.result)
+    }
     opening.onerror = () => reject(opening.error)
+    opening.onblocked = () => reject(new Error("another tab has the old title pictures open"))
   })
   return database
 }
