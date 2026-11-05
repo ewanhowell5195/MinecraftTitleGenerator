@@ -17,9 +17,8 @@
   const SORTS = [{ value: "week", label: "Popular this week" }, { value: "popular", label: "Popular all time" }, { value: "top", label: "Top rated" }, { value: "new", label: "Newest" }, { value: "needs", label: "Needs votes" }]
   const SEARCH_DELAY = 500
   const EDITOR_TITLE = "Minecraft Title Generator"
-  const phone = matchMedia("(max-width: 800px)")
 
-  const tab = ref(presetsPage.id !== null || !presets.value.length ? "community" : "mine")
+  const tab = ref(presetsPage.fromEditor && presets.value.length ? "mine" : "community")
   const sort = ref("week")
   const search = ref("")
   const results = ref([])
@@ -49,18 +48,6 @@
   let searching = null
   let observer = null
 
-  function ensureSelected() {
-    if (phone.matches) return
-    if (tab.value === "mine") {
-      if (!selectedLocal.value) selectedLocalCode.value = localShown.value[0]?.code ?? null
-      return
-    }
-    const first = results.value[0]
-    if (selectedCommunity.value || presetsPage.id !== null || !first) return
-    selectedCommunity.value = first
-    showPreset(first.id, { replace: true })
-  }
-
   function isMine(preset) {
     return ownPresets.value.includes(preset.id) || sharedByMe.value.has(preset.id)
   }
@@ -76,7 +63,6 @@
       more.value = page.more
       next = page.next
       if (selectedCommunity.value) selectedCommunity.value = results.value.find(preset => preset.id === selectedCommunity.value.id) ?? selectedCommunity.value
-      ensureSelected()
     } catch (err) {
       if (current === request) error.value = err.message
     } finally {
@@ -100,7 +86,6 @@
     const { id } = presetsPage
     if (id === null) {
       selectedCommunity.value = null
-      ensureSelected()
       return
     }
     if (selectedCommunity.value?.id === id) return
@@ -112,7 +97,6 @@
     } catch (err) {
       error.value = err.message
       clearSelection()
-      ensureSelected()
     }
   }
 
@@ -179,12 +163,11 @@
 
   function key(event) {
     if (event.key !== "Escape" || event.defaultPrevented || sharing.value) return
-    if (phone.matches && selected.value) clearSelection()
+    if (selected.value) clearSelection()
     else closePresetsPage()
   }
 
   useWindowEvents(() => true, { keydown: key })
-  phone.addEventListener("change", ensureSelected)
 
   watch(tab, value => {
     search.value = ""
@@ -193,10 +176,8 @@
     else {
       selectedCommunity.value = null
       if (presetsPage.id !== null) showPreset(null)
-      ensureSelected()
     }
   })
-  watch(localShown, ensureSelected)
   watch(sort, () => load(0))
   watch(search, () => {
     clearTimeout(searching)
@@ -216,7 +197,6 @@
   onMounted(() => {
     refreshUsage()
     if (tab.value === "community") load(0)
-    else ensureSelected()
     followAddress()
     observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting && tab.value === "community" && more.value && !loading.value) load(next)
@@ -232,7 +212,6 @@
   })
 
   onBeforeUnmount(() => {
-    phone.removeEventListener("change", ensureSelected)
     document.title = EDITOR_TITLE
     clearTimeout(searching)
     observer.disconnect()
@@ -240,7 +219,7 @@
 </script>
 
 <template>
-  <div ref="root" class="page" :class="{ detailed: selected }">
+  <div ref="root" class="page">
     <header class="top">
       <button class="back" @click="closePresetsPage()"><Icon name="back" :size="18" /><span>Back to editor</span></button>
       <h1>Presets</h1>
@@ -281,6 +260,7 @@
       </main>
       <PresetDetail v-if="selected && tab === 'community'" class="side" :preset="selected" :mine="isMine(selected)" :saved="saved.has(selected.code)" @close="clearSelection" @open="open(selected)" @save="save(selected)" @vote="vote(selected, $event)" />
       <PresetDetail v-else-if="selected" class="side" :preset="selected" local @close="clearSelection" @open="open(selected)" @rename="renamePreset(selected, $event)" @remove="remove(selected)" @share="sharing = selected" @view="viewInCommunity(selected.shared)" />
+      <aside v-else class="placeholder"><p v-if="tab === 'community' ? results.length : localShown.length">Select a preset to see it here</p></aside>
     </div>
     <SharePresetDialog v-if="sharing" :preset="sharing" @close="sharing = null" @shared="shared" />
   </div>
@@ -329,12 +309,24 @@
   .body {
     flex: 1;
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) min(50%, 1024px);
     min-height: 0;
   }
 
-  .detailed .body {
-    grid-template-columns: minmax(0, 1fr) min(50%, 1024px);
+  .placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    font-size: var(--font-base);
+    color: var(--faint);
+    text-align: center;
+    background: var(--surface);
+    border-left: 1px solid var(--line);
+  }
+
+  .placeholder p {
+    margin: 0;
   }
 
   .browse {
@@ -449,15 +441,15 @@
   }
 
   @media (max-width: 1100px) {
-    .detailed .tools {
+    .tools {
       flex-wrap: wrap;
     }
 
-    .detailed .search {
+    .search {
       flex-basis: 100%;
     }
 
-    .detailed .sort {
+    .sort {
       flex: 1;
       width: auto;
     }
@@ -508,8 +500,12 @@
       padding: 12px 12px 20px;
     }
 
-    .detailed .body {
+    .body {
       grid-template-columns: minmax(0, 1fr);
+    }
+
+    .placeholder {
+      display: none;
     }
 
     .side {

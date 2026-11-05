@@ -3,7 +3,7 @@ import { reactive } from "vue"
 const PATH = "/app/presets"
 const EDITOR = "/app/"
 
-export const presetsPage = reactive({ open: false, id: null })
+export const presetsPage = reactive({ open: false, id: null, fromEditor: false })
 
 let returnTo = EDITOR
 
@@ -24,6 +24,7 @@ export function syncPresetsPage() {
 
 export function openPresetsPage() {
   returnTo = `${location.pathname}${location.search}${location.hash}`
+  presetsPage.fromEditor = true
   history.pushState(null, "", PATH)
   syncPresetsPage()
 }
@@ -38,6 +39,7 @@ export function showPreset(id, { replace = presetsPage.id !== null } = {}) {
 export function closePresetsPage(to = returnTo) {
   history.pushState(null, "", to)
   syncPresetsPage()
+  presetsPage.fromEditor = false
   returnTo = EDITOR
 }
 
