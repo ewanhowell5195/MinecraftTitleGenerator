@@ -344,6 +344,12 @@
     padding: 16px 20px 0;
   }
 
+  .search,
+  .sort,
+  .random {
+    height: 40px;
+  }
+
   .search {
     flex: 1;
     min-width: 0;
@@ -352,6 +358,10 @@
   .sort {
     flex: none;
     width: 200px;
+  }
+
+  .sort :deep(.trigger) {
+    height: 100%;
   }
 
   .random {
