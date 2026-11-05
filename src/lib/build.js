@@ -139,7 +139,9 @@ export function buildOutline(built, scale, extra = [0, 0, 0]) {
     for (const index of [0, 1, 2, 0, 2, 3]) positions.push(...face.points[index])
   }
   const uvs = new Float32Array(positions.length / 3 * 2)
-  for (let i = 0; i < uvs.length; i += 2) uvs.set(built.swatch, i)
+  if (built.swatch) {
+    for (let i = 0; i < uvs.length; i += 2) uvs.set(built.swatch, i)
+  }
   return { positions: new Float32Array(positions), uvs, triangles: positions.length / 9, scale, rects, z }
 }
 
