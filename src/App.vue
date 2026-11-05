@@ -103,7 +103,7 @@
 <template>
   <div class="app" :class="{ wide: !editing }">
     <header class="bar">
-      <h1>Minecraft Title Generator</h1>
+      <h1><a class="brand" href="/" aria-label="Minecraft Title Generator"><img src="/favicon.svg" alt="" width="24" height="24"><span>Minecraft Title Generator</span></a></h1>
       <MenuBar ref="menuBar" />
       <ShareButton />
     </header>
@@ -197,6 +197,23 @@
     margin: 0;
     font-size: var(--font-lg);
     font-weight: 600;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text);
+    text-decoration: none;
+    user-select: none;
+  }
+
+  .brand img {
+    flex: none;
+  }
+
+  .brand span {
+    min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -324,6 +341,12 @@
 
     .intro h2 {
       font-size: 17px;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .brand span {
+      display: none;
     }
   }
 </style>
