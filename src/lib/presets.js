@@ -2,6 +2,7 @@ import { ref } from "vue"
 import { fileError, isDefaultTitle, openTitleData, titleData } from "./file.js"
 import { LIMITS } from "./limits.js"
 import { decodeTitle, encodeTitle } from "./linkformat.js"
+import { capitalWords } from "./names.js"
 import { titleText } from "./scene.js"
 import { submitStats } from "./stats.js"
 
@@ -12,6 +13,7 @@ export const NAME_LIMIT = LIMITS.name
 
 export const presets = ref(read())
 export const savedPreset = ref(null)
+export const namingPreset = ref(null)
 
 let noticing = null
 
@@ -61,11 +63,30 @@ export function removePreset(preset) {
   write(presets.value.filter(item => item.code !== preset.code))
 }
 
-export function savePreset() {
+function savedWithCode(code) {
+  return presets.value.find(preset => preset.code === code)
+}
+
+function automaticName() {
+  return capitalWords(titleText()).slice(0, NAME_LIMIT)
+}
+
+export function startSavingPreset() {
+  try {
+    const { code } = encodeTitle(titleData())
+    namingPreset.value = savedWithCode(code)?.name ?? automaticName()
+  } catch (err) {
+    fileError.value = `Couldn't save this preset: ${err.message}`
+  }
+}
+
+export function savePreset(name = "") {
+  namingPreset.value = null
   try {
     const { code, skipped } = encodeTitle(titleData())
     submitStats()
-    const preset = addPreset(titleText(), code)
+    const existing = savedWithCode(code)
+    const preset = existing ? renamePreset(existing, name) : addPreset(name.trim().slice(0, NAME_LIMIT) || automaticName(), code)
     clearTimeout(noticing)
     savedPreset.value = { name: preset.name, skipped }
     if (!skipped) noticing = setTimeout(() => savedPreset.value = null, NOTICE_TIME)

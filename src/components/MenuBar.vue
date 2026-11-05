@@ -3,7 +3,7 @@
   import { useWindowEvents } from "../lib/events.js"
   import { EXTENSION, isDefaultTitle, openTitle, resetTitle, saveTitle } from "../lib/file.js"
   import { history, redo, undo } from "../lib/history.js"
-  import { savePreset } from "../lib/presets.js"
+  import { startSavingPreset } from "../lib/presets.js"
   import { scene } from "../lib/scene.js"
   import ContextMenu from "./ContextMenu.vue"
 
@@ -17,7 +17,7 @@
     File: [
       { label: "Open...", icon: "open", action: openPicker },
       { label: "Save", icon: "download", disabled: !scene.objects.length, action: saveTitle },
-      { label: "Save preset", icon: "bookmark", disabled: !scene.objects.length, action: savePreset }
+      { label: "Save preset", icon: "bookmark", disabled: !scene.objects.length, action: startSavingPreset }
     ],
     Edit: [
       { label: "Undo", icon: "undo", disabled: !history.undo.length, keepOpen: true, action: undo },

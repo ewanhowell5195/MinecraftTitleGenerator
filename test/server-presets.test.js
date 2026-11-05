@@ -183,8 +183,8 @@ describe("submitting", () => {
   })
 
   test("the name defaults to the text", async () => {
-    assert.equal((await post({ code: code([{ text: "stone" }]) })).preset.name, "stone")
-    assert.equal((await post({ code: code([{ text: "dirt" }]), name: "   " })).preset.name, "dirt")
+    assert.equal((await post({ code: code([{ text: "STONE wall" }]) })).preset.name, "Stone Wall")
+    assert.equal((await post({ code: code([{ text: "dirt" }]), name: "   " })).preset.name, "Dirt")
   })
 
   test("refuses a duplicate and says which preset it is", async () => {

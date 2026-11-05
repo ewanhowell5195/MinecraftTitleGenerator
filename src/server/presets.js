@@ -1,6 +1,7 @@
 import { RegExpMatcher, englishDataset, englishRecommendedTransformers } from "obscenity"
 import { LIMITS } from "../lib/limits.js"
 import { decodeTitle, unknownSetting } from "../lib/linkformat.js"
+import { capitalWords } from "../lib/names.js"
 import { FILE_VERSION, typeDefaults } from "../lib/settings.js"
 
 export { LIMITS }
@@ -228,7 +229,7 @@ export const submitPreset = guarded(async context => {
   const { request, env } = context
   const body = await jsonBody(request)
   const facts = checkTitle(body.code)
-  const name = textField(body, "name", "name", LIMITS.name) || facts.text
+  const name = textField(body, "name", "name", LIMITS.name) || capitalWords(facts.text)
   checkWords("title", facts.all)
   checkWords("name", name)
   const fingerprint = await titleFingerprint(body.code)

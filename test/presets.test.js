@@ -26,7 +26,7 @@ const { createObject, LAYER } = await import("../src/lib/settings.js")
 const { scene, validSelection } = await import("../src/lib/scene.js")
 const { fileError } = await import("../src/lib/file.js")
 const { decodeTitle } = await import("../src/lib/linkformat.js")
-const { NAME_LIMIT, addPreset, loadPreset, markShared, presets, removePreset, renamePreset, savePreset, savedPreset } = await import("../src/lib/presets.js")
+const { NAME_LIMIT, addPreset, loadPreset, markShared, namingPreset, presets, removePreset, renamePreset, savePreset, savedPreset, startSavingPreset } = await import("../src/lib/presets.js")
 
 const STORAGE = "minecraft-title-presets"
 
@@ -46,6 +46,7 @@ describe("presets", () => {
     posts.length = 0
     answer = true
     savedPreset.value = null
+    namingPreset.value = null
     fileError.value = null
   })
 
@@ -62,14 +63,30 @@ describe("presets", () => {
   test("are named after the title's text", async () => {
     setTitle(createObject({ text: "My Server" }), createObject({ type: "bottom", text: "season 2" }))
     await savePreset()
-    assert.equal(presets.value[0].name, "My Server season 2")
-    assert.equal(savedPreset.value.name, "My Server season 2")
+    assert.equal(presets.value[0].name, "My Server Season 2")
+    assert.equal(savedPreset.value.name, "My Server Season 2")
+  })
+
+  for (const [text, name] of [["UPDATE TEXT HERE", "Update Text Here"], ["mInEcRaFt", "Minecraft"], ["2 FAST", "2 Fast"], ["ÉCLAIR BLANC", "Éclair Blanc"], ["DON'T STOP", "Don't Stop"], ["'QUOTED' IRON-BLOCK", "'Quoted' Iron-block"]]) {
+    test(`capitalise every word of ${text} when named automatically`, () => {
+      setTitle(createObject({ text }))
+      startSavingPreset()
+      assert.equal(namingPreset.value, name)
+      savePreset("")
+      assert.equal(presets.value[0].name, name)
+    })
+  }
+
+  test("leave a typed name's case alone", () => {
+    setTitle(createObject({ text: "plain" }))
+    savePreset("MY Own NAME")
+    assert.equal(presets.value[0].name, "MY Own NAME")
   })
 
   test("leave out hidden lines from the name", async () => {
     setTitle(createObject({ text: "shown" }), createObject({ text: "secret", hidden: true }))
     await savePreset()
-    assert.equal(presets.value[0].name, "shown")
+    assert.equal(presets.value[0].name, "Shown")
   })
 
   test("get a number when the name is taken by a different title", () => {
@@ -84,7 +101,7 @@ describe("presets", () => {
     await savePreset()
     await savePreset()
     assert.equal(presets.value.length, 1)
-    assert.equal(savedPreset.value.name, "twice")
+    assert.equal(savedPreset.value.name, "Twice")
   })
 
   test("a title with no text still gets a name", () => {
@@ -140,6 +157,54 @@ describe("presets", () => {
     const second = renamePreset(first, "two")
     assert.equal(renamePreset(second, "three").name, "three")
     assert.equal(presets.value.length, 1)
+  })
+
+  test("use the name typed when saving", () => {
+    setTitle(createObject({ text: "plain" }))
+    savePreset("  My name  ")
+    assert.deepEqual(savedList().map(preset => preset.name), ["My name"])
+    assert.equal(savedPreset.value.name, "My name")
+  })
+
+  test("fall back to the title text when no name is typed", () => {
+    setTitle(createObject({ text: "plain" }))
+    savePreset("   ")
+    assert.equal(savedList()[0].name, "Plain")
+  })
+
+  test("cut a typed name to the limit", () => {
+    setTitle(createObject({ text: "plain" }))
+    savePreset("x".repeat(100))
+    assert.equal(savedList()[0].name.length, NAME_LIMIT)
+  })
+
+  test("ask for a name with the title text suggested", () => {
+    setTitle(createObject({ text: "plain" }))
+    startSavingPreset()
+    assert.equal(namingPreset.value, "Plain")
+    assert.equal(presets.value.length, 0)
+  })
+
+  test("suggest the saved name for a title that is already saved", () => {
+    setTitle(createObject({ text: "plain" }))
+    savePreset("Better name")
+    startSavingPreset()
+    assert.equal(namingPreset.value, "Better name")
+  })
+
+  test("finish asking once saved", () => {
+    setTitle(createObject({ text: "plain" }))
+    startSavingPreset()
+    savePreset("plain")
+    assert.equal(namingPreset.value, null)
+  })
+
+  test("saving the same title under a new name renames it", () => {
+    setTitle(createObject({ text: "plain" }))
+    savePreset("First")
+    savePreset("Second")
+    assert.deepEqual(savedList().map(preset => preset.name), ["Second"])
+    assert.equal(savedPreset.value.name, "Second")
   })
 
   test("saving the same title again keeps the name you gave it", async () => {
