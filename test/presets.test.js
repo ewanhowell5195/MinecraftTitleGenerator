@@ -26,7 +26,7 @@ const { createObject, LAYER } = await import("../src/lib/settings.js")
 const { scene, validSelection } = await import("../src/lib/scene.js")
 const { fileError } = await import("../src/lib/file.js")
 const { decodeTitle } = await import("../src/lib/linkformat.js")
-const { NAME_LIMIT, addPreset, loadPreset, presets, removePreset, renamePreset, savePreset, savedPreset } = await import("../src/lib/presets.js")
+const { NAME_LIMIT, addPreset, loadPreset, markShared, presets, removePreset, renamePreset, savePreset, savedPreset } = await import("../src/lib/presets.js")
 
 const STORAGE = "minecraft-title-presets"
 
@@ -149,6 +149,13 @@ describe("presets", () => {
     await savePreset()
     assert.deepEqual(presets.value.map(preset => preset.name), ["Better name"])
     assert.equal(savedPreset.value.name, "Better name")
+  })
+
+  test("remember that they were shared", () => {
+    const preset = addPreset("stone", "a")
+    markShared(preset, 12)
+    assert.deepEqual(savedList(), [{ name: "stone", code: "a", shared: 12 }])
+    assert.equal(renamePreset(presets.value[0], "new name").shared, 12)
   })
 
   test("can be removed", () => {

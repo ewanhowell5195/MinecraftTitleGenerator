@@ -286,6 +286,20 @@ function readEntry(reader) {
   return [key, flagged ? null : type.read(reader)]
 }
 
+const NESTED = new Set(["words", "overlays", "edgeOverlays"])
+
+export function unknownSetting(items) {
+  for (const item of items) {
+    for (const [key, value] of Object.entries(item)) {
+      const type = KEYS[IDS.get(key) - 1]?.[1]
+      if (!type || !(value === null ? type !== BOOLEAN : type.fits(value))) return key
+      const nested = NESTED.has(key) && value ? unknownSetting(value) : null
+      if (nested) return nested
+    }
+  }
+  return null
+}
+
 export function writeLines(lines) {
   const out = []
   OBJECTS.write(out, lines)

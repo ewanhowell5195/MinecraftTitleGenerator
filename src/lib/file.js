@@ -1,12 +1,11 @@
 import { ref } from "vue"
 import { matchSolved } from "./match.js"
 import { keptObject, runtime, scene, titleFileName, validSelection } from "./scene.js"
-import { LAYER, LINE, createObject, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, snapshot, typeDefaults } from "./settings.js"
+import { FILE_VERSION, LAYER, LINE, createObject, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, snapshot, typeDefaults } from "./settings.js"
 import { submitStats } from "./stats.js"
 import { download } from "./ui.js"
 
 const FORMAT = "minecraft-title"
-const VERSION = 2
 export const EXTENSION = "mctitle"
 
 const UNUSED = [
@@ -100,7 +99,7 @@ function expandLine({ words, ...line }, group) {
 export function titleData() {
   const list = lines()
   const numbers = new Map(list.flatMap((words, index) => words.map(word => [word.id, index])))
-  return { format: FORMAT, version: VERSION, lines: list.map(words => {
+  return { format: FORMAT, version: FILE_VERSION, lines: list.map(words => {
     const line = trimLine(words)
     if ("matchWidth" in line) line.matchWidth = numbers.get(line.matchWidth)
     return line
@@ -150,7 +149,7 @@ function upgradeLine(line, version) {
 }
 
 function readData(data) {
-  if (data.version > VERSION) throw new Error(`it was saved by a newer version of the generator (format ${data.version})`)
+  if (data.version > FILE_VERSION) throw new Error(`it was saved by a newer version of the generator (format ${data.version})`)
   if (!Array.isArray(data.lines) || !data.lines.length) throw new Error("it has no text in it")
   data = { ...data, lines: data.lines.map(line => upgradeLine(line, data.version ?? 0)) }
   for (const line of data.lines) {

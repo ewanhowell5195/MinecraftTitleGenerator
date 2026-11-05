@@ -1,5 +1,6 @@
 import { ref } from "vue"
 import { fileError, isDefaultTitle, openTitleData, titleData } from "./file.js"
+import { LIMITS } from "./limits.js"
 import { decodeTitle, encodeTitle } from "./linkformat.js"
 import { titleText } from "./scene.js"
 import { submitStats } from "./stats.js"
@@ -7,7 +8,7 @@ import { submitStats } from "./stats.js"
 const STORAGE = "minecraft-title-presets"
 const FALLBACK_NAME = "Title"
 const NOTICE_TIME = 3000
-export const NAME_LIMIT = 60
+export const NAME_LIMIT = LIMITS.name
 
 export const presets = ref(read())
 export const savedPreset = ref(null)
@@ -50,6 +51,10 @@ export function renamePreset(preset, name) {
   const renamed = { ...preset, name: trimmed }
   write(presets.value.map(item => item.code === preset.code ? renamed : item))
   return renamed
+}
+
+export function markShared(preset, id) {
+  write(presets.value.map(item => item.code === preset.code ? { ...item, shared: id } : item))
 }
 
 export function removePreset(preset) {
