@@ -9,7 +9,7 @@
   import { renderTitle, screenBounds } from "../lib/render.js"
   import { current, currentWord, setScale, shapingWord } from "../lib/scene.js"
   import { TRANSFORM_LIMITS } from "../lib/settings.js"
-  import { UNZOOMED, createEntry, destroyEntry, frameCamera, gizmoPose, lineBounds, movedBy, panMatrix, pannedBy, rotatedTo, sortEntries, titleFraming, updateEntry, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } from "../lib/stage.js"
+  import { UNTURNED, UNZOOMED, createEntry, destroyEntry, frameCamera, gizmoPose, lineBounds, movedBy, orbitCamera, panMatrix, pannedBy, rotatedTo, sortEntries, titleFraming, turnedBy, updateEntry, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } from "../lib/stage.js"
   import { vectorTitle } from "../lib/vector.js"
   import { view, viewport, viewportChanges } from "../lib/view.js"
   import Icon from "./Icon.vue"
@@ -30,9 +30,15 @@
   const entries = new Map()
   const pointers = new Map()
   const pan = shallowRef(UNZOOMED)
+  const turn = shallowRef(UNTURNED)
+  const orbiting = ref(false)
   const panning = ref(false)
   const shaping = computed(() => !view.render && view.section === "shape")
+  const moved = computed(() => pan.value !== UNZOOMED || turn.value !== UNTURNED)
   const baseProjection = new THREE.Matrix4()
+  const basePosition = new THREE.Vector3()
+  const baseQuaternion = new THREE.Quaternion()
+  const pivot = new THREE.Vector3()
   let renderer, scene, overlay, camera, perspective, orthographic, frame, observer, selection, controls, proxy, sceneTarget, smoothing, smoothingCamera
   let frameSize = { width: 1, height: 1 }
   let fitted = null
@@ -210,7 +216,7 @@
   }
 
   function refit() {
-    if (pan.value !== UNZOOMED || controls.dragging || fitted === props.items || !entries.size || !props.items.every(item => item.settled)) return
+    if (moved.value || controls.dragging || fitted === props.items || !entries.size || !props.items.every(item => item.settled)) return
     fitted = props.items
     fitCamera()
   }
@@ -222,10 +228,16 @@
     if (!title) return
     frameCamera(camera, { ...title, fov: view.fov, ...frameSize, maxScale: view.render ? Infinity : MAX_SCALE, frame: view.render ? { rect: frameRect, bounds: frameBounds, pixels: framePixels } : null })
     baseProjection.copy(camera.projectionMatrix)
-    applyPan()
+    basePosition.copy(camera.position)
+    baseQuaternion.copy(camera.quaternion)
+    title.anchor.getCenter(pivot)
+    applyView()
   }
 
-  function applyPan() {
+  function applyView() {
+    camera.position.copy(basePosition)
+    camera.quaternion.copy(baseQuaternion)
+    orbitCamera(camera, pivot, turn.value)
     camera.projectionMatrix.multiplyMatrices(panMatrix(pan.value), baseProjection)
     camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert()
     controls.size = 1 / pan.value.scale
@@ -247,7 +259,7 @@
 
   function grabView(event) {
     if (!shaping.value || controls.dragging || event.button === 0 && controls.axis) return
-    pointers.set(event.pointerId, clipPoint(event))
+    pointers.set(event.pointerId, { ...clipPoint(event), button: event.button })
     renderer.domElement.setPointerCapture(event.pointerId)
     panning.value = true
   }
@@ -255,11 +267,12 @@
   function moveView(event) {
     const last = pointers.get(event.pointerId)
     if (!last) return
-    const point = clipPoint(event)
+    const point = { ...clipPoint(event), button: last.button }
     const other = Array.from(pointers).find(([id]) => id !== event.pointerId)?.[1]
     pointers.set(event.pointerId, point)
     if (!other) {
-      pan.value = pannedBy(pan.value, point.x - last.x, point.y - last.y)
+      if (orbiting.value && last.button === 0) turn.value = turnedBy(turn.value, (point.x - last.x) * Math.PI * frameSize.width / frameSize.height, (last.y - point.y) * Math.PI)
+      else pan.value = pannedBy(pan.value, point.x - last.x, point.y - last.y)
       return
     }
     const spread = Math.hypot(point.x - other.x, point.y - other.y) / Math.hypot(last.x - other.x, last.y - other.y)
@@ -273,6 +286,35 @@
 
   function noMenu(event) {
     if (shaping.value) event.preventDefault()
+  }
+
+  function resetView() {
+    pan.value = UNZOOMED
+    turn.value = UNTURNED
+  }
+
+  function toggleOrbit() {
+    orbiting.value = !orbiting.value
+    if (!orbiting.value) turn.value = UNTURNED
+  }
+
+  function createSmoothing() {
+    sceneTarget = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter })
+    const geometry = new THREE.BufferGeometry()
+    geometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array([-1, -1, 3, -1, -1, 3]), 2))
+    geometry.boundingSphere = new THREE.Sphere()
+    const material = new THREE.RawShaderMaterial({ vertexShader: FXAA_VERTEX, fragmentShader: FXAA_FRAGMENT, defines: { LINEAR_INPUT: "" }, uniforms: { scene: { value: sceneTarget.texture }, pixel: { value: new THREE.Vector2() } }, blending: THREE.NoBlending, depthTest: false, depthWrite: false })
+    const pass = new THREE.Mesh(geometry, material)
+    pass.frustumCulled = false
+    smoothing = new THREE.Scene()
+    smoothing.add(pass)
+    smoothingCamera = new THREE.Camera()
+  }
+
+  function resizeSmoothing() {
+    const { x, y } = renderer.getDrawingBufferSize(new THREE.Vector2())
+    sceneTarget.setSize(x, y)
+    smoothing.children[0].material.uniforms.pixel.value.set(1 / x, 1 / y)
   }
 
   onMounted(() => {
@@ -382,8 +424,12 @@
   watch(() => view.gizmo, invalidate)
   watch([() => view.section, () => view.render], () => view.gizmo = null)
   watch(shapingWord, invalidate)
-  watch(pan, applyPan)
-  watch(shaping, () => pan.value = UNZOOMED, { flush: "sync" })
+  watch([pan, turn], applyView)
+  watch(shaping, () => {
+    orbiting.value = false
+    resetView()
+    applyView()
+  }, { flush: "sync" })
 
   watch(() => view.render && [framing, view.resolution, view.antialias], fitCamera, { deep: true })
 
@@ -397,8 +443,9 @@
       <div class="tools">
         <button v-for="[mode, icon, title] of TOOLS" :key="icon" class="icon-button small" :class="{ active: view.gizmo === mode }" :title="title" :aria-pressed="view.gizmo === mode" @click="view.gizmo = mode"><Icon :name="icon" :size="16" /></button>
       </div>
-      <div v-if="pan !== UNZOOMED" class="tools">
-        <button class="icon-button small" title="Reset the view" @click="pan = UNZOOMED"><Icon name="reset" :size="16" /></button>
+      <div class="tools">
+        <button class="icon-button small" :class="{ active: orbiting }" title="Orbit the camera" :aria-pressed="orbiting" @click="toggleOrbit"><Icon name="orbit" :size="16" /></button>
+        <button v-if="moved" class="icon-button small" title="Reset the view" @click="resetView"><Icon name="reset" :size="16" /></button>
       </div>
     </div>
   </div>

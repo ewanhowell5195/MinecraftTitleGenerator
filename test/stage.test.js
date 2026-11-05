@@ -5,7 +5,7 @@ import * as THREE from "three"
 globalThis.localStorage = { getItem: () => null, setItem: () => {} }
 globalThis.devicePixelRatio = 1
 
-const { UNZOOMED, cornersOf, frameCamera, gizmoPose, lineBounds, movedBy, panMatrix, pannedBy, placementMatrix, rotatedTo, sortEntries, titleFraming, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } = await import("../src/lib/stage.js")
+const { UNTURNED, UNZOOMED, cornersOf, frameCamera, gizmoPose, lineBounds, movedBy, orbitCamera, panMatrix, pannedBy, placementMatrix, rotatedTo, sortEntries, titleFraming, turnedBy, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } = await import("../src/lib/stage.js")
 const { view } = await import("../src/lib/view.js")
 
 const BOUNDS = new THREE.Box3(new THREE.Vector3(0, 0, 0), new THREE.Vector3(10, 4, 2))
@@ -627,6 +627,64 @@ describe("zoom and pan", () => {
   test("the matrix leaves depth alone and scales from the middle of the screen", () => {
     const point = new THREE.Vector4(0.5, 0.5, 0.25, 2).applyMatrix4(panMatrix({ scale: 2, x: 0.1, y: 0 }))
     assert.deepEqual(point.toArray(), [1.2, 1, 0.25, 2])
+  })
+})
+
+describe("orbiting", () => {
+  function framed() {
+    const camera = new THREE.PerspectiveCamera()
+    camera.position.set(0, -50, 200)
+    camera.lookAt(0, 0, 0)
+    camera.updateMatrixWorld(true)
+    return camera
+  }
+
+  const pivot = new THREE.Vector3(0, 0, 0)
+
+  function onScreen(camera, point) {
+    return point.clone().applyMatrix4(camera.matrixWorldInverse.copy(camera.matrixWorld).invert())
+  }
+
+  test("no turn leaves the camera where it was", () => {
+    const camera = framed()
+    orbitCamera(camera, pivot, UNTURNED)
+    assert.ok(camera.position.distanceTo(new THREE.Vector3(0, -50, 200)) < 1e-9)
+  })
+
+  test("the pivot stays at the same place in view", () => {
+    const camera = framed()
+    const centre = new THREE.Vector3(10, 5, -3)
+    const before = onScreen(camera, centre)
+    orbitCamera(camera, centre, { yaw: 0.7, pitch: -0.4 })
+    assert.ok(onScreen(camera, centre).distanceTo(before) < 1e-9)
+  })
+
+  test("keeps the same distance from the pivot", () => {
+    const camera = framed()
+    const distance = camera.position.length()
+    orbitCamera(camera, pivot, { yaw: 2, pitch: 1 })
+    assert.ok(Math.abs(camera.position.length() - distance) < 1e-9)
+  })
+
+  test("dragging right swings the camera left", () => {
+    const camera = framed()
+    orbitCamera(camera, pivot, turnedBy(UNTURNED, 0.5, 0))
+    assert.ok(camera.position.x < 0)
+  })
+
+  test("dragging down lifts the camera", () => {
+    const camera = framed()
+    orbitCamera(camera, pivot, turnedBy(UNTURNED, 0, 0.5))
+    assert.ok(camera.position.y > -50)
+  })
+
+  test("pitch stops short of going over the top", () => {
+    assert.equal(turnedBy(UNTURNED, 0, 100).pitch, -1.4)
+    assert.equal(turnedBy(UNTURNED, 0, -100).pitch, 1.4)
+  })
+
+  test("yaw has no limit", () => {
+    assert.equal(turnedBy(UNTURNED, 100, 0).yaw, -100)
   })
 })
 

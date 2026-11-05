@@ -7,6 +7,7 @@ const DIRECTION = new THREE.Vector3(0, -0.51007, 0.86013).normalize()
 const TILT = radians(7.285)
 const TITLE_REACH = 144
 const ZOOM_LIMITS = [0.25, 32]
+const PITCH_LIMIT = 1.4
 
 function radians(degrees) {
   return degrees * Math.PI / 180
@@ -343,6 +344,20 @@ export function zoomedAt(pan, factor, x, y) {
   const scale = clamp(pan.scale * factor, ...ZOOM_LIMITS)
   const change = scale / pan.scale
   return kept({ scale, x: x - (x - pan.x) * change, y: y - (y - pan.y) * change })
+}
+
+export const UNTURNED = { yaw: 0, pitch: 0 }
+
+export function turnedBy(turn, right, down) {
+  return { yaw: turn.yaw - right, pitch: clamp(turn.pitch - down, -PITCH_LIMIT, PITCH_LIMIT) }
+}
+
+export function orbitCamera(camera, pivot, { yaw, pitch }) {
+  const across = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion)
+  const turn = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw).multiply(new THREE.Quaternion().setFromAxisAngle(across, pitch))
+  camera.position.sub(pivot).applyQuaternion(turn).add(pivot)
+  camera.quaternion.premultiply(turn)
+  camera.updateMatrixWorld(true)
 }
 
 export function panMatrix({ scale, x, y }) {
