@@ -15,13 +15,23 @@
 
   const tab = ref(presets.value.length ? "mine" : "community")
   const sharing = ref(null)
+  const renaming = ref(null)
+
+  const vSelected = {
+    mounted(field) {
+      field.focus()
+      field.select()
+    }
+  }
 
   function open(preset) {
     if (loadPreset(preset)) emit("close")
   }
 
-  function rename(preset, event) {
-    event.target.value = renamePreset(preset, event.target.value).name
+  function finishRenaming(preset, event) {
+    if (renaming.value !== preset.code) return
+    renaming.value = null
+    renamePreset(preset, event.target.value)
   }
 
   function remove(preset) {
@@ -45,11 +55,15 @@
     <div v-else class="presets">
       <div v-for="preset of presets" :key="preset.code" class="preset">
         <TitlePicture :code="preset.code" :title="`Open ${preset.name}`" @open="open(preset)" />
-        <input class="name" type="text" :value="preset.name" :maxlength="NAME_LIMIT" :aria-label="`Name of ${preset.name}`" spellcheck="false" @change="rename(preset, $event)" @keydown.enter="$event.target.blur()">
+        <input v-if="renaming === preset.code" v-selected class="name" type="text" :value="preset.name" :maxlength="NAME_LIMIT" :aria-label="`Name of ${preset.name}`" spellcheck="false" @blur="finishRenaming(preset, $event)" @keydown.enter="$event.target.blur()" @keydown.esc.stop="renaming = null">
+        <strong v-else class="name" :title="preset.name">{{ preset.name }}</strong>
         <div class="actions">
           <button v-if="!preset.shared" class="small" @click="sharing = preset"><Icon name="share" :size="14" /><span>Share publicly</span></button>
           <span v-else class="shared">Shared publicly</span>
-          <button class="icon-button small" :title="`Delete ${preset.name}`" @click="remove(preset)"><Icon name="trash" :size="14" /></button>
+          <div class="icons">
+            <button class="icon-button small" :title="`Rename ${preset.name}`" @click="renaming = preset.code"><Icon name="pencil" :size="14" /></button>
+            <button class="icon-button small" :title="`Delete ${preset.name}`" @click="remove(preset)"><Icon name="trash" :size="14" /></button>
+          </div>
         </div>
       </div>
     </div>
@@ -97,20 +111,26 @@
     background: var(--card-hover);
   }
 
-  input.name {
+  .name {
+    display: block;
     width: 100%;
-    padding: 4px;
+    padding: 6px 8px;
+    overflow: hidden;
     font-size: var(--font-sm);
     font-weight: 600;
-    text-align: center;
+    line-height: 1.4;
+    white-space: nowrap;
     text-overflow: ellipsis;
-    color: var(--muted);
-    background: transparent;
+    border: 1px solid transparent;
   }
 
-  input.name:hover,
-  input.name:focus {
-    color: var(--text);
+  input.name {
+    border-color: var(--line-strong);
+  }
+
+  .icons {
+    display: flex;
+    gap: 2px;
   }
 
   .actions {
