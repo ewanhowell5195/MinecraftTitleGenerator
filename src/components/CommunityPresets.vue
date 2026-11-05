@@ -27,11 +27,12 @@
   const tooShort = computed(() => search.value.trim().length > 0 && Array.from(search.value.trim()).length < LIMITS.searchMinimum)
   const emptyMessage = computed(() => {
     if (search.value.trim()) return "No presets match this search."
-    if (listing.value === "week") return "Nothing has been used in the last 7 days. Try All time."
+    if (listing.value === "week") return "Nothing has been used in the last 7 days."
     return sort.value === "needs" ? "You have voted on everything that needs votes. Thank you!" : "Nobody has shared a preset yet. Be the first from My presets!"
   })
   let request = 0
   let next = 0
+  let landing = true
   let searching = null
   let observer = null
 
@@ -42,6 +43,12 @@
     try {
       const page = await listCommunity({ sort: listing.value, search: tooShort.value ? "" : search.value, offset })
       if (current !== request) return
+      const emptyLanding = landing && listing.value === "week" && !page.presets.length && !search.value.trim()
+      landing = false
+      if (emptyLanding) {
+        period.value = "popular"
+        return
+      }
       results.value = offset ? results.value.concat(page.presets) : page.presets
       more.value = page.more
       next = page.next
