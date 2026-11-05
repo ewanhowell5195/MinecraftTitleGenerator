@@ -21,7 +21,7 @@ async function fresh() {
 }
 
 function page(ids, more = false) {
-  return { body: { presets: ids.map(id => ({ id, name: `Preset ${id}`, votes: 0, rating: null })), more } }
+  return { body: { presets: ids.map(id => ({ id, name: `Preset ${id}`, votes: 0, rating: null, downloads: 0 })), more } }
 }
 
 const POPULAR = { sort: "popular", search: "", offset: 0 }
@@ -137,7 +137,7 @@ describe("votes", () => {
     assert.deepEqual(presets.map(preset => preset.vote), [-1, 0])
   })
 
-  test("update the cached pages, so no fetch is needed to see them", async () => {
+  test("show your numbers without a fetch", async () => {
     replies.GET = page([1])
     replies.POST = { body: { votes: 5, rating: 4, vote: 1 } }
     const { listCommunity, voteOn } = await fresh()
@@ -188,21 +188,130 @@ describe("downloads", () => {
   test("are only sent once per preset, even after a reload", async () => {
     replies.POST = { body: { counted: true } }
     const first = await fresh()
-    await first.countDownload(5)
-    await first.countDownload(5)
-    await (await fresh()).countDownload(5)
+    await first.countDownload({ id: 5, downloads: 0 })
+    await first.countDownload({ id: 5, downloads: 0 })
+    await (await fresh()).countDownload({ id: 5, downloads: 0 })
     assert.equal(requests.length, 1)
-    await first.countDownload(6)
+    await first.countDownload({ id: 6, downloads: 0 })
     assert.equal(requests.length, 2)
   })
 
   test("are tried again later if sending fails", async () => {
     replies.POST = { status: 500, body: {} }
     const { countDownload } = await fresh()
-    await assert.rejects(countDownload(5))
+    await assert.rejects(countDownload({ id: 5, downloads: 0 }))
     replies.POST = { body: { counted: true } }
-    await countDownload(5)
+    await countDownload({ id: 5, downloads: 0 })
     assert.equal(requests.length, 2)
+  })
+})
+
+describe("your own changes", () => {
+  const MINUTE = 60000
+  const VOTED = { body: { votes: 5, rating: 4, vote: 1 } }
+
+  test("a vote stays over an older list after a reload", async () => {
+    replies.GET = page([1])
+    replies.POST = VOTED
+    const first = await fresh()
+    await first.listCommunity(POPULAR)
+    await first.voteOn(1, 1)
+    mock.timers.setTime(Date.now() + 31 * MINUTE)
+    const { presets } = await (await fresh()).listCommunity(POPULAR)
+    assert.equal(requests.filter(item => item.startsWith("GET")).length, 2)
+    assert.deepEqual([presets[0].votes, presets[0].rating, presets[0].vote], [5, 4, 1])
+  })
+
+  test("a vote shows in a list you had not opened yet", async () => {
+    replies.GET = page([1])
+    replies.POST = VOTED
+    const { listCommunity, voteOn } = await fresh()
+    await voteOn(1, 1)
+    assert.equal((await listCommunity({ ...POPULAR, sort: "new" })).presets[0].votes, 5)
+  })
+
+  test("a vote shows in the random batch", async () => {
+    replies.GET = page([1])
+    replies.POST = VOTED
+    const { listCommunity, voteOn } = await fresh()
+    await listCommunity({ ...POPULAR, sort: "random" })
+    await voteOn(1, 1)
+    assert.equal((await listCommunity({ ...POPULAR, sort: "random" })).presets[0].votes, 5)
+  })
+
+  test("a list with more votes than you saw is newer, so it wins", async () => {
+    replies.POST = VOTED
+    const { listCommunity, voteOn } = await fresh()
+    await voteOn(1, 1)
+    replies.GET = { body: { presets: [{ id: 1, votes: 6, rating: 3, downloads: 0 }], more: false } }
+    const { presets } = await listCommunity(POPULAR)
+    assert.deepEqual([presets[0].votes, presets[0].rating, presets[0].vote], [6, 3, 1])
+  })
+
+  test("switching uses the new rating even with the same vote count", async () => {
+    replies.POST = { body: { votes: 5, rating: 4, vote: -1 } }
+    const { listCommunity, voteOn } = await fresh()
+    await voteOn(1, -1)
+    replies.GET = { body: { presets: [{ id: 1, votes: 5, rating: 5, downloads: 0 }], more: false } }
+    assert.equal((await listCommunity(POPULAR)).presets[0].rating, 4)
+  })
+
+  test("the list is trusted again after an hour, and the change is forgotten", async () => {
+    replies.GET = page([1])
+    replies.POST = VOTED
+    const { listCommunity, voteOn } = await fresh()
+    await voteOn(1, 1)
+    mock.timers.setTime(Date.now() + 61 * MINUTE)
+    const { presets } = await listCommunity(POPULAR)
+    assert.equal(presets[0].votes, 0)
+    assert.equal(presets[0].vote, 1)
+    assert.deepEqual(JSON.parse(stored.get("minecraft-title-community")).changes, {})
+  })
+
+  test("a download raises the count on the card", async () => {
+    replies.POST = { body: { counted: true } }
+    const { countDownload } = await fresh()
+    assert.deepEqual(await countDownload({ id: 1, downloads: 4 }), { downloads: 5 })
+  })
+
+  test("a download raises the 7 day count when the card has one", async () => {
+    replies.POST = { body: { counted: true } }
+    const { countDownload } = await fresh()
+    assert.deepEqual(await countDownload({ id: 1, downloads: 4, week: 2 }), { downloads: 5, week: 3 })
+  })
+
+  test("a download stays over an older list after a reload, in both counts", async () => {
+    replies.POST = { body: { counted: true } }
+    await (await fresh()).countDownload({ id: 1, downloads: 4, week: 2 })
+    replies.GET = { body: { presets: [{ id: 1, votes: 0, rating: null, downloads: 4, week: 2 }], more: false } }
+    const { presets } = await (await fresh()).listCommunity({ ...POPULAR, sort: "week" })
+    assert.deepEqual([presets[0].downloads, presets[0].week], [5, 3])
+  })
+
+  test("a download is not added twice once the list has caught up", async () => {
+    replies.POST = { body: { counted: true } }
+    const { countDownload, listCommunity } = await fresh()
+    await countDownload({ id: 1, downloads: 4, week: 2 })
+    replies.GET = { body: { presets: [{ id: 1, votes: 0, rating: null, downloads: 5, week: 3 }], more: false } }
+    const { presets } = await listCommunity({ ...POPULAR, sort: "week" })
+    assert.deepEqual([presets[0].downloads, presets[0].week], [5, 3])
+  })
+
+  test("a download the server already had changes nothing", async () => {
+    replies.POST = { body: { counted: false } }
+    const { countDownload } = await fresh()
+    assert.equal(await countDownload({ id: 1, downloads: 4 }), null)
+  })
+
+  test("a vote and a download on one preset both stay", async () => {
+    replies.POST = VOTED
+    const { countDownload, listCommunity, voteOn } = await fresh()
+    await voteOn(1, 1)
+    replies.POST = { body: { counted: true } }
+    await countDownload({ id: 1, downloads: 0 })
+    replies.GET = page([1])
+    const { presets } = await listCommunity(POPULAR)
+    assert.deepEqual([presets[0].votes, presets[0].downloads], [5, 1])
   })
 })
 

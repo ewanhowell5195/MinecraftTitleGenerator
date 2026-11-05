@@ -65,8 +65,12 @@
     }
   }
 
-  function counted(preset) {
-    countDownload(preset.id).catch(console.error)
+  async function counted(preset) {
+    try {
+      Object.assign(preset, await countDownload(preset))
+    } catch (err) {
+      console.error(err)
+    }
   }
 
   function open(preset) {

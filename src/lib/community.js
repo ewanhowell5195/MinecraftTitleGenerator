@@ -6,13 +6,15 @@ const STORAGE = "minecraft-title-community"
 const PAGE_LIFE = 30 * 60000
 const FRESH_SHUFFLE = 60000
 const PAGES_KEPT = 60
+// must cover EDGE_SECONDS in src/server/presets.js plus PAGE_LIFE
+const CHANGE_LIFE = 60 * 60000
 
 export const usage = ref(null)
 
 const store = read()
 
 function read() {
-  const empty = { pages: {}, votes: {}, downloads: [], own: [], usage: null, pool: null }
+  const empty = { pages: {}, votes: {}, downloads: [], own: [], changes: {}, usage: null, pool: null }
   try {
     return { ...empty, ...JSON.parse(localStorage.getItem(STORAGE)) }
   } catch {
@@ -23,6 +25,9 @@ function read() {
 function persist() {
   const keys = Object.keys(store.pages).sort((a, b) => store.pages[b].at - store.pages[a].at)
   for (const key of keys.slice(PAGES_KEPT)) delete store.pages[key]
+  for (const id of Object.keys(store.changes)) {
+    if (!currentChange(id)) delete store.changes[id]
+  }
   try {
     localStorage.setItem(STORAGE, JSON.stringify(store))
   } catch (err) {
@@ -44,8 +49,24 @@ function posted(path, body) {
   return request(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body ?? {}) })
 }
 
-function withMyVote(preset) {
-  return { ...preset, vote: store.votes[preset.id] ?? 0, own: store.own.includes(preset.id) }
+function currentChange(id) {
+  const change = store.changes[id]
+  return change && Date.now() - change.at < CHANGE_LIFE ? change : null
+}
+
+function remember(id, values) {
+  store.changes[id] = { ...currentChange(id), ...values, at: Date.now() }
+}
+
+function withMine(preset) {
+  const shown = { ...preset, vote: store.votes[preset.id] ?? 0, own: store.own.includes(preset.id) }
+  const change = currentChange(preset.id)
+  if (!change) return shown
+  if (change.votes !== undefined && preset.votes <= change.votes) Object.assign(shown, { votes: change.votes, rating: change.rating })
+  const missing = Math.max(0, (change.downloads ?? 0) - preset.downloads)
+  shown.downloads += missing
+  if (preset.week !== undefined) shown.week += missing
+  return shown
 }
 
 function shuffled(items) {
@@ -72,7 +93,7 @@ function poolIsCurrent() {
 
 export async function listCommunity({ sort, search, offset }) {
   const term = search.trim().toLowerCase()
-  if (sort === "random" && !term) return { presets: (poolIsCurrent() ? store.pool.presets : await freshPool()).map(withMyVote), more: false, next: 0 }
+  if (sort === "random" && !term) return { presets: (poolIsCurrent() ? store.pool.presets : await freshPool()).map(withMine), more: false, next: 0 }
   const key = `${sort}|${term}|${offset}`
   let page = store.pages[key]
   if (!page || Date.now() - page.at >= PAGE_LIFE) {
@@ -85,27 +106,19 @@ export async function listCommunity({ sort, search, offset }) {
     }
   }
   const presets = sort === "needs" ? page.presets.filter(preset => !store.votes[preset.id] && !store.own.includes(preset.id)) : page.presets
-  return { presets: presets.map(withMyVote), more: page.more, next: offset + page.presets.length }
+  return { presets: presets.map(withMine), more: page.more, next: offset + page.presets.length }
 }
 
 export async function shuffleCommunity() {
   const usable = store.pool && Date.now() - store.pool.at < FRESH_SHUFFLE
   const presets = usable ? shuffled(store.pool.presets) : await freshPool()
-  return { presets: presets.map(withMyVote), more: false, next: 0 }
+  return { presets: presets.map(withMine), more: false, next: 0 }
 }
 
 export async function randomCommunityPreset() {
   const presets = poolIsCurrent() ? store.pool.presets : await freshPool()
   const preset = presets[Math.floor(Math.random() * presets.length)]
-  return preset ? withMyVote(preset) : null
-}
-
-function patched(id, changes) {
-  for (const page of Object.values(store.pages).concat(store.pool ?? [])) {
-    for (const preset of page.presets) {
-      if (preset.id === id) Object.assign(preset, changes)
-    }
-  }
+  return preset ? withMine(preset) : null
 }
 
 function currentDay() {
@@ -132,7 +145,7 @@ export async function voteOn(id, value) {
   try {
     const { votes, rating, vote } = await posted(`/${id}/vote`, { value })
     store.votes[id] = vote
-    patched(id, { votes, rating })
+    remember(id, { votes, rating })
     persist()
     return { votes, rating, vote }
   } catch (err) {
@@ -160,12 +173,16 @@ export async function refreshUsage(force = false) {
   }
 }
 
-export async function countDownload(id) {
-  if (store.downloads.includes(id)) return
+export async function countDownload({ id, downloads, week }) {
+  if (store.downloads.includes(id)) return null
   store.downloads.push(id)
   persist()
   try {
-    await posted(`/${id}/download`)
+    const { counted } = await posted(`/${id}/download`)
+    if (!counted) return null
+    remember(id, { downloads: downloads + 1 })
+    persist()
+    return week === undefined ? { downloads: downloads + 1 } : { downloads: downloads + 1, week: week + 1 }
   } catch (err) {
     store.downloads = store.downloads.filter(item => item !== id)
     persist()
