@@ -2,7 +2,8 @@
   import { computed, onMounted } from "vue"
   import { refreshUsage, usage } from "../lib/community.js"
 
-  const full = computed(() => usage.value && usage.value.used >= usage.value.limit)
+  const left = computed(() => usage.value && Math.max(0, usage.value.limit - usage.value.used))
+  const full = computed(() => usage.value && !left.value)
   const reset = computed(() => usage.value && new Date(usage.value.resetsAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }))
 
   onMounted(refreshUsage)
@@ -11,9 +12,10 @@
 <template>
   <div v-if="usage" class="usage" :class="{ full }" role="status">
     <span class="pips" aria-hidden="true">
-      <i v-for="pip of usage.limit" :key="pip" :class="{ used: pip <= usage.used }"></i>
+      <i v-for="pip of usage.limit" :key="pip" :class="{ left: pip <= left }"></i>
     </span>
-    <span>{{ usage.used }} of {{ usage.limit }} shared today<template v-if="full">. You can share more after {{ reset }}.</template></span>
+    <span v-if="full">No shares left today. You can share more after {{ reset }}.</span>
+    <span v-else>{{ left }} of {{ usage.limit }} shares left today</span>
   </div>
 </template>
 
@@ -44,11 +46,7 @@
     background: var(--line-strong);
   }
 
-  i.used {
-    background: var(--accent);
-  }
-
-  .full i.used {
-    background: var(--danger);
+  i.left {
+    background: var(--muted);
   }
 </style>
