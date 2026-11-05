@@ -14,8 +14,8 @@ import { DEFAULT_FOV } from "./view.js"
 
 const STAGE_WIDTH = 1000
 const STAGE_HEIGHT = 500
-// the 1024px cap on the big view in PresetsPage.vue minus the padding in PresetDetail.vue
-const PICTURE_WIDTH = 984
+// the 1024px cap on the big view in PresetsPage.vue minus its border and padding in PresetDetail.vue and on .large in TitlePicture.vue
+const PICTURE_WIDTH = 935
 const PICTURE_QUALITY = 0.85
 const TIME_LIMIT = 180000
 const VIEW = { render: false, fov: DEFAULT_FOV, fixedDistance: false }

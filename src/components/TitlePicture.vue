@@ -85,6 +85,8 @@
 
 <style scoped>
   .picture {
+    box-sizing: border-box;
+    padding: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -103,11 +105,14 @@
     outline-offset: -2px;
   }
 
+  .large {
+    padding: 24px;
+  }
+
   .picture img {
     display: block;
-    width: 94%;
-    height: 94%;
-    object-fit: contain;
+    max-width: 100%;
+    max-height: 100%;
   }
 
   .status {

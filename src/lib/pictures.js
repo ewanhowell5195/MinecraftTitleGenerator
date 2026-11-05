@@ -3,7 +3,7 @@ import { savedJars } from "./minecraft.js"
 import { renderPicture } from "./titlePicture.js"
 
 const DATABASE = "minecraft-title-pictures"
-const RENDERER_VERSION = 4
+const RENDERER_VERSION = 5
 const PICTURES_KEPT = 500
 
 const finished = new Map()

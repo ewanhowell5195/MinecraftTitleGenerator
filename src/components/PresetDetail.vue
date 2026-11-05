@@ -72,7 +72,7 @@
     <header>
       <button class="icon-button" title="Close this preset" aria-label="Close this preset" @click="emit('close')"><Icon name="close" :size="18" /></button>
     </header>
-    <div class="scroll">
+    <div class="content">
       <TitlePicture :code="preset.code" large />
       <div class="heading">
         <input v-if="renaming" v-selected class="name-field" type="text" :value="preset.name" :maxlength="NAME_LIMIT" :aria-label="`Name of ${preset.name}`" spellcheck="false" @blur="finishRenaming" @keydown.enter="$event.target.blur()" @keydown.esc.stop="renaming = false">
@@ -115,7 +115,7 @@
     display: none;
   }
 
-  .scroll {
+  .content {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -200,7 +200,7 @@
       padding: 8px 8px 0;
     }
 
-    .scroll {
+    .content {
       padding-top: 4px;
     }
   }
