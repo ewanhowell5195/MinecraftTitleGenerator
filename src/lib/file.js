@@ -86,6 +86,7 @@ function expand(values) {
 function expandLine({ words, ...line }, group) {
   if (!words) return [expand(line)]
   if (!Array.isArray(words) || !words.length) throw new Error("a line has no words in it")
+  if (words.some(word => "matchWidth" in word)) throw new Error("a word sets matchWidth, which only a line can have")
   return words.map(word => expand({ ...line, ...word, group }))
 }
 
