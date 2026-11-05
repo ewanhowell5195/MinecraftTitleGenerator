@@ -8,6 +8,7 @@
   import ObjectRenderer from "./components/ObjectRenderer.js"
   import RenderFrame from "./components/RenderFrame.vue"
   import Segments from "./components/Segments.vue"
+  import ShareButton from "./components/ShareButton.vue"
   import Viewport from "./components/Viewport.vue"
   import ArcPanel from "./components/panels/ArcPanel.vue"
   import ColourPanel from "./components/panels/ColourPanel.vue"
@@ -31,6 +32,7 @@
   import { keepMatched } from "./lib/match.js"
   import { active, addObject, currentWord, library, runtime, saveError, scene, selection, shapingWord, wordTabs, words } from "./lib/scene.js"
   import { isModified } from "./lib/settings.js"
+  import { openSharedLink } from "./lib/share.js"
   import { loadStats } from "./lib/stats.js"
   import { SECTIONS, view } from "./lib/view.js"
 
@@ -83,12 +85,12 @@
     drawer.value.scrollTop = 0
   })
 
-  useWindowEvents(() => true, { keydown: shortcut })
+  useWindowEvents(() => true, { keydown: shortcut, hashchange: openSharedLink })
 
   onMounted(async () => {
     loadStats().catch(console.error)
     try {
-      const [fonts, tileables] = await Promise.all([loadFontList(), loadTileables()])
+      const [fonts, tileables] = await Promise.all([loadFontList(), loadTileables(), openSharedLink()])
       library.fonts = fonts
       library.tileables = tileables
       ready.value = true
@@ -103,6 +105,7 @@
     <header class="bar">
       <h1>Minecraft Title Generator</h1>
       <MenuBar ref="menuBar" />
+      <ShareButton />
     </header>
 
     <LayerList />

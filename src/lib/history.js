@@ -1,7 +1,7 @@
 import { effect, reactive } from "vue"
 import { forgetImages } from "./assets.js"
 import { restore } from "./settings.js"
-import { keepTexture, keptObject, scene, validSelection } from "./scene.js"
+import { keepTexture, keptObject, leaveSharedLink, scene, validSelection } from "./scene.js"
 
 const LIMIT = 200
 const SETTLE = 300
@@ -101,6 +101,7 @@ export function holdHistory(on) {
 function step(from, to) {
   if (timer) commit()
   if (!history[from].length) return
+  leaveSharedLink()
   history[to].push(present)
   present = history[from].pop()
   apply(present)
@@ -128,7 +129,10 @@ function noticeChange() {
     })
   }
   if (restoring) return
-  if (!quiet) changed = true
+  if (!quiet) {
+    changed = true
+    leaveSharedLink()
+  }
   clearTimeout(timer)
   timer = held ? null : setTimeout(commit, SETTLE)
 }

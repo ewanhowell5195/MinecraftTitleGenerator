@@ -75,10 +75,15 @@ function trimLine(words) {
   return { ...split(trim(words[0]), true), words: words.map(word => split(trim(word), false)) }
 }
 
+function expandLayer(layer) {
+  if (layer.file && !layer.file.startsWith("data:image/")) throw new Error("it has an overlay image that isn't embedded in it")
+  return { ...LAYER, ...layer }
+}
+
 function expand(values) {
   const object = { ...typeDefaults(values.type ?? "top"), ...values }
   for (const key of LAYERS) {
-    if (values[key]) object[key] = values[key].map(layer => ({ ...LAYER, ...layer }))
+    if (values[key]) object[key] = values[key].map(expandLayer)
   }
   return object
 }
@@ -90,17 +95,20 @@ function expandLine({ words, ...line }, group) {
   return words.map(word => expand({ ...line, ...word, group }))
 }
 
-export function saveTitle() {
-  if (!scene.objects.length) return
-  submitStats()
+export function titleData() {
   const list = lines()
   const numbers = new Map(list.flatMap((words, index) => words.map(word => [word.id, index])))
-  const data = { format: FORMAT, version: VERSION, lines: list.map(words => {
+  return { format: FORMAT, version: VERSION, lines: list.map(words => {
     const line = trimLine(words)
     if ("matchWidth" in line) line.matchWidth = numbers.get(line.matchWidth)
     return line
   }) }
-  const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }))
+}
+
+export function saveTitle() {
+  if (!scene.objects.length) return
+  submitStats()
+  const url = URL.createObjectURL(new Blob([JSON.stringify(titleData(), null, 2)], { type: "application/json" }))
   download(`${titleFileName()}.${EXTENSION}`, url)
   setTimeout(() => URL.revokeObjectURL(url), 1000)
   fileError.value = null
@@ -126,6 +134,10 @@ function matchLoops(lines, start) {
 function readTitle(text) {
   const data = parse(text)
   if (data?.format !== FORMAT) throw new Error("this isn't a Minecraft title file")
+  return readData(data)
+}
+
+function readData(data) {
   if (data.version > VERSION) throw new Error(`it was saved by a newer version of the generator (format ${data.version})`)
   if (!Array.isArray(data.lines) || !data.lines.length) throw new Error("it has no text in it")
   for (const line of data.lines) {
@@ -153,18 +165,26 @@ export function resetTitle() {
   fileError.value = null
 }
 
+function applyTitle(values) {
+  const lines = values.map(words => words.map(value => keptObject(value)))
+  const objects = lines.flat()
+  for (const object of objects) {
+    if (object.matchWidth !== null) object.matchWidth = lines[object.matchWidth][0].id
+  }
+  scene.objects.splice(0, scene.objects.length, ...objects)
+  Object.assign(scene, validSelection(objects, null, null))
+  fileError.value = null
+}
+
+export function openTitleData(data) {
+  applyTitle(readData(data))
+}
+
 export async function openTitle(file, allow = () => true) {
   try {
     const values = readTitle(await file.text())
     if (!allow()) return
-    const lines = values.map(words => words.map(value => keptObject(value)))
-    const objects = lines.flat()
-    for (const object of objects) {
-      if (object.matchWidth !== null) object.matchWidth = lines[object.matchWidth][0].id
-    }
-    scene.objects.splice(0, scene.objects.length, ...objects)
-    Object.assign(scene, validSelection(objects, null, null))
-    fileError.value = null
+    applyTitle(values)
   } catch (err) {
     fileError.value = `Couldn't open ${file.name}: ${err.message}`
   }

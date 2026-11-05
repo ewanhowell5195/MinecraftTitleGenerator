@@ -41,11 +41,20 @@ export const library = shallowReactive({ fonts: [], tileables: {} })
 
 export const saveError = ref(null)
 
+export const sharedLink = { open: false }
+
 let saving = null
+
+export function leaveSharedLink() {
+  if (!sharedLink.open) return
+  sharedLink.open = false
+  history.replaceState(null, "", location.pathname + location.search)
+}
 
 watch(scene, () => {
   clearTimeout(saving)
   saving = setTimeout(() => {
+    if (sharedLink.open) return
     try {
       localStorage.setItem(STORAGE, JSON.stringify({ objects: scene.objects, selected: scene.selected, selectedGroup: scene.selectedGroup }))
       saveError.value = null
