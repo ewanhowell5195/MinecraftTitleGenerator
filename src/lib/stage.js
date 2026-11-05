@@ -190,10 +190,10 @@ function restBounds(item) {
 export function titleFraming(items) {
   const box = new THREE.Box3()
   const anchor = new THREE.Box3()
-  const anchored = items.some(item => item.type === "top")
+  const solid = items.filter(item => item.built?.body.triangles && item.transform)
+  const anchored = solid.some(item => item.type === "top")
   let corners = []
-  for (const item of items) {
-    if (!item.built?.body.triangles || !item.transform) continue
+  for (const item of solid) {
     const placed = placedCorners(item, item.transform)
     for (const corner of placed) box.expandByPoint(corner)
     corners = corners.concat(placed)
