@@ -1,5 +1,5 @@
 <script setup>
-  import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue"
+  import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, watchEffect } from "vue"
   import { communityPreset, countDownload, listCommunity, ownPresets, randomCommunityPreset, refreshUsage, voteOn } from "../lib/community.js"
   import { useWindowEvents } from "../lib/events.js"
   import { LIMITS } from "../lib/limits.js"
@@ -16,6 +16,7 @@
   const TABS = [{ value: "community", label: "Community" }, { value: "mine", label: "My presets" }]
   const SORTS = [{ value: "week", label: "Popular this week" }, { value: "popular", label: "Popular all time" }, { value: "top", label: "Top rated" }, { value: "new", label: "Newest" }, { value: "needs", label: "Needs votes" }]
   const SEARCH_DELAY = 500
+  const EDITOR_TITLE = "Minecraft Title Generator"
   const phone = matchMedia("(max-width: 800px)")
 
   const tab = ref(presetsPage.id !== null || !presets.value.length ? "community" : "mine")
@@ -203,6 +204,10 @@
     searching = setTimeout(() => load(0), SEARCH_DELAY)
   })
   watch(() => presetsPage.id, followAddress)
+  watchEffect(() => {
+    const name = tab.value === "community" ? selectedCommunity.value?.name : null
+    document.title = `${name ?? "Presets"} | ${EDITOR_TITLE}`
+  })
   watch(selected, async () => {
     await nextTick()
     root.value?.querySelector(".card.selected")?.scrollIntoView({ block: "nearest" })
@@ -228,6 +233,7 @@
 
   onBeforeUnmount(() => {
     phone.removeEventListener("change", ensureSelected)
+    document.title = EDITOR_TITLE
     clearTimeout(searching)
     observer.disconnect()
   })

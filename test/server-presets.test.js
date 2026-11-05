@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 import fs from "node:fs"
 import { DatabaseSync } from "node:sqlite"
 
-const { LIMITS, checkTitle, countDownload, getPreset, listPresets, submissionUsage, submitPreset, titleFacts, votePreset } = await import("../src/server/presets.js")
+const { LIMITS, checkTitle, countDownload, getPreset, listPresets, presetPageDetails, submissionUsage, submitPreset, titleFacts, votePreset } = await import("../src/server/presets.js")
 const { encodeTitle } = await import("../src/lib/linkformat.js")
 const { FILE_VERSION } = await import("../src/lib/settings.js")
 
@@ -769,6 +769,22 @@ describe("usage", () => {
     await share("theirs", {}, "them")
     assert.deepEqual((await usageOf("me")).shared, [mine.id])
     assert.deepEqual((await usageOf("nobody")).shared, [])
+  })
+})
+
+describe("preset page details", () => {
+  test("the presets page has its own title and address", () => {
+    const { title, description, path } = presetPageDetails(null)
+    assert.equal(title, "Presets | Minecraft Title Generator")
+    assert.match(description, /shared by other people/)
+    assert.equal(path, "/app/presets")
+  })
+
+  test("a preset has its name in the title and its own address", () => {
+    const { title, description, path } = presetPageDetails("Iron and Ember", 12)
+    assert.equal(title, "Iron and Ember | Minecraft Title Generator")
+    assert.match(description, /Open Iron and Ember in the/)
+    assert.equal(path, "/app/presets/12")
   })
 })
 

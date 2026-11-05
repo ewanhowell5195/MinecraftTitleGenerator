@@ -11,6 +11,7 @@ const MATCHES = "lower(name) LIKE ?1 ESCAPE '\\' OR lower(text) LIKE ?1 ESCAPE '
 const EDGE_SECONDS = 1800
 const DAY = 86400000
 const WEEK_DAYS = 7
+const SITE_NAME = "Minecraft Title Generator"
 const FIRST_PAGES = ["week", "popular", "top", "new", "needs"].map(sort => `?sort=${sort}&offset=0`)
 const COLUMNS = "id, code, name, text, downloads, votes, rating, created_at AS createdAt"
 
@@ -239,19 +240,24 @@ function escaped(text) {
   return text.replace(/[&<>"]/g, character => `&#${character.charCodeAt(0)};`)
 }
 
+export function presetPageDetails(name, id) {
+  if (name === null) return { title: `Presets | ${SITE_NAME}`, description: "Browse Minecraft style titles shared by other people, then open one in the generator and change it however you like.", path: "/app/presets" }
+  return { title: `${name} | ${SITE_NAME}`, description: `Open ${name} in the ${SITE_NAME}, then change it and render it as an image.`, path: `/app/presets/${id}` }
+}
+
 export async function presetPage({ env, params, request }) {
   const page = await env.ASSETS.fetch(new URL("/app/", request.url))
   const id = Number(params.id?.[0])
-  if (params.id?.length !== 1 || !Number.isSafeInteger(id) || id < 1) return page
-  const preset = await env.DB.prepare("SELECT name FROM presets WHERE id = ?").bind(id).first()
-  if (!preset) return page
-  const title = `${preset.name} | Minecraft Title Generator`
-  const description = `Open ${preset.name} in the Minecraft Title Generator, then change it and render it as an image.`
+  const known = params.id?.length === 1 && Number.isSafeInteger(id) && id > 0
+  const preset = known ? await env.DB.prepare("SELECT name FROM presets WHERE id = ?").bind(id).first() : null
+  const { title, description, path } = presetPageDetails(preset?.name ?? null, id)
+  const url = `${new URL(request.url).origin}${path}`
+  const tags = [["og:type", "website"], ["og:site_name", SITE_NAME], ["og:url", url], ["og:title", title], ["og:description", description]]
   return new HTMLRewriter()
     .on("title", { element: element => element.setInnerContent(title) })
     .on('meta[name="description"]', { element: element => element.setAttribute("content", description) })
-    .on('link[rel="canonical"]', { element: element => element.setAttribute("href", `${new URL(request.url).origin}/app/presets/${id}`) })
-    .on("head", { element: element => element.append(`<meta property="og:title" content="${escaped(title)}"><meta property="og:description" content="${escaped(description)}"><meta property="og:type" content="website">`, { html: true }) })
+    .on('link[rel="canonical"]', { element: element => element.setAttribute("href", url) })
+    .on("head", { element: element => element.append(tags.map(([property, content]) => `<meta property="${property}" content="${escaped(content)}">`).join(""), { html: true }) })
     .transform(page)
 }
 
