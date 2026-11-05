@@ -7,7 +7,6 @@ const DIRECTION = new THREE.Vector3(0, -0.51007, 0.86013).normalize()
 const TILT = radians(7.285)
 const TITLE_REACH = 144
 const ZOOM_LIMITS = [0.25, 32]
-const PITCH_LIMIT = 1.4
 
 function radians(degrees) {
   return degrees * Math.PI / 180
@@ -348,8 +347,13 @@ export function zoomedAt(pan, factor, x, y) {
 
 export const UNTURNED = { yaw: 0, pitch: 0 }
 
-export function turnedBy(turn, right, down) {
-  return { yaw: turn.yaw - right, pitch: clamp(turn.pitch - down, -PITCH_LIMIT, PITCH_LIMIT) }
+export function elevationOf(position, pivot) {
+  const offset = position.clone().sub(pivot)
+  return Math.asin(offset.y / offset.length())
+}
+
+export function turnedBy(turn, right, down, elevation = 0) {
+  return { yaw: turn.yaw - right, pitch: clamp(turn.pitch - down, elevation - Math.PI / 2, elevation + Math.PI / 2) }
 }
 
 export function orbitCamera(camera, pivot, { yaw, pitch }) {

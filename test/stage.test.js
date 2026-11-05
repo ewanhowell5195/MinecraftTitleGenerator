@@ -5,7 +5,7 @@ import * as THREE from "three"
 globalThis.localStorage = { getItem: () => null, setItem: () => {} }
 globalThis.devicePixelRatio = 1
 
-const { UNTURNED, UNZOOMED, cornersOf, frameCamera, gizmoPose, lineBounds, movedBy, orbitCamera, panMatrix, pannedBy, placementMatrix, rotatedTo, sortEntries, titleFraming, turnedBy, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } = await import("../src/lib/stage.js")
+const { UNTURNED, UNZOOMED, cornersOf, elevationOf, frameCamera, gizmoPose, lineBounds, movedBy, orbitCamera, panMatrix, pannedBy, placementMatrix, rotatedTo, sortEntries, titleFraming, turnedBy, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } = await import("../src/lib/stage.js")
 const { view } = await import("../src/lib/view.js")
 
 const BOUNDS = new THREE.Box3(new THREE.Vector3(0, 0, 0), new THREE.Vector3(10, 4, 2))
@@ -678,9 +678,22 @@ describe("orbiting", () => {
     assert.ok(camera.position.y > -50)
   })
 
-  test("pitch stops short of going over the top", () => {
-    assert.equal(turnedBy(UNTURNED, 0, 100).pitch, -1.4)
-    assert.equal(turnedBy(UNTURNED, 0, -100).pitch, 1.4)
+  test("stops at straight up and straight down from any starting angle", () => {
+    const camera = framed()
+    const start = elevationOf(camera.position, pivot)
+    assert.ok(start < 0)
+    const up = framed()
+    orbitCamera(up, pivot, turnedBy(UNTURNED, 0, 100, start))
+    assert.ok(Math.abs(elevationOf(up.position, pivot) - Math.PI / 2) < 1e-6)
+    const down = framed()
+    orbitCamera(down, pivot, turnedBy(UNTURNED, 0, -100, start))
+    assert.ok(Math.abs(elevationOf(down.position, pivot) + Math.PI / 2) < 1e-6)
+  })
+
+  test("elevation is measured from level around the pivot", () => {
+    const pivotAbove = new THREE.Vector3(5, 10, 0)
+    assert.equal(elevationOf(new THREE.Vector3(5, 10, 100), pivotAbove), 0)
+    assert.ok(Math.abs(elevationOf(new THREE.Vector3(5, 110, 0), pivotAbove) - Math.PI / 2) < 1e-9)
   })
 
   test("yaw has no limit", () => {

@@ -9,7 +9,7 @@
   import { renderTitle, screenBounds } from "../lib/render.js"
   import { current, currentWord, setScale, shapingWord } from "../lib/scene.js"
   import { TRANSFORM_LIMITS } from "../lib/settings.js"
-  import { UNTURNED, UNZOOMED, createEntry, destroyEntry, frameCamera, gizmoPose, lineBounds, movedBy, orbitCamera, panMatrix, pannedBy, rotatedTo, sortEntries, titleFraming, turnedBy, updateEntry, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } from "../lib/stage.js"
+  import { UNTURNED, UNZOOMED, createEntry, destroyEntry, elevationOf, frameCamera, gizmoPose, lineBounds, movedBy, orbitCamera, panMatrix, pannedBy, rotatedTo, sortEntries, titleFraming, turnedBy, updateEntry, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } from "../lib/stage.js"
   import { vectorTitle } from "../lib/vector.js"
   import { view, viewport, viewportChanges } from "../lib/view.js"
   import Icon from "./Icon.vue"
@@ -271,7 +271,7 @@
     const other = Array.from(pointers).find(([id]) => id !== event.pointerId)?.[1]
     pointers.set(event.pointerId, point)
     if (!other) {
-      if (orbiting.value && last.button === 0) turn.value = turnedBy(turn.value, (point.x - last.x) * Math.PI * frameSize.width / frameSize.height, (last.y - point.y) * Math.PI)
+      if (orbiting.value && last.button === 0) turn.value = turnedBy(turn.value, (point.x - last.x) * Math.PI * frameSize.width / frameSize.height, (last.y - point.y) * Math.PI, elevationOf(basePosition, pivot))
       else pan.value = pannedBy(pan.value, point.x - last.x, point.y - last.y)
       return
     }
