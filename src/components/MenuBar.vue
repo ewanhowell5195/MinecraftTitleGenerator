@@ -3,6 +3,7 @@
   import { useWindowEvents } from "../lib/events.js"
   import { EXTENSION, isDefaultTitle, openTitle, resetTitle, saveTitle } from "../lib/file.js"
   import { history, redo, undo } from "../lib/history.js"
+  import { scene } from "../lib/scene.js"
   import ContextMenu from "./ContextMenu.vue"
 
   const picker = ref(null)
@@ -14,7 +15,7 @@
   const menus = computed(() => ({
     File: [
       { label: "Open...", icon: "open", action: openPicker },
-      { label: "Save", icon: "download", action: saveTitle }
+      { label: "Save", icon: "download", disabled: !scene.objects.length, action: saveTitle }
     ],
     Edit: [
       { label: "Undo", icon: "undo", disabled: !history.undo.length, keepOpen: true, action: undo },

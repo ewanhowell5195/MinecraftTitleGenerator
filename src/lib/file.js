@@ -91,6 +91,7 @@ function expandLine({ words, ...line }, group) {
 }
 
 export function saveTitle() {
+  if (!scene.objects.length) return
   submitStats()
   const list = lines()
   const numbers = new Map(list.flatMap((words, index) => words.map(word => [word.id, index])))
