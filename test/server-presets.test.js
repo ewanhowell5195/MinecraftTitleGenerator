@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 import fs from "node:fs"
 import { DatabaseSync } from "node:sqlite"
 
-const { LIMITS, checkTitle, countDownload, listPresets, submissionUsage, submitPreset, titleFacts, votePreset } = await import("../src/server/presets.js")
+const { LIMITS, checkTitle, countDownload, getPreset, listPresets, submissionUsage, submitPreset, titleFacts, votePreset } = await import("../src/server/presets.js")
 const { encodeTitle } = await import("../src/lib/linkformat.js")
 const { FILE_VERSION } = await import("../src/lib/settings.js")
 
@@ -759,6 +759,38 @@ describe("popular in the last 7 days", () => {
       assert.equal((await list("?sort=week&offset=2")).presets.length, 1)
     } finally {
       LIMITS.page = original
+    }
+  })
+})
+
+describe("a single preset", () => {
+  async function fetched(id) {
+    const response = await getPreset(context(`/api/presets/${id}`, { params: { id: String(id) } }))
+    return { status: response.status, ...await response.json() }
+  }
+
+  test("is returned with its numbers and without its sharer", async () => {
+    const { id } = await share("stone", { name: "Castle" })
+    const { status, preset } = await fetched(id)
+    assert.equal(status, 200)
+    assert.equal(preset.name, "Castle")
+    assert.equal(preset.rating, null)
+    assert.equal("ip_hash" in preset, false)
+  })
+
+  test("is a 404 when it doesn't exist or the id is bad", async () => {
+    assert.equal((await fetched(999)).status, 404)
+    assert.equal((await fetched("abc")).status, 404)
+  })
+
+  test("doesn't cache a 404", async () => {
+    const entries = new Map()
+    globalThis.caches = { default: { match: async request => entries.get(request.url)?.clone(), put: async (request, response) => { entries.set(request.url, response) }, delete: async () => {} } }
+    try {
+      await fetched(999)
+      assert.equal(entries.size, 0)
+    } finally {
+      delete globalThis.caches
     }
   })
 })
