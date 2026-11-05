@@ -383,6 +383,19 @@ describe("resetPanel", () => {
     assert.equal(object.smooth, false)
   })
 
+  test("the tiling panel only resets the tiling settings", () => {
+    const object = createObject({ textureSource: "tileable", tileable: "dirt", tileableSource: "minecraft", minecraftTexture: "stone", tileableScale: 8, tileableXOffset: 3, tileablePerCharacter: true, disableFontOverlay: true })
+    assert.equal(isModified(object, "tiling"), true)
+    resetPanel(object, "tiling")
+    assert.equal(object.tileableScale, 2)
+    assert.equal(object.tileableXOffset, 0)
+    assert.equal(object.tileablePerCharacter, false)
+    assert.equal(isModified(object, "tiling"), false)
+    assert.equal(object.tileable, "dirt")
+    assert.equal(object.minecraftTexture, "stone")
+    assert.equal(object.disableFontOverlay, true)
+  })
+
   test("tileable texture also resets the Minecraft texture", () => {
     const object = createObject({ textureSource: "tileable", tileableSource: "minecraft", minecraftTexture: "stone", minecraftVersion: "1.8.9" })
     resetPanel(object, "texture")

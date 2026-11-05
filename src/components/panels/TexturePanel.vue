@@ -22,6 +22,7 @@
   const TILEABLE_SOURCES = [{ value: "premade", label: "Premade" }, { value: "minecraft", label: "Minecraft textures" }]
 
   const { object, font, list, modified, reset } = usePanel("texture")
+  const tiling = usePanel("tiling")
   const search = ref("")
   const tileSize = ref({ width: 16, height: 16 })
   const blocks = shallowRef(null)
@@ -119,7 +120,7 @@
 
 <template>
   <Panel title="Source" :modified="modified" @reset="reset">
-    <div class="flow" :class="{ pick: object.textureSource !== 'gradient' }">
+    <div class="flow" :class="{ pick: object.textureSource !== 'gradient', peek: object.textureSource === 'tileable' }">
       <Segments :options="SOURCES" :model-value="object.textureSource" @update:model-value="setTexture(object, { textureSource: $event })" />
 
       <template v-if="object.textureSource === 'premade'">
@@ -173,17 +174,6 @@
       </template>
     </div>
 
-    <template v-if="object.textureSource === 'tileable'">
-      <h3>Tiling</h3>
-      <Slider label="Scale" v-model="object.tileableScale" :min="0.25" :max="8" :steps="TILE_SCALES" />
-      <Slider label="X offset" v-model="object.tileableXOffset" :min="0" :max="tileSize.width" />
-      <Slider label="Y offset" v-model="object.tileableYOffset" :min="0" :max="tileSize.height" />
-      <Toggle label="Random rotations" v-model="object.tileableRandomRotations" />
-      <Toggle label="Random mirroring" v-model="object.tileableRandomMirroring" />
-      <Toggle label="Tile edge faces" hint="Top, bottom, side and inner faces. Off stretches the letter's edge pixels across them" v-model="object.tileableTileEdges" />
-      <Toggle label="Restart on each character" hint="Starts the texture again from the left of every character" v-model="object.tileablePerCharacter" />
-    </template>
-
     <template v-if="object.textureSource === 'gradient'">
       <GradientEditor v-model="object.stops" :smooth="object.smooth" :angle="object.gradientAngle" :key="object.id" />
       <Toggle label="Smooth gradient" v-model="object.smooth" />
@@ -193,6 +183,16 @@
 
     <Toggle v-if="object.textureSource !== 'premade' && font?.overlay" label="Hide the font's own overlay" v-model="object.disableFontOverlay" />
   </Panel>
+
+  <Panel v-if="object.textureSource === 'tileable'" title="Tiling" :modified="tiling.modified.value" @reset="tiling.reset">
+    <Slider label="Scale" v-model="object.tileableScale" :min="0.25" :max="8" :steps="TILE_SCALES" />
+    <Slider label="X offset" v-model="object.tileableXOffset" :min="0" :max="tileSize.width" />
+    <Slider label="Y offset" v-model="object.tileableYOffset" :min="0" :max="tileSize.height" />
+    <Toggle label="Random rotations" v-model="object.tileableRandomRotations" />
+    <Toggle label="Random mirroring" v-model="object.tileableRandomMirroring" />
+    <Toggle label="Tile the edges" hint="Repeats the texture on the top, bottom, side and inner faces" v-model="object.tileableTileEdges" />
+    <Toggle label="Restart on each character" hint="Starts the texture again from the left of every character" v-model="object.tileablePerCharacter" />
+  </Panel>
 </template>
 
 <style scoped>
@@ -200,6 +200,10 @@
     /* 42px is the Panel.vue header: 28px tall plus its 14px margin */
     height: max(520px, calc(100cqh - 42px - 2 * var(--group-padding)));
     container-type: inline-size;
+  }
+
+  .pick.peek {
+    height: max(420px, calc(100cqh - 42px - 2 * var(--group-padding) - 120px));
   }
 
   .scroll {

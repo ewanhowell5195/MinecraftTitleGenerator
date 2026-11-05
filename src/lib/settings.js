@@ -25,6 +25,16 @@ function stops(type) {
   return TYPES[type].stops.map(([colour, position]) => ({ colour, position }))
 }
 
+const TILING = () => ({
+  tileableScale: 2,
+  tileableXOffset: 0,
+  tileableYOffset: 0,
+  tileableRandomRotations: false,
+  tileableRandomMirroring: false,
+  tileableTileEdges: false,
+  tileablePerCharacter: false
+})
+
 const PANELS = {
   text: () => ({
     text: "minecraft",
@@ -110,15 +120,10 @@ const PANELS = {
     stops: stops("top"),
     smooth: true,
     gradientAngle: 0,
-    tileableScale: 2,
-    tileableXOffset: 0,
-    tileableYOffset: 0,
-    tileableRandomRotations: false,
-    tileableRandomMirroring: false,
-    tileableTileEdges: false,
-    tileablePerCharacter: false,
+    ...TILING(),
     disableFontOverlay: false
   }),
+  tiling: TILING,
   overlays: () => ({
     overlayMode: "default",
     overlays: []
