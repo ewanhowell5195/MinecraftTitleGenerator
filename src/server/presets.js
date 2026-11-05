@@ -129,8 +129,9 @@ function presetId(params) {
 }
 
 async function requirePreset(env, id) {
-  const found = await env.DB.prepare("SELECT id FROM presets WHERE id = ?").bind(id).first()
+  const found = await env.DB.prepare("SELECT ip_hash FROM presets WHERE id = ?").bind(id).first()
   if (!found) throw new Refusal(404, "This preset doesn't exist.")
+  return found
 }
 
 function rated(row) {
@@ -239,7 +240,7 @@ export const submitPreset = guarded(async context => {
   const day = today()
   if (await usedToday(env, ip) >= LIMITS.perDay) throw new Refusal(429, `You can share up to ${LIMITS.perDay} titles a day. Try again tomorrow.`)
   const [inserted] = await env.DB.batch([
-    env.DB.prepare(`INSERT INTO presets (code, fingerprint, name, text, created_at) VALUES (?, ?, ?, ?, ?) RETURNING ${COLUMNS}`).bind(body.code, fingerprint, name, facts.text, Date.now()),
+    env.DB.prepare(`INSERT INTO presets (code, fingerprint, name, text, ip_hash, created_at) VALUES (?, ?, ?, ?, ?, ?) RETURNING ${COLUMNS}`).bind(body.code, fingerprint, name, facts.text, ip, Date.now()),
     env.DB.prepare("INSERT INTO preset_submissions (ip_hash, day, count) VALUES (?, ?, 1) ON CONFLICT (ip_hash, day) DO UPDATE SET count = count + 1").bind(ip, day)
   ])
   await globalThis.caches?.default.delete(new Request(new URL(NEWEST_PAGE, request.url)))
@@ -253,8 +254,9 @@ export const votePreset = guarded(async context => {
   const id = presetId(params)
   const { value } = await jsonBody(request)
   if (value !== 1 && value !== -1) throw new Refusal(400, "That isn't a valid vote.")
-  await requirePreset(env, id)
+  const { ip_hash: sharedBy } = await requirePreset(env, id)
   const ip = await hashedIp(context)
+  if (sharedBy === ip) throw new Refusal(403, "You can't vote on a preset you shared.")
   const previous = (await env.DB.prepare("SELECT value FROM preset_votes WHERE preset_id = ? AND ip_hash = ?").bind(id, ip).first())?.value ?? 0
   const ups = (value === 1) - (previous === 1)
   const votes = previous ? 0 : 1

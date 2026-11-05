@@ -471,6 +471,19 @@ describe("voting and rating", () => {
     assert.equal(db.prepare("SELECT COUNT(*) AS rows FROM preset_votes").get().rows, 1)
   })
 
+  test("refuses a vote on a preset you shared, either way", async () => {
+    const { id } = await share("mine", {}, "me")
+    assert.equal((await vote(id, 1, "me")).status, 403)
+    assert.equal((await vote(id, -1, "me")).status, 403)
+    assert.equal(db.prepare("SELECT votes FROM presets WHERE id = ?").get(id).votes, 0)
+    assert.equal(db.prepare("SELECT COUNT(*) AS rows FROM preset_votes").get().rows, 0)
+  })
+
+  test("lets everyone else vote on it", async () => {
+    const { id } = await share("mine", {}, "me")
+    assert.equal((await vote(id, 1, "someone")).votes, 1)
+  })
+
   test("a falsely high rating drops as more people vote", async () => {
     const { id } = await share("a")
     await voteAll(id, [1, 1, 1, 1, 1])

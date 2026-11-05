@@ -87,11 +87,12 @@
   }
 
   async function vote(preset, value) {
-    if (preset.vote === value) return
+    if (preset.own || preset.vote === value) return
     error.value = ""
     try {
       Object.assign(preset, await voteOn(preset.id, value))
     } catch (err) {
+      if (err.status === 403) preset.own = true
       error.value = err.message
     }
   }
@@ -145,7 +146,7 @@
           <strong :title="preset.name">{{ preset.name }}</strong>
         </div>
         <div class="actions">
-          <PresetRating :rating="preset.rating" :votes="preset.votes" :mine="preset.vote" @vote="vote(preset, $event)" />
+          <PresetRating :rating="preset.rating" :votes="preset.votes" :mine="preset.vote" :own="preset.own" @vote="vote(preset, $event)" />
           <span class="downloads" :title="preset.week === undefined ? `Used by ${preset.downloads}` : `Used by ${preset.week} in the last 7 days`"><Icon name="download" :size="14" />{{ preset.week ?? preset.downloads }}</span>
           <button class="icon-button small" :disabled="saved.has(preset.code)" :title="saved.has(preset.code) ? 'Already in My presets' : 'Save to My presets'" @click="save(preset)"><Icon name="bookmark" :size="16" /></button>
         </div>

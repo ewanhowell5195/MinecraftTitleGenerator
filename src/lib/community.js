@@ -12,7 +12,7 @@ export const usage = ref(null)
 const store = read()
 
 function read() {
-  const empty = { pages: {}, votes: {}, downloads: [], usage: null, pool: null }
+  const empty = { pages: {}, votes: {}, downloads: [], own: [], usage: null, pool: null }
   try {
     return { ...empty, ...JSON.parse(localStorage.getItem(STORAGE)) }
   } catch {
@@ -45,7 +45,7 @@ function posted(path, body) {
 }
 
 function withMyVote(preset) {
-  return { ...preset, vote: store.votes[preset.id] ?? 0 }
+  return { ...preset, vote: store.votes[preset.id] ?? 0, own: store.own.includes(preset.id) }
 }
 
 function shuffled(items) {
@@ -119,6 +119,7 @@ function showUsage() {
 
 export async function sharePublicly(code, name) {
   const result = await posted("", { code, name })
+  store.own.push(result.preset.id)
   for (const key of Object.keys(store.pages)) {
     if (key.startsWith("new|") || key.startsWith("needs|")) delete store.pages[key]
   }
@@ -129,11 +130,19 @@ export async function sharePublicly(code, name) {
 }
 
 export async function voteOn(id, value) {
-  const { votes, rating, vote } = await posted(`/${id}/vote`, { value })
-  store.votes[id] = vote
-  patched(id, { votes, rating })
-  persist()
-  return { votes, rating, vote }
+  try {
+    const { votes, rating, vote } = await posted(`/${id}/vote`, { value })
+    store.votes[id] = vote
+    patched(id, { votes, rating })
+    persist()
+    return { votes, rating, vote }
+  } catch (err) {
+    if (err.status === 403) {
+      store.own.push(id)
+      persist()
+    }
+    throw err
+  }
 }
 
 export async function refreshUsage(force = false) {

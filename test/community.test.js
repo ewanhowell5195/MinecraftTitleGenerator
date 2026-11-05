@@ -148,6 +148,23 @@ describe("votes", () => {
     assert.equal(requests.filter(item => item.startsWith("GET")).length, 1)
   })
 
+  test("presets you shared are marked as yours, even after a reload", async () => {
+    replies.GET = page([1, 2])
+    replies.POST = { body: { preset: { id: 2 } } }
+    const first = await fresh()
+    await first.sharePublicly("code", "name")
+    const { presets } = await (await fresh()).listCommunity(POPULAR)
+    assert.deepEqual(presets.map(preset => preset.own), [false, true])
+  })
+
+  test("a preset the server says is yours is remembered", async () => {
+    replies.GET = page([1])
+    replies.POST = { status: 403, body: { error: "yours" } }
+    const { listCommunity, voteOn } = await fresh()
+    await assert.rejects(voteOn(1, 1), /yours/)
+    assert.equal((await listCommunity(POPULAR)).presets[0].own, true)
+  })
+
   test("switching replaces the remembered vote", async () => {
     replies.GET = page([1])
     replies.POST = { body: { votes: 1, rating: null, vote: 1 } }
