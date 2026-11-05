@@ -5,6 +5,7 @@
   import Panel from "./components/Panel.vue"
   import LayerList from "./components/LayerList.vue"
   import MenuBar from "./components/MenuBar.vue"
+  import PresetsPage from "./components/PresetsPage.vue"
   import ObjectRenderer from "./components/ObjectRenderer.js"
   import RenderFrame from "./components/RenderFrame.vue"
   import Segments from "./components/Segments.vue"
@@ -30,6 +31,7 @@
   import { redo, undo } from "./lib/history.js"
   import { keepMatched } from "./lib/match.js"
   import { notice } from "./lib/notices.js"
+  import { presetsPage, syncPresetsPage } from "./lib/presetsPage.js"
   import { active, addObject, currentWord, library, runtime, saveError, scene, selection, shapingWord, wordTabs, words } from "./lib/scene.js"
   import { openSharedLink } from "./lib/share.js"
   import { loadStats } from "./lib/stats.js"
@@ -58,7 +60,7 @@
   const editing = computed(() => !view.render && scene.objects.length > 0)
 
   function shortcut(event) {
-    if (!(event.ctrlKey || event.metaKey) || event.altKey) return
+    if (!(event.ctrlKey || event.metaKey) || event.altKey || presetsPage.open) return
     if (event.target.matches("input[type=text], textarea")) return
     const key = event.key.toLowerCase()
     if (key === "z" && !event.shiftKey) undo()
@@ -73,7 +75,7 @@
     drawer.value.scrollTop = 0
   })
 
-  useWindowEvents(() => true, { keydown: shortcut, hashchange: openSharedLink })
+  useWindowEvents(() => true, { keydown: shortcut, hashchange: openSharedLink, popstate: syncPresetsPage })
 
   onMounted(async () => {
     loadStats().catch(console.error)
@@ -150,6 +152,8 @@
       <p v-if="status" class="error">{{ status }}</p>
       <p v-if="notice" class="notice">{{ notice }}</p>
     </main>
+
+    <PresetsPage v-if="presetsPage.open" />
 
     <template v-if="ready">
       <ObjectRenderer v-for="object of scene.objects" :key="object.id" :object="object" :fonts="library.fonts" :tileables="library.tileables" />

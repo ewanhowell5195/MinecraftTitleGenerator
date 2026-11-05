@@ -230,13 +230,13 @@ describe("your own changes", () => {
     assert.equal((await listCommunity({ ...POPULAR, sort: "new" })).presets[0].votes, 5)
   })
 
-  test("a vote shows in the random batch", async () => {
+  test("a vote shows on a random pick", async () => {
     replies.GET = page([1])
     replies.POST = VOTED
-    const { listCommunity, voteOn } = await fresh()
-    await listCommunity({ ...POPULAR, sort: "random" })
+    const { randomCommunityPreset, voteOn } = await fresh()
+    await randomCommunityPreset()
     await voteOn(1, 1)
-    assert.equal((await listCommunity({ ...POPULAR, sort: "random" })).presets[0].votes, 5)
+    assert.equal((await randomCommunityPreset()).votes, 5)
   })
 
   test("a list with more votes than you saw is newer, so it wins", async () => {
@@ -399,39 +399,44 @@ describe("random", () => {
   test("sharing gets a new batch so your title can come up", async () => {
     replies.GET = page([1])
     replies.POST = { body: { preset: { id: 2 } } }
-    const { listCommunity, sharePublicly } = await fresh()
-    await listCommunity({ ...POPULAR, sort: "random" })
+    const { randomCommunityPreset, sharePublicly } = await fresh()
+    await randomCommunityPreset()
     await sharePublicly("code", "name")
-    await listCommunity({ ...POPULAR, sort: "random" })
+    await randomCommunityPreset()
     assert.equal(requests.filter(item => item.startsWith("GET")).length, 2)
   })
 
-  test("reuses one batch across tab views and random picks", async () => {
+  test("reuses one batch for random picks", async () => {
     replies.GET = page([1, 2, 3])
-    const { listCommunity, randomCommunityPreset } = await fresh()
-    await listCommunity({ ...POPULAR, sort: "random" })
-    await listCommunity({ ...POPULAR, sort: "random" })
+    const { randomCommunityPreset } = await fresh()
+    assert.ok([1, 2, 3].includes((await randomCommunityPreset()).id))
     assert.ok([1, 2, 3].includes((await randomCommunityPreset()).id))
     assert.equal(requests.length, 1)
   })
 
-  test("shuffling soon after only mixes up what it already has", async () => {
-    replies.GET = page([1, 2, 3, 4, 5, 6, 7, 8])
-    const { listCommunity, shuffleCommunity } = await fresh()
-    await listCommunity({ ...POPULAR, sort: "random" })
-    mock.timers.setTime(Date.now() + 30000)
-    const { presets } = await shuffleCommunity()
+  test("never lands on the preset you are looking at", async () => {
+    replies.GET = page([1, 2])
+    const { randomCommunityPreset } = await fresh()
+    for (let index = 0; index < 50; index++) assert.equal((await randomCommunityPreset(1)).id, 2)
     assert.equal(requests.length, 1)
-    assert.deepEqual(presets.map(preset => preset.id).sort(), [1, 2, 3, 4, 5, 6, 7, 8])
   })
 
-  test("shuffling after a minute gets a new batch", async () => {
+  test("gets a new batch when the old one only has the preset you are looking at", async () => {
     replies.GET = page([1])
-    const { listCommunity, shuffleCommunity } = await fresh()
-    await listCommunity({ ...POPULAR, sort: "random" })
+    const { randomCommunityPreset } = await fresh()
+    await randomCommunityPreset()
     mock.timers.setTime(Date.now() + 61000)
-    await shuffleCommunity()
+    replies.GET = page([1, 2])
+    assert.equal((await randomCommunityPreset(1)).id, 2)
     assert.equal(requests.length, 2)
+  })
+
+  test("has nothing to show when yours is the only preset, without asking again straight away", async () => {
+    replies.GET = page([1])
+    const { randomCommunityPreset } = await fresh()
+    assert.equal(await randomCommunityPreset(1), null)
+    assert.equal(await randomCommunityPreset(1), null)
+    assert.equal(requests.length, 1)
   })
 
   test("a random pick with nothing shared is nothing", async () => {
@@ -440,20 +445,54 @@ describe("random", () => {
     assert.equal(await randomCommunityPreset(), null)
   })
 
-  test("random search is not cached, but random lists are", async () => {
+  test("gets a new batch once the old one is 30 minutes old", async () => {
     replies.GET = page([1])
-    const { listCommunity } = await fresh()
-    await listCommunity({ sort: "random", search: "stone", offset: 0 })
-    await listCommunity({ sort: "random", search: "stone", offset: 0 })
+    const { randomCommunityPreset } = await fresh()
+    await randomCommunityPreset()
+    mock.timers.setTime(Date.now() + 31 * 60000)
+    await randomCommunityPreset()
+    assert.equal(requests.length, 2)
+  })
+})
+
+describe("a single preset", () => {
+  test("comes from a saved list when it can, with no request", async () => {
+    replies.GET = page([1, 2])
+    const { communityPreset, listCommunity } = await fresh()
+    await listCommunity(POPULAR)
+    assert.equal((await communityPreset(2)).id, 2)
+    assert.equal(requests.length, 1)
+  })
+
+  test("is fetched when no saved list has it", async () => {
+    replies.GET = { body: { preset: { id: 9, votes: 1, rating: null, downloads: 0 } } }
+    const { communityPreset } = await fresh()
+    assert.equal((await communityPreset(9)).id, 9)
+    assert.deepEqual(requests, ["GET /api/presets/9"])
+  })
+
+  test("ignores a saved list that has expired", async () => {
+    replies.GET = page([9])
+    const { communityPreset, listCommunity } = await fresh()
+    await listCommunity(POPULAR)
+    mock.timers.setTime(Date.now() + 31 * 60000)
+    replies.GET = { body: { preset: { id: 9, votes: 1, rating: null, downloads: 0 } } }
+    assert.equal((await communityPreset(9)).votes, 1)
     assert.equal(requests.length, 2)
   })
 
-  test("gets a new batch once the old one is 30 minutes old", async () => {
-    replies.GET = page([1])
-    const { listCommunity } = await fresh()
-    await listCommunity({ ...POPULAR, sort: "random" })
-    mock.timers.setTime(Date.now() + 31 * 60000)
-    await listCommunity({ ...POPULAR, sort: "random" })
-    assert.equal(requests.length, 2)
+  test("shows your own changes", async () => {
+    replies.POST = { body: { votes: 5, rating: 4, vote: 1 } }
+    const { communityPreset, voteOn } = await fresh()
+    await voteOn(9, 1)
+    replies.GET = { body: { preset: { id: 9, votes: 0, rating: null, downloads: 0 } } }
+    const preset = await communityPreset(9)
+    assert.deepEqual([preset.votes, preset.vote], [5, 1])
+  })
+
+  test("reports a preset that doesn't exist", async () => {
+    replies.GET = { status: 404, body: { error: "This preset doesn't exist." } }
+    const { communityPreset } = await fresh()
+    await assert.rejects(communityPreset(9), /doesn't exist/)
   })
 })

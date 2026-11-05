@@ -4,7 +4,7 @@ import { LIMITS } from "./limits.js"
 const API = "/api/presets"
 const STORAGE = "minecraft-title-community"
 const PAGE_LIFE = 30 * 60000
-const FRESH_SHUFFLE = 60000
+const POOL_RETRY = 60000
 const PAGES_KEPT = 60
 // must cover EDGE_SECONDS in src/server/presets.js plus PAGE_LIFE
 const CHANGE_LIFE = 60 * 60000
@@ -69,17 +69,6 @@ function withMine(preset) {
   return shown
 }
 
-function shuffled(items) {
-  const list = items.slice()
-  for (let index = list.length - 1; index > 0; index--) {
-    const other = Math.floor(Math.random() * (index + 1))
-    const swapped = list[index]
-    list[index] = list[other]
-    list[other] = swapped
-  }
-  return list
-}
-
 async function freshPool() {
   const { presets } = await request("?sort=random")
   store.pool = { at: Date.now(), presets }
@@ -93,31 +82,34 @@ function poolIsCurrent() {
 
 export async function listCommunity({ sort, search, offset }) {
   const term = search.trim().toLowerCase()
-  if (sort === "random" && !term) return { presets: (poolIsCurrent() ? store.pool.presets : await freshPool()).map(withMine), more: false, next: 0 }
   const key = `${sort}|${term}|${offset}`
   let page = store.pages[key]
   if (!page || Date.now() - page.at >= PAGE_LIFE) {
     const query = new URLSearchParams({ sort, offset: String(offset) })
     if (term) query.set("q", term)
     page = { at: Date.now(), ...await request(`?${query}`) }
-    if (sort !== "random") {
-      store.pages[key] = page
-      persist()
-    }
+    store.pages[key] = page
+    persist()
   }
   const presets = sort === "needs" ? page.presets.filter(preset => !store.votes[preset.id] && !store.own.includes(preset.id)) : page.presets
   return { presets: presets.map(withMine), more: page.more, next: offset + page.presets.length }
 }
 
-export async function shuffleCommunity() {
-  const usable = store.pool && Date.now() - store.pool.at < FRESH_SHUFFLE
-  const presets = usable ? shuffled(store.pool.presets) : await freshPool()
-  return { presets: presets.map(withMine), more: false, next: 0 }
+export async function communityPreset(id) {
+  for (const page of Object.values(store.pages).concat(store.pool ?? [])) {
+    const found = Date.now() - page.at < PAGE_LIFE && page.presets.find(preset => preset.id === id)
+    if (found) return withMine(found)
+  }
+  const { preset } = await request(`/${id}`)
+  return withMine(preset)
 }
 
-export async function randomCommunityPreset() {
-  const presets = poolIsCurrent() ? store.pool.presets : await freshPool()
-  const preset = presets[Math.floor(Math.random() * presets.length)]
+export async function randomCommunityPreset(exclude = null) {
+  const others = list => list.filter(preset => preset.id !== exclude)
+  let choices = poolIsCurrent() ? others(store.pool.presets) : []
+  const justFetched = store.pool && Date.now() - store.pool.at < POOL_RETRY
+  if (!choices.length && !(poolIsCurrent() && justFetched)) choices = others(await freshPool())
+  const preset = choices[Math.floor(Math.random() * choices.length)]
   return preset ? withMine(preset) : null
 }
 

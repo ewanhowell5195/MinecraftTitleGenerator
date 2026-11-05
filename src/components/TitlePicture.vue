@@ -3,7 +3,8 @@
   import { hasPicture, missingJars, pictureOf } from "../lib/pictures.js"
 
   const props = defineProps({
-    code: { type: String, required: true }
+    code: { type: String, required: true },
+    large: { type: Boolean, default: false }
   })
 
   const emit = defineEmits(["open"])
@@ -20,7 +21,7 @@
     failed.value = false
     const code = props.code
     try {
-      const picture = await pictureOf(code)
+      const picture = await pictureOf(code, { soon: props.large })
       if (code === props.code) image.value = picture
     } catch (err) {
       console.error(err)
@@ -61,12 +62,20 @@
 
   watch(() => props.code, () => {
     image.value = null
+    jars.value = []
+    failed.value = false
     watchForSight()
   })
 </script>
 
 <template>
-  <div ref="element" class="picture" :class="{ ready: image }" role="button" tabindex="0" @click="emit('open')" @keydown.enter="emit('open')">
+  <div v-if="large" ref="element" class="picture large">
+    <img v-if="image" :src="image" alt="">
+    <button v-else-if="jars.length" class="small" @click="download">Load Minecraft {{ jars.join(", ") }}</button>
+    <span v-else-if="failed" class="status">Can't show this title</span>
+    <span v-else class="status">Loading</span>
+  </div>
+  <div v-else ref="element" class="picture clickable" role="button" tabindex="0" @click.stop="emit('open')" @keydown.enter="emit('open')">
     <img v-if="image" :src="image" alt="">
     <button v-else-if="jars.length" class="small" @click.stop="download" @keydown.enter.stop>Load Minecraft {{ jars.join(", ") }}</button>
     <span v-else-if="failed" class="status">Can't show this title</span>
@@ -82,8 +91,11 @@
     width: 100%;
     aspect-ratio: 2;
     background: var(--checker);
-    cursor: pointer;
     user-select: none;
+  }
+
+  .clickable {
+    cursor: pointer;
   }
 
   .picture:focus-visible {
@@ -93,8 +105,9 @@
 
   .picture img {
     display: block;
-    max-width: 92%;
-    max-height: 92%;
+    width: 94%;
+    height: 94%;
+    object-fit: contain;
   }
 
   .status {

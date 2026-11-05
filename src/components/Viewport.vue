@@ -20,7 +20,8 @@
   const WHEEL_ZOOM = 0.002
   const PINCH_WHEEL_ZOOM = 0.01
   const LINE_HEIGHT = 16
-  const SNAPSHOT_SIZE = 360
+  // the 1024px cap on the big view in PresetsPage.vue minus the padding in PresetDetail.vue
+  const SNAPSHOT_SIZE = 984
   const SNAPSHOT_QUALITY = 0.85
 
   const props = defineProps({

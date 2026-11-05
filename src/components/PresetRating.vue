@@ -10,7 +10,8 @@
     rating: { type: Number, default: null },
     votes: { type: Number, required: true },
     mine: { type: Number, default: 0 },
-    own: { type: Boolean, default: false }
+    own: { type: Boolean, default: false },
+    large: { type: Boolean, default: false }
   })
 
   const emit = defineEmits(["vote"])
@@ -26,7 +27,7 @@
 </script>
 
 <template>
-  <div class="rating" :class="{ own }">
+  <div class="rating" :class="{ own, large }">
     <template v-if="!own">
       <button type="button" class="icon-button small" :class="{ up: mine === 1 }" :title="mine === 1 ? 'You like this' : 'I like this'" aria-label="I like this" :aria-pressed="mine === 1" @click="emit('vote', 1)"><Icon name="up" :size="16" /></button>
       <button type="button" class="icon-button small" :class="{ down: mine === -1 }" :title="mine === -1 ? 'You don\'t like this' : 'I don\'t like this'" aria-label="I don't like this" :aria-pressed="mine === -1" @click="emit('vote', -1)"><Icon name="down" :size="16" /></button>
@@ -39,6 +40,7 @@
         </span>
       </span>
       <span class="number">{{ rating.toFixed(1) }}</span>
+      <span v-if="large">from {{ votes }} votes</span>
     </div>
     <span v-else class="unrated" :title="summary">{{ votes }}/{{ LIMITS.minVotes }} votes</span>
   </div>
@@ -53,6 +55,11 @@
     font-size: var(--font-sm);
     font-variant-numeric: tabular-nums;
     color: var(--muted);
+  }
+
+  .large {
+    gap: 4px;
+    font-size: var(--font-md);
   }
 
   .own .result,

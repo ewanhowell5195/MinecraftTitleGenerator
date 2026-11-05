@@ -2,6 +2,7 @@
   import { computed, onBeforeUnmount, ref, watch } from "vue"
   import { clamp } from "../lib/maths.js"
   import { namingPreset, savedPreset } from "../lib/presets.js"
+  import { openPresetsPage } from "../lib/presetsPage.js"
   import { dropPreview, previews, renderPreview } from "../lib/previews.js"
   import { useReorderDrag } from "../lib/reorder.js"
   import { TYPES } from "../lib/settings.js"
@@ -9,13 +10,10 @@
   import { view } from "../lib/view.js"
   import ContextMenu from "./ContextMenu.vue"
   import Icon from "./Icon.vue"
-  import PresetsDialog from "./PresetsDialog.vue"
   import RenderDialog from "./RenderDialog.vue"
   import SavePresetDialog from "./SavePresetDialog.vue"
 
   const SETTLE = 150
-
-  const choosingPreset = ref(false)
 
   const rendered = new Map()
   const queued = new Set()
@@ -201,7 +199,7 @@
 <template>
   <nav class="layers">
     <div class="presets">
-      <button class="rail-button" title="Open a saved preset" @click="choosingPreset = true">
+      <button class="rail-button" title="Open a saved preset" @click="openPresetsPage()">
         <Icon name="bookmark" :size="20" />
         <span>Presets</span>
       </button>
@@ -229,7 +227,6 @@
       <span>Render</span>
     </button>
     <ContextMenu :items="context?.items" :at="context?.at" @close="context = null" />
-    <PresetsDialog v-if="choosingPreset" @close="choosingPreset = false" />
     <SavePresetDialog v-if="namingPreset !== null" :suggested="namingPreset" @close="namingPreset = null" />
     <RenderDialog v-if="savedPreset?.skipped" title="Preset saved" close-title="Close" dismissable @close="savedPreset = null">
       <div class="skipped">

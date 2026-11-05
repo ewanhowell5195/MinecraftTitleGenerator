@@ -2,17 +2,19 @@ import { decodeTitle } from "./linkformat.js"
 import { savedJars } from "./minecraft.js"
 
 const DATABASE = "minecraft-title-pictures"
-const RENDERER_VERSION = 2
+const RENDERER_VERSION = 4
 const PICTURES_KEPT = 500
 const FRAME_WIDTH = 1000
 const FRAME_HEIGHT = 500
+// same-origin frames share the page's main thread, so measured 3 frames were slower than 1
+const MOST_RENDERERS = 1
+const RENDERER_IDLE_TIME = 5000
 
 const finished = new Map()
 const waiting = []
-let frame = null
-let running = null
+const renderers = new Set()
+const hurrying = new Set()
 let nextId = 0
-let opened = null
 let database = null
 
 function wordsOf(line) {
@@ -29,46 +31,72 @@ export function missingJars(code) {
   return minecraftVersions(decodeTitle(code).lines).filter(version => !saved.has(version))
 }
 
-function openFrame() {
-  opened ??= new Promise((fulfil, reject) => {
-    frame = document.createElement("iframe")
-    frame.src = new URL("app/render.html", document.baseURI).href
-    frame.setAttribute("aria-hidden", "true")
-    frame.tabIndex = -1
-    Object.assign(frame.style, { position: "fixed", top: "0", left: "0", width: `${FRAME_WIDTH}px`, height: `${FRAME_HEIGHT}px`, border: "0", opacity: "0", pointerEvents: "none", zIndex: "-1" })
-    function ready(event) {
-      if (event.origin !== location.origin || event.source !== frame.contentWindow || event.data?.type !== "ready") return
-      removeEventListener("message", ready)
-      addEventListener("message", answered)
-      fulfil()
+function startRenderer() {
+  const frame = document.createElement("iframe")
+  const renderer = { frame, job: null, closing: null }
+  frame.src = new URL("app/render.html", document.baseURI).href
+  frame.setAttribute("aria-hidden", "true")
+  frame.tabIndex = -1
+  Object.assign(frame.style, { position: "fixed", top: "0", left: "0", width: `${FRAME_WIDTH}px`, height: `${FRAME_HEIGHT}px`, border: "0", opacity: "0", pointerEvents: "none", zIndex: "-1" })
+  renderer.opened = new Promise((fulfil, reject) => {
+    renderer.listener = event => {
+      if (event.origin !== location.origin || event.source !== frame.contentWindow) return
+      if (event.data?.type === "ready") fulfil()
+      else if (event.data?.id === renderer.job?.id) finishJob(renderer, event.data)
     }
-    addEventListener("message", ready)
+    addEventListener("message", renderer.listener)
     frame.addEventListener("error", () => reject(new Error("the title renderer failed to load")))
-    document.body.append(frame)
   })
-  return opened
+  document.body.append(frame)
+  renderers.add(renderer)
+  return renderer
 }
 
-function answered(event) {
-  if (event.origin !== location.origin || event.source !== frame.contentWindow || event.data?.id !== running?.id) return
-  const job = running
-  running = null
-  if (event.data.type === "rendered") job.fulfil(event.data.image)
-  else job.reject(new Error(event.data.error))
+function closeRenderer(renderer) {
+  clearTimeout(renderer.closing)
+  removeEventListener("message", renderer.listener)
+  renderer.frame.remove()
+  renderers.delete(renderer)
+}
+
+function finishJob(renderer, answer) {
+  const { job } = renderer
+  renderer.job = null
+  if (answer.type === "rendered") job.fulfil(answer.image)
+  else job.reject(new Error(answer.error))
   next()
 }
 
-async function next() {
-  if (running || !waiting.length) return
-  running = waiting.shift()
+async function runJob(renderer, job) {
   try {
-    await openFrame()
-    frame.contentWindow.postMessage({ type: "render", id: running.id, code: running.code }, location.origin)
+    await renderer.opened
+    renderer.frame.contentWindow.postMessage({ type: "render", id: job.id, code: job.code }, location.origin)
   } catch (err) {
-    const job = running
-    running = null
+    renderer.job = null
+    closeRenderer(renderer)
     job.reject(err)
     next()
+  }
+}
+
+function freeRenderer() {
+  const free = Array.from(renderers).find(renderer => !renderer.job)
+  if (free) return free
+  return renderers.size < MOST_RENDERERS ? startRenderer() : null
+}
+
+function next() {
+  while (waiting.length) {
+    const renderer = freeRenderer()
+    if (!renderer) break
+    clearTimeout(renderer.closing)
+    renderer.job = waiting.shift()
+    runJob(renderer, renderer.job)
+  }
+  for (const renderer of renderers) {
+    if (renderer.job) continue
+    clearTimeout(renderer.closing)
+    renderer.closing = setTimeout(() => closeRenderer(renderer), RENDERER_IDLE_TIME)
   }
 }
 
@@ -125,7 +153,9 @@ export async function hasPicture(code) {
 
 function rendered(code) {
   return new Promise((fulfil, reject) => {
-    waiting.push({ id: ++nextId, code, fulfil, reject })
+    const job = { id: ++nextId, code, fulfil, reject }
+    if (hurrying.delete(code)) waiting.unshift(job)
+    else waiting.push(job)
     next()
   })
 }
@@ -138,7 +168,15 @@ async function loadPicture(code) {
   return image
 }
 
-export function pictureOf(code) {
+function hurry(code) {
+  const index = waiting.findIndex(job => job.code === code)
+  if (index >= 0) waiting.unshift(waiting.splice(index, 1)[0])
+  else hurrying.add(code)
+}
+
+export function pictureOf(code, { soon = false } = {}) {
+  if (soon && !finished.has(code)) hurrying.add(code)
+  else if (soon) hurry(code)
   if (!finished.has(code)) {
     const picture = loadPicture(code)
     finished.set(code, picture)

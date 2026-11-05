@@ -22,7 +22,7 @@
     try {
       const { preset } = await sharePublicly(props.preset.code, name.value)
       markShared(props.preset, preset.id)
-      emit("shared")
+      emit("shared", preset)
     } catch (err) {
       if (err.status === 409) markShared(props.preset, err.id)
       if (err.status === 429) refreshUsage(true)
