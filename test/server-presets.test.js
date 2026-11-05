@@ -700,13 +700,24 @@ describe("popular in the last 7 days", () => {
     await download(recent.id, "a")
     assert.deepEqual(texts(await list("?sort=week")), ["old", "recent"])
     mock.timers.setTime(START + 8 * DAY)
-    assert.deepEqual(texts(await list("?sort=week")), ["recent"])
+    assert.deepEqual(texts(await list("?sort=week")), ["recent", "old"])
+    assert.deepEqual((await list("?sort=week")).presets.map(preset => preset.week), [1, 0])
     assert.deepEqual(texts(await list("?sort=popular")), ["old", "recent"])
   })
 
-  test("leaves out presets nobody used", async () => {
+  test("lists presets nobody used last, with a count of 0", async () => {
+    const used = await share("used")
     await share("unused")
-    assert.deepEqual((await list("?sort=week")).presets, [])
+    await download(used.id, "a")
+    assert.deepEqual((await list("?sort=week")).presets.map(preset => [preset.text, preset.week]), [["used", 1], ["unused", 0]])
+  })
+
+  test("breaks ties with all time downloads", async () => {
+    const older = await share("older")
+    await share("newer")
+    await download(older.id, "a")
+    mock.timers.setTime(START + 8 * DAY)
+    assert.deepEqual(texts(await list("?sort=week")), ["older", "newer"])
   })
 
   test("repeat downloads from one IP don't count", async () => {

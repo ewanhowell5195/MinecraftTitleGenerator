@@ -6,7 +6,7 @@ import { FILE_VERSION, typeDefaults } from "../lib/settings.js"
 
 export { LIMITS }
 
-const SORTS = { week: "week DESC, id DESC", popular: "downloads DESC, id DESC", top: "rating DESC, votes DESC, id DESC", new: "created_at DESC, id DESC", needs: "votes, id" }
+const SORTS = { week: "week DESC, downloads DESC, id DESC", popular: "downloads DESC, id DESC", top: "rating DESC, votes DESC, id DESC", new: "created_at DESC, id DESC", needs: "votes, id" }
 const MATCHES = "lower(name) LIKE ?1 ESCAPE '\\' OR lower(text) LIKE ?1 ESCAPE '\\'"
 const EDGE_SECONDS = 300
 const DAY = 86400000
@@ -218,7 +218,7 @@ export const listPresets = guarded(async context => {
     const conditions = term ? [`(${MATCHES})`] : []
     if (sort === "needs") conditions.push(`votes < ${LIMITS.minVotes}`)
     const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : ""
-    const source = sort === "week" ? `SELECT ${COLUMNS}, week FROM presets JOIN (SELECT preset_id, SUM(count) AS week FROM preset_daily_downloads WHERE day >= ${dayNumber() - WEEK_DAYS} GROUP BY preset_id) ON preset_id = id` : `SELECT ${COLUMNS} FROM presets`
+    const source = sort === "week" ? `SELECT ${COLUMNS}, COALESCE(week, 0) AS week FROM presets LEFT JOIN (SELECT preset_id, SUM(count) AS week FROM preset_daily_downloads WHERE day >= ${dayNumber() - WEEK_DAYS} GROUP BY preset_id) ON preset_id = id` : `SELECT ${COLUMNS} FROM presets`
     const statement = env.DB.prepare(`${source} ${where} ORDER BY ${SORTS[sort]} LIMIT ${LIMITS.page + 1} OFFSET ${offset}`)
     const { results } = await (term ? statement.bind(likePattern(term)) : statement).all()
     return reply(200, { presets: results.slice(0, LIMITS.page).map(rated), more: results.length > LIMITS.page })

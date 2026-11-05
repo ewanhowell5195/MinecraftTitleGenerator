@@ -27,12 +27,10 @@
   const tooShort = computed(() => search.value.trim().length > 0 && Array.from(search.value.trim()).length < LIMITS.searchMinimum)
   const emptyMessage = computed(() => {
     if (search.value.trim()) return "No presets match this search."
-    if (listing.value === "week") return "Nothing has been used in the last 7 days."
     return sort.value === "needs" ? "You have voted on everything that needs votes. Thank you!" : "Nobody has shared a preset yet. Be the first from My presets!"
   })
   let request = 0
   let next = 0
-  let landing = true
   let searching = null
   let observer = null
 
@@ -43,12 +41,6 @@
     try {
       const page = await listCommunity({ sort: listing.value, search: tooShort.value ? "" : search.value, offset })
       if (current !== request) return
-      const emptyLanding = landing && listing.value === "week" && !page.presets.length && !search.value.trim()
-      landing = false
-      if (emptyLanding) {
-        period.value = "popular"
-        return
-      }
       results.value = offset ? results.value.concat(page.presets) : page.presets
       more.value = page.more
       next = page.next
@@ -154,7 +146,7 @@
         </div>
         <div class="actions">
           <PresetRating :rating="preset.rating" :votes="preset.votes" :mine="preset.vote" @vote="vote(preset, $event)" />
-          <span class="downloads" :title="preset.week ? `Used by ${preset.week} in the last 7 days` : `Used by ${preset.downloads}`"><Icon name="download" :size="14" />{{ preset.week ?? preset.downloads }}</span>
+          <span class="downloads" :title="preset.week === undefined ? `Used by ${preset.downloads}` : `Used by ${preset.week} in the last 7 days`"><Icon name="download" :size="14" />{{ preset.week ?? preset.downloads }}</span>
           <button class="icon-button small" :disabled="saved.has(preset.code)" :title="saved.has(preset.code) ? 'Already in My presets' : 'Save to My presets'" @click="save(preset)"><Icon name="bookmark" :size="16" /></button>
         </div>
       </div>
