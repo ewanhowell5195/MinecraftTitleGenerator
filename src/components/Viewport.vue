@@ -2,6 +2,7 @@
   import { onBeforeUnmount, onMounted, ref, watch } from "vue"
   import * as THREE from "three"
   import { TransformControls } from "three/addons/controls/TransformControls.js"
+  import { FXAA_FRAGMENT, FXAA_VERTEX } from "../lib/fxaa.js"
   import { frameBounds, framePixels, frameRect, framing } from "../lib/framing.js"
   import { holdHistory } from "../lib/history.js"
   import { clamp, round } from "../lib/maths.js"
@@ -24,7 +25,7 @@
 
   const host = ref(null)
   const entries = new Map()
-  let renderer, scene, overlay, camera, perspective, orthographic, frame, observer, selection, controls, proxy
+  let renderer, scene, overlay, camera, perspective, orthographic, frame, observer, selection, controls, proxy, sceneTarget, smoothing, smoothingCamera
   let frameSize = { width: 1, height: 1 }
   let fitted = null
   let dirty = true
@@ -43,7 +44,10 @@
     dirty = false
     sortEntries(Array.from(entries.values()), camera)
     track()
+    renderer.setRenderTarget(sceneTarget)
     renderer.render(scene, camera)
+    renderer.setRenderTarget(null)
+    renderer.render(smoothing, smoothingCamera)
     if (controls.object) {
       renderer.autoClear = false
       renderer.clearDepth()
@@ -210,12 +214,33 @@
     if (title) frameCamera(camera, { ...title, fov: view.fov, ...frameSize, maxScale: view.render ? Infinity : MAX_SCALE, frame: view.render ? { rect: frameRect, bounds: frameBounds, pixels: framePixels } : null })
   }
 
+  function createSmoothing() {
+    sceneTarget = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter })
+    const geometry = new THREE.BufferGeometry()
+    geometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array([-1, -1, 3, -1, -1, 3]), 2))
+    geometry.boundingSphere = new THREE.Sphere()
+    const material = new THREE.RawShaderMaterial({ vertexShader: FXAA_VERTEX, fragmentShader: FXAA_FRAGMENT, defines: { LINEAR_INPUT: "" }, uniforms: { scene: { value: sceneTarget.texture }, pixel: { value: new THREE.Vector2() } }, blending: THREE.NoBlending, depthTest: false, depthWrite: false })
+    const pass = new THREE.Mesh(geometry, material)
+    pass.frustumCulled = false
+    smoothing = new THREE.Scene()
+    smoothing.add(pass)
+    smoothingCamera = new THREE.Camera()
+  }
+
+  function resizeSmoothing() {
+    const { x, y } = renderer.getDrawingBufferSize(new THREE.Vector2())
+    sceneTarget.setSize(x, y)
+    smoothing.children[0].material.uniforms.pixel.value.set(1 / x, 1 / y)
+  }
+
   onMounted(() => {
     const width = host.value.clientWidth || 1
     const height = host.value.clientHeight || 1
     renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.setSize(width, height)
+    createSmoothing()
+    resizeSmoothing()
     host.value.append(renderer.domElement)
     scene = new THREE.Scene()
     frameSize = { width, height }
@@ -244,6 +269,7 @@
       const h = host.value.clientHeight
       if (!w || !h) return
       renderer.setSize(w, h)
+      resizeSmoothing()
       frameSize = { width: w, height: h }
       fitCamera()
     })
@@ -291,6 +317,9 @@
     entries.clear()
     for (const edge of selection.children) edge.geometry.dispose()
     selection.children[0].material.dispose()
+    sceneTarget.dispose()
+    smoothing.children[0].geometry.dispose()
+    smoothing.children[0].material.dispose()
     renderer.dispose()
     renderer.domElement.remove()
   })
