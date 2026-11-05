@@ -89,7 +89,7 @@ export function lineText(object) {
   return words(object).map((word, index) => (index && word.spaceBefore ? " " : "") + word.text.trim()).join("").trim()
 }
 
-export function titleFileName() {
+export function titleText() {
   let text = ""
   let group = null
   for (const word of scene.objects) {
@@ -97,7 +97,11 @@ export function titleFileName() {
     text += (word.group !== null && word.group === group && !word.spaceBefore ? "" : " ") + word.text.trim()
     group = word.group
   }
-  const name = text.toLowerCase().replace(/[\\/:*?"<>|\s]+/g, "_").replace(/^[_.]+|[_.]+$/g, "")
+  return text.trim()
+}
+
+export function titleFileName() {
+  const name = titleText().toLowerCase().replace(/[\\/:*?"<>|\s]+/g, "_").replace(/^[_.]+|[_.]+$/g, "")
   return Array.from(name).slice(0, FILE_NAME_LIMIT).join("").replace(/[_.]+$/, "") || "title"
 }
 

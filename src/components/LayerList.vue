@@ -1,6 +1,7 @@
 <script setup>
   import { computed, onBeforeUnmount, ref, watch } from "vue"
   import { clamp } from "../lib/maths.js"
+  import { savedPreset } from "../lib/presets.js"
   import { dropPreview, previews, renderPreview } from "../lib/previews.js"
   import { useReorderDrag } from "../lib/reorder.js"
   import { TYPES } from "../lib/settings.js"
@@ -8,8 +9,12 @@
   import { view } from "../lib/view.js"
   import ContextMenu from "./ContextMenu.vue"
   import Icon from "./Icon.vue"
+  import PresetsDialog from "./PresetsDialog.vue"
+  import RenderDialog from "./RenderDialog.vue"
 
   const SETTLE = 150
+
+  const choosingPreset = ref(false)
 
   const rendered = new Map()
   const queued = new Set()
@@ -194,6 +199,14 @@
 
 <template>
   <nav class="layers">
+    <div class="presets">
+      <button class="rail-button" title="Open a saved preset" @click="choosingPreset = true">
+        <Icon name="bookmark" :size="20" />
+        <span>Presets</span>
+      </button>
+      <p v-if="savedPreset && !savedPreset.skipped" class="saved">Saved as {{ savedPreset.name }}</p>
+    </div>
+    <div class="divider"></div>
     <div ref="list" class="list" :class="{ dragging: dragged !== null }" @dragstart.prevent>
       <div v-for="row of rows" :key="row.key" :data-row="row.key" :class="row.group === null ? 'single' : { group: true, selected: !view.render && scene.selectedGroup === row.group, hidden: lineHidden(row.words[0]), dragged: dragged === row.key }">
         <div v-if="row.group !== null" class="head" tabindex="0" @pointerdown="press($event, row, null)" @click="pickGroup(row.group)" @contextmenu.prevent="menu($event, row, null)" @keydown.enter="pickGroup(row.group)" :title="`${lineText(row.words[0]) || '(empty)'} (${TYPES[row.words[0].type].name})`">
@@ -216,6 +229,13 @@
       <span>Render</span>
     </button>
     <ContextMenu :items="context?.items" :at="context?.at" @close="context = null" />
+    <PresetsDialog v-if="choosingPreset" @close="choosingPreset = false" />
+    <RenderDialog v-if="savedPreset?.skipped" title="Preset saved" close-title="Close" dismissable @close="savedPreset = null">
+      <div class="skipped">
+        <p>{{ savedPreset.skipped === 1 ? "1 uploaded overlay" : `${savedPreset.skipped} uploaded overlays` }} could not be saved, so {{ savedPreset.name }} opens without {{ savedPreset.skipped === 1 ? "it" : "them" }}.</p>
+        <button class="primary" @click="savedPreset = null">OK</button>
+      </div>
+    </RenderDialog>
   </nav>
 </template>
 
@@ -434,7 +454,51 @@
     flex: none;
   }
 
+  .presets {
+    position: relative;
+    flex: none;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .saved {
+    position: absolute;
+    top: 50%;
+    left: calc(100% + 12px);
+    z-index: 5;
+    width: max-content;
+    max-width: min(320px, 70vw);
+    margin: 0;
+    padding: 6px 10px;
+    font-size: var(--font-md);
+    background: var(--card);
+    border: 1px solid var(--line);
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+
+  .skipped {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 16px;
+    padding: 20px;
+  }
+
+  .skipped p {
+    align-self: stretch;
+    margin: 0;
+    font-size: var(--font-base);
+  }
+
   @media (max-width: 800px) {
+    .saved {
+      top: auto;
+      bottom: calc(100% + 8px);
+      left: 0;
+      transform: none;
+    }
+
     .layers {
       flex-direction: row;
       align-items: center;
