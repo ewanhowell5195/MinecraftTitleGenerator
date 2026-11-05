@@ -101,10 +101,14 @@ function tiling(look, image) {
   return { tile: shifted.canvas, tw: Math.max(1, Math.round(image.width * look.tileableScale * R)), th: Math.max(1, Math.round(image.height * look.tileableScale * R)) }
 }
 
-function drawRandomTile(ctx, look, tile, x, y, w, h, seed) {
-  const rotation = look.tileableRandomRotations ? Math.floor(random(seed, x, y) * 4) * 90 : 0
-  const mirror = look.tileableRandomMirroring && random(seed + 400, x, y) < 0.5
+function drawRandomTile(ctx, look, tile, x, y, w, h, seed, keyX = x, keyY = y) {
+  const rotation = look.tileableRandomRotations ? Math.floor(random(seed, keyX, keyY) * 4) * 90 : 0
+  const mirror = look.tileableRandomMirroring && random(seed + 400, keyX, keyY) < 0.5
   drawTile(ctx, tile, x, y, w, h, rotation, mirror)
+}
+
+export function firstTile(x, origin, size) {
+  return origin + Math.floor((x - origin) / size) * size
 }
 
 function tileBlock(look, image) {
@@ -120,7 +124,12 @@ function paintTiles(ctx, entries, look, image, capHeight) {
   const { tile, tw, th } = tiling(look, image)
   const pattern = look.tileableRandomRotations || look.tileableRandomMirroring ? null : ctx.createPattern(tile, "repeat")
 
-  function region([x, y, w, h], anchor, seed) {
+  function originOf(entry) {
+    return look.tileablePerCharacter ? entry.x : entry.x - entry.glyph.lineX
+  }
+
+  function region([x, y, w, h], anchor, seed, origin) {
+    const left = origin * R
     ctx.save()
     ctx.beginPath()
     ctx.rect(x * R, y * R, w * R, h * R)
@@ -129,22 +138,29 @@ function paintTiles(ctx, entries, look, image, capHeight) {
     fillRect(ctx, [x, y, w, h])
     const start = anchor - Math.ceil((anchor - y * R) / th) * th
     if (pattern) {
-      pattern.setTransform(new DOMMatrix().translate(x * R, start).scale(tw / tile.width, th / tile.height))
+      pattern.setTransform(new DOMMatrix().translate(left, start).scale(tw / tile.width, th / tile.height))
       ctx.fillStyle = pattern
       fillRect(ctx, [x, y, w, h])
     } else {
       for (let ty = start; ty < (y + h) * R; ty += th) {
-        for (let tx = x * R; tx < (x + w) * R; tx += tw) drawRandomTile(ctx, look, tile, tx, ty, tw, th, seed)
+        for (let tx = firstTile(x * R, left, tw); tx < (x + w) * R; tx += tw) {
+          if (look.tileablePerCharacter) drawRandomTile(ctx, look, tile, tx, ty, tw, th, seed)
+          else drawRandomTile(ctx, look, tile, tx, ty, tw, th, seed, tx - left, ty - anchor)
+        }
       }
     }
     ctx.restore()
   }
 
-  for (const [index, entry] of entries.entries()) region([entry.x, entry.top, entry.width, entry.height], (entry.top + entry.glyph.top - capHeight) * R, index)
+  function seedOf(index, kind) {
+    return look.tileablePerCharacter ? index + entries.length * kind : kind
+  }
+
+  for (const [index, entry] of entries.entries()) region([entry.x, entry.top, entry.width, entry.height], (entry.top + entry.glyph.top - capHeight) * R, seedOf(index, 0), originOf(entry))
   if (look.tileableTileEdges) {
     for (const [index, entry] of entries.entries()) {
-      if (entry.upHeight) region([entry.x, entry.up, entry.width, entry.upHeight], entry.up * R, index + entries.length)
-      if (entry.downHeight) region([entry.x, entry.down, entry.width, entry.downHeight], entry.down * R, index + entries.length * 2)
+      if (entry.upHeight) region([entry.x, entry.up, entry.width, entry.upHeight], entry.up * R, seedOf(index, 1), originOf(entry))
+      if (entry.downHeight) region([entry.x, entry.down, entry.width, entry.downHeight], entry.down * R, seedOf(index, 2), originOf(entry))
     }
     return
   }
@@ -244,7 +260,7 @@ function overlayLayer(sheet, layer, source, capHeight) {
 
 export function paintKey(sheet, assets, look) {
   const placed = assets.overlays.some(overlay => PLACED_KINDS.has(overlay.source.generated))
-  const lined = assets.strip?.tiling === "line"
+  const lined = assets.strip?.tiling === "line" || look.source === "tile" && !look.tileablePerCharacter
   const worded = look.source === "gradient" && look.gradientAngle % 180 !== 0
   return JSON.stringify([sheet.width, sheet.height, sheet.tallest, worded ? sheet.wordWidth : null, Object.values(sheet.glyphs).map(entry => [entry.char, entry.x, entry.top, entry.up, entry.upHeight, entry.down, entry.downHeight, entry.width, entry.height, entry.glyph.bottom, entry.glyph.top, entry.glyph.arc, placed ? entry.glyph.placedX : null, lined ? entry.glyph.lineX : null, worded ? entry.glyph.wordX : null])])
 }
@@ -395,5 +411,5 @@ export function paintSheet(sheet, look, assets, capHeight, base = paintBase(shee
   }
 
   const tiles = look.source === "tile" && look.tileableTileEdges ? adjusted(tileBlock(look, assets.tile), look).canvas : null
-  return { canvas: work.canvas, facePixels, border, edgeAverage, tiles, labels: () => overlayLabels(sheet, overlayLayers, capHeight, width, height) }
+  return { canvas: work.canvas, facePixels, border, edgeAverage, tiles, tilesAcrossLine: !look.tileablePerCharacter, labels: () => overlayLabels(sheet, overlayLayers, capHeight, width, height) }
 }

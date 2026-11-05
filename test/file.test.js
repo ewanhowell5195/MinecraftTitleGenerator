@@ -102,7 +102,7 @@ describe("the real title file", () => {
   test("saves back without the scale that gets solved", async () => {
     await openTitle(fileOf(REAL_FILE))
     const saved = await save()
-    assert.deepEqual(saved, { format: "minecraft-title", version: 1, lines: [{ texture: "cracked" }, { type: "bottom", matchWidth: 0, words: [{ text: "title", texture: "fired", hue: 359, customBorder: true, borderColour: "#230f00" }, { text: "generator", texture: "fired", hue: 180, customBorder: true, borderColour: "#001329", customEdge: true, edgeColour: "#11467d" }] }] })
+    assert.deepEqual(saved, { format: "minecraft-title", version: 2, lines: [{ texture: "cracked" }, { type: "bottom", matchWidth: 0, words: [{ text: "title", texture: "fired", hue: 359, customBorder: true, borderColour: "#230f00" }, { text: "generator", texture: "fired", hue: 180, customBorder: true, borderColour: "#001329", customEdge: true, edgeColour: "#11467d" }] }] })
   })
 
   test("opens the same after saving", async () => {
@@ -118,7 +118,7 @@ describe("the real title file", () => {
 describe("saving trims settings", () => {
   test("a brand new title saves an empty line", async () => {
     setScene(createObject())
-    assert.deepEqual(await save(), { format: "minecraft-title", version: 1, lines: [{}] })
+    assert.deepEqual(await save(), { format: "minecraft-title", version: 2, lines: [{}] })
   })
 
   test("an object at its type defaults saves only its type", async () => {
@@ -394,6 +394,23 @@ describe("opening", () => {
     assert.equal(object.text, "hi")
   })
 
+  test("a tileable from before version 2 keeps restarting on each character", async () => {
+    await openTitle(fileOf(title([{ text: "old", textureSource: "tileable" }, { words: [{ text: "a", textureSource: "tileable" }, { text: "b" }] }, { text: "plain" }])))
+    assert.deepEqual(scene.objects.map(object => object.tileablePerCharacter), [true, true, false, false])
+    await openTitle(fileOf({ format: "minecraft-title", lines: [{ text: "no version", textureSource: "tileable" }] }))
+    assert.equal(scene.objects[0].tileablePerCharacter, true)
+  })
+
+  test("a tileable from version 2 keeps its own setting", async () => {
+    await openTitle(fileOf(title([{ text: "new", textureSource: "tileable" }], { version: 2 })))
+    assert.equal(scene.objects[0].tileablePerCharacter, false)
+  })
+
+  test("an old title's own per character setting is not overwritten", async () => {
+    await openTitle(fileOf(title([{ text: "own", textureSource: "tileable", tileablePerCharacter: false }])))
+    assert.equal(scene.objects[0].tileablePerCharacter, false)
+  })
+
   test("a file without a version or from an older one opens", async () => {
     await openTitle(fileOf({ format: "minecraft-title", lines: [{ text: "no version" }] }))
     assert.equal(scene.objects[0].text, "no version")
@@ -443,7 +460,7 @@ describe("rejected files", () => {
     ["a JSON null", "null", "Couldn't open test.mctitle: this isn't a Minecraft title file"],
     ["another format", { format: "something-else", version: 1, lines: [{}] }, "Couldn't open test.mctitle: this isn't a Minecraft title file"],
     ["no format", { version: 1, lines: [{}] }, "Couldn't open test.mctitle: this isn't a Minecraft title file"],
-    ["a newer version", title([{}], { version: 2 }), "Couldn't open test.mctitle: it was saved by a newer version of the generator (format 2)"],
+    ["a newer version", title([{}], { version: 3 }), "Couldn't open test.mctitle: it was saved by a newer version of the generator (format 3)"],
     ["no lines key", { format: "minecraft-title", version: 1 }, "Couldn't open test.mctitle: it has no text in it"],
     ["empty lines", title([]), "Couldn't open test.mctitle: it has no text in it"],
     ["lines that are not a list", title("words"), "Couldn't open test.mctitle: it has no text in it"],

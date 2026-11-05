@@ -73,6 +73,7 @@ const TOP_DEFAULTS = {
   tileableRandomRotations: false,
   tileableRandomMirroring: false,
   tileableTileEdges: false,
+  tileablePerCharacter: false,
   disableFontOverlay: false,
   overlayMode: "default",
   overlays: [],

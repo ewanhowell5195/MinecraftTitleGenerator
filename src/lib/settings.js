@@ -116,6 +116,7 @@ const PANELS = {
     tileableRandomRotations: false,
     tileableRandomMirroring: false,
     tileableTileEdges: false,
+    tileablePerCharacter: false,
     disableFontOverlay: false
   }),
   overlays: () => ({
@@ -194,7 +195,7 @@ export const TRANSFORM_LIMITS = { scale: [0.05, 4], rotation: [-180, 180], trans
 
 const TEXTURE_TABS = {
   premade: ["texture", "textureVariant"],
-  tileable: ["tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "disableFontOverlay"],
+  tileable: ["tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "tileablePerCharacter", "disableFontOverlay"],
   gradient: ["stops", "smooth", "gradientAngle", "disableFontOverlay"]
 }
 

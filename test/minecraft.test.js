@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
 import { blockName, blockTexturePaths, isOpaque, pngSize, usableVersions } from "../src/lib/minecraft.js"
+import { firstTile } from "../src/lib/paint.js"
 
 describe("blockTexturePaths", () => {
   test("finds the modern block folder", () => {
@@ -52,6 +53,20 @@ describe("blockName", () => {
 
   test("leaves a plain name alone", () => {
     assert.equal(blockName("stone"), "Stone")
+  })
+})
+
+describe("firstTile", () => {
+  test("is the character's own start when the origin is there", () => {
+    assert.equal(firstTile(40, 40, 32), 40)
+  })
+
+  test("starts on the line's tile grid before the character", () => {
+    assert.equal(firstTile(40, 0, 32), 32)
+  })
+
+  test("works for an origin past the character", () => {
+    assert.equal(firstTile(40, 100, 32), 36)
   })
 })
 

@@ -6,12 +6,12 @@ import { submitStats } from "./stats.js"
 import { download } from "./ui.js"
 
 const FORMAT = "minecraft-title"
-const VERSION = 1
+const VERSION = 2
 export const EXTENSION = "mctitle"
 
 const UNUSED = [
   [object => object.textureSource !== "premade", ["texture", "textureVariant"]],
-  [object => object.textureSource !== "tileable", ["tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges"]],
+  [object => object.textureSource !== "tileable", ["tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "tileablePerCharacter"]],
   [object => object.tileableSource !== "minecraft", ["minecraftTexture", "minecraftVersion"]],
   [object => object.tileableSource === "minecraft", ["tileable", "tileableVariant"]],
   [object => object.textureSource !== "gradient", ["stops", "smooth", "gradientAngle"]],
@@ -139,9 +139,20 @@ function readTitle(text) {
   return readData(data)
 }
 
+function restartTilesPerCharacter(entry) {
+  return entry.textureSource === "tileable" ? { tileablePerCharacter: true, ...entry } : entry
+}
+
+function upgradeLine(line, version) {
+  if (version >= 2) return line
+  const upgraded = restartTilesPerCharacter(line)
+  return Array.isArray(line.words) ? { ...upgraded, words: line.words.map(restartTilesPerCharacter) } : upgraded
+}
+
 function readData(data) {
   if (data.version > VERSION) throw new Error(`it was saved by a newer version of the generator (format ${data.version})`)
   if (!Array.isArray(data.lines) || !data.lines.length) throw new Error("it has no text in it")
+  data = { ...data, lines: data.lines.map(line => upgradeLine(line, data.version ?? 0)) }
   for (const line of data.lines) {
     if (line.matchWidth !== undefined && !data.lines[line.matchWidth]) throw new Error(`a line matches the width of line ${line.matchWidth}, which doesn't exist`)
   }

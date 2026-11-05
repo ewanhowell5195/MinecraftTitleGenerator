@@ -257,7 +257,8 @@ const KEYS = [
   ["width", NUMBER],
   ["tileableSource", choice("premade", "minecraft")],
   ["minecraftTexture", TEXT],
-  ["minecraftVersion", TEXT]
+  ["minecraftVersion", TEXT],
+  ["tileablePerCharacter", BOOLEAN]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))

@@ -181,6 +181,7 @@
       <Toggle label="Random rotations" v-model="object.tileableRandomRotations" />
       <Toggle label="Random mirroring" v-model="object.tileableRandomMirroring" />
       <Toggle label="Tile edge faces" hint="Top, bottom, side and inner faces. Off stretches the letter's edge pixels across them" v-model="object.tileableTileEdges" />
+      <Toggle label="Restart on each character" hint="Starts the texture again from the left of every character" v-model="object.tileablePerCharacter" />
     </template>
 
     <template v-if="object.textureSource === 'gradient'">

@@ -12,7 +12,7 @@ import { keepTexture, loadedFont, runtime, words } from "../lib/scene.js"
 import { activeOverlays, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, setTexture, textureEntry } from "../lib/settings.js"
 import { view } from "../lib/view.js"
 
-const BASE = ["font", "source", "texture", "textureVariant", "tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "stops", "smooth", "gradientAngle", "arcGradient", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "disableFontOverlay", "edgeBrightness"]
+const BASE = ["font", "source", "texture", "textureVariant", "tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "stops", "smooth", "gradientAngle", "arcGradient", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "tileablePerCharacter", "disableFontOverlay", "edgeBrightness"]
 
 const LAYOUT = new Set(["spacing", "kerning", "arcMode", "arcTop", "arcBottom", "arcMove", "arcMarked", "stretch", "terminators"])
 
@@ -69,6 +69,7 @@ export default {
       tileableRandomRotations: object.tileableRandomRotations,
       tileableRandomMirroring: object.tileableRandomMirroring,
       tileableTileEdges: object.tileableTileEdges,
+      tileablePerCharacter: object.tileablePerCharacter,
       disableFontOverlay: object.disableFontOverlay,
       hue: object.hue,
       saturation: object.saturation,

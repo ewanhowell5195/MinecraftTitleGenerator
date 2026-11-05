@@ -357,8 +357,8 @@ export function buildAtlas(faces, options) {
     ctx.drawImage(lines.canvas, 0, 0, row.width, row.height, x * SCALE, y * SCALE, width * SCALE, height * SCALE)
   }
 
-  function tile(rect) {
-    tiles.setTransform(new DOMMatrix().translate(rect.x * SCALE, rect.y * SCALE).scale(SCALE / R))
+  function tile(rect, column = 0) {
+    tiles.setTransform(new DOMMatrix().translate((rect.x - column) * SCALE, rect.y * SCALE).scale(SCALE / R))
     ctx.fillStyle = tiles
     ctx.fillRect(rect.x * SCALE, rect.y * SCALE, rect.width * SCALE, rect.height * SCALE)
   }
@@ -404,7 +404,7 @@ export function buildAtlas(faces, options) {
     const level = extent(face.points, 1).min
     const row = entry.top + Math.round(block.own.maxY - level) - (face.kind === "top" ? 0 : 1)
     const edge = face.kind === "top" ? row * R : (row + 1) * R - 1
-    if (tiles) tile(face.rect)
+    if (tiles) tile(face.rect, painted.tilesAcrossLine ? column - entry.x + entry.glyph.lineX : 0)
     else drawLine(cornerPixels(painted, column * R, edge, width * R, false, face.kind === "top" ? 1 : -1), face.rect)
     shadeFace(face.rect, options.customInternal ? options.internalColour : options.customEdge ? options.edgeColour : `rgba(0, 0, 0, ${1 - options.internalBrightness / 100})`, options.internalFade, back, front, false)
   }
