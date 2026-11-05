@@ -1,7 +1,10 @@
 <script setup>
   import { onMounted, ref } from "vue"
-  import { NAME_LIMIT, savePreset } from "../lib/presets.js"
+  import { usage } from "../lib/community.js"
+  import { NAME_LIMIT, confirmSharing, namingShared, savePreset, sharePreset } from "../lib/presets.js"
+  import { openPresetsPage, showPreset } from "../lib/presetsPage.js"
   import RenderDialog from "./RenderDialog.vue"
+  import SubmissionUsage from "./SubmissionUsage.vue"
 
   const props = defineProps({
     suggested: { type: String, required: true }
@@ -11,6 +14,29 @@
 
   const name = ref(props.suggested)
   const field = ref(null)
+  const error = ref("")
+  const sending = ref(false)
+
+  async function saveAndShare() {
+    if (!confirmSharing(name.value.trim() || props.suggested)) return
+    sending.value = true
+    error.value = ""
+    const preset = savePreset(name.value, { keepOpen: true })
+    try {
+      if (!preset) {
+        emit("close")
+        return
+      }
+      const { id } = await sharePreset(preset, preset.name)
+      emit("close")
+      openPresetsPage()
+      showPreset(id, { replace: true })
+    } catch (err) {
+      error.value = `Your preset was saved, but it could not be shared. ${err.message}`
+    } finally {
+      sending.value = false
+    }
+  }
 
   onMounted(() => {
     field.value.focus()
@@ -25,8 +51,14 @@
         <span>Name</span>
         <input ref="field" type="text" v-model="name" :maxlength="NAME_LIMIT" :placeholder="suggested" spellcheck="false">
       </label>
+      <template v-if="!namingShared">
+        <p class="hint">Share your title so other people can find it in the community presets and use it for themselves.</p>
+        <SubmissionUsage />
+      </template>
+      <p v-if="error" class="error">{{ error }}</p>
       <div class="footer">
-        <button class="primary" type="submit">Save</button>
+        <button type="submit" :class="{ primary: namingShared }">Save</button>
+        <button v-if="!namingShared" class="primary" type="button" :disabled="sending || usage && usage.used >= usage.limit" @click="saveAndShare">{{ sending ? "Sharing" : "Save and share" }}</button>
       </div>
     </form>
   </RenderDialog>
@@ -53,8 +85,23 @@
     font-weight: 400;
   }
 
+  .hint {
+    margin: 0;
+  }
+
+  .error {
+    margin: 0;
+    font-size: var(--font-md);
+    color: var(--danger);
+  }
+
   .footer {
     display: flex;
     justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .footer button {
+    user-select: none;
   }
 </style>

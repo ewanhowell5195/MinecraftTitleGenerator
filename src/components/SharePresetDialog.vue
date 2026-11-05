@@ -1,7 +1,7 @@
 <script setup>
   import { ref } from "vue"
-  import { refreshUsage, sharePublicly, usage } from "../lib/community.js"
-  import { NAME_LIMIT, markShared } from "../lib/presets.js"
+  import { usage } from "../lib/community.js"
+  import { NAME_LIMIT, confirmSharing, sharePreset } from "../lib/presets.js"
   import RenderDialog from "./RenderDialog.vue"
   import SubmissionUsage from "./SubmissionUsage.vue"
 
@@ -16,16 +16,12 @@
   const sending = ref(false)
 
   async function send() {
-    if (!confirm(`Share ${name.value.trim() || props.preset.name} publicly?\n\nAnyone will be able to see and use this title. There are no accounts, so you can't edit or remove it after sharing.`)) return
+    if (!confirmSharing(name.value.trim() || props.preset.name)) return
     sending.value = true
     error.value = ""
     try {
-      const { preset } = await sharePublicly(props.preset.code, name.value)
-      markShared(props.preset, preset.id)
-      emit("shared", preset)
+      emit("shared", await sharePreset(props.preset, name.value))
     } catch (err) {
-      if (err.status === 409) markShared(props.preset, err.id)
-      if (err.status === 429) refreshUsage(true)
       error.value = err.message
     } finally {
       sending.value = false

@@ -27,7 +27,7 @@ const { scene, validSelection } = await import("../src/lib/scene.js")
 const { fileError } = await import("../src/lib/file.js")
 const { notice } = await import("../src/lib/notices.js")
 const { decodeTitle } = await import("../src/lib/linkformat.js")
-const { NAME_LIMIT, addPreset, loadPreset, markShared, namingPreset, presets, removePreset, renamePreset, savePreset, savedPreset, startSavingPreset } = await import("../src/lib/presets.js")
+const { NAME_LIMIT, addPreset, loadPreset, markShared, namingPreset, namingShared, presets, removePreset, renamePreset, savePreset, savedPreset, startSavingPreset } = await import("../src/lib/presets.js")
 
 const STORAGE = "minecraft-title-presets"
 
@@ -158,6 +158,24 @@ describe("presets", () => {
     const second = renamePreset(first, "two")
     assert.equal(renamePreset(second, "three").name, "three")
     assert.equal(presets.value.length, 1)
+  })
+
+  test("say whether a title being named is already shared", () => {
+    setTitle(createObject({ text: "plain" }))
+    startSavingPreset()
+    assert.equal(namingShared.value, false)
+    savePreset("Plain")
+    markShared(presets.value[0], 5)
+    startSavingPreset()
+    assert.equal(namingShared.value, true)
+  })
+
+  test("stay open when saving before sharing, and hand back the preset", () => {
+    setTitle(createObject({ text: "plain" }))
+    startSavingPreset()
+    const preset = savePreset("My name", { keepOpen: true })
+    assert.equal(preset.name, "My name")
+    assert.equal(namingPreset.value, "Plain")
   })
 
   test("use the name typed when saving", () => {

@@ -1,4 +1,5 @@
 import { ref } from "vue"
+import { refreshUsage, sharePublicly } from "./community.js"
 import { fileError, isDefaultTitle, openTitleData, titleData } from "./file.js"
 import { LIMITS } from "./limits.js"
 import { decodeTitle, encodeTitle } from "./linkformat.js"
@@ -14,6 +15,7 @@ export const NAME_LIMIT = LIMITS.name
 export const presets = ref(read())
 export const savedPreset = ref(null)
 export const namingPreset = ref(null)
+export const namingShared = ref(false)
 
 function read() {
   try {
@@ -72,14 +74,32 @@ function automaticName() {
 export function startSavingPreset() {
   try {
     const { code } = encodeTitle(titleData())
-    namingPreset.value = savedWithCode(code)?.name ?? automaticName()
+    const existing = savedWithCode(code)
+    namingShared.value = !!existing?.shared
+    namingPreset.value = existing?.name ?? automaticName()
   } catch (err) {
     fileError.value = `Couldn't save this preset: ${err.message}`
   }
 }
 
-export function savePreset(name = "") {
-  namingPreset.value = null
+export function confirmSharing(name) {
+  return confirm(`Share ${name} publicly?\n\nAnyone will be able to see and use this title. There are no accounts, so you can't edit or remove it after sharing.`)
+}
+
+export async function sharePreset(preset, name) {
+  try {
+    const { preset: shared } = await sharePublicly(preset.code, name)
+    markShared(preset, shared.id)
+    return shared
+  } catch (err) {
+    if (err.status === 409) markShared(preset, err.id)
+    if (err.status === 429) refreshUsage(true)
+    throw err
+  }
+}
+
+export function savePreset(name = "", { keepOpen = false } = {}) {
+  if (!keepOpen) namingPreset.value = null
   try {
     const { code, skipped } = encodeTitle(titleData())
     submitStats()
@@ -87,8 +107,10 @@ export function savePreset(name = "") {
     const preset = existing ? renamePreset(existing, name) : addPreset(name.trim().slice(0, NAME_LIMIT) || automaticName(), code)
     savedPreset.value = { name: preset.name, skipped }
     if (!skipped) showNotice(`Saved as ${preset.name}`)
+    return preset
   } catch (err) {
     fileError.value = `Couldn't save this preset: ${err.message}`
+    return null
   }
 }
 

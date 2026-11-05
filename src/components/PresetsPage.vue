@@ -18,7 +18,7 @@
   const SEARCH_DELAY = 500
   const EDITOR_TITLE = "Minecraft Title Generator"
 
-  const tab = ref(presetsPage.fromEditor && presets.value.length ? "mine" : "community")
+  const tab = ref(presetsPage.fromEditor && presetsPage.id === null && presets.value.length ? "mine" : "community")
   const sort = ref("week")
   const search = ref("")
   const results = ref([])
