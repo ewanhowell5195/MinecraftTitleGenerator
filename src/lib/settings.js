@@ -175,7 +175,9 @@ export function createObject(values = {}, id = next) {
   next = Math.max(next, id + 1)
   const object = reactive({ ...defaults(), id })
   restore(object, values)
-  if (!("clipHoles" in values)) object.clipHoles = TYPES[object.type].clipHoles
+  for (const key of Object.values(TYPE_KEYS).flat()) {
+    if (!(key in values)) object[key] = TYPES[object.type][key]
+  }
   return object
 }
 
