@@ -16,6 +16,7 @@
   const sending = ref(false)
 
   async function send() {
+    if (!confirm(`Share ${name.value.trim() || props.preset.name} publicly? After sharing, it cannot be edited or removed.`)) return
     sending.value = true
     error.value = ""
     try {
