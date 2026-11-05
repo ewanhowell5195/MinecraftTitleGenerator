@@ -1,7 +1,6 @@
 <script setup>
   import { ref } from "vue"
   import { refreshUsage, sharePublicly, usage } from "../lib/community.js"
-  import { LIMITS } from "../lib/limits.js"
   import { NAME_LIMIT, markShared } from "../lib/presets.js"
   import RenderDialog from "./RenderDialog.vue"
   import SubmissionUsage from "./SubmissionUsage.vue"
@@ -13,7 +12,6 @@
   const emit = defineEmits(["close", "shared"])
 
   const name = ref(props.preset.name)
-  const credit = ref("")
   const error = ref("")
   const sending = ref(false)
 
@@ -21,7 +19,7 @@
     sending.value = true
     error.value = ""
     try {
-      const { preset } = await sharePublicly(props.preset.code, name.value, credit.value)
+      const { preset } = await sharePublicly(props.preset.code, name.value)
       markShared(props.preset, preset.id)
       emit("shared")
     } catch (err) {
@@ -40,10 +38,6 @@
       <label>
         <span>Name</span>
         <input type="text" v-model="name" :maxlength="NAME_LIMIT" spellcheck="false">
-      </label>
-      <label>
-        <span>Credit (optional)</span>
-        <input type="text" v-model="credit" :maxlength="LIMITS.credit" placeholder="Your name" spellcheck="false">
       </label>
       <p class="hint">Anyone will be able to see and use this title. There are no accounts, so you can't edit or remove it after sharing.</p>
       <p v-if="error" class="error">{{ error }}</p>

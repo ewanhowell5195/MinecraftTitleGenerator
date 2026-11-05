@@ -117,8 +117,8 @@ function showUsage() {
   usage.value = { used: store.usage.used, limit: LIMITS.perDay, resetsAt: Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1) }
 }
 
-export async function sharePublicly(code, name, credit) {
-  const result = await posted("", { code, name, credit })
+export async function sharePublicly(code, name) {
+  const result = await posted("", { code, name })
   for (const key of Object.keys(store.pages)) {
     if (key.startsWith("new|") || key.startsWith("needs|")) delete store.pages[key]
   }

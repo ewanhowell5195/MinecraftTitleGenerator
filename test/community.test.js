@@ -209,7 +209,7 @@ describe("daily usage", () => {
     replies.POST = { body: { preset: { id: 1 } } }
     const { refreshUsage, sharePublicly, usage } = await fresh()
     await refreshUsage()
-    await sharePublicly("code", "name", "")
+    await sharePublicly("code", "name")
     assert.equal(usage.value.used, 2)
     assert.equal(requests.filter(item => item.startsWith("GET")).length, 1)
   })
@@ -220,7 +220,7 @@ describe("daily usage", () => {
     const { refreshUsage, sharePublicly, usage } = await fresh()
     await refreshUsage()
     mock.timers.setTime(Date.parse("2026-11-06T09:00:00Z"))
-    await sharePublicly("code", "name", "")
+    await sharePublicly("code", "name")
     assert.equal(usage.value.used, 1)
   })
 
@@ -249,7 +249,7 @@ describe("sharing", () => {
     await listCommunity({ ...POPULAR, sort: "new" })
     await listCommunity({ ...POPULAR, sort: "needs" })
     await listCommunity(POPULAR)
-    await sharePublicly("code", "name", "")
+    await sharePublicly("code", "name")
     await listCommunity({ ...POPULAR, sort: "new" })
     await listCommunity({ ...POPULAR, sort: "needs" })
     await listCommunity(POPULAR)

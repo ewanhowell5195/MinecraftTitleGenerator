@@ -144,7 +144,6 @@
         <TitlePicture :code="preset.code" :title="`Open ${preset.name}`" @open="open(preset)" />
         <div class="details">
           <strong :title="preset.name">{{ preset.name }}</strong>
-          <span v-if="preset.credit" class="credit" :title="preset.credit">by {{ preset.credit }}</span>
         </div>
         <div class="actions">
           <PresetRating :rating="preset.rating" :votes="preset.votes" :mine="preset.vote" @vote="vote(preset, $event)" />
@@ -228,15 +227,10 @@
     font-size: var(--font-sm);
   }
 
-  .details strong,
-  .credit {
+  .details strong {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-  }
-
-  .credit {
-    color: var(--faint);
   }
 
   .actions {

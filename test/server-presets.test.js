@@ -177,7 +177,7 @@ describe("submitting", () => {
     assert.equal(status, 201)
     assert.equal(preset.name, "My name")
     assert.equal(preset.text, "stone")
-    assert.equal(preset.credit, "Ewan")
+    assert.equal("credit" in preset, false)
     assert.equal(preset.downloads, 0)
     assert.ok(preset.createdAt > 0)
   })
@@ -194,9 +194,9 @@ describe("submitting", () => {
     assert.equal(second.id, first.preset.id)
   })
 
-  for (const [label, body] of [["title", { lines: [{ text: "fuck" }] }], ["hidden line", { lines: [{ text: "fine" }, { text: "fuck", hidden: true }] }], ["name", { lines: [{ text: "fine" }], name: "shit" }], ["credit", { lines: [{ text: "fine" }], credit: "fuuuck" }], ["swapped letters", { lines: [{ text: "sh1t" }] }]]) {
+  for (const [label, body] of [["title", { lines: [{ text: "fuck" }] }], ["hidden line", { lines: [{ text: "fine" }, { text: "fuck", hidden: true }] }], ["name", { lines: [{ text: "fine" }], name: "shit" }], ["swapped letters", { lines: [{ text: "sh1t" }] }]]) {
     test(`filters rude words in the ${label}`, async () => {
-      const { status, error } = await post({ code: code(body.lines), name: body.name, credit: body.credit })
+      const { status, error } = await post({ code: code(body.lines), name: body.name })
       assert.equal(status, 400)
       assert.match(error, /isn't allowed/)
       assert.equal((await list()).presets.length, 0)
@@ -209,9 +209,8 @@ describe("submitting", () => {
     })
   }
 
-  test("refuses a long name or credit", async () => {
+  test("refuses a long name", async () => {
     assert.match((await post({ code: code([{ text: "a" }]), name: "x".repeat(61) })).error, /name can be up to 60/)
-    assert.match((await post({ code: code([{ text: "a" }]), credit: "x".repeat(41) })).error, /credit can be up to 40/)
   })
 
   test("refuses a field of the wrong type", async () => {
@@ -303,8 +302,8 @@ describe("listing", () => {
     assert.equal((await list("?offset=abc")).status, 400)
   })
 
-  test("search finds the name or the text, not the credit", async () => {
-    await share("stone wall", { name: "Castle", credit: "dirtfan" })
+  test("search finds the name or the text", async () => {
+    await share("stone wall", { name: "Castle" })
     await share("dirt", { name: "Farm" })
     await share("oak", { name: "Forest" })
     const found = async term => (await list(`?q=${term}`)).presets.map(preset => preset.name).sort()
@@ -512,9 +511,9 @@ describe("exact duplicates", () => {
     assert.equal(second.id, first.preset.id)
   })
 
-  test("a different name or credit doesn't make it a different title", async () => {
-    await post({ code: code([{ text: "same" }]), name: "One", credit: "a" })
-    assert.equal((await post({ code: code([{ text: "same" }]), name: "Two", credit: "b" }, "other")).status, 409)
+  test("a different name doesn't make it a different title", async () => {
+    await post({ code: code([{ text: "same" }]), name: "One" })
+    assert.equal((await post({ code: code([{ text: "same" }]), name: "Two" }, "other")).status, 409)
   })
 
   for (const [label, other] of [["text", { text: "Same" }], ["a setting", { text: "same", hue: 1 }], ["line order", { text: "same", type: "bottom" }]]) {
