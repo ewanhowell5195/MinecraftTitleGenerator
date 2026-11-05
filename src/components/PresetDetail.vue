@@ -82,7 +82,7 @@
         <span v-else-if="mine" class="yours">Shared by you</span>
       </div>
       <template v-if="!local">
-        <PresetRating :rating="preset.rating" :votes="preset.votes" :mine="preset.vote" :own="mine" large @vote="emit('vote', $event)" />
+        <PresetRating :rating="preset.rating" :votes="preset.votes" :mine="preset.vote" :own="mine" @vote="emit('vote', $event)" />
         <p class="facts"><span>{{ uses }}</span><span>Shared {{ sharedOn }}</span></p>
       </template>
       <div class="actions">

@@ -10,16 +10,12 @@
     rating: { type: Number, default: null },
     votes: { type: Number, required: true },
     mine: { type: Number, default: 0 },
-    own: { type: Boolean, default: false },
-    large: { type: Boolean, default: false }
+    own: { type: Boolean, default: false }
   })
 
   const emit = defineEmits(["vote"])
 
-  const summary = computed(() => {
-    if (props.rating === null) return `Needs ${LIMITS.minVotes} votes for a rating. It has ${props.votes}.`
-    return `${Math.round(props.rating * 20)}% liked this, from ${props.votes} votes`
-  })
+  const summary = computed(() => `${Math.round(props.rating * 20)}% upvoted`)
 
   function fill(star) {
     return `${Math.min(1, Math.max(0, props.rating - star + 1)) * 100}%`
@@ -27,72 +23,100 @@
 </script>
 
 <template>
-  <div class="rating" :class="{ own, large }">
-    <template v-if="!own">
-      <button type="button" class="icon-button small" :class="{ up: mine === 1 }" :title="mine === 1 ? 'You like this' : 'I like this'" aria-label="I like this" :aria-pressed="mine === 1" @click="emit('vote', 1)"><Icon name="up" :size="16" /></button>
-      <button type="button" class="icon-button small" :class="{ down: mine === -1 }" :title="mine === -1 ? 'You don\'t like this' : 'I don\'t like this'" aria-label="I don't like this" :aria-pressed="mine === -1" @click="emit('vote', -1)"><Icon name="down" :size="16" /></button>
-    </template>
+  <div class="rating">
+    <div v-if="!own" class="votes">
+      <button type="button" class="vote upvote" :class="{ chosen: mine === 1 }" :aria-pressed="mine === 1" @click="emit('vote', 1)"><Icon name="arrowUp" :size="20" /><span>{{ mine === 1 ? "Upvoted" : "Upvote" }}</span></button>
+      <button type="button" class="vote downvote" :class="{ chosen: mine === -1 }" :aria-pressed="mine === -1" @click="emit('vote', -1)"><Icon name="arrowDown" :size="20" /><span>{{ mine === -1 ? "Downvoted" : "Downvote" }}</span></button>
+    </div>
     <div v-if="rating !== null" class="result" :title="summary">
       <span class="stars" aria-hidden="true">
         <span v-for="star of STARS" :key="star" class="star">
-          <svg class="outline" viewBox="0 0 24 24" width="13" height="13"><path :d="PATH" /></svg>
-          <span class="filled" :style="{ width: fill(star) }"><svg viewBox="0 0 24 24" width="13" height="13"><path :d="PATH" /></svg></span>
+          <svg class="outline" viewBox="0 0 24 24" width="16" height="16"><path :d="PATH" /></svg>
+          <span class="filled" :style="{ width: fill(star) }"><svg viewBox="0 0 24 24" width="16" height="16"><path :d="PATH" /></svg></span>
         </span>
       </span>
-      <span class="number">{{ rating.toFixed(1) }}</span>
-      <span v-if="large">from {{ votes }} votes</span>
+      <strong>{{ rating.toFixed(1) }}</strong>
+      <span>from {{ votes }} votes</span>
     </div>
-    <span v-else class="unrated" :title="summary">{{ votes }}/{{ LIMITS.minVotes }} votes</span>
+    <p v-else class="unrated">{{ votes }} of {{ LIMITS.minVotes }} votes needed for a rating</p>
   </div>
 </template>
 
 <style scoped>
   .rating {
     display: flex;
-    align-items: center;
-    gap: 2px;
+    flex-direction: column;
+    gap: 10px;
     min-width: 0;
-    font-size: var(--font-sm);
+    font-size: var(--font-md);
     font-variant-numeric: tabular-nums;
     color: var(--muted);
   }
 
-  .large {
-    gap: 4px;
-    font-size: var(--font-md);
+  .votes {
+    display: flex;
+    gap: 8px;
   }
 
-  .own .result,
-  .own .unrated {
-    margin-left: 0;
+  .vote {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 48px;
+    font-size: var(--font-base);
+    font-weight: 600;
+    color: var(--text);
+    background: var(--card);
+    border: 1px solid var(--line-strong);
+    user-select: none;
   }
 
-  .up {
+  .upvote:hover {
     color: var(--accent);
     background: var(--accent-soft);
+    border-color: var(--accent);
   }
 
-  .down {
+  .downvote:hover {
     color: var(--danger);
     background: #2c1513;
+    border-color: var(--danger);
+  }
+
+  .upvote.chosen {
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-color: var(--accent);
+  }
+
+  .downvote.chosen {
+    color: var(--danger);
+    background: #2c1513;
+    border-color: var(--danger);
   }
 
   .result {
     display: flex;
     align-items: center;
-    gap: 4px;
-    margin-left: 4px;
+    gap: 6px;
+  }
+
+  .result strong {
+    color: var(--text);
   }
 
   .stars {
     display: flex;
+    gap: 1px;
   }
 
   .star {
     position: relative;
     display: block;
-    width: 13px;
-    height: 13px;
+    width: 16px;
+    height: 16px;
   }
 
   svg {
@@ -112,7 +136,7 @@
     top: 0;
     left: 0;
     display: block;
-    height: 13px;
+    height: 16px;
     overflow: hidden;
   }
 
@@ -121,8 +145,7 @@
   }
 
   .unrated {
-    margin-left: 4px;
+    margin: 0;
     color: var(--faint);
-    white-space: nowrap;
   }
 </style>
