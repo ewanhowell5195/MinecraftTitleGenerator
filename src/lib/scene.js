@@ -209,9 +209,10 @@ function remove(list) {
   const ids = new Set(list.map(object => object.id))
   const siblings = words(first)
   const neighbour = siblings.slice(0, siblings.indexOf(first)).reverse().concat(siblings).find(object => !ids.has(object.id))
+  const remaining = siblings.find(object => !ids.has(object.id))
   scene.objects = scene.objects.filter(object => !ids.has(object.id))
   for (const other of scene.objects) {
-    if (ids.has(other.matchWidth)) other.matchWidth = null
+    if (ids.has(other.matchWidth)) other.matchWidth = remaining?.id ?? null
   }
   for (const id of ids) delete runtime[id]
   if (first.group !== null) {
