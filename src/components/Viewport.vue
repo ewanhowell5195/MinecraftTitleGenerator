@@ -1,5 +1,5 @@
 <script setup>
-  import { onBeforeUnmount, onMounted, ref, watch } from "vue"
+  import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue"
   import * as THREE from "three"
   import { TransformControls } from "three/addons/controls/TransformControls.js"
   import { FXAA_FRAGMENT, FXAA_VERTEX } from "../lib/fxaa.js"
@@ -9,7 +9,7 @@
   import { renderTitle, screenBounds } from "../lib/render.js"
   import { current, currentWord, setScale, shapingWord } from "../lib/scene.js"
   import { TRANSFORM_LIMITS } from "../lib/settings.js"
-  import { createEntry, destroyEntry, frameCamera, gizmoPose, lineBounds, movedBy, rotatedTo, sortEntries, titleFraming, updateEntry, wordMovedBy, wordPose, wordRotatedTo } from "../lib/stage.js"
+  import { UNZOOMED, createEntry, destroyEntry, frameCamera, gizmoPose, lineBounds, movedBy, panMatrix, pannedBy, rotatedTo, sortEntries, titleFraming, updateEntry, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } from "../lib/stage.js"
   import { vectorTitle } from "../lib/vector.js"
   import { view, viewport, viewportChanges } from "../lib/view.js"
   import Icon from "./Icon.vue"
@@ -17,6 +17,9 @@
   const TOOLS = [[null, "pointer", "No gizmo"], ["translate", "move", "Move"], ["rotate", "rotate", "Rotate"], ["scale", "scale", "Scale"]]
   const SELECTION_LAYER = 1
   const MAX_SCALE = 5
+  const WHEEL_ZOOM = 0.002
+  const PINCH_WHEEL_ZOOM = 0.01
+  const LINE_HEIGHT = 16
 
   const props = defineProps({
     items: { type: Array, required: true },
@@ -25,6 +28,11 @@
 
   const host = ref(null)
   const entries = new Map()
+  const pointers = new Map()
+  const pan = shallowRef(UNZOOMED)
+  const panning = ref(false)
+  const shaping = computed(() => !view.render && view.section === "shape")
+  const baseProjection = new THREE.Matrix4()
   let renderer, scene, overlay, camera, perspective, orthographic, frame, observer, selection, controls, proxy, sceneTarget, smoothing, smoothingCamera
   let frameSize = { width: 1, height: 1 }
   let fitted = null
@@ -202,7 +210,7 @@
   }
 
   function refit() {
-    if (controls.dragging || fitted === props.items || !entries.size || !props.items.every(item => item.settled)) return
+    if (pan.value !== UNZOOMED || controls.dragging || fitted === props.items || !entries.size || !props.items.every(item => item.settled)) return
     fitted = props.items
     fitCamera()
   }
@@ -211,26 +219,60 @@
     invalidate()
     viewportChanges.value++
     const title = titleFraming(props.items)
-    if (title) frameCamera(camera, { ...title, fov: view.fov, ...frameSize, maxScale: view.render ? Infinity : MAX_SCALE, frame: view.render ? { rect: frameRect, bounds: frameBounds, pixels: framePixels } : null })
+    if (!title) return
+    frameCamera(camera, { ...title, fov: view.fov, ...frameSize, maxScale: view.render ? Infinity : MAX_SCALE, frame: view.render ? { rect: frameRect, bounds: frameBounds, pixels: framePixels } : null })
+    baseProjection.copy(camera.projectionMatrix)
+    applyPan()
   }
 
-  function createSmoothing() {
-    sceneTarget = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter })
-    const geometry = new THREE.BufferGeometry()
-    geometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array([-1, -1, 3, -1, -1, 3]), 2))
-    geometry.boundingSphere = new THREE.Sphere()
-    const material = new THREE.RawShaderMaterial({ vertexShader: FXAA_VERTEX, fragmentShader: FXAA_FRAGMENT, defines: { LINEAR_INPUT: "" }, uniforms: { scene: { value: sceneTarget.texture }, pixel: { value: new THREE.Vector2() } }, blending: THREE.NoBlending, depthTest: false, depthWrite: false })
-    const pass = new THREE.Mesh(geometry, material)
-    pass.frustumCulled = false
-    smoothing = new THREE.Scene()
-    smoothing.add(pass)
-    smoothingCamera = new THREE.Camera()
+  function applyPan() {
+    camera.projectionMatrix.multiplyMatrices(panMatrix(pan.value), baseProjection)
+    camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert()
+    controls.size = 1 / pan.value.scale
+    invalidate()
   }
 
-  function resizeSmoothing() {
-    const { x, y } = renderer.getDrawingBufferSize(new THREE.Vector2())
-    sceneTarget.setSize(x, y)
-    smoothing.children[0].material.uniforms.pixel.value.set(1 / x, 1 / y)
+  function clipPoint(event) {
+    const box = renderer.domElement.getBoundingClientRect()
+    return { x: (event.clientX - box.left) / box.width * 2 - 1, y: 1 - (event.clientY - box.top) / box.height * 2 }
+  }
+
+  function zoom(event) {
+    if (!shaping.value) return
+    event.preventDefault()
+    const { x, y } = clipPoint(event)
+    const lines = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? LINE_HEIGHT : 1
+    pan.value = zoomedAt(pan.value, Math.exp(-event.deltaY * lines * (event.ctrlKey ? PINCH_WHEEL_ZOOM : WHEEL_ZOOM)), x, y)
+  }
+
+  function grabView(event) {
+    if (!shaping.value || controls.dragging || event.button === 0 && controls.axis) return
+    pointers.set(event.pointerId, clipPoint(event))
+    renderer.domElement.setPointerCapture(event.pointerId)
+    panning.value = true
+  }
+
+  function moveView(event) {
+    const last = pointers.get(event.pointerId)
+    if (!last) return
+    const point = clipPoint(event)
+    const other = Array.from(pointers).find(([id]) => id !== event.pointerId)?.[1]
+    pointers.set(event.pointerId, point)
+    if (!other) {
+      pan.value = pannedBy(pan.value, point.x - last.x, point.y - last.y)
+      return
+    }
+    const spread = Math.hypot(point.x - other.x, point.y - other.y) / Math.hypot(last.x - other.x, last.y - other.y)
+    pan.value = pannedBy(zoomedAt(pan.value, spread, (last.x + other.x) / 2, (last.y + other.y) / 2), (point.x - last.x) / 2, (point.y - last.y) / 2)
+  }
+
+  function dropView(event) {
+    pointers.delete(event.pointerId)
+    panning.value = pointers.size > 0
+  }
+
+  function noMenu(event) {
+    if (shaping.value) event.preventDefault()
   }
 
   onMounted(() => {
@@ -264,6 +306,12 @@
     controls.addEventListener("mouseUp", release)
     controls.addEventListener("objectChange", drag)
     overlay.add(controls.getHelper())
+    renderer.domElement.addEventListener("wheel", zoom, { passive: false })
+    renderer.domElement.addEventListener("pointerdown", grabView)
+    renderer.domElement.addEventListener("pointermove", moveView)
+    renderer.domElement.addEventListener("pointerup", dropView)
+    renderer.domElement.addEventListener("pointercancel", dropView)
+    renderer.domElement.addEventListener("contextmenu", noMenu)
     observer = new ResizeObserver(() => {
       const w = host.value.clientWidth
       const h = host.value.clientHeight
@@ -334,6 +382,8 @@
   watch(() => view.gizmo, invalidate)
   watch([() => view.section, () => view.render], () => view.gizmo = null)
   watch(shapingWord, invalidate)
+  watch(pan, applyPan)
+  watch(shaping, () => pan.value = UNZOOMED, { flush: "sync" })
 
   watch(() => view.render && [framing, view.resolution, view.antialias], fitCamera, { deep: true })
 
@@ -342,9 +392,14 @@
 </script>
 
 <template>
-  <div ref="host" class="viewport">
-    <div v-if="!view.render && view.section === 'shape'" class="tools">
-      <button v-for="[mode, icon, title] of TOOLS" :key="icon" class="icon-button small" :class="{ active: view.gizmo === mode }" :title="title" :aria-pressed="view.gizmo === mode" @click="view.gizmo = mode"><Icon :name="icon" :size="16" /></button>
+  <div ref="host" class="viewport" :class="{ shaping, panning }">
+    <div v-if="shaping" class="toolbar">
+      <div class="tools">
+        <button v-for="[mode, icon, title] of TOOLS" :key="icon" class="icon-button small" :class="{ active: view.gizmo === mode }" :title="title" :aria-pressed="view.gizmo === mode" @click="view.gizmo = mode"><Icon :name="icon" :size="16" /></button>
+      </div>
+      <div v-if="pan !== UNZOOMED" class="tools">
+        <button class="icon-button small" title="Reset the view" @click="pan = UNZOOMED"><Icon name="reset" :size="16" /></button>
+      </div>
     </div>
   </div>
 </template>
@@ -358,11 +413,16 @@
     overflow: hidden;
   }
 
-  .tools {
+  .toolbar {
     position: absolute;
     top: 12px;
     left: 12px;
     z-index: 2;
+    display: flex;
+    gap: 8px;
+  }
+
+  .tools {
     display: flex;
     gap: 2px;
     padding: 3px;
@@ -379,5 +439,14 @@
     position: relative;
     z-index: 1;
     display: block;
+  }
+
+  .viewport.shaping :deep(canvas) {
+    cursor: grab;
+    user-select: none;
+  }
+
+  .viewport.panning :deep(canvas) {
+    cursor: grabbing;
   }
 </style>

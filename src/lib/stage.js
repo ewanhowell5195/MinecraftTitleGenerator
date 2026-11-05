@@ -6,6 +6,7 @@ import { view } from "./view.js"
 const DIRECTION = new THREE.Vector3(0, -0.51007, 0.86013).normalize()
 const TILT = radians(7.285)
 const TITLE_REACH = 144
+const ZOOM_LIMITS = [0.25, 32]
 
 function radians(degrees) {
   return degrees * Math.PI / 180
@@ -326,6 +327,26 @@ export function frameCamera(camera, { anchor, corners, size, fov, width, height,
     camera.setViewOffset(width, height, centreX / (span * aspect) * width / 2, -centreY / span * height / 2, width, height)
   }
   camera.updateProjectionMatrix()
+}
+
+export const UNZOOMED = { scale: 1, x: 0, y: 0 }
+
+function kept({ scale, x, y }) {
+  return { scale, x: clamp(x, -scale, scale), y: clamp(y, -scale, scale) }
+}
+
+export function pannedBy(pan, dx, dy) {
+  return kept({ scale: pan.scale, x: pan.x + dx, y: pan.y + dy })
+}
+
+export function zoomedAt(pan, factor, x, y) {
+  const scale = clamp(pan.scale * factor, ...ZOOM_LIMITS)
+  const change = scale / pan.scale
+  return kept({ scale, x: x - (x - pan.x) * change, y: y - (y - pan.y) * change })
+}
+
+export function panMatrix({ scale, x, y }) {
+  return new THREE.Matrix4().set(scale, 0, 0, x, 0, scale, 0, y, 0, 0, 1, 0, 0, 0, 0, 1)
 }
 
 export function sortEntries(entries, camera) {

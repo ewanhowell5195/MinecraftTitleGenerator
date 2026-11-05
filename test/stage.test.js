@@ -5,7 +5,7 @@ import * as THREE from "three"
 globalThis.localStorage = { getItem: () => null, setItem: () => {} }
 globalThis.devicePixelRatio = 1
 
-const { cornersOf, frameCamera, gizmoPose, lineBounds, movedBy, placementMatrix, rotatedTo, sortEntries, titleFraming, wordMovedBy, wordPose, wordRotatedTo } = await import("../src/lib/stage.js")
+const { UNZOOMED, cornersOf, frameCamera, gizmoPose, lineBounds, movedBy, panMatrix, pannedBy, placementMatrix, rotatedTo, sortEntries, titleFraming, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } = await import("../src/lib/stage.js")
 const { view } = await import("../src/lib/view.js")
 
 const BOUNDS = new THREE.Box3(new THREE.Vector3(0, 0, 0), new THREE.Vector3(10, 4, 2))
@@ -575,6 +575,58 @@ describe("frameCamera", () => {
     frameCamera(camera, { anchor: line, corners: cornersOf(line), size: 20, fov: 43, width: 800, height: 600, frame })
     globalThis.devicePixelRatio = 1
     close(camera.top - camera.bottom, 2400)
+  })
+})
+
+describe("zoom and pan", () => {
+  function shown(pan, x, y) {
+    const point = new THREE.Vector3(x, y, 0).applyMatrix4(panMatrix(pan))
+    return [point.x, point.y]
+  }
+
+  test("starts as no change at all", () => {
+    assert.ok(panMatrix(UNZOOMED).equals(new THREE.Matrix4()))
+  })
+
+  test("zooming keeps the point under the cursor where it is", () => {
+    const pan = zoomedAt(UNZOOMED, 2, 0.5, -0.25)
+    assert.equal(pan.scale, 2)
+    const point = shown(pan, 0.5, -0.25)
+    assert.ok(Math.abs(point[0] - 0.5) < 1e-9 && Math.abs(point[1] + 0.25) < 1e-9)
+  })
+
+  test("zooming again still keeps the point under the cursor", () => {
+    const first = zoomedAt(UNZOOMED, 2, 0.5, 0)
+    const second = zoomedAt(first, 3, -0.2, 0.4)
+    const before = new THREE.Vector3(-0.2, 0.4, 0).applyMatrix4(panMatrix(first).invert())
+    const after = before.applyMatrix4(panMatrix(second))
+    assert.ok(Math.abs(after.x + 0.2) < 1e-9 && Math.abs(after.y - 0.4) < 1e-9)
+  })
+
+  test("zoom stops at its limits", () => {
+    assert.equal(zoomedAt(UNZOOMED, 1000, 0, 0).scale, 32)
+    assert.equal(zoomedAt(UNZOOMED, 0.001, 0, 0).scale, 0.25)
+  })
+
+  test("a limited zoom does not move the view", () => {
+    const pan = zoomedAt(zoomedAt(UNZOOMED, 32, 0.1, 0.1), 2, 0.5, 0.5)
+    assert.deepEqual(pan, zoomedAt(UNZOOMED, 32, 0.1, 0.1))
+  })
+
+  test("panning moves the content the same way as the drag", () => {
+    const [x, y] = shown(pannedBy(UNZOOMED, 0.25, -0.5), 0, 0)
+    assert.equal(x, 0.25)
+    assert.equal(y, -0.5)
+  })
+
+  test("panning cannot lose the middle of the title", () => {
+    assert.deepEqual(pannedBy(UNZOOMED, 5, -5), { scale: 1, x: 1, y: -1 })
+    assert.deepEqual(pannedBy({ scale: 4, x: 0, y: 0 }, 5, -5), { scale: 4, x: 4, y: -4 })
+  })
+
+  test("the matrix leaves depth alone and scales from the middle of the screen", () => {
+    const point = new THREE.Vector4(0.5, 0.5, 0.25, 2).applyMatrix4(panMatrix({ scale: 2, x: 0.1, y: 0 }))
+    assert.deepEqual(point.toArray(), [1.2, 1, 0.25, 2])
   })
 })
 
