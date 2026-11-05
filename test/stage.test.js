@@ -629,11 +629,25 @@ describe("sortEntries", () => {
     const entry = entryAt(5, "a", { outline: true, solid: true, halo: true, holes: true })
     const other = entryAt(50, "b", { outline: true, solid: true, halo: true, holes: true })
     sortEntries([entry, other], camera)
-    assert.equal(entry.holes.renderOrder, -2)
-    assert.equal(entry.halo.renderOrder, -1)
-    assert.equal(other.holes.renderOrder, -2)
-    assert.equal(other.halo.renderOrder, -1)
+    for (const part of [entry.holes, entry.halo, other.holes, other.halo]) assert.ok(part.renderOrder < 0)
     assert.deepEqual([other.outline.renderOrder, other.solid.renderOrder, entry.outline.renderOrder, entry.solid.renderOrder], [0, 1, 2, 3])
+  })
+
+  test("holes clip the halos of lines behind them, but not their own line's", () => {
+    const near = entryAt(5, "near", { halo: true, holes: true })
+    const far = entryAt(50, "far", { halo: true, holes: true })
+    sortEntries([far, near], camera)
+    const orders = [near.halo, near.holes, far.halo, far.holes].map(part => part.renderOrder)
+    assert.deepEqual(orders, orders.toSorted((a, b) => a - b))
+    assert.equal(new Set(orders).size, 4)
+  })
+
+  test("every halo in a split line goes under that line's holes", () => {
+    const first = entryAt(5, "split", { halo: true, holes: true })
+    const second = entryAt(6, "split", { halo: true })
+    sortEntries([first, second], camera)
+    assert.ok(first.halo.renderOrder < first.holes.renderOrder)
+    assert.ok(second.halo.renderOrder < first.holes.renderOrder)
   })
 
   test("missing parts do not leave gaps in the order", () => {

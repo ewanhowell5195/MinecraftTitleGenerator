@@ -335,11 +335,19 @@ export function sortEntries(entries, camera) {
     return { entry, distance: centre.distanceToSquared(camera.position) }
   }).sort((a, b) => b.distance - a.distance)
   const lines = Array.from(Map.groupBy(sorted, item => item.entry.line).values()).map(words => ({ words, distance: words.reduce((sum, word) => sum + word.distance, 0) / words.length })).sort((a, b) => b.distance - a.distance)
+  let under = -2 * entries.length
+  // nearest line first, halos before holes, so holes only clip the halos of lines behind them
+  for (const { words } of lines.toReversed()) {
+    for (const { entry } of words) {
+      if (entry.halo) entry.halo.renderOrder = under++
+    }
+    for (const { entry } of words) {
+      if (entry.holes) entry.holes.renderOrder = under++
+    }
+  }
   let order = 0
   for (const { words } of lines) {
     for (const { entry } of words) {
-      if (entry.holes) entry.holes.renderOrder = -2
-      if (entry.halo) entry.halo.renderOrder = -1
       if (entry.outline) entry.outline.renderOrder = order++
     }
     for (const { entry } of words) {
