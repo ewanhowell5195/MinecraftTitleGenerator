@@ -763,6 +763,15 @@ describe("popular in the last 7 days", () => {
   })
 })
 
+describe("usage", () => {
+  test("lists the presets this IP shared and no one else's", async () => {
+    const mine = await share("mine", {}, "me")
+    await share("theirs", {}, "them")
+    assert.deepEqual((await usageOf("me")).shared, [mine.id])
+    assert.deepEqual((await usageOf("nobody")).shared, [])
+  })
+})
+
 describe("a single preset", () => {
   async function fetched(id) {
     const response = await getPreset(context(`/api/presets/${id}`, { params: { id: String(id) } }))

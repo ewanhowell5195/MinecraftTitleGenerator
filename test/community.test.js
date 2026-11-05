@@ -315,9 +315,53 @@ describe("your own changes", () => {
   })
 })
 
+describe("presets you shared", () => {
+  test("come from the server too, so other browsers know", async () => {
+    replies.GET = { body: { used: 1, limit: 5, resetsAt: 0, shared: [4, 9] } }
+    const { ownPresets, refreshUsage } = await fresh()
+    await refreshUsage()
+    assert.deepEqual(ownPresets.value, [4, 9])
+  })
+
+  test("are kept with the ones this browser already knew, without repeats", async () => {
+    replies.POST = { body: { preset: { id: 4 } } }
+    const { ownPresets, refreshUsage, sharePublicly } = await fresh()
+    await sharePublicly("code", "name")
+    replies.GET = { body: { used: 1, limit: 5, resetsAt: 0, shared: [4, 9] } }
+    await refreshUsage(true)
+    assert.deepEqual(ownPresets.value, [4, 9])
+  })
+
+  test("are asked for once by a browser that only knew its share count", async () => {
+    stored.set("minecraft-title-community", JSON.stringify({ usage: { day: "2026-11-05", used: 2 } }))
+    replies.GET = { body: { used: 2, limit: 5, resetsAt: 0, shared: [1] } }
+    const { ownPresets, refreshUsage } = await fresh()
+    await refreshUsage()
+    await refreshUsage()
+    assert.deepEqual(ownPresets.value, [1])
+    assert.equal(requests.length, 1)
+  })
+
+  test("only asks once when two things want it at the same time", async () => {
+    replies.GET = { body: { used: 1, limit: 5, resetsAt: 0, shared: [] } }
+    const { refreshUsage } = await fresh()
+    await Promise.all([refreshUsage(), refreshUsage()])
+    assert.equal(requests.length, 1)
+  })
+
+  test("sharing doesn't make a browser skip asking", async () => {
+    replies.POST = { body: { preset: { id: 4 } } }
+    const { refreshUsage, sharePublicly } = await fresh()
+    await sharePublicly("code", "name")
+    replies.GET = { body: { used: 1, limit: 5, resetsAt: 0, shared: [4, 1] } }
+    await refreshUsage()
+    assert.equal(requests.filter(item => item.startsWith("GET")).length, 1)
+  })
+})
+
 describe("daily usage", () => {
   test("is only fetched once a day", async () => {
-    replies.GET = { body: { used: 2, limit: 5, resetsAt: 0 } }
+    replies.GET = { body: { used: 2, limit: 5, resetsAt: 0, shared: [] } }
     const first = await fresh()
     await first.refreshUsage()
     await first.refreshUsage()
@@ -331,7 +375,7 @@ describe("daily usage", () => {
   })
 
   test("goes up when you share, without a fetch", async () => {
-    replies.GET = { body: { used: 1, limit: 5, resetsAt: 0 } }
+    replies.GET = { body: { used: 1, limit: 5, resetsAt: 0, shared: [] } }
     replies.POST = { body: { preset: { id: 1 } } }
     const { refreshUsage, sharePublicly, usage } = await fresh()
     await refreshUsage()
@@ -341,7 +385,7 @@ describe("daily usage", () => {
   })
 
   test("sharing on a new day starts the count again", async () => {
-    replies.GET = { body: { used: 4, limit: 5, resetsAt: 0 } }
+    replies.GET = { body: { used: 4, limit: 5, resetsAt: 0, shared: [] } }
     replies.POST = { body: { preset: { id: 1 } } }
     const { refreshUsage, sharePublicly, usage } = await fresh()
     await refreshUsage()
@@ -351,16 +395,16 @@ describe("daily usage", () => {
   })
 
   test("can be forced to check, for when the server says the limit is reached", async () => {
-    replies.GET = { body: { used: 1, limit: 5, resetsAt: 0 } }
+    replies.GET = { body: { used: 1, limit: 5, resetsAt: 0, shared: [] } }
     const { refreshUsage, usage } = await fresh()
     await refreshUsage()
-    replies.GET = { body: { used: 5, limit: 5, resetsAt: 0 } }
+    replies.GET = { body: { used: 5, limit: 5, resetsAt: 0, shared: [] } }
     await refreshUsage(true)
     assert.equal(usage.value.used, 5)
   })
 
   test("resets at midnight UTC", async () => {
-    replies.GET = { body: { used: 0, limit: 5, resetsAt: 0 } }
+    replies.GET = { body: { used: 0, limit: 5, resetsAt: 0, shared: [] } }
     const { refreshUsage, usage } = await fresh()
     await refreshUsage()
     assert.equal(usage.value.resetsAt, Date.parse("2026-11-06T00:00:00Z"))

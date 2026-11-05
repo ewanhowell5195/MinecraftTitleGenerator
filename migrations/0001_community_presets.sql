@@ -16,6 +16,7 @@ CREATE INDEX presets_by_downloads ON presets (downloads DESC, id DESC);
 CREATE INDEX presets_by_rating ON presets (rating DESC, votes DESC, id DESC);
 CREATE INDEX presets_by_date ON presets (created_at DESC, id DESC);
 CREATE INDEX presets_needing_votes ON presets (votes, id);
+CREATE INDEX presets_by_sharer ON presets (ip_hash);
 
 CREATE TABLE preset_votes (
   preset_id INTEGER NOT NULL REFERENCES presets (id) ON DELETE CASCADE,

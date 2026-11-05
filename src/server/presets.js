@@ -276,7 +276,11 @@ export const submitPreset = guarded(async context => {
   return reply(201, { preset: rated(inserted.results[0]) })
 })
 
-export const submissionUsage = guarded(async context => reply(200, { used: await usedToday(context.env, await hashedIp(context)), limit: LIMITS.perDay, resetsAt: nextDay() }))
+export const submissionUsage = guarded(async context => {
+  const ip = await hashedIp(context)
+  const { results } = await context.env.DB.prepare("SELECT id FROM presets WHERE ip_hash = ?").bind(ip).all()
+  return reply(200, { used: await usedToday(context.env, ip), limit: LIMITS.perDay, resetsAt: nextDay(), shared: results.map(preset => preset.id) })
+})
 
 export const votePreset = guarded(async context => {
   const { request, env, params } = context

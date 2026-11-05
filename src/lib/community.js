@@ -13,6 +13,10 @@ export const usage = ref(null)
 
 const store = read()
 
+export const ownPresets = ref(store.own)
+
+let usageRequest = null
+
 function read() {
   const empty = { pages: {}, votes: {}, downloads: [], own: [], changes: {}, usage: null, pool: null }
   try {
@@ -124,10 +128,10 @@ function showUsage() {
 
 export async function sharePublicly(code, name) {
   const result = await posted("", { code, name })
-  store.own.push(result.preset.id)
+  addOwn([result.preset.id])
   store.pages = {}
   store.pool = null
-  store.usage = { day: currentDay(), used: (store.usage?.day === currentDay() ? store.usage.used : 0) + 1 }
+  store.usage = { ...(store.usage?.day === currentDay() ? store.usage : { used: 0 }), day: currentDay(), used: (store.usage?.day === currentDay() ? store.usage.used : 0) + 1 }
   persist()
   showUsage()
   return result
@@ -142,21 +146,32 @@ export async function voteOn(id, value) {
     return { votes, rating, vote }
   } catch (err) {
     if (err.status === 403) {
-      store.own.push(id)
+      addOwn([id])
       persist()
     }
     throw err
   }
 }
 
-export async function refreshUsage(force = false) {
-  if (!force && store.usage?.day === currentDay()) {
+function addOwn(ids) {
+  store.own = Array.from(new Set(store.own.concat(ids)))
+  ownPresets.value = store.own
+}
+
+export function refreshUsage(force = false) {
+  if (!force && store.usage?.day === currentDay() && store.usage.checkedOwn) {
     showUsage()
-    return
+    return Promise.resolve()
   }
+  usageRequest ??= fetchUsage().finally(() => usageRequest = null)
+  return usageRequest
+}
+
+async function fetchUsage() {
   try {
-    const { used } = await request("/usage")
-    store.usage = { day: currentDay(), used }
+    const { used, shared } = await request("/usage")
+    store.usage = { day: currentDay(), used, checkedOwn: true }
+    addOwn(shared)
     persist()
     showUsage()
   } catch (err) {
