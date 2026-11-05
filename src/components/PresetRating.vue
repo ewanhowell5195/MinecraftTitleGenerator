@@ -26,9 +26,11 @@
 </script>
 
 <template>
-  <div class="rating">
-    <button type="button" class="icon-button small" :class="{ up: mine === 1 }" :disabled="own" :title="own ? 'You shared this' : mine === 1 ? 'You like this' : 'I like this'" aria-label="I like this" :aria-pressed="mine === 1" @click="emit('vote', 1)"><Icon name="up" :size="16" /></button>
-    <button type="button" class="icon-button small" :class="{ down: mine === -1 }" :disabled="own" :title="own ? 'You shared this' : mine === -1 ? 'You don\'t like this' : 'I don\'t like this'" aria-label="I don't like this" :aria-pressed="mine === -1" @click="emit('vote', -1)"><Icon name="down" :size="16" /></button>
+  <div class="rating" :class="{ own }">
+    <template v-if="!own">
+      <button type="button" class="icon-button small" :class="{ up: mine === 1 }" :title="mine === 1 ? 'You like this' : 'I like this'" aria-label="I like this" :aria-pressed="mine === 1" @click="emit('vote', 1)"><Icon name="up" :size="16" /></button>
+      <button type="button" class="icon-button small" :class="{ down: mine === -1 }" :title="mine === -1 ? 'You don\'t like this' : 'I don\'t like this'" aria-label="I don't like this" :aria-pressed="mine === -1" @click="emit('vote', -1)"><Icon name="down" :size="16" /></button>
+    </template>
     <div v-if="rating !== null" class="result" :title="summary">
       <span class="stars" aria-hidden="true">
         <span v-for="star of STARS" :key="star" class="star">
@@ -51,6 +53,11 @@
     font-size: var(--font-sm);
     font-variant-numeric: tabular-nums;
     color: var(--muted);
+  }
+
+  .own .result,
+  .own .unrated {
+    margin-left: 0;
   }
 
   .up {

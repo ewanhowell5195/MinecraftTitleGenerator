@@ -24,6 +24,7 @@
   const error = ref("")
   const sentinel = ref(null)
   const saved = computed(() => new Set(presets.value.map(preset => preset.code)))
+  const sharedByMe = computed(() => new Set(presets.value.map(preset => preset.shared)))
   const tooShort = computed(() => search.value.trim().length > 0 && Array.from(search.value.trim()).length < LIMITS.searchMinimum)
   const emptyMessage = computed(() => {
     if (search.value.trim()) return "No presets match this search."
@@ -49,6 +50,10 @@
     } finally {
       if (current === request) loading.value = false
     }
+  }
+
+  function isMine(preset) {
+    return preset.own || sharedByMe.value.has(preset.id)
   }
 
   async function shuffle() {
@@ -87,7 +92,7 @@
   }
 
   async function vote(preset, value) {
-    if (preset.own || preset.vote === value) return
+    if (preset.vote === value) return
     error.value = ""
     try {
       Object.assign(preset, await voteOn(preset.id, value))
@@ -140,15 +145,16 @@
     <p v-else-if="error" class="message error">{{ error }}</p>
     <p v-else-if="!results.length && !loading" class="message">{{ emptyMessage }}</p>
     <div class="presets">
-      <div v-for="preset of results" :key="preset.id" class="preset">
+      <div v-for="preset of results" :key="preset.id" class="preset" :class="{ mine: isMine(preset) }">
         <TitlePicture :code="preset.code" :title="`Open ${preset.name}`" @open="open(preset)" />
         <div class="details">
           <strong :title="preset.name">{{ preset.name }}</strong>
+          <span v-if="isMine(preset)" class="yours">Shared by you</span>
         </div>
         <div class="actions">
-          <PresetRating :rating="preset.rating" :votes="preset.votes" :mine="preset.vote" :own="preset.own" @vote="vote(preset, $event)" />
+          <PresetRating :rating="preset.rating" :votes="preset.votes" :mine="preset.vote" :own="isMine(preset)" @vote="vote(preset, $event)" />
           <span class="downloads" :title="preset.week === undefined ? `Used by ${preset.downloads}` : `Used by ${preset.week} in the last 7 days`"><Icon name="download" :size="14" />{{ preset.week ?? preset.downloads }}</span>
-          <button class="icon-button small" :disabled="saved.has(preset.code)" :title="saved.has(preset.code) ? 'Already in My presets' : 'Save to My presets'" @click="save(preset)"><Icon name="bookmark" :size="16" /></button>
+          <button v-if="!isMine(preset)" class="icon-button small" :disabled="saved.has(preset.code)" :title="saved.has(preset.code) ? 'Already in My presets' : 'Save to My presets'" @click="save(preset)"><Icon name="bookmark" :size="16" /></button>
         </div>
       </div>
     </div>
@@ -219,15 +225,26 @@
     background: var(--card-hover);
   }
 
+  .preset.mine {
+    outline: 1px solid var(--accent);
+    outline-offset: -1px;
+  }
+
+  .yours {
+    flex: none;
+    color: var(--accent);
+  }
+
   .details {
     display: flex;
-    flex-direction: column;
-    gap: 2px;
+    justify-content: space-between;
+    gap: 8px;
     min-width: 0;
     font-size: var(--font-sm);
   }
 
   .details strong {
+    min-width: 0;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -237,6 +254,7 @@
     margin-top: auto;
     display: flex;
     align-items: center;
+    min-height: 28px;
     gap: 4px;
     font-size: var(--font-sm);
     font-variant-numeric: tabular-nums;
