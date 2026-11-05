@@ -56,7 +56,8 @@ const PANELS = {
   geometry: () => ({
     depth: 22,
     border: 2,
-    clipHoles: true
+    clipHoles: true,
+    layerWords: false
   }),
   spacing: () => ({
     spacing: 0,
@@ -172,7 +173,7 @@ const PANELS = {
   })
 }
 
-export const LINE = new Set(["hidden", "font", "terminators", "type", "row", "rowSpacing", "depth", "border", "clipHoles", "spacing", "kerning", "arcMode", "arcTop", "arcBottom", "arcMove", "arcMarked"].concat(Object.keys(PANELS.transform())))
+export const LINE = new Set(["hidden", "font", "terminators", "type", "row", "rowSpacing", "depth", "border", "clipHoles", "layerWords", "spacing", "kerning", "arcMode", "arcTop", "arcBottom", "arcMove", "arcMarked"].concat(Object.keys(PANELS.transform())))
 
 function defaults() {
   return Object.assign({ hidden: false, group: null }, ...Object.values(PANELS).map(panel => panel()))

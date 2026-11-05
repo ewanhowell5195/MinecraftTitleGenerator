@@ -16,6 +16,7 @@ const TOP_DEFAULTS = {
   depth: 22,
   border: 2,
   clipHoles: true,
+  layerWords: false,
   spacing: 0,
   kerning: true,
   arcMode: "stretch",

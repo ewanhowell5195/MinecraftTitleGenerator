@@ -234,7 +234,7 @@ export function createEntry() {
 }
 
 export function updateEntry(entry, item) {
-  entry.line = item.line
+  entry.line = item.paintLine
   if (entry.built !== item.built) {
     fill(entry, item.built)
     entry.lines = null

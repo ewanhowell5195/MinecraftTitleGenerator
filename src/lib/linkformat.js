@@ -258,7 +258,8 @@ const KEYS = [
   ["tileableSource", choice("premade", "minecraft")],
   ["minecraftTexture", TEXT],
   ["minecraftVersion", TEXT],
-  ["tileablePerCharacter", BOOLEAN]
+  ["tileablePerCharacter", BOOLEAN],
+  ["layerWords", BOOLEAN]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))
