@@ -191,7 +191,7 @@ function frameFill(png, colour) {
 
 function sceneFor(entry) {
   const { glyphs, cells, capHeight, folder, depth } = loadGlyphs(entry)
-  const font = { ...entry, glyphs, kerning: entry.kerning ?? list.find(item => item.id === entry.variant)?.kerning ?? {} }
+  const font = { ...entry, glyphs, kerning: { ...list.find(item => item.id === entry.variant)?.kerning, ...entry.kerning } }
   const placed = layout(font, entry.preview ?? "abc", { spacing: entry.characterSpacing ?? 0 })
   if (!placed.length) throw new Error(`${entry.id}: the preview text has no glyphs in this font`)
   const minX = Math.min(...placed.map(item => item.x))

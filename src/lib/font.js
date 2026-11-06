@@ -284,7 +284,7 @@ async function readFont(data, list) {
       name: data.name,
       variant: data.variant,
       folder: fontFolder(data),
-      kerning: data.kerning ?? inherited.kerning,
+      kerning: { ...inherited.kerning, ...data.kerning },
       glyphs: { ...inherited.glyphs, ...inherited.alternates[data.id] }
     }
   }

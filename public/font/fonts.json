@@ -25,13 +25,17 @@
       "t-": 4,
       "l-": 8,
       "/j": 8,
-      "l\\": 8
+      "l\\": 8,
+      "&t": 4
     },
     "variants": [
       {
         "id": "minecraft-ten-v2",
         "name": "Version 2",
         "inherits": true,
+        "kerning": {
+          "&t": 8
+        },
         "author": "Ewan Howell",
         "description": "Minecraft Ten Version 2 is a newer version of Minecraft Ten with some tweaks to some characters, most notably `&` and `?`.",
         "order": "cefn34&?-_",
