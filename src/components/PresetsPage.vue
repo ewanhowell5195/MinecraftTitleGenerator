@@ -8,6 +8,7 @@
   import { closePresetsPage, leavePresetsForEditor, presetsPage, showPreset } from "../lib/presetsPage.js"
   import { providerLabel } from "../lib/providers.js"
   import AccountMenu from "./AccountMenu.vue"
+  import DeletePresetDialog from "./DeletePresetDialog.vue"
   import Dropdown from "./Dropdown.vue"
   import Icon from "./Icon.vue"
   import PresetDetail from "./PresetDetail.vue"
@@ -17,6 +18,7 @@
   import TitlePicture from "./TitlePicture.vue"
 
   const TABS = [{ value: "community", label: "Community" }, { value: "mine", label: "My presets" }]
+  const MINE_TABS = [{ value: "saved", label: "Saved" }, { value: "shared", label: "Shared publicly" }]
   const SORTS = [{ value: "week", label: "Popular this week" }, { value: "popular", label: "Popular all time" }, { value: "top", label: "Top rated" }, { value: "new", label: "Newest" }, { value: "needs", label: "Needs votes" }]
   const SEARCH_DELAY = 500
   const EDITOR_TITLE = "Minecraft Title Generator"
@@ -31,6 +33,8 @@
   const root = ref(null)
   const sentinel = ref(null)
   const sharing = ref(null)
+  const removing = ref(null)
+  const mineTab = ref("saved")
   const selectedCommunity = ref(null)
   const selectedLocalCode = ref(null)
 
@@ -38,11 +42,15 @@
   const tooShort = computed(() => tab.value === "community" && term.value.length > 0 && Array.from(term.value).length < LIMITS.searchMinimum)
   const saved = computed(() => new Set(presets.value.map(preset => preset.code)))
   const sharedByMe = computed(() => new Set(presets.value.map(preset => preset.shared)))
-  const localShown = computed(() => presets.value.filter(preset => preset.name.toLowerCase().includes(term.value.toLowerCase())))
+  const localShown = computed(() => presets.value.filter(preset => !!preset.shared === (mineTab.value === "shared") && preset.name.toLowerCase().includes(term.value.toLowerCase())))
   const selectedLocal = computed(() => presets.value.find(preset => preset.code === selectedLocalCode.value) ?? null)
   const selected = computed(() => tab.value === "mine" ? selectedLocal.value : selectedCommunity.value)
   const emptyMessage = computed(() => {
-    if (tab.value === "mine") return term.value ? "None of your presets match this search." : "You have no presets yet. Use File > Save preset to save the current title here."
+    if (tab.value === "mine") {
+      if (term.value) return "None of your presets match this search."
+      if (mineTab.value === "shared") return "None of your presets are shared yet. Open one in Saved to share it."
+      return presets.value.length ? "All of your presets are shared." : "You have no presets yet. Use File > Save preset to save the current title here."
+    }
     if (term.value) return "No presets match this search."
     return sort.value === "needs" ? "You have voted on everything that needs votes. Thank you!" : "Nobody has shared a preset yet. Be the first from My presets!"
   })
@@ -147,9 +155,29 @@
   }
 
   function remove(preset) {
+    if (preset.shared) {
+      removing.value = preset
+      return
+    }
     if (!confirm(`Delete the preset ${preset.name}?`)) return
     removePreset(preset)
     selectedLocalCode.value = null
+  }
+
+  async function confirmRemove(alsoShared) {
+    const preset = removing.value
+    removing.value = null
+    error.value = ""
+    try {
+      if (alsoShared) {
+        await deleteShared(preset.shared)
+        results.value = results.value.filter(item => item.id !== preset.shared)
+      }
+      removePreset(preset)
+      selectedLocalCode.value = null
+    } catch (err) {
+      error.value = err.message
+    }
   }
 
   async function renameCommunity(preset, name) {
@@ -191,7 +219,7 @@
   }
 
   function key(event) {
-    if (event.key !== "Escape" || event.defaultPrevented || sharing.value) return
+    if (event.key !== "Escape" || event.defaultPrevented || sharing.value || removing.value) return
     if (selected.value) clearSelection()
     else closePresetsPage()
   }
@@ -208,6 +236,7 @@
     }
   })
   watch(sort, () => load(0))
+  watch(mineTab, () => selectedLocalCode.value = null)
   watch(accountChanges, () => {
     if (selectedCommunity.value && isDeleted(selectedCommunity.value.id)) clearSelection()
     if (tab.value === "community") load(0)
@@ -269,6 +298,7 @@
             <Dropdown class="sort" :options="SORTS" v-model="sort" />
             <button class="random" title="Show a random community preset" @click="openRandom"><Icon name="dice" :size="16" /><span>Random</span></button>
           </template>
+          <Segments v-else class="mine-tabs" :options="MINE_TABS" v-model="mineTab" />
         </div>
         <div class="list">
           <p v-if="tooShort" class="message">Keep typing to search.</p>
@@ -305,6 +335,7 @@
       <aside v-else class="placeholder"><p v-if="tab === 'community' ? results.length : localShown.length">Select a preset to see it here</p></aside>
     </div>
     <SharePresetDialog v-if="sharing" :preset="sharing" @close="sharing = null" @shared="shared" />
+    <DeletePresetDialog v-if="removing" :preset="removing" :can-delete-shared="accountPresets.includes(removing.shared)" @close="removing = null" @delete="confirmRemove" />
     <p v-if="notice" class="notice" role="status">{{ notice }}</p>
   </div>
 </template>
@@ -405,6 +436,11 @@
 
   .sort :deep(.trigger) {
     height: 100%;
+  }
+
+  .mine-tabs {
+    flex: none;
+    width: 260px;
   }
 
   .random {
@@ -542,7 +578,8 @@
       flex-basis: 100%;
     }
 
-    .sort {
+    .sort,
+    .mine-tabs {
       flex: 1;
       width: auto;
     }
