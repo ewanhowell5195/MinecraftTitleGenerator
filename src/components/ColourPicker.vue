@@ -9,6 +9,7 @@
   const open = ref(false)
   const swatch = ref(null)
   const popover = ref(null)
+  const hexInput = ref(null)
   const position = ref({ left: 0, top: 0 })
   const hsv = ref(toHsv(colour.value))
   const text = ref(colour.value)
@@ -92,6 +93,9 @@
     const below = rect.bottom + 6
     const top = below + box.height > window.innerHeight - 8 ? rect.top - box.height - 6 : below
     position.value = { left: Math.max(8, left), top: Math.max(8, top) }
+    if (!matchMedia("(pointer: fine)").matches) return
+    hexInput.value.focus({ preventScroll: true })
+    hexInput.value.select()
   }
 
   useWindowEvents(open, { keydown: escape }, { pointerdown: outside })
@@ -119,7 +123,7 @@
         </div>
         <div class="row">
           <span class="chip big" :style="{ background: colour }"></span>
-          <input type="text" v-model="text" @input="typed" spellcheck="false" maxlength="7">
+          <input ref="hexInput" type="text" v-model="text" @input="typed" spellcheck="false" maxlength="7">
         </div>
       </div>
     </Teleport>
