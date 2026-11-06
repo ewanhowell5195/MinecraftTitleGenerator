@@ -87,13 +87,7 @@ async function share(text, extra = {}, ip = `${Math.random()}`) {
 
 beforeEach(() => {
   const sqlite = new DatabaseSync(":memory:")
-  sqlite.exec(fs.readFileSync("migrations/0001_community_presets.sql", "utf8"))
-  sqlite.exec(fs.readFileSync("migrations/0002_accounts.sql", "utf8"))
-  sqlite.exec(fs.readFileSync("migrations/0003_saved_presets.sql", "utf8"))
-  sqlite.exec(fs.readFileSync("migrations/0004_votes_by_voter.sql", "utf8"))
-  sqlite.exec(fs.readFileSync("migrations/0005_users.sql", "utf8"))
-  sqlite.exec(fs.readFileSync("migrations/0006_unlimited_shares.sql", "utf8"))
-  sqlite.exec(fs.readFileSync("migrations/0007_preset_tokens.sql", "utf8"))
+  sqlite.exec(fs.readFileSync("schema.sql", "utf8"))
   db = sqlite
   env = { DB: d1(sqlite), IP_SALT: "salt", SESSION_SECRET: "session-secret", DISCORD_CLIENT_ID: "discord-id", DISCORD_CLIENT_SECRET: "discord-secret", GITHUB_CLIENT_ID: "github-id", GITHUB_CLIENT_SECRET: "github-secret" }
 })
@@ -1173,32 +1167,6 @@ describe("accounts", () => {
     const second = await signIn("discord", { id: "1", username: "second" })
     await shareAs(second, "two")
     assert.deepEqual(db.prepare("SELECT name FROM users").all().map(row => row.name), ["second"])
-  })
-
-  describe("the users migration", () => {
-    test("moves accounts and presets across and drops the old columns", () => {
-      const sqlite = new DatabaseSync(":memory:")
-      for (const file of ["0001_community_presets", "0002_accounts", "0003_saved_presets", "0004_votes_by_voter"]) sqlite.exec(fs.readFileSync(`migrations/${file}.sql`, "utf8"))
-      const insert = sqlite.prepare("INSERT INTO presets (id, code, fingerprint, name, text, ip_hash, created_at, author, author_provider, author_id) VALUES (?, 'c', ?, 'n', 't', 'ip', ?, ?, ?, ?)")
-      insert.run(1, "a", 100, "someone", "discord", "discord:519")
-      insert.run(2, "b", 50, "someone", "discord", "discord:519")
-      insert.run(3, "c", 70, "octo", "github", "github:42")
-      insert.run(4, "d", 80, null, null, null)
-      sqlite.prepare("INSERT INTO saved_presets (author_id, code_hash, code, name, shared) VALUES (?, ?, ?, ?, ?)").run("discord:519", "h1", "code1", "saved one", 1)
-      sqlite.prepare("INSERT INTO saved_presets (author_id, code_hash, code, name, shared) VALUES (?, ?, ?, ?, ?)").run("discord:777", "h2", "code2", "saved only", null)
-      sqlite.exec(fs.readFileSync("migrations/0005_users.sql", "utf8"))
-      assert.deepEqual(sqlite.prepare("SELECT provider, provider_id, name, created_at FROM users ORDER BY provider, provider_id").all().map(row => ({ ...row })), [
-        { provider: "discord", provider_id: "519", name: "someone", created_at: 50 },
-        { provider: "discord", provider_id: "777", name: "777", created_at: 0 },
-        { provider: "github", provider_id: "42", name: "octo", created_at: 70 }
-      ])
-      assert.deepEqual(sqlite.prepare("SELECT presets.id, users.name FROM presets LEFT JOIN users ON users.id = presets.user_id ORDER BY presets.id").all().map(row => [row.id, row.name]), [[1, "someone"], [2, "someone"], [3, "octo"], [4, null]])
-      assert.deepEqual(sqlite.prepare("SELECT saved_presets.name, users.provider_id, shared FROM saved_presets JOIN users ON users.id = saved_presets.user_id ORDER BY saved_presets.id").all().map(row => [row.name, row.provider_id, row.shared]), [["saved one", "519", 1], ["saved only", "777", null]])
-      const columns = sqlite.prepare("SELECT name FROM pragma_table_info('presets')").all().map(row => row.name)
-      assert.equal(columns.includes("author"), false)
-      assert.equal(columns.includes("author_id"), false)
-      assert.equal(columns.includes("user_id"), true)
-    })
   })
 
   test("an anonymous share has no account or author", async () => {
