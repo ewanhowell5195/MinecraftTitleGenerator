@@ -194,9 +194,13 @@
 
   .selected-stop {
     display: flex;
-    align-items: center;
+    align-items: stretch;
     gap: 6px;
     margin-top: 10px;
+  }
+
+  .selected-stop .icon-button {
+    align-self: center;
   }
 
   .location {
@@ -208,6 +212,7 @@
   }
 
   .location input[type="number"] {
+    align-self: stretch;
     width: 60px;
     padding: 8px;
   }

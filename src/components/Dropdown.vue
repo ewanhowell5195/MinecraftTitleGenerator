@@ -108,7 +108,7 @@
   }
 
   .trigger {
-    min-height: 38px;
+    min-height: 40px;
     padding: 6px 10px;
     font-weight: 500;
     text-align: left;
