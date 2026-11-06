@@ -64,6 +64,19 @@ function smoothStops(stops) {
   return list.concat(stops.slice(-1))
 }
 
+export function movedStopPositions(positions, from, to) {
+  if (from === to) return positions.slice()
+  const order = Array.from(positions.keys())
+  order.splice(to, 0, order.splice(from, 1)[0])
+  const last = order.length - 1
+  const moved = order.map(index => positions[index])
+  moved[0] = positions[0]
+  moved[last] = positions[last]
+  const between = order.findIndex((index, slot) => slot > 0 && slot < last && (index === from || index === 0 || index === last))
+  if (between !== -1) moved[between] = Math.round((moved[between - 1] + moved[between + 1]) / 2)
+  return moved
+}
+
 export function gradientStops(stops, smooth) {
   const list = ordered(stops)
   if (smooth) return smoothStops(list)

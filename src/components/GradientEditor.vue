@@ -1,8 +1,9 @@
 <script setup>
   import { computed, onBeforeUnmount, ref, watch } from "vue"
   import { trackPointer } from "../lib/events.js"
-  import { blend, cssGradient } from "../lib/material.js"
+  import { blend, cssGradient, movedStopPositions } from "../lib/material.js"
   import { clamp } from "../lib/maths.js"
+  import { useReorderDrag } from "../lib/reorder.js"
   import ColourPicker from "./ColourPicker.vue"
   import Icon from "./Icon.vue"
 
@@ -86,13 +87,52 @@
     order.value = sortedStops()
   }
 
+  const box = ref(null)
+  const rows = []
+  const { dragged, press } = useReorderDrag({ prevent: true, begin: beginSort, point: event => event.clientY, reorder, follow, release })
+
+  function beginSort(event, index) {
+    selected.value = index
+    const sorted = sortedStops()
+    return { id: index, grab: event.clientY - rows[index].getBoundingClientRect().top, sorted, from: sorted.indexOf(index), positions: sorted.map(item => stops.value[item].position) }
+  }
+
+  function reorder(sort) {
+    const to = order.value.filter(index => {
+      if (index === sort.id) return false
+      const rect = rows[index].getBoundingClientRect()
+      return rect.top + rect.height / 2 < sort.point
+    }).length
+    if (to === order.value.indexOf(sort.id)) return
+    const next = sort.sorted.slice()
+    next.splice(to, 0, next.splice(sort.from, 1)[0])
+    order.value = next
+    movedStopPositions(sort.positions, sort.from, to).forEach((position, slot) => stops.value[next[slot]].position = position)
+  }
+
+  function follow(sort) {
+    for (const index of order.value) rows[index].style.transform = ""
+    const row = rows[sort.id]
+    const rect = row.getBoundingClientRect()
+    const area = box.value.getBoundingClientRect()
+    row.style.transform = `translateY(${clamp(sort.point - sort.grab, area.top, area.bottom - rect.height) - rect.top}px)`
+  }
+
+  function release(sort, active) {
+    if (!active) return
+    for (const index of order.value) rows[index].style.transform = ""
+    selected.value = order.value.indexOf(sort.id)
+    stops.value.splice(0, stops.value.length, ...order.value.map(index => stops.value[index]))
+    order.value = sortedStops()
+  }
+
   watch(() => stops.value.length, length => {
     if (selected.value >= length) selected.value = length - 1
     order.value = sortedStops()
   })
 
   watch(() => stops.value.map(stop => stop.position).join(), () => {
-    if (!typing.value) order.value = sortedStops()
+    if (!typing.value && dragged.value === null) order.value = sortedStops()
   })
 
   onBeforeUnmount(() => drag?.stop())
@@ -110,8 +150,9 @@
       <span>{{ ends[0] }}</span>
       <span>{{ ends[1] }}</span>
     </div>
-    <div class="stop-rows">
-      <div v-for="index of order" :key="index" class="stop-row" @focusin="selected = index">
+    <div ref="box" class="stop-rows">
+      <div v-for="index of order" :key="index" :ref="el => (rows[index] = el)" class="stop-row" :class="{ dragged: dragged === index }" @focusin="selected = index">
+        <span v-if="stops.length > 1" class="grip" @pointerdown="press($event, index)" title="Drag to reorder"><Icon name="grip" :size="14" /></span>
         <ColourPicker class="grow" v-model="stops[index].colour" />
         <label class="location" title="Location">
           <input type="number" v-model.number="stops[index].position" min="0" max="100" step="1" @focus="typing = true" @blur="finishTyping">
@@ -225,6 +266,31 @@
 
   .stop-row .icon-button {
     align-self: center;
+  }
+
+  .stop-row.dragged {
+    position: relative;
+    z-index: 1;
+    background: var(--surface);
+    box-shadow: var(--drag-shadow);
+  }
+
+  .grip {
+    display: flex;
+    align-items: center;
+    color: var(--faint);
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+  }
+
+  .grip:hover {
+    color: var(--text);
+  }
+
+  .stop-row.dragged,
+  .stop-row.dragged .grip {
+    cursor: grabbing;
   }
 
   .location {

@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { blend, cssGradient, gradientLine, gradientStops, stopColour } from "../src/lib/material.js"
+import { blend, cssGradient, gradientLine, gradientStops, movedStopPositions, stopColour } from "../src/lib/material.js"
 import { rgbOf } from "../src/lib/colour.js"
 
 function near(actual, expected, tolerance = 1e-9) {
@@ -69,6 +69,33 @@ describe("blend", () => {
       const back = rgbOf(blend("#da371e", "#ffcf76", 1 - t))
       for (const channel of [0, 1, 2]) assert.ok(Math.abs(forward[channel] - back[channel]) <= 1, `${t} ${forward} ${back}`)
     }
+  })
+})
+
+describe("movedStopPositions", () => {
+  test("two colours swap places", () => {
+    assert.deepEqual(movedStopPositions([10, 80], 0, 1), [10, 80])
+    assert.deepEqual(movedStopPositions([10, 80], 1, 0), [10, 80])
+  })
+
+  test("a colour dropped between two others lands in the middle of them", () => {
+    assert.deepEqual(movedStopPositions([0, 20, 60, 100], 2, 1), [0, 10, 20, 100])
+    assert.deepEqual(movedStopPositions([0, 20, 60, 100], 1, 2), [0, 60, 80, 100])
+  })
+
+  test("the gradient keeps its span when an end colour moves inwards", () => {
+    assert.deepEqual(movedStopPositions([0, 20, 60, 100], 0, 1), [0, 30, 60, 100])
+    assert.deepEqual(movedStopPositions([10, 20, 60, 90], 3, 2), [10, 20, 55, 90])
+  })
+
+  test("a colour moved to an end takes that position and the old end moves in", () => {
+    assert.deepEqual(movedStopPositions([0, 20, 60, 100], 3, 0), [0, 10, 20, 100])
+    assert.deepEqual(movedStopPositions([0, 20, 60, 100], 0, 3), [0, 60, 80, 100])
+    assert.deepEqual(movedStopPositions([0, 50, 100], 2, 0), [0, 50, 100])
+  })
+
+  test("dropping a colour back where it started changes nothing", () => {
+    assert.deepEqual(movedStopPositions([5, 20, 70], 1, 1), [5, 20, 70])
   })
 })
 
