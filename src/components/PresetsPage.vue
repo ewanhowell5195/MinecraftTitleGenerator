@@ -3,6 +3,7 @@
   import { account, accountChanges, communityPreset, countDownload, listCommunity, managedPresets, ownPresets, presetStats, randomCommunityPreset, refreshAccount, refreshUsage, signInProviders, voteOn } from "../lib/community.js"
   import { useWindowEvents } from "../lib/events.js"
   import { LIMITS } from "../lib/limits.js"
+  import { titleBody } from "../lib/linkformat.js"
   import { notice } from "../lib/notices.js"
   import { addPreset, deleteSharedPreset, loadPreset, presets, presetsError, presetsLoading, removePreset, renamePreset, renameSharedPreset, unmarkShared, unsharePreset } from "../lib/presets.js"
   import { parseSearch, searchWithUser } from "../lib/presetSearch.js"
@@ -41,7 +42,7 @@
   const term = computed(() => search.value.trim())
   const searchText = computed(() => parseSearch(term.value).text)
   const tooShort = computed(() => tab.value === "community" && searchText.value.length > 0 && Array.from(searchText.value).length < LIMITS.searchMinimum)
-  const saved = computed(() => new Set(presets.value.map(preset => preset.code)))
+  const saved = computed(() => new Set(presets.value.map(preset => titleBody(preset.code))))
   const localShown = computed(() => presets.value.filter(preset => preset.name.toLowerCase().includes(term.value.toLowerCase())))
   const localGroups = computed(() => [{ label: "Shared", presets: localShown.value.filter(preset => preset.shared) }, { label: "Local", presets: localShown.value.filter(preset => !preset.shared) }].filter(group => group.presets.length))
   const sharedIds = computed(() => presets.value.filter(preset => preset.shared).map(preset => preset.shared).join(","))
@@ -342,7 +343,7 @@
           <div ref="sentinel" class="sentinel"></div>
         </div>
       </main>
-      <PresetDetail v-if="selected && tab === 'community'" class="side" :preset="selected" :mine="isMine(selected)" :owned="managedPresets.includes(selected.id)" :saved="saved.has(selected.code)" @close="clearSelection" @user="filterByUser" @open="open(selected)" @save="save(selected)" @vote="vote(selected, $event)" @rename="renameCommunity(selected, $event)" @remove="removeCommunity(selected)" />
+      <PresetDetail v-if="selected && tab === 'community'" class="side" :preset="selected" :mine="isMine(selected)" :owned="managedPresets.includes(selected.id)" :saved="saved.has(titleBody(selected.code))" @close="clearSelection" @user="filterByUser" @open="open(selected)" @save="save(selected)" @vote="vote(selected, $event)" @rename="renameCommunity(selected, $event)" @remove="removeCommunity(selected)" />
       <PresetDetail v-else-if="selected" class="side" :preset="selected" :stats="stats[selected.shared]" local @close="clearSelection" @user="filterByUser" @open="open(selected)" @rename="renamePreset(selected, $event)" @remove="remove(selected)" @share="sharing = selected" @view="viewInCommunity(selected.shared)" />
       <aside v-else class="placeholder"><p v-if="tab === 'community' ? results.length : localShown.length">Select a preset to see it here</p></aside>
     </div>

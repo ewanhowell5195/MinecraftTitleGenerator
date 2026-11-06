@@ -101,6 +101,13 @@ describe("signing in", () => {
     assert.match(notice.value, /Added 2 presets/)
   })
 
+  test("a title on the account from an older version isn't sent again", async () => {
+    setLocal([{ name: "Local name", code: "3same" }])
+    await signIn([{ name: "Cloud name", code: "2same" }])
+    assert.equal(sentTo("POST").length, 0)
+    assert.deepEqual(presets.value, [{ name: "Cloud name", code: "2same" }])
+  })
+
   test("a title already on the account isn't sent again and keeps its name there", async () => {
     setLocal([{ name: "Local name", code: "same" }])
     await signIn([{ name: "Cloud name", code: "same" }])
@@ -353,6 +360,13 @@ describe("replacing a preset", () => {
     presets.value = list
     requests.length = 0
   }
+
+  test("a title saved by an older version isn't offered as something to replace with itself", async () => {
+    await managing([9, 7], [{ name: "Old", code: "2same", shared: 9 }, { name: "Second", code: "2second", shared: 7 }, { name: "Other", code: "2other", shared: 5 }, LOCAL])
+    assert.deepEqual(replaceTargets("3same").map(target => target.name), ["Second"])
+    assert.equal(addPreset("Copy", "3same").name, "Old")
+    assert.equal(presets.value.length, 4)
+  })
 
   test("a new title can replace anything saved, in alphabetical order", async () => {
     await managing([9], [LOCAL, SHARED, FAR, { name: "apple", code: "apple" }, { name: "Title 10", code: "ten" }, { name: "Title 2", code: "two" }])

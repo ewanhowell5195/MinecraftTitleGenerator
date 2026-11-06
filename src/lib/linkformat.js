@@ -364,6 +364,10 @@ export function encodeTitle({ version, lines }) {
   return { code: `${version.toString(36)}${toBase64Url(writeLines(lines.map(withoutUploads)))}`, skipped: lines.reduce((total, line) => total + countUploads(line), 0) }
 }
 
+export function titleBody(code) {
+  return code.slice(1)
+}
+
 export function decodeTitle(code) {
   try {
     const version = parseInt(code[0], 36)

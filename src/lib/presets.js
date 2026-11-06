@@ -2,7 +2,7 @@ import { ref, watch } from "vue"
 import { account, changeSaved, deleteSaved, deleteShared, loadSaved, managedPresets, refreshUsage, renameShared, replaceShared, sharePublicly, unshareShared, uploadSaved } from "./community.js"
 import { fileError, isDefaultTitle, openTitleData, titleData } from "./file.js"
 import { LIMITS } from "./limits.js"
-import { decodeTitle, encodeTitle } from "./linkformat.js"
+import { decodeTitle, encodeTitle, titleBody } from "./linkformat.js"
 import { capitalWords } from "./names.js"
 import { showNotice } from "./notices.js"
 import { titleText } from "./scene.js"
@@ -77,9 +77,9 @@ function keepInBrowser(code) {
 
 async function moveLocalPresets() {
   const list = await loadSaved()
-  const onAccount = new Set(list.map(preset => preset.code))
+  const onAccount = new Set(list.map(preset => titleBody(preset.code)))
   const managed = new Set(managedPresets.value)
-  const local = read().filter(preset => !onAccount.has(preset.code))
+  const local = read().filter(preset => !onAccount.has(titleBody(preset.code)))
   const unclaimed = local.filter(preset => managed.has(preset.shared ?? preset.unshared))
   const taken = new Set(list.map(preset => preset.name))
   const moving = local.filter(preset => !unclaimed.includes(preset)).map(preset => {
@@ -115,8 +115,8 @@ async function openAccount(id, previous) {
   try {
     const { list, added, kept } = await queued(moveLocalPresets)
     if (current !== opening) return
-    const onAccount = new Set(list.map(preset => preset.code))
-    presets.value = list.concat(presets.value.filter(preset => !onAccount.has(preset.code)))
+    const onAccount = new Set(list.map(preset => titleBody(preset.code)))
+    presets.value = list.concat(presets.value.filter(preset => !onAccount.has(titleBody(preset.code))))
     const message = movedMessage(added, previous === undefined ? 0 : kept)
     if (message) showNotice(message)
   } catch (err) {
@@ -138,7 +138,7 @@ function uniqueName(name, taken = new Set(presets.value.map(preset => preset.nam
 }
 
 export function addPreset(name, code) {
-  const existing = presets.value.find(preset => preset.code === code)
+  const existing = savedWithCode(code)
   if (existing) return existing
   const preset = { name: uniqueName(name || FALLBACK_NAME), code }
   change(code, list => list.concat(preset), async () => {
@@ -205,14 +205,14 @@ function changeCode(preset, code, name) {
 export function replaceTargets(code) {
   const managed = new Set(managedPresets.value)
   const existing = savedWithCode(code)
-  const targets = presets.value.filter(preset => preset.code !== code && (!existing || managed.has(preset.shared))).map(preset => ({ name: preset.name, code: preset.code, shared: preset.shared, online: managed.has(preset.shared) }))
+  const targets = presets.value.filter(preset => titleBody(preset.code) !== titleBody(code) && (!existing || managed.has(preset.shared))).map(preset => ({ name: preset.name, code: preset.code, shared: preset.shared, online: managed.has(preset.shared) }))
   return targets.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true }))
 }
 
 export async function replaceWith(target, code, name) {
   if (!target.online) return { preset: changeCode(savedWithCode(target.code), code, name.trim().slice(0, NAME_LIMIT) || target.name), online: null }
   const online = await replaceShared(target.shared, code, name)
-  setList(list => list.filter(item => item.code !== code).map(item => item.shared === online.id ? { ...item, code, name: online.name } : item))
+  setList(list => list.filter(item => titleBody(item.code) !== titleBody(code)).map(item => item.shared === online.id ? { ...item, code, name: online.name } : item))
   return { preset: savedWithCode(code), online }
 }
 
@@ -245,7 +245,7 @@ async function moveUpFromBrowser() {
 }
 
 function savedWithCode(code) {
-  return presets.value.find(preset => preset.code === code)
+  return presets.value.find(preset => titleBody(preset.code) === titleBody(code))
 }
 
 function automaticName() {

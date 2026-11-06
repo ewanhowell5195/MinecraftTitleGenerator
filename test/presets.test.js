@@ -78,6 +78,25 @@ describe("presets", () => {
     })
   }
 
+  test("from an older version are recognised when the same title is saved again", () => {
+    setTitle(createObject({ text: "old title" }))
+    savePreset("Old name")
+    const old = { ...presets.value[0], code: `2${presets.value[0].code.slice(1)}` }
+    presets.value = [old]
+    startSavingPreset()
+    assert.equal(namingPreset.value, "Old name")
+    savePreset("Renamed")
+    assert.deepEqual(presets.value, [{ ...old, name: "Renamed" }])
+  })
+
+  test("from an older version that are shared still count as shared", () => {
+    setTitle(createObject({ text: "old shared" }))
+    savePreset("Old")
+    presets.value = [{ ...presets.value[0], code: `2${presets.value[0].code.slice(1)}`, shared: 9 }]
+    startSavingPreset()
+    assert.equal(namingShared.value, true)
+  })
+
   test("leave a typed name's case alone", () => {
     setTitle(createObject({ text: "plain" }))
     savePreset("MY Own NAME")
@@ -91,9 +110,9 @@ describe("presets", () => {
   })
 
   test("get a number when the name is taken by a different title", () => {
-    addPreset("stone", "a")
-    addPreset("stone", "b")
-    addPreset("stone", "c")
+    addPreset("stone", "2a")
+    addPreset("stone", "2b")
+    addPreset("stone", "2c")
     assert.deepEqual(presets.value.map(preset => preset.name), ["stone", "stone 2", "stone 3"])
   })
 
@@ -267,8 +286,8 @@ describe("presets", () => {
   })
 
   test("can be removed", () => {
-    const first = addPreset("first", "a")
-    addPreset("second", "b")
+    const first = addPreset("first", "2a")
+    addPreset("second", "2b")
     removePreset(first)
     assert.deepEqual(savedList().map(preset => preset.name), ["second"])
     assert.deepEqual(presets.value.map(preset => preset.name), ["second"])
