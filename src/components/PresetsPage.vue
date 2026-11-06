@@ -5,6 +5,7 @@
   import { LIMITS } from "../lib/limits.js"
   import { notice } from "../lib/notices.js"
   import { addPreset, loadPreset, presets, presetsError, presetsLoading, removePreset, renamePreset, unmarkShared } from "../lib/presets.js"
+  import { parseSearch, searchWithUser } from "../lib/presetSearch.js"
   import { closePresetsPage, leavePresetsForEditor, presetsPage, showPreset } from "../lib/presetsPage.js"
   import { providerLabel } from "../lib/providers.js"
   import AccountMenu from "./AccountMenu.vue"
@@ -38,7 +39,8 @@
   const selectedLocalCode = ref(null)
 
   const term = computed(() => search.value.trim())
-  const tooShort = computed(() => tab.value === "community" && term.value.length > 0 && Array.from(term.value).length < LIMITS.searchMinimum)
+  const searchText = computed(() => parseSearch(term.value).text)
+  const tooShort = computed(() => tab.value === "community" && searchText.value.length > 0 && Array.from(searchText.value).length < LIMITS.searchMinimum)
   const saved = computed(() => new Set(presets.value.map(preset => preset.code)))
   const localShown = computed(() => presets.value.filter(preset => preset.name.toLowerCase().includes(term.value.toLowerCase())))
   const localGroups = computed(() => [{ label: "Shared", presets: localShown.value.filter(preset => preset.shared) }, { label: "Local", presets: localShown.value.filter(preset => !preset.shared) }].filter(group => group.presets.length))
@@ -106,6 +108,15 @@
       error.value = err.message
       clearSelection()
     }
+  }
+
+  async function filterByUser(name, provider) {
+    tab.value = "community"
+    await nextTick()
+    search.value = searchWithUser(search.value, name, provider)
+    await nextTick()
+    clearTimeout(searching)
+    load(0)
   }
 
   async function loadStats() {
@@ -296,7 +307,7 @@
     <div class="body">
       <main class="browse">
         <div class="tools">
-          <input class="search" type="text" v-model="search" :placeholder="tab === 'community' ? 'Search names and text' : 'Search your presets'" aria-label="Search presets" spellcheck="false">
+          <input class="search" type="text" v-model="search" :placeholder="tab === 'community' ? 'Search names, text or user:name' : 'Search your presets'" aria-label="Search presets" spellcheck="false">
           <template v-if="tab === 'community'">
             <Dropdown class="sort" :options="SORTS" v-model="sort" />
             <button class="random" title="Show a random community preset" @click="openRandom"><Icon name="dice" :size="16" /><span>Random</span></button>
@@ -314,7 +325,7 @@
               <div class="details">
                 <strong :title="preset.name">{{ preset.name }}</strong>
                 <span v-if="isMine(preset) && !preset.author" class="yours">Shared by you</span>
-                <span v-else-if="preset.author" class="author" :class="{ yours: isMine(preset) }" :title="isMine(preset) ? 'Shared by you' : providerLabel(preset.authorProvider)"><Icon :name="preset.authorProvider" :size="13" /><span>{{ preset.author }}</span></span>
+                <button v-else-if="preset.author" type="button" class="author" :class="{ yours: isMine(preset) }" :title="`Show presets by ${preset.author} on ${providerLabel(preset.authorProvider)}`" @click.stop="filterByUser(preset.author, preset.authorProvider)"><Icon :name="preset.authorProvider" :size="13" /><span>{{ preset.author }}</span></button>
               </div>
             </div>
           </div>
@@ -340,8 +351,8 @@
           <div ref="sentinel" class="sentinel"></div>
         </div>
       </main>
-      <PresetDetail v-if="selected && tab === 'community'" class="side" :preset="selected" :mine="isMine(selected)" :owned="managedPresets.includes(selected.id)" :saved="saved.has(selected.code)" @close="clearSelection" @open="open(selected)" @save="save(selected)" @vote="vote(selected, $event)" @rename="renameCommunity(selected, $event)" @remove="removeCommunity(selected)" />
-      <PresetDetail v-else-if="selected" class="side" :preset="selected" :stats="stats[selected.shared]" local @close="clearSelection" @open="open(selected)" @rename="renamePreset(selected, $event)" @remove="remove(selected)" @share="sharing = selected" @view="viewInCommunity(selected.shared)" />
+      <PresetDetail v-if="selected && tab === 'community'" class="side" :preset="selected" :mine="isMine(selected)" :owned="managedPresets.includes(selected.id)" :saved="saved.has(selected.code)" @close="clearSelection" @user="filterByUser" @open="open(selected)" @save="save(selected)" @vote="vote(selected, $event)" @rename="renameCommunity(selected, $event)" @remove="removeCommunity(selected)" />
+      <PresetDetail v-else-if="selected" class="side" :preset="selected" :stats="stats[selected.shared]" local @close="clearSelection" @user="filterByUser" @open="open(selected)" @rename="renamePreset(selected, $event)" @remove="remove(selected)" @share="sharing = selected" @view="viewInCommunity(selected.shared)" />
       <aside v-else class="placeholder"><p v-if="tab === 'community' ? results.length : localShown.length">Select a preset to see it here</p></aside>
     </div>
     <SharePresetDialog v-if="sharing" :preset="sharing" @close="sharing = null" @shared="shared" />
@@ -559,7 +570,18 @@
     gap: 4px;
     min-width: 0;
     max-width: 50%;
+    padding: 0;
+    font: inherit;
     color: var(--muted);
+    background: none;
+    border: none;
+    user-select: none;
+  }
+
+  .author:hover {
+    color: var(--text);
+    background: none;
+    text-decoration: underline;
   }
 
   .author.yours {

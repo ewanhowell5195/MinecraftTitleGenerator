@@ -18,7 +18,7 @@
 
   const COPY_MESSAGE_TIME = 2000
 
-  const emit = defineEmits(["close", "open", "save", "vote", "rename", "remove", "share", "view"])
+  const emit = defineEmits(["close", "open", "save", "vote", "rename", "remove", "share", "view", "user"])
 
   const renaming = ref(false)
   const copyMessage = ref("")
@@ -88,7 +88,7 @@
       </div>
       <template v-if="figures">
         <PresetRating :rating="figures.rating" :votes="figures.votes" :mine="preset.vote" :own="mine || local" @vote="emit('vote', $event)" />
-        <p class="facts"><span>{{ uses }}</span><span>Shared {{ sharedOn }}</span><span v-if="figures.author" class="author" :title="providerLabel(figures.authorProvider)">By <Icon :name="figures.authorProvider" :size="14" /><strong>{{ figures.author }}</strong></span></p>
+        <p class="facts"><span>{{ uses }}</span><span>Shared {{ sharedOn }}</span><span v-if="figures.author" class="author">By <button type="button" :title="`Show presets by ${figures.author} on ${providerLabel(figures.authorProvider)}`" @click="emit('user', figures.author, figures.authorProvider)"><Icon :name="figures.authorProvider" :size="14" /><strong>{{ figures.author }}</strong></button></span></p>
       </template>
       <div class="actions">
         <button class="primary" @click="emit('open')">Open in editor</button>
@@ -191,6 +191,23 @@
     display: flex;
     align-items: center;
     gap: 4px;
+  }
+
+  .author button {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: none;
+    user-select: none;
+  }
+
+  .author button:hover {
+    background: none;
+    text-decoration: underline;
   }
 
   .author strong {

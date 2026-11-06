@@ -1140,6 +1140,70 @@ describe("accounts", () => {
     await assert.rejects(accountDetails(withCookie("/api/account", cookie)), /SESSION_SECRET is not set/)
   })
 
+  describe("searching by user", () => {
+    async function people() {
+      const first = await signIn("discord", { id: "1", username: "first_person" })
+      const second = await signIn("github", { id: 2, login: "SecondPerson" })
+      await shareAs(first, "nether one")
+      await shareAs(first, "grass one")
+      await shareAs(second, "nether two")
+      await post({ code: code([{ text: "nether three" }]) })
+    }
+
+    async function names(query) {
+      return (await list(query)).presets.map(preset => preset.name).toSorted()
+    }
+
+    for (const sort of ["week", "popular", "top", "new", "needs", "random"]) {
+      test(`finds only that user's presets, sorted by ${sort}`, async () => {
+        await people()
+        assert.deepEqual(await names(`?sort=${sort}&q=user:first_person`), ["Grass One", "Nether One"])
+      })
+    }
+
+    test("the same name on both providers: no prefix finds both, a prefix finds one", async () => {
+      const onDiscord = await signIn("discord", { id: "1", username: "shared_name" })
+      const onGithub = await signIn("github", { id: 2, login: "shared_name" })
+      await shareAs(onDiscord, "discord title")
+      await shareAs(onGithub, "github title")
+      assert.deepEqual(await names("?sort=new&q=user:shared_name"), ["Discord Title", "Github Title"])
+      assert.deepEqual(await names("?sort=new&q=user:d:shared_name"), ["Discord Title"])
+      assert.deepEqual(await names("?sort=new&q=user:g:shared_name"), ["Github Title"])
+      assert.deepEqual(await names("?sort=random&q=user:g:shared_name"), ["Github Title"])
+      assert.deepEqual(await names("?sort=new&q=title%20user:d:shared_name"), ["Discord Title"])
+    })
+
+    test("is not case sensitive", async () => {
+      await people()
+      assert.deepEqual(await names("?sort=new&q=USER:secondperson"), ["Nether Two"])
+    })
+
+    test("combines with text, in any order", async () => {
+      await people()
+      assert.deepEqual(await names("?sort=new&q=nether%20user:first_person"), ["Nether One"])
+      assert.deepEqual(await names("?sort=new&q=user:first_person%20nether"), ["Nether One"])
+      assert.deepEqual(await names("?sort=random&q=nether%20user:first_person"), ["Nether One"])
+    })
+
+    test("finds nothing for an unknown user", async () => {
+      await people()
+      assert.deepEqual(await names("?sort=new&q=user:nobody"), [])
+    })
+
+    test("short text with a user is still refused", async () => {
+      assert.equal((await list("?sort=new&q=a%20user:someone")).status, 400)
+    })
+
+    test("a user on its own needs no minimum length", async () => {
+      assert.equal((await list("?sort=new&q=user:a")).status, 200)
+    })
+
+    test("can't reach into the query", async () => {
+      await people()
+      assert.deepEqual(await names(`?sort=new&q=${encodeURIComponent("user:x'OR'1'='1")}`), [])
+    })
+  })
+
   test("a signed in share goes on the account and shows the username, not the id", async () => {
     const cookie = await signIn()
     const { status, preset, onAccount } = await shareAs(cookie, "mine")

@@ -2,6 +2,7 @@ import { RegExpMatcher, englishDataset, englishRecommendedTransformers } from "o
 import { LIMITS } from "../lib/limits.js"
 import { decodeTitle, unknownSetting } from "../lib/linkformat.js"
 import { capitalWords } from "../lib/names.js"
+import { parseSearch } from "../lib/presetSearch.js"
 import { FILE_VERSION, typeDefaults } from "../lib/settings.js"
 import { USER_ROW, forgetUnusedUser, saveUser, signedInUser } from "./accounts.js"
 import { Refusal, escaped, guarded, hashed, jsonBody, randomToken, reply, textField } from "./http.js"
@@ -153,9 +154,24 @@ function randomIds(highest, count) {
   return Array.from(ids)
 }
 
-async function randomPresets({ env }, term) {
+function searchFilter(search) {
+  const { user, provider, text } = parseSearch(search)
+  const term = text.toLowerCase().slice(0, LIMITS.name)
+  if (term && Array.from(term).length < LIMITS.searchMinimum) throw new Refusal(400, `Search for at least ${LIMITS.searchMinimum} characters.`)
+  const conditions = term ? [`(${MATCHES})`] : []
+  const values = term ? [likePattern(term)] : []
+  if (user) {
+    values.push(user)
+    const nameMatches = `lower(name) = ?${values.length}`
+    if (provider) values.push(provider)
+    conditions.push(`user_id IN (SELECT id FROM users WHERE ${provider ? `${nameMatches} AND provider = ?${values.length}` : nameMatches})`)
+  }
+  return { conditions, values }
+}
+
+async function randomPresets({ env }, { conditions, values }) {
   const select = `SELECT ${COLUMNS} FROM presets`
-  if (term) return (await env.DB.prepare(`${select} WHERE ${MATCHES} ORDER BY RANDOM() LIMIT ${LIMITS.page}`).bind(likePattern(term)).all()).results
+  if (conditions.length) return (await env.DB.prepare(`${select} WHERE ${conditions.join(" AND ")} ORDER BY RANDOM() LIMIT ${LIMITS.page}`).bind(...values).all()).results
   const { highest } = await env.DB.prepare("SELECT COALESCE(MAX(id), 0) AS highest FROM presets").first()
   if (!highest) return []
   const ids = randomIds(highest, LIMITS.page)
@@ -196,16 +212,15 @@ export const listPresets = guarded(async context => {
   if (sort !== "random" && !Object.hasOwn(SORTS, sort)) throw new Refusal(400, "That isn't a way to sort presets.")
   const offset = Number(url.searchParams.get("offset") ?? 0)
   if (!Number.isSafeInteger(offset) || offset < 0) throw new Refusal(400, "That isn't a valid page.")
-  const term = (url.searchParams.get("q") ?? "").trim().toLowerCase().slice(0, LIMITS.name)
-  if (term && Array.from(term).length < LIMITS.searchMinimum) throw new Refusal(400, `Search for at least ${LIMITS.searchMinimum} characters.`)
-  if (sort === "random") return reply(200, { presets: (await randomPresets(context, term)).map(rated), more: false })
+  const filter = searchFilter(url.searchParams.get("q") ?? "")
+  if (sort === "random") return reply(200, { presets: (await randomPresets(context, filter)).map(rated), more: false })
   return cachedAtEdge(context, async () => {
-    const conditions = term ? [`(${MATCHES})`] : []
+    const conditions = filter.conditions.slice()
     if (sort === "needs") conditions.push(`votes < ${LIMITS.minVotes}`)
     const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : ""
     const source = sort === "week" ? `SELECT ${COLUMNS}, COALESCE(week, 0) AS week FROM presets LEFT JOIN (SELECT preset_id, SUM(count) AS week FROM preset_daily_downloads WHERE day >= ${dayNumber() - WEEK_DAYS} GROUP BY preset_id) ON preset_id = id` : `SELECT ${COLUMNS} FROM presets`
     const statement = env.DB.prepare(`${source} ${where} ORDER BY ${SORTS[sort]} LIMIT ${LIMITS.page + 1} OFFSET ${offset}`)
-    const { results } = await (term ? statement.bind(likePattern(term)) : statement).all()
+    const { results } = await statement.bind(...filter.values).all()
     return reply(200, { presets: results.slice(0, LIMITS.page).map(rated), more: results.length > LIMITS.page })
   })
 })

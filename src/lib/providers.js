@@ -1,4 +1,4 @@
-export const PROVIDERS = [{ id: "discord", label: "Discord" }, { id: "github", label: "GitHub" }]
+export const PROVIDERS = [{ id: "discord", label: "Discord", prefix: "d" }, { id: "github", label: "GitHub", prefix: "g" }]
 export const ACCOUNT_CHANNEL = "minecraft-title-account"
 export const SIGN_IN_RETURN = "minecraft-title-sign-in-return"
 
