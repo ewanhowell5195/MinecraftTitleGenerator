@@ -19,6 +19,8 @@
   const track = ref(null)
   const selected = ref(0)
   const removing = ref(false)
+  const typing = ref(false)
+  const order = ref(sortedStops())
   let drag = null
 
   const ends = computed(() => ENDS[props.angle] ?? ["Start", "End"])
@@ -75,8 +77,22 @@
     stop.value.position = clamp(stop.value.position + by * (event.shiftKey ? 10 : 1), 0, 100)
   }
 
+  function sortedStops() {
+    return Array.from(stops.value.keys()).sort((a, b) => stops.value[a].position - stops.value[b].position)
+  }
+
+  function finishTyping() {
+    typing.value = false
+    order.value = sortedStops()
+  }
+
   watch(() => stops.value.length, length => {
     if (selected.value >= length) selected.value = length - 1
+    order.value = sortedStops()
+  })
+
+  watch(() => stops.value.map(stop => stop.position).join(), () => {
+    if (!typing.value) order.value = sortedStops()
   })
 
   onBeforeUnmount(() => drag?.stop())
@@ -94,13 +110,15 @@
       <span>{{ ends[0] }}</span>
       <span>{{ ends[1] }}</span>
     </div>
-    <div class="selected-stop" v-if="stop">
-      <ColourPicker class="grow" v-model="stop.colour" />
-      <label class="location" title="Location">
-        <input type="number" v-model.number="stop.position" min="0" max="100" step="1">
-        <span>%</span>
-      </label>
-      <button class="icon-button small" :disabled="!removable" @click="remove(selected)" title="Remove colour"><Icon name="trash" :size="14" /></button>
+    <div class="stop-rows">
+      <div v-for="index of order" :key="index" class="stop-row" @focusin="selected = index">
+        <ColourPicker class="grow" v-model="stops[index].colour" />
+        <label class="location" title="Location">
+          <input type="number" v-model.number="stops[index].position" min="0" max="100" step="1" @focus="typing = true" @blur="finishTyping">
+          <span>%</span>
+        </label>
+        <button class="icon-button small" :disabled="!removable" @click="remove(index)" title="Remove colour"><Icon name="trash" :size="14" /></button>
+      </div>
     </div>
   </div>
 </template>
@@ -192,14 +210,20 @@
     user-select: none;
   }
 
-  .selected-stop {
+  .stop-rows {
     display: flex;
-    align-items: stretch;
+    flex-direction: column;
     gap: 6px;
     margin-top: 10px;
   }
 
-  .selected-stop .icon-button {
+  .stop-row {
+    display: flex;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .stop-row .icon-button {
     align-self: center;
   }
 
