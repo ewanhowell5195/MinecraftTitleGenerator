@@ -20,7 +20,7 @@
 
   const PRESETS = [{ value: 1024, label: "1K" }, { value: 2048, label: "2K" }, { value: 4096, label: "4K" }, { value: 8192, label: "8K" }]
 
-  const custom = ref(!PRESETS.some(({ value }) => value === view.resolution))
+  const custom = ref(!PRESETS.some(({ value }) => value === view.resolution && value <= resolutionLimit()))
   const progress = ref(null)
   const failed = ref("")
   const result = shallowRef(null)

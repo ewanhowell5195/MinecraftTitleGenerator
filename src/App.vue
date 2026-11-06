@@ -1,5 +1,6 @@
 <script setup>
   import { computed, onMounted, ref, watch } from "vue"
+  import FluidTabs from "fluid-tabs-vue"
   import Icon from "./components/Icon.vue"
   import LayerActions from "./components/LayerActions.vue"
   import Panel from "./components/Panel.vue"
@@ -37,6 +38,7 @@
   import { loadStats } from "./lib/stats.js"
   import { SECTIONS, view } from "./lib/view.js"
 
+  const SECTION_TABS = Object.entries(SECTIONS).map(([id, { name, icon }]) => ({ id, label: name, icon }))
   const SHAPE_TABS = [{ value: "line", label: "Whole line" }, { value: "word", label: "Current word" }]
   const LINE_SECTIONS = new Set(["text", "font"])
 
@@ -102,12 +104,12 @@
 
     <LayerActions v-if="editing" />
 
-    <nav class="tabs" v-if="editing">
-      <button v-for="(data, id) of SECTIONS" :key="id" class="tab" :class="{ selected: view.section === id }" @click="view.section = id">
-        <Icon :name="data.icon" :size="20" />
-        <span>{{ data.name }}</span>
-      </button>
-    </nav>
+    <FluidTabs v-if="editing" class="tabs" v-model="view.section" :tabs="SECTION_TABS" tab-style="nav">
+      <template #label="{ tab }">
+        <Icon :name="tab.icon" :size="20" />
+        <span>{{ tab.label }}</span>
+      </template>
+    </FluidTabs>
 
     <aside ref="drawer" class="drawer">
       <div v-if="!editing" class="intro row">
@@ -214,34 +216,42 @@
 
   .tabs {
     grid-area: tabs;
-    display: flex;
     padding: 0 8px;
     background: var(--surface);
     border-right: 1px solid var(--line);
     border-bottom: 1px solid var(--line);
   }
 
-  .tab {
-    flex: 1 1 0;
-    flex-direction: column;
+  .tabs :deep(.tab-bar) {
+    box-shadow: none;
+  }
+
+  .tabs :deep(.tab-bar-button) {
     gap: 4px;
     min-width: 0;
     padding: 10px 0 9px;
     font-size: var(--font-xs);
+    font-weight: 600;
     color: var(--faint);
-    background: transparent;
-    border: none;
-    box-shadow: inset 0 -2px transparent;
   }
 
-  .tab:hover {
+  .tabs :deep(.tab-bar-button:hover) {
     color: var(--text);
-    background: transparent;
   }
 
-  .tab.selected {
+  .tabs :deep(.tab-bar-button.active) {
     color: var(--accent);
-    box-shadow: inset 0 -2px var(--accent);
+  }
+
+  .tabs :deep(.tab-bar-button svg) {
+    width: 20px;
+    height: 20px;
+  }
+
+  .tabs :deep(.tab-bar-active) {
+    bottom: 0;
+    border-top: none;
+    border-bottom: 2px solid var(--accent);
   }
 
   .drawer {
@@ -325,14 +335,16 @@
       border-top: 1px solid var(--line);
     }
 
-    .tab {
+    .tabs :deep(.tab-bar-button) {
       padding: 9px 0 8px;
       font-size: var(--font-xxs);
-      box-shadow: inset 0 2px transparent;
     }
 
-    .tab.selected {
-      box-shadow: inset 0 2px var(--accent);
+    .tabs :deep(.tab-bar-active) {
+      top: 0;
+      bottom: auto;
+      border-top: 2px solid var(--accent);
+      border-bottom: none;
     }
 
     .drawer {

@@ -168,7 +168,6 @@ button,
 .button,
 .switch,
 .toggle,
-.segments,
 .card,
 .layer,
 .head,
@@ -262,7 +261,6 @@ button.ghost:hover {
 
 button:focus-visible,
 .button:focus-within,
-.segments li:focus-visible,
 .card:focus-visible,
 .switch:focus-within span {
   outline: 2px solid var(--accent);
@@ -322,35 +320,53 @@ button:focus-visible,
   transform: translateX(16px);
 }
 
-.segments {
-  display: flex;
-  gap: 2px;
-  margin: 0;
-  padding: 3px;
-  list-style: none;
-  background: var(--field);
+.tab-bar .tab-bar-button:hover {
+  background: transparent;
 }
 
-.segments li {
-  flex: 1;
+.tab-bar .tab-bar-button:active {
+  transform: none;
+}
+
+.tab-bar .tab-bar-button:focus-visible {
+  outline-color: var(--accent);
+}
+
+.tab-bar .tab-bar-button.active {
+  background: transparent;
+  cursor: default;
+}
+
+.tab-bar.tab-style-slide {
+  width: 100%;
+  gap: 2px;
+  margin-bottom: 0;
+  padding: 3px;
+  background: var(--field);
+  border-radius: 0;
+}
+
+.tab-bar.tab-style-slide > .tab-bar-active {
+  top: 3px;
+  bottom: 3px;
+  background: var(--card-hover);
+  border-radius: 0;
+}
+
+.tab-bar.tab-style-slide > .tab-bar-button {
   padding: 7px 6px;
   font-size: var(--font-md);
-  font-weight: 600;
-  text-align: center;
-  white-space: nowrap;
   color: var(--faint);
-  cursor: pointer;
-  transition: background var(--duration), color var(--duration);
 }
 
-.segments li:hover {
+.tab-bar.tab-style-slide > .tab-bar-button:hover,
+.tab-bar.tab-style-slide > .tab-bar-button.active,
+.tab-bar.tab-style-slide > .tab-bar-button > .tab-bar-button-reveal {
   color: var(--text);
 }
 
-.segments li.selected {
-  color: var(--text);
-  background: var(--card-hover);
-  cursor: default;
+.tab-bar.tab-style-slide > .tab-bar-button:focus-visible {
+  border-radius: 0;
 }
 
 .grid {
