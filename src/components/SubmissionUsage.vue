@@ -10,7 +10,7 @@
 </script>
 
 <template>
-  <div v-if="usage" class="usage" :class="{ full }" role="status">
+  <div v-if="usage && !usage.unlimited" class="usage" :class="{ full }" role="status">
     <span class="pips" aria-hidden="true">
       <i v-for="pip of usage.limit" :key="pip" :class="{ left: pip <= left }"></i>
     </span>

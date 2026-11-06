@@ -150,7 +150,7 @@ function currentDay() {
 
 function showUsage() {
   const now = new Date()
-  usage.value = { used: store.usage.used, limit: LIMITS.perDay, resetsAt: Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1) }
+  usage.value = { used: store.usage.used, limit: store.usage.unlimited ? Infinity : LIMITS.perDay, unlimited: !!store.usage.unlimited, resetsAt: Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1) }
 }
 
 export async function sharePublicly(code, name) {
@@ -326,8 +326,8 @@ export function refreshUsage(force = false) {
 
 async function fetchUsage() {
   try {
-    const { used, shared, owned = [], votes } = await request("/usage")
-    store.usage = { day: currentDay(), used, checkedOwn: true }
+    const { used, shared, owned = [], votes, unlimited = false } = await request("/usage")
+    store.usage = { day: currentDay(), used, checkedOwn: true, unlimited }
     if (votes) store.votes = votes
     addOwn(shared)
     setAccountPresets(owned)

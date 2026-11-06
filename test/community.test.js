@@ -666,6 +666,19 @@ describe("accounts", () => {
     assert.deepEqual(presets.map(preset => preset.vote), [0, -1])
   })
 
+  test("unlimited shares never reach the limit, even after sharing", async () => {
+    signedIn([])
+    replies["GET /api/presets/usage"] = { body: { used: 40, shared: [], owned: [], unlimited: true } }
+    const { refreshAccount, sharePublicly, usage } = await fresh()
+    await refreshAccount()
+    assert.equal(usage.value.unlimited, true)
+    assert.equal(usage.value.used >= usage.value.limit, false)
+    replies.POST = { status: 201, body: { preset: { id: 9 }, onAccount: true } }
+    await sharePublicly("code", "name")
+    assert.equal(usage.value.unlimited, true)
+    assert.equal(usage.value.used, 41)
+  })
+
   test("checking the same account again doesn't count as a change", async () => {
     signedIn()
     const { accountChanges, refreshAccount } = await fresh()

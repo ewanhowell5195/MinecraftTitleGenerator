@@ -123,6 +123,11 @@ async function countSubmission(env, user, ip) {
   return env.DB.prepare(`INSERT INTO ${table} (${column}, day, count) VALUES (?, ?, 1) ON CONFLICT (${column}, day) DO UPDATE SET count = count + 1`).bind(owner, today())
 }
 
+async function hasUnlimitedShares(env, user) {
+  if (!user) return false
+  return !!(await env.DB.prepare("SELECT unlimited_shares FROM users WHERE provider = ? AND provider_id = ?").bind(user.provider, user.providerId).first())?.unlimited_shares
+}
+
 function forgetOldAccountCounts(env) {
   return env.DB.prepare("DELETE FROM account_submissions WHERE day < ?").bind(today())
 }
@@ -248,7 +253,7 @@ export const submitPreset = guarded(async context => {
   const existing = await env.DB.prepare("SELECT id FROM presets WHERE fingerprint = ?").bind(fingerprint).first()
   if (existing) return reply(409, { error: "This title has already been shared.", id: existing.id })
   const ip = await hashedIp(context)
-  if (await usedToday(env, user, ip) >= LIMITS.perDay) throw new Refusal(429, `You can share up to ${LIMITS.perDay} titles a day. Try again tomorrow.`)
+  if (await usedToday(env, user, ip) >= LIMITS.perDay && !await hasUnlimitedShares(env, user)) throw new Refusal(429, `You can share up to ${LIMITS.perDay} titles a day. Try again tomorrow.`)
   // sqlite reuses the rowid of a deleted newest row, which would repoint old links and browsers' vote records
   const results = await env.DB.batch((user ? [saveUser(env, user)] : []).concat(
     env.DB.prepare(`INSERT INTO presets (id, code, fingerprint, name, text, ip_hash, user_id, created_at) VALUES (MAX(COALESCE((SELECT MAX(id) FROM presets), 0), COALESCE((SELECT MAX(id) FROM deleted_presets), 0)) + 1, ?, ?, ?, ?, ?, ${USER_ROW}, ?) RETURNING ${COLUMNS}`).bind(body.code, fingerprint, name, facts.text, ip, user?.provider ?? null, user?.providerId ?? null, Date.now()),
@@ -304,7 +309,7 @@ export const submissionUsage = guarded(async context => {
   const shared = user ? env.DB.prepare(`SELECT id FROM presets WHERE user_id = ${USER_ROW}`).bind(user.provider, user.providerId) : env.DB.prepare("SELECT id FROM presets WHERE ip_hash = ? AND user_id IS NULL").bind(ip)
   const ids = (await shared.all()).results.map(preset => preset.id)
   const votes = (await env.DB.prepare("SELECT preset_id, value FROM preset_votes WHERE ip_hash = ?").bind(user ? await accountHash(env, user) : ip).all()).results
-  return reply(200, { used: await usedToday(env, user, ip), limit: LIMITS.perDay, resetsAt: nextDay(), shared: ids, owned: user ? ids : [], votes: Object.fromEntries(votes.map(vote => [vote.preset_id, vote.value])) })
+  return reply(200, { used: await usedToday(env, user, ip), limit: LIMITS.perDay, unlimited: await hasUnlimitedShares(env, user), resetsAt: nextDay(), shared: ids, owned: user ? ids : [], votes: Object.fromEntries(votes.map(vote => [vote.preset_id, vote.value])) })
 })
 
 export const votePreset = guarded(async context => {

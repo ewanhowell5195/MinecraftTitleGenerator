@@ -92,6 +92,7 @@ beforeEach(() => {
   sqlite.exec(fs.readFileSync("migrations/0003_saved_presets.sql", "utf8"))
   sqlite.exec(fs.readFileSync("migrations/0004_votes_by_voter.sql", "utf8"))
   sqlite.exec(fs.readFileSync("migrations/0005_users.sql", "utf8"))
+  sqlite.exec(fs.readFileSync("migrations/0006_unlimited_shares.sql", "utf8"))
   db = sqlite
   env = { DB: d1(sqlite), IP_SALT: "salt", SESSION_SECRET: "session-secret", DISCORD_CLIENT_ID: "discord-id", DISCORD_CLIENT_SECRET: "discord-secret", GITHUB_CLIENT_ID: "github-id", GITHUB_CLIENT_SECRET: "github-secret" }
 })
@@ -1251,6 +1252,30 @@ describe("accounts", () => {
     const cookie = await signIn()
     for (let index = 0; index < LIMITS.perDay; index++) assert.equal((await shareAs(cookie, `title ${index}`, {}, `ip ${index}`)).status, 201)
     assert.equal((await shareAs(cookie, "one more", {}, "fresh ip")).status, 429)
+  })
+
+  test("a user with unlimited shares can go past the daily limit", async () => {
+    const cookie = await signIn()
+    for (let index = 0; index < LIMITS.perDay; index++) await shareAs(cookie, `title ${index}`)
+    assert.equal((await shareAs(cookie, "refused")).status, 429)
+    assert.equal((await usageAs(cookie)).unlimited, false)
+    db.prepare("UPDATE users SET unlimited_shares = 1").run()
+    assert.equal((await shareAs(cookie, "allowed")).status, 201)
+    const usage = await usageAs(cookie)
+    assert.equal(usage.unlimited, true)
+    assert.equal(usage.used, LIMITS.perDay + 1)
+  })
+
+  test("unlimited shares don't carry over to anyone else", async () => {
+    const lifted = await signIn("discord", { id: "1", username: "a" })
+    const other = await signIn("discord", { id: "2", username: "b" })
+    await shareAs(lifted, "first")
+    db.prepare("UPDATE users SET unlimited_shares = 1").run()
+    for (let index = 0; index < LIMITS.perDay; index++) await shareAs(other, `title ${index}`)
+    assert.equal((await shareAs(other, "refused")).status, 429)
+    for (let index = 0; index < LIMITS.perDay; index++) await post({ code: code([{ text: `anon ${index}` }]) }, "1.1.1.1")
+    assert.equal((await post({ code: code([{ text: "anon refused" }]) }, "1.1.1.1")).status, 429)
+    assert.equal((await usageOf("1.1.1.1")).unlimited, false)
   })
 
   test("account shares do not use up the IP's anonymous limit", async () => {

@@ -1,0 +1,1 @@
+ALTER TABLE users ADD COLUMN unlimited_shares INTEGER NOT NULL DEFAULT 0;
