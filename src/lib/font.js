@@ -1,5 +1,6 @@
 import { pixelsOf } from "./canvas.js"
 import { titleCase } from "./names.js"
+import { platform } from "./platform.js"
 import { defaultBorder } from "./settings.js"
 
 export const DEFAULT_ORDER = "\u{1F633}abcdefghijklmnopqrstuvwxyz0123456789&#()[]{}/\\?!.:-\u{1F629}'+=<>%^*~,;_$£€@┫┣"
@@ -226,12 +227,7 @@ export function fullOrder(data, list) {
 }
 
 export function loadImage(src) {
-  return new Promise((fulfil, reject) => {
-    const image = new Image()
-    image.onload = () => fulfil(image)
-    image.onerror = () => reject(new Error(`failed to load ${src}`))
-    image.src = src
-  })
+  return platform.loadImage(src)
 }
 
 const FOLDER = "font"
@@ -251,7 +247,7 @@ export function flattenFonts(list) {
 }
 
 export async function loadFontList() {
-  const response = await fetch(`${FOLDER}/fonts.json`)
+  const response = await platform.fetch(`${FOLDER}/fonts.json`)
   if (!response.ok) throw new Error(`failed to load ${FOLDER}/fonts.json`)
   return flattenFonts(await response.json()).map(data => ({ ...data, name: data.name ?? titleCase(data.id) }))
 }

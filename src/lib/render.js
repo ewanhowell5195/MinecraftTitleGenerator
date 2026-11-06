@@ -2,6 +2,7 @@ import * as THREE from "three"
 import { canvasOf } from "./canvas.js"
 import { gradientLine, gradientStops } from "./material.js"
 import { clamp } from "./maths.js"
+import { platform } from "./platform.js"
 
 const LIMIT = 6
 const TILE = 4096
@@ -152,7 +153,7 @@ async function clean(data, width, height, step) {
   return changed
 }
 
-function writeFlipped(ctx, data, width, height) {
+export function writeFlipped(ctx, data, width, height) {
   const image = new ImageData(width, height)
   for (let y = 0; y < height; y++) image.data.set(data.subarray((height - 1 - y) * width * 4, (height - y) * width * 4), y * width * 4)
   ctx.putImageData(image, 0, 0)
@@ -183,7 +184,7 @@ function halve(image, out) {
 
 function hiddenRenderer() {
   if (hidden) return hidden
-  hidden = new THREE.WebGLRenderer({ antialias: false, alpha: true })
+  hidden = platform.createWebGLRenderer()
   hidden.setPixelRatio(1)
   return hidden
 }
@@ -238,7 +239,7 @@ export async function renderTitle(size, scene, camera, resolution, antialias, ta
         tile.ctx.imageSmoothingEnabled = false
         tile.ctx.drawImage(renderer.domElement, 0, 0)
         const gl = renderer.getContext()
-        gl.readPixels(0, 0, tileWidth, tileHeight, gl.RGBA, gl.UNSIGNED_BYTE, data)
+        gl.readPixels(0, 0, tileWidth, tileHeight, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(data.buffer))
         if (await clean(data, tileWidth, tileHeight, fraction => step(0, 1, (done + fraction) / tiles))) writeFlipped(tile.ctx, data, tileWidth, tileHeight)
         done++
         const shrunk = antialias ? halve(halve(tile.canvas, half), quarter) : tile.canvas

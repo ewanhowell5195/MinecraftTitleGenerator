@@ -2,6 +2,7 @@ import { pixelsOf } from "./canvas.js"
 import { loadImage, sheetLayout, solidMask } from "./font.js"
 import { GENERATED_EDGE_OVERLAYS, withGenerated } from "./generated.js"
 import { titleCase } from "./names.js"
+import { platform } from "./platform.js"
 import { defaultDepth } from "./settings.js"
 
 const json = new Map()
@@ -10,7 +11,7 @@ const shapes = new WeakMap()
 
 function fetchJson(url) {
   if (!json.has(url)) {
-    json.set(url, fetch(url).then(response => {
+    json.set(url, platform.fetch(url).then(response => {
       if (!response.ok) throw new Error(`failed to load ${url}`)
       return response.json()
     }))

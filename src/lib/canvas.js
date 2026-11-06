@@ -1,5 +1,7 @@
+import { platform } from "./platform.js"
+
 export function canvasOf(width, height, options) {
-  const canvas = document.createElement("canvas")
+  const canvas = platform.createCanvas()
   canvas.width = width
   canvas.height = height
   return { canvas, ctx: canvas.getContext("2d", options) }

@@ -7,6 +7,7 @@ import { hasMarks, loadFont, sheetFolder } from "../lib/font.js"
 import { thumbnailItems } from "../lib/layout.js"
 import { blockTextureImage } from "../lib/minecraft.js"
 import { R, paintBase, paintKey, paintSheet } from "../lib/paint.js"
+import { platform } from "../lib/platform.js"
 import { quietly } from "../lib/history.js"
 import { DEFAULT_CAP_HEIGHT, DEFAULT_HEIGHT, rowStart } from "../lib/rows.js"
 import { editorTitle, keepTexture, loadedFont, words } from "../lib/scene.js"
@@ -352,7 +353,7 @@ export default {
     }
 
     function schedule() {
-      if (!frame) frame = requestAnimationFrame(rebuild)
+      if (!frame) frame = platform.frame(rebuild)
     }
 
     async function pick(id) {
@@ -403,7 +404,7 @@ export default {
     }, { immediate: true })
 
     onBeforeUnmount(() => {
-      cancelAnimationFrame(frame)
+      platform.cancelFrame(frame)
       delete runtime[object.id]
       delete heights[object.id]
     })

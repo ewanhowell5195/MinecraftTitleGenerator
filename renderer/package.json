@@ -1,0 +1,15 @@
+{
+  "name": "minecraft-title-renderer",
+  "private": true,
+  "type": "module",
+  "exports": "./index.js",
+  "dependencies": {
+    "gl": "^8.1.6",
+    "headless-three": "^1.9.0",
+    "skia-canvas": "^3.0.8",
+    "three": "0.162.0"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}

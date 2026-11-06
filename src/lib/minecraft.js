@@ -3,6 +3,7 @@ import { reactive } from "vue"
 import { image } from "./assets.js"
 import { surface } from "./canvas.js"
 import { titleCase } from "./names.js"
+import { platform } from "./platform.js"
 
 const BLOCK_TEXTURE = /^(?:assets\/minecraft\/)?textures\/blocks?\/([^/]+)\.png$/
 const FIRST_BLOCK_FOLDER = Date.parse("2013-01-10T00:00:00+00:00")
@@ -53,12 +54,11 @@ export function isOpaque(pixels) {
 
 async function readTexture(bytes) {
   const { width, height } = pngSize(bytes)
-  const blob = new Blob([bytes], { type: "image/png" })
-  const bitmap = await createImageBitmap(blob)
+  const bitmap = await platform.decodePng(bytes)
   const { canvas, ctx } = surface(width, Math.min(width, height), { willReadFrequently: true })
   ctx.drawImage(bitmap, 0, 0)
-  bitmap.close()
-  return { url: height > width ? canvas.toDataURL() : URL.createObjectURL(blob), opaque: isOpaque(ctx.getImageData(0, 0, canvas.width, canvas.height).data) }
+  bitmap.close?.()
+  return { url: height > width ? canvas.toDataURL("image/png") : platform.pngUrl(bytes), opaque: isOpaque(ctx.getImageData(0, 0, canvas.width, canvas.height).data) }
 }
 
 async function readBlockTextures(version) {
@@ -74,7 +74,7 @@ async function readBlockTextures(version) {
 
 export function savedJars() {
   try {
-    return JSON.parse(localStorage.getItem(JARS_KEY)) ?? []
+    return JSON.parse(platform.storage.getItem(JARS_KEY)) ?? []
   } catch {
     return []
   }
@@ -84,7 +84,7 @@ function rememberJar(version) {
   const saved = savedJars()
   if (saved.includes(version)) return
   try {
-    localStorage.setItem(JARS_KEY, JSON.stringify(saved.concat(version)))
+    platform.storage.setItem(JARS_KEY, JSON.stringify(saved.concat(version)))
   } catch (err) {
     console.error(err)
   }
@@ -99,7 +99,14 @@ export function blockTextures(version) {
   return loaded.get(version)
 }
 
+async function answeredTextureImage(version, id) {
+  const bytes = await platform.minecraftAsset({ id, version })
+  if (!bytes) throw new Error(`Minecraft ${version} has no block texture called ${id}`)
+  return image((await readTexture(bytes)).url)
+}
+
 export async function blockTextureImage(version, id) {
+  if (platform.minecraftAsset) return answeredTextureImage(version ?? "latest", id)
   const resolved = version ?? await latestRelease()
   const texture = (await blockTextures(resolved)).get(id)
   if (!texture) throw new Error(`Minecraft ${resolved} has no block texture called ${id}`)
