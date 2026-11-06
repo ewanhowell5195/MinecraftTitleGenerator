@@ -197,6 +197,7 @@ export function addObject() {
   }
   scene.objects.push(object)
   select(object)
+  view.section = "text"
 }
 
 function nextGroup() {
