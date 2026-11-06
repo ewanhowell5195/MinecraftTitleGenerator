@@ -90,6 +90,7 @@ beforeEach(() => {
   sqlite.exec(fs.readFileSync("migrations/0001_community_presets.sql", "utf8"))
   sqlite.exec(fs.readFileSync("migrations/0002_accounts.sql", "utf8"))
   sqlite.exec(fs.readFileSync("migrations/0003_saved_presets.sql", "utf8"))
+  sqlite.exec(fs.readFileSync("migrations/0004_votes_by_voter.sql", "utf8"))
   db = sqlite
   env = { DB: d1(sqlite), IP_SALT: "salt", SESSION_SECRET: "session-secret", DISCORD_CLIENT_ID: "discord-id", DISCORD_CLIENT_SECRET: "discord-secret", GITHUB_CLIENT_ID: "github-id", GITHUB_CLIENT_SECRET: "github-secret" }
 })
@@ -1173,25 +1174,96 @@ describe("accounts", () => {
     assert.equal((await post({ code: code([{ text: "anon" }]) }, "1.1.1.1")).status, 201)
   })
 
-  test("usage reports the account's count and what it owns", async () => {
+  async function usageAs(cookie, ip = "1.1.1.1") {
+    return (await submissionUsage(withCookie("/api/presets/usage", cookie, { ip }))).json()
+  }
+
+  async function voteAs(cookie, id, value, ip = "1.1.1.1") {
+    const response = await votePreset(withCookie(`/api/presets/${id}/vote`, cookie, { method: "POST", body: { value }, ip, params: { id: String(id) } }))
+    return { status: response.status, ...await response.json() }
+  }
+
+  test("signed in, what's yours comes from the account and ignores the IP", async () => {
     const cookie = await signIn()
-    const anonymous = await share("from this ip", {}, "2.2.2.2")
+    await share("from this ip", {}, "2.2.2.2")
     const { preset } = await shareAs(cookie, "on the account", {}, "3.3.3.3")
-    const usage = await (await submissionUsage(withCookie("/api/presets/usage", cookie, { ip: "2.2.2.2" }))).json()
+    const usage = await usageAs(cookie, "2.2.2.2")
     assert.equal(usage.used, 1)
     assert.deepEqual(usage.owned, [preset.id])
-    assert.deepEqual(usage.shared.toSorted(), [anonymous.id, preset.id].toSorted())
+    assert.deepEqual(usage.shared, [preset.id])
   })
 
-  test("usage without a session owns nothing", async () => {
-    assert.deepEqual((await usageOf("1.1.1.1")).owned, [])
+  test("signed out, only anonymous shares link by IP", async () => {
+    const cookie = await signIn()
+    const anonymous = await share("from this ip", {}, "2.2.2.2")
+    await shareAs(cookie, "on the account", {}, "2.2.2.2")
+    const usage = await usageOf("2.2.2.2")
+    assert.deepEqual(usage.shared, [anonymous.id])
+    assert.deepEqual(usage.owned, [])
   })
 
-  test("the owner can't vote from another IP", async () => {
+  test("the owner can't vote from any IP", async () => {
     const cookie = await signIn()
     const { preset } = await shareAs(cookie, "own vote")
-    const made = withCookie(`/api/presets/${preset.id}/vote`, cookie, { method: "POST", body: { value: 1 }, ip: "9.9.9.9", params: { id: String(preset.id) } })
-    assert.equal((await votePreset(made)).status, 403)
+    assert.equal((await voteAs(cookie, preset.id, 1, "9.9.9.9")).status, 403)
+  })
+
+  test("signed in, sharing from the same IP doesn't stop a vote", async () => {
+    const cookie = await signIn()
+    const anonymous = await share("from this ip", {}, "2.2.2.2")
+    assert.equal((await voteAs(cookie, anonymous.id, 1, "2.2.2.2")).status, 200)
+  })
+
+  test("signed out, a preset shared from this IP still can't be voted on", async () => {
+    const cookie = await signIn()
+    const { preset } = await shareAs(cookie, "on the account", {}, "2.2.2.2")
+    assert.equal((await vote(preset.id, 1, "2.2.2.2")).status, 403)
+  })
+
+  test("an account has one vote across IPs, and changing it doesn't add another", async () => {
+    const cookie = await signIn()
+    const preset = await share("voted on", {}, "2.2.2.2")
+    await voteAs(cookie, preset.id, 1, "3.3.3.3")
+    const { votes, vote: value } = await voteAs(cookie, preset.id, -1, "4.4.4.4")
+    assert.equal(votes, 1)
+    assert.equal(value, -1)
+    assert.equal(db.prepare("SELECT COUNT(*) AS total FROM preset_votes").get().total, 1)
+  })
+
+  test("two accounts on one IP each get a vote", async () => {
+    const first = await signIn("discord", { id: "1", username: "a" })
+    const second = await signIn("discord", { id: "2", username: "b" })
+    const preset = await share("voted on", {}, "2.2.2.2")
+    await voteAs(first, preset.id, 1, "3.3.3.3")
+    assert.equal((await voteAs(second, preset.id, 1, "3.3.3.3")).votes, 2)
+  })
+
+  test("account votes don't store the account or the IP", async () => {
+    const cookie = await signIn()
+    const preset = await share("voted on", {}, "2.2.2.2")
+    await voteAs(cookie, preset.id, 1, "3.3.3.3")
+    const { ip_hash: voter } = db.prepare("SELECT ip_hash FROM preset_votes").get()
+    assert.match(voter, /^[0-9a-f]{64}$/)
+    assert.equal((await usageOf("3.3.3.3")).votes[preset.id], undefined)
+  })
+
+  test("usage returns the votes of whoever is asking", async () => {
+    const cookie = await signIn()
+    const first = await share("one", {}, "2.2.2.2")
+    const second = await share("two", {}, "2.2.2.2")
+    await voteAs(cookie, first.id, 1, "3.3.3.3")
+    await vote(second.id, -1, "3.3.3.3")
+    assert.deepEqual((await usageAs(cookie, "3.3.3.3")).votes, { [first.id]: 1 })
+    assert.deepEqual((await usageOf("3.3.3.3")).votes, { [second.id]: -1 })
+  })
+
+  test("deleting all data removes the account's votes but keeps the totals", async () => {
+    const cookie = await signIn()
+    const preset = await share("voted on", {}, "2.2.2.2")
+    await voteAs(cookie, preset.id, 1, "3.3.3.3")
+    await deleteAccountData(withCookie("/api/account/data", cookie, { method: "DELETE" }))
+    assert.equal(db.prepare("SELECT COUNT(*) AS total FROM preset_votes").get().total, 0)
+    assert.equal(db.prepare("SELECT votes FROM presets WHERE id = ?").get(preset.id).votes, 1)
   })
 
   test("the owner can rename, keeping the title", async () => {

@@ -105,8 +105,12 @@ function nextDay() {
   return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1)
 }
 
+export function accountHash(env, user) {
+  return hashed(`${env.IP_SALT}:${user.id}`)
+}
+
 async function submissionCounter(env, user, ip) {
-  return user ? { table: "account_submissions", column: "account_hash", owner: await hashed(`${env.IP_SALT}:${user.id}`) } : { table: "preset_submissions", column: "ip_hash", owner: ip }
+  return user ? { table: "account_submissions", column: "account_hash", owner: await accountHash(env, user) } : { table: "preset_submissions", column: "ip_hash", owner: ip }
 }
 
 async function usedToday(env, user, ip) {
@@ -295,8 +299,11 @@ export const deletePreset = guarded(async context => {
 export const submissionUsage = guarded(async context => {
   const user = await signedInUser(context)
   const ip = await hashedIp(context)
-  const { results } = await context.env.DB.prepare("SELECT id, author_id FROM presets WHERE ip_hash = ? OR author_id = ?").bind(ip, user?.id ?? null).all()
-  return reply(200, { used: await usedToday(context.env, user, ip), limit: LIMITS.perDay, resetsAt: nextDay(), shared: results.map(preset => preset.id), owned: results.filter(preset => user && preset.author_id === user.id).map(preset => preset.id) })
+  const { env } = context
+  const shared = user ? env.DB.prepare("SELECT id FROM presets WHERE author_id = ?").bind(user.id) : env.DB.prepare("SELECT id FROM presets WHERE ip_hash = ? AND author_id IS NULL").bind(ip)
+  const ids = (await shared.all()).results.map(preset => preset.id)
+  const votes = (await env.DB.prepare("SELECT preset_id, value FROM preset_votes WHERE ip_hash = ?").bind(user ? await accountHash(env, user) : ip).all()).results
+  return reply(200, { used: await usedToday(env, user, ip), limit: LIMITS.perDay, resetsAt: nextDay(), shared: ids, owned: user ? ids : [], votes: Object.fromEntries(votes.map(vote => [vote.preset_id, vote.value])) })
 })
 
 export const votePreset = guarded(async context => {
@@ -307,12 +314,13 @@ export const votePreset = guarded(async context => {
   const { ip_hash: sharedBy, author_id: owner } = await requirePreset(env, id)
   const ip = await hashedIp(context)
   const user = await signedInUser(context)
-  if (sharedBy === ip || (user && owner === user.id)) throw new Refusal(403, "You can't vote on a preset you shared.")
-  const previous = (await env.DB.prepare("SELECT value FROM preset_votes WHERE preset_id = ? AND ip_hash = ?").bind(id, ip).first())?.value ?? 0
+  if (user ? owner === user.id : sharedBy === ip) throw new Refusal(403, "You can't vote on a preset you shared.")
+  const voter = user ? await accountHash(env, user) : ip
+  const previous = (await env.DB.prepare("SELECT value FROM preset_votes WHERE preset_id = ? AND ip_hash = ?").bind(id, voter).first())?.value ?? 0
   const ups = (value === 1) - (previous === 1)
   const votes = previous ? 0 : 1
   const [, updated] = await env.DB.batch([
-    env.DB.prepare("INSERT INTO preset_votes (preset_id, ip_hash, value) VALUES (?, ?, ?) ON CONFLICT (preset_id, ip_hash) DO UPDATE SET value = excluded.value").bind(id, ip, value),
+    env.DB.prepare("INSERT INTO preset_votes (preset_id, ip_hash, value) VALUES (?, ?, ?) ON CONFLICT (preset_id, ip_hash) DO UPDATE SET value = excluded.value").bind(id, voter, value),
     env.DB.prepare("UPDATE presets SET ups = ups + ?1, votes = votes + ?2, rating = CASE WHEN votes + ?2 >= ?3 THEN (ups + ?1) * 5.0 / (votes + ?2) ELSE -1 END WHERE id = ?4 RETURNING votes, rating").bind(ups, votes, LIMITS.minVotes, id)
   ])
   return reply(200, { ...rated(updated.results[0]), vote: value })

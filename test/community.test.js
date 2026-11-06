@@ -649,6 +649,32 @@ describe("accounts", () => {
     assert.equal(account.value, null)
   })
 
+  test("signing in replaces what's yours and your votes with the account's", async () => {
+    replies["GET /api/account"] = { body: { user: null } }
+    replies["GET /api/presets/usage"] = { body: { used: 0, shared: [4], votes: { 3: 1 } } }
+    const { accountChanges, ownPresets, refreshAccount, refreshUsage, listCommunity } = await fresh()
+    await refreshUsage(true)
+    await refreshAccount()
+    assert.deepEqual(ownPresets.value, [4])
+    signedIn([7])
+    replies["GET /api/presets/usage"] = { body: { used: 2, shared: [7], owned: [7], votes: { 5: -1 } } }
+    await refreshAccount(true)
+    assert.deepEqual(ownPresets.value, [7])
+    assert.equal(accountChanges.value, 1)
+    replies.GET = page([3, 5])
+    const { presets } = await listCommunity(POPULAR)
+    assert.deepEqual(presets.map(preset => preset.vote), [0, -1])
+  })
+
+  test("checking the same account again doesn't count as a change", async () => {
+    signedIn()
+    const { accountChanges, refreshAccount } = await fresh()
+    await refreshAccount()
+    assert.equal(accountChanges.value, 1)
+    await refreshAccount(true)
+    assert.equal(accountChanges.value, 1)
+  })
+
   test("signing out forgets the account's presets and tells other tabs", async () => {
     signedIn()
     const { accountPresets, ownPresets, refreshAccount, signOut } = await fresh()

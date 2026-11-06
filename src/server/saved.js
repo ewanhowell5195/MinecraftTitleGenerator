@@ -2,7 +2,7 @@ import { LIMITS } from "../lib/limits.js"
 import { decodeTitle } from "../lib/linkformat.js"
 import { signedInUser } from "./accounts.js"
 import { Refusal, guarded, hashed, jsonBody, reply, textField } from "./http.js"
-import { forgetCached } from "./presets.js"
+import { accountHash, forgetCached } from "./presets.js"
 
 const BATCH_BODY = LIMITS.savedBatch * (LIMITS.savedCode + 512)
 
@@ -102,7 +102,8 @@ export const deleteAccountData = guarded(async context => {
   await env.DB.batch([
     env.DB.prepare("INSERT OR IGNORE INTO deleted_presets (id) SELECT id FROM presets WHERE author_id = ?").bind(user.id),
     env.DB.prepare("DELETE FROM presets WHERE author_id = ?").bind(user.id),
-    env.DB.prepare("DELETE FROM saved_presets WHERE author_id = ?").bind(user.id)
+    env.DB.prepare("DELETE FROM saved_presets WHERE author_id = ?").bind(user.id),
+    env.DB.prepare("DELETE FROM preset_votes WHERE ip_hash = ?").bind(await accountHash(env, user))
   ])
   const ids = results.map(preset => preset.id)
   await forgetCached(request, ...ids)

@@ -21,6 +21,7 @@ export const ownPresets = ref(store.own)
 export const accountPresets = ref(store.owned)
 export const account = ref(store.account)
 export const signInProviders = ref(store.providers)
+export const accountChanges = ref(0)
 
 let usageRequest = null
 let accountRequest = null
@@ -214,8 +215,9 @@ export async function deleteShared(id) {
 
 function setAccount(user) {
   if (store.account?.id !== user?.id) {
-    store.own = store.own.filter(id => !store.owned.includes(id))
+    store.own = []
     ownPresets.value = store.own
+    store.votes = {}
     setAccountPresets([])
   }
   store.account = user
@@ -244,11 +246,13 @@ async function fetchAccount() {
   try {
     const { user, providers = [] } = await called(ACCOUNT_API)
     const wasSignedIn = !!store.account
+    const changed = store.account?.id !== user?.id
     accountChecked = true
     store.providers = providers
     signInProviders.value = providers
     setAccount(user)
     if (user || wasSignedIn) await refreshUsage(true)
+    if (changed) accountChanges.value++
   } catch (err) {
     console.error(err)
   }
@@ -322,8 +326,9 @@ export function refreshUsage(force = false) {
 
 async function fetchUsage() {
   try {
-    const { used, shared, owned = [] } = await request("/usage")
+    const { used, shared, owned = [], votes } = await request("/usage")
     store.usage = { day: currentDay(), used, checkedOwn: true }
+    if (votes) store.votes = votes
     addOwn(shared)
     setAccountPresets(owned)
     persist()

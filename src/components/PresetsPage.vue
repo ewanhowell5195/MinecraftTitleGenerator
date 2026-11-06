@@ -1,6 +1,6 @@
 <script setup>
   import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, watchEffect } from "vue"
-  import { account, accountPresets, communityPreset, countDownload, deleteShared, isDeleted, listCommunity, ownPresets, randomCommunityPreset, refreshAccount, refreshUsage, renameShared, signInProviders, voteOn } from "../lib/community.js"
+  import { account, accountChanges, accountPresets, communityPreset, countDownload, deleteShared, isDeleted, listCommunity, ownPresets, randomCommunityPreset, refreshAccount, refreshUsage, renameShared, signInProviders, voteOn } from "../lib/community.js"
   import { useWindowEvents } from "../lib/events.js"
   import { LIMITS } from "../lib/limits.js"
   import { notice } from "../lib/notices.js"
@@ -52,6 +52,7 @@
   let observer = null
 
   function isMine(preset) {
+    if (account.value) return accountPresets.value.includes(preset.id)
     return ownPresets.value.includes(preset.id) || sharedByMe.value.has(preset.id)
   }
 
@@ -207,7 +208,7 @@
     }
   })
   watch(sort, () => load(0))
-  watch(() => account.value?.id, () => {
+  watch(accountChanges, () => {
     if (selectedCommunity.value && isDeleted(selectedCommunity.value.id)) clearSelection()
     if (tab.value === "community") load(0)
   })
@@ -281,8 +282,8 @@
               <TitlePicture :code="preset.code" :title="preset.name" @open="selectCommunity(preset)" />
               <div class="details">
                 <strong :title="preset.name">{{ preset.name }}</strong>
-                <span v-if="isMine(preset)" class="yours">Shared by you</span>
-                <span v-else-if="preset.author" class="author" :title="providerLabel(preset.authorProvider)"><Icon :name="preset.authorProvider" :size="13" /><span>{{ preset.author }}</span></span>
+                <span v-if="isMine(preset) && !preset.author" class="yours">Shared by you</span>
+                <span v-else-if="preset.author" class="author" :class="{ yours: isMine(preset) }" :title="isMine(preset) ? 'Shared by you' : providerLabel(preset.authorProvider)"><Icon :name="preset.authorProvider" :size="13" /><span>{{ preset.author }}</span></span>
               </div>
             </div>
           </div>
@@ -486,6 +487,11 @@
     min-width: 0;
     max-width: 50%;
     color: var(--muted);
+  }
+
+  .author.yours {
+    flex: 0 1 auto;
+    color: var(--accent);
   }
 
   .author span {
