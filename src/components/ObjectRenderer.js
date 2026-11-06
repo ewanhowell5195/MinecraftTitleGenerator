@@ -14,7 +14,7 @@ import { activeOverlays, defaultBorder, defaultDepth, defaultSpacing, defaultTex
 
 const BASE = ["font", "source", "texture", "textureVariant", "tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "stops", "smooth", "gradientAngle", "arcGradient", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "tileablePerCharacter", "disableFontOverlay", "edgeBrightness"]
 
-const LAYOUT = new Set(["spacing", "kerning", "arcMode", "arcTop", "arcBottom", "arcMove", "arcMarked", "stretch", "terminators"])
+const LAYOUT = new Set(["spacing", "kerning", "arcMode", "arcTop", "arcBottom", "arcMove", "arcMarked", "stretch", "terminators", "twist"])
 
 export default {
   props: {
@@ -135,6 +135,7 @@ export default {
       arcBottom: object.arcBottom / 100,
       arcMove: object.arcMove / 100,
       arcMarked: object.arcMarked,
+      twist: object.twistRibbon || object.twistDoor ? { ribbon: { amount: object.twistRibbon, anchor: object.twistRibbonAnchor, same: object.twistRibbonMirror }, door: { amount: object.twistDoor, anchor: object.twistDoorAnchor, same: object.twistDoorSame } } : null,
       stretch: stretching.value ? object.scaleY : 1,
       terminators: object.terminators,
       internalFaces: object.internalFaces,
@@ -320,7 +321,7 @@ export default {
     function previewFor(source, options, placed, sheet, own) {
       const key = JSON.stringify([placed.map(item => [item.glyph.char, item.glyph.width, item.x, item.spaces]), ownDepth.value, Object.entries(options).filter(([name]) => !LAYOUT.has(name))])
       if (shown?.source === source && shown.sheet === sheet && shown.own === own && shown.key === key) return shown.value
-      const value = buildText(source, { ...options, depth: ownDepth.value, placed, sheet, painted: own })
+      const value = buildText(source, { ...options, twist: null, depth: ownDepth.value, placed, sheet, painted: own })
       shown = { source, sheet, own, key, value }
       return value
     }
@@ -339,7 +340,7 @@ export default {
           error.value = null
           return
         }
-        built.value = buildText(source, { ...options, lineDepth, placed: arced.placed, line: arced.line, sheet: arced.sheet, painted: own })
+        built.value = buildText(source, { ...options, lineDepth, placed: arced.placed, line: arced.line, ends: arced.ends, sheet: arced.sheet, painted: own })
         const thumbnail = thumbnailItems(source, arced.placed)
         preview.value = thumbnail.length ? previewFor(source, options, thumbnail, arced.sheet, own) : null
         error.value = null

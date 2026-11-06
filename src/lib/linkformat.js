@@ -136,6 +136,7 @@ const STOPS = list(isStop, (out, { colour, position }) => {
 }, reader => ({ colour: readColour(reader), position: readNumber(reader) }))
 const BLEND = choice("multiply", "color", "lighter", "screen", "overlay", "soft-light", "hue", "saturation", "difference", "source-over")
 const ARC_MODE = choice("stretch", "move")
+const TWIST_ANCHOR = choice("centre", "left", "right")
 const OVERLAY_MODE = choice("default", "custom")
 const FACE_FILL = choice("solid", "gradient")
 const FACE_DIRECTION = choice("up", "along")
@@ -272,7 +273,13 @@ const KEYS = [
   ["sideFill", FACE_FILL],
   ["sideStops", STOPS],
   ["sideSmooth", BOOLEAN],
-  ["sideDirection", FACE_DIRECTION]
+  ["sideDirection", FACE_DIRECTION],
+  ["twistRibbon", NUMBER],
+  ["twistRibbonAnchor", TWIST_ANCHOR],
+  ["twistRibbonMirror", BOOLEAN],
+  ["twistDoor", NUMBER],
+  ["twistDoorAnchor", TWIST_ANCHOR],
+  ["twistDoorSame", BOOLEAN]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))

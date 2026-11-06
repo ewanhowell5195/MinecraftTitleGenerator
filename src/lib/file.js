@@ -36,6 +36,10 @@ const UNUSED = [
   [object => object.arcMode === "move", ["arcTop", "arcBottom", "arcMarked", "arcGradient"]],
   [object => object.wordArcMode !== "move", ["wordArcMove"]],
   [object => object.wordArcMode === "move", ["wordArcTop", "wordArcBottom", "wordArcMarked"]],
+  [object => !object.twistRibbon, ["twistRibbonAnchor", "twistRibbonMirror"]],
+  [object => object.twistRibbonAnchor !== "centre", ["twistRibbonMirror"]],
+  [object => !object.twistDoor, ["twistDoorAnchor", "twistDoorSame"]],
+  [object => object.twistDoorAnchor !== "centre", ["twistDoorSame"]],
   [object => matchSolved(object), ["scaleX"]],
   [object => matchSolved(object) && object.linkScale !== null, ["scaleY"]]
 ]

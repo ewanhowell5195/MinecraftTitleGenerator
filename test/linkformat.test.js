@@ -15,6 +15,13 @@ function isCompact(key, value) {
   return writeLines([{ [key]: value }])[2] !== 0
 }
 
+describe("twist in links", () => {
+  test("round trips every twist setting, in both directions", () => {
+    const lines = [{ twistRibbon: -135, twistRibbonAnchor: "left", twistRibbonMirror: false, twistDoor: 45.5, twistDoorAnchor: "centre", twistDoorSame: true }, { twistRibbon: 180, twistRibbonAnchor: "right", twistDoor: -1, twistDoorAnchor: "right" }]
+    assert.deepEqual(decodeTitle(encodeTitle({ version: 2, lines }).code).lines, lines)
+  })
+})
+
 describe("old links", () => {
   for (const { name, code, lines } of fixtures) {
     test(name, () => {

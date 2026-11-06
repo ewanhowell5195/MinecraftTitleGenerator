@@ -61,6 +61,7 @@ export function arcLayout(font, sheet, words, word, options) {
   const glyphs = {}
   const items = []
   const line = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity }
+  const ends = { first: Infinity, last: -Infinity }
   const tallest = { top: -Infinity, bottom: -Infinity }
   const reach = { top: -Infinity, bottom: -Infinity }
   const moving = options.arcMode === "move"
@@ -71,6 +72,8 @@ export function arcLayout(font, sheet, words, word, options) {
     line.maxX = Math.max(line.maxX, item.x + glyph.width)
     line.minY = Math.min(line.minY, glyph.bottom + lift)
     line.maxY = Math.max(line.maxY, glyph.bottom + glyph.height + lift)
+    ends.first = Math.min(ends.first, item.x + glyph.width / 2)
+    ends.last = Math.max(ends.last, item.x + glyph.width / 2)
   }
   for (const [index, item] of placed.entries()) {
     const own = item.word === word
@@ -113,6 +116,7 @@ export function arcLayout(font, sheet, words, word, options) {
   return {
     placed: items,
     line,
+    ends,
     reach,
     sheet: { width, height: height + 1, glyphs, swatch: { x: 0, y: height }, tallest, wordWidth }
   }

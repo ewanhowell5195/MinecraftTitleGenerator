@@ -196,6 +196,9 @@ describe("saving trims settings", () => {
   })
 
   test("arc settings follow the arc mode", async () => {
+    const twisted = { twistRibbon: 30, twistRibbonAnchor: "left", twistRibbonMirror: true, twistDoor: 0, twistDoorAnchor: "right", twistDoorSame: true }
+    assert.deepEqual(await savedLines(make("top", twisted)), [{ twistRibbon: 30, twistRibbonAnchor: "left" }])
+    assert.deepEqual(await savedLines(make("top", { ...twisted, twistRibbon: 0 })), [{}])
     const values = { arcTop: 3, arcBottom: 2, arcMove: 5, arcMarked: false, arcGradient: true }
     assert.deepEqual(await savedLines(make("top", values)), [{ arcTop: 3, arcBottom: 2, arcMarked: false, arcGradient: true }])
     assert.deepEqual(await savedLines(make("top", { ...values, arcMode: "move" })), [{ arcMode: "move", arcMove: 5 }])

@@ -66,6 +66,154 @@ const O = new Uint8Array([1, 1, 1, 1, 0, 1, 1, 1, 1])
 describe("buildText", () => {
   const two = () => [place(glyph("a", 2, 3), 0), place(glyph("b", 1, 1), 3)]
 
+  describe("twist", () => {
+    const ROW = [place(glyph("a", 4, 4), 0), place(glyph("b", 4, 4), 8), place(glyph("c", 4, 4), 16)]
+    const STILL = { amount: 0, anchor: "centre", same: false }
+
+    function twisted(twist, options = {}) {
+      return text(ROW, { twist: { ribbon: STILL, door: STILL, ...twist }, ...options })
+    }
+
+    function corners(built, index) {
+      const list = points(built.body.positions)
+      return list.slice(index * list.length / 3, (index + 1) * list.length / 3)
+    }
+
+    function spread(built, index, axis) {
+      const list = corners(built, index).map(point => point[axis])
+      return Math.max(...list) - Math.min(...list)
+    }
+
+    function matchesMirror(built) {
+      const flat = text(ROW)
+      const flatRight = corners(flat, 2)
+      const right = corners(built, 2)
+      return corners(flat, 0).every(([x, y, z], index) => {
+        const at = flatRight.findIndex(point => point[0] === -x && point[1] === y && point[2] === z)
+        const [turnedX, turnedY, turnedZ] = corners(built, 0)[index]
+        return Math.abs(right[at][0] + turnedX) < 1e-6 && Math.abs(right[at][1] - turnedY) < 1e-6 && Math.abs(right[at][2] - turnedZ) < 1e-6
+      })
+    }
+
+    function rightEdgeDepth(built, index) {
+      const flat = corners(text(ROW), index)
+      const middle = flat.reduce((sum, point) => sum + point[0], 0) / flat.length
+      const depths = corners(built, index).filter((point, at) => flat[at][0] > middle).map(point => point[2])
+      return depths.reduce((sum, depth) => sum + depth, 0) / depths.length
+    }
+
+    test("leaves the glyphs alone with no twist", () => {
+      assert.equal(text(ROW).twist, null)
+      assert.deepEqual(extents(text(ROW).body.positions)[2], [-2, 2])
+    })
+
+    test("the anchor character stays exactly still and the far one turns the full amount", () => {
+      const flat = text(ROW)
+      for (const [anchor, still, far] of [["left", 0, 2], ["right", 2, 0]]) {
+        const built = twisted({ door: { amount: 90, anchor } })
+        assert.deepEqual(corners(built, still), corners(flat, still))
+        assert.ok(Math.abs(spread(built, far, 0) - 4) < 1e-9)
+        assert.ok(Math.abs(spread(built, far, 2) - 4) < 1e-9)
+      }
+    })
+
+    test("a centre anchor keeps the middle character still and turns both ends the full amount", () => {
+      const flat = text(ROW)
+      const built = twisted({ ribbon: { amount: 90, anchor: "centre" } })
+      assert.deepEqual(corners(built, 1), corners(flat, 1))
+      for (const end of [0, 2]) assert.ok(Math.abs(spread(built, end, 1) - 4) < 1e-9)
+    })
+
+    test("the anchor ends come from the whole line when given", () => {
+      const built = twisted({ door: { amount: 90, anchor: "left" } }, { ends: { first: -6, last: 18 } })
+      assert.ok(spread(built, 0, 2) > 0)
+    })
+
+    test("a single character on a line has nothing to turn against", () => {
+      const built = text([place(glyph("a", 4, 4), 0)], { twist: { ribbon: { amount: 90, anchor: "left" }, door: { amount: 90, anchor: "right" } } })
+      assert.deepEqual(extents(built.body.positions)[2], [-2, 2])
+    })
+
+    test("a ribbon keeps every character's width and a door keeps its height", () => {
+      const ribbon = twisted({ ribbon: { amount: 60, anchor: "left" } })
+      const door = twisted({ door: { amount: 60, anchor: "left" } })
+      for (const index of [0, 1, 2]) {
+        assert.equal(spread(ribbon, index, 0), 4)
+        assert.equal(spread(door, index, 1), 4)
+      }
+    })
+
+    test("a positive door turns the far edge of the far character back", () => {
+      const built = twisted({ door: { amount: 30, anchor: "left" } })
+      assert.ok(rightEdgeDepth(built, 2) > 0)
+    })
+
+    test("ribbon and door work together, each from its own anchor", () => {
+      const both = twisted({ ribbon: { amount: 60, anchor: "left" }, door: { amount: 60, anchor: "right" } })
+      const flat = text(ROW)
+      assert.notDeepEqual(corners(both, 0), corners(flat, 0))
+      assert.notDeepEqual(corners(both, 2), corners(flat, 2))
+      assert.ok(spread(both, 0, 0) > 4)
+      assert.ok(spread(both, 2, 1) > 4)
+    })
+
+    test("each side of a door turns the opposite way, so the sides mirror each other", () => {
+      assert.ok(matchesMirror(twisted({ door: { amount: 60, anchor: "centre" } })))
+      const built = twisted({ door: { amount: 60, anchor: "centre" } })
+      assert.ok(rightEdgeDepth(built, 0) < 0 && rightEdgeDepth(built, 2) > 0)
+    })
+
+    test("a door can turn both sides the same way", () => {
+      const built = twisted({ door: { amount: 60, anchor: "centre", same: true } })
+      assert.ok(!matchesMirror(built))
+      assert.ok(rightEdgeDepth(built, 0) > 0 && rightEdgeDepth(built, 2) > 0)
+    })
+
+    test("a mirrored ribbon tips both sides the same way, which plain does not", () => {
+      assert.ok(matchesMirror(twisted({ ribbon: { amount: 60, anchor: "centre", same: true } })))
+      assert.ok(!matchesMirror(twisted({ ribbon: { amount: 60, anchor: "centre" } })))
+    })
+
+    test("the same way only changes a centre anchor", () => {
+      for (const anchor of ["left", "right"]) {
+        const plain = twisted({ ribbon: { amount: 60, anchor } })
+        const flipped = twisted({ ribbon: { amount: 60, anchor, same: true } })
+        assert.deepEqual(flipped.body.positions, plain.body.positions)
+      }
+    })
+
+    test("a door hinges each character on its own centre", () => {
+      const built = twisted({ door: { amount: 180, anchor: "right" } })
+      const across = corners(built, 0).map(point => point[0])
+      assert.ok(Math.min(...across) > -11 && Math.max(...across) < -5)
+    })
+
+    test("the two directions mirror each other", () => {
+      const forward = extents(twisted({ door: { amount: 30, anchor: "left" } }).body.positions)[2]
+      const back = extents(twisted({ door: { amount: -30, anchor: "left" } }).body.positions)[2]
+      assert.ok(Math.abs(forward[0] + back[1]) < 1e-6 && Math.abs(forward[1] + back[0]) < 1e-6)
+    })
+
+    test("the outline turns with its character and leaves no hole shape", () => {
+      const built = twisted({ ribbon: { amount: 90, anchor: "left" } })
+      const outline = buildOutline(built, [1, 1, 1])
+      assert.equal(outline.rects.length, 0)
+      assert.equal(buildHoles([outline]), null)
+      const shell = extents(outline.positions)
+      const body = extents(built.body.positions)
+      assert.ok(shell[2][0] < body[2][0] && shell[2][1] > body[2][1])
+    })
+
+    test("a stretched outline still lines up with its turned character", () => {
+      const built = twisted({ ribbon: { amount: 45, anchor: "left" }, door: { amount: 30, anchor: "right" } })
+      const scale = [1, 2, 3]
+      const outline = buildOutline(built, scale)
+      const body = extents(built.body.positions).map((range, axis) => range.map(value => value * scale[axis]))
+      const shell = extents(outline.positions)
+      for (const axis of [0, 1, 2]) assert.ok(shell[axis][0] < body[axis][0] && shell[axis][1] > body[axis][1])
+    })
+  })
+
   test("returns null with nothing placed", () => {
     assert.equal(buildText({}, { placed: [] }), null)
   })

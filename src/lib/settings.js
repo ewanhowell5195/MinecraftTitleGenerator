@@ -75,6 +75,14 @@ const PANELS = {
     arcMarked: true,
     arcGradient: false
   }),
+  twist: () => ({
+    twistRibbon: 0,
+    twistRibbonAnchor: "centre",
+    twistRibbonMirror: false,
+    twistDoor: 0,
+    twistDoorAnchor: "centre",
+    twistDoorSame: false
+  }),
   transform: () => ({
     matchWidth: null,
     scaleX: 1,
@@ -188,7 +196,7 @@ const PANELS = {
   })
 }
 
-export const LINE = new Set(["hidden", "font", "terminators", "type", "row", "rowSpacing", "depth", "border", "clipHoles", "layerWords", "spacing", "kerning", "arcMode", "arcTop", "arcBottom", "arcMove", "arcMarked"].concat(Object.keys(PANELS.transform())))
+export const LINE = new Set(["hidden", "font", "terminators", "type", "row", "rowSpacing", "depth", "border", "clipHoles", "layerWords", "spacing", "kerning", "arcMode", "arcTop", "arcBottom", "arcMove", "arcMarked", "twistRibbon", "twistRibbonAnchor", "twistRibbonMirror", "twistDoor", "twistDoorAnchor", "twistDoorSame"].concat(Object.keys(PANELS.transform())))
 
 function defaults() {
   return Object.assign({ hidden: false, group: null }, ...Object.values(PANELS).map(panel => panel()))

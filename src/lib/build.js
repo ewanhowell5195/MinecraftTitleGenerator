@@ -37,6 +37,36 @@ function frameRects(boxes) {
   return spans.map(span => [span.x0, span.y0, span.x1, span.y1])
 }
 
+function twistReach({ anchor, same }, x, first, last) {
+  const span = last - first
+  if (!span) return 0
+  if (anchor === "left") return (x - first) / span
+  if (anchor === "right") return (last - x) / span
+  const fromCentre = (x - (first + last) / 2) / (span / 2)
+  return same ? Math.abs(fromCentre) : fromCentre
+}
+
+function twistTurn({ ribbon, door }, rect, line, first, last) {
+  const x = (rect.minX + rect.maxX) / 2
+  return {
+    ribbon: ribbon.amount * twistReach(ribbon, x, first, last) * Math.PI / 180,
+    door: -door.amount * twistReach(door, x, first, last) * Math.PI / 180,
+    x,
+    y: (line.minY + line.maxY) / 2
+  }
+}
+
+function turned([x, y, z], { ribbon, door, x: pivotX, y: pivotY }, [sx, sy, sz] = [1, 1, 1]) {
+  const across = x / sx - pivotX
+  const up = y / sy - pivotY
+  const depth = z / sz * Math.cos(door) - across * Math.sin(door)
+  return [
+    (pivotX + across * Math.cos(door) + z / sz * Math.sin(door)) * sx,
+    (pivotY + up * Math.cos(ribbon) - depth * Math.sin(ribbon)) * sy,
+    (up * Math.sin(ribbon) + depth * Math.cos(ribbon)) * sz
+  ]
+}
+
 function toBuffers(faces, units) {
   const positions = []
   const uvs = []
@@ -97,6 +127,14 @@ export function buildText(font, options) {
       box.to[1] += lift
     }
   }
+  const middles = glyphs.map(({ rect }) => (rect.minX + rect.maxX) / 2)
+  const first = options.ends ? options.ends.first + offset : Math.min(...middles)
+  const last = options.ends ? options.ends.last + offset : Math.max(...middles)
+  const twist = options.twist ? glyphs.map(glyph => {
+    const turn = twistTurn(options.twist, glyph.rect, line, first, last)
+    for (const face of glyph.body) face.points = face.points.map(point => turned(point, turn))
+    return { turn, sources: font.autoBorder ? frameRects(glyph.boxes) : glyph.boxes.map(box => [box.from[0], box.from[1], box.to[0], box.to[1]]) }
+  }) : null
   return {
     body: toBuffers(body, texture.units),
     texture: texture.canvas,
@@ -109,6 +147,7 @@ export function buildText(font, options) {
     boxes: glyphs.flatMap(glyph => glyph.boxes.map(box => [box.from, box.to])),
     line: { min: [line.minX + offset, line.minY, depth / 2 - (options.lineDepth ?? depth)], max: [line.maxX + offset, line.maxY, depth / 2] },
     frame: font.autoBorder ? frameRects(glyphs.flatMap(glyph => glyph.boxes)) : null,
+    twist,
     swatch: texture.swatch ? [(texture.swatch.x + 0.5) / texture.units.width, 1 - (texture.swatch.y + 0.5) / texture.units.height] : null,
     averages: { side: texture.side, get edge() { return options.painted.edgeAverage() } }
   }
@@ -131,13 +170,17 @@ function union(rects) {
 export function buildOutline(built, scale, extra = [0, 0, 0]) {
   const [sx, sy, sz] = scale
   const [rx, ry, rz] = extra.map(value => built.border + value)
-  const sources = built.frame ?? built.boxes.map(([from, to]) => [from[0], from[1], to[0], to[1]])
-  const rects = sources.map(([x0, y0, x1, y1]) => [x0 * sx - rx, y0 * sy - ry, x1 * sx + rx, y1 * sy + ry])
   const z = sz * built.depth / 2 + rz
   const positions = []
-  for (const face of rx > 0 ? boxFaces(union(rects), -z, z) : []) {
-    for (const index of [0, 1, 2, 0, 2, 3]) positions.push(...face.points[index])
+  function shell(sources, turn) {
+    const rects = sources.map(([x0, y0, x1, y1]) => [x0 * sx - rx, y0 * sy - ry, x1 * sx + rx, y1 * sy + ry])
+    for (const face of rx > 0 ? boxFaces(union(rects), -z, z) : []) {
+      for (const index of [0, 1, 2, 0, 2, 3]) positions.push(...(turn ? turned(face.points[index], turn, scale) : face.points[index]))
+    }
+    return rects
   }
+  const rects = built.twist ? [] : shell(built.frame ?? built.boxes.map(([from, to]) => [from[0], from[1], to[0], to[1]]))
+  for (const { sources, turn } of built.twist ?? []) shell(sources, turn)
   const uvs = new Float32Array(positions.length / 3 * 2)
   if (built.swatch) {
     for (let i = 0; i < uvs.length; i += 2) uvs.set(built.swatch, i)

@@ -13,6 +13,7 @@
   import ShareButton from "./components/ShareButton.vue"
   import Viewport from "./components/Viewport.vue"
   import ArcPanel from "./components/panels/ArcPanel.vue"
+  import TwistPanel from "./components/panels/TwistPanel.vue"
   import ColourPanel from "./components/panels/ColourPanel.vue"
   import FacesPanel from "./components/panels/FacesPanel.vue"
   import FontPanel from "./components/panels/FontPanel.vue"
@@ -137,6 +138,7 @@
         </Panel>
         <GeometryPanel :word="shapingWord" :key="shapingWord ? 'word-geometry' : 'line-geometry'" />
         <ArcPanel :word="shapingWord" :key="shapingWord ? 'word-arc' : 'line-arc'" />
+        <TwistPanel v-if="!shapingWord" />
         <TransformPanel :word="shapingWord" />
       </template>
       <TexturePanel v-else-if="view.section === 'texture'" />
