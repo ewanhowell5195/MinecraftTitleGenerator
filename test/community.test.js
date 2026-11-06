@@ -726,11 +726,11 @@ describe("accounts", () => {
       const module = await fresh()
       replies["GET /api/presets?sort=popular&offset=0"] = { body: { presets: [{ id: 9, name: "Old", code: "old", votes: 40, rating: 4.5, downloads: 3 }], more: false } }
       await sharedWithoutAccount(module)
-      replies.PUT = { body: { preset: { id: 9, name: "New", code: "new", votes: 0, rating: null, downloads: 3 } } }
+      replies.PUT = { body: { preset: { id: 9, name: "New", code: "new", votes: 0, rating: null, downloads: 0 } } }
       await module.replaceShared(9, "new", "New")
       assert.equal(headers.at(-1), "secret")
       const [shown] = (await module.listCommunity(POPULAR)).presets
-      assert.deepEqual([shown.name, shown.code, shown.votes, shown.rating, shown.downloads], ["New", "new", 0, null, 3])
+      assert.deepEqual([shown.name, shown.code, shown.votes, shown.rating, shown.downloads], ["New", "new", 0, null, 0])
     })
 
     test("once the server has the new title its votes show", async () => {
@@ -742,10 +742,21 @@ describe("accounts", () => {
       assert.equal((await module.listCommunity(POPULAR)).presets[0].votes, 2)
     })
 
-    test("share names are looked up in batches and a missing share is left out", async () => {
+    test("deleting from Community keeps the token and hides it from cached lists, and sharing again sends both", async () => {
       const module = await fresh()
-      replies.GET = { body: { stats: { 1: { name: "One" } } } }
-      assert.deepEqual(await module.sharedNames([1, 2]), { 1: "One" })
+      await sharedWithoutAccount(module)
+      replies["GET /api/presets?sort=popular&offset=0"] = { body: { presets: [{ id: 9, name: "Name", code: "code", votes: 0, rating: null, downloads: 0 }], more: false } }
+      replies["POST /api/presets/9/unshare"] = { body: { preset: { name: "Name", code: "code" } } }
+      await module.unshareShared(9)
+      assert.equal(headers.at(-1), "secret")
+      assert.deepEqual((await module.listCommunity(POPULAR)).presets, [])
+      assert.deepEqual(module.managedPresets.value, [9])
+      replies.POST = { body: { preset: { id: 9 }, onAccount: false } }
+      await module.sharePublicly("code", "Name", 9)
+      assert.equal(headers.at(-1), "secret")
+      assert.deepEqual(module.ownPresets.value, [9])
+      replies["GET /api/presets?sort=popular&offset=0"] = { body: { presets: [{ id: 9, name: "Name", code: "code", votes: 0, rating: null, downloads: 0 }], more: false } }
+      assert.deepEqual((await module.listCommunity(POPULAR)).presets.map(preset => preset.id), [9])
     })
 
     test("a preset without a token sends none", async () => {

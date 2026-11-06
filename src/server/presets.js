@@ -19,6 +19,9 @@ const FIRST_PAGES = ["week", "popular", "top", "new", "needs"].map(sort => `?sor
 const STAT_COLUMNS = "downloads, votes, rating, created_at AS createdAt, (SELECT users.name FROM users WHERE users.id = presets.user_id) AS author, (SELECT users.provider FROM users WHERE users.id = presets.user_id) AS authorProvider"
 const COLUMNS = `id, code, name, text, ${STAT_COLUMNS}`
 
+export const NEXT_ID = "MAX(COALESCE((SELECT MAX(id) FROM presets), 0), COALESCE((SELECT MAX(id) FROM deleted_presets), 0)) + 1"
+const SCORES_RESET = ", downloads = 0, ups = 0, votes = 0, rating = -1"
+
 const rude = new RegExpMatcher({ ...englishDataset.build(), ...englishRecommendedTransformers })
 
 function canonical(value) {
@@ -88,8 +91,8 @@ function presetId(params) {
   return id
 }
 
-async function requirePreset(env, id) {
-  const found = await env.DB.prepare("SELECT token_hash, (SELECT users.provider || ':' || users.provider_id FROM users WHERE users.id = presets.user_id) AS owner FROM presets WHERE id = ?").bind(id).first()
+async function requirePreset(env, id, condition = "") {
+  const found = await env.DB.prepare(`SELECT token_hash, (SELECT users.provider || ':' || users.provider_id FROM users WHERE users.id = presets.user_id) AS owner FROM presets WHERE id = ?${condition}`).bind(id).first()
   if (!found) throw new Refusal(404, "This preset doesn't exist.")
   return found
 }
@@ -170,12 +173,12 @@ function searchFilter(search) {
 }
 
 async function randomPresets({ env }, { conditions, values }) {
-  const select = `SELECT ${COLUMNS} FROM presets`
-  if (conditions.length) return (await env.DB.prepare(`${select} WHERE ${conditions.join(" AND ")} ORDER BY RANDOM() LIMIT ${LIMITS.page}`).bind(...values).all()).results
+  const select = `SELECT ${COLUMNS} FROM presets WHERE shared = 1`
+  if (conditions.length) return (await env.DB.prepare(`${select} AND ${conditions.join(" AND ")} ORDER BY RANDOM() LIMIT ${LIMITS.page}`).bind(...values).all()).results
   const { highest } = await env.DB.prepare("SELECT COALESCE(MAX(id), 0) AS highest FROM presets").first()
   if (!highest) return []
   const ids = randomIds(highest, LIMITS.page)
-  const { results } = await env.DB.prepare(`${select} WHERE id IN (${ids.join(", ")})`).all()
+  const { results } = await env.DB.prepare(`${select} AND id IN (${ids.join(", ")})`).all()
   if (results.length) return shuffled(results)
   return (await env.DB.prepare(`${select} ORDER BY RANDOM() LIMIT ${LIMITS.page}`).all()).results
 }
@@ -209,7 +212,7 @@ export const listPresets = guarded(async context => {
   const { request, env } = context
   const url = new URL(request.url)
   const fingerprint = url.searchParams.get("fingerprint")
-  if (fingerprint !== null) return reply(200, { presets: (await env.DB.prepare(`SELECT ${COLUMNS} FROM presets WHERE fingerprint = ?`).bind(fingerprint).all()).results.map(rated), more: false })
+  if (fingerprint !== null) return reply(200, { presets: (await env.DB.prepare(`SELECT ${COLUMNS} FROM presets WHERE fingerprint = ? AND shared = 1`).bind(fingerprint).all()).results.map(rated), more: false })
   const sort = url.searchParams.get("sort") ?? "popular"
   if (sort !== "random" && !Object.hasOwn(SORTS, sort)) throw new Refusal(400, "That isn't a way to sort presets.")
   const offset = Number(url.searchParams.get("offset") ?? 0)
@@ -217,9 +220,9 @@ export const listPresets = guarded(async context => {
   const filter = searchFilter(url.searchParams.get("q") ?? "")
   if (sort === "random") return reply(200, { presets: (await randomPresets(context, filter)).map(rated), more: false })
   return cachedAtEdge(context, async () => {
-    const conditions = filter.conditions.slice()
+    const conditions = filter.conditions.concat("shared = 1")
     if (sort === "needs") conditions.push(`votes < ${LIMITS.minVotes}`)
-    const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : ""
+    const where = `WHERE ${conditions.join(" AND ")}`
     const source = sort === "week" ? `SELECT ${COLUMNS}, COALESCE(week, 0) AS week FROM presets LEFT JOIN (SELECT preset_id, SUM(count) AS week FROM preset_daily_downloads WHERE day >= ${dayNumber() - WEEK_DAYS} GROUP BY preset_id) ON preset_id = id` : `SELECT ${COLUMNS} FROM presets`
     const statement = env.DB.prepare(`${source} ${where} ORDER BY ${SORTS[sort]} LIMIT ${LIMITS.page + 1} OFFSET ${offset}`)
     const { results } = await statement.bind(...filter.values).all()
@@ -230,7 +233,7 @@ export const listPresets = guarded(async context => {
 export const getPreset = guarded(async context => {
   const id = presetId(context.params)
   return cachedAtEdge(context, async () => {
-    const preset = await context.env.DB.prepare(`SELECT ${COLUMNS} FROM presets WHERE id = ?`).bind(id).first()
+    const preset = await context.env.DB.prepare(`SELECT ${COLUMNS} FROM presets WHERE id = ? AND shared = 1`).bind(id).first()
     if (!preset) throw new Refusal(404, "This preset doesn't exist.")
     return reply(200, { preset: rated(preset) })
   })
@@ -245,7 +248,7 @@ export async function presetPage({ env, params, request }) {
   const page = await env.ASSETS.fetch(new URL("/app/", request.url))
   const id = Number(params.id?.[0])
   const known = params.id?.length === 1 && Number.isSafeInteger(id) && id > 0
-  const preset = known ? await env.DB.prepare("SELECT name FROM presets WHERE id = ?").bind(id).first() : null
+  const preset = known ? await env.DB.prepare("SELECT name FROM presets WHERE id = ? AND shared = 1").bind(id).first() : null
   const { title, description, path } = presetPageDetails(preset?.name ?? null, id)
   const url = `${new URL(request.url).origin}${path}`
   const tags = [["og:type", "website"], ["og:site_name", SITE_NAME], ["og:url", url], ["og:title", title], ["og:description", description]]
@@ -255,6 +258,22 @@ export async function presetPage({ env, params, request }) {
     .on('link[rel="canonical"]', { element: element => element.setAttribute("href", url) })
     .on("head", { element: element => element.append(tags.map(([property, content]) => `<meta property="${property}" content="${escaped(content)}">`).join(""), { html: true }) })
     .transform(page)
+}
+
+async function hiddenPreset({ request, env }, body, user) {
+  if (user) return env.DB.prepare(`SELECT id, fingerprint FROM presets WHERE user_id = ${USER_ROW} AND code = ? AND shared = 0`).bind(user.provider, user.providerId, body.code).first()
+  const token = request.headers.get("X-Preset-Token")
+  if (!token || !Number.isSafeInteger(body.id)) return null
+  return env.DB.prepare("SELECT id, fingerprint FROM presets WHERE id = ? AND token_hash = ? AND shared = 0").bind(body.id, await hashed(token)).first()
+}
+
+function scoreResets(env, id) {
+  return ["preset_votes", "preset_downloads", "preset_daily_downloads"].map(table => env.DB.prepare(`DELETE FROM ${table} WHERE preset_id = ?`).bind(id))
+}
+
+function forgetHiddenCopy(env, user, code, id) {
+  const where = `user_id = ${USER_ROW} AND code = ? AND shared = 0 AND id != ?`
+  return [env.DB.prepare(`INSERT INTO deleted_presets (id) SELECT id FROM presets WHERE ${where}`).bind(user.provider, user.providerId, code, id), env.DB.prepare(`DELETE FROM presets WHERE ${where}`).bind(user.provider, user.providerId, code, id)]
 }
 
 export const submitPreset = guarded(async context => {
@@ -268,19 +287,19 @@ export const submitPreset = guarded(async context => {
   checkWords("title", facts.all)
   checkWords("name", name)
   const fingerprint = await titleFingerprint(body.code)
-  const existing = await env.DB.prepare("SELECT id FROM presets WHERE fingerprint = ?").bind(fingerprint).first()
+  const existing = await env.DB.prepare("SELECT id FROM presets WHERE fingerprint = ? AND shared = 1").bind(fingerprint).first()
   if (existing) return reply(409, { error: "This title has already been shared.", id: existing.id })
   const ip = await hashedIp(context)
   if (await usedToday(env, user, ip) >= LIMITS.perDay && !await hasUnlimitedShares(env, user)) throw new Refusal(429, `You can share up to ${LIMITS.perDay} titles a day. Try again tomorrow.`)
+  const hidden = await hiddenPreset(context, body, user)
+  const changedTitle = hidden && hidden.fingerprint !== fingerprint
   // sqlite reuses the rowid of a deleted newest row, which would repoint old links and browsers' vote records
-  const token = user ? null : randomToken()
-  const results = await env.DB.batch((user ? [saveUser(env, user)] : []).concat(
-    env.DB.prepare(`INSERT INTO presets (id, code, fingerprint, name, text, token_hash, user_id, created_at) VALUES (MAX(COALESCE((SELECT MAX(id) FROM presets), 0), COALESCE((SELECT MAX(id) FROM deleted_presets), 0)) + 1, ?, ?, ?, ?, ?, ${USER_ROW}, ?) RETURNING ${COLUMNS}`).bind(body.code, fingerprint, name, facts.text, token && await hashed(token), user?.provider ?? null, user?.providerId ?? null, Date.now()),
-    await countSubmission(env, user, ip),
-    forgetOldAccountCounts(env)
-  ))
-  await forgetCached(request)
-  return reply(201, { preset: rated(results[user ? 1 : 0].results[0]), onAccount: !!user, ...(token && { token }) })
+  const token = user || hidden ? null : randomToken()
+  const saving = hidden ? env.DB.prepare(`UPDATE presets SET shared = 1, code = ?, fingerprint = ?, name = ?, text = ?, created_at = COALESCE(created_at, ?)${changedTitle ? SCORES_RESET : ""} WHERE id = ? RETURNING ${COLUMNS}`).bind(body.code, fingerprint, name, facts.text, Date.now(), hidden.id) : env.DB.prepare(`INSERT INTO presets (id, code, fingerprint, name, text, token_hash, user_id, created_at, shared) VALUES (${NEXT_ID}, ?, ?, ?, ?, ?, ${USER_ROW}, ?, 1) RETURNING ${COLUMNS}`).bind(body.code, fingerprint, name, facts.text, token && await hashed(token), user?.provider ?? null, user?.providerId ?? null, Date.now())
+  const before = (user ? [saveUser(env, user)] : []).concat(changedTitle ? scoreResets(env, hidden.id) : [])
+  const results = await env.DB.batch(before.concat(saving, await countSubmission(env, user, ip), forgetOldAccountCounts(env)))
+  await forgetCached(request, ...(hidden ? [hidden.id] : []))
+  return reply(hidden ? 200 : 201, { preset: rated(results[before.length].results[0]), onAccount: !!user, ...(token && { token }) })
 })
 
 async function forgetCached(request, ...ids) {
@@ -312,20 +331,27 @@ export const renamePreset = guarded(async context => {
 
 export const replacePreset = guarded(async context => {
   const { request, env } = context
-  const { id } = await ownedPreset(context)
+  const { id, user } = await ownedPreset(context)
   const body = await jsonBody(request)
   const facts = checkTitle(body.code)
   const name = textField(body, "name", "name", LIMITS.name) || capitalWords(facts.text)
   checkWords("title", facts.all)
   checkWords("name", name)
   const fingerprint = await titleFingerprint(body.code)
-  const existing = await env.DB.prepare("SELECT id FROM presets WHERE fingerprint = ?").bind(fingerprint).first()
+  const existing = await env.DB.prepare("SELECT id FROM presets WHERE fingerprint = ? AND shared = 1").bind(fingerprint).first()
   if (existing && existing.id !== id) return reply(409, { error: "This title has already been shared.", id: existing.id })
-  const resetVotes = existing ? [] : [env.DB.prepare("DELETE FROM preset_votes WHERE preset_id = ?").bind(id)]
-  const resetScores = existing ? "" : ", ups = 0, votes = 0, rating = -1"
-  const results = await env.DB.batch(resetVotes.concat(env.DB.prepare(`UPDATE presets SET code = ?, fingerprint = ?, name = ?, text = ?${resetScores} WHERE id = ? RETURNING ${COLUMNS}`).bind(body.code, fingerprint, name, facts.text, id)))
+  const before = (user ? forgetHiddenCopy(env, user, body.code, id) : []).concat(existing ? [] : scoreResets(env, id))
+  const results = await env.DB.batch(before.concat(env.DB.prepare(`UPDATE presets SET code = ?, fingerprint = ?, name = ?, text = ?${existing ? "" : SCORES_RESET} WHERE id = ? RETURNING ${COLUMNS}`).bind(body.code, fingerprint, name, facts.text, id)))
   await forgetCached(request, id)
   return reply(200, { preset: rated(results.at(-1).results[0]) })
+})
+
+export const unsharePreset = guarded(async context => {
+  const { request, env } = context
+  const { id } = await ownedPreset(context)
+  const preset = await env.DB.prepare("UPDATE presets SET shared = 0 WHERE id = ? RETURNING name, code").bind(id).first()
+  await forgetCached(request, id)
+  return reply(200, { preset })
 })
 
 export const deletePreset = guarded(async context => {
@@ -344,7 +370,7 @@ export const presetStats = guarded(async ({ request, env }) => {
   const ids = (new URL(request.url).searchParams.get("ids") ?? "").split(",").filter(Boolean).map(Number)
   if (ids.length > LIMITS.savedPresets || ids.some(id => !Number.isSafeInteger(id) || id < 1)) throw new Refusal(400, "This request isn't valid.")
   if (!ids.length) return reply(200, { stats: {} })
-  const { results } = await env.DB.prepare(`SELECT id, name, ${STAT_COLUMNS} FROM presets WHERE id IN (${ids.join(", ")})`).all()
+  const { results } = await env.DB.prepare(`SELECT id, ${STAT_COLUMNS} FROM presets WHERE shared = 1 AND id IN (${ids.join(", ")})`).all()
   return reply(200, { stats: Object.fromEntries(results.map(row => [row.id, rated(row)])) })
 })
 
@@ -356,7 +382,13 @@ export const claimPresets = guarded(async context => {
   const { tokens } = await jsonBody(request)
   if (!Array.isArray(tokens) || tokens.length > LIMITS.claimBatch || tokens.some(item => !Number.isSafeInteger(item?.id) || typeof item.token !== "string")) throw new Refusal(400, "This request isn't valid.")
   if (!tokens.length) return reply(200, { moved: [] })
-  const claims = await Promise.all(tokens.map(async ({ id, token }) => env.DB.prepare(`UPDATE presets SET user_id = ${USER_ROW}, token_hash = NULL WHERE id = ? AND token_hash = ? RETURNING id`).bind(user.provider, user.providerId, id, await hashed(token))))
+  const claims = (await Promise.all(tokens.map(async ({ id, token }) => {
+    const hash = await hashed(token)
+    return [
+      env.DB.prepare(`DELETE FROM presets WHERE user_id = ${USER_ROW} AND shared = 0 AND code = (SELECT code FROM presets WHERE id = ? AND token_hash = ?)`).bind(user.provider, user.providerId, id, hash),
+      env.DB.prepare(`UPDATE presets SET user_id = ${USER_ROW}, token_hash = NULL WHERE id = ? AND token_hash = ? AND NOT EXISTS (SELECT 1 FROM presets AS mine WHERE mine.user_id = ${USER_ROW} AND mine.code = presets.code) RETURNING id`).bind(user.provider, user.providerId, id, hash, user.provider, user.providerId)
+    ]
+  }))).flat()
   const results = await env.DB.batch([saveUser(env, user)].concat(claims, forgetUnusedUser(env, user)))
   const moved = results.slice(1, -1).flatMap(result => result.results.map(row => row.id))
   await forgetCached(request, ...moved)
@@ -367,7 +399,7 @@ export const submissionUsage = guarded(async context => {
   const user = await signedInUser(context)
   const ip = await hashedIp(context)
   const { env } = context
-  const ids = user ? (await env.DB.prepare(`SELECT id FROM presets WHERE user_id = ${USER_ROW}`).bind(user.provider, user.providerId).all()).results.map(preset => preset.id) : []
+  const ids = user ? (await env.DB.prepare(`SELECT id FROM presets WHERE user_id = ${USER_ROW} AND shared = 1`).bind(user.provider, user.providerId).all()).results.map(preset => preset.id) : []
   const votes = (await env.DB.prepare("SELECT preset_id, value FROM preset_votes WHERE ip_hash = ?").bind(user ? await accountHash(env, user) : ip).all()).results
   return reply(200, { used: await usedToday(env, user, ip), limit: LIMITS.perDay, unlimited: await hasUnlimitedShares(env, user), resetsAt: nextDay(), shared: ids, owned: user ? ids : [], votes: Object.fromEntries(votes.map(vote => [vote.preset_id, vote.value])) })
 })
@@ -377,7 +409,7 @@ export const votePreset = guarded(async context => {
   const id = presetId(params)
   const { value } = await jsonBody(request)
   if (value !== 1 && value !== -1) throw new Refusal(400, "That isn't a valid vote.")
-  const { owner } = await requirePreset(env, id)
+  const { owner } = await requirePreset(env, id, " AND shared = 1")
   const ip = await hashedIp(context)
   const user = await signedInUser(context)
   if (user && owner === user.id) throw new Refusal(403, "You can't vote on a preset you shared.")
@@ -395,7 +427,7 @@ export const votePreset = guarded(async context => {
 export const countDownload = guarded(async context => {
   const { env, params } = context
   const id = presetId(params)
-  await requirePreset(env, id)
+  await requirePreset(env, id, " AND shared = 1")
   const ip = await hashedIp(context)
   const { meta } = await env.DB.prepare("INSERT OR IGNORE INTO preset_downloads (preset_id, ip_hash) VALUES (?, ?)").bind(id, ip).run()
   if (meta.changes) {

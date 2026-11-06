@@ -1,10 +1,10 @@
 <script setup>
   import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, watchEffect } from "vue"
-  import { account, accountChanges, communityPreset, countDownload, deleteShared, listCommunity, managedPresets, ownPresets, presetStats, randomCommunityPreset, refreshAccount, refreshUsage, renameShared, signInProviders, voteOn } from "../lib/community.js"
+  import { account, accountChanges, communityPreset, countDownload, listCommunity, managedPresets, ownPresets, presetStats, randomCommunityPreset, refreshAccount, refreshUsage, signInProviders, voteOn } from "../lib/community.js"
   import { useWindowEvents } from "../lib/events.js"
   import { LIMITS } from "../lib/limits.js"
   import { notice } from "../lib/notices.js"
-  import { addPreset, loadPreset, presets, presetsError, presetsLoading, removePreset, renamePreset, unmarkShared } from "../lib/presets.js"
+  import { addPreset, deleteSharedPreset, loadPreset, presets, presetsError, presetsLoading, removePreset, renamePreset, renameSharedPreset, unmarkShared, unsharePreset } from "../lib/presets.js"
   import { parseSearch, searchWithUser } from "../lib/presetSearch.js"
   import { closePresetsPage, leavePresetsForEditor, presetsPage, showPreset } from "../lib/presetsPage.js"
   import { providerLabel } from "../lib/providers.js"
@@ -179,17 +179,17 @@
     selectedLocalCode.value = null
   }
 
-  async function confirmRemove(alsoShared) {
+  async function confirmRemove(choice) {
     const preset = removing.value
     removing.value = null
     error.value = ""
     try {
-      if (alsoShared) {
-        await deleteShared(preset.shared)
-        results.value = results.value.filter(item => item.id !== preset.shared)
-      }
-      removePreset(preset)
-      selectedLocalCode.value = null
+      if (choice === "local") removePreset(preset)
+      else if (choice === "unshare") await unsharePreset(preset.shared)
+      else await deleteSharedPreset(preset.shared)
+      results.value = results.value.filter(item => item.id !== preset.shared)
+      if (tab.value === "community") clearSelection()
+      else if (choice !== "unshare") selectedLocalCode.value = null
     } catch (err) {
       error.value = err.message
     }
@@ -200,23 +200,14 @@
     if (!trimmed || trimmed === preset.name) return
     error.value = ""
     try {
-      preset.name = await renameShared(preset.id, trimmed)
+      preset.name = await renameSharedPreset(preset.id, trimmed)
     } catch (err) {
       error.value = err.message
     }
   }
 
-  async function removeCommunity(preset) {
-    if (!confirm(`Delete ${preset.name} from the community presets? This can't be undone.`)) return
-    error.value = ""
-    try {
-      await deleteShared(preset.id)
-      unmarkShared(preset.id)
-      results.value = results.value.filter(item => item.id !== preset.id)
-      clearSelection()
-    } catch (err) {
-      error.value = err.message
-    }
+  function removeCommunity(preset) {
+    removing.value = { name: preset.name, shared: preset.id }
   }
 
   function viewInCommunity(id) {

@@ -1,5 +1,5 @@
 import { ref, watch } from "vue"
-import { account, changeSaved, deleteSaved, loadSaved, managedPresets, refreshUsage, replaceShared, sharePublicly, uploadSaved } from "./community.js"
+import { account, changeSaved, deleteSaved, deleteShared, loadSaved, managedPresets, refreshUsage, renameShared, replaceShared, sharePublicly, unshareShared, uploadSaved } from "./community.js"
 import { fileError, isDefaultTitle, openTitleData, titleData } from "./file.js"
 import { LIMITS } from "./limits.js"
 import { decodeTitle, encodeTitle } from "./linkformat.js"
@@ -62,6 +62,11 @@ function change(code, transform, send) {
   })
 }
 
+function setList(transform) {
+  presets.value = transform(presets.value)
+  store(transform(read()))
+}
+
 function keepInBrowser(code) {
   const preset = presets.value.find(item => item.code === code)
   if (!preset) return
@@ -73,15 +78,18 @@ function keepInBrowser(code) {
 async function moveLocalPresets() {
   const list = await loadSaved()
   const onAccount = new Set(list.map(preset => preset.code))
-  const local = read()
+  const managed = new Set(managedPresets.value)
+  const local = read().filter(preset => !onAccount.has(preset.code))
+  const unclaimed = local.filter(preset => managed.has(preset.shared ?? preset.unshared))
   const taken = new Set(list.map(preset => preset.name))
-  const moving = local.filter(preset => !onAccount.has(preset.code)).map(preset => {
+  const moving = local.filter(preset => !unclaimed.includes(preset)).map(preset => {
+    const { shared, unshared, ...rest } = preset
     const name = uniqueName(preset.name, taken)
     taken.add(name)
-    return { ...preset, name }
+    return { ...rest, name }
   })
   const kept = new Set(moving.length ? await uploadSaved(moving) : [])
-  const staying = moving.filter(preset => kept.has(preset.code))
+  const staying = moving.filter(preset => kept.has(preset.code)).concat(unclaimed)
   store(staying)
   const added = moving.filter(preset => !kept.has(preset.code))
   return { list: list.concat(added, staying.map(preset => ({ ...preset, inBrowser: true }))), added: added.length, kept: kept.size }
@@ -143,58 +151,69 @@ export function addPreset(name, code) {
 export function renamePreset(preset, name) {
   const trimmed = name.trim().slice(0, NAME_LIMIT)
   if (!trimmed) return preset
-  change(preset.code, list => list.map(item => item.code === preset.code ? { ...item, name: trimmed } : item), () => changeSaved(preset.code, { name: trimmed }))
+  const named = name => list => list.map(item => item.code === preset.code ? { ...item, name } : item)
+  if (managedPresets.value.includes(preset.shared)) {
+    setList(named(trimmed))
+    queued(() => renameShared(preset.shared, trimmed)).catch(err => {
+      console.error(err)
+      setList(named(preset.name))
+      showNotice(err.message)
+    })
+  } else change(preset.code, named(trimmed), () => changeSaved(preset.code, { name: trimmed }))
   return { ...preset, name: trimmed }
 }
 
+export async function renameSharedPreset(id, name) {
+  const newName = await renameShared(id, name)
+  setList(list => list.map(item => item.shared === id ? { ...item, name: newName } : item))
+  return newName
+}
+
 export function markShared(preset, id) {
-  change(preset.code, list => list.map(item => item.code === preset.code ? { ...item, shared: id } : item), () => changeSaved(preset.code, { shared: id }))
+  setList(list => list.map(item => item.code === preset.code ? { ...item, shared: id } : item))
 }
 
 export function unmarkShared(id) {
-  for (const { code } of presets.value.filter(item => item.shared === id)) {
-    change(code, list => list.map(item => {
-      if (item.code !== code) return item
-      const { shared, ...rest } = item
-      return rest
-    }), () => changeSaved(code, { shared: null }))
-  }
+  setList(list => list.map(item => {
+    if (item.shared !== id) return item
+    const { shared, ...rest } = item
+    return rest
+  }))
 }
 
-function changeCode(preset, code, name, shared) {
+export async function unsharePreset(id) {
+  const { name, code } = await unshareShared(id)
+  const moved = { name, code, ...(!account.value && { unshared: id }) }
+  setList(list => list.some(item => item.shared === id) ? list.map(item => item.shared === id ? moved : item) : list.concat(moved))
+  return moved
+}
+
+export async function deleteSharedPreset(id) {
+  await deleteShared(id)
+  setList(list => list.filter(item => item.shared !== id))
+}
+
+function changeCode(preset, code, name) {
   change(preset.code, list => list.map(item => {
     if (item.code !== preset.code) return item
-    const { shared: previous, ...rest } = item
-    return shared ? { ...rest, code, name, shared } : { ...rest, code, name }
-  }), () => changeSaved(preset.code, { replacement: code, name, shared: shared ?? null }))
+    const { shared, ...rest } = item
+    return { ...rest, code, name }
+  }), () => changeSaved(preset.code, { replacement: code, name }))
   return { ...preset, code, name }
 }
 
-export function unlinkedShares() {
-  const linked = new Set(presets.value.map(preset => preset.shared))
-  return managedPresets.value.filter(id => !linked.has(id))
-}
-
-export function replaceTargets(code, names = {}) {
+export function replaceTargets(code) {
   const managed = new Set(managedPresets.value)
   const existing = savedWithCode(code)
-  const saved = presets.value.filter(preset => preset.code !== code && (!existing || managed.has(preset.shared))).map(preset => ({ name: preset.name, code: preset.code, shared: preset.shared, online: managed.has(preset.shared) }))
-  const unlinked = unlinkedShares().filter(id => names[id]).map(id => ({ name: names[id], shared: id, online: true }))
-  return saved.filter(target => target.shared).concat(unlinked, saved.filter(target => !target.shared))
+  const targets = presets.value.filter(preset => preset.code !== code && (!existing || managed.has(preset.shared))).map(preset => ({ name: preset.name, code: preset.code, shared: preset.shared, online: managed.has(preset.shared) }))
+  return targets.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true }))
 }
 
 export async function replaceWith(target, code, name) {
-  const online = target.online ? await replaceShared(target.shared, code, name) : null
-  const finalName = online?.name ?? (name.trim().slice(0, NAME_LIMIT) || target.name)
-  const shared = online?.id
-  if (shared) unmarkShared(shared)
-  const existing = savedWithCode(code)
-  const replaced = target.code ? savedWithCode(target.code) : null
-  if (existing && replaced) removePreset(replaced)
-  if (!existing && replaced) return { preset: changeCode(replaced, code, finalName, shared), online }
-  const preset = existing ? renamePreset(existing, finalName) : addPreset(finalName, code)
-  if (shared) markShared(preset, shared)
-  return { preset, online }
+  if (!target.online) return { preset: changeCode(savedWithCode(target.code), code, name.trim().slice(0, NAME_LIMIT) || target.name), online: null }
+  const online = await replaceShared(target.shared, code, name)
+  setList(list => list.filter(item => item.code !== code).map(item => item.shared === online.id ? { ...item, code, name: online.name } : item))
+  return { preset: savedWithCode(code), online }
 }
 
 export async function saveOver(target, name) {
@@ -211,10 +230,11 @@ export function removePreset(preset) {
     await deleteSaved(preset.code)
     queued(moveUpFromBrowser).catch(console.error)
   })
+  if (preset.unshared) deleteShared(preset.unshared).catch(console.error)
 }
 
 async function moveUpFromBrowser() {
-  const waiting = presets.value.find(item => item.inBrowser)
+  const waiting = presets.value.find(item => item.inBrowser && !item.shared && !item.unshared)
   if (!waiting) return
   const { inBrowser, ...preset } = waiting
   const kept = await uploadSaved([preset])
@@ -250,17 +270,26 @@ export function confirmSharing(name) {
 }
 
 export function confirmReplacing(target) {
-  if (target.online) return confirm(`Replace ${target.name} in Community with this title?\n\nIts votes and rating are reset, and that cannot be undone. Its link stays the same.`)
+  if (target.online) return confirm(`Replace ${target.name} in Community with this title?\n\nIts votes, rating and uses are reset, and that cannot be undone. Its link stays the same.`)
   return confirm(`Replace ${target.name} with this title?`)
 }
 
 export async function sharePreset(preset, name) {
+  await queue
   try {
-    const { preset: shared } = await sharePublicly(preset.code, name)
-    markShared(preset, shared.id)
+    const { preset: shared } = await sharePublicly(preset.code, name, preset.unshared)
+    setList(list => list.map(item => {
+      if (item.code !== preset.code) return item
+      const { unshared, inBrowser, ...rest } = item
+      return { ...rest, name: shared.name, shared: shared.id }
+    }))
+    if (account.value) {
+      store(read().filter(item => item.code !== preset.code))
+      queued(moveUpFromBrowser).catch(console.error)
+    }
     return shared
   } catch (err) {
-    if (err.status === 409) markShared(preset, err.id)
+    if (err.status === 409 && managedPresets.value.includes(err.id)) markShared(preset, err.id)
     if (err.status === 429) refreshUsage(true)
     throw err
   }

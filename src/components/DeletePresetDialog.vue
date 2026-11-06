@@ -17,12 +17,19 @@
 <template>
   <RenderDialog title="Delete preset" close-title="Cancel" wide dismissable @close="emit('close')">
     <div class="body">
-      <p v-if="canDeleteShared"><strong>{{ preset.name }}</strong> is also shared publicly. You can delete just your preset and leave it in Community, or delete it from both.</p>
-      <p v-else><strong>{{ preset.name }}</strong> is also shared publicly. This browser can't manage it, so it will stay in Community.</p>
-      <div class="buttons">
-        <button v-if="canDeleteShared" class="danger" type="button" @click="emit('delete', true)">Also delete from Community</button>
-        <button ref="main" class="primary" type="button" @click="emit('delete', false)">Delete my preset only</button>
-      </div>
+      <template v-if="canDeleteShared">
+        <p><strong>{{ preset.name }}</strong> is shared publicly. Deleting it from Community moves it back to your presets, and it keeps its votes and uses if you share it again. Fully deleting it removes it for good.</p>
+        <div class="buttons">
+          <button class="danger" type="button" @click="emit('delete', 'full')">Fully delete</button>
+          <button ref="main" class="primary" type="button" @click="emit('delete', 'unshare')">Delete from Community</button>
+        </div>
+      </template>
+      <template v-else>
+        <p><strong>{{ preset.name }}</strong> is also shared publicly. This browser can't manage it, so it will stay in Community.</p>
+        <div class="buttons">
+          <button ref="main" class="primary" type="button" @click="emit('delete', 'local')">Delete my preset only</button>
+        </div>
+      </template>
     </div>
   </RenderDialog>
 </template>

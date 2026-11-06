@@ -11,33 +11,25 @@ CREATE TABLE users (
 CREATE TABLE presets (
   id INTEGER PRIMARY KEY,
   code TEXT NOT NULL,
-  fingerprint TEXT NOT NULL UNIQUE,
+  fingerprint TEXT,
   name TEXT NOT NULL,
-  text TEXT NOT NULL,
+  text TEXT NOT NULL DEFAULT '',
   downloads INTEGER NOT NULL DEFAULT 0,
   ups INTEGER NOT NULL DEFAULT 0,
   votes INTEGER NOT NULL DEFAULT 0,
   rating REAL NOT NULL DEFAULT -1,
-  created_at INTEGER NOT NULL,
+  created_at INTEGER,
   user_id INTEGER REFERENCES users (id),
-  token_hash TEXT
+  token_hash TEXT,
+  shared INTEGER NOT NULL DEFAULT 0
 );
 
-CREATE INDEX presets_by_downloads ON presets (downloads DESC, id DESC);
-CREATE INDEX presets_by_rating ON presets (rating DESC, votes DESC, id DESC);
-CREATE INDEX presets_by_date ON presets (created_at DESC, id DESC);
-CREATE INDEX presets_needing_votes ON presets (votes, id);
-CREATE INDEX presets_by_user ON presets (user_id);
-
-CREATE TABLE saved_presets (
-  id INTEGER PRIMARY KEY,
-  user_id INTEGER NOT NULL REFERENCES users (id),
-  code_hash TEXT NOT NULL,
-  code TEXT NOT NULL,
-  name TEXT NOT NULL,
-  shared INTEGER,
-  UNIQUE (user_id, code_hash)
-);
+CREATE UNIQUE INDEX presets_by_fingerprint ON presets (fingerprint) WHERE shared = 1;
+CREATE UNIQUE INDEX presets_by_user_code ON presets (user_id, code);
+CREATE INDEX presets_by_downloads ON presets (downloads DESC, id DESC) WHERE shared = 1;
+CREATE INDEX presets_by_rating ON presets (rating DESC, votes DESC, id DESC) WHERE shared = 1;
+CREATE INDEX presets_by_date ON presets (created_at DESC, id DESC) WHERE shared = 1;
+CREATE INDEX presets_needing_votes ON presets (votes, id) WHERE shared = 1;
 
 CREATE TABLE preset_votes (
   preset_id INTEGER NOT NULL REFERENCES presets (id) ON DELETE CASCADE,

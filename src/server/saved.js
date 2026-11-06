@@ -1,7 +1,8 @@
 import { LIMITS } from "../lib/limits.js"
 import { decodeTitle } from "../lib/linkformat.js"
 import { USER_ROW, forgetUnusedUser, saveUser, signedInUser } from "./accounts.js"
-import { Refusal, guarded, hashed, jsonBody, reply, textField } from "./http.js"
+import { Refusal, guarded, jsonBody, reply, textField } from "./http.js"
+import { NEXT_ID } from "./presets.js"
 
 const BATCH_BODY = LIMITS.savedBatch * (LIMITS.savedCode + 512)
 
@@ -11,8 +12,8 @@ async function requireUser(context) {
   return user
 }
 
-function shown({ name, code, shared }) {
-  return shared === null ? { name, code } : { name, code, shared }
+function shown({ id, name, code, shared }) {
+  return shared ? { name, code, shared: id } : { name, code }
 }
 
 function savableCode(code) {
@@ -30,18 +31,14 @@ function savable(preset) {
   return savableCode(preset.code)
 }
 
-function sharedId(value) {
-  return Number.isSafeInteger(value) && value > 0 ? value : null
-}
-
-async function codeHash(body) {
+function requireCode(body) {
   if (typeof body.code !== "string" || !body.code) throw new Refusal(400, "This request isn't valid.")
-  return hashed(body.code)
+  return body.code
 }
 
 export const listSaved = guarded(async context => {
   const user = await requireUser(context)
-  const { results } = await context.env.DB.prepare(`SELECT name, code, shared FROM saved_presets WHERE user_id = ${USER_ROW} ORDER BY id`).bind(user.provider, user.providerId).all()
+  const { results } = await context.env.DB.prepare(`SELECT id, name, code, shared FROM presets WHERE user_id = ${USER_ROW} ORDER BY id`).bind(user.provider, user.providerId).all()
   return reply(200, { presets: results.map(shown) })
 })
 
@@ -50,19 +47,21 @@ export const addSaved = guarded(async context => {
   const user = await requireUser(context)
   const { presets } = await jsonBody(request, BATCH_BODY)
   if (!Array.isArray(presets) || presets.length > LIMITS.savedBatch) throw new Refusal(400, "This request isn't valid.")
-  const { results } = await env.DB.prepare(`SELECT code_hash FROM saved_presets WHERE user_id = ${USER_ROW}`).bind(user.provider, user.providerId).all()
-  const existing = new Set(results.map(row => row.code_hash))
+  const { results } = await env.DB.prepare(`SELECT code, shared FROM presets WHERE user_id = ${USER_ROW}`).bind(user.provider, user.providerId).all()
+  const existing = new Set(results.map(row => row.code))
+  let hidden = results.filter(row => !row.shared).length
   const statements = []
   const kept = []
   for (const preset of presets) {
-    const hash = savable(preset) ? await hashed(preset.code) : null
-    if (hash && existing.has(hash)) continue
-    if (!hash || existing.size >= LIMITS.savedPresets) {
+    const fits = savable(preset)
+    if (fits && existing.has(preset.code)) continue
+    if (!fits || hidden >= LIMITS.savedPresets) {
       kept.push(preset?.code)
       continue
     }
-    existing.add(hash)
-    statements.push(env.DB.prepare(`INSERT INTO saved_presets (user_id, code_hash, code, name, shared) VALUES (${USER_ROW}, ?, ?, ?, ?) ON CONFLICT (user_id, code_hash) DO NOTHING`).bind(user.provider, user.providerId, hash, preset.code, preset.name.trim(), sharedId(preset.shared)))
+    existing.add(preset.code)
+    hidden++
+    statements.push(env.DB.prepare(`INSERT INTO presets (id, user_id, code, name) VALUES (${NEXT_ID}, ${USER_ROW}, ?, ?) ON CONFLICT (user_id, code) DO NOTHING`).bind(user.provider, user.providerId, preset.code, preset.name.trim()))
   }
   if (statements.length) await env.DB.batch([saveUser(env, user)].concat(statements))
   return reply(200, { kept })
@@ -72,16 +71,15 @@ export const changeSaved = guarded(async context => {
   const { request, env } = context
   const user = await requireUser(context)
   const body = await jsonBody(request, LIMITS.savedCode * 2 + 512)
-  const hash = await codeHash(body)
+  const code = requireCode(body)
   const sets = []
   const values = []
   if (Object.hasOwn(body, "replacement")) {
     if (!savableCode(body.replacement)) throw new Refusal(400, "This request isn't valid.")
-    const replacementHash = await hashed(body.replacement)
-    const taken = await env.DB.prepare(`SELECT id FROM saved_presets WHERE user_id = ${USER_ROW} AND code_hash = ?`).bind(user.provider, user.providerId, replacementHash).first()
+    const taken = await env.DB.prepare(`SELECT id FROM presets WHERE user_id = ${USER_ROW} AND code = ?`).bind(user.provider, user.providerId, body.replacement).first()
     if (taken) throw new Refusal(409, "You already have a preset with this title.")
-    sets.push("code = ?", "code_hash = ?")
-    values.push(body.replacement, replacementHash)
+    sets.push("code = ?")
+    values.push(body.replacement)
   }
   if (Object.hasOwn(body, "name")) {
     const name = textField(body, "name", "name", LIMITS.name)
@@ -89,21 +87,19 @@ export const changeSaved = guarded(async context => {
     sets.push("name = ?")
     values.push(name)
   }
-  if (Object.hasOwn(body, "shared")) {
-    sets.push("shared = ?")
-    values.push(sharedId(body.shared))
-  }
   if (!sets.length) throw new Refusal(400, "This request isn't valid.")
-  await env.DB.prepare(`UPDATE saved_presets SET ${sets.join(", ")} WHERE user_id = ${USER_ROW} AND code_hash = ?`).bind(...values, user.provider, user.providerId, hash).run()
+  await env.DB.prepare(`UPDATE presets SET ${sets.join(", ")} WHERE user_id = ${USER_ROW} AND code = ? AND shared = 0`).bind(...values, user.provider, user.providerId, code).run()
   return reply(200, { changed: true })
 })
 
 export const removeSaved = guarded(async context => {
   const { request, env } = context
   const user = await requireUser(context)
-  const hash = await codeHash(await jsonBody(request, LIMITS.savedCode + 512))
+  const code = requireCode(await jsonBody(request, LIMITS.savedCode + 512))
+  const where = `user_id = ${USER_ROW} AND code = ? AND shared = 0`
   await env.DB.batch([
-    env.DB.prepare(`DELETE FROM saved_presets WHERE user_id = ${USER_ROW} AND code_hash = ?`).bind(user.provider, user.providerId, hash),
+    env.DB.prepare(`INSERT INTO deleted_presets (id) SELECT id FROM presets WHERE ${where}`).bind(user.provider, user.providerId, code),
+    env.DB.prepare(`DELETE FROM presets WHERE ${where}`).bind(user.provider, user.providerId, code),
     forgetUnusedUser(env, user)
   ])
   return reply(200, { deleted: true })

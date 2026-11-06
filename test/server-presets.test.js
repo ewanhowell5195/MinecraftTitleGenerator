@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 import fs from "node:fs"
 import { DatabaseSync } from "node:sqlite"
 
-const { LIMITS, checkTitle, claimPresets, countDownload, deletePreset, getPreset, listPresets, presetPageDetails, presetStats, renamePreset, replacePreset, submissionUsage, submitPreset, titleFacts, votePreset } = await import("../src/server/presets.js")
+const { LIMITS, checkTitle, claimPresets, countDownload, deletePreset, getPreset, listPresets, presetPageDetails, presetStats, renamePreset, replacePreset, submissionUsage, submitPreset, titleFacts, unsharePreset, votePreset } = await import("../src/server/presets.js")
 const { accountDetails, finishSignIn, receiveSignIn, signOut, startSignIn } = await import("../src/server/accounts.js")
 const { addSaved, changeSaved, listSaved, removeSaved } = await import("../src/server/saved.js")
 const { encodeTitle } = await import("../src/lib/linkformat.js")
@@ -1427,11 +1427,14 @@ describe("accounts", () => {
       return { status: response.status, ...await response.json() }
     }
 
-    test("replacing keeps the id and downloads, and resets the votes and rating", async () => {
+    test("replacing keeps the id and resets the votes, rating and uses", async () => {
       const { preset, token } = await shared("before")
       await voteAll(preset.id, Array(LIMITS.minVotes).fill(1))
       await download(preset.id, "someone")
       const result = await replaceWith(token, preset.id, "after", "New name")
+      assert.equal(db.prepare("SELECT COUNT(*) AS count FROM preset_downloads WHERE preset_id = ?").get(preset.id).count, 0)
+      assert.equal(db.prepare("SELECT COUNT(*) AS count FROM preset_daily_downloads WHERE preset_id = ?").get(preset.id).count, 0)
+      assert.equal((await download(preset.id, "someone")).counted, true)
       assert.equal(result.status, 200)
       assert.equal(result.preset.id, preset.id)
       assert.equal(result.preset.code, code([{ text: "after" }]))
@@ -1439,7 +1442,7 @@ describe("accounts", () => {
       assert.equal(result.preset.text, "after")
       assert.equal(result.preset.votes, 0)
       assert.equal(result.preset.rating, null)
-      assert.equal(result.preset.downloads, 1)
+      assert.equal(result.preset.downloads, 0)
       assert.equal(result.preset.createdAt, preset.createdAt)
       assert.equal(db.prepare("SELECT COUNT(*) AS count FROM preset_votes WHERE preset_id = ?").get(preset.id).count, 0)
       assert.equal((await vote(preset.id, 1, "voter 0")).votes, 1)
@@ -1495,6 +1498,92 @@ describe("accounts", () => {
       const replaced = body => replacePreset(withCookie(`/api/presets/${preset.id}`, body, { method: "PUT", body: { code: code([{ text: "after" }]) }, params: { id: String(preset.id) } }))
       assert.equal((await replaced(other)).status, 403)
       assert.equal((await replaced(cookie)).status, 200)
+    })
+
+    async function unshareWith(token, id) {
+      const response = await unsharePreset(withToken(`/api/presets/${id}/unshare`, token, { method: "POST", params: { id: String(id) } }))
+      return { status: response.status, ...await response.json() }
+    }
+
+    async function shareAgain(token, id, text, name) {
+      const made = withToken("/api/presets", token, { method: "POST", body: { code: code([{ text }]), name, id } })
+      const response = await submitPreset(made)
+      return { status: response.status, ...await response.json() }
+    }
+
+    test("deleting from Community hides it everywhere public and only the owner can do it", async () => {
+      const { preset, token } = await shared("hidden")
+      const other = await shared("other")
+      assert.equal((await unshareWith(other.token, preset.id)).status, 403)
+      assert.equal((await unshareWith(null, preset.id)).status, 401)
+      const result = await unshareWith(token, preset.id)
+      assert.equal(result.status, 200)
+      assert.deepEqual(result.preset, { name: "Hidden", code: code([{ text: "hidden" }]) })
+      assert.deepEqual((await list()).presets.map(item => item.id), [other.preset.id])
+      assert.deepEqual((await list("?sort=random")).presets.map(item => item.id), [other.preset.id])
+      assert.deepEqual((await list("?q=hidden")).presets, [])
+      assert.equal((await getPreset(context(`/api/presets/${preset.id}`, { params: { id: String(preset.id) } }))).status, 404)
+      assert.equal((await vote(preset.id, 1, "someone")).status, 404)
+      assert.equal((await download(preset.id, "someone")).status, 404)
+      assert.deepEqual((await (await presetStats(context(`/api/presets/stats?ids=${preset.id}`))).json()).stats, {})
+    })
+
+    test("sharing it again keeps its id, stats and date", async () => {
+      const { preset, token } = await shared("again")
+      await voteAll(preset.id, Array(LIMITS.minVotes).fill(1))
+      await download(preset.id, "someone")
+      await unshareWith(token, preset.id)
+      const result = await shareAgain(token, preset.id, "again", "Back again")
+      assert.equal(result.status, 200)
+      assert.equal(result.token, undefined)
+      assert.equal(result.preset.id, preset.id)
+      assert.equal(result.preset.name, "Back again")
+      assert.equal(result.preset.votes, LIMITS.minVotes)
+      assert.equal(result.preset.rating, 5)
+      assert.equal(result.preset.downloads, 1)
+      assert.equal(result.preset.createdAt, preset.createdAt)
+      assert.deepEqual((await list()).presets.map(item => item.id), [preset.id])
+    })
+
+    test("sharing it again with a different title resets its stats", async () => {
+      const { preset, token } = await shared("first title")
+      await voteAll(preset.id, Array(LIMITS.minVotes).fill(1))
+      await download(preset.id, "someone")
+      await unshareWith(token, preset.id)
+      const result = await shareAgain(token, preset.id, "second title", "Changed")
+      assert.equal(result.preset.id, preset.id)
+      assert.equal(result.preset.votes, 0)
+      assert.equal(result.preset.rating, null)
+      assert.equal(result.preset.downloads, 0)
+      assert.equal(db.prepare("SELECT COUNT(*) AS count FROM preset_votes WHERE preset_id = ?").get(preset.id).count, 0)
+    })
+
+    test("a title someone else shared in the meantime can't be shared again", async () => {
+      const { preset, token } = await shared("wanted")
+      await unshareWith(token, preset.id)
+      const theirs = await shared("wanted")
+      assert.notEqual(theirs.preset.id, preset.id)
+      const result = await shareAgain(token, preset.id, "wanted", "Mine")
+      assert.equal(result.status, 409)
+      assert.equal(result.id, theirs.preset.id)
+    })
+
+    test("someone else's token can't bring it back", async () => {
+      const { preset, token } = await shared("guarded")
+      const other = await shared("other")
+      await unshareWith(token, preset.id)
+      const result = await shareAgain(other.token, preset.id, "guarded", "Stolen")
+      assert.notEqual(result.preset.id, preset.id)
+      assert.equal(db.prepare("SELECT shared FROM presets WHERE id = ?").get(preset.id).shared, 0)
+    })
+
+    test("signing in claims a preset that left Community, without clashing with a saved copy", async () => {
+      const { preset, token } = await shared("claimed")
+      await unshareWith(token, preset.id)
+      const cookie = await signIn()
+      await addSaved(withCookie("/api/saved", cookie, { method: "POST", body: { presets: [{ name: "Copy", code: code([{ text: "claimed" }]) }] } }))
+      assert.deepEqual((await claim(cookie, [{ id: preset.id, token }])).moved, [preset.id])
+      assert.deepEqual((await (await listSaved(withCookie("/api/saved", cookie, { method: "GET" }))).json()).presets, [{ name: "Claimed", code: code([{ text: "claimed" }]) }])
     })
 
     async function removeWith(token, id) {
@@ -1796,12 +1885,100 @@ describe("accounts", () => {
       assert.deepEqual((await savedList(second)).map(preset => preset.name), ["theirs"])
     })
 
-    test("keeps the shared id, and leaves it out when there is none", async () => {
+    test("a shared preset is one row: sharing moves a save over rather than copying it", async () => {
       const cookie = await signIn()
-      await save(cookie, [{ ...saved("one"), shared: 5 }, saved("two")])
-      const [one, two] = await savedList(cookie)
-      assert.equal(one.shared, 5)
-      assert.equal(Object.hasOwn(two, "shared"), false)
+      const preset = saved("one")
+      await save(cookie, [preset, saved("two")])
+      assert.equal((await list()).presets.length, 0)
+      const { status, preset: published } = await shareAs(cookie, "one", { name: "Published" })
+      assert.equal(status, 200)
+      assert.equal(typeof published.createdAt, "number")
+      assert.deepEqual((await savedList(cookie)).map(item => item.name), ["Published", "two"])
+      assert.equal((await savedList(cookie))[0].shared, published.id)
+      assert.equal(Object.hasOwn((await savedList(cookie))[1], "shared"), false)
+      assert.equal(db.prepare("SELECT COUNT(*) AS count FROM presets").get().count, 2)
+    })
+
+    test("a save stays out of everything public", async () => {
+      const cookie = await signIn()
+      const preset = saved("secret")
+      await save(cookie, [preset])
+      const { id } = db.prepare("SELECT id FROM presets").get()
+      assert.deepEqual((await list()).presets, [])
+      assert.deepEqual((await list("?sort=random")).presets, [])
+      assert.deepEqual((await list("?q=secret")).presets, [])
+      assert.equal((await getPreset(context(`/api/presets/${id}`, { params: { id: String(id) } }))).status, 404)
+      assert.equal((await vote(id, 1, "someone")).status, 404)
+      assert.deepEqual((await usageOf("1.1.1.1")).shared, [])
+    })
+
+    test("two accounts can save a title that is also shared", async () => {
+      const first = await signIn("discord", { id: "1", username: "a" })
+      const second = await signIn("discord", { id: "2", username: "b" })
+      await shareAs(first, "popular")
+      await save(second, [saved("popular", "my copy")])
+      assert.deepEqual((await savedList(second)).map(item => item.name), ["my copy"])
+      assert.equal((await list()).presets.length, 1)
+    })
+
+    test("a shared preset can't be renamed, changed or deleted through the saves", async () => {
+      const cookie = await signIn()
+      const { preset } = await shareAs(cookie, "public")
+      await savedCall(changeSaved, cookie, "PATCH", { code: preset.code, name: "rude bypass" })
+      await savedCall(removeSaved, cookie, "DELETE", { code: preset.code })
+      assert.equal(db.prepare("SELECT name FROM presets WHERE id = ?").get(preset.id).name, "Public")
+    })
+
+    test("shared presets don't count towards the limit on saves", async () => {
+      const cookie = await signIn()
+      await shareAs(cookie, "shared one")
+      for (let index = 0; index < LIMITS.savedPresets; index += LIMITS.savedBatch) await save(cookie, Array.from({ length: LIMITS.savedBatch }, (_, offset) => saved(`title ${index + offset}`)))
+      assert.equal((await savedList(cookie)).length, LIMITS.savedPresets + 1)
+      const extra = saved("extra")
+      assert.deepEqual((await save(cookie, [extra])).kept, [extra.code])
+    })
+
+    test("deleting from Community moves it back to the saves, and sharing again keeps its stats", async () => {
+      const cookie = await signIn()
+      const { preset } = await shareAs(cookie, "round trip")
+      await voteAll(preset.id, Array(LIMITS.minVotes).fill(1))
+      await unsharePreset(withCookie(`/api/presets/${preset.id}/unshare`, cookie, { method: "POST", params: { id: String(preset.id) } }))
+      assert.deepEqual(await savedList(cookie), [{ name: "Round Trip", code: preset.code }])
+      assert.deepEqual((await (await submissionUsage(withCookie("/api/presets/usage", cookie, { method: "GET" }))).json()).shared, [])
+      const again = await shareAs(cookie, "round trip")
+      assert.equal(again.preset.id, preset.id)
+      assert.equal(again.preset.votes, LIMITS.minVotes)
+    })
+
+    test("changing a hidden preset's title resets its stats when it is shared again", async () => {
+      const cookie = await signIn()
+      const { preset } = await shareAs(cookie, "old title")
+      await voteAll(preset.id, Array(LIMITS.minVotes).fill(1))
+      await unsharePreset(withCookie(`/api/presets/${preset.id}/unshare`, cookie, { method: "POST", params: { id: String(preset.id) } }))
+      await savedCall(changeSaved, cookie, "PATCH", { code: preset.code, replacement: code([{ text: "new title" }]) })
+      const again = await shareAs(cookie, "new title")
+      assert.equal(again.preset.id, preset.id)
+      assert.equal(again.preset.votes, 0)
+    })
+
+    test("replacing a share with a title that is also saved takes that save's place", async () => {
+      const cookie = await signIn()
+      const { preset } = await shareAs(cookie, "shared title")
+      const copy = saved("saved title")
+      await save(cookie, [copy])
+      const response = await replacePreset(withCookie(`/api/presets/${preset.id}`, cookie, { method: "PUT", body: { code: copy.code, name: "Merged" }, params: { id: String(preset.id) } }))
+      assert.equal(response.status, 200)
+      assert.deepEqual(await savedList(cookie), [{ name: "Merged", code: copy.code, shared: preset.id }])
+    })
+
+    test("a deleted hidden preset's id is never used again", async () => {
+      const cookie = await signIn()
+      const preset = saved("gone")
+      await save(cookie, [preset])
+      const { id } = db.prepare("SELECT id FROM presets").get()
+      await savedCall(removeSaved, cookie, "DELETE", { code: preset.code })
+      await save(cookie, [saved("next")])
+      assert.ok(db.prepare("SELECT id FROM presets").get().id > id)
     })
 
     test("hands back anything damaged, too big or badly named", async () => {
@@ -1829,16 +2006,13 @@ describe("accounts", () => {
       assert.equal((await savedList(cookie)).length, LIMITS.savedPresets)
     })
 
-    test("renames and marks shared, only on that account", async () => {
+    test("renames only on that account", async () => {
       const cookie = await signIn("discord", { id: "1", username: "a" })
       const other = await signIn("discord", { id: "2", username: "b" })
       const preset = saved("one")
       await save(cookie, [preset])
       await savedCall(changeSaved, other, "PATCH", { code: preset.code, name: "stolen" })
       await savedCall(changeSaved, cookie, "PATCH", { code: preset.code, name: " new name " })
-      await savedCall(changeSaved, cookie, "PATCH", { code: preset.code, shared: 9 })
-      assert.deepEqual(await savedList(cookie), [{ name: "new name", code: preset.code, shared: 9 }])
-      await savedCall(changeSaved, cookie, "PATCH", { code: preset.code, shared: null })
       assert.deepEqual(await savedList(cookie), [{ name: "new name", code: preset.code }])
     })
 
@@ -1849,8 +2023,8 @@ describe("accounts", () => {
       await save(cookie, [one, two])
       const after = code([{ text: "after" }])
       await savedCall(changeSaved, other, "PATCH", { code: one.code, replacement: after })
-      assert.equal((await savedCall(changeSaved, cookie, "PATCH", { code: one.code, replacement: after, name: "After", shared: 7 })).status, 200)
-      assert.deepEqual(await savedList(cookie), [{ name: "After", code: after, shared: 7 }, two])
+      assert.equal((await savedCall(changeSaved, cookie, "PATCH", { code: one.code, replacement: after, name: "After" })).status, 200)
+      assert.deepEqual(await savedList(cookie), [{ name: "After", code: after }, two])
       assert.deepEqual((await save(cookie, [{ name: "Again", code: after }])).kept, [])
       assert.equal((await savedList(cookie)).length, 2)
     })
@@ -1882,7 +2056,7 @@ describe("accounts", () => {
       await savedCall(removeSaved, other, "DELETE", { code: preset.code })
       assert.equal((await savedList(cookie)).length, 1)
       await savedCall(removeSaved, cookie, "DELETE", { code: preset.code })
-      assert.deepEqual(rowsEverywhere(), {})
+      assert.deepEqual(rowsEverywhere(), { deleted_presets: 1 })
     })
 
   })

@@ -94,7 +94,7 @@ function withMine(preset) {
   if (!change) return shown
   if (change.name) shown.name = change.name
   if (change.votes !== undefined && preset.votes <= change.votes) Object.assign(shown, { votes: change.votes, rating: change.rating })
-  if (change.code && preset.code !== change.code) Object.assign(shown, { code: change.code, votes: change.votes, rating: change.rating })
+  if (change.code && preset.code !== change.code) Object.assign(shown, { code: change.code, votes: change.votes, rating: change.rating, downloads: 0, ...(preset.week !== undefined && { week: 0 }) })
   const missing = Math.max(0, (change.downloads ?? 0) - preset.downloads)
   shown.downloads += missing
   if (preset.week !== undefined) shown.week += missing
@@ -160,8 +160,10 @@ function showUsage() {
   usage.value = { used: store.usage.used, limit: store.usage.unlimited ? Infinity : LIMITS.perDay, unlimited: !!store.usage.unlimited, resetsAt: Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1) }
 }
 
-export async function sharePublicly(code, name) {
-  const result = await posted("", { code, name, account: !!account.value })
+export async function sharePublicly(code, name, id) {
+  const options = jsonOptions("POST", { code, name, account: !!account.value, ...(id && { id }) })
+  const result = await request("", id ? withToken(id, options) : options)
+  delete store.changes[result.preset.id]
   addOwn([result.preset.id])
   if (result.onAccount) setAccountPresets(store.owned.concat(result.preset.id))
   if (result.token) keepToken(result.preset.id, result.token)
@@ -247,20 +249,23 @@ export async function renameShared(id, name) {
 
 export async function replaceShared(id, code, name) {
   const { preset } = await request(`/${id}`, withToken(id, jsonOptions("PUT", { code, name })))
-  remember(id, { name: preset.name, code: preset.code, votes: preset.votes, rating: preset.rating })
+  remember(id, { name: preset.name, code: preset.code, votes: preset.votes, rating: preset.rating, downloads: preset.downloads })
   delete store.votes[id]
+  store.downloads = store.downloads.filter(item => item !== id)
   forgetLists()
   persist()
   return preset
 }
 
-export async function sharedNames(ids) {
-  const names = {}
-  for (let start = 0; start < ids.length; start += LIMITS.savedPresets) {
-    const stats = await presetStats(ids.slice(start, start + LIMITS.savedPresets))
-    for (const [id, { name }] of Object.entries(stats)) names[id] = name
-  }
-  return names
+export async function unshareShared(id) {
+  const { preset } = await request(`/${id}/unshare`, withToken(id, jsonOptions("POST")))
+  remember(id, { deleted: true })
+  forgetLists()
+  setAccountPresets(store.owned.filter(item => item !== id))
+  store.own = store.own.filter(item => item !== id)
+  ownPresets.value = store.own
+  persist()
+  return preset
 }
 
 export async function deleteShared(id) {
@@ -311,8 +316,8 @@ async function fetchAccount() {
     accountChecked = true
     store.providers = providers
     signInProviders.value = providers
-    setAccount(user)
     if (user) await moveTokensToAccount()
+    setAccount(user)
     if (user || wasSignedIn) await refreshUsage(true)
     if (changed) accountChanges.value++
   } catch (err) {
