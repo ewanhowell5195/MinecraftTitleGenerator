@@ -781,6 +781,26 @@ describe("preset page details", () => {
   })
 })
 
+describe("a preset by fingerprint", () => {
+  async function fetched(fingerprint) {
+    const response = await listPresets(context(`/api/presets?fingerprint=${fingerprint}`))
+    return (await response.json()).presets
+  }
+
+  test("is listed on its own", async () => {
+    await share("dirt")
+    const { id } = await share("stone")
+    const { code: shared, fingerprint } = db.prepare("SELECT code, fingerprint FROM presets WHERE id = ?").get(id)
+    const presets = await fetched(fingerprint)
+    assert.equal(presets.length, 1)
+    assert.equal(presets[0].code, shared)
+  })
+
+  test("lists nothing for an unknown fingerprint", async () => {
+    assert.deepEqual(await fetched("0".repeat(64)), [])
+  })
+})
+
 describe("a single preset", () => {
   async function fetched(id) {
     const response = await getPreset(context(`/api/presets/${id}`, { params: { id: String(id) } }))

@@ -78,7 +78,7 @@ export function checkTitle(code) {
   return facts
 }
 
-function checkWords(label, text) {
+export function checkWords(label, text) {
   if (rude.hasMatch(text)) throw new Refusal(400, `The ${label} has a word in it that isn't allowed.`)
 }
 
@@ -208,6 +208,8 @@ function dayNumber() {
 export const listPresets = guarded(async context => {
   const { request, env } = context
   const url = new URL(request.url)
+  const fingerprint = url.searchParams.get("fingerprint")
+  if (fingerprint !== null) return reply(200, { presets: (await env.DB.prepare(`SELECT ${COLUMNS} FROM presets WHERE fingerprint = ?`).bind(fingerprint).all()).results.map(rated), more: false })
   const sort = url.searchParams.get("sort") ?? "popular"
   if (sort !== "random" && !Object.hasOwn(SORTS, sort)) throw new Refusal(400, "That isn't a way to sort presets.")
   const offset = Number(url.searchParams.get("offset") ?? 0)
