@@ -1,4 +1,4 @@
-import { ref } from "vue"
+import { computed, ref } from "vue"
 import { LIMITS } from "./limits.js"
 import { showNotice } from "./notices.js"
 import { ACCOUNT_CHANNEL, SIGN_IN_RETURN } from "./providers.js"
@@ -22,6 +22,8 @@ export const accountPresets = ref(store.owned)
 export const account = ref(store.account)
 export const signInProviders = ref(store.providers)
 export const accountChanges = ref(0)
+const presetTokens = ref(store.tokens)
+export const managedPresets = computed(() => accountPresets.value.concat(Object.keys(presetTokens.value).map(Number)))
 
 let usageRequest = null
 let accountRequest = null
@@ -29,7 +31,7 @@ let accountChecked = false
 let channel = null
 
 function read() {
-  const empty = { pages: {}, votes: {}, downloads: [], own: [], owned: [], account: null, providers: [], changes: {}, usage: null, pool: null }
+  const empty = { pages: {}, votes: {}, downloads: [], own: [], owned: [], tokens: {}, account: null, providers: [], changes: {}, usage: null, pool: null }
   try {
     return { ...empty, ...JSON.parse(localStorage.getItem(STORAGE)) }
   } catch {
@@ -157,6 +159,7 @@ export async function sharePublicly(code, name) {
   const result = await posted("", { code, name, account: !!account.value })
   addOwn([result.preset.id])
   if (result.onAccount) setAccountPresets(store.owned.concat(result.preset.id))
+  if (result.token) keepToken(result.preset.id, result.token)
   forgetLists()
   store.usage = { ...(store.usage?.day === currentDay() ? store.usage : { used: 0 }), day: currentDay(), used: (store.usage?.day === currentDay() ? store.usage.used : 0) + 1 }
   persist()
@@ -195,8 +198,42 @@ function setAccountPresets(ids) {
   accountPresets.value = ids
 }
 
+function keepToken(id, token) {
+  store.tokens[id] = token
+  presetTokens.value = { ...store.tokens }
+}
+
+function forgetTokens(ids) {
+  for (const id of ids) delete store.tokens[id]
+  presetTokens.value = { ...store.tokens }
+}
+
+function withToken(id, options) {
+  const token = store.tokens[id]
+  return token ? { ...options, headers: { ...options.headers, "X-Preset-Token": token } } : options
+}
+
+async function moveTokensToAccount() {
+  const ids = Object.keys(store.tokens).map(Number)
+  if (!ids.length) return
+  try {
+    let moved = 0
+    for (let start = 0; start < ids.length; start += LIMITS.claimBatch) {
+      const batch = ids.slice(start, start + LIMITS.claimBatch)
+      const reply = await called(`${API}/claim`, jsonOptions("POST", { tokens: batch.map(id => ({ id, token: store.tokens[id] })) }))
+      moved += reply.moved.length
+      forgetTokens(batch)
+    }
+    forgetLists()
+    persist()
+    if (moved) showNotice(`Moved ${moved} shared ${moved === 1 ? "preset" : "presets"} from this browser to your account.`)
+  } catch (err) {
+    console.error(err)
+  }
+}
+
 export async function renameShared(id, name) {
-  const { preset } = await sent("PATCH", `/${id}`, { name })
+  const { preset } = await request(`/${id}`, withToken(id, jsonOptions("PATCH", { name })))
   remember(id, { name: preset.name })
   forgetLists()
   persist()
@@ -204,9 +241,10 @@ export async function renameShared(id, name) {
 }
 
 export async function deleteShared(id) {
-  await request(`/${id}`, { method: "DELETE" })
+  await request(`/${id}`, withToken(id, { method: "DELETE" }))
   remember(id, { deleted: true })
   forgetLists()
+  forgetTokens([id])
   setAccountPresets(store.owned.filter(item => item !== id))
   store.own = store.own.filter(item => item !== id)
   ownPresets.value = store.own
@@ -215,7 +253,7 @@ export async function deleteShared(id) {
 
 function setAccount(user) {
   if (store.account?.id !== user?.id) {
-    store.own = []
+    store.own = Object.keys(store.tokens).map(Number)
     ownPresets.value = store.own
     store.votes = {}
     setAccountPresets([])
@@ -251,6 +289,7 @@ async function fetchAccount() {
     store.providers = providers
     signInProviders.value = providers
     setAccount(user)
+    if (user) await moveTokensToAccount()
     if (user || wasSignedIn) await refreshUsage(true)
     if (changed) accountChanges.value++
   } catch (err) {

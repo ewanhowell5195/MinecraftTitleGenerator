@@ -1,6 +1,6 @@
 import { LIMITS } from "../lib/limits.js"
 import { ACCOUNT_CHANNEL, PROVIDERS, SIGN_IN_RETURN } from "../lib/providers.js"
-import { Refusal, escaped, guarded, hex, reply } from "./http.js"
+import { Refusal, escaped, guarded, hex, randomToken, reply } from "./http.js"
 
 const SESSION_COOKIE = "session"
 const SESSION_PATH = "/api"
@@ -68,10 +68,6 @@ function cookieValue(request, name) {
 
 function cookie(name, value, seconds, path) {
   return `${name}=${value}; Path=${path}; Max-Age=${seconds}; HttpOnly; Secure; SameSite=Lax`
-}
-
-function randomToken() {
-  return hex(crypto.getRandomValues(new Uint8Array(32)))
 }
 
 function sessionKey(env) {

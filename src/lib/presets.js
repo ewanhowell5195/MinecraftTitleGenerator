@@ -199,7 +199,7 @@ export function startSavingPreset() {
 
 export function confirmSharing(name) {
   if (account.value) return confirm(`Share ${name} publicly as ${account.value.name}?\n\nAnyone will be able to see and use this title, and your username will show on it. You can rename or delete it later.`)
-  return confirm(`Share ${name} anonymously?\n\nAnyone will be able to see and use this title. It won't be tied to an account, so you can't edit or remove it after sharing.`)
+  return confirm(`Share ${name} without an account?\n\nAnyone will be able to see and use this title. You can only rename or delete it from this browser. If this browser's saved data is cleared, including automatically, or you use another device or a private window, you lose that access for good.\n\nIf you sign in on this browser later, this title moves to your account and shows your username.`)
 }
 
 export async function sharePreset(preset, name) {

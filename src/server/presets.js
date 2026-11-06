@@ -4,7 +4,7 @@ import { decodeTitle, unknownSetting } from "../lib/linkformat.js"
 import { capitalWords } from "../lib/names.js"
 import { FILE_VERSION, typeDefaults } from "../lib/settings.js"
 import { USER_ROW, forgetUnusedUser, saveUser, signedInUser } from "./accounts.js"
-import { Refusal, escaped, guarded, hashed, jsonBody, reply, textField } from "./http.js"
+import { Refusal, escaped, guarded, hashed, jsonBody, randomToken, reply, textField } from "./http.js"
 
 export { LIMITS }
 
@@ -87,7 +87,7 @@ function presetId(params) {
 }
 
 async function requirePreset(env, id) {
-  const found = await env.DB.prepare("SELECT ip_hash, (SELECT users.provider || ':' || users.provider_id FROM users WHERE users.id = presets.user_id) AS owner FROM presets WHERE id = ?").bind(id).first()
+  const found = await env.DB.prepare("SELECT token_hash, (SELECT users.provider || ':' || users.provider_id FROM users WHERE users.id = presets.user_id) AS owner FROM presets WHERE id = ?").bind(id).first()
   if (!found) throw new Refusal(404, "This preset doesn't exist.")
   return found
 }
@@ -255,13 +255,14 @@ export const submitPreset = guarded(async context => {
   const ip = await hashedIp(context)
   if (await usedToday(env, user, ip) >= LIMITS.perDay && !await hasUnlimitedShares(env, user)) throw new Refusal(429, `You can share up to ${LIMITS.perDay} titles a day. Try again tomorrow.`)
   // sqlite reuses the rowid of a deleted newest row, which would repoint old links and browsers' vote records
+  const token = user ? null : randomToken()
   const results = await env.DB.batch((user ? [saveUser(env, user)] : []).concat(
-    env.DB.prepare(`INSERT INTO presets (id, code, fingerprint, name, text, ip_hash, user_id, created_at) VALUES (MAX(COALESCE((SELECT MAX(id) FROM presets), 0), COALESCE((SELECT MAX(id) FROM deleted_presets), 0)) + 1, ?, ?, ?, ?, ?, ${USER_ROW}, ?) RETURNING ${COLUMNS}`).bind(body.code, fingerprint, name, facts.text, ip, user?.provider ?? null, user?.providerId ?? null, Date.now()),
+    env.DB.prepare(`INSERT INTO presets (id, code, fingerprint, name, text, token_hash, user_id, created_at) VALUES (MAX(COALESCE((SELECT MAX(id) FROM presets), 0), COALESCE((SELECT MAX(id) FROM deleted_presets), 0)) + 1, ?, ?, ?, ?, ?, ${USER_ROW}, ?) RETURNING ${COLUMNS}`).bind(body.code, fingerprint, name, facts.text, token && await hashed(token), user?.provider ?? null, user?.providerId ?? null, Date.now()),
     await countSubmission(env, user, ip),
     forgetOldAccountCounts(env)
   ))
   await forgetCached(request)
-  return reply(201, { preset: rated(results[user ? 1 : 0].results[0]), onAccount: !!user })
+  return reply(201, { preset: rated(results[user ? 1 : 0].results[0]), onAccount: !!user, ...(token && { token }) })
 })
 
 async function forgetCached(request, ...ids) {
@@ -272,10 +273,12 @@ async function forgetCached(request, ...ids) {
 async function ownedPreset(context) {
   const id = presetId(context.params)
   const user = await signedInUser(context)
-  if (!user) throw new Refusal(401, "Sign in to change this preset.")
-  const { owner } = await requirePreset(context.env, id)
-  if (owner !== user.id) throw new Refusal(403, "This preset isn't on your account.")
-  return { id, user }
+  const token = context.request.headers.get("X-Preset-Token")
+  if (!user && !token) throw new Refusal(401, "Sign in to change this preset.")
+  const { owner, token_hash: tokenHash } = await requirePreset(context.env, id)
+  if (user && owner === user.id) return { id, user }
+  if (token && tokenHash && await hashed(token) === tokenHash) return { id, user: null }
+  throw new Refusal(403, "You can't change this preset.")
 }
 
 export const renamePreset = guarded(async context => {
@@ -295,19 +298,32 @@ export const deletePreset = guarded(async context => {
   await env.DB.batch([
     env.DB.prepare("INSERT INTO deleted_presets (id) VALUES (?)").bind(id),
     env.DB.prepare("DELETE FROM presets WHERE id = ?").bind(id),
-    forgetOldAccountCounts(env),
-    forgetUnusedUser(env, user)
-  ])
+    forgetOldAccountCounts(env)
+  ].concat(user ? forgetUnusedUser(env, user) : []))
   await forgetCached(request, id)
   return reply(200, { deleted: true })
+})
+
+export const claimPresets = guarded(async context => {
+  const { request, env } = context
+  const user = await signedInUser(context)
+  if (!user) throw new Refusal(401, "Sign in to move these presets to your account.")
+  checkWords("username", user.name)
+  const { tokens } = await jsonBody(request)
+  if (!Array.isArray(tokens) || tokens.length > LIMITS.claimBatch || tokens.some(item => !Number.isSafeInteger(item?.id) || typeof item.token !== "string")) throw new Refusal(400, "This request isn't valid.")
+  if (!tokens.length) return reply(200, { moved: [] })
+  const claims = await Promise.all(tokens.map(async ({ id, token }) => env.DB.prepare(`UPDATE presets SET user_id = ${USER_ROW}, token_hash = NULL WHERE id = ? AND token_hash = ? RETURNING id`).bind(user.provider, user.providerId, id, await hashed(token))))
+  const results = await env.DB.batch([saveUser(env, user)].concat(claims, forgetUnusedUser(env, user)))
+  const moved = results.slice(1, -1).flatMap(result => result.results.map(row => row.id))
+  await forgetCached(request, ...moved)
+  return reply(200, { moved })
 })
 
 export const submissionUsage = guarded(async context => {
   const user = await signedInUser(context)
   const ip = await hashedIp(context)
   const { env } = context
-  const shared = user ? env.DB.prepare(`SELECT id FROM presets WHERE user_id = ${USER_ROW}`).bind(user.provider, user.providerId) : env.DB.prepare("SELECT id FROM presets WHERE ip_hash = ? AND user_id IS NULL").bind(ip)
-  const ids = (await shared.all()).results.map(preset => preset.id)
+  const ids = user ? (await env.DB.prepare(`SELECT id FROM presets WHERE user_id = ${USER_ROW}`).bind(user.provider, user.providerId).all()).results.map(preset => preset.id) : []
   const votes = (await env.DB.prepare("SELECT preset_id, value FROM preset_votes WHERE ip_hash = ?").bind(user ? await accountHash(env, user) : ip).all()).results
   return reply(200, { used: await usedToday(env, user, ip), limit: LIMITS.perDay, unlimited: await hasUnlimitedShares(env, user), resetsAt: nextDay(), shared: ids, owned: user ? ids : [], votes: Object.fromEntries(votes.map(vote => [vote.preset_id, vote.value])) })
 })
@@ -317,10 +333,10 @@ export const votePreset = guarded(async context => {
   const id = presetId(params)
   const { value } = await jsonBody(request)
   if (value !== 1 && value !== -1) throw new Refusal(400, "That isn't a valid vote.")
-  const { ip_hash: sharedBy, owner } = await requirePreset(env, id)
+  const { owner } = await requirePreset(env, id)
   const ip = await hashedIp(context)
   const user = await signedInUser(context)
-  if (user ? owner === user.id : sharedBy === ip) throw new Refusal(403, "You can't vote on a preset you shared.")
+  if (user && owner === user.id) throw new Refusal(403, "You can't vote on a preset you shared.")
   const voter = user ? await accountHash(env, user) : ip
   const previous = (await env.DB.prepare("SELECT value FROM preset_votes WHERE preset_id = ? AND ip_hash = ?").bind(id, voter).first())?.value ?? 0
   const ups = (value === 1) - (previous === 1)

@@ -10,13 +10,14 @@
 <template>
   <div class="account">
     <template v-if="account">
-      <p>Sharing as <strong :title="providerLabel(account.provider)"><Icon :name="account.provider" :size="14" />{{ account.name }}</strong>. Your username will show on this preset, and you can rename or delete it later. Sign out to share anonymously.</p>
+      <p>Sharing as <strong :title="providerLabel(account.provider)"><Icon :name="account.provider" :size="14" />{{ account.name }}</strong>. Your username will show on this preset, and you can rename or delete it later.</p>
       <div class="buttons">
         <button type="button" @click="signOut">Sign out</button>
       </div>
     </template>
     <template v-else-if="signInProviders.length">
-      <p>Sign in to show your username on this preset and be able to rename or delete it later. Signing in also moves the presets saved in this browser to your account. Without an account it's shared anonymously and can't be edited or removed.</p>
+      <p>Sign in to show your username on this preset and manage it from any device. Without an account, you can only rename or delete it from this browser, and you lose that if this browser's saved data is cleared.</p>
+      <p>Signing in on this browser later moves your saved presets and everything shared from it to your account, with your username showing on them.</p>
       <div class="buttons">
         <button v-for="provider of signInProviders" :key="provider" type="button" @click="signIn(provider)"><Icon :name="provider" :size="16" /><span>Sign in with {{ providerLabel(provider) }}</span></button>
       </div>

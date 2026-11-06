@@ -1,6 +1,6 @@
 <script setup>
   import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, watchEffect } from "vue"
-  import { account, accountChanges, accountPresets, communityPreset, countDownload, deleteShared, listCommunity, ownPresets, randomCommunityPreset, refreshAccount, refreshUsage, renameShared, signInProviders, voteOn } from "../lib/community.js"
+  import { account, accountChanges, communityPreset, countDownload, deleteShared, listCommunity, managedPresets, ownPresets, randomCommunityPreset, refreshAccount, refreshUsage, renameShared, signInProviders, voteOn } from "../lib/community.js"
   import { useWindowEvents } from "../lib/events.js"
   import { LIMITS } from "../lib/limits.js"
   import { notice } from "../lib/notices.js"
@@ -41,7 +41,6 @@
   const term = computed(() => search.value.trim())
   const tooShort = computed(() => tab.value === "community" && term.value.length > 0 && Array.from(term.value).length < LIMITS.searchMinimum)
   const saved = computed(() => new Set(presets.value.map(preset => preset.code)))
-  const sharedByMe = computed(() => new Set(presets.value.map(preset => preset.shared)))
   const localShown = computed(() => presets.value.filter(preset => !!preset.shared === (mineTab.value === "shared") && preset.name.toLowerCase().includes(term.value.toLowerCase())))
   const selectedLocal = computed(() => presets.value.find(preset => preset.code === selectedLocalCode.value) ?? null)
   const selected = computed(() => tab.value === "mine" ? selectedLocal.value : selectedCommunity.value)
@@ -60,8 +59,7 @@
   let observer = null
 
   function isMine(preset) {
-    if (account.value) return accountPresets.value.includes(preset.id)
-    return ownPresets.value.includes(preset.id) || sharedByMe.value.has(preset.id)
+    return ownPresets.value.includes(preset.id)
   }
 
   async function load(offset) {
@@ -305,7 +303,7 @@
           <p v-else-if="tab === 'mine' && presetsError" class="message error">{{ presetsError }}</p>
           <p v-else-if="tab === 'mine' && presetsLoading" class="message">Loading your presets</p>
           <p v-else-if="tab === 'community' ? !results.length && !loading : !localShown.length" class="message">{{ emptyMessage }}</p>
-          <p v-if="tab === 'mine' && !account && signInProviders.length" class="message">Sign in to keep your presets on your account. The presets saved in this browser move to it when you do.</p>
+          <p v-if="tab === 'mine' && !account && signInProviders.length" class="message">Sign in to keep your presets on your account. The presets saved in this browser, and anything shared from it, move to your account when you do.</p>
           <div v-if="tab === 'community'" class="grid">
             <div v-for="preset of results" :key="preset.id" class="card" :class="{ selected: selected?.id === preset.id }" @click="selectCommunity(preset)">
               <TitlePicture :code="preset.code" :title="preset.name" @open="selectCommunity(preset)" />
@@ -329,12 +327,12 @@
           <div ref="sentinel" class="sentinel"></div>
         </div>
       </main>
-      <PresetDetail v-if="selected && tab === 'community'" class="side" :preset="selected" :mine="isMine(selected)" :owned="accountPresets.includes(selected.id)" :saved="saved.has(selected.code)" @close="clearSelection" @open="open(selected)" @save="save(selected)" @vote="vote(selected, $event)" @rename="renameCommunity(selected, $event)" @remove="removeCommunity(selected)" />
+      <PresetDetail v-if="selected && tab === 'community'" class="side" :preset="selected" :mine="isMine(selected)" :owned="managedPresets.includes(selected.id)" :saved="saved.has(selected.code)" @close="clearSelection" @open="open(selected)" @save="save(selected)" @vote="vote(selected, $event)" @rename="renameCommunity(selected, $event)" @remove="removeCommunity(selected)" />
       <PresetDetail v-else-if="selected" class="side" :preset="selected" local @close="clearSelection" @open="open(selected)" @rename="renamePreset(selected, $event)" @remove="remove(selected)" @share="sharing = selected" @view="viewInCommunity(selected.shared)" />
       <aside v-else class="placeholder"><p v-if="tab === 'community' ? results.length : localShown.length">Select a preset to see it here</p></aside>
     </div>
     <SharePresetDialog v-if="sharing" :preset="sharing" @close="sharing = null" @shared="shared" />
-    <DeletePresetDialog v-if="removing" :preset="removing" :can-delete-shared="accountPresets.includes(removing.shared)" @close="removing = null" @delete="confirmRemove" />
+    <DeletePresetDialog v-if="removing" :preset="removing" :can-delete-shared="managedPresets.includes(removing.shared)" @close="removing = null" @delete="confirmRemove" />
     <p v-if="notice" class="notice" role="status">{{ notice }}</p>
   </div>
 </template>

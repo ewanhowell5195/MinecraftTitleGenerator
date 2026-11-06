@@ -1,4 +1,4 @@
-import { beforeEach, describe, mock, test } from "node:test"
+import { afterEach, beforeEach, describe, mock, test } from "node:test"
 import assert from "node:assert/strict"
 
 const stored = new Map()
@@ -677,6 +677,95 @@ describe("accounts", () => {
     await sharePublicly("code", "name")
     assert.equal(usage.value.unlimited, true)
     assert.equal(usage.value.used, 41)
+  })
+
+  describe("tokens", () => {
+    const headers = []
+    const realFetch = globalThis.fetch
+
+    beforeEach(() => {
+      headers.length = 0
+      globalThis.fetch = async (url, options) => {
+        headers.push(options?.headers?.["X-Preset-Token"])
+        return realFetch(url, options)
+      }
+    })
+
+    async function sharedWithoutAccount(module, id = 9, token = "secret") {
+      replies.POST = { status: 201, body: { preset: { id }, onAccount: false, token } }
+      await module.sharePublicly("code", "name")
+      delete replies.POST
+    }
+
+    afterEach(() => {
+      globalThis.fetch = realFetch
+    })
+
+    test("a shared preset keeps its token, marks it yours and survives a reload", async () => {
+      const first = await fresh()
+      await sharedWithoutAccount(first)
+      assert.deepEqual(first.managedPresets.value, [9])
+      assert.deepEqual(first.ownPresets.value, [9])
+      const second = await fresh()
+      assert.deepEqual(second.managedPresets.value, [9])
+    })
+
+    test("renaming and deleting send the token, and deleting forgets it", async () => {
+      const module = await fresh()
+      await sharedWithoutAccount(module)
+      replies.PATCH = { body: { preset: { id: 9, name: "New" } } }
+      await module.renameShared(9, "New")
+      assert.equal(headers.at(-1), "secret")
+      replies.DELETE = { body: { deleted: true } }
+      await module.deleteShared(9)
+      assert.equal(headers.at(-1), "secret")
+      assert.deepEqual(module.managedPresets.value, [])
+    })
+
+    test("a preset without a token sends none", async () => {
+      replies.PATCH = { body: { preset: { id: 3, name: "New" } } }
+      await (await fresh()).renameShared(3, "New")
+      assert.equal(headers.at(-1), undefined)
+    })
+
+    test("signing in moves tokens to the account and forgets them", async () => {
+      const module = await fresh()
+      await sharedWithoutAccount(module)
+      signedIn([9])
+      let sent
+      replies["POST /api/presets/claim"] = { body: { moved: [9] } }
+      const before = globalThis.fetch
+      globalThis.fetch = async (url, options) => {
+        if (url === "/api/presets/claim") sent = JSON.parse(options.body)
+        return before(url, options)
+      }
+      await module.refreshAccount()
+      assert.deepEqual(sent, { tokens: [{ id: 9, token: "secret" }] })
+      assert.deepEqual(module.managedPresets.value, [9])
+      assert.deepEqual(JSON.parse(stored.get("minecraft-title-community")).tokens, {})
+      assert.ok(requests.indexOf("POST /api/presets/claim") < requests.indexOf("GET /api/presets/usage"))
+    })
+
+    test("a failed move keeps the token working while signed in", async () => {
+      const module = await fresh()
+      await sharedWithoutAccount(module)
+      signedIn([])
+      replies["POST /api/presets/claim"] = { status: 500, body: { error: "Nope." } }
+      const logged = mock.method(console, "error", () => {})
+      await module.refreshAccount()
+      logged.mock.restore()
+      assert.deepEqual(module.managedPresets.value, [9])
+      assert.deepEqual(module.ownPresets.value, [9])
+    })
+
+    test("signing out keeps tokens made since", async () => {
+      const module = await fresh()
+      signedOut()
+      await module.refreshAccount()
+      await sharedWithoutAccount(module)
+      await module.refreshAccount(true)
+      assert.deepEqual(module.managedPresets.value, [9])
+    })
   })
 
   test("checking the same account again doesn't count as a change", async () => {

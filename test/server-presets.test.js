@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 import fs from "node:fs"
 import { DatabaseSync } from "node:sqlite"
 
-const { LIMITS, checkTitle, countDownload, deletePreset, getPreset, listPresets, presetPageDetails, renamePreset, submissionUsage, submitPreset, titleFacts, votePreset } = await import("../src/server/presets.js")
+const { LIMITS, checkTitle, claimPresets, countDownload, deletePreset, getPreset, listPresets, presetPageDetails, renamePreset, submissionUsage, submitPreset, titleFacts, votePreset } = await import("../src/server/presets.js")
 const { accountDetails, finishSignIn, receiveSignIn, signOut, startSignIn } = await import("../src/server/accounts.js")
 const { addSaved, changeSaved, listSaved, removeSaved } = await import("../src/server/saved.js")
 const { encodeTitle } = await import("../src/lib/linkformat.js")
@@ -93,6 +93,7 @@ beforeEach(() => {
   sqlite.exec(fs.readFileSync("migrations/0004_votes_by_voter.sql", "utf8"))
   sqlite.exec(fs.readFileSync("migrations/0005_users.sql", "utf8"))
   sqlite.exec(fs.readFileSync("migrations/0006_unlimited_shares.sql", "utf8"))
+  sqlite.exec(fs.readFileSync("migrations/0007_preset_tokens.sql", "utf8"))
   db = sqlite
   env = { DB: d1(sqlite), IP_SALT: "salt", SESSION_SECRET: "session-secret", DISCORD_CLIENT_ID: "discord-id", DISCORD_CLIENT_SECRET: "discord-secret", GITHUB_CLIENT_ID: "github-id", GITHUB_CLIENT_SECRET: "github-secret" }
 })
@@ -478,14 +479,6 @@ describe("voting and rating", () => {
     assert.equal(db.prepare("SELECT COUNT(*) AS rows FROM preset_votes").get().rows, 1)
   })
 
-  test("refuses a vote on a preset you shared, either way", async () => {
-    const { id } = await share("mine", {}, "me")
-    assert.equal((await vote(id, 1, "me")).status, 403)
-    assert.equal((await vote(id, -1, "me")).status, 403)
-    assert.equal(db.prepare("SELECT votes FROM presets WHERE id = ?").get(id).votes, 0)
-    assert.equal(db.prepare("SELECT COUNT(*) AS rows FROM preset_votes").get().rows, 0)
-  })
-
   test("lets everyone else vote on it", async () => {
     const { id } = await share("mine", {}, "me")
     assert.equal((await vote(id, 1, "someone")).votes, 1)
@@ -771,11 +764,10 @@ describe("popular in the last 7 days", () => {
 })
 
 describe("usage", () => {
-  test("lists the presets this IP shared and no one else's", async () => {
-    const mine = await share("mine", {}, "me")
-    await share("theirs", {}, "them")
-    assert.deepEqual((await usageOf("me")).shared, [mine.id])
-    assert.deepEqual((await usageOf("nobody")).shared, [])
+  test("an IP links to no presets", async () => {
+    await share("mine", {}, "me")
+    assert.deepEqual((await usageOf("me")).shared, [])
+    assert.equal(db.prepare("SELECT name FROM pragma_table_info('presets') WHERE name = 'ip_hash'").get(), undefined)
   })
 })
 
@@ -1304,15 +1296,6 @@ describe("accounts", () => {
     assert.deepEqual(usage.shared, [preset.id])
   })
 
-  test("signed out, only anonymous shares link by IP", async () => {
-    const cookie = await signIn()
-    const anonymous = await share("from this ip", {}, "2.2.2.2")
-    await shareAs(cookie, "on the account", {}, "2.2.2.2")
-    const usage = await usageOf("2.2.2.2")
-    assert.deepEqual(usage.shared, [anonymous.id])
-    assert.deepEqual(usage.owned, [])
-  })
-
   test("the owner can't vote from any IP", async () => {
     const cookie = await signIn()
     const { preset } = await shareAs(cookie, "own vote")
@@ -1325,10 +1308,123 @@ describe("accounts", () => {
     assert.equal((await voteAs(cookie, anonymous.id, 1, "2.2.2.2")).status, 200)
   })
 
-  test("signed out, a preset shared from this IP still can't be voted on", async () => {
-    const cookie = await signIn()
-    const { preset } = await shareAs(cookie, "on the account", {}, "2.2.2.2")
-    assert.equal((await vote(preset.id, 1, "2.2.2.2")).status, 403)
+  test("signed out, a vote isn't refused by where the preset was shared from", async () => {
+    const preset = await share("without an account", {}, "2.2.2.2")
+    assert.equal((await vote(preset.id, 1, "2.2.2.2")).status, 200)
+  })
+
+  describe("tokens", () => {
+    function withToken(path, token, options) {
+      const made = context(path, options)
+      made.request = new Request(made.request, { headers: { "CF-Connecting-IP": "9.9.9.9", ...(token && { "X-Preset-Token": token }) } })
+      return made
+    }
+
+    async function shared(text = "managed") {
+      const { preset, token, onAccount } = await post({ code: code([{ text }]) }, "1.1.1.1")
+      return { preset, token, onAccount }
+    }
+
+    async function renameWith(token, id, name = "renamed") {
+      const response = await renamePreset(withToken(`/api/presets/${id}`, token, { method: "PATCH", body: { name }, params: { id: String(id) } }))
+      return { status: response.status, ...await response.json() }
+    }
+
+    async function removeWith(token, id) {
+      return (await deletePreset(withToken(`/api/presets/${id}`, token, { method: "DELETE", params: { id: String(id) } }))).status
+    }
+
+    async function claim(cookie, tokens) {
+      const response = await claimPresets(withCookie("/api/presets/claim", cookie, { method: "POST", body: { tokens } }))
+      return { status: response.status, ...await response.json() }
+    }
+
+    test("sharing without an account returns a token and stores only its hash", async () => {
+      const { token, onAccount, preset } = await shared()
+      assert.match(token, /^[0-9a-f]{64}$/)
+      assert.equal(onAccount, false)
+      const { token_hash: stored } = db.prepare("SELECT token_hash FROM presets WHERE id = ?").get(preset.id)
+      assert.match(stored, /^[0-9a-f]{64}$/)
+      assert.notEqual(stored, token)
+    })
+
+    test("the hash never reaches the public routes", async () => {
+      const { preset } = await shared()
+      assert.equal(JSON.stringify(await list()).includes("token"), false)
+      const single = await getPreset(context(`/api/presets/${preset.id}`, { params: { id: String(preset.id) } }))
+      assert.equal((await single.text()).includes("token"), false)
+    })
+
+    test("sharing on an account makes no token", async () => {
+      const { token, preset } = await shareAs(await signIn(), "on account")
+      assert.equal(token, undefined)
+      assert.equal(db.prepare("SELECT token_hash FROM presets WHERE id = ?").get(preset.id).token_hash, null)
+    })
+
+    test("the token can rename and delete from any IP", async () => {
+      const { token, preset } = await shared()
+      assert.equal((await renameWith(token, preset.id)).preset.name, "renamed")
+      assert.equal(await removeWith(token, preset.id), 200)
+      assert.equal(db.prepare("SELECT COUNT(*) AS total FROM presets").get().total, 0)
+    })
+
+    test("no token or the wrong token can't change it, even from the same IP", async () => {
+      const { preset } = await shared()
+      const other = await shared("other")
+      assert.equal((await renameWith(null, preset.id)).status, 401)
+      assert.equal((await renameWith("wrong", preset.id)).status, 403)
+      assert.equal((await renameWith(other.token, preset.id)).status, 403)
+      assert.equal(await removeWith(other.token, preset.id), 403)
+    })
+
+    test("a token can't change a preset with no token", async () => {
+      const { preset } = await shareAs(await signIn(), "on account")
+      const { token } = await shared()
+      assert.equal((await renameWith(token, preset.id)).status, 403)
+      db.prepare("UPDATE presets SET token_hash = NULL, user_id = NULL").run()
+      assert.equal((await renameWith(token, preset.id)).status, 403)
+    })
+
+    test("deleting with a token doesn't need or touch a user", async () => {
+      const cookie = await signIn()
+      await shareAs(cookie, "stays")
+      const { token, preset } = await shared()
+      await removeWith(token, preset.id)
+      assert.equal(db.prepare("SELECT COUNT(*) AS total FROM users").get().total, 1)
+    })
+
+    test("signing in moves token presets to the account and kills the token", async () => {
+      const cookie = await signIn()
+      const { token, preset } = await shared()
+      const { moved } = await claim(cookie, [{ id: preset.id, token }])
+      assert.deepEqual(moved, [preset.id])
+      const row = db.prepare("SELECT token_hash, user_id FROM presets").get()
+      assert.equal(row.token_hash, null)
+      assert.equal(db.prepare("SELECT name FROM users WHERE id = ?").get(row.user_id).name, "someone")
+      assert.equal((await renameWith(token, preset.id)).status, 403)
+      assert.deepEqual((await usageAs(cookie)).owned, [preset.id])
+      assert.equal((await rename(cookie, preset.id, "mine")).preset.author, "someone")
+    })
+
+    test("a wrong token or a taken preset doesn't move, and leaves no user", async () => {
+      const cookie = await signIn()
+      const { preset } = await shared()
+      assert.deepEqual((await claim(cookie, [{ id: preset.id, token: "wrong" }, { id: 999, token: "none" }])).moved, [])
+      assert.equal(db.prepare("SELECT COUNT(*) AS total FROM users").get().total, 0)
+      assert.notEqual(db.prepare("SELECT token_hash FROM presets").get().token_hash, null)
+    })
+
+    test("moving needs a session, a tidy request and an allowed username", async () => {
+      const { token, preset } = await shared()
+      const tokens = [{ id: preset.id, token }]
+      assert.equal((await claim("session=none", tokens)).status, 401)
+      const cookie = await signIn()
+      assert.equal((await claim(cookie, "nope")).status, 400)
+      assert.equal((await claim(cookie, [{ id: "1", token }])).status, 400)
+      assert.equal((await claim(cookie, Array.from({ length: LIMITS.claimBatch + 1 }, () => tokens[0]))).status, 400)
+      assert.equal((await claim(await signIn("discord", { id: "9", username: "fuck" }), tokens)).status, 400)
+      assert.notEqual(db.prepare("SELECT token_hash FROM presets").get().token_hash, null)
+    })
   })
 
   test("an account has one vote across IPs, and changing it doesn't add another", async () => {
