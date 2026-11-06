@@ -1,6 +1,5 @@
 import { watch } from "vue"
 import * as THREE from "three"
-import { AUTO_BORDER } from "./build.js"
 import { quietly } from "./history.js"
 import { round } from "./maths.js"
 import { editorTitle } from "./scene.js"
@@ -20,7 +19,7 @@ function titleCamera(items, view) {
 function outlinePoint(state, object, box, scale, local, side) {
   const value = { ...state.transform, scale }
   const baked = object.scaleOutline ? value.type : value.type.map((axis, index) => axis * scale[index])
-  const reach = state.built.frame ? AUTO_BORDER : state.built.border
+  const reach = state.built.border
   const point = new THREE.Vector3(...local.map((coordinate, index) => coordinate + side[index] * reach / baked[index]))
   return point.applyMatrix4(placementMatrix(value, box))
 }

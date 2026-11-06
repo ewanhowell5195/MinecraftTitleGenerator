@@ -74,6 +74,7 @@
     "characterSpacing": -4,
     "order": "😳abcdefghijklmnopqrstuvwxyz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣ ",
     "depth": 16,
+    "border": 2,
     "forcedTerminators": true,
     "autoBorder": true,
     "overlay": true
@@ -100,6 +101,7 @@
     "characterSpacing": -4,
     "order": "😳abcdefghijklmnopqrstuvwxyz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣ ",
     "depth": 0,
+    "border": 2,
     "forcedTerminators": true,
     "autoBorder": true,
     "flat": true,

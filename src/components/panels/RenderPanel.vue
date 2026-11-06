@@ -1,9 +1,8 @@
 <script setup>
   import { computed, ref, shallowRef } from "vue"
-  import { AUTO_BORDER } from "../../lib/build.js"
   import { canvasLimit } from "../../lib/canvas.js"
   import { FRAMINGS, MINECRAFT_MODES, framing, framingModified, outlineModified, paddingScale, renderFramed, renderVector, resetFraming, resetOutline, resolutionLimit, setAspect, setResolution, textureSize, textureSizes } from "../../lib/framing.js"
-  import { runtime, scene, titleFileName } from "../../lib/scene.js"
+  import { scene, titleFileName } from "../../lib/scene.js"
   import { submitStats } from "../../lib/stats.js"
   import { download } from "../../lib/ui.js"
   import { DEFAULT_FOV, view } from "../../lib/view.js"
@@ -34,7 +33,7 @@
   })
 
   function toggleOutline(on) {
-    const widths = scene.objects.filter(object => !object.hidden).map(object => runtime[object.id]?.font?.autoBorder ? AUTO_BORDER : object.wordBorder ?? object.border)
+    const widths = scene.objects.filter(object => !object.hidden).map(object => object.wordBorder ?? object.border)
     if (on && widths.length) framing.outlineWidth = Math.round(widths.reduce((sum, width) => sum + width, 0) / widths.length * 10) / 10
     framing.outline = on
   }

@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { AUTO_BORDER, buildHoles, buildOutline, buildText } from "../src/lib/build.js"
+import { buildHoles, buildOutline, buildText } from "../src/lib/build.js"
 
 globalThis.document = { createElement: () => ({ getContext: () => ({ fillRect() {} }) }) }
 
@@ -128,9 +128,9 @@ describe("buildText", () => {
     assert.equal(result.frame, null)
   })
 
-  test("drops the border and builds a frame on an auto border font", () => {
+  test("keeps the border and builds a frame on an auto border font", () => {
     const result = text(two(), { border: 3 }, { autoBorder: true })
-    assert.equal(result.border, 0)
+    assert.equal(result.border, 3)
     assert.deepEqual(result.frame, [[-2, 0, 0, 3], [0, 0, 1, 1], [1, 0, 2, 1]])
   })
 
@@ -210,11 +210,16 @@ describe("buildOutline", () => {
     assert.deepEqual(extents(result.positions), [[-1, 2], [-1, 2], [-3, 3]])
   })
 
-  test("uses the frame and the auto border in place of the boxes", () => {
-    const result = buildOutline(built([[[1, 1], [2, 2]]], { border: 9, frame: [[0, 0, 4, 4]] }), [1, 1, 1])
-    assert.deepEqual(result.rects, [[-AUTO_BORDER, -AUTO_BORDER, 4 + AUTO_BORDER, 4 + AUTO_BORDER]])
-    assert.equal(result.z, 2 + AUTO_BORDER)
+  test("uses the frame in place of the boxes, grown by the border", () => {
+    const result = buildOutline(built([[[1, 1], [2, 2]]], { border: 3, frame: [[0, 0, 4, 4]] }), [1, 1, 1])
+    assert.deepEqual(result.rects, [[-3, -3, 7, 7]])
+    assert.equal(result.z, 5)
     assert.equal(result.triangles, 12)
+  })
+
+  test("builds no frame outline without a border", () => {
+    const result = buildOutline(built([[[1, 1], [2, 2]]], { border: 0, frame: [[0, 0, 4, 4]] }), [1, 1, 1])
+    assert.equal(result.triangles, 0)
   })
 
   test("merges rects that overlap into one solid", () => {

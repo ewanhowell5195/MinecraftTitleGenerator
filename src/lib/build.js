@@ -2,8 +2,6 @@ import { boxFaces, boxesFor } from "./boxes.js"
 import { SPACE } from "./layout.js"
 import { buildAtlas } from "./material.js"
 
-export const AUTO_BORDER = 2
-
 function expand(bounds, faces) {
   for (const face of faces) {
     for (const point of face.points) {
@@ -57,7 +55,7 @@ export function buildText(font, options) {
   const { placed } = options
   if (!placed.length) return null
   const depth = options.depth
-  const border = font.autoBorder ? 0 : options.border
+  const border = options.border
   const bounds = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity }
   const glyphs = []
   for (const item of placed) {
@@ -82,7 +80,7 @@ export function buildText(font, options) {
   const body = glyphs.flatMap(glyph => glyph.body)
   const texture = buildAtlas(body, {
     ...options,
-    outline: border > 0 || !!font.autoBorder,
+    outline: border > 0,
     chars: glyphs.map(glyph => glyph.char),
     rects: glyphs.map(glyph => glyph.rect),
     spaces: glyphs.map(glyph => glyph.spaces),
@@ -129,13 +127,12 @@ function union(rects) {
 
 export function buildOutline(built, scale, extra = [0, 0, 0]) {
   const [sx, sy, sz] = scale
-  const reach = built.frame ? AUTO_BORDER : built.border
-  const [rx, ry, rz] = extra.map(value => reach + value)
+  const [rx, ry, rz] = extra.map(value => built.border + value)
   const sources = built.frame ?? built.boxes.map(([from, to]) => [from[0], from[1], to[0], to[1]])
   const rects = sources.map(([x0, y0, x1, y1]) => [x0 * sx - rx, y0 * sy - ry, x1 * sx + rx, y1 * sy + ry])
   const z = sz * built.depth / 2 + rz
   const positions = []
-  for (const face of built.frame || rx > 0 ? boxFaces(union(rects), -z, z) : []) {
+  for (const face of rx > 0 ? boxFaces(union(rects), -z, z) : []) {
     for (const index of [0, 1, 2, 0, 2, 3]) positions.push(...face.points[index])
   }
   const uvs = new Float32Array(positions.length / 3 * 2)
