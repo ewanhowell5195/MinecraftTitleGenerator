@@ -12,6 +12,7 @@
     local: { type: Boolean, default: false },
     mine: { type: Boolean, default: false },
     owned: { type: Boolean, default: false },
+    stats: { type: Object, default: null },
     saved: { type: Boolean, default: false }
   })
 
@@ -30,13 +31,14 @@
     }
   }
 
+  const figures = computed(() => props.local ? props.stats : props.preset)
   const uses = computed(() => {
-    const { downloads, week } = props.preset
+    const { downloads, week } = figures.value
     if (!downloads) return "Not used yet"
     const total = `${downloads} ${downloads === 1 ? "use" : "uses"} in total`
     return week === undefined ? total : `${total}, ${week || "none"} in the last 7 days`
   })
-  const sharedOn = computed(() => new Date(props.preset.createdAt).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" }))
+  const sharedOn = computed(() => new Date(figures.value.createdAt).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" }))
 
   function finishRenaming(event) {
     if (!renaming.value) return
@@ -84,9 +86,9 @@
         <span v-if="local && preset.shared" class="yours">Shared publicly</span>
         <span v-else-if="mine" class="yours">Shared by you</span>
       </div>
-      <template v-if="!local">
-        <PresetRating :rating="preset.rating" :votes="preset.votes" :mine="preset.vote" :own="mine" @vote="emit('vote', $event)" />
-        <p class="facts"><span>{{ uses }}</span><span>Shared {{ sharedOn }}</span><span v-if="preset.author" class="author" :title="providerLabel(preset.authorProvider)">By <Icon :name="preset.authorProvider" :size="14" /><strong>{{ preset.author }}</strong></span></p>
+      <template v-if="figures">
+        <PresetRating :rating="figures.rating" :votes="figures.votes" :mine="preset.vote" :own="mine || local" @vote="emit('vote', $event)" />
+        <p class="facts"><span>{{ uses }}</span><span>Shared {{ sharedOn }}</span><span v-if="figures.author" class="author" :title="providerLabel(figures.authorProvider)">By <Icon :name="figures.authorProvider" :size="14" /><strong>{{ figures.author }}</strong></span></p>
       </template>
       <div class="actions">
         <button class="primary" @click="emit('open')">Open in editor</button>

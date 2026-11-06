@@ -15,7 +15,8 @@ const DAY = 86400000
 const WEEK_DAYS = 7
 const SITE_NAME = "Minecraft Title Generator"
 const FIRST_PAGES = ["week", "popular", "top", "new", "needs"].map(sort => `?sort=${sort}&offset=0`)
-const COLUMNS = "id, code, name, text, downloads, votes, rating, created_at AS createdAt, (SELECT users.name FROM users WHERE users.id = presets.user_id) AS author, (SELECT users.provider FROM users WHERE users.id = presets.user_id) AS authorProvider"
+const STAT_COLUMNS = "downloads, votes, rating, created_at AS createdAt, (SELECT users.name FROM users WHERE users.id = presets.user_id) AS author, (SELECT users.provider FROM users WHERE users.id = presets.user_id) AS authorProvider"
+const COLUMNS = `id, code, name, text, ${STAT_COLUMNS}`
 
 const rude = new RegExpMatcher({ ...englishDataset.build(), ...englishRecommendedTransformers })
 
@@ -302,6 +303,14 @@ export const deletePreset = guarded(async context => {
   ].concat(user ? forgetUnusedUser(env, user) : []))
   await forgetCached(request, id)
   return reply(200, { deleted: true })
+})
+
+export const presetStats = guarded(async ({ request, env }) => {
+  const ids = (new URL(request.url).searchParams.get("ids") ?? "").split(",").filter(Boolean).map(Number)
+  if (ids.length > LIMITS.savedPresets || ids.some(id => !Number.isSafeInteger(id) || id < 1)) throw new Refusal(400, "This request isn't valid.")
+  if (!ids.length) return reply(200, { stats: {} })
+  const { results } = await env.DB.prepare(`SELECT id, ${STAT_COLUMNS} FROM presets WHERE id IN (${ids.join(", ")})`).all()
+  return reply(200, { stats: Object.fromEntries(results.map(row => [row.id, rated(row)])) })
 })
 
 export const claimPresets = guarded(async context => {

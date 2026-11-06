@@ -127,6 +127,10 @@ export async function listCommunity({ sort, search, offset }) {
   return { presets: presets.map(withMine), more: page.more, next: offset + page.presets.length }
 }
 
+export async function presetStats(ids) {
+  return (await request(`/stats?ids=${ids.join(",")}`)).stats
+}
+
 export async function communityPreset(id) {
   if (currentChange(id)?.deleted) throw Object.assign(new Error("This preset doesn't exist."), { status: 404 })
   for (const page of Object.values(store.pages).concat(store.pool ?? [])) {

@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 import fs from "node:fs"
 import { DatabaseSync } from "node:sqlite"
 
-const { LIMITS, checkTitle, claimPresets, countDownload, deletePreset, getPreset, listPresets, presetPageDetails, renamePreset, submissionUsage, submitPreset, titleFacts, votePreset } = await import("../src/server/presets.js")
+const { LIMITS, checkTitle, claimPresets, countDownload, deletePreset, getPreset, listPresets, presetPageDetails, presetStats, renamePreset, submissionUsage, submitPreset, titleFacts, votePreset } = await import("../src/server/presets.js")
 const { accountDetails, finishSignIn, receiveSignIn, signOut, startSignIn } = await import("../src/server/accounts.js")
 const { addSaved, changeSaved, listSaved, removeSaved } = await import("../src/server/saved.js")
 const { encodeTitle } = await import("../src/lib/linkformat.js")
@@ -823,6 +823,46 @@ describe("sharing and the edge cache", () => {
     } finally {
       delete globalThis.caches
     }
+  })
+})
+
+describe("preset stats", () => {
+  async function statsOf(ids) {
+    const response = await presetStats(context(`/api/presets/stats?ids=${ids}`))
+    return { status: response.status, ...await response.json() }
+  }
+
+  test("returns the figures for each id, without the title", async () => {
+    const first = await share("first")
+    const second = await share("second")
+    await download(first.id, "someone")
+    const { stats } = await statsOf(`${first.id},${second.id}`)
+    assert.equal(stats[first.id].downloads, 1)
+    assert.equal(stats[first.id].rating, null)
+    assert.equal(stats[second.id].downloads, 0)
+    assert.equal(stats[first.id].code, undefined)
+    assert.equal(stats[first.id].createdAt, first.createdAt)
+  })
+
+  test("a rating shows once there are enough votes", async () => {
+    const { id } = await share("rated")
+    await voteAll(id, Array(LIMITS.minVotes).fill(1))
+    assert.equal((await statsOf(id)).stats[id].rating, 5)
+  })
+
+  test("leaves out a preset that no longer exists", async () => {
+    const { id } = await share("here")
+    assert.deepEqual(Object.keys((await statsOf(`${id},999`)).stats), [String(id)])
+  })
+
+  test("no ids is an empty answer", async () => {
+    assert.deepEqual((await statsOf("")).stats, {})
+  })
+
+  test("refuses bad ids and too many", async () => {
+    assert.equal((await statsOf("1,abc")).status, 400)
+    assert.equal((await statsOf("1) OR (1=1")).status, 400)
+    assert.equal((await statsOf(Array.from({ length: LIMITS.savedPresets + 1 }, (_, index) => index + 1).join(","))).status, 400)
   })
 })
 

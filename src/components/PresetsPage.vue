@@ -1,6 +1,6 @@
 <script setup>
   import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, watchEffect } from "vue"
-  import { account, accountChanges, communityPreset, countDownload, deleteShared, listCommunity, managedPresets, ownPresets, randomCommunityPreset, refreshAccount, refreshUsage, renameShared, signInProviders, voteOn } from "../lib/community.js"
+  import { account, accountChanges, communityPreset, countDownload, deleteShared, listCommunity, managedPresets, ownPresets, presetStats, randomCommunityPreset, refreshAccount, refreshUsage, renameShared, signInProviders, voteOn } from "../lib/community.js"
   import { useWindowEvents } from "../lib/events.js"
   import { LIMITS } from "../lib/limits.js"
   import { notice } from "../lib/notices.js"
@@ -18,7 +18,6 @@
   import TitlePicture from "./TitlePicture.vue"
 
   const TABS = [{ value: "community", label: "Community" }, { value: "mine", label: "My presets" }]
-  const MINE_TABS = [{ value: "saved", label: "Saved" }, { value: "shared", label: "Shared publicly" }]
   const SORTS = [{ value: "week", label: "Popular this week" }, { value: "popular", label: "Popular all time" }, { value: "top", label: "Top rated" }, { value: "new", label: "Newest" }, { value: "needs", label: "Needs votes" }]
   const SEARCH_DELAY = 500
   const EDITOR_TITLE = "Minecraft Title Generator"
@@ -34,22 +33,20 @@
   const sentinel = ref(null)
   const sharing = ref(null)
   const removing = ref(null)
-  const mineTab = ref("saved")
+  const stats = ref({})
   const selectedCommunity = ref(null)
   const selectedLocalCode = ref(null)
 
   const term = computed(() => search.value.trim())
   const tooShort = computed(() => tab.value === "community" && term.value.length > 0 && Array.from(term.value).length < LIMITS.searchMinimum)
   const saved = computed(() => new Set(presets.value.map(preset => preset.code)))
-  const localShown = computed(() => presets.value.filter(preset => !!preset.shared === (mineTab.value === "shared") && preset.name.toLowerCase().includes(term.value.toLowerCase())))
+  const localShown = computed(() => presets.value.filter(preset => preset.name.toLowerCase().includes(term.value.toLowerCase())))
+  const localGroups = computed(() => [{ label: "Shared", presets: localShown.value.filter(preset => preset.shared) }, { label: "Local", presets: localShown.value.filter(preset => !preset.shared) }].filter(group => group.presets.length))
+  const sharedIds = computed(() => presets.value.filter(preset => preset.shared).map(preset => preset.shared).join(","))
   const selectedLocal = computed(() => presets.value.find(preset => preset.code === selectedLocalCode.value) ?? null)
   const selected = computed(() => tab.value === "mine" ? selectedLocal.value : selectedCommunity.value)
   const emptyMessage = computed(() => {
-    if (tab.value === "mine") {
-      if (term.value) return "None of your presets match this search."
-      if (mineTab.value === "shared") return "None of your presets are shared yet. Open one in Saved to share it."
-      return presets.value.length ? "All of your presets are shared." : "You have no presets yet. Use File > Save preset to save the current title here."
-    }
+    if (tab.value === "mine") return term.value ? "None of your presets match this search." : "You have no presets yet. Use File > Save preset to save the current title here."
     if (term.value) return "No presets match this search."
     return sort.value === "needs" ? "You have voted on everything that needs votes. Thank you!" : "Nobody has shared a preset yet. Be the first from My presets!"
   })
@@ -108,6 +105,15 @@
       if (err.status === 404) unmarkShared(id)
       error.value = err.message
       clearSelection()
+    }
+  }
+
+  async function loadStats() {
+    if (tab.value !== "mine" || !sharedIds.value) return
+    try {
+      stats.value = await presetStats(sharedIds.value.split(","))
+    } catch (err) {
+      console.error(err)
     }
   }
 
@@ -234,7 +240,7 @@
     }
   })
   watch(sort, () => load(0))
-  watch(mineTab, () => selectedLocalCode.value = null)
+  watch([tab, sharedIds], loadStats, { immediate: true })
   watch(accountChanges, () => {
     if (tab.value === "community") load(0)
   })
@@ -294,9 +300,7 @@
           <template v-if="tab === 'community'">
             <Dropdown class="sort" :options="SORTS" v-model="sort" />
             <button class="random" title="Show a random community preset" @click="openRandom"><Icon name="dice" :size="16" /><span>Random</span></button>
-          </template>
-          <Segments v-else class="mine-tabs" :options="MINE_TABS" v-model="mineTab" />
-        </div>
+          </template>        </div>
         <div class="list">
           <p v-if="tooShort" class="message">Keep typing to search.</p>
           <p v-else-if="error" class="message error">{{ error }}</p>
@@ -314,21 +318,30 @@
               </div>
             </div>
           </div>
-          <div v-else class="grid">
-            <div v-for="preset of localShown" :key="preset.code" class="card" :class="{ selected: selectedLocalCode === preset.code }" @click="selectedLocalCode = preset.code">
-              <TitlePicture :code="preset.code" :title="preset.name" @open="selectedLocalCode = preset.code" />
-              <div class="details">
-                <strong :title="preset.name">{{ preset.name }}</strong>
-                <span v-if="preset.inBrowser" class="browser" title="Your account is full, so this is only saved in this browser">This browser only</span>
+          <template v-else>
+            <section v-for="group of localGroups" :key="group.label" class="group">
+              <h2>{{ group.label }}</h2>
+              <div class="grid">
+                <div v-for="preset of group.presets" :key="preset.code" class="card" :class="{ selected: selectedLocalCode === preset.code }" @click="selectedLocalCode = preset.code">
+                  <TitlePicture :code="preset.code" :title="preset.name" @open="selectedLocalCode = preset.code" />
+                  <div class="details">
+                    <strong :title="preset.name">{{ preset.name }}</strong>
+                    <span v-if="preset.inBrowser" class="browser" title="Your account is full, so this is only saved in this browser">This browser only</span>
+                    <span v-if="stats[preset.shared]" class="stats">
+                      <span title="Uses"><Icon name="download" :size="13" />{{ stats[preset.shared].downloads }}</span>
+                      <span v-if="stats[preset.shared].rating !== null" title="Rating"><Icon name="star" :size="13" />{{ stats[preset.shared].rating.toFixed(1) }}</span>
+                    </span>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            </section>
+          </template>
           <p v-if="tab === 'community' && loading" class="message loading">Loading presets</p>
           <div ref="sentinel" class="sentinel"></div>
         </div>
       </main>
       <PresetDetail v-if="selected && tab === 'community'" class="side" :preset="selected" :mine="isMine(selected)" :owned="managedPresets.includes(selected.id)" :saved="saved.has(selected.code)" @close="clearSelection" @open="open(selected)" @save="save(selected)" @vote="vote(selected, $event)" @rename="renameCommunity(selected, $event)" @remove="removeCommunity(selected)" />
-      <PresetDetail v-else-if="selected" class="side" :preset="selected" local @close="clearSelection" @open="open(selected)" @rename="renamePreset(selected, $event)" @remove="remove(selected)" @share="sharing = selected" @view="viewInCommunity(selected.shared)" />
+      <PresetDetail v-else-if="selected" class="side" :preset="selected" :stats="stats[selected.shared]" local @close="clearSelection" @open="open(selected)" @rename="renamePreset(selected, $event)" @remove="remove(selected)" @share="sharing = selected" @view="viewInCommunity(selected.shared)" />
       <aside v-else class="placeholder"><p v-if="tab === 'community' ? results.length : localShown.length">Select a preset to see it here</p></aside>
     </div>
     <SharePresetDialog v-if="sharing" :preset="sharing" @close="sharing = null" @shared="shared" />
@@ -435,11 +448,6 @@
     height: 100%;
   }
 
-  .mine-tabs {
-    flex: none;
-    width: 260px;
-  }
-
   .random {
     display: flex;
     flex: none;
@@ -473,6 +481,16 @@
 
   .message.loading {
     margin: 12px 0 0;
+  }
+
+  .group + .group {
+    margin-top: 24px;
+  }
+
+  h2 {
+    margin: 0 0 10px;
+    font-size: var(--font-lg);
+    font-weight: 600;
   }
 
   .grid {
@@ -518,6 +536,20 @@
   .browser {
     flex: none;
     color: var(--muted);
+  }
+
+  .stats {
+    display: flex;
+    flex: none;
+    gap: 10px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stats span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
   }
 
   .author {
@@ -575,8 +607,7 @@
       flex-basis: 100%;
     }
 
-    .sort,
-    .mine-tabs {
+    .sort {
       flex: 1;
       width: auto;
     }
