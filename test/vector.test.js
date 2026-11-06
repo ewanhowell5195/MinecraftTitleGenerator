@@ -2,11 +2,16 @@ import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import * as THREE from "three"
 import { composeVector, vectorTitle } from "../src/lib/vector.js"
+import { mergedByFill, unionOf } from "../src/lib/vectorPaths.js"
 
 const RED = [255, 0, 0]
 const GREEN = [0, 255, 0]
 const BLUE = [0, 0, 255]
 const YELLOW = [255, 255, 0]
+
+function clampUnit(value) {
+  return Math.min(1, Math.max(0, value))
+}
 
 function close(actual, expected, tolerance = 1e-6) {
   assert.ok(Math.abs(actual - expected) <= tolerance, `${actual} is not within ${tolerance} of ${expected}`)
@@ -59,7 +64,33 @@ function titleOf(...meshes) {
 }
 
 function polygonsOf(d) {
-  return d.split("Z").filter(Boolean).map(part => part.slice(1).split("L").map(point => point.split(" ").map(Number)))
+  const polygons = []
+  let x = 0
+  let y = 0
+  for (const [, command, values] of d.matchAll(/([MmLlHhVvZz])([^MmLlHhVvZz]*)/g)) {
+    if (command === "z" || command === "Z") {
+      x = polygons.at(-1)[0][0]
+      y = polygons.at(-1)[0][1]
+      continue
+    }
+    const numbers = Array.from(values.matchAll(/-?(?:\d+\.?\d*|\.\d+)/g), match => Number(match[0]))
+    if (command === "h" || command === "v") {
+      for (const value of numbers) {
+        if (command === "h") x = Math.round((x + value) * 100) / 100
+        else y = Math.round((y + value) * 100) / 100
+        polygons.at(-1).push([x, y])
+      }
+      continue
+    }
+    for (let index = 0; index < numbers.length; index += 2) {
+      const relative = command === command.toLowerCase()
+      x = Math.round(((relative ? x : 0) + numbers[index]) * 100) / 100
+      y = Math.round(((relative ? y : 0) + numbers[index + 1]) * 100) / 100
+      if ((command === "M" || command === "m") && index === 0) polygons.push([])
+      polygons.at(-1).push([x, y])
+    }
+  }
+  return polygons
 }
 
 function pathsOf(markup) {
@@ -265,8 +296,146 @@ describe("vectorTitle colours", () => {
 
   test("the base stops short of an outer edge a layer runs along", () => {
     const { markup } = titleOf(whole(textureOf(16, 16, (x, y) => y < 4 ? BLUE : RED)))
-    assert.deepEqual(boundsOf(pathsFilled(markup, "#ff0000")[0].polygons), { left: 0, right: 64, top: 4, bottom: 64 })
+    assert.deepEqual(boundsOf(pathsFilled(markup, "#ff0000")[0].polygons), { left: 0, right: 64, top: 12, bottom: 64 })
     assert.deepEqual(boundsOf(pathsFilled(markup, "#0000ff")[0].polygons), { left: 0, right: 64, top: 0, bottom: 16 })
+  })
+
+  test("a base with gaps stops one texel under the shape around it", () => {
+    const { markup } = titleOf(whole(textureOf(32, 32, (x, y) => {
+      if (x < 2 || y < 2 || x >= 30 || y >= 30) return [0, 0, 0, 0]
+      return x < 6 || y < 6 || x >= 26 || y >= 26 ? [0, 200, 0] : RED
+    })))
+    assert.deepEqual(boundsOf(pathsFilled(markup, "#ff0000")[0].polygons), { left: 6, right: 50, top: 6, bottom: 50 })
+  })
+
+  test("the part of an edge a later shape covers is simplified", () => {
+    const stairs = [[8, 20, 60], [20, 32, 48], [32, 44, 60], [44, 56, 48]].map(([left, right, top]) => ({ left, right, bottom: 0, top }))
+    const { markup } = titleOf(plain(stairs, 0x000000), plain([{ left: 0, right: 64, bottom: 24, top: 64 }], 0xff0000))
+    const [black] = pathsFilled(markup, "#000000")[0].polygons
+    assert.ok(black.length <= 6, `${black.length} points`)
+    const { left, right, bottom } = boundsOf([black])
+    assert.deepEqual({ left, right, bottom }, { left: 8, right: 56, bottom: 64 })
+  })
+
+  test("a base joins the same colour on another face when nothing lands between them", () => {
+    const uv = (left, right) => [left / 64, 0, right / 64, 1]
+    const texture = textureOf(64, 64, (x, y) => {
+      if (x < 24) return x >= 8 && x < 16 && y >= 8 && y < 24 ? YELLOW : BLUE
+      return x >= 40 && (x < 48 || y < 32) ? BLUE : RED
+    })
+    const faces = [{ left: 0, right: 24, bottom: 0, top: 64, uv: uv(0, 24) }, { left: 40, right: 64, bottom: 0, top: 64, uv: uv(40, 64) }]
+    const { markup } = titleOf(meshOf(faces, new THREE.MeshBasicMaterial({ map: texture })))
+    assert.equal(pathsFilled(markup, "#0000ff").length, 1)
+  })
+
+  test("a touching outline stops a colour extending along a side, not at a corner", () => {
+    const { markup } = titleOf(whole(textureOf(16, 16, (x, y) => {
+      if (x >= 8 && y >= 8) return [0, 200, 0]
+      if (x < 8 && y >= 8) return [0, 170, 0]
+      if (x < 8) return [0, 140, 0]
+      return RED
+    })))
+    const [first] = pathsFilled(markup, "#00c800")[0].polygons
+    assert.ok(first.length <= 6, `${first.length} points`)
+  })
+
+  test("faces of the colour of the mesh below join it", () => {
+    const { markup } = titleOf(plain([{ left: 0, right: 64, bottom: 0, top: 64 }], 0x0000ff), plain([{ left: 8, right: 24, bottom: 8, top: 24 }], 0x0000ff), plain([{ left: 32, right: 48, bottom: 32, top: 48 }], 0xff0000))
+    assert.equal(pathsFilled(markup, "#0000ff").length, 1)
+  })
+
+  test("a loop inside its own colour is left out", () => {
+    const { markup } = titleOf(plain([{ left: 0, right: 64, bottom: 0, top: 64 }, { left: 16, right: 48, bottom: 16, top: 48 }], 0x0000ff))
+    const polygons = pathsFilled(markup, "#0000ff").flatMap(path => path.polygons)
+    assert.equal(polygons.length, 1)
+    assert.equal(polygons[0].length, 4)
+  })
+
+  test("two overlapping loops of a colour keep everything they fill", () => {
+    const { markup } = titleOf(plain([{ left: 0, right: 40, bottom: 0, top: 64 }, { left: 24, right: 64, bottom: 0, top: 64 }], 0x0000ff))
+    assert.deepEqual(boundsOf(pathsFilled(markup, "#0000ff").flatMap(path => path.polygons)), { left: 0, right: 64, top: 0, bottom: 64 })
+  })
+
+  test("identical gradients on separate faces share one definition", () => {
+    const uv = (left, right) => [left / 64, 0, right / 64, 1]
+    const faces = [{ left: 0, right: 24, bottom: 0, top: 64, uv: uv(0, 24) }, { left: 40, right: 64, bottom: 0, top: 64, uv: uv(40, 64) }]
+    const { markup } = titleOf(meshOf(faces, new THREE.MeshBasicMaterial({ map: textureOf(64, 64, (x, y) => [y * 4, 0, 0]) })))
+    assert.equal(gradientsOf(markup).length, 1)
+    assert.equal(pathsOf(markup).length, 1)
+  })
+
+  test("a block extends under a neighbour that only touches an earlier colour close to it", () => {
+    const { markup } = titleOf(whole(textureOf(16, 16, (x, y) => {
+      if (x < 6 && y >= 4 && y < 12) return [0, 180, 0]
+      if (x >= 6 && x < 12 && y >= 4 && y < 12) return [0, 100, 0]
+      return y < 4 && x < 12 ? [0, 190, 0] : [0, 60, 200]
+    })))
+    const [first] = pathsFilled(markup, "#00b400")[0].polygons
+    assert.ok(first.length <= 6, `${first.length} points`)
+  })
+
+  test("a shape a later one covers completely is left out", () => {
+    const { markup } = titleOf(plain([{ left: 16, right: 48, bottom: 16, top: 48 }], 0x0000ff), plain([{ left: 0, right: 64, bottom: 0, top: 64 }], 0xff0000))
+    assert.equal(pathsFilled(markup, "#0000ff").length, 0)
+  })
+
+  test("a shape stays where a later one only partly covers it", () => {
+    const { markup } = titleOf(plain([{ left: 16, right: 48, bottom: 16, top: 48 }], 0x0000ff), plain([{ left: 0, right: 32, bottom: 0, top: 64 }], 0xff0000))
+    assert.equal(boundsOf(pathsFilled(markup, "#0000ff")[0].polygons).right, 48)
+  })
+
+  test("a dithered ramp inside a hard edged block is one gradient, not a shape per colour", () => {
+    const { markup } = titleOf(whole(textureOf(32, 64, (x, y) => x >= 8 && x < 16 && y >= 16 && y < 48 ? [20, 40 + (y - 16) * 2 + x % 2, 80] : RED)))
+    assert.equal(gradientsOf(markup).length, 1)
+    assert.equal(pathsOf(markup).length, 2)
+  })
+
+  test("flat colours a level apart join the more common one", () => {
+    const { markup } = titleOf(whole(textureOf(32, 32, (x, y) => {
+      if (x >= 8 && x < 12 && y >= 8 && y < 16) return [20, 101, 80]
+      return x >= 12 && x < 24 && y >= 8 && y < 16 ? [20, 100, 80] : RED
+    })))
+    assert.ok(!markup.includes("linearGradient"))
+    assert.equal(pathsFilled(markup, "#146450").length, 1)
+    assert.equal(pathsFilled(markup, "#146550").length, 0)
+  })
+
+  test("flat colours further apart than the merge stay apart", () => {
+    const { markup } = titleOf(whole(textureOf(32, 32, (x, y) => {
+      if (x >= 8 && x < 12 && y >= 8 && y < 16) return [20, 110, 80]
+      return x >= 12 && x < 24 && y >= 8 && y < 16 ? [20, 100, 80] : RED
+    })))
+    assert.equal(pathsFilled(markup, "#146450").length, 1)
+    assert.equal(pathsFilled(markup, "#146e50").length, 1)
+  })
+
+  test("a colour only runs under a diagonal neighbour to fill a corner", () => {
+    const { markup } = titleOf(whole(textureOf(16, 16, (x, y) => {
+      if (x >= 2 && x < 6 && y >= 6 && y < 14) return [0, 200, 0]
+      if (x >= 6 && x < 10 && y >= 2 && y < 10) return [0, 170, 0]
+      return RED
+    })))
+    const [first] = pathsFilled(markup, "#00aa00")[0].polygons
+    assert.deepEqual(first.filter(([x]) => x < 24).map(([, y]) => y).sort((a, b) => a - b), [24, 40])
+  })
+
+  test("a lone texel beside a flat colour keeps its own colour", () => {
+    const { markup } = titleOf(whole(textureOf(32, 32, (x, y) => {
+      if (x === 12 && y === 12) return [24, 104, 84]
+      return x >= 8 && x < 16 && y >= 8 && y < 16 ? [20, 100, 80] : RED
+    })))
+    assert.equal(pathsFilled(markup, "#186854").length, 1)
+  })
+
+  test("stepped pixels that do not ramp one way stay pixels", () => {
+    const steps = [0, 2, 0, 2, 0, 2, 0, 2]
+    const { markup } = titleOf(whole(textureOf(64, 64, (x, y) => x >= 16 && x < 32 && y >= 16 && y < 48 ? [20, 100 + steps[y >> 2 & 7], 80] : RED)))
+    assert.ok(!markup.includes("linearGradient"))
+  })
+
+  test("a block of one colour is flat even when it fits along an axis", () => {
+    const { markup } = titleOf(whole(textureOf(32, 32, (x, y) => x >= 8 && x < 24 && y >= 8 && y < 24 ? BLUE : RED)))
+    assert.ok(!markup.includes("linearGradient"))
   })
 })
 
@@ -324,10 +493,361 @@ describe("vectorTitle gradient smoothing", () => {
     const texture = bandsDown(64, 4, band => band * 8)
     const mesh = meshOf([{ left: 0, right: 64, bottom: 32, top: 64, uv: [0, 0.5, 1, 1] }, { left: 0, right: 64, bottom: 0, top: 32, uv: [0, 0, 1, 0.5] }], new THREE.MeshBasicMaterial({ map: texture }))
     const gradients = gradientsOf(titleOf(mesh).markup)
+    assert.equal(gradients.length, 1)
+    assert.deepEqual([gradients[0].y1, gradients[0].y2], [0, 64])
+  })
+
+  test("gradients of different colours on one axis stay apart", () => {
+    const uv = (left, right) => [left / 64, 0, right / 64, 1]
+    const texture = textureOf(64, 64, (x, y) => x < 24 ? [y * 4, 0, 0] : [0, y * 4, 0])
+    const faces = [{ left: 0, right: 24, bottom: 0, top: 64, uv: uv(0, 24) }, { left: 40, right: 64, bottom: 0, top: 64, uv: uv(40, 64) }]
+    assert.equal(gradientsOf(titleOf(meshOf(faces, new THREE.MeshBasicMaterial({ map: texture }))).markup).length, 2)
+  })
+})
+
+describe("vectorTitle gradients it was told about", () => {
+  const FACE = { left: 0, top: 0, right: 64, bottom: 64, from: [0, 0], to: [40, 20] }
+  const LENGTH = Math.hypot(40, 20)
+  const STOPS = [{ position: 0, colour: 0x000080 }, { position: 0.5, colour: 0x000080 }, { position: 0.5, colour: 0x00ff00 }, { position: 1, colour: 0x00ff00 }]
+
+  function tAt(x, y) {
+    return ((x + 0.5) * 40 + (y + 0.5) * 20) / LENGTH / LENGTH
+  }
+
+  function bands(x, y) {
+    return tAt(x, y) < 0.5 ? [128, 0, 0] : [0, 255, 0]
+  }
+
+  function told(pixel, labels) {
+    const texture = textureOf(64, 64, pixel)
+    texture.userData.gradient = { faces: [{ ...FACE, stops: STOPS }] }
+    if (labels) texture.userData.labels = labels
+    return titleOf(whole(texture)).markup
+  }
+
+  function hardEdges(gradient) {
+    return gradient.stops.filter((stop, index) => index && stop.offset === gradient.stops[index - 1].offset).length
+  }
+
+  function edgeOffsets(polygons) {
+    const offsets = []
+    for (const polygon of polygons) {
+      for (const [x, y] of polygon) {
+        if (x > 0 && x < 64 && y > 0 && y < 64) offsets.push((x * 40 + y * 20) / LENGTH / LENGTH)
+      }
+    }
+    return offsets
+  }
+
+  test("cuts hard bands into two solid shapes along the known line", () => {
+    const markup = told(bands)
+    assert.equal(gradientsOf(markup).length, 0)
+    const paths = pathsOf(markup)
+    assert.equal(paths.length, 2)
+    assert.deepEqual(paths.map(path => path.fill).sort(), ["#00ff00", "#800000"].sort())
+    const inner = paths.flatMap(path => edgeOffsets(path.polygons))
+    for (const offset of inner) close(offset, 0.5, 1e-3)
+  })
+
+  test("keeps details the gradient does not explain", () => {
+    const dot = (x, y) => x >= 20 && x < 24 && y >= 4 && y < 8
+    const markup = told((x, y) => dot(x, y) ? YELLOW : bands(x, y))
+    assert.equal(gradientsOf(markup).length, 0)
+    assert.equal(pathsFilled(markup, "#ffff00").length, 1)
+  })
+
+  test("cuts an overlay on the known band edges too", () => {
+    const pixel = (x, y) => y < 8 ? tAt(x, y) < 0.5 ? YELLOW : RED : bands(x, y)
+    const data = new Uint8Array(64 * 64 * 4)
+    for (let y = 0; y < 8; y++) {
+      for (let x = 0; x < 64; x++) data[(y * 64 + x) * 4] = 1
+    }
+    const markup = told(pixel, () => data)
+    assert.equal(gradientsOf(markup).length, 0)
+    assert.equal(pathsFilled(markup, "#ffff00").length, 1)
+    assert.equal(pathsFilled(markup, "#ff0000").length, 1)
+  })
+
+  test("two overlays with the same band colours paint as one shape per colour", () => {
+    const overlay = (x, y) => y < 8 ? 1 : y >= 56 ? 2 : 0
+    const data = new Uint8Array(64 * 64 * 4)
+    for (let y = 0; y < 64; y++) {
+      for (let x = 0; x < 64; x++) data[(y * 64 + x) * 4] = overlay(x, y)
+    }
+    const markup = told((x, y) => overlay(x, y) ? tAt(x, y) < 0.5 ? YELLOW : RED : bands(x, y), () => data)
+    assert.equal(pathsFilled(markup, "#ffff00").length, 1)
+    assert.equal(pathsFilled(markup, "#ff0000").length, 1)
+  })
+
+  test("overlays that disagree on a band colour stay apart", () => {
+    const overlay = (x, y) => y < 8 ? 1 : y >= 56 ? 2 : 0
+    const data = new Uint8Array(64 * 64 * 4)
+    for (let y = 0; y < 64; y++) {
+      for (let x = 0; x < 64; x++) data[(y * 64 + x) * 4] = overlay(x, y)
+    }
+    const markup = told((x, y) => overlay(x, y) === 1 ? tAt(x, y) < 0.5 ? YELLOW : RED : overlay(x, y) === 2 ? tAt(x, y) < 0.5 ? RED : YELLOW : bands(x, y), () => data)
+    assert.ok(boundsOf(pathsFilled(markup, "#ff0000").flatMap(path => path.polygons)).bottom <= 16)
+    assert.ok(boundsOf(pathsFilled(markup, "#ffff00").flatMap(path => path.polygons)).bottom > 56)
+  })
+
+  test("a known fade gets exact end colours despite dither, one gradient per colour", () => {
+    const border = 0x101010
+    const fadeAt = y => Math.min(1, (63.5 - y) / 48)
+    const texture = textureOf(64, 64, (x, y) => {
+      const colour = x < 32 ? [200, 100, 40] : [40, 180, 90]
+      return colour.map(value => Math.round(value + (16 - value) * fadeAt(y)) + (x + y) % 2)
+    })
+    texture.userData.fades = [{ left: 0, top: 0, right: 64, bottom: 64, near: [0, 64], far: [0, 0], amount: 0.25, colour: border }]
+    const gradients = gradientsOf(titleOf(whole(texture)).markup)
     assert.equal(gradients.length, 2)
-    const upper = gradients.find(gradient => gradient.y1 === 0)
-    const lower = gradients.find(gradient => gradient.y1 === 32)
-    close(upper.stops.at(-1).colour[0], lower.stops[0].colour[0], 4)
+    const firsts = gradients.map(gradient => gradient.stops[0].colour).sort((a, b) => b[0] - a[0])
+    for (const [channel, value] of [200, 100, 40].entries()) close(firsts[0][channel], value, 2)
+    for (const [channel, value] of [40, 180, 90].entries()) close(firsts[1][channel], value, 2)
+    for (const gradient of gradients) assert.deepEqual(gradient.stops.at(-1).colour, [16, 16, 16])
+  })
+
+  test("a face only writes the part of a known gradient it reaches", () => {
+    const stops = Array.from({ length: 33 }, (unused, index) => ({ position: index / 32, colour: index * 7 % 256 << 8 }))
+    const colourAt = t => stops[Math.round(t * 32)].colour
+    const texture = textureOf(64, 64, (x, y) => [0, colourAt((y + 0.5 + 256) / 640) >> 8, 0])
+    texture.userData.gradient = { faces: [{ left: 0, top: 0, right: 64, bottom: 64, from: [0, -256], to: [0, 384], stops }] }
+    const [gradient] = gradientsOf(titleOf(whole(texture)).markup)
+    assert.ok(gradient.stops.length <= 8, `${gradient.stops.length} stops`)
+  })
+
+  test("a very large face with a known gradient exports", () => {
+    const texture = textureOf(512, 512, (x, y) => [0, 0, y >> 1])
+    texture.userData.gradient = { faces: [{ left: 0, top: 0, right: 512, bottom: 512, from: [0, 0], to: [0, 512], stops: [{ position: 0, colour: 0 }, { position: 1, colour: 0xff0000 }] }] }
+    assert.equal(gradientsOf(titleOf(whole(texture)).markup).length, 1)
+  })
+
+  test("a gradient face can carry its own stops", () => {
+    const texture = textureOf(64, 64, (x, y) => [0, 0, y * 4])
+    texture.userData.gradient = { faces: [{ left: 0, top: 0, right: 64, bottom: 64, from: [0, 0], to: [0, 64], stops: [{ position: 0, colour: 0 }, { position: 1, colour: 0xff0000 }] }] }
+    const [gradient] = gradientsOf(titleOf(whole(texture)).markup)
+    assert.deepEqual(gradient.stops[0].colour, [0, 0, 0])
+    assert.deepEqual(gradient.stops.at(-1).colour, [0, 0, 255])
+  })
+
+  test("a known gradient too faint to see is one flat colour", () => {
+    const texture = textureOf(64, 64, (x, y) => [128 + Math.round(tAt(x, y)), 0, 0])
+    texture.userData.gradient = { faces: [{ ...FACE, stops: [{ position: 0, colour: 0x000080 }, { position: 1, colour: 0x000081 }] }] }
+    const { markup } = titleOf(whole(texture))
+    assert.ok(!markup.includes("linearGradient"))
+    assert.equal(pathsOf(markup).length, 1)
+  })
+
+  test("a known gradient on a line too short to see is one flat colour", () => {
+    const texture = textureOf(64, 64, (x, y) => y < 16 ? [0, y * 17, 0] : RED)
+    texture.userData.gradient = { faces: [{ left: 0, top: 0, right: 64, bottom: 16, from: [0, 0], to: [0, 16], stops: [{ position: 0, colour: 0 }, { position: 1, colour: 0x00ff00 }] }] }
+    const mesh = meshOf([{ left: 0, right: 64, bottom: 63.9, top: 64, uv: [0, 48 / 64, 1, 1] }, { left: 0, right: 64, bottom: 0, top: 60, uv: [0, 0, 1, 48 / 64] }], new THREE.MeshBasicMaterial({ map: texture }))
+    const { markup } = titleOf(mesh)
+    assert.ok(!markup.includes("linearGradient"))
+    assert.equal(pathsOf(markup).length, 2)
+  })
+
+  test("a shape on a partly hidden face is cut to what shows, with no clip path", () => {
+    const texture = textureOf(64, 64, (x, y) => x >= 8 && x < 40 && y >= 8 && y < 56 ? BLUE : RED)
+    const front = plain([{ left: 24, right: 64, bottom: 0, top: 64 }], "#00ff00", {}, 1)
+    const rear = whole(texture)
+    rear.renderOrder = 1
+    const { markup } = titleOf(front, rear)
+    assert.ok(!markup.includes("clipPath"))
+    assert.deepEqual(boundsOf(pathsFilled(markup, "#0000ff")[0].polygons), { left: 8, right: 24, top: 8, bottom: 56 })
+  })
+
+  test("known gradients with the same stops share one list of them", () => {
+    const faces = [{ left: 0, top: 0, right: 32, bottom: 64, from: [0, 0], to: [32, 16] }, { left: 32, top: 0, right: 64, bottom: 64, from: [32, 0], to: [64, 16] }]
+    const stops = [{ position: 0, colour: 0 }, { position: 1, colour: 0x00ff00 }]
+    const texture = textureOf(64, 64, (x, y) => {
+      const { from, to } = faces[x < 32 ? 0 : 1]
+      const dx = to[0] - from[0]
+      const dy = to[1] - from[1]
+      return [0, Math.round(clampUnit(((x + 0.5 - from[0]) * dx + (y + 0.5 - from[1]) * dy) / (dx * dx + dy * dy)) * 255), 0]
+    })
+    texture.userData.gradient = { faces: faces.map(face => ({ ...face, stops })) }
+    const mesh = meshOf([{ left: 0, right: 32, bottom: 0, top: 64, uv: [0, 0, 0.5, 1] }, { left: 32, right: 64, bottom: 0, top: 64, uv: [0.5, 0, 1, 1] }], new THREE.MeshBasicMaterial({ map: texture }))
+    const { markup } = titleOf(mesh)
+    assert.equal(gradientsOf(markup).length, 1)
+    assert.equal(markup.match(/xlink:href="#g\d+"/g).length, 1)
+  })
+
+  test("a smooth known gradient stays a gradient", () => {
+    const texture = textureOf(64, 64, (x, y) => [0, Math.round(tAt(x, y) * 255), 0])
+    texture.userData.gradient = { faces: [{ ...FACE, stops: [{ position: 0, colour: 0 }, { position: 1, colour: 0x00ff00 }] }] }
+    const gradients = gradientsOf(titleOf(whole(texture)).markup)
+    assert.equal(gradients.length, 1)
+    assert.equal(hardEdges(gradients[0]), 0)
+    close(Math.atan2(gradients[0].y2 - gradients[0].y1, gradients[0].x2 - gradients[0].x1), Math.atan2(20, 40), 0.01)
+  })
+
+  function layered(pixel, labelled) {
+    const data = new Uint8Array(64 * 64 * 4)
+    for (let y = 0; y < 64; y++) {
+      for (let x = 0; x < 64; x++) data[(y * 64 + x) * 4] = labelled(x, y)
+    }
+    const texture = textureOf(64, 64, pixel)
+    texture.userData.labels = () => data
+    return pathsOf(titleOf(whole(texture)).markup).map(path => path.fill)
+  }
+
+  test("merges overlay pieces of one colour when nothing lands between them", () => {
+    const left = x => x >= 4 && x < 10
+    const right = x => x >= 40 && x < 46
+    const dot = x => x >= 20 && x < 26
+    const fills = layered((x, y) => y >= 10 && y < 20 && (left(x) || right(x)) ? RED : y >= 10 && y < 20 && dot(x) ? YELLOW : BLUE, (x, y) => y >= 10 && y < 20 && (left(x) || right(x)) ? 1 : y >= 10 && y < 20 && dot(x) ? 2 : 0)
+    assert.equal(fills.filter(fill => fill === "#ff0000").length, 1)
+  })
+
+  test("keeps what is on top when a shape sits inside another colour", () => {
+    const inner = (x, y) => x >= 20 && x < 30 && y >= 20 && y < 30
+    const outer = (x, y) => x >= 10 && x < 40 && y >= 10 && y < 40
+    const fills = layered((x, y) => inner(x, y) ? RED : outer(x, y) ? YELLOW : BLUE, (x, y) => inner(x, y) ? 2 : outer(x, y) ? 1 : 0)
+    assert.ok(fills.indexOf("#ffff00") < fills.indexOf("#ff0000"))
+  })
+
+  test("falls back to tracing when the pixels are not that gradient", () => {
+    const markup = told(() => BLUE)
+    assert.equal(gradientsOf(markup).length, 0)
+    assert.equal(pathsFilled(markup, "#0000ff").length, 1)
+  })
+
+  test("ignores a gradient for a different part of the texture", () => {
+    const texture = textureOf(64, 64, bands)
+    texture.userData.gradient = { faces: [{ ...FACE, left: 100, right: 164, stops: STOPS }] }
+    const gradients = gradientsOf(titleOf(whole(texture)).markup)
+    assert.ok(gradients.every(gradient => hardEdges(gradient) === 0))
+  })
+})
+
+describe("vectorTitle letter fronts", () => {
+  const FRONT = { left: 0, top: 0, right: 64, bottom: 64 }
+  const uvOf = (left, right, bottom, top) => [left / 64, bottom / 64, right / 64, top / 64]
+  const SPLIT = [{ left: 0, right: 32, bottom: 0, top: 64, uv: uvOf(0, 32, 0, 64) }, { left: 32, right: 64, bottom: 0, top: 64, uv: uvOf(32, 64, 0, 64) }]
+
+  function split(pixel, panels) {
+    const texture = textureOf(64, 64, pixel)
+    if (panels) texture.userData.panels = panels
+    return titleOf(meshOf(SPLIT, new THREE.MeshBasicMaterial({ map: texture }))).markup
+  }
+
+  const across = (x, y) => y >= 20 && y < 30 && x >= 20 && x < 44 ? RED : BLUE
+
+  test("two rectangles of one front paint a colour crossing them as one island", () => {
+    const red = pathsFilled(split(across, [FRONT]), "#ff0000")
+    assert.equal(red.length, 1)
+    assert.equal(red[0].polygons.length, 1)
+    assert.equal(red[0].polygons[0].length, 4)
+  })
+
+  test("a front needs no extra pieces at the join", () => {
+    const fronted = pathsOf(split(across, [FRONT])).flatMap(path => path.polygons).length
+    const separate = pathsOf(split(across, null)).flatMap(path => path.polygons).length
+    assert.ok(fronted < separate, `${fronted} polygons against ${separate}`)
+  })
+
+  test("a gap in the front stays a gap", () => {
+    const pixel = (x, y) => x >= 28 && x < 36 && y >= 28 && y < 36 ? [0, 0, 0, 0] : BLUE
+    const [blue] = pathsFilled(split(pixel, [FRONT]), "#0000ff")
+    assert.equal(blue.polygons.length, 2)
+  })
+
+  test("a panel only paints the rectangles it is made of", () => {
+    const uv = (left, right) => uvOf(left, right, 0, 64)
+    const texture = textureOf(64, 64, (x, y) => x >= 24 && x < 40 ? RED : BLUE)
+    texture.userData.panels = [FRONT]
+    const faces = [{ left: 0, right: 24, bottom: 0, top: 64, uv: uv(0, 24) }, { left: 40, right: 64, bottom: 0, top: 64, uv: uv(40, 64) }]
+    const { markup } = titleOf(meshOf(faces, new THREE.MeshBasicMaterial({ map: texture })))
+    assert.equal(pathsFilled(markup, "#ff0000").length, 0)
+    assert.equal(pathsFilled(markup, "#0000ff")[0].polygons.length, 2)
+  })
+
+  test("rectangles of a panel on different planes stay separate", () => {
+    const texture = textureOf(64, 64, () => BLUE)
+    texture.userData.panels = [FRONT]
+    const mesh = meshOf([SPLIT[0], { ...SPLIT[1], left: 40, right: 72 }], new THREE.MeshBasicMaterial({ map: texture }))
+    for (let vertex = 6; vertex < 12; vertex++) mesh.geometry.attributes.position.setZ(vertex, 1)
+    const { markup, width } = titleOf(mesh)
+    assert.equal(boundsOf(pathsFilled(markup, "#0000ff").flatMap(path => path.polygons)).right, width)
+  })
+
+  test("faces outside any front are left alone", () => {
+    const red = pathsFilled(split(across, [{ left: 100, top: 100, right: 164, bottom: 164 }]), "#ff0000")
+    assert.ok(red.flatMap(path => path.polygons).length >= 2)
+  })
+})
+
+describe("unionOf", () => {
+  const box = (left, top, right, bottom) => [[left, top], [right, top], [right, bottom], [left, bottom]]
+  const signed = polygon => polygon.reduce((sum, [x, y], index) => sum + x * polygon[(index + 1) % polygon.length][1] - polygon[(index + 1) % polygon.length][0] * y, 0) / 2
+
+  test("traces two overlapping boxes as one outline with their crossing as a corner", () => {
+    const [loop, ...rest] = unionOf([box(0, 0, 100, 100), box(50, 50, 150, 150)])
+    assert.equal(rest.length, 0)
+    assert.equal(loop.length, 8)
+    assert.equal(signed(loop), 17500)
+    assert.ok(loop.some(([x, y]) => x === 100 && y === 50))
+    assert.ok(loop.some(([x, y]) => x === 50 && y === 100))
+  })
+
+  test("removes a fold where a single loop crosses itself", () => {
+    const fold = [[0, 0], [100, 0], [100, 60], [40, 60], [40, 20], [70, 20], [70, 100], [0, 100]]
+    const loops = unionOf([fold])
+    assert.equal(loops.length, 1)
+    assert.ok(loops[0].every(([x, y]) => !(x === 40 && y === 20)))
+    assert.ok(loops[0].every(([x, y]) => !(x === 40 && y === 60)))
+  })
+
+  test("drops a box inside another", () => {
+    assert.deepEqual(unionOf([box(0, 0, 100, 100), box(20, 20, 40, 40)]).map(loop => loop.length), [4])
+  })
+
+  test("keeps a hole", () => {
+    const loops = unionOf([box(0, 0, 100, 100), box(20, 20, 40, 40).toReversed()])
+    assert.deepEqual(loops.map(signed).sort((a, b) => a - b), [-400, 10000])
+  })
+
+  test("joins boxes that share a side", () => {
+    assert.deepEqual(unionOf([box(0, 0, 50, 100), box(50, 0, 100, 100)]).map(loop => loop.length), [4])
+  })
+
+  test("leaves separate boxes alone", () => {
+    assert.equal(unionOf([box(0, 0, 100, 100), box(500, 500, 600, 600)]).length, 2)
+  })
+})
+
+describe("mergedByFill", () => {
+  const box = (left, top, right, bottom) => [[left, top], [right, top], [right, bottom], [left, bottom]]
+
+  test("joins a colour across shapes it does not overlap", () => {
+    const merged = mergedByFill([["red", [box(0, 0, 10, 10)]], ["blue", [box(20, 0, 30, 10)]], ["red", [box(40, 0, 50, 10)]]])
+    assert.deepEqual(merged.map(([fill, polygons]) => [fill, polygons.length]).sort(), [["blue", 1], ["red", 2]])
+  })
+
+  test("keeps a shape above one it overlaps by a strip with its sides lined up", () => {
+    const entries = [["red", [box(0, 0, 10, 12)]], ["blue", [box(0, 10, 10, 20)]], ["red", [box(0, 18, 10, 30)]]]
+    assert.deepEqual(mergedByFill(entries).map(([fill]) => fill), ["red", "blue", "red"])
+  })
+
+  test("keeps a shape above one that exactly matches it", () => {
+    const entries = [["red", [box(0, 0, 10, 10)]], ["blue", [box(0, 0, 10, 10)]], ["red", [box(0, 0, 10, 10)]]]
+    assert.deepEqual(mergedByFill(entries).map(([fill]) => fill), ["red", "blue", "red"])
+  })
+
+  test("stacks new colours by how common they are, so a later overlap still joins", () => {
+    const totals = new Map([["red", 100], ["blue", 50]])
+    const entries = [["blue", [box(0, 0, 10, 10)]], ["red", [box(20, 0, 30, 10)]], ["red", [box(40, 0, 50, 10)]], ["blue", [box(40, 0, 50, 10)]]]
+    assert.deepEqual(mergedByFill(entries, totals).map(([fill]) => fill), ["red", "blue"])
+  })
+
+  test("moves a colour up to join its later shape when that one has to stay on top", () => {
+    const entries = [["red", [box(0, 0, 10, 10)]], ["blue", [box(20, 0, 30, 10)]], ["red", [box(20, 0, 30, 10)]]]
+    assert.deepEqual(mergedByFill(entries).map(([fill, polygons]) => [fill, polygons.length]), [["blue", 1], ["red", 2]])
+  })
+
+  test("lets shapes that only touch join", () => {
+    const merged = mergedByFill([["red", [box(0, 0, 10, 10)]], ["blue", [box(10, 0, 20, 10)]], ["red", [box(20, 0, 30, 10)]]])
+    assert.deepEqual(merged.map(([fill]) => fill).sort(), ["blue", "red"])
   })
 })
 
@@ -349,7 +869,7 @@ describe("vectorTitle joins", () => {
     assert.match(markup, /<g clip-path="url\(#c0\)" stroke-width="0.13">/)
     const strokes = Array.from(markup.matchAll(/<path fill="none" stroke="([^"]+)" d="([^"]*)"\/>/g))
     assert.equal(strokes.length, 1)
-    assert.equal(strokes[0][2], "M32 0L32 64")
+    assert.equal(strokes[0][2], "M32 0l0 64")
   })
 
   test("faces of the same colour need no bleed stroke", () => {
@@ -363,8 +883,13 @@ describe("vectorTitle joins", () => {
 
   test("a stripe running across a seam is bridged from both sides", () => {
     const blue = polygonBounds(titleOfTwo(stripe(BLUE, BLUE)).markup, "#0000ff")
-    assert.ok(blue.some(box => box.left === 30 && box.right === 36 && box.top === 25 && box.bottom === 39), "bridge from the left face")
-    assert.ok(blue.some(box => box.left === 28 && box.right === 34 && box.top === 25 && box.bottom === 39), "bridge from the right face")
+    for (const x of [28.5, 32, 35.5]) assert.ok(blue.some(box => box.left <= x && box.right >= x && box.top <= 25 && box.bottom >= 39), `nothing covers the seam at ${x}`)
+  })
+
+  test("touching shapes of one colour join into one island", () => {
+    const mesh = plain([{ left: 0, right: 10, bottom: 0, top: 10 }, { left: 10, right: 20, bottom: 2, top: 8 }, { left: 40, right: 50, bottom: 0, top: 10 }], 0xff0000)
+    const [{ polygons }] = pathsOf(titleOf(mesh).markup)
+    assert.deepEqual(polygons.map(polygon => polygon.length).sort(), [4, 8])
   })
 
   test("a stripe ending at a plain neighbour is covered back by that neighbour", () => {
@@ -385,7 +910,7 @@ describe("vectorTitle joins", () => {
   test("stripes of different colours overlap under the later face", () => {
     const { markup } = titleOfTwo(stripe(BLUE, YELLOW))
     const paths = pathsOf(markup)
-    assert.ok(polygonBounds(markup, "#0000ff").some(box => box.left === 32 && box.right === 36 && box.top === 25 && box.bottom === 39), "the earlier stripe runs under")
+    assert.ok(polygonBounds(markup, "#0000ff").some(box => box.left === 0 && box.right === 36 && box.top === 24 && box.bottom === 40), "the earlier stripe runs under")
     for (const box of polygonBounds(markup, "#ffff00")) assert.ok(box.left >= 32, `yellow reaches ${box.left}`)
     const lastBlue = paths.findLastIndex(path => path.fill === "#0000ff")
     const firstYellow = paths.findIndex(path => path.fill === "#ffff00")
@@ -407,10 +932,15 @@ describe("composeVector", () => {
     return [Number(width), Number(height)]
   }
 
+  test("declares the xlink namespace only when the title uses it", () => {
+    assert.ok(!composeVector(TITLE, { tab: "normal", padding: 0 }).includes("xmlns:xlink"))
+    assert.ok(composeVector({ ...TITLE, markup: '<linearGradient id="g1" xlink:href="#g0"/>' }, { tab: "normal", padding: 0 }).includes('xmlns:xlink="http://www.w3.org/1999/xlink"'))
+  })
+
   test("normal without padding is the title at full size", () => {
     const svg = composeVector(TITLE, { tab: "normal", padding: 0 })
     assert.deepEqual(sizeOf(svg), [1000, 500])
-    assert.deepEqual(placement(svg), [0, 0, 1])
+    assert.ok(!svg.includes("<g transform"))
     assert.ok(svg.includes("<path/>"))
     assert.ok(!svg.includes("<rect"))
   })
@@ -451,7 +981,7 @@ describe("composeVector", () => {
     const svg = composeVector(TITLE, { tab: "normal", padding: 0, backgroundEnabled: true, backgroundAngle: 0, backgroundStops: [{ colour: "#78b8ff", position: 0 }], backgroundSmooth: true })
     assert.match(svg, /<rect width="1000" height="500" fill="url\(#background\)"\/>/)
     assert.match(svg, /<linearGradient id="background" gradientUnits="userSpaceOnUse" x1="500" y1="0" x2="500" y2="500"><stop offset="0" stop-color="#78b8ff"\/><\/linearGradient>/)
-    assert.ok(svg.indexOf("<rect") < svg.indexOf("<g transform"))
+    assert.ok(svg.indexOf("<rect") < svg.indexOf("<path/>"))
   })
 
   test("the background angle turns the gradient line", () => {

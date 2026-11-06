@@ -2,43 +2,24 @@ import * as THREE from "three"
 import { gradientLine, gradientStops } from "./material.js"
 import { clamp } from "./maths.js"
 import { SAMPLES, outputSize, screenBounds } from "./render.js"
+import { near, jump, mixed, within, simplifyStops, colourTotals, analyse, contains, maskOf, BASE } from "./vectorTexture.js"
+import { area, signedArea, sameWinding, sharedEdges, number, writePath, loopsInHundredths, stitched, addInOrder, addTo, boxOfPolygons, boxesOverlap, shapesOverlap, shapeOfPolygons, mergedByFill, linesOf, unionOf, coverOf, addToCover, visibleLoops } from "./vectorPaths.js"
 
 const EPSILON = 1e-4
 const SLIVER = 1e-3
+const GRADIENT_AGREE = 3
+const NEARLY_FLAT = 2
+const SHORT_GRADIENT = 1 / 512
+const NEAR_FILLS = 2
 const BLEED = 1 / 512
 const GROW = 0.05
-const MIN_SHARED = 0.05
-const SHARED_ANGLE = 0.01
-const SHARED_OFFSET = 0.1
-const FLIP = 1e-4
-const TOLERANCE = 2
-const STOP_TOLERANCE = 1.5
-const HARD_EDGE = 24
-const STEP_EDGE = 6
-const PIXEL_STEP = 2
-const PIXEL_FLAT = 1
-const PIXEL_REACH = 2
-const SLIDE_CONTRAST = 48
-const BAND_STEP = 16
-const BAND_WOBBLE = 2
-const MIN_BANDS = 4
-const MIN_BAND_ROWS = 2
-const SOFT_LABEL = 1 << 16
-const STEP_SLOPE = 3
-const MAX_STOPS = 128
-const MAX_MODELS = 6
-const BASE_SHARE = 0.8
-const LAYER_SHARE = 0.5
-const DIAGONAL_SHARE = 0.95
-const PEEL_SHARE = 0.1
-const MIN_BIN_SHARE = 0.2
+const BAND_OVERLAP = 0.5
+const GRADIENT_MATCH = 0.1
 const SEAM = 0.5
 const JOIN_REACH = 2
 const JOIN_TRIM = 0.25
 const PLANE_ERROR = 1e-2
 const CROP_MARGIN = 1 / (SAMPLES * 2)
-const STAIR = 0.8
-const STAIR_POINTS = 6
 const FIT_ERROR = 1 / 4096
 const SPACING_ERROR = 1 / 8192
 const MAX_SPLITS = 5
@@ -72,537 +53,10 @@ function hexOf(colour) {
   return `#${[colour & 255, colour >> 8 & 255, colour >> 16 & 255].map(value => value.toString(16).padStart(2, "0")).join("")}`
 }
 
-function near(a, b) {
-  return Math.abs((a & 255) - (b & 255)) <= TOLERANCE && Math.abs((a >> 8 & 255) - (b >> 8 & 255)) <= TOLERANCE && Math.abs((a >> 16 & 255) - (b >> 16 & 255)) <= TOLERANCE
-}
-
-function jump(a, b) {
-  return Math.abs((a & 255) - (b & 255)) > HARD_EDGE || Math.abs((a >> 8 & 255) - (b >> 8 & 255)) > HARD_EDGE || Math.abs((a >> 16 & 255) - (b >> 16 & 255)) > HARD_EDGE
-}
-
-function change(a, b) {
-  return [0, 8, 16].map(shift => (b >> shift & 255) - (a >> shift & 255))
-}
-
-function edgesOf(chosen) {
-  const edges = new Set()
-  for (const [bin, colour] of chosen) {
-    const next = chosen.get(bin + 1)
-    if (next === undefined) continue
-    const step = change(colour, next)
-    const size = Math.hypot(...step)
-    function slope(from, to) {
-      if (from === undefined || to === undefined) return 0
-      return change(from, to).reduce((sum, value, channel) => sum + value * step[channel], 0) / size
-    }
-    function flatFrom(start, from, direction) {
-      for (let reach = 1; reach <= PIXEL_REACH; reach++) {
-        const other = chosen.get(start + direction * reach)
-        if (other === undefined) return true
-        if (change(from, other).some(value => Math.abs(value) > PIXEL_FLAT)) return false
-      }
-      return true
-    }
-    const largest = Math.max(...step.map(Math.abs))
-    const lone = largest > STEP_EDGE && slope(chosen.get(bin - 1), colour) < size / STEP_SLOPE && slope(next, chosen.get(bin + 2)) < size / STEP_SLOPE
-    const pixel = largest > PIXEL_STEP && flatFrom(bin, colour, -1) && flatFrom(bin + 1, next, 1)
-    if (jump(colour, next) || lone || pixel) edges.add(bin)
-  }
-  return edges
-}
-
-function mixed(a, b, amount) {
-  return [0, 8, 16].reduce((colour, shift) => colour | Math.round((a >> shift & 255) + ((b >> shift & 255) - (a >> shift & 255)) * amount) << shift, 0)
-}
-
-function majority(counts) {
-  let best = 0
-  let most = -1
-  for (const [colour, count] of counts) {
-    if (count <= most) continue
-    best = colour
-    most = count
-  }
-  return best
-}
-
-function simplifyStops(points) {
-  const keep = new Set([0, points.length - 1])
-  const pending = [[0, points.length - 1]]
-  while (pending.length) {
-    const [from, to] = pending.pop()
-    let worst = -1
-    let error = STOP_TOLERANCE
-    for (let index = from + 1; index < to; index++) {
-      const span = points[to].t - points[from].t
-      const amount = span ? (points[index].t - points[from].t) / span : 0
-      for (const shift of [0, 8, 16]) {
-        const a = points[from].colour >> shift & 255
-        const b = points[to].colour >> shift & 255
-        const miss = Math.abs(a + (b - a) * amount - (points[index].colour >> shift & 255))
-        if (miss > error) {
-          error = miss
-          worst = index
-        }
-      }
-    }
-    if (worst < 0) continue
-    keep.add(worst)
-    pending.push([from, worst], [worst, to])
-  }
-  return Array.from(keep).sort((a, b) => a - b).map(index => points[index])
-}
-
-function stepSize(a, b) {
-  return Math.max(...change(a, b).map(Math.abs))
-}
-
-function averaged(values, from, to, row) {
-  const reach = Math.min(row - from, to - row, values.reach)
-  const sum = [0, 0, 0]
-  for (let other = row - reach; other <= row + reach; other++) {
-    for (let channel = 0; channel < 3; channel++) sum[channel] += values[other][channel]
-  }
-  return sum.map(value => value / (reach * 2 + 1))
-}
-
-function smoothRun(rows, from, to, smooth) {
-  const sizes = []
-  for (let row = from; row < to; row++) sizes.push(stepSize(rows[row], rows[row + 1]))
-  const largest = Math.max(...sizes)
-  if (largest < 2) return
-  const jumps = []
-  for (const [offset, size] of sizes.entries()) {
-    if (size * 2 >= largest) jumps.push(offset)
-  }
-  if (jumps.length < MIN_BANDS - 1) return
-  const gaps = jumps.slice(1).map((jump, index) => jump - jumps[index]).sort((a, b) => a - b)
-  const spacing = gaps[Math.floor(gaps.length * 0.75)]
-  if (spacing < MIN_BAND_ROWS) return
-  let values = rows.map(colour => [colour & 255, colour >> 8 & 255, colour >> 16 & 255])
-  values.reach = Math.floor(spacing / 2)
-  for (let pass = 0; pass < 2; pass++) {
-    const next = values.slice()
-    for (let row = from; row <= to; row++) next[row] = averaged(values, from, to, row)
-    next.reach = values.reach
-    values = next
-  }
-  for (let row = from; row <= to; row++) smooth.set(row, values[row].reduce((colour, value, channel) => colour | Math.round(value) << channel * 8, 0))
-}
-
-function smoothBands(rows) {
-  const smooth = new Map()
-  let from = 0
-  while (from < rows.length - 1) {
-    let to = from
-    while (to < rows.length - 1 && stepSize(rows[to], rows[to + 1]) <= BAND_STEP) {
-      const net = change(rows[from], rows[to])
-      if (change(rows[to], rows[to + 1]).some((value, channel) => value * net[channel] < 0 && Math.abs(value) > BAND_WOBBLE)) break
-      to++
-    }
-    if (to > from) smoothRun(rows, from, to, smooth)
-    from = Math.max(to, from + 1)
-  }
-  return smooth
-}
-
-function fitAxis(list, colours, width, axis, exact, bands) {
-  const bins = new Map()
-  const binOf = index => Math.floor((index % width + 0.5) * axis[0] + (Math.floor(index / width) + 0.5) * axis[1] + 1e-6)
-  for (const index of list) {
-    const bin = binOf(index)
-    if (!bins.has(bin)) bins.set(bin, new Map())
-    const counts = bins.get(bin)
-    counts.set(colours[index], (counts.get(colours[index]) ?? 0) + 1)
-  }
-  const totals = new Map(Array.from(bins, ([bin, counts]) => [bin, Array.from(counts.values()).reduce((sum, count) => sum + count, 0)]))
-  const fullest = Math.max(...totals.values())
-  const chosen = new Map(Array.from(bins).filter(([bin]) => exact || totals.get(bin) >= fullest * MIN_BIN_SHARE).map(([bin, counts]) => [bin, majority(counts)]))
-  const reliable = Array.from(chosen.keys()).sort((a, b) => a - b)
-  for (const [bin, counts] of bins) {
-    if (chosen.has(bin)) continue
-    const colour = majority(counts)
-    const after = reliable.findIndex(other => other > bin)
-    const low = after < 0 ? reliable.at(-1) : after > 0 ? reliable[after - 1] : reliable[0]
-    const high = after < 0 ? reliable.at(-1) : reliable[after]
-    const expected = high === low ? chosen.get(low) : mixed(chosen.get(low), chosen.get(high), (bin - low) / (high - low))
-    if (!jump(colour, expected)) chosen.set(bin, colour)
-  }
-  const edges = edgesOf(chosen)
-  const shown = axis[1] === 1 && bands?.size ? new Map(Array.from(chosen, ([bin, colour]) => [bin, bands.get(bin) ?? colour])) : chosen
-  const shownEdges = shown === chosen ? edges : edgesOf(shown)
-  function fits(index) {
-    const bin = binOf(index)
-    const own = chosen.get(bin)
-    if (own === undefined) return false
-    if (near(colours[index], own)) return true
-    return [bin - 1, bin + 1].some(other => chosen.has(other) && !edges.has(Math.min(bin, other)) && near(colours[index], chosen.get(other)))
-  }
-  const matched = list.filter(fits)
-  const ordered = Array.from(shown).sort((a, b) => a[0] - b[0])
-  const points = [{ t: ordered[0][0], colour: ordered[0][1] }]
-  for (const [position, [bin, colour]] of ordered.entries()) {
-    const next = ordered[position + 1]
-    if (next && (next[0] !== bin + 1 || shownEdges.has(bin))) points.push({ t: bin, colour }, { t: bin + 1, colour }, { t: bin + 1, colour: next[1] })
-    else points.push({ t: bin + 0.5, colour })
-  }
-  points.push({ t: ordered.at(-1)[0] + 1, colour: ordered.at(-1)[1] })
-  return { axis, matched, stops: simplifyStops(points) }
-}
-
-function diagonalOf(list, colours, width, height) {
-  let dx = 0
-  let dy = 0
-  const brightness = colour => (colour & 255) + (colour >> 8 & 255) + (colour >> 16 & 255)
-  const present = new Set(list)
-  for (const index of list) {
-    if (index % width < width - 1 && present.has(index + 1)) dx += brightness(colours[index + 1]) - brightness(colours[index])
-    if (index < width * (height - 1) && present.has(index + width)) dy += brightness(colours[index + width]) - brightness(colours[index])
-  }
-  const length = Math.hypot(dx, dy)
-  if (!length || Math.abs(dx) / length < 0.02 || Math.abs(dy) / length < 0.02) return null
-  return [dx / length, dy / length]
-}
-
-function segmentsOf(model, width) {
-  if (!model.stops) return [model]
-  const parts = [[]]
-  for (const [index, stop] of model.stops.entries()) {
-    if (index && stop.t === model.stops[index - 1].t) parts.push([])
-    parts.at(-1).push(stop)
-  }
-  if (parts.length === 1) return [model]
-  const [ax, ay] = model.axis
-  const owners = parts.map(stops => ({ axis: model.axis, stops, matched: [] }))
-  for (const index of model.matched) {
-    const bin = Math.floor((index % width + 0.5) * ax + (Math.floor(index / width) + 0.5) * ay + 1e-6)
-    const owner = owners.find(({ stops }) => bin < stops.at(-1).t) ?? owners.at(-1)
-    owner.matched.push(index)
-  }
-  return owners.filter(owner => owner.matched.length).map(owner => owner.stops.every(stop => stop.colour === owner.stops[0].colour) ? { colour: owner.stops[0].colour, matched: owner.matched } : owner)
-}
-
-function flatOf(list, colours) {
-  const counts = new Map()
-  for (const index of list) counts.set(colours[index], (counts.get(colours[index]) ?? 0) + 1)
-  const colour = majority(counts)
-  return { colour, matched: list.filter(index => near(colours[index], colour)) }
-}
-
-function modelOf(list, colours, width, height, share, exact, bands) {
-  const flat = flatOf(list, colours)
-  if (!bands?.size && flat.matched.length >= list.length * 0.98) return flat
-  let best = null
-  for (const axis of [[0, 1], [1, 0]]) {
-    const fit = fitAxis(list, colours, width, axis, exact, bands)
-    if (fit.stops.length > MAX_STOPS) continue
-    if (!best || fit.matched.length > best.matched.length) best = fit
-  }
-  if (!best || best.matched.length < list.length * BASE_SHARE) {
-    const diagonal = diagonalOf(list, colours, width, height)
-    const fit = diagonal && fitAxis(list, colours, width, diagonal, exact)
-    if (fit && fit.stops.length <= MAX_STOPS && fit.matched.length >= list.length * DIAGONAL_SHARE && fit.stops.every((stop, index) => !index || stop.t > fit.stops[index - 1].t)) best = fit
-  }
-  if (best && best.matched.length >= list.length * share) return best
-  return flat.matched.length >= list.length * share ? flat : null
-}
-
-function trace(mask, width, height) {
-  const outgoing = new Map()
-  function add(fromX, fromY, toX, toY) {
-    const key = fromY * (width + 1) + fromX
-    if (!outgoing.has(key)) outgoing.set(key, [])
-    outgoing.get(key).push([toX, toY])
-  }
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      if (!mask[y * width + x]) continue
-      if (y === 0 || !mask[(y - 1) * width + x]) add(x, y, x + 1, y)
-      if (x === width - 1 || !mask[y * width + x + 1]) add(x + 1, y, x + 1, y + 1)
-      if (y === height - 1 || !mask[(y + 1) * width + x]) add(x + 1, y + 1, x, y + 1)
-      if (x === 0 || !mask[y * width + x - 1]) add(x, y + 1, x, y)
-    }
-  }
-  const loops = []
-  for (const [start, list] of outgoing) {
-    while (list.length) {
-      const loop = []
-      let x = start % (width + 1)
-      let y = Math.floor(start / (width + 1))
-      let key = start
-      do {
-        loop.push([x, y])
-        const [nextX, nextY] = outgoing.get(key).pop()
-        x = nextX
-        y = nextY
-        key = y * (width + 1) + x
-      } while (key !== start)
-      loops.push(loop.filter((point, index) => {
-        const before = loop[(index + loop.length - 1) % loop.length]
-        const after = loop[(index + 1) % loop.length]
-        return (point[0] - before[0]) * (after[1] - point[1]) !== (point[1] - before[1]) * (after[0] - point[0])
-      }))
-    }
-  }
-  return loops
-}
-
-function simplifyRun(run) {
-  const keep = new Set([0, run.length - 1])
-  const pending = [[0, run.length - 1]]
-  while (pending.length) {
-    const [from, to] = pending.pop()
-    const [ax, ay] = run[from]
-    const [bx, by] = run[to]
-    const length = Math.hypot(bx - ax, by - ay) || 1
-    let worst = -1
-    let error = STAIR
-    for (let index = from + 1; index < to; index++) {
-      const miss = Math.abs((bx - ax) * (ay - run[index][1]) - (ax - run[index][0]) * (by - ay)) / length
-      if (miss <= error) continue
-      error = miss
-      worst = index
-    }
-    if (worst < 0) continue
-    keep.add(worst)
-    pending.push([from, worst], [worst, to])
-  }
-  return Array.from(keep).sort((a, b) => a - b).map(index => run[index])
-}
-
-function monotone(run) {
-  let stepX = 0
-  let stepY = 0
-  for (let index = 1; index < run.length; index++) {
-    const dx = Math.sign(run[index][0] - run[index - 1][0])
-    const dy = Math.sign(run[index][1] - run[index - 1][1])
-    if (dx && stepX && dx !== stepX || dy && stepY && dy !== stepY) return false
-    stepX ||= dx
-    stepY ||= dy
-  }
-  return true
-}
-
-function straighten(loop) {
-  const size = loop.length
-  const short = loop.map((point, index) => {
-    const next = loop[(index + 1) % size]
-    return Math.abs(next[0] - point[0]) + Math.abs(next[1] - point[1]) === 1
-  })
-  const inRun = index => short[index] || short[(index + size - 1) % size]
-  const start = loop.findIndex((point, index) => !inRun(index))
-  if (start < 0 || !short.includes(true)) return loop
-  const result = []
-  let run = []
-  function finish() {
-    if (run.length >= STAIR_POINTS && monotone(run)) result.push(run[0], ...simplifyRun(run.slice(1).map((point, index) => [(point[0] + run[index][0]) / 2, (point[1] + run[index][1]) / 2])), run.at(-1))
-    else result.push(...run)
-    run = []
-  }
-  for (let offset = 0; offset < size; offset++) {
-    const index = (start + offset) % size
-    if (inRun(index)) {
-      run.push(loop[index])
-      continue
-    }
-    finish()
-    result.push(loop[index])
-  }
-  finish()
-  return result
-}
-
-function analyse(image, rect) {
-  const { data, width: atlasWidth, labels } = image
-  const width = rect.right - rect.left
-  const height = rect.bottom - rect.top
-  const colours = new Int32Array(width * height)
-  const regions = new Map()
-  const solid = []
-  let holes = false
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const at = ((y + rect.top) * atlasWidth + x + rect.left) * 4
-      if (data[at + 3] < 128) {
-        holes = true
-        continue
-      }
-      const index = y * width + x
-      colours[index] = data[at] | data[at + 1] << 8 | data[at + 2] << 16
-      solid.push(index)
-      const label = labels ? labels[at] | labels[at + 1] << 8 | labels[at + 2] << 16 : 0
-      if (!regions.has(label)) regions.set(label, [])
-      regions.get(label).push(index)
-    }
-  }
-  if (!solid.length) return null
-
-  function shapeOf(list, smooth) {
-    const mask = new Uint8Array(width * height)
-    for (const index of list) mask[index] = 1
-    return trace(mask, width, height).map(loop => (smooth ? straighten(loop) : loop).map(([x, y]) => [x + rect.left, y + rect.top]))
-  }
-
-  function placedOn(model) {
-    if (!model.stops) return model
-    const shift = model.axis[0] * rect.left + model.axis[1] * rect.top
-    return { ...model, stops: model.stops.map(stop => ({ t: stop.t + shift, colour: stop.colour })) }
-  }
-
-  const [main, ...overlaid] = Array.from(regions.entries()).sort((a, b) => b[1].length - a[1].length)
-  const anySoft = main[0] >= SOFT_LABEL || overlaid.some(([label]) => label >= SOFT_LABEL)
-
-  function bandsOf(label) {
-    const COVERED = -1
-    function rowColour(y) {
-      const counts = new Map()
-      let solid = false
-      function tally(x) {
-        const at = (y * atlasWidth + x) * 4
-        if (data[at + 3] < 128) return
-        solid = true
-        if (labels && (labels[at] | labels[at + 1] << 8 | labels[at + 2] << 16) !== label) return
-        const colour = data[at] | data[at + 1] << 8 | data[at + 2] << 16
-        counts.set(colour, (counts.get(colour) ?? 0) + 1)
-      }
-      for (let x = rect.left; x < rect.right; x++) tally(x)
-      for (let reach = 1; !counts.size && (rect.left - reach >= 0 || rect.right - 1 + reach < atlasWidth); reach++) {
-        if (rect.left - reach >= 0) tally(rect.left - reach)
-        if (rect.right - 1 + reach < atlasWidth) tally(rect.right - 1 + reach)
-      }
-      return counts.size ? majority(counts) : solid ? COVERED : null
-    }
-    const rows = []
-    for (let y = rect.top; y < rect.bottom; y++) {
-      const colour = rowColour(y)
-      if (colour !== null && colour !== COVERED) rows.push({ y, colour })
-    }
-    if (!rows.length) return null
-    for (let y = rect.top - 1; y >= 0; y--) {
-      const colour = rowColour(y)
-      if (colour === COVERED) continue
-      if (colour === null || jump(colour, rows[0].colour)) break
-      rows.unshift({ y, colour })
-    }
-    for (let y = rect.bottom; y < image.height; y++) {
-      const colour = rowColour(y)
-      if (colour === COVERED) continue
-      if (colour === null || jump(rows.at(-1).colour, colour)) break
-      rows.push({ y, colour })
-    }
-    const inside = new Map()
-    for (const [row, colour] of smoothBands(rows.map(row => row.colour))) {
-      const { y } = rows[row]
-      if (y >= rect.top && y < rect.bottom) inside.set(y - rect.top, colour)
-    }
-    return inside
-  }
-
-  function isGentle(region) {
-    const present = new Set(region)
-    const gentle = (a, b) => change(colours[a], colours[b]).every(value => Math.abs(value) <= STEP_EDGE)
-    return region.every(index => (index % width === width - 1 || !present.has(index + 1) || gentle(index, index + 1)) && (!present.has(index + width) || gentle(index, index + width)))
-  }
-
-  function decompose(region, exact) {
-    let free = region
-    function take(matched) {
-      const gone = new Set(matched)
-      free = free.filter(index => !gone.has(index))
-    }
-    const layers = []
-    let fitted = modelOf(free, colours, width, height, BASE_SHARE, exact, exact ? null : bandsOf(main[0])) ?? flatOf(free, colours)
-    if (fitted.stops?.some((stop, index) => index && stop.t === fitted.stops[index - 1].t)) {
-      const peeled = flatOf(free, colours)
-      const gone = new Set(peeled.matched)
-      const remainder = free.filter(index => !gone.has(index))
-      const trial = peeled.matched.length >= free.length * PEEL_SHARE && remainder.length ? modelOf(remainder, colours, width, height, BASE_SHARE, exact) : null
-      if (trial?.stops && trial.stops.every((stop, index) => !index || stop.t > trial.stops[index - 1].t)) {
-        layers.push({ ...peeled, pixels: peeled.matched, smooth: anySoft })
-        take(peeled.matched)
-        fitted = trial
-      }
-    }
-    const [largest, ...others] = segmentsOf(fitted, width).sort((a, b) => b.matched.length - a.matched.length)
-    take(fitted.matched)
-    for (const segment of others) layers.push({ ...placedOn(segment), pixels: segment.matched, smooth: false })
-    const continuous = anySoft || isGentle(region)
-    for (let round = 0; continuous && round < MAX_MODELS && free.length; round++) {
-      const model = modelOf(free, colours, width, height, LAYER_SHARE, exact)
-      if (!model) break
-      for (const segment of segmentsOf(model, width)) layers.push({ ...placedOn(segment), pixels: segment.matched, smooth: true })
-      take(model.matched)
-    }
-    const rest = new Map()
-    for (const index of free) {
-      if (!rest.has(colours[index])) rest.set(colours[index], [])
-      rest.get(colours[index]).push(index)
-    }
-    for (const [colour, list] of rest) layers.push({ colour, pixels: list, smooth: false })
-    return { base: placedOn(largest), layers }
-  }
-
-  const { base, layers } = decompose(main[1], false)
-  for (const [, region] of overlaid) {
-    const part = decompose(region, true)
-    layers.push({ ...part.base, pixels: part.base.matched, smooth: anySoft }, ...part.layers)
-  }
-  const HOLE = -2
-  const BASE = -1
-  const owner = new Int32Array(width * height).fill(HOLE)
-  for (const pixel of solid) owner[pixel] = BASE
-  for (const [index, layer] of layers.entries()) {
-    for (const pixel of layer.pixels) owner[pixel] = index
-  }
-  function touchesEarlier(x, y, index) {
-    for (let ny = Math.max(0, y - 1); ny <= Math.min(height - 1, y + 1); ny++) {
-      for (let nx = Math.max(0, x - 1); nx <= Math.min(width - 1, x + 1); nx++) {
-        if (owner[ny * width + nx] < index) return true
-      }
-    }
-    return false
-  }
-  function canSlide(from, x, y, index) {
-    const target = y * width + x
-    if (owner[target] <= index) return false
-    return !touchesEarlier(x, y, index) || change(colours[from], colours[target]).every(value => Math.abs(value) <= SLIDE_CONTRAST)
-  }
-  function edgeUnder(pixels, index) {
-    const reached = new Set()
-    for (const pixel of pixels) {
-      const x = pixel % width
-      const y = Math.floor(pixel / width)
-      for (let ny = Math.max(0, y - 1); ny <= Math.min(height - 1, y + 1); ny++) {
-        for (let nx = Math.max(0, x - 1); nx <= Math.min(width - 1, x + 1); nx++) {
-          const edge = nx === 0 || ny === 0 || nx === width - 1 || ny === height - 1
-          if (edge && canSlide(pixel, nx, ny, index)) reached.add(ny * width + nx)
-        }
-      }
-    }
-    return Array.from(reached)
-  }
-  function grownUnder(pixels, index) {
-    const grown = new Set(pixels)
-    for (const pixel of pixels) {
-      const x = pixel % width
-      const y = Math.floor(pixel / width)
-      for (let ny = Math.max(1, y - 1); ny <= Math.min(height - 2, y + 1); ny++) {
-        for (let nx = Math.max(1, x - 1); nx <= Math.min(width - 2, x + 1); nx++) {
-          if (canSlide(pixel, nx, ny, index)) grown.add(ny * width + nx)
-        }
-      }
-    }
-    return Array.from(grown)
-  }
-  const stacked = layers.map((layer, index) => ({ ...layer, pixels: grownUnder(layer.pixels, index), edges: edgeUnder(layer.pixels, index), exact: shapeOf(layer.pixels, layer.smooth) }))
-  const finalBase = holes ? { ...base, masked: true, pixels: solid, exact: shapeOf(solid, false) } : base
-  return { base: finalBase, layers: stacked, owner, shapeOf }
-}
-
 function imageOf(texture, cache) {
   if (!cache.has(texture)) {
     const { width, height } = texture.image
-    cache.set(texture, { data: texture.image.getContext("2d").getImageData(0, 0, width, height).data, width, height, labels: texture.userData.labels?.() ?? null, analyses: new Map() })
+    cache.set(texture, { data: texture.image.getContext("2d").getImageData(0, 0, width, height).data, width, height, labels: texture.userData.labels?.() ?? null, gradient: texture.userData.gradient ?? null, fades: texture.userData.fades ?? null, panels: texture.userData.panels ?? null, analyses: new Map() })
   }
   return cache.get(texture)
 }
@@ -617,13 +71,40 @@ function facesOf(mesh, view, project, cache) {
   const showsBack = mesh.material.side === THREE.BackSide
   const image = mesh.material.map ? imageOf(mesh.material.map, cache) : null
   const faces = []
+  const solids = []
+  function faceFrom(corners, texels, rect, analysis, normal) {
+    const points = view.perspective ? split(corners, view.direction, view.direction.dot(view.eye) + view.near)[0] : corners
+    if (!points) return null
+    const screen = points.map(project)
+    const facing = corners[1].clone().sub(corners[0]).cross(corners[2].clone().sub(corners[0])).normalize()
+    return { index: faces.length, corners, texels, rect, image, analysis, points, facing, normal: normal.dot(toViewer(view, corners[0])) < 0 ? normal.clone().negate().normalize() : normal.clone().normalize(), box: { minX: Math.min(...screen.map(point => point[0])), maxX: Math.max(...screen.map(point => point[0])), minY: Math.min(...screen.map(point => point[1])), maxY: Math.max(...screen.map(point => point[1])) } }
+  }
+  function analysisOf(rect, parts = null) {
+    const key = [rect].concat(parts ?? []).map(({ left, top, right, bottom }) => `${left},${top},${right},${bottom}`).join(" ")
+    if (!image.analyses.has(key)) image.analyses.set(key, analyse(image, rect, parts && maskOf(rect, parts)))
+    return image.analyses.get(key)
+  }
+  function wholeOf(panel, { corners, normal, texels, rect }) {
+    if (panel.whole !== undefined) return panel.whole
+    const rects = panel.parts.map(part => part.rect)
+    const area = { left: Math.min(...rects.map(item => item.left)), top: Math.min(...rects.map(item => item.top)), right: Math.max(...rects.map(item => item.right)), bottom: Math.max(...rects.map(item => item.bottom)) }
+    const toWorld = worldMap({ corners, texels })
+    const wholeTexels = texels.map(([x, y]) => [x === rect.left ? area.left : area.right, y === rect.top ? area.top : area.bottom])
+    const analysis = analysisOf(area, rects)
+    panel.whole = analysis && faceFrom(wholeTexels.map(([x, y]) => toWorld(x, y)), wholeTexels, area, analysis, normal)
+    if (panel.whole) {
+      faces.push(panel.whole)
+    }
+    return panel.whole
+  }
+  const quads = []
+  const panels = new Map()
   for (let start = 0; start < position.count; start += 6) {
     const corners = [0, 1, 2, 5].map(offset => new THREE.Vector3().fromBufferAttribute(position, start + offset).applyMatrix4(mesh.matrixWorld))
     const normal = corners[1].clone().sub(corners[0]).cross(corners[2].clone().sub(corners[0]))
     if (normal.lengthSq() < EPSILON * EPSILON) continue
     if (mirrored) normal.negate()
     if (normal.dot(toViewer(view, corners[0])) > 0 === showsBack) continue
-    let analysis = { base: { colour: materialColour(mesh.material), shape: null }, layers: [] }
     let texels = null
     let rect = null
     if (image) {
@@ -637,18 +118,35 @@ function facesOf(mesh, view, project, cache) {
         rect.right = rect.left + 1
         rect.bottom = rect.top + 1
       }
-      const key = `${rect.left},${rect.top},${rect.right},${rect.bottom}`
-      if (!image.analyses.has(key)) image.analyses.set(key, analyse(image, rect))
-      analysis = image.analyses.get(key)
-      if (!analysis) continue
     }
-    const points = view.perspective ? split(corners, view.direction, view.direction.dot(view.eye) + view.near)[0] : corners
-    if (!points) continue
-    const screen = points.map(project)
-    const facing = corners[1].clone().sub(corners[0]).cross(corners[2].clone().sub(corners[0])).normalize()
-    faces.push({ index: faces.length, corners, texels, rect, image, analysis, points, facing, normal: normal.dot(toViewer(view, corners[0])) < 0 ? normal.negate().normalize() : normal.normalize(), box: { minX: Math.min(...screen.map(point => point[0])), maxX: Math.max(...screen.map(point => point[0])), minY: Math.min(...screen.map(point => point[1])), maxY: Math.max(...screen.map(point => point[1])) } })
+    const quad = { corners, normal, texels, rect, panel: null }
+    quads.push(quad)
+    const panelArea = rect && image.panels?.find(item => contains(item, rect))
+    if (!panelArea) continue
+    const key = `${panelArea.left},${panelArea.top},${Math.round(normal.clone().normalize().dot(corners[0]) / PLANE_ERROR)}`
+    if (!panels.has(key)) panels.set(key, { parts: [] })
+    quad.panel = panels.get(key)
+    quad.panel.parts.push(quad)
   }
-  return faces
+  for (const quad of quads) {
+    const { corners, normal, texels, rect, panel } = quad
+    if (panel) {
+      const part = faceFrom(corners, texels, rect, null, normal)
+      if (!part) continue
+      solids.push(part)
+      const whole = wholeOf(panel, quad)
+      if (!whole) continue
+      part.whole = whole
+      continue
+    }
+    const analysis = rect ? analysisOf(rect) : { base: { colour: materialColour(mesh.material) }, layers: [] }
+    if (!analysis) continue
+    const face = faceFrom(corners, texels, rect, analysis, normal)
+    if (!face) continue
+    faces.push(face)
+    solids.push(face)
+  }
+  return { faces, solids }
 }
 
 function worldMap(face) {
@@ -680,10 +178,6 @@ function occluderOf(face, view) {
   return { face, normal: face.normal, constant: face.normal.dot(face.points[0]), edges }
 }
 
-function overlaps(a, b) {
-  return a.minX < b.maxX && b.minX < a.maxX && a.minY < b.maxY && b.minY < a.maxY
-}
-
 function hide(pieces, occluder) {
   const left = []
   for (const piece of pieces) {
@@ -706,33 +200,18 @@ function hideAll(pieces, face, occluders) {
   let left = pieces
   for (const occluder of occluders) {
     if (!left.length) break
-    if (occluder.face !== face && overlaps(face.box, occluder.face.box)) left = hide(left, occluder)
+    if (occluder.face !== face && occluder.face.whole !== face && boxesOverlap(face.box, occluder.face.box)) left = hide(left, occluder)
   }
   return left
 }
 
-function grown(polygon) {
+function grownOutward(polygon) {
   const middleX = polygon.reduce((sum, point) => sum + point[0], 0) / polygon.length
   const middleY = polygon.reduce((sum, point) => sum + point[1], 0) / polygon.length
   return polygon.map(([x, y]) => {
     const length = Math.hypot(x - middleX, y - middleY) || 1
     return [x + (x - middleX) / length * GROW, y + (y - middleY) / length * GROW]
   })
-}
-
-function area(polygon) {
-  return Math.abs(polygon.reduce((sum, [x, y], index) => {
-    const [nextX, nextY] = polygon[(index + 1) % polygon.length]
-    return sum + x * nextY - nextX * y
-  }, 0)) / 2
-}
-
-function sameWinding(polygon) {
-  const signed = polygon.reduce((sum, [x, y], index) => {
-    const [nextX, nextY] = polygon[(index + 1) % polygon.length]
-    return sum + x * nextY - nextX * y
-  }, 0)
-  return signed < 0 ? polygon.toReversed() : polygon
 }
 
 function insideFace(point, face) {
@@ -852,7 +331,7 @@ function trimmedBase(face, others) {
   function touchesBase(x, y) {
     for (let ny = Math.max(0, y - 1); ny <= Math.min(height - 1, y + 1); ny++) {
       for (let nx = Math.max(0, x - 1); nx <= Math.min(width - 1, x + 1); nx++) {
-        if (owner[ny * width + nx] === -1) return true
+        if (owner[ny * width + nx] === BASE) return true
       }
     }
     return false
@@ -875,51 +354,6 @@ function trimmedBase(face, others) {
     if (!dropped.has(index)) kept.push(index)
   }
   return kept
-}
-
-function sharedEdges(list) {
-  const buckets = new Map()
-  const edges = []
-  const keyOf = (angle, offset) => `${angle},${offset}`
-  for (const [fill, polygons] of list) {
-    for (const polygon of polygons) {
-      for (const [index, from] of polygon.entries()) {
-        const to = polygon[(index + 1) % polygon.length]
-        const length = Math.hypot(to[0] - from[0], to[1] - from[1])
-        if (length < MIN_SHARED) continue
-        let dx = (to[0] - from[0]) / length
-        let dy = (to[1] - from[1]) / length
-        if (dx < -FLIP || Math.abs(dx) <= FLIP && dy < 0) {
-          dx = -dx
-          dy = -dy
-        }
-        const offset = dy * from[0] - dx * from[1]
-        const edge = { fill, polygon, from, dx, dy, offset, start: dx * from[0] + dy * from[1], end: dx * to[0] + dy * to[1], id: edges.length }
-        if (edge.start > edge.end) [edge.start, edge.end] = [edge.end, edge.start]
-        edges.push(edge)
-        const key = keyOf(Math.round(Math.atan2(dy, dx) / SHARED_ANGLE), Math.round(offset / SHARED_OFFSET))
-        if (!buckets.has(key)) buckets.set(key, [])
-        buckets.get(key).push(edge)
-      }
-    }
-  }
-  const shared = new Map()
-  for (const edge of edges) {
-    const angle = Math.round(Math.atan2(edge.dy, edge.dx) / SHARED_ANGLE)
-    const offset = Math.round(edge.offset / SHARED_OFFSET)
-    for (const nearAngle of [angle - 1, angle, angle + 1]) {
-      for (const nearOffset of [offset - 1, offset, offset + 1]) {
-        for (const other of buckets.get(keyOf(nearAngle, nearOffset)) ?? []) {
-          if (other.id <= edge.id || other.polygon === edge.polygon || Math.abs(other.offset - edge.offset) > SHARED_OFFSET) continue
-          const start = Math.max(edge.start, other.start)
-          const end = Math.min(edge.end, other.end)
-          if (end - start < MIN_SHARED) continue
-          addTo(shared, edge.fill, [[[edge.dx * start + edge.dy * edge.offset, edge.dy * start - edge.dx * edge.offset], [edge.dx * end + edge.dy * edge.offset, edge.dy * end - edge.dx * edge.offset]]])
-        }
-      }
-    }
-  }
-  return shared
 }
 
 function fitGradient(face, rect, model, project, limits) {
@@ -977,17 +411,48 @@ function fitGradient(face, rect, model, project, limits) {
   return { x1, y1, x2: x1 + nx * span, y2: y1 + ny * span, stops: knots.map(stop => [clamp((along(stop.t) - start) / span, 0, 1), stop.colour]), error }
 }
 
-function number(value) {
-  return String(Math.round(value * 100) / 100)
+function tenth(value) {
+  return String(Math.round(value * 10) / 10)
 }
 
-function pathOf(polygons, left, top) {
-  return polygons.map(polygon => `M${polygon.map(([x, y]) => `${number(x - left)} ${number(y - top)}`).join("L")}Z`).join("")
+function offsetOf(value) {
+  return String(Math.round(value * 1e3) / 1e3).replace(/^0\./, ".")
+}
+
+function lineOf({ x1, y1, x2, y2, stops }) {
+  const upright = Math.abs(x2 - x1) < GRADIENT_MATCH
+  if (!upright && Math.abs(y2 - y1) >= GRADIENT_MATCH) return null
+  const [from, to] = upright ? [y1, y2] : [x1, x2]
+  if (to < from) return null
+  return { upright, points: stops.map(([offset, colour]) => ({ t: from + offset * (to - from), colour })) }
+}
+
+function colourOn(points, t) {
+  const after = points.findIndex(point => point.t >= t)
+  if (after <= 0) return points[after < 0 ? points.length - 1 : 0].colour
+  const from = points[after - 1]
+  const to = points[after]
+  return mixed(from.colour, to.colour, to.t > from.t ? (t - from.t) / (to.t - from.t) : 1)
+}
+
+function agree(first, second) {
+  const low = Math.max(first[0].t, second[0].t)
+  const high = Math.min(first.at(-1).t, second.at(-1).t)
+  if (low > high) return false
+  const samples = first.concat(second).map(point => point.t).filter(t => t >= low && t <= high).concat(low, high)
+  return samples.every(t => within(colourOn(first, t), colourOn(second, t), GRADIENT_AGREE))
+}
+
+function joinedPoints(first, second) {
+  const low = first[0].t
+  const high = first.at(-1).t
+  return first.concat(second.filter(point => point.t < low || point.t > high)).sort((a, b) => a.t - b.t)
 }
 
 class Output {
   constructor() {
     this.gradients = new Map()
+    this.nextId = 0
     this.fills = new Map()
   }
 
@@ -999,57 +464,238 @@ class Output {
 
   fill(model, gradient) {
     if (gradient === undefined) return hexOf(model.colour)
-    const key = JSON.stringify([gradient.x1, gradient.y1, gradient.x2, gradient.y2].map(number).concat(gradient.stops.map(([offset, colour]) => [Math.round(offset * 1e4), colour])))
-    if (!this.gradients.has(key)) this.gradients.set(key, { id: `g${this.gradients.size}`, gradient })
+    const upright = Math.abs(gradient.x2 - gradient.x1) < GRADIENT_MATCH
+    const level = Math.abs(gradient.y2 - gradient.y1) < GRADIENT_MATCH
+    const key = JSON.stringify([upright ? 0 : gradient.x1, level ? 0 : gradient.y1, upright ? 0 : gradient.x2, level ? 0 : gradient.y2].map(value => Math.round(value / GRADIENT_MATCH)).concat(gradient.stops.map(([offset, colour]) => [Math.round(offset * 1e3), colour])))
+    if (!this.gradients.has(key)) this.gradients.set(key, { id: `g${this.nextId++}`, key, gradient })
     const fill = `url(#${this.gradients.get(key).id})`
     this.fills.set(fill, gradient)
     return fill
   }
 
+  mergeAlongAxis(shortest) {
+    const merged = new Map()
+    const groups = []
+    const entries = Array.from(this.gradients.values()).sort((a, b) => a.gradient.y1 - b.gradient.y1 || a.gradient.x1 - b.gradient.x1)
+    for (const entry of entries) {
+      const line = lineOf(entry.gradient)
+      const group = line && groups.find(other => other.upright === line.upright && agree(other.points, line.points))
+      if (!group) {
+        if (line) groups.push({ ...line, entry })
+        continue
+      }
+      group.points = joinedPoints(group.points, line.points)
+      merged.set(`url(#${entry.id})`, `url(#${group.entry.id})`)
+      this.gradients.delete(entry.key)
+    }
+    for (const { entry, upright, points } of groups) {
+      const kept = simplifyStops(points)
+      const from = kept[0].t
+      const to = kept.at(-1).t
+      const span = to - from || 1
+      entry.gradient = { x1: upright ? entry.gradient.x1 : from, y1: upright ? from : entry.gradient.y1, x2: upright ? entry.gradient.x1 : to, y2: upright ? to : entry.gradient.y1, stops: kept.map(({ t, colour }) => [(t - from) / span, colour]) }
+      this.fills.set(`url(#${entry.id})`, entry.gradient)
+    }
+    const flats = []
+    const flattened = new Map()
+    for (const entry of Array.from(this.gradients.values())) {
+      const { x1, y1, x2, y2, stops } = entry.gradient
+      const middle = stops[Math.floor(stops.length / 2)][1]
+      if (Math.hypot(x2 - x1, y2 - y1) > shortest && !stops.every(([, colour]) => within(colour, middle, NEARLY_FLAT))) {
+        entry.gradient.stops = simplifyStops(stops.map(([t, colour]) => ({ t, colour })), NEARLY_FLAT).map(({ t, colour }) => [t, colour])
+        continue
+      }
+      let flat = flats.find(colour => within(colour, middle, NEARLY_FLAT))
+      if (flat === undefined) {
+        flat = middle
+        flats.push(flat)
+      }
+      flattened.set(`url(#${entry.id})`, hexOf(flat))
+      this.gradients.delete(entry.key)
+    }
+    for (const [from, to] of merged) merged.set(from, flattened.get(to) ?? to)
+    for (const [from, to] of flattened) merged.set(from, to)
+    return merged
+  }
+
   defs(left, top) {
-    return Array.from(this.gradients.values(), ({ id, gradient }) => `<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${number(gradient.x1 - left)}" y1="${number(gradient.y1 - top)}" x2="${number(gradient.x2 - left)}" y2="${number(gradient.y2 - top)}">${gradient.stops.map(([offset, colour]) => `<stop offset="${Math.round(offset * 1e4) / 1e4}" stop-color="${hexOf(colour)}"/>`).join("")}</linearGradient>`).join("")
+    const owners = new Map()
+    return Array.from(this.gradients.values(), ({ id, gradient }) => {
+      const upright = Math.abs(gradient.x2 - gradient.x1) < GRADIENT_MATCH
+      const level = Math.abs(gradient.y2 - gradient.y1) < GRADIENT_MATCH
+      const line = `x1="${upright ? 0 : tenth(gradient.x1 - left)}" y1="${level ? 0 : tenth(gradient.y1 - top)}" x2="${upright ? 0 : tenth(gradient.x2 - left)}" y2="${level ? 0 : tenth(gradient.y2 - top)}"`
+      const stops = gradient.stops.map(([offset, colour]) => `<stop offset="${offsetOf(offset)}" stop-color="${hexOf(colour)}"/>`).join("")
+      if (owners.has(stops)) return `<linearGradient id="${id}" xlink:href="#${owners.get(stops)}" ${line}/>`
+      owners.set(stops, id)
+      return `<linearGradient id="${id}" gradientUnits="userSpaceOnUse" ${line}>${stops}</linearGradient>`
+    }).join("")
   }
 }
 
-function addInOrder(list, fill, polygons) {
-  if (!polygons.length) return
-  if (list.at(-1)?.[0] === fill) list.at(-1)[1].push(...polygons)
-  else list.push([fill, polygons])
+function middleColour(model) {
+  return model.stops[Math.floor(model.stops.length / 2)].colour
 }
 
-function addTo(groups, fill, polygons) {
-  if (!groups.has(fill)) groups.set(fill, [])
-  const list = groups.get(fill)
-  for (const polygon of polygons) list.push(polygon)
+function halved(model, rect) {
+  const acrossX = Math.abs(model.axis[1]) >= Math.abs(model.axis[0])
+  const middle = acrossX ? Math.round((rect.left + rect.right) / 2) : Math.round((rect.top + rect.bottom) / 2)
+  return { acrossX, middle, low: acrossX ? { ...rect, right: middle } : { ...rect, bottom: middle }, high: acrossX ? { ...rect, left: middle } : { ...rect, top: middle }, size: acrossX ? rect.right - rect.left : rect.bottom - rect.top }
 }
 
-function linesOf(segments, left, top) {
-  let path = ""
-  let last = null
-  for (const [from, to] of segments) {
-    const start = `${number(from[0] - left)} ${number(from[1] - top)}`
-    const end = `${number(to[0] - left)} ${number(to[1] - top)}`
-    path += start === last ? `L${end}` : `M${start}L${end}`
-    last = end
+function bandRuns(stops) {
+  const runs = []
+  for (const stop of stops) {
+    if (runs.at(-1)?.colour === stop.colour) continue
+    if (runs.length) runs.at(-1).to = stop.t
+    runs.push({ colour: stop.colour, from: runs.length ? stop.t : -Infinity, to: Infinity })
   }
-  return path
+  return runs
 }
 
-function markupOf({ base, silhouette, layers, joins, covers, clipped }, index, left, top, bleed, output) {
+function bandPlane(face, [ax, ay]) {
+  const toWorld = worldMap(face)
+  const origin = toWorld(0, 0)
+  const u = toWorld(1, 0).sub(origin)
+  const v = toWorld(0, 1).sub(origin)
+  const along = u.clone().multiplyScalar(ax).addScaledVector(v, ay)
+  const across = u.clone().multiplyScalar(-ay).addScaledVector(v, ax)
+  const normal = along.addScaledVector(across, -along.dot(across) / across.dot(across)).normalize()
+  return { normal, at: t => normal.dot(toWorld(ax * t, ay * t)) }
+}
+
+function withinConvex(polygon, piece) {
+  const sign = Math.sign(signedArea(piece))
+  let result = polygon
+  for (const [index, [ax, ay]] of piece.entries()) {
+    const [bx, by] = piece[(index + 1) % piece.length]
+    const side = ([x, y]) => ((bx - ax) * (y - ay) - (by - ay) * (x - ax)) * sign
+    const kept = []
+    for (const [at, point] of result.entries()) {
+      const next = result[(at + 1) % result.length]
+      const from = side(point)
+      const to = side(next)
+      if (from >= 0) kept.push(point)
+      if (from * to < 0) kept.push([point[0] + (next[0] - point[0]) * from / (from - to), point[1] + (next[1] - point[1]) * from / (from - to)])
+    }
+    if (kept.length < 3) return null
+    result = kept
+  }
+  return result
+}
+
+function clippedToBand(polygons, { normal, at }, from, to) {
+  return polygons.flatMap(polygon => {
+    const above = from === -Infinity ? polygon : split(polygon, normal, at(from))[0]
+    const inside = above && to !== Infinity ? split(above, normal, at(to))[1] : above
+    return inside ? [inside] : []
+  })
+}
+
+function basesJoinedToLayers(list, placed) {
+  function movedUp(fill, polygon) {
+    const at = placed.findIndex(entry => entry[0] === fill)
+    if (at < 0) return false
+    const shape = shapeOfPolygons([polygon])
+    if (list.concat(placed.slice(0, at)).some(([other, polygons]) => other !== fill && shapesOverlap(shapeOfPolygons(polygons), shape))) return false
+    placed[at][1].push(polygon)
+    return true
+  }
+  return list.map(([fill, polygons]) => [fill, polygons.filter(polygon => !movedUp(fill, polygon))]).filter(([, polygons]) => polygons.length)
+}
+
+function aroundStrokes(polygons, strokes, bleed) {
+  const boxes = strokes.flatMap(([, segments]) => segments.map(segment => {
+    const { minX, minY, maxX, maxY } = boxOfPolygons([segment])
+    return { minX: minX - bleed, minY: minY - bleed, maxX: maxX + bleed, maxY: maxY + bleed }
+  }))
+  return polygons.filter(polygon => {
+    const box = boxOfPolygons([polygon])
+    return boxes.some(other => boxesOverlap(box, other))
+  }).map(grownOutward)
+}
+
+function markupOf({ base, layers, joins, covers }, index, { left, top, bleed, output, totals, cover }) {
   const list = Array.from(base)
   const parts = []
-  const filled = ([fill, segments]) => `<path fill="none" stroke="${fill}" d="${linesOf(segments, left, top)}"/>`
-  const under = list.length > 1 ? Array.from(sharedEdges(list)).sort((a, b) => output.brightness(a[0]) - output.brightness(b[0])).map(filled) : []
-  if (under.length) parts.push(`<defs><clipPath id="c${index}"><path d="${pathOf(silhouette, left, top)}"/></clipPath></defs>`, `<g clip-path="url(#c${index})" stroke-width="${number(bleed)}">${under.join("")}</g>`)
-  const painted = ([fill, polygons]) => `<path fill="${fill}" d="${pathOf(polygons, left, top)}"/>`
-  for (const entry of list) parts.push(painted(entry))
-  for (const entry of layers) parts.push(painted(entry))
-  for (const entry of joins) parts.push(painted(entry))
-  for (const entry of covers) parts.push(painted(entry))
-  for (const [shape, clip] of clipped.entries()) {
-    parts.push(`<clipPath id="f${index}-${shape}"><path d="${pathOf(clip.pieces, left, top)}"/></clipPath><g clip-path="url(#f${index}-${shape})">${clip.groups.concat(clip.joins, Array.from(clip.covers)).map(painted).join("")}</g>`)
+  const strokePath = ([fill, segments]) => `<path fill="none" stroke="${fill}" d="${linesOf(segments, left, top)}"/>`
+  const strokes = list.length > 1 ? Array.from(sharedEdges(list)).sort((a, b) => output.brightness(a[0]) - output.brightness(b[0])) : []
+  const under = strokes.map(strokePath)
+  if (under.length) parts.push(`<defs><clipPath id="c${index}"><path d="${writePath(unionOf(stitched(loopsInHundredths(aroundStrokes(list.flatMap(entry => entry[1]), strokes, bleed), left, top))))}"/></clipPath></defs>`, `<g clip-path="url(#c${index})" stroke-width="${number(bleed)}">${under.join("")}</g>`)
+  const placed = mergedByFill(layers, totals)
+  const entries = basesJoinedToLayers(list, placed).concat(placed, mergedByFill(joins, totals), Array.from(covers))
+  const shapes = []
+  for (const [fill, polygons] of entries.toReversed()) {
+    const loops = unionOf(stitched(loopsInHundredths(polygons, left, top)))
+    const shown = visibleLoops(loops, cover)
+    if (shown.length) shapes.unshift(`<path fill="${fill}" d="${writePath(shown)}"/>`)
+    addToCover(cover, loops)
   }
-  return parts.join("\n")
+  parts.push(...shapes)
+  return parts.join("")
+}
+
+function useMergedFills(layers, merged) {
+  const renamed = entries => entries.map(([fill, polygons]) => [merged.get(fill) ?? fill, polygons])
+  const renamedMap = map => {
+    const next = new Map()
+    for (const [fill, polygons] of map) addTo(next, merged.get(fill) ?? fill, polygons)
+    return next
+  }
+  for (const layer of layers) {
+    layer.base = renamedMap(layer.base)
+    layer.covers = renamedMap(layer.covers)
+    layer.layers = renamed(layer.layers)
+    layer.joins = renamed(layer.joins)
+  }
+}
+
+function nearFillsJoined(layers, totals, level) {
+  const used = new Set()
+  for (const { base, layers: shapes, joins, covers } of layers) {
+    for (const fill of Array.from(base.keys()).concat(shapes.map(entry => entry[0]), joins.map(entry => entry[0]), Array.from(covers.keys()))) {
+      if (fill.startsWith("#")) used.add(fill)
+    }
+  }
+  const kept = []
+  const joined = new Map()
+  for (const fill of Array.from(used).sort((a, b) => (totals.get(b) ?? 0) - (totals.get(a) ?? 0))) {
+    const colour = parseInt(fill.slice(1), 16)
+    const home = kept.find(other => within(parseInt(other.slice(1), 16), colour, level))
+    if (home) joined.set(fill, home)
+    else kept.push(fill)
+  }
+  return joined
+}
+
+function fillTotals(cache, bandFills) {
+  const totals = new Map()
+  for (const image of cache.values()) {
+    for (const [colour, count] of colourTotals(image)) totals.set(hexOf(colour), (totals.get(hexOf(colour)) ?? 0) + count)
+  }
+  for (const fill of bandFills) totals.delete(fill)
+  return totals
+}
+
+function joinFacesToLayerBelow(layers) {
+  for (const [index, layer] of layers.entries()) {
+    const below = layers[index - 1]
+    if (!below || below.layers.length || below.joins.length || below.covers.size || below.base.size !== 1) continue
+    const [[fill, polygons]] = below.base
+    const shapes = Array.from(layer.base)
+    const at = shapes.findIndex(entry => entry[0] === fill)
+    if (at < 0) continue
+    const earlier = shapes.slice(0, at).map(entry => shapeOfPolygons(entry[1]))
+    const kept = []
+    const moved = polygons.map(sameWinding)
+    for (const polygon of shapes[at][1]) {
+      const shape = shapeOfPolygons([polygon])
+      if (earlier.some(other => shapesOverlap(other, shape))) kept.push(polygon)
+      else moved.push(sameWinding(polygon))
+    }
+    below.base.set(fill, moved)
+    if (kept.length) layer.base.set(fill, kept)
+    else layer.base.delete(fill)
+  }
 }
 
 export function vectorTitle(scene, camera, size, resolution) {
@@ -1064,29 +710,38 @@ export function vectorTitle(scene, camera, size, resolution) {
   const view = { perspective: camera.isPerspectiveCamera, eye: camera.getWorldPosition(new THREE.Vector3()), direction: camera.getWorldDirection(new THREE.Vector3()), near: camera.near }
   const limits = { fit: resolution * FIT_ERROR, spacing: resolution * SPACING_ERROR }
   const output = new Output()
+  const bandFills = new Set()
 
   function project(point) {
     const { x, y } = point.clone().project(camera)
     return [((x + 1) / 2 - bounds.minX) * scaleX, ((1 - y) / 2 - bounds.minY) * scaleY]
   }
 
+  function bandFill(colour) {
+    bandFills.add(hexOf(colour))
+    return hexOf(colour)
+  }
+
+  function onScreen(pieces) {
+    return pieces.map(piece => piece.map(project)).filter(polygon => area(polygon) >= SLIVER)
+  }
+
+  function fillFor(model, gradient) {
+    if (gradient) return output.fill(model, gradient)
+    return model.stops ? hexOf(middleColour(model)) : output.fill(model)
+  }
+
   function fillBase(face, model, rect, pieces, groups, depth) {
-    if (!model.stops) {
-      addTo(groups, output.fill(model), pieces.map(piece => piece.map(project)).filter(polygon => area(polygon) >= SLIVER))
+    if (model.bands) {
+      const plane = bandPlane(face, model.axis)
+      for (const { colour, from, to } of bandRuns(model.stops)) addTo(groups, bandFill(colour), onScreen(clippedToBand(pieces, plane, from, to)))
       return
     }
-    const gradient = fitGradient(face, rect, model, project, limits)
-    if (!gradient) {
-      const middle = model.stops[Math.floor(model.stops.length / 2)].colour
-      addTo(groups, hexOf(middle), pieces.map(piece => piece.map(project)).filter(polygon => area(polygon) >= SLIVER))
-      return
-    }
-    const wide = rect.right - rect.left
-    const tall = rect.bottom - rect.top
-    const acrossX = Math.abs(model.axis[1]) >= Math.abs(model.axis[0])
-    if (gradient.error > limits.fit && depth < MAX_SPLITS && (acrossX ? wide : tall) >= 2) {
+    const gradient = model.stops ? fitGradient(face, rect, model, project, limits) : null
+    const half = gradient && halved(model, rect)
+    if (gradient && gradient.error > limits.fit && depth < MAX_SPLITS && half.size >= 2) {
       const toWorld = worldMap(face)
-      const middle = acrossX ? Math.round((rect.left + rect.right) / 2) : Math.round((rect.top + rect.bottom) / 2)
+      const { acrossX, middle } = half
       const to = acrossX ? toWorld(rect.right, rect.top) : toWorld(rect.left, rect.bottom)
       const normal = to.clone().sub(toWorld(rect.left, rect.top)).normalize()
       const constant = normal.dot(acrossX ? toWorld(middle, rect.top) : toWorld(rect.left, middle))
@@ -1097,52 +752,57 @@ export function vectorTitle(scene, camera, size, resolution) {
         if (above) high.push(above)
         if (below) low.push(below)
       }
-      if (low.length) fillBase(face, model, acrossX ? { ...rect, right: middle } : { ...rect, bottom: middle }, low, groups, depth + 1)
-      if (high.length) fillBase(face, model, acrossX ? { ...rect, left: middle } : { ...rect, top: middle }, high, groups, depth + 1)
+      if (low.length) fillBase(face, model, half.low, low, groups, depth + 1)
+      if (high.length) fillBase(face, model, half.high, high, groups, depth + 1)
       return
     }
-    addTo(groups, output.fill(model, gradient), pieces.map(piece => piece.map(project)).filter(polygon => area(polygon) >= SLIVER))
+    addTo(groups, fillFor(model, gradient), onScreen(pieces))
   }
 
-  function paintPixels(face, layer, list, rect, groups, depth) {
+  function paintPixels(face, layer, list, rect, groups, depth, stacked = true) {
+    if (layer.bands) {
+      const toWorld = worldMap(face)
+      const plane = bandPlane(face, layer.axis)
+      const loops = face.analysis.shapeOf(list, layer.smooth).map(loop => loop.map(([x, y]) => toWorld(x, y)))
+      for (const { colour, from, to } of bandRuns(layer.stops)) addInOrder(groups, bandFill(colour), clippedToBand(loops, plane, from, stacked ? to + BAND_OVERLAP : to).map(piece => piece.map(project)))
+      return
+    }
     const gradient = layer.stops ? fitGradient(face, rect, layer, project, limits) : null
     if (gradient && gradient.error > limits.fit && depth < MAX_SPLITS) {
-      const acrossX = Math.abs(layer.axis[1]) >= Math.abs(layer.axis[0])
-      if ((acrossX ? rect.right - rect.left : rect.bottom - rect.top) >= 2) {
-        const middle = acrossX ? Math.round((rect.left + rect.right) / 2) : Math.round((rect.top + rect.bottom) / 2)
+      const half = halved(layer, rect)
+      if (half.size >= 2) {
+        const { acrossX, middle } = half
         const faceWidth = face.rect.right - face.rect.left
         const coordinate = index => acrossX ? face.rect.left + index % faceWidth : face.rect.top + Math.floor(index / faceWidth)
         const low = list.filter(index => coordinate(index) <= middle)
         const high = list.filter(index => coordinate(index) >= middle)
         if (low.length && high.length && low.length < list.length && high.length < list.length) {
-          paintPixels(face, layer, low, acrossX ? { ...rect, right: middle } : { ...rect, bottom: middle }, groups, depth + 1)
-          paintPixels(face, layer, high, acrossX ? { ...rect, left: middle } : { ...rect, top: middle }, groups, depth + 1)
+          paintPixels(face, layer, low, half.low, groups, depth + 1)
+          paintPixels(face, layer, high, half.high, groups, depth + 1)
           return
         }
       }
     }
     const toWorld = worldMap(face)
-    const fill = gradient ? output.fill(layer, gradient) : layer.stops ? hexOf(layer.stops[Math.floor(layer.stops.length / 2)].colour) : output.fill(layer)
-    addInOrder(groups, fill, face.analysis.shapeOf(list, layer.smooth).map(loop => loop.map(([x, y]) => project(toWorld(x, y)))))
+    addInOrder(groups, fillFor(layer, gradient), face.analysis.shapeOf(list, layer.smooth).map(loop => loop.map(([x, y]) => project(toWorld(x, y)))))
   }
 
   function wholeFill(face, model) {
-    const gradient = model.stops ? fitGradient(face, face.rect, model, project, limits) : null
-    return gradient ? output.fill(model, gradient) : model.stops ? hexOf(model.stops[Math.floor(model.stops.length / 2)].colour) : output.fill(model)
+    return fillFor(model, model.stops ? fitGradient(face, face.rect, model, project, limits) : null)
   }
 
   function fillLayer(face, layer, { groups, joins, covers }) {
     const toWorld = worldMap(face)
     const found = layer.exact.map(loop => joinsOf(face, loop, sameMesh, toWorld))
-    const placed = list => list.map(join => join.map(([x, y]) => project(toWorld(x, y))))
-    const under = placed(found.flatMap(item => item.under))
-    const over = placed(found.flatMap(item => item.over)).map(sameWinding)
+    const projected = list => list.map(join => join.map(([x, y]) => project(toWorld(x, y))))
+    const under = projected(found.flatMap(item => item.under))
+    const over = projected(found.flatMap(item => item.over)).map(sameWinding)
     if (under.length || over.length) {
       const fill = wholeFill(face, layer)
       addInOrder(groups, fill, under)
       addInOrder(joins, fill, over)
     }
-    for (const { neighbour, quad } of found.flatMap(item => item.covers)) addTo(covers, wholeFill(neighbour, neighbour.analysis.base), placed([quad]).map(sameWinding))
+    for (const { neighbour, quad } of found.flatMap(item => item.covers)) addTo(covers, wholeFill(neighbour, neighbour.analysis.base), projected([quad]).map(sameWinding))
     paintPixels(face, layer, layer.edges?.length ? layer.pixels.concat(outerPixels(face, sameMesh, layer.edges)) : layer.pixels, face.rect, groups, 0)
   }
 
@@ -1157,18 +817,16 @@ export function vectorTitle(scene, camera, size, resolution) {
   const layers = []
   let sameMesh = []
   for (const mesh of meshes) {
-    const faces = facesOf(mesh, view, project, cache)
+    const { faces, solids } = facesOf(mesh, view, project, cache)
     sameMesh = faces
-    const own = mesh.material.depthWrite ? faces.map(face => occluderOf(face, view)) : []
+    const own = mesh.material.depthWrite ? solids.map(face => occluderOf(face, view)) : []
     if (!mesh.material.colorWrite) {
       occluders.push(...own)
       continue
     }
-    const layer = { base: new Map(), layers: [], joins: [], covers: new Map(), clipped: [], silhouette: [] }
+    const layer = { base: new Map(), layers: [], joins: [], covers: new Map() }
     for (const face of faces) {
-      const unhidden = hideAll([face.points], face, occluders)
-      for (const piece of unhidden) layer.silhouette.push(grown(piece.map(project)))
-      const visible = hideAll(unhidden, face, own)
+      const visible = hideAll(hideAll([face.points], face, occluders), face, own)
       if (!visible.length) continue
       const { base, layers: shapes } = face.analysis
       const whole = visible.length === 1 && visible[0] === face.corners
@@ -1178,49 +836,46 @@ export function vectorTitle(scene, camera, size, resolution) {
         const trimmed = whole && shapes.length ? trimmedBase(face, sameMesh) : null
         if (trimmed) {
           const painted = []
-          paintPixels(face, base, trimmed, face.rect, painted, 0)
+          paintPixels(face, base, trimmed, face.rect, painted, 0, false)
           for (const [fill, polygons] of painted) addTo(layer.base, fill, polygons)
         } else fillBase(face, base, face.rect, visible, layer.base, 0)
       }
       for (const shape of shapes) fillLayer(face, shape, target)
-      if (!whole && target.groups.length) layer.clipped.push({ pieces: visible.map(piece => piece.map(project)), ...target })
+      if (!whole) {
+        const pieces = visible.map(piece => piece.map(project))
+        const shown = polygons => polygons.flatMap(polygon => pieces.map(piece => withinConvex(polygon, piece)).filter(Boolean))
+        for (const [fill, polygons] of target.groups) addInOrder(layer.layers, fill, shown(polygons))
+        for (const [fill, polygons] of target.joins) addInOrder(layer.joins, fill, shown(polygons))
+        for (const [fill, polygons] of target.covers) addTo(layer.covers, fill, shown(polygons))
+      }
     }
     occluders.push(...own)
-    if (layer.base.size || layer.layers.length || layer.clipped.length) layers.push(layer)
+    if (layer.base.size || layer.layers.length) layers.push(layer)
   }
   if (!layers.length) return null
 
-  let minX = Infinity
-  let minY = Infinity
-  let maxX = -Infinity
-  let maxY = -Infinity
-  for (const layer of layers) {
-    for (const polygons of Array.from(layer.base.values()).concat(layer.layers.map(entry => entry[1]), layer.clipped.map(clip => clip.pieces))) {
-      for (const polygon of polygons) {
-        for (const [x, y] of polygon) {
-          minX = Math.min(minX, x)
-          minY = Math.min(minY, y)
-          maxX = Math.max(maxX, x)
-          maxY = Math.max(maxY, y)
-        }
-      }
-    }
-  }
+  const { minX, minY, maxX, maxY } = boxOfPolygons(layers.flatMap(layer => Array.from(layer.base.values()).concat(layer.layers.map(entry => entry[1])).flat()))
   const left = Math.floor(minX + CROP_MARGIN)
   const top = Math.floor(minY + CROP_MARGIN)
   const right = Math.ceil(maxX - CROP_MARGIN)
   const bottom = Math.ceil(maxY - CROP_MARGIN)
-  const markup = layers.map((layer, index) => markupOf(layer, index, left, top, resolution * BLEED, output))
+  joinFacesToLayerBelow(layers)
+  useMergedFills(layers, output.mergeAlongAxis(resolution * SHORT_GRADIENT))
+  const totals = fillTotals(cache, bandFills)
+  useMergedFills(layers, nearFillsJoined(layers, totals, NEAR_FILLS))
+  const context = { left, top, bleed: resolution * BLEED, output, totals, cover: coverOf(right - left, bottom - top) }
+  const markup = layers.map((layer, index) => [layer, index]).toReversed().map(([layer, index]) => markupOf(layer, index, context)).toReversed()
   const defs = output.defs(left, top)
-  return { width: right - left, height: bottom - top, markup: (defs ? `<defs>${defs}</defs>\n` : "") + markup.join("\n") }
+  return { width: right - left, height: bottom - top, markup: (defs ? `<defs>${defs}</defs>` : "") + markup.join("") }
 }
 
 function svgOf(width, height, content) {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">\n${content}\n</svg>\n`
+  return `<svg xmlns="http://www.w3.org/2000/svg"${content.includes("xlink:href") ? ' xmlns:xlink="http://www.w3.org/1999/xlink"' : ""} width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${content}</svg>`
 }
 
-function placed(title, x, y, scale) {
-  return `<g transform="translate(${number(x)} ${number(y)}) scale(${Math.round(scale * 1e6) / 1e6})">\n${title.markup}\n</g>`
+function titleGroup(title, x, y, scale) {
+  const ratio = Math.round(scale * 1e6) / 1e6
+  return x || y || ratio !== 1 ? `<g transform="translate(${number(x)} ${number(y)}) scale(${ratio})">${title.markup}</g>` : title.markup
 }
 
 export function composeVector(title, settings) {
@@ -1234,7 +889,7 @@ export function composeVector(title, settings) {
   if (settings.backgroundEnabled) {
     const [from, to] = gradientLine(0, 0, width, height, settings.backgroundAngle)
     const stops = gradientStops(settings.backgroundStops, settings.backgroundSmooth).map(stop => `<stop offset="${stop.position}" stop-color="${stop.colour}"/>`).join("")
-    background = `<defs><linearGradient id="background" gradientUnits="userSpaceOnUse" x1="${number(from[0])}" y1="${number(from[1])}" x2="${number(to[0])}" y2="${number(to[1])}">${stops}</linearGradient></defs>\n<rect width="${width}" height="${height}" fill="url(#background)"/>\n`
+    background = `<defs><linearGradient id="background" gradientUnits="userSpaceOnUse" x1="${number(from[0])}" y1="${number(from[1])}" x2="${number(to[0])}" y2="${number(to[1])}">${stops}</linearGradient></defs><rect width="${width}" height="${height}" fill="url(#background)"/>`
   }
-  return svgOf(width, height, background + placed(title, x, y, ratio))
+  return svgOf(width, height, background + titleGroup(title, x, y, ratio))
 }
