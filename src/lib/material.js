@@ -344,6 +344,19 @@ export function buildAtlas(faces, options) {
   }
 
   const clear = painted.border.replace("rgb(", "rgba(").replace(")", ", 0)")
+  const fades = []
+  const gradientFaces = []
+
+  function addFade(left, top, right, bottom, near, far, amount) {
+    if (amount < 1) fades.push({ left, top, right, bottom, near, far, amount, colour: painted.borderColour })
+  }
+
+  function addGradient({ x, y, width, height }, from, to, stops) {
+    gradientFaces.push({ left: x * SCALE, top: y * SCALE, right: (x + width) * SCALE, bottom: (y + height) * SCALE, from: from.map(value => value * SCALE), to: to.map(value => value * SCALE), stops: stops.map(({ position, colour }) => {
+      const [r, g, b] = rgbOf(colour)
+      return { position, colour: r | g << 8 | b << 16 }
+    }) })
+  }
 
   function shadeFace(rect, fill, amount, back, front, horizontal) {
     const { x, y, width, height } = rect
@@ -358,6 +371,7 @@ export function buildAtlas(faces, options) {
       gradient.addColorStop(1, painted.border)
       ctx.fillStyle = gradient
       ctx.fillRect(x * SCALE, y * SCALE, width * SCALE, height * SCALE)
+      if (typeof fill === "string") addFade(x * SCALE, y * SCALE, (x + width) * SCALE, (y + height) * SCALE, horizontal ? [front, 0] : [0, front], horizontal ? [back, 0] : [0, back], fade)
     }
     ctx.globalCompositeOperation = "source-over"
   }
@@ -439,6 +453,7 @@ export function buildAtlas(faces, options) {
         }
       }
       shadeFace(face.rect, sideFill(face, block, span), options.sideFade, x * SCALE, (x + width) * SCALE, true)
+      if (options.sideFade === null && sideGradient && sideGradient.direction !== "along") addGradient(face.rect, [0, y + span.max - shared.minY], [0, y + span.max - shared.maxY], sideGradient.stops)
       continue
     }
     const span = extent(face.points, 0)
@@ -451,6 +466,10 @@ export function buildAtlas(faces, options) {
     if (tiles) tile(face.rect, painted.tilesAcrossLine ? column - entry.x + entry.glyph.lineX : 0)
     else drawLine(cornerPixels(painted, column * R, edge, width * R, false, face.kind === "top" ? 1 : -1), face.rect)
     shadeFace(face.rect, innerFill(face, block, span, level), options.internalFade, back, front, false)
+    if (options.internalFade === null && innerGradient && innerGradient.direction !== "up") {
+      const start = x - Math.round(span.min - block.own.minX) - entry.glyph.wordX
+      addGradient(face.rect, [start, 0], [start + sheet.wordWidth, 0], innerGradient.stops)
+    }
   }
 
   if (swatch) {
@@ -459,5 +478,28 @@ export function buildAtlas(faces, options) {
   }
 
   const side = sideSum[3] ? hexOf(sideSum.slice(0, 3).map(value => value / sideSum[3] * options.sideBrightness / 100)) : null
-  return { canvas, units, swatch, side, labels }
+  function gradientFace({ x, y, entry, bounds, own, width }) {
+    const shiftX = x - entry.x
+    const shiftY = y + depth + bounds.maxY - own.maxY - entry.top
+    const { from, to } = painted.gradient.ends(entry)
+    return { left: x * SCALE, top: (y + depth) * SCALE, right: (x + width) * SCALE, bottom: (y + depth + bounds.height) * SCALE, from: [(from[0] + shiftX) * SCALE, (from[1] + shiftY) * SCALE], to: [(to[0] + shiftX) * SCALE, (to[1] + shiftY) * SCALE] }
+  }
+
+  for (const { x, y, width, bounds, entry } of blocks) {
+    if (!entry) continue
+    const bottomStrip = y + depth + bounds.height
+    if (painted.fade !== null) {
+      addFade(x * SCALE, y * SCALE, (x + width) * SCALE, (y + depth) * SCALE, [0, (y + depth) * SCALE], [0, y * SCALE], painted.fade)
+      addFade(x * SCALE, bottomStrip * SCALE, (x + width) * SCALE, (bottomStrip + depth) * SCALE, [0, bottomStrip * SCALE], [0, (bottomStrip + depth) * SCALE], painted.fade)
+    } else if (options.customEdge && options.edgeFill === "gradient") {
+      const stops = gradientStops(options.edgeStops, options.edgeSmooth)
+      const start = x - entry.glyph.wordX
+      for (const top of [y, bottomStrip]) addGradient({ x, y: top, width, height: depth }, [start, 0], [start + sheet.wordWidth, 0], stops)
+    }
+  }
+  const frontFaces = painted.gradient ? blocks.filter(block => block.entry).map(block => ({ ...gradientFace(block), stops: painted.gradient.stops })) : []
+  const gradient = frontFaces.length || gradientFaces.length ? { faces: frontFaces.concat(gradientFaces) } : null
+  const areaOf = (x, y, width, height) => ({ left: x * SCALE, top: y * SCALE, right: (x + width) * SCALE, bottom: (y + height) * SCALE })
+  const panels = blocks.filter(block => block.entry).flatMap(({ x, y, width, bounds }) => [areaOf(x, y, width, depth), areaOf(x, y + depth, width, bounds.height), areaOf(x, y + depth + bounds.height, width, depth)])
+  return { canvas, units, swatch, side, labels, gradient, fades, panels }
 }

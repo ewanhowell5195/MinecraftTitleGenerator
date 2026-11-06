@@ -64,14 +64,30 @@ function edgeFill(ctx, [x0, y0], [x1, y1], y, stops) {
   return gradientFill(ctx, [-offset / slope, 0], [(1 - offset) / slope, 0], stops)
 }
 
+function gradientEnds(entry, look, capHeight, sheet) {
+  const baseline = entry.top + entry.glyph.top
+  const arc = look.arcGradient ? entry.glyph.arc : sheet.tallest
+  const top = baseline - capHeight - arc.top
+  const bottom = baseline + arc.bottom
+  const [from, to] = gradientLine(entry.x - entry.glyph.wordX, top, sheet.wordWidth, bottom - top, look.gradientAngle)
+  return { from, to, top, bottom }
+}
+
+function paintedStops(look) {
+  const stops = gradientStops(look.stops, look.smooth)
+  const row = surface(stops.length, 1)
+  for (const [index, stop] of stops.entries()) {
+    row.ctx.fillStyle = stop.colour
+    row.ctx.fillRect(index, 0, 1, 1)
+  }
+  const { data } = adjusted(row.canvas, look, { willReadFrequently: true }).ctx.getImageData(0, 0, stops.length, 1)
+  return stops.map((stop, index) => ({ position: stop.position, colour: data[index * 4] | data[index * 4 + 1] << 8 | data[index * 4 + 2] << 16 }))
+}
+
 function paintGradient(ctx, entries, look, capHeight, sheet) {
   const stops = gradientStops(look.stops, look.smooth)
   for (const entry of entries) {
-    const baseline = entry.top + entry.glyph.top
-    const arc = look.arcGradient ? entry.glyph.arc : sheet.tallest
-    const top = baseline - capHeight - arc.top
-    const bottom = baseline + arc.bottom
-    const [from, to] = gradientLine(entry.x - entry.glyph.wordX, top, sheet.wordWidth, bottom - top, look.gradientAngle)
+    const { from, to, top, bottom } = gradientEnds(entry, look, capHeight, sheet)
     ctx.fillStyle = gradientFill(ctx, from, to, stops)
     fillRect(ctx, [entry.x, entry.top, entry.width, entry.height])
     ctx.fillStyle = edgeFill(ctx, from, to, top, stops)
@@ -413,5 +429,6 @@ export function paintSheet(sheet, look, assets, capHeight, base = paintBase(shee
   }
 
   const tiles = look.source === "tile" && look.tileableTileEdges ? adjusted(tileBlock(look, assets.tile), look).canvas : null
-  return { canvas: work.canvas, facePixels, border, edgeAverage, tiles, tilesAcrossLine: !look.tileablePerCharacter, labels: () => overlayLabels(sheet, overlayLayers, capHeight, width, height) }
+  const gradient = look.source === "gradient" ? { stops: paintedStops(look), ends: entry => gradientEnds(entry, look, capHeight, sheet) } : null
+  return { canvas: work.canvas, facePixels, border, edgeAverage, tiles, tilesAcrossLine: !look.tileablePerCharacter, gradient, fade: look.fade ? clamp(look.outerFade / 100, 0, 1) : null, borderColour: r | g << 8 | b << 16, labels: () => overlayLabels(sheet, overlayLayers, capHeight, width, height) }
 }
