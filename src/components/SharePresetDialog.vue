@@ -1,8 +1,9 @@
 <script setup>
-  import { ref } from "vue"
+  import { ref, watch } from "vue"
   import { usage } from "../lib/community.js"
-  import { NAME_LIMIT, confirmSharing, sharePreset } from "../lib/presets.js"
+  import { NAME_LIMIT, confirmReplacing, confirmSharing, replaceWith, sharePreset } from "../lib/presets.js"
   import RenderDialog from "./RenderDialog.vue"
+  import ReplaceSelect from "./ReplaceSelect.vue"
   import ShareAccount from "./ShareAccount.vue"
   import SubmissionUsage from "./SubmissionUsage.vue"
 
@@ -15,13 +16,18 @@
   const name = ref(props.preset.name)
   const error = ref("")
   const sending = ref(false)
+  const target = ref(null)
+
+  watch(target, (next, previous) => {
+    if (name.value === (previous?.name ?? props.preset.name)) name.value = next?.name ?? props.preset.name
+  })
 
   async function send() {
-    if (!confirmSharing(name.value.trim() || props.preset.name)) return
+    if (!(target.value ? confirmReplacing(target.value) : confirmSharing(name.value.trim() || props.preset.name))) return
     sending.value = true
     error.value = ""
     try {
-      emit("shared", await sharePreset(props.preset, name.value))
+      emit("shared", target.value ? (await replaceWith(target.value, props.preset.code, name.value)).online : await sharePreset(props.preset, name.value))
     } catch (err) {
       error.value = err.message
     } finally {
@@ -33,15 +39,16 @@
 <template>
   <RenderDialog title="Share publicly" close-title="Cancel" wide dismissable @close="emit('close')">
     <form class="body" @submit.prevent="send">
+      <ReplaceSelect v-model="target" :code="preset.code" label="Share as" />
       <label>
         <span>Name</span>
         <input type="text" v-model="name" :maxlength="NAME_LIMIT" spellcheck="false">
       </label>
-      <ShareAccount />
+      <ShareAccount v-if="!target" />
       <p v-if="error" class="error">{{ error }}</p>
       <div class="footer">
-        <SubmissionUsage />
-        <button class="primary" type="submit" :disabled="sending || usage && usage.used >= usage.limit">{{ sending ? "Sharing" : "Share" }}</button>
+        <SubmissionUsage v-if="!target" />
+        <button class="primary" type="submit" :disabled="sending || !target && usage && usage.used >= usage.limit">{{ target ? sending ? "Replacing" : "Replace" : sending ? "Sharing" : "Share" }}</button>
       </div>
     </form>
   </RenderDialog>

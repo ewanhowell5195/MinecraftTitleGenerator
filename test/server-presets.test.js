@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 import fs from "node:fs"
 import { DatabaseSync } from "node:sqlite"
 
-const { LIMITS, checkTitle, claimPresets, countDownload, deletePreset, getPreset, listPresets, presetPageDetails, presetStats, renamePreset, submissionUsage, submitPreset, titleFacts, votePreset } = await import("../src/server/presets.js")
+const { LIMITS, checkTitle, claimPresets, countDownload, deletePreset, getPreset, listPresets, presetPageDetails, presetStats, renamePreset, replacePreset, submissionUsage, submitPreset, titleFacts, votePreset } = await import("../src/server/presets.js")
 const { accountDetails, finishSignIn, receiveSignIn, signOut, startSignIn } = await import("../src/server/accounts.js")
 const { addSaved, changeSaved, listSaved, removeSaved } = await import("../src/server/saved.js")
 const { encodeTitle } = await import("../src/lib/linkformat.js")
@@ -1422,6 +1422,81 @@ describe("accounts", () => {
       return { status: response.status, ...await response.json() }
     }
 
+    async function replaceWith(token, id, text, name) {
+      const response = await replacePreset(withToken(`/api/presets/${id}`, token, { method: "PUT", body: { code: code([{ text }]), name }, params: { id: String(id) } }))
+      return { status: response.status, ...await response.json() }
+    }
+
+    test("replacing keeps the id and downloads, and resets the votes and rating", async () => {
+      const { preset, token } = await shared("before")
+      await voteAll(preset.id, Array(LIMITS.minVotes).fill(1))
+      await download(preset.id, "someone")
+      const result = await replaceWith(token, preset.id, "after", "New name")
+      assert.equal(result.status, 200)
+      assert.equal(result.preset.id, preset.id)
+      assert.equal(result.preset.code, code([{ text: "after" }]))
+      assert.equal(result.preset.name, "New name")
+      assert.equal(result.preset.text, "after")
+      assert.equal(result.preset.votes, 0)
+      assert.equal(result.preset.rating, null)
+      assert.equal(result.preset.downloads, 1)
+      assert.equal(result.preset.createdAt, preset.createdAt)
+      assert.equal(db.prepare("SELECT COUNT(*) AS count FROM preset_votes WHERE preset_id = ?").get(preset.id).count, 0)
+      assert.equal((await vote(preset.id, 1, "voter 0")).votes, 1)
+    })
+
+    test("replacing doesn't use up a share", async () => {
+      const { preset, token } = await shared("before")
+      const { used } = await usageOf("9.9.9.9")
+      await replaceWith(token, preset.id, "after", "")
+      assert.equal((await usageOf("9.9.9.9")).used, used)
+    })
+
+    test("replacing with no name names it after the new title", async () => {
+      const { preset, token } = await shared("before")
+      assert.equal((await replaceWith(token, preset.id, "after this", "")).preset.name, "After This")
+    })
+
+    test("the same title keeps its votes and only changes the name", async () => {
+      const { preset, token } = await shared("same")
+      await voteAll(preset.id, Array(LIMITS.minVotes).fill(1))
+      const result = await replaceWith(token, preset.id, "same", "Renamed")
+      assert.equal(result.preset.name, "Renamed")
+      assert.equal(result.preset.votes, LIMITS.minVotes)
+      assert.equal(result.preset.rating, 5)
+    })
+
+    test("a title someone else already shared is refused and changes nothing", async () => {
+      const taken = await shared("taken")
+      const { preset, token } = await shared("mine")
+      await voteAll(preset.id, [1])
+      const result = await replaceWith(token, preset.id, "taken", "Copy")
+      assert.equal(result.status, 409)
+      assert.equal(result.id, taken.preset.id)
+      const row = db.prepare("SELECT name, votes FROM presets WHERE id = ?").get(preset.id)
+      assert.equal(row.name, "Mine")
+      assert.equal(row.votes, 1)
+    })
+
+    test("only the owner can replace, and the new title is checked", async () => {
+      const { preset, token } = await shared("before")
+      const other = await shared("other")
+      assert.equal((await replaceWith(null, preset.id, "after")).status, 401)
+      assert.equal((await replaceWith(other.token, preset.id, "after")).status, 403)
+      assert.equal((await replaceWith(token, 999, "after")).status, 404)
+      assert.equal((await replaceWith(token, preset.id, "a".repeat(61))).status, 400)
+      assert.equal(db.prepare("SELECT text FROM presets WHERE id = ?").get(preset.id).text, "before")
+    })
+
+    test("an account can replace its own preset, and not someone else's", async () => {
+      const cookie = await signIn("discord", { id: "1", username: "a" })
+      const other = await signIn("discord", { id: "2", username: "b" })
+      const { preset } = await shareAs(cookie, "mine")
+      const replaced = body => replacePreset(withCookie(`/api/presets/${preset.id}`, body, { method: "PUT", body: { code: code([{ text: "after" }]) }, params: { id: String(preset.id) } }))
+      assert.equal((await replaced(other)).status, 403)
+      assert.equal((await replaced(cookie)).status, 200)
+    })
+
     async function removeWith(token, id) {
       return (await deletePreset(withToken(`/api/presets/${id}`, token, { method: "DELETE", params: { id: String(id) } }))).status
     }
@@ -1765,6 +1840,29 @@ describe("accounts", () => {
       assert.deepEqual(await savedList(cookie), [{ name: "new name", code: preset.code, shared: 9 }])
       await savedCall(changeSaved, cookie, "PATCH", { code: preset.code, shared: null })
       assert.deepEqual(await savedList(cookie), [{ name: "new name", code: preset.code }])
+    })
+
+    test("replaces the title in place, keeping its order", async () => {
+      const cookie = await signIn()
+      const other = await signIn("discord", { id: "2", username: "b" })
+      const [one, two] = [saved("one"), saved("two")]
+      await save(cookie, [one, two])
+      const after = code([{ text: "after" }])
+      await savedCall(changeSaved, other, "PATCH", { code: one.code, replacement: after })
+      assert.equal((await savedCall(changeSaved, cookie, "PATCH", { code: one.code, replacement: after, name: "After", shared: 7 })).status, 200)
+      assert.deepEqual(await savedList(cookie), [{ name: "After", code: after, shared: 7 }, two])
+      assert.deepEqual((await save(cookie, [{ name: "Again", code: after }])).kept, [])
+      assert.equal((await savedList(cookie)).length, 2)
+    })
+
+    test("a replacement is checked", async () => {
+      const cookie = await signIn()
+      const [one, two] = [saved("one"), saved("two")]
+      await save(cookie, [one, two])
+      assert.equal((await savedCall(changeSaved, cookie, "PATCH", { code: one.code, replacement: two.code })).status, 409)
+      assert.equal((await savedCall(changeSaved, cookie, "PATCH", { code: one.code, replacement: "!!!" })).status, 400)
+      assert.equal((await savedCall(changeSaved, cookie, "PATCH", { code: one.code, replacement: "a".repeat(LIMITS.savedCode + 1) })).status, 400)
+      assert.deepEqual(await savedList(cookie), [one, two])
     })
 
     test("a change is checked", async () => {

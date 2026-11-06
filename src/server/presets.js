@@ -310,6 +310,24 @@ export const renamePreset = guarded(async context => {
   return reply(200, { preset: rated(preset) })
 })
 
+export const replacePreset = guarded(async context => {
+  const { request, env } = context
+  const { id } = await ownedPreset(context)
+  const body = await jsonBody(request)
+  const facts = checkTitle(body.code)
+  const name = textField(body, "name", "name", LIMITS.name) || capitalWords(facts.text)
+  checkWords("title", facts.all)
+  checkWords("name", name)
+  const fingerprint = await titleFingerprint(body.code)
+  const existing = await env.DB.prepare("SELECT id FROM presets WHERE fingerprint = ?").bind(fingerprint).first()
+  if (existing && existing.id !== id) return reply(409, { error: "This title has already been shared.", id: existing.id })
+  const resetVotes = existing ? [] : [env.DB.prepare("DELETE FROM preset_votes WHERE preset_id = ?").bind(id)]
+  const resetScores = existing ? "" : ", ups = 0, votes = 0, rating = -1"
+  const results = await env.DB.batch(resetVotes.concat(env.DB.prepare(`UPDATE presets SET code = ?, fingerprint = ?, name = ?, text = ?${resetScores} WHERE id = ? RETURNING ${COLUMNS}`).bind(body.code, fingerprint, name, facts.text, id)))
+  await forgetCached(request, id)
+  return reply(200, { preset: rated(results.at(-1).results[0]) })
+})
+
 export const deletePreset = guarded(async context => {
   const { request, env } = context
   const { id, user } = await ownedPreset(context)
@@ -326,7 +344,7 @@ export const presetStats = guarded(async ({ request, env }) => {
   const ids = (new URL(request.url).searchParams.get("ids") ?? "").split(",").filter(Boolean).map(Number)
   if (ids.length > LIMITS.savedPresets || ids.some(id => !Number.isSafeInteger(id) || id < 1)) throw new Refusal(400, "This request isn't valid.")
   if (!ids.length) return reply(200, { stats: {} })
-  const { results } = await env.DB.prepare(`SELECT id, ${STAT_COLUMNS} FROM presets WHERE id IN (${ids.join(", ")})`).all()
+  const { results } = await env.DB.prepare(`SELECT id, name, ${STAT_COLUMNS} FROM presets WHERE id IN (${ids.join(", ")})`).all()
   return reply(200, { stats: Object.fromEntries(results.map(row => [row.id, rated(row)])) })
 })
 

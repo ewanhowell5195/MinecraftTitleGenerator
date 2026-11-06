@@ -94,6 +94,7 @@ function withMine(preset) {
   if (!change) return shown
   if (change.name) shown.name = change.name
   if (change.votes !== undefined && preset.votes <= change.votes) Object.assign(shown, { votes: change.votes, rating: change.rating })
+  if (change.code && preset.code !== change.code) Object.assign(shown, { code: change.code, votes: change.votes, rating: change.rating })
   const missing = Math.max(0, (change.downloads ?? 0) - preset.downloads)
   shown.downloads += missing
   if (preset.week !== undefined) shown.week += missing
@@ -242,6 +243,24 @@ export async function renameShared(id, name) {
   forgetLists()
   persist()
   return preset.name
+}
+
+export async function replaceShared(id, code, name) {
+  const { preset } = await request(`/${id}`, withToken(id, jsonOptions("PUT", { code, name })))
+  remember(id, { name: preset.name, code: preset.code, votes: preset.votes, rating: preset.rating })
+  delete store.votes[id]
+  forgetLists()
+  persist()
+  return preset
+}
+
+export async function sharedNames(ids) {
+  const names = {}
+  for (let start = 0; start < ids.length; start += LIMITS.savedPresets) {
+    const stats = await presetStats(ids.slice(start, start + LIMITS.savedPresets))
+    for (const [id, { name }] of Object.entries(stats)) names[id] = name
+  }
+  return names
 }
 
 export async function deleteShared(id) {

@@ -5,7 +5,8 @@
 
   const props = defineProps({
     options: { type: Array, required: true },
-    label: { type: String, default: "" }
+    label: { type: String, default: "" },
+    searchable: { type: Boolean, default: false }
   })
 
   const value = defineModel({ default: null })
@@ -14,10 +15,17 @@
   const active = ref(0)
   const trigger = ref(null)
   const menu = ref(null)
+  const list = ref(null)
+  const field = ref(null)
+  const search = ref("")
   const position = ref({})
 
   const selectedIndex = computed(() => Math.max(0, props.options.findIndex(option => option.value === value.value)))
   const selected = computed(() => props.options[selectedIndex.value])
+  const shown = computed(() => {
+    const term = search.value.trim().toLowerCase()
+    return term ? props.options.filter(option => option.label.toLowerCase().includes(term)) : props.options
+  })
 
   function place() {
     const rect = trigger.value.getBoundingClientRect()
@@ -29,10 +37,12 @@
 
   async function show() {
     open.value = true
+    search.value = ""
     active.value = selectedIndex.value
     await nextTick()
     place()
-    menu.value.children[active.value].scrollIntoView({ block: "nearest" })
+    list.value.children[active.value].scrollIntoView({ block: "nearest" })
+    field.value?.focus()
   }
 
   function choose(option) {
@@ -42,8 +52,9 @@
   }
 
   function move(by) {
-    active.value = (active.value + by + props.options.length) % props.options.length
-    menu.value.children[active.value].scrollIntoView({ block: "nearest" })
+    if (!shown.value.length) return
+    active.value = (active.value + by + shown.value.length) % shown.value.length
+    list.value.children[active.value].scrollIntoView({ block: "nearest" })
   }
 
   function key(event) {
@@ -56,8 +67,13 @@
     }
     if (event.key === "ArrowDown") move(1)
     else if (event.key === "ArrowUp") move(-1)
-    else if (event.key === "Enter" || event.key === " ") choose(props.options[active.value])
-    else if (event.key === "Escape" || event.key === "Tab") open.value = false
+    else if (event.key === "Enter" || event.key === " " && !props.searchable) {
+      if (shown.value.length) choose(shown.value[active.value])
+    } else if (event.key === "Escape") {
+      event.stopPropagation()
+      close()
+      trigger.value.focus()
+    } else if (event.key === "Tab") close()
     else return
     if (event.key !== "Tab") event.preventDefault()
   }
@@ -89,15 +105,19 @@
       <Icon class="chevron" name="down" :size="14" />
     </button>
     <Teleport to="body">
-      <ul v-if="open" ref="menu" class="dropdown-menu popover" role="listbox" :style="position">
-        <li v-for="(option, index) of options" :key="String(option.value)" role="option" :aria-selected="option.value === value" :class="{ selected: option.value === value, active: index === active }" @pointermove="active = index" @click="choose(option)">
-          <img v-if="option.image" class="image" :src="option.image" alt="">
-          <span class="text">
-            <span class="name">{{ option.label }}</span>
-            <span v-if="option.hint" class="hint">{{ option.hint }}</span>
-          </span>
-        </li>
-      </ul>
+      <div v-if="open" ref="menu" class="dropdown-menu popover" :style="position">
+        <input v-if="searchable" ref="field" class="search" type="text" v-model="search" placeholder="Search" aria-label="Search" spellcheck="false" @input="active = 0" @keydown="key">
+        <ul ref="list" role="listbox">
+          <li v-for="(option, index) of shown" :key="String(option.value)" role="option" :aria-selected="option.value === value" :class="{ selected: option.value === value, active: index === active }" @pointermove="active = index" @click="choose(option)">
+            <img v-if="option.image" class="image" :src="option.image" alt="">
+            <span class="text">
+              <span class="name">{{ option.label }}</span>
+              <span v-if="option.hint" class="hint">{{ option.hint }}</span>
+            </span>
+          </li>
+          <li v-if="!shown.length" class="empty">Nothing matches this search</li>
+        </ul>
+      </div>
     </Teleport>
   </div>
 </template>
@@ -129,8 +149,20 @@
   }
 
   .dropdown-menu {
-    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
     padding: 4px;
+  }
+
+  .search {
+    flex: none;
+  }
+
+  ul {
+    min-height: 0;
+    margin: 0;
+    padding: 0;
     overflow-y: auto;
     list-style: none;
   }
@@ -147,6 +179,11 @@
 
   li.active {
     background: var(--card-hover);
+  }
+
+  li.empty {
+    color: var(--faint);
+    cursor: default;
   }
 
   li.selected {

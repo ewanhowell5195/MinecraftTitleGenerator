@@ -1,5 +1,5 @@
 import { ref, watch } from "vue"
-import { account, changeSaved, deleteSaved, loadSaved, refreshUsage, sharePublicly, uploadSaved } from "./community.js"
+import { account, changeSaved, deleteSaved, loadSaved, managedPresets, refreshUsage, replaceShared, sharePublicly, uploadSaved } from "./community.js"
 import { fileError, isDefaultTitle, openTitleData, titleData } from "./file.js"
 import { LIMITS } from "./limits.js"
 import { decodeTitle, encodeTitle } from "./linkformat.js"
@@ -18,6 +18,7 @@ export const presetsError = ref("")
 export const savedPreset = ref(null)
 export const namingPreset = ref(null)
 export const namingShared = ref(false)
+export const namingCode = ref("")
 
 let opening = 0
 let queue = Promise.resolve()
@@ -160,6 +161,51 @@ export function unmarkShared(id) {
   }
 }
 
+function changeCode(preset, code, name, shared) {
+  change(preset.code, list => list.map(item => {
+    if (item.code !== preset.code) return item
+    const { shared: previous, ...rest } = item
+    return shared ? { ...rest, code, name, shared } : { ...rest, code, name }
+  }), () => changeSaved(preset.code, { replacement: code, name, shared: shared ?? null }))
+  return { ...preset, code, name }
+}
+
+export function unlinkedShares() {
+  const linked = new Set(presets.value.map(preset => preset.shared))
+  return managedPresets.value.filter(id => !linked.has(id))
+}
+
+export function replaceTargets(code, names = {}) {
+  const managed = new Set(managedPresets.value)
+  const existing = savedWithCode(code)
+  const saved = presets.value.filter(preset => preset.code !== code && (!existing || managed.has(preset.shared))).map(preset => ({ name: preset.name, code: preset.code, shared: preset.shared, online: managed.has(preset.shared) }))
+  const unlinked = unlinkedShares().filter(id => names[id]).map(id => ({ name: names[id], shared: id, online: true }))
+  return saved.filter(target => target.shared).concat(unlinked, saved.filter(target => !target.shared))
+}
+
+export async function replaceWith(target, code, name) {
+  const online = target.online ? await replaceShared(target.shared, code, name) : null
+  const finalName = online?.name ?? (name.trim().slice(0, NAME_LIMIT) || target.name)
+  const shared = online?.id
+  if (shared) unmarkShared(shared)
+  const existing = savedWithCode(code)
+  const replaced = target.code ? savedWithCode(target.code) : null
+  if (existing && replaced) removePreset(replaced)
+  if (!existing && replaced) return { preset: changeCode(replaced, code, finalName, shared), online }
+  const preset = existing ? renamePreset(existing, finalName) : addPreset(finalName, code)
+  if (shared) markShared(preset, shared)
+  return { preset, online }
+}
+
+export async function saveOver(target, name) {
+  const { code, skipped } = encodeTitle(titleData())
+  submitStats()
+  const replaced = await replaceWith(target, code, name)
+  savedPreset.value = { name: replaced.preset.name, skipped }
+  if (!skipped) showNotice(`Saved as ${replaced.preset.name}`)
+  return replaced
+}
+
 export function removePreset(preset) {
   change(preset.code, list => list.filter(item => item.code !== preset.code), async () => {
     await deleteSaved(preset.code)
@@ -191,6 +237,7 @@ export function startSavingPreset() {
     const { code } = encodeTitle(titleData())
     const existing = savedWithCode(code)
     namingShared.value = !!existing?.shared
+    namingCode.value = code
     namingPreset.value = existing?.name ?? automaticName()
   } catch (err) {
     fileError.value = `Couldn't save this preset: ${err.message}`
@@ -200,6 +247,11 @@ export function startSavingPreset() {
 export function confirmSharing(name) {
   if (account.value) return confirm(`Share ${name} publicly as ${account.value.name}?\n\nAnyone will be able to see and use this title, and your username will show on it. You can rename or delete it later.`)
   return confirm(`Share ${name} without an account?\n\nAnyone will be able to see and use this title. You can only rename or delete it from this browser. If this browser's saved data is cleared, including automatically, or you use another device or a private window, you lose that access for good.\n\nIf you sign in on this browser later, this title moves to your account and shows your username.`)
+}
+
+export function confirmReplacing(target) {
+  if (target.online) return confirm(`Replace ${target.name} in Community with this title?\n\nIts votes and rating are reset, and that cannot be undone. Its link stays the same.`)
+  return confirm(`Replace ${target.name} with this title?`)
 }
 
 export async function sharePreset(preset, name) {

@@ -722,6 +722,32 @@ describe("accounts", () => {
       assert.deepEqual(module.managedPresets.value, [])
     })
 
+    test("replacing sends the token, and an old cached page shows the new title with no votes", async () => {
+      const module = await fresh()
+      replies["GET /api/presets?sort=popular&offset=0"] = { body: { presets: [{ id: 9, name: "Old", code: "old", votes: 40, rating: 4.5, downloads: 3 }], more: false } }
+      await sharedWithoutAccount(module)
+      replies.PUT = { body: { preset: { id: 9, name: "New", code: "new", votes: 0, rating: null, downloads: 3 } } }
+      await module.replaceShared(9, "new", "New")
+      assert.equal(headers.at(-1), "secret")
+      const [shown] = (await module.listCommunity(POPULAR)).presets
+      assert.deepEqual([shown.name, shown.code, shown.votes, shown.rating, shown.downloads], ["New", "new", 0, null, 3])
+    })
+
+    test("once the server has the new title its votes show", async () => {
+      const module = await fresh()
+      await sharedWithoutAccount(module)
+      replies.PUT = { body: { preset: { id: 9, name: "New", code: "new", votes: 0, rating: null, downloads: 0 } } }
+      await module.replaceShared(9, "new", "New")
+      replies["GET /api/presets?sort=popular&offset=0"] = { body: { presets: [{ id: 9, name: "New", code: "new", votes: 2, rating: null, downloads: 0 }], more: false } }
+      assert.equal((await module.listCommunity(POPULAR)).presets[0].votes, 2)
+    })
+
+    test("share names are looked up in batches and a missing share is left out", async () => {
+      const module = await fresh()
+      replies.GET = { body: { stats: { 1: { name: "One" } } } }
+      assert.deepEqual(await module.sharedNames([1, 2]), { 1: "One" })
+    })
+
     test("a preset without a token sends none", async () => {
       replies.PATCH = { body: { preset: { id: 3, name: "New" } } }
       await (await fresh()).renameShared(3, "New")

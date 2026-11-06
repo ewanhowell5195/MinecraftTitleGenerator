@@ -21,9 +21,9 @@ globalThis.fetch = async (url, options) => {
 }
 mock.timers.enable({ apis: ["setTimeout"] })
 
-const { account } = await import("../src/lib/community.js")
+const { account, refreshAccount, refreshUsage } = await import("../src/lib/community.js")
 const { notice } = await import("../src/lib/notices.js")
-const { addPreset, markShared, presets, presetsError, presetsLoading, removePreset, renamePreset, unmarkShared } = await import("../src/lib/presets.js")
+const { addPreset, markShared, presets, presetsError, presetsLoading, removePreset, renamePreset, replaceTargets, replaceWith, unmarkShared, unlinkedShares } = await import("../src/lib/presets.js")
 
 const STORAGE = "minecraft-title-presets"
 const SOMEONE = { id: "discord:1", name: "someone", provider: "discord" }
@@ -324,6 +324,96 @@ describe("signed in", () => {
     addPreset("New", "new")
     await settled()
     assert.deepEqual(presets.value.map(preset => preset.name).toSorted(), ["Cloud", "New"])
+  })
+})
+
+describe("replacing a preset", () => {
+  const LOCAL = { name: "Local", code: "local" }
+  const SHARED = { name: "Shared", code: "shared", shared: 9 }
+  const FAR = { name: "Far", code: "far", shared: 5 }
+
+  async function managing(owned, saved) {
+    replies["GET /api/presets/usage"] = { body: { used: 0, shared: owned, owned } }
+    replies["GET /api/account"] = { body: { user: SOMEONE, providers: [] } }
+    replies["GET /api/saved"] = { body: { presets: saved } }
+    await refreshAccount(true)
+    await refreshUsage(true)
+    await settled()
+    requests.length = 0
+  }
+
+  function sent() {
+    return requests.filter(request => request.method !== "GET").map(request => [request.method, request.url, request.body])
+  }
+
+  test("a new title can replace anything saved, with shared ones and shares without a saved copy first", async () => {
+    await managing([9, 12], [LOCAL, SHARED, FAR])
+    assert.deepEqual(unlinkedShares(), [12])
+    assert.deepEqual(replaceTargets("new", { 12: "Online" }), [
+      { name: "Shared", code: "shared", shared: 9, online: true },
+      { name: "Far", code: "far", shared: 5, online: false },
+      { name: "Online", shared: 12, online: true },
+      { name: "Local", code: "local", shared: undefined, online: false }
+    ])
+  })
+
+  test("a title that is already saved can only replace shares this browser manages", async () => {
+    await managing([9], [LOCAL, SHARED, FAR])
+    assert.deepEqual(replaceTargets("local").map(target => target.name), ["Shared"])
+  })
+
+  test("a saved preset takes the new title, and nothing is sent online", async () => {
+    await managing([], [LOCAL, { name: "Other", code: "other" }])
+    const { preset, online } = await replaceWith(replaceTargets("new").find(target => target.code === "local"), "new", "Renamed")
+    await settled()
+    assert.equal(online, null)
+    assert.equal(preset.code, "new")
+    assert.deepEqual(presets.value, [{ name: "Renamed", code: "new" }, { name: "Other", code: "other" }])
+    assert.deepEqual(sent(), [["PATCH", "/api/saved", { code: "local", replacement: "new", name: "Renamed", shared: null }]])
+  })
+
+  test("a shared preset replaces its share first, and stays linked to it", async () => {
+    await managing([9], [SHARED])
+    replies["PUT /api/presets/9"] = { body: { preset: { id: 9, name: "Renamed", code: "new", votes: 0, rating: null } } }
+    const { online } = await replaceWith(replaceTargets("new")[0], "new", "Renamed")
+    await settled()
+    assert.equal(online.id, 9)
+    assert.deepEqual(presets.value, [{ name: "Renamed", code: "new", shared: 9 }])
+    assert.deepEqual(sent()[0], ["PUT", "/api/presets/9", { code: "new", name: "Renamed" }])
+    assert.deepEqual(sent().at(-1), ["PATCH", "/api/saved", { code: "shared", replacement: "new", name: "Renamed", shared: 9 }])
+  })
+
+  test("a refused share leaves everything as it was", async () => {
+    await managing([9], [SHARED])
+    replies["PUT /api/presets/9"] = { status: 409, body: { error: "This title has already been shared.", id: 3 } }
+    await assert.rejects(replaceWith(replaceTargets("new")[0], "new", "Renamed"), /already been shared/)
+    await settled()
+    assert.deepEqual(presets.value, [SHARED])
+    assert.deepEqual(sent().map(([method]) => method), ["PUT"])
+  })
+
+  test("a share this browser can't manage stays online and the preset is no longer linked to it", async () => {
+    await managing([], [FAR])
+    await replaceWith(replaceTargets("new")[0], "new", "Renamed")
+    await settled()
+    assert.deepEqual(presets.value, [{ name: "Renamed", code: "new" }])
+    assert.equal(requests.some(request => request.method === "PUT"), false)
+  })
+
+  test("a preset that is already saved takes over the share and the old one goes", async () => {
+    await managing([9], [LOCAL, SHARED])
+    replies["PUT /api/presets/9"] = { body: { preset: { id: 9, name: "Renamed", code: "local", votes: 0, rating: null } } }
+    await replaceWith(replaceTargets("local")[0], "local", "Renamed")
+    await settled()
+    assert.deepEqual(presets.value, [{ name: "Renamed", code: "local", shared: 9 }])
+  })
+
+  test("a share with no saved copy gets one", async () => {
+    await managing([12], [LOCAL])
+    replies["PUT /api/presets/12"] = { body: { preset: { id: 12, name: "Online", code: "new", votes: 0, rating: null } } }
+    await replaceWith(replaceTargets("new", { 12: "Online" })[0], "new", "")
+    await settled()
+    assert.deepEqual(presets.value, [LOCAL, { name: "Online", code: "new", shared: 12 }])
   })
 })
 

@@ -15,15 +15,19 @@ function shown({ name, code, shared }) {
   return shared === null ? { name, code } : { name, code, shared }
 }
 
-function savable(preset) {
-  if (typeof preset?.code !== "string" || !preset.code || preset.code.length > LIMITS.savedCode) return false
-  if (typeof preset.name !== "string" || !preset.name.trim() || Array.from(preset.name.trim()).length > LIMITS.name) return false
+function savableCode(code) {
+  if (typeof code !== "string" || !code || code.length > LIMITS.savedCode) return false
   try {
-    decodeTitle(preset.code)
+    decodeTitle(code)
     return true
   } catch {
     return false
   }
+}
+
+function savable(preset) {
+  if (typeof preset?.name !== "string" || !preset.name.trim() || Array.from(preset.name.trim()).length > LIMITS.name) return false
+  return savableCode(preset.code)
 }
 
 function sharedId(value) {
@@ -67,10 +71,18 @@ export const addSaved = guarded(async context => {
 export const changeSaved = guarded(async context => {
   const { request, env } = context
   const user = await requireUser(context)
-  const body = await jsonBody(request, LIMITS.savedCode + 512)
+  const body = await jsonBody(request, LIMITS.savedCode * 2 + 512)
   const hash = await codeHash(body)
   const sets = []
   const values = []
+  if (Object.hasOwn(body, "replacement")) {
+    if (!savableCode(body.replacement)) throw new Refusal(400, "This request isn't valid.")
+    const replacementHash = await hashed(body.replacement)
+    const taken = await env.DB.prepare(`SELECT id FROM saved_presets WHERE user_id = ${USER_ROW} AND code_hash = ?`).bind(user.provider, user.providerId, replacementHash).first()
+    if (taken) throw new Refusal(409, "You already have a preset with this title.")
+    sets.push("code = ?", "code_hash = ?")
+    values.push(body.replacement, replacementHash)
+  }
   if (Object.hasOwn(body, "name")) {
     const name = textField(body, "name", "name", LIMITS.name)
     if (!name) throw new Refusal(400, "The name can't be empty.")
