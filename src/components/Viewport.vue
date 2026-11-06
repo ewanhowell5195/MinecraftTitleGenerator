@@ -11,7 +11,7 @@
   import { TRANSFORM_LIMITS } from "../lib/settings.js"
   import { UNTURNED, UNZOOMED, createEntry, destroyEntry, elevationOf, frameCamera, gizmoPose, lineBounds, movedBy, orbitCamera, panMatrix, pannedBy, rotatedTo, sortEntries, titleFraming, turnedBy, updateEntry, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } from "../lib/stage.js"
   import { vectorTitle } from "../lib/vector.js"
-  import { view, viewport, viewportChanges } from "../lib/view.js"
+  import { SHAPE_SECTIONS, view, viewport, viewportChanges } from "../lib/view.js"
   import Icon from "./Icon.vue"
 
   const TOOLS = [[null, "pointer", "No gizmo"], ["translate", "move", "Move"], ["rotate", "rotate", "Rotate"], ["scale", "scale", "Scale"]]
@@ -33,7 +33,7 @@
   const turn = shallowRef(UNTURNED)
   const orbiting = ref(false)
   const panning = ref(false)
-  const shaping = computed(() => !view.render && view.section === "shape")
+  const navigable = computed(() => !view.render && SHAPE_SECTIONS.has(view.section))
   const moved = computed(() => pan.value !== UNZOOMED || turn.value !== UNTURNED)
   const baseProjection = new THREE.Matrix4()
   const basePosition = new THREE.Vector3()
@@ -72,7 +72,7 @@
   }
 
   function target() {
-    if (!view.gizmo || view.section !== "shape") return null
+    if (!view.gizmo || view.section !== "transform") return null
     const usable = item => item.built?.body.triangles && item.transform
     if (shapingWord.value) return props.items.find(item => item.id === currentWord.value.id && usable(item)) ?? null
     return props.items.find(item => props.selected.includes(item.id) && usable(item)) ?? null
@@ -254,7 +254,7 @@
   }
 
   function zoom(event) {
-    if (!shaping.value) return
+    if (!navigable.value) return
     event.preventDefault()
     const { x, y } = zoomFocus()
     const lines = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? LINE_HEIGHT : 1
@@ -262,7 +262,7 @@
   }
 
   function grabView(event) {
-    if (!shaping.value || controls.dragging || event.button === 0 && controls.axis) return
+    if (!navigable.value || controls.dragging || event.button === 0 && controls.axis) return
     pointers.set(event.pointerId, { ...clipPoint(event), button: event.button })
     renderer.domElement.setPointerCapture(event.pointerId)
     panning.value = true
@@ -290,7 +290,7 @@
   }
 
   function noMenu(event) {
-    if (shaping.value) event.preventDefault()
+    if (navigable.value) event.preventDefault()
   }
 
   function resetView() {
@@ -430,7 +430,7 @@
   watch([() => view.section, () => view.render], () => view.gizmo = null)
   watch(shapingWord, invalidate)
   watch([pan, turn], applyView)
-  watch(shaping, () => {
+  watch(navigable, () => {
     orbiting.value = false
     resetView()
     applyView()
@@ -443,9 +443,9 @@
 </script>
 
 <template>
-  <div ref="host" class="viewport" :class="{ shaping, panning }">
-    <div v-if="shaping" class="toolbar">
-      <div class="tools">
+  <div ref="host" class="viewport" :class="{ navigable, panning }">
+    <div v-if="navigable" class="toolbar">
+      <div v-if="view.section === 'transform'" class="tools">
         <button v-for="[mode, icon, title] of TOOLS" :key="icon" class="icon-button small" :class="{ active: view.gizmo === mode }" :title="title" :aria-pressed="view.gizmo === mode" @click="view.gizmo = mode"><Icon :name="icon" :size="16" /></button>
       </div>
       <div class="tools">
@@ -493,7 +493,7 @@
     display: block;
   }
 
-  .viewport.shaping :deep(canvas) {
+  .viewport.navigable :deep(canvas) {
     cursor: grab;
     user-select: none;
   }

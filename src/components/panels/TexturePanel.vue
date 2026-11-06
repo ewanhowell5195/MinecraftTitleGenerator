@@ -184,8 +184,6 @@
       <button class="wide" @click="spread">Spread evenly</button>
       <Slider label="Angle" v-model="object.gradientAngle" :min="0" :max="360" />
     </template>
-
-    <Toggle v-if="object.textureSource !== 'premade' && font?.overlay" label="Hide the font's own overlay" v-model="object.disableFontOverlay" />
   </Panel>
 
   <Panel v-if="object.textureSource === 'tileable'" title="Tiling" :modified="tiling.modified.value" @reset="tiling.reset">

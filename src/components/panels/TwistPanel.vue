@@ -19,11 +19,13 @@
     <template v-for="twist in TWISTS" :key="twist.label">
       <p class="hint">{{ twist.hint }}</p>
       <Slider :label="twist.label" v-model="object[twist.amount]" :min="-180" :max="180" />
-      <div class="field">
-        <span class="label">{{ twist.label }} anchor</span>
-        <Segments :options="ANCHORS" v-model="object[twist.anchor]" />
-      </div>
-      <Toggle v-if="object[twist.anchor] === 'centre'" :label="twist.sameLabel" v-model="object[twist.same]" />
+      <template v-if="object[twist.amount]">
+        <div class="field">
+          <span class="label">{{ twist.label }} anchor</span>
+          <Segments :options="ANCHORS" v-model="object[twist.anchor]" />
+        </div>
+        <Toggle v-if="object[twist.anchor] === 'centre'" :label="twist.sameLabel" v-model="object[twist.same]" />
+      </template>
     </template>
   </Panel>
 </template>

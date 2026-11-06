@@ -15,7 +15,7 @@
     word: { type: Boolean, default: false }
   })
 
-  const AXIS_PANELS = [["rotation", "Rotation"], ["translation", "Position"]]
+  const AXIS_PANELS = [["translation", "Position"], ["rotation", "Rotation"]]
 
   const object = computed(() => props.word ? currentWord.value : current.value)
   const k = key => props.word ? wordKey(key) : key
@@ -48,6 +48,9 @@
 </script>
 
 <template>
+  <Panel v-for="[group, title] of AXIS_PANELS" :key="group" :title="title" :modified="modified[group]" @reset="resetTransform(object, group, word)">
+    <Slider v-for="(key, index) of TRANSFORM_GROUPS[group]" :key="key" inline :label="'XYZ'[index]" v-model="object[k(key)]" :min="TRANSFORM_LIMITS[group][0]" :max="TRANSFORM_LIMITS[group][1]" />
+  </Panel>
   <Panel title="Scale" :modified="modified.scale" @reset="resetTransform(object, 'scale', word)">
     <template v-if="!word">
       <Dropdown v-if="references.length || object.matchWidth !== null" label="Match width to" :options="matchOptions" v-model="object.matchWidth" />
@@ -67,9 +70,6 @@
     </div>
     <Toggle v-if="marked" label="Only stretch the stretchable parts" v-model="object[k('scaleMarked')]" />
     <Toggle label="Scale the outline too" v-model="object[k('scaleOutline')]" />
-  </Panel>
-  <Panel v-for="[group, title] of AXIS_PANELS" :key="group" :title="title" :modified="modified[group]" @reset="resetTransform(object, group, word)">
-    <Slider v-for="(key, index) of TRANSFORM_GROUPS[group]" :key="key" inline :label="'XYZ'[index]" v-model="object[k(key)]" :min="TRANSFORM_LIMITS[group][0]" :max="TRANSFORM_LIMITS[group][1]" />
   </Panel>
 </template>
 

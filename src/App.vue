@@ -15,7 +15,6 @@
   import ArcPanel from "./components/panels/ArcPanel.vue"
   import TwistPanel from "./components/panels/TwistPanel.vue"
   import ColourPanel from "./components/panels/ColourPanel.vue"
-  import FacesPanel from "./components/panels/FacesPanel.vue"
   import FontPanel from "./components/panels/FontPanel.vue"
   import GeometryPanel from "./components/panels/GeometryPanel.vue"
   import OverlaysPanel from "./components/panels/OverlaysPanel.vue"
@@ -37,7 +36,7 @@
   import { active, addObject, currentWord, library, runtime, saveError, scene, selection, shapingWord, wordTabs, words } from "./lib/scene.js"
   import { openSharedLink } from "./lib/share.js"
   import { loadStats } from "./lib/stats.js"
-  import { SECTIONS, view } from "./lib/view.js"
+  import { SECTIONS, SHAPE_SECTIONS, view } from "./lib/view.js"
 
   const SECTION_TABS = Object.entries(SECTIONS).map(([id, { name, icon }]) => ({ id, label: name, icon }))
   const SHAPE_TABS = [{ value: "line", label: "Whole line" }, { value: "word", label: "Current word" }]
@@ -55,7 +54,7 @@
 
   const selected = computed(() => {
     if (view.render) return []
-    if (view.section === "shape") return (shapingWord.value ? [currentWord.value] : words(currentWord.value)).map(object => object.id)
+    if (SHAPE_SECTIONS.has(view.section)) return (shapingWord.value ? [currentWord.value] : words(currentWord.value)).map(object => object.id)
     if (LINE_SECTIONS.has(view.section)) return words(currentWord.value).map(object => object.id)
     return selection.value.map(object => object.id)
   })
@@ -131,22 +130,23 @@
         <FontPanel />
         <SpacingPanel />
       </template>
-      <template v-else-if="view.section === 'shape'">
+      <TexturePanel v-else-if="view.section === 'texture'" />
+      <ColourPanel v-else-if="view.section === 'colour'" />
+      <template v-else-if="view.section === 'overlays'">
+        <OverlaysPanel />
+        <OverlaysPanel edge />
+      </template>
+      <template v-else-if="SHAPE_SECTIONS.has(view.section)">
         <Panel v-if="wordTabs">
           <Segments :options="SHAPE_TABS" v-model="view.shapeTab" />
           <p v-if="shapingWord" class="hint">Only changes "{{ currentWord.text.trim() }}", on top of the shape of the whole line.</p>
         </Panel>
-        <GeometryPanel :word="shapingWord" :key="shapingWord ? 'word-geometry' : 'line-geometry'" />
-        <ArcPanel :word="shapingWord" :key="shapingWord ? 'word-arc' : 'line-arc'" />
-        <TwistPanel v-if="!shapingWord" />
-        <TransformPanel :word="shapingWord" />
-      </template>
-      <TexturePanel v-else-if="view.section === 'texture'" />
-      <ColourPanel v-else-if="view.section === 'colour'" />
-      <FacesPanel v-else-if="view.section === 'faces'" />
-      <template v-else-if="view.section === 'overlays'">
-        <OverlaysPanel />
-        <OverlaysPanel edge />
+        <template v-if="view.section === 'shape'">
+          <GeometryPanel :word="shapingWord" :key="shapingWord ? 'word-geometry' : 'line-geometry'" />
+          <ArcPanel :word="shapingWord" :key="shapingWord ? 'word-arc' : 'line-arc'" />
+          <TwistPanel v-if="!shapingWord" />
+        </template>
+        <TransformPanel v-else :word="shapingWord" />
       </template>
     </aside>
 

@@ -15,6 +15,7 @@
   import Segments from "../Segments.vue"
   import Slider from "../Slider.vue"
   import Tile from "../Tile.vue"
+  import Toggle from "../Toggle.vue"
 
   const MODES = [{ value: "default", label: "Default" }, { value: "custom", label: "Custom" }]
   const KINDS = [{ value: "generated", label: "Generated" }, { value: "texture", label: "Texture" }, { value: "file", label: "File" }]
@@ -167,6 +168,7 @@
 
 <template>
   <Panel :title="edge ? 'Edge overlays' : 'Face overlays'" :modified="modified" @reset="reset">
+    <Toggle v-if="!edge && object.textureSource !== 'premade' && font?.overlay" label="Hide the font's own overlay" v-model="object.disableFontOverlay" />
     <Segments :options="MODES" :model-value="object[modeKey]" @update:model-value="pickMode" />
     <p class="hint" v-if="edge">Paints the top and bottom faces around each letter.</p>
     <p class="hint" v-if="object[modeKey] === 'default'">The overlays this texture comes with. Editing switches to Custom.</p>

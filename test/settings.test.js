@@ -386,9 +386,18 @@ describe("resetPanel", () => {
     assert.deepEqual(snapshot(object).stops, SMALL_DEFAULTS.stops)
     assert.equal(object.smooth, true)
     assert.equal(object.gradientAngle, 0)
-    assert.equal(object.disableFontOverlay, false)
+    assert.equal(object.disableFontOverlay, true)
     assert.equal(object.texture, "other")
     assert.equal(object.overlayMode, "custom")
+  })
+
+  test("the face overlays panel resets the font overlay toggle wherever it shows", () => {
+    const object = createObject({ textureSource: "gradient", disableFontOverlay: true })
+    assert.equal(isModified(object, "overlays"), true)
+    resetPanel(object, "overlays")
+    assert.equal(object.disableFontOverlay, false)
+    const premade = createObject({ textureSource: "premade", disableFontOverlay: true })
+    assert.equal(isModified(premade, "overlays"), false)
   })
 
   test("tileable texture only resets the tileable tab", () => {

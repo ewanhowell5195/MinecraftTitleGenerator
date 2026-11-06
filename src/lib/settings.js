@@ -135,13 +135,13 @@ const PANELS = {
     stops: stops("top"),
     smooth: true,
     gradientAngle: 0,
-    ...TILING(),
-    disableFontOverlay: false
+    ...TILING()
   }),
   tiling: TILING,
   overlays: () => ({
     overlayMode: "default",
-    overlays: []
+    overlays: [],
+    disableFontOverlay: false
   }),
   edgeOverlays: () => ({
     edgeOverlayMode: "default",
@@ -226,8 +226,8 @@ export const TRANSFORM_LIMITS = { scale: [0.05, 4], rotation: [-180, 180], trans
 
 const TEXTURE_TABS = {
   premade: ["texture", "textureVariant"],
-  tileable: ["tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "tileablePerCharacter", "disableFontOverlay"],
-  gradient: ["stops", "smooth", "gradientAngle", "disableFontOverlay"]
+  tileable: ["tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "tileablePerCharacter"],
+  gradient: ["stops", "smooth", "gradientAngle"]
 }
 
 const TYPE_KEYS = {
@@ -239,6 +239,7 @@ const TYPE_KEYS = {
 
 function panelKeys(object, name) {
   if (name === "texture") return TEXTURE_TABS[object.textureSource]
+  if (name === "overlays" && object.textureSource === "premade") return ["overlayMode", "overlays"]
   return Object.keys(PANELS[name]()).filter(key => key !== "text")
 }
 

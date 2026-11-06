@@ -4,6 +4,7 @@
   import ColourPicker from "../ColourPicker.vue"
   import ColourToggle from "../ColourToggle.vue"
   import Dropdown from "../Dropdown.vue"
+  import FacesPanel from "./FacesPanel.vue"
   import Panel from "../Panel.vue"
   import Slider from "../Slider.vue"
 
@@ -25,6 +26,7 @@
     </div>
     <Slider label="Opacity" v-model="object.colourOpacity" :min="0" :max="100" />
   </Panel>
+  <FacesPanel />
   <Panel title="Outline colour" :modified="outline.modified.value" @reset="outline.reset">
     <ColourToggle v-model:enabled="object.customBorder" v-model:colour="object.borderColour" />
   </Panel>
