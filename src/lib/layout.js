@@ -17,6 +17,16 @@ export function thumbnailItem(placed) {
   return placed.find(({ glyph }) => !NOT_THUMBNAILS.has(glyph.char.split("\u0000")[0]))
 }
 
+export function thumbnailItems(font, placed) {
+  const first = thumbnailItem(placed)
+  if (!first) return []
+  if (!font.forcedTerminators) return [first]
+  const last = placed.findLast(({ glyph }) => !NOT_THUMBNAILS.has(glyph.char.split("\u0000")[0]))
+  const shift = first.x + first.glyph.width - last.x - last.glyph.width
+  const closing = placed.slice(placed.indexOf(last) + 1).map(item => ({ ...item, x: item.x + shift }))
+  return placed.slice(0, placed.indexOf(first) + 1).concat(closing)
+}
+
 export function layout(font, text, options) {
   return lineLayout(font, [{ text, space: false }], options)
 }

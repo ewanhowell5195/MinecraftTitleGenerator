@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { SPACE, layout, lineLayout, thumbnailItem } from "../src/lib/layout.js"
+import { SPACE, layout, lineLayout, thumbnailItem, thumbnailItems } from "../src/lib/layout.js"
 
 const SMILE = "\u{1F633}"
 const QUOTE = "\u{1F629}"
@@ -60,6 +60,34 @@ describe("thumbnailItem", () => {
   test("a word's first letter is used when an earlier word owns the space", () => {
     const placed = lineLayout(terminated, [{ text: "a", space: false }, { text: "b", space: true }], { terminators: true })
     assert.equal(thumbnailItem(placed.filter(item => item.word === 1)).glyph.char, "b")
+  })
+})
+
+describe("thumbnailItems", () => {
+  test("is only the first letter on a normal font", () => {
+    assert.deepEqual(charsOf(thumbnailItems(fontOf("ab"), layout(fontOf("ab"), "ba", {}))), ["b"])
+  })
+
+  test("leaves out terminators a font does not force", () => {
+    const font = fontOf(`ab${OPEN}${CLOSE}`)
+    assert.deepEqual(charsOf(thumbnailItems(font, layout(font, "ba", { terminators: true }))), ["b"])
+  })
+
+  test("wraps the first letter in forced terminators", () => {
+    const font = fontOf(`ab${OPEN}${CLOSE}`, { forcedTerminators: true })
+    assert.deepEqual(charsOf(thumbnailItems(font, layout(font, "ba", {}))), [OPEN, "b", CLOSE])
+  })
+
+  test("moves the closing terminator up to the first letter", () => {
+    const font = fontOf(`ab${OPEN}${CLOSE}`, { forcedTerminators: true })
+    const placed = layout(font, "bab", {})
+    const single = layout(font, "b", {})
+    assert.deepEqual(xsOf(thumbnailItems(font, placed)), xsOf(single))
+  })
+
+  test("is empty when there is nothing but terminators", () => {
+    const font = fontOf(`${OPEN}${CLOSE}`, { forcedTerminators: true })
+    assert.deepEqual(thumbnailItems(font, [{ glyph: { char: OPEN } }, { glyph: { char: CLOSE } }]), [])
   })
 })
 

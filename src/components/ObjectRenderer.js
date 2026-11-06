@@ -4,7 +4,7 @@ import { arcAssets, arcLayout } from "../lib/arc.js"
 import { buildOutline, buildText } from "../lib/build.js"
 import { framing } from "../lib/framing.js"
 import { hasMarks, loadFont, sheetFolder } from "../lib/font.js"
-import { thumbnailItem } from "../lib/layout.js"
+import { thumbnailItems } from "../lib/layout.js"
 import { blockTextureImage } from "../lib/minecraft.js"
 import { R, paintBase, paintKey, paintSheet } from "../lib/paint.js"
 import { quietly } from "../lib/history.js"
@@ -298,10 +298,10 @@ export default {
       if (known?.top !== arc.top || known?.bottom !== arc.bottom) heights[object.id] = { ...heights[object.id], arc }
     }
 
-    function previewFor(source, options, first, sheet, own) {
-      const key = JSON.stringify([first.glyph.char, first.x, first.spaces, ownDepth.value, Object.entries(options).filter(([name]) => !LAYOUT.has(name))])
+    function previewFor(source, options, placed, sheet, own) {
+      const key = JSON.stringify([placed.map(item => [item.glyph.char, item.glyph.width, item.x, item.spaces]), ownDepth.value, Object.entries(options).filter(([name]) => !LAYOUT.has(name))])
       if (shown?.source === source && shown.sheet === sheet && shown.own === own && shown.key === key) return shown.value
-      const value = buildText(source, { ...options, depth: ownDepth.value, placed: [first], sheet, painted: own })
+      const value = buildText(source, { ...options, depth: ownDepth.value, placed, sheet, painted: own })
       shown = { source, sheet, own, key, value }
       return value
     }
@@ -321,8 +321,8 @@ export default {
           return
         }
         built.value = buildText(source, { ...options, lineDepth, placed: arced.placed, line: arced.line, sheet: arced.sheet, painted: own })
-        const first = thumbnailItem(arced.placed)
-        preview.value = first ? previewFor(source, options, first, arced.sheet, own) : null
+        const thumbnail = thumbnailItems(source, arced.placed)
+        preview.value = thumbnail.length ? previewFor(source, options, thumbnail, arced.sheet, own) : null
         error.value = null
       } catch (err) {
         built.value = null
