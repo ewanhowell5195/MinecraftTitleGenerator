@@ -249,10 +249,14 @@
     return { x: (event.clientX - box.left) / box.width * 2 - 1, y: 1 - (event.clientY - box.top) / box.height * 2 }
   }
 
+  function zoomFocus() {
+    return orbiting.value ? pivot.clone().project(camera) : { x: 0, y: 0 }
+  }
+
   function zoom(event) {
     if (!shaping.value) return
     event.preventDefault()
-    const { x, y } = clipPoint(event)
+    const { x, y } = zoomFocus()
     const lines = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? LINE_HEIGHT : 1
     pan.value = zoomedAt(pan.value, Math.exp(-event.deltaY * lines * (event.ctrlKey ? PINCH_WHEEL_ZOOM : WHEEL_ZOOM)), x, y)
   }
@@ -276,7 +280,8 @@
       return
     }
     const spread = Math.hypot(point.x - other.x, point.y - other.y) / Math.hypot(last.x - other.x, last.y - other.y)
-    pan.value = pannedBy(zoomedAt(pan.value, spread, (last.x + other.x) / 2, (last.y + other.y) / 2), (point.x - last.x) / 2, (point.y - last.y) / 2)
+    const { x, y } = zoomFocus()
+    pan.value = pannedBy(zoomedAt(pan.value, spread, x, y), (point.x - last.x) / 2, (point.y - last.y) / 2)
   }
 
   function dropView(event) {
