@@ -19,7 +19,7 @@ async function recordPost(url, options) {
 
 globalThis.fetch = recordPost
 globalThis.localStorage = { getItem: () => null, setItem: () => {} }
-globalThis.location = { origin: "https://example.test", pathname: "/app/", search: "" }
+globalThis.location = { href: "https://example.test/app/", origin: "https://example.test", pathname: "/app/", search: "" }
 mock.timers.enable({ apis: ["setTimeout"] })
 
 const { createObject } = await import("../src/lib/settings.js")
@@ -84,7 +84,16 @@ describe("sharing a title", () => {
   test("returns a link to this page", () => {
     setTitle(createObject({ text: "link", texture: "grass" }))
     const { link, skipped } = shareLink()
-    assert.match(link, /^https:\/\/example\.test\/app\/#title=[0-9a-z][A-Za-z0-9_-]+$/)
+    assert.match(link, /^https:\/\/example\.test\/app\/\?title=[0-9a-z][A-Za-z0-9_-]+$/)
     assert.equal(skipped, 0)
+  })
+
+  test("replaces the title already in the link and keeps the rest", () => {
+    location.href = "https://example.test/app/?other=1&title=old#title=older"
+    setTitle(createObject({ text: "link", texture: "grass" }))
+    const { link } = shareLink()
+    location.href = "https://example.test/app/"
+    assert.match(link, /^https:\/\/example\.test\/app\/\?other=1&title=[0-9a-z][A-Za-z0-9_-]+$/)
+    assert.doesNotMatch(link, /old/)
   })
 })

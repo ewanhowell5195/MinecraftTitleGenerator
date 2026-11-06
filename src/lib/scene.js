@@ -49,14 +49,22 @@ export const library = shallowReactive({ fonts: [], tileables: {} })
 
 export const saveError = ref(null)
 
+export const TITLE_PARAM = "title"
+
 export const sharedLink = { open: false }
 
 let saving = null
 
+export function clearSharedLink() {
+  const url = new URL(location.href)
+  url.searchParams.delete(TITLE_PARAM)
+  history.replaceState(null, "", url)
+}
+
 export function leaveSharedLink() {
   if (!sharedLink.open) return
   sharedLink.open = false
-  history.replaceState(null, "", location.pathname + location.search)
+  clearSharedLink()
 }
 
 watch(scene, () => {

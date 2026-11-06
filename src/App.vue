@@ -77,7 +77,7 @@
     drawer.value.scrollTop = 0
   })
 
-  useWindowEvents(() => true, { keydown: shortcut, hashchange: openSharedLink, popstate: syncPresetsPage })
+  useWindowEvents(() => true, { keydown: shortcut, popstate: syncPresetsPage })
 
   onMounted(async () => {
     loadStats().catch(console.error)
