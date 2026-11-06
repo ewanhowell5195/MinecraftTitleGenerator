@@ -91,6 +91,7 @@ beforeEach(() => {
   sqlite.exec(fs.readFileSync("migrations/0002_accounts.sql", "utf8"))
   sqlite.exec(fs.readFileSync("migrations/0003_saved_presets.sql", "utf8"))
   sqlite.exec(fs.readFileSync("migrations/0004_votes_by_voter.sql", "utf8"))
+  sqlite.exec(fs.readFileSync("migrations/0005_users.sql", "utf8"))
   db = sqlite
   env = { DB: d1(sqlite), IP_SALT: "salt", SESSION_SECRET: "session-secret", DISCORD_CLIENT_ID: "discord-id", DISCORD_CLIENT_SECRET: "discord-secret", GITHUB_CLIENT_ID: "github-id", GITHUB_CLIENT_SECRET: "github-secret" }
 })
@@ -1117,10 +1118,94 @@ describe("accounts", () => {
     const { status, preset, onAccount } = await shareAs(cookie, "mine")
     assert.equal(status, 201)
     assert.equal(onAccount, true)
-    assert.equal(preset.author_id, undefined)
+    assert.equal(preset.user_id, undefined)
     assert.equal(preset.author, "someone")
     assert.equal(preset.authorProvider, "discord")
-    assert.equal(db.prepare("SELECT author_id FROM presets").get().author_id, "discord:1234")
+    assert.deepEqual({ ...db.prepare("SELECT provider, provider_id, users.name FROM users JOIN presets ON presets.user_id = users.id").get() }, { provider: "discord", provider_id: "1234", name: "someone" })
+  })
+
+  test("a user row only exists while it has a shared or saved preset", async () => {
+    const cookie = await signIn()
+    const users = () => db.prepare("SELECT COUNT(*) AS total FROM users").get().total
+    assert.equal(users(), 0)
+    const { preset } = await shareAs(cookie, "first")
+    const { preset: second } = await shareAs(cookie, "second")
+    assert.equal(users(), 1)
+    const saved = { name: "private", code: code([{ text: "private" }]) }
+    await addSaved(withCookie("/api/saved", cookie, { method: "POST", body: { presets: [saved] } }))
+    assert.equal(users(), 1)
+    await remove(cookie, preset.id)
+    await remove(cookie, second.id)
+    assert.equal(users(), 1)
+    await removeSaved(withCookie("/api/saved", cookie, { method: "DELETE", body: { code: saved.code } }))
+    assert.equal(users(), 0)
+  })
+
+  test("saving without sharing makes a user, and nothing to save makes none", async () => {
+    const cookie = await signIn()
+    const users = () => db.prepare("SELECT COUNT(*) AS total FROM users").get().total
+    await addSaved(withCookie("/api/saved", cookie, { method: "POST", body: { presets: [{ name: "bad", code: "!!!" }] } }))
+    assert.equal(users(), 0)
+    await addSaved(withCookie("/api/saved", cookie, { method: "POST", body: { presets: [{ name: "good", code: code([{ text: "good" }]) }] } }))
+    assert.equal(users(), 1)
+  })
+
+  test("a refused share makes no user", async () => {
+    const cookie = await signIn()
+    await post({ code: code([{ text: "taken" }]) })
+    assert.equal((await shareAs(cookie, "taken")).status, 409)
+    assert.equal(db.prepare("SELECT COUNT(*) AS total FROM users").get().total, 0)
+  })
+
+  test("a changed username updates one row and shows on every preset", async () => {
+    const before = await signIn("discord", { id: "1", username: "old" })
+    await shareAs(before, "one")
+    await shareAs(before, "two")
+    const changed = []
+    const realPrepare = env.DB.prepare
+    env.DB.prepare = sql => {
+      if (/^UPDATE/.test(sql)) changed.push(sql)
+      return realPrepare(sql)
+    }
+    await signIn("discord", { id: "1", username: "new" })
+    env.DB.prepare = realPrepare
+    assert.equal(changed.length, 1)
+    assert.match(changed[0], /^UPDATE users/)
+    assert.deepEqual((await list("?sort=new")).presets.map(preset => preset.author), ["new", "new"])
+  })
+
+  test("sharing with a session from before a username change keeps the row up to date", async () => {
+    const first = await signIn("discord", { id: "1", username: "first" })
+    await shareAs(first, "one")
+    const second = await signIn("discord", { id: "1", username: "second" })
+    await shareAs(second, "two")
+    assert.deepEqual(db.prepare("SELECT name FROM users").all().map(row => row.name), ["second"])
+  })
+
+  describe("the users migration", () => {
+    test("moves accounts and presets across and drops the old columns", () => {
+      const sqlite = new DatabaseSync(":memory:")
+      for (const file of ["0001_community_presets", "0002_accounts", "0003_saved_presets", "0004_votes_by_voter"]) sqlite.exec(fs.readFileSync(`migrations/${file}.sql`, "utf8"))
+      const insert = sqlite.prepare("INSERT INTO presets (id, code, fingerprint, name, text, ip_hash, created_at, author, author_provider, author_id) VALUES (?, 'c', ?, 'n', 't', 'ip', ?, ?, ?, ?)")
+      insert.run(1, "a", 100, "someone", "discord", "discord:519")
+      insert.run(2, "b", 50, "someone", "discord", "discord:519")
+      insert.run(3, "c", 70, "octo", "github", "github:42")
+      insert.run(4, "d", 80, null, null, null)
+      sqlite.prepare("INSERT INTO saved_presets (author_id, code_hash, code, name, shared) VALUES (?, ?, ?, ?, ?)").run("discord:519", "h1", "code1", "saved one", 1)
+      sqlite.prepare("INSERT INTO saved_presets (author_id, code_hash, code, name, shared) VALUES (?, ?, ?, ?, ?)").run("discord:777", "h2", "code2", "saved only", null)
+      sqlite.exec(fs.readFileSync("migrations/0005_users.sql", "utf8"))
+      assert.deepEqual(sqlite.prepare("SELECT provider, provider_id, name, created_at FROM users ORDER BY provider, provider_id").all().map(row => ({ ...row })), [
+        { provider: "discord", provider_id: "519", name: "someone", created_at: 50 },
+        { provider: "discord", provider_id: "777", name: "777", created_at: 0 },
+        { provider: "github", provider_id: "42", name: "octo", created_at: 70 }
+      ])
+      assert.deepEqual(sqlite.prepare("SELECT presets.id, users.name FROM presets LEFT JOIN users ON users.id = presets.user_id ORDER BY presets.id").all().map(row => [row.id, row.name]), [[1, "someone"], [2, "someone"], [3, "octo"], [4, null]])
+      assert.deepEqual(sqlite.prepare("SELECT saved_presets.name, users.provider_id, shared FROM saved_presets JOIN users ON users.id = saved_presets.user_id ORDER BY saved_presets.id").all().map(row => [row.name, row.provider_id, row.shared]), [["saved one", "519", 1], ["saved only", "777", null]])
+      const columns = sqlite.prepare("SELECT name FROM pragma_table_info('presets')").all().map(row => row.name)
+      assert.equal(columns.includes("author"), false)
+      assert.equal(columns.includes("author_id"), false)
+      assert.equal(columns.includes("user_id"), true)
+    })
   })
 
   test("an anonymous share has no account or author", async () => {
@@ -1128,7 +1213,8 @@ describe("accounts", () => {
     assert.equal(onAccount, false)
     assert.equal(preset.author, null)
     assert.equal(preset.authorProvider, null)
-    assert.equal(db.prepare("SELECT author_id FROM presets WHERE id = ?").get(preset.id).author_id, null)
+    assert.equal(db.prepare("SELECT user_id FROM presets WHERE id = ?").get(preset.id).user_id, null)
+    assert.equal(db.prepare("SELECT COUNT(*) AS total FROM users").get().total, 0)
   })
 
   test("lists, the weekly sort, single presets and renames all carry the author", async () => {
@@ -1328,7 +1414,7 @@ describe("accounts", () => {
     const first = (await shareAs(cookie, "first")).preset
     const second = (await shareAs(cookie, "second")).preset
     await remove(cookie, first.id)
-    assert.equal(db.prepare("SELECT COUNT(*) AS total FROM presets WHERE author_id IS NOT NULL").get().total, 1)
+    assert.equal(db.prepare("SELECT COUNT(*) AS total FROM users").get().total, 1)
     await remove(cookie, second.id)
     assert.deepEqual(rowsEverywhere(), { account_submissions: 1, deleted_presets: 2 })
     const dump = JSON.stringify(db.prepare("SELECT * FROM account_submissions").all().concat(db.prepare("SELECT * FROM deleted_presets").all()))
@@ -1512,7 +1598,7 @@ describe("accounts", () => {
       assert.deepEqual(await savedList(cookie), [])
       assert.equal((await savedList(other)).length, 1)
       assert.equal(db.prepare("SELECT COUNT(*) AS total FROM preset_votes").get().total, 0)
-      assert.doesNotMatch(JSON.stringify(db.prepare("SELECT * FROM presets").all().concat(db.prepare("SELECT * FROM saved_presets").all())), /discord:1"/)
+      assert.deepEqual(db.prepare("SELECT provider_id FROM users").all().map(row => row.provider_id), ["2"])
     })
 
     test("deleting all data still doesn't reset the day's shares or reuse ids", async () => {

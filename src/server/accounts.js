@@ -132,9 +132,23 @@ async function fetchPerson(provider, code) {
   return { id: person.id, name: Array.from(person.name).slice(0, LIMITS.name).join("") }
 }
 
+function shownUser(user) {
+  return user && { id: user.id, name: user.name, provider: user.provider }
+}
+
+export const USER_ROW ="(SELECT id FROM users WHERE provider = ? AND provider_id = ?)"
+
 export async function signedInUser({ request, env }) {
   const session = await verified(env, "session", cookieValue(request, SESSION_COOKIE))
-  return session && { id: session.id, name: session.name, provider: session.provider }
+  return session && { id: session.id, name: session.name, provider: session.provider, providerId: session.id.slice(session.provider.length + 1) }
+}
+
+export function saveUser(env, user) {
+  return env.DB.prepare("INSERT INTO users (provider, provider_id, name, created_at) VALUES (?, ?, ?, ?) ON CONFLICT (provider, provider_id) DO UPDATE SET name = excluded.name WHERE name != excluded.name").bind(user.provider, user.providerId, user.name, Date.now())
+}
+
+export function forgetUnusedUser(env, user) {
+  return env.DB.prepare("DELETE FROM users WHERE provider = ? AND provider_id = ? AND NOT EXISTS (SELECT 1 FROM presets WHERE presets.user_id = users.id) AND NOT EXISTS (SELECT 1 FROM saved_presets WHERE saved_presets.user_id = users.id)").bind(user.provider, user.providerId)
 }
 
 export const startSignIn = showingRefusals(async ({ request, env, params }) => {
@@ -169,13 +183,13 @@ export const finishSignIn = showingRefusals(async ({ request, env, params }) => 
   if (!handoff || handoff.nonce !== cookieValue(request, STATE_COOKIE)) throw new Refusal(400, "This sign-in has expired. Close this window and try again.")
   const id = `${provider.id}:${handoff.id}`
   const session = await signed(env, "session", SESSION_SECONDS, { id, name: handoff.name, provider: provider.id })
-  await env.DB.prepare("UPDATE presets SET author = ? WHERE author_id = ? AND author != ?").bind(handoff.name, id, handoff.name).run()
+  await env.DB.prepare("UPDATE users SET name = ? WHERE provider = ? AND provider_id = ? AND name != ?").bind(handoff.name, provider.id, handoff.id, handoff.name).run()
   const response = page(200, "You're signed in", "You can close this window.", leaveScript(`new BroadcastChannel("${ACCOUNT_CHANNEL}").postMessage("changed");`))
   response.headers.append("Set-Cookie", cookie(SESSION_COOKIE, session, SESSION_SECONDS, SESSION_PATH))
   response.headers.append("Set-Cookie", cookie(STATE_COOKIE, "", 0, STATE_PATH))
   return response
 })
 
-export const accountDetails = guarded(async context => reply(200, { user: await signedInUser(context), providers: PROVIDERS.map(({ id }) => id).filter(id => context.env[`${id.toUpperCase()}_CLIENT_ID`]) }))
+export const accountDetails = guarded(async context => reply(200, { user: shownUser(await signedInUser(context)), providers: PROVIDERS.map(({ id }) => id).filter(id => context.env[`${id.toUpperCase()}_CLIENT_ID`]) }))
 
 export const signOut = guarded(async () => reply(200, { user: null }, { "Set-Cookie": cookie(SESSION_COOKIE, "", 0, SESSION_PATH) }))
