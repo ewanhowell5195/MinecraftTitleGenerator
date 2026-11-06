@@ -14,6 +14,7 @@
     "compress": "node generator/compress.js"
   },
   "dependencies": {
+    "fluid-marquee-vue": "^1.0.0",
     "fluid-tabs-vue": "^1.0.1",
     "minecraft-asset-loader": "^1.5.4",
     "obscenity": "^0.4.6",

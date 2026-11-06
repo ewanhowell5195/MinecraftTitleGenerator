@@ -1,0 +1,32 @@
+{
+  "format": "minecraft-title",
+  "version": 1,
+  "lines": [
+    {
+      "texture": "cracked"
+    },
+    {
+      "type": "bottom",
+      "matchWidth": 0,
+      "scaleX": 0.7977,
+      "words": [
+        {
+          "text": "title",
+          "texture": "fired",
+          "hue": 359,
+          "customBorder": true,
+          "borderColour": "#230f00"
+        },
+        {
+          "text": "generator",
+          "texture": "fired",
+          "hue": 180,
+          "customBorder": true,
+          "borderColour": "#001329",
+          "customEdge": true,
+          "edgeColour": "#11467d"
+        }
+      ]
+    }
+  ]
+}
