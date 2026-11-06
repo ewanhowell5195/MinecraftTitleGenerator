@@ -80,7 +80,7 @@ function painted() {
 }
 
 function scales(title) {
-  return title.objects.map(object => [object.scaleX, object.scaleY]).join()
+  return title.objects.map(object => [object.scaleX, object.scaleY, object.matchScale, object.matchOffset]).join()
 }
 
 async function shoot(items, width) {

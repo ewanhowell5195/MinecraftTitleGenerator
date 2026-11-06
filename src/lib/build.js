@@ -81,6 +81,21 @@ function toBuffers(faces, units) {
   return { positions: new Float32Array(positions), uvs: new Float32Array(uvs), triangles: positions.length / 9 }
 }
 
+export function rowBottom(boxLists) {
+  let left = null
+  let right = null
+  for (const boxes of boxLists) {
+    if (!boxes.length) continue
+    const y = Math.min(...boxes.map(box => box.from[1]))
+    for (const box of boxes) {
+      if (box.from[1] !== y) continue
+      if (!left || box.from[0] < left[0]) left = [box.from[0], y]
+      if (!right || box.to[0] > right[0]) right = [box.to[0], y]
+    }
+  }
+  return left && { left, right }
+}
+
 export function buildText(font, options) {
   const { placed } = options
   if (!placed.length) return null
@@ -145,6 +160,7 @@ export function buildText(font, options) {
     depth,
     border,
     boxes: glyphs.flatMap(glyph => glyph.boxes.map(box => [box.from, box.to])),
+    bottom: rowBottom(glyphs.map(glyph => glyph.boxes)),
     line: { min: [line.minX + offset, line.minY, depth / 2 - (options.lineDepth ?? depth)], max: [line.maxX + offset, line.maxY, depth / 2] },
     frame: font.autoBorder ? frameRects(glyphs.flatMap(glyph => glyph.boxes)) : null,
     twist,

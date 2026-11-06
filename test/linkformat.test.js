@@ -86,6 +86,7 @@ describe("values", () => {
 
   test("null", () => {
     assert.deepEqual(roundTrip([{ matchWidth: null, texture: null }]), [{ matchWidth: null, texture: null }])
+    assert.deepEqual(roundTrip([{ matchWidth: 0, matchBottom: true }]), [{ matchWidth: 0, matchBottom: true }])
   })
 
   test("text keeps any characters", () => {

@@ -92,8 +92,8 @@ describe("the real title file", () => {
     assert.equal(scene.objects.length, 3)
     const [first, word, generator] = scene.objects
     assert.deepEqual(snapshot(first), { ...typeDefaults("top"), texture: "cracked" })
-    assert.deepEqual(snapshot(word), { ...typeDefaults("bottom"), text: "title", texture: "fired", hue: 359, customBorder: true, borderColour: "#230f00", matchWidth: first.id, scaleX: 0.7977, group: word.group })
-    assert.deepEqual(snapshot(generator), { ...typeDefaults("bottom"), text: "generator", texture: "fired", hue: 180, customBorder: true, borderColour: "#001329", customEdge: true, edgeColour: "#11467d", matchWidth: first.id, scaleX: 0.7977, group: word.group })
+    assert.deepEqual(snapshot(word), { ...typeDefaults("bottom"), text: "title", texture: "fired", hue: 359, customBorder: true, borderColour: "#230f00", matchWidth: first.id, matchScale: 0.7977, group: word.group })
+    assert.deepEqual(snapshot(generator), { ...typeDefaults("bottom"), text: "generator", texture: "fired", hue: 180, customBorder: true, borderColour: "#001329", customEdge: true, edgeColour: "#11467d", matchWidth: first.id, matchScale: 0.7977, group: word.group })
     assert.notEqual(word.group, null)
     assert.equal(scene.selected, first.id)
     assert.equal(scene.selectedGroup, null)
@@ -102,23 +102,23 @@ describe("the real title file", () => {
   test("saves back without the scale that gets solved", async () => {
     await openTitle(fileOf(REAL_FILE))
     const saved = await save()
-    assert.deepEqual(saved, { format: "minecraft-title", version: 2, lines: [{ texture: "cracked" }, { type: "bottom", matchWidth: 0, words: [{ text: "title", texture: "fired", hue: 359, customBorder: true, borderColour: "#230f00" }, { text: "generator", texture: "fired", hue: 180, customBorder: true, borderColour: "#001329", customEdge: true, edgeColour: "#11467d" }] }] })
+    assert.deepEqual(saved, { format: "minecraft-title", version: 3, lines: [{ texture: "cracked" }, { type: "bottom", matchWidth: 0, words: [{ text: "title", texture: "fired", hue: 359, customBorder: true, borderColour: "#230f00" }, { text: "generator", texture: "fired", hue: 180, customBorder: true, borderColour: "#001329", customEdge: true, edgeColour: "#11467d" }] }] })
   })
 
   test("opens the same after saving", async () => {
     await openTitle(fileOf(REAL_FILE))
-    const before = normalised().map(({ scaleX, ...values }) => values)
+    const before = normalised().map(({ matchScale, ...values }) => values)
     const saved = await save()
     await openTitle(fileOf(saved))
     assert.equal(fileError.value, null)
-    assert.deepEqual(normalised().map(({ scaleX, ...values }) => values), before)
+    assert.deepEqual(normalised().map(({ matchScale, ...values }) => values), before)
   })
 })
 
 describe("saving trims settings", () => {
   test("a brand new title saves an empty line", async () => {
     setScene(createObject())
-    assert.deepEqual(await save(), { format: "minecraft-title", version: 2, lines: [{}] })
+    assert.deepEqual(await save(), { format: "minecraft-title", version: 3, lines: [{}] })
   })
 
   test("an object at its type defaults saves only its type", async () => {
@@ -212,27 +212,45 @@ describe("saving trims settings", () => {
 
   test("a solved scale is left out", async () => {
     const reference = make("top")
-    const target = make("bottom", { matchWidth: reference.id, scaleX: 1.5, scaleY: 2 })
-    assert.deepEqual(await savedLines(reference, target), [{}, { type: "bottom", matchWidth: 0, scaleY: 2 }])
+    const target = make("bottom", { matchWidth: reference.id, matchScale: 1.5, scaleX: 1.2, scaleY: 2 })
+    assert.deepEqual(await savedLines(reference, target), [{}, { type: "bottom", matchWidth: 0, scaleX: 1.2, scaleY: 2 }])
   })
 
-  test("a solved linked scale leaves out both axes", async () => {
+  test("row bottom width is saved with its match, and left out without one", async () => {
     const reference = make("top")
-    const target = make("bottom", { matchWidth: reference.id, linkScale: 1.5, scaleX: 2, scaleY: 3 })
-    assert.deepEqual(await savedLines(reference, target), [{}, { type: "bottom", matchWidth: 0, linkScale: 1.5 }])
+    const target = make("bottom", { matchWidth: reference.id, matchBottom: true })
+    assert.deepEqual(await savedLines(reference, target), [{}, { type: "bottom", matchWidth: 0, matchBottom: true }])
+    target.matchWidth = null
+    assert.deepEqual((await save()).lines, [{}, { type: "bottom" }])
+  })
+
+  test("a solved sideways move is left out, and kept while the reference is hidden", async () => {
+    const reference = make("top")
+    const target = make("bottom", { matchWidth: reference.id, matchBottom: true, matchOffset: -10 })
+    assert.deepEqual(await savedLines(reference, target), [{}, { type: "bottom", matchWidth: 0, matchBottom: true }])
+    reference.hidden = true
+    assert.equal((await save()).lines[1].matchOffset, -10)
+  })
+
+  test("matching Y too is saved with its match, and left out without one", async () => {
+    const reference = make("top")
+    const target = make("bottom", { matchWidth: reference.id, matchScaleY: true, matchScale: 2 })
+    assert.deepEqual(await savedLines(reference, target), [{}, { type: "bottom", matchWidth: 0, matchScaleY: true }])
+    target.matchWidth = null
+    assert.deepEqual((await save()).lines[1], { type: "bottom", matchScale: 2 })
   })
 
   test("a scale matched to a hidden line is kept", async () => {
     const reference = make("top", { hidden: true })
-    const target = make("bottom", { matchWidth: reference.id, linkScale: 1.5, scaleX: 2, scaleY: 3 })
-    assert.deepEqual(await savedLines(reference, target), [{ hidden: true }, { type: "bottom", matchWidth: 0, linkScale: 1.5, scaleX: 2, scaleY: 3 }])
+    const target = make("bottom", { matchWidth: reference.id, matchScaleY: true, matchScale: 2, scaleY: 1.5 })
+    assert.deepEqual(await savedLines(reference, target), [{ hidden: true }, { type: "bottom", matchWidth: 0, matchScaleY: true, matchScale: 2, scaleY: 1.5 }])
   })
 
   test("a chain is solved by whether its last line is visible", async () => {
     const end = make("top", { hidden: true })
-    const middle = make("top", { matchWidth: end.id, scaleX: 2 })
-    const start = make("top", { matchWidth: middle.id, scaleX: 3 })
-    assert.deepEqual(await savedLines(start, middle, end), [{ matchWidth: 1, scaleX: 3 }, { matchWidth: 2, scaleX: 2 }, { hidden: true }])
+    const middle = make("top", { matchWidth: end.id, matchScale: 2 })
+    const start = make("top", { matchWidth: middle.id, matchScale: 3 })
+    assert.deepEqual(await savedLines(start, middle, end), [{ matchWidth: 1, matchScale: 3 }, { matchWidth: 2, matchScale: 2 }, { hidden: true }])
     end.hidden = false
     assert.deepEqual((await save()).lines, [{ matchWidth: 1 }, { matchWidth: 2 }, {}])
   })
@@ -413,6 +431,40 @@ describe("opening", () => {
     assert.equal(scene.objects[0].tileablePerCharacter, true)
   })
 
+  test("a match from before version 3 moves its solved scale off the X slider", async () => {
+    await openTitle(fileOf(title([{ text: "a", hidden: true }, { text: "b", matchWidth: 0, scaleX: 2, scaleY: 3 }], { version: 2 })))
+    const [, line] = scene.objects
+    assert.equal(line.matchScale, 2)
+    assert.equal(line.scaleX, 1)
+    assert.equal(line.scaleY, 3)
+    assert.equal(line.matchScaleY, false)
+  })
+
+  test("a linked match from before version 3 becomes matching Y too, at the same size", async () => {
+    await openTitle(fileOf(title([{ text: "a", hidden: true }, { text: "b", matchWidth: 0, linkScale: 1.5, scaleX: 2, scaleY: 3 }], { version: 2 })))
+    const [, line] = scene.objects
+    assert.equal(line.matchScale, 2)
+    assert.equal(line.matchScaleY, true)
+    assert.equal(line.scaleX, 1)
+    assert.equal(line.scaleY, 1.5)
+    assert.equal(line.linkScale, null)
+  })
+
+  test("a scale with no match from before version 3 stays on the slider", async () => {
+    await openTitle(fileOf(title([{ text: "a", scaleX: 2, linkScale: 1.5 }], { version: 2 })))
+    assert.equal(scene.objects[0].scaleX, 2)
+    assert.equal(scene.objects[0].linkScale, 1.5)
+    assert.equal(scene.objects[0].matchScale, 1)
+  })
+
+  test("a version 3 match keeps its sliders", async () => {
+    await openTitle(fileOf(title([{ text: "a", hidden: true }, { text: "b", matchWidth: 0, scaleX: 2, linkScale: 1.5 }], { version: 3 })))
+    const [, line] = scene.objects
+    assert.equal(line.scaleX, 2)
+    assert.equal(line.linkScale, 1.5)
+    assert.equal(line.matchScale, 1)
+  })
+
   test("a tileable from version 2 keeps its own setting", async () => {
     await openTitle(fileOf(title([{ text: "new", textureSource: "tileable" }], { version: 2 })))
     assert.equal(scene.objects[0].tileablePerCharacter, false)
@@ -472,7 +524,7 @@ describe("rejected files", () => {
     ["a JSON null", "null", "Couldn't open test.mctitle: this isn't a Minecraft title file"],
     ["another format", { format: "something-else", version: 1, lines: [{}] }, "Couldn't open test.mctitle: this isn't a Minecraft title file"],
     ["no format", { version: 1, lines: [{}] }, "Couldn't open test.mctitle: this isn't a Minecraft title file"],
-    ["a newer version", title([{}], { version: 3 }), "Couldn't open test.mctitle: it was saved by a newer version of the generator (format 3)"],
+    ["a newer version", title([{}], { version: 4 }), "Couldn't open test.mctitle: it was saved by a newer version of the generator (format 4)"],
     ["no lines key", { format: "minecraft-title", version: 1 }, "Couldn't open test.mctitle: it has no text in it"],
     ["empty lines", title([]), "Couldn't open test.mctitle: it has no text in it"],
     ["lines that are not a list", title("words"), "Couldn't open test.mctitle: it has no text in it"],

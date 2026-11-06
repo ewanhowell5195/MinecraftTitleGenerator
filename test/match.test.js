@@ -165,7 +165,7 @@ describe("problems and solving", () => {
     runtime[reference.id] = state(100, 2)
     runtime[target.id] = state(40, 2, -60)
     await nextTick()
-    assert.equal(target.scaleX, 2.5)
+    assert.equal(target.matchScale, 2.5)
     assert.equal(target.scaleY, 1)
     assert.equal(target.id in problems, false)
   })
@@ -175,17 +175,143 @@ describe("problems and solving", () => {
     runtime[reference.id] = state(100, 2)
     runtime[target.id] = state(50, 4, -60)
     await nextTick()
-    assert.equal(target.scaleX, 1.96)
+    assert.equal(target.matchScale, 1.96)
   })
 
-  test("a linked line solves Y from X", async () => {
+  test("the match is its own scale, so the sliders stay yours", async () => {
     const [target, reference] = linked(2)
+    target.scaleX = 1.5
+    target.scaleY = 2
     target.linkScale = 1.5
     runtime[reference.id] = state(100, 2)
     runtime[target.id] = state(40, 2, -60)
     await nextTick()
-    assert.equal(target.scaleX, 2.5)
-    assert.equal(target.scaleY, 3.75)
+    assert.equal(target.matchScale, 2.5)
+    assert.equal(target.scaleX, 1.5)
+    assert.equal(target.scaleY, 2)
+    assert.equal(target.linkScale, 1.5)
+  })
+
+  test("removing the match drops its scale and leaves the sliders", async () => {
+    const [target, reference] = linked(2)
+    target.scaleX = 1.5
+    runtime[reference.id] = state(100, 2)
+    runtime[target.id] = state(40, 2, -60)
+    await nextTick()
+    target.matchWidth = null
+    await nextTick()
+    assert.equal(target.matchScale, 1)
+    assert.equal(target.scaleX, 1.5)
+  })
+
+  describe("row bottom width", () => {
+    function withBottom(halfWidth, border, left, right, offsetY = 0) {
+      const made = state(halfWidth, border, offsetY)
+      made.built.bottom = { left, right }
+      return made
+    }
+
+    test("row width ignores the bottom of the row", async () => {
+      const [target, reference] = linked(2)
+      runtime[reference.id] = withBottom(100, 0, [-50, 0], [50, 0])
+      runtime[target.id] = state(50, 0, -60)
+      await nextTick()
+      assert.equal(target.matchScale, 2)
+    })
+
+    test("measures the widest point in the bottom of the row", async () => {
+      const [target, reference] = linked(2)
+      target.matchBottom = true
+      runtime[reference.id] = withBottom(100, 0, [-50, 0], [50, 0])
+      runtime[target.id] = state(50, 0, -60)
+      await nextTick()
+      assert.equal(target.matchScale, 1)
+    })
+
+    test("moves the line sideways when the bottom of the row is off centre", async () => {
+      const [target, reference] = linked(2)
+      target.matchBottom = true
+      runtime[reference.id] = withBottom(100, 0, [-60, 0], [40, 0])
+      runtime[target.id] = state(50, 0, -60)
+      await nextTick()
+      assert.equal(target.matchScale, 1)
+      assert.equal(target.matchOffset, -10)
+    })
+
+    test("row width leaves the line centred", async () => {
+      const [target, reference] = linked(2)
+      runtime[reference.id] = withBottom(100, 0, [-60, 0], [40, 0])
+      runtime[target.id] = state(50, 0, -60)
+      await nextTick()
+      assert.equal(target.matchOffset, 0)
+    })
+
+    test("the line's own position doesn't change the sideways move", async () => {
+      const [target, reference] = linked(2)
+      target.matchBottom = true
+      runtime[reference.id] = withBottom(100, 0, [-60, 0], [40, 0])
+      const moved = state(50, 0, -60)
+      moved.transform.translate = [25, 0, 0]
+      moved.transform.matchOffset = 30
+      runtime[target.id] = moved
+      await nextTick()
+      assert.equal(target.matchOffset, -10)
+      assert.equal(target.matchScale, 1)
+    })
+
+    test("removing the match puts the line back", async () => {
+      const [target, reference] = linked(2)
+      target.matchBottom = true
+      runtime[reference.id] = withBottom(100, 0, [-60, 0], [40, 0])
+      runtime[target.id] = state(50, 0, -60)
+      await nextTick()
+      assert.equal(target.matchOffset, -10)
+      target.matchWidth = null
+      await nextTick()
+      assert.equal(target.matchOffset, 0)
+    })
+
+    test("changing the option solves again", async () => {
+      const [target, reference] = linked(2)
+      runtime[reference.id] = withBottom(100, 0, [-50, 0], [50, 0])
+      runtime[target.id] = state(50, 0, -60)
+      await nextTick()
+      assert.equal(target.matchScale, 2)
+      target.matchBottom = true
+      await nextTick()
+      assert.equal(target.matchScale, 1)
+    })
+
+    test("counts the outline", async () => {
+      const [target, reference] = linked(2)
+      target.matchBottom = true
+      runtime[reference.id] = withBottom(100, 2, [-50, 0], [50, 0])
+      runtime[target.id] = state(50, 0, -60)
+      await nextTick()
+      assert.equal(target.matchScale, 1.04)
+    })
+
+    test("takes the ends from every word in the row", async () => {
+      const [target, first, second] = chain(3)
+      target.matchWidth = first.id
+      target.matchBottom = true
+      first.group = 7
+      second.group = 7
+      runtime[first.id] = withBottom(100, 0, [-60, 0], [-10, 0])
+      runtime[second.id] = withBottom(100, 0, [10, 0], [40, 0])
+      runtime[target.id] = state(50, 0, -60)
+      await nextTick()
+      assert.equal(target.matchScale, 1)
+    })
+
+    test("a row with nothing in it records the problem", async () => {
+      const [target, reference] = linked(2)
+      target.matchBottom = true
+      runtime[reference.id] = state(100, 0)
+      runtime[target.id] = state(50, 0, -60)
+      await nextTick()
+      assert.equal(problems[target.id], "this row has no bottom to measure")
+    })
   })
 
   test("a chain is solved against its last line", async () => {
@@ -194,8 +320,8 @@ describe("problems and solving", () => {
     runtime[second.id] = state(40, 2, -60)
     runtime[first.id] = state(25, 2, -120)
     await nextTick()
-    assert.equal(first.scaleX, 4)
-    assert.equal(second.scaleX, 2.5)
+    assert.equal(first.matchScale, 4)
+    assert.equal(second.matchScale, 2.5)
   })
 
   test("solving does not create an undo step", async () => {
@@ -206,18 +332,18 @@ describe("problems and solving", () => {
     runtime[target.id] = state(40, 2, -60)
     await nextTick()
     mock.timers.tick(300)
-    assert.equal(target.scaleX, 2.5)
+    assert.equal(target.matchScale, 2.5)
     assert.equal(history.undo.length, 0)
   })
 
   test("a line that cannot be solved records the problem and keeps its scale", async () => {
     const [target, reference] = linked(2)
-    target.scaleX = 1.2
+    target.matchScale = 1.2
     runtime[reference.id] = state(100, 2)
     runtime[target.id] = state(0, 0, -60)
     await nextTick()
     assert.equal(problems[target.id], "these texts' edges can't be lined up by scaling")
-    assert.equal(target.scaleX, 1.2)
+    assert.equal(target.matchScale, 1.2)
   })
 
   test("the problem clears once the line can be solved", async () => {
@@ -229,17 +355,17 @@ describe("problems and solving", () => {
     runtime[target.id] = state(40, 2, -60)
     await nextTick()
     assert.equal(target.id in problems, false)
-    assert.equal(target.scaleX, 2.5)
+    assert.equal(target.matchScale, 2.5)
   })
 
   test("a hidden reference leaves the scale alone", async () => {
     const [target, reference] = linked(2)
     reference.hidden = true
-    target.scaleX = 1.2
+    target.matchScale = 1.2
     runtime[reference.id] = state(100, 2)
     runtime[target.id] = state(40, 2, -60)
     await nextTick()
-    assert.equal(target.scaleX, 1.2)
+    assert.equal(target.matchScale, 1.2)
     assert.equal(target.id in problems, false)
   })
 
@@ -248,9 +374,9 @@ describe("problems and solving", () => {
     runtime[reference.id] = state(100, 2)
     runtime[target.id] = state(40, 2, -60, false)
     await nextTick()
-    assert.equal(target.scaleX, 1)
+    assert.equal(target.matchScale, 1)
     runtime[target.id] = state(40, 2, -60)
     await nextTick()
-    assert.equal(target.scaleX, 2.5)
+    assert.equal(target.matchScale, 2.5)
   })
 })

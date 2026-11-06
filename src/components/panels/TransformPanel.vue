@@ -4,10 +4,11 @@
   import { previews } from "../../lib/previews.js"
   import { TRANSFORM_GROUPS, TRANSFORM_LIMITS, TYPES, isModified, resetTransform, transformKeys, wordKey } from "../../lib/settings.js"
   import { hasMarks } from "../../lib/font.js"
-  import { active, current, currentWord, lineText, scene, selection, setScale, words } from "../../lib/scene.js"
+  import { active, bakeMatch, chooseMatch, current, currentWord, lineText, scene, selection, setScale, words } from "../../lib/scene.js"
   import Dropdown from "../Dropdown.vue"
   import Icon from "../Icon.vue"
   import Panel from "../Panel.vue"
+  import Segments from "../Segments.vue"
   import Slider from "../Slider.vue"
   import Toggle from "../Toggle.vue"
 
@@ -16,15 +17,15 @@
   })
 
   const AXIS_PANELS = [["translation", "Position"], ["rotation", "Rotation"]]
+  const MATCH_MODES = [{ value: false, label: "Row width", title: "The widest point in the row" }, { value: true, label: "Row bottom width", title: "The widest point in the bottom of the row" }]
 
   const object = computed(() => props.word ? currentWord.value : current.value)
   const k = key => props.word ? wordKey(key) : key
-  const matching = computed(() => !props.word && object.value.matchWidth !== null)
 
   const modified = computed(() => Object.fromEntries(Object.keys(TRANSFORM_GROUPS).map(group => [group, isModified(object.value, props.word ? "wordTransform" : "transform", {}, transformKeys(group, props.word))])))
   const own = computed(() => words(selection.value[0]))
   const references = computed(() => scene.objects.filter(other => !own.value.includes(other) && words(other)[0] === other && !own.value.some(word => leadsTo(other, word))))
-  const matchOptions = computed(() => [{ value: null, label: "None", hint: "Scale X by hand" }].concat(references.value.map(other => ({ value: other.id, label: lineText(other) || "(empty)", hint: TYPES[other.type].name, image: previews[other.id] }))))
+  const matchOptions = computed(() => [{ value: null, label: "None" }].concat(references.value.map(other => ({ value: other.id, label: lineText(other) || "(empty)", hint: TYPES[other.type].name, image: previews[other.id] }))))
   const linked = computed(() => object.value[k("linkScale")] !== null)
   const marked = computed(() => hasMarks(active.value.font))
 
@@ -40,28 +41,30 @@
 
   function toggleLink() {
     if (linked.value) object.value[k("linkScale")] = null
-    else if (matching.value) {
-      object.value.linkScale = 1
-      object.value.scaleY = object.value.scaleX
-    } else object.value[k("linkScale")] = object.value[k("scaleY")] / object.value[k("scaleX")]
+    else object.value[k("linkScale")] = object.value[k("scaleY")] / object.value[k("scaleX")]
   }
 </script>
 
 <template>
+  <Panel v-if="!word && (references.length || object.matchWidth !== null)" title="Match width to" :modified="modified.match" @reset="resetTransform(object, 'match')">
+    <Dropdown :options="matchOptions" :model-value="object.matchWidth" @update:model-value="chooseMatch(selection[0], $event)" />
+    <template v-if="object.matchWidth !== null">
+      <Segments :options="MATCH_MODES" v-model="object.matchBottom" />
+      <Toggle label="Scale Y to match too" v-model="object.matchScaleY" />
+      <p v-if="problems[object.id]" class="hint">{{ problems[object.id] }}</p>
+      <button class="bake" title="Stop matching and move its scale and position into the sliders" @click="bakeMatch(selection[0])">Bake match</button>
+    </template>
+  </Panel>
   <Panel v-for="[group, title] of AXIS_PANELS" :key="group" :title="title" :modified="modified[group]" @reset="resetTransform(object, group, word)">
     <Slider v-for="(key, index) of TRANSFORM_GROUPS[group]" :key="key" inline :label="'XYZ'[index]" v-model="object[k(key)]" :min="TRANSFORM_LIMITS[group][0]" :max="TRANSFORM_LIMITS[group][1]" />
   </Panel>
   <Panel title="Scale" :modified="modified.scale" @reset="resetTransform(object, 'scale', word)">
-    <template v-if="!word">
-      <Dropdown v-if="references.length || object.matchWidth !== null" label="Match width to" :options="matchOptions" v-model="object.matchWidth" />
-      <p v-if="object.matchWidth !== null && problems[object.id]" class="hint">{{ problems[object.id] }}</p>
-    </template>
     <div class="linked">
       <div class="sliders">
-        <Slider v-if="!matching" inline label="X" v-model="scaleX" :min="TRANSFORM_LIMITS.scale[0]" :max="TRANSFORM_LIMITS.scale[1]" :step="0.05" />
-        <Slider inline label="Y" v-model="scaleY" :min="TRANSFORM_LIMITS.scale[0]" :max="TRANSFORM_LIMITS.scale[1]" :step="0.05" :disabled="linked && matching" />
+        <Slider inline label="X" v-model="scaleX" :min="TRANSFORM_LIMITS.scale[0]" :max="TRANSFORM_LIMITS.scale[1]" :step="0.05" />
+        <Slider inline label="Y" v-model="scaleY" :min="TRANSFORM_LIMITS.scale[0]" :max="TRANSFORM_LIMITS.scale[1]" :step="0.05" />
       </div>
-      <span class="bracket" :class="{ active: linked, hidden: matching }"></span>
+      <span class="bracket" :class="{ active: linked }"></span>
       <button class="icon-button small" :class="{ active: linked }" @click="toggleLink" :title="linked ? 'Unlink X and Y' : 'Link X and Y so the text keeps its shape'" :aria-pressed="linked"><Icon name="link" :size="14" /></button>
     </div>
     <div class="linked">
@@ -100,8 +103,9 @@
     border-color: var(--accent);
   }
 
-  .bracket.hidden {
-    visibility: hidden;
+  .bake {
+    align-self: flex-start;
+    user-select: none;
   }
 
   .spare {

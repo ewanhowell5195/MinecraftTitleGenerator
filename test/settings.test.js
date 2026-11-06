@@ -1,7 +1,7 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import { isReactive } from "vue"
-import { LAYER, activeOverlays, applyType, createObject, defaultBorder, defaultDepth, defaultOverlays, defaultSpacing, defaultTexture, isModified, overlayLayer, resetPanel, resetTransform, restore, setTexture, snapshot, textureEntry, transformKeys, typeDefaults } from "../src/lib/settings.js"
+import { LAYER, activeOverlays, applyType, createObject, defaultBorder, defaultDepth, defaultOverlays, defaultSpacing, defaultTexture, effectiveScale, isModified, overlayLayer, resetPanel, resetTransform, restore, setTexture, snapshot, textureEntry, transformKeys, typeDefaults } from "../src/lib/settings.js"
 
 const TOP_DEFAULTS = {
   hidden: false,
@@ -32,6 +32,10 @@ const TOP_DEFAULTS = {
   twistDoorSame: false,
   arcGradient: false,
   matchWidth: null,
+  matchBottom: false,
+  matchScaleY: false,
+  matchScale: 1,
+  matchOffset: 0,
   scaleX: 1,
   scaleY: 1,
   linkScale: null,
@@ -507,11 +511,24 @@ describe("transform groups", () => {
   test("resetting a line group leaves the other groups", () => {
     const object = createObject({ matchWidth: 4, scaleX: 2, linkScale: 2, rotationX: 10, translateX: 5 })
     resetTransform(object, "scale")
-    assert.equal(object.matchWidth, null)
+    assert.equal(object.matchWidth, 4)
     assert.equal(object.scaleX, 1)
     assert.equal(object.linkScale, null)
     assert.equal(object.rotationX, 10)
     assert.equal(object.translateX, 5)
+  })
+
+  test("the match multiplies the sliders, and only reaches Y when asked", () => {
+    assert.deepEqual(effectiveScale(createObject({ scaleX: 2, scaleY: 3, scaleZ: 4, matchScale: 1.5 })), [3, 3, 4])
+    assert.deepEqual(effectiveScale(createObject({ scaleX: 2, scaleY: 3, scaleZ: 4, matchScale: 1.5, matchScaleY: true })), [3, 4.5, 4])
+  })
+
+  test("resetting the match leaves the scale", () => {
+    const object = createObject({ matchWidth: 4, matchBottom: true, scaleX: 2 })
+    resetTransform(object, "match")
+    assert.equal(object.matchWidth, null)
+    assert.equal(object.matchBottom, false)
+    assert.equal(object.scaleX, 2)
   })
 
   test("resetting a word group leaves the line values", () => {

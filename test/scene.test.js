@@ -16,7 +16,7 @@ mock.timers.enable({ apis: ["setTimeout"] })
 
 const { createObject, snapshot, typeDefaults } = await import("../src/lib/settings.js")
 const { view } = await import("../src/lib/view.js")
-const { addObject, addWord, current, currentWord, duplicateLine, insertWord, keepTexture, lineHidden, lineText, removeLine, removeObject, runtime, saveError, scene, select, selectGroup, selection, setScale, shapingWord, titleFileName, toggleLine, validSelection, wordTabs, words } = await import("../src/lib/scene.js")
+const { addObject, addWord, bakeMatch, chooseMatch, current, currentWord, duplicateLine, insertWord, keepTexture, lineHidden, lineText, removeLine, removeObject, runtime, saveError, scene, select, selectGroup, selection, setScale, shapingWord, titleFileName, toggleLine, validSelection, wordTabs, words } = await import("../src/lib/scene.js")
 
 function setScene(...objects) {
   scene.objects = objects
@@ -300,6 +300,83 @@ describe("duplicateLine", () => {
   })
 })
 
+describe("chooseMatch", () => {
+  function moved(values = {}) {
+    return setScene(createObject({ text: "a" }), createObject({ text: "b", scaleX: 2, scaleY: 1.5, scaleZ: 3, translateX: 10, translateY: 4, translateZ: 5, rotationX: 20, ...values }))
+  }
+
+  test("resets X scale and X position and leaves everything else", () => {
+    const [a, b] = moved()
+    chooseMatch(b, a.id)
+    assert.equal(b.matchWidth, a.id)
+    assert.deepEqual([b.scaleX, b.translateX], [1, 0])
+    assert.deepEqual([b.scaleY, b.scaleZ, b.translateY, b.translateZ, b.rotationX], [1.5, 3, 4, 5, 20])
+  })
+
+  test("also resets Y scale when Y is matched too", () => {
+    const [a, b] = moved({ matchScaleY: true })
+    chooseMatch(b, a.id)
+    assert.equal(b.scaleY, 1)
+  })
+
+  test("linked sliders keep their ratio", () => {
+    const [a, b] = moved({ linkScale: 0.75 })
+    chooseMatch(b, a.id)
+    assert.deepEqual([b.scaleX, b.scaleY, b.linkScale], [1, 0.75, 0.75])
+  })
+
+  test("linked sliders both go to 1 when Y is matched too", () => {
+    const [a, b] = moved({ linkScale: 0.75, matchScaleY: true })
+    chooseMatch(b, a.id)
+    assert.deepEqual([b.scaleX, b.scaleY, b.linkScale], [1, 1, 1])
+  })
+
+  test("choosing None leaves the sliders alone", () => {
+    const [a, b] = moved({ matchWidth: 1 })
+    chooseMatch(b, null)
+    assert.equal(a.matchWidth, null)
+    assert.equal(b.matchWidth, null)
+    assert.deepEqual([b.scaleX, b.translateX], [2, 10])
+  })
+
+  test("applies to every word in the line", () => {
+    const [a, b, c] = setScene(createObject({ text: "a" }), createObject({ text: "b", group: 3, scaleX: 2 }), createObject({ text: "c", group: 3, scaleX: 2 }))
+    chooseMatch(b, a.id)
+    assert.deepEqual([b.matchWidth, c.matchWidth, b.scaleX, c.scaleX], [a.id, a.id, 1, 1])
+  })
+})
+
+describe("bakeMatch", () => {
+  test("moves the match into the sliders and unlinks", () => {
+    const [a, b] = setScene(createObject({ text: "a" }), createObject({ text: "b" }))
+    Object.assign(b, { matchWidth: a.id, matchBottom: true, matchScale: 2, matchOffset: -4, scaleX: 1.5, scaleY: 1.2, translateX: 10 })
+    bakeMatch(b)
+    assert.deepEqual([b.scaleX, b.scaleY, b.translateX], [3, 1.2, 6])
+    assert.deepEqual([b.matchWidth, b.matchBottom, b.matchScale, b.matchOffset], [null, false, 1, 0])
+  })
+
+  test("takes Y along when it was matched too", () => {
+    const [a, b] = setScene(createObject({ text: "a" }), createObject({ text: "b" }))
+    Object.assign(b, { matchWidth: a.id, matchScaleY: true, matchScale: 2, scaleY: 1.5 })
+    bakeMatch(b)
+    assert.deepEqual([b.scaleX, b.scaleY, b.matchScaleY], [2, 3, false])
+  })
+
+  test("keeps linked sliders at their new ratio", () => {
+    const [a, b] = setScene(createObject({ text: "a" }), createObject({ text: "b" }))
+    Object.assign(b, { matchWidth: a.id, matchScale: 2, linkScale: 1, scaleX: 1, scaleY: 1 })
+    bakeMatch(b)
+    assert.equal(b.linkScale, 0.5)
+  })
+
+  test("bakes every word in the line", () => {
+    const [a, b, c] = setScene(createObject({ text: "a" }), createObject({ text: "b", group: 3 }), createObject({ text: "c", group: 3 }))
+    for (const word of [b, c]) Object.assign(word, { matchWidth: a.id, matchScale: 2 })
+    bakeMatch(b)
+    assert.deepEqual([b.scaleX, c.scaleX, b.matchWidth, c.matchWidth], [2, 2, null, null])
+  })
+})
+
 describe("removeObject", () => {
   test("selects whatever took the removed object's place", () => {
     const [, b, c] = setScene(createObject({ text: "a" }), createObject({ text: "b" }), createObject({ text: "c" }))
@@ -354,6 +431,18 @@ describe("removeObject", () => {
     removeObject(a)
     assert.equal(b.group, null)
     assert.equal(scene.selected, b.id)
+  })
+
+  test("removing the line a match points at bakes the match, so nothing moves", () => {
+    const [a, b] = setScene(createObject({ text: "a" }), createObject({ text: "b" }))
+    Object.assign(b, { matchWidth: a.id, matchScale: 2, matchOffset: 3, matchScaleY: true, scaleX: 1.5, scaleY: 1.2 })
+    removeObject(a)
+    assert.equal(b.matchWidth, null)
+    assert.equal(b.scaleX, 3)
+    assert.equal(b.scaleY, 2.4)
+    assert.equal(b.translateX, 3)
+    assert.equal(b.matchScale, 1)
+    assert.equal(b.matchOffset, 0)
   })
 
   test("clears match references to the removed object", () => {

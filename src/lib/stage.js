@@ -83,7 +83,7 @@ export function placementMatrix(value, bounds) {
   const scale = new THREE.Matrix4().makeTranslation(anchor.x, anchor.y, anchor.z).multiply(placement).multiply(new THREE.Matrix4().makeScale(...value.scale)).multiply(placement.clone().invert()).multiply(new THREE.Matrix4().makeTranslation(-anchor.x, -anchor.y, -anchor.z))
   centre.applyMatrix4(scale)
   const rotation = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(...value.rotate.map(radians)))
-  const translate = new THREE.Vector3(...value.translate).applyMatrix4(rotation.clone().multiply(placement))
+  const translate = new THREE.Vector3(value.translate[0] + (value.matchOffset ?? 0), value.translate[1], value.translate[2]).applyMatrix4(rotation.clone().multiply(placement))
   return new THREE.Matrix4().makeTranslation(translate.x, translate.y, translate.z).multiply(new THREE.Matrix4().makeTranslation(centre.x, centre.y, centre.z)).multiply(rotation).multiply(new THREE.Matrix4().makeTranslation(-centre.x, -centre.y, -centre.z)).multiply(scale).multiply(base)
 }
 
@@ -188,7 +188,7 @@ function placedCorners(item, transform) {
 
 function restBounds(item) {
   const bounds = localBounds(item, item.transform.outlineGrow)
-  return bounds.applyMatrix4(placementMatrix({ ...item.transform, scale: [1, 1, 1], rotate: [0, 0, 0], translate: [0, 0, 0] }, lineBounds(item.built)))
+  return bounds.applyMatrix4(placementMatrix({ ...item.transform, scale: [1, 1, 1], rotate: [0, 0, 0], translate: [0, 0, 0], matchOffset: 0 }, lineBounds(item.built)))
 }
 
 export function titleFraming(items, fixedDistance = view.fixedDistance) {

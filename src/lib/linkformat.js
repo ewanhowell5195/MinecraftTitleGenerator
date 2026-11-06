@@ -279,7 +279,11 @@ const KEYS = [
   ["twistRibbonMirror", BOOLEAN],
   ["twistDoor", NUMBER],
   ["twistDoorAnchor", TWIST_ANCHOR],
-  ["twistDoorSame", BOOLEAN]
+  ["twistDoorSame", BOOLEAN],
+  ["matchBottom", BOOLEAN],
+  ["matchOffset", NUMBER],
+  ["matchScale", NUMBER],
+  ["matchScaleY", BOOLEAN]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))

@@ -1,6 +1,29 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { buildHoles, buildOutline, buildText } from "../src/lib/build.js"
+import { buildHoles, buildOutline, buildText, rowBottom } from "../src/lib/build.js"
+
+describe("rowBottom", () => {
+  const box = (x0, y0, x1, y1) => ({ from: [x0, y0], to: [x1, y1] })
+
+  test("leaves out what sits above the bottom of a letter", () => {
+    const t = [box(-6, 8, 6, 10), box(-1, 0, 1, 8)]
+    assert.deepEqual(rowBottom([t]), { left: [-1, 0], right: [1, 0] })
+  })
+
+  test("goes from the first letter's bottom to the last letter's bottom", () => {
+    const m = [box(-20, 0, -18, 10), box(-12, 0, -10, 10)]
+    const t = [box(4, 8, 16, 10), box(9, 0, 11, 8)]
+    assert.deepEqual(rowBottom([m, t]), { left: [-20, 0], right: [11, 0] })
+  })
+
+  test("uses each letter's own bottom, so a raised letter still counts", () => {
+    assert.deepEqual(rowBottom([[box(-10, 5, -8, 10)], [box(0, 0, 2, 10)], [box(8, 5, 10, 10)]]), { left: [-10, 5], right: [10, 5] })
+  })
+
+  test("is nothing for a row with no letters", () => {
+    assert.equal(rowBottom([[], []]), null)
+  })
+})
 
 globalThis.document = { createElement: () => ({ getContext: () => ({ fillRect() {} }) }) }
 

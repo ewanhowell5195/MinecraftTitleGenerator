@@ -90,9 +90,6 @@
     proxy.position.copy(position)
     proxy.quaternion.copy(quaternion)
     proxy.scale.set(...(word ? item.transform.word.userScale : item.transform.userScale))
-    const object = current.value
-    controls.showX = word || view.gizmo !== "scale" || object.matchWidth === null
-    controls.showY = word || view.gizmo !== "scale" || object.matchWidth === null || object.linkScale === null
     controls.setMode(view.gizmo)
     if (controls.object !== proxy) controls.attach(proxy)
   }

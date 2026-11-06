@@ -1,6 +1,6 @@
 import { reactive } from "vue"
 
-export const FILE_VERSION = 2
+export const FILE_VERSION = 3
 
 export const TYPES = {
   top: { name: "Top Text", clipHoles: true, stops: [["#FFCF76", 0], ["#DA371E", 100]], fade: false, outerFade: 0, internalFaces: false, fadeInternal: true, internalFade: 0, sideFaces: false, fadeSides: true, sideFade: 0, border: 2, spacing: 0 },
@@ -85,6 +85,10 @@ const PANELS = {
   }),
   transform: () => ({
     matchWidth: null,
+    matchBottom: false,
+    matchScaleY: false,
+    matchScale: 1,
+    matchOffset: 0,
     scaleX: 1,
     scaleY: 1,
     linkScale: null,
@@ -217,9 +221,14 @@ export function createObject(values = {}, id = next) {
 }
 
 export const TRANSFORM_GROUPS = {
-  scale: ["matchWidth", "scaleX", "scaleY", "linkScale", "scaleMarked", "scaleZ", "scaleOutline"],
+  match: ["matchWidth", "matchBottom", "matchScaleY"],
+  scale: ["scaleX", "scaleY", "linkScale", "scaleMarked", "scaleZ", "scaleOutline"],
   rotation: ["rotationX", "rotationY", "rotationZ"],
   translation: ["translateX", "translateY", "translateZ"]
+}
+
+export function effectiveScale(object) {
+  return [object.scaleX * object.matchScale, object.matchScaleY ? object.scaleY * object.matchScale : object.scaleY, object.scaleZ]
 }
 
 export const TRANSFORM_LIMITS = { scale: [0.05, 4], rotation: [-180, 180], translation: [-200, 200] }

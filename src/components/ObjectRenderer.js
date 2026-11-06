@@ -11,7 +11,7 @@ import { platform } from "../lib/platform.js"
 import { quietly } from "../lib/history.js"
 import { DEFAULT_CAP_HEIGHT, DEFAULT_HEIGHT, rowStart } from "../lib/rows.js"
 import { editorTitle, keepTexture, loadedFont, words } from "../lib/scene.js"
-import { activeOverlays, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, setTexture, textureEntry } from "../lib/settings.js"
+import { activeOverlays, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, effectiveScale, setTexture, textureEntry } from "../lib/settings.js"
 
 const BASE = ["font", "source", "texture", "textureVariant", "tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "stops", "smooth", "gradientAngle", "arcGradient", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "tileablePerCharacter", "disableFontOverlay", "edgeBrightness"]
 
@@ -107,7 +107,10 @@ export default {
 
     const marked = computed(() => hasMarks(font.value))
     const stretching = computed(() => object.scaleMarked && marked.value)
-    const meshScale = computed(() => [object.scaleX, stretching.value ? 1 : object.scaleY, object.scaleZ])
+    const meshScale = computed(() => {
+      const [x, y, z] = effectiveScale(object)
+      return [x, stretching.value ? 1 : y, z]
+    })
     const wordScale = computed(() => [object.wordScaleX, object.wordScaleMarked && marked.value ? 1 : object.wordScaleY, object.wordScaleZ])
     const totalScale = computed(() => meshScale.value.map((value, axis) => value * wordScale.value[axis]))
     const outlineGrow = computed(() => meshScale.value.map((value, axis) => (object.scaleOutline ? 1 : value) * (object.wordScaleOutline ? 1 : wordScale.value[axis])))
@@ -137,7 +140,7 @@ export default {
       arcMove: object.arcMove / 100,
       arcMarked: object.arcMarked,
       twist: object.twistRibbon || object.twistDoor ? { ribbon: { amount: object.twistRibbon, anchor: object.twistRibbonAnchor, same: object.twistRibbonMirror }, door: { amount: object.twistDoor, anchor: object.twistDoorAnchor, same: object.twistDoorSame } } : null,
-      stretch: stretching.value ? object.scaleY : 1,
+      stretch: stretching.value ? effectiveScale(object)[1] : 1,
       terminators: object.terminators,
       internalFaces: object.internalFaces,
       internalFade: object.fadeInternal ? object.internalFade / 100 : null,
@@ -170,7 +173,7 @@ export default {
       const arc = heights[object.id]?.arc ?? { top: 0, bottom: 0 }
       const scale = meshScale.value
       const word = { scale: wordScale.value, userScale: [object.wordScaleX, object.wordScaleY, object.wordScaleZ], rotate: [object.wordRotationX, object.wordRotationY, object.wordRotationZ], translate: [object.wordTranslateX, object.wordTranslateY, object.wordTranslateZ] }
-      const user = { rotate: [object.rotationX, object.rotationY, object.rotationZ], translate: [object.translateX, object.translateY, object.translateZ], outlineGrow: outlineGrow.value, userScale: [object.scaleX, object.scaleY, object.scaleZ], word }
+      const user = { rotate: [object.rotationX, object.rotationY, object.rotationZ], translate: [object.translateX, object.translateY, object.translateZ], matchOffset: object.matchOffset, outlineGrow: outlineGrow.value, userScale: [object.scaleX, object.scaleY, object.scaleZ], word }
       if (object.type === "bottom") return { ...user, scale, type: [0.78042, 1.67665, 0.77035], offset: [0, -(0.77035 * (height * 2 + 18.9862) + start + 1.67665 * arc.top), 7.6764 - 0.77035 * depth.value / 2], rotation: 90, anchor: { y: "top", z: "front" } }
       if (object.type === "small") return { ...user, scale, type: [0.39732, 0.43021, 0.33472], offset: [0, -(start + 3.6943 + (font.value?.capHeight ?? DEFAULT_CAP_HEIGHT) * 0.43021 + 0.43021 * arc.top), 3.0762 - 0.33472 * depth.value / 2], rotation: -0.4, anchor: { y: "top", z: "middle" } }
       return { ...user, scale, type: [1, 1, 1], offset: [0, start + arc.bottom, 11 - depth.value / 2], rotation: 0, anchor: { y: "bottom", z: "back" } }

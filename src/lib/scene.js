@@ -101,6 +101,28 @@ export function setScale(object, key, value) {
   if (key === y) object[x] = round(value / object[link], 4)
 }
 
+export function chooseMatch(object, id) {
+  for (const word of words(object)) {
+    word.matchWidth = id
+    if (id === null) continue
+    word.translateX = 0
+    setScale(word, "scaleX", 1)
+    if (!word.matchScaleY) continue
+    word.scaleY = 1
+    if (word.linkScale !== null) word.linkScale = 1
+  }
+}
+
+function bakeWord(word) {
+  const scaleX = round(word.scaleX * word.matchScale, 4)
+  const scaleY = word.matchScaleY ? round(word.scaleY * word.matchScale, 4) : word.scaleY
+  Object.assign(word, { scaleX, scaleY, linkScale: word.linkScale === null ? null : scaleY / scaleX, translateX: round(word.translateX + word.matchOffset, 2), matchWidth: null, matchBottom: false, matchScaleY: false, matchScale: 1, matchOffset: 0 })
+}
+
+export function bakeMatch(object) {
+  words(object).forEach(bakeWord)
+}
+
 export function lineText(object) {
   return words(object).map((word, index) => (index && word.spaceBefore ? " " : "") + word.text.trim()).join("").trim()
 }
@@ -242,7 +264,9 @@ function remove(list) {
   const remaining = siblings.find(object => !ids.has(object.id))
   scene.objects = scene.objects.filter(object => !ids.has(object.id))
   for (const other of scene.objects) {
-    if (ids.has(other.matchWidth)) other.matchWidth = remaining?.id ?? null
+    if (!ids.has(other.matchWidth)) continue
+    if (remaining) other.matchWidth = remaining.id
+    else bakeWord(other)
   }
   for (const id of ids) delete runtime[id]
   if (first.group !== null) {

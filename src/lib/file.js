@@ -15,6 +15,7 @@ const UNUSED = [
   [object => object.tileableSource === "minecraft", ["tileable", "tileableVariant"]],
   [object => object.textureSource !== "gradient", ["stops", "smooth", "gradientAngle"]],
   [object => object.textureSource === "premade", ["disableFontOverlay"]],
+  [object => object.matchWidth === null, ["matchBottom"]],
   [object => object.overlayMode !== "custom", ["overlays"]],
   [object => object.edgeOverlayMode !== "custom", ["edgeOverlays"]],
   [object => !object.fade, ["outerFade"]],
@@ -40,8 +41,8 @@ const UNUSED = [
   [object => object.twistRibbonAnchor !== "centre", ["twistRibbonMirror"]],
   [object => !object.twistDoor, ["twistDoorAnchor", "twistDoorSame"]],
   [object => object.twistDoorAnchor !== "centre", ["twistDoorSame"]],
-  [object => matchSolved(object), ["scaleX"]],
-  [object => matchSolved(object) && object.linkScale !== null, ["scaleY"]]
+  [object => matchSolved(object), ["matchScale", "matchOffset"]],
+  [object => object.matchWidth === null, ["matchScaleY"]]
 ]
 
 const LAYERS = ["overlays", "edgeOverlays"]
@@ -152,9 +153,18 @@ function restartTilesPerCharacter(entry) {
   return entry.textureSource === "tileable" ? { tileablePerCharacter: true, ...entry } : entry
 }
 
+function separateMatchScale(line) {
+  if (line.matchWidth === undefined || line.matchWidth === null) return line
+  const { scaleX, linkScale, ...upgraded } = line
+  if (scaleX !== undefined) upgraded.matchScale = scaleX
+  if (linkScale === undefined || linkScale === null) return upgraded
+  return { ...upgraded, matchScaleY: true, scaleY: linkScale }
+}
+
 function upgradeLine(line, version) {
-  if (version >= 2) return line
-  const upgraded = restartTilesPerCharacter(line)
+  if (version >= 3) return line
+  if (version >= 2) return separateMatchScale(line)
+  const upgraded = separateMatchScale(restartTilesPerCharacter(line))
   return Array.isArray(line.words) ? { ...upgraded, words: line.words.map(restartTilesPerCharacter) } : upgraded
 }
 

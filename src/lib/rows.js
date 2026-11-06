@@ -1,4 +1,5 @@
 import { editorTitle } from "./scene.js"
+import { effectiveScale } from "./settings.js"
 
 const STACK = {
   top: { scale: 1, pad: true, spacing: 1 },
@@ -13,7 +14,7 @@ export const heights = editorTitle.heights
 
 function extent(object, title) {
   const stack = STACK[object.type]
-  const { height = DEFAULT_HEIGHT, capHeight = DEFAULT_CAP_HEIGHT, arc = { top: 0, bottom: 0 }, scaleY = object.scaleY } = title.heights[object.id] ?? {}
+  const { height = DEFAULT_HEIGHT, capHeight = DEFAULT_CAP_HEIGHT, arc = { top: 0, bottom: 0 }, scaleY = effectiveScale(object)[1] } = title.heights[object.id] ?? {}
   const pad = stack.pad ? 2 * object.border * (object.scaleOutline ? scaleY : 1) : 0
   return stack.scale * ((capHeight + arc.top + arc.bottom) * scaleY + height - capHeight + pad)
 }
