@@ -322,6 +322,11 @@ describe("lineLayout with a space glyph", () => {
   const tight = glyphOf("a", { width: 4, height: 2, advance: 6, originX: 0 })
   const font = { glyphs: { a: tight, " ": space }, kerning: {} }
 
+  test("keeps the spaces around the text", () => {
+    const placed = layout(font, " a ", {})
+    assert.deepEqual(placed.filter(item => !item.glyph.fill).map(item => item.glyph.char), [" ", "a", " "])
+  })
+
   test("fills the gap between glyphs from the space's centre column", () => {
     const placed = layout(font, "aa", {})
     assert.deepEqual(charsOf(placed), ["a", " ", "a"])

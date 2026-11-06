@@ -34,7 +34,7 @@ export function layout(font, text, options) {
 export function lineLayout(font, words, options) {
   const spacing = options.spacing ?? 0
   const space = font.spaceWidth ?? SPACE
-  const parts = words.map((item, word) => ({ space: item.space, chars: Array.from(normalise(item.text.trim()), char => ({ char, word })) })).filter(part => part.chars.length)
+  const parts = words.map((item, word) => ({ space: item.space, chars: Array.from(normalise(font.glyphs[" "] ? item.text : item.text.trim()), char => ({ char, word })) })).filter(part => part.chars.length)
   let chars = parts.flatMap((part, index) => index && part.space ? [{ char: " ", word: parts[index - 1].chars[0].word }].concat(part.chars) : part.chars)
   if (chars.length && (options.terminators || font.forcedTerminators) && font.glyphs["┫"] && font.glyphs["┣"]) {
     const gap = font.terminatorSpace ? [{ char: " " }] : []
