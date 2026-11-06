@@ -3,6 +3,8 @@ import { LIMITS } from "../lib/limits.js"
 import { decodeTitle, unknownSetting } from "../lib/linkformat.js"
 import { capitalWords } from "../lib/names.js"
 import { FILE_VERSION, typeDefaults } from "../lib/settings.js"
+import { signedInUser } from "./accounts.js"
+import { Refusal, escaped, guarded, hashed, jsonBody, reply, textField } from "./http.js"
 
 export { LIMITS }
 
@@ -13,36 +15,9 @@ const DAY = 86400000
 const WEEK_DAYS = 7
 const SITE_NAME = "Minecraft Title Generator"
 const FIRST_PAGES = ["week", "popular", "top", "new", "needs"].map(sort => `?sort=${sort}&offset=0`)
-const COLUMNS = "id, code, name, text, downloads, votes, rating, created_at AS createdAt"
+const COLUMNS = "id, code, name, text, downloads, votes, rating, created_at AS createdAt, author, author_provider AS authorProvider"
 
 const rude = new RegExpMatcher({ ...englishDataset.build(), ...englishRecommendedTransformers })
-
-class Refusal extends Error {
-  constructor(status, message) {
-    super(message)
-    this.status = status
-  }
-}
-
-function reply(status, body) {
-  return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } })
-}
-
-function guarded(handler) {
-  return async context => {
-    try {
-      return await handler(context)
-    } catch (err) {
-      if (err instanceof Refusal) return reply(err.status, { error: err.message })
-      throw err
-    }
-  }
-}
-
-async function hashed(text) {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text))
-  return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("")
-}
 
 function canonical(value) {
   if (Array.isArray(value)) return value.map(canonical)
@@ -105,24 +80,6 @@ function checkWords(label, text) {
   if (rude.hasMatch(text)) throw new Refusal(400, `The ${label} has a word in it that isn't allowed.`)
 }
 
-function textField(body, key, label, limit) {
-  const value = body[key] ?? ""
-  if (typeof value !== "string") throw new Refusal(400, `The ${label} has to be text.`)
-  const trimmed = value.trim()
-  if (Array.from(trimmed).length > limit) throw new Refusal(400, `The ${label} can be up to ${limit} characters.`)
-  return trimmed
-}
-
-async function jsonBody(request) {
-  const text = await request.text()
-  if (text.length > LIMITS.body) throw new Refusal(413, "This request is too big.")
-  try {
-    const body = JSON.parse(text)
-    if (body && typeof body === "object" && !Array.isArray(body)) return body
-  } catch {}
-  throw new Refusal(400, "This request isn't valid.")
-}
-
 function presetId(params) {
   const id = Number(params.id)
   if (!Number.isSafeInteger(id) || id < 1) throw new Refusal(404, "This preset doesn't exist.")
@@ -130,7 +87,7 @@ function presetId(params) {
 }
 
 async function requirePreset(env, id) {
-  const found = await env.DB.prepare("SELECT ip_hash FROM presets WHERE id = ?").bind(id).first()
+  const found = await env.DB.prepare("SELECT ip_hash, author_id FROM presets WHERE id = ?").bind(id).first()
   if (!found) throw new Refusal(404, "This preset doesn't exist.")
   return found
 }
@@ -148,8 +105,22 @@ function nextDay() {
   return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1)
 }
 
-async function usedToday(env, ip) {
-  return (await env.DB.prepare("SELECT count FROM preset_submissions WHERE ip_hash = ? AND day = ?").bind(ip, today()).first())?.count ?? 0
+async function submissionCounter(env, user, ip) {
+  return user ? { table: "account_submissions", column: "account_hash", owner: await hashed(`${env.IP_SALT}:${user.id}`) } : { table: "preset_submissions", column: "ip_hash", owner: ip }
+}
+
+async function usedToday(env, user, ip) {
+  const { table, column, owner } = await submissionCounter(env, user, ip)
+  return (await env.DB.prepare(`SELECT count FROM ${table} WHERE ${column} = ? AND day = ?`).bind(owner, today()).first())?.count ?? 0
+}
+
+async function countSubmission(env, user, ip) {
+  const { table, column, owner } = await submissionCounter(env, user, ip)
+  return env.DB.prepare(`INSERT INTO ${table} (${column}, day, count) VALUES (?, ?, 1) ON CONFLICT (${column}, day) DO UPDATE SET count = count + 1`).bind(owner, today())
+}
+
+function forgetOldAccountCounts(env) {
+  return env.DB.prepare("DELETE FROM account_submissions WHERE day < ?").bind(today())
 }
 
 function likePattern(term) {
@@ -178,7 +149,9 @@ async function randomPresets({ env }, term) {
   const { highest } = await env.DB.prepare("SELECT COALESCE(MAX(id), 0) AS highest FROM presets").first()
   if (!highest) return []
   const ids = randomIds(highest, LIMITS.page)
-  return shuffled((await env.DB.prepare(`${select} WHERE id IN (${ids.join(", ")})`).all()).results)
+  const { results } = await env.DB.prepare(`${select} WHERE id IN (${ids.join(", ")})`).all()
+  if (results.length) return shuffled(results)
+  return (await env.DB.prepare(`${select} ORDER BY RANDOM() LIMIT ${LIMITS.page}`).all()).results
 }
 
 async function cachedAtEdge(context, build) {
@@ -236,10 +209,6 @@ export const getPreset = guarded(async context => {
   })
 })
 
-function escaped(text) {
-  return text.replace(/[&<>"]/g, character => `&#${character.charCodeAt(0)};`)
-}
-
 export function presetPageDetails(name, id) {
   if (name === null) return { title: `Presets | ${SITE_NAME}`, description: "Browse Minecraft style titles shared by other people, then open one in the generator and change it however you like.", path: "/app/presets" }
   return { title: `${name} | ${SITE_NAME}`, description: `Open ${name} in the ${SITE_NAME}, then change it and render it as an image.`, path: `/app/presets/${id}` }
@@ -264,6 +233,9 @@ export async function presetPage({ env, params, request }) {
 export const submitPreset = guarded(async context => {
   const { request, env } = context
   const body = await jsonBody(request)
+  const user = await signedInUser(context)
+  if (body.account && !user) throw new Refusal(401, "You've been signed out. Sign in again to share this on your account.")
+  if (user) checkWords("username", user.name)
   const facts = checkTitle(body.code)
   const name = textField(body, "name", "name", LIMITS.name) || capitalWords(facts.text)
   checkWords("title", facts.all)
@@ -272,20 +244,59 @@ export const submitPreset = guarded(async context => {
   const existing = await env.DB.prepare("SELECT id FROM presets WHERE fingerprint = ?").bind(fingerprint).first()
   if (existing) return reply(409, { error: "This title has already been shared.", id: existing.id })
   const ip = await hashedIp(context)
-  const day = today()
-  if (await usedToday(env, ip) >= LIMITS.perDay) throw new Refusal(429, `You can share up to ${LIMITS.perDay} titles a day. Try again tomorrow.`)
+  if (await usedToday(env, user, ip) >= LIMITS.perDay) throw new Refusal(429, `You can share up to ${LIMITS.perDay} titles a day. Try again tomorrow.`)
+  // sqlite reuses the rowid of a deleted newest row, which would repoint old links and browsers' vote records
   const [inserted] = await env.DB.batch([
-    env.DB.prepare(`INSERT INTO presets (code, fingerprint, name, text, ip_hash, created_at) VALUES (?, ?, ?, ?, ?, ?) RETURNING ${COLUMNS}`).bind(body.code, fingerprint, name, facts.text, ip, Date.now()),
-    env.DB.prepare("INSERT INTO preset_submissions (ip_hash, day, count) VALUES (?, ?, 1) ON CONFLICT (ip_hash, day) DO UPDATE SET count = count + 1").bind(ip, day)
+    env.DB.prepare(`INSERT INTO presets (id, code, fingerprint, name, text, ip_hash, author, author_provider, author_id, created_at) VALUES (MAX(COALESCE((SELECT MAX(id) FROM presets), 0), COALESCE((SELECT MAX(id) FROM deleted_presets), 0)) + 1, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING ${COLUMNS}`).bind(body.code, fingerprint, name, facts.text, ip, user?.name ?? null, user?.provider ?? null, user?.id ?? null, Date.now()),
+    await countSubmission(env, user, ip),
+    forgetOldAccountCounts(env)
   ])
-  for (const page of FIRST_PAGES) await globalThis.caches?.default.delete(new Request(new URL(page, request.url)))
-  return reply(201, { preset: rated(inserted.results[0]) })
+  await forgetCached(request)
+  return reply(201, { preset: rated(inserted.results[0]), onAccount: !!user })
+})
+
+export async function forgetCached(request, ...ids) {
+  const paths = FIRST_PAGES.map(page => `/api/presets${page}`).concat(ids.map(id => `/api/presets/${id}`))
+  for (const path of paths) await globalThis.caches?.default.delete(new Request(new URL(path, request.url)))
+}
+
+async function ownedPreset(context) {
+  const id = presetId(context.params)
+  const user = await signedInUser(context)
+  if (!user) throw new Refusal(401, "Sign in to change this preset.")
+  const { author_id: owner } = await requirePreset(context.env, id)
+  if (owner !== user.id) throw new Refusal(403, "This preset isn't on your account.")
+  return id
+}
+
+export const renamePreset = guarded(async context => {
+  const { request, env } = context
+  const id = await ownedPreset(context)
+  const name = textField(await jsonBody(request), "name", "name", LIMITS.name)
+  if (!name) throw new Refusal(400, "The name can't be empty.")
+  checkWords("name", name)
+  const preset = await env.DB.prepare(`UPDATE presets SET name = ? WHERE id = ? RETURNING ${COLUMNS}`).bind(name, id).first()
+  await forgetCached(request, id)
+  return reply(200, { preset: rated(preset) })
+})
+
+export const deletePreset = guarded(async context => {
+  const { request, env } = context
+  const id = await ownedPreset(context)
+  await env.DB.batch([
+    env.DB.prepare("INSERT INTO deleted_presets (id) VALUES (?)").bind(id),
+    env.DB.prepare("DELETE FROM presets WHERE id = ?").bind(id),
+    forgetOldAccountCounts(env)
+  ])
+  await forgetCached(request, id)
+  return reply(200, { deleted: true })
 })
 
 export const submissionUsage = guarded(async context => {
+  const user = await signedInUser(context)
   const ip = await hashedIp(context)
-  const { results } = await context.env.DB.prepare("SELECT id FROM presets WHERE ip_hash = ?").bind(ip).all()
-  return reply(200, { used: await usedToday(context.env, ip), limit: LIMITS.perDay, resetsAt: nextDay(), shared: results.map(preset => preset.id) })
+  const { results } = await context.env.DB.prepare("SELECT id, author_id FROM presets WHERE ip_hash = ? OR author_id = ?").bind(ip, user?.id ?? null).all()
+  return reply(200, { used: await usedToday(context.env, user, ip), limit: LIMITS.perDay, resetsAt: nextDay(), shared: results.map(preset => preset.id), owned: results.filter(preset => user && preset.author_id === user.id).map(preset => preset.id) })
 })
 
 export const votePreset = guarded(async context => {
@@ -293,9 +304,10 @@ export const votePreset = guarded(async context => {
   const id = presetId(params)
   const { value } = await jsonBody(request)
   if (value !== 1 && value !== -1) throw new Refusal(400, "That isn't a valid vote.")
-  const { ip_hash: sharedBy } = await requirePreset(env, id)
+  const { ip_hash: sharedBy, author_id: owner } = await requirePreset(env, id)
   const ip = await hashedIp(context)
-  if (sharedBy === ip) throw new Refusal(403, "You can't vote on a preset you shared.")
+  const user = await signedInUser(context)
+  if (sharedBy === ip || (user && owner === user.id)) throw new Refusal(403, "You can't vote on a preset you shared.")
   const previous = (await env.DB.prepare("SELECT value FROM preset_votes WHERE preset_id = ? AND ip_hash = ?").bind(id, ip).first())?.value ?? 0
   const ups = (value === 1) - (previous === 1)
   const votes = previous ? 0 : 1

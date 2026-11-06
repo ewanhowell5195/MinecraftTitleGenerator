@@ -4,6 +4,7 @@
   import { NAME_LIMIT, confirmSharing, namingShared, savePreset, sharePreset } from "../lib/presets.js"
   import { openPresetsPage, showPreset } from "../lib/presetsPage.js"
   import RenderDialog from "./RenderDialog.vue"
+  import ShareAccount from "./ShareAccount.vue"
   import SubmissionUsage from "./SubmissionUsage.vue"
 
   const props = defineProps({
@@ -52,6 +53,7 @@
         <input ref="field" type="text" v-model="name" :maxlength="NAME_LIMIT" :placeholder="suggested" spellcheck="false">
       </label>
       <p v-if="!namingShared" class="hint">Share your title so other people can find it in the community presets and use it for themselves.</p>
+      <ShareAccount v-if="!namingShared" />
       <p v-if="error" class="error">{{ error }}</p>
       <div class="footer">
         <SubmissionUsage v-if="!namingShared" class="usage" />

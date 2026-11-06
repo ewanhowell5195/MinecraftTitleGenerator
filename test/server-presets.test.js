@@ -3,7 +3,9 @@ import assert from "node:assert/strict"
 import fs from "node:fs"
 import { DatabaseSync } from "node:sqlite"
 
-const { LIMITS, checkTitle, countDownload, getPreset, listPresets, presetPageDetails, submissionUsage, submitPreset, titleFacts, votePreset } = await import("../src/server/presets.js")
+const { LIMITS, checkTitle, countDownload, deletePreset, getPreset, listPresets, presetPageDetails, renamePreset, submissionUsage, submitPreset, titleFacts, votePreset } = await import("../src/server/presets.js")
+const { accountDetails, finishSignIn, receiveSignIn, signOut, startSignIn } = await import("../src/server/accounts.js")
+const { addSaved, changeSaved, deleteAccountData, listSaved, removeSaved } = await import("../src/server/saved.js")
 const { encodeTitle } = await import("../src/lib/linkformat.js")
 const { FILE_VERSION } = await import("../src/lib/settings.js")
 
@@ -86,8 +88,10 @@ async function share(text, extra = {}, ip = `${Math.random()}`) {
 beforeEach(() => {
   const sqlite = new DatabaseSync(":memory:")
   sqlite.exec(fs.readFileSync("migrations/0001_community_presets.sql", "utf8"))
+  sqlite.exec(fs.readFileSync("migrations/0002_accounts.sql", "utf8"))
+  sqlite.exec(fs.readFileSync("migrations/0003_saved_presets.sql", "utf8"))
   db = sqlite
-  env = { DB: d1(sqlite), IP_SALT: "salt" }
+  env = { DB: d1(sqlite), IP_SALT: "salt", SESSION_SECRET: "session-secret", DISCORD_CLIENT_ID: "discord-id", DISCORD_CLIENT_SECRET: "discord-secret", GITHUB_CLIENT_ID: "github-id", GITHUB_CLIENT_SECRET: "github-secret" }
 })
 
 describe("titleFacts", () => {
@@ -830,5 +834,621 @@ describe("sharing and the edge cache", () => {
     } finally {
       delete globalThis.caches
     }
+  })
+})
+
+describe("accounts", () => {
+  const realFetch = globalThis.fetch
+  const realNow = Date.now.bind(Date)
+  let calls
+
+  function withCookie(path, cookie, options = {}) {
+    const made = context(path, options)
+    made.request = new Request(made.request, { headers: { "CF-Connecting-IP": options.ip ?? "1.1.1.1", Cookie: cookie } })
+    return made
+  }
+
+  function stubProvider(profile, token = { access_token: "token" }) {
+    calls = []
+    globalThis.fetch = async (url, options) => {
+      calls.push({ url, options })
+      const body = options?.method === "POST" ? token : profile
+      return new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json" } })
+    }
+  }
+
+  function cookiePair(response, name) {
+    return response.headers.getSetCookie().find(line => line.startsWith(`${name}=`)).split(";")[0]
+  }
+
+  async function begin(provider = "discord", origin = "https://mctitlegenerator.com") {
+    const response = await startSignIn(context(`/api/account/login/${provider}?return=${encodeURIComponent(origin)}`, { params: { provider } }))
+    return { response, state: new URL(response.headers.get("Location")).searchParams.get("state"), cookie: cookiePair(response, "signin_state") }
+  }
+
+  function atProvider(provider, query) {
+    return receiveSignIn(context(`/api/account/login/${provider}/callback?${new URLSearchParams(query)}`, { params: { provider } }))
+  }
+
+  function finishing(location, cookie, provider = "discord") {
+    const { pathname, search } = new URL(location)
+    return finishSignIn(withCookie(`${pathname}${search}`, cookie, { params: { provider } }))
+  }
+
+  async function signIn(provider = "discord", profile = { id: "1234", username: "someone", global_name: "Fake Name" }) {
+    stubProvider(profile)
+    const { state, cookie } = await begin(provider)
+    const back = await atProvider(provider, { code: "abc", state })
+    const response = await finishing(back.headers.get("Location"), cookie, provider)
+    assert.equal(response.status, 200)
+    return cookiePair(response, "session")
+  }
+
+  async function shareAs(cookie, text, extra = {}, ip = "1.1.1.1") {
+    const response = await submitPreset(withCookie("/api/presets", cookie, { method: "POST", body: { code: code([{ text }]), ...extra }, ip }))
+    return { status: response.status, ...await response.json() }
+  }
+
+  async function rename(cookie, id, name) {
+    const made = withCookie(`/api/presets/${id}`, cookie, { method: "PATCH", body: { name }, params: { id: String(id) } })
+    const response = await renamePreset(made)
+    return { status: response.status, ...await response.json() }
+  }
+
+  async function remove(cookie, id) {
+    return (await deletePreset(withCookie(`/api/presets/${id}`, cookie, { method: "DELETE", params: { id: String(id) } }))).status
+  }
+
+  afterEach(() => {
+    globalThis.fetch = realFetch
+  })
+
+  test("starting a sign-in redirects with the one registered callback and keeps a secure nonce cookie", async () => {
+    const { response } = await begin()
+    assert.equal(response.status, 302)
+    const target = new URL(response.headers.get("Location"))
+    assert.equal(target.origin + target.pathname, "https://discord.com/oauth2/authorize")
+    assert.equal(target.searchParams.get("client_id"), "discord-id")
+    assert.equal(target.searchParams.get("scope"), "identify")
+    assert.equal(target.searchParams.get("redirect_uri"), "https://mctitlegenerator.com/api/account/login/discord/callback")
+    assert.match(response.headers.get("Set-Cookie"), /^signin_state=[0-9a-f]{64};.*HttpOnly; Secure; SameSite=Lax/)
+  })
+
+  for (const origin of ["https://mctitlegenerator.com", "https://minecrafttitlegenerator.pages.dev", "https://abc123.minecrafttitlegenerator.pages.dev", "https://dev.ewanhowell.com", "http://localhost:9123", "http://127.0.0.1:9123"]) {
+    test(`signs in from ${origin} and hands back there`, async () => {
+      stubProvider({ id: "1", username: "a" })
+      const { state, cookie } = await begin("discord", origin)
+      const back = await atProvider("discord", { code: "abc", state })
+      assert.equal(back.status, 302)
+      assert.ok(back.headers.get("Location").startsWith(`${origin}/api/account/login/discord/finish?handoff=`))
+      assert.equal(calls[0].options.body.get("redirect_uri"), "https://mctitlegenerator.com/api/account/login/discord/callback")
+      const finished = await finishing(back.headers.get("Location"), cookie)
+      assert.equal((await who(cookiePair(finished, "session"))).name, "a")
+    })
+  }
+
+  for (const origin of ["https://evil.test", "https://mctitlegenerator.com.evil.test", "https://evilminecrafttitlegenerator.pages.dev", "http://minecrafttitlegenerator.pages.dev", "http://dev.ewanhowell.com", "javascript:alert(1)"]) {
+    test(`refuses to sign in for ${origin}`, async () => {
+      const response = await startSignIn(context(`/api/account/login/discord?return=${encodeURIComponent(origin)}`, { params: { provider: "discord" } }))
+      assert.equal(response.status, 400)
+    })
+  }
+
+  test("with no return address it uses the address it was asked on", async () => {
+    stubProvider({ id: "1", username: "a" })
+    assert.equal((await startSignIn(context("/api/account/login/discord", { params: { provider: "discord" } }))).status, 400)
+    const made = context("/api/account/login/discord", { params: { provider: "discord" } })
+    made.request = new Request("https://mctitlegenerator.com/api/account/login/discord")
+    assert.equal((await startSignIn(made)).status, 302)
+  })
+
+  test("a handoff needs the nonce cookie from the browser that started", async () => {
+    stubProvider({ id: "1", username: "a" })
+    const { state } = await begin()
+    const back = await atProvider("discord", { code: "abc", state })
+    const other = await begin()
+    assert.equal((await finishing(back.headers.get("Location"), other.cookie)).status, 400)
+    assert.equal((await finishing(back.headers.get("Location"), "unrelated=1")).status, 400)
+  })
+
+  test("a handoff expires quickly", async () => {
+    stubProvider({ id: "1", username: "a" })
+    const { state, cookie } = await begin()
+    const back = await atProvider("discord", { code: "abc", state })
+    const later = mock.method(Date, "now", () => realNow() + 61000)
+    try {
+      assert.equal((await finishing(back.headers.get("Location"), cookie)).status, 400)
+    } finally {
+      later.mock.restore()
+    }
+  })
+
+  test("a signed value only works for its own purpose", async () => {
+    stubProvider({ id: "1", username: "a" })
+    const { state, cookie } = await begin()
+    const back = await atProvider("discord", { code: "abc", state })
+    const handoff = new URL(back.headers.get("Location")).searchParams.get("handoff")
+    assert.equal(await who(`session=${state}`), null)
+    assert.equal(await who(`session=${handoff}`), null)
+    assert.equal((await atProvider("discord", { code: "abc", state: handoff })).status, 400)
+    assert.equal((await finishing(`https://example.test/api/account/login/discord/finish?handoff=${encodeURIComponent(state)}`, cookie)).status, 400)
+    const session = await signIn()
+    assert.equal((await atProvider("discord", { code: "abc", state: session.split("=")[1] })).status, 400)
+  })
+
+  test("a changed state is refused", async () => {
+    const { state } = await begin("discord", "http://localhost:9123")
+    const changed = state.replace("localhost%3A9123", "evil.test")
+    assert.notEqual(changed, state)
+    assert.equal((await atProvider("discord", { code: "abc", state: changed })).status, 400)
+  })
+
+  test("an unknown provider is refused", async () => {
+    assert.equal((await startSignIn(context("/api/account/login/nope", { params: { provider: "nope" } }))).status, 404)
+  })
+
+  test("a provider with no secret fails with the setting's name", async () => {
+    delete env.GITHUB_CLIENT_SECRET
+    await assert.rejects(startSignIn(context("/api/account/login/github", { params: { provider: "github" } })), /GITHUB_CLIENT_SECRET is not set/)
+  })
+
+  test("a callback with a made up state is refused and calls nothing", async () => {
+    stubProvider({})
+    const response = await atProvider("discord", { code: "abc", state: "other" })
+    assert.equal(response.status, 400)
+    assert.equal(calls.length, 0)
+  })
+
+  test("cancelling at the provider goes back to where it started and creates nothing", async () => {
+    const { state, cookie } = await begin("discord", "https://dev.ewanhowell.com")
+    const back = await atProvider("discord", { error: "access_denied", state })
+    assert.equal(back.headers.get("Location"), "https://dev.ewanhowell.com/api/account/login/discord/finish?cancelled=1")
+    const response = await finishing(back.headers.get("Location"), cookie)
+    assert.equal(response.status, 200)
+    assert.equal(response.headers.getSetCookie().length, 0)
+  })
+
+  test("a provider's error is shown, escaped", async () => {
+    stubProvider({}, { error: "bad_verification_code", error_description: "<bad> code" })
+    const { state } = await begin("github")
+    const response = await atProvider("github", { code: "abc", state })
+    assert.equal(response.status, 502)
+    assert.match(await response.text(), /GitHub couldn't sign you in: &#60;bad&#62; code/)
+  })
+
+  async function who(cookie) {
+    return (await (await accountDetails(withCookie("/api/account", cookie))).json()).user
+  }
+
+  function rowsEverywhere() {
+    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all().map(table => table.name)
+    return Object.fromEntries(tables.map(table => [table, db.prepare(`SELECT COUNT(*) AS total FROM ${table}`).get().total]).filter(([, total]) => total))
+  }
+
+  test("sends the secret and code to the provider", async () => {
+    await signIn()
+    const form = calls[0].options.body
+    assert.equal(calls[0].url, "https://discord.com/api/oauth2/token")
+    assert.equal(form.get("client_secret"), "discord-secret")
+    assert.equal(form.get("code"), "abc")
+    assert.equal(calls[1].options.headers.Authorization, "Bearer token")
+  })
+
+  test("the finished sign-in tells other tabs, then closes or goes back", async () => {
+    stubProvider({ id: "1", username: "a" })
+    const { state, cookie } = await begin()
+    const back = await atProvider("discord", { code: "abc", state })
+    const response = await finishing(back.headers.get("Location"), cookie)
+    assert.deepEqual(response.headers.getSetCookie().map(line => line.split("=")[0]), ["session", "signin_state"])
+    const html = await response.text()
+    assert.match(html, /new BroadcastChannel\("minecraft-title-account"\)\.postMessage\("changed"\)/)
+    assert.match(html, /sessionStorage\.getItem\("minecraft-title-sign-in-return"\)/)
+    assert.match(html, /location\.replace\(back\);else window\.close\(\)/)
+  })
+
+  test("signing in stores nothing on the server", async () => {
+    await signIn()
+    assert.deepEqual(rowsEverywhere(), {})
+  })
+
+  test("github uses the numeric id and the login, not the changeable display name", async () => {
+    const cookie = await signIn("github", { id: 42, login: "octo", name: "Fake Name" })
+    assert.deepEqual(await who(cookie), { id: "github:42", name: "octo", provider: "github" })
+  })
+
+  test("discord uses the username, not the display name", async () => {
+    assert.equal((await who(await signIn())).name, "someone")
+  })
+
+  test("the same id on another provider is another account", async () => {
+    const discord = await signIn("discord", { id: "1", username: "a" })
+    const github = await signIn("github", { id: 1, login: "b" })
+    const { preset } = await shareAs(discord, "theirs")
+    assert.equal((await rename(github, preset.id, "stolen")).status, 403)
+  })
+
+  test("the account route says who is signed in and which sign-ins are set up", async () => {
+    delete env.GITHUB_CLIENT_ID
+    const cookie = await signIn()
+    const details = await (await accountDetails(withCookie("/api/account", cookie))).json()
+    assert.equal(details.user.name, "someone")
+    assert.deepEqual(details.providers, ["discord"])
+    assert.deepEqual(await (await accountDetails(context("/api/account"))).json(), { user: null, providers: ["discord"] })
+  })
+
+  test("signing out clears the session cookie", async () => {
+    const cookie = await signIn()
+    const response = await signOut(withCookie("/api/account/logout", cookie, { method: "POST" }))
+    assert.match(response.headers.get("Set-Cookie"), /^session=; .*Max-Age=0/)
+  })
+
+  test("an expired session counts as signed out", async () => {
+    const cookie = await signIn()
+    const later = mock.method(Date, "now", () => Date.parse("2999-01-01"))
+    try {
+      assert.equal(await who(cookie), null)
+    } finally {
+      later.mock.restore()
+    }
+  })
+
+  test("a changed session cookie counts as signed out", async () => {
+    const cookie = await signIn()
+    assert.equal(await who(cookie.replace("someone", "somebody")), null)
+    assert.equal(await who(`${cookie.slice(0, -2)}00`), null)
+    assert.equal(await who("session=nonsense"), null)
+  })
+
+  test("a session signed with another secret counts as signed out", async () => {
+    const cookie = await signIn()
+    env.SESSION_SECRET = "other"
+    assert.equal(await who(cookie), null)
+  })
+
+  test("a session with no secret set fails with the setting's name", async () => {
+    const cookie = await signIn()
+    delete env.SESSION_SECRET
+    await assert.rejects(accountDetails(withCookie("/api/account", cookie)), /SESSION_SECRET is not set/)
+  })
+
+  test("a signed in share goes on the account and shows the username, not the id", async () => {
+    const cookie = await signIn()
+    const { status, preset, onAccount } = await shareAs(cookie, "mine")
+    assert.equal(status, 201)
+    assert.equal(onAccount, true)
+    assert.equal(preset.author_id, undefined)
+    assert.equal(preset.author, "someone")
+    assert.equal(preset.authorProvider, "discord")
+    assert.equal(db.prepare("SELECT author_id FROM presets").get().author_id, "discord:1234")
+  })
+
+  test("an anonymous share has no account or author", async () => {
+    const { onAccount, preset } = await post({ code: code([{ text: "anon" }]) })
+    assert.equal(onAccount, false)
+    assert.equal(preset.author, null)
+    assert.equal(preset.authorProvider, null)
+    assert.equal(db.prepare("SELECT author_id FROM presets WHERE id = ?").get(preset.id).author_id, null)
+  })
+
+  test("lists, the weekly sort, single presets and renames all carry the author", async () => {
+    const cookie = await signIn()
+    const { preset } = await shareAs(cookie, "listed")
+    for (const sort of ["week", "popular", "top", "new", "needs", "random"]) assert.equal((await list(`?sort=${sort}`)).presets[0].author, "someone", sort)
+    const single = await getPreset(context(`/api/presets/${preset.id}`, { params: { id: String(preset.id) } }))
+    assert.equal((await single.json()).preset.author, "someone")
+    assert.equal((await rename(cookie, preset.id, "renamed")).preset.author, "someone")
+  })
+
+  test("signing in with a new username updates presets already shared", async () => {
+    const cookie = await signIn("discord", { id: "1", username: "old" })
+    const { preset } = await shareAs(cookie, "kept")
+    await signIn("discord", { id: "1", username: "new" })
+    assert.equal((await list("?sort=new")).presets.find(item => item.id === preset.id).author, "new")
+  })
+
+  test("a rude username can't share on its account, but can still share anonymously", async () => {
+    const cookie = await signIn("discord", { id: "1", username: "fuck" })
+    const { status, error } = await shareAs(cookie, "clean")
+    assert.equal(status, 400)
+    assert.match(error, /username/)
+    assert.equal((await post({ code: code([{ text: "clean" }]) })).status, 201)
+  })
+
+  test("asking for an account with an expired session refuses instead of sharing anonymously", async () => {
+    const { status } = await post({ code: code([{ text: "kept" }]), account: true })
+    assert.equal(status, 401)
+    assert.equal(db.prepare("SELECT COUNT(*) AS total FROM presets").get().total, 0)
+  })
+
+  test("the daily limit follows the account across IPs", async () => {
+    const cookie = await signIn()
+    for (let index = 0; index < LIMITS.perDay; index++) assert.equal((await shareAs(cookie, `title ${index}`, {}, `ip ${index}`)).status, 201)
+    assert.equal((await shareAs(cookie, "one more", {}, "fresh ip")).status, 429)
+  })
+
+  test("account shares do not use up the IP's anonymous limit", async () => {
+    const cookie = await signIn()
+    for (let index = 0; index < LIMITS.perDay; index++) await shareAs(cookie, `title ${index}`)
+    assert.equal((await usageOf("1.1.1.1")).used, 0)
+    assert.equal((await post({ code: code([{ text: "anon" }]) }, "1.1.1.1")).status, 201)
+  })
+
+  test("usage reports the account's count and what it owns", async () => {
+    const cookie = await signIn()
+    const anonymous = await share("from this ip", {}, "2.2.2.2")
+    const { preset } = await shareAs(cookie, "on the account", {}, "3.3.3.3")
+    const usage = await (await submissionUsage(withCookie("/api/presets/usage", cookie, { ip: "2.2.2.2" }))).json()
+    assert.equal(usage.used, 1)
+    assert.deepEqual(usage.owned, [preset.id])
+    assert.deepEqual(usage.shared.toSorted(), [anonymous.id, preset.id].toSorted())
+  })
+
+  test("usage without a session owns nothing", async () => {
+    assert.deepEqual((await usageOf("1.1.1.1")).owned, [])
+  })
+
+  test("the owner can't vote from another IP", async () => {
+    const cookie = await signIn()
+    const { preset } = await shareAs(cookie, "own vote")
+    const made = withCookie(`/api/presets/${preset.id}/vote`, cookie, { method: "POST", body: { value: 1 }, ip: "9.9.9.9", params: { id: String(preset.id) } })
+    assert.equal((await votePreset(made)).status, 403)
+  })
+
+  test("the owner can rename, keeping the title", async () => {
+    const cookie = await signIn()
+    const { preset } = await shareAs(cookie, "before")
+    const { status, preset: renamed } = await rename(cookie, preset.id, "  after  ")
+    assert.equal(status, 200)
+    assert.equal(renamed.name, "after")
+    assert.equal(renamed.code, preset.code)
+  })
+
+  test("a rename is checked like a share", async () => {
+    const cookie = await signIn()
+    const { preset } = await shareAs(cookie, "before")
+    assert.equal((await rename(cookie, preset.id, "   ")).status, 400)
+    assert.equal((await rename(cookie, preset.id, "x".repeat(LIMITS.name + 1))).status, 400)
+    assert.equal((await rename(cookie, preset.id, "fuck")).status, 400)
+  })
+
+  test("only the owner can rename or delete", async () => {
+    const owner = await signIn("discord", { id: "1", username: "owner" })
+    const other = await signIn("discord", { id: "2", username: "other" })
+    const { preset } = await shareAs(owner, "theirs")
+    assert.equal((await rename(other, preset.id, "stolen")).status, 403)
+    assert.equal(await remove(other, preset.id), 403)
+    assert.equal((await rename("session=none", preset.id, "stolen")).status, 401)
+    assert.equal(await remove("session=none", preset.id), 401)
+    assert.equal(db.prepare("SELECT name FROM presets").get().name, "Theirs")
+  })
+
+  test("nobody can change an anonymous preset, even from its IP", async () => {
+    const cookie = await signIn()
+    const preset = await share("anon", {}, "1.1.1.1")
+    assert.equal((await rename(cookie, preset.id, "mine now")).status, 403)
+    assert.equal(await remove(cookie, preset.id), 403)
+  })
+
+  test("a missing preset is a 404", async () => {
+    const cookie = await signIn()
+    assert.equal(await remove(cookie, 999), 404)
+  })
+
+  test("deleting removes its votes and downloads, and frees the title", async () => {
+    const cookie = await signIn()
+    const { preset } = await shareAs(cookie, "gone")
+    await vote(preset.id, 1, "voter")
+    await download(preset.id, "voter")
+    assert.equal(await remove(cookie, preset.id), 200)
+    for (const table of ["presets", "preset_votes", "preset_downloads", "preset_daily_downloads"]) assert.equal(db.prepare(`SELECT COUNT(*) AS total FROM ${table}`).get().total, 0, table)
+    assert.equal((await shareAs(cookie, "gone")).status, 201)
+  })
+
+  test("deleting does not give the day's share back", async () => {
+    const cookie = await signIn()
+    const { preset } = await shareAs(cookie, "gone")
+    await remove(cookie, preset.id)
+    assert.equal((await (await submissionUsage(withCookie("/api/presets/usage", cookie))).json()).used, 1)
+  })
+
+  test("deleting the last preset leaves nothing identifying the account", async () => {
+    const cookie = await signIn()
+    const first = (await shareAs(cookie, "first")).preset
+    const second = (await shareAs(cookie, "second")).preset
+    await remove(cookie, first.id)
+    assert.equal(db.prepare("SELECT COUNT(*) AS total FROM presets WHERE author_id IS NOT NULL").get().total, 1)
+    await remove(cookie, second.id)
+    assert.deepEqual(rowsEverywhere(), { account_submissions: 1, deleted_presets: 2 })
+    const dump = JSON.stringify(db.prepare("SELECT * FROM account_submissions").all().concat(db.prepare("SELECT * FROM deleted_presets").all()))
+    assert.doesNotMatch(dump, /1234|someone|discord/)
+  })
+
+  test("the daily count is forgotten after its day", async () => {
+    const cookie = await signIn()
+    const { preset } = await shareAs(cookie, "gone")
+    db.prepare("UPDATE account_submissions SET day = '2000-01-01'").run()
+    await remove(cookie, preset.id)
+    assert.equal(db.prepare("SELECT COUNT(*) AS total FROM account_submissions").get().total, 0)
+  })
+
+  test("the id of a deleted newest preset is never reused", async () => {
+    const cookie = await signIn()
+    const first = (await shareAs(cookie, "first")).preset
+    const second = (await shareAs(cookie, "second")).preset
+    await remove(cookie, second.id)
+    const third = (await shareAs(cookie, "third")).preset
+    assert.equal(third.id, second.id + 1)
+    await remove(cookie, third.id)
+    await remove(cookie, first.id)
+    assert.equal((await post({ code: code([{ text: "fourth" }]) })).preset.id, third.id + 1)
+  })
+
+  test("random still finds presets when the sampled ids were deleted", async () => {
+    const cookie = await signIn()
+    const ids = []
+    for (let day = 0; day < 8; day++) {
+      for (let index = 0; index < LIMITS.perDay; index++) ids.push((await shareAs(cookie, `title ${day} ${index}`)).preset.id)
+      db.prepare("DELETE FROM account_submissions").run()
+    }
+    for (const id of ids.slice(0, -1)) await remove(cookie, id)
+    let draw = 0
+    const random = mock.method(Math, "random", () => draw++ % LIMITS.page / ids.length)
+    try {
+      const { presets } = await list("?sort=random")
+      assert.deepEqual(presets.map(preset => preset.id), [ids.at(-1)])
+    } finally {
+      random.mock.restore()
+    }
+  })
+
+  test("renaming clears the sorted pages and that preset from the edge cache", async () => {
+    const cookie = await signIn()
+    const { preset } = await shareAs(cookie, "cached")
+    const deleted = []
+    globalThis.caches = { default: { match: async () => undefined, put: async () => {}, delete: async request => deleted.push(request.url) } }
+    try {
+      await rename(cookie, preset.id, "renamed")
+      assert.ok(deleted.includes(`https://example.test/api/presets/${preset.id}`))
+      assert.ok(deleted.includes("https://example.test/api/presets?sort=new&offset=0"))
+    } finally {
+      delete globalThis.caches
+    }
+  })
+
+  describe("saved presets", () => {
+    function savedCall(handler, cookie, method, body) {
+      return handler(withCookie("/api/saved", cookie, { method, body }))
+    }
+
+    async function savedList(cookie) {
+      return (await (await savedCall(listSaved, cookie, "GET")).json()).presets
+    }
+
+    async function save(cookie, presets) {
+      const response = await savedCall(addSaved, cookie, "POST", { presets })
+      return { status: response.status, ...await response.json() }
+    }
+
+    function saved(text, name = text) {
+      return { name, code: code([{ text }]) }
+    }
+
+    test("every route needs a session", async () => {
+      assert.equal((await listSaved(context("/api/saved"))).status, 401)
+      assert.equal((await save("session=none", [saved("a")])).status, 401)
+      assert.equal((await savedCall(changeSaved, "session=none", "PATCH", { code: "a", name: "b" })).status, 401)
+      assert.equal((await savedCall(removeSaved, "session=none", "DELETE", { code: "a" })).status, 401)
+      assert.equal((await deleteAccountData(withCookie("/api/account/data", "session=none", { method: "DELETE" }))).status, 401)
+    })
+
+    test("saves and lists in order, only for that account", async () => {
+      const first = await signIn("discord", { id: "1", username: "a" })
+      const second = await signIn("discord", { id: "2", username: "b" })
+      await save(first, [saved("one"), saved("two")])
+      await save(second, [saved("three")])
+      assert.deepEqual((await savedList(first)).map(preset => preset.name), ["one", "two"])
+      assert.deepEqual((await savedList(second)).map(preset => preset.name), ["three"])
+    })
+
+    test("the same title saved again keeps the first name, and two accounts can both save it", async () => {
+      const first = await signIn("discord", { id: "1", username: "a" })
+      const second = await signIn("discord", { id: "2", username: "b" })
+      await save(first, [saved("same", "first name")])
+      assert.deepEqual((await save(first, [saved("same", "second name")])).kept, [])
+      await save(second, [saved("same", "theirs")])
+      assert.deepEqual((await savedList(first)).map(preset => preset.name), ["first name"])
+      assert.deepEqual((await savedList(second)).map(preset => preset.name), ["theirs"])
+    })
+
+    test("keeps the shared id, and leaves it out when there is none", async () => {
+      const cookie = await signIn()
+      await save(cookie, [{ ...saved("one"), shared: 5 }, saved("two")])
+      const [one, two] = await savedList(cookie)
+      assert.equal(one.shared, 5)
+      assert.equal(Object.hasOwn(two, "shared"), false)
+    })
+
+    test("hands back anything damaged, too big or badly named", async () => {
+      const cookie = await signIn()
+      const big = { name: "big", code: `${"a".repeat(LIMITS.savedCode + 1)}` }
+      const damaged = { name: "damaged", code: "!!!" }
+      const unnamed = { ...saved("unnamed"), name: " " }
+      const { kept } = await save(cookie, [big, damaged, unnamed, saved("fine")])
+      assert.deepEqual(kept, [big.code, damaged.code, unnamed.code])
+      assert.deepEqual((await savedList(cookie)).map(preset => preset.name), ["fine"])
+    })
+
+    test("a batch over the limit is refused", async () => {
+      const cookie = await signIn()
+      const presets = Array.from({ length: LIMITS.savedBatch + 1 }, (_, index) => saved(`title ${index}`))
+      assert.equal((await save(cookie, presets)).status, 400)
+    })
+
+    test("hands back what goes over the account's limit, but still accepts titles it already has", async () => {
+      const cookie = await signIn()
+      for (let index = 0; index < LIMITS.savedPresets; index += LIMITS.savedBatch) await save(cookie, Array.from({ length: LIMITS.savedBatch }, (_, offset) => saved(`title ${index + offset}`)))
+      const extra = saved("extra")
+      const { kept } = await save(cookie, [saved("title 0"), extra])
+      assert.deepEqual(kept, [extra.code])
+      assert.equal((await savedList(cookie)).length, LIMITS.savedPresets)
+    })
+
+    test("renames and marks shared, only on that account", async () => {
+      const cookie = await signIn("discord", { id: "1", username: "a" })
+      const other = await signIn("discord", { id: "2", username: "b" })
+      const preset = saved("one")
+      await save(cookie, [preset])
+      await savedCall(changeSaved, other, "PATCH", { code: preset.code, name: "stolen" })
+      await savedCall(changeSaved, cookie, "PATCH", { code: preset.code, name: " new name " })
+      await savedCall(changeSaved, cookie, "PATCH", { code: preset.code, shared: 9 })
+      assert.deepEqual(await savedList(cookie), [{ name: "new name", code: preset.code, shared: 9 }])
+      await savedCall(changeSaved, cookie, "PATCH", { code: preset.code, shared: null })
+      assert.deepEqual(await savedList(cookie), [{ name: "new name", code: preset.code }])
+    })
+
+    test("a change is checked", async () => {
+      const cookie = await signIn()
+      const preset = saved("one")
+      await save(cookie, [preset])
+      assert.equal((await savedCall(changeSaved, cookie, "PATCH", { code: preset.code, name: " " })).status, 400)
+      assert.equal((await savedCall(changeSaved, cookie, "PATCH", { code: preset.code })).status, 400)
+      assert.equal((await savedCall(changeSaved, cookie, "PATCH", { name: "no code" })).status, 400)
+    })
+
+    test("deletes only from that account, and leaves nothing behind", async () => {
+      const cookie = await signIn("discord", { id: "1", username: "a" })
+      const other = await signIn("discord", { id: "2", username: "b" })
+      const preset = saved("one")
+      await save(cookie, [preset])
+      await savedCall(removeSaved, other, "DELETE", { code: preset.code })
+      assert.equal((await savedList(cookie)).length, 1)
+      await savedCall(removeSaved, cookie, "DELETE", { code: preset.code })
+      assert.deepEqual(rowsEverywhere(), {})
+    })
+
+    test("deleting all data removes shared and saved presets, and nobody else's", async () => {
+      const cookie = await signIn("discord", { id: "1", username: "a" })
+      const other = await signIn("discord", { id: "2", username: "b" })
+      const shared = (await shareAs(cookie, "shared")).preset
+      const theirs = (await shareAs(other, "theirs")).preset
+      await save(cookie, [saved("private")])
+      await save(other, [saved("their private")])
+      await vote(shared.id, 1, "voter")
+      const response = await deleteAccountData(withCookie("/api/account/data", cookie, { method: "DELETE" }))
+      assert.deepEqual((await response.json()).deleted, [shared.id])
+      assert.deepEqual(db.prepare("SELECT id FROM presets").all().map(row => row.id), [theirs.id])
+      assert.deepEqual(await savedList(cookie), [])
+      assert.equal((await savedList(other)).length, 1)
+      assert.equal(db.prepare("SELECT COUNT(*) AS total FROM preset_votes").get().total, 0)
+      assert.doesNotMatch(JSON.stringify(db.prepare("SELECT * FROM presets").all().concat(db.prepare("SELECT * FROM saved_presets").all())), /discord:1"/)
+    })
+
+    test("deleting all data still doesn't reset the day's shares or reuse ids", async () => {
+      const cookie = await signIn()
+      const { preset } = await shareAs(cookie, "gone")
+      await deleteAccountData(withCookie("/api/account/data", cookie, { method: "DELETE" }))
+      assert.equal((await (await submissionUsage(withCookie("/api/presets/usage", cookie))).json()).used, 1)
+      assert.equal((await shareAs(cookie, "next")).preset.id, preset.id + 1)
+    })
   })
 })

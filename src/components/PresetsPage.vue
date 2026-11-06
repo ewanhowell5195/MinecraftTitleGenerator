@@ -1,10 +1,13 @@
 <script setup>
   import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, watchEffect } from "vue"
-  import { communityPreset, countDownload, listCommunity, ownPresets, randomCommunityPreset, refreshUsage, voteOn } from "../lib/community.js"
+  import { account, accountPresets, communityPreset, countDownload, deleteShared, isDeleted, listCommunity, ownPresets, randomCommunityPreset, refreshAccount, refreshUsage, renameShared, signInProviders, voteOn } from "../lib/community.js"
   import { useWindowEvents } from "../lib/events.js"
   import { LIMITS } from "../lib/limits.js"
-  import { addPreset, loadPreset, presets, removePreset, renamePreset } from "../lib/presets.js"
+  import { notice } from "../lib/notices.js"
+  import { addPreset, loadPreset, presets, presetsError, presetsLoading, removePreset, renamePreset, unmarkShared } from "../lib/presets.js"
   import { closePresetsPage, leavePresetsForEditor, presetsPage, showPreset } from "../lib/presetsPage.js"
+  import { providerLabel } from "../lib/providers.js"
+  import AccountMenu from "./AccountMenu.vue"
   import Dropdown from "./Dropdown.vue"
   import Icon from "./Icon.vue"
   import PresetDetail from "./PresetDetail.vue"
@@ -95,6 +98,7 @@
       const found = results.value.find(preset => preset.id === id) ?? await communityPreset(id)
       if (presetsPage.id === id) selectedCommunity.value = found
     } catch (err) {
+      if (err.status === 404) unmarkShared(id)
       error.value = err.message
       clearSelection()
     }
@@ -147,6 +151,30 @@
     selectedLocalCode.value = null
   }
 
+  async function renameCommunity(preset, name) {
+    const trimmed = name.trim()
+    if (!trimmed || trimmed === preset.name) return
+    error.value = ""
+    try {
+      preset.name = await renameShared(preset.id, trimmed)
+    } catch (err) {
+      error.value = err.message
+    }
+  }
+
+  async function removeCommunity(preset) {
+    if (!confirm(`Delete ${preset.name} from the community presets? This can't be undone.`)) return
+    error.value = ""
+    try {
+      await deleteShared(preset.id)
+      unmarkShared(preset.id)
+      results.value = results.value.filter(item => item.id !== preset.id)
+      clearSelection()
+    } catch (err) {
+      error.value = err.message
+    }
+  }
+
   function viewInCommunity(id) {
     selectedLocalCode.value = null
     tab.value = "community"
@@ -179,6 +207,10 @@
     }
   })
   watch(sort, () => load(0))
+  watch(() => account.value?.id, () => {
+    if (selectedCommunity.value && isDeleted(selectedCommunity.value.id)) clearSelection()
+    if (tab.value === "community") load(0)
+  })
   watch(search, () => {
     clearTimeout(searching)
     if (tab.value !== "community" || tooShort.value) return
@@ -196,6 +228,7 @@
 
   onMounted(() => {
     refreshUsage()
+    refreshAccount()
     if (tab.value === "community") load(0)
     followAddress()
     observer = new IntersectionObserver(([entry]) => {
@@ -225,6 +258,7 @@
       <h1>Presets</h1>
       <SubmissionUsage v-if="tab === 'mine'" class="usage" />
       <Segments class="tabs" :options="TABS" v-model="tab" />
+      <AccountMenu />
     </header>
     <div class="body">
       <main class="browse">
@@ -238,13 +272,17 @@
         <div class="list">
           <p v-if="tooShort" class="message">Keep typing to search.</p>
           <p v-else-if="error" class="message error">{{ error }}</p>
+          <p v-else-if="tab === 'mine' && presetsError" class="message error">{{ presetsError }}</p>
+          <p v-else-if="tab === 'mine' && presetsLoading" class="message">Loading your presets</p>
           <p v-else-if="tab === 'community' ? !results.length && !loading : !localShown.length" class="message">{{ emptyMessage }}</p>
+          <p v-if="tab === 'mine' && !account && signInProviders.length" class="message">Sign in to keep your presets on your account. The presets saved in this browser move to it when you do.</p>
           <div v-if="tab === 'community'" class="grid">
             <div v-for="preset of results" :key="preset.id" class="card" :class="{ selected: selected?.id === preset.id }" @click="selectCommunity(preset)">
               <TitlePicture :code="preset.code" :title="preset.name" @open="selectCommunity(preset)" />
               <div class="details">
                 <strong :title="preset.name">{{ preset.name }}</strong>
                 <span v-if="isMine(preset)" class="yours">Shared by you</span>
+                <span v-else-if="preset.author" class="author" :title="providerLabel(preset.authorProvider)"><Icon :name="preset.authorProvider" :size="13" /><span>{{ preset.author }}</span></span>
               </div>
             </div>
           </div>
@@ -258,11 +296,12 @@
           <div ref="sentinel" class="sentinel"></div>
         </div>
       </main>
-      <PresetDetail v-if="selected && tab === 'community'" class="side" :preset="selected" :mine="isMine(selected)" :saved="saved.has(selected.code)" @close="clearSelection" @open="open(selected)" @save="save(selected)" @vote="vote(selected, $event)" />
+      <PresetDetail v-if="selected && tab === 'community'" class="side" :preset="selected" :mine="isMine(selected)" :owned="accountPresets.includes(selected.id)" :saved="saved.has(selected.code)" @close="clearSelection" @open="open(selected)" @save="save(selected)" @vote="vote(selected, $event)" @rename="renameCommunity(selected, $event)" @remove="removeCommunity(selected)" />
       <PresetDetail v-else-if="selected" class="side" :preset="selected" local @close="clearSelection" @open="open(selected)" @rename="renamePreset(selected, $event)" @remove="remove(selected)" @share="sharing = selected" @view="viewInCommunity(selected.shared)" />
       <aside v-else class="placeholder"><p v-if="tab === 'community' ? results.length : localShown.length">Select a preset to see it here</p></aside>
     </div>
     <SharePresetDialog v-if="sharing" :preset="sharing" @close="sharing = null" @shared="shared" />
+    <p v-if="notice" class="notice" role="status">{{ notice }}</p>
   </div>
 </template>
 
@@ -439,6 +478,22 @@
     color: var(--accent);
   }
 
+  .author {
+    display: flex;
+    flex: 0 1 auto;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    max-width: 50%;
+    color: var(--muted);
+  }
+
+  .author span {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
   .card strong {
     min-width: 0;
     overflow: hidden;
@@ -448,6 +503,20 @@
 
   .sentinel {
     height: 1px;
+  }
+
+  .notice {
+    position: absolute;
+    top: 68px;
+    right: 16px;
+    z-index: 4;
+    max-width: calc(100% - 32px);
+    margin: 0;
+    padding: 6px 10px;
+    font-size: var(--font-md);
+    background: var(--card);
+    border: 1px solid var(--line);
+    pointer-events: none;
   }
 
   @media (max-width: 1100px) {

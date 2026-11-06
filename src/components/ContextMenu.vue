@@ -70,6 +70,7 @@
   .context-menu {
     display: flex;
     flex-direction: column;
+    width: max-content;
     min-width: 170px;
     padding: 4px;
   }

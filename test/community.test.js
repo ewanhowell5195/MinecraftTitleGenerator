@@ -540,3 +540,187 @@ describe("a single preset", () => {
     await assert.rejects(communityPreset(9), /doesn't exist/)
   })
 })
+
+describe("accounts", () => {
+  const SOMEONE = { id: 1, name: "Someone", provider: "discord" }
+  const channels = []
+
+  globalThis.BroadcastChannel = class {
+    constructor() {
+      this.sent = []
+      channels.push(this)
+    }
+    postMessage(message) {
+      this.sent.push(message)
+    }
+  }
+
+  function signedIn(owned = [7]) {
+    replies["GET /api/account"] = { body: { user: SOMEONE } }
+    replies["GET /api/presets/usage"] = { body: { used: 2, shared: owned, owned } }
+  }
+
+  function signedOut() {
+    replies["GET /api/account"] = { body: { user: null } }
+    replies["GET /api/presets/usage"] = { body: { used: 0, shared: [] } }
+  }
+
+  beforeEach(() => {
+    channels.length = 0
+  })
+
+  test("signed out asks for nothing else", async () => {
+    signedOut()
+    const { account, refreshAccount } = await fresh()
+    await refreshAccount()
+    assert.equal(account.value, null)
+    assert.deepEqual(requests, ["GET /api/account"])
+  })
+
+  test("signed in loads the usage and what the account owns", async () => {
+    signedIn()
+    const { account, accountPresets, ownPresets, refreshAccount, usage } = await fresh()
+    await refreshAccount()
+    assert.equal(account.value.name, "Someone")
+    assert.deepEqual(accountPresets.value, [7])
+    assert.deepEqual(ownPresets.value, [7])
+    assert.equal(usage.value.used, 2)
+  })
+
+  test("only checks once per page unless forced", async () => {
+    signedIn()
+    const { refreshAccount } = await fresh()
+    await refreshAccount()
+    requests.length = 0
+    await refreshAccount()
+    assert.deepEqual(requests, [])
+    await refreshAccount(true)
+    assert.ok(requests.includes("GET /api/account"))
+  })
+
+  test("a failed check keeps the remembered account", async () => {
+    signedIn()
+    await (await fresh()).refreshAccount()
+    replies["GET /api/account"] = { status: 500, body: null }
+    const { account, refreshAccount } = await fresh()
+    const logged = mock.method(console, "error", () => {})
+    await refreshAccount()
+    logged.mock.restore()
+    assert.equal(account.value.name, "Someone")
+  })
+
+  test("a preset shared while signed in can be managed straight away", async () => {
+    signedIn([])
+    const { accountPresets, refreshAccount, sharePublicly } = await fresh()
+    await refreshAccount()
+    replies.POST = { status: 201, body: { preset: { id: 9 }, onAccount: true } }
+    await sharePublicly("code", "name")
+    assert.deepEqual(accountPresets.value, [9])
+  })
+
+  test("sharing says whether it expects an account", async () => {
+    const bodies = []
+    const realFetch = globalThis.fetch
+    globalThis.fetch = async (url, options) => {
+      if (options?.method === "POST") bodies.push(JSON.parse(options.body).account)
+      return realFetch(url, options)
+    }
+    try {
+      replies.POST = { status: 201, body: { preset: { id: 9 } } }
+      await (await fresh()).sharePublicly("code", "name")
+      signedIn([])
+      const named = await fresh()
+      await named.refreshAccount()
+      await named.sharePublicly("code", "name")
+      assert.deepEqual(bodies, [false, true])
+    } finally {
+      globalThis.fetch = realFetch
+    }
+  })
+
+  test("a 401 rechecks the account", async () => {
+    signedIn([])
+    const { account, refreshAccount, sharePublicly } = await fresh()
+    await refreshAccount()
+    signedOut()
+    replies.POST = { status: 401, body: { error: "You've been signed out." } }
+    await assert.rejects(sharePublicly("code", "name"), /signed out/)
+    await refreshAccount(true)
+    assert.equal(account.value, null)
+  })
+
+  test("signing out forgets the account's presets and tells other tabs", async () => {
+    signedIn()
+    const { accountPresets, ownPresets, refreshAccount, signOut } = await fresh()
+    await refreshAccount()
+    signedOut()
+    replies["POST /api/account/logout"] = { body: { user: null } }
+    await signOut()
+    assert.deepEqual(accountPresets.value, [])
+    assert.deepEqual(ownPresets.value, [])
+    assert.deepEqual(channels[0].sent, ["changed"])
+  })
+
+  test("a message from the sign-in window rechecks the account", async () => {
+    signedOut()
+    const { account, refreshAccount } = await fresh()
+    await refreshAccount()
+    signedIn()
+    channels[0].onmessage({ data: "changed" })
+    await refreshAccount(true)
+    assert.equal(account.value.name, "Someone")
+  })
+
+  test("a rename shows at once even while old pages are cached at the edge", async () => {
+    replies.PATCH = { body: { preset: { id: 1, name: "New" } } }
+    replies.GET = page([1, 2])
+    const { listCommunity, renameShared } = await fresh()
+    await listCommunity(POPULAR)
+    assert.equal(await renameShared(1, "New"), "New")
+    const { presets } = await listCommunity(POPULAR)
+    assert.equal(presets[0].name, "New")
+    assert.equal(requests.filter(request => request.startsWith("GET")).length, 2)
+  })
+
+  test("deleting all data hides the shared presets and signs out", async () => {
+    signedIn([1])
+    replies.GET = page([1, 2])
+    replies["DELETE /api/account/data"] = { body: { deleted: [1] } }
+    const { account, deleteAccountData, isDeleted, listCommunity, refreshAccount } = await fresh()
+    await refreshAccount()
+    await listCommunity(POPULAR)
+    signedOut()
+    replies["POST /api/account/logout"] = { body: { user: null } }
+    await deleteAccountData()
+    assert.equal(account.value, null)
+    assert.equal(isDeleted(1), true)
+    assert.ok(requests.includes("POST /api/account/logout"))
+  })
+
+  test("a failed delete of all data stays signed in", async () => {
+    signedIn([1])
+    replies["DELETE /api/account/data"] = { status: 500, body: { error: "It broke." } }
+    const { account, deleteAccountData, refreshAccount } = await fresh()
+    await refreshAccount()
+    const logged = mock.method(console, "error", () => {})
+    await deleteAccountData()
+    logged.mock.restore()
+    assert.equal(account.value.name, "Someone")
+    assert.equal(requests.includes("POST /api/account/logout"), false)
+  })
+
+  test("a deleted preset stays hidden while old pages are cached at the edge", async () => {
+    signedIn([1])
+    replies.GET = page([1, 2])
+    replies.DELETE = { body: { deleted: true } }
+    const { accountPresets, communityPreset, deleteShared, listCommunity, refreshAccount } = await fresh()
+    await refreshAccount()
+    await listCommunity(POPULAR)
+    await deleteShared(1)
+    const { presets, next } = await listCommunity(POPULAR)
+    assert.deepEqual(presets.map(preset => preset.id), [2])
+    assert.equal(next, 2)
+    assert.deepEqual(accountPresets.value, [])
+    await assert.rejects(communityPreset(1), error => error.status === 404)
+  })
+})

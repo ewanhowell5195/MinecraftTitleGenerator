@@ -2,6 +2,7 @@
   import { computed, onBeforeUnmount, ref, watch } from "vue"
   import { NAME_LIMIT } from "../lib/presets.js"
   import { presetLink } from "../lib/presetsPage.js"
+  import { providerLabel } from "../lib/providers.js"
   import Icon from "./Icon.vue"
   import PresetRating from "./PresetRating.vue"
   import TitlePicture from "./TitlePicture.vue"
@@ -10,6 +11,7 @@
     preset: { type: Object, required: true },
     local: { type: Boolean, default: false },
     mine: { type: Boolean, default: false },
+    owned: { type: Boolean, default: false },
     saved: { type: Boolean, default: false }
   })
 
@@ -77,13 +79,13 @@
       <div class="heading">
         <input v-if="renaming" v-selected class="name-field" type="text" :value="preset.name" :maxlength="NAME_LIMIT" :aria-label="`Name of ${preset.name}`" spellcheck="false" @blur="finishRenaming" @keydown.enter="$event.target.blur()" @keydown.esc.stop="renaming = false">
         <h2 v-else :title="preset.name">{{ preset.name }}</h2>
-        <button v-if="local && !renaming" class="icon-button small" :title="`Rename ${preset.name}`" :aria-label="`Rename ${preset.name}`" @click="renaming = true"><Icon name="pencil" :size="14" /></button>
+        <button v-if="(local || owned) && !renaming" class="icon-button small" :title="`Rename ${preset.name}`" :aria-label="`Rename ${preset.name}`" @click="renaming = true"><Icon name="pencil" :size="14" /></button>
         <span v-if="local && preset.shared" class="yours">Shared publicly</span>
         <span v-else-if="mine" class="yours">Shared by you</span>
       </div>
       <template v-if="!local">
         <PresetRating :rating="preset.rating" :votes="preset.votes" :mine="preset.vote" :own="mine" @vote="emit('vote', $event)" />
-        <p class="facts"><span>{{ uses }}</span><span>Shared {{ sharedOn }}</span></p>
+        <p class="facts"><span>{{ uses }}</span><span>Shared {{ sharedOn }}</span><span v-if="preset.author" class="author" :title="providerLabel(preset.authorProvider)">By <Icon :name="preset.authorProvider" :size="14" /><strong>{{ preset.author }}</strong></span></p>
       </template>
       <div class="actions">
         <button class="primary" @click="emit('open')">Open in editor</button>
@@ -95,6 +97,7 @@
         <template v-else>
           <button v-if="!mine" :disabled="saved" @click="emit('save')"><Icon name="bookmark" :size="16" /><span>{{ saved ? "In My presets" : "Save to My presets" }}</span></button>
           <button @click="copyLink"><Icon name="share" :size="16" /><span>{{ copyMessage || "Copy link" }}</span></button>
+          <button v-if="owned" class="danger" @click="emit('remove')"><Icon name="trash" :size="16" /><span>Delete</span></button>
         </template>
       </div>
     </div>
@@ -167,6 +170,17 @@
     flex-direction: column;
     gap: 4px;
     color: var(--muted);
+  }
+
+  .author {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .author strong {
+    font-weight: 600;
+    color: var(--text);
   }
 
   .actions {

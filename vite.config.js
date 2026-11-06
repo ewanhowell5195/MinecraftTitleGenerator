@@ -11,8 +11,15 @@ const presetPages = {
   }
 }
 
+function allowCookiesOverHttp(proxy) {
+  proxy.on("proxyRes", response => {
+    const cookies = response.headers["set-cookie"]
+    if (cookies) response.headers["set-cookie"] = cookies.map(cookie => cookie.replace(/;\s*Secure/i, ""))
+  })
+}
+
 export default defineConfig({
   plugins: [vue(), presetPages],
   build: { rolldownOptions: { input: ["index.html", "app/index.html"] } },
-  server: { host: "127.0.0.1", port: 9123, strictPort: true, proxy: { "/api": { target: "https://mctitlegenerator.com", changeOrigin: true } } }
+  server: { host: "127.0.0.1", port: 9123, strictPort: true, proxy: { "/api": { target: "https://mctitlegenerator.com", changeOrigin: true, configure: allowCookiesOverHttp } } }
 })

@@ -1,5 +1,5 @@
-import { ref } from "vue"
-import { refreshUsage, sharePublicly } from "./community.js"
+import { ref, watch } from "vue"
+import { account, changeSaved, deleteSaved, loadSaved, refreshUsage, sharePublicly, uploadSaved } from "./community.js"
 import { fileError, isDefaultTitle, openTitleData, titleData } from "./file.js"
 import { LIMITS } from "./limits.js"
 import { decodeTitle, encodeTitle } from "./linkformat.js"
@@ -12,10 +12,15 @@ const STORAGE = "minecraft-title-presets"
 const FALLBACK_NAME = "Title"
 export const NAME_LIMIT = LIMITS.name
 
-export const presets = ref(read())
+export const presets = ref([])
+export const presetsLoading = ref(false)
+export const presetsError = ref("")
 export const savedPreset = ref(null)
 export const namingPreset = ref(null)
 export const namingShared = ref(false)
+
+let opening = 0
+let queue = Promise.resolve()
 
 function read() {
   try {
@@ -26,13 +31,79 @@ function read() {
   }
 }
 
-function write(list) {
-  localStorage.setItem(STORAGE, JSON.stringify(list))
-  presets.value = list
+function queued(send) {
+  const run = queue.then(send, send)
+  queue = run.catch(() => {})
+  return run
 }
 
-function uniqueName(name) {
-  const taken = new Set(presets.value.map(preset => preset.name))
+function write(list, send) {
+  if (!account.value) {
+    localStorage.setItem(STORAGE, JSON.stringify(list))
+    presets.value = list
+    return
+  }
+  const previous = presets.value
+  presets.value = list
+  queued(send).catch(err => {
+    console.error(err)
+    presets.value = previous
+    showNotice(err.message)
+  })
+}
+
+async function moveLocalPresets() {
+  const list = await loadSaved()
+  const onAccount = new Set(list.map(preset => preset.code))
+  const local = read()
+  const taken = new Set(list.map(preset => preset.name))
+  const moving = local.filter(preset => !onAccount.has(preset.code)).map(preset => {
+    const name = uniqueName(preset.name, taken)
+    taken.add(name)
+    return { ...preset, name }
+  })
+  const kept = new Set(moving.length ? await uploadSaved(moving) : [])
+  localStorage.setItem(STORAGE, JSON.stringify(local.filter(preset => kept.has(preset.code))))
+  const added = moving.filter(preset => !kept.has(preset.code))
+  return { list: list.concat(added), added: added.length, kept: kept.size }
+}
+
+function movedMessage(added, kept) {
+  const parts = []
+  if (added) parts.push(`Added ${added} ${added === 1 ? "preset" : "presets"} from this browser to your account.`)
+  if (kept) parts.push(`${kept} ${kept === 1 ? "preset" : "presets"} couldn't be added, so ${kept === 1 ? "it stays" : "they stay"} in this browser. Accounts hold up to ${LIMITS.savedPresets}.`)
+  return parts.join(" ")
+}
+
+async function openAccount(id, previous) {
+  const current = ++opening
+  presetsError.value = ""
+  if (!id) {
+    presetsLoading.value = false
+    presets.value = read()
+    return
+  }
+  presets.value = []
+  presetsLoading.value = true
+  try {
+    const { list, added, kept } = await queued(moveLocalPresets)
+    if (current !== opening) return
+    const onAccount = new Set(list.map(preset => preset.code))
+    presets.value = list.concat(presets.value.filter(preset => !onAccount.has(preset.code)))
+    const message = movedMessage(added, previous === undefined ? 0 : kept)
+    if (message) showNotice(message)
+  } catch (err) {
+    if (current !== opening) return
+    console.error(err)
+    presetsError.value = `Couldn't load your presets: ${err.message}`
+  } finally {
+    if (current === opening) presetsLoading.value = false
+  }
+}
+
+watch(() => account.value?.id ?? null, openAccount, { immediate: true, flush: "sync" })
+
+function uniqueName(name, taken = new Set(presets.value.map(preset => preset.name))) {
   if (!taken.has(name)) return name
   let number = 2
   while (taken.has(`${name} ${number}`)) number++
@@ -43,7 +114,10 @@ export function addPreset(name, code) {
   const existing = presets.value.find(preset => preset.code === code)
   if (existing) return existing
   const preset = { name: uniqueName(name || FALLBACK_NAME), code }
-  write(presets.value.concat(preset))
+  write(presets.value.concat(preset), async () => {
+    const kept = await uploadSaved([preset])
+    if (kept.length) throw new Error(`${preset.name} couldn't be saved to your account. Accounts hold up to ${LIMITS.savedPresets} presets.`)
+  })
   return preset
 }
 
@@ -51,16 +125,26 @@ export function renamePreset(preset, name) {
   const trimmed = name.trim().slice(0, NAME_LIMIT)
   if (!trimmed) return preset
   const renamed = { ...preset, name: trimmed }
-  write(presets.value.map(item => item.code === preset.code ? renamed : item))
+  write(presets.value.map(item => item.code === preset.code ? renamed : item), () => changeSaved(preset.code, { name: trimmed }))
   return renamed
 }
 
 export function markShared(preset, id) {
-  write(presets.value.map(item => item.code === preset.code ? { ...item, shared: id } : item))
+  write(presets.value.map(item => item.code === preset.code ? { ...item, shared: id } : item), () => changeSaved(preset.code, { shared: id }))
+}
+
+export function unmarkShared(id) {
+  const marked = presets.value.filter(item => item.shared === id)
+  if (!marked.length) return
+  write(presets.value.map(item => {
+    if (item.shared !== id) return item
+    const { shared, ...rest } = item
+    return rest
+  }), () => Promise.all(marked.map(item => changeSaved(item.code, { shared: null }))))
 }
 
 export function removePreset(preset) {
-  write(presets.value.filter(item => item.code !== preset.code))
+  write(presets.value.filter(item => item.code !== preset.code), () => deleteSaved(preset.code))
 }
 
 function savedWithCode(code) {
@@ -83,7 +167,8 @@ export function startSavingPreset() {
 }
 
 export function confirmSharing(name) {
-  return confirm(`Share ${name} publicly?\n\nAnyone will be able to see and use this title. There are no accounts, so you can't edit or remove it after sharing.`)
+  if (account.value) return confirm(`Share ${name} publicly as ${account.value.name}?\n\nAnyone will be able to see and use this title, and your username will show on it. You can rename or delete it later.`)
+  return confirm(`Share ${name} anonymously?\n\nAnyone will be able to see and use this title. It won't be tied to an account, so you can't edit or remove it after sharing.`)
 }
 
 export async function sharePreset(preset, name) {

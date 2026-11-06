@@ -3,6 +3,7 @@
   import { usage } from "../lib/community.js"
   import { NAME_LIMIT, confirmSharing, sharePreset } from "../lib/presets.js"
   import RenderDialog from "./RenderDialog.vue"
+  import ShareAccount from "./ShareAccount.vue"
   import SubmissionUsage from "./SubmissionUsage.vue"
 
   const props = defineProps({
@@ -30,12 +31,13 @@
 </script>
 
 <template>
-  <RenderDialog title="Share publicly" close-title="Cancel" dismissable @close="emit('close')">
+  <RenderDialog title="Share publicly" close-title="Cancel" wide dismissable @close="emit('close')">
     <form class="body" @submit.prevent="send">
       <label>
         <span>Name</span>
         <input type="text" v-model="name" :maxlength="NAME_LIMIT" spellcheck="false">
       </label>
+      <ShareAccount />
       <p v-if="error" class="error">{{ error }}</p>
       <div class="footer">
         <SubmissionUsage />
