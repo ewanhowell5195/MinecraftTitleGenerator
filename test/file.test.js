@@ -179,6 +179,15 @@ describe("saving trims settings", () => {
     assert.deepEqual(await savedLines(make("top", { internalFaces: true, internalFade: 40, internalColour: "#111111" })), [{ internalFaces: true, internalFade: 40 }])
   })
 
+  test("custom face gradients are only saved when they are in use", async () => {
+    const edgeStops = [{ colour: "#111111", position: 0 }, { colour: "#222222", position: 100 }]
+    assert.deepEqual(await savedLines(make("top", { edgeFill: "gradient", edgeStops })), [{}])
+    assert.deepEqual(await savedLines(make("top", { customEdge: true, edgeStops, edgeSmooth: false })), [{ customEdge: true }])
+    assert.deepEqual(await savedLines(make("top", { customEdge: true, edgeColour: "#333333", edgeFill: "gradient", edgeStops })), [{ customEdge: true, edgeFill: "gradient", edgeStops }])
+    assert.deepEqual(await savedLines(make("top", { internalFaces: true, customInternal: true, internalDirection: "along", internalFill: "gradient", internalStops: edgeStops })), [{ internalFaces: true, customInternal: true, internalFill: "gradient", internalStops: edgeStops, internalDirection: "along" }])
+    assert.deepEqual(await savedLines(make("top", { customSide: true, sideFill: "gradient", sideDirection: "along" })), [{}])
+  })
+
   test("side face settings are only saved when side faces are on", async () => {
     const values = { fadeSides: false, sideFade: 40, customSide: true, sideColour: "#111111", sideBrightness: 1 }
     assert.deepEqual(await savedLines(make("top", values)), [{}])

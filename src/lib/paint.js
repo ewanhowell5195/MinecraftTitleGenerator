@@ -261,7 +261,7 @@ function overlayLayer(sheet, layer, source, capHeight) {
 export function paintKey(sheet, assets, look) {
   const placed = assets.overlays.some(overlay => PLACED_KINDS.has(overlay.source.generated))
   const lined = assets.strip?.tiling === "line" || look.source === "tile" && !look.tileablePerCharacter
-  const worded = look.source === "gradient" && look.gradientAngle % 180 !== 0
+  const worded = look.wordedFaces || look.source === "gradient" && look.gradientAngle % 180 !== 0
   return JSON.stringify([sheet.width, sheet.height, sheet.tallest, worded ? sheet.wordWidth : null, Object.values(sheet.glyphs).map(entry => [entry.char, entry.x, entry.top, entry.up, entry.upHeight, entry.down, entry.downHeight, entry.width, entry.height, entry.glyph.bottom, entry.glyph.top, entry.glyph.arc, placed ? entry.glyph.placedX : null, lined ? entry.glyph.lineX : null, worded ? entry.glyph.wordX : null])])
 }
 
@@ -356,8 +356,10 @@ export function paintSheet(sheet, look, assets, capHeight, base = paintBase(shee
 
   if (look.customEdge) {
     work.ctx.globalCompositeOperation = "source-atop"
+    const stops = look.edgeFill === "gradient" ? gradientStops(look.edgeStops, look.edgeSmooth) : null
     work.ctx.fillStyle = look.edgeColour
     for (const entry of entries) {
+      if (stops) work.ctx.fillStyle = gradientFill(work.ctx, [entry.x - entry.glyph.wordX, 0], [entry.x - entry.glyph.wordX + sheet.wordWidth, 0], stops)
       for (const rect of strips(entry)) fillRect(work.ctx, rect)
     }
   }

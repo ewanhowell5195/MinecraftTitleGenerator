@@ -11,7 +11,7 @@
 <template>
   <div class="colour-toggle">
     <Toggle label="Custom colour" v-model="enabled" @change="$emit('change')" />
-    <ColourPicker v-if="enabled" v-model="colour" />
+    <slot v-if="enabled"><ColourPicker v-model="colour" /></slot>
   </div>
 </template>
 

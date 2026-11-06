@@ -137,6 +137,8 @@ const STOPS = list(isStop, (out, { colour, position }) => {
 const BLEND = choice("multiply", "color", "lighter", "screen", "overlay", "soft-light", "hue", "saturation", "difference", "source-over")
 const ARC_MODE = choice("stretch", "move")
 const OVERLAY_MODE = choice("default", "custom")
+const FACE_FILL = choice("solid", "gradient")
+const FACE_DIRECTION = choice("up", "along")
 
 // Links store keys and options by position, so only ever add to the end of these lists.
 const KEYS = [
@@ -259,7 +261,18 @@ const KEYS = [
   ["minecraftTexture", TEXT],
   ["minecraftVersion", TEXT],
   ["tileablePerCharacter", BOOLEAN],
-  ["layerWords", BOOLEAN]
+  ["layerWords", BOOLEAN],
+  ["edgeFill", FACE_FILL],
+  ["edgeStops", STOPS],
+  ["edgeSmooth", BOOLEAN],
+  ["internalFill", FACE_FILL],
+  ["internalStops", STOPS],
+  ["internalSmooth", BOOLEAN],
+  ["internalDirection", FACE_DIRECTION],
+  ["sideFill", FACE_FILL],
+  ["sideStops", STOPS],
+  ["sideSmooth", BOOLEAN],
+  ["sideDirection", FACE_DIRECTION]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))

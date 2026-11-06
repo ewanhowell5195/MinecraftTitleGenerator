@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { blend, cssGradient, gradientLine, gradientStops } from "../src/lib/material.js"
+import { blend, cssGradient, gradientLine, gradientStops, stopColour } from "../src/lib/material.js"
 import { rgbOf } from "../src/lib/colour.js"
 
 function near(actual, expected, tolerance = 1e-9) {
@@ -11,6 +11,30 @@ function nearPoint(actual, expected) {
   near(actual[0], expected[0])
   near(actual[1], expected[1])
 }
+
+describe("stopColour", () => {
+  const stops = [{ colour: "#000000", position: 0.2 }, { colour: "#ffffff", position: 0.6 }, { colour: "#ff0000", position: 1 }]
+
+  test("holds the end colours outside the stops", () => {
+    assert.equal(stopColour(stops, 0), "#000000")
+    assert.equal(stopColour(stops.slice(0, 2), 1), "#ffffff")
+  })
+
+  test("blends between the stops either side", () => {
+    assert.equal(stopColour(stops, 0.4), blend("#000000", "#ffffff", 0.5))
+    assert.equal(stopColour(stops, 0.8), blend("#ffffff", "#ff0000", 0.5))
+  })
+
+  test("lands exactly on a stop", () => {
+    assert.equal(stopColour(stops, 0.6), "#ffffff")
+  })
+
+  test("takes the first of two hard stops at the same place", () => {
+    const hard = gradientStops([{ colour: "#000000", position: 0 }, { colour: "#ffffff", position: 50 }], false)
+    assert.equal(stopColour(hard, 0.25), "#000000")
+    assert.equal(stopColour(hard, 0.75), "#ffffff")
+  })
+})
 
 describe("blend", () => {
   const colours = ["#000000", "#ffffff", "#ff0000", "#00ff00", "#0000ff", "#ffcf76", "#da371e", "#336699"]

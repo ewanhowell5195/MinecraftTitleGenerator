@@ -71,6 +71,19 @@ export function gradientStops(stops, smooth) {
   return list.flatMap((stop, i) => [{ position: edges[i], colour: stop.colour }, { position: edges[i + 1], colour: stop.colour }])
 }
 
+export function stopColour(stops, t) {
+  const after = stops.findIndex(stop => stop.position >= t)
+  if (after === -1) return stops[stops.length - 1].colour
+  if (after === 0) return stops[0].colour
+  const from = stops[after - 1]
+  const to = stops[after]
+  return blend(from.colour, to.colour, (t - from.position) / (to.position - from.position))
+}
+
+function faceGradient(custom, fill, stops, smooth, direction) {
+  return custom && fill === "gradient" ? { stops: gradientStops(stops, smooth), direction } : null
+}
+
 export function cssGradient(stops, smooth, direction) {
   if (stops.length === 1) return stops[0].colour
   return `linear-gradient(${direction}, ${gradientStops(stops, smooth).map(stop => `${stop.colour} ${stop.position * 100}%`).join(", ")})`
@@ -349,6 +362,37 @@ export function buildAtlas(faces, options) {
     ctx.globalCompositeOperation = "source-over"
   }
 
+  const sideGradient = faceGradient(options.customSide, options.sideFill, options.sideStops, options.sideSmooth, options.sideDirection)
+  const innerGradient = options.customInternal ? faceGradient(true, options.internalFill, options.internalStops, options.internalSmooth, options.internalDirection) : faceGradient(options.customEdge, options.edgeFill, options.edgeStops, options.edgeSmooth, "along")
+
+  function spanFill(stops, x0, y0, x1, y1) {
+    const gradient = ctx.createLinearGradient(x0 * SCALE, y0 * SCALE, x1 * SCALE, y1 * SCALE)
+    for (const stop of stops) gradient.addColorStop(stop.position, stop.colour)
+    return gradient
+  }
+
+  function heightOf(y) {
+    return clamp((y - shared.minY) / (shared.maxY - shared.minY), 0, 1)
+  }
+
+  function sideFill(face, block, span) {
+    if (!options.customSide) return `rgba(0, 0, 0, ${1 - options.sideBrightness / 100})`
+    if (!sideGradient) return options.sideColour
+    if (sideGradient.direction === "along") return stopColour(sideGradient.stops, clamp((Math.round(face.points[0][0] - block.own.minX) + block.entry.glyph.wordX) / sheet.wordWidth, 0, 1))
+    const base = face.rect.y + span.max
+    return spanFill(sideGradient.stops, 0, base - shared.minY, 0, base - shared.maxY)
+  }
+
+  function innerFill(face, block, span, level) {
+    if (innerGradient?.direction === "up") return stopColour(innerGradient.stops, heightOf(level))
+    if (innerGradient) {
+      const left = face.rect.x - Math.round(span.min - block.own.minX) - block.entry.glyph.wordX
+      return spanFill(innerGradient.stops, left, 0, left + sheet.wordWidth, 0)
+    }
+    if (options.customInternal) return options.internalColour
+    return options.customEdge ? options.edgeColour : `rgba(0, 0, 0, ${1 - options.internalBrightness / 100})`
+  }
+
   const tiles = painted.tiles ? ctx.createPattern(painted.tiles, "repeat") : null
   const lines = tiles || !packed.length ? null : canvasOf(Math.max(...packed.map(face => face.rect.width)) * R, Math.max(...packed.map(face => face.rect.height)) * R)
 
@@ -394,7 +438,7 @@ export function buildAtlas(faces, options) {
           sideSum[3] += repeat
         }
       }
-      shadeFace(face.rect, options.customSide ? options.sideColour : `rgba(0, 0, 0, ${1 - options.sideBrightness / 100})`, options.sideFade, x * SCALE, (x + width) * SCALE, true)
+      shadeFace(face.rect, sideFill(face, block, span), options.sideFade, x * SCALE, (x + width) * SCALE, true)
       continue
     }
     const span = extent(face.points, 0)
@@ -406,7 +450,7 @@ export function buildAtlas(faces, options) {
     const edge = face.kind === "top" ? row * R : (row + 1) * R - 1
     if (tiles) tile(face.rect, painted.tilesAcrossLine ? column - entry.x + entry.glyph.lineX : 0)
     else drawLine(cornerPixels(painted, column * R, edge, width * R, false, face.kind === "top" ? 1 : -1), face.rect)
-    shadeFace(face.rect, options.customInternal ? options.internalColour : options.customEdge ? options.edgeColour : `rgba(0, 0, 0, ${1 - options.internalBrightness / 100})`, options.internalFade, back, front, false)
+    shadeFace(face.rect, innerFill(face, block, span, level), options.internalFade, back, front, false)
   }
 
   if (swatch) {

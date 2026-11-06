@@ -95,17 +95,28 @@ const TOP_DEFAULTS = {
   customInternal: false,
   internalColour: "#000000",
   internalBrightness: 35,
+  internalFill: "solid",
+  internalStops: [{ colour: "#000000", position: 0 }, { colour: "#ffffff", position: 100 }],
+  internalSmooth: true,
+  internalDirection: "up",
   sideFaces: false,
   fadeSides: true,
   sideFade: 0,
   customSide: false,
   sideColour: "#000000",
   sideBrightness: 35,
+  sideFill: "solid",
+  sideStops: [{ colour: "#000000", position: 0 }, { colour: "#ffffff", position: 100 }],
+  sideSmooth: true,
+  sideDirection: "up",
   fade: false,
   outerFade: 0,
   customEdge: false,
   edgeColour: "#000000",
-  edgeBrightness: 35
+  edgeBrightness: 35,
+  edgeFill: "solid",
+  edgeStops: [{ colour: "#000000", position: 0 }, { colour: "#ffffff", position: 100 }],
+  edgeSmooth: true
 }
 
 const BOTTOM_DEFAULTS = {

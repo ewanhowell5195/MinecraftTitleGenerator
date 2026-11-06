@@ -49,6 +49,10 @@ export default {
       return "texture"
     })
 
+    function plainStops(stops) {
+      return stops.map(stop => ({ colour: stop.colour, position: stop.position }))
+    }
+
     const look = computed(() => ({
       font: font.value?.id,
       source: source.value,
@@ -59,7 +63,7 @@ export default {
       tileableSource: object.tileableSource,
       minecraftTexture: object.minecraftTexture,
       minecraftVersion: object.minecraftVersion,
-      stops: object.stops.map(stop => ({ colour: stop.colour, position: stop.position })),
+      stops: plainStops(object.stops),
       smooth: object.smooth,
       gradientAngle: object.gradientAngle,
       arcGradient: object.arcGradient,
@@ -86,7 +90,11 @@ export default {
       outerFade: object.outerFade,
       customEdge: object.customEdge,
       edgeColour: object.edgeColour,
-      edgeBrightness: object.edgeBrightness
+      edgeBrightness: object.edgeBrightness,
+      edgeFill: object.edgeFill,
+      edgeStops: plainStops(object.edgeStops),
+      edgeSmooth: object.edgeSmooth,
+      wordedFaces: object.customEdge && object.edgeFill === "gradient" || object.customInternal && object.internalFill === "gradient" && object.internalDirection === "along" || object.customSide && object.sideFill === "gradient" && object.sideDirection === "along"
     }))
 
     function typeDepth(value) {
@@ -134,13 +142,24 @@ export default {
       customInternal: object.customInternal,
       internalColour: object.internalColour,
       internalBrightness: object.internalBrightness,
+      internalFill: object.internalFill,
+      internalStops: plainStops(object.internalStops),
+      internalSmooth: object.internalSmooth,
+      internalDirection: object.internalDirection,
       sideFaces: object.sideFaces,
       sideFade: object.fadeSides ? object.sideFade / 100 : null,
       customSide: object.customSide,
       sideColour: object.sideColour,
       sideBrightness: object.sideBrightness,
+      sideFill: object.sideFill,
+      sideStops: plainStops(object.sideStops),
+      sideSmooth: object.sideSmooth,
+      sideDirection: object.sideDirection,
       customEdge: object.customEdge,
-      edgeColour: object.edgeColour
+      edgeColour: object.edgeColour,
+      edgeFill: object.edgeFill,
+      edgeStops: plainStops(object.edgeStops),
+      edgeSmooth: object.edgeSmooth
     }))
 
     const transform = computed(() => {

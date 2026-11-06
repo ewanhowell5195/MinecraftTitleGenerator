@@ -23,6 +23,10 @@ const BLENDS = {
 
 export const BLEND_OPTIONS = Object.entries(BLENDS).map(([value, label]) => ({ value, label }))
 
+export function faceStops() {
+  return [{ colour: "#000000", position: 0 }, { colour: "#ffffff", position: 100 }]
+}
+
 function stops(type) {
   return TYPES[type].stops.map(([colour, position]) => ({ colour, position }))
 }
@@ -154,7 +158,11 @@ const PANELS = {
     internalFade: 75,
     customInternal: false,
     internalColour: "#000000",
-    internalBrightness: 35
+    internalBrightness: 35,
+    internalFill: "solid",
+    internalStops: faceStops(),
+    internalSmooth: true,
+    internalDirection: "up"
   }),
   sides: () => ({
     sideFaces: false,
@@ -162,14 +170,21 @@ const PANELS = {
     sideFade: 75,
     customSide: false,
     sideColour: "#000000",
-    sideBrightness: 35
+    sideBrightness: 35,
+    sideFill: "solid",
+    sideStops: faceStops(),
+    sideSmooth: true,
+    sideDirection: "up"
   }),
   faces: () => ({
     fade: false,
     outerFade: 50,
     customEdge: false,
     edgeColour: "#000000",
-    edgeBrightness: 35
+    edgeBrightness: 35,
+    edgeFill: "solid",
+    edgeStops: faceStops(),
+    edgeSmooth: true
   })
 }
 
