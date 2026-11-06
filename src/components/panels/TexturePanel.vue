@@ -31,7 +31,11 @@
   let blocksRequest = 0
 
   const usingMinecraft = computed(() => object.value.textureSource === "tileable" && object.value.tileableSource === "minecraft")
-  const textures = computed(() => popular(Object.entries(list.value?.textures ?? {}), ([id]) => `${font.value?.id}.${id}`))
+  const textures = computed(() => {
+    const entries = Object.entries(list.value?.textures ?? {})
+    const statId = id => `${font.value?.id}.${id}`
+    return popular(entries, ([id]) => statId(id), [statId("flat"), statId(entries[1]?.[0])])
+  })
   const tileables = computed(() => popular(Object.entries(library.tileables), ([id]) => `tileable.${id}`))
   const blockEntries = computed(() => popular(Array.from(blocks.value ?? []).filter(([id, { opaque }]) => opaque || id === object.value.minecraftTexture).map(([id, { url }]) => [id, { name: blockName(id), author: "Mojang", url }]), ([id]) => minecraftStatId(id)))
   const shownBlocks = computed(() => searched(blockEntries.value, object.value.minecraftTexture))

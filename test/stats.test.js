@@ -37,6 +37,18 @@ describe("popular", () => {
     assert.deepEqual(ids(popular(entries, idOf)), ["b", "c", "a"])
   })
 
+  test("puts pinned entries first in the order given, ignoring their counts", async () => {
+    response = statsOf([{ id: "a", count: 1 }, { id: "b", count: 5 }, { id: "c", count: 3 }, { id: "d", count: 9 }])
+    await loadStats()
+    assert.deepEqual(ids(popular(entries.concat({ id: "d" }), idOf, ["c", "a"])), ["c", "a", "d", "b"])
+  })
+
+  test("ignores pinned ids that are not in the list", async () => {
+    response = statsOf([{ id: "a", count: 1 }, { id: "b", count: 5 }])
+    await loadStats()
+    assert.deepEqual(ids(popular(entries, idOf, ["missing"])), ["b", "a", "c"])
+  })
+
   test("counts an unknown id as zero", async () => {
     response = statsOf([{ id: "c", count: 2 }])
     await loadStats()
