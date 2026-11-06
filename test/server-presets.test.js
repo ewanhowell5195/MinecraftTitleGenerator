@@ -5,7 +5,7 @@ import { DatabaseSync } from "node:sqlite"
 
 const { LIMITS, checkTitle, countDownload, deletePreset, getPreset, listPresets, presetPageDetails, renamePreset, submissionUsage, submitPreset, titleFacts, votePreset } = await import("../src/server/presets.js")
 const { accountDetails, finishSignIn, receiveSignIn, signOut, startSignIn } = await import("../src/server/accounts.js")
-const { addSaved, changeSaved, deleteAccountData, listSaved, removeSaved } = await import("../src/server/saved.js")
+const { addSaved, changeSaved, listSaved, removeSaved } = await import("../src/server/saved.js")
 const { encodeTitle } = await import("../src/lib/linkformat.js")
 const { FILE_VERSION } = await import("../src/lib/settings.js")
 
@@ -1368,15 +1368,6 @@ describe("accounts", () => {
     assert.deepEqual((await usageOf("3.3.3.3")).votes, { [second.id]: -1 })
   })
 
-  test("deleting all data removes the account's votes but keeps the totals", async () => {
-    const cookie = await signIn()
-    const preset = await share("voted on", {}, "2.2.2.2")
-    await voteAs(cookie, preset.id, 1, "3.3.3.3")
-    await deleteAccountData(withCookie("/api/account/data", cookie, { method: "DELETE" }))
-    assert.equal(db.prepare("SELECT COUNT(*) AS total FROM preset_votes").get().total, 0)
-    assert.equal(db.prepare("SELECT votes FROM presets WHERE id = ?").get(preset.id).votes, 1)
-  })
-
   test("the owner can rename, keeping the title", async () => {
     const cookie = await signIn()
     const { preset } = await shareAs(cookie, "before")
@@ -1521,7 +1512,6 @@ describe("accounts", () => {
       assert.equal((await save("session=none", [saved("a")])).status, 401)
       assert.equal((await savedCall(changeSaved, "session=none", "PATCH", { code: "a", name: "b" })).status, 401)
       assert.equal((await savedCall(removeSaved, "session=none", "DELETE", { code: "a" })).status, 401)
-      assert.equal((await deleteAccountData(withCookie("/api/account/data", "session=none", { method: "DELETE" }))).status, 401)
     })
 
     test("saves and lists in order, only for that account", async () => {
@@ -1609,29 +1599,5 @@ describe("accounts", () => {
       assert.deepEqual(rowsEverywhere(), {})
     })
 
-    test("deleting all data removes shared and saved presets, and nobody else's", async () => {
-      const cookie = await signIn("discord", { id: "1", username: "a" })
-      const other = await signIn("discord", { id: "2", username: "b" })
-      const shared = (await shareAs(cookie, "shared")).preset
-      const theirs = (await shareAs(other, "theirs")).preset
-      await save(cookie, [saved("private")])
-      await save(other, [saved("their private")])
-      await vote(shared.id, 1, "voter")
-      const response = await deleteAccountData(withCookie("/api/account/data", cookie, { method: "DELETE" }))
-      assert.deepEqual((await response.json()).deleted, [shared.id])
-      assert.deepEqual(db.prepare("SELECT id FROM presets").all().map(row => row.id), [theirs.id])
-      assert.deepEqual(await savedList(cookie), [])
-      assert.equal((await savedList(other)).length, 1)
-      assert.equal(db.prepare("SELECT COUNT(*) AS total FROM preset_votes").get().total, 0)
-      assert.deepEqual(db.prepare("SELECT provider_id FROM users").all().map(row => row.provider_id), ["2"])
-    })
-
-    test("deleting all data still doesn't reset the day's shares or reuse ids", async () => {
-      const cookie = await signIn()
-      const { preset } = await shareAs(cookie, "gone")
-      await deleteAccountData(withCookie("/api/account/data", cookie, { method: "DELETE" }))
-      assert.equal((await (await submissionUsage(withCookie("/api/presets/usage", cookie))).json()).used, 1)
-      assert.equal((await shareAs(cookie, "next")).preset.id, preset.id + 1)
-    })
   })
 })

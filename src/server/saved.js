@@ -2,7 +2,6 @@ import { LIMITS } from "../lib/limits.js"
 import { decodeTitle } from "../lib/linkformat.js"
 import { USER_ROW, forgetUnusedUser, saveUser, signedInUser } from "./accounts.js"
 import { Refusal, guarded, hashed, jsonBody, reply, textField } from "./http.js"
-import { accountHash, forgetCached } from "./presets.js"
 
 const BATCH_BODY = LIMITS.savedBatch * (LIMITS.savedCode + 512)
 
@@ -96,21 +95,4 @@ export const removeSaved = guarded(async context => {
     forgetUnusedUser(env, user)
   ])
   return reply(200, { deleted: true })
-})
-
-export const deleteAccountData = guarded(async context => {
-  const { request, env } = context
-  const user = await requireUser(context)
-  const row = [user.provider, user.providerId]
-  const { results } = await env.DB.prepare(`SELECT id FROM presets WHERE user_id = ${USER_ROW}`).bind(...row).all()
-  await env.DB.batch([
-    env.DB.prepare(`INSERT OR IGNORE INTO deleted_presets (id) SELECT id FROM presets WHERE user_id = ${USER_ROW}`).bind(...row),
-    env.DB.prepare(`DELETE FROM presets WHERE user_id = ${USER_ROW}`).bind(...row),
-    env.DB.prepare(`DELETE FROM saved_presets WHERE user_id = ${USER_ROW}`).bind(...row),
-    env.DB.prepare("DELETE FROM preset_votes WHERE ip_hash = ?").bind(await accountHash(env, user)),
-    forgetUnusedUser(env, user)
-  ])
-  const ids = results.map(preset => preset.id)
-  await forgetCached(request, ...ids)
-  return reply(200, { deleted: ids })
 })

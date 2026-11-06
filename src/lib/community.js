@@ -266,10 +266,6 @@ export function signIn(provider) {
   location.assign(url)
 }
 
-export function isDeleted(id) {
-  return !!currentChange(id)?.deleted
-}
-
 export async function loadSaved() {
   return (await called(SAVED_API)).presets
 }
@@ -289,19 +285,6 @@ export function changeSaved(code, changes) {
 
 export function deleteSaved(code) {
   return called(SAVED_API, jsonOptions("DELETE", { code }))
-}
-
-export async function deleteAccountData() {
-  try {
-    const { deleted } = await called(`${ACCOUNT_API}/data`, { method: "DELETE" })
-    for (const id of deleted) remember(id, { deleted: true })
-    forgetLists()
-    persist()
-    await signOut()
-  } catch (err) {
-    console.error(err)
-    showNotice(`Couldn't delete your data: ${err.message}`)
-  }
 }
 
 export async function signOut() {

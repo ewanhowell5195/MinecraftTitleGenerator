@@ -105,7 +105,7 @@ function nextDay() {
   return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1)
 }
 
-export function accountHash(env, user) {
+function accountHash(env, user) {
   return hashed(`${env.IP_SALT}:${user.id}`)
 }
 
@@ -264,7 +264,7 @@ export const submitPreset = guarded(async context => {
   return reply(201, { preset: rated(results[user ? 1 : 0].results[0]), onAccount: !!user })
 })
 
-export async function forgetCached(request, ...ids) {
+async function forgetCached(request, ...ids) {
   const paths = FIRST_PAGES.map(page => `/api/presets${page}`).concat(ids.map(id => `/api/presets/${id}`))
   for (const path of paths) await globalThis.caches?.default.delete(new Request(new URL(path, request.url)))
 }

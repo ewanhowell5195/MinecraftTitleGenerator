@@ -721,33 +721,6 @@ describe("accounts", () => {
     assert.equal(requests.filter(request => request.startsWith("GET")).length, 2)
   })
 
-  test("deleting all data hides the shared presets and signs out", async () => {
-    signedIn([1])
-    replies.GET = page([1, 2])
-    replies["DELETE /api/account/data"] = { body: { deleted: [1] } }
-    const { account, deleteAccountData, isDeleted, listCommunity, refreshAccount } = await fresh()
-    await refreshAccount()
-    await listCommunity(POPULAR)
-    signedOut()
-    replies["POST /api/account/logout"] = { body: { user: null } }
-    await deleteAccountData()
-    assert.equal(account.value, null)
-    assert.equal(isDeleted(1), true)
-    assert.ok(requests.includes("POST /api/account/logout"))
-  })
-
-  test("a failed delete of all data stays signed in", async () => {
-    signedIn([1])
-    replies["DELETE /api/account/data"] = { status: 500, body: { error: "It broke." } }
-    const { account, deleteAccountData, refreshAccount } = await fresh()
-    await refreshAccount()
-    const logged = mock.method(console, "error", () => {})
-    await deleteAccountData()
-    logged.mock.restore()
-    assert.equal(account.value.name, "Someone")
-    assert.equal(requests.includes("POST /api/account/logout"), false)
-  })
-
   test("a deleted preset stays hidden while old pages are cached at the edge", async () => {
     signedIn([1])
     replies.GET = page([1, 2])

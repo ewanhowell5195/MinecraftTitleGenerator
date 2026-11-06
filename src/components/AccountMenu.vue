@@ -1,6 +1,6 @@
 <script setup>
   import { computed, ref } from "vue"
-  import { account, deleteAccountData, signIn, signInProviders, signOut } from "../lib/community.js"
+  import { account, signIn, signInProviders, signOut } from "../lib/community.js"
   import { useWindowEvents } from "../lib/events.js"
   import { providerLabel } from "../lib/providers.js"
   import ContextMenu from "./ContextMenu.vue"
@@ -9,12 +9,8 @@
   const REOPEN_DELAY = 300
 
   const at = ref(null)
-  const items = computed(() => account.value ? [{ label: "Sign out", icon: "signOut", action: signOut }, { divider: true }, { label: "Delete all my data", icon: "trash", danger: true, action: deleteEverything }] : signInProviders.value.map(id => ({ label: `Sign in with ${providerLabel(id)}`, icon: id, action: () => signIn(id) })))
+  const items = computed(() => account.value ? [{ label: "Sign out", icon: "signOut", action: signOut }] : signInProviders.value.map(id => ({ label: `Sign in with ${providerLabel(id)}`, icon: id, action: () => signIn(id) })))
   let closedAt = -Infinity
-
-  function deleteEverything() {
-    if (confirm("Delete all your saved presets and everything you've shared?\n\nThis can't be undone, and you'll be signed out.")) deleteAccountData()
-  }
 
   function holdEscape(event) {
     if (event.key === "Escape") event.preventDefault()

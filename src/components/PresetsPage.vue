@@ -1,6 +1,6 @@
 <script setup>
   import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, watchEffect } from "vue"
-  import { account, accountChanges, accountPresets, communityPreset, countDownload, deleteShared, isDeleted, listCommunity, ownPresets, randomCommunityPreset, refreshAccount, refreshUsage, renameShared, signInProviders, voteOn } from "../lib/community.js"
+  import { account, accountChanges, accountPresets, communityPreset, countDownload, deleteShared, listCommunity, ownPresets, randomCommunityPreset, refreshAccount, refreshUsage, renameShared, signInProviders, voteOn } from "../lib/community.js"
   import { useWindowEvents } from "../lib/events.js"
   import { LIMITS } from "../lib/limits.js"
   import { notice } from "../lib/notices.js"
@@ -238,7 +238,6 @@
   watch(sort, () => load(0))
   watch(mineTab, () => selectedLocalCode.value = null)
   watch(accountChanges, () => {
-    if (selectedCommunity.value && isDeleted(selectedCommunity.value.id)) clearSelection()
     if (tab.value === "community") load(0)
   })
   watch(search, () => {
