@@ -290,7 +290,10 @@
           <div v-else class="grid">
             <div v-for="preset of localShown" :key="preset.code" class="card" :class="{ selected: selectedLocalCode === preset.code }" @click="selectedLocalCode = preset.code">
               <TitlePicture :code="preset.code" :title="preset.name" @open="selectedLocalCode = preset.code" />
-              <strong :title="preset.name">{{ preset.name }}</strong>
+              <div class="details">
+                <strong :title="preset.name">{{ preset.name }}</strong>
+                <span v-if="preset.inBrowser" class="browser" title="Your account is full, so this is only saved in this browser">This browser only</span>
+              </div>
             </div>
           </div>
           <p v-if="tab === 'community' && loading" class="message loading">Loading presets</p>
@@ -477,6 +480,11 @@
   .yours {
     flex: none;
     color: var(--accent);
+  }
+
+  .browser {
+    flex: none;
+    color: var(--muted);
   }
 
   .author {

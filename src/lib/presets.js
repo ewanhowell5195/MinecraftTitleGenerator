@@ -37,19 +37,36 @@ function queued(send) {
   return run
 }
 
-function write(list, send) {
+function store(list) {
+  localStorage.setItem(STORAGE, JSON.stringify(list))
+}
+
+function change(code, transform, send) {
+  const previous = presets.value
+  const list = transform(previous)
   if (!account.value) {
-    localStorage.setItem(STORAGE, JSON.stringify(list))
+    store(list)
     presets.value = list
     return
   }
-  const previous = presets.value
   presets.value = list
+  if (previous.find(item => item.code === code)?.inBrowser) {
+    store(transform(read()))
+    return
+  }
   queued(send).catch(err => {
     console.error(err)
     presets.value = previous
     showNotice(err.message)
   })
+}
+
+function keepInBrowser(code) {
+  const preset = presets.value.find(item => item.code === code)
+  if (!preset) return
+  presets.value = presets.value.map(item => item.code === code ? { ...item, inBrowser: true } : item)
+  store(read().filter(item => item.code !== code).concat(preset))
+  showNotice(`${preset.name} didn't fit on your account, so it's saved in this browser instead.`)
 }
 
 async function moveLocalPresets() {
@@ -63,15 +80,16 @@ async function moveLocalPresets() {
     return { ...preset, name }
   })
   const kept = new Set(moving.length ? await uploadSaved(moving) : [])
-  localStorage.setItem(STORAGE, JSON.stringify(local.filter(preset => kept.has(preset.code))))
+  const staying = moving.filter(preset => kept.has(preset.code))
+  store(staying)
   const added = moving.filter(preset => !kept.has(preset.code))
-  return { list: list.concat(added), added: added.length, kept: kept.size }
+  return { list: list.concat(added, staying.map(preset => ({ ...preset, inBrowser: true }))), added: added.length, kept: kept.size }
 }
 
 function movedMessage(added, kept) {
   const parts = []
   if (added) parts.push(`Added ${added} ${added === 1 ? "preset" : "presets"} from this browser to your account.`)
-  if (kept) parts.push(`${kept} ${kept === 1 ? "preset" : "presets"} couldn't be added, so ${kept === 1 ? "it stays" : "they stay"} in this browser. Accounts hold up to ${LIMITS.savedPresets}.`)
+  if (kept) parts.push(`${kept} ${kept === 1 ? "preset" : "presets"} didn't fit on your account, so ${kept === 1 ? "it stays" : "they stay"} in this browser.`)
   return parts.join(" ")
 }
 
@@ -114,9 +132,9 @@ export function addPreset(name, code) {
   const existing = presets.value.find(preset => preset.code === code)
   if (existing) return existing
   const preset = { name: uniqueName(name || FALLBACK_NAME), code }
-  write(presets.value.concat(preset), async () => {
+  change(code, list => list.concat(preset), async () => {
     const kept = await uploadSaved([preset])
-    if (kept.length) throw new Error(`${preset.name} couldn't be saved to your account. Accounts hold up to ${LIMITS.savedPresets} presets.`)
+    if (kept.length) keepInBrowser(code)
   })
   return preset
 }
@@ -124,27 +142,40 @@ export function addPreset(name, code) {
 export function renamePreset(preset, name) {
   const trimmed = name.trim().slice(0, NAME_LIMIT)
   if (!trimmed) return preset
-  const renamed = { ...preset, name: trimmed }
-  write(presets.value.map(item => item.code === preset.code ? renamed : item), () => changeSaved(preset.code, { name: trimmed }))
-  return renamed
+  change(preset.code, list => list.map(item => item.code === preset.code ? { ...item, name: trimmed } : item), () => changeSaved(preset.code, { name: trimmed }))
+  return { ...preset, name: trimmed }
 }
 
 export function markShared(preset, id) {
-  write(presets.value.map(item => item.code === preset.code ? { ...item, shared: id } : item), () => changeSaved(preset.code, { shared: id }))
+  change(preset.code, list => list.map(item => item.code === preset.code ? { ...item, shared: id } : item), () => changeSaved(preset.code, { shared: id }))
 }
 
 export function unmarkShared(id) {
-  const marked = presets.value.filter(item => item.shared === id)
-  if (!marked.length) return
-  write(presets.value.map(item => {
-    if (item.shared !== id) return item
-    const { shared, ...rest } = item
-    return rest
-  }), () => Promise.all(marked.map(item => changeSaved(item.code, { shared: null }))))
+  for (const { code } of presets.value.filter(item => item.shared === id)) {
+    change(code, list => list.map(item => {
+      if (item.code !== code) return item
+      const { shared, ...rest } = item
+      return rest
+    }), () => changeSaved(code, { shared: null }))
+  }
 }
 
 export function removePreset(preset) {
-  write(presets.value.filter(item => item.code !== preset.code), () => deleteSaved(preset.code))
+  change(preset.code, list => list.filter(item => item.code !== preset.code), async () => {
+    await deleteSaved(preset.code)
+    queued(moveUpFromBrowser).catch(console.error)
+  })
+}
+
+async function moveUpFromBrowser() {
+  const waiting = presets.value.find(item => item.inBrowser)
+  if (!waiting) return
+  const { inBrowser, ...preset } = waiting
+  const kept = await uploadSaved([preset])
+  if (kept.length) return
+  presets.value = presets.value.map(item => item.code === preset.code ? preset : item)
+  store(read().filter(item => item.code !== preset.code))
+  showNotice(`${preset.name} is now saved on your account.`)
 }
 
 function savedWithCode(code) {

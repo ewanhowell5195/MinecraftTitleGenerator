@@ -127,11 +127,23 @@ describe("signing in", () => {
     setLocal([{ name: "Fits", code: "fits" }, { name: "Extra", code: "extra" }])
     replies["POST /api/saved"] = { body: { kept: ["extra"] } }
     await signIn()
-    assert.deepEqual(presets.value, [{ name: "Fits", code: "fits" }])
+    assert.deepEqual(presets.value, [{ name: "Fits", code: "fits" }, { name: "Extra", code: "extra", inBrowser: true }])
     assert.deepEqual(local(), [{ name: "Extra", code: "extra" }])
-    assert.match(notice.value, /Added 1 preset .*1 preset couldn't be added/)
+    assert.match(notice.value, /Added 1 preset .*1 preset didn't fit on your account/)
     account.value = null
     assert.deepEqual(presets.value, [{ name: "Extra", code: "extra" }])
+  })
+
+  test("what stayed in this browser moves up once there is room", async () => {
+    setLocal([{ name: "Extra", code: "extra" }])
+    replies["POST /api/saved"] = { body: { kept: ["extra"] } }
+    await signIn()
+    assert.equal(presets.value[0].inBrowser, true)
+    account.value = null
+    replies["POST /api/saved"] = { body: { kept: [] } }
+    await signIn()
+    assert.deepEqual(presets.value, [{ name: "Extra", code: "extra" }])
+    assert.deepEqual(local(), [])
   })
 
   test("a failed upload keeps everything in this browser and says so", async () => {
@@ -188,16 +200,122 @@ describe("signed in", () => {
     assert.equal(notice.value, "It broke.")
   })
 
-  test("a preset the account has no room for is taken back out and shows why", async () => {
-    await signIn()
+  test("a preset the account has no room for is saved in this browser and shows why", async () => {
+    await signIn([{ name: "Cloud", code: "cloud" }])
     replies["POST /api/saved"] = { body: { kept: ["code-1"] } }
-    const logged = mock.method(console, "error", () => {})
     addPreset("One", "code-1")
-    assert.equal(presets.value.length, 1)
+    await settled()
+    assert.deepEqual(presets.value, [{ name: "Cloud", code: "cloud" }, { name: "One", code: "code-1", inBrowser: true }])
+    assert.deepEqual(local(), [{ name: "One", code: "code-1" }])
+    assert.match(notice.value, /One didn't fit on your account, so it's saved in this browser instead/)
+  })
+
+  test("a browser-only preset changes in this browser and nothing is sent", async () => {
+    setLocal([{ name: "One", code: "code-1" }, { name: "Two", code: "code-2" }])
+    replies["POST /api/saved"] = { body: { kept: ["code-1", "code-2"] } }
+    await signIn([{ name: "Cloud", code: "cloud" }])
+    requests.length = 0
+    const one = presets.value.find(preset => preset.code === "code-1")
+    const renamed = renamePreset(one, "Renamed")
+    markShared(renamed, 9)
+    removePreset(presets.value.find(preset => preset.code === "code-2"))
+    await settled()
+    assert.equal(requests.length, 0)
+    assert.deepEqual(local(), [{ name: "Renamed", code: "code-1", shared: 9 }])
+    assert.deepEqual(presets.value, [{ name: "Cloud", code: "cloud" }, { name: "Renamed", code: "code-1", inBrowser: true, shared: 9 }])
+    unmarkShared(9)
+    assert.deepEqual(local(), [{ name: "Renamed", code: "code-1" }])
+    assert.equal(requests.length, 0)
+  })
+
+  async function fullAccount() {
+    setLocal([{ name: "Waiting", code: "waiting", shared: 3 }, { name: "Later", code: "later" }])
+    replies["POST /api/saved"] = { body: { kept: ["waiting", "later"] } }
+    await signIn([{ name: "Cloud", code: "cloud" }])
+    requests.length = 0
+    notice.value = ""
+  }
+
+  test("deleting an account preset moves one browser-only preset into the free slot", async () => {
+    await fullAccount()
+    replies["POST /api/saved"] = { body: { kept: [] } }
+    removePreset(presets.value[0])
+    await settled()
+    assert.deepEqual(sentTo("POST").map(request => request.body.presets), [[{ name: "Waiting", code: "waiting", shared: 3 }]])
+    assert.deepEqual(presets.value, [{ name: "Waiting", code: "waiting", shared: 3 }, { name: "Later", code: "later", inBrowser: true }])
+    assert.deepEqual(local(), [{ name: "Later", code: "later" }])
+    assert.equal(notice.value, "Waiting is now saved on your account.")
+  })
+
+  test("if the slot has gone by then, the preset stays in this browser", async () => {
+    await fullAccount()
+    removePreset(presets.value[0])
+    await settled()
+    assert.equal(presets.value[0].inBrowser, true)
+    assert.equal(local().length, 2)
+    assert.equal(notice.value, "")
+  })
+
+  test("a failed move keeps the preset in this browser and the delete still stands", async () => {
+    await fullAccount()
+    replies["POST /api/saved"] = { status: 500, body: { error: "Nope." } }
+    const logged = mock.method(console, "error", () => {})
+    removePreset(presets.value[0])
     await settled()
     logged.mock.restore()
-    assert.deepEqual(presets.value, [])
-    assert.match(notice.value, /One couldn't be saved to your account/)
+    assert.deepEqual(presets.value.map(preset => preset.code), ["waiting", "later"])
+    assert.equal(presets.value[0].inBrowser, true)
+    assert.equal(local().length, 2)
+  })
+
+  test("a failed delete puts the preset back and moves nothing", async () => {
+    await fullAccount()
+    replies["DELETE /api/saved"] = { status: 500, body: { error: "It broke." } }
+    const logged = mock.method(console, "error", () => {})
+    removePreset(presets.value[0])
+    await settled()
+    logged.mock.restore()
+    assert.equal(sentTo("POST").length, 0)
+    assert.deepEqual(presets.value.map(preset => preset.code), ["cloud", "waiting", "later"])
+  })
+
+  test("deleting a browser-only preset frees no slot, so nothing moves", async () => {
+    await fullAccount()
+    removePreset(presets.value[1])
+    await settled()
+    assert.equal(requests.length, 0)
+    assert.deepEqual(local(), [{ name: "Later", code: "later" }])
+  })
+
+  test("deleting with nothing waiting sends only the delete", async () => {
+    await signIn([{ name: "Cloud", code: "cloud" }])
+    removePreset(presets.value[0])
+    await settled()
+    assert.equal(sentTo("POST").length, 0)
+    assert.equal(sentTo("DELETE").length, 1)
+  })
+
+  test("a change made before the upload is refused is kept in this browser", async () => {
+    await signIn()
+    replies["POST /api/saved"] = { body: { kept: ["code-1"] } }
+    const preset = addPreset("One", "code-1")
+    renamePreset(preset, "Renamed")
+    await settled()
+    assert.deepEqual(local(), [{ name: "Renamed", code: "code-1" }])
+    assert.equal(presets.value[0].inBrowser, true)
+  })
+
+  test("browser-only presets aren't wiped when the account list failed to load", async () => {
+    setLocal([{ name: "Earlier", code: "earlier" }])
+    replies["GET /api/saved"] = { status: 500, body: { error: "Nope." } }
+    const logged = mock.method(console, "error", () => {})
+    account.value = SOMEONE
+    await settled()
+    replies["POST /api/saved"] = { body: { kept: ["code-1"] } }
+    addPreset("New", "code-1")
+    await settled()
+    logged.mock.restore()
+    assert.deepEqual(local().map(preset => preset.code), ["earlier", "code-1"])
   })
 
   test("a preset saved while the list is loading isn't lost", async () => {
