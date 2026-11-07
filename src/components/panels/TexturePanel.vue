@@ -69,7 +69,13 @@
     return data.variants ? Object.keys(data.variants).length + 1 : 0
   }
 
+  function chooseSource(source) {
+    search.value = ""
+    setTexture(object.value, { textureSource: source })
+  }
+
   async function chooseTileables(source) {
+    search.value = ""
     const target = object.value
     if (source === "minecraft" && !target.minecraftVersion) {
       try {
@@ -116,16 +122,12 @@
     const img = await (target.tileableSource === "minecraft" ? blockTextureImage(target.minecraftVersion, target.minecraftTexture) : image(tileableUrl(library.tileables, target.tileable, target.tileableVariant)))
     tileSize.value = { width: img.width, height: img.height }
   }, { immediate: true })
-
-  watch(() => [object.value.textureSource, object.value.tileableSource], () => {
-    search.value = ""
-  })
 </script>
 
 <template>
   <Panel title="Source" :modified="modified" @reset="reset">
     <div class="flow" :class="{ pick: object.textureSource !== 'gradient', peek: object.textureSource === 'tileable' }">
-      <Segments :options="SOURCES" :model-value="object.textureSource" @update:model-value="setTexture(object, { textureSource: $event })" />
+      <Segments :options="SOURCES" :model-value="object.textureSource" @update:model-value="chooseSource" />
 
       <template v-if="object.textureSource === 'premade'">
         <input v-if="textures.length > 16" type="text" v-model="search" placeholder="Search textures">
