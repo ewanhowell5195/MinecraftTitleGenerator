@@ -18,9 +18,7 @@
   const sending = ref(false)
   const target = ref(null)
 
-  watch(target, (next, previous) => {
-    if (name.value === (previous?.name ?? props.preset.name)) name.value = next?.name ?? props.preset.name
-  })
+  watch(target, next => name.value = next?.name ?? props.preset.name)
 
   async function send() {
     if (!(target.value ? confirmReplacing(target.value) : confirmSharing(name.value.trim() || props.preset.name))) return

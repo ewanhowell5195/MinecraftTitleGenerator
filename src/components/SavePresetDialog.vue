@@ -20,9 +20,7 @@
   const sending = ref(false)
   const target = ref(null)
 
-  watch(target, (next, previous) => {
-    if (name.value === (previous?.name ?? props.suggested)) name.value = next?.name ?? props.suggested
-  })
+  watch(target, next => name.value = next?.name ?? props.suggested)
 
   async function save() {
     if (!target.value) {
