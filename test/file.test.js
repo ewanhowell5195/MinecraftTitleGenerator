@@ -102,7 +102,7 @@ describe("the real title file", () => {
   test("saves back without the scale that gets solved", async () => {
     await openTitle(fileOf(REAL_FILE))
     const saved = await save()
-    assert.deepEqual(saved, { format: "minecraft-title", version: 3, lines: [{ texture: "cracked" }, { type: "bottom", matchWidth: 0, words: [{ text: "title", texture: "fired", hue: 359, customBorder: true, borderColour: "#230f00" }, { text: "generator", texture: "fired", hue: 180, customBorder: true, borderColour: "#001329", customEdge: true, edgeColour: "#11467d" }] }] })
+    assert.deepEqual(saved, { format: "minecraft-title", version: 4, lines: [{ texture: "cracked" }, { type: "bottom", matchWidth: 0, words: [{ text: "title", texture: "fired", hue: 359, customBorder: true, borderColour: "#230f00" }, { text: "generator", texture: "fired", hue: 180, customBorder: true, borderColour: "#001329", customEdge: true, edgeColour: "#11467d" }] }] })
   })
 
   test("opens the same after saving", async () => {
@@ -118,7 +118,7 @@ describe("the real title file", () => {
 describe("saving trims settings", () => {
   test("a brand new title saves an empty line", async () => {
     setScene(createObject())
-    assert.deepEqual(await save(), { format: "minecraft-title", version: 3, lines: [{}] })
+    assert.deepEqual(await save(), { format: "minecraft-title", version: 4, lines: [{}] })
   })
 
   test("an object at its type defaults saves only its type", async () => {
@@ -457,6 +457,16 @@ describe("opening", () => {
     assert.equal(scene.objects[0].matchScale, 1)
   })
 
+  test("block serif from before version 4 keeps its letter gaps now its cells are tight", async () => {
+    await openTitle(fileOf(title([{ text: "a", font: "block-serif", spacing: -2 }, { text: "b", font: "block-serif" }, { type: "small", text: "c", font: "block-serif" }, { text: "d", spacing: -2 }], { version: 3 })))
+    assert.deepEqual(scene.objects.map(object => object.spacing), [0, 2, 4, -2])
+  })
+
+  test("block serif from version 4 keeps its spacing", async () => {
+    await openTitle(fileOf(title([{ text: "a", font: "block-serif", spacing: -2 }], { version: 4 })))
+    assert.equal(scene.objects[0].spacing, -2)
+  })
+
   test("a version 3 match keeps its sliders", async () => {
     await openTitle(fileOf(title([{ text: "a", hidden: true }, { text: "b", matchWidth: 0, scaleX: 2, linkScale: 1.5 }], { version: 3 })))
     const [, line] = scene.objects
@@ -524,7 +534,7 @@ describe("rejected files", () => {
     ["a JSON null", "null", "Couldn't open test.mctitle: this isn't a Minecraft title file"],
     ["another format", { format: "something-else", version: 1, lines: [{}] }, "Couldn't open test.mctitle: this isn't a Minecraft title file"],
     ["no format", { version: 1, lines: [{}] }, "Couldn't open test.mctitle: this isn't a Minecraft title file"],
-    ["a newer version", title([{}], { version: 4 }), "Couldn't open test.mctitle: it was saved by a newer version of the generator (format 4)"],
+    ["a newer version", title([{}], { version: 5 }), "Couldn't open test.mctitle: it was saved by a newer version of the generator (format 5)"],
     ["no lines key", { format: "minecraft-title", version: 1 }, "Couldn't open test.mctitle: it has no text in it"],
     ["empty lines", title([]), "Couldn't open test.mctitle: it has no text in it"],
     ["lines that are not a list", title("words"), "Couldn't open test.mctitle: it has no text in it"],

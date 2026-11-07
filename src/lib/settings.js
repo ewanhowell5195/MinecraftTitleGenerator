@@ -1,6 +1,6 @@
 import { reactive } from "vue"
 
-export const FILE_VERSION = 3
+export const FILE_VERSION = 4
 
 export const TYPES = {
   top: { name: "Top Text", clipHoles: true, stops: [["#FFCF76", 0], ["#DA371E", 100]], fade: false, outerFade: 0, internalFaces: false, fadeInternal: true, internalFade: 0, sideFaces: false, fadeSides: true, sideFade: 0, border: 2, spacing: 0 },

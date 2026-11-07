@@ -161,10 +161,16 @@ function separateMatchScale(line) {
   return { ...upgraded, matchScaleY: true, scaleY: linkScale }
 }
 
+function widenBlockSerif(line) {
+  if (line.font !== "block-serif") return line
+  return { ...line, spacing: (line.spacing ?? typeDefaults(line.type ?? "top").spacing) + 2 }
+}
+
 function upgradeLine(line, version) {
-  if (version >= 3) return line
-  if (version >= 2) return separateMatchScale(line)
-  const upgraded = separateMatchScale(restartTilesPerCharacter(line))
+  if (version >= 4) return line
+  if (version === 3) return widenBlockSerif(line)
+  if (version === 2) return widenBlockSerif(separateMatchScale(line))
+  const upgraded = widenBlockSerif(separateMatchScale(restartTilesPerCharacter(line)))
   return Array.isArray(line.words) ? { ...upgraded, words: line.words.map(restartTilesPerCharacter) } : upgraded
 }
 

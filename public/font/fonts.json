@@ -319,7 +319,6 @@
     "id": "block-serif",
     "author": "DragonSlayr15001",
     "height": 44,
-    "characterSpacing": -2,
     "spaceWidth": 14,
     "terminatorSpace": true,
     "overlay": true,
