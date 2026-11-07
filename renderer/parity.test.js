@@ -231,11 +231,6 @@ describe("render process", () => {
     assert.match((await requested(title)).error, /the parent couldn't find it/)
   })
 
-  test("refuses a newer picture version", async () => {
-    const { RENDERER_VERSION } = await import("../src/lib/pictures.js")
-    assert.match((await requested(code(line({})), { version: RENDERER_VERSION + 1 })).error, /older than picture version/)
-  })
-
   test("only checks the title when asked", async () => {
     const title = code(line({ text: "x".repeat(200), texture: "cracked" }))
     assert.match((await requested(title, { check: true })).error, /up to \d+ characters/)

@@ -799,6 +799,12 @@ describe("a preset by fingerprint", () => {
   test("lists nothing for an unknown fingerprint", async () => {
     assert.deepEqual(await fetched("0".repeat(64)), [])
   })
+
+  test("comes with the preset list", async () => {
+    const { id } = await share("stone")
+    const { fingerprint } = db.prepare("SELECT fingerprint FROM presets WHERE id = ?").get(id)
+    assert.equal((await list()).presets[0].fingerprint, fingerprint)
+  })
 })
 
 describe("a single preset", () => {

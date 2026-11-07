@@ -1,5 +1,4 @@
 import { forgetImages } from "../src/lib/assets.js"
-import { RENDERER_VERSION } from "../src/lib/pictures.js"
 import { usePlatform } from "../src/lib/platform.js"
 import { titleCanvas } from "../src/lib/titlePicture.js"
 import { checkTitle, checkWords } from "../src/server/presets.js"
@@ -53,8 +52,7 @@ function parentAnsweredAsset({ asset, bytes, error }) {
   else fulfil(bytes)
 }
 
-async function renderRequested(code, { version, check, ...options }) {
-  if (version > RENDERER_VERSION) throw new Error(`this renderer is older than picture version ${version}`)
+async function renderRequested(code, { check, ...options }) {
   if (check) checkWords("title", checkTitle(code).all)
   const picture = await renderTitle(code, options)
   if (!picture) throw new Error("the title has nothing to draw")

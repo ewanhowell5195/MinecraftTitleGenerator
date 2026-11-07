@@ -17,7 +17,7 @@ const WEEK_DAYS = 7
 const SITE_NAME = "Minecraft Title Generator"
 const FIRST_PAGES = ["week", "popular", "top", "new", "needs"].map(sort => `?sort=${sort}&offset=0`)
 const STAT_COLUMNS = "downloads, votes, rating, created_at AS createdAt, (SELECT users.name FROM users WHERE users.id = presets.user_id) AS author, (SELECT users.provider FROM users WHERE users.id = presets.user_id) AS authorProvider"
-const COLUMNS = `id, code, name, text, ${STAT_COLUMNS}`
+const COLUMNS = `id, code, fingerprint, name, text, ${STAT_COLUMNS}`
 
 export const NEXT_ID = "MAX(COALESCE((SELECT MAX(id) FROM presets), 0), COALESCE((SELECT MAX(id) FROM deleted_presets), 0)) + 1"
 const SCORES_RESET = ", downloads = 0, ups = 0, votes = 0, rating = -1"

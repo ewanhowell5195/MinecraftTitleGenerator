@@ -18,7 +18,6 @@ const STAGE_WIDTH = 1000
 const STAGE_HEIGHT = 500
 // the 1024px cap on the big view in PresetsPage.vue minus its border and padding in PresetDetail.vue and on .large in TitlePicture.vue
 const PICTURE_WIDTH = 935
-const PICTURE_QUALITY = 0.85
 const TIME_LIMIT = 180000
 const VIEW = { render: false, fov: DEFAULT_FOV, fixedDistance: false, previews: false }
 const NOTHING_RENDERED = createRenderer({ insert() {}, remove() {}, createElement: () => ({}), createText: () => ({}), createComment: () => ({}), setText() {}, setElementText() {}, parentNode: () => null, nextSibling: () => null, patchProp() {} })
@@ -131,9 +130,4 @@ export async function titleCanvas(code, width = PICTURE_WIDTH) {
     for (const app of apps) app.unmount()
     scope.stop()
   }
-}
-
-export async function renderPicture(code) {
-  const canvas = await titleCanvas(code)
-  return canvas?.toDataURL("image/webp", PICTURE_QUALITY) ?? null
 }

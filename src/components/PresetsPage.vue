@@ -313,7 +313,7 @@
           <p v-if="tab === 'mine' && !account && signInProviders.length" class="message">Sign in to keep your presets on your account. The presets saved in this browser, and anything shared from it, move to your account when you do.</p>
           <div v-if="tab === 'community'" class="grid">
             <div v-for="preset of results" :key="preset.id" class="card" :class="{ selected: selected?.id === preset.id }" @click="selectCommunity(preset)">
-              <TitlePicture :code="preset.code" :title="preset.name" @open="selectCommunity(preset)" />
+              <TitlePicture :code="preset.code" :fingerprint="preset.fingerprint" :title="preset.name" @open="selectCommunity(preset)" />
               <div class="details">
                 <strong :title="preset.name">{{ preset.name }}</strong>
                 <span v-if="isMine(preset) && !preset.author" class="yours">Shared by you</span>
