@@ -1,7 +1,6 @@
 [
   {
     "id": "minecraft-ten",
-    "height": 44,
     "terminatorSpace": true,
     "kerning": {
       "//": 16,
@@ -45,7 +44,6 @@
         "id": "minecraft-ten-cyrillic",
         "name": "Cyrillic",
         "author": "xllifi",
-        "height": 44,
         "terminatorSpace": true,
         "order": "😳0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣ёєіїабвгдежзийклмнопрстуфхцчшщъыьэюяґғқңүұәө₽",
         "preview": "абв"
@@ -55,7 +53,6 @@
   {
     "id": "minecraft-five-bold",
     "author": "Ewan Howell",
-    "height": 36,
     "depth": 16,
     "terminatorSpace": true,
     "variants": [
@@ -63,7 +60,6 @@
         "id": "minecraft-five-bold-cyrillic",
         "name": "Cyrillic",
         "author": "xllifi",
-        "height": 36,
         "depth": 16,
         "terminatorSpace": true,
         "order": "😳0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣ёіїабвгдежзийклмнопрстуфхцчшщъыьэюяґғқңүұһәө₽",
@@ -74,7 +70,6 @@
   {
     "id": "minecraft-five-bold-block",
     "author": "Ewan Howell",
-    "height": 52,
     "characterSpacing": -4,
     "order": "😳abcdefghijklmnopqrstuvwxyz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣ ",
     "depth": 16,
@@ -86,7 +81,6 @@
   {
     "id": "minecraft-ten-outline",
     "author": "Ewan Howell",
-    "height": 60,
     "order": "😳abcdefghijklmnopqrstuvwxyz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣ ",
     "depth": 0,
     "border": 0,
@@ -95,13 +89,11 @@
   },
   {
     "id": "minecraft-dungeons",
-    "author": "ShrimpSnail & Ewan Howell",
-    "height": 44
+    "author": "ShrimpSnail & Ewan Howell"
   },
   {
     "id": "minecraft-gui",
     "author": "Ewan Howell",
-    "height": 44,
     "characterSpacing": -4,
     "order": "😳abcdefghijklmnopqrstuvwxyz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣ ",
     "depth": 0,
@@ -114,14 +106,12 @@
   {
     "id": "minecraft-seven",
     "author": "Ewan Howell",
-    "height": 46,
     "depth": 16,
     "terminatorSpace": true
   },
   {
     "id": "minecraft-five",
     "author": "Ewan Howell",
-    "height": 34,
     "depth": 16,
     "terminatorSpace": true
   },
@@ -129,7 +119,6 @@
     "id": "minecraft-sga",
     "name": "Minecraft SGA",
     "author": "Westbot",
-    "height": 44,
     "characterSpacing": 5,
     "order": "abcdefghijklmnopqrstuvwxyz",
     "preview": "abh"
@@ -137,7 +126,6 @@
   {
     "id": "minecraft-ten-serif",
     "author": "Ewan Howell",
-    "height": 44,
     "spaceWidth": 14,
     "terminatorSpace": true,
     "kerning": {
@@ -237,7 +225,6 @@
   {
     "id": "minecraft-ten-rounded",
     "author": "Ewan Howell",
-    "height": 44,
     "terminatorSpace": true,
     "kerning": {
       "//": 16,
@@ -318,7 +305,6 @@
   {
     "id": "block-serif",
     "author": "DragonSlayr15001",
-    "height": 44,
     "spaceWidth": 14,
     "terminatorSpace": true,
     "overlay": true,

@@ -287,10 +287,7 @@ const png = drawSheet(cells, capHeight)
 const space = font.charToGlyph(" ")
 const entry = { id, name: fullName }
 if (font.getEnglishName("designer")) entry.author = font.getEnglishName("designer")
-Object.assign(entry, {
-  height: capHeight + defaultBorder("top", entry) * 2,
-  spaceWidth: space && space.index !== 0 ? Math.round(space.advanceWidth * scale) : Math.round(capHeight / 4)
-})
+entry.spaceWidth = space && space.index !== 0 ? Math.round(space.advanceWidth * scale) : Math.round(capHeight / 4)
 if (order !== DEFAULT_ORDER) entry.order = order
 
 const parsed = parseMask(png.data, png.width, png.height, order, defaultBorder("top", entry))

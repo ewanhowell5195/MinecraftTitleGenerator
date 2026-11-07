@@ -290,6 +290,7 @@ async function readFont(data, list) {
   const { list: cells, capHeight } = parseMask(pixels, image.width, image.height, fullOrder(data, list), defaultBorder("top", data))
   const { glyphs, alternates } = splitCells(data, list, cells)
   return {
+    height: capHeight + defaultBorder("top", data) * 2,
     ...meta(data),
     id: data.id,
     name: data.name,
