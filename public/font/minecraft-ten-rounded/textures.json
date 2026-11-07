@@ -2,6 +2,11 @@
   "textures": {
     "flat": {
       "border": "#000000"
+    },
+    "cracked": {
+      "author": "ShrimpSnail, Ewan Howell, MrBrose, & loganroman",
+      "density": 3,
+      "border": "#000000"
     }
   },
   "overlays": {}
