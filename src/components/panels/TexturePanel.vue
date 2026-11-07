@@ -6,7 +6,7 @@
   import { titleCase } from "../../lib/names.js"
   import { usePanel } from "../../lib/panel.js"
   import { library } from "../../lib/scene.js"
-  import { setTexture } from "../../lib/settings.js"
+  import { pinnedTextures, setTexture } from "../../lib/settings.js"
   import { minecraftStatId, popular } from "../../lib/stats.js"
   import { thumbnail, thumbnailHeight, tilePreview } from "../../lib/ui.js"
   import GradientEditor from "../GradientEditor.vue"
@@ -35,7 +35,7 @@
   const textures = computed(() => {
     const entries = Object.entries(list.value?.textures ?? {})
     const statId = id => `${font.value?.id}.${id}`
-    return popular(entries, ([id]) => statId(id), ([id, data]) => label(id, data), [statId("flat"), statId(entries[1]?.[0])])
+    return popular(entries, ([id]) => statId(id), ([id, data]) => label(id, data), list.value ? pinnedTextures(list.value).map(statId) : [])
   })
   const tileables = computed(() => popular(Object.entries(library.tileables), ([id]) => `tileable.${id}`, ([id, data]) => label(id, data)))
   const blockEntries = computed(() => popular(Array.from(blocks.value ?? []).filter(([id, { opaque }]) => opaque || id === object.value.minecraftTexture).map(([id, { url }]) => [id, { name: blockName(id), author: "Mojang", url }]), ([id]) => minecraftStatId(id), ([, data]) => data.name))

@@ -339,6 +339,10 @@ export function defaultTexture(list, type) {
   return keys[1] ?? keys[0] ?? null
 }
 
+export function pinnedTextures(list) {
+  return ["flat", defaultTexture(list, "top"), defaultTexture(list, "bottom")]
+}
+
 export function defaultSpacing(type, font) {
   return (font?.characterSpacing ?? 0) + TYPES[type].spacing
 }

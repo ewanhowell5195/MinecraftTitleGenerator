@@ -1,7 +1,7 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import { isReactive } from "vue"
-import { LAYER, activeOverlays, applyType, createObject, defaultBorder, defaultDepth, defaultOverlays, defaultSpacing, defaultTexture, effectiveScale, isModified, overlayLayer, resetPanel, resetTransform, restore, setTexture, snapshot, textureEntry, transformKeys, typeDefaults } from "../src/lib/settings.js"
+import { LAYER, activeOverlays, applyType, createObject, defaultBorder, defaultDepth, defaultOverlays, defaultSpacing, defaultTexture, effectiveScale, isModified, overlayLayer, pinnedTextures, resetPanel, resetTransform, restore, setTexture, snapshot, textureEntry, transformKeys, typeDefaults } from "../src/lib/settings.js"
 
 const TOP_DEFAULTS = {
   hidden: false,
@@ -641,6 +641,11 @@ describe("texture lookups", () => {
     assert.equal(defaultTexture(TEXTURES, "top"), "cracked")
     assert.equal(defaultTexture(TEXTURES, "small"), "cracked")
     assert.equal(defaultTexture(TEXTURES, "bottom"), "fired")
+  })
+
+  test("pinnedTextures is flat, then the primary, then the secondary", () => {
+    assert.deepEqual(pinnedTextures(TEXTURES), ["flat", "cracked", "fired"])
+    assert.deepEqual(pinnedTextures({ primary: "stone", secondary: "gold", textures: { flat: {}, other: {}, gold: {}, stone: {} } }), ["flat", "stone", "gold"])
   })
 
   test("defaultTexture falls back to the second texture, then the first, then null", () => {
