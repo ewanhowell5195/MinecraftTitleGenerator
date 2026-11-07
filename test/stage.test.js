@@ -5,7 +5,7 @@ import * as THREE from "three"
 globalThis.localStorage = { getItem: () => null, setItem: () => {} }
 globalThis.devicePixelRatio = 1
 
-const { UNTURNED, UNZOOMED, cornersOf, elevationOf, frameCamera, gizmoPose, lineBounds, movedBy, orbitCamera, panMatrix, pannedBy, placementMatrix, rotatedTo, sortEntries, titleFraming, turnedBy, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } = await import("../src/lib/stage.js")
+const { UNTURNED, UNZOOMED, cornersOf, elevationOf, frameCamera, gizmoPose, lineBounds, movedBy, orbitCamera, panMatrix, pannedBy, pickEntry, placementMatrix, rotatedTo, sortEntries, titleFraming, turnedBy, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } = await import("../src/lib/stage.js")
 const { view } = await import("../src/lib/view.js")
 
 const BOUNDS = new THREE.Box3(new THREE.Vector3(0, 0, 0), new THREE.Vector3(10, 4, 2))
@@ -801,5 +801,60 @@ describe("titleFraming with an empty top line", () => {
     const top = { type: "top", built, transform: transform() }
     const framed = titleFraming([top, { type: "bottom", built: builtOf([0, -9, 0], [9, 0, 1]), transform: transform() }])
     assert.deepEqual(framed.anchor, titleFraming([top]).anchor)
+  })
+})
+
+describe("pickEntry", () => {
+  const raycaster = new THREE.Raycaster()
+  const camera = new THREE.OrthographicCamera(-100, 100, 100, -100, 1, 1000)
+  camera.position.set(0, 0, 500)
+  camera.updateMatrixWorld()
+  camera.updateProjectionMatrix()
+
+  function block(x, z, width, order, side = THREE.FrontSide) {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(width, 40, 10), new THREE.MeshBasicMaterial({ side }))
+    mesh.position.set(x, 0, z)
+    mesh.renderOrder = order
+    mesh.updateMatrixWorld(true)
+    return mesh
+  }
+
+  function at(x, y = 0) {
+    raycaster.setFromCamera(new THREE.Vector2(x / 100, y / 100), camera)
+    return raycaster
+  }
+
+  test("finds the word under the point, and nothing off the text", () => {
+    const entries = new Map([[1, { solid: block(-30, 0, 40, 1) }], [2, { solid: block(30, 0, 40, 2) }]])
+    assert.equal(pickEntry(entries, at(-30)), 1)
+    assert.equal(pickEntry(entries, at(30)), 2)
+    assert.equal(pickEntry(entries, at(0)), null)
+    assert.equal(pickEntry(entries, at(30, 60)), null)
+  })
+
+  test("the nearest solid wins whatever order they are in", () => {
+    const entries = new Map([[1, { solid: block(0, 50, 40, 1) }], [2, { solid: block(0, 0, 40, 2) }]])
+    assert.equal(pickEntry(entries, at(0)), 1)
+    assert.equal(pickEntry(new Map(Array.from(entries).toReversed()), at(0)), 1)
+  })
+
+  test("the outline counts as part of the text", () => {
+    const entries = new Map([[1, { solid: block(0, 0, 40, 2), outline: block(0, 0, 60, 1, THREE.BackSide) }]])
+    assert.equal(pickEntry(entries, at(25)), 1)
+  })
+
+  test("an outline drawn over a further solid is what you see", () => {
+    const entries = new Map([[1, { solid: block(0, 0, 40, 1) }], [2, { outline: block(0, 50, 60, 2, THREE.BackSide) }]])
+    assert.equal(pickEntry(entries, at(0)), 2)
+  })
+
+  test("an outline behind a nearer solid is hidden", () => {
+    const entries = new Map([[1, { solid: block(0, 50, 40, 1) }], [2, { outline: block(0, 0, 60, 2, THREE.BackSide) }]])
+    assert.equal(pickEntry(entries, at(0)), 1)
+    assert.equal(pickEntry(entries, at(25)), 2)
+  })
+
+  test("is nothing with nothing built", () => {
+    assert.equal(pickEntry(new Map([[1, { solid: null, outline: null }]]), at(0)), null)
   })
 })

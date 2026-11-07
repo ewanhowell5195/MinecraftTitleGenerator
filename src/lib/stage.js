@@ -371,6 +371,18 @@ export function panMatrix({ scale, x, y }) {
   return new THREE.Matrix4().set(scale, 0, 0, x, 0, scale, 0, y, 0, 0, 1, 0, 0, 0, 0, 1)
 }
 
+export function pickEntry(entries, raycaster) {
+  const hits = Array.from(entries).flatMap(([id, entry]) => [entry.outline, entry.solid].filter(Boolean).flatMap(mesh => raycaster.intersectObject(mesh, false).slice(0, 1).map(hit => ({ id, solid: mesh === entry.solid, order: mesh.renderOrder, distance: hit.distance }))))
+  let top = null
+  let nearest = Infinity
+  for (const hit of hits.sort((a, b) => a.order - b.order)) {
+    if (hit.distance > nearest) continue
+    top = hit.id
+    if (hit.solid) nearest = hit.distance
+  }
+  return top
+}
+
 export function sortEntries(entries, camera) {
   const centre = new THREE.Vector3()
   const sorted = entries.map(entry => {

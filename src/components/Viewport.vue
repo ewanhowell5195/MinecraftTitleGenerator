@@ -7,9 +7,9 @@
   import { holdHistory } from "../lib/history.js"
   import { clamp, round } from "../lib/maths.js"
   import { renderTitle, screenBounds } from "../lib/render.js"
-  import { current, currentWord, setScale, shapingWord } from "../lib/scene.js"
+  import { current, currentWord, scene as title, select, setScale, shapingWord } from "../lib/scene.js"
   import { TRANSFORM_LIMITS } from "../lib/settings.js"
-  import { UNTURNED, UNZOOMED, createEntry, destroyEntry, elevationOf, frameCamera, gizmoPose, lineBounds, movedBy, orbitCamera, panMatrix, pannedBy, rotatedTo, sortEntries, titleFraming, turnedBy, updateEntry, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } from "../lib/stage.js"
+  import { UNTURNED, UNZOOMED, createEntry, destroyEntry, elevationOf, frameCamera, gizmoPose, lineBounds, movedBy, orbitCamera, panMatrix, pannedBy, pickEntry, rotatedTo, sortEntries, titleFraming, turnedBy, updateEntry, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } from "../lib/stage.js"
   import { vectorTitle } from "../lib/vector.js"
   import { SHAPE_SECTIONS, view, viewport, viewportChanges } from "../lib/view.js"
   import Icon from "./Icon.vue"
@@ -20,6 +20,7 @@
   const WHEEL_ZOOM = 0.002
   const PINCH_WHEEL_ZOOM = 0.01
   const LINE_HEIGHT = 16
+  const CLICK_DISTANCE = 6
 
   const props = defineProps({
     items: { type: Array, required: true },
@@ -44,6 +45,7 @@
   let fitted = null
   let dirty = true
   let grabbed = null
+  let pressed = null
 
   function invalidate() {
     dirty = true
@@ -286,6 +288,19 @@
     panning.value = pointers.size > 0
   }
 
+  function pressText(event) {
+    pressed = { x: event.clientX, y: event.clientY }
+  }
+
+  function pickText(event) {
+    if (navigable.value || view.render || !pressed || Math.hypot(event.clientX - pressed.x, event.clientY - pressed.y) > CLICK_DISTANCE) return
+    const raycaster = new THREE.Raycaster()
+    raycaster.setFromCamera(clipPoint(event), camera)
+    const id = pickEntry(entries, raycaster)
+    const object = title.objects.find(item => item.id === id)
+    if (object) select(object)
+  }
+
   function noMenu(event) {
     if (navigable.value) event.preventDefault()
   }
@@ -355,6 +370,8 @@
     renderer.domElement.addEventListener("pointermove", moveView)
     renderer.domElement.addEventListener("pointerup", dropView)
     renderer.domElement.addEventListener("pointercancel", dropView)
+    renderer.domElement.addEventListener("pointerdown", pressText)
+    renderer.domElement.addEventListener("click", pickText)
     renderer.domElement.addEventListener("contextmenu", noMenu)
     observer = new ResizeObserver(() => {
       const w = host.value.clientWidth
@@ -488,11 +505,11 @@
     position: relative;
     z-index: 1;
     display: block;
+    user-select: none;
   }
 
   .viewport.navigable :deep(canvas) {
     cursor: grab;
-    user-select: none;
   }
 
   .viewport.panning :deep(canvas) {
