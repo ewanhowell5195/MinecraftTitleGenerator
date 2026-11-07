@@ -2,6 +2,7 @@ import { RegExpMatcher, englishDataset, englishRecommendedTransformers } from "o
 import { LIMITS } from "../lib/limits.js"
 import { decodeTitle, unknownSetting } from "../lib/linkformat.js"
 import { capitalWords } from "../lib/names.js"
+import { pictureUrl } from "../lib/pictures.js"
 import { parseSearch } from "../lib/presetSearch.js"
 import { FILE_VERSION, typeDefaults } from "../lib/settings.js"
 import { USER_ROW, forgetUnusedUser, saveUser, signedInUser } from "./accounts.js"
@@ -244,20 +245,32 @@ export function presetPageDetails(name, id) {
   return { title: `${name} | ${SITE_NAME}`, description: `Open ${name} in the ${SITE_NAME}, then change it and render it as an image.`, path: `/app/presets/${id}` }
 }
 
+function pageWithDetails(page, { title, description, url, canonical = url, image }) {
+  const tags = [["og:type", "website"], ["og:site_name", SITE_NAME], ["og:url", url], ["og:title", title], ["og:description", description]].concat(image ? [["og:image", image]] : [])
+  const card = image ? '<meta name="twitter:card" content="summary_large_image">' : ""
+  return new HTMLRewriter()
+    .on("title", { element: element => element.setInnerContent(title) })
+    .on('meta[name="description"]', { element: element => element.setAttribute("content", description) })
+    .on('link[rel="canonical"]', { element: element => element.setAttribute("href", canonical) })
+    .on("head", { element: element => element.append(tags.map(([property, content]) => `<meta property="${property}" content="${escaped(content)}">`).join("") + card, { html: true }) })
+    .transform(page)
+}
+
 export async function presetPage({ env, params, request }) {
   const page = await env.ASSETS.fetch(new URL("/app/", request.url))
   const id = Number(params.id?.[0])
   const known = params.id?.length === 1 && Number.isSafeInteger(id) && id > 0
-  const preset = known ? await env.DB.prepare("SELECT name FROM presets WHERE id = ? AND shared = 1").bind(id).first() : null
+  const preset = known ? await env.DB.prepare("SELECT name, fingerprint FROM presets WHERE id = ? AND shared = 1").bind(id).first() : null
   const { title, description, path } = presetPageDetails(preset?.name ?? null, id)
-  const url = `${new URL(request.url).origin}${path}`
-  const tags = [["og:type", "website"], ["og:site_name", SITE_NAME], ["og:url", url], ["og:title", title], ["og:description", description]]
-  return new HTMLRewriter()
-    .on("title", { element: element => element.setInnerContent(title) })
-    .on('meta[name="description"]', { element: element => element.setAttribute("content", description) })
-    .on('link[rel="canonical"]', { element: element => element.setAttribute("href", url) })
-    .on("head", { element: element => element.append(tags.map(([property, content]) => `<meta property="${property}" content="${escaped(content)}">`).join(""), { html: true }) })
-    .transform(page)
+  return pageWithDetails(page, { title, description, url: `${new URL(request.url).origin}${path}`, image: preset?.fingerprint ? pictureUrl(preset, "png") : null })
+}
+
+export async function appPage({ env, next, request }) {
+  const url = new URL(request.url)
+  const code = url.searchParams.get("title")
+  if (!code || !/^[0-9A-Za-z_-]+$/.test(code) || code.length > LIMITS.code) return next()
+  const page = await env.ASSETS.fetch(new URL("/app/", request.url))
+  return pageWithDetails(page, { title: SITE_NAME, description: "Open this title in the generator, then change it and render it as an image.", url: url.href, canonical: `${url.origin}/app/`, image: pictureUrl({ code }, "png") })
 }
 
 async function hiddenPreset({ request, env }, body, user) {
