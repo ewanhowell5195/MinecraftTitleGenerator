@@ -42,6 +42,8 @@ export default {
     let frame = 0
     let line = null
     let shown = null
+    let paintedKey = null
+    let builtFrom = null
 
     const source = computed(() => {
       if (object.textureSource === "gradient") return "gradient"
@@ -263,13 +265,17 @@ export default {
 
     async function paint() {
       const value = look.value
+      const key = JSON.stringify(value)
+      if (key === paintedKey) return
       const token = ++paintRequest
       try {
         const assets = await loadAssets(value)
         if (token !== paintRequest) return
         shaped.value = assets.base ? shapeFont(font.value, sheet.value, assets.base) : font.value
         painted.value = { font: value.font, scale: R, edge: 1 / Math.min(...assets.densities, 4), edgeOnly: value.source === "tile", look: value, assets }
+        paintedKey = key
       } catch (err) {
+        paintedKey = null
         if (token === paintRequest) error.value = err.message
       }
     }
@@ -335,6 +341,9 @@ export default {
       if (!font.value || !painted.value) return
       const { words: list, word, lineDepth, ...options } = inputs.value
       const source = shaped.value?.id === font.value.id ? shaped.value : font.value
+      const inputsKey = JSON.stringify(inputs.value)
+      if (builtFrom?.painted === painted.value && builtFrom.source === source && builtFrom.inputsKey === inputsKey) return
+      builtFrom = { painted: painted.value, source, inputsKey }
       try {
         const { arced, own } = lineFor(source, list, word, options)
         measure(arced?.reach ?? { top: 0, bottom: 0 })
@@ -345,10 +354,11 @@ export default {
           return
         }
         built.value = buildText(source, { ...options, lineDepth, placed: arced.placed, line: arced.line, ends: arced.ends, sheet: arced.sheet, painted: own })
-        const thumbnail = thumbnailItems(source, arced.placed)
+        const thumbnail = view.previews === false ? [] : thumbnailItems(source, arced.placed)
         preview.value = thumbnail.length ? previewFor(source, options, thumbnail, arced.sheet, own) : null
         error.value = null
       } catch (err) {
+        builtFrom = null
         built.value = null
         preview.value = null
         error.value = err.message

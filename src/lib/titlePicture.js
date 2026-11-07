@@ -20,7 +20,7 @@ const STAGE_HEIGHT = 500
 const PICTURE_WIDTH = 935
 const PICTURE_QUALITY = 0.85
 const TIME_LIMIT = 180000
-const VIEW = { render: false, fov: DEFAULT_FOV, fixedDistance: false }
+const VIEW = { render: false, fov: DEFAULT_FOV, fixedDistance: false, previews: false }
 const NOTHING_RENDERED = createRenderer({ insert() {}, remove() {}, createElement: () => ({}), createText: () => ({}), createComment: () => ({}), setText() {}, setElementText() {}, parentNode: () => null, nextSibling: () => null, patchProp() {} })
 
 let library = null
