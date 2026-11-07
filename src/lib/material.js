@@ -1,4 +1,4 @@
-import { canvasOf, surface } from "./canvas.js"
+import { surface } from "./canvas.js"
 import { hexOf, rgbOf } from "./colour.js"
 import { clamp } from "./maths.js"
 
@@ -371,21 +371,38 @@ export function buildAtlas(faces, options) {
     }) })
   }
 
-  function shadeFace(rect, fill, amount, back, front, horizontal) {
-    const { x, y, width, height } = rect
-    ctx.globalCompositeOperation = "source-atop"
+  function fillRects(fill, rects) {
     ctx.fillStyle = fill
-    ctx.fillRect(x * SCALE, y * SCALE, width * SCALE, height * SCALE)
-    if (amount !== null) {
+    ctx.beginPath()
+    for (const { x, y, width, height } of rects) ctx.rect(x * SCALE, y * SCALE, width * SCALE, height * SCALE)
+    ctx.fill()
+  }
+
+  function fadeGradient(fade, back, front, horizontal) {
+    const gradient = horizontal ? ctx.createLinearGradient(front, 0, back, 0) : ctx.createLinearGradient(0, front, 0, back)
+    gradient.addColorStop(0, clear)
+    gradient.addColorStop(1 - fade, painted.border)
+    gradient.addColorStop(1, painted.border)
+    return gradient
+  }
+
+  function shadeFaces(shades) {
+    const fills = new Map()
+    const gradients = new Map()
+    for (const [rect, fill, amount, back, front, horizontal] of shades) {
+      if (!fills.has(fill)) fills.set(fill, [])
+      fills.get(fill).push(rect)
+      if (amount === null) continue
       const fade = clamp(amount, 0, 1)
-      const gradient = horizontal ? ctx.createLinearGradient(front, 0, back, 0) : ctx.createLinearGradient(0, front, 0, back)
-      gradient.addColorStop(0, clear)
-      gradient.addColorStop(1 - fade, painted.border)
-      gradient.addColorStop(1, painted.border)
-      ctx.fillStyle = gradient
-      ctx.fillRect(x * SCALE, y * SCALE, width * SCALE, height * SCALE)
+      const key = [fade, back, front, horizontal].join()
+      if (!gradients.has(key)) gradients.set(key, { gradient: fadeGradient(fade, back, front, horizontal), rects: [] })
+      gradients.get(key).rects.push(rect)
+      const { x, y, width, height } = rect
       if (typeof fill === "string") addFade(x * SCALE, y * SCALE, (x + width) * SCALE, (y + height) * SCALE, horizontal ? [front, 0] : [0, front], horizontal ? [back, 0] : [0, back], fade)
     }
+    ctx.globalCompositeOperation = "source-atop"
+    for (const [fill, rects] of fills) fillRects(fill, rects)
+    for (const { gradient, rects } of gradients.values()) fillRects(gradient, rects)
     ctx.globalCompositeOperation = "source-over"
   }
 
@@ -421,11 +438,25 @@ export function buildAtlas(faces, options) {
   }
 
   const tiles = painted.tiles ? ctx.createPattern(painted.tiles, "repeat") : null
-  const lines = tiles || !packed.length ? null : canvasOf(Math.max(...packed.map(face => face.rect.width)) * R, Math.max(...packed.map(face => face.rect.height)) * R)
+  const linesTop = Math.min(...packed.map(face => face.rect.y)) * SCALE
+  const shades = []
+  let lines = null
 
   function drawLine(row, { x, y, width, height }) {
-    lines.ctx.putImageData(row, 0, 0)
-    ctx.drawImage(lines.canvas, 0, 0, row.width, row.height, x * SCALE, y * SCALE, width * SCALE, height * SCALE)
+    lines ??= new ImageData(canvas.width, Math.max(...packed.map(face => face.rect.y + face.rect.height)) * SCALE - linesTop)
+    const columns = width * SCALE
+    const rows = height * SCALE
+    for (let dy = 0; dy < rows; dy++) {
+      const from = Math.floor(dy * row.height / rows) * row.width
+      let to = ((y * SCALE - linesTop + dy) * lines.width + x * SCALE) * 4
+      for (let dx = 0; dx < columns; dx++) {
+        const at = (from + Math.floor(dx * row.width / columns)) * 4
+        lines.data[to++] = row.data[at]
+        lines.data[to++] = row.data[at + 1]
+        lines.data[to++] = row.data[at + 2]
+        lines.data[to++] = row.data[at + 3]
+      }
+    }
   }
 
   function tile(rect, column = 0) {
@@ -465,7 +496,7 @@ export function buildAtlas(faces, options) {
           sideSum[3] += repeat
         }
       }
-      shadeFace(face.rect, sideFill(face, block, span), options.sideFade, x * SCALE, (x + width) * SCALE, true)
+      shades.push([face.rect, sideFill(face, block, span), options.sideFade, x * SCALE, (x + width) * SCALE, true])
       if (options.sideFade === null && sideGradient && sideGradient.direction !== "along") addGradient(face.rect, [0, y + span.max - shared.minY], [0, y + span.max - shared.maxY], sideGradient.stops)
       continue
     }
@@ -478,12 +509,15 @@ export function buildAtlas(faces, options) {
     const edge = face.kind === "top" ? row * R : (row + 1) * R - 1
     if (tiles) tile(face.rect, painted.tilesAcrossLine ? column - entry.x + entry.glyph.lineX : 0)
     else drawLine(cornerPixels(painted, column * R, edge, width * R, false, face.kind === "top" ? 1 : -1), face.rect)
-    shadeFace(face.rect, innerFill(face, block, span, level), options.internalFade, back, front, false)
+    shades.push([face.rect, innerFill(face, block, span, level), options.internalFade, back, front, false])
     if (options.internalFade === null && innerGradient && innerGradient.direction !== "up") {
       const start = x - Math.round(span.min - block.own.minX) - entry.glyph.wordX
       addGradient(face.rect, [start, 0], [start + sheet.wordWidth, 0], innerGradient.stops)
     }
   }
+
+  if (lines) ctx.putImageData(lines, 0, linesTop)
+  shadeFaces(shades)
 
   if (swatch) {
     ctx.fillStyle = painted.border

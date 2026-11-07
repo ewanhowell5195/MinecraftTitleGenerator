@@ -48,6 +48,12 @@ function fillRect(ctx, [x, y, w, h]) {
   ctx.fillRect(x * R, y * R, w * R, h * R)
 }
 
+function fillRects(ctx, rects) {
+  ctx.beginPath()
+  for (const [x, y, w, h] of rects) ctx.rect(x * R, y * R, w * R, h * R)
+  ctx.fill()
+}
+
 function gradientFill(ctx, [x0, y0], [x1, y1], stops) {
   const gradient = ctx.createLinearGradient(x0 * R, y0 * R, x1 * R, y1 * R)
   for (const stop of stops) gradient.addColorStop(stop.position, stop.colour)
@@ -73,14 +79,20 @@ function gradientEnds(entry, look, capHeight, sheet) {
   return { from, to, top, bottom }
 }
 
+function adjustmentsOf(look) {
+  return [look.hue, look.saturation, look.brightness, look.contrast, look.blend, look.colour, look.colourOpacity]
+}
+
 function paintedStops(look) {
   const stops = gradientStops(look.stops, look.smooth)
-  const row = surface(stops.length, 1)
-  for (const [index, stop] of stops.entries()) {
-    row.ctx.fillStyle = stop.colour
-    row.ctx.fillRect(index, 0, 1, 1)
-  }
-  const { data } = adjusted(row.canvas, look, { willReadFrequently: true }).ctx.getImageData(0, 0, stops.length, 1)
+  const data = remember(adjustedColours, JSON.stringify([stops, adjustmentsOf(look)]), () => {
+    const row = surface(stops.length, 1)
+    for (const [index, stop] of stops.entries()) {
+      row.ctx.fillStyle = stop.colour
+      row.ctx.fillRect(index, 0, 1, 1)
+    }
+    return adjusted(row.canvas, look, { willReadFrequently: true }).ctx.getImageData(0, 0, stops.length, 1).data
+  })
   return stops.map((stop, index) => ({ position: stop.position, colour: data[index * 4] | data[index * 4 + 1] << 8 | data[index * 4 + 2] << 16 }))
 }
 
@@ -188,17 +200,27 @@ function paintTiles(ctx, entries, look, image, capHeight) {
   }
 }
 
+function stripRuns(map) {
+  const runs = []
+  for (const [row, from] of map.entries()) {
+    const last = runs.at(-1)
+    if (last && row === last.row + last.height && from - row === last.from - last.row) last.height++
+    else runs.push({ row, from, height: 1 })
+  }
+  return runs
+}
+
 function paintStrip(ctx, entries, strip) {
   const pattern = ctx.createPattern(strip.image, "repeat")
   ctx.fillStyle = pattern
   for (const entry of entries) {
     const { glyph, source } = entry
     const origin = strip.tiling === "character" ? entry.x : entry.x - glyph.lineX
-    for (const [row, from] of glyph.arc.map.entries()) {
+    for (const { row, from, height } of stripRuns(glyph.arc.map)) {
       const band = strip.depth + strip.top - 1 - (source.glyph.bottom + from)
       const y = entry.top + glyph.height - 1 - row
       pattern.setTransform(new DOMMatrix().translate(origin * R, (y - band) * R).scale(R / strip.density))
-      fillRect(ctx, [entry.x, y, entry.width, 1])
+      fillRect(ctx, [entry.x, y - height + 1, entry.width, height])
     }
     for (const [y, from, depth] of [[entry.up, 0, entry.upHeight], [entry.down, strip.depth + strip.top - strip.bottom, entry.downHeight]]) {
       const stretch = depth / strip.depth
@@ -252,6 +274,7 @@ function colourOverlay(mask, layer) {
 
 const ids = new WeakMap()
 const overlays = new WeakMap()
+const adjustedColours = new Map()
 let nextId = 0
 
 export function idOf(value) {
@@ -292,9 +315,7 @@ export function paintBase(sheet, look, assets, capHeight) {
     else paintTiles(base.ctx, entries, look, assets.tile, capHeight)
     if (look.source !== "strip") {
       base.ctx.fillStyle = `rgba(0, 0, 0, ${(100 - look.edgeBrightness) / 100})`
-      for (const entry of entries) {
-        for (const rect of strips(entry)) fillRect(base.ctx, rect)
-      }
+      fillRects(base.ctx, entries.flatMap(strips))
     }
     if (assets.fontOverlay) base.ctx.drawImage(assets.fontOverlay, 0, 0)
     base.ctx.globalCompositeOperation = "destination-in"
@@ -356,10 +377,12 @@ function overlayLabels(sheet, layers, capHeight, width, height) {
 }
 
 function borderOf(look, assets) {
-  const pixel = surface(1, 1, { willReadFrequently: true })
-  pixel.ctx.fillStyle = look.customBorder ? look.borderColour : assets.border
-  pixel.ctx.fillRect(0, 0, 1, 1)
-  return (look.customBorder ? pixel : adjusted(pixel.canvas, look, { willReadFrequently: true })).ctx.getImageData(0, 0, 1, 1).data
+  return remember(adjustedColours, JSON.stringify(look.customBorder ? look.borderColour : [assets.border, adjustmentsOf(look)]), () => {
+    const pixel = surface(1, 1, { willReadFrequently: true })
+    pixel.ctx.fillStyle = look.customBorder ? look.borderColour : assets.border
+    pixel.ctx.fillRect(0, 0, 1, 1)
+    return (look.customBorder ? pixel : adjusted(pixel.canvas, look, { willReadFrequently: true })).ctx.getImageData(0, 0, 1, 1).data
+  })
 }
 
 export function paintSheet(sheet, look, assets, capHeight, base = paintBase(sheet, look, assets, capHeight)) {
@@ -374,10 +397,12 @@ export function paintSheet(sheet, look, assets, capHeight, base = paintBase(shee
     work.ctx.globalCompositeOperation = "source-atop"
     const stops = look.edgeFill === "gradient" ? gradientStops(look.edgeStops, look.edgeSmooth) : null
     work.ctx.fillStyle = look.edgeColour
-    for (const entry of entries) {
-      if (stops) work.ctx.fillStyle = gradientFill(work.ctx, [entry.x - entry.glyph.wordX, 0], [entry.x - entry.glyph.wordX + sheet.wordWidth, 0], stops)
-      for (const rect of strips(entry)) fillRect(work.ctx, rect)
-    }
+    if (stops) {
+      for (const entry of entries) {
+        work.ctx.fillStyle = gradientFill(work.ctx, [entry.x - entry.glyph.wordX, 0], [entry.x - entry.glyph.wordX + sheet.wordWidth, 0], stops)
+        fillRects(work.ctx, strips(entry))
+      }
+    } else fillRects(work.ctx, entries.flatMap(strips))
   }
   work.ctx.globalCompositeOperation = "source-over"
 
@@ -413,17 +438,24 @@ export function paintSheet(sheet, look, assets, capHeight, base = paintBase(shee
   if (look.fade) {
     const fade = clamp(look.outerFade / 100, 0, 1)
     work.ctx.globalCompositeOperation = "source-atop"
+    const rows = new Map()
     for (const entry of entries) {
-      for (const [x, y, w, h] of strips(entry)) {
+      for (const rect of strips(entry)) {
+        const [, y, , h] = rect
         const far = y === entry.up ? y : y + h
         const near = y === entry.up ? y + h : y
-        const gradient = work.ctx.createLinearGradient(0, near * R, 0, far * R)
-        gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0)`)
-        gradient.addColorStop(1 - fade, border)
-        gradient.addColorStop(1, border)
-        work.ctx.fillStyle = gradient
-        fillRect(work.ctx, [x, y, w, h])
+        const key = `${near},${far}`
+        if (!rows.has(key)) rows.set(key, { near, far, rects: [] })
+        rows.get(key).rects.push(rect)
       }
+    }
+    for (const { near, far, rects } of rows.values()) {
+      const gradient = work.ctx.createLinearGradient(0, near * R, 0, far * R)
+      gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0)`)
+      gradient.addColorStop(1 - fade, border)
+      gradient.addColorStop(1, border)
+      work.ctx.fillStyle = gradient
+      fillRects(work.ctx, rects)
     }
     work.ctx.globalCompositeOperation = "source-over"
   }
