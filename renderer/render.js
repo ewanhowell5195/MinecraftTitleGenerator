@@ -1,7 +1,7 @@
 import { forgetImages } from "../src/lib/assets.js"
 import { usePlatform } from "../src/lib/platform.js"
 import { titleCanvas } from "../src/lib/titlePicture.js"
-import { checkTitle, checkWords } from "../src/server/presets.js"
+import { checkTitle } from "../src/server/presets.js"
 import { useNode } from "./platform.js"
 
 await useNode()
@@ -53,7 +53,7 @@ function parentAnsweredAsset({ asset, bytes, error }) {
 }
 
 async function renderRequested(code, { check, ...options }) {
-  if (check) checkWords("title", checkTitle(code).all)
+  if (check) checkTitle(code)
   const picture = await renderTitle(code, options)
   if (!picture) throw new Error("the title has nothing to draw")
   return picture

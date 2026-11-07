@@ -237,6 +237,10 @@ describe("render process", () => {
     assert.ok((await requested(title)).picture)
   })
 
+  test("renders a title the word filter would refuse", async () => {
+    assert.ok((await requested(code(line({ text: "the sex update", texture: "cracked" })), { check: true })).picture)
+  })
+
   test("refuses a broken code", async () => {
     assert.ok((await requested("garbage")).error)
   })

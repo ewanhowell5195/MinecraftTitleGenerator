@@ -82,7 +82,7 @@ export function checkTitle(code) {
   return facts
 }
 
-export function checkWords(label, text) {
+function checkWords(label, text) {
   if (rude.hasMatch(text)) throw new Refusal(400, `The ${label} has a word in it that isn't allowed.`)
 }
 
