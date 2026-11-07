@@ -16,8 +16,8 @@
   const terminators = usePanel("terminators")
   const entry = computed(() => library.fonts.find(item => item.id === object.value.font))
   const baseId = computed(() => entry.value?.variant ?? object.value.font)
-  const baseFonts = computed(() => popular(library.fonts.filter(item => !item.variant), item => item.id, ["minecraft-ten"]))
-  const variants = computed(() => popular(library.fonts.filter(item => item.variant === baseId.value), item => item.id))
+  const baseFonts = computed(() => popular(library.fonts.filter(item => !item.variant), item => item.id, item => item.name, ["minecraft-ten"]))
+  const variants = computed(() => popular(library.fonts.filter(item => item.variant === baseId.value), item => item.id, item => item.name))
 
   const characters = computed(() => {
     if (!font.value) return ""

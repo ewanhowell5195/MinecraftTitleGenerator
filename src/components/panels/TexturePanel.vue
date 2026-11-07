@@ -35,10 +35,10 @@
   const textures = computed(() => {
     const entries = Object.entries(list.value?.textures ?? {})
     const statId = id => `${font.value?.id}.${id}`
-    return popular(entries, ([id]) => statId(id), [statId("flat"), statId(entries[1]?.[0])])
+    return popular(entries, ([id]) => statId(id), ([id, data]) => label(id, data), [statId("flat"), statId(entries[1]?.[0])])
   })
-  const tileables = computed(() => popular(Object.entries(library.tileables), ([id]) => `tileable.${id}`))
-  const blockEntries = computed(() => popular(Array.from(blocks.value ?? []).filter(([id, { opaque }]) => opaque || id === object.value.minecraftTexture).map(([id, { url }]) => [id, { name: blockName(id), author: "Mojang", url }]), ([id]) => minecraftStatId(id)))
+  const tileables = computed(() => popular(Object.entries(library.tileables), ([id]) => `tileable.${id}`, ([id, data]) => label(id, data)))
+  const blockEntries = computed(() => popular(Array.from(blocks.value ?? []).filter(([id, { opaque }]) => opaque || id === object.value.minecraftTexture).map(([id, { url }]) => [id, { name: blockName(id), author: "Mojang", url }]), ([id]) => minecraftStatId(id), ([, data]) => data.name))
   const shownBlocks = computed(() => searched(blockEntries.value, object.value.minecraftTexture))
   const jarProgress = computed(() => jar.total ? jar.done / jar.total : 0)
   const textureVariants = computed(() => Object.entries(list.value?.textures[object.value.texture]?.variants ?? {}))

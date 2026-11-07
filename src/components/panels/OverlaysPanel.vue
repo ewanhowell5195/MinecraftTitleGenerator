@@ -28,7 +28,7 @@
   const modeKey = OVERLAY_KINDS[listKey]
   const { object, font, list, modified, reset } = usePanel(listKey)
   const available = computed(() => list.value?.[listKey] ?? {})
-  const overlays = computed(() => popular(Object.entries(available.value), ([id]) => `${font.value?.id}.${id}`))
+  const overlays = computed(() => popular(Object.entries(available.value), ([id]) => `${font.value?.id}.${id}`, ([id, data]) => data.name ?? titleCase(id)))
   const selected = ref(0)
   const pending = ref("generated")
   const defaults = computed(() => defaultOverlays(list.value, object.value, listKey))
