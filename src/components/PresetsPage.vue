@@ -5,10 +5,11 @@
   import { LIMITS } from "../lib/limits.js"
   import { titleBody } from "../lib/linkformat.js"
   import { notice } from "../lib/notices.js"
-  import { addPreset, deleteSharedPreset, loadPreset, presets, presetsError, presetsLoading, removePreset, renamePreset, renameSharedPreset, unmarkShared, unsharePreset } from "../lib/presets.js"
+  import { addPreset, deleteSharedPreset, loadPreset, presets, presetsError, presetsLoaded, presetsLoading, removePreset, renamePreset, renameSharedPreset, unmarkShared, unsharePreset } from "../lib/presets.js"
   import { parseSearch, searchWithUser } from "../lib/presetSearch.js"
-  import { closePresetsPage, leavePresetsForEditor, presetsPage, showPreset } from "../lib/presetsPage.js"
+  import { closePresetsPage, leavePresetsForEditor, openLinkInEditor, presetsPage, showOwnPreset, showPreset } from "../lib/presetsPage.js"
   import { providerLabel } from "../lib/providers.js"
+  import { openSharedLink } from "../lib/share.js"
   import AccountMenu from "./AccountMenu.vue"
   import DeletePresetDialog from "./DeletePresetDialog.vue"
   import Dropdown from "./Dropdown.vue"
@@ -24,7 +25,7 @@
   const SEARCH_DELAY = 500
   const EDITOR_TITLE = "Minecraft Title Generator"
 
-  const tab = ref(presetsPage.fromEditor && presetsPage.id === null && presets.value.length ? "mine" : "community")
+  const tab = ref(presetsPage.code !== null || presetsPage.fromEditor && presetsPage.id === null && presets.value.length ? "mine" : "community")
   const sort = ref("week")
   const search = ref("")
   const results = ref([])
@@ -89,16 +90,36 @@
   function clearSelection() {
     selectedCommunity.value = null
     selectedLocalCode.value = null
-    if (presetsPage.id !== null) showPreset(null)
+    if (presetsPage.id !== null || presetsPage.code !== null) showPreset(null)
+  }
+
+  async function followOwnLink(code) {
+    await refreshAccount()
+    await presetsLoaded()
+    if (presetsPage.code !== code) return
+    const own = presets.value.find(preset => titleBody(preset.code) === titleBody(code))
+    if (!own) {
+      openLinkInEditor(code)
+      openSharedLink()
+      return
+    }
+    tab.value = "mine"
+    await nextTick()
+    selectedLocalCode.value = own.code
   }
 
   async function followAddress() {
-    const { id } = presetsPage
-    if (id === null) {
-      selectedCommunity.value = null
+    const { id, code } = presetsPage
+    if (code !== null) {
+      if (selectedLocal.value?.code !== code) await followOwnLink(code)
       return
     }
-    if (selectedCommunity.value?.id === id) return
+    if (id === null) {
+      selectedCommunity.value = null
+      selectedLocalCode.value = null
+      return
+    }
+    if (selectedLocal.value?.shared === id || selectedCommunity.value?.id === id) return
     tab.value = "community"
     error.value = ""
     try {
@@ -236,11 +257,20 @@
   watch(tab, value => {
     search.value = ""
     selectedLocalCode.value = null
-    if (value === "community") load(0)
-    else {
+    if (value === "community") {
+      load(0)
+      if (presetsPage.code !== null) showPreset(null)
+      else if (presetsPage.id !== null && !selectedCommunity.value) followAddress()
+    } else {
       selectedCommunity.value = null
       if (presetsPage.id !== null) showPreset(null)
     }
+  })
+  watch(selectedLocal, (preset, before) => {
+    if (tab.value !== "mine") return
+    if (preset?.shared) showPreset(preset.shared)
+    else if (preset) showOwnPreset(preset.code)
+    else if (before && (presetsPage.id !== null || presetsPage.code !== null)) showPreset(null)
   })
   watch(sort, () => load(0))
   watch([tab, sharedIds], loadStats, { immediate: true })
@@ -252,7 +282,7 @@
     if (tab.value !== "community" || tooShort.value) return
     searching = setTimeout(() => load(0), SEARCH_DELAY)
   })
-  watch(() => presetsPage.id, followAddress)
+  watch(() => [presetsPage.id, presetsPage.code], followAddress)
   watchEffect(() => {
     const name = tab.value === "community" ? selectedCommunity.value?.name : null
     document.title = `${name ?? "Presets"} | ${EDITOR_TITLE}`

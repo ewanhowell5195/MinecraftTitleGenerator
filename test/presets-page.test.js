@@ -3,7 +3,23 @@ import assert from "node:assert/strict"
 
 globalThis.location = { pathname: "/app/", origin: "https://example.test" }
 
-const { presetLink, readPresetPath } = await import("../src/lib/presetsPage.js")
+const { openLinkInEditor, presetLink, presetsPage, readPresetPath, showOwnPreset, showPreset } = await import("../src/lib/presetsPage.js")
+
+function setAddress(address) {
+  const { pathname, search } = new URL(address, "https://example.test")
+  Object.assign(location, { pathname, search })
+}
+
+const pushed = []
+globalThis.history = {
+  pushState(state, title, address) {
+    pushed.push(address)
+    setAddress(address)
+  },
+  replaceState(state, title, address) {
+    setAddress(address)
+  }
+}
 
 describe("preset addresses", () => {
   for (const [path, expected] of [
@@ -26,5 +42,33 @@ describe("preset addresses", () => {
 
   test("links use the current site", () => {
     assert.equal(presetLink(12), "https://example.test/app/presets/12")
+  })
+
+  test("an unshared preset keeps its code in the address", () => {
+    pushed.length = 0
+    showOwnPreset("abc")
+    assert.equal(location.search, "?title=abc")
+    assert.equal(presetsPage.code, "abc")
+    assert.equal(presetsPage.id, null)
+    showOwnPreset("def")
+    assert.equal(presetsPage.code, "def")
+    assert.deepEqual(pushed, ["/app/presets?title=abc"])
+  })
+
+  test("a shared preset's address has no code", () => {
+    showOwnPreset("abc")
+    showPreset(12)
+    assert.equal(presetsPage.id, 12)
+    assert.equal(presetsPage.code, null)
+    assert.equal(location.search, "")
+  })
+
+  test("someone else's preset link opens the editor", () => {
+    showOwnPreset("abc")
+    openLinkInEditor("abc")
+    assert.equal(location.pathname, "/app/")
+    assert.equal(location.search, "?title=abc")
+    assert.equal(presetsPage.open, false)
+    assert.equal(presetsPage.code, null)
   })
 })

@@ -256,8 +256,20 @@ function pageWithDetails(page, { title, description, url, canonical = url, image
     .transform(page)
 }
 
+function linkedCode(url) {
+  const code = url.searchParams.get("title")
+  return code && /^[0-9A-Za-z_-]+$/.test(code) && code.length <= LIMITS.code ? code : null
+}
+
+function linkedTitlePage(page, url, code, canonical) {
+  return pageWithDetails(page, { title: SITE_NAME, description: "Open this title in the generator, then change it and render it as an image.", url: url.href, canonical: `${url.origin}${canonical}`, image: pictureUrl({ code }, "png") })
+}
+
 export async function presetPage({ env, params, request }) {
   const page = await env.ASSETS.fetch(new URL("/app/", request.url))
+  const address = new URL(request.url)
+  const code = params.id?.length ? null : linkedCode(address)
+  if (code) return linkedTitlePage(page, address, code, "/app/presets")
   const id = Number(params.id?.[0])
   const known = params.id?.length === 1 && Number.isSafeInteger(id) && id > 0
   const preset = known ? await env.DB.prepare("SELECT name, fingerprint FROM presets WHERE id = ? AND shared = 1").bind(id).first() : null
@@ -267,10 +279,9 @@ export async function presetPage({ env, params, request }) {
 
 export async function appPage({ env, next, request }) {
   const url = new URL(request.url)
-  const code = url.searchParams.get("title")
-  if (!code || !/^[0-9A-Za-z_-]+$/.test(code) || code.length > LIMITS.code) return next()
-  const page = await env.ASSETS.fetch(new URL("/app/", request.url))
-  return pageWithDetails(page, { title: SITE_NAME, description: "Open this title in the generator, then change it and render it as an image.", url: url.href, canonical: `${url.origin}/app/`, image: pictureUrl({ code }, "png") })
+  const code = linkedCode(url)
+  if (!code) return next()
+  return linkedTitlePage(await env.ASSETS.fetch(new URL("/app/", request.url)), url, code, "/app/")
 }
 
 async function hiddenPreset({ request, env }, body, user) {

@@ -21,6 +21,7 @@ export const namingShared = ref(false)
 export const namingCode = ref("")
 
 let opening = 0
+let presetsOpened = null
 let queue = Promise.resolve()
 
 function read() {
@@ -128,7 +129,13 @@ async function openAccount(id, previous) {
   }
 }
 
-watch(() => account.value?.id ?? null, openAccount, { immediate: true, flush: "sync" })
+watch(() => account.value?.id ?? null, (id, previous) => {
+  presetsOpened = openAccount(id, previous)
+}, { immediate: true, flush: "sync" })
+
+export function presetsLoaded() {
+  return presetsOpened
+}
 
 function uniqueName(name, taken = new Set(presets.value.map(preset => preset.name))) {
   if (!taken.has(name)) return name

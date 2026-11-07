@@ -1,9 +1,10 @@
 import { reactive } from "vue"
+import { TITLE_PARAM } from "./scene.js"
 
 const PATH = "/app/presets"
 const EDITOR = "/app/"
 
-export const presetsPage = reactive({ open: false, id: null, fromEditor: false })
+export const presetsPage = reactive({ open: false, id: null, code: null, fromEditor: false })
 
 let returnTo = EDITOR
 
@@ -19,7 +20,9 @@ export function presetLink(id) {
 }
 
 export function syncPresetsPage() {
-  Object.assign(presetsPage, readPresetPath(location.pathname))
+  const { open, id } = readPresetPath(location.pathname)
+  const code = open && id === null ? new URLSearchParams(location.search).get(TITLE_PARAM) : null
+  Object.assign(presetsPage, { open, id, code })
 }
 
 export function openPresetsPage() {
@@ -29,11 +32,25 @@ export function openPresetsPage() {
   syncPresetsPage()
 }
 
-export function showPreset(id, { replace = presetsPage.id !== null } = {}) {
-  const path = id === null ? PATH : `${PATH}/${id}`
-  if (replace) history.replaceState(null, "", path)
+function showAddress(path) {
+  if (presetsPage.id !== null || presetsPage.code !== null) history.replaceState(null, "", path)
   else history.pushState(null, "", path)
   syncPresetsPage()
+}
+
+export function showPreset(id) {
+  showAddress(id === null ? PATH : `${PATH}/${id}`)
+}
+
+export function showOwnPreset(code) {
+  showAddress(`${PATH}?${TITLE_PARAM}=${code}`)
+}
+
+export function openLinkInEditor(code) {
+  history.replaceState(null, "", `${EDITOR}?${TITLE_PARAM}=${code}`)
+  syncPresetsPage()
+  presetsPage.fromEditor = false
+  returnTo = EDITOR
 }
 
 export function closePresetsPage(to = returnTo) {
