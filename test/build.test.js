@@ -27,7 +27,7 @@ describe("rowBottom", () => {
 
 globalThis.document = { createElement: () => ({ getContext: () => ({ fillRect() {} }) }) }
 
-const PAINTED = { scale: 1, canvas: {}, border: "rgb(0, 0, 0)", tiles: null, edgeAverage: () => "#123456" }
+const PAINTED = { scale: 1, canvas: {}, border: "rgb(0, 0, 0)", tiles: null, fade: null, edgeAverage: () => "#123456" }
 
 function glyph(char, width, height, extra = {}) {
   return { char, width, height, bottom: 0, mask: new Uint8Array(width * height).fill(1), ...extra }
@@ -337,6 +337,36 @@ describe("buildText", () => {
 
   test("throws when the atlas would pass the texture limit", () => {
     assert.throws(() => text([place(glyph("w", 2000, 1), 0)]), /over the 4096 limit/)
+  })
+})
+
+describe("the rear of the text", () => {
+  function coordinates(body, zOf) {
+    const list = points(body.positions)
+    const seen = new Set()
+    for (let index = 0; index < list.length; index += 3) {
+      if (list.slice(index, index + 3).every(point => point[2] === zOf)) {
+        for (const corner of [index, index + 1, index + 2]) seen.add(`${body.uvs[corner * 2]},${body.uvs[corner * 2 + 1]}`)
+      }
+    }
+    return seen
+  }
+
+  const letters = () => [place(glyph("a", 2, 2), 0), place(glyph("b", 2, 2), 3)]
+
+  test("uses the border colour swatch when the edges fade", () => {
+    const { body } = text(letters(), { painted: { ...PAINTED, fade: 0.5 }, sideFaces: true, internalFaces: true, border: 0 })
+    assert.equal(coordinates(body, -2).size, 4)
+  })
+
+  test("keeps the letter art when they don't", () => {
+    const { body } = text(letters(), { painted: { ...PAINTED, fade: null } })
+    assert.ok(coordinates(body, -2).size > 4)
+  })
+
+  test("the visible face keeps its art either way", () => {
+    const { body } = text(letters(), { painted: { ...PAINTED, fade: 0.5 } })
+    assert.ok(coordinates(body, 2).size > 4)
   })
 })
 

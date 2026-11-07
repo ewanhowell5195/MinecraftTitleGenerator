@@ -295,7 +295,7 @@ export function buildAtlas(faces, options) {
   if (sides.length) pack(sides.map(face => ({ face, width: depth, height: extent(face.points, 1).size })))
   const packed = faces.filter(face => face.rect)
 
-  const edges = faces.filter(face => face.kind === "side" ? !options.sideFaces : face.internal && !options.internalFaces)
+  const edges = faces.filter(face => face.kind === "side" ? !options.sideFaces : face.kind === "front" ? painted.fade !== null : face.internal && !options.internalFaces)
   if (edges.length || options.outline) {
     packY += PAD
     swatch = { x: 0, y: packY }
