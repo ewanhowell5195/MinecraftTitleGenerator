@@ -239,7 +239,8 @@ function drawSheet(cells, capHeight) {
     const top = y + 1
     const bottom = top + row.top - row.bottom - 1
     const baseline = top + row.top - 1
-    for (let line = top; line <= bottom; line++) setPixel(png, 0, line, line === baseline ? BASELINE : line === baseline - capHeight + 1 ? TOPLINE : GRID)
+    const topline = baseline - capHeight + 1
+    for (let line = top; line <= bottom; line++) setPixel(png, 0, line, line === baseline && line !== bottom ? BASELINE : line === topline && line !== top ? TOPLINE : GRID)
     let x = 1
     for (const { shape, width: cellWidth } of row.cells) {
       if (shape) {
@@ -283,12 +284,11 @@ const cells = glyphs.map(glyph => {
 })
 const png = drawSheet(cells, capHeight)
 
-const extents = cells.filter(cell => cell.shape)
 const space = font.charToGlyph(" ")
 const entry = { id, name: fullName }
 if (font.getEnglishName("designer")) entry.author = font.getEnglishName("designer")
 Object.assign(entry, {
-  height: Math.max(capHeight, ...extents.map(cell => cell.shape.top)) - Math.min(0, ...extents.map(cell => cell.shape.bottom)),
+  height: capHeight + defaultBorder("top", entry) * 2,
   spaceWidth: space && space.index !== 0 ? Math.round(space.advanceWidth * scale) : Math.round(capHeight / 4)
 })
 if (order !== DEFAULT_ORDER) entry.order = order
