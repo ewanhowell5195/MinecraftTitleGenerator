@@ -1,9 +1,10 @@
 import { computed, onBeforeUnmount, shallowRef, watch } from "vue"
-import { image, preload, shapeFont, sheetFor, stripRange, textureList, tileableUrl } from "../lib/assets.js"
+import { fontTextures, image, preload, shapeFont, sheetFor, stripRange, tileableUrl } from "../lib/assets.js"
 import { arcAssets, arcLayout } from "../lib/arc.js"
 import { buildOutline, buildText } from "../lib/build.js"
 import { framing } from "../lib/framing.js"
 import { hasMarks, loadFont, sheetFolder } from "../lib/font.js"
+import { stripRows } from "../lib/strips.js"
 import { thumbnailItems } from "../lib/layout.js"
 import { blockTextureImage } from "../lib/minecraft.js"
 import { R, paintBase, paintKey, paintSheet } from "../lib/paint.js"
@@ -216,13 +217,12 @@ export default {
       if (value.source === "strip") {
         const entry = textureEntry(list.value, object)
         const id = object.textureVariant ?? object.texture
-        const range = stripRange(font.value)
-        const strip = await sheetImage(`textures/${id}.png`)
-        const depth = defaultDepth(font.value)
-        const density = strip.height / (range.top - range.bottom + depth * 2)
+        const strip = await image(`${entry.folder ?? font.value.sheetFolder}/textures/${id}.png`)
+        const { depth, top, bottom, rows } = stripRows(entry, stripRange(font.value), defaultDepth(font.value))
+        const density = strip.height / rows
         const tiling = entry.tiling ?? "line"
         if (tiling !== "line" && tiling !== "character") throw new Error(`${id} has tiling "${tiling}", strips tile by "line" or "character"`)
-        assets.strip = { image: strip, density, top: range.top, bottom: range.bottom, depth, tiling }
+        assets.strip = { image: strip, density, top, bottom, depth, tiling }
         if (entry.border) assets.border = entry.border
         assets.densities.push(Math.max(1, density))
       }
@@ -376,7 +376,7 @@ export default {
       const token = ++fontRequest
       preload(sheetFolder(data, props.fonts))
       const loaded = await loadFont(data, props.fonts)
-      const [layout, textures] = await Promise.all([sheetFor(loaded), textureList(loaded.sheetFolder)])
+      const [layout, textures] = await Promise.all([sheetFor(loaded), fontTextures(loaded.sheetFolder, loaded.strips)])
       if (token !== fontRequest) return
       if (!keepTexture.has(object) && loadedFont.get(object) !== loaded.id) {
         quietly(() => {

@@ -232,7 +232,7 @@ export function loadImage(src) {
 
 const FOLDER = "font"
 
-const META = ["author", "description", "height", "depth", "border", "characterSpacing", "spaceWidth", "terminatorSpace", "forcedTerminators", "autoBorder", "flat", "overlay"]
+const META = ["author", "description", "strips", "height", "depth", "border", "characterSpacing", "spaceWidth", "terminatorSpace", "forcedTerminators", "autoBorder", "flat", "overlay"]
 
 function fontFolder(data) {
   return data.variant ? `${FOLDER}/${data.variant}/${data.id}` : `${FOLDER}/${data.id}`
@@ -240,6 +240,10 @@ function fontFolder(data) {
 
 export function sheetFolder(data, list) {
   return fontFolder(data.inherits ? list.find(entry => entry.id === data.variant) ?? data : data)
+}
+
+export function stripsOf(data, list) {
+  return (data.inherits ? list.find(entry => entry.id === data.variant) ?? data : data).strips ?? []
 }
 
 export function flattenFonts(list) {

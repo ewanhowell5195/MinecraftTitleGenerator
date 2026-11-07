@@ -1,9 +1,21 @@
 import path from "node:path"
-import { flattenFonts, fullOrder, parseMask } from "../src/lib/font.js"
+import { flattenFonts, fullOrder, parseMask, stripsOf } from "../src/lib/font.js"
 import { defaultBorder } from "../src/lib/settings.js"
+import { mergeStrips, stripFolder } from "../src/lib/strips.js"
 import { readJson, readPng } from "./common.js"
 
-const out = path.join(import.meta.dirname, "../public/font")
+export const PUBLIC = path.join(import.meta.dirname, "../public")
+const out = path.join(PUBLIC, "font")
+
+export function readStripSet(id) {
+  const folder = path.join(PUBLIC, stripFolder(id))
+  return { ...readJson(path.join(folder, "strip.json")), id, folder, textures: readJson(path.join(folder, "textures.json")).textures }
+}
+
+export function fontTextureList(entry, list) {
+  const owner = entry.inherits ? list.find(font => font.id === entry.variant) : entry
+  return mergeStrips(readJson(path.join(fontDir(owner), "textures.json")), stripsOf(entry, list).map(readStripSet))
+}
 
 export function fontDir(font) {
   return font.variant ? path.join(out, font.variant, font.id) : path.join(out, font.id)

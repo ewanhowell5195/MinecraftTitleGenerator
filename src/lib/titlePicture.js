@@ -1,9 +1,9 @@
 import { createRenderer, effectScope, reactive, watch } from "vue"
 import * as THREE from "three"
 import ObjectRenderer from "../components/ObjectRenderer.js"
-import { loadTileables, textureList } from "./assets.js"
+import { fontTextures, loadTileables } from "./assets.js"
 import { readTitleObjects } from "./file.js"
-import { loadFontList, sheetFolder } from "./font.js"
+import { loadFontList, sheetFolder, stripsOf } from "./font.js"
 import { createTitleItems } from "./items.js"
 import { decodeTitle, unknownSetting } from "./linkformat.js"
 import { keepMatched } from "./match.js"
@@ -40,7 +40,7 @@ function refuseUnknownVariant(label, entry, id, variant) {
 async function refuseUnknownNames(object, fonts, tileables) {
   const font = fonts.find(entry => entry.id === object.font)
   if (!font) throw new Error(`there is no font called ${object.font}`)
-  const list = await textureList(sheetFolder(font, fonts))
+  const list = await fontTextures(sheetFolder(font, fonts), stripsOf(font, fonts))
   if (object.textureSource === "premade" && object.texture !== null) refuseUnknownVariant(`${font.id} texture`, list.textures[object.texture], object.texture, object.textureVariant)
   if (object.textureSource === "tileable" && object.tileableSource !== "minecraft") refuseUnknownVariant("tileable", tileables[object.tileable], object.tileable, object.tileableVariant)
   for (const kind of Object.keys(OVERLAY_KINDS)) {

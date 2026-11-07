@@ -14,7 +14,7 @@
           "opacity": 73
         }
       ],
-      "basedOn": "minecraft-ten.gradient",
+      "basedOn": "strips.minecraft-ten.gradient",
       "border": "#000000",
       "variants": {
         "gradient_prerelease": {
@@ -32,18 +32,6 @@
         }
       }
     },
-    "fruit": {
-      "type": "strip",
-      "overlays": [
-        {
-          "overlay": "highlights_top",
-          "opacity": 58
-        }
-      ],
-      "author": "Ewan Howell",
-      "basedOn": "minecraft-ten.fruit",
-      "border": "#260b28"
-    },
     "neon_glow": {
       "category": "Neon",
       "basedOn": "minecraft-ten.neon_glow",
@@ -51,45 +39,6 @@
       "variants": {
         "neon": {
           "border": "#18041a"
-        }
-      }
-    },
-    "oak_planks": {
-      "type": "strip",
-      "category": "Planks",
-      "author": "Ewan Howell",
-      "basedOn": "minecraft-ten.oak_planks",
-      "border": "#322414",
-      "variants": {
-        "spruce_planks": {
-          "border": "#322618"
-        },
-        "birch_planks": {
-          "border": "#4a4129"
-        },
-        "jungle_planks": {
-          "border": "#362314"
-        },
-        "acacia_planks": {
-          "border": "#4c220d"
-        },
-        "dark_oak_planks": {
-          "border": "#1e1105"
-        },
-        "mangrove_planks": {
-          "border": "#301011"
-        },
-        "cherry_planks": {
-          "border": "#704945"
-        },
-        "bamboo_planks": {
-          "border": "#4a4129"
-        },
-        "crimson_planks": {
-          "border": "#260414"
-        },
-        "warped_planks": {
-          "border": "#072825"
         }
       }
     }

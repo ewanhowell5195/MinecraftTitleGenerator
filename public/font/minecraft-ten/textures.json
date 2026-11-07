@@ -29,115 +29,6 @@
         }
       }
     },
-    "gradient": {
-      "type": "strip",
-      "overlays": [
-        {
-          "overlay": "highlights_top",
-          "blend": "screen",
-          "colour": "#1ec877",
-          "opacity": 70
-        }
-      ],
-      "author": "Ewan Howell",
-      "border": "#000000"
-    },
-    "smooth": {
-      "type": "strip",
-      "overlays": [
-        {
-          "overlay": "highlights_bottom",
-          "blend": "lighter",
-          "colour": "#4a4a4a",
-          "opacity": 47
-        }
-      ],
-      "author": "Ewan Howell",
-      "border": "#000000",
-      "variants": {
-        "smooth_inverted": {
-          "overlays": [
-            {
-              "overlay": "highlights_top",
-              "blend": "lighter",
-              "colour": "#393939",
-              "opacity": 56
-            }
-          ],
-          "name": "Smooth (Inverted Highlight)",
-          "border": "#000000"
-        },
-        "smooth_old": {
-          "overlays": [
-            {
-              "overlay": "highlights_bottom",
-              "blend": "soft-light",
-              "colour": "#ffe3e4",
-              "opacity": 98
-            }
-          ],
-          "name": "Smooth (Old)",
-          "border": "#000000"
-        },
-        "smooth_inverted_old": {
-          "overlays": [
-            {
-              "overlay": "highlights_top",
-              "blend": "soft-light",
-              "colour": "#ffe1de",
-              "opacity": 99
-            }
-          ],
-          "name": "Smooth (Old) (Inverted Highlight)",
-          "border": "#000000"
-        }
-      }
-    },
-    "flat_coloured": {
-      "type": "strip",
-      "author": "Ewan Howell",
-      "border": "#000000"
-    },
-    "story_mode": {
-      "type": "strip",
-      "overlays": [
-        {
-          "overlay": "highlights_top",
-          "blend": "screen",
-          "colour": "#dfc184",
-          "opacity": 76
-        }
-      ],
-      "name": "Story Mode (Season 2)",
-      "category": "Story Mode",
-      "author": "Ewan Howell",
-      "border": "#000000",
-      "variants": {
-        "story_mode1": {
-          "overlays": [
-            {
-              "overlay": "highlights_top",
-              "blend": "source-over",
-              "colour": "#b08d4a"
-            }
-          ],
-          "name": "Story Mode (Season 1)",
-          "border": "#000000"
-        }
-      }
-    },
-    "mineimator": {
-      "type": "strip",
-      "overlays": [
-        {
-          "overlay": "highlights_bottom",
-          "blend": "soft-light"
-        }
-      ],
-      "name": "Mine-Imator Family",
-      "author": "ModelBench & ShrimpSnail",
-      "border": "#121833"
-    },
     "bevelled_gold": {
       "author": "CL697 & ShrimpSnail",
       "density": 4,
@@ -155,19 +46,6 @@
       "author": "Narrator2 & TheAnnoying",
       "border": "#000000"
     },
-    "deep_dark": {
-      "type": "strip",
-      "overlays": [
-        {
-          "overlay": "highlights_top",
-          "blend": "source-over",
-          "colour": "#40b2b7"
-        }
-      ],
-      "name": "Deep Dark (Wild Update)",
-      "author": "Banjoei & Shrimpsnail",
-      "border": "#000000"
-    },
     "neon_glow": {
       "category": "Neon",
       "author": "Ewan Howell",
@@ -178,43 +56,13 @@
         }
       }
     },
-    "fruit": {
-      "type": "strip",
-      "overlays": [
-        {
-          "overlay": "highlights_top",
-          "opacity": 58
-        }
-      ],
-      "author": "Ewan Howell & DamienBrittan",
-      "border": "#260b28"
-    },
     "grass": {
       "type": "strip",
-      "overlays": [
-        {
-          "overlay": "outline",
-          "colour": "#f6f6f5",
-          "opacity": 46
-        }
-      ],
-      "author": "ShrimpSnail, DamienBrittan, & blank3times",
-      "border": "#2b040c",
+      "strip": "minecraft-ten",
       "variants": {
         "flowers": {
           "type": "sheet",
           "author": "0Szysza",
-          "border": "#2b040c"
-        },
-        "grass_side": {
-          "overlays": [
-            {
-              "overlay": "outline",
-              "colour": "#f9f9f8",
-              "opacity": 45
-            }
-          ],
-          "author": "Magminer & Ewan Howell",
           "border": "#2b040c"
         },
         "grass_side_flowers": {
@@ -223,48 +71,6 @@
           "author": "0Szysza",
           "basedOn": "grass_side",
           "border": "#2b040c"
-        },
-        "podzol": {
-          "overlays": [
-            {
-              "overlay": "outline",
-              "colour": "#eae5fd",
-              "opacity": 24
-            }
-          ],
-          "border": "#2b040c"
-        },
-        "mycelium": {
-          "overlays": [
-            {
-              "overlay": "outline",
-              "colour": "#f2f4f3",
-              "opacity": 13
-            }
-          ],
-          "border": "#2b040c"
-        },
-        "crimson_nylium": {
-          "overlays": [
-            {
-              "overlay": "outline",
-              "blend": "lighter",
-              "colour": "#1e0a0a",
-              "opacity": 65
-            }
-          ],
-          "border": "#2b040c"
-        },
-        "warped_nylium": {
-          "overlays": [
-            {
-              "overlay": "outline",
-              "blend": "soft-light",
-              "colour": "#baf5dd",
-              "opacity": 36
-            }
-          ],
-          "border": "#2b040c"
         }
       }
     },
@@ -272,69 +78,10 @@
       "author": "7px",
       "border": "#1d0e46"
     },
-    "minecon": {
-      "type": "strip",
-      "author": "Ewan Howell",
-      "border": "#2a2c30"
-    },
-    "oak_planks": {
-      "type": "strip",
-      "category": "Planks",
-      "author": "TheAnnoying",
-      "border": "#322414",
-      "variants": {
-        "spruce_planks": {
-          "border": "#322618"
-        },
-        "birch_planks": {
-          "border": "#4a4129"
-        },
-        "jungle_planks": {
-          "border": "#362314"
-        },
-        "acacia_planks": {
-          "border": "#4c220d"
-        },
-        "dark_oak_planks": {
-          "border": "#1e1105"
-        },
-        "mangrove_planks": {
-          "border": "#301011"
-        },
-        "cherry_planks": {
-          "border": "#704945"
-        },
-        "bamboo_planks": {
-          "border": "#4a4129"
-        },
-        "crimson_planks": {
-          "border": "#260414"
-        },
-        "warped_planks": {
-          "border": "#072825"
-        },
-        "pale_oak_planks": {
-          "author": "0Szysza",
-          "border": "#3d3838"
-        }
-      }
-    },
     "dunes": {
       "author": "Ewan Howell",
       "density": 4,
       "border": "#5d2b1b"
-    },
-    "bee": {
-      "type": "strip",
-      "overlays": [
-        {
-          "overlay": "outline",
-          "colour": "#ebebeb",
-          "opacity": 86
-        }
-      ],
-      "author": "Ewan Howell",
-      "border": "#16100e"
     },
     "inner_shadow": {
       "author": "justwilly",
@@ -344,11 +91,6 @@
     "smooth_bevelled": {
       "author": "justwilly",
       "density": 4,
-      "border": "#000000"
-    },
-    "amethyst": {
-      "type": "strip",
-      "author": "Bold_Muddy",
       "border": "#000000"
     },
     "copper": {
@@ -402,17 +144,6 @@
       "author": "FloideN",
       "border": "#021935"
     },
-    "beach": {
-      "type": "strip",
-      "author": "Ewan Howell",
-      "border": "#45362a",
-      "variants": {
-        "sand": {
-          "author": "Magminer",
-          "border": "#45362a"
-        }
-      }
-    },
     "pixel": {
       "author": "MrBrose",
       "border": "#000000"
@@ -425,131 +156,24 @@
       "author": "Ninjaabdullah",
       "border": "#000000"
     },
-    "dock": {
-      "type": "strip",
-      "overlays": [
-        {
-          "overlay": "outline",
-          "blend": "source-over"
-        }
-      ],
-      "author": "RyanCR",
-      "border": "#000000",
-      "variants": {
-        "dock_clear": {
-          "name": "Dock (Clear)",
-          "border": "#000000"
-        }
-      }
-    },
     "create": {
       "name": "Create Mod",
       "author": "FeDoT_Dev",
       "border": "#37041e"
     },
-    "dungeons_terracotta": {
-      "type": "strip",
-      "author": "HARYA_",
-      "border": "#000000"
-    },
     "pride": {
       "type": "strip",
-      "author": "Snuzzle",
-      "border": "#000000",
+      "strip": "minecraft-ten",
       "variants": {
-        "aroace": {
-          "border": "#000000"
-        },
-        "aromantic": {
-          "border": "#000000"
-        },
-        "asexual": {
-          "border": "#000000"
-        },
-        "bisexual": {
-          "border": "#000000"
-        },
-        "enby": {
-          "border": "#000000"
-        },
-        "femboy": {
-          "author": "0Szysza",
-          "border": "#000000"
-        },
-        "fluid": {
-          "border": "#000000"
-        },
-        "gay": {
-          "border": "#000000"
-        },
-        "heterosexual": {
-          "border": "#000000"
-        },
         "intersex": {
           "type": "sheet",
           "border": "#000000"
-        },
-        "lesbian": {
-          "border": "#000000"
-        },
-        "pansexual": {
-          "border": "#000000"
-        },
-        "trans": {
-          "border": "#000000"
-        },
-        "transfeminine": {
-          "author": "0Szysza",
-          "border": "#000000"
-        },
-        "transmasculine": {
-          "author": "0Szysza",
-          "border": "#000000"
-        }
-      }
-    },
-    "bricks": {
-      "type": "strip",
-      "author": "IAmMaker",
-      "border": "#3e0e14",
-      "variants": {
-        "bricks_minecraft": {
-          "name": "Bricks (Minecraft)",
-          "border": "#22130f"
-        },
-        "bricks_bare_bones": {
-          "name": "Bricks (Bare Bones)",
-          "author": "Klayv",
-          "border": "#190f0f"
         }
       }
     },
     "netherite": {
       "type": "strip",
-      "overlays": [
-        {
-          "overlay": "highlights_left",
-          "blend": "source-over",
-          "colour": "#4a474a"
-        },
-        {
-          "overlay": "highlights_right",
-          "blend": "source-over",
-          "colour": "#4a474a"
-        },
-        {
-          "overlay": "highlights_top",
-          "blend": "source-over",
-          "colour": "#5a575a"
-        },
-        {
-          "overlay": "highlights_bottom",
-          "blend": "source-over",
-          "colour": "#3b393b"
-        }
-      ],
-      "author": "Ewan Howell",
-      "border": "#1f1a1d",
+      "strip": "minecraft-ten",
       "variants": {
         "gilded_netherite": {
           "type": "sheet",
@@ -567,55 +191,18 @@
       "author": "Abe",
       "border": "#000000"
     },
-    "blueprint": {
-      "type": "strip",
-      "tiling": "character",
-      "author": "WassMan",
-      "border": "#000000"
-    },
     "earth": {
       "author": "HARYA_",
       "density": 4,
-      "border": "#000000"
-    },
-    "creeper": {
-      "type": "strip",
-      "author": "Andre_601",
       "border": "#000000"
     },
     "haunted": {
       "author": "Ninjaabdullah",
       "border": "#00021f"
     },
-    "flames": {
-      "type": "strip",
-      "author": "RyanCR",
-      "border": "#000000",
-      "variants": {
-        "flames_soul": {
-          "name": "Soul Flames",
-          "border": "#000000"
-        }
-      }
-    },
     "iron_block": {
       "author": "Andre_601",
       "border": "#000000"
-    },
-    "sniffer": {
-      "type": "strip",
-      "author": "SmarterCob",
-      "border": "#000000"
-    },
-    "atmosphere": {
-      "type": "strip",
-      "author": "Zodiuss",
-      "border": "#36005d"
-    },
-    "gurgles": {
-      "type": "strip",
-      "author": "B1tseK",
-      "border": "#300b00"
     },
     "crystal": {
       "name": "Crystal (Caves & Cliffs)",
@@ -626,50 +213,9 @@
       "author": "blank3times",
       "border": "#000000"
     },
-    "glow_squid": {
-      "type": "strip",
-      "author": "B1tseK",
-      "border": "#00302c",
-      "variants": {
-        "glow_squid_old": {
-          "name": "Glow Squid (Old)",
-          "border": "#00302c"
-        }
-      }
-    },
-    "cherry_blossom": {
-      "type": "strip",
-      "author": "Klayv",
-      "border": "#441b39",
-      "variants": {
-        "cherry_blossom_small": {
-          "name": "Cherry Blossom (Small)",
-          "author": "NotAGanesh",
-          "border": "#3c0233"
-        }
-      }
-    },
     "barrel": {
       "author": "Klayv",
       "border": "#120b06"
-    },
-    "hay_bale": {
-      "type": "strip",
-      "author": "Klayv",
-      "border": "#1c0d06"
-    },
-    "winter": {
-      "type": "strip",
-      "overlays": [
-        {
-          "overlay": "highlights_bottom",
-          "blend": "screen",
-          "colour": "#fbfcff",
-          "opacity": 55
-        }
-      ],
-      "author": "Klayv",
-      "border": "#1d193d"
     },
     "bamboo": {
       "author": "Klayv",
@@ -679,16 +225,6 @@
           "border": "#121503"
         }
       }
-    },
-    "terracotta": {
-      "type": "strip",
-      "author": "Klayv",
-      "border": "#2a1c16"
-    },
-    "lagoona": {
-      "type": "strip",
-      "author": "B1tseK & Ewan Howell",
-      "border": "#0a2b6b"
     },
     "create_andesite_casing": {
       "name": "Andesite Casing",
@@ -709,11 +245,6 @@
           "border": "#000000"
         }
       }
-    },
-    "enderman": {
-      "type": "strip",
-      "author": "B1tseK",
-      "border": "#000000"
     },
     "sunset": {
       "author": "Ewan Howell",

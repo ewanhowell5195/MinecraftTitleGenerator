@@ -1,23 +1,36 @@
 import { reactive } from "vue"
-import { textureList } from "./assets.js"
-import { sheetFolder } from "./font.js"
+import { fontTextures, stripTextures } from "./assets.js"
+import { sheetFolder, stripsOf } from "./font.js"
 import { titleCase } from "./names.js"
 
+const STRIPS = "strips."
 const lists = reactive({})
 
-function listOf(fontId, fonts) {
-  if (!(fontId in lists)) {
-    const entry = fonts.find(font => font.id === fontId)
-    if (!entry) throw new Error(`a credit is based on ${fontId}, which is not in the font list`)
-    lists[fontId] = null
-    textureList(sheetFolder(entry, fonts)).then(list => lists[fontId] = list)
-  }
-  return lists[fontId]
+function fontNamed(id, fonts) {
+  const entry = fonts.find(font => font.id === id)
+  if (!entry) throw new Error(`a credit is based on ${id}, which is not in the font list`)
+  return entry
 }
 
-function parts(basedOn, fontId) {
-  const [first, second] = basedOn.split(".")
-  return second ? { fontId: first, id: second } : { fontId, id: first }
+function request(owner, fonts) {
+  if (owner.startsWith(STRIPS)) return stripTextures(owner.slice(STRIPS.length))
+  const entry = fontNamed(owner, fonts)
+  return fontTextures(sheetFolder(entry, fonts), stripsOf(entry, fonts))
+}
+
+function listOf(owner, fonts) {
+  if (!(owner in lists)) {
+    const pending = request(owner, fonts)
+    lists[owner] = null
+    pending.then(list => lists[owner] = list)
+  }
+  return lists[owner]
+}
+
+export function basedOnParts(basedOn, owner) {
+  const pieces = basedOn.split(".")
+  if (pieces.length === 3 && pieces[0] === "strips") return { owner: `${STRIPS}${pieces[1]}`, id: pieces[2] }
+  return pieces.length > 1 ? { owner: pieces[0], id: pieces[1] } : { owner, id: pieces[0] }
 }
 
 export function findEntry(list, id) {
@@ -31,22 +44,25 @@ export function findEntry(list, id) {
   return null
 }
 
-function basedOnName(target, viewedFont, fonts) {
-  if (target.fontId === viewedFont) return titleCase(target.id)
-  const entry = fonts.find(font => font.id === target.fontId)
-  if (!entry) throw new Error(`a credit is based on ${target.fontId}, which is not in the font list`)
-  return `${entry.name}: ${titleCase(target.id)}`
+function basedOnName(target, viewed, fonts) {
+  if (target.owner === viewed) return titleCase(target.id)
+  if (target.owner.startsWith(STRIPS)) return `${titleCase(target.owner.slice(STRIPS.length))} Strips: ${titleCase(target.id)}`
+  return `${fontNamed(target.owner, fonts).name}: ${titleCase(target.id)}`
 }
 
-function follow(data, fontId, viewedFont, fonts) {
+function ownerOf(data, fallback) {
+  return data.stripSet ? `${STRIPS}${data.stripSet}` : fallback
+}
+
+function follow(data, owner, viewed, fonts) {
   if (!data.basedOn) return data.author ?? null
-  const target = parts(data.basedOn, fontId)
-  if (data.author) return `${data.author}, based on ${basedOnName(target, viewedFont, fonts)}`
-  const list = listOf(target.fontId, fonts)
+  const target = basedOnParts(data.basedOn, ownerOf(data, owner))
+  if (data.author) return `${data.author}, based on ${basedOnName(target, viewed, fonts)}`
+  const list = listOf(target.owner, fonts)
   if (!list) return null
   const entry = findEntry(list, target.id)
   if (!entry) throw new Error(`a credit is based on ${data.basedOn}, which does not exist`)
-  return follow(entry, target.fontId, viewedFont, fonts)
+  return follow(entry, target.owner, viewed, fonts)
 }
 
 export function fontCredit(data, fonts) {
@@ -57,5 +73,7 @@ export function fontCredit(data, fonts) {
 }
 
 export function credit(data, fontId, fonts, parent = null) {
-  return follow(data.author || data.basedOn || !parent ? data : parent, fontId, fontId, fonts)
+  const own = data.author || data.basedOn || !parent ? data : parent
+  const owner = ownerOf(own, fontId)
+  return follow(own, owner, owner, fonts)
 }

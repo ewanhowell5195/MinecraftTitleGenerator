@@ -1,15 +1,16 @@
 import assert from "node:assert/strict"
-import fs from "node:fs"
-import path from "node:path"
 import { describe, test } from "node:test"
-import { fontDir, publishedFonts } from "../generator/fonts.js"
-import { credit, findEntry, fontCredit } from "../src/lib/credits.js"
+import { fontTextureList, publishedFonts, readStripSet } from "../generator/fonts.js"
+import { basedOnParts, credit, findEntry, fontCredit } from "../src/lib/credits.js"
 import { usePlatform } from "../src/lib/platform.js"
+import { mergeStrips } from "../src/lib/strips.js"
 
 const FONTS = [{ id: "base", name: "Base Font" }, { id: "port", name: "Port Font" }]
 const LISTS = {
   "font/base/textures.json": { textures: { cracked: { author: "original", variants: { cracked_old: { author: "older" }, cracked_left: {} } }, chain: { basedOn: "cracked" }, sibling: { author: "porter", basedOn: "cracked" }, sameAsSibling: { basedOn: "sibling" }, away: { author: "porter", basedOn: "port.shape" } }, overlays: { glass: { author: "glazier" } } },
-  "font/port/textures.json": { textures: {}, overlays: {} }
+  "font/port/textures.json": { textures: {}, overlays: {} },
+  "strips/set/strip.json": { depth: 22 },
+  "strips/set/textures.json": { textures: { line: { author: "liner" }, copy: { basedOn: "line" }, redraw: { author: "porter", basedOn: "line" } } }
 }
 
 usePlatform({ fetch: async url => ({ ok: url in LISTS, json: async () => LISTS[url] }) })
@@ -51,6 +52,19 @@ describe("credit", () => {
     assert.equal(await settled(() => credit({ basedOn: "base.sameAsSibling" }, "port", FONTS)), "porter, based on Base Font: Cracked")
     assert.equal(await settled(() => credit({ basedOn: "sibling" }, "base", FONTS)), "porter, based on Cracked")
     assert.equal(await settled(() => credit({ basedOn: "base.away" }, "port", FONTS)), "porter, based on Shape")
+  })
+
+  test("links can point at strips", async () => {
+    assert.equal(credit({ author: "porter", basedOn: "strips.set.line" }, "port", FONTS), "porter, based on Set Strips: Line")
+    assert.equal(await settled(() => credit({ basedOn: "strips.set.line" }, "port", FONTS)), "liner")
+    assert.equal(await settled(() => credit({ basedOn: "strips.set.redraw" }, "port", FONTS)), "porter, based on Set Strips: Line")
+  })
+
+  test("a shared strip's links are relative to its own strips, not the font showing it", async () => {
+    const tag = { stripSet: "set", folder: "strips/set" }
+    assert.equal(credit({ author: "porter", basedOn: "line", ...tag }, "port", FONTS), "porter, based on Line")
+    assert.equal(await settled(() => credit({ basedOn: "line", ...tag }, "port", FONTS)), "liner")
+    assert.equal(credit({ author: "porter", basedOn: "base.cracked", ...tag }, "port", FONTS), "porter, based on Base Font: Cracked")
   })
 
   test("a variant uses its parent's credit unless it has its own", () => {
@@ -95,14 +109,16 @@ describe("published credits", () => {
 
   const lists = new Map()
 
-  function listOf(id) {
-    if (!lists.has(id)) {
-      const entry = fonts.find(font => font.id === id)
-      assert.ok(entry, `no font ${id}`)
-      const owner = entry.inherits ? fonts.find(font => font.id === entry.variant) : entry
-      lists.set(id, JSON.parse(fs.readFileSync(path.join(fontDir(owner), "textures.json"), "utf8")))
+  function listOf(owner) {
+    if (!lists.has(owner)) {
+      if (owner.startsWith("strips.")) lists.set(owner, mergeStrips({ textures: {}, overlays: {} }, [readStripSet(owner.slice("strips.".length))]))
+      else {
+        const entry = fonts.find(font => font.id === owner)
+        assert.ok(entry, `no font ${owner}`)
+        lists.set(owner, fontTextureList(entry, fonts))
+      }
     }
-    return lists.get(id)
+    return lists.get(owner)
   }
 
   function entries(id) {
@@ -110,15 +126,14 @@ describe("published credits", () => {
     return [list.textures, list.overlays].flatMap(group => Object.entries(group ?? {}).flatMap(([key, data]) => [[key, data, null]].concat(Object.entries(data.variants ?? {}).map(([variant, value]) => [variant, value, key]))))
   }
 
-  function resolve(data, fontId, seen) {
+  function resolve(data, owner, seen) {
     if (data.author || !data.basedOn) return data.author ?? null
-    const [first, second] = data.basedOn.split(".")
-    const target = second ? first : fontId
-    const key = `${target}.${second ?? first}`
+    const target = basedOnParts(data.basedOn, data.stripSet ? `strips.${data.stripSet}` : owner)
+    const key = `${target.owner}.${target.id}`
     assert.ok(!seen.has(key), `${key} is in a loop`)
-    const entry = findEntry(listOf(target), second ?? first)
+    const entry = findEntry(listOf(target.owner), target.id)
     assert.ok(entry, `${key} does not exist`)
-    return resolve(entry, target, new Set(seen).add(key))
+    return resolve(entry, target.owner, new Set(seen).add(key))
   }
 
   test("every based on points at something that ends in an author", () => {

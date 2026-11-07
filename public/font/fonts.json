@@ -1,6 +1,7 @@
 [
   {
     "id": "minecraft-ten",
+    "strips": ["minecraft-ten"],
     "terminatorSpace": true,
     "kerning": {
       "//": 16,
@@ -89,7 +90,8 @@
   },
   {
     "id": "minecraft-dungeons",
-    "author": "ShrimpSnail & Ewan Howell"
+    "author": "ShrimpSnail & Ewan Howell",
+    "strips": ["minecraft-ten"]
   },
   {
     "id": "minecraft-gui",
@@ -127,6 +129,7 @@
     "id": "minecraft-ten-serif",
     "author": "Ewan Howell",
     "basedOn": "minecraft-ten",
+    "strips": ["minecraft-ten"],
     "spaceWidth": 14,
     "terminatorSpace": true,
     "kerning": {
@@ -227,6 +230,7 @@
     "id": "minecraft-ten-rounded",
     "author": "Ewan Howell",
     "basedOn": "minecraft-ten",
+    "strips": ["minecraft-ten"],
     "terminatorSpace": true,
     "kerning": {
       "//": 16,
@@ -307,6 +311,7 @@
   {
     "id": "block-serif",
     "author": "DragonSlayr15001",
+    "strips": ["minecraft-ten"],
     "spaceWidth": 14,
     "terminatorSpace": true,
     "overlay": true,

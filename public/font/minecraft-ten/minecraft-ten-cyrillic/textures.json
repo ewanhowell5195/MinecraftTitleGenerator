@@ -47,13 +47,13 @@
     },
     "atmosphere": {
       "author": "jackeyrolz",
-      "basedOn": "minecraft-ten.atmosphere",
+      "basedOn": "strips.minecraft-ten.atmosphere",
       "border": "#36005d"
     },
     "pride": {
       "type": "strip",
       "author": "Yozhenka",
-      "basedOn": "minecraft-ten.pride",
+      "basedOn": "strips.minecraft-ten.pride",
       "border": "#000000",
       "variants": {
         "aroace": {
@@ -72,7 +72,7 @@
           "border": "#000000"
         },
         "femboy": {
-          "basedOn": "minecraft-ten.femboy",
+          "basedOn": "strips.minecraft-ten.femboy",
           "border": "#000000"
         },
         "fluid": {
@@ -98,11 +98,11 @@
           "border": "#000000"
         },
         "transfeminine": {
-          "basedOn": "minecraft-ten.transfeminine",
+          "basedOn": "strips.minecraft-ten.transfeminine",
           "border": "#000000"
         },
         "transmasculine": {
-          "basedOn": "minecraft-ten.transmasculine",
+          "basedOn": "strips.minecraft-ten.transmasculine",
           "border": "#000000"
         }
       }
@@ -111,7 +111,7 @@
       "type": "strip",
       "category": "Planks",
       "author": "B1tseK",
-      "basedOn": "minecraft-ten.oak_planks",
+      "basedOn": "strips.minecraft-ten.oak_planks",
       "border": "#322414",
       "variants": {
         "spruce_planks": {
@@ -145,7 +145,7 @@
           "border": "#072825"
         },
         "pale_oak_planks": {
-          "basedOn": "minecraft-ten.pale_oak_planks",
+          "basedOn": "strips.minecraft-ten.pale_oak_planks",
           "border": "#3d3838"
         }
       }
@@ -162,16 +162,16 @@
       "border": "#000000"
     },
     "lagoona": {
-      "basedOn": "minecraft-ten.lagoona",
+      "basedOn": "strips.minecraft-ten.lagoona",
       "border": "#0a2b6b"
     },
     "gurgles": {
-      "basedOn": "minecraft-ten.gurgles",
+      "basedOn": "strips.minecraft-ten.gurgles",
       "border": "#300b00"
     },
     "enderman": {
       "type": "strip",
-      "basedOn": "minecraft-ten.enderman",
+      "basedOn": "strips.minecraft-ten.enderman",
       "border": "#000000"
     }
   },

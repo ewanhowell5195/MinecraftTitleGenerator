@@ -19,7 +19,7 @@
     },
     "gradient": {
       "author": "Cubeoidal",
-      "basedOn": "minecraft-ten.gradient",
+      "basedOn": "strips.minecraft-ten.gradient",
       "border": "#000000"
     },
     "flat_coloured": {
@@ -41,7 +41,7 @@
     "oak_planks": {
       "type": "strip",
       "category": "Planks",
-      "basedOn": "minecraft-ten.oak_planks",
+      "basedOn": "strips.minecraft-ten.oak_planks",
       "border": "#322414",
       "variants": {
         "spruce_planks": {
@@ -88,7 +88,7 @@
     },
     "pride": {
       "type": "strip",
-      "basedOn": "minecraft-ten.pride",
+      "basedOn": "strips.minecraft-ten.pride",
       "border": "#000000",
       "variants": {
         "aroace": {
@@ -107,7 +107,7 @@
           "border": "#000000"
         },
         "femboy": {
-          "basedOn": "minecraft-ten.femboy",
+          "basedOn": "strips.minecraft-ten.femboy",
           "border": "#000000"
         },
         "fluid": {
@@ -133,11 +133,11 @@
           "border": "#000000"
         },
         "transfeminine": {
-          "basedOn": "minecraft-ten.transfeminine",
+          "basedOn": "strips.minecraft-ten.transfeminine",
           "border": "#000000"
         },
         "transmasculine": {
-          "basedOn": "minecraft-ten.transmasculine",
+          "basedOn": "strips.minecraft-ten.transmasculine",
           "border": "#000000"
         }
       }

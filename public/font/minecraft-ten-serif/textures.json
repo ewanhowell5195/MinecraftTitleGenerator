@@ -4,5 +4,7 @@
       "border": "#000000"
     }
   },
-  "overlays": {}
+  "overlays": {},
+  "primary": "smooth",
+  "secondary": "smooth"
 }

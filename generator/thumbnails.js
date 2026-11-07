@@ -8,9 +8,10 @@ import { sheetLayout, solidMask, splitCells } from "../src/lib/font.js"
 import { GENERATED_EDGE_OVERLAYS, edgeAlpha, generatedAlpha, withGenerated } from "../src/lib/generated.js"
 import { layout } from "../src/lib/layout.js"
 import { defaultBorder, defaultDepth, overlayLayer } from "../src/lib/settings.js"
+import { stripRows } from "../src/lib/strips.js"
 import { blend } from "./blend.js"
-import { cli, readJson, readPng, rgb, rgba, writePng } from "./common.js"
-import { fontDir, publishedFonts, readMask } from "./fonts.js"
+import { cli, readPng, rgb, rgba, writePng } from "./common.js"
+import { PUBLIC, fontDir, fontTextureList, publishedFonts, readMask } from "./fonts.js"
 
 const MARGIN = 2
 const BACKGROUND_ALPHA = 0.3
@@ -145,6 +146,7 @@ function render(scene, sheet, options) {
   if (options.ring) drawRing(png, scene, masks, options)
   if (options.strip) drawStrip(png, scene, options)
   else drawFaces(png, scene, sheet, masks, options)
+  if (options.fontOverlay) drawFaces(png, scene, options.fontOverlay, masks, options)
   if (options.generated) drawGenerated(png, scene, options)
   for (const layer of options.layers ?? []) drawLayer(png, scene, layer, options)
   return png
@@ -223,13 +225,14 @@ function textureThumbnail({ entry, scene, meta, sheet, width, densityOf }, name,
     if (!known) throw new Error(`${name}: default overlay "${layer.overlay}" is not one of this font's overlays`)
     return { kind: known.generated ?? null, image: known.generated ? null : sheet("overlays", layer.overlay), layer: { ...overlayLayer(layer.overlay, known), ...layer } }
   })
-  const image = sheet("textures", name)
+  const image = sheet("textures", name, merged.folder)
   let png
   if (merged.type === "strip") {
     const tiling = merged.tiling ?? "line"
     if (tiling !== "line" && tiling !== "character") throw new Error(`${name} has tiling "${tiling}", strips tile by "line" or "character"`)
-    const strip = { image, density: image.height / (scene.stripTop - scene.stripBottom + scene.depth * 2), top: scene.depth + scene.stripTop, tiling }
-    png = render(scene, null, { density: Math.max(1, Math.ceil(strip.density)), border, width, ring: scene.ring, strip, layers })
+    const { depth, top, rows } = stripRows(merged, { top: scene.stripTop, bottom: scene.stripBottom }, scene.depth)
+    const strip = { image, density: image.height / rows, top: depth + top, tiling }
+    png = render(scene, null, { density: Math.max(1, Math.ceil(strip.density)), border, width, ring: scene.ring, strip, layers, fontOverlay: entry.overlay ? sheet(".", "overlay") : null })
   } else {
     png = render(scene, image, { density: densityOf(image), border, width, ring: scene.ring, ownShape: true, layers })
   }
@@ -265,8 +268,8 @@ function thumbnails(entry) {
   const loaded = new Map()
   const load = file => loaded.get(file) ?? loaded.set(file, readPng(file)).get(file)
   const scene = sceneFor(entry)
-  const sheet = (kind, id) => load(path.join(scene.folder, kind, `${id}.png`))
-  const meta = readJson(path.join(scene.folder, "textures.json"))
+  const sheet = (kind, id, folder) => load(path.join(folder ? path.join(PUBLIC, folder) : scene.folder, kind, `${id}.png`))
+  const meta = fontTextureList(entry, list)
   const flat = sheet("textures", "flat")
   const width = flat.width / (meta.textures.flat?.density ?? 1)
   const densityOf = image => Math.round(image.width / width)
