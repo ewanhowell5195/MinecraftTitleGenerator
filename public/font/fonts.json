@@ -126,6 +126,7 @@
   {
     "id": "minecraft-ten-serif",
     "author": "Ewan Howell",
+    "basedOn": "minecraft-ten",
     "spaceWidth": 14,
     "terminatorSpace": true,
     "kerning": {
@@ -225,6 +226,7 @@
   {
     "id": "minecraft-ten-rounded",
     "author": "Ewan Howell",
+    "basedOn": "minecraft-ten",
     "terminatorSpace": true,
     "kerning": {
       "//": 16,

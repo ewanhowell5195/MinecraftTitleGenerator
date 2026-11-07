@@ -49,6 +49,13 @@ function follow(data, fontId, viewedFont, fonts) {
   return follow(entry, target.fontId, viewedFont, fonts)
 }
 
+export function fontCredit(data, fonts) {
+  if (!data.basedOn) return data.author ?? null
+  const target = fonts.find(font => font.id === data.basedOn)
+  if (!target) throw new Error(`${data.id} is based on ${data.basedOn}, which is not in the font list`)
+  return data.author ? `${data.author}, based on ${target.name}` : fontCredit(target, fonts)
+}
+
 export function credit(data, fontId, fonts, parent = null) {
   return follow(data.author || data.basedOn || !parent ? data : parent, fontId, fontId, fonts)
 }

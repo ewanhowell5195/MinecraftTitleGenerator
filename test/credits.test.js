@@ -3,7 +3,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { describe, test } from "node:test"
 import { fontDir, publishedFonts } from "../generator/fonts.js"
-import { credit, findEntry } from "../src/lib/credits.js"
+import { credit, findEntry, fontCredit } from "../src/lib/credits.js"
 import { usePlatform } from "../src/lib/platform.js"
 
 const FONTS = [{ id: "base", name: "Base Font" }, { id: "port", name: "Port Font" }]
@@ -67,8 +67,32 @@ describe("credit", () => {
   })
 })
 
+describe("fontCredit", () => {
+  const fonts = [{ id: "base", name: "Base Font", author: "original" }, { id: "plain", name: "Plain" }, { id: "port", name: "Port Font", author: "porter", basedOn: "plain" }, { id: "copy", name: "Copy", basedOn: "base" }, { id: "copy2", name: "Copy 2", basedOn: "port" }]
+  const of = id => fontCredit(fonts.find(font => font.id === id), fonts)
+
+  test("follows the same rules as textures", () => {
+    assert.equal(of("base"), "original")
+    assert.equal(of("plain"), null)
+    assert.equal(of("port"), "porter, based on Plain")
+    assert.equal(of("copy"), "original")
+    assert.equal(of("copy2"), "porter, based on Plain")
+  })
+
+  test("an unknown font fails loudly", () => {
+    assert.throws(() => fontCredit({ id: "a", basedOn: "missing" }, fonts), /missing/)
+  })
+})
+
 describe("published credits", () => {
   const fonts = publishedFonts()
+
+  test("every font's based on is in the font list", () => {
+    const listed = fonts.map(font => ({ ...font, name: font.name ?? font.id }))
+    for (const font of listed) fontCredit(font, listed)
+    assert.equal(fontCredit(listed.find(font => font.id === "minecraft-ten-rounded"), listed), "Ewan Howell, based on minecraft-ten")
+  })
+
   const lists = new Map()
 
   function listOf(id) {

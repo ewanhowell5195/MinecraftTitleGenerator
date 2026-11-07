@@ -1,5 +1,6 @@
 <script setup>
   import { computed, ref } from "vue"
+  import { fontCredit } from "../../lib/credits.js"
   import { usePanel } from "../../lib/panel.js"
   import { library } from "../../lib/scene.js"
   import { popular } from "../../lib/stats.js"
@@ -44,13 +45,13 @@
       <p class="hint">An uppercase <code>A</code> gives the <code>a</code> with the creeper face.</p>
     </div>
     <div class="grid">
-      <Tile v-for="data of baseFonts" :key="data.id" keyboard :label="data.name" :image="fontThumbnail(library.fonts, data.id)" :author="data.author" :badge="variantBadges[data.id]" :selected="baseId === data.id" @pick="object.font = data.id" />
+      <Tile v-for="data of baseFonts" :key="data.id" keyboard :label="data.name" :image="fontThumbnail(library.fonts, data.id)" :author="fontCredit(data, library.fonts)" :badge="variantBadges[data.id]" :selected="baseId === data.id" @pick="object.font = data.id" />
     </div>
     <template v-if="variants.length">
       <h3>Variants</h3>
       <div class="grid">
         <Tile keyboard label="Default" :image="fontThumbnail(library.fonts, baseId)" :selected="object.font === baseId" @pick="object.font = baseId" />
-        <Tile v-for="data of variants" :key="data.id" keyboard :label="data.name" :image="fontThumbnail(library.fonts, data.id)" :author="data.author" :selected="object.font === data.id" @pick="object.font = data.id" />
+        <Tile v-for="data of variants" :key="data.id" keyboard :label="data.name" :image="fontThumbnail(library.fonts, data.id)" :author="fontCredit(data, library.fonts)" :selected="object.font === data.id" @pick="object.font = data.id" />
       </div>
     </template>
   </Panel>
