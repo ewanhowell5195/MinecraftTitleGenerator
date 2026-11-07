@@ -220,7 +220,8 @@
         "grass_side_flowers": {
           "type": "sheet",
           "overlays": [],
-          "author": "Magminer & Ewan Howell & 0Szysza",
+          "author": "0Szysza",
+          "basedOn": "grass_side",
           "border": "#2b040c"
         },
         "podzol": {
@@ -613,7 +614,7 @@
     },
     "gurgles": {
       "type": "strip",
-      "author": "BitseK",
+      "author": "B1tseK",
       "border": "#300b00"
     },
     "crystal": {
@@ -627,7 +628,7 @@
     },
     "glow_squid": {
       "type": "strip",
-      "author": "BitseK",
+      "author": "B1tseK",
       "border": "#00302c",
       "variants": {
         "glow_squid_old": {
@@ -686,7 +687,7 @@
     },
     "lagoona": {
       "type": "strip",
-      "author": "BitseK & Ewan Howell",
+      "author": "B1tseK & Ewan Howell",
       "border": "#0a2b6b"
     },
     "create_andesite_casing": {
@@ -763,15 +764,15 @@
       "density": 4
     },
     "glass": {
-      "author": "BitseK"
+      "author": "B1tseK"
     },
     "glass_old": {
       "name": "Glass (Old)",
-      "author": "BitseK"
+      "author": "B1tseK"
     },
     "glass_tempered": {
       "name": "Glass (Tempered)",
-      "author": "BitseK"
+      "author": "B1tseK"
     }
   },
   "primary": "cracked",

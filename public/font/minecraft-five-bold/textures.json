@@ -19,6 +19,7 @@
     },
     "gradient": {
       "author": "Cubeoidal",
+      "basedOn": "minecraft-ten.gradient",
       "border": "#000000"
     },
     "flat_coloured": {
@@ -28,17 +29,19 @@
     },
     "bubbles": {
       "author": "Cubeoidal",
+      "basedOn": "minecraft-ten.bubbles",
       "border": "#1d0e46"
     },
     "mangrove": {
       "name": "Mangrove (Wild Update)",
       "author": "Cubeoidal",
+      "basedOn": "minecraft-ten.mangrove",
       "border": "#000000"
     },
     "oak_planks": {
       "type": "strip",
       "category": "Planks",
-      "author": "TheAnnoying",
+      "basedOn": "minecraft-ten.oak_planks",
       "border": "#322414",
       "variants": {
         "spruce_planks": {
@@ -79,12 +82,13 @@
     },
     "bevelled_gold": {
       "author": "PopitTart",
+      "basedOn": "minecraft-ten.bevelled_gold",
       "density": 4,
       "border": "#3f0f0f"
     },
     "pride": {
       "type": "strip",
-      "author": "Snuzzle",
+      "basedOn": "minecraft-ten.pride",
       "border": "#000000",
       "variants": {
         "aroace": {
@@ -103,7 +107,7 @@
           "border": "#000000"
         },
         "femboy": {
-          "author": "0Szysza",
+          "basedOn": "minecraft-ten.femboy",
           "border": "#000000"
         },
         "fluid": {
@@ -129,11 +133,11 @@
           "border": "#000000"
         },
         "transfeminine": {
-          "author": "0Szysza",
+          "basedOn": "minecraft-ten.transfeminine",
           "border": "#000000"
         },
         "transmasculine": {
-          "author": "0Szysza",
+          "basedOn": "minecraft-ten.transmasculine",
           "border": "#000000"
         }
       }
@@ -141,6 +145,7 @@
     "neon_glow": {
       "category": "Neon",
       "author": "MCAlexisYT",
+      "basedOn": "minecraft-ten.neon_glow",
       "border": "#18041a",
       "variants": {
         "neon": {
@@ -149,7 +154,7 @@
       }
     },
     "midnight": {
-      "author": "Ninjaabdullah",
+      "basedOn": "minecraft-ten.midnight",
       "border": "#000000"
     },
     "mob_vote": {

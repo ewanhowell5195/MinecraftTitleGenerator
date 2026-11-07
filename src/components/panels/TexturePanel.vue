@@ -1,6 +1,7 @@
 <script setup>
   import { computed, ref, shallowRef, watch } from "vue"
   import { image, tileableUrl } from "../../lib/assets.js"
+  import { credit } from "../../lib/credits.js"
   import { blockName, blockTextureImage, blockTextures, jar, latestRelease } from "../../lib/minecraft.js"
   import { titleCase } from "../../lib/names.js"
   import { usePanel } from "../../lib/panel.js"
@@ -132,13 +133,13 @@
       <template v-if="object.textureSource === 'premade'">
         <input v-if="textures.length > 16" type="text" v-model="search" placeholder="Search textures">
         <div class="grid scroll">
-          <Tile v-for="[id, data] of shownTextures" :key="id" :label="label(id, data)" :unit="thumbnailHeight(font)" :image="thumbnail(font, id)" :author="data.author" :badge="variantBadge(data)" :selected="object.texture === id" @pick="setTexture(object, { texture: id, textureVariant: null })" />
+          <Tile v-for="[id, data] of shownTextures" :key="id" :label="label(id, data)" :unit="thumbnailHeight(font)" :image="thumbnail(font, id)" :author="credit(data, font?.id, library.fonts)" :badge="variantBadge(data)" :selected="object.texture === id" @pick="setTexture(object, { texture: id, textureVariant: null })" />
         </div>
         <template v-if="textureVariants.length">
           <h3>Variants</h3>
           <div class="grid scroll variants" :style="{ '--rows': rows(textureVariants) }">
             <Tile :label="list.textures[object.texture].name ?? titleCase(object.texture)" :unit="thumbnailHeight(font)" :image="thumbnail(font, object.texture)" :selected="!object.textureVariant" @pick="setTexture(object, { textureVariant: null })" />
-            <Tile v-for="[id, data] of textureVariants" :key="id" :label="data.name ?? titleCase(id)" :unit="thumbnailHeight(font)" :image="thumbnail(font, id)" :author="data.author ?? list.textures[object.texture].author" :selected="object.textureVariant === id" @pick="setTexture(object, { textureVariant: id })" />
+            <Tile v-for="[id, data] of textureVariants" :key="id" :label="data.name ?? titleCase(id)" :unit="thumbnailHeight(font)" :image="thumbnail(font, id)" :author="credit(data, font?.id, library.fonts, list.textures[object.texture])" :selected="object.textureVariant === id" @pick="setTexture(object, { textureVariant: id })" />
           </div>
         </template>
       </template>

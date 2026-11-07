@@ -14,13 +14,14 @@
           "opacity": 61
         }
       ],
-      "author": "Ewan Howell",
+      "basedOn": "minecraft-five-bold.edition",
       "border": "#000000"
     },
     "oak_planks": {
       "type": "strip",
       "category": "Planks",
-      "author": "BitseK & TheAnnoying",
+      "author": "B1tseK",
+      "basedOn": "minecraft-five-bold.oak_planks",
       "border": "#322414",
       "variants": {
         "spruce_planks": {
@@ -63,6 +64,7 @@
     "pride": {
       "type": "strip",
       "author": "Yozhenka",
+      "basedOn": "minecraft-five-bold.pride",
       "border": "#000000",
       "variants": {
         "aroace": {
@@ -81,7 +83,7 @@
           "border": "#000000"
         },
         "femboy": {
-          "author": "0Szysza",
+          "basedOn": "minecraft-five-bold.femboy",
           "border": "#000000"
         },
         "fluid": {
@@ -107,11 +109,11 @@
           "border": "#000000"
         },
         "transfeminine": {
-          "author": "0Szysza",
+          "basedOn": "minecraft-five-bold.transfeminine",
           "border": "#000000"
         },
         "transmasculine": {
-          "author": "0Szysza",
+          "basedOn": "minecraft-five-bold.transmasculine",
           "border": "#000000"
         }
       }

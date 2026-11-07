@@ -14,7 +14,7 @@
           "opacity": 61
         }
       ],
-      "author": "Ewan Howell",
+      "basedOn": "minecraft-five-bold.edition",
       "border": "#000000"
     }
   },

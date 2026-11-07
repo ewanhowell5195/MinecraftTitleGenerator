@@ -6,11 +6,13 @@
     },
     "cracked": {
       "author": "xllifi",
+      "basedOn": "minecraft-ten.cracked",
       "density": 3,
       "border": "#000000",
       "variants": {
         "cracked_old": {
           "author": "Yozhenka",
+          "basedOn": "minecraft-ten.cracked_old",
           "density": 4,
           "border": "#000000"
         }
@@ -18,20 +20,24 @@
     },
     "fired": {
       "author": "B1tseK & Ewan Howell",
+      "basedOn": "minecraft-ten.fired",
       "border": "#021935"
     },
     "bevelled_gold": {
-      "author": "CL697 & ShrimpSnail & jackeyrolz",
+      "author": "jackeyrolz",
+      "basedOn": "minecraft-ten.bevelled_gold",
       "density": 4,
       "border": "#3f0f0f"
     },
     "pixel": {
       "author": "Sawiq",
+      "basedOn": "minecraft-ten.pixel",
       "border": "#000000"
     },
     "neon_glow": {
       "category": "Neon",
       "author": "MCAlexisYT",
+      "basedOn": "minecraft-ten.neon_glow",
       "border": "#18041a",
       "variants": {
         "neon": {
@@ -40,12 +46,14 @@
       }
     },
     "atmosphere": {
-      "author": "Zodiuss & jackeyrolz",
+      "author": "jackeyrolz",
+      "basedOn": "minecraft-ten.atmosphere",
       "border": "#36005d"
     },
     "pride": {
       "type": "strip",
       "author": "Yozhenka",
+      "basedOn": "minecraft-ten.pride",
       "border": "#000000",
       "variants": {
         "aroace": {
@@ -64,7 +72,7 @@
           "border": "#000000"
         },
         "femboy": {
-          "author": "0Szysza",
+          "basedOn": "minecraft-ten.femboy",
           "border": "#000000"
         },
         "fluid": {
@@ -90,11 +98,11 @@
           "border": "#000000"
         },
         "transfeminine": {
-          "author": "0Szysza",
+          "basedOn": "minecraft-ten.transfeminine",
           "border": "#000000"
         },
         "transmasculine": {
-          "author": "0Szysza",
+          "basedOn": "minecraft-ten.transmasculine",
           "border": "#000000"
         }
       }
@@ -102,7 +110,8 @@
     "oak_planks": {
       "type": "strip",
       "category": "Planks",
-      "author": "B1tseK & TheAnnoying",
+      "author": "B1tseK",
+      "basedOn": "minecraft-ten.oak_planks",
       "border": "#322414",
       "variants": {
         "spruce_planks": {
@@ -136,13 +145,14 @@
           "border": "#072825"
         },
         "pale_oak_planks": {
-          "author": "0Szysza",
+          "basedOn": "minecraft-ten.pale_oak_planks",
           "border": "#3d3838"
         }
       }
     },
     "bubbles": {
-      "author": "B1tseK & 7px",
+      "author": "B1tseK",
+      "basedOn": "minecraft-ten.bubbles",
       "border": "#1d0e46"
     },
     "flat_coloured": {
@@ -152,30 +162,30 @@
       "border": "#000000"
     },
     "lagoona": {
-      "author": "B1tseK & Ewan Howell",
+      "basedOn": "minecraft-ten.lagoona",
       "border": "#0a2b6b"
     },
     "gurgles": {
-      "author": "B1tseK",
+      "basedOn": "minecraft-ten.gurgles",
       "border": "#300b00"
     },
     "enderman": {
       "type": "strip",
-      "author": "B1tseK",
+      "basedOn": "minecraft-ten.enderman",
       "border": "#000000"
     }
   },
   "overlays": {
     "glass": {
-      "author": "BitseK"
+      "basedOn": "minecraft-ten.glass"
     },
     "glass_old": {
       "name": "Glass (Old)",
-      "author": "BitseK"
+      "basedOn": "minecraft-ten.glass_old"
     },
     "glass_tempered": {
       "name": "Glass (Tempered)",
-      "author": "BitseK"
+      "basedOn": "minecraft-ten.glass_tempered"
     }
   },
   "primary": "cracked",

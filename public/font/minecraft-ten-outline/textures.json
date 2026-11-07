@@ -12,6 +12,7 @@
     "neon_glow": {
       "category": "Neon",
       "author": "MCAlexisYT",
+      "basedOn": "minecraft-ten.neon_glow",
       "variants": {
         "neon": {}
       }

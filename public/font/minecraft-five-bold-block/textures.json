@@ -19,12 +19,13 @@
       }
     },
     "neon": {
-      "author": "MCAlexisYT",
+      "basedOn": "minecraft-five-bold.neon",
       "border": "#18041a"
     },
     "oak_planks": {
       "category": "Planks",
-      "author": "BitseK & TheAnnoying",
+      "author": "B1tseK",
+      "basedOn": "minecraft-five-bold.oak_planks",
       "border": "#322414",
       "variants": {
         "spruce_planks": {

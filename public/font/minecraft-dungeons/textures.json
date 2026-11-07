@@ -14,7 +14,7 @@
           "opacity": 73
         }
       ],
-      "author": "Ewan Howell",
+      "basedOn": "minecraft-ten.gradient",
       "border": "#000000",
       "variants": {
         "gradient_prerelease": {
@@ -41,11 +41,12 @@
         }
       ],
       "author": "Ewan Howell",
+      "basedOn": "minecraft-ten.fruit",
       "border": "#260b28"
     },
     "neon_glow": {
       "category": "Neon",
-      "author": "Ewan Howell",
+      "basedOn": "minecraft-ten.neon_glow",
       "border": "#18041a",
       "variants": {
         "neon": {
@@ -57,6 +58,7 @@
       "type": "strip",
       "category": "Planks",
       "author": "Ewan Howell",
+      "basedOn": "minecraft-ten.oak_planks",
       "border": "#322414",
       "variants": {
         "spruce_planks": {

@@ -1,10 +1,12 @@
 <script setup>
   import { computed, ref, toRaw, watch } from "vue"
+  import { credit } from "../../lib/credits.js"
   import { clamp } from "../../lib/maths.js"
   import { GENERATED_SETTINGS, generatedSetting } from "../../lib/generated.js"
   import { titleCase } from "../../lib/names.js"
   import { usePanel } from "../../lib/panel.js"
   import { useReorderDrag } from "../../lib/reorder.js"
+  import { library } from "../../lib/scene.js"
   import { BLEND_OPTIONS, OVERLAY_KINDS, activeOverlays, defaultOverlays, overlayLayer } from "../../lib/settings.js"
   import { popular } from "../../lib/stats.js"
   import { readFile, saveSheet, thumbnail, thumbnailHeight } from "../../lib/ui.js"
@@ -189,7 +191,7 @@
     </div>
     <Segments v-if="!edge" :options="KINDS" :model-value="kind" @update:model-value="pickKind" />
     <div class="grid scroll" v-if="kind !== 'file'">
-      <Tile v-for="[id, data] of shown" :key="id" :label="data.name ?? titleCase(id)" :unit="thumbnailHeight(font)" :image="thumbnail(font, id)" :author="data.author" :selected="layer?.overlay === id" :save="data.generated ? null : 'Download this overlay'" @pick="pickOverlay(id)" @save="saveSheet(font, 'overlays', id)" />
+      <Tile v-for="[id, data] of shown" :key="id" :label="data.name ?? titleCase(id)" :unit="thumbnailHeight(font)" :image="thumbnail(font, id)" :author="credit(data, font?.id, library.fonts)" :selected="layer?.overlay === id" :save="data.generated ? null : 'Download this overlay'" @pick="pickOverlay(id)" @save="saveSheet(font, 'overlays', id)" />
     </div>
     <template v-else>
       <div class="file">

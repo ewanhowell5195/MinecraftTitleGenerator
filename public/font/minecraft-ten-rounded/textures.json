@@ -4,7 +4,8 @@
       "border": "#000000"
     },
     "cracked": {
-      "author": "ShrimpSnail, Ewan Howell, MrBrose, & loganroman",
+      "author": "loganroman",
+      "basedOn": "minecraft-ten.cracked",
       "density": 3,
       "border": "#000000"
     }

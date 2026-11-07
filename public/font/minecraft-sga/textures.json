@@ -13,7 +13,7 @@
           "opacity": 46
         }
       ],
-      "author": "Ewan Howell"
+      "basedOn": "minecraft-ten.smooth"
     }
   },
   "overlays": {},
