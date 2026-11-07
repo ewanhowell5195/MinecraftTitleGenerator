@@ -11,7 +11,7 @@ const askedAssets = new Map()
 let queue = Promise.resolve()
 let nextAsset = 0
 
-async function render(code, { width, format = "webp", quality = 0.85 }) {
+async function render(code, { width, format = "webp", quality = 1 }) {
   try {
     const canvas = await titleCanvas(code, width)
     return canvas && await canvas.toBuffer(format, { quality })

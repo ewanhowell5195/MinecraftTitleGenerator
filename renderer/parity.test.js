@@ -237,6 +237,11 @@ describe("render process", () => {
     assert.ok((await requested(title)).picture)
   })
 
+  test("makes lossless webp by default", async () => {
+    const { picture } = await requested(code(line({ texture: "cracked" })))
+    assert.ok(Buffer.from(picture).includes("VP8L"))
+  })
+
   test("renders a title the word filter would refuse", async () => {
     assert.ok((await requested(code(line({ text: "the sex update", texture: "cracked" })), { check: true })).picture)
   })
