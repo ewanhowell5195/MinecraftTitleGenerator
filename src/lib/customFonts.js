@@ -98,7 +98,7 @@ async function build(id, source) {
   }
   const folder = `font/${id}`
   serveFile(`${folder}/font.png`, pngUrl(buildSheet(font)))
-  serveFile(`${folder}/textures/flat.png`, pngUrl(flatTexture(font, !!mesh)))
+  serveFile(`${folder}/textures/flat.png`, pngUrl(flatTexture(font, mesh ? "all" : outlines ? "strips" : null)))
   serveFile(`${folder}/textures.json`, { primary: "flat", secondary: "flat", textures: { flat: { border: "#000000" } }, overlays: {} })
   thumbnails.set(id, await drawThumbnails(font, folder, entry.strips, entry.mesh))
   return entry

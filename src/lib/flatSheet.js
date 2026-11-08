@@ -4,7 +4,7 @@ const FACE = [255, 255, 255]
 const UP = [176, 176, 176]
 const DOWN = [84, 84, 84]
 
-export function flatPixels(cells, capHeight, depth, density = 1) {
+export function flatPixels(cells, capHeight, depth, density = 1, wideStrips = false) {
   const layout = sheetLayout(cells, capHeight, depth)
   let width = 0
   let height = 0
@@ -31,8 +31,8 @@ export function flatPixels(cells, capHeight, depth, density = 1) {
     }
     for (let c = 0; c < glyph.width; c++) {
       for (let r = 0; r < depth; r++) {
-        if (solid(glyph.height - 1, c)) paint(at.x + c, at.up + r, UP)
-        if (solid(0, c)) paint(at.x + c, at.down + r, DOWN)
+        if (wideStrips || solid(glyph.height - 1, c)) paint(at.x + c, at.up + r, UP)
+        if (wideStrips || solid(0, c)) paint(at.x + c, at.down + r, DOWN)
       }
     }
   }
