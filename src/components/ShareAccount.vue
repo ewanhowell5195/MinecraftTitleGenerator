@@ -29,11 +29,6 @@
     gap: 8px;
   }
 
-  p {
-    margin: 0;
-    font-size: var(--font-md);
-  }
-
   strong {
     display: inline-flex;
     align-items: center;
@@ -46,12 +41,5 @@
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-  }
-
-  button {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    user-select: none;
   }
 </style>

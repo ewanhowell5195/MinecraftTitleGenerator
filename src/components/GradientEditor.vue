@@ -275,7 +275,6 @@
     color: var(--faint);
     cursor: grab;
     touch-action: none;
-    user-select: none;
   }
 
   .grip:hover {
@@ -293,6 +292,7 @@
     gap: 4px;
     font-size: var(--font-md);
     color: var(--faint);
+    user-select: none;
   }
 
   .location input[type="number"] {

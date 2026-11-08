@@ -17,7 +17,7 @@
 </script>
 
 <template>
-  <div class="tile" :class="{ selected }" :title="author ? `By ${author}` : null" :tabindex="keyboard ? 0 : null" @click="emit('pick')" @keydown.enter="keyboard && emit('pick')">
+  <div class="tile card" :class="{ selected }" :title="author ? `By ${author}` : null" :tabindex="keyboard ? 0 : null" @click="emit('pick')" @keydown.enter="keyboard && emit('pick')">
     <div v-if="image" class="thumb picture"><img :src="image" alt="" :style="unit ? { height: `${unit}px` } : null"></div>
     <div v-else class="thumb pattern" :style="pattern"></div>
     <div :class="{ badged: badge }">{{ label }}</div>
@@ -44,27 +44,11 @@
     line-height: 1.25;
     text-align: center;
     color: var(--muted);
-    background: var(--card);
-    border: 2px solid transparent;
-    cursor: pointer;
-    user-select: none;
-    transition: background var(--duration), border-color var(--duration), color var(--duration);
   }
 
-  .tile:hover {
-    color: var(--text);
-    background: var(--card-hover);
-  }
-
+  .tile:hover,
   .tile.selected {
     color: var(--text);
-    background: var(--accent-soft);
-    border-color: var(--accent);
-  }
-
-  .tile:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
   }
 
   .thumb {
@@ -76,6 +60,16 @@
     background-color: var(--field);
     background-size: 64px 64px;
     image-rendering: pixelated;
+  }
+
+  .badge {
+    position: absolute;
+    right: 5px;
+    bottom: 6px;
+  }
+
+  .badged {
+    padding: 0 18px;
   }
 
   .save {

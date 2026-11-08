@@ -14,6 +14,7 @@
   --accent-text: #0d1a07;
   --accent-soft: #6cc04a24;
   --danger: #ff8f85;
+  --danger-soft: #2c1513;
   --knob: #fff;
   --tile-overlay: #000a;
   --checker: #1a1b1f conic-gradient(#25272c 25%, transparent 0 50%, #25272c 0 75%, transparent 0) 0 0 / 16px 16px;
@@ -96,14 +97,6 @@ p.hint {
   font-size: var(--font-md);
   font-weight: 500;
   color: var(--muted);
-}
-
-code {
-  padding: 1px 5px;
-  font-family: var(--mono);
-  font-size: var(--font-sm);
-  color: var(--text);
-  background: var(--card);
 }
 
 input[type="text"],
@@ -229,6 +222,24 @@ button.ghost {
 button.ghost:hover {
   color: var(--text);
   background: var(--card);
+}
+
+button.danger {
+  color: var(--danger);
+}
+
+button.link-button {
+  gap: 4px;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+}
+
+button.link-button:hover {
+  background: none;
+  text-decoration: underline;
 }
 
 .icon-button {
@@ -433,18 +444,14 @@ button:focus-visible,
   image-rendering: pixelated;
 }
 
-.badge {
-  position: absolute;
-  right: 5px;
-  bottom: 6px;
-}
-
-.badged {
-  padding: 0 18px;
-}
-
 .spacer {
   flex: 1;
+}
+
+.ellipsis {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .scroll {
@@ -466,6 +473,41 @@ button:focus-visible,
   gap: 10px;
   width: 100%;
   min-width: 0;
+}
+
+.dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+}
+
+.dialog-body p {
+  margin: 0;
+  font-size: var(--font-md);
+}
+
+.dialog-body .label {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.dialog-body .error {
+  color: var(--danger);
+}
+
+.toast {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 4;
+  max-width: calc(100% - 32px);
+  margin: 0;
+  padding: 6px 10px;
+  font-size: var(--font-md);
+  background: var(--card);
+  border: 1px solid var(--line);
+  pointer-events: none;
 }
 
 ::-webkit-scrollbar {

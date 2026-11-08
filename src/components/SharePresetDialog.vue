@@ -36,10 +36,10 @@
 
 <template>
   <RenderDialog title="Share publicly" close-title="Cancel" wide dismissable @close="emit('close')">
-    <form class="body" @submit.prevent="send">
+    <form class="dialog-body" @submit.prevent="send">
       <ReplaceSelect v-model="target" :code="preset.code" label="Share as" />
-      <label>
-        <span>Name</span>
+      <label class="field">
+        <span class="label">Name</span>
         <input type="text" v-model="name" :maxlength="NAME_LIMIT" spellcheck="false">
       </label>
       <ShareAccount v-if="!target" />
@@ -53,32 +53,6 @@
 </template>
 
 <style scoped>
-  .body {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    padding: 20px;
-  }
-
-  label {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    font-size: var(--font-md);
-    font-weight: 600;
-    user-select: none;
-  }
-
-  input {
-    font-weight: 400;
-  }
-
-  .error {
-    margin: 0;
-    font-size: var(--font-md);
-    color: var(--danger);
-  }
-
   .footer {
     display: flex;
     align-items: center;

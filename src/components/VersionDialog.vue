@@ -76,23 +76,13 @@
   }
 
   .version {
-    display: flex;
     flex: none;
-    align-items: center;
-    gap: 8px;
+    justify-content: flex-start;
     width: 100%;
     padding: 8px 10px;
     font-size: var(--font-md);
-    font-weight: 600;
     text-align: left;
-    color: var(--text);
-    background: var(--card);
-    border: 2px solid transparent;
-    user-select: none;
-  }
-
-  .version:hover {
-    background: var(--card-hover);
+    border-width: 2px;
   }
 
   .version.selected {

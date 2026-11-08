@@ -26,6 +26,12 @@
     observer.observe(element.value)
   }
 
+  function open(event) {
+    if (props.large) return
+    event.stopPropagation()
+    emit("open")
+  }
+
   onMounted(watchForSight)
   onBeforeUnmount(() => observer?.disconnect())
 
@@ -38,25 +44,16 @@
 </script>
 
 <template>
-  <div v-if="large" ref="element" class="picture large">
+  <div ref="element" class="picture" :class="large ? 'large' : 'clickable'" :role="large ? null : 'button'" :tabindex="large ? null : 0" @click="open" @keydown.enter="open">
     <img v-if="seen && !failed" v-show="loaded" :src="pictureUrl({ code, fingerprint })" alt="" @load="loaded = true" @error="failed = true">
     <span v-if="failed" class="status">Can't show this title</span>
-    <span v-else-if="!loaded" class="status">Loading</span>
-  </div>
-  <div v-else ref="element" class="picture clickable" role="button" tabindex="0" @click.stop="emit('open')" @keydown.enter="emit('open')">
-    <img v-if="seen && !failed" v-show="loaded" :src="pictureUrl({ code, fingerprint })" alt="" @load="loaded = true" @error="failed = true">
-    <span v-if="failed" class="status">Can't show this title</span>
-    <span v-else-if="seen && !loaded" class="status">Loading</span>
+    <span v-else-if="(large || seen) && !loaded" class="status">Loading</span>
   </div>
 </template>
 
 <style scoped>
   .picture {
-    box-sizing: border-box;
     padding: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     width: 100%;
     aspect-ratio: 2;
     background: var(--checker);
@@ -78,8 +75,6 @@
 
   .picture img {
     display: block;
-    max-width: 100%;
-    max-height: 100%;
   }
 
   .status {

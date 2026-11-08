@@ -10,7 +10,7 @@
   import { view } from "../lib/view.js"
   import ContextMenu from "./ContextMenu.vue"
   import Icon from "./Icon.vue"
-  import RenderDialog from "./RenderDialog.vue"
+  import MessageDialog from "./MessageDialog.vue"
   import SavePresetDialog from "./SavePresetDialog.vue"
 
   const SETTLE = 150
@@ -199,12 +199,10 @@
 
 <template>
   <nav class="layers">
-    <div class="presets">
-      <button class="rail-button" title="Open a saved preset" @click="openPresetsPage()">
-        <Icon name="bookmark" :size="20" />
-        <span>Presets</span>
-      </button>
-    </div>
+    <button class="rail-button" title="Open a saved preset" @click="openPresetsPage()">
+      <Icon name="bookmark" :size="20" />
+      <span>Presets</span>
+    </button>
     <div class="divider"></div>
     <div ref="list" class="list" :class="{ dragging: dragged !== null }" @dragstart.prevent>
       <div v-for="row of rows" :key="row.key" :data-row="row.key" :class="row.group === null ? 'single' : { group: true, selected: !view.render && scene.selectedGroup === row.group, hidden: lineHidden(row.words[0]), dragged: dragged === row.key }">
@@ -215,7 +213,7 @@
           <div class="thumb">
             <img v-if="previews[object.id]" :src="previews[object.id]" alt="">
           </div>
-          <span class="name">{{ label(object) }}</span>
+          <span class="name ellipsis">{{ label(object) }}</span>
         </div>
       </div>
       <button class="add" @click="add" title="Add text">
@@ -229,12 +227,7 @@
     </button>
     <ContextMenu :items="context?.items" :at="context?.at" @close="context = null" />
     <SavePresetDialog v-if="namingPreset !== null" :suggested="namingPreset" :share-only="namingForShare" @close="namingPreset = null" />
-    <RenderDialog v-if="savedPreset?.skipped" title="Preset saved" close-title="Close" dismissable @close="savedPreset = null">
-      <div class="skipped">
-        <p>{{ savedPreset.skipped === 1 ? "1 uploaded overlay" : `${savedPreset.skipped} uploaded overlays` }} could not be saved, so {{ savedPreset.name }} opens without {{ savedPreset.skipped === 1 ? "it" : "them" }}.</p>
-        <button class="primary" @click="savedPreset = null">OK</button>
-      </div>
-    </RenderDialog>
+    <MessageDialog v-if="savedPreset?.skipped" title="Preset saved" @close="savedPreset = null">{{ savedPreset.skipped === 1 ? "1 uploaded overlay" : `${savedPreset.skipped} uploaded overlays` }} could not be saved, so {{ savedPreset.name }} opens without {{ savedPreset.skipped === 1 ? "it" : "them" }}.</MessageDialog>
   </nav>
 </template>
 
@@ -314,11 +307,8 @@
 
   .name {
     max-width: 60px;
-    overflow: hidden;
     font-size: var(--font-xxs);
     font-weight: 600;
-    white-space: nowrap;
-    text-overflow: ellipsis;
     color: var(--faint);
   }
 
@@ -431,6 +421,7 @@
   }
 
   .rail-button {
+    flex: none;
     flex-direction: column;
     gap: 5px;
     padding: 10px 2px 8px;
@@ -447,30 +438,6 @@
   .rail-button.selected {
     color: var(--accent);
     background: var(--accent-soft);
-  }
-
-  .render {
-    flex: none;
-  }
-
-  .presets {
-    flex: none;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .skipped {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 16px;
-    padding: 20px;
-  }
-
-  .skipped p {
-    align-self: stretch;
-    margin: 0;
-    font-size: var(--font-base);
   }
 
   @media (max-width: 800px) {

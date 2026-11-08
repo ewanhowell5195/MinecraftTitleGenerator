@@ -13,8 +13,8 @@
   <div class="actions">
     <Icon class="kind" :name="grouped ? 'layers' : 'text'" :size="16" />
     <div class="summary">
-      <span class="name">{{ lineText(line[0]) || "(empty)" }}</span>
-      <span class="type">{{ grouped ? `${line.length} words, ` : "" }}{{ TYPES[line[0].type].name }}</span>
+      <span class="name ellipsis">{{ lineText(line[0]) || "(empty)" }}</span>
+      <span class="type ellipsis">{{ grouped ? `${line.length} words, ` : "" }}{{ TYPES[line[0].type].name }}</span>
     </div>
     <button class="icon-button" @click="toggleLine(line[0])" :title="hidden ? 'Show' : 'Hide'" :aria-pressed="hidden">
       <Icon :name="hidden ? 'hidden' : 'eye'" :size="18" />
@@ -51,13 +51,6 @@
     flex-direction: column;
     min-width: 0;
     margin-left: 10px;
-  }
-
-  .name,
-  .type {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
   }
 
   .name {

@@ -9,8 +9,7 @@
     step: { type: Number, default: 1 },
     steps: { type: Array, default: null },
     log: { type: Boolean, default: false },
-    inline: { type: Boolean, default: false },
-    disabled: { type: Boolean, default: false }
+    inline: { type: Boolean, default: false }
   })
 
   const SPAN = 1000
@@ -56,15 +55,15 @@
 </script>
 
 <template>
-  <div class="slider" :class="{ inline, disabled }">
+  <div class="slider" :class="{ inline }">
     <span class="label">{{ label }}</span>
     <template v-if="steps">
-      <input class="value" type="number" :value="+value.toFixed(2)" :min="min" :max="max" step="any" :disabled="disabled" :aria-label="label" @change="typed">
-      <input class="range" type="range" v-model.number="index" min="0" :max="steps.length - 1" step="1" :disabled="disabled" :style="fill" :aria-label="label">
+      <input class="value" type="number" :value="+value.toFixed(2)" :min="min" :max="max" step="any" :aria-label="label" @change="typed">
+      <input class="range" type="range" v-model.number="index" min="0" :max="steps.length - 1" step="1" :style="fill" :aria-label="label">
     </template>
     <template v-else>
-      <input class="value" type="number" v-model.number="value" :min="min" :max="max" :step="step" :disabled="disabled" :aria-label="label">
-      <input ref="range" class="range" type="range" v-model.number="position" :min="log ? 0 : min" :max="log ? SPAN : max" :step="log ? 1 : step" :disabled="disabled" :style="fill" :aria-label="label">
+      <input class="value" type="number" v-model.number="value" :min="min" :max="max" :step="step" :aria-label="label">
+      <input ref="range" class="range" type="range" v-model.number="position" :min="log ? 0 : min" :max="log ? SPAN : max" :step="log ? 1 : step" :style="fill" :aria-label="label">
     </template>
   </div>
 </template>
@@ -86,14 +85,6 @@
 
   .label {
     grid-area: label;
-  }
-
-  .disabled {
-    opacity: 0.4;
-  }
-
-  .disabled .range {
-    cursor: default;
   }
 
   .inline .label {

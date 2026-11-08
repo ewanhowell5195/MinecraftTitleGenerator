@@ -99,7 +99,7 @@
     <button ref="trigger" type="button" class="trigger field-button" :class="{ open }" :aria-expanded="open" @click="open ? close() : show()" @keydown="key">
       <img v-if="selected.image" class="image" :src="selected.image" alt="">
       <span class="text">
-        <span class="name">{{ selected.label }}</span>
+        <span class="name ellipsis">{{ selected.label }}</span>
         <span v-if="selected.hint" class="hint">{{ selected.hint }}</span>
       </span>
       <Icon class="chevron" name="down" :size="14" />
@@ -111,7 +111,7 @@
           <li v-for="(option, index) of shown" :key="String(option.value)" role="option" :aria-selected="option.value === value" :class="{ selected: option.value === value, active: index === active }" @pointermove="active = index" @click="choose(option)">
             <img v-if="option.image" class="image" :src="option.image" alt="">
             <span class="text">
-              <span class="name">{{ option.label }}</span>
+              <span class="name ellipsis">{{ option.label }}</span>
               <span v-if="option.hint" class="hint">{{ option.hint }}</span>
             </span>
           </li>
@@ -195,12 +195,6 @@
     align-items: baseline;
     gap: 8px;
     min-width: 0;
-  }
-
-  .name {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
   }
 
   li.selected .name {

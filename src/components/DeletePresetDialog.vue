@@ -16,7 +16,7 @@
 
 <template>
   <RenderDialog title="Delete preset" close-title="Cancel" wide dismissable @close="emit('close')">
-    <div class="body">
+    <div class="dialog-body">
       <template v-if="canDeleteShared">
         <p><strong>{{ preset.name }}</strong> is shared publicly. Deleting it from Community moves it back to your presets, and it keeps its votes and uses if you share it again. Fully deleting it removes it for good.</p>
         <div class="buttons">
@@ -35,18 +35,6 @@
 </template>
 
 <style scoped>
-  .body {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    padding: 20px;
-  }
-
-  p {
-    margin: 0;
-    font-size: var(--font-md);
-  }
-
   strong {
     font-weight: 600;
   }
@@ -56,13 +44,5 @@
     flex-wrap: wrap;
     justify-content: flex-end;
     gap: 8px;
-  }
-
-  button {
-    user-select: none;
-  }
-
-  .danger {
-    color: var(--danger);
   }
 </style>

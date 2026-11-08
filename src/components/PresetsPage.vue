@@ -362,7 +362,8 @@
           <template v-if="tab === 'community'">
             <Dropdown class="sort" :options="SORTS" v-model="sort" />
             <button class="random" title="Show a random community preset" @click="openRandom"><Icon name="dice" :size="16" /><span>Random</span></button>
-          </template>        </div>
+          </template>
+        </div>
         <div class="list">
           <p v-if="tooShort" class="message">Keep typing to search.</p>
           <p v-else-if="error" class="message error">{{ error }}</p>
@@ -374,9 +375,9 @@
             <div v-for="preset of results" :key="preset.id" class="card" :class="{ selected: selected?.id === preset.id }" @click="selectCommunity(preset)">
               <TitlePicture :code="preset.code" :fingerprint="preset.fingerprint" :title="preset.name" @open="selectCommunity(preset)" />
               <div class="details">
-                <strong :title="preset.name">{{ preset.name }}</strong>
+                <strong class="ellipsis" :title="preset.name">{{ preset.name }}</strong>
                 <span v-if="isMine(preset) && !preset.author" class="yours">Shared by you</span>
-                <button v-else-if="preset.author" type="button" class="author" :class="{ yours: isMine(preset) }" :title="`Show presets by ${preset.author} on ${providerLabel(preset.authorProvider)}`" @click.stop="filterByUser(preset.author, preset.authorProvider)"><Icon :name="preset.authorProvider" :size="13" /><span>{{ preset.author }}</span></button>
+                <button v-else-if="preset.author" type="button" class="author link-button" :class="{ yours: isMine(preset) }" :title="`Show presets by ${preset.author} on ${providerLabel(preset.authorProvider)}`" @click.stop="filterByUser(preset.author, preset.authorProvider)"><Icon :name="preset.authorProvider" :size="13" /><span class="ellipsis">{{ preset.author }}</span></button>
               </div>
             </div>
           </div>
@@ -387,7 +388,7 @@
                 <div v-for="preset of group.presets" :key="preset.code" class="card" :class="{ selected: selectedLocalCode === preset.code }" @click="selectedLocalCode = preset.code">
                   <TitlePicture :code="preset.code" :title="preset.name" @open="selectedLocalCode = preset.code" />
                   <div class="details">
-                    <strong :title="preset.name">{{ preset.name }}</strong>
+                    <strong class="ellipsis" :title="preset.name">{{ preset.name }}</strong>
                     <span v-if="preset.inBrowser" class="browser" title="Your account is full, so this is only saved in this browser">This browser only</span>
                     <span v-if="stats[preset.shared]" class="stats">
                       <span title="Uses"><Icon name="download" :size="13" />{{ stats[preset.shared].downloads }}</span>
@@ -408,7 +409,7 @@
     </div>
     <SharePresetDialog v-if="sharing" :preset="sharing" @close="sharing = null" @shared="shared" />
     <DeletePresetDialog v-if="removing" :preset="removing" :can-delete-shared="managedPresets.includes(removing.shared)" @close="removing = null" @delete="confirmRemove" />
-    <p v-if="notice" class="notice" role="status">{{ notice }}</p>
+    <p v-if="notice" class="toast" role="status">{{ notice }}</p>
   </div>
 </template>
 
@@ -434,11 +435,8 @@
   }
 
   .back {
-    display: flex;
     flex: none;
-    align-items: center;
     gap: 6px;
-    user-select: none;
   }
 
   h1 {
@@ -487,11 +485,6 @@
     padding: 16px 20px;
   }
 
-  .search {
-    flex: 1;
-    min-width: 0;
-  }
-
   .sort {
     flex: none;
     width: 200px;
@@ -502,11 +495,8 @@
   }
 
   .random {
-    display: flex;
     flex: none;
-    align-items: center;
     gap: 6px;
-    user-select: none;
   }
 
   .usage {
@@ -547,7 +537,6 @@
   }
 
   .grid {
-    display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(100%, clamp(320px, 21vw, 420px)), 1fr));
     gap: 12px;
   }
@@ -559,18 +548,9 @@
     min-width: 0;
     padding: 8px;
     font-size: var(--font-sm);
-    background: var(--card);
-    cursor: pointer;
-    user-select: none;
-  }
-
-  .card:hover {
-    background: var(--card-hover);
   }
 
   .card.selected {
-    outline: 2px solid var(--accent);
-    outline-offset: -2px;
     background: var(--card-hover);
   }
 
@@ -606,60 +586,26 @@
   }
 
   .author {
-    display: flex;
     flex: 0 1 auto;
-    align-items: center;
-    gap: 4px;
     min-width: 0;
     max-width: 50%;
-    padding: 0;
-    font: inherit;
     color: var(--muted);
-    background: none;
-    border: none;
-    user-select: none;
   }
 
   .author:hover {
     color: var(--text);
-    background: none;
-    text-decoration: underline;
   }
 
   .author.yours {
-    flex: 0 1 auto;
     color: var(--accent);
-  }
-
-  .author span {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
-
-  .card strong {
-    min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
   }
 
   .sentinel {
     height: 1px;
   }
 
-  .notice {
-    position: absolute;
+  .toast {
     top: 68px;
-    right: 16px;
-    z-index: 4;
-    max-width: calc(100% - 32px);
-    margin: 0;
-    padding: 6px 10px;
-    font-size: var(--font-md);
-    background: var(--card);
-    border: 1px solid var(--line);
-    pointer-events: none;
   }
 
   @media (max-width: 1100px) {
@@ -667,7 +613,7 @@
       flex-wrap: wrap;
     }
 
-    .search {
+    .tools .search {
       flex-basis: 100%;
     }
 
@@ -705,17 +651,7 @@
     }
 
     .tools {
-      flex-wrap: wrap;
       padding: 12px 12px 0;
-    }
-
-    .search {
-      flex-basis: 100%;
-    }
-
-    .sort {
-      flex: 1;
-      width: auto;
     }
 
     .list {

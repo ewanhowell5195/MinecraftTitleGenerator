@@ -1,6 +1,6 @@
 <script setup>
   import { onBeforeUnmount, onMounted, ref } from "vue"
-  import { download } from "../lib/ui.js"
+  import { downloadBlob } from "../lib/ui.js"
   import Icon from "./Icon.vue"
   import RenderDialog from "./RenderDialog.vue"
 
@@ -38,9 +38,7 @@
   }
 
   async function save() {
-    const url = URL.createObjectURL(await blob)
-    download(props.name, url)
-    setTimeout(() => URL.revokeObjectURL(url), 10000)
+    downloadBlob(props.name, await blob)
   }
 
   onMounted(async () => {

@@ -166,11 +166,16 @@
     padding: 12px;
   }
 
-  .area {
+  .area,
+  .hue {
     position: relative;
+    touch-action: none;
+    user-select: none;
+  }
+
+  .area {
     height: 160px;
     cursor: crosshair;
-    touch-action: none;
   }
 
   .area::before {
@@ -181,11 +186,9 @@
   }
 
   .hue {
-    position: relative;
     height: 14px;
     background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
     cursor: pointer;
-    touch-action: none;
   }
 
   .thumb {

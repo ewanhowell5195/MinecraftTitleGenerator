@@ -42,16 +42,6 @@
     display: none;
   }
 
-  .replace :deep(.label) {
-    font-weight: 600;
-    color: var(--text);
-  }
-
-  p {
-    margin: 0;
-    font-size: var(--font-md);
-  }
-
   .warning {
     color: var(--danger);
   }

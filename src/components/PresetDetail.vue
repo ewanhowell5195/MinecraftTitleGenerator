@@ -80,7 +80,7 @@
       <TitlePicture :code="preset.code" :fingerprint="local ? null : preset.fingerprint" large />
       <div class="heading">
         <input v-if="renaming" v-selected class="name-field" type="text" :value="preset.name" :maxlength="NAME_LIMIT" :aria-label="`Name of ${preset.name}`" spellcheck="false" @blur="finishRenaming" @keydown.enter="$event.target.blur()" @keydown.esc.stop="renaming = false">
-        <h2 v-else :title="preset.name">{{ preset.name }}</h2>
+        <h2 v-else class="ellipsis" :title="preset.name">{{ preset.name }}</h2>
         <button v-if="(local || owned) && !renaming" class="icon-button small" :title="`Rename ${preset.name}`" :aria-label="`Rename ${preset.name}`" @click="renaming = true"><Icon name="pencil" :size="14" /></button>
         <span v-if="local && preset.inBrowser" class="browser" title="Your account is full, so this is only saved in this browser">This browser only</span>
         <span v-if="local && preset.shared" class="yours">Shared publicly</span>
@@ -88,7 +88,7 @@
       </div>
       <template v-if="figures">
         <PresetRating :rating="figures.rating" :votes="figures.votes" :mine="preset.vote" :own="mine || local" @vote="emit('vote', $event)" />
-        <p class="facts"><span>{{ uses }}</span><span>Shared {{ sharedOn }}</span><span v-if="figures.author" class="author">By <button type="button" :title="`Show presets by ${figures.author} on ${providerLabel(figures.authorProvider)}`" @click="emit('user', figures.author, figures.authorProvider)"><Icon :name="figures.authorProvider" :size="14" /><strong>{{ figures.author }}</strong></button></span></p>
+        <p class="facts"><span>{{ uses }}</span><span>Shared {{ sharedOn }}</span><span v-if="figures.author" class="author">By <button type="button" class="link-button" :title="`Show presets by ${figures.author} on ${providerLabel(figures.authorProvider)}`" @click="emit('user', figures.author, figures.authorProvider)"><Icon :name="figures.authorProvider" :size="14" /><strong>{{ figures.author }}</strong></button></span></p>
       </template>
       <div class="actions">
         <button class="primary" @click="emit('open')">Open in editor</button>
@@ -140,12 +140,7 @@
   }
 
   h2 {
-    margin: 0;
-    overflow: hidden;
-    font-size: var(--font-xl);
     font-weight: 600;
-    white-space: nowrap;
-    text-overflow: ellipsis;
   }
 
   .name-field {
@@ -160,19 +155,19 @@
     font-size: var(--font-md);
   }
 
-  .yours {
-    flex: none;
-    margin-left: auto;
-    padding-left: 8px;
-    font-size: var(--font-md);
-    color: var(--accent);
-  }
-
+  .yours,
   .browser {
     flex: none;
     margin-left: auto;
     padding-left: 8px;
     font-size: var(--font-md);
+  }
+
+  .yours {
+    color: var(--accent);
+  }
+
+  .browser {
     color: var(--muted);
   }
 
@@ -193,23 +188,6 @@
     gap: 4px;
   }
 
-  .author button {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 0;
-    font: inherit;
-    color: inherit;
-    background: none;
-    border: none;
-    user-select: none;
-  }
-
-  .author button:hover {
-    background: none;
-    text-decoration: underline;
-  }
-
   .author strong {
     font-weight: 600;
     color: var(--text);
@@ -222,16 +200,7 @@
   }
 
   .actions button {
-    display: flex;
     flex: 1 1 180px;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    user-select: none;
-  }
-
-  .danger {
-    color: var(--danger);
   }
 
   @media (max-width: 800px) {

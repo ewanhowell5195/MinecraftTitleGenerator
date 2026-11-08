@@ -494,7 +494,6 @@
     padding: 3px;
     background: var(--surface);
     border: 1px solid var(--line);
-    user-select: none;
   }
 
   .tools .active {

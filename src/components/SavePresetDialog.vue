@@ -86,7 +86,7 @@
 
 <template>
   <RenderDialog v-if="shareOnly && namingShared" title="Share publicly" close-title="Cancel" dismissable @close="emit('close')">
-    <form class="body" @submit.prevent="submit">
+    <form class="dialog-body" @submit.prevent="submit">
       <p class="hint">This title is already shared as {{ suggested }}.</p>
       <div class="buttons">
         <button class="primary" type="submit">View in Community</button>
@@ -94,10 +94,10 @@
     </form>
   </RenderDialog>
   <RenderDialog v-else :title="shareOnly ? 'Share publicly' : 'Save preset'" close-title="Cancel" :wide="!namingShared && !shareOnly" dismissable @close="emit('close')">
-    <form class="body" @submit.prevent="submit">
+    <form class="dialog-body" @submit.prevent="submit">
       <ReplaceSelect v-if="!namingShared && !shareOnly" v-model="target" :code="namingCode" label="Save as" />
-      <label>
-        <span>Name</span>
+      <label class="field">
+        <span class="label">Name</span>
         <input ref="field" type="text" v-model="name" :maxlength="NAME_LIMIT" :placeholder="target?.name ?? suggested" spellcheck="false">
       </label>
       <template v-if="!namingShared && !target?.online">
@@ -117,36 +117,6 @@
 </template>
 
 <style scoped>
-  .body {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    padding: 20px;
-  }
-
-  label {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    font-size: var(--font-md);
-    font-weight: 600;
-    user-select: none;
-  }
-
-  input {
-    font-weight: 400;
-  }
-
-  .hint {
-    margin: 0;
-  }
-
-  .error {
-    margin: 0;
-    font-size: var(--font-md);
-    color: var(--danger);
-  }
-
   .footer {
     display: flex;
     flex-wrap: wrap;
@@ -159,10 +129,6 @@
     flex: none;
     gap: 8px;
     margin-left: auto;
-  }
-
-  .buttons button {
-    user-select: none;
   }
 
   .usage {

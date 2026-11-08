@@ -4,17 +4,15 @@
   import { startSavingPreset } from "../lib/presets.js"
   import { scene } from "../lib/scene.js"
   import { shareLink } from "../lib/share.js"
-  import ContextMenu from "./ContextMenu.vue"
   import Icon from "./Icon.vue"
-  import RenderDialog from "./RenderDialog.vue"
+  import MenuButton from "./MenuButton.vue"
+  import MessageDialog from "./MessageDialog.vue"
 
   const skipped = ref(0)
-  const at = ref(null)
   const items = [
     { label: "Copy link", icon: "link", action: copyLink },
     { label: "Share publicly", icon: "share", action: () => startSavingPreset({ share: true }) }
   ]
-  let closed = 0
 
   async function copyLink() {
     try {
@@ -26,32 +24,15 @@
       showNotice(`Could not copy: ${err.message}`)
     }
   }
-
-  function toggle(event) {
-    if (performance.now() - closed < 300) return
-    const rect = event.currentTarget.getBoundingClientRect()
-    at.value = { x: rect.right, y: rect.bottom + 4 }
-  }
-
-  function close() {
-    closed = performance.now()
-    at.value = null
-  }
 </script>
 
 <template>
   <div class="share">
-    <button class="small" title="Share this title" :disabled="!scene.objects.length" @click="toggle">
+    <MenuButton class="small" title="Share this title" :disabled="!scene.objects.length" :items="items" end>
       <Icon name="share" :size="16" />
       <span>Share</span>
-    </button>
-    <ContextMenu :items="at ? items : []" :at="at" @close="close" />
-    <RenderDialog v-if="skipped" title="Link copied" close-title="Close" dismissable @close="skipped = 0">
-      <div class="body">
-        <p>{{ skipped === 1 ? "1 uploaded overlay" : `${skipped} uploaded overlays` }} could not be shared, so the link opens this title without {{ skipped === 1 ? "it" : "them" }}.</p>
-        <button class="primary" @click="skipped = 0">OK</button>
-      </div>
-    </RenderDialog>
+    </MenuButton>
+    <MessageDialog v-if="skipped" title="Link copied" @close="skipped = 0">{{ skipped === 1 ? "1 uploaded overlay" : `${skipped} uploaded overlays` }} could not be shared, so the link opens this title without {{ skipped === 1 ? "it" : "them" }}.</MessageDialog>
   </div>
 </template>
 
@@ -59,19 +40,5 @@
   .share {
     flex: none;
     margin-left: auto;
-  }
-
-  .body {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 16px;
-    padding: 20px;
-  }
-
-  .body p {
-    align-self: stretch;
-    margin: 0;
-    font-size: var(--font-base);
   }
 </style>

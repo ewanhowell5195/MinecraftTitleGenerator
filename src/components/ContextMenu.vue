@@ -37,7 +37,10 @@
   }
 
   function key(event) {
-    if (event.key === "Escape") close()
+    if (event.key === "Escape") {
+      event.preventDefault()
+      close()
+    }
     if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return
     event.preventDefault()
     const buttons = Array.from(menu.value.querySelectorAll("button:not(:disabled)"))
@@ -45,7 +48,7 @@
     buttons[(index + (event.key === "ArrowDown" ? 1 : -1) + buttons.length) % buttons.length]?.focus()
   }
 
-  useWindowEvents(() => !!props.at, { keydown: key, resize: close, blur: close }, { pointerdown: outside, wheel: outside })
+  useWindowEvents(() => !!props.at, { resize: close, blur: close }, { keydown: key, pointerdown: outside, wheel: outside })
 
   watch(() => props.at, at => {
     if (at) place()
@@ -97,7 +100,6 @@
     color: var(--muted);
   }
 
-  button.danger,
   button.danger svg {
     color: var(--danger);
   }
