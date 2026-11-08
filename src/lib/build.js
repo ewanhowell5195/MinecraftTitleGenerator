@@ -120,7 +120,7 @@ export function buildText(font, options) {
     const boxes = boxesFor(glyph.mask, glyph.width, glyph.height, item.x, glyph.bottom)
     const char = glyph.char.split("\u0000")[0]
     const mesh = font.mesh?.glyphs[char]
-    const shaped = mesh ? font.mesh.tools.meshFaces(mesh, glyph, font.glyphs[char], item.x, depth) : null
+    const shaped = mesh ? font.mesh.tools.meshFaces(mesh, glyph, font.glyphs[char], item.x, depth, font.capHeight) : null
     const body = shaped ? shaped.faces : boxFaces(boxes, -depth / 2, depth / 2)
     for (const face of body) face.glyph = glyphs.length
     glyphs.push({ body, boxes, rings: shaped?.rings ?? null, spaces: item.spaces, char: glyph.char, rect: { minX: item.x, maxX: item.x + glyph.width, minY: glyph.bottom, maxY: glyph.bottom + glyph.height } })

@@ -3,7 +3,7 @@ import { ShapeUtils, Vector2 } from "three"
 
 const PRECISION = 4
 const ARC_TOLERANCE = 0.05
-const EDGE_ROW = 1
+const EDGE_SHARE = 0.1
 const FAR = 1e6
 
 function signedArea(ring) {
@@ -117,7 +117,7 @@ function bandTriangles(shapes, breaks) {
   return triangles
 }
 
-function wall(p, q, zFront, zBack, top, bottom) {
+function wall(p, q, zFront, zBack, top, bottom, reach) {
   const dx = q[0] - p[0]
   const dy = q[1] - p[1]
   if (!dx && !dy) return null
@@ -125,11 +125,11 @@ function wall(p, q, zFront, zBack, top, bottom) {
   const kind = out[1] >= Math.abs(out[0]) ? "top" : out[1] <= -Math.abs(out[0]) ? "bottom" : "side"
   const points = [[p[0], p[1], zFront], [p[0], p[1], zBack], [q[0], q[1], zBack], [q[0], q[1], zFront]]
   if (kind === "side") return { points, kind, name: out[0] < 0 ? "west" : "east", internal: false, mesh: true }
-  const internal = kind === "top" ? Math.min(p[1], q[1]) < top - EDGE_ROW : Math.max(p[1], q[1]) > bottom + EDGE_ROW
+  const internal = kind === "top" ? Math.min(p[1], q[1]) < top - reach : Math.max(p[1], q[1]) > bottom + reach
   return { points, kind, name: kind === "top" ? "up" : "down", internal, mesh: true }
 }
 
-export function meshFaces(mesh, glyph, original, x, depth) {
+export function meshFaces(mesh, glyph, original, x, depth, capHeight) {
   const { lift, breaks, identity } = rowMapping(glyph, original)
   const place = ([px, py]) => [x + px, lift(py)]
   const triangles = identity ? mesh.triangles : bandTriangles(mesh.shapes, breaks)
@@ -146,7 +146,7 @@ export function meshFaces(mesh, glyph, original, x, depth) {
   for (const ring of rings) {
     let last = null
     for (let i = 0; i < ring.length; i++) {
-      const face = wall(ring[i], ring[(i + 1) % ring.length], zFront, zBack, top, glyph.bottom)
+      const face = wall(ring[i], ring[(i + 1) % ring.length], zFront, zBack, top, glyph.bottom, capHeight * EDGE_SHARE)
       if (!face) continue
       face.run = last && last.kind === face.kind && last.name === face.name && last.internal === face.internal ? last.run : {}
       faces.push(face)

@@ -88,7 +88,7 @@ describe("mesh glyphs", () => {
 
   test("faces wind like the cube faces: front clockwise, back the other way, walls facing out", async () => {
     const mesh = glyphMeshes(meshOutlines(await testFont(), { height: 30 })).h
-    const { faces } = meshFaces(mesh, { bottom: 0, height: 30, arc: { map: Array.from({ length: 30 }, (_, row) => row) } }, { bottom: 0, height: 30 }, 0, 6)
+    const { faces } = meshFaces(mesh, { bottom: 0, height: 30, arc: { map: Array.from({ length: 30 }, (_, row) => row) } }, { bottom: 0, height: 30 }, 0, 6, 30)
     assert.ok(faces.filter(face => face.kind === "front").every(face => area(face.points) < 0 && face.points.every(point => point[2] === -3)))
     assert.ok(faces.filter(face => face.kind === "back").every(face => area(face.points) > 0 && face.points.every(point => point[2] === 3)))
     const kinds = new Set(faces.map(face => `${face.kind}:${face.name}`))
@@ -100,8 +100,8 @@ describe("mesh glyphs", () => {
     const plain = Array.from({ length: 30 }, (_, row) => row)
     const map = plain.flatMap(row => row >= 10 && row < 20 ? [row, row, row] : [row])
     const front = faces => faces.filter(face => face.kind === "front")
-    const before = front(meshFaces(mesh, { bottom: 0, height: 30, arc: { map: plain } }, { bottom: 0, height: 30 }, 0, 6).faces)
-    const after = front(meshFaces(mesh, { bottom: 0, height: map.length, arc: { map } }, { bottom: 0, height: 30 }, 0, 6).faces)
+    const before = front(meshFaces(mesh, { bottom: 0, height: 30, arc: { map: plain } }, { bottom: 0, height: 30 }, 0, 6, 30).faces)
+    const after = front(meshFaces(mesh, { bottom: 0, height: map.length, arc: { map } }, { bottom: 0, height: 30 }, 0, 6, 30).faces)
     const width = Math.max(...before.flatMap(face => face.points.map(point => point[0]))) - Math.min(...before.flatMap(face => face.points.map(point => point[0])))
     const covered = faces => faces.reduce((sum, face) => sum - area(face.points), 0)
     assert.ok(Math.abs(covered(after) - covered(before) - width * 20) < 1e-6)
@@ -117,9 +117,22 @@ describe("mesh glyphs", () => {
     }
   })
 
+  test("top and bottom faces follow a curve for a tenth of the cap height", async () => {
+    const mesh = glyphMeshes(meshOutlines(await testFont(), { height: 30 })).c
+    const { faces } = meshFaces(mesh, { bottom: 0, height: 30, arc: { map: Array.from({ length: 30 }, (_, row) => row) } }, { bottom: 0, height: 30 }, 0, 6, 30)
+    const tops = faces.filter(face => face.kind === "top" && !face.internal).map(face => Math.min(...face.points.map(point => point[1])))
+    const bottoms = faces.filter(face => face.kind === "bottom" && !face.internal).map(face => Math.max(...face.points.map(point => point[1])))
+    assert.ok(tops.every(y => y >= 30 - 3) && tops.some(y => y < 30 - 1))
+    assert.ok(bottoms.every(y => y <= 3) && bottoms.some(y => y > 1))
+    assert.ok(faces.filter(face => face.kind !== "side" && face.kind !== "front" && face.kind !== "back").every(face => {
+      const [p, , , q] = face.points
+      return Math.abs(q[1] - p[1]) <= Math.abs(q[0] - p[0]) + 1e-9
+    }))
+  })
+
   test("walls only share a run with neighbours of the same kind", async () => {
     const mesh = glyphMeshes(meshOutlines(await testFont(), { height: 30 })).c
-    const { faces } = meshFaces(mesh, { bottom: 0, height: 30, arc: { map: Array.from({ length: 30 }, (_, row) => row) } }, { bottom: 0, height: 30 }, 0, 6)
+    const { faces } = meshFaces(mesh, { bottom: 0, height: 30, arc: { map: Array.from({ length: 30 }, (_, row) => row) } }, { bottom: 0, height: 30 }, 0, 6, 30)
     const walls = faces.filter(face => face.kind !== "front" && face.kind !== "back")
     const runs = new Set(walls.map(face => face.run))
     assert.ok(runs.size < walls.length)
@@ -146,7 +159,7 @@ describe("mesh glyphs", () => {
 
   test("a border grows round the letters, and the gap inside an O can be filled", async () => {
     const mesh = glyphMeshes(meshOutlines(await testFont(), { height: 30 })).o
-    const { rings } = meshFaces(mesh, { bottom: 0, height: 30, arc: { map: Array.from({ length: 30 }, (_, row) => row) } }, { bottom: 0, height: 30 }, 0, 6)
+    const { rings } = meshFaces(mesh, { bottom: 0, height: 30, arc: { map: Array.from({ length: 30 }, (_, row) => row) } }, { bottom: 0, height: 30 }, 0, 6, 30)
     const thin = outlineShell([{ rings }], [1, 1], [1, 1], 4)
     assert.equal(thin.shapes[0].holes.length, 1)
     assert.ok(holeFill([{ shapes: thin.shapes }], -4).length > 0)
