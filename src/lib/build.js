@@ -13,9 +13,13 @@ function expand(bounds, faces) {
   }
 }
 
-function shift(faces, offset) {
-  for (const face of faces) {
-    for (const point of face.points) point[0] += offset
+function shift({ body, boxes }, axis, offset) {
+  for (const face of body) {
+    for (const point of face.points) point[axis] += offset
+  }
+  for (const box of boxes) {
+    box.from[axis] += offset
+    box.to[axis] += offset
   }
 }
 
@@ -113,13 +117,9 @@ export function buildText(font, options) {
   const line = options.line ?? bounds
   const offset = -(line.minX + line.maxX) / 2
   for (const glyph of glyphs) {
-    shift(glyph.body, offset)
+    shift(glyph, 0, offset)
     glyph.rect.minX += offset
     glyph.rect.maxX += offset
-    for (const box of glyph.boxes) {
-      box.from[0] += offset
-      box.to[0] += offset
-    }
   }
   const body = glyphs.flatMap(glyph => glyph.body)
   const texture = buildAtlas(body, {
@@ -131,15 +131,7 @@ export function buildText(font, options) {
     space: font.spaceWidth ?? SPACE
   })
   for (const [index, item] of placed.entries()) {
-    const lift = item.glyph.lift
-    if (!lift) continue
-    for (const face of glyphs[index].body) {
-      for (const point of face.points) point[1] += lift
-    }
-    for (const box of glyphs[index].boxes) {
-      box.from[1] += lift
-      box.to[1] += lift
-    }
+    if (item.glyph.lift) shift(glyphs[index], 1, item.glyph.lift)
   }
   const middles = glyphs.map(({ rect }) => (rect.minX + rect.maxX) / 2)
   const first = options.ends ? options.ends.first + offset : Math.min(...middles)
@@ -168,7 +160,7 @@ export function buildText(font, options) {
   }
 }
 
-function union(rects) {
+function rectGrid(rects) {
   const xs = Array.from(new Set(rects.flatMap(rect => [rect[0], rect[2]]))).sort((a, b) => a - b)
   const ys = Array.from(new Set(rects.flatMap(rect => [rect[1], rect[3]]))).sort((a, b) => a - b)
   const column = new Map(xs.map((value, index) => [value, index]))
@@ -179,6 +171,11 @@ function union(rects) {
   for (const [x0, y0, x1, y1] of rects) {
     for (let y = row.get(y0); y < row.get(y1); y++) mask.fill(1, y * width + column.get(x0), y * width + column.get(x1))
   }
+  return { xs, ys, width, height, mask }
+}
+
+function union(rects) {
+  const { xs, ys, width, height, mask } = rectGrid(rects)
   return boxesFor(mask, width, height).map(box => ({ ...box, from: [xs[box.from[0]], ys[box.from[1]]], to: [xs[box.to[0]], ys[box.to[1]]] }))
 }
 
@@ -206,16 +203,7 @@ export function buildOutline(built, scale, extra = [0, 0, 0]) {
 export function buildHoles(outlines) {
   const rects = outlines.flatMap(outline => outline.rects)
   if (!rects.length) return null
-  const xs = Array.from(new Set(rects.flatMap(rect => [rect[0], rect[2]]))).sort((a, b) => a - b)
-  const ys = Array.from(new Set(rects.flatMap(rect => [rect[1], rect[3]]))).sort((a, b) => a - b)
-  const column = new Map(xs.map((value, index) => [value, index]))
-  const row = new Map(ys.map((value, index) => [value, index]))
-  const width = xs.length - 1
-  const height = ys.length - 1
-  const solid = new Uint8Array(width * height)
-  for (const [x0, y0, x1, y1] of rects) {
-    for (let y = row.get(y0); y < row.get(y1); y++) solid.fill(1, y * width + column.get(x0), y * width + column.get(x1))
-  }
+  const { xs, ys, width, height, mask: solid } = rectGrid(rects)
   const outside = new Uint8Array(width * height)
   const pending = []
   function reach(x, y) {

@@ -20,6 +20,16 @@ export function fillPattern(ctx, image, matrix) {
   ctx.fillStyle = pattern
 }
 
+export function linearGradient(ctx, x0, y0, x1, y1, stops) {
+  const gradient = ctx.createLinearGradient(x0, y0, x1, y1)
+  for (const stop of stops) gradient.addColorStop(stop.position, stop.colour)
+  return gradient
+}
+
+export function fadeStops(colour, clear, fade) {
+  return [{ position: 0, colour: clear }, { position: 1 - fade, colour }, { position: 1, colour }]
+}
+
 let largest = 0
 
 export function canvasLimit() {

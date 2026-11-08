@@ -1,5 +1,5 @@
-import { fillPattern, surface } from "./canvas.js"
-import { hexOf } from "./colour.js"
+import { fadeStops, fillPattern, linearGradient, surface } from "./canvas.js"
+import { hexOf, packed } from "./colour.js"
 import { PLACED_KINDS, edgeAlpha, generatedAlpha } from "./generated.js"
 import { gradientLine, gradientStops } from "./material.js"
 import { clamp } from "./maths.js"
@@ -56,9 +56,7 @@ function fillRects(ctx, rects) {
 }
 
 function gradientFill(ctx, [x0, y0], [x1, y1], stops) {
-  const gradient = ctx.createLinearGradient(x0 * R, y0 * R, x1 * R, y1 * R)
-  for (const stop of stops) gradient.addColorStop(stop.position, stop.colour)
-  return gradient
+  return linearGradient(ctx, x0 * R, y0 * R, x1 * R, y1 * R, stops)
 }
 
 function edgeFill(ctx, [x0, y0], [x1, y1], y, stops) {
@@ -94,7 +92,7 @@ function paintedStops(look) {
     }
     return adjusted(row.canvas, look, { willReadFrequently: true }).ctx.getImageData(0, 0, stops.length, 1).data
   })
-  return stops.map((stop, index) => ({ position: stop.position, colour: data[index * 4] | data[index * 4 + 1] << 8 | data[index * 4 + 2] << 16 }))
+  return stops.map((stop, index) => ({ position: stop.position, colour: packed(data, index * 4) }))
 }
 
 function paintGradient(ctx, entries, look, capHeight, sheet) {
@@ -151,7 +149,7 @@ function tileBlock(look, image) {
 
 function paintTiles(ctx, entries, look, image, capHeight) {
   const { tile, tw, th } = tiling(look, image)
-  const random = look.tileableRandomRotations || look.tileableRandomMirroring
+  const randomised = look.tileableRandomRotations || look.tileableRandomMirroring
 
   function originOf(entry) {
     return look.tileablePerCharacter ? entry.x : entry.x - entry.glyph.lineX
@@ -166,7 +164,7 @@ function paintTiles(ctx, entries, look, image, capHeight) {
     ctx.fillStyle = "#ffffff"
     fillRect(ctx, [x, y, w, h])
     const start = anchor - Math.ceil((anchor - y * R) / th) * th
-    if (!random) {
+    if (!randomised) {
       fillPattern(ctx, tile, new DOMMatrix().translate(left, start).scale(tw / tile.width, th / tile.height))
       fillRect(ctx, [x, y, w, h])
     } else {
@@ -359,6 +357,7 @@ function overlayLabels(sheet, layers, capHeight, width, height) {
   const { ctx } = surface(width, height, { willReadFrequently: true })
   const image = ctx.createImageData(width, height)
   for (let at = 3; at < image.data.length; at += 4) image.data[at] = 255
+  const reader = surface(width, height, { willReadFrequently: true })
   let hard = 0
   let soft = SOFT_LABEL
   for (const { layer, source } of layers) {
@@ -366,7 +365,7 @@ function overlayLabels(sheet, layers, capHeight, width, height) {
     const index = PLACED_KINDS.has(source.generated) ? soft++ : hard++
     if (index >= SOFT_LABEL * 1.5 || hard > SOFT_LABEL) continue
     const threshold = WAVE_KINDS.has(source.generated) ? 128 : 1
-    const reader = surface(width, height, { willReadFrequently: true })
+    reader.ctx.clearRect(0, 0, width, height)
     reader.ctx.drawImage(overlayLayer(sheet, layer, source, capHeight).canvas, 0, 0)
     const alpha = reader.ctx.getImageData(0, 0, width, height).data
     for (let at = 0; at < alpha.length; at += 4) {
@@ -436,8 +435,8 @@ export function paintSheet(sheet, look, assets, capHeight, base = paintBase(shee
   let average = null
   const edgeAverage = () => average ??= averageColour(finalPixels(), entries.flatMap(strips))
 
+  const fade = look.fade ? clamp(look.outerFade / 100, 0, 1) : null
   if (look.fade) {
-    const fade = clamp(look.outerFade / 100, 0, 1)
     work.ctx.globalCompositeOperation = "source-atop"
     const rows = new Map()
     for (const entry of entries) {
@@ -450,12 +449,9 @@ export function paintSheet(sheet, look, assets, capHeight, base = paintBase(shee
         rows.get(key).rects.push(rect)
       }
     }
+    const stops = fadeStops(border, `rgba(${r}, ${g}, ${b}, 0)`, fade)
     for (const { near, far, rects } of rows.values()) {
-      const gradient = work.ctx.createLinearGradient(0, near * R, 0, far * R)
-      gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0)`)
-      gradient.addColorStop(1 - fade, border)
-      gradient.addColorStop(1, border)
-      work.ctx.fillStyle = gradient
+      work.ctx.fillStyle = linearGradient(work.ctx, 0, near * R, 0, far * R, stops)
       fillRects(work.ctx, rects)
     }
     work.ctx.globalCompositeOperation = "source-over"
@@ -463,5 +459,5 @@ export function paintSheet(sheet, look, assets, capHeight, base = paintBase(shee
 
   const tiles = look.source === "tile" && look.tileableTileEdges ? adjusted(tileBlock(look, assets.tile), look).canvas : null
   const gradient = look.source === "gradient" ? { stops: paintedStops(look), ends: entry => gradientEnds(entry, look, capHeight, sheet) } : null
-  return { canvas: work.canvas, facePixels, border, edgeAverage, tiles, tilesAcrossLine: !look.tileablePerCharacter, gradient, fade: look.fade ? clamp(look.outerFade / 100, 0, 1) : null, borderColour: r | g << 8 | b << 16, labels: () => overlayLabels(sheet, overlayLayers, capHeight, width, height) }
+  return { canvas: work.canvas, facePixels, border, edgeAverage, tiles, tilesAcrossLine: !look.tileablePerCharacter, gradient, fade, borderColour: r | g << 8 | b << 16, labels: () => overlayLabels(sheet, overlayLayers, capHeight, width, height) }
 }

@@ -66,6 +66,8 @@ export function arcLayout(font, sheet, words, word, options) {
   const tallest = { top: -Infinity, bottom: -Infinity }
   const reach = { top: -Infinity, bottom: -Infinity }
   const moving = options.arcMode === "move"
+  const bend = (amount, strength) => Math.round(Math.abs(amount) * (amount < 0 ? 1 - strength : strength) * font.capHeight)
+  const curve = (mode, top, bottom, marked, strength) => mode === "move" ? { raise: 0, drop: 0, marked } : { raise: bend(top, strength), drop: bend(bottom, strength), marked }
   let x = 0
   let height = 0
   function extend(item, glyph, lift = 0) {
@@ -86,8 +88,6 @@ export function arcLayout(font, sheet, words, word, options) {
     }
     const shape = words[item.word] ?? {}
     const arc = shape.arc ?? { mode: "stretch", top: 0, bottom: 0, move: 0, marked: true }
-    const bend = (amount, strength) => Math.round(Math.abs(amount) * (amount < 0 ? 1 - strength : strength) * font.capHeight)
-    const curve = (mode, top, bottom, marked, strength) => mode === "move" ? { raise: 0, drop: 0, marked } : { raise: bend(top, strength), drop: bend(bottom, strength), marked }
     const arcs = [curve(options.arcMode, options.arcTop, options.arcBottom, options.arcMarked !== false, amounts[index]), curve(arc.mode, arc.top, arc.bottom, arc.marked !== false, wordAmounts[index])]
     const lift = (moving ? Math.round(options.arcMove * amounts[index] * font.capHeight) : 0) + (arc.mode === "move" ? Math.round(arc.move * wordAmounts[index] * font.capHeight) : 0)
     const grow = Math.round(((options.stretch ?? 1) * (shape.stretch ?? 1) - 1) * font.capHeight)

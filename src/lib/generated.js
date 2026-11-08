@@ -5,8 +5,10 @@ const SIDES = { top: [0, 1], bottom: [0, -1], left: [-1, 0], right: [1, 0] }
 const highlight = { key: "thickness", label: "Highlight thickness", min: 1, max: 8, fallback: 1 }
 const outline = { ...highlight, label: "Outline thickness" }
 const fade = { key: "fade", label: "Fade", min: 0, max: 100, fallback: 80 }
+const seed = { key: "seed", label: "Seed", min: 0, max: 99, fallback: 0 }
+const bandOffset = { key: "offset", label: "Offset", min: 0, max: 63, fallback: 0 }
 const angle = { key: "angle", label: "Angle", min: 0, max: 180, fallback: 45 }
-const wave = [{ key: "level", label: "Level", min: 0, max: 100, fallback: 45 }, { key: "amplitude", label: "Wave height", min: 0, max: 24, fallback: 7 }, { key: "length", label: "Wave length", min: 8, max: 160, fallback: 40 }, { key: "offset", label: "Offset", min: 0, max: 200, fallback: 0 }, { key: "randomness", label: "Randomness", min: 0, max: 100, fallback: 60 }, { key: "seed", label: "Seed", min: 0, max: 99, fallback: 0 }]
+const wave = [{ key: "level", label: "Level", min: 0, max: 100, fallback: 45 }, { key: "amplitude", label: "Wave height", min: 0, max: 24, fallback: 7 }, { key: "length", label: "Wave length", min: 8, max: 160, fallback: 40 }, { key: "offset", label: "Offset", min: 0, max: 200, fallback: 0 }, { key: "randomness", label: "Randomness", min: 0, max: 100, fallback: 60 }, seed]
 
 export const PLACED_KINDS = new Set(["shine", "shine_random", "wave", "wave_inverted"])
 
@@ -19,8 +21,8 @@ export const GENERATED_SETTINGS = {
   outline_fade: [outline, { key: "spread", label: "Fade height", min: 10, max: 100, fallback: 60 }],
   outline_fade_inverted: [outline, { key: "spread", label: "Fade height", min: 10, max: 100, fallback: 75 }],
   corners: [{ key: "size", label: "Dot size", min: 1, max: 8, fallback: 2 }, { key: "inset", label: "Inset", min: 0, max: 8, fallback: 1 }],
-  shine: [{ key: "width", label: "Band width", min: 1, max: 32, fallback: 11 }, { key: "gap", label: "Band gap", min: 1, max: 32, fallback: 12 }, angle, { key: "offset", label: "Offset", min: 0, max: 63, fallback: 0 }, fade],
-  shine_random: [{ key: "width", label: "Band width", min: 1, max: 32, fallback: 6 }, { key: "gap", label: "Band gap", min: 1, max: 32, fallback: 11 }, { key: "randomness", label: "Randomness", min: 0, max: 100, fallback: 75 }, { key: "seed", label: "Seed", min: 0, max: 99, fallback: 0 }, angle, { key: "offset", label: "Offset", min: 0, max: 63, fallback: 0 }, fade],
+  shine: [{ key: "width", label: "Band width", min: 1, max: 32, fallback: 11 }, { key: "gap", label: "Band gap", min: 1, max: 32, fallback: 12 }, angle, bandOffset, fade],
+  shine_random: [{ key: "width", label: "Band width", min: 1, max: 32, fallback: 6 }, { key: "gap", label: "Band gap", min: 1, max: 32, fallback: 11 }, { key: "randomness", label: "Randomness", min: 0, max: 100, fallback: 75 }, seed, angle, bandOffset, fade],
   wave,
   wave_inverted: wave,
   edge_outline: [outline],

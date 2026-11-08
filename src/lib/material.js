@@ -1,4 +1,4 @@
-import { fillPattern, surface } from "./canvas.js"
+import { fadeStops, fillPattern, linearGradient, surface } from "./canvas.js"
 import { hexOf, rgbOf } from "./colour.js"
 import { clamp } from "./maths.js"
 
@@ -379,11 +379,8 @@ export function buildAtlas(faces, options) {
   }
 
   function fadeGradient(fade, back, front, horizontal) {
-    const gradient = horizontal ? ctx.createLinearGradient(front, 0, back, 0) : ctx.createLinearGradient(0, front, 0, back)
-    gradient.addColorStop(0, clear)
-    gradient.addColorStop(1 - fade, painted.border)
-    gradient.addColorStop(1, painted.border)
-    return gradient
+    const stops = fadeStops(painted.border, clear, fade)
+    return horizontal ? linearGradient(ctx, front, 0, back, 0, stops) : linearGradient(ctx, 0, front, 0, back, stops)
   }
 
   function shadeFaces(shades) {
@@ -410,9 +407,7 @@ export function buildAtlas(faces, options) {
   const innerGradient = options.customInternal ? faceGradient(true, options.internalFill, options.internalStops, options.internalSmooth, options.internalDirection) : faceGradient(options.customEdge, options.edgeFill, options.edgeStops, options.edgeSmooth, "along")
 
   function spanFill(stops, x0, y0, x1, y1) {
-    const gradient = ctx.createLinearGradient(x0 * SCALE, y0 * SCALE, x1 * SCALE, y1 * SCALE)
-    for (const stop of stops) gradient.addColorStop(stop.position, stop.colour)
-    return gradient
+    return linearGradient(ctx, x0 * SCALE, y0 * SCALE, x1 * SCALE, y1 * SCALE, stops)
   }
 
   function heightOf(y) {
@@ -530,16 +525,16 @@ export function buildAtlas(faces, options) {
     return { left: x * SCALE, top: (y + depth) * SCALE, right: (x + width) * SCALE, bottom: (y + depth + bounds.height) * SCALE, from: [(from[0] + shiftX) * SCALE, (from[1] + shiftY) * SCALE], to: [(to[0] + shiftX) * SCALE, (to[1] + shiftY) * SCALE] }
   }
 
+  const edgeStops = painted.fade === null && options.customEdge && options.edgeFill === "gradient" ? gradientStops(options.edgeStops, options.edgeSmooth) : null
   for (const { x, y, width, bounds, entry } of blocks) {
     if (!entry) continue
     const bottomStrip = y + depth + bounds.height
     if (painted.fade !== null) {
       addFade(x * SCALE, y * SCALE, (x + width) * SCALE, (y + depth) * SCALE, [0, (y + depth) * SCALE], [0, y * SCALE], painted.fade)
       addFade(x * SCALE, bottomStrip * SCALE, (x + width) * SCALE, (bottomStrip + depth) * SCALE, [0, bottomStrip * SCALE], [0, (bottomStrip + depth) * SCALE], painted.fade)
-    } else if (options.customEdge && options.edgeFill === "gradient") {
-      const stops = gradientStops(options.edgeStops, options.edgeSmooth)
+    } else if (edgeStops) {
       const start = x - entry.glyph.wordX
-      for (const top of [y, bottomStrip]) addGradient({ x, y: top, width, height: depth }, [start, 0], [start + sheet.wordWidth, 0], stops)
+      for (const top of [y, bottomStrip]) addGradient({ x, y: top, width, height: depth }, [start, 0], [start + sheet.wordWidth, 0], edgeStops)
     }
   }
   const frontFaces = painted.gradient ? blocks.filter(block => block.entry).map(block => ({ ...gradientFace(block), stops: painted.gradient.stops })) : []

@@ -12,6 +12,14 @@ function radians(degrees) {
   return degrees * Math.PI / 180
 }
 
+function euler(degrees) {
+  return new THREE.Euler(...degrees.map(radians))
+}
+
+function around(matrix, point, transform) {
+  return matrix.multiply(new THREE.Matrix4().makeTranslation(point.x, point.y, point.z)).multiply(transform).multiply(new THREE.Matrix4().makeTranslation(-point.x, -point.y, -point.z))
+}
+
 function mesh(buffers, material) {
   const geometry = new THREE.BufferGeometry()
   geometry.setAttribute("position", new THREE.BufferAttribute(buffers.positions, 3))
@@ -82,16 +90,16 @@ export function placementMatrix(value, bounds) {
   anchor.applyMatrix4(base)
   const scale = new THREE.Matrix4().makeTranslation(anchor.x, anchor.y, anchor.z).multiply(placement).multiply(new THREE.Matrix4().makeScale(...value.scale)).multiply(placement.clone().invert()).multiply(new THREE.Matrix4().makeTranslation(-anchor.x, -anchor.y, -anchor.z))
   centre.applyMatrix4(scale)
-  const rotation = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(...value.rotate.map(radians)))
+  const rotation = new THREE.Matrix4().makeRotationFromEuler(euler(value.rotate))
   const translate = new THREE.Vector3(value.translate[0] + (value.matchOffset ?? 0), value.translate[1], value.translate[2]).applyMatrix4(rotation.clone().multiply(placement))
-  return new THREE.Matrix4().makeTranslation(translate.x, translate.y, translate.z).multiply(new THREE.Matrix4().makeTranslation(centre.x, centre.y, centre.z)).multiply(rotation).multiply(new THREE.Matrix4().makeTranslation(-centre.x, -centre.y, -centre.z)).multiply(scale).multiply(base)
+  return around(new THREE.Matrix4().makeTranslation(translate.x, translate.y, translate.z), centre, rotation).multiply(scale).multiply(base)
 }
 
 function wordParts(value, built) {
   const bounds = new THREE.Box3().setFromArray(built.body.positions)
   const centre = bounds.getCenter(new THREE.Vector3())
   const anchor = anchorOf(value, bounds, centre)
-  const scale = new THREE.Matrix4().makeTranslation(anchor.x, anchor.y, anchor.z).multiply(new THREE.Matrix4().makeScale(...value.word.scale)).multiply(new THREE.Matrix4().makeTranslation(-anchor.x, -anchor.y, -anchor.z))
+  const scale = around(new THREE.Matrix4(), anchor, new THREE.Matrix4().makeScale(...value.word.scale))
   return { scale, centre: centre.applyMatrix4(scale) }
 }
 
@@ -99,8 +107,8 @@ function wordMatrix(value, built) {
   const word = value.word
   if (!word || !built?.body.triangles || word.scale.every(axis => axis === 1) && word.rotate.every(angle => !angle) && word.translate.every(axis => !axis)) return new THREE.Matrix4()
   const { scale, centre } = wordParts(value, built)
-  const rotation = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(...word.rotate.map(radians)))
-  return new THREE.Matrix4().makeTranslation(...word.translate).multiply(new THREE.Matrix4().makeTranslation(centre.x, centre.y, centre.z)).multiply(rotation).multiply(new THREE.Matrix4().makeTranslation(-centre.x, -centre.y, -centre.z)).multiply(scale)
+  const rotation = new THREE.Matrix4().makeRotationFromEuler(euler(word.rotate))
+  return around(new THREE.Matrix4().makeTranslation(...word.translate), centre, rotation).multiply(scale)
 }
 
 function objectMatrix(value, built) {
@@ -112,7 +120,7 @@ function wrap(degrees) {
 }
 
 function orientation(rotate, rotation) {
-  return new THREE.Quaternion().setFromEuler(new THREE.Euler(...rotate.map(radians))).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), radians(rotation)))
+  return new THREE.Quaternion().setFromEuler(euler(rotate)).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), radians(rotation)))
 }
 
 export function gizmoPose(value, bounds) {
@@ -143,7 +151,7 @@ function nearestAngles(quaternion, previous) {
 
 export function wordPose(value, built, turned) {
   const quaternion = orientation(value.rotate, value.rotation)
-  if (turned) quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(...value.word.rotate.map(radians))))
+  if (turned) quaternion.multiply(new THREE.Quaternion().setFromEuler(euler(value.word.rotate)))
   return { position: wordParts(value, built).centre.add(new THREE.Vector3(...value.word.translate)).applyMatrix4(placementMatrix(value, lineBounds(built))), quaternion }
 }
 

@@ -309,8 +309,8 @@ export default {
 
     function lineFor(source, list, word, options) {
       const key = JSON.stringify([list, word, options.depth, options.arcMode, options.arcTop, options.arcBottom, options.arcMove, options.arcCentre, options.arcMarked, options.stretch, options.terminators, options.spacing, options.kerning])
-      if (line?.painted === painted.value && line.source === source && line.key === key) return line
       const same = line?.source === source && line.key === key
+      if (same && line.painted === painted.value) return line
       const laid = same ? line.arced : arcLayout(source, sheet.value, list, word, options)
       if (!laid) {
         line = { painted: painted.value, source, key, arced: laid }
@@ -332,9 +332,13 @@ export default {
       return line
     }
 
+    function setHeights(values) {
+      heights[object.id] = { ...heights[object.id], ...values }
+    }
+
     function measure(arc) {
       const known = heights[object.id]?.arc
-      if (known?.top !== arc.top || known?.bottom !== arc.bottom) heights[object.id] = { ...heights[object.id], arc }
+      if (known?.top !== arc.top || known?.bottom !== arc.bottom) setHeights({ arc })
     }
 
     function twistedReach(text, reach) {
@@ -431,11 +435,11 @@ export default {
     }, { immediate: true })
 
     watch(font, value => {
-      heights[object.id] = { ...heights[object.id], height: value?.height ?? DEFAULT_HEIGHT, capHeight: value?.capHeight ?? DEFAULT_CAP_HEIGHT }
+      setHeights({ height: value?.height ?? DEFAULT_HEIGHT, capHeight: value?.capHeight ?? DEFAULT_CAP_HEIGHT })
     }, { immediate: true })
 
     watch(() => meshScale.value[1], value => {
-      heights[object.id] = { ...heights[object.id], scaleY: value }
+      setHeights({ scaleY: value })
     }, { immediate: true })
 
     onBeforeUnmount(() => {

@@ -1,5 +1,5 @@
 import { lineLayout } from "./layout.js"
-import { blend } from "./material.js"
+import { stopColour } from "./material.js"
 
 const ALONG = { dx: 1, dy: 0 }
 
@@ -19,15 +19,6 @@ function rounded(position) {
   return Math.round(position * 10000) / 100
 }
 
-function colourAt(list, t) {
-  const after = list.findIndex(stop => stop.position >= t)
-  if (after === -1) return list[list.length - 1].colour
-  if (after === 0) return list[0].colour
-  const from = list[after - 1]
-  const to = list[after]
-  return to.position === from.position ? to.colour : blend(from.colour, to.colour, (t - from.position) / (to.position - from.position))
-}
-
 export function refitStops(stops, smooth, from, to) {
   const list = stops.map(stop => ({ colour: stop.colour, position: stop.position / 100 })).sort((a, b) => a.position - b.position)
   const local = t => (t - from) / (to - from)
@@ -36,7 +27,7 @@ export function refitStops(stops, smooth, from, to) {
     return list.flatMap((stop, index) => edges[index + 1] > from && edges[index] < to || list.length === 1 ? [{ colour: stop.colour, position: rounded(Math.max(0, local(edges[index]))) }] : [])
   }
   const inside = list.map(stop => ({ colour: stop.colour, position: rounded(local(stop.position)) })).filter(stop => stop.position > 0 && stop.position < 100)
-  return [{ colour: colourAt(list, from), position: 0 }].concat(inside, [{ colour: colourAt(list, to), position: 100 }])
+  return [{ colour: stopColour(list, from), position: 0 }].concat(inside, [{ colour: stopColour(list, to), position: 100 }])
 }
 
 function spans(font, line, word, parts, options) {

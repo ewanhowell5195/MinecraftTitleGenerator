@@ -8,7 +8,7 @@ import { createTitleItems } from "./items.js"
 import { decodeTitle, unknownSetting } from "./linkformat.js"
 import { keepMatched } from "./match.js"
 import { platform } from "./platform.js"
-import { renderTitle, screenBounds } from "./render.js"
+import { renderTitle, titleShot } from "./render.js"
 import { OVERLAY_KINDS, activeOverlays } from "./settings.js"
 import { createEntry, destroyEntry, frameCamera, sortEntries, titleFraming, updateEntry } from "./stage.js"
 import { createTitle } from "./title.js"
@@ -98,11 +98,9 @@ async function shoot(items, width) {
     const camera = new THREE.PerspectiveCamera(VIEW.fov, STAGE_WIDTH / STAGE_HEIGHT, 1, 5000)
     frameCamera(camera, { ...framed, fov: VIEW.fov, width: STAGE_WIDTH, height: STAGE_HEIGHT })
     sortEntries(entries, camera)
-    camera.updateMatrixWorld()
-    const bounds = screenBounds(scene, camera)
-    if (!bounds) return null
-    const wide = (bounds.maxX - bounds.minX) * camera.view.width
-    const tall = (bounds.maxY - bounds.minY) * camera.view.height
+    const shot = titleShot(scene, camera, new THREE.Vector2(STAGE_WIDTH, STAGE_HEIGHT), 1)
+    if (!shot) return null
+    const { width: wide, height: tall } = shot
     const fit = Math.min(width / wide, Math.floor(width * PICTURE_HEIGHT / PICTURE_WIDTH) / tall)
     return await renderTitle(new THREE.Vector2(STAGE_WIDTH, STAGE_HEIGHT), scene, camera, Math.round(Math.max(wide, tall) * fit), true, { signal: new AbortController().signal, progress: () => {} })
   } finally {
@@ -115,13 +113,17 @@ export async function titleCanvas(code, width = PICTURE_WIDTH) {
   const decoded = decodeTitle(code)
   const unknown = unknownSetting(decoded.lines)
   if (unknown) throw new Error(`the title has a setting this version does not know: ${unknown}`)
-  const title = createTitle(reactive(readTitleObjects(decoded)), VIEW)
+  const title = titleOf(decoded)
   await Promise.all(title.objects.map(object => refuseUnknownNames(object, fonts, tileables)))
   return pictureOf(title, fonts, tileables, width)
 }
 
 export function linesCanvas(decoded, fonts, tileables, width = PICTURE_WIDTH) {
-  return pictureOf(createTitle(reactive(readTitleObjects(decoded)), VIEW), fonts, tileables, width)
+  return pictureOf(titleOf(decoded), fonts, tileables, width)
+}
+
+function titleOf(decoded) {
+  return createTitle(reactive(readTitleObjects(decoded)), VIEW)
 }
 
 async function pictureOf(title, fonts, tileables, width) {

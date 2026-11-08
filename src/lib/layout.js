@@ -4,7 +4,7 @@ const CREEPER = "\u{1F633}"
 const NOT_THUMBNAILS = new Set(["┫", "┣", " "])
 
 export function normalise(text) {
-  return text.replace(/A/g, "\u{1F633}").replace(/(\s|^)'/g, "$1\u{1F629}").replace(/(\s|^)"/g, "$1\u{1F629}\u{1F629}").replace(/"/g, "''").toLowerCase()
+  return text.replace(/A/g, CREEPER).replace(/(\s|^)'/g, "$1\u{1F629}").replace(/(\s|^)"/g, "$1\u{1F629}\u{1F629}").replace(/"/g, "''").toLowerCase()
 }
 
 function filler(glyph, width) {
@@ -14,15 +14,19 @@ function filler(glyph, width) {
   return { ...glyph, width, mask, fill: true }
 }
 
+function thumbnailable({ glyph }) {
+  return !NOT_THUMBNAILS.has(glyph.char.split("\u0000")[0])
+}
+
 export function thumbnailItem(placed) {
-  return placed.find(({ glyph }) => !NOT_THUMBNAILS.has(glyph.char.split("\u0000")[0]))
+  return placed.find(thumbnailable)
 }
 
 export function thumbnailItems(font, placed) {
   const first = thumbnailItem(placed)
   if (!first) return []
   if (!font.forcedTerminators) return [first]
-  const last = placed.findLast(({ glyph }) => !NOT_THUMBNAILS.has(glyph.char.split("\u0000")[0]))
+  const last = placed.findLast(thumbnailable)
   const shift = first.x + first.glyph.width - last.x - last.glyph.width
   const closing = placed.slice(placed.indexOf(last) + 1).map(item => ({ ...item, x: item.x + shift }))
   return placed.slice(0, placed.indexOf(first) + 1).concat(closing)
@@ -37,10 +41,16 @@ function creeperText(font, item) {
   return item.creeper && font.glyphs[CREEPER] ? item.text.replace(/a/gi, "A") : item.text.replace(/A/g, "a")
 }
 
+function wordText(font, item, raw) {
+  if (raw) return item.text
+  const text = creeperText(font, item)
+  return normalise(font.glyphs[" "] ? text : text.trim())
+}
+
 export function lineLayout(font, words, options) {
   const spacing = options.spacing ?? 0
   const space = font.spaceWidth ?? SPACE
-  const parts = words.map((item, word) => ({ space: item.space, chars: Array.from(options.raw ? item.text : normalise(font.glyphs[" "] ? creeperText(font, item) : creeperText(font, item).trim()), char => ({ char, word })) })).filter(part => part.chars.length)
+  const parts = words.map((item, word) => ({ space: item.space, chars: Array.from(wordText(font, item, options.raw), char => ({ char, word })) })).filter(part => part.chars.length)
   let chars = parts.flatMap((part, index) => index && part.space ? [{ char: " ", word: parts[index - 1].chars[0].word }].concat(part.chars) : part.chars)
   if (chars.length && (options.terminators || font.forcedTerminators) && font.glyphs["┫"] && font.glyphs["┣"]) {
     const gap = font.terminatorSpace ? [{ char: " ", width: font.terminatorSpaceWidth }] : []

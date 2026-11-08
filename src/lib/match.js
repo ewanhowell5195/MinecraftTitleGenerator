@@ -2,7 +2,7 @@ import { watch } from "vue"
 import * as THREE from "three"
 import { quietly } from "./history.js"
 import { round } from "./maths.js"
-import { editorTitle } from "./scene.js"
+import { editorTitle, words } from "./scene.js"
 import { effectiveScale } from "./settings.js"
 import { frameCamera, lineBounds, placementMatrix, titleFraming } from "./stage.js"
 
@@ -45,8 +45,7 @@ function settledOffset(difference, start) {
 }
 
 function bottomOf(reference, title) {
-  const members = reference.group === null ? [reference] : title.objects.filter(object => object.group === reference.group)
-  const edges = members.map(object => title.runtime[object.id]?.built?.bottom).filter(Boolean)
+  const edges = words(reference, title).map(object => title.runtime[object.id]?.built?.bottom).filter(Boolean)
   if (!edges.length) throw new Error("this row has no bottom to measure")
   return {
     left: edges.reduce((best, { left }) => left[0] < best[0] ? left : best, edges[0].left),
