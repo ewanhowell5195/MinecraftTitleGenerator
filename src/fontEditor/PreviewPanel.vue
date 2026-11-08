@@ -11,7 +11,7 @@
 
   const text = ref("minecraft")
   const terminators = ref(false)
-  const stretch = ref(1)
+  const stretch = ref(0)
   const canvas = ref(null)
   const holder = ref(null)
   const views = ref(null)
@@ -19,7 +19,7 @@
   const error = ref("")
   const wide = ref(true)
   const mode = ref("2d")
-  const request = computed(() => wide.value || mode.value === "3d" ? { font: toRaw(font.value), text: text.value, terminators: terminators.value, stretch: stretch.value } : null)
+  const request = computed(() => wide.value || mode.value === "3d" ? { font: toRaw(font.value), text: text.value, terminators: terminators.value, stretch: 1 + stretch.value / 100 } : null)
   let observer = null
   let timer = null
 
@@ -57,7 +57,7 @@
 
   watch([font, text, terminators, mode], schedule)
   watch(stretch, value => {
-    if (value !== 1 && !wide.value) mode.value = "3d"
+    if (value && !wide.value) mode.value = "3d"
   })
 </script>
 
@@ -68,8 +68,8 @@
         <span class="label">Preview</span>
         <input v-model="text" type="text" placeholder="Type something" aria-label="Preview text">
       </label>
-      <div class="stretch" title="Makes the 3D preview taller using only the marked stretch zones">
-        <Slider inline label="Stretch" :min="1" :max="2" :step="0.05" v-model="stretch" />
+      <div class="stretch" title="Makes the 3D preview up to twice as tall, using only the marked stretch zones">
+        <Slider inline label="Stretch" :min="0" :max="100" v-model="stretch" />
       </div>
       <label class="checkbox" :title="font.forcedTerminators ? 'This font always uses terminators' : 'Add the ┫ ┣ line terminators'">
         <input type="checkbox" :checked="terminators || font.forcedTerminators" :disabled="font.forcedTerminators" @change="terminators = $event.target.checked">
