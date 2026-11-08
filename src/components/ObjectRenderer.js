@@ -226,11 +226,11 @@ export default {
         const entry = textureEntry(list.value, object)
         const id = object.textureVariant ?? object.texture
         const strip = await image(`${entry.folder ?? font.value.sheetFolder}/textures/${id}.png`)
-        const { depth, top, bottom, rows } = stripRows(entry, stripRange(font.value), defaultDepth(font.value))
+        const { depth, top, bottom, rows, scale } = stripRows(entry, stripRange(font.value), defaultDepth(font.value), font.value.capHeight)
         const density = strip.height / rows
         const tiling = entry.tiling ?? "line"
         if (tiling !== "line" && tiling !== "character") throw new Error(`${id} has tiling "${tiling}", strips tile by "line" or "character"`)
-        assets.strip = { image: strip, density, top, bottom, depth, tiling }
+        assets.strip = { image: strip, density, top, bottom, depth, tiling, scale }
         if (entry.border) assets.border = entry.border
         assets.densities.push(Math.max(1, density))
       }

@@ -3,6 +3,7 @@ import { hexOf } from "./colour.js"
 import { PLACED_KINDS, edgeAlpha, generatedAlpha } from "./generated.js"
 import { gradientLine, gradientStops } from "./material.js"
 import { clamp } from "./maths.js"
+import { stripY } from "./strips.js"
 
 export const R = 4
 
@@ -217,10 +218,13 @@ function paintStrip(ctx, entries, strip) {
     const { glyph, source } = entry
     const origin = strip.tiling === "character" ? entry.x : entry.x - glyph.lineX
     for (const { row, from, height } of stripRuns(glyph.arc.map)) {
-      const band = strip.depth + strip.top - 1 - (source.glyph.bottom + from)
-      const y = entry.top + glyph.height - 1 - row
-      pattern.setTransform(new DOMMatrix().translate(origin * R, (y - band) * R).scale(R / strip.density))
-      fillRect(ctx, [entry.x, y - height + 1, entry.width, height])
+      const rows = strip.scale ? Array.from({ length: height }, (_, step) => [row + step, from + step, 1]) : [[row, from, height]]
+      for (const [first, start, count] of rows) {
+        const band = strip.depth + strip.top - 1 - stripY(strip, source.glyph.bottom + start)
+        const y = entry.top + glyph.height - 1 - first
+        pattern.setTransform(new DOMMatrix().translate(origin * R, (y - band) * R).scale(R / strip.density))
+        fillRect(ctx, [entry.x, y - count + 1, entry.width, count])
+      }
     }
     for (const [y, from, depth] of [[entry.up, 0, entry.upHeight], [entry.down, strip.depth + strip.top - strip.bottom, entry.downHeight]]) {
       const stretch = depth / strip.depth

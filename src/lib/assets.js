@@ -4,7 +4,7 @@ import { GENERATED_EDGE_OVERLAYS, withGenerated } from "./generated.js"
 import { titleCase } from "./names.js"
 import { platform } from "./platform.js"
 import { defaultDepth } from "./settings.js"
-import { mergeStrips, stripFolder } from "./strips.js"
+import { mergeStrips, stripFolder, stripUse } from "./strips.js"
 
 const json = new Map()
 const images = new Map()
@@ -40,9 +40,9 @@ export function textureList(folder) {
   return fetchJson(`${folder}/textures.json`).then(data => ({ ...data, overlays: withGenerated(data.overlays), edgeOverlays: GENERATED_EDGE_OVERLAYS }))
 }
 
-function stripSet(id) {
-  const folder = stripFolder(id)
-  return Promise.all([fetchJson(`${folder}/strip.json`), fetchJson(`${folder}/textures.json`)]).then(([measures, { textures }]) => ({ ...measures, id, textures }))
+function stripSet(item) {
+  const { id, offset } = stripUse(item)
+  return fetchJson(`${stripFolder(id)}/textures.json`).then(list => ({ ...list, id, offset }))
 }
 
 export async function fontTextures(folder, strips = []) {

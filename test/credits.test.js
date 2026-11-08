@@ -9,8 +9,7 @@ const FONTS = [{ id: "base", name: "Base Font" }, { id: "port", name: "Port Font
 const LISTS = {
   "font/base/textures.json": { textures: { cracked: { author: "original", variants: { cracked_old: { author: "older" }, cracked_left: {} } }, chain: { basedOn: "cracked" }, sibling: { author: "porter", basedOn: "cracked" }, sameAsSibling: { basedOn: "sibling" }, away: { author: "porter", basedOn: "port.shape" } }, overlays: { glass: { author: "glazier" } } },
   "font/port/textures.json": { textures: {}, overlays: {} },
-  "strips/set/strip.json": { depth: 22 },
-  "strips/set/textures.json": { textures: { line: { author: "liner" }, copy: { basedOn: "line" }, redraw: { author: "porter", basedOn: "line" } } }
+  "strips/set/textures.json": { depth: 22, textures: { line: { author: "liner" }, copy: { basedOn: "line" }, redraw: { author: "porter", basedOn: "line" } } }
 }
 
 usePlatform({ fetch: async url => ({ ok: url in LISTS, json: async () => LISTS[url] }) })

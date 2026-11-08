@@ -8,7 +8,7 @@ import { sheetLayout, solidMask, splitCells } from "../src/lib/font.js"
 import { GENERATED_EDGE_OVERLAYS, edgeAlpha, generatedAlpha, withGenerated } from "../src/lib/generated.js"
 import { layout } from "../src/lib/layout.js"
 import { defaultBorder, defaultDepth, overlayLayer } from "../src/lib/settings.js"
-import { stripRows } from "../src/lib/strips.js"
+import { stripRows, stripY } from "../src/lib/strips.js"
 import { blend } from "./blend.js"
 import { cli, readPng, rgb, rgba, writePng } from "./common.js"
 import { PUBLIC, fontDir, fontTextureList, publishedFonts, readMask } from "./fonts.js"
@@ -70,13 +70,13 @@ function drawRing(png, { placed }, masks, { density: d, border }) {
 }
 
 function drawStrip(png, { placed }, { density: d, strip }) {
-  const { image, density, top, tiling } = strip
+  const { image, density, top, tiling, shape } = strip
   for (const { glyph, x, y, lineX } of placed) {
     const origin = tiling === "character" ? 0 : lineX
     for (let py = 0; py < glyph.height * d; py++) {
       for (let px = 0; px < glyph.width * d; px++) {
         if (!glyph.mask[(glyph.height - 1 - Math.floor(py / d)) * glyph.width + Math.floor(px / d)]) continue
-        const row = top - glyph.top + Math.floor(py / d)
+        const row = top - 1 - stripY(shape, glyph.top - 1 - Math.floor(py / d))
         const sxp = Math.floor((origin * d + px) * density / d) % image.width
         const syp = Math.floor((row * d + py % d) * density / d)
         over(png, x * d + px, y * d + py, rgba(image.data, (syp * image.width + sxp) * 4))
@@ -230,8 +230,8 @@ function textureThumbnail({ entry, scene, meta, sheet, width, densityOf }, name,
   if (merged.type === "strip") {
     const tiling = merged.tiling ?? "line"
     if (tiling !== "line" && tiling !== "character") throw new Error(`${name} has tiling "${tiling}", strips tile by "line" or "character"`)
-    const { depth, top, rows } = stripRows(merged, { top: scene.stripTop, bottom: scene.stripBottom }, scene.depth)
-    const strip = { image, density: image.height / rows, top: depth + top, tiling }
+    const shape = stripRows(merged, { top: scene.stripTop, bottom: scene.stripBottom }, scene.depth, scene.capHeight)
+    const strip = { image, density: image.height / shape.rows, top: shape.depth + shape.top, tiling, shape }
     png = render(scene, null, { density: Math.max(1, Math.ceil(strip.density)), border, width, ring: scene.ring, strip, layers, fontOverlay: entry.overlay ? sheet(".", "overlay") : null })
   } else {
     png = render(scene, image, { density: densityOf(image), border, width, ring: scene.ring, ownShape: true, layers })

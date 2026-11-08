@@ -7,7 +7,7 @@ import { stripRange } from "../src/lib/assets.js"
 import { stripsOf } from "../src/lib/font.js"
 import { withGenerated } from "../src/lib/generated.js"
 import { defaultDepth } from "../src/lib/settings.js"
-import { mergeStrips, stripRows } from "../src/lib/strips.js"
+import { centredOffset, mergeStrips, stripRows, stripUse, stripY } from "../src/lib/strips.js"
 
 const SET = { id: "set", depth: 22, baseline: 30, textures: { shared: { author: "a", variants: { kid: { author: "b" } } }, other: { author: "c" } } }
 
@@ -58,6 +58,34 @@ describe("stripRows", () => {
     assert.deepEqual(stripRows({ stripSet: "set", stripDepth: 22, stripBaseline: 30 }, { top: 40, bottom: 0 }, 16), { depth: 22, top: 40, bottom: -8, rows: 92 })
   })
 
+  test("a strip can be listed by id or as an object with an offset", () => {
+    assert.deepEqual(stripUse("set"), { id: "set", offset: 0 })
+    assert.deepEqual(stripUse({ id: "set", offset: 4 }), { id: "set", offset: 4 })
+  })
+
+  test("an offset lifts the font's baseline above the strip's", () => {
+    const { textures } = mergeStrips({ textures: {} }, [{ id: "set", depth: 22, baseline: 30, offset: 8, textures: { a: {} } }])
+    assert.equal(textures.a.stripOffset, 8)
+    assert.deepEqual(stripRows(textures.a, { top: 32, bottom: 0 }, 22), { depth: 22, top: 32, bottom: -16, rows: 92 })
+  })
+
+  test("a strip with a height keeps its own size, and the offset picks which rows a shorter font uses", () => {
+    const { textures } = mergeStrips({ textures: {} }, [{ id: "set", depth: 22, baseline: 30, height: 40, textures: { a: {} } }])
+    assert.deepEqual(stripRows(textures.a, { top: 32, bottom: 0 }, 22), { depth: 22, top: 40, bottom: -8, rows: 92 })
+    assert.deepEqual(stripRows(textures.a, { top: 32, bottom: 0 }, 22, 32), { depth: 22, top: 36, bottom: -12, rows: 92 })
+    assert.deepEqual(stripRows(textures.a, { top: 40, bottom: 0 }, 22, 40), { depth: 22, top: 40, bottom: -8, rows: 92 })
+    assert.deepEqual(stripRows({ ...textures.a, stripOffset: 2 }, { top: 32, bottom: 0 }, 22, 32), { depth: 22, top: 34, bottom: -14, rows: 92 })
+    assert.deepEqual(stripRows({ ...textures.a, stripOffset: 8 }, { top: 32, bottom: 0 }, 22), { depth: 22, top: 32, bottom: -16, rows: 92 })
+  })
+
+  test("a stretching strip fits its face between the font's baseline and topline", () => {
+    const { textures } = mergeStrips({ textures: {} }, [{ id: "set", depth: 22, baseline: 30, height: 40, offset: 6, textures: { a: { stretch: true } } }])
+    const rows = stripRows(textures.a, { top: 22, bottom: -4 }, 22, 20)
+    assert.deepEqual(rows, { depth: 22, top: 40, bottom: -8, rows: 92, scale: { from: 20, to: 40 } })
+    assert.deepEqual([-4, -1, 0, 1, 10, 19, 20, 21].map(y => stripY(rows, y)), [-4, -1, 0, 2, 20, 38, 40, 41])
+    assert.throws(() => stripRows({ stretch: true, stripSet: "set", stripDepth: 22, stripBaseline: 30 }, { top: 20, bottom: 0 }, 22, 20), /need a height/)
+  })
+
   test("a baseline left out falls back to the depth", () => {
     const { textures } = mergeStrips({ textures: {} }, [{ id: "set", depth: 22, textures: { a: {} } }])
     assert.deepEqual(stripRows(textures.a, { top: 42, bottom: 0 }, 22), { depth: 22, top: 42, bottom: 0, rows: 86 })
@@ -72,8 +100,8 @@ describe("published strips", () => {
   function setOf(id) {
     if (!sets.has(id)) {
       const set = readStripSet(id)
-      const names = Object.entries(set.textures).flatMap(([name, data]) => [name].concat(Object.keys(data.variants ?? {})))
-      sets.set(id, { ...set, heights: names.map(name => [name, readPng(path.join(set.folder, "textures", `${name}.png`)).height]) })
+      const names = Object.entries(set.textures).flatMap(([name, data]) => [[name, !!data.stretch]].concat(Object.keys(data.variants ?? {}).map(variant => [variant, !!data.stretch])))
+      sets.set(id, { ...set, heights: names.map(([name, stretch]) => [name, readPng(path.join(set.folder, "textures", `${name}.png`)).height, stretch]) })
     }
     return sets.get(id)
   }
@@ -86,14 +114,18 @@ describe("published strips", () => {
     for (const font of users) {
       const { cells, capHeight } = readMask(font, fonts)
       const range = stripRange({ cells, capHeight })
-      for (const id of stripsOf(font, fonts)) {
+      for (const use of stripsOf(font, fonts).map(stripUse)) {
+        const { id } = use
         const set = setOf(id)
+        const offset = centredOffset(set.height, capHeight) + use.offset
         const baseline = set.baseline ?? set.depth
         assert.ok(defaultDepth(font) <= set.depth, `${font.id} is deeper than the ${id} strips`)
-        assert.ok(-range.bottom <= baseline - set.depth, `${font.id} goes further below the baseline than the ${id} strips`)
-        for (const [name, height] of set.heights) {
-          const resolution = height / (baseline + range.top + set.depth)
+        assert.ok(-range.bottom <= baseline - set.depth + offset, `${font.id} goes further below the baseline than the ${id} strips`)
+        if (set.height) assert.ok(range.top + offset <= set.height || set.heights.every(([, , stretch]) => stretch), `${font.id} reaches above the ${id} strips' topline`)
+        for (const [name, height, stretch] of set.heights) {
+          const resolution = height / (baseline + (set.height ?? range.top + offset) + set.depth)
           assert.ok(Number.isInteger(Math.log2(resolution)), `${font.id} is the wrong height for ${id}.${name}: resolution ${resolution}`)
+          if (stretch) assert.ok(set.height, `${id}.${name} stretches, so the ${id} strips need a height`)
         }
       }
     }
@@ -104,7 +136,7 @@ describe("published strips", () => {
       for (const [id, data] of Object.entries(readJson(path.join(fontDir(font), "textures.json")).textures)) {
         if (!data.strip) continue
         assert.ok(Object.keys(data.variants ?? {}).length, `${font.id}.${id} attaches to ${data.strip} with no variants`)
-        assert.ok(stripsOf(font, fonts).includes(data.strip), `${font.id}.${id} attaches to ${data.strip}, which it doesn't list`)
+        assert.ok(stripsOf(font, fonts).map(item => stripUse(item).id).includes(data.strip), `${font.id}.${id} attaches to ${data.strip}, which it doesn't list`)
         assert.ok(setOf(data.strip).textures[id], `${font.id}.${id} attaches to ${data.strip}, which has no ${id}`)
       }
     }
@@ -113,7 +145,7 @@ describe("published strips", () => {
   test("strips only default to overlays every font has", () => {
     const generated = withGenerated({})
     for (const font of users) {
-      for (const id of stripsOf(font, fonts)) {
+      for (const { id } of stripsOf(font, fonts).map(stripUse)) {
         for (const [name, data] of Object.entries(setOf(id).textures)) {
           for (const entry of [data].concat(Object.values(data.variants ?? {}))) {
             for (const layer of entry.overlays ?? []) assert.ok(generated[layer.overlay], `${id}.${name} uses ${layer.overlay}, which is not a generated overlay`)

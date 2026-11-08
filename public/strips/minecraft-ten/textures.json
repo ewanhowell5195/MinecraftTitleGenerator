@@ -1,7 +1,11 @@
 {
+  "depth": 22,
+  "baseline": 30,
+  "height": 40,
   "textures": {
     "gradient": {
       "type": "strip",
+      "stretch": true,
       "overlays": [
         {
           "overlay": "highlights_top",
@@ -299,6 +303,7 @@
     },
     "pride": {
       "type": "strip",
+      "stretch": true,
       "author": "Snuzzle",
       "border": "#000000",
       "variants": {
