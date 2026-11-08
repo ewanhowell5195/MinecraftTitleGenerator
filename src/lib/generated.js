@@ -165,7 +165,7 @@ function pixels(glyph, kind, settings) {
   return out
 }
 
-function shine(glyph, kind, settings, scale) {
+function shine(glyph, kind, settings, scale, fine) {
   const { width, height, mask } = glyph
   const columns = width * scale
   const rows = height * scale
@@ -185,7 +185,7 @@ function shine(glyph, kind, settings, scale) {
     const alpha = clamp(1 - fade * (down + arc.top) / (capHeight + arc.top + arc.bottom), 0, 1)
     const row = height - 1 - Math.floor(sy / scale)
     for (let sx = 0; sx < columns; sx++) {
-      if (!mask[row * width + Math.floor(sx / scale)]) continue
+      if (fine ? !fine[(rows - 1 - sy) * columns + sx] : !mask[row * width + Math.floor(sx / scale)]) continue
       const along = position((sx + 0.5) / scale, down)
       const inside = list ? list.some(([from, to]) => along >= from && along < to) : ((along % period) + period) % period < band
       if (inside) out[sy * columns + sx] = alpha
@@ -206,7 +206,7 @@ function wavePoints(to, settings) {
   return points
 }
 
-function waveFill(glyph, kind, settings, scale) {
+function waveFill(glyph, kind, settings, scale, fine) {
   const { width, height, mask } = glyph
   const columns = width * scale
   const rows = height * scale
@@ -222,7 +222,7 @@ function waveFill(glyph, kind, settings, scale) {
     const [[x0, y0], [x1, y1]] = [points[index], points[index + 1]]
     const surface = level + y0 + (y1 - y0) * (1 - Math.cos(Math.PI * (along - x0) / (x1 - x0))) / 2
     for (let sy = 0; sy < rows; sy++) {
-      if (!mask[(height - 1 - Math.floor(sy / scale)) * width + Math.floor(sx / scale)]) continue
+      if (fine ? !fine[(rows - 1 - sy) * columns + sx] : !mask[(height - 1 - Math.floor(sy / scale)) * width + Math.floor(sx / scale)]) continue
       const above = clamp((surface - capTop) * scale - sy, 0, 1)
       out[sy * columns + sx] = kind === "wave" ? above : 1 - above
     }
@@ -230,11 +230,26 @@ function waveFill(glyph, kind, settings, scale) {
   return out
 }
 
+function finePixels(glyph, fine, kind, settings, scale) {
+  const arc = glyph.arc && { ...glyph.arc, top: glyph.arc.top * scale, bottom: glyph.arc.bottom * scale }
+  const detailed = { ...glyph, mask: fine, width: glyph.width * scale, height: glyph.height * scale, bottom: glyph.bottom * scale, arc }
+  const scaled = { ...settings, capHeight: settings.capHeight * scale, thickness: settings.thickness * scale, inset: settings.inset * scale }
+  return upscale(pixels(detailed, kind, scaled), detailed.width, detailed.height, 1, true)
+}
+
 export function generatedAlpha(glyph, kind, layer, capHeight, scale) {
   const settings = { ...settingsOf(kind, layer), capHeight }
-  if (kind === "shine" || kind === "shine_random") return shine(glyph, kind, settings, scale)
-  if (kind === "wave" || kind === "wave_inverted") return waveFill(glyph, kind, settings, scale)
-  return upscale(pixels(glyph, kind, settings), glyph.width, glyph.height, scale, true)
+  const fine = glyph.fine?.(scale) ?? null
+  if (kind === "shine" || kind === "shine_random") return shine(glyph, kind, settings, scale, fine)
+  if (kind === "wave" || kind === "wave_inverted") return waveFill(glyph, kind, settings, scale, fine)
+  if (fine && kind !== "corners") return finePixels(glyph, fine, kind, settings, scale)
+  const alpha = upscale(pixels(glyph, kind, settings), glyph.width, glyph.height, scale, true)
+  if (fine) {
+    const columns = glyph.width * scale
+    const rows = glyph.height * scale
+    for (let index = 0; index < alpha.length; index++) alpha[index] *= fine[(rows - 1 - Math.floor(index / columns)) * columns + index % columns]
+  }
+  return alpha
 }
 
 function edgeRuns(glyph, side) {

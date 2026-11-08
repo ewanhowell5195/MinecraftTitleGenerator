@@ -12,7 +12,7 @@ const MARGIN = 2
 const TEXT = "abc"
 const OVERLAYS = withGenerated({})
 
-export function thumbnailScene(font, meshes = null) {
+export function thumbnailScene(font, mesh = null) {
   const parsed = previewFont(font)
   const placed = layout(parsed, TEXT, { spacing: font.characterSpacing })
   if (!placed.length) return null
@@ -27,7 +27,7 @@ export function thumbnailScene(font, meshes = null) {
     capHeight: parsed.capHeight,
     depth: defaultDepth(font),
     ring,
-    meshes,
+    mesh,
     frame: { width: maxX - minX + margin * 2, height: top - bottom + margin * 2 },
     stripTop: Math.max(parsed.capHeight, ...drawn.map(glyph => glyph.top)),
     stripBottom: Math.min(0, ...drawn.map(glyph => glyph.bottom)),
@@ -61,7 +61,7 @@ function coverage(scene, size, items, grow) {
   ctx.strokeStyle = "#ffffff"
   ctx.beginPath()
   for (const { glyph, x, y } of items) {
-    for (const shape of scene.meshes[glyph.char]?.shapes ?? []) {
+    for (const shape of scene.mesh.glyphs[glyph.char]?.shapes ?? []) {
       for (const ring of [shape.outer].concat(shape.holes)) {
         for (const [index, [px, py]] of ring.entries()) {
           const at = [(x + px) * size.scale, (y + glyph.top - py) * size.scale]
@@ -117,7 +117,8 @@ function meshThumbnail(scene, entry, image, detail) {
     const settings = { ...overlayLayer(layer.overlay, known), ...layer }
     const tint = rgbOf(settings.colour)
     for (const { glyph, x, y } of scene.placed) {
-      const alpha = generatedAlpha({ ...glyph, placedX: x }, known.generated, settings, scene.capHeight, scale)
+      const mesh = scene.mesh.glyphs[glyph.char]
+      const alpha = generatedAlpha({ ...glyph, placedX: x, fine: mesh ? scene.mesh.tools.fineMasks(mesh, glyph, glyph) : null }, known.generated, settings, scene.capHeight, scale)
       for (let py = 0; py < glyph.height * scale; py++) {
         for (let px = 0; px < glyph.width * scale; px++) {
           const strength = alpha[py * glyph.width * scale + px] * settings.opacity / 100
@@ -138,7 +139,7 @@ function meshThumbnail(scene, entry, image, detail) {
 }
 
 export function stripThumbnail(scene, entry, image, detail = 1) {
-  if (scene.meshes) return meshThumbnail(scene, entry, image, detail)
+  if (scene.mesh) return meshThumbnail(scene, entry, image, detail)
   const pixels = pixelsOf(image)
   const shape = stripRows(entry, { top: scene.stripTop, bottom: scene.stripBottom }, scene.depth, scene.capHeight)
   const density = image.height / shape.rows

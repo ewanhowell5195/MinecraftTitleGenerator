@@ -93,6 +93,8 @@ export function arcLayout(font, sheet, words, word, options) {
     const grow = Math.round(((options.stretch ?? 1) * (shape.stretch ?? 1) - 1) * font.capHeight)
     const key = `${item.glyph.char}\u0000${index}`
     const glyph = { ...stretched(item.glyph, key, arcs, grow), placedX: item.x, lineX: item.x - placed[0].x, lift }
+    const mesh = font.mesh?.glyphs[item.glyph.char]
+    if (mesh) glyph.fine = font.mesh.tools.fineMasks(mesh, glyph, item.glyph)
     tallest.top = Math.max(tallest.top, glyph.arc.top)
     tallest.bottom = Math.max(tallest.bottom, glyph.arc.bottom)
     reach.top = Math.max(reach.top, glyph.arc.top + Math.max(0, lift))
