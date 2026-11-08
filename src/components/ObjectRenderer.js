@@ -292,7 +292,7 @@ export default {
       try {
         const assets = await loadAssets(value)
         if (token !== paintRequest) return
-        shaped.value = assets.base ? shapeFont(font.value, sheet.value, assets.base) : font.value
+        shaped.value = assets.base && !font.value.mesh ? shapeFont(font.value, sheet.value, assets.base) : font.value
         painted.value = { font: value.font, scale: R, edge: 1 / Math.min(...assets.densities, 4), edgeOnly: value.source === "tile", look: value, assets }
         paintedKey = key
       } catch (err) {

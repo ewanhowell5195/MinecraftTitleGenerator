@@ -409,10 +409,10 @@ export function sheetOrder(font) {
   return charactersOf(font).join("")
 }
 
-export function flatTexture(value) {
+export function flatTexture(value, filled = false) {
   const entry = exportJson(value, "")
   const { list, capHeight } = parsedSheet(value, defaultBorder("top", entry))
-  return flatPixels(list, capHeight, defaultDepth(entry))
+  return flatPixels(filled ? list.map(cell => ({ ...cell, mask: new Uint8Array(cell.mask.length).fill(1) })) : list, capHeight, defaultDepth(entry))
 }
 
 export function parsedSheet(font, gap = font.border) {
