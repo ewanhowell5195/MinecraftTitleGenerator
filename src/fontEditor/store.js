@@ -1,0 +1,167 @@
+import { computed, ref, shallowRef, watch } from "vue"
+import { DEFAULT_ORDER } from "../lib/font.js"
+import { buildSheet, charactersOf, exportJson, fitGlyph, glyphOf, parsedSheet, setGlyph, slug } from "../lib/fontEditor.js"
+import { flatPixels } from "../lib/flatSheet.js"
+import { defaultBorder, defaultDepth } from "../lib/settings.js"
+
+const STORAGE_KEY = "minecraft-title-font-editor"
+const HISTORY_LIMIT = 200
+const SAVE_DELAY = 300
+
+export const font = shallowRef(null)
+export const selected = ref(Array.from(DEFAULT_ORDER)[1])
+export const arrowsMove = ref("drawing")
+export const saveError = ref("")
+export const clipboard = shallowRef(null)
+
+const undoStack = shallowRef([])
+const redoStack = shallowRef([])
+let group = null
+let saveTimer = null
+
+export const canUndo = computed(() => undoStack.value.length > 0)
+export const canRedo = computed(() => redoStack.value.length > 0)
+export const characters = computed(() => font.value ? charactersOf(font.value) : [])
+export const glyph = computed(() => font.value ? glyphOf(font.value, selected.value) : null)
+
+function remember() {
+  undoStack.value = undoStack.value.concat([font.value]).slice(-HISTORY_LIMIT)
+  redoStack.value = []
+}
+
+export function update(next, key = null) {
+  if (!key || key !== group) remember()
+  group = key
+  font.value = next
+}
+
+export function beginStroke() {
+  remember()
+  group = null
+}
+
+export function strokeTo(next) {
+  font.value = next
+}
+
+export function updateGlyph(next, key = null) {
+  update(setGlyph(font.value, selected.value, next), key)
+}
+
+export function copyGlyph(char) {
+  clipboard.value = { font: font.value, glyph: glyphOf(font.value, char) }
+}
+
+export function pasteGlyph(char) {
+  const { font: from, glyph: copied } = clipboard.value
+  update(setGlyph(font.value, char, fitGlyph(from, copied, font.value)))
+}
+
+export function undo() {
+  if (!canUndo.value) return
+  redoStack.value = redoStack.value.concat([font.value])
+  font.value = undoStack.value[undoStack.value.length - 1]
+  undoStack.value = undoStack.value.slice(0, -1)
+  group = null
+  keepSelection()
+}
+
+export function redo() {
+  if (!canRedo.value) return
+  undoStack.value = undoStack.value.concat([font.value])
+  font.value = redoStack.value[redoStack.value.length - 1]
+  redoStack.value = redoStack.value.slice(0, -1)
+  group = null
+  keepSelection()
+}
+
+function keepSelection() {
+  if (!characters.value.includes(selected.value)) selected.value = characters.value[0]
+}
+
+export function openFont(next) {
+  font.value = next
+  undoStack.value = []
+  redoStack.value = []
+  group = null
+  selected.value = charactersOf(next).find(char => /[a-z]/.test(char)) ?? charactersOf(next)[0]
+}
+
+export function closeFont() {
+  font.value = null
+  undoStack.value = []
+  redoStack.value = []
+  group = null
+  localStorage.removeItem(STORAGE_KEY)
+  saveError.value = ""
+}
+
+function save() {
+  if (!font.value) return
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, font: font.value, selected: selected.value }))
+    saveError.value = ""
+  } catch (err) {
+    saveError.value = `This browser couldn't remember your font (${err.message}). Download it so you don't lose it.`
+  }
+}
+
+export function restoreFont() {
+  const text = localStorage.getItem(STORAGE_KEY)
+  if (!text) return
+  const saved = JSON.parse(text)
+  if (saved.version !== 1) throw new Error(`the saved font is version ${saved.version}, which this editor can't read`)
+  font.value = { ...saved.font, creeper: saved.font.creeper ?? true, extras: saved.font.extras ?? [] }
+  selected.value = saved.selected
+  keepSelection()
+}
+
+watch([font, selected], () => {
+  clearTimeout(saveTimer)
+  saveTimer = setTimeout(save, SAVE_DELAY)
+})
+
+export function flushSave() {
+  clearTimeout(saveTimer)
+  save()
+}
+
+function canvasOf({ data, width, height }) {
+  const canvas = document.createElement("canvas")
+  canvas.width = Math.max(1, width)
+  canvas.height = Math.max(1, height)
+  if (width && height) canvas.getContext("2d").putImageData(new ImageData(data, width, height), 0, 0)
+  return canvas
+}
+
+function sheetCanvas() {
+  return canvasOf(buildSheet(font.value))
+}
+
+export function flatTexture(value) {
+  const entry = exportJson(value, "")
+  const { list, capHeight } = parsedSheet(value, defaultBorder("top", entry))
+  return flatPixels(list, capHeight, defaultDepth(entry))
+}
+
+export function downloadFlatTexture() {
+  downloadUrl("flat.png", canvasOf(flatTexture(font.value)).toDataURL("image/png"))
+}
+
+function downloadUrl(name, url) {
+  const link = document.createElement("a")
+  link.download = name
+  link.href = url
+  link.click()
+}
+
+export function downloadTexture() {
+  downloadUrl("font.png", sheetCanvas().toDataURL("image/png"))
+}
+
+export function downloadJson() {
+  const text = JSON.stringify(exportJson(font.value, sheetCanvas().toDataURL("image/png")), null, 2) + "\n"
+  const url = URL.createObjectURL(new Blob([text], { type: "application/json" }))
+  downloadUrl(`${font.value.id || slug(font.value.name) || "font"}.json`, url)
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}

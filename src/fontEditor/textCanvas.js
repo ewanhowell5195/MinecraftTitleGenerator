@@ -1,0 +1,44 @@
+import { layout } from "../lib/layout.js"
+import { DEFAULT_SPACE_WIDTH, parsedSheet } from "../lib/fontEditor.js"
+
+export function previewFont(font) {
+  const { glyphs, capHeight } = parsedSheet(font)
+  return { glyphs, capHeight, kerning: font.kerning, spaceWidth: font.spaceWidth ?? DEFAULT_SPACE_WIDTH, terminatorSpace: font.terminatorSpace, terminatorSpaceWidth: font.terminatorSpaceWidth,forcedTerminators: font.forcedTerminators, border: font.border, characterSpacing: font.characterSpacing }
+}
+
+export function drawText(canvas, parsed, text, { maxWidth, maxHeight, maxScale = 8, terminators = false, raw = false }) {
+  const placed = layout(parsed, text, { spacing: parsed.characterSpacing, terminators, raw })
+  const ctx = canvas.getContext("2d")
+  const border = parsed.border
+  if (!placed.length) {
+    canvas.width = 1
+    canvas.height = 1
+    return false
+  }
+  const left = Math.min(...placed.map(item => item.x)) - border
+  const right = Math.max(...placed.map(item => item.x + item.glyph.width)) + border
+  const top = Math.max(parsed.capHeight, ...placed.map(item => item.glyph.top)) + border
+  const bottom = Math.min(0, ...placed.map(item => item.glyph.bottom)) - border
+  const width = right - left
+  const height = top - bottom
+  const scale = Math.min(maxScale, maxWidth / width, maxHeight / height)
+  const pixel = Math.max(1, Math.ceil(scale * (devicePixelRatio || 1)))
+  canvas.width = width * pixel
+  canvas.height = height * pixel
+  canvas.style.width = `${width * scale}px`
+  canvas.style.height = `${height * scale}px`
+  ctx.setTransform(pixel, 0, 0, pixel, 0, 0)
+  for (const [colour, grow] of [["#000", border], ["#fff", 0]]) {
+    ctx.fillStyle = colour
+    for (const { glyph, x } of placed) {
+      const originX = x - left
+      const originY = top - glyph.top
+      for (let row = 0; row < glyph.height; row++) {
+        for (let column = 0; column < glyph.width; column++) {
+          if (glyph.mask[(glyph.height - 1 - row) * glyph.width + column]) ctx.fillRect(originX + column - grow, originY + row - grow, 1 + grow * 2, 1 + grow * 2)
+        }
+      }
+    }
+  }
+  return true
+}

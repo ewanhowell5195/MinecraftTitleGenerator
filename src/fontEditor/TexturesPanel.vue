@@ -1,0 +1,447 @@
+<script setup>
+  import { computed, onBeforeUnmount, onMounted, ref, shallowRef, toRaw, watch } from "vue"
+  import Icon from "../components/Icon.vue"
+  import { image, stripRange } from "../lib/assets.js"
+  import { loadFontList, stripsOf } from "../lib/font.js"
+  import { loadStats, usage } from "../lib/stats.js"
+  import { parsedSheet, stripProblems } from "../lib/fontEditor.js"
+  import { titleCase } from "../lib/names.js"
+  import { centredOffset, stripFolder, stripUse } from "../lib/strips.js"
+  import { renderFont } from "./render3d.js"
+  import { stripThumbnail, thumbnailScene } from "./stripThumbs.js"
+  import { downloadFlatTexture, font, update } from "./store.js"
+
+  const CHECK_DELAY = 300
+  const RENDER_DELAY = 50
+  const MAX_RENDER_WIDTH = 1600
+
+  const sets = shallowRef([])
+  const problems = ref({})
+  const fitting = ref({})
+  const loadError = ref("")
+  const chosenSet = ref(null)
+  const chosenTexture = ref(null)
+  const chosenVariant = ref(null)
+  const text = ref("minecraft")
+  const stage = ref(null)
+  const busy = ref(false)
+  const rendered = ref(false)
+  const renderError = ref("")
+  let checkTimer = null
+  let renderTimer = null
+  let rendering = false
+  let again = false
+
+  const thumbs = ref({})
+  let thumbsToken = 0
+
+  const trialOffsets = ref({})
+
+  const chosen = computed(() => sets.value.find(set => set.id === chosenSet.value) ?? null)
+  const setUsers = shallowRef(new Map())
+  const textures = computed(() => {
+    if (!chosen.value) return []
+    const users = setUsers.value.get(chosen.value.id) ?? []
+    const items = Object.entries(chosen.value.textures).map(([id, entry]) => ({ id, name: entry.name ?? titleCase(id), uses: usage(users.map(user => `${user}.${id}`)) }))
+    return items.sort((a, b) => b.uses - a.uses || a.name.localeCompare(b.name))
+  })
+  const uses = computed(() => font.value.strips.map(stripUse))
+  const variants = computed(() => {
+    const entry = chosen.value?.textures[chosenTexture.value]
+    if (!entry?.variants) return []
+    return [{ id: null, image: chosenTexture.value, name: entry.name ?? titleCase(chosenTexture.value) }].concat(Object.entries(entry.variants).map(([id, variant]) => ({ id, image: id, name: variant.name ?? titleCase(id) })))
+  })
+
+  function used(id) {
+    return uses.value.some(use => use.id === id)
+  }
+
+  function chosenOffset(id) {
+    if (used(id)) return uses.value.find(use => use.id === id).offset
+    const wanted = trialOffsets.value[id] ?? 0
+    return nearestFitting(id, wanted) ?? wanted
+  }
+
+  function offsetOf(id) {
+    return centredOffset(sets.value.find(set => set.id === id)?.height, font.value.height * font.value.density) + chosenOffset(id)
+  }
+
+  function stripItem(id, offset) {
+    return offset ? { id, offset } : id
+  }
+
+  function nearestFitting(id, wanted) {
+    return (fitting.value[id] ?? []).reduce((best, offset) => best === null || Math.abs(offset - wanted) < Math.abs(best - wanted) ? offset : best, null)
+  }
+
+  function setOffset(id, event) {
+    const typed = event.target.value === "" ? 0 : event.target.valueAsNumber
+    if (!Number.isInteger(typed)) return
+    const value = nearestFitting(id, typed)
+    if (value === null || (event.type === "input" && value !== typed)) return
+    event.target.value = value
+    if (used(id)) update({ ...font.value, strips: uses.value.map(use => use.id === id ? stripItem(id, value) : stripItem(use.id, use.offset)) }, `strips.${id}`)
+    else {
+      trialOffsets.value = { ...trialOffsets.value, [id]: value }
+      scheduleCheck()
+      scheduleRender()
+    }
+  }
+
+  async function drawThumbs() {
+    const set = chosen.value
+    if (!set) return
+    const token = ++thumbsToken
+    const scene = thumbnailScene(toRaw(font.value))
+    if (!scene) {
+      thumbs.value = {}
+      return
+    }
+    const drawn = {}
+    const tag = { stripSet: set.id, stripDepth: set.depth, stripBaseline: set.baseline ?? set.depth, stripOffset: chosenOffset(set.id), stripHeight: set.height ?? null }
+    for (const [id, data] of Object.entries(set.textures)) {
+      for (const [name, variant] of [[id, {}]].concat(Object.entries(data.variants ?? {}))) {
+        const strip = await image(`${stripFolder(set.id)}/textures/${name}.png`)
+        if (token !== thumbsToken) return
+        drawn[name] = stripThumbnail(scene, { ...data, ...variant, ...tag }, strip)
+      }
+      thumbs.value = { ...drawn }
+    }
+  }
+
+  function fits(id) {
+    return problems.value[id]?.length === 0
+  }
+
+  function canFit(id) {
+    return fitting.value[id]?.length > 0
+  }
+
+  function statusOf(id) {
+    return fits(id) ? { kind: "good", label: "Compatible" } : { kind: "bad", label: "Won't fit" }
+  }
+
+  async function loadSet(id) {
+    const folder = stripFolder(id)
+    const response = await fetch(`${folder}/textures.json`)
+    if (!response.ok) throw new Error(`there are no strips called ${id}`)
+    const set = await response.json()
+    const first = Object.keys(set.textures)[0]
+    const strip = await image(`${folder}/textures/${first}.png`)
+    return { ...set, id, stripHeight: strip.height }
+  }
+
+  function check() {
+    const { list: cells, capHeight } = parsedSheet(toRaw(font.value), 0)
+    const range = stripRange({ cells, capHeight })
+    fitting.value = Object.fromEntries(sets.value.map(set => [set.id, fittingOffsets(range, set)]))
+    problems.value = Object.fromEntries(sets.value.map(set => [set.id, stripProblems(range, font.value.depth, set, set.stripHeight, offsetOf(set.id))]))
+    if (!chosenSet.value && sets.value.length) choose((sets.value.find(set => fits(set.id)) ?? sets.value[0]).id)
+    drawThumbs()
+  }
+
+  function fittingOffsets(range, set) {
+    const centred = centredOffset(set.height, font.value.height * font.value.density)
+    const reach = set.stripHeight + range.top - range.bottom
+    return Array.from({ length: reach * 2 + 1 }, (_, index) => index - reach).filter(offset => !stripProblems(range, font.value.depth, set, set.stripHeight, centred + offset).length)
+  }
+
+  function scheduleCheck() {
+    clearTimeout(checkTimer)
+    checkTimer = setTimeout(check, CHECK_DELAY)
+  }
+
+  function choose(id) {
+    if (chosenSet.value === id) return
+    chosenSet.value = id
+    chosenTexture.value = Object.keys(sets.value.find(set => set.id === id).textures)[0]
+  }
+
+  function toggle(id) {
+    const offset = chosenOffset(id)
+    const strips = used(id) ? font.value.strips.filter(item => stripUse(item).id !== id) : font.value.strips.concat(stripItem(id, offset))
+    if (used(id)) trialOffsets.value = { ...trialOffsets.value, [id]: offset }
+    update({ ...font.value, strips })
+  }
+
+  function scheduleRender() {
+    clearTimeout(renderTimer)
+    renderTimer = setTimeout(render, RENDER_DELAY)
+  }
+
+  async function render() {
+    if (!stage.value || !chosenSet.value) return
+    if (rendering) {
+      again = true
+      return
+    }
+    rendering = true
+    busy.value = true
+    try {
+      const width = Math.min(MAX_RENDER_WIDTH, Math.round(stage.value.parentElement.clientWidth * (devicePixelRatio || 1) * 2))
+      const result = await renderFont(toRaw(font.value), text.value, { width, slot: "textures", strip: stripItem(chosenSet.value, chosenOffset(chosenSet.value)), texture: chosenTexture.value, variant: chosenVariant.value })
+      stage.value?.replaceChildren(...(result ? [result] : []))
+      rendered.value = !!result
+      renderError.value = ""
+    } catch (err) {
+      stage.value?.replaceChildren()
+      rendered.value = false
+      renderError.value = err.message
+    } finally {
+      rendering = false
+      busy.value = false
+      if (again) {
+        again = false
+        render()
+      }
+    }
+  }
+
+  onMounted(async () => {
+    loadStats().catch(console.error)
+    try {
+      const fonts = await loadFontList()
+      const users = new Map()
+      for (const entry of fonts) {
+        for (const item of stripsOf(entry, fonts)) {
+          const { id } = stripUse(item)
+          users.set(id, (users.get(id) ?? []).concat(entry.id))
+        }
+      }
+      setUsers.value = users
+      const ids = Array.from(new Set(fonts.flatMap(entry => entry.strips ?? []).concat(font.value.strips).map(item => stripUse(item).id))).sort()
+      sets.value = await Promise.all(ids.map(loadSet))
+      check()
+    } catch (err) {
+      loadError.value = err.message
+    }
+  })
+
+  onBeforeUnmount(() => {
+    clearTimeout(checkTimer)
+    clearTimeout(renderTimer)
+  })
+
+  watch(font, () => {
+    scheduleCheck()
+    scheduleRender()
+  })
+  watch([chosenSet, chosenTexture, chosenVariant, text], scheduleRender)
+  watch(chosenTexture, () => {
+    chosenVariant.value = null
+  })
+  watch(chosenSet, drawThumbs)
+</script>
+
+<template>
+  <div class="flow">
+    <h3>Your own textures</h3>
+    <p class="hint">Textures made for your font alone are painted onto a copy of its letters, like the ones every published font has. They're made outside the font editor, starting from this blank texture.</p>
+    <button class="small blank" @click="downloadFlatTexture"><Icon name="download" :size="14" />Download a blank texture</button>
+    <h3>Shared strips</h3>
+    <p class="hint">Strip textures that several fonts share. A set works with your font when its letters and depth fit the strips.</p>
+    <p v-if="loadError" class="hint bad">Couldn't load the strip sets: {{ loadError }}</p>
+    <div v-for="set of sets" :key="set.id" class="set" :class="{ chosen: chosenSet === set.id }" @click="choose(set.id)">
+      <div class="set-text">
+        <span class="set-name">{{ titleCase(set.id) }}</span>
+        <span v-if="problems[set.id]" class="status" :class="statusOf(set.id).kind">{{ statusOf(set.id).label }}</span>
+        <small v-if="problems[set.id]?.length">{{ problems[set.id].join(", ") }}</small>
+        <small v-else>{{ Object.keys(set.textures).length }} textures</small>
+      </div>
+      <div class="input-row offset" @click.stop>
+        <template v-if="canFit(set.id)">
+          <span title="0 centres your letters on the strips, higher moves them up, lower moves them down">Offset</span>
+          <input type="number" :value="chosenOffset(set.id)" :min="fitting[set.id][0]" :max="fitting[set.id].at(-1)" :title="`Your letters fit from ${fitting[set.id][0]} to ${fitting[set.id].at(-1)}`" :aria-label="`Offset for ${titleCase(set.id)}`" @input="setOffset(set.id, $event)" @change="setOffset(set.id, $event)">
+        </template>
+        <button v-if="used(set.id)" class="small" @click.stop="toggle(set.id)">Stop using</button>
+        <button v-else class="small" :class="{ primary: fits(set.id) }" :disabled="!fits(set.id)" @click.stop="toggle(set.id)">Use</button>
+      </div>
+    </div>
+
+    <template v-if="chosen">
+      <h3>Try {{ titleCase(chosen.id) }}</h3>
+      <p class="hint">{{ used(chosen.id) ? "Your font uses these strips." : "Your font doesn't use these strips yet, this is only a test." }}</p>
+      <label class="field"><span class="label">Text</span><input v-model="text" type="text" aria-label="Test text"></label>
+      <div class="view" :class="{ busy }">
+        <div ref="stage" class="stage"></div>
+        <p v-if="renderError" class="message bad">{{ renderError }}</p>
+        <p v-else-if="!rendered" class="message">{{ busy ? "Rendering..." : "Nothing to show yet. Draw the characters in your text." }}</p>
+      </div>
+      <div class="textures">
+        <button v-for="item of textures" :key="item.id" class="texture" :class="{ active: chosenTexture === item.id, unfit: !fits(chosen.id) }" :title="item.name" @click="chosenTexture = item.id">
+          <span class="swatch"><img v-if="thumbs[item.id]" :src="thumbs[item.id]" alt=""></span>
+          <span class="texture-name">{{ item.name }}</span>
+        </button>
+      </div>
+      <template v-if="variants.length">
+        <h3>Variants</h3>
+        <div class="textures">
+          <button v-for="item of variants" :key="item.image" class="texture" :class="{ active: chosenVariant === item.id, unfit: !fits(chosen.id) }" :title="item.name" @click="chosenVariant = item.id">
+            <span class="swatch"><img v-if="thumbs[item.image]" :src="thumbs[item.image]" alt=""></span>
+            <span class="texture-name">{{ item.name }}</span>
+          </button>
+        </div>
+      </template>
+    </template>
+  </div>
+</template>
+
+<style scoped>
+  .blank {
+    align-self: flex-start;
+  }
+
+  .set {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: var(--card);
+    border: 2px solid transparent;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .set:hover {
+    background: var(--card-hover);
+  }
+
+  .set.chosen {
+    border-color: var(--accent);
+  }
+
+  .set-text {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+    min-width: 0;
+  }
+
+  .set-name {
+    font-size: var(--font-md);
+    font-weight: 600;
+  }
+
+  .set-text small {
+    flex-basis: 100%;
+    font-size: var(--font-sm);
+    color: var(--faint);
+  }
+
+  .offset {
+    font-size: var(--font-sm);
+    color: var(--muted);
+    cursor: default;
+  }
+
+  .offset input {
+    width: 64px;
+  }
+
+  .status {
+    padding: 1px 6px;
+    font-size: var(--font-xs);
+    font-weight: 600;
+  }
+
+  .status.good {
+    color: #0d1f09;
+    background: var(--accent);
+  }
+
+  .texture.unfit {
+    opacity: 0.45;
+  }
+
+  .status.bad {
+    color: #1d0a08;
+    background: var(--danger);
+  }
+
+  .hint.bad,
+  .message.bad {
+    color: var(--danger);
+  }
+
+  .view {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 260px;
+    overflow: hidden;
+    background: var(--checker);
+  }
+
+  .stage {
+    display: contents;
+  }
+
+  .stage :deep(canvas) {
+    display: block;
+    max-width: calc(100% - 16px);
+    max-height: calc(100% - 16px);
+  }
+
+  .busy .stage :deep(canvas) {
+    opacity: 0.6;
+  }
+
+  .message {
+    position: absolute;
+    margin: 0;
+    padding: 0 12px;
+    font-size: var(--font-md);
+    text-align: center;
+    color: var(--muted);
+  }
+
+  .textures {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 6px;
+  }
+
+  .texture {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 4px;
+    background: var(--card);
+    border: 2px solid transparent;
+  }
+
+  .texture:hover {
+    background: var(--card-hover);
+  }
+
+  .texture.active {
+    border-color: var(--accent);
+  }
+
+  .swatch {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 56px;
+  }
+
+  .swatch img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+  }
+
+  .texture-name {
+    overflow: hidden;
+    font-size: var(--font-xs);
+    color: var(--muted);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+</style>
