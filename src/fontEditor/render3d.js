@@ -31,7 +31,7 @@ function forget(id) {
   for (const url of files.keys()) if (url.startsWith(`${folder}/`)) files.delete(url)
 }
 
-export async function renderFont(font, text, { terminators = false, width, slot = "preview", strip = null, texture = null, variant = null }) {
+export async function renderFont(font, text, { terminators = false, stretch = 1, width, slot = "preview", strip = null, texture = null, variant = null }) {
   const id = `editor-preview-${++count}`
   const folder = `font/${id}`
   const { editor, strips, ...entry } = { ...exportJson(font, ""), id, name: font.name || "My Font" }
@@ -41,6 +41,7 @@ export async function renderFont(font, text, { terminators = false, width, slot 
   files.set(`${folder}/textures.json`, { primary: "flat", secondary: "flat", textures: { flat: { border: "#000000" } }, overlays: {} })
   try {
     const line = { text, font: id, terminators, depth: defaultDepth(entry), border: defaultBorder("top", entry), spacing: defaultSpacing("top", entry) }
+    if (stretch !== 1) Object.assign(line, { scaleY: stretch, scaleMarked: true })
     if (texture) line.texture = texture
     if (variant) line.textureVariant = variant
     return await linesCanvas({ version: FILE_VERSION, lines: [line] }, [entry], {}, width)

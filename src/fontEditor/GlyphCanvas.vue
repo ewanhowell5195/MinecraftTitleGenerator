@@ -487,7 +487,7 @@
         <button class="small ghost" title="Remove every pixel from this character" @click="clearGlyph">Clear</button>
       </span>
       <div class="spacer"></div>
-      <button class="small ghost zoom" :disabled="!zoomed" title="Fit to view (0). Zoom with the mouse wheel or a pinch, and move around by dragging outside the character, with the middle mouse button, Space and drag, or two fingers" aria-label="Fit to view" @click="fit"><Icon name="scale" :size="16" />{{ zoomPercent }}%</button>
+      <button class="small ghost zoom" :disabled="!zoomed" title="Fit to view (0). Zoom with the mouse wheel or a pinch, and move around by dragging outside the character, with the middle mouse button, Space and drag, or two fingers" aria-label="Fit to view" @click="fit"><Icon name="fit" :size="16" />{{ zoomPercent }}%</button>
     </div>
     <div ref="holder" class="holder">
       <canvas ref="canvas" class="board" :class="{ grab: spaceHeld || outside, grabbing: panning }" @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="up" @pointerenter="enter" @pointerleave="leave" @mousedown="noAutoscroll" @wheel="wheel" @contextmenu.prevent></canvas>

@@ -1,5 +1,6 @@
 <script setup>
   import { computed, onBeforeUnmount, onMounted, ref, toRaw, watch } from "vue"
+  import Slider from "../components/Slider.vue"
   import RenderView from "./RenderView.vue"
   import { previewFont, drawText } from "./textCanvas.js"
   import { font } from "./store.js"
@@ -10,6 +11,7 @@
 
   const text = ref("minecraft")
   const terminators = ref(false)
+  const stretch = ref(1)
   const canvas = ref(null)
   const holder = ref(null)
   const views = ref(null)
@@ -17,7 +19,7 @@
   const error = ref("")
   const wide = ref(true)
   const mode = ref("2d")
-  const request = computed(() => wide.value || mode.value === "3d" ? { font: toRaw(font.value), text: text.value, terminators: terminators.value } : null)
+  const request = computed(() => wide.value || mode.value === "3d" ? { font: toRaw(font.value), text: text.value, terminators: terminators.value, stretch: stretch.value } : null)
   let observer = null
   let timer = null
 
@@ -54,6 +56,9 @@
   })
 
   watch([font, text, terminators, mode], schedule)
+  watch(stretch, value => {
+    if (value !== 1 && !wide.value) mode.value = "3d"
+  })
 </script>
 
 <template>
@@ -63,6 +68,9 @@
         <span class="label">Preview</span>
         <input v-model="text" type="text" placeholder="Type something" aria-label="Preview text">
       </label>
+      <div class="stretch" title="Makes the 3D preview taller using only the marked stretch zones">
+        <Slider inline label="Stretch" :min="1" :max="3" :step="0.05" v-model="stretch" />
+      </div>
       <label class="checkbox" :title="font.forcedTerminators ? 'This font always uses terminators' : 'Add the ┫ ┣ line terminators'">
         <input type="checkbox" :checked="terminators || font.forcedTerminators" :disabled="font.forcedTerminators" @change="terminators = $event.target.checked">
         <span>Terminators</span>
@@ -111,6 +119,15 @@
   .bar .text {
     flex: 1;
     min-width: 0;
+  }
+
+  .stretch {
+    flex: none;
+    width: 260px;
+  }
+
+  .stretch :deep(.slider.inline) {
+    grid-template-columns: auto 1fr auto;
   }
 
   .views {
@@ -169,6 +186,21 @@
   @media (max-width: 800px) {
     .text input {
       font-size: 16px;
+    }
+
+    .bar {
+      flex-wrap: wrap;
+      row-gap: 10px;
+    }
+
+    .bar .text {
+      flex-basis: 100%;
+    }
+
+    .stretch {
+      flex: 1;
+      width: auto;
+      min-width: 0;
     }
   }
 </style>

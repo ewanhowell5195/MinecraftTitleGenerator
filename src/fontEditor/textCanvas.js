@@ -1,4 +1,4 @@
-import { layout } from "../lib/layout.js"
+import { lineLayout } from "../lib/layout.js"
 import { DEFAULT_SPACE_WIDTH, parsedSheet } from "../lib/fontEditor.js"
 
 export function previewFont(font) {
@@ -7,7 +7,7 @@ export function previewFont(font) {
 }
 
 export function drawText(canvas, parsed, text, { maxWidth, maxHeight, maxScale = 8, terminators = false, raw = false }) {
-  const placed = layout(parsed, text, { spacing: parsed.characterSpacing, terminators, raw })
+  const placed = lineLayout(parsed, [{ text, space: false, creeper: true }], { spacing: parsed.characterSpacing, terminators, raw })
   const ctx = canvas.getContext("2d")
   const border = parsed.border
   if (!placed.length) {
