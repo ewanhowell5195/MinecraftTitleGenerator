@@ -1,6 +1,7 @@
 import { reactive } from "vue"
 
 export const FILE_VERSION = 5
+export const DEFAULT_FONT = "minecraft-ten"
 
 export const TYPES = {
   top: { name: "Top Text", creeperFace: true, clipHoles: true, depthAnchor: "back", stops: [["#FFCF76", 0], ["#DA371E", 100]], fade: false, outerFade: 0, internalFaces: false, fadeInternal: true, internalFade: 0, sideFaces: false, fadeSides: true, sideFade: 0, border: 2, spacing: 0 },
@@ -55,7 +56,7 @@ const PANELS = {
     creeperFace: true
   }),
   font: () => ({
-    font: "minecraft-ten",
+    font: DEFAULT_FONT,
     customFont: null
   }),
   placement: () => ({

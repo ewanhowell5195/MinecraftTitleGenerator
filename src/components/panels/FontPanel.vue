@@ -1,3 +1,7 @@
+<script>
+  const publishedFonts = new Map()
+</script>
+
 <script setup>
   import { computed, ref, watch } from "vue"
   import { fontCredit } from "../../lib/credits.js"
@@ -5,7 +9,7 @@
   import { loadImage } from "../../lib/font.js"
   import { usePanel } from "../../lib/panel.js"
   import { library } from "../../lib/scene.js"
-  import { isCustomFont } from "../../lib/settings.js"
+  import { DEFAULT_FONT, isCustomFont } from "../../lib/settings.js"
   import { popular } from "../../lib/stats.js"
   import { fontThumbnail } from "../../lib/ui.js"
   import Icon from "../Icon.vue"
@@ -60,7 +64,12 @@
 
   function chooseTab(value) {
     tab.value = value
-    if (value === "custom" && object.value.customFont && !usingCustom.value) applyCustom(object.value.customFont)
+    if (value === "custom") {
+      if (!isCustomFont(object.value.font)) publishedFonts.set(object.value.id, object.value.font)
+      if (object.value.customFont && !usingCustom.value) applyCustom(object.value.customFont)
+    } else if (isCustomFont(object.value.font)) {
+      object.value.font = publishedFonts.get(object.value.id) ?? DEFAULT_FONT
+    }
   }
 
   function upload(event) {
@@ -130,7 +139,10 @@
       <div class="code">{{ characters }}</div>
     </div>
     <template v-if="tab === 'custom'">
-      <Tile v-if="object.customFont" class="uploaded" keyboard :label="customName || object.customFont.fileName" :image="customImage" :unit="customUnit" :selected="usingCustom" @pick="applyCustom(object.customFont)" />
+      <div v-if="object.customFont" class="custom-font">
+        <div class="preview picture"><img v-if="customImage" :src="customImage" alt="" :style="customUnit ? { height: `${customUnit}px` } : null"></div>
+        <span class="name ellipsis">{{ customName || object.customFont.fileName }}</span>
+      </div>
       <div v-else class="upload-preview">
         <div class="empty">No font uploaded</div>
       </div>
@@ -173,8 +185,25 @@
 </template>
 
 <style scoped>
-  .uploaded :deep(.thumb) {
-    aspect-ratio: auto;
+  .custom-font {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 10px 10px;
+    background: var(--field);
+  }
+
+  .preview {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  .name {
+    max-width: 100%;
+    font-size: var(--font-sm);
+    font-weight: 600;
+    color: var(--text);
   }
 
   .info {
