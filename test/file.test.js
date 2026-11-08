@@ -196,8 +196,8 @@ describe("saving trims settings", () => {
   })
 
   test("arc settings follow the arc mode", async () => {
-    const twisted = { twistRibbon: 30, twistRibbonAnchor: "left", twistRibbonMirror: true, twistDoor: 0, twistDoorAnchor: "right", twistDoorSame: true }
-    assert.deepEqual(await savedLines(make("top", twisted)), [{ twistRibbon: 30, twistRibbonAnchor: "left" }])
+    const twisted = { twistRibbon: 30, twistRibbonCentre: 0, twistRibbonMirror: true, twistDoor: 0, twistDoorCentre: 100, twistDoorSame: true }
+    assert.deepEqual(await savedLines(make("top", twisted)), [{ twistRibbon: 30, twistRibbonCentre: 0, twistRibbonMirror: true }])
     assert.deepEqual(await savedLines(make("top", { ...twisted, twistRibbon: 0 })), [{}])
     const values = { arcTop: 3, arcBottom: 2, arcMove: 5, arcMarked: false, arcGradient: true }
     assert.deepEqual(await savedLines(make("top", values)), [{ arcTop: 3, arcBottom: 2, arcMarked: false, arcGradient: true }])
@@ -271,6 +271,12 @@ describe("saving multi-word lines", () => {
   test("the type goes on the line", async () => {
     const lines = await savedLines(make("bottom", { group: 7, text: "a" }), make("bottom", { group: 7, text: "b" }))
     assert.deepEqual(lines, [{ type: "bottom", words: [{ text: "a" }, { text: "b" }] }])
+  })
+
+  test("twist centres go on the line", async () => {
+    const twist = { group: 7, twistRibbon: 20, twistRibbonCentre: 25 }
+    const lines = await savedLines(make("top", { ...twist, text: "a" }), make("top", { ...twist, text: "b" }))
+    assert.deepEqual(lines, [{ twistRibbon: 20, twistRibbonCentre: 25, words: [{ text: "a" }, { text: "b" }] }])
   })
 
   test("a hidden word is saved on that word", async () => {
@@ -475,6 +481,12 @@ describe("opening", () => {
   test("depth from before version 5 stays anchored at the front", async () => {
     await openTitle(fileOf(title([{ text: "a", depth: 30 }, { type: "small", text: "b", wordDepth: 10 }, { type: "small", words: [{ text: "c" }, { text: "d", wordDepth: 12 }] }, { type: "bottom", text: "e", depth: 30 }, { text: "f" }, { type: "small", text: "g" }], { version: 4 })))
     assert.deepEqual(scene.objects.map(object => object.depthAnchor), ["front", "front", "front", "front", "front", "back", "middle"])
+  })
+
+  test("twist anchors open as centres", async () => {
+    await openTitle(fileOf(title([{ text: "a", twistRibbon: 20, twistRibbonAnchor: "left", twistDoor: 30, twistDoorAnchor: "right" }, { text: "b", twistRibbon: 20, twistRibbonAnchor: "centre", twistRibbonMirror: true }], { version: 5 })))
+    assert.deepEqual(scene.objects.map(object => [object.twistRibbonCentre, object.twistRibbonMirror, object.twistDoorCentre, object.twistDoorSame]), [[0, false, 100, true], [50, true, 50, false]])
+    assert.ok(scene.objects.every(object => !("twistRibbonAnchor" in object) && !("twistDoorAnchor" in object)))
   })
 
   test("depth from version 5 uses each type's anchor", async () => {

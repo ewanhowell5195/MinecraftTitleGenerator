@@ -293,7 +293,9 @@ const KEYS = [
   ["matchScaleY", BOOLEAN],
   ["overlayFade", NUMBER],
   ["depthAnchor", choice("front", "middle", "back")],
-  ["creeperFace", BOOLEAN]
+  ["creeperFace", BOOLEAN],
+  ["twistRibbonCentre", NUMBER],
+  ["twistDoorCentre", NUMBER]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))

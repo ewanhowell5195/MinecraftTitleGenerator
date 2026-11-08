@@ -37,10 +37,8 @@ const UNUSED = [
   [object => object.arcMode === "move", ["arcTop", "arcBottom", "arcMarked", "arcGradient"]],
   [object => object.wordArcMode !== "move", ["wordArcMove"]],
   [object => object.wordArcMode === "move", ["wordArcTop", "wordArcBottom", "wordArcMarked"]],
-  [object => !object.twistRibbon, ["twistRibbonAnchor", "twistRibbonMirror"]],
-  [object => object.twistRibbonAnchor !== "centre", ["twistRibbonMirror"]],
-  [object => !object.twistDoor, ["twistDoorAnchor", "twistDoorSame"]],
-  [object => object.twistDoorAnchor !== "centre", ["twistDoorSame"]],
+  [object => !object.twistRibbon, ["twistRibbonCentre", "twistRibbonMirror"]],
+  [object => !object.twistDoor, ["twistDoorCentre", "twistDoorSame"]],
   [object => matchSolved(object), ["matchScale", "matchOffset"]],
   [object => object.matchWidth === null, ["matchScaleY"]]
 ]
@@ -92,8 +90,22 @@ function expandLayer(layer) {
   return { ...LAYER, ...layer }
 }
 
+const TWIST_ANCHORS = [["twistRibbonAnchor", "twistRibbonCentre", "twistRibbonMirror"], ["twistDoorAnchor", "twistDoorCentre", "twistDoorSame"]]
+const ANCHOR_CENTRES = { left: 0, centre: 50, right: 100 }
+
+function twistCentres(values) {
+  const converted = { ...values }
+  for (const [anchor, centre, same] of TWIST_ANCHORS) {
+    if (!(anchor in converted)) continue
+    converted[centre] ??= ANCHOR_CENTRES[converted[anchor]] ?? 50
+    if (converted[anchor] === "right") converted[same] = true
+    delete converted[anchor]
+  }
+  return converted
+}
+
 function expand(values) {
-  const object = { ...typeDefaults(values.type ?? "top"), ...values }
+  const object = { ...typeDefaults(values.type ?? "top"), ...twistCentres(values) }
   for (const key of LAYERS) {
     if (values[key]) object[key] = values[key].map(expandLayer)
   }

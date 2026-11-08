@@ -16,6 +16,11 @@ function isCompact(key, value) {
 }
 
 describe("twist in links", () => {
+  test("round trips the twist centres", () => {
+    const lines = [{ twistRibbon: 30, twistRibbonCentre: 25, twistRibbonMirror: true, twistDoor: -10, twistDoorCentre: 100 }]
+    assert.deepEqual(decodeTitle(encodeTitle({ version: 5, lines }).code).lines, lines)
+  })
+
   test("round trips every twist setting, in both directions", () => {
     const lines = [{ twistRibbon: -135, twistRibbonAnchor: "left", twistRibbonMirror: false, twistDoor: 45.5, twistDoorAnchor: "centre", twistDoorSame: true }, { twistRibbon: 180, twistRibbonAnchor: "right", twistDoor: -1, twistDoorAnchor: "right" }]
     assert.deepEqual(decodeTitle(encodeTitle({ version: 2, lines }).code).lines, lines)

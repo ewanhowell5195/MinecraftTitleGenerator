@@ -150,7 +150,7 @@ export default {
       arcBottom: object.arcBottom / 100,
       arcMove: object.arcMove / 100,
       arcMarked: object.arcMarked,
-      twist: object.twistRibbon || object.twistDoor ? { ribbon: { amount: object.twistRibbon, anchor: object.twistRibbonAnchor, same: object.twistRibbonMirror }, door: { amount: object.twistDoor, anchor: object.twistDoorAnchor, same: object.twistDoorSame } } : null,
+      twist: object.twistRibbon || object.twistDoor ? { ribbon: { amount: object.twistRibbon, centre: object.twistRibbonCentre / 100, same: object.twistRibbonMirror }, door: { amount: object.twistDoor, centre: object.twistDoorCentre / 100, same: object.twistDoorSame } } : null,
       stretch: stretching.value ? effectiveScale(object)[1] : 1,
       terminators: object.terminators,
       internalFaces: object.internalFaces,

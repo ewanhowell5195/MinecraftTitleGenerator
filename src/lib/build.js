@@ -37,12 +37,11 @@ function frameRects(boxes) {
   return spans.map(span => [span.x0, span.y0, span.x1, span.y1])
 }
 
-function twistReach({ anchor, same }, x, first, last) {
+function twistReach({ centre, same }, x, first, last) {
   const span = last - first
   if (!span) return 0
-  if (anchor === "left") return (x - first) / span
-  if (anchor === "right") return (last - x) / span
-  const fromCentre = (x - (first + last) / 2) / (span / 2)
+  const pivot = first + span * centre
+  const fromCentre = (x - pivot) / Math.max(pivot - first, last - pivot)
   return same ? Math.abs(fromCentre) : fromCentre
 }
 
