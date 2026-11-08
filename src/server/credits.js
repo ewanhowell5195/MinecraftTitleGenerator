@@ -49,7 +49,7 @@ function listed(names) {
 function pieceHtml(piece) {
   const based = piece.based ? `<span class="based">Based on ${escaped(piece.based)}</span>` : ""
   const others = piece.people.filter(person => person !== piece.person)
-  const shared = others.length ? `<button type="button" class="with" data-id="${escaped(piece.id)}">With ${escaped(listed(others))}</button>` : ""
+  const shared = others.length ? `<button type="button" class="with" data-id="${escaped(piece.id)}" title="With ${escaped(listed(others))}">Collaboration</button>` : ""
   return `<li class="piece" data-id="${escaped(piece.id)}" data-stats="${escaped(piece.stats.join(" "))}"><div class="thumb"><img src="${escaped(piece.image)}" alt="" loading="lazy"></div><span class="name">${escaped(piece.name)}</span><span class="where">${escaped(piece.where)}</span>${based}${shared}</li>`
 }
 
