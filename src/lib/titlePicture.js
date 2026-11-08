@@ -8,7 +8,7 @@ import { createTitleItems } from "./items.js"
 import { decodeTitle, unknownSetting } from "./linkformat.js"
 import { keepMatched } from "./match.js"
 import { platform } from "./platform.js"
-import { renderTitle } from "./render.js"
+import { renderTitle, screenBounds } from "./render.js"
 import { OVERLAY_KINDS, activeOverlays } from "./settings.js"
 import { createEntry, destroyEntry, frameCamera, sortEntries, titleFraming, updateEntry } from "./stage.js"
 import { createTitle } from "./title.js"
@@ -18,6 +18,8 @@ const STAGE_WIDTH = 1000
 const STAGE_HEIGHT = 500
 // the 1024px cap on the big view in PresetsPage.vue minus its border and padding in PresetDetail.vue and on .large in TitlePicture.vue
 const PICTURE_WIDTH = 935
+// that view is 2:1 (aspect-ratio on .picture in TitlePicture.vue), so this is half its width minus the same padding
+const PICTURE_HEIGHT = 443
 const TIME_LIMIT = 180000
 const VIEW = { render: false, fov: DEFAULT_FOV, fixedDistance: false, previews: false }
 const NOTHING_RENDERED = createRenderer({ insert() {}, remove() {}, createElement: () => ({}), createText: () => ({}), createComment: () => ({}), setText() {}, setElementText() {}, parentNode: () => null, nextSibling: () => null, patchProp() {} })
@@ -96,7 +98,13 @@ async function shoot(items, width) {
     const camera = new THREE.PerspectiveCamera(VIEW.fov, STAGE_WIDTH / STAGE_HEIGHT, 1, 5000)
     frameCamera(camera, { ...framed, fov: VIEW.fov, width: STAGE_WIDTH, height: STAGE_HEIGHT })
     sortEntries(entries, camera)
-    return await renderTitle(new THREE.Vector2(STAGE_WIDTH, STAGE_HEIGHT), scene, camera, width, true, { signal: new AbortController().signal, progress: () => {} })
+    camera.updateMatrixWorld()
+    const bounds = screenBounds(scene, camera)
+    if (!bounds) return null
+    const wide = (bounds.maxX - bounds.minX) * camera.view.width
+    const tall = (bounds.maxY - bounds.minY) * camera.view.height
+    const fit = Math.min(width / wide, Math.floor(width * PICTURE_HEIGHT / PICTURE_WIDTH) / tall)
+    return await renderTitle(new THREE.Vector2(STAGE_WIDTH, STAGE_HEIGHT), scene, camera, Math.round(Math.max(wide, tall) * fit), true, { signal: new AbortController().signal, progress: () => {} })
   } finally {
     for (const entry of entries) destroyEntry(entry)
   }
