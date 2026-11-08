@@ -174,7 +174,7 @@
   <Panel title="Camera" :modified="view.fov !== DEFAULT_FOV || view.fixedDistance" @reset="resetCamera">
     <Slider label="Field of view" v-model="view.fov" :min="0" :max="90" />
     <p class="hint">0 is orthographic.</p>
-    <Toggle v-if="view.fov" label="Fixed camera distance" hint="Middle letters keep their perspective however long the title is, and letters further out get more distorted" v-model="view.fixedDistance" />
+    <Toggle v-if="view.fov" label="Fixed camera distance" hint="The camera normally moves with the top text's width so its ends always lean the same. This keeps it still instead, so longer text leans more at the ends" v-model="view.fixedDistance" />
   </Panel>
 </template>
 
