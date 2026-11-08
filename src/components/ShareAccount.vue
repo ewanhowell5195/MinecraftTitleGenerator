@@ -1,6 +1,6 @@
 <script setup>
   import { onMounted } from "vue"
-  import { account, refreshAccount, signIn, signInProviders, signOut } from "../lib/community.js"
+  import { account, refreshAccount, signIn, signInProviders } from "../lib/community.js"
   import { providerLabel } from "../lib/providers.js"
   import Icon from "./Icon.vue"
 
@@ -11,9 +11,6 @@
   <div class="account">
     <template v-if="account">
       <p>Sharing as <strong :title="providerLabel(account.provider)"><Icon :name="account.provider" :size="14" />{{ account.name }}</strong>. Your username will show on this preset, and you can rename or delete it later.</p>
-      <div class="buttons">
-        <button type="button" @click="signOut">Sign out</button>
-      </div>
     </template>
     <template v-else-if="signInProviders.length">
       <p>Sign in to show your username on this preset and manage it from any device. Without an account, you can only rename or delete it from this browser, and you lose that if this browser's saved data is cleared.</p>
