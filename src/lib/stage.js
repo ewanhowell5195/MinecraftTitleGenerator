@@ -258,6 +258,7 @@ export function updateEntry(entry, item) {
   }
   if (item.halo) entry.rim.color.set(item.haloColour)
   if (item.transform) place(entry, item.transform)
+  entry.group.visible = !item.hidden
 }
 
 export function destroyEntry(entry) {

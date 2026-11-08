@@ -273,6 +273,11 @@ describe("saving multi-word lines", () => {
     assert.deepEqual(lines, [{ type: "bottom", words: [{ text: "a" }, { text: "b" }] }])
   })
 
+  test("a hidden word is saved on that word", async () => {
+    const lines = await savedLines(make("top", { group: 7, text: "a" }), make("top", { group: 7, text: "b", hidden: true }))
+    assert.deepEqual(lines, [{ words: [{ text: "a" }, { text: "b", hidden: true }] }])
+  })
+
   test("different groups stay separate lines", async () => {
     const lines = await savedLines(make("top", { group: 1, text: "a" }), make("top", { group: 1, text: "b" }), make("top", { group: 2, text: "c" }), make("top", { group: 2, text: "d" }), make("top", { text: "e" }))
     assert.deepEqual(lines, [{ words: [{ text: "a" }, { text: "b" }] }, { words: [{ text: "c" }, { text: "d" }] }, { text: "e" }])

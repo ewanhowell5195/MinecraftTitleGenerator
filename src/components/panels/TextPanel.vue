@@ -125,11 +125,14 @@
         <button v-if="index" class="join" :class="{ joined: !word.spaceBefore }" @click="word.spaceBefore = !word.spaceBefore" :aria-pressed="!word.spaceBefore" :title="word.spaceBefore ? 'Join words' : 'Add space'">
           <Icon :name="word.spaceBefore ? 'space' : 'link'" :size="14" />
         </button>
-        <label :ref="el => (chips[word.id] = el)" class="chip" :class="{ chosen: chosen(word), dragged: dragged === word.id }" :data-value="word.text || placeholder">
+        <label :ref="el => (chips[word.id] = el)" class="chip" :class="{ chosen: chosen(word), dragged: dragged === word.id, hidden: word.hidden }" :data-value="word.text || placeholder">
           <span v-if="line.length > 1" class="grip" @pointerdown="press($event, word)" title="Drag to reorder">
             <Icon name="grip" :size="14" />
           </span>
           <input :ref="el => (fields[word.id] = el)" type="text" size="1" :value="word.text" spellcheck="false" autocomplete="off" :placeholder="placeholder" :aria-label="line.length > 1 ? `Word ${index + 1}` : 'Text'" @input="typed($event, word)" @focus="focus(word)" @keydown.backspace="backspace($event, word)">
+          <button v-if="line.length > 1" class="hide" tabindex="-1" @click.prevent="word.hidden = !word.hidden" :title="word.hidden ? 'Show this word' : 'Hide this word'" :aria-pressed="word.hidden">
+            <Icon :name="word.hidden ? 'hidden' : 'eye'" :size="12" />
+          </button>
           <button v-if="line.length > 1" class="remove" tabindex="-1" @click.prevent="remove(word)" title="Remove this word">
             <Icon name="close" :size="12" />
           </button>
@@ -262,10 +265,35 @@
     transition: opacity var(--duration), background var(--duration);
   }
 
+  .hide {
+    position: absolute;
+    top: -7px;
+    left: -7px;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    color: var(--text);
+    background: var(--line-strong);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--duration), background var(--duration);
+  }
+
   .chip:hover .remove,
-  .chip:focus-within .remove {
+  .chip:focus-within .remove,
+  .chip:hover .hide,
+  .chip:focus-within .hide,
+  .chip.hidden .hide {
     opacity: 1;
     pointer-events: auto;
+  }
+
+  .hide:hover {
+    background: var(--accent);
+  }
+
+  .chip.hidden input {
+    color: var(--faint);
   }
 
   .remove:hover {

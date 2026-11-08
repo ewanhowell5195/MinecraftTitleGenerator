@@ -188,6 +188,7 @@
       { label: `Move${noun} down`, icon: "down", disabled: index === rows.value.length - 1, action: () => shift(row, 1) },
       { divider: true }
     ]
+    if (object) items.splice(1, 0, { label: object.hidden ? "Show word" : "Hide word", icon: object.hidden ? "eye" : "hidden", action: () => (object.hidden = !object.hidden) })
     if (object) items.push({ label: "Delete word", icon: "close", danger: true, action: () => removeObject(object) })
     items.push({ label: `Delete${noun}`, icon: "trash", danger: true, action: () => removeLine(lead) })
     context.value = { at: { x: event.clientX, y: event.clientY }, items }
