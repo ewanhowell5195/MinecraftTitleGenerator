@@ -228,7 +228,7 @@ export function loadImage(src) {
 
 const FOLDER = "font"
 
-const META = ["author", "description", "strips", "height", "depth", "border", "characterSpacing", "spaceWidth", "terminatorSpace", "forcedTerminators", "autoBorder", "flat", "overlay"]
+const META = ["author", "description", "strips", "height", "depth", "border", "characterSpacing", "spaceWidth", "terminatorSpace", "terminatorSpaceWidth", "forcedTerminators", "autoBorder", "flat", "overlay"]
 
 function fontFolder(data) {
   return data.variant ? `${FOLDER}/${data.variant}/${data.id}` : `${FOLDER}/${data.id}`

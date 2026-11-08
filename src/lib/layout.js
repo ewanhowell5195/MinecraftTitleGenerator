@@ -43,16 +43,16 @@ export function lineLayout(font, words, options) {
   const parts = words.map((item, word) => ({ space: item.space, chars: Array.from(options.raw ? item.text : normalise(font.glyphs[" "] ? creeperText(font, item) : creeperText(font, item).trim()), char => ({ char, word })) })).filter(part => part.chars.length)
   let chars = parts.flatMap((part, index) => index && part.space ? [{ char: " ", word: parts[index - 1].chars[0].word }].concat(part.chars) : part.chars)
   if (chars.length && (options.terminators || font.forcedTerminators) && font.glyphs["┫"] && font.glyphs["┣"]) {
-    const gap = font.terminatorSpace ? [{ char: " " }] : []
+    const gap = font.terminatorSpace ? [{ char: " ", width: font.terminatorSpaceWidth }] : []
     chars = [{ char: "┫", word: chars[0].word }].concat(gap, chars, gap, [{ char: "┣", word: chars[chars.length - 1].word }])
   }
   const placed = []
   let pen = 0
   let last = null
   let spaces = 0
-  for (const { char, word } of chars) {
+  for (const { char, word, width } of chars) {
     if (char === " " && !font.glyphs[" "]) {
-      pen += space + spacing
+      pen += (width ?? space) + spacing
       last = null
       spaces++
       continue

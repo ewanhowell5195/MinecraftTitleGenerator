@@ -335,6 +335,11 @@ describe("lineLayout terminators", () => {
     assert.deepEqual(xsOf(placed), [0, 12, 25])
     assert.deepEqual(placed.map(item => item.spaces), [0, 1, 1])
   })
+
+  test("can use their own gap instead of the normal space", () => {
+    const placed = layout({ ...font, terminatorSpace: true, terminatorSpaceWidth: 2 }, "a", { terminators: true })
+    assert.deepEqual(xsOf(placed), [0, 6, 13])
+  })
 })
 
 describe("lineLayout with a space glyph", () => {
