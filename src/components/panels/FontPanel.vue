@@ -1,7 +1,8 @@
 <script setup>
   import { computed, ref, watch } from "vue"
   import { fontCredit } from "../../lib/credits.js"
-  import { customFontEntry, customFontKind } from "../../lib/customFonts.js"
+  import { customFontEntry, customFontKind, customThumbnail } from "../../lib/customFonts.js"
+  import { loadImage } from "../../lib/font.js"
   import { usePanel } from "../../lib/panel.js"
   import { library } from "../../lib/scene.js"
   import { isCustomFont } from "../../lib/settings.js"
@@ -14,13 +15,15 @@
   import Toggle from "../Toggle.vue"
 
   const TABS = [{ value: "published", label: "All fonts" }, { value: "custom", label: "Custom" }]
-  const KIND_NAMES = { json: "Font editor JSON", ascii: "Minecraft ascii.png", outline: "Font file" }
   const IMPORT_HEIGHT = 40
+  const PREVIEW_SCALE = 3
 
   const info = ref(false)
   const { object, font, modified, reset } = usePanel("font")
   const tab = ref(isCustomFont(object.value.font) ? "custom" : "published")
   const customName = ref("")
+  const customImage = ref(null)
+  const customUnit = ref(null)
   const customError = ref("")
   const loading = ref(false)
   const usingCustom = computed(() => isCustomFont(object.value.font) && !!object.value.customFont)
@@ -82,9 +85,15 @@
 
   watch(() => object.value.customFont, async source => {
     customName.value = ""
+    customImage.value = null
+    customUnit.value = null
     if (!source) return
     try {
-      customName.value = (await customFontEntry(source)).name
+      const entry = await customFontEntry(source)
+      customName.value = entry.name
+      const image = customThumbnail(entry.id, "flat")
+      customUnit.value = image && (await loadImage(image)).height * PREVIEW_SCALE
+      customImage.value = image
     } catch (err) {
       customError.value = `Couldn't use this font: ${err.message}`
     }
@@ -115,14 +124,10 @@
       <div class="code">{{ characters }}</div>
     </div>
     <template v-if="tab === 'custom'">
-      <div class="upload-preview custom">
-        <template v-if="object.customFont">
-          <strong>{{ customName || object.customFont.fileName }}</strong>
-          <span>{{ KIND_NAMES[object.customFont.kind] }}, {{ object.customFont.fileName }}</span>
-        </template>
-        <div v-else class="empty">No font uploaded</div>
+      <Tile v-if="object.customFont" class="uploaded" keyboard :label="customName || object.customFont.fileName" :image="customImage" :unit="customUnit" :selected="usingCustom" @pick="applyCustom(object.customFont)" />
+      <div v-else class="upload-preview">
+        <div class="empty">No font uploaded</div>
       </div>
-      <button v-if="object.customFont && !usingCustom" class="wide primary" @click="applyCustom(object.customFont)">Use {{ customName || object.customFont.fileName }}</button>
       <label class="button wide">
         <Icon name="open" :size="16" />
         <span>{{ loading ? "Loading..." : object.customFont ? "Replace font" : "Choose a font file" }}</span>
@@ -158,19 +163,8 @@
 </template>
 
 <style scoped>
-  .custom {
-    flex-direction: column;
-    gap: 4px;
-    text-align: center;
-  }
-
-  .custom strong {
-    font-size: var(--font-base);
-  }
-
-  .custom span {
-    font-size: var(--font-sm);
-    color: var(--muted);
+  .uploaded :deep(.thumb) {
+    aspect-ratio: auto;
   }
 
   .info {
