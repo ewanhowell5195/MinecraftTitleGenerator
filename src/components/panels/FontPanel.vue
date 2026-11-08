@@ -56,11 +56,11 @@
       </div>
     </template>
   </Panel>
+  <Panel v-if="hasCreeper" title="Creeper face" :modified="creeper.modified.value" @reset="creeper.reset">
+    <Toggle label="Creeper face on A" hint="Every a gets the creeper face. Split a word off to set it for just part of the text" v-model="object.creeperFace" />
+  </Panel>
   <Panel v-if="hasTerminators" title="Terminators" :modified="terminators.modified.value" @reset="terminators.reset">
     <Toggle label="Line terminators" hint="Adds the end pieces either side of the text" v-model="object.terminators" />
-  </Panel>
-  <Panel v-if="hasCreeper" title="Creeper face" :modified="creeper.modified.value" @reset="creeper.reset">
-    <Toggle label="Creeper face on a" hint="Every a gets the creeper face. Split a word off to set it for just part of the text" v-model="object.creeperFace" />
   </Panel>
 </template>
 
