@@ -157,7 +157,9 @@ function rescaleGlyph(font, glyph, next) {
 }
 
 export function setSquareSize(font, grid) {
-  const next = { ...font, grid, height: Math.round(font.height * grid / font.grid), width: Math.round(font.width * grid / font.grid) }
+  const scaled = value => Math.round(value * grid / font.grid)
+  const metrics = { spaceWidth: scaled(font.spaceWidth), characterSpacing: scaled(font.characterSpacing), terminatorSpaceWidth: font.terminatorSpaceWidth === null || font.terminatorSpaceWidth === undefined ? font.terminatorSpaceWidth : scaled(font.terminatorSpaceWidth), kerning: Object.fromEntries(Object.entries(font.kerning).map(([pair, amount]) => [pair, scaled(amount)])) }
+  const next = { ...font, ...metrics, grid, height: scaled(font.height), width: scaled(font.width) }
   const rescale = glyphs => glyphs && mapGlyphs(glyphs, glyph => rescaleGlyph(font, glyph, next))
   return { ...next, glyphs: rescale(font.glyphs), imported: rescale(font.imported) }
 }

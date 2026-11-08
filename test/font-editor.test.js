@@ -175,6 +175,13 @@ describe("square size", () => {
     assert.equal(squareSizeLoss(drawnBlock, 4), 0)
   })
 
+  test("spacing and kerning scale with the square size, depth and border don't", () => {
+    const spaced = { ...drawnBlock, spaceWidth: 8, characterSpacing: 2, depth: 16, border: 2, terminatorSpaceWidth: 4, kerning: { lt: 12 } }
+    const next = setSquareSize(spaced, drawnBlock.grid * 2)
+    assert.deepEqual([next.spaceWidth, next.characterSpacing, next.depth, next.border, next.terminatorSpaceWidth, next.kerning.lt], [16, 4, 16, 2, 8, 24])
+    assert.equal(setSquareSize({ ...spaced, terminatorSpaceWidth: null }, drawnBlock.grid * 2).terminatorSpaceWidth, null)
+  })
+
   test("a smaller square only loses detail drawn finer than it", () => {
     assert.deepEqual(setSquareSize(drawnBlock, 1).glyphs.a.rows, ["00", "10"])
     assert.equal(squareSizeLoss(drawnBlock, 1), 0)
