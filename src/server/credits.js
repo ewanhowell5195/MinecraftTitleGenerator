@@ -13,8 +13,7 @@ const LIBRARIES = [
   { name: "Vue", url: "https://github.com/vuejs/core", by: "Evan You", licence: "MIT" },
   { name: "opentype.js", url: "https://github.com/opentypejs/opentype.js", by: "Frederik De Bleser", licence: "MIT" },
   { name: "Clipper2", url: "https://github.com/countertype/clipper2-ts", by: "Angus Johnson, ported by Jeremy Tribby", licence: "BSL-1.0" },
-  { name: "woff2-encoder", url: "https://github.com/itskyedo/woff2-encoder", by: "Kyedo", licence: "MIT" },
-  { name: "Obscenity", url: "https://github.com/jo3-l/obscenity", by: "Joseph Liu", licence: "MIT" }
+  { name: "woff2-encoder", url: "https://github.com/itskyedo/woff2-encoder", by: "Kyedo", licence: "MIT" }
 ]
 
 function readJson(file) {
