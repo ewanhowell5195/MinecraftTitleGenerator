@@ -78,6 +78,10 @@ export function capUnits(font) {
   return font.unitsPerEm * 0.7
 }
 
+export function snapped(value) {
+  return Math.round(value * 1e6) / 1e6
+}
+
 export function rasterise(glyph, scale, shift) {
   const edges = flatten(glyph).flatMap(points => points.map((point, index) => [point, points[(index + 1) % points.length]])).map(([a, b]) => [(a[0] + shift) * scale, a[1] * scale, (b[0] + shift) * scale, b[1] * scale]).filter(([, y0, , y1]) => y0 !== y1)
   if (!edges.length) return null
@@ -90,7 +94,7 @@ export function rasterise(glyph, scale, shift) {
     const crossings = []
     for (const [x0, y0, x1, y1] of edges) {
       if (centre < Math.min(y0, y1) || centre >= Math.max(y0, y1)) continue
-      crossings.push([x0 + (centre - y0) / (y1 - y0) * (x1 - x0), y1 > y0 ? 1 : -1])
+      crossings.push([snapped(x0 + (centre - y0) / (y1 - y0) * (x1 - x0)), y1 > y0 ? 1 : -1])
     }
     crossings.sort((a, b) => a[0] - b[0])
     const filled = new Set()

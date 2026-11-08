@@ -1,5 +1,6 @@
 import { ClipType, EndType, FillRule, JoinType, PolyTreeD, booleanOpDWithPolyTree, inflatePathsD } from "@countertype/clipper2-ts"
 import { ShapeUtils, Vector2 } from "three"
+import { snapped } from "./fontOutline.js"
 
 const PRECISION = 4
 const ARC_TOLERANCE = 0.05
@@ -172,8 +173,8 @@ function scanFill(rings, width, height, scale, bottom) {
     for (let i = 0; i < crossings.length - 1; i++) {
       winding += crossings[i][1]
       if (!winding) continue
-      const from = Math.max(0, Math.ceil(crossings[i][0] * scale - 0.5))
-      const to = Math.min(columns, Math.ceil(crossings[i + 1][0] * scale - 0.5))
+      const from = Math.max(0, Math.ceil(snapped(crossings[i][0] * scale) - 0.5))
+      const to = Math.min(columns, Math.ceil(snapped(crossings[i + 1][0] * scale) - 0.5))
       if (to > from) mask.fill(1, row * columns + from, row * columns + to)
     }
   }

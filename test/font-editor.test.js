@@ -9,6 +9,7 @@ import { DEFAULT_ORDER } from "../src/lib/order.js"
 import { CREEPER, REQUIRED_CHARACTERS, SPACE_CHAR, addCharacters, autoStretch, blankGlyph, blockAt, buildSheet, changeGlyph, charactersOf, createFont, exportJson, fillCells, fitGlyph, fontFromFiles, fontFromPublished, glyphOf, isBlank, isOptional, lineCells, lostPixels, paint, parseFontJson, rectangleCells, removeCharacter, resizeFont, rowOfY, setGlyph, setSquareSize, setStretch, sheetOrder, shiftGlyph, slug, squareSizeLoss, squaresOf, stripProblems, trimGlyph, widthOf, yOfRow } from "../src/lib/fontEditor.js"
 import { fontFromAscii } from "../src/lib/asciiImport.js"
 import { fontFromOutlines, parseFontFile } from "../src/lib/fontImport.js"
+import { rasterise } from "../src/lib/fontOutline.js"
 
 function drawn(font, char, cells) {
   return setGlyph(font, char, paint(glyphOf(font, char), cells, true))
@@ -532,6 +533,21 @@ describe("importing a font file", () => {
     const woff2 = await compress(new Uint8Array(built.toArrayBuffer()))
     const font = fontFromOutlines(await parseFontFile(woff2.buffer.slice(woff2.byteOffset, woff2.byteOffset + woff2.byteLength)), { height: 21 })
     assert.deepEqual(font.glyphs.a.rows, fontFromOutlines(await testFont(), { height: 21 }).glyphs.a.rows)
+  })
+
+  test("a 45 degree edge through pixel corners steps one pixel every row", () => {
+    const path = new opentype.Path()
+    path.moveTo(-600, 0)
+    path.lineTo(1500, 2100)
+    path.lineTo(2000, 2100)
+    path.lineTo(-100, 0)
+    path.close()
+    const shape = rasterise(new opentype.Glyph({ name: "slash", unicode: 47, advanceWidth: 2000, path }), 0.02, 0)
+    for (let row = 0; row < shape.height; row++) {
+      const filled = Array.from(shape.mask.slice(row * shape.width, (row + 1) * shape.width))
+      assert.equal(filled.indexOf(1), shape.height - 1 - row, `row ${row}`)
+      assert.equal(filled.filter(Boolean).length, 10, `row ${row}`)
+    }
   })
 
   test("collections are refused with a clear message", async () => {
