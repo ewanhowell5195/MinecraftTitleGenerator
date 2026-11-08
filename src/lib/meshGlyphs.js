@@ -202,11 +202,13 @@ function grown(rings, [sx, sy], [rx, ry]) {
 
 function prism(shapes, z, turn) {
   const positions = []
+  const sizes = []
   const push = point => positions.push(...(turn ? turn(point) : point))
   for (const shape of shapes) {
     for (const triangle of triangulated(shape, true)) {
       for (const [px, py] of triangle) push([px, py, -z])
       for (const [px, py] of triangle.slice().reverse()) push([px, py, z])
+      sizes.push(3, 3)
     }
     for (const ring of [shape.outer].concat(shape.holes)) {
       for (let i = 0; i < ring.length; i++) {
@@ -214,21 +216,25 @@ function prism(shapes, z, turn) {
         const q = ring[(i + 1) % ring.length]
         const quad = [[p[0], p[1], -z], [p[0], p[1], z], [q[0], q[1], z], [q[0], q[1], -z]]
         for (const index of [0, 1, 2, 0, 2, 3]) push(quad[index])
+        sizes.push(6)
       }
     }
   }
-  return positions
+  return { positions, sizes }
 }
 
 export function outlineShell(groups, scale, radius, z) {
   const positions = []
+  const sizes = []
   const shapes = []
   for (const { rings, turn } of groups) {
     const shell = grown(rings, scale, radius)
-    positions.push(...prism(shell, z, turn))
+    const solid = prism(shell, z, turn)
+    positions.push(...solid.positions)
+    sizes.push(...solid.sizes)
     if (!turn) shapes.push(...shell)
   }
-  return { positions, shapes }
+  return { positions, sizes, shapes }
 }
 
 export function holeFill(groups, z) {

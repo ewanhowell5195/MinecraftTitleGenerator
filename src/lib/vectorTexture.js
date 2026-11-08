@@ -780,11 +780,23 @@ export function contains(area, rect) {
   return rect.left >= area.left && rect.right <= area.right && rect.top >= area.top && rect.bottom <= area.bottom
 }
 
+function coversTexel([a, b, c], x, y) {
+  const side = (p, q) => (q[0] - p[0]) * (y - p[1]) - (q[1] - p[1]) * (x - p[0])
+  const sides = [side(a, b), side(b, c), side(c, a)]
+  return sides.every(value => value >= 0) || sides.every(value => value <= 0)
+}
+
 export function maskOf(rect, parts) {
   const width = rect.right - rect.left
   const mask = new Uint8Array(width * (rect.bottom - rect.top))
-  for (const { left, top, right, bottom } of parts) {
-    for (let y = top; y < bottom; y++) mask.fill(1, (y - rect.top) * width + left - rect.left, (y - rect.top) * width + right - rect.left)
+  for (const { left, top, right, bottom, triangle } of parts) {
+    for (let y = top; y < bottom; y++) {
+      if (!triangle) {
+        mask.fill(1, (y - rect.top) * width + left - rect.left, (y - rect.top) * width + right - rect.left)
+        continue
+      }
+      for (let x = left; x < right; x++) if (coversTexel(triangle, x + 0.5, y + 0.5)) mask[(y - rect.top) * width + x - rect.left] = 1
+    }
   }
   return mask
 }

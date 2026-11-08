@@ -80,7 +80,9 @@ function turned([x, y, z], { ribbon, door, x: pivotX, y: pivotY }, [sx, sy, sz] 
 function toBuffers(faces, units) {
   const positions = []
   const uvs = []
+  const sizes = []
   for (const face of faces) {
+    sizes.push(face.points.length === 3 ? 3 : 6)
     for (const index of face.points.length === 3 ? [0, 1, 2] : [0, 1, 2, 0, 2, 3]) {
       const point = face.points[index]
       const coord = face.uvs[index]
@@ -88,7 +90,7 @@ function toBuffers(faces, units) {
       uvs.push(coord[0] / units.width, 1 - coord[1] / units.height)
     }
   }
-  return { positions: new Float32Array(positions), uvs: new Float32Array(uvs), triangles: positions.length / 9 }
+  return { positions: new Float32Array(positions), uvs: new Float32Array(uvs), triangles: positions.length / 9, sizes: sizes.includes(3) ? Uint8Array.from(sizes) : null }
 }
 
 export function rowBottom(boxLists) {
@@ -215,18 +217,18 @@ export function buildOutline(built, scale, extra = [0, 0, 0]) {
 
 function meshOutline(built, scale, radius, z) {
   const groups = built.twist ? built.twist.map(({ turn, rings }) => ({ rings, turn: point => turned(point, turn, scale) })) : [{ rings: built.shapes }]
-  const shell = radius[0] > 0 && radius[1] > 0 ? built.tools.outlineShell(groups, scale, radius, z) : { positions: [], shapes: [] }
+  const shell = radius[0] > 0 && radius[1] > 0 ? built.tools.outlineShell(groups, scale, radius, z) : { positions: [], sizes: [], shapes: [] }
   const uvs = new Float32Array(shell.positions.length / 3 * 2)
   if (built.swatch) {
     for (let i = 0; i < uvs.length; i += 2) uvs.set(built.swatch, i)
   }
-  return { positions: new Float32Array(shell.positions), uvs, triangles: shell.positions.length / 9, scale, rects: [], shapes: shell.shapes, tools: built.tools, z }
+  return { positions: new Float32Array(shell.positions), uvs, triangles: shell.positions.length / 9, sizes: Uint8Array.from(shell.sizes), scale, rects: [], shapes: shell.shapes, tools: built.tools, z }
 }
 
 function meshHoles(outlines, tools) {
   const positions = tools.holeFill(outlines.map(outline => outline.shapes ? { shapes: outline.shapes } : { rects: outline.rects }), -Math.max(...outlines.map(outline => outline.z)))
   if (!positions.length) return null
-  return { positions: new Float32Array(positions), uvs: new Float32Array(positions.length / 3 * 2), triangles: positions.length / 9, scale: outlines[0].scale }
+  return { positions: new Float32Array(positions), uvs: new Float32Array(positions.length / 3 * 2), triangles: positions.length / 9, sizes: new Uint8Array(positions.length / 9).fill(3), scale: outlines[0].scale }
 }
 
 export function buildHoles(outlines) {

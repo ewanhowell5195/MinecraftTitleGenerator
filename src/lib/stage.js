@@ -24,6 +24,7 @@ function mesh(buffers, material) {
   const geometry = new THREE.BufferGeometry()
   geometry.setAttribute("position", new THREE.BufferAttribute(buffers.positions, 3))
   geometry.setAttribute("uv", new THREE.BufferAttribute(buffers.uvs, 2))
+  geometry.userData.sizes = buffers.sizes ?? null
   return new THREE.Mesh(geometry, material)
 }
 

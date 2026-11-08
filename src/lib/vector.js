@@ -79,16 +79,17 @@ function facesOf(mesh, view, project, cache) {
     return { index: faces.length, corners, texels, rect, image, analysis, points, facing, normal: normal.dot(toViewer(view, corners[0])) < 0 ? normal.clone().negate().normalize() : normal.clone().normalize(), box: boxOfPolygons([points.map(project)]) }
   }
   function analysisOf(rect, parts = null) {
-    const key = [rect].concat(parts ?? []).map(({ left, top, right, bottom }) => `${left},${top},${right},${bottom}`).join(" ")
+    const key = [rect].concat(parts ?? []).map(({ left, top, right, bottom, triangle }) => `${left},${top},${right},${bottom}${triangle ? `:${triangle.join(";")}` : ""}`).join(" ")
     if (!image.analyses.has(key)) image.analyses.set(key, analyse(image, rect, parts && maskOf(rect, parts)))
     return image.analyses.get(key)
   }
-  function wholeOf(panel, { corners, normal, texels, rect }) {
+  function wholeOf(panel, quad) {
     if (panel.whole !== undefined) return panel.whole
-    const rects = panel.parts.map(part => part.rect)
+    const rects = panel.parts.map(part => part.texels.length === 3 ? { ...part.rect, triangle: part.texels } : part.rect)
     const bounds = { left: Math.min(...rects.map(item => item.left)), top: Math.min(...rects.map(item => item.top)), right: Math.max(...rects.map(item => item.right)), bottom: Math.max(...rects.map(item => item.bottom)) }
+    const { corners, normal, texels, rect } = quad.texels.length === 3 ? panel.parts.reduce((best, part) => texelArea(part.texels) > texelArea(best.texels) ? part : best) : quad
     const toWorld = worldMap({ corners, texels })
-    const wholeTexels = texels.map(([x, y]) => [x === rect.left ? bounds.left : bounds.right, y === rect.top ? bounds.top : bounds.bottom])
+    const wholeTexels = texels.length === 3 ? facingCorners(bounds, toWorld, normal) : texels.map(([x, y]) => [x === rect.left ? bounds.left : bounds.right, y === rect.top ? bounds.top : bounds.bottom])
     const analysis = analysisOf(bounds, rects)
     panel.whole = analysis && faceFrom(wholeTexels.map(([x, y]) => toWorld(x, y)), wholeTexels, bounds, analysis, normal)
     if (panel.whole) faces.push(panel.whole)
@@ -96,8 +97,10 @@ function facesOf(mesh, view, project, cache) {
   }
   const quads = []
   const panels = new Map()
-  for (let start = 0; start < position.count; start += 6) {
-    const corners = [0, 1, 2, 5].map(offset => new THREE.Vector3().fromBufferAttribute(position, start + offset).applyMatrix4(mesh.matrixWorld))
+  const sizes = mesh.geometry.userData.sizes
+  for (let start = 0, face = 0; start < position.count; start += sizes?.[face++] ?? 6) {
+    const offsets = sizes?.[face] === 3 ? [0, 1, 2] : [0, 1, 2, 5]
+    const corners = offsets.map(offset => new THREE.Vector3().fromBufferAttribute(position, start + offset).applyMatrix4(mesh.matrixWorld))
     const normal = corners[1].clone().sub(corners[0]).cross(corners[2].clone().sub(corners[0]))
     if (normal.lengthSq() < EPSILON * EPSILON) continue
     if (mirrored) normal.negate()
@@ -105,7 +108,7 @@ function facesOf(mesh, view, project, cache) {
     let texels = null
     let rect = null
     if (image) {
-      texels = [0, 1, 2, 5].map(offset => [Math.round(uv.getX(start + offset) * image.width), Math.round((1 - uv.getY(start + offset)) * image.height)])
+      texels = offsets.map(offset => [Math.round(uv.getX(start + offset) * image.width), Math.round((1 - uv.getY(start + offset)) * image.height)])
       const xs = texels.map(texel => texel[0])
       const ys = texels.map(texel => texel[1])
       rect = { left: Math.min(...xs), top: Math.min(...ys), right: Math.max(...xs), bottom: Math.max(...ys) }
@@ -145,9 +148,21 @@ function facesOf(mesh, view, project, cache) {
   return { faces, solids }
 }
 
+function texelArea([a, b, c]) {
+  return Math.abs((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]))
+}
+
+function facingCorners({ left, top, right, bottom }, toWorld, normal) {
+  const texels = [[left, top], [right, top], [right, bottom], [left, bottom]]
+  const [a, b, c] = texels.map(([x, y]) => toWorld(x, y))
+  return b.clone().sub(a).cross(c.clone().sub(a)).dot(normal) < 0 ? texels.reverse() : texels
+}
+
 function worldMap(face) {
-  const [c0, c1, , c3] = face.corners
-  const [t0, t1, , t3] = face.texels
+  const [c0, c1] = face.corners
+  const [t0, t1] = face.texels
+  const c3 = face.corners.at(-1)
+  const t3 = face.texels.at(-1)
   const ax = t1[0] - t0[0]
   const ay = t1[1] - t0[1]
   const bx = t3[0] - t0[0]
@@ -237,13 +252,19 @@ function colourAt(face, x, y) {
 }
 
 function texelOf(face, point) {
-  const [c0, c1, , c3] = face.corners
-  const [t0, t1, , t3] = face.texels
+  const [c0, c1] = face.corners
+  const [t0, t1] = face.texels
+  const c3 = face.corners.at(-1)
+  const t3 = face.texels.at(-1)
   const across = c1.clone().sub(c0)
   const down = c3.clone().sub(c0)
   const offset = point.clone().sub(c0)
-  const u = offset.dot(across) / across.lengthSq()
-  const v = offset.dot(down) / down.lengthSq()
+  const aa = across.lengthSq()
+  const ab = across.dot(down)
+  const bb = down.lengthSq()
+  const determinant = aa * bb - ab * ab
+  const u = (offset.dot(across) * bb - offset.dot(down) * ab) / determinant
+  const v = (offset.dot(down) * aa - offset.dot(across) * ab) / determinant
   return [t0[0] + u * (t1[0] - t0[0]) + v * (t3[0] - t0[0]), t0[1] + u * (t1[1] - t0[1]) + v * (t3[1] - t0[1])]
 }
 
