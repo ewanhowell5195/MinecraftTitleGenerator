@@ -4,6 +4,7 @@ import os from "node:os"
 import path from "node:path"
 import opentype from "opentype.js"
 import { PNG } from "pngjs"
+import decompress from "woff2-encoder/decompress"
 import { SHEET_MAX_WIDTH, parseMask } from "../src/lib/font.js"
 import { capUnits, glyphFor, gridShift, pixelGrid, rasterise } from "../src/lib/fontOutline.js"
 import { DEFAULT_ORDER } from "../src/lib/order.js"
@@ -13,8 +14,13 @@ import { flatSheet, writeStarterTextures } from "./flat.js"
 import { BASELINE, EMPTY, GLYPH, GRID, TOPLINE } from "./fonts.js"
 import { markSheet } from "./marks.js"
 
-function readFont(source, name) {
+async function fontData(source) {
   const data = fs.readFileSync(source)
+  return data.toString("latin1", 0, 4) === "wOF2" ? Buffer.from(await decompress(data)) : data
+}
+
+async function readFont(source, name) {
+  const data = await fontData(source)
   if (data.toString("latin1", 0, 4) !== "ttcf") return opentype.parse(data.buffer.slice(data.byteOffset, data.byteOffset + data.length))
   const fonts = Array.from({ length: data.readUInt32BE(8) }, (_, index) => opentype.parse(collectionFont(data, data.readUInt32BE(12 + index * 4))))
   const wanted = name?.toLowerCase()
@@ -61,16 +67,18 @@ function windowsFonts() {
   })
 }
 
-function fontsIn(dirs) {
-  return dirs.filter(dir => fs.existsSync(dir)).flatMap(dir => fs.readdirSync(dir, { recursive: true }).map(item => path.join(dir, item))).filter(item => /\.(ttf|otf|woff)$/i.test(item)).flatMap(item => {
+async function fontsIn(dirs) {
+  const files = dirs.filter(dir => fs.existsSync(dir)).flatMap(dir => fs.readdirSync(dir, { recursive: true }).map(item => path.join(dir, item))).filter(item => /\.(ttf|otf|woff2?)$/i.test(item))
+  const found = await Promise.all(files.map(async item => {
     try {
-      const parsed = readFont(item, null)
+      const parsed = await readFont(item, null)
       const family = parsed.getEnglishName("fontFamily")
       return [{ names: [parsed.getEnglishName("fullName"), parsed.getEnglishName("fontSubfamily") === "Regular" ? family : null].filter(Boolean), file: item }]
     } catch {
       return []
     }
-  })
+  }))
+  return found.flat()
 }
 
 function installedFonts() {
@@ -79,9 +87,9 @@ function installedFonts() {
   return fontsIn(["/usr/share/fonts", "/usr/local/share/fonts", path.join(os.homedir(), ".fonts"), path.join(os.homedir(), ".local/share/fonts")])
 }
 
-function installedFont(name) {
+async function installedFont(name) {
   const wanted = name.toLowerCase()
-  const found = installedFonts().find(entry => entry.names.some(candidate => candidate.toLowerCase() === wanted))
+  const found = (await installedFonts()).find(entry => entry.names.some(candidate => candidate.toLowerCase() === wanted))
   if (!found) throw new Error(`no font file or installed font called "${name}"`)
   return found.file
 }
@@ -137,8 +145,8 @@ function drawSheet(cells, capHeight) {
 const { first: query, has, option } = cli("convert.js <font file or installed font name> [--height <cap height>] [--id <id>] [--out <folder>] [--chars <characters>] [--lowercase]")
 const lowercase = has("--lowercase")
 const order = option("--chars") ?? DEFAULT_ORDER
-const file = fs.existsSync(query) ? query : installedFont(query)
-const font = readFont(file, fs.existsSync(query) ? null : query)
+const file = fs.existsSync(query) ? query : await installedFont(query)
+const font = await readFont(file, fs.existsSync(query) ? null : query)
 const fullName = (font.getEnglishName("fullName") ?? path.basename(file, path.extname(file))).trim()
 const id = option("--id") ?? fullName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
 const folder = option("--out") ?? path.resolve(id)

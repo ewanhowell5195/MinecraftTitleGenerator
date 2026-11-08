@@ -65,7 +65,7 @@
         return fontFromAscii(image, options)
       }
       const { fontFromOutlines, parseFontFile } = await import("../lib/fontImport.js")
-      return fontFromOutlines(parseFontFile(await file.arrayBuffer()), options)
+      return fontFromOutlines(await parseFontFile(await file.arrayBuffer()), options)
     }).finally(() => event.target.value = "")
   }
 </script>
@@ -97,12 +97,12 @@
         <label class="button wide"><Icon name="open" />Choose files<input type="file" multiple accept=".png,.json,image/png,application/json" @change="upload"></label>
 
         <h2 class="second">Import a font file</h2>
-        <p class="hint">Turns a .ttf, .otf or .woff, or a Minecraft ascii.png, into pixels at this height, ready for you to edit. Each character can go back to its imported shape.</p>
+        <p class="hint">Turns a .ttf, .otf, .woff or .woff2, or a Minecraft ascii.png, into pixels at this height, ready for you to edit. Each character can go back to its imported shape.</p>
         <div class="numbers two">
           <label class="field"><span class="label">Height in pixels</span><input type="number" min="1" v-model.number="importHeight"></label>
           <label class="checkbox"><input type="checkbox" v-model="lowercase"><span>Use lowercase letters</span></label>
         </div>
-        <label class="button wide"><Icon name="open" />Choose font file<input type="file" accept=".ttf,.otf,.woff,.png,font/ttf,font/otf,font/woff,image/png" @change="importFile"></label>
+        <label class="button wide"><Icon name="open" />Choose font file<input type="file" accept=".ttf,.otf,.woff,.woff2,.png,font/ttf,font/otf,font/woff,font/woff2,image/png" @change="importFile"></label>
       </section>
 
       <section class="choice wide-choice">

@@ -64,7 +64,7 @@
     if (!file) return
     const kind = customFontKind(file.name)
     if (!kind) {
-      customError.value = "Choose a .json, .png, .ttf, .otf or .woff file."
+      customError.value = "Choose a .json, .png, .ttf, .otf, .woff or .woff2 file."
       return
     }
     const reader = new FileReader()
@@ -131,10 +131,10 @@
       <label class="button wide">
         <Icon name="open" :size="16" />
         <span>{{ loading ? "Loading..." : object.customFont ? "Replace font" : "Choose a font file" }}</span>
-        <input type="file" accept=".json,.png,.ttf,.otf,.woff,application/json,image/png,font/ttf,font/otf,font/woff" :disabled="loading" @change="upload">
+        <input type="file" accept=".json,.png,.ttf,.otf,.woff,.woff2,application/json,image/png,font/ttf,font/otf,font/woff,font/woff2" :disabled="loading" @change="upload">
       </label>
       <p v-if="customError" class="hint bad">{{ customError }}</p>
-      <p v-else class="hint">A JSON from the font editor, a Minecraft ascii.png, or a .ttf, .otf or .woff font.</p>
+      <p v-else class="hint">A JSON from the font editor, a Minecraft ascii.png, or a .ttf, .otf, .woff or .woff2 font.</p>
       <template v-if="imported && usingCustom">
         <label class="field">
           <span class="label">Height in pixels</span>

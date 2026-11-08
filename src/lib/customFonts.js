@@ -7,7 +7,7 @@ import { stripRows } from "./strips.js"
 import { pngUrl, serveFile } from "./virtualFiles.js"
 
 const OVERLAY_BASE = "#404040"
-const KINDS = [["json", /\.json$/i], ["ascii", /\.png$/i], ["outline", /\.(ttf|otf|woff)$/i]]
+const KINDS = [["json", /\.json$/i], ["ascii", /\.png$/i], ["outline", /\.(ttf|otf|woff2?)$/i]]
 const built = new Map()
 const thumbnails = new Map()
 
@@ -55,7 +55,7 @@ async function editorFont({ kind, data, height, lowercase }) {
     return fontFromAscii(await pixels(data), { height, lowercase })
   }
   const { fontFromOutlines, parseFontFile } = await import("./fontImport.js")
-  return fontFromOutlines(parseFontFile(await (await fetch(data)).arrayBuffer()), { height, lowercase })
+  return fontFromOutlines(await parseFontFile(await (await fetch(data)).arrayBuffer()), { height, lowercase })
 }
 
 function plainStrip(rows, colour) {

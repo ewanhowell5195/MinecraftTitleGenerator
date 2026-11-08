@@ -2,10 +2,13 @@ import opentype from "opentype.js"
 import { DEFAULT_SPACE_WIDTH, REQUIRED_CHARACTERS, fontFromShapes } from "./fontEditor.js"
 import { capUnits, glyphFor, gridShift, pixelGrid, rasterise } from "./fontOutline.js"
 
-export function parseFontFile(buffer) {
+export async function parseFontFile(buffer) {
   const start = String.fromCharCode(...new Uint8Array(buffer, 0, 4))
   if (start === "ttcf") throw new Error("font collections (.ttc) can't be imported, use a single .ttf or .otf")
-  return opentype.parse(buffer)
+  if (start !== "wOF2") return opentype.parse(buffer)
+  const { default: decompress } = await import("woff2-encoder/decompress")
+  const font = await decompress(buffer)
+  return opentype.parse(font.buffer.slice(font.byteOffset, font.byteOffset + font.byteLength))
 }
 
 export function fontFromOutlines(source, { height = 40, lowercase = false } = {}) {

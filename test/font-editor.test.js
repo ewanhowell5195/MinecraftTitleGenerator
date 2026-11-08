@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import fs from "node:fs"
 import { describe, test } from "node:test"
 import opentype from "opentype.js"
+import { compress } from "woff2-encoder"
 import { publishedFonts, readMask } from "../generator/fonts.js"
 import { parseMask, splitCells } from "../src/lib/font.js"
 import { DEFAULT_ORDER } from "../src/lib/order.js"
@@ -482,52 +483,60 @@ describe("importing a font file", () => {
     return parseFontFile(built.toArrayBuffer())
   }
 
-  test("letters become pixels at the chosen height, with no creeper", () => {
-    const font = fontFromOutlines(testFont(), { height: 21 })
+  test("letters become pixels at the chosen height, with no creeper", async () => {
+    const font = fontFromOutlines(await testFont(), { height: 21 })
     assert.equal(font.height, 21)
     assert.equal(glyphOf(font, "a").rows.length, 21)
     assert.ok(!isBlank(glyphOf(font, "a")))
     assert.ok(!font.creeper && !font.glyphs[CREEPER])
   })
 
-  test("characters the file doesn't have start blank and are listed", () => {
-    const font = fontFromOutlines(testFont(), { height: 21 })
+  test("characters the file doesn't have start blank and are listed", async () => {
+    const font = fontFromOutlines(await testFont(), { height: 21 })
     assert.ok(isBlank(glyphOf(font, "z")))
     assert.ok(font.missing.includes("z"))
     assert.ok(!font.missing.includes("a"))
   })
 
-  test("keeps the imported shapes to go back to, including space", () => {
-    const font = fontFromOutlines(testFont(), { height: 21 })
+  test("keeps the imported shapes to go back to, including space", async () => {
+    const font = fontFromOutlines(await testFont(), { height: 21 })
     assert.deepEqual(font.imported.a.rows, font.glyphs.a.rows)
     assert.ok(font.imported[SPACE_CHAR])
     assert.equal(font.glyphs[SPACE_CHAR], undefined)
   })
 
-  test("a file with none of the characters still opens, blank at half the height wide", () => {
-    const font = fontFromOutlines(testFont(""), { height: 21 })
+  test("a file with none of the characters still opens, blank at half the height wide", async () => {
+    const font = fontFromOutlines(await testFont(""), { height: 21 })
     assert.equal(font.width, 11)
     assert.deepEqual(font.missing, REQUIRED_CHARACTERS)
     assert.ok(REQUIRED_CHARACTERS.every(char => isBlank(glyphOf(font, char))))
   })
 
-  test("the result builds a sheet the real parser reads", () => {
-    const font = fontFromOutlines(testFont(), { height: 21 })
+  test("the result builds a sheet the real parser reads", async () => {
+    const font = fontFromOutlines(await testFont(), { height: 21 })
     assert.equal(sheetOf(font).capHeight, 21)
   })
 
-  test("a real font file lands on its pixel grid with stretch marks", { skip: !fs.existsSync("C:/Users/ewanh/Downloads/MINECRAFTTEN.TTF") }, () => {
+  test("a real font file lands on its pixel grid with stretch marks", { skip: !fs.existsSync("C:/Users/ewanh/Downloads/MINECRAFTTEN.TTF") }, async () => {
     const data = fs.readFileSync("C:/Users/ewanh/Downloads/MINECRAFTTEN.TTF")
-    const font = fontFromOutlines(parseFontFile(data.buffer.slice(data.byteOffset, data.byteOffset + data.length)), { height: 40 })
+    const font = fontFromOutlines(await parseFontFile(data.buffer.slice(data.byteOffset, data.byteOffset + data.length)), { height: 40 })
     assert.equal(font.height, 40)
     assert.equal(font.grid, 4)
     assert.ok(!isBlank(glyphOf(font, "m")))
     assert.ok(glyphOf(font, "m").stretch.length > 0)
   })
 
-  test("collections are refused with a clear message", () => {
+  test("a woff2 file imports the same as the font it was made from", async () => {
+    const notdef = new opentype.Glyph({ name: ".notdef", unicode: 0, advanceWidth: 500, path: new opentype.Path() })
+    const built = new opentype.Font({ familyName: "Test", styleName: "Regular", unitsPerEm: 1000, ascender: 800, descender: -200, glyphs: [notdef].concat(Array.from("ABH").map(char => square(1000, char, 700))) })
+    const woff2 = await compress(new Uint8Array(built.toArrayBuffer()))
+    const font = fontFromOutlines(await parseFontFile(woff2.buffer.slice(woff2.byteOffset, woff2.byteOffset + woff2.byteLength)), { height: 21 })
+    assert.deepEqual(font.glyphs.a.rows, fontFromOutlines(await testFont(), { height: 21 }).glyphs.a.rows)
+  })
+
+  test("collections are refused with a clear message", async () => {
     const buffer = new TextEncoder().encode("ttcf0000").buffer
-    assert.throws(() => parseFontFile(buffer), /collections/)
+    await assert.rejects(parseFontFile(buffer), /collections/)
   })
 })
 
