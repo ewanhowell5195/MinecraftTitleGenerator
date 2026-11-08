@@ -108,6 +108,13 @@ export default {
     const ownDepth = computed(() => object.wordDepth ?? object.depth)
     const depth = computed(() => typeDepth(ownDepth.value))
 
+    function depthCentre(front, scale) {
+      const reference = typeDepth(defaultDepth(font.value))
+      if (object.depthAnchor === "back") return front - scale * (reference - depth.value / 2)
+      if (object.depthAnchor === "middle") return front - scale * reference / 2
+      return front - scale * depth.value / 2
+    }
+
     const marked = computed(() => hasMarks(font.value))
     const stretching = computed(() => object.scaleMarked && marked.value)
     const meshScale = computed(() => {
@@ -177,9 +184,9 @@ export default {
       const scale = meshScale.value
       const word = { scale: wordScale.value, userScale: [object.wordScaleX, object.wordScaleY, object.wordScaleZ], rotate: [object.wordRotationX, object.wordRotationY, object.wordRotationZ], translate: [object.wordTranslateX, object.wordTranslateY, object.wordTranslateZ] }
       const user = { rotate: [object.rotationX, object.rotationY, object.rotationZ], translate: [object.translateX, object.translateY, object.translateZ], matchOffset: object.matchOffset, outlineGrow: outlineGrow.value, userScale: [object.scaleX, object.scaleY, object.scaleZ], word }
-      if (object.type === "bottom") return { ...user, scale, type: [0.78042, 1.67665, 0.77035], offset: [0, -(0.77035 * (height * 2 + 18.9862) + start + 1.67665 * arc.top), 7.6764 - 0.77035 * depth.value / 2], rotation: 90, anchor: { y: "top", z: "front" } }
-      if (object.type === "small") return { ...user, scale, type: [0.39732, 0.43021, 0.33472], offset: [0, -(start + 3.6943 + (font.value?.capHeight ?? DEFAULT_CAP_HEIGHT) * 0.43021 + 0.43021 * arc.top), 3.0762 - 0.33472 * depth.value / 2], rotation: -0.4, anchor: { y: "top", z: "middle" } }
-      return { ...user, scale, type: [1, 1, 1], offset: [0, start + arc.bottom, 11 - depth.value / 2], rotation: 0, anchor: { y: "bottom", z: "back" } }
+      if (object.type === "bottom") return { ...user, scale, type: [0.78042, 1.67665, 0.77035], offset: [0, -(0.77035 * (height * 2 + 18.9862) + start + 1.67665 * arc.top), depthCentre(7.6764, 0.77035)], rotation: 90, anchor: { y: "top", z: "front" } }
+      if (object.type === "small") return { ...user, scale, type: [0.39732, 0.43021, 0.33472], offset: [0, -(start + 3.6943 + (font.value?.capHeight ?? DEFAULT_CAP_HEIGHT) * 0.43021 + 0.43021 * arc.top), depthCentre(3.0762, 0.33472)], rotation: -0.4, anchor: { y: "top", z: "middle" } }
+      return { ...user, scale, type: [1, 1, 1], offset: [0, start + arc.bottom, depthCentre(11, 1)], rotation: 0, anchor: { y: "bottom", z: "back" } }
     })
 
     function outlineScale() {

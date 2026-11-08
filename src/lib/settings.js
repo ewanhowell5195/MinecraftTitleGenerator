@@ -1,11 +1,11 @@
 import { reactive } from "vue"
 
-export const FILE_VERSION = 4
+export const FILE_VERSION = 5
 
 export const TYPES = {
-  top: { name: "Top Text", clipHoles: true, stops: [["#FFCF76", 0], ["#DA371E", 100]], fade: false, outerFade: 0, internalFaces: false, fadeInternal: true, internalFade: 0, sideFaces: false, fadeSides: true, sideFade: 0, border: 2, spacing: 0 },
-  bottom: { name: "Update Text", clipHoles: true, stops: [["#FFCF76", 0], ["#DA371E", 100]], fade: true, outerFade: 50, internalFaces: true, fadeInternal: true, internalFade: 75, sideFaces: false, fadeSides: true, sideFade: 75, border: 2, spacing: 0 },
-  small: { name: "Edition Text", clipHoles: false, stops: [["#E0E0E0", 0], ["#8A8A8A", 100]], fade: false, outerFade: 0, internalFaces: true, fadeInternal: false, internalFade: 75, sideFaces: true, fadeSides: false, sideFade: 75, border: 3, spacing: 2 }
+  top: { name: "Top Text", clipHoles: true, depthAnchor: "back", stops: [["#FFCF76", 0], ["#DA371E", 100]], fade: false, outerFade: 0, internalFaces: false, fadeInternal: true, internalFade: 0, sideFaces: false, fadeSides: true, sideFade: 0, border: 2, spacing: 0 },
+  bottom: { name: "Update Text", clipHoles: true, depthAnchor: "front", stops: [["#FFCF76", 0], ["#DA371E", 100]], fade: true, outerFade: 50, internalFaces: true, fadeInternal: true, internalFade: 75, sideFaces: false, fadeSides: true, sideFade: 75, border: 2, spacing: 0 },
+  small: { name: "Edition Text", clipHoles: false, depthAnchor: "middle", stops: [["#E0E0E0", 0], ["#8A8A8A", 100]], fade: false, outerFade: 0, internalFaces: true, fadeInternal: false, internalFade: 75, sideFaces: true, fadeSides: false, sideFade: 75, border: 3, spacing: 2 }
 }
 
 const BLENDS = {
@@ -59,6 +59,7 @@ const PANELS = {
   }),
   geometry: () => ({
     depth: 22,
+    depthAnchor: "back",
     border: 2,
     clipHoles: true,
     layerWords: false
@@ -200,7 +201,7 @@ const PANELS = {
   })
 }
 
-export const LINE = new Set(["hidden", "font", "terminators", "type", "row", "rowSpacing", "depth", "border", "clipHoles", "layerWords", "spacing", "kerning", "arcMode", "arcTop", "arcBottom", "arcMove", "arcMarked", "twistRibbon", "twistRibbonAnchor", "twistRibbonMirror", "twistDoor", "twistDoorAnchor", "twistDoorSame"].concat(Object.keys(PANELS.transform())))
+export const LINE = new Set(["hidden", "font", "terminators", "type", "row", "rowSpacing", "depth", "depthAnchor", "border", "clipHoles", "layerWords", "spacing", "kerning", "arcMode", "arcTop", "arcBottom", "arcMove", "arcMarked", "twistRibbon", "twistRibbonAnchor", "twistRibbonMirror", "twistDoor", "twistDoorAnchor", "twistDoorSame"].concat(Object.keys(PANELS.transform())))
 
 function defaults() {
   return Object.assign({ hidden: false, group: null }, ...Object.values(PANELS).map(panel => panel()))
@@ -240,7 +241,7 @@ const TEXTURE_TABS = {
 }
 
 const TYPE_KEYS = {
-  geometry: ["clipHoles"],
+  geometry: ["clipHoles", "depthAnchor"],
   faces: ["fade", "outerFade"],
   inner: ["internalFaces", "fadeInternal", "internalFade"],
   sides: ["sideFaces", "fadeSides", "sideFade"]

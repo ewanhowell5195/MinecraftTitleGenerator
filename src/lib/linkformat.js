@@ -291,7 +291,8 @@ const KEYS = [
   ["matchOffset", NUMBER],
   ["matchScale", NUMBER],
   ["matchScaleY", BOOLEAN],
-  ["overlayFade", NUMBER]
+  ["overlayFade", NUMBER],
+  ["depthAnchor", choice("front", "middle", "back")]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))

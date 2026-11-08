@@ -166,12 +166,23 @@ function widenBlockSerif(line) {
   return { ...line, spacing: (line.spacing ?? typeDefaults(line.type ?? "top").spacing) + 2 }
 }
 
-function upgradeLine(line, version) {
+function anchorDepthAtFront(line) {
+  if ((line.type ?? "top") === "bottom" || "depthAnchor" in line) return line
+  const deepened = "depth" in line || "wordDepth" in line || Array.isArray(line.words) && line.words.some(word => "wordDepth" in word)
+  return deepened ? { ...line, depthAnchor: "front" } : line
+}
+
+function upgradeOlderLine(line, version) {
   if (version >= 4) return line
   if (version === 3) return widenBlockSerif(line)
   if (version === 2) return widenBlockSerif(separateMatchScale(line))
   const upgraded = widenBlockSerif(separateMatchScale(restartTilesPerCharacter(line)))
   return Array.isArray(line.words) ? { ...upgraded, words: line.words.map(restartTilesPerCharacter) } : upgraded
+}
+
+function upgradeLine(line, version) {
+  if (version >= 5) return line
+  return anchorDepthAtFront(upgradeOlderLine(line, version))
 }
 
 function readData(data) {

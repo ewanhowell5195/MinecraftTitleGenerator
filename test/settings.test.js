@@ -14,6 +14,7 @@ const TOP_DEFAULTS = {
   row: 0,
   rowSpacing: 0,
   depth: 22,
+  depthAnchor: "back",
   border: 2,
   clipHoles: true,
   layerWords: false,
@@ -132,6 +133,7 @@ const TOP_DEFAULTS = {
 const BOTTOM_DEFAULTS = {
   ...TOP_DEFAULTS,
   type: "bottom",
+  depthAnchor: "front",
   internalFaces: true,
   internalFade: 75,
   sideFade: 75,
@@ -142,6 +144,7 @@ const BOTTOM_DEFAULTS = {
 const SMALL_DEFAULTS = {
   ...TOP_DEFAULTS,
   type: "small",
+  depthAnchor: "middle",
   border: 3,
   clipHoles: false,
   spacing: 2,
