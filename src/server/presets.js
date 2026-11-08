@@ -245,24 +245,38 @@ export function presetPageDetails(name, id) {
   return { title: `${name} | ${SITE_NAME}`, description: `Open ${name} in the ${SITE_NAME}, then change it and render it as an image.`, path: `/app/presets/${id}` }
 }
 
-function pageWithDetails(page, { title, description, url, canonical = url, image }) {
+export function shareTags({ title, description, url, image }) {
   const tags = [["og:type", "website"], ["og:site_name", SITE_NAME], ["og:url", url], ["og:title", title], ["og:description", description]].concat(image ? [["og:image", image]] : [])
   const card = image ? '<meta name="twitter:card" content="summary_large_image">' : ""
+  return tags.map(([property, content]) => `<meta property="${property}" content="${escaped(content)}">`).join("") + card
+}
+
+function pageWithDetails(page, details) {
+  const { title, description, url, canonical = url } = details
   return new HTMLRewriter()
     .on("title", { element: element => element.setInnerContent(title) })
     .on('meta[name="description"]', { element: element => element.setAttribute("content", description) })
     .on('link[rel="canonical"]', { element: element => element.setAttribute("href", canonical) })
-    .on("head", { element: element => element.append(tags.map(([property, content]) => `<meta property="${property}" content="${escaped(content)}">`).join("") + card, { html: true }) })
+    .on("head", { element: element => element.append(shareTags(details), { html: true }) })
     .transform(page)
 }
 
-function linkedCode(url) {
+export function linkedCode(url) {
   const code = url.searchParams.get("title")
   return code && /^[0-9A-Za-z_-]+$/.test(code) && code.length <= LIMITS.code ? code : null
 }
 
+export function linkedTitleDetails(url, code, canonical) {
+  return { title: SITE_NAME, description: "Open this title in the generator, then change it and render it as an image.", url: url.href, canonical: `${url.origin}${canonical}`, image: pictureUrl({ code }, "png") }
+}
+
+export function presetDetails(origin, preset, id) {
+  const { title, description, path } = presetPageDetails(preset?.name ?? null, id)
+  return { title, description, url: `${origin}${path}`, image: preset?.fingerprint ? pictureUrl(preset, "png") : null }
+}
+
 function linkedTitlePage(page, url, code, canonical) {
-  return pageWithDetails(page, { title: SITE_NAME, description: "Open this title in the generator, then change it and render it as an image.", url: url.href, canonical: `${url.origin}${canonical}`, image: pictureUrl({ code }, "png") })
+  return pageWithDetails(page, linkedTitleDetails(url, code, canonical))
 }
 
 export async function presetPage({ env, params, request }) {
@@ -273,8 +287,7 @@ export async function presetPage({ env, params, request }) {
   const id = Number(params.id?.[0])
   const known = params.id?.length === 1 && Number.isSafeInteger(id) && id > 0
   const preset = known ? await env.DB.prepare("SELECT name, fingerprint FROM presets WHERE id = ? AND shared = 1").bind(id).first() : null
-  const { title, description, path } = presetPageDetails(preset?.name ?? null, id)
-  return pageWithDetails(page, { title, description, url: `${new URL(request.url).origin}${path}`, image: preset?.fingerprint ? pictureUrl(preset, "png") : null })
+  return pageWithDetails(page, presetDetails(address.origin, preset, id))
 }
 
 export async function appPage({ env, next, request }) {
