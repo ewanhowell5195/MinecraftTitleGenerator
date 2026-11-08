@@ -7,14 +7,15 @@ export const CREEPER = "\u{1F633}"
 export const DEFAULT_SPACE_WIDTH = 8
 export const DEFAULT_DEPTH = 22
 export const DEFAULT_BORDER = 2
+export const REQUIRED_CHARACTERS = Array.from(DEFAULT_ORDER).filter(char => char !== CREEPER)
 
-const EMPTY_PIXEL = [255, 255, 255]
 const GLYPH_PIXEL = [0, 0, 0]
 const GRID_PIXEL = [255, 0, 0]
 const BASELINE_PIXEL = [0, 255, 0]
 const TOPLINE_PIXEL = [0, 0, 255]
 const GRID_SIZES = [8, 6, 5, 4, 3, 2]
-const NAMES = { "\u{1F633}": "Creeper A", "\u{1F629}": "Opening quote", "'": "Closing quote", "┫": "Left line terminator", "┣": "Right line terminator", " ": "Space" }
+const NAMES = { [CREEPER]: "Creeper A", "\u{1F629}": "Opening quote", "'": "Closing quote", "┫": "Left line terminator", "┣": "Right line terminator", [SPACE_CHAR]: "Space" }
+const META_KEYS = ["author", "description", "basedOn", "spaceWidth", "depth", "border", "characterSpacing", "terminatorSpace", "terminatorSpaceWidth", "forcedTerminators", "autoBorder", "flat", "overlay", "strips", "kerning"]
 
 export function characterName(char) {
   return NAMES[char] ?? char
@@ -28,14 +29,16 @@ export function createFont({ height = 40, width = 24, grid = 4, density = 1 } = 
   return { name: "My Font", id: "", author: "", description: "", basedOn: "", height, width, grid, density, creeper: false, extras: [], defineSpace: false, spaceWidth: DEFAULT_SPACE_WIDTH, depth: DEFAULT_DEPTH, border: DEFAULT_BORDER, characterSpacing: 0, terminatorSpace: true, terminatorSpaceWidth: null, forcedTerminators: false, autoBorder: false, flat: false, overlay: false, strips: [], kerning: {}, glyphs: {}, imported: null }
 }
 
-const REQUIRED = Array.from(DEFAULT_ORDER).filter(char => char !== CREEPER)
-
 export function charactersOf(font) {
-  return (font.creeper ? [CREEPER] : []).concat(REQUIRED, font.extras, font.defineSpace ? [SPACE_CHAR] : [])
+  return (font.creeper ? [CREEPER] : []).concat(REQUIRED_CHARACTERS, font.extras, font.defineSpace ? [SPACE_CHAR] : [])
 }
 
 export function isOptional(char) {
-  return !REQUIRED.includes(char)
+  return !REQUIRED_CHARACTERS.includes(char)
+}
+
+function extrasOf(chars) {
+  return chars.filter(char => isOptional(char) && char !== CREEPER && char !== SPACE_CHAR)
 }
 
 export function addCharacters(font, text) {
@@ -62,12 +65,34 @@ export function removeCharacter(font, char) {
   return next
 }
 
-function blankRows(width, count) {
-  return Array.from({ length: count }, () => "0".repeat(width))
+function rowsOf(width, count, cells) {
+  const rows = Array.from({ length: count }, () => Array.from("0".repeat(width)))
+  for (const [x, row] of cells) rows[row][x] = "1"
+  return rows.map(row => row.join(""))
+}
+
+function maskCells({ width, height, mask }) {
+  const cells = []
+  for (let r = 0; r < height; r++) {
+    for (let c = 0; c < width; c++) if (mask[r * width + c]) cells.push([c, r])
+  }
+  return cells
+}
+
+function mapGlyphs(glyphs, change) {
+  return Object.fromEntries(Object.entries(glyphs).map(([char, glyph]) => [char, change(glyph)]))
+}
+
+function inRows({ height, above, below }) {
+  return y => y >= -below && y < height + above
+}
+
+function fontRows(ys, density) {
+  return Array.from(new Set(ys.map(y => Math.floor(y / density)))).sort((a, b) => a - b)
 }
 
 export function blankGlyph(font) {
-  return { width: null, above: 0, below: 0, stretch: [], rows: blankRows(font.width, font.height) }
+  return { width: null, above: 0, below: 0, stretch: [], rows: rowsOf(font.width, font.height, []) }
 }
 
 export function glyphOf(font, char) {
@@ -90,6 +115,10 @@ export function isBlank(glyph) {
   return !glyph.rows.some(row => row.includes("1"))
 }
 
+function shapeOf(font, glyph) {
+  return { height: font.height, width: widthOf(font, glyph), above: glyph.above, below: glyph.below }
+}
+
 function reshape(glyph, from, to) {
   const cut = from.width - to.width
   const inked = (start, end) => glyph.rows.some(row => row.slice(start, end).includes("1"))
@@ -99,18 +128,12 @@ function reshape(glyph, from, to) {
     const old = glyph.rows[from.above + from.height - 1 - y] ?? ""
     rows.push(old.slice(start, start + to.width).padEnd(to.width, "0"))
   }
-  const stretch = glyph.stretch.filter(y => y >= -to.below && y < to.height + to.above)
-  return { ...glyph, rows, stretch }
-}
-
-function shapeOf(font, glyph) {
-  return { height: font.height, width: widthOf(font, glyph), above: glyph.above, below: glyph.below }
+  return { ...glyph, rows, stretch: glyph.stretch.filter(inRows(to)) }
 }
 
 export function resizeFont(font, { height = font.height, width = font.width }) {
   const next = { ...font, height, width }
-  const glyphs = Object.fromEntries(Object.entries(font.glyphs).map(([char, glyph]) => [char, reshape(glyph, shapeOf(font, glyph), shapeOf(next, glyph))]))
-  return { ...next, glyphs }
+  return { ...next, glyphs: mapGlyphs(font.glyphs, glyph => reshape(glyph, shapeOf(font, glyph), shapeOf(next, glyph))) }
 }
 
 export function squaresOf(font, pixels) {
@@ -133,13 +156,10 @@ function rescaleGlyph(font, glyph, next) {
   return { ...glyph, width: glyph.width === null || width === next.width ? null : width, above, below, stretch, rows }
 }
 
-function rescaleGlyphs(font, glyphs, next) {
-  return glyphs && Object.fromEntries(Object.entries(glyphs).map(([char, glyph]) => [char, rescaleGlyph(font, glyph, next)]))
-}
-
 export function setSquareSize(font, grid) {
   const next = { ...font, grid, height: Math.round(font.height * grid / font.grid), width: Math.round(font.width * grid / font.grid) }
-  return { ...next, glyphs: rescaleGlyphs(font, font.glyphs, next), imported: rescaleGlyphs(font, font.imported, next) }
+  const rescale = glyphs => glyphs && mapGlyphs(glyphs, glyph => rescaleGlyph(font, glyph, next))
+  return { ...next, glyphs: rescale(font.glyphs), imported: rescale(font.imported) }
 }
 
 export function shiftGlyph(glyph, dx, dy) {
@@ -147,10 +167,20 @@ export function shiftGlyph(glyph, dx, dy) {
   const width = glyph.rows[0]?.length ?? 0
   const cells = glyph.rows.flatMap((text, row) => Array.from(text).flatMap((value, x) => value === "1" ? [[x + dx, row - dy]] : []))
   if (cells.some(([x, row]) => x < 0 || x >= width || row < 0 || row >= height)) return null
-  const rows = Array.from({ length: height }, () => Array(width).fill("0"))
-  for (const [x, row] of cells) rows[row][x] = "1"
   const stretch = glyph.stretch.map(y => y + dy).filter(y => y >= -glyph.below && y < height - glyph.below)
-  return { ...glyph, rows: rows.map(row => row.join("")), stretch }
+  return { ...glyph, rows: rowsOf(width, height, cells), stretch }
+}
+
+function inkExtent(font, glyph) {
+  let top = null
+  let bottom = null
+  for (const [row, text] of glyph.rows.entries()) {
+    if (!text.includes("1")) continue
+    const y = yOfRow(font, glyph, row)
+    top ??= y + 1
+    bottom = y
+  }
+  return { top, bottom }
 }
 
 export function trimGlyph(font, char) {
@@ -159,12 +189,12 @@ export function trimGlyph(font, char) {
   const inked = glyph.rows.filter(row => row.includes("1"))
   const left = Math.min(...inked.map(row => row.indexOf("1")))
   const right = Math.max(...inked.map(row => row.lastIndexOf("1"))) + 1
-  const { top, bottom } = inkExtent(glyph, font)
+  const { top, bottom } = inkExtent(font, glyph)
   const above = Math.min(glyph.above, Math.max(0, top - font.height))
   const below = Math.min(glyph.below, Math.max(0, -bottom))
   const width = right - left
   const rows = glyph.rows.slice(glyph.above - above, glyph.rows.length - glyph.below + below).map(row => row.slice(left, right))
-  const stretch = glyph.stretch.filter(y => y >= -below && y < font.height + above)
+  const stretch = glyph.stretch.filter(inRows({ height: font.height, above, below }))
   return setGlyph(font, char, { ...glyph, width: width === font.width ? null : width, above, below, rows, stretch })
 }
 
@@ -208,7 +238,7 @@ export function changeGlyph(font, char, { width, above, below }) {
   if (width !== undefined) changed.width = width === font.width ? null : width
   if (above !== undefined) changed.above = above
   if (below !== undefined) changed.below = below
-  return setGlyph(font, char, { ...reshape(glyph, shapeOf(font, glyph), shapeOf(font, changed)), width: changed.width, above: changed.above, below: changed.below })
+  return setGlyph(font, char, reshape(changed, shapeOf(font, glyph), shapeOf(font, changed)))
 }
 
 export function paint(glyph, cells, value) {
@@ -301,21 +331,9 @@ export function fillCells(glyph, x, row) {
 
 export function setStretch(font, glyph, row, value) {
   const { by } = blockIndex(font, glyph, 0, row)
-  const rows = Array.from({ length: font.grid }, (_, index) => by * font.grid + index).filter(y => y >= -glyph.below && y < font.height + glyph.above)
+  const rows = Array.from({ length: font.grid }, (_, index) => by * font.grid + index).filter(inRows(shapeOf(font, glyph)))
   const stretch = value ? Array.from(new Set(glyph.stretch.concat(rows))) : glyph.stretch.filter(y => !rows.includes(y))
   return { ...glyph, stretch: stretch.sort((a, b) => a - b) }
-}
-
-function inkExtent(glyph, font) {
-  let top = null
-  let bottom = null
-  glyph.rows.forEach((text, row) => {
-    if (!text.includes("1")) return
-    const y = yOfRow(font, glyph, row)
-    top ??= y + 1
-    bottom = y
-  })
-  return { top, bottom }
 }
 
 function setPixel(data, width, x, y, colour) {
@@ -331,11 +349,11 @@ export function buildSheet(font) {
   const capHeight = font.height * d
   const cells = charactersOf(font).map(char => {
     const glyph = glyphOf(trimGlyph(font, char), char)
-    return { char, glyph, width: widthOf(font, glyph) * d, ...inkExtent(glyph, font) }
+    return { glyph, width: widthOf(font, glyph) * d, ...inkExtent(font, glyph) }
   })
   const rows = []
   for (const cell of cells) {
-    const row = rows[rows.length - 1]
+    const row = rows.at(-1)
     if (!row || row.width + cell.width + 1 > SHEET_MAX_WIDTH) rows.push({ cells: [cell], width: 1 + cell.width + 1 })
     else {
       row.cells.push(cell)
@@ -349,10 +367,7 @@ export function buildSheet(font) {
   }
   const width = Math.max(...rows.map(row => row.width))
   const height = rows.reduce((sum, row) => sum + row.top - row.bottom + 1, 1)
-  const data = new Uint8ClampedArray(width * height * 4)
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) setPixel(data, width, x, y, EMPTY_PIXEL)
-  }
+  const data = new Uint8ClampedArray(width * height * 4).fill(255)
   let y = 0
   for (const row of rows) {
     for (let x = 0; x < width; x++) setPixel(data, width, x, y, GRID_PIXEL)
@@ -363,7 +378,7 @@ export function buildSheet(font) {
     for (let line = top; line <= bottom; line++) setPixel(data, width, 0, line, line === baseline && line !== bottom ? BASELINE_PIXEL : line === topline && line !== top ? TOPLINE_PIXEL : GRID_PIXEL)
     let x = 1
     for (const { glyph, width: cellWidth } of row.cells) {
-      glyph.rows.forEach((text, rowIndex) => {
+      for (const [rowIndex, text] of glyph.rows.entries()) {
         const art = yOfRow(font, glyph, rowIndex)
         for (let column = 0; column < text.length; column++) {
           if (text[column] !== "1") continue
@@ -371,7 +386,7 @@ export function buildSheet(font) {
             for (let i = 0; i < d; i++) setPixel(data, width, x + column * d + i, baseline - art * d - j, GLYPH_PIXEL)
           }
         }
-      })
+      }
       x += cellWidth
       for (let line = top; line <= bottom; line++) setPixel(data, width, x, line, GRID_PIXEL)
       for (const art of glyph.stretch) {
@@ -405,42 +420,24 @@ function mostCommon(values, fallback) {
   return Array.from(tally).sort((a, b) => b[1] - a[1] || b[0] - a[0])[0]?.[0] ?? fallback
 }
 
-function runLengths(rows) {
-  return rows.flatMap(row => row.match(/1+/g) ?? []).map(run => run.length)
-}
-
-export function detectGrid(glyphs) {
-  const runs = Object.values(glyphs).flatMap(glyph => runLengths(glyph.rows))
+function detectGrid(glyphs) {
+  const runs = Object.values(glyphs).flatMap(glyph => glyph.rows.flatMap(row => row.match(/1+/g) ?? []).map(run => run.length))
   if (!runs.length) return 1
   return GRID_SIZES.find(size => runs.filter(length => length % size === 0).length >= runs.length * 0.95) ?? 1
 }
 
 function glyphFromCell(cell, height, width, density) {
   const cellWidth = exactDivide(cell.advance, density, `the width of ${characterName(cell.char)}`)
-  const top = Math.ceil(cell.top / density)
-  const bottom = Math.floor(cell.bottom / density)
-  const above = Math.max(0, top - height)
-  const below = Math.max(0, -bottom)
-  const rows = Array.from({ length: above + height + below }, () => Array(cellWidth).fill("0"))
-  for (let r = 0; r < cell.height; r++) {
-    for (let c = 0; c < cell.width; c++) {
-      if (!cell.mask[r * cell.width + c]) continue
-      const art = Math.floor((cell.bottom + r) / density)
-      rows[above + height - 1 - art][Math.floor((cell.originX + c) / density)] = "1"
-    }
-  }
-  const stretch = Array.from(new Set((cell.stretch ?? []).map(y => Math.floor(y / density)))).sort((a, b) => a - b)
-  return { width: cellWidth === width ? null : cellWidth, above, below, stretch, rows: rows.map(row => row.join("")) }
+  const above = Math.max(0, Math.ceil(cell.top / density) - height)
+  const below = Math.max(0, -Math.floor(cell.bottom / density))
+  const ink = maskCells(cell).map(([c, r]) => [Math.floor((cell.originX + c) / density), above + height - 1 - Math.floor((cell.bottom + r) / density)])
+  return { width: cellWidth === width ? null : cellWidth, above, below, stretch: fontRows(cell.stretch ?? [], density), rows: rowsOf(cellWidth, above + height + below, ink) }
 }
 
-function cellCount(data, width, height) {
-  return scanMask(data, width, height).rows.reduce((total, row) => total + row.cells.length, 0)
-}
-
-export function cellsFromSheet({ data, width, height }, order = null, density = 1) {
-  const count = cellCount(data, width, height)
+function cellsFromSheet({ data, width, height }, order, density) {
+  const count = scanMask(data, width, height).rows.reduce((total, row) => total + row.cells.length, 0)
   const defaults = Array.from(DEFAULT_ORDER)
-  const listed = order ? Array.from(order) : count > defaults.length ? defaults.concat(SPACE_CHAR) : count < defaults.length ? REQUIRED : defaults
+  const listed = order ? Array.from(order) : count > defaults.length ? defaults.concat(SPACE_CHAR) : count < defaults.length ? REQUIRED_CHARACTERS : defaults
   const { list, capHeight } = parseMask(data, width, height, listed.slice(0, count).join(""), 0)
   return { list, height: exactDivide(capHeight, density, "the cap height") }
 }
@@ -448,11 +445,8 @@ export function cellsFromSheet({ data, width, height }, order = null, density = 
 function applyCells(font, list, height, density) {
   const width = mostCommon(list.map(cell => cell.advance / density), font.width)
   const glyphs = Object.fromEntries(list.map(cell => [cell.char, glyphFromCell(cell, height, width, density)]))
-  const extras = list.map(cell => cell.char).filter(char => isOptional(char) && char !== CREEPER && char !== SPACE_CHAR)
-  return { ...font, height, width, density, glyphs, creeper: CREEPER in glyphs, extras, defineSpace: !!glyphs[SPACE_CHAR] && !isBlank(glyphs[SPACE_CHAR]) || font.defineSpace }
+  return { ...font, height, width, density, glyphs, creeper: CREEPER in glyphs, extras: extrasOf(list.map(cell => cell.char)), defineSpace: !!glyphs[SPACE_CHAR] && !isBlank(glyphs[SPACE_CHAR]) || font.defineSpace }
 }
-
-const META_KEYS = ["author", "description", "basedOn", "spaceWidth", "depth", "border", "characterSpacing", "terminatorSpace", "terminatorSpaceWidth", "forcedTerminators", "autoBorder", "flat", "overlay", "strips", "kerning"]
 
 function metaFrom(font, entry) {
   const next = { ...font, terminatorSpace: false }
@@ -471,6 +465,14 @@ export function parseFontJson(text) {
   return entry
 }
 
+function resizeDefaultWidth(font, width) {
+  const glyphs = mapGlyphs(font.glyphs, glyph => {
+    const own = widthOf(font, glyph)
+    return { ...glyph, width: own === width ? null : own }
+  })
+  return { ...font, width, glyphs }
+}
+
 export function fontFromFiles({ sheet = null, json = null }) {
   if (!sheet && !json) throw new Error("choose a font.png, a font JSON file, or both")
   const editor = json?.editor ?? {}
@@ -481,52 +483,31 @@ export function fontFromFiles({ sheet = null, json = null }) {
   if (json) font = metaFrom({ ...font, name: json.name ?? (json.id ? titleCase(json.id) : font.name), id: json.id ?? "" }, json)
   if (json?.order) {
     const listed = Array.from(json.order)
-    font = { ...font, creeper: listed.includes(CREEPER), defineSpace: listed.includes(SPACE_CHAR), extras: listed.filter(char => isOptional(char) && char !== CREEPER && char !== SPACE_CHAR) }
+    font = { ...font, creeper: listed.includes(CREEPER), defineSpace: listed.includes(SPACE_CHAR), extras: extrasOf(listed) }
   }
   if (!sheet) return font
   const { list, height: sheetHeight } = cellsFromSheet(sheet, json?.order ?? null, density)
   font = applyCells(font, list, sheetHeight, density)
-  if (editor.width) font = { ...resizeDefaultWidth(font, editor.width) }
-  if (!editor.grid) font.grid = detectGrid(font.glyphs)
-  return font
-}
-
-function resizeDefaultWidth(font, width) {
-  const glyphs = Object.fromEntries(Object.entries(font.glyphs).map(([char, glyph]) => {
-    const own = glyph.width ?? font.width
-    return [char, { ...glyph, width: own === width ? null : own }]
-  }))
-  return { ...font, width, glyphs }
+  if (editor.width) font = resizeDefaultWidth(font, editor.width)
+  return editor.grid ? font : { ...font, grid: detectGrid(font.glyphs) }
 }
 
 export function fontFromPublished(entry, cells, capHeight) {
-  const copy = createFont({ height: capHeight })
-  let font = metaFrom({ ...copy, name: `${entry.name} Copy` }, entry)
-  font = { ...font, author: "", description: "", basedOn: entry.id, flat: !!entry.flat, overlay: false, strips: entry.strips ?? [] }
-  font = applyCells(font, cells, capHeight, 1)
+  const copy = metaFrom({ ...createFont({ height: capHeight }), name: `${entry.name} Copy` }, entry)
+  const font = applyCells({ ...copy, author: "", description: "", basedOn: entry.id, flat: !!entry.flat, overlay: false, strips: entry.strips ?? [] }, cells, capHeight, 1)
   return { ...font, grid: detectGrid(font.glyphs) }
 }
 
-export function glyphFromShape(shape, height, fallbackWidth) {
-  if (!shape) return { width: fallbackWidth, above: 0, below: 0, stretch: [], rows: blankRows(fallbackWidth, height) }
+function glyphFromShape(shape, height, fallbackWidth) {
+  if (!shape) return { width: fallbackWidth, above: 0, below: 0, stretch: [], rows: rowsOf(fallbackWidth, height, []) }
   const above = Math.max(0, shape.top - height)
   const below = Math.max(0, -shape.bottom)
-  const rows = blankRows(shape.width, above + height + below).map(row => Array.from(row))
-  for (let r = 0; r < shape.height; r++) {
-    const art = shape.top - 1 - r
-    for (let c = 0; c < shape.width; c++) if (shape.mask[r * shape.width + c]) rows[above + height - 1 - art][c] = "1"
-  }
-  return { width: shape.width, above, below, stretch: [], rows: rows.map(row => row.join("")) }
-}
-
-function mostCommonWidth(shapes) {
-  const counts = new Map()
-  for (const shape of shapes) if (shape) counts.set(shape.width, (counts.get(shape.width) ?? 0) + 1)
-  return Array.from(counts).sort((a, b) => b[1] - a[1] || b[0] - a[0])[0]?.[0] ?? null
+  const ink = maskCells(shape).map(([c, r]) => [c, above + height - shape.top + r])
+  return { width: shape.width, above, below, stretch: [], rows: rowsOf(shape.width, above + height + below, ink) }
 }
 
 export function fontFromShapes(shapes, { name, author = "", capHeight, grid = null, spaceWidth, missing = [] }) {
-  const fallback = mostCommonWidth(Array.from(shapes.values())) ?? Math.max(1, Math.round(capHeight / 2))
+  const fallback = mostCommon(Array.from(shapes.values()).filter(Boolean).map(shape => shape.width), Math.max(1, Math.round(capHeight / 2)))
   const glyphs = Object.fromEntries(Array.from(shapes, ([char, shape]) => {
     const glyph = glyphFromShape(shape, capHeight, fallback)
     return [char, glyph.width === fallback ? { ...glyph, width: null } : glyph]
@@ -542,26 +523,25 @@ export function autoStretch(font, characters = charactersOf(font)) {
   let next = font
   for (const cell of list) {
     if (!cell.width || !characters.includes(cell.char)) continue
-    const rows = marksFor(cell, measures)
-    const glyph = glyphOf(next, cell.char)
-    next = setGlyph(next, cell.char, { ...glyph, stretch: Array.from(new Set(rows.map(y => Math.floor(y / font.density)))).sort((a, b) => a - b) })
+    next = setGlyph(next, cell.char, { ...glyphOf(next, cell.char), stretch: fontRows(marksFor(cell, measures), font.density) })
   }
   return next
 }
 
 export function exportJson(font, texture) {
   const entry = { id: font.id || slug(font.name) || "my-font", name: font.name }
+  const order = sheetOrder(font)
   if (font.author) entry.author = font.author
   if (font.description) entry.description = font.description
   if (font.basedOn) entry.basedOn = font.basedOn
   if (font.strips.length) entry.strips = font.strips
-  if (sheetOrder(font) !== DEFAULT_ORDER) entry.order = sheetOrder(font)
+  if (order !== DEFAULT_ORDER) entry.order = order
   if (font.spaceWidth !== DEFAULT_SPACE_WIDTH) entry.spaceWidth = font.spaceWidth
   if (font.depth !== DEFAULT_DEPTH) entry.depth = font.depth
   if (font.border !== DEFAULT_BORDER) entry.border = font.border
   if (font.characterSpacing) entry.characterSpacing = font.characterSpacing
   for (const key of ["terminatorSpace", "forcedTerminators", "autoBorder", "flat", "overlay"]) if (font[key]) entry[key] = true
-  if (font.terminatorSpace && !font.defineSpace && font.terminatorSpaceWidth !== null && font.terminatorSpaceWidth !== undefined && font.terminatorSpaceWidth !== font.spaceWidth) entry.terminatorSpaceWidth = font.terminatorSpaceWidth
+  if (font.terminatorSpace && !font.defineSpace && (font.terminatorSpaceWidth ?? font.spaceWidth) !== font.spaceWidth) entry.terminatorSpaceWidth = font.terminatorSpaceWidth
   const kerning = Object.fromEntries(Object.entries(font.kerning).filter(([, amount]) => amount))
   if (Object.keys(kerning).length) entry.kerning = kerning
   entry.editor = { height: font.height, width: font.width, grid: font.grid, density: font.density, texture }

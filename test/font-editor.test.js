@@ -4,7 +4,8 @@ import { describe, test } from "node:test"
 import opentype from "opentype.js"
 import { publishedFonts, readMask } from "../generator/fonts.js"
 import { DEFAULT_ORDER, parseMask, splitCells } from "../src/lib/font.js"
-import { CREEPER, SPACE_CHAR, addCharacters, autoStretch, blankGlyph, blockAt, buildSheet, changeGlyph, charactersOf, createFont, exportJson, fillCells, fitGlyph, fontFromFiles, fontFromPublished, glyphOf, isBlank, isOptional, lineCells, lostPixels, paint, parseFontJson, rectangleCells, removeCharacter, resizeFont, rowOfY, setGlyph, setSquareSize, setStretch, sheetOrder, shiftGlyph, slug, squareSizeLoss, squaresOf, stripProblems, trimGlyph, widthOf, yOfRow } from "../src/lib/fontEditor.js"
+import { CREEPER, REQUIRED_CHARACTERS, SPACE_CHAR, addCharacters, autoStretch, blankGlyph, blockAt, buildSheet, changeGlyph, charactersOf, createFont, exportJson, fillCells, fitGlyph, fontFromFiles, fontFromPublished, glyphOf, isBlank, isOptional, lineCells, lostPixels, paint, parseFontJson, rectangleCells, removeCharacter, resizeFont, rowOfY, setGlyph, setSquareSize, setStretch, sheetOrder, shiftGlyph, slug, squareSizeLoss, squaresOf, stripProblems, trimGlyph, widthOf, yOfRow } from "../src/lib/fontEditor.js"
+import { fontFromAscii } from "../src/lib/asciiImport.js"
 import { fontFromOutlines, parseFontFile } from "../src/lib/fontImport.js"
 
 function drawn(font, char, cells) {
@@ -355,6 +356,24 @@ describe("saving and reopening", () => {
     assert.deepEqual(sheetOf(restored).list.map(comparable), sheetOf(font).list.map(comparable))
   })
 
+  test("the JSON keeps a default width that most characters override", () => {
+    let font = createFont({ height: 8, width: 6, grid: 1 })
+    for (const char of REQUIRED_CHARACTERS.slice(0, 60)) {
+      font = changeGlyph(font, char, { width: 3 })
+      font = strokeCell(strokeCell(font, char, 0, 0), char, 2, 0)
+    }
+    const both = roundTrip(font, ["sheet", "json"])
+    assert.deepEqual([both.width, both.glyphs.a.width, both.glyphs[REQUIRED_CHARACTERS[65]].width], [6, 3, null])
+    const sheetOnly = roundTrip(font, ["sheet"])
+    assert.deepEqual([sheetOnly.width, sheetOnly.glyphs.a.width, sheetOnly.glyphs[REQUIRED_CHARACTERS[65]].width], [3, null, 6])
+    assert.deepEqual(sheetOf(both).list.map(comparable), sheetOf(font).list.map(comparable))
+  })
+
+  test("a JSON order turns on the creeper, the space and added characters", () => {
+    const restored = fontFromFiles({ json: { order: `${CREEPER}abc ` + "б" } })
+    assert.deepEqual([restored.creeper, restored.defineSpace, restored.extras], [true, true, ["б"]])
+  })
+
   test("only the JSON keeps settings with empty characters", () => {
     const restored = roundTrip(original, ["json"])
     assert.equal(restored.name, "My Own Font")
@@ -401,12 +420,18 @@ describe("saving and reopening", () => {
 describe("starting from a published font", () => {
   const fonts = publishedFonts()
 
+  function copyOf(id) {
+    const entry = fonts.find(item => item.id === id)
+    const { png, cells } = readMask(entry, fonts)
+    const zero = parseMask(png.data, png.width, png.height, cells.map(cell => cell.char).join(""), 0)
+    const { glyphs } = splitCells(entry, fonts, zero.list)
+    return { entry, glyphs, capHeight: zero.capHeight, font: fontFromPublished({ ...entry, name: entry.name ?? entry.id }, Object.values(glyphs), zero.capHeight) }
+  }
+
   for (const entry of fonts.filter(item => !item.inherits)) {
     test(`${entry.id} comes through with its forced characters unchanged`, () => {
-      const zero = parseMaskCells(entry)
-      const { glyphs } = splitCells(entry, fonts, zero.list)
-      const font = fontFromPublished({ ...entry, name: entry.name ?? entry.id }, Object.values(glyphs), zero.capHeight)
-      assert.equal(font.height, zero.capHeight)
+      const { glyphs, capHeight, font } = copyOf(entry.id)
+      assert.equal(font.height, capHeight)
       const after = sheetOf(font)
       for (const char of Array.from(DEFAULT_ORDER)) {
         const before = glyphs[char]
@@ -421,26 +446,14 @@ describe("starting from a published font", () => {
     })
   }
 
-  function parseMaskCells(entry) {
-    const { png, cells } = readMask(entry, fonts)
-    const order = cells.map(cell => cell.char).join("")
-    return parseMask(png.data, png.width, png.height, order, 0)
-  }
-
   test("finds Ten's 4 pixel grid", () => {
-    const entry = fonts.find(item => item.id === "minecraft-ten")
-    const zero = parseMaskCells(entry)
-    const { glyphs } = splitCells(entry, fonts, zero.list)
-    assert.equal(fontFromPublished({ ...entry, name: "Ten" }, Object.values(glyphs), zero.capHeight).grid, 4)
+    assert.equal(copyOf("minecraft-ten").font.grid, 4)
   })
 
-  test("the depth, border and strips come across", () => {
-    const entry = fonts.find(item => item.id === "minecraft-five-bold")
-    const zero = parseMaskCells(entry)
-    const { glyphs } = splitCells(entry, fonts, zero.list)
-    const font = fontFromPublished({ ...entry, name: "Five Bold" }, Object.values(glyphs), zero.capHeight)
-    assert.equal(font.depth, entry.depth ?? 22)
-    assert.equal(font.author, "")
+  test("the depth, border, flat setting and strips come across, the author and description do not", () => {
+    const { font } = copyOf("minecraft-ten-outline")
+    assert.deepEqual([font.name, font.depth, font.border, font.flat, font.author, font.description, font.overlay], ["minecraft-ten-outline Copy", 0, 0, true, "", "", false])
+    assert.deepEqual(copyOf("minecraft-ten").font.strips, ["minecraft-ten"])
   })
 })
 
@@ -481,6 +494,13 @@ describe("importing a font file", () => {
     assert.deepEqual(font.imported.a.rows, font.glyphs.a.rows)
     assert.ok(font.imported[SPACE_CHAR])
     assert.equal(font.glyphs[SPACE_CHAR], undefined)
+  })
+
+  test("a file with none of the characters still opens, blank at half the height wide", () => {
+    const font = fontFromOutlines(testFont(""), { height: 21 })
+    assert.equal(font.width, 11)
+    assert.deepEqual(font.missing, REQUIRED_CHARACTERS)
+    assert.ok(REQUIRED_CHARACTERS.every(char => isBlank(glyphOf(font, char))))
   })
 
   test("the result builds a sheet the real parser reads", () => {
@@ -578,8 +598,7 @@ describe("ascii.png import", () => {
     103: ["", "", "###", "#.#", "#.#", "###", "..#", "###"]
   })
 
-  test("capitals fill the cap height, each texture pixel becomes one square", async () => {
-    const { fontFromAscii } = await import("../src/lib/asciiImport.js")
+  test("capitals fill the cap height, each texture pixel becomes one square", () => {
     const font = fontFromAscii(image, { height: 40 })
     assert.equal(font.grid, 6)
     assert.equal(font.height, 42)
@@ -590,16 +609,21 @@ describe("ascii.png import", () => {
     assert.ok(font.missing.includes("b"))
   })
 
-  test("lowercase letters can be used instead, and descenders go below the baseline", async () => {
-    const { fontFromAscii } = await import("../src/lib/asciiImport.js")
+  test("lowercase letters can be used instead, and descenders go below the baseline", () => {
     const font = fontFromAscii(image, { height: 7, lowercase: true })
     assert.equal(font.glyphs.a.width, 1)
     assert.equal(font.glyphs.g.below, 1)
     assert.equal(font.glyphs.g.rows.length, 8)
   })
 
-  test("a texture that isn't a 16 by 16 grid is refused", async () => {
-    const { fontFromAscii } = await import("../src/lib/asciiImport.js")
+  test("the pound sign and both quotes come from their own cells", () => {
+    const font = fontFromAscii(sheet(8, { 39: ["", "#", "#"], 156: ["", "####", "#..#", "####"] }), { height: 7 })
+    assert.equal(font.glyphs["£"].width, 4)
+    assert.deepEqual(font.glyphs["\u{1F629}"], font.glyphs["'"])
+    assert.ok(!isBlank(font.glyphs["'"]))
+  })
+
+  test("a texture that isn't a 16 by 16 grid is refused", () => {
     assert.throws(() => fontFromAscii({ data: new Uint8ClampedArray(100 * 100 * 4), width: 100, height: 100 }), /16 by 16/)
     assert.throws(() => fontFromAscii({ data: new Uint8ClampedArray(160 * 160 * 4), width: 160, height: 160 }), /multiple of 8/)
   })

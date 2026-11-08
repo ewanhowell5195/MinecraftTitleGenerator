@@ -28,17 +28,10 @@ function profile(glyph) {
     left.set(y, glyph.originX + first)
     right.set(y, glyph.advance - glyph.originX - last - 1)
   }
-  return { left, right }
+  return { advance: glyph.advance, left, right }
 }
 
-export function collisionAmount(glyphs, pair, border) {
-  const [first, second] = Array.from(pair)
-  if (!glyphs[first]?.width || !glyphs[second]?.width) return null
-  const gap = pairGap(profile(glyphs[first]), profile(glyphs[second]), Math.max(1, border * 2))
-  return Number.isFinite(gap) ? Math.max(0, gap - border * 2) : Math.min(glyphs[first].advance, glyphs[second].advance)
-}
-
-export function pairGap(before, after, reach = 1) {
+function pairGap(before, after, reach = 1) {
   let gap = Infinity
   for (const [y, space] of before.right) {
     for (let near = y - reach; near <= y + reach; near++) {
@@ -46,6 +39,17 @@ export function pairGap(before, after, reach = 1) {
     }
   }
   return gap
+}
+
+function collision(before, after, border) {
+  const gap = pairGap(before, after, Math.max(1, border * 2))
+  return Number.isFinite(gap) ? Math.max(0, gap - border * 2) : Math.min(before.advance, after.advance)
+}
+
+export function collisionAmount(glyphs, pair, border) {
+  const [first, second] = Array.from(pair)
+  if (!glyphs[first]?.width || !glyphs[second]?.width) return null
+  return collision(profile(glyphs[first]), profile(glyphs[second]), border)
 }
 
 function sharedRows(before, after) {
@@ -60,12 +64,10 @@ function mostCommon(values) {
   return Array.from(tally).sort((a, b) => b[1] - a[1] || a[0] - b[0])[0]?.[0] ?? 0
 }
 
-function overlapLimit(glyphs, [first, second], unit) {
-  const before = profile(glyphs[first])
-  const after = profile(glyphs[second])
+function overlapLimit(before, after, unit) {
   const right = Math.min(...before.right.values())
   const left = Math.min(...after.left.values())
-  const widths = [glyphs[first].advance - Math.min(...before.left.values()) - right, glyphs[second].advance - left - Math.min(...after.right.values())]
+  const widths = [before.advance - Math.min(...before.left.values()) - right, after.advance - left - Math.min(...after.right.values())]
   return right + left + Math.max(unit, Math.min(...widths) / 3)
 }
 
@@ -79,14 +81,15 @@ export function suggestKerning(glyphs, { capHeight, unit, border }, existing = {
   for (const [first, before] of shapes) {
     for (const [second, after] of shapes) {
       const gap = pairGap(before, after)
-      if (Number.isFinite(gap)) gaps.push({ pair: first + second, gap, full: sharedRows(before, after) >= capHeight })
+      if (Number.isFinite(gap)) gaps.push({ pair: first + second, before, after, gap, full: sharedRows(before, after) >= capHeight })
     }
   }
   const usual = mostCommon(gaps.map(item => item.gap))
-  return gaps.flatMap(({ pair, gap, full }) => {
+  return gaps.flatMap(({ pair, before, after, gap, full }) => {
+    if (pair in existing) return []
     const room = gap - usual
     const wanted = full && slashes(pair) !== 1 ? Math.floor(room / unit) * unit : Math.min(unit * 2, Math.round(room / 2 / unit) * unit)
-    const amount = Math.floor(Math.min(wanted, collisionAmount(glyphs, pair, border), overlapLimit(glyphs, Array.from(pair), unit)) / unit) * unit
-    return amount > 0 && !(pair in existing) ? [{ pair, amount }] : []
+    const amount = Math.floor(Math.min(wanted, collision(before, after, border), overlapLimit(before, after, unit)) / unit) * unit
+    return amount > 0 ? [{ pair, amount }] : []
   }).sort((a, b) => pairRank(a.pair) - pairRank(b.pair) || b.amount - a.amount || a.pair.localeCompare(b.pair))
 }

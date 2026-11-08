@@ -1,5 +1,4 @@
-import { DEFAULT_ORDER } from "./font.js"
-import { CREEPER, fontFromShapes } from "./fontEditor.js"
+import { REQUIRED_CHARACTERS, fontFromShapes } from "./fontEditor.js"
 
 const CELLS = 16
 const POUND_CELL = 156
@@ -47,7 +46,6 @@ export function fontFromAscii(image, { height = 40, lowercase = false } = {}) {
   if (cellHeight % 8) throw new Error(`each character in this ascii.png is ${cellHeight} pixels tall, and Minecraft needs a multiple of 8`)
   const ascent = cellHeight / 8 * 7
   const grid = Math.max(1, Math.round(height / ascent))
-  const characters = Array.from(DEFAULT_ORDER).filter(char => char !== CREEPER)
-  const shapes = new Map(characters.map(char => [char, cellShape(image, cellOf(char, lowercase), { cellWidth, cellHeight, ascent, grid })]))
-  return fontFromShapes(shapes, { name: "Minecraft Font", capHeight: ascent * grid, grid, spaceWidth: cellHeight / 2 * grid, missing: characters.filter(char => !shapes.get(char)) })
+  const shapes = new Map(REQUIRED_CHARACTERS.map(char => [char, cellShape(image, cellOf(char, lowercase), { cellWidth, cellHeight, ascent, grid })]))
+  return fontFromShapes(shapes, { name: "Minecraft Font", capHeight: ascent * grid, grid, spaceWidth: cellHeight / 2 * grid, missing: REQUIRED_CHARACTERS.filter(char => !shapes.get(char)) })
 }

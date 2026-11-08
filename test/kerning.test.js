@@ -72,6 +72,14 @@ describe("kerning suggestions", () => {
     assert.deepEqual(suggestKerning(glyphs, { capHeight: 8, unit: 1, border: 0 }), [{ pair: "l7", amount: 3 }])
   })
 
+  test("letters with no rows near each other can slide the whole way past", () => {
+    const low = { mask: new Uint8Array([1, 1]), width: 2, height: 1, bottom: 0, originX: 1, advance: 4 }
+    const high = { mask: new Uint8Array([1, 1, 1]), width: 3, height: 1, bottom: 20, originX: 0, advance: 5 }
+    assert.equal(collisionAmount({ ".": low, "'": high }, ".'", 2), 4)
+    assert.equal(collisionAmount({ ".": low, "'": { ...high, width: 0 } }, ".'", 2), null)
+    assert.deepEqual(suggestKerning({ ".": low, "'": high }, { capHeight: 8, unit: 1, border: 0 }), [])
+  })
+
   test("amounts are whole squares", () => {
     for (const amount of suggested.values()) assert.equal(amount % 4, 0)
   })
