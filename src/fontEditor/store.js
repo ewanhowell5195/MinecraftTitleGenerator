@@ -1,5 +1,5 @@
 import { computed, ref, shallowRef, watch } from "vue"
-import { DEFAULT_ORDER } from "../lib/font.js"
+import { DEFAULT_ORDER } from "../lib/order.js"
 import { buildSheet, charactersOf, exportJson, fitGlyph, flatTexture, glyphOf, setGlyph, slug } from "../lib/fontEditor.js"
 import { download, downloadBlob } from "../lib/ui.js"
 import { pngUrl } from "../lib/virtualFiles.js"

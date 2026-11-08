@@ -1,6 +1,7 @@
 import { flatPixels } from "./flatSheet.js"
-import { DEFAULT_ORDER, SHEET_MAX_WIDTH, parseMask, scanMask } from "./font.js"
+import { SHEET_MAX_WIDTH, parseMask, scanMask } from "./font.js"
 import { titleCase } from "./names.js"
+import { DEFAULT_ORDER } from "./order.js"
 import { defaultBorder, defaultDepth } from "./settings.js"
 import { marksFor, sheetMeasures } from "./stretchMarks.js"
 

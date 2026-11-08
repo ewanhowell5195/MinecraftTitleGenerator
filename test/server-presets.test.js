@@ -524,7 +524,7 @@ describe("exact duplicates", () => {
     assert.equal((await post({ code: code([{ text: "same" }]), name: "Two" }, "other")).status, 409)
   })
 
-  for (const [label, other] of [["text", { text: "Same" }], ["a setting", { text: "same", hue: 1 }], ["line order", { text: "same", type: "bottom" }]]) {
+  for (const [label, other] of [["text", { text: "different" }], ["a setting", { text: "same", hue: 1 }], ["line order", { text: "same", type: "bottom" }]]) {
     test(`a change of ${label} is not a duplicate`, async () => {
       await post({ code: code([{ text: "same" }]) })
       assert.equal((await post({ code: code([other]) }, "other")).status, 201)

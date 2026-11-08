@@ -84,7 +84,7 @@ describe("sharing a title", () => {
   test("returns a link to this page", () => {
     setTitle(createObject({ text: "link", texture: "grass" }))
     const { link, skipped } = shareLink()
-    assert.match(link, /^https:\/\/example\.test\/app\/\?title=[0-9a-z][A-Za-z0-9_-]+$/)
+    assert.match(link, /^https:\/\/example\.test\/app\/\?title=[A-Za-z0-9_-]+$/)
     assert.equal(skipped, 0)
   })
 
@@ -93,7 +93,7 @@ describe("sharing a title", () => {
     setTitle(createObject({ text: "link", texture: "grass" }))
     const { link } = shareLink()
     location.href = "https://example.test/app/"
-    assert.match(link, /^https:\/\/example\.test\/app\/\?other=1&title=[0-9a-z][A-Za-z0-9_-]+$/)
+    assert.match(link, /^https:\/\/example\.test\/app\/\?other=1&title=[A-Za-z0-9_-]+$/)
     assert.doesNotMatch(link, /old/)
   })
 })

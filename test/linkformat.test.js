@@ -72,9 +72,9 @@ describe("settings table", () => {
     assert.equal(unknownSetting([{ fade: 40 }]), "fade")
   })
 
-  test("an overlay fade from an older link still opens and can be shared", () => {
-    const { lines } = decodeTitle("2AQICBVNoaW5lOAEEPgVzaGluZUAARMAMAARmYWRlAjgw")
-    assert.deepEqual(lines, [{ text: "Shine", overlays: [{ overlay: "shine", source: "premade", opacity: 100, fade: 80 }] }])
+  test("an overlay fade opens and can be shared", () => {
+    const { lines } = decodeTitle("EAQICEAKB71oSAQQGBQKB71rcAQAQwAzWAYAK")
+    assert.deepEqual(lines, [{ text: "shine", overlays: [{ overlay: "shine", source: "premade", opacity: 100, fade: 80 }] }])
     assert.equal(unknownSetting(lines), null)
   })
 })
@@ -101,7 +101,7 @@ describe("values", () => {
   })
 
   test("booleans take only their key", () => {
-    assert.equal(writeLines([{ fade: true }]).length, 3)
+    assert.equal(writeLines([{ spaceBefore: true }]).length, 3)
   })
 
   test("null", () => {
@@ -217,13 +217,33 @@ describe("link codes", () => {
     }
   })
 
-  test("start with the version", () => {
-    assert.equal(encodeTitle(title).code[0], "1")
-    assert.equal(encodeTitle({ ...title, version: 10 }).code[0], "a")
+  test("start with the version and whether the rest is compressed", () => {
+    assert.equal(encodeTitle(title).code[0], "C")
+    assert.equal(encodeTitle({ version: 10, lines: [{ text: "same" }, { text: "same" }, { text: "same" }, { text: "same" }] }).code[0], "V")
   })
 
   test("report a newer version instead of rejecting it", () => {
-    assert.equal(decodeTitle(`9${encodeTitle(title).code.slice(1)}`).version, 9)
+    assert.equal(decodeTitle(encodeTitle({ ...title, version: 31 }).code).version, 31)
+  })
+
+  test("refuse a version the first character can't hold", () => {
+    assert.throws(() => encodeTitle({ ...title, version: 32 }), /version 32/)
+  })
+
+  test("words that share settings open as they were saved", () => {
+    const lines = [{ type: "bottom", scaleX: 0.8, words: [{ text: "title", texture: "fired", hue: 10, customBorder: true }, { text: "generator", texture: "fired", hue: 20, customBorder: true }] }, { words: [{ text: "one", texture: "ice" }] }]
+    assert.deepEqual(decodeTitle(encodeTitle({ version: 1, lines }).code).lines, lines)
+  })
+
+  test("a twist anchor on a line stays on the line", () => {
+    const lines = [{ twistRibbonAnchor: "left", words: [{ text: "a", texture: "ice" }, { text: "b", texture: "ice" }] }]
+    assert.deepEqual(decodeTitle(encodeTitle({ version: 1, lines }).code).lines, lines)
+  })
+
+  test("only compress when it is shorter", () => {
+    const lines = Array.from({ length: 6 }, () => ({ text: "repeated", texture: "cracked", overlays: [{ overlay: "highlights_top", opacity: 50 }] }))
+    assert.ok(encodeTitle({ version: 1, lines }).code.length < 1 + Math.ceil(writeLines(lines).length * 4 / 3))
+    assert.deepEqual(decodeTitle(encodeTitle({ version: 1, lines }).code).lines, lines)
   })
 
   test("stay short for the generator logo", () => {
@@ -269,10 +289,48 @@ describe("damaged links", () => {
   }
 })
 
-describe("fonts in links", () => {
-  test("every published font is stored compactly", () => {
+describe("names in links", () => {
+  test("any font is stored compactly by its id", () => {
     const list = JSON.parse(fs.readFileSync(new URL("../public/font/fonts.json", import.meta.url), "utf8"))
-    for (const entry of list.flatMap(({ variants, ...font }) => [font].concat(variants ?? []))) assert.ok(isCompact("font", entry.id), entry.id)
+    for (const id of list.flatMap(({ variants, ...font }) => [font].concat(variants ?? [])).map(entry => entry.id).concat("a-font-added-later")) {
+      assert.ok(isCompact("font", id), id)
+      assert.equal(roundTrip([{ font: id }])[0].font, id)
+    }
+  })
+
+  test("names of every length round trip", () => {
+    for (const name of ["", "a", "ab", "abc", "abcd", "story_mode", "1.21.4", "26.4-snapshot-7", "cracked_polished_blackstone_bricks", "..--__99zz"]) {
+      for (const key of ["texture", "textureVariant", "tileable", "tileableVariant", "minecraftTexture", "minecraftVersion"]) assert.equal(roundTrip([{ [key]: name }])[0][key], name)
+      assert.equal(roundTrip([{ overlays: [{ overlay: name }] }])[0].overlays[0].overlay, name)
+    }
+  })
+
+  test("names are packed into fewer bytes than their letters", () => {
+    assert.equal(writeLines([{ font: "minecraft-legends" }]).length, 3 + 1 + 12)
+  })
+
+  test("a name with other characters still round trips", () => {
+    assert.equal(roundTrip([{ texture: "Fancy Name" }])[0].texture, "Fancy Name")
+  })
+})
+
+describe("text in links", () => {
+  test("every kind of text round trips", () => {
+    for (const text of ["", "a", "MINECRAFT", "update text here", "John doe's", "{ dungeons }", "java & bedrock", "minecrAft", "kalmax0328's", "\u{1F333}", "café", "\u{1F633}£€@"]) assert.equal(roundTrip([{ text }])[0].text, text)
+  })
+
+  test("links store text in lowercase, like the text box", () => {
+    const lines = [{ text: "MINECRAFT" }, { words: [{ text: "Title" }, { text: "minecrAft" }] }]
+    assert.deepEqual(decodeTitle(encodeTitle({ version: 1, lines }).code).lines, [{ text: "minecraft" }, { words: [{ text: "title" }, { text: "minecraft" }] }])
+  })
+
+  test("letters and digits pack smaller than punctuation", () => {
+    assert.ok(writeLines([{ text: "java edition" }]).length < writeLines([{ text: "java.edition" }]).length)
+    assert.ok(writeLines([{ text: "java.edition" }]).length < writeLines([{ text: "javaéedition" }]).length)
+  })
+
+  test("text the characters can't cover is stored as it is", () => {
+    assert.equal(writeLines([{ text: "\u{1F333}" }]).length, 3 + 1 + 4)
   })
 })
 

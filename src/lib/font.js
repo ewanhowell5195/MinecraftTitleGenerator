@@ -1,9 +1,8 @@
 import { pixelsOf } from "./canvas.js"
 import { titleCase } from "./names.js"
+import { DEFAULT_ORDER } from "./order.js"
 import { platform } from "./platform.js"
 import { defaultBorder } from "./settings.js"
-
-export const DEFAULT_ORDER = "\u{1F633}abcdefghijklmnopqrstuvwxyz0123456789&#()[]{}/\\?!.:-\u{1F629}'+=<>%^*~,;_$£€@┫┣"
 
 export const SHEET_MAX_WIDTH = 560
 

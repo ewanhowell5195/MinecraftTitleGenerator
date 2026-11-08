@@ -1,7 +1,15 @@
+import { deflateSync, inflateSync } from "three/addons/libs/fflate.module.js"
 import { hexOf, rgbOf } from "./colour.js"
-import { OVERLAY_KINDS, isCustomFont } from "./settings.js"
+import { DEFAULT_ORDER } from "./order.js"
+import { LINE, OVERLAY_KINDS, isCustomFont } from "./settings.js"
 
 const LAYERS = Object.keys(OVERLAY_KINDS)
+// older titles keep the twist anchors on the line
+const LINE_ONLY = new Set(["words", "matchWidth", "twistRibbonAnchor", "twistDoorAnchor"])
+const PREFIXES = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+const ID_CHARACTERS = Array.from("abcdefghijklmnopqrstuvwxyz0123456789-_.")
+const TEXT_SETS = ["abcdefghijklmnopqrstuvwxyz0123456789 '-", `${DEFAULT_ORDER} `].map(set => Array.from(set))
+const TEXT_FORMATS = TEXT_SETS.length + 1
 
 const encoder = new TextEncoder()
 const decoder = new TextDecoder("utf-8", { fatal: true })
@@ -35,14 +43,61 @@ function readBytes(reader, length) {
   return reader.bytes.subarray(reader.at - length, reader.at)
 }
 
+function packedLength(set, count) {
+  return count ? Math.ceil((BigInt(set.length) ** BigInt(count) - 1n).toString(2).length / 8) : 0
+}
+
+function writePacked(out, characters, set) {
+  let number = 0n
+  for (const character of characters) number = number * BigInt(set.length) + BigInt(set.indexOf(character))
+  for (let at = packedLength(set, characters.length) - 1; at >= 0; at--) out.push(Number(number >> BigInt(at * 8) & 255n))
+}
+
+function readPacked(reader, set, count) {
+  let number = 0n
+  for (const byte of readBytes(reader, packedLength(set, count))) number = number * 256n + BigInt(byte)
+  const size = BigInt(set.length)
+  const characters = []
+  for (let step = 0; step < count; step++) {
+    characters.push(set[Number(number % size)])
+    number /= size
+  }
+  if (number) throw new Error("the link has text this version does not know")
+  return characters.reverse().join("")
+}
+
+function fitsSet(characters, set) {
+  return characters.every(character => set.includes(character))
+}
+
 function writeText(out, value) {
+  const characters = Array.from(value)
+  const tier = TEXT_SETS.findIndex(set => fitsSet(characters, set))
+  if (tier >= 0) {
+    writeVarint(out, characters.length * TEXT_FORMATS + tier + 1)
+    writePacked(out, characters, TEXT_SETS[tier])
+    return
+  }
   const bytes = encoder.encode(value)
-  writeVarint(out, bytes.length)
+  writeVarint(out, bytes.length * TEXT_FORMATS)
   for (const byte of bytes) out.push(byte)
 }
 
 function readText(reader) {
-  return decoder.decode(readBytes(reader, readVarint(reader)))
+  const header = readVarint(reader)
+  const length = Math.floor(header / TEXT_FORMATS)
+  const tier = header % TEXT_FORMATS
+  return tier ? readPacked(reader, TEXT_SETS[tier - 1], length) : decoder.decode(readBytes(reader, length))
+}
+
+function writeId(out, value) {
+  const characters = Array.from(value)
+  writeVarint(out, characters.length)
+  writePacked(out, characters, ID_CHARACTERS)
+}
+
+function readId(reader) {
+  return readPacked(reader, ID_CHARACTERS, readVarint(reader))
 }
 
 function writeNumber(out, value) {
@@ -132,6 +187,7 @@ function choice(...options) {
 
 const BOOLEAN = { fits: value => typeof value === "boolean" }
 const TEXT = { fits: value => typeof value === "string", write: writeText, read: readText }
+const ID = { fits: value => typeof value === "string" && fitsSet(Array.from(value), ID_CHARACTERS), write: writeId, read: readId }
 const NUMBER = { fits: Number.isFinite, write: writeNumber, read: readNumber }
 const COLOUR = { fits: isColour, write: writeColour, read: readColour }
 const OBJECTS = list(isObject, writeObject, readObject)
@@ -152,149 +208,149 @@ const FACE_DIRECTION = choice("up", "along")
 // Links store keys and options by position, so only ever add to the end of these lists.
 const KEYS = [
   ["text", TEXT],
-  ["texture", TEXT],
-  ["type", choice("top", "bottom", "small")],
-  ["words", OBJECTS],
-  ["matchWidth", NUMBER],
-  ["font", choice("minecraft-ten", "minecraft-ten-v2", "minecraft-ten-cyrillic", "minecraft-five-bold", "minecraft-five-bold-cyrillic", "minecraft-five-bold-block", "minecraft-ten-outline", "minecraft-dungeons", "minecraft-gui", "minecraft-seven", "minecraft-five", "minecraft-sga", "block-serif", "minecraft-legends", "minecraft-ten-serif", "minecraft-ten-rounded", "geo-squares")],
-  ["hue", NUMBER],
-  ["saturation", NUMBER],
-  ["brightness", NUMBER],
-  ["contrast", NUMBER],
+  ["texture", ID],
+  ["overlay", ID],
   ["colour", COLOUR],
+  ["spaceBefore", BOOLEAN],
   ["blend", BLEND],
-  ["colourOpacity", NUMBER],
-  ["customBorder", BOOLEAN],
-  ["borderColour", COLOUR],
-  ["customEdge", BOOLEAN],
-  ["edgeColour", COLOUR],
-  ["edgeBrightness", NUMBER],
-  ["textureSource", choice("premade", "tileable", "gradient")],
-  ["textureVariant", TEXT],
-  ["tileable", TEXT],
-  ["tileableVariant", TEXT],
-  ["tileableScale", NUMBER],
-  ["stops", STOPS],
-  ["smooth", BOOLEAN],
-  ["gradientAngle", NUMBER],
   ["overlayMode", OVERLAY_MODE],
-  ["overlays", OVERLAYS],
-  ["edgeOverlayMode", OVERLAY_MODE],
-  ["edgeOverlays", OVERLAYS],
-  ["overlay", TEXT],
-  ["source", choice("premade", "file")],
-  ["colourBlend", BLEND],
   ["opacity", NUMBER],
-  ["seed", NUMBER],
-  ["spacing", NUMBER],
-  ["border", NUMBER],
+  ["overlays", OVERLAYS],
+  ["font", ID],
+  ["type", choice("top", "bottom", "small")],
   ["depth", NUMBER],
+  ["internalFaces", BOOLEAN],
+  ["textureSource", choice("premade", "tileable", "gradient")],
+  ["border", NUMBER],
+  ["translateY", NUMBER],
+  ["sideFaces", BOOLEAN],
+  ["textureVariant", ID],
+  ["colourBlend", BLEND],
+  ["customEdge", BOOLEAN],
+  ["words", OBJECTS],
+  ["seed", NUMBER],
+  ["randomness", NUMBER],
+  ["hue", NUMBER],
+  ["edgeColour", COLOUR],
+  ["stops", STOPS],
+  ["edgeOverlayMode", OVERLAY_MODE],
   ["scaleX", NUMBER],
   ["scaleY", NUMBER],
-  ["linkScale", NUMBER],
-  ["rotationX", NUMBER],
-  ["rotationY", NUMBER],
-  ["rotationZ", NUMBER],
-  ["translateX", NUMBER],
-  ["translateY", NUMBER],
-  ["translateZ", NUMBER],
-  ["row", NUMBER],
-  ["rowSpacing", NUMBER],
-  ["spaceBefore", BOOLEAN],
-  ["hidden", BOOLEAN],
-  ["fade", BOOLEAN],
-  ["outerFade", NUMBER],
-  ["internalFaces", BOOLEAN],
-  ["fadeInternal", BOOLEAN],
-  ["internalFade", NUMBER],
-  ["customInternal", BOOLEAN],
-  ["internalColour", COLOUR],
+  ["spacing", NUMBER],
   ["internalBrightness", NUMBER],
-  ["sideFaces", BOOLEAN],
-  ["fadeSides", BOOLEAN],
-  ["sideFade", NUMBER],
+  ["customInternal", BOOLEAN],
+  ["edgeOverlays", OVERLAYS],
+  ["scaleZ", NUMBER],
+  ["sideBrightness", NUMBER],
+  ["wordTranslateX", NUMBER],
+  ["row", NUMBER],
+  ["internalColour", COLOUR],
+  ["saturation", NUMBER],
+  ["colourOpacity", NUMBER],
+  ["contrast", NUMBER],
+  ["spread", NUMBER],
+  ["gap", NUMBER],
+  ["width", NUMBER],
+  ["amplitude", NUMBER],
+  ["angle", NUMBER],
+  ["length", NUMBER],
+  ["level", NUMBER],
+  ["offset", NUMBER],
+  ["customBorder", BOOLEAN],
+  ["linkScale", NUMBER],
+  ["wordScaleY", NUMBER],
+  ["thickness", NUMBER],
+  ["matchWidth", NUMBER],
   ["customSide", BOOLEAN],
   ["sideColour", COLOUR],
-  ["sideBrightness", NUMBER],
-  ["arcMode", ARC_MODE],
-  ["arcTop", NUMBER],
+  ["creeperFace", BOOLEAN],
+  ["translateZ", NUMBER],
   ["arcBottom", NUMBER],
+  ["borderColour", COLOUR],
+  ["translateX", NUMBER],
+  ["arcTop", NUMBER],
+  ["outerFade", NUMBER],
+  ["wordScaleX", NUMBER],
+  ["brightness", NUMBER],
+  ["arcGradient", BOOLEAN],
+  ["wordDepth", NUMBER],
+  ["wordRotationZ", NUMBER],
+  ["wordTranslateZ", NUMBER],
+  ["rotationX", NUMBER],
+  ["fadeInternal", BOOLEAN],
+  ["fadeSides", BOOLEAN],
+  ["wordRotationY", NUMBER],
+  ["edgeBrightness", NUMBER],
+  ["gradientAngle", NUMBER],
+  ["internalFade", NUMBER],
+  ["terminators", BOOLEAN],
+  ["scaleMarked", BOOLEAN],
+  ["wordScaleOutline", BOOLEAN],
+  ["wordRotationX", NUMBER],
+  ["wordTranslateY", NUMBER],
+  ["edgeFill", FACE_FILL],
+  ["edgeStops", STOPS],
+  ["internalFill", FACE_FILL],
+  ["internalStops", STOPS],
+  ["clipHoles", BOOLEAN],
+  ["tileableSource", choice("premade", "minecraft")],
+  ["minecraftTexture", ID],
+  ["minecraftVersion", ID],
+  ["smooth", BOOLEAN],
+  ["rotationZ", NUMBER],
+  ["hidden", BOOLEAN],
+  ["kerning", BOOLEAN],
+  ["wordArcMode", ARC_MODE],
+  ["twistRibbon", NUMBER],
+  ["matchBottom", BOOLEAN],
+  ["matchScaleY", BOOLEAN],
+  ["depthAnchor", choice("front", "middle", "back")],
+  ["tileableScale", NUMBER],
+  ["arcMode", ARC_MODE],
   ["arcMove", NUMBER],
   ["arcMarked", BOOLEAN],
-  ["arcGradient", BOOLEAN],
-  ["clipHoles", BOOLEAN],
-  ["terminators", BOOLEAN],
-  ["kerning", BOOLEAN],
-  ["scaleZ", NUMBER],
-  ["scaleMarked", BOOLEAN],
+  ["wordLinkScale", NUMBER],
+  ["wordScaleMarked", BOOLEAN],
+  ["internalSmooth", BOOLEAN],
+  ["twistRibbonAnchor", TWIST_ANCHOR],
+  ["overlayFade", NUMBER],
+  ["tileable", ID],
+  ["tileableVariant", ID],
+  ["source", choice("premade", "file")],
+  ["rotationY", NUMBER],
+  ["rowSpacing", NUMBER],
+  ["fade", BOOLEAN],
+  ["sideFade", NUMBER],
   ["scaleOutline", BOOLEAN],
-  ["wordDepth", NUMBER],
   ["wordBorder", NUMBER],
-  ["wordArcMode", ARC_MODE],
   ["wordArcTop", NUMBER],
   ["wordArcBottom", NUMBER],
   ["wordArcMove", NUMBER],
   ["wordArcMarked", BOOLEAN],
-  ["wordScaleX", NUMBER],
-  ["wordScaleY", NUMBER],
-  ["wordLinkScale", NUMBER],
   ["wordScaleZ", NUMBER],
-  ["wordScaleMarked", BOOLEAN],
-  ["wordScaleOutline", BOOLEAN],
-  ["wordRotationX", NUMBER],
-  ["wordRotationY", NUMBER],
-  ["wordRotationZ", NUMBER],
-  ["wordTranslateX", NUMBER],
-  ["wordTranslateY", NUMBER],
-  ["wordTranslateZ", NUMBER],
   ["tileableXOffset", NUMBER],
   ["tileableYOffset", NUMBER],
   ["tileableRandomRotations", BOOLEAN],
   ["tileableRandomMirroring", BOOLEAN],
   ["tileableTileEdges", BOOLEAN],
   ["disableFontOverlay", BOOLEAN],
-  ["amplitude", NUMBER],
-  ["angle", NUMBER],
-  ["gap", NUMBER],
   ["inset", NUMBER],
-  ["length", NUMBER],
-  ["level", NUMBER],
-  ["offset", NUMBER],
   ["radius", NUMBER],
-  ["randomness", NUMBER],
   ["size", NUMBER],
-  ["spread", NUMBER],
-  ["thickness", NUMBER],
-  ["width", NUMBER],
-  ["tileableSource", choice("premade", "minecraft")],
-  ["minecraftTexture", TEXT],
-  ["minecraftVersion", TEXT],
   ["tileablePerCharacter", BOOLEAN],
   ["layerWords", BOOLEAN],
-  ["edgeFill", FACE_FILL],
-  ["edgeStops", STOPS],
   ["edgeSmooth", BOOLEAN],
-  ["internalFill", FACE_FILL],
-  ["internalStops", STOPS],
-  ["internalSmooth", BOOLEAN],
   ["internalDirection", FACE_DIRECTION],
   ["sideFill", FACE_FILL],
   ["sideStops", STOPS],
   ["sideSmooth", BOOLEAN],
   ["sideDirection", FACE_DIRECTION],
-  ["twistRibbon", NUMBER],
-  ["twistRibbonAnchor", TWIST_ANCHOR],
   ["twistRibbonMirror", BOOLEAN],
   ["twistDoor", NUMBER],
   ["twistDoorAnchor", TWIST_ANCHOR],
   ["twistDoorSame", BOOLEAN],
-  ["matchBottom", BOOLEAN],
   ["matchOffset", NUMBER],
   ["matchScale", NUMBER],
-  ["matchScaleY", BOOLEAN],
-  ["overlayFade", NUMBER],
-  ["depthAnchor", choice("front", "middle", "back")],
-  ["creeperFace", BOOLEAN],
   ["twistRibbonCentre", NUMBER],
   ["twistDoorCentre", NUMBER],
   ["arcCentre", NUMBER],
@@ -382,8 +438,36 @@ function withoutUploads(entry) {
   return stripped
 }
 
+function lineKey(key) {
+  return LINE.has(key) || LINE_ONLY.has(key)
+}
+
+function lowercased(entry) {
+  const result = typeof entry.text === "string" ? { ...entry, text: entry.text.toLowerCase() } : entry
+  return entry.words ? { ...result, words: entry.words.map(lowercased) } : result
+}
+
+function hoisted(line) {
+  if (!line.words?.length) return line
+  const [first, ...rest] = line.words
+  const shared = Object.keys(first).filter(key => !lineKey(key) && rest.every(word => key in word && JSON.stringify(word[key]) === JSON.stringify(first[key])))
+  if (!shared.length) return line
+  return { ...line, ...Object.fromEntries(shared.map(key => [key, first[key]])), words: line.words.map(word => Object.fromEntries(Object.entries(word).filter(([key]) => !shared.includes(key)))) }
+}
+
+function lowered(line) {
+  if (!line.words) return line
+  const shared = Object.entries(line).filter(([key]) => !lineKey(key))
+  if (!shared.length) return line
+  return { ...Object.fromEntries(Object.entries(line).filter(([key]) => lineKey(key))), words: line.words.map(word => ({ ...Object.fromEntries(shared), ...word })) }
+}
+
 export function encodeTitle({ version, lines }) {
-  return { code: `${version.toString(36)}${toBase64Url(writeLines(lines.map(withoutUploads)))}`, skipped: lines.reduce((total, line) => total + countUploads(line), 0) }
+  if (version * 2 + 1 >= PREFIXES.length) throw new Error(`links can't hold version ${version}`)
+  const bytes = writeLines(lines.map(line => hoisted(lowercased(withoutUploads(line)))))
+  const packed = deflateSync(bytes, { level: 9 })
+  const compressed = packed.length < bytes.length
+  return { code: `${PREFIXES[version * 2 + (compressed ? 1 : 0)]}${toBase64Url(compressed ? packed : bytes)}`, skipped: lines.reduce((total, line) => total + countUploads(line), 0) }
 }
 
 export function titleBody(code) {
@@ -392,9 +476,10 @@ export function titleBody(code) {
 
 export function decodeTitle(code) {
   try {
-    const version = parseInt(code[0], 36)
-    if (!Number.isInteger(version)) throw new Error("the link has no version")
-    return { version, lines: readLines(fromBase64Url(code.slice(1))) }
+    const prefix = PREFIXES.indexOf(code[0])
+    if (prefix < 0) throw new Error("the link has no version")
+    const bytes = fromBase64Url(code.slice(1))
+    return { version: prefix >> 1, lines: readLines(prefix % 2 ? inflateSync(bytes) : bytes).map(lowered) }
   } catch {
     throw new Error("it is incomplete or damaged")
   }
