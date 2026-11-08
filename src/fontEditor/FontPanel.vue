@@ -1,5 +1,6 @@
 <script setup>
   import { computed, onMounted, ref, shallowRef } from "vue"
+  import Dropdown from "../components/Dropdown.vue"
   import Icon from "../components/Icon.vue"
   import { loadFontList } from "../lib/font.js"
   import { DEFAULT_BORDER, DEFAULT_DEPTH, DEFAULT_SPACE_WIDTH, autoStretch, lostPixels, resizeFont, setSquareSize, slug, squareSizeLoss, squaresOf } from "../lib/fontEditor.js"
@@ -10,7 +11,7 @@
     { key: "name", label: "Name", required: true, hint: "Shown in the font list and the credits." },
     { key: "id", label: "ID", required: true, slug: true, hint: "Lowercase letters, numbers and dashes. Made from the name until you change it." },
     { key: "author", label: "Author", required: true, hint: "Who made the font, shown in the credits." },
-    { key: "basedOn", label: "Based on font", slug: true, placeholder: "minecraft-ten", hint: "The ID of the font yours was made from, so its author is credited too." },
+    { key: "basedOn", label: "Based on font", choice: true, hint: "The font yours was made from, so its author is credited too." },
     { key: "description", label: "Description", full: true, hint: "A short line shown under the font's name in the generator." }
   ]
 
@@ -32,6 +33,12 @@
   const warning = ref(null)
   const published = shallowRef([])
 
+  const basedOnOptions = computed(() => {
+    const own = font.value.id || slug(font.value.name)
+    const fonts = published.value.filter(entry => entry.id !== own).map(entry => ({ value: entry.id, label: fullName(entry, published.value) })).sort((a, b) => a.label.localeCompare(b.label))
+    const current = font.value.basedOn && !fonts.some(option => option.value === font.value.basedOn) ? [{ value: font.value.basedOn, label: font.value.basedOn, hint: "Not a published font" }] : []
+    return [{ value: "", label: "None" }].concat(current, fonts)
+  })
   const previewId = computed(() => font.value.id || slug(font.value.name) || "my-font")
   const finalSize = computed(() => `${font.value.height * font.value.density} pixels tall and ${font.value.width * font.value.density} wide`)
   const clashes = computed(() => {
@@ -114,13 +121,14 @@
     <section class="flow">
       <h3>About</h3>
       <div class="about">
-        <label v-for="item of ABOUT" :key="item.key" class="field" :class="{ full: item.full }">
+        <component :is="item.choice ? 'div' : 'label'" v-for="item of ABOUT" :key="item.key" class="field" :class="{ full: item.full }">
           <span class="label-row"><span class="label">{{ item.label }}</span><span class="tag" :class="{ required: item.required }">{{ item.required ? "Required" : "Optional" }}</span></span>
-          <input v-if="item.slug" type="text" :class="{ clashing: clashes[item.key] }" :value="font[item.key]" :placeholder="item.key === 'id' ? previewId : item.placeholder" spellcheck="false" @change="setField(item.key, slug($event.target.value), false)">
+          <Dropdown v-if="item.choice" searchable :options="basedOnOptions" :model-value="font[item.key]" @update:model-value="setField(item.key, $event, false)" />
+          <input v-else-if="item.slug" type="text" :class="{ clashing: clashes[item.key] }" :value="font[item.key]" :placeholder="item.key === 'id' ? previewId : item.placeholder" spellcheck="false" @change="setField(item.key, slug($event.target.value), false)">
           <input v-else type="text" :class="{ clashing: clashes[item.key] }" :value="font[item.key]" @input="setText(item.key, $event)">
           <small v-if="clashes[item.key]" class="hint bad">{{ clashes[item.key] }}</small>
           <small class="hint">{{ item.hint }}</small>
-        </label>
+        </component>
       </div>
     </section>
 
