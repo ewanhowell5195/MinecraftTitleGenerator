@@ -3,6 +3,7 @@ import { DEFAULT_ORDER } from "../lib/font.js"
 import { buildSheet, charactersOf, exportJson, fitGlyph, glyphOf, parsedSheet, setGlyph, slug } from "../lib/fontEditor.js"
 import { flatPixels } from "../lib/flatSheet.js"
 import { defaultBorder, defaultDepth } from "../lib/settings.js"
+import { download, downloadBlob } from "../lib/ui.js"
 
 const STORAGE_KEY = "minecraft-title-font-editor"
 const HISTORY_LIMIT = 200
@@ -18,6 +19,7 @@ const undoStack = shallowRef([])
 const redoStack = shallowRef([])
 let group = null
 let saveTimer = null
+let strokeStart = null
 
 export const canUndo = computed(() => undoStack.value.length > 0)
 export const canRedo = computed(() => redoStack.value.length > 0)
@@ -36,8 +38,21 @@ export function update(next, key = null) {
 }
 
 export function beginStroke() {
+  strokeStart = { font: font.value, redo: redoStack.value }
   remember()
   group = null
+}
+
+export function cancelStroke() {
+  if (!strokeStart) return
+  font.value = strokeStart.font
+  undoStack.value = undoStack.value.slice(0, -1)
+  redoStack.value = strokeStart.redo
+  strokeStart = null
+}
+
+export function typing(target) {
+  return target instanceof HTMLElement && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))
 }
 
 export function strokeTo(next) {
@@ -126,7 +141,7 @@ export function flushSave() {
   save()
 }
 
-function canvasOf({ data, width, height }) {
+export function canvasOf({ data, width, height }) {
   const canvas = document.createElement("canvas")
   canvas.width = Math.max(1, width)
   canvas.height = Math.max(1, height)
@@ -145,23 +160,15 @@ export function flatTexture(value) {
 }
 
 export function downloadFlatTexture() {
-  downloadUrl("flat.png", canvasOf(flatTexture(font.value)).toDataURL("image/png"))
+  download("flat.png", canvasOf(flatTexture(font.value)).toDataURL("image/png"))
 }
 
-function downloadUrl(name, url) {
-  const link = document.createElement("a")
-  link.download = name
-  link.href = url
-  link.click()
-}
 
 export function downloadTexture() {
-  downloadUrl("font.png", sheetCanvas().toDataURL("image/png"))
+  download("font.png", sheetCanvas().toDataURL("image/png"))
 }
 
 export function downloadJson() {
   const text = JSON.stringify(exportJson(font.value, sheetCanvas().toDataURL("image/png")), null, 2) + "\n"
-  const url = URL.createObjectURL(new Blob([text], { type: "application/json" }))
-  downloadUrl(`${font.value.id || slug(font.value.name) || "font"}.json`, url)
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  downloadBlob(`${font.value.id || slug(font.value.name) || "font"}.json`, new Blob([text], { type: "application/json" }))
 }

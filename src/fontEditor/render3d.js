@@ -4,7 +4,7 @@ import { buildSheet, exportJson } from "../lib/fontEditor.js"
 import { platform, usePlatform } from "../lib/platform.js"
 import { FILE_VERSION, defaultBorder, defaultDepth, defaultSpacing } from "../lib/settings.js"
 import { linesCanvas } from "../lib/titlePicture.js"
-import { flatTexture } from "./store.js"
+import { canvasOf, flatTexture } from "./store.js"
 
 const files = new Map()
 const previous = new Map()
@@ -20,12 +20,8 @@ function install() {
 
 install()
 
-function pngUrl({ data, width, height }) {
-  const canvas = document.createElement("canvas")
-  canvas.width = Math.max(1, width)
-  canvas.height = Math.max(1, height)
-  if (width && height) canvas.getContext("2d").putImageData(new ImageData(data, width, height), 0, 0)
-  return canvas.toDataURL("image/png")
+function pngUrl(pixels) {
+  return canvasOf(pixels).toDataURL("image/png")
 }
 
 function forget(id) {

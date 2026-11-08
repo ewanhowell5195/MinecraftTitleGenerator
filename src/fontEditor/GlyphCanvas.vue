@@ -1,8 +1,8 @@
 <script setup>
   import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
   import Icon from "../components/Icon.vue"
-  import { blockAt, characterName, fillCells, lineCells, paint, rectangleCells, rowOfY, setGlyph, setStretch, shiftGlyph, widthOf, yOfRow } from "../lib/fontEditor.js"
-  import { arrowsMove, beginStroke, font, glyph, selected, strokeTo, updateGlyph } from "./store.js"
+  import { blockAt, fillCells, lineCells, paint, rectangleCells, rowOfY, setGlyph, setStretch, shiftGlyph, widthOf, yOfRow } from "../lib/fontEditor.js"
+  import { arrowsMove, beginStroke, cancelStroke, font, glyph, selected, strokeTo, typing, updateGlyph } from "./store.js"
 
   const TOOLS = [
     { id: "pencil", icon: "pencil", label: "Pencil", key: "b", hint: "Shift-click draws a line from the last point, holding Shift while drawing keeps it horizontal or vertical" },
@@ -12,12 +12,16 @@
   ]
   const GUTTER_GAP = 6
   const GUTTER = 18
-  const PADDING = 2
+  const FIT_MARGIN = 12
   const MAX_CELL = 40
   const MIN_CELL = 3
+  const MAX_ZOOM_CELL = 160
+  const PAN_KEEP = 48
+  const KEY_ZOOM = 1.25
   const STRETCH_COLOUR = "#f59e0b"
   const GUIDE_FONT = "Arial, sans-serif"
   const ARROWS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }
+  const KEY_ZOOMS = { "+": KEY_ZOOM, "=": KEY_ZOOM, "-": 1 / KEY_ZOOM }
   const GUIDES = { "\u{1F633}": "", "\u{1F629}": "\u2018", "'": "\u2019" }
 
   const tool = ref("pencil")
@@ -26,25 +30,56 @@
   const available = ref({ width: 300, height: 300 })
   const hover = ref(null)
   const chosenBrush = ref(null)
+  const zoomed = ref(null)
+  const spaceHeld = ref(false)
+  const panning = ref(false)
+  const outside = ref(false)
+  const touches = new Map()
   let stroke = null
   let anchor = null
   let lastAt = null
   let observer = null
+  let gesture = null
+  let pendingFill = null
+  let over = false
+  let backdrop = "#000"
 
   const brushes = computed(() => Array.from({ length: font.value.grid }, (_, index) => font.value.grid - index).filter(size => font.value.grid % size === 0))
   const brush = computed(() => brushes.value.includes(chosenBrush.value) ? chosenBrush.value : font.value.grid)
   const drawFont = computed(() => ({ ...font.value, grid: brush.value }))
   const columns = computed(() => widthOf(font.value, glyph.value))
   const rows = computed(() => glyph.value.rows.length)
-  const cell = computed(() => {
-    const fit = (across, down) => Math.min((available.value.width - GUTTER - GUTTER_GAP - PADDING * 2) / across, (available.value.height - PADDING * 2) / down)
-    const size = Math.min(fit(font.value.width, font.value.height), fit(columns.value, rows.value))
-    return Math.max(MIN_CELL, Math.min(MAX_CELL, Math.floor(size)))
+  const fitted = computed(() => {
+    const { width, height } = available.value
+    const room = (across, down) => Math.min((width - FIT_MARGIN * 2 - GUTTER - GUTTER_GAP) / across, (height - FIT_MARGIN * 2) / down)
+    const cell = clamp(Math.floor(Math.min(room(font.value.width, font.value.height), room(columns.value, rows.value))), MIN_CELL, MAX_CELL)
+    return { cell, x: Math.round((width - columns.value * cell - GUTTER_GAP - GUTTER) / 2), y: Math.round((height - rows.value * cell) / 2) }
   })
-  const gutterX = computed(() => PADDING + columns.value * cell.value + GUTTER_GAP)
-  const size = computed(() => ({ width: gutterX.value + GUTTER + PADDING, height: rows.value * cell.value + PADDING * 2 }))
+  const view = computed(() => zoomed.value ?? fitted.value)
+  const zoomPercent = computed(() => Math.round(view.value.cell / fitted.value.cell * 100))
+  const board = computed(() => {
+    const right = xAt(columns.value)
+    return { left: xAt(0), top: yAt(0), right, bottom: yAt(rows.value), gutter: Math.min(right + GUTTER_GAP, available.value.width - GUTTER) }
+  })
 
-  function drawGuide(ctx, baseline, capHeight, width) {
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value))
+  }
+
+  function xAt(column) {
+    return Math.round(view.value.x + column * view.value.cell)
+  }
+
+  function yAt(row) {
+    return Math.round(view.value.y + row * view.value.cell)
+  }
+
+  function line(ctx, fromX, fromY, toX, toY) {
+    ctx.moveTo(fromX, fromY)
+    ctx.lineTo(toX, toY)
+  }
+
+  function drawGuide(ctx, centre, baseline, capHeight, width) {
     const text = GUIDES[selected.value] ?? selected.value.toUpperCase()
     if (!text.trim()) return
     ctx.save()
@@ -55,7 +90,7 @@
     const textWidth = measured.actualBoundingBoxLeft + measured.actualBoundingBoxRight
     const below = Math.max(0, measured.actualBoundingBoxDescent)
     const scale = Math.min(1, width * 0.9 / textWidth, capHeight / (measured.actualBoundingBoxAscent + below))
-    ctx.translate(PADDING + width / 2, baseline - below * scale)
+    ctx.translate(centre, baseline - below * scale)
     ctx.scale(scale, scale)
     ctx.fillStyle = "#2f7cf659"
     ctx.fillText(text, (measured.actualBoundingBoxLeft - measured.actualBoundingBoxRight) / 2, 0)
@@ -65,95 +100,122 @@
   function draw() {
     const element = canvas.value
     if (!element) return
-    const { width, height } = size.value
+    const { width, height } = available.value
     const ratio = devicePixelRatio || 1
-    element.width = width * ratio
-    element.height = height * ratio
-    element.style.width = `${width}px`
-    element.style.height = `${height}px`
+    element.width = Math.round(width * ratio)
+    element.height = Math.round(height * ratio)
     const ctx = element.getContext("2d")
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
-    const c = cell.value
     const current = glyph.value
     const currentFont = font.value
-    const totalWidth = columns.value * c
+    const { left, top, right, bottom, gutter } = board.value
+    const topline = yAt(current.above)
+    const baseline = yAt(current.above + currentFont.height)
     ctx.fillStyle = "#fff"
-    ctx.fillRect(PADDING, PADDING, totalWidth, rows.value * c)
+    ctx.fillRect(left, top, right - left, bottom - top)
     ctx.fillStyle = "#dfe8f2"
-    if (current.above) ctx.fillRect(PADDING, PADDING, totalWidth, current.above * c)
-    if (current.below) ctx.fillRect(PADDING, PADDING + (current.above + currentFont.height) * c, totalWidth, current.below * c)
-    drawGuide(ctx, PADDING + (current.above + currentFont.height) * c, currentFont.height * c, totalWidth)
+    if (current.above) ctx.fillRect(left, top, right - left, topline - top)
+    if (current.below) ctx.fillRect(left, baseline, right - left, bottom - baseline)
+    drawGuide(ctx, (left + right) / 2, baseline, baseline - topline, right - left)
     ctx.fillStyle = "#000"
     current.rows.forEach((text, row) => {
-      for (let x = 0; x < text.length; x++) if (text[x] === "1") ctx.fillRect(PADDING + x * c, PADDING + row * c, c, c)
+      for (let x = 0; x < text.length; x++) if (text[x] === "1") ctx.fillRect(xAt(x), yAt(row), xAt(x + 1) - xAt(x), yAt(row + 1) - yAt(row))
     })
-    if (c >= 8) {
+    ctx.lineWidth = 1
+    if (view.value.cell >= 8) {
       ctx.strokeStyle = "#8888882e"
-      ctx.lineWidth = 1
       ctx.beginPath()
-      for (let x = 1; x < columns.value; x++) {
-        ctx.moveTo(PADDING + x * c + 0.5, PADDING)
-        ctx.lineTo(PADDING + x * c + 0.5, PADDING + rows.value * c)
-      }
-      for (let row = 1; row < rows.value; row++) {
-        ctx.moveTo(PADDING, PADDING + row * c + 0.5)
-        ctx.lineTo(PADDING + totalWidth, PADDING + row * c + 0.5)
-      }
+      for (let x = 1; x < columns.value; x++) line(ctx, xAt(x) + 0.5, top, xAt(x) + 0.5, bottom)
+      for (let row = 1; row < rows.value; row++) line(ctx, left, yAt(row) + 0.5, right, yAt(row) + 0.5)
       ctx.stroke()
     }
     if (currentFont.grid > 1) {
       ctx.strokeStyle = "#7a7f8a80"
-      ctx.lineWidth = 1
       ctx.beginPath()
-      for (let x = currentFont.grid; x < columns.value; x += currentFont.grid) {
-        ctx.moveTo(PADDING + x * c + 0.5, PADDING)
-        ctx.lineTo(PADDING + x * c + 0.5, PADDING + rows.value * c)
-      }
-      for (let row = 0; row <= rows.value; row++) {
+      for (let x = currentFont.grid; x < columns.value; x += currentFont.grid) line(ctx, xAt(x) + 0.5, top, xAt(x) + 0.5, bottom)
+      for (let row = 1; row <= rows.value; row++) {
         const y = yOfRow(currentFont, current, row)
-        if (row === 0 || ((y % currentFont.grid) + currentFont.grid) % currentFont.grid !== currentFont.grid - 1) continue
-        ctx.moveTo(PADDING, PADDING + row * c + 0.5)
-        ctx.lineTo(PADDING + totalWidth, PADDING + row * c + 0.5)
+        if (((y % currentFont.grid) + currentFont.grid) % currentFont.grid === currentFont.grid - 1) line(ctx, left, yAt(row) + 0.5, right, yAt(row) + 0.5)
       }
       ctx.stroke()
     }
-    const topline = PADDING + current.above * c
-    const baseline = PADDING + (current.above + currentFont.height) * c
     ctx.lineWidth = 2
     ctx.strokeStyle = "#2f7cf6"
     ctx.beginPath()
-    ctx.moveTo(PADDING, topline)
-    ctx.lineTo(PADDING + totalWidth, topline)
+    line(ctx, left, topline, right, topline)
     ctx.stroke()
     ctx.strokeStyle = "#2dbb4f"
     ctx.beginPath()
-    ctx.moveTo(PADDING, baseline)
-    ctx.lineTo(PADDING + totalWidth, baseline)
+    line(ctx, left, baseline, right, baseline)
     ctx.stroke()
+    if (gutter < right + GUTTER_GAP) {
+      ctx.fillStyle = backdrop
+      ctx.fillRect(gutter - GUTTER_GAP, top, GUTTER_GAP, bottom - top)
+    }
     ctx.fillStyle = "#2b2e35"
-    ctx.fillRect(gutterX.value, PADDING, GUTTER, rows.value * c)
+    ctx.fillRect(gutter, top, GUTTER, bottom - top)
     ctx.fillStyle = STRETCH_COLOUR
-    for (const y of current.stretch) ctx.fillRect(gutterX.value, PADDING + rowOfY(currentFont, current, y) * c, GUTTER, c)
+    for (const y of current.stretch) {
+      const row = rowOfY(currentFont, current, y)
+      ctx.fillRect(gutter, yAt(row), GUTTER, yAt(row + 1) - yAt(row))
+    }
     if (hover.value) {
+      const { column, row, across, down } = hover.value
+      const x = hover.value.gutter ? gutter : xAt(column)
       ctx.strokeStyle = "#6cc04a"
       ctx.lineWidth = 2
-      ctx.strokeRect(hover.value.x, hover.value.y, hover.value.width, hover.value.height)
+      ctx.strokeRect(x, yAt(row), hover.value.gutter ? GUTTER : xAt(column + across) - x, yAt(row + down) - yAt(row))
     }
   }
 
-  function locate(event) {
+  function local(event) {
     const box = canvas.value.getBoundingClientRect()
-    const px = event.clientX - box.left
-    const py = event.clientY - box.top
-    return { gutter: px >= gutterX.value - GUTTER_GAP, x: Math.floor((px - PADDING) / cell.value), row: Math.floor((py - PADDING) / cell.value) }
+    return { x: event.clientX - box.left, y: event.clientY - box.top }
+  }
+
+  function locate(event) {
+    const { x: px, y: py } = local(event)
+    const { cell, x, y } = view.value
+    const { left, top, right, bottom, gutter } = board.value
+    const across = py >= top && py < bottom
+    return { gutter: across && px >= gutter - GUTTER_GAP && px < gutter + GUTTER + GUTTER_GAP, inside: across && px >= left && px < right, x: Math.floor((px - x) / cell), row: Math.floor((py - y) / cell) }
   }
 
   function clampRow(row) {
-    return Math.max(0, Math.min(rows.value - 1, row))
+    return clamp(row, 0, rows.value - 1)
   }
 
   function clampX(x) {
-    return Math.max(0, Math.min(columns.value - 1, x))
+    return clamp(x, 0, columns.value - 1)
+  }
+
+  function clampView({ cell, x, y }) {
+    const across = columns.value * cell
+    const down = rows.value * cell
+    const keepX = Math.min(PAN_KEEP, across)
+    const keepY = Math.min(PAN_KEEP, down)
+    return { cell, x: clamp(x, keepX - across, available.value.width - keepX), y: clamp(y, keepY - down, available.value.height - keepY) }
+  }
+
+  function zoomTo(from, wanted, at, to = at) {
+    const fit = fitted.value.cell
+    const cell = clamp(wanted, Math.min(fit, Math.max(MIN_CELL, fit / 2)), Math.max(fit, MAX_ZOOM_CELL))
+    const scale = cell / from.cell
+    zoomed.value = clampView({ cell, x: to.x - (at.x - from.x) * scale, y: to.y - (at.y - from.y) * scale })
+  }
+
+  function fit() {
+    zoomed.value = null
+  }
+
+  function middle() {
+    return { x: available.value.width / 2, y: available.value.height / 2 }
+  }
+
+  function wheel(event) {
+    event.preventDefault()
+    const lines = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? available.value.height : 1
+    zoomTo(view.value, view.value.cell * Math.exp(-event.deltaY * lines * (event.ctrlKey ? 0.01 : 0.0015)), local(event))
   }
 
   function applyStretch(row) {
@@ -197,12 +259,49 @@
     return origin
   }
 
+  function startPinch() {
+    if (stroke) cancelStroke()
+    stroke = null
+    pendingFill = null
+    hover.value = null
+    const [first, second] = Array.from(touches.values())
+    gesture = { kind: "pinch", centre: { x: (first.x + second.x) / 2, y: (first.y + second.y) / 2 }, distance: Math.hypot(first.x - second.x, first.y - second.y) || 1, view: view.value }
+  }
+
+  function pinch() {
+    const [first, second] = Array.from(touches.values())
+    const box = canvas.value.getBoundingClientRect()
+    const centre = { x: (first.x + second.x) / 2 - box.left, y: (first.y + second.y) / 2 - box.top }
+    const scale = Math.hypot(first.x - second.x, first.y - second.y) / gesture.distance
+    zoomTo(gesture.view, gesture.view.cell * scale, { x: gesture.centre.x - box.left, y: gesture.centre.y - box.top }, centre)
+  }
+
+  function startPan(event) {
+    gesture = { kind: "pan", pointerId: event.pointerId, from: { x: event.clientX, y: event.clientY }, view: view.value }
+    panning.value = true
+    hover.value = null
+  }
+
+  function pan(event) {
+    const { from, view: start } = gesture
+    zoomed.value = clampView({ ...start, x: start.x + event.clientX - from.x, y: start.y + event.clientY - from.y })
+  }
+
   function down(event) {
+    canvas.value.setPointerCapture(event.pointerId)
+    if (event.pointerType === "touch") {
+      touches.set(event.pointerId, { x: event.clientX, y: event.clientY })
+      if (touches.size > 1) return startPinch()
+    }
+    if (gesture) return
+    const at = locate(event)
+    if (event.button === 1 || (event.button === 0 && (spaceHeld.value || (!at.inside && !at.gutter)))) {
+      event.preventDefault()
+      return startPan(event)
+    }
     if (event.button !== 0 && event.button !== 2) return
     event.preventDefault()
-    const at = locate(event)
     const erasing = event.button === 2 || tool.value === "eraser"
-    canvas.value.setPointerCapture(event.pointerId)
     if (at.gutter) {
       const row = clampRow(at.row)
       const y = yOfRow(font.value, glyph.value, row)
@@ -213,7 +312,9 @@
     }
     const point = { x: clampX(at.x), row: clampRow(at.row) }
     if (tool.value === "fill") {
-      updateGlyph(paint(glyph.value, fillCells(glyph.value, point.x, point.row), !erasing))
+      const fill = () => updateGlyph(paint(glyph.value, fillCells(glyph.value, point.x, point.row), !erasing))
+      if (event.pointerType === "touch") pendingFill = { pointerId: event.pointerId, fill }
+      else fill()
       return
     }
     beginStroke()
@@ -227,40 +328,59 @@
   }
 
   function move(event) {
-    const at = locate(event)
-    if (stroke) {
-      if (stroke.kind === "stretch") applyStretch(at.row)
-      else applyPaint(at, event.shiftKey)
+    if (touches.has(event.pointerId)) touches.set(event.pointerId, { x: event.clientX, y: event.clientY })
+    if (gesture) {
+      if (gesture.kind === "pinch") pinch()
+      else if (event.pointerId === gesture.pointerId) pan(event)
+      return
     }
-    updateHover(at, event)
+    const at = locate(event)
+    if (stroke?.kind === "stretch") applyStretch(at.row)
+    else if (stroke) applyPaint(at, event.shiftKey)
+    updateHover(at)
   }
 
   function updateHover(at) {
-    if (stroke || at.row < 0 || at.row >= rows.value) {
+    outside.value = !at.inside && !at.gutter
+    if (stroke || spaceHeld.value || outside.value) {
       hover.value = null
       return
     }
-    if (at.gutter) {
-      const block = blockAt(drawFont.value, glyph.value, 0, at.row)
-      const rowsCovered = block.map(item => item.row)
-      const c = cell.value
-      hover.value = { x: gutterX.value, y: PADDING + Math.min(...rowsCovered) * c, width: GUTTER, height: (Math.max(...rowsCovered) - Math.min(...rowsCovered) + 1) * c }
-      return
-    }
-    if (at.x < 0 || at.x >= columns.value) {
-      hover.value = null
-      return
-    }
-    const block = blockAt(drawFont.value, glyph.value, at.x, at.row)
-    const c = cell.value
-    const left = Math.min(...block.map(item => item.x))
-    const top = Math.min(...block.map(item => item.row))
-    hover.value = { x: PADDING + left * c, y: PADDING + top * c, width: brush.value * c, height: brush.value * c }
+    const block = blockAt(drawFont.value, glyph.value, at.gutter ? 0 : clampX(at.x), clampRow(at.row))
+    const row = Math.min(...block.map(item => item.row))
+    if (at.gutter) hover.value = { gutter: true, column: 0, row, across: 1, down: Math.max(...block.map(item => item.row)) - row + 1 }
+    else hover.value = { gutter: false, column: Math.min(...block.map(item => item.x)), row, across: brush.value, down: brush.value }
   }
 
-  function up() {
+  function up(event) {
+    touches.delete(event.pointerId)
+    if (gesture) {
+      if (gesture.kind === "pinch" ? touches.size < 2 : event.pointerId === gesture.pointerId) {
+        gesture = null
+        panning.value = false
+      }
+      return
+    }
+    if (pendingFill?.pointerId === event.pointerId) {
+      if (event.type === "pointerup") pendingFill.fill()
+      pendingFill = null
+    }
     if (stroke?.kind === "paint" && stroke.shape !== "rectangle") anchor = stroke.end ?? stroke.last
     stroke = null
+  }
+
+  function enter() {
+    over = true
+  }
+
+  function leave() {
+    over = false
+    outside.value = false
+    if (!stroke) hover.value = null
+  }
+
+  function noAutoscroll(event) {
+    if (event.button === 1) event.preventDefault()
   }
 
   function shiftChanged(event) {
@@ -268,13 +388,22 @@
     applyPaint(lastAt, event.type === "keydown")
   }
 
-  function leave() {
-    if (!stroke) hover.value = null
+  function spaceChanged(event) {
+    if (event.key !== " " || typing(event.target)) return
+    const holding = event.type === "keydown"
+    if (holding && !over && !panning.value) return
+    if (holding || spaceHeld.value) event.preventDefault()
+    spaceHeld.value = holding
+    if (holding) hover.value = null
+  }
+
+  function release() {
+    spaceHeld.value = false
   }
 
   function key(event) {
     const target = event.target
-    if (event.ctrlKey || event.metaKey || event.altKey || (target instanceof HTMLElement && (["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) || target.closest("[role=menu]")))) return
+    if (event.ctrlKey || event.metaKey || event.altKey || typing(target) || (target instanceof HTMLElement && target.closest("[role=menu]"))) return
     const step = ARROWS[event.key]
     if (step && arrowsMove.value === "drawing") {
       event.preventDefault()
@@ -282,6 +411,8 @@
       if (moved) updateGlyph(moved, `${selected.value}.move`)
       return
     }
+    if (event.key === "0") return fit()
+    if (KEY_ZOOMS[event.key]) return zoomTo(view.value, view.value.cell * KEY_ZOOMS[event.key], middle())
     const found = TOOLS.find(item => item.key === event.key.toLowerCase())
     if (found) tool.value = found.id
   }
@@ -289,6 +420,7 @@
   function measure() {
     if (!holder.value) return
     available.value = { width: holder.value.clientWidth, height: holder.value.clientHeight }
+    if (zoomed.value) zoomed.value = clampView(zoomed.value)
   }
 
   function clearGlyph() {
@@ -306,12 +438,16 @@
   }
 
   onMounted(() => {
+    backdrop = getComputedStyle(holder.value).getPropertyValue("--bg").trim() || backdrop
     observer = new ResizeObserver(measure)
     observer.observe(holder.value)
     measure()
     addEventListener("keydown", key)
     addEventListener("keydown", shiftChanged)
     addEventListener("keyup", shiftChanged)
+    addEventListener("keydown", spaceChanged)
+    addEventListener("keyup", spaceChanged)
+    addEventListener("blur", release)
     draw()
   })
 
@@ -320,38 +456,41 @@
     removeEventListener("keydown", key)
     removeEventListener("keydown", shiftChanged)
     removeEventListener("keyup", shiftChanged)
+    removeEventListener("keydown", spaceChanged)
+    removeEventListener("keyup", spaceChanged)
+    removeEventListener("blur", release)
   })
 
   watch(selected, () => {
     anchor = null
+    zoomed.value = null
   })
-  watch([font, glyph, cell, hover, selected, size], draw, { flush: "post" })
+  watch([font, glyph, view, hover], draw, { flush: "post" })
 </script>
 
 <template>
   <section class="drawing" @pointerdown="arrowsMove = 'drawing'">
     <div class="tools">
-      <button v-for="item of TOOLS" :key="item.id" class="tool" :class="{ active: tool === item.id }" :title="`${item.label} (${item.key.toUpperCase()})${item.hint ? `. ${item.hint}` : ''}`" :aria-label="item.label" :aria-pressed="tool === item.id" @click="tool = item.id"><Icon :name="item.icon" :size="18" /></button>
-      <template v-if="brushes.length > 1">
-        <span class="divider"></span>
-        <span class="group">
-          <span class="group-label">Density</span>
-          <button v-for="size of brushes" :key="size" class="small ghost" :class="{ active: brush === size }" :title="size === 1 ? 'Draw single pixels' : `Draw ${size} pixel blocks`" :aria-pressed="brush === size" @click="chosenBrush = size">{{ font.grid / size }}x</button>
-        </span>
-      </template>
-      <span class="divider"></span>
+      <span class="group">
+        <button v-for="item of TOOLS" :key="item.id" class="tool" :class="{ active: tool === item.id }" :title="`${item.label} (${item.key.toUpperCase()})${item.hint ? `. ${item.hint}` : ''}`" :aria-label="item.label" :aria-pressed="tool === item.id" @click="tool = item.id"><Icon :name="item.icon" :size="18" /></button>
+      </span>
+      <span v-if="brushes.length > 1" class="group density">
+        <span class="group-label">Density</span>
+        <button v-for="size of brushes" :key="size" class="small ghost" :class="{ active: brush === size }" :title="size === 1 ? 'Draw single pixels' : `Draw ${size} pixel blocks`" :aria-pressed="brush === size" @click="chosenBrush = size">{{ font.grid / size }}x</button>
+      </span>
       <span class="group">
         <span class="group-label">Flip</span>
-        <button class="tool small-tool" title="Flip left to right" aria-label="Flip left to right" @click="flipX"><Icon name="flipX" :size="18" /></button>
-        <button class="tool small-tool" title="Flip upside down" aria-label="Flip upside down" @click="flipY"><Icon name="flipY" :size="18" /></button>
+        <button class="tool flat" title="Flip left to right" aria-label="Flip left to right" @click="flipX"><Icon name="flipX" :size="18" /></button>
+        <button class="tool flat" title="Flip upside down" aria-label="Flip upside down" @click="flipY"><Icon name="flipY" :size="18" /></button>
       </span>
-      <span class="divider"></span>
-      <button class="small ghost" title="Remove every pixel from this character" @click="clearGlyph">Clear</button>
+      <span class="group">
+        <button class="small ghost" title="Remove every pixel from this character" @click="clearGlyph">Clear</button>
+      </span>
       <div class="spacer"></div>
-      <span class="what">{{ characterName(selected) }}</span>
+      <button class="small ghost zoom" :disabled="!zoomed" title="Fit to view (0). Zoom with the mouse wheel or a pinch, and move around by dragging outside the character, with the middle mouse button, Space and drag, or two fingers" aria-label="Fit to view" @click="fit"><Icon name="scale" :size="16" />{{ zoomPercent }}%</button>
     </div>
     <div ref="holder" class="holder">
-      <canvas ref="canvas" class="board" @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="up" @pointerleave="leave" @contextmenu.prevent></canvas>
+      <canvas ref="canvas" class="board" :class="{ grab: spaceHeld || outside, grabbing: panning }" @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="up" @pointerenter="enter" @pointerleave="leave" @mousedown="noAutoscroll" @wheel="wheel" @contextmenu.prevent></canvas>
     </div>
     <p class="legend"><span class="key blue"></span>Topline <span class="key green"></span>Baseline <span class="key mark"></span>Stretch zone</p>
   </section>
@@ -371,35 +510,9 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 4px;
+    gap: 6px 4px;
     padding: 8px 12px;
     border-bottom: 1px solid var(--line);
-  }
-
-  .tool {
-    width: 36px;
-    height: 36px;
-    padding: 0;
-    color: var(--muted);
-    background: var(--card);
-  }
-
-  .tool.small-tool {
-    width: 30px;
-    height: 30px;
-    background: transparent;
-  }
-
-  .tool:hover {
-    color: var(--text);
-    background: var(--card-hover);
-  }
-
-  .divider {
-    width: 1px;
-    height: 22px;
-    margin: 0 6px;
-    background: var(--line-strong);
   }
 
   .group {
@@ -408,34 +521,78 @@
     gap: 4px;
   }
 
+  .group + .group {
+    padding-left: 8px;
+    margin-left: 4px;
+    border-left: 1px solid var(--line-strong);
+  }
+
   .group-label {
     margin-right: 2px;
     font-size: var(--font-xs);
     color: var(--faint);
+    user-select: none;
   }
 
-  .what {
-    font-size: var(--font-md);
-    font-weight: 600;
+  .tool {
+    width: 34px;
+    height: 34px;
+    padding: 0;
     color: var(--muted);
+    background: var(--card);
+  }
+
+  .tool.flat {
+    background: transparent;
+  }
+
+  .tool:hover {
+    color: var(--text);
+    background: var(--card-hover);
+  }
+
+  .tools button.small {
+    min-width: 34px;
+    height: 34px;
+  }
+
+  .zoom {
+    gap: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .zoom:disabled {
+    opacity: 0.6;
+  }
+
+  .zoom:disabled:hover {
+    background: transparent;
   }
 
   .holder {
+    position: relative;
     flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     min-height: 0;
-    overflow: auto;
-    margin: 12px;
+    overflow: hidden;
   }
 
   .board {
+    position: absolute;
+    inset: 0;
     display: block;
-    flex: none;
+    width: 100%;
+    height: 100%;
     cursor: crosshair;
     touch-action: none;
     user-select: none;
+  }
+
+  .board.grab {
+    cursor: grab;
+  }
+
+  .board.grabbing {
+    cursor: grabbing;
   }
 
   .legend {
@@ -473,8 +630,23 @@
 
   @media (max-width: 1000px) {
     .holder {
-      height: 62vh;
       flex: none;
+      height: 58svh;
+      min-height: 280px;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .density,
+    .spacer,
+    .zoom {
+      order: 1;
+    }
+
+    .group.density {
+      padding-left: 0;
+      margin-left: 0;
+      border-left: 0;
     }
   }
 </style>

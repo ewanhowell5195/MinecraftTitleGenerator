@@ -7,13 +7,11 @@
   import { parsedSheet, stripProblems } from "../lib/fontEditor.js"
   import { titleCase } from "../lib/names.js"
   import { centredOffset, stripFolder, stripUse } from "../lib/strips.js"
-  import { renderFont } from "./render3d.js"
+  import RenderView from "./RenderView.vue"
   import { stripThumbnail, thumbnailScene } from "./stripThumbs.js"
   import { downloadFlatTexture, font, update } from "./store.js"
 
   const CHECK_DELAY = 300
-  const RENDER_DELAY = 50
-  const MAX_RENDER_WIDTH = 1600
 
   const sets = shallowRef([])
   const problems = ref({})
@@ -23,22 +21,13 @@
   const chosenTexture = ref(null)
   const chosenVariant = ref(null)
   const text = ref("minecraft")
-  const stage = ref(null)
-  const busy = ref(false)
-  const rendered = ref(false)
-  const renderError = ref("")
-  let checkTimer = null
-  let renderTimer = null
-  let rendering = false
-  let again = false
-
   const thumbs = ref({})
+  const trialOffsets = ref({})
+  const setUsers = shallowRef(new Map())
+  let checkTimer = null
   let thumbsToken = 0
 
-  const trialOffsets = ref({})
-
   const chosen = computed(() => sets.value.find(set => set.id === chosenSet.value) ?? null)
-  const setUsers = shallowRef(new Map())
   const textures = computed(() => {
     if (!chosen.value) return []
     const users = setUsers.value.get(chosen.value.id) ?? []
@@ -51,6 +40,7 @@
     if (!entry?.variants) return []
     return [{ id: null, image: chosenTexture.value, name: entry.name ?? titleCase(chosenTexture.value) }].concat(Object.entries(entry.variants).map(([id, variant]) => ({ id, image: id, name: variant.name ?? titleCase(id) })))
   })
+  const request = computed(() => chosenSet.value ? { font: toRaw(font.value), text: text.value, slot: "textures", strip: stripItem(chosenSet.value, chosenOffset(chosenSet.value)), texture: chosenTexture.value, variant: chosenVariant.value } : null)
 
   function used(id) {
     return uses.value.some(use => use.id === id)
@@ -84,7 +74,6 @@
     else {
       trialOffsets.value = { ...trialOffsets.value, [id]: value }
       scheduleCheck()
-      scheduleRender()
     }
   }
 
@@ -164,39 +153,6 @@
     update({ ...font.value, strips })
   }
 
-  function scheduleRender() {
-    clearTimeout(renderTimer)
-    renderTimer = setTimeout(render, RENDER_DELAY)
-  }
-
-  async function render() {
-    if (!stage.value || !chosenSet.value) return
-    if (rendering) {
-      again = true
-      return
-    }
-    rendering = true
-    busy.value = true
-    try {
-      const width = Math.min(MAX_RENDER_WIDTH, Math.round(stage.value.parentElement.clientWidth * (devicePixelRatio || 1) * 2))
-      const result = await renderFont(toRaw(font.value), text.value, { width, slot: "textures", strip: stripItem(chosenSet.value, chosenOffset(chosenSet.value)), texture: chosenTexture.value, variant: chosenVariant.value })
-      stage.value?.replaceChildren(...(result ? [result] : []))
-      rendered.value = !!result
-      renderError.value = ""
-    } catch (err) {
-      stage.value?.replaceChildren()
-      rendered.value = false
-      renderError.value = err.message
-    } finally {
-      rendering = false
-      busy.value = false
-      if (again) {
-        again = false
-        render()
-      }
-    }
-  }
-
   onMounted(async () => {
     loadStats().catch(console.error)
     try {
@@ -217,16 +173,9 @@
     }
   })
 
-  onBeforeUnmount(() => {
-    clearTimeout(checkTimer)
-    clearTimeout(renderTimer)
-  })
+  onBeforeUnmount(() => clearTimeout(checkTimer))
 
-  watch(font, () => {
-    scheduleCheck()
-    scheduleRender()
-  })
-  watch([chosenSet, chosenTexture, chosenVariant, text], scheduleRender)
+  watch(font, scheduleCheck)
   watch(chosenTexture, () => {
     chosenVariant.value = null
   })
@@ -234,43 +183,44 @@
 </script>
 
 <template>
-  <div class="flow">
-    <h3>Your own textures</h3>
-    <p class="hint">Textures made for your font alone are painted onto a copy of its letters, like the ones every published font has. They're made outside the font editor, starting from this blank texture.</p>
-    <button class="small blank" @click="downloadFlatTexture"><Icon name="download" :size="14" />Download a blank texture</button>
-    <h3>Shared strips</h3>
-    <p class="hint">Strip textures that several fonts share. A set works with your font when its letters and depth fit the strips.</p>
-    <p v-if="loadError" class="hint bad">Couldn't load the strip sets: {{ loadError }}</p>
-    <div v-for="set of sets" :key="set.id" class="set" :class="{ chosen: chosenSet === set.id }" @click="choose(set.id)">
-      <div class="set-text">
-        <span class="set-name">{{ titleCase(set.id) }}</span>
-        <span v-if="problems[set.id]" class="status" :class="statusOf(set.id).kind">{{ statusOf(set.id).label }}</span>
-        <small v-if="problems[set.id]?.length">{{ problems[set.id].join(", ") }}</small>
-        <small v-else>{{ Object.keys(set.textures).length }} textures</small>
-      </div>
-      <div class="input-row offset" @click.stop>
-        <template v-if="canFit(set.id)">
-          <span title="0 centres your letters on the strips, higher moves them up, lower moves them down">Offset</span>
-          <input type="number" :value="chosenOffset(set.id)" :min="fitting[set.id][0]" :max="fitting[set.id].at(-1)" :title="`Your letters fit from ${fitting[set.id][0]} to ${fitting[set.id].at(-1)}`" :aria-label="`Offset for ${titleCase(set.id)}`" @input="setOffset(set.id, $event)" @change="setOffset(set.id, $event)">
-        </template>
-        <button v-if="used(set.id)" class="small" @click.stop="toggle(set.id)">Stop using</button>
-        <button v-else class="small" :class="{ primary: fits(set.id) }" :disabled="!fits(set.id)" @click.stop="toggle(set.id)">Use</button>
-      </div>
-    </div>
+  <div class="settings">
+    <section class="flow">
+      <h3>Your own textures</h3>
+      <p class="hint">Textures made for your font alone are painted onto a copy of its letters, like the ones every published font has. They're made outside the font editor, starting from this blank texture.</p>
+      <button class="small blank" @click="downloadFlatTexture"><Icon name="download" :size="14" />Download a blank texture</button>
+    </section>
 
-    <template v-if="chosen">
-      <h3>Try {{ titleCase(chosen.id) }}</h3>
-      <p class="hint">{{ used(chosen.id) ? "Your font uses these strips." : "Your font doesn't use these strips yet, this is only a test." }}</p>
-      <label class="field"><span class="label">Text</span><input v-model="text" type="text" aria-label="Test text"></label>
-      <div class="view" :class="{ busy }">
-        <div ref="stage" class="stage"></div>
-        <p v-if="renderError" class="message bad">{{ renderError }}</p>
-        <p v-else-if="!rendered" class="message">{{ busy ? "Rendering..." : "Nothing to show yet. Draw the characters in your text." }}</p>
+    <section class="flow">
+      <h3>Shared strips</h3>
+      <p class="hint">Strip textures that several fonts share. A set works with your font when its letters and depth fit the strips.</p>
+      <p v-if="loadError" class="hint bad">Couldn't load the strip sets: {{ loadError }}</p>
+      <div v-for="set of sets" :key="set.id" class="set" :class="{ chosen: chosenSet === set.id }" @click="choose(set.id)">
+        <div class="set-text">
+          <span class="set-name">{{ titleCase(set.id) }}</span>
+          <span v-if="problems[set.id]" class="status" :class="statusOf(set.id).kind">{{ statusOf(set.id).label }}</span>
+          <small v-if="problems[set.id]?.length">{{ problems[set.id].join(", ") }}</small>
+          <small v-else>{{ Object.keys(set.textures).length }} textures</small>
+        </div>
+        <div class="input-row offset" @click.stop>
+          <template v-if="canFit(set.id)">
+            <span title="0 centres your letters on the strips, higher moves them up, lower moves them down">Offset</span>
+            <input type="number" :value="chosenOffset(set.id)" :min="fitting[set.id][0]" :max="fitting[set.id].at(-1)" :title="`Your letters fit from ${fitting[set.id][0]} to ${fitting[set.id].at(-1)}`" :aria-label="`Offset for ${titleCase(set.id)}`" @input="setOffset(set.id, $event)" @change="setOffset(set.id, $event)">
+          </template>
+          <button v-if="used(set.id)" class="small" @click.stop="toggle(set.id)">Stop using</button>
+          <button v-else class="small" :class="{ primary: fits(set.id) }" :disabled="!fits(set.id)" @click.stop="toggle(set.id)">Use</button>
+        </div>
       </div>
+    </section>
+
+    <section v-if="chosen" class="flow">
+      <h3>Try {{ titleCase(chosen.id) }}</h3>
+      <p class="hint">{{ used(chosen.id) ? "Your font uses these strips." : "Your font doesn't use these strips yet, so this is only a test." }}</p>
+      <label class="field"><span class="label">Text</span><input v-model="text" type="text" aria-label="Test text"></label>
+      <RenderView class="view" :request="request" empty="Nothing to show yet. Draw the characters in your text." />
       <div class="textures">
         <button v-for="item of textures" :key="item.id" class="texture" :class="{ active: chosenTexture === item.id, unfit: !fits(chosen.id) }" :title="item.name" @click="chosenTexture = item.id">
           <span class="swatch"><img v-if="thumbs[item.id]" :src="thumbs[item.id]" alt=""></span>
-          <span class="texture-name">{{ item.name }}</span>
+          <span class="texture-name ellipsis">{{ item.name }}</span>
         </button>
       </div>
       <template v-if="variants.length">
@@ -278,11 +228,11 @@
         <div class="textures">
           <button v-for="item of variants" :key="item.image" class="texture" :class="{ active: chosenVariant === item.id, unfit: !fits(chosen.id) }" :title="item.name" @click="chosenVariant = item.id">
             <span class="swatch"><img v-if="thumbs[item.image]" :src="thumbs[item.image]" alt=""></span>
-            <span class="texture-name">{{ item.name }}</span>
+            <span class="texture-name ellipsis">{{ item.name }}</span>
           </button>
         </div>
       </template>
-    </template>
+    </section>
   </div>
 </template>
 
@@ -347,12 +297,8 @@
   }
 
   .status.good {
-    color: #0d1f09;
+    color: var(--accent-text);
     background: var(--accent);
-  }
-
-  .texture.unfit {
-    opacity: 0.45;
   }
 
   .status.bad {
@@ -360,42 +306,8 @@
     background: var(--danger);
   }
 
-  .hint.bad,
-  .message.bad {
-    color: var(--danger);
-  }
-
   .view {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     height: 260px;
-    overflow: hidden;
-    background: var(--checker);
-  }
-
-  .stage {
-    display: contents;
-  }
-
-  .stage :deep(canvas) {
-    display: block;
-    max-width: calc(100% - 16px);
-    max-height: calc(100% - 16px);
-  }
-
-  .busy .stage :deep(canvas) {
-    opacity: 0.6;
-  }
-
-  .message {
-    position: absolute;
-    margin: 0;
-    padding: 0 12px;
-    font-size: var(--font-md);
-    text-align: center;
-    color: var(--muted);
   }
 
   .textures {
@@ -422,6 +334,10 @@
     border-color: var(--accent);
   }
 
+  .texture.unfit {
+    opacity: 0.45;
+  }
+
   .swatch {
     display: flex;
     align-items: center;
@@ -438,10 +354,26 @@
   }
 
   .texture-name {
-    overflow: hidden;
     font-size: var(--font-xs);
     color: var(--muted);
-    white-space: nowrap;
-    text-overflow: ellipsis;
+  }
+
+  @media (max-width: 520px) {
+    .set {
+      flex-wrap: wrap;
+    }
+
+    .offset {
+      flex: 1 1 100%;
+      justify-content: flex-end;
+    }
+
+    .view {
+      height: 180px;
+    }
+
+    .textures {
+      grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    }
   }
 </style>

@@ -3,7 +3,7 @@ import { DEFAULT_SPACE_WIDTH, parsedSheet } from "../lib/fontEditor.js"
 
 export function previewFont(font) {
   const { glyphs, capHeight } = parsedSheet(font)
-  return { glyphs, capHeight, kerning: font.kerning, spaceWidth: font.spaceWidth ?? DEFAULT_SPACE_WIDTH, terminatorSpace: font.terminatorSpace, terminatorSpaceWidth: font.terminatorSpaceWidth,forcedTerminators: font.forcedTerminators, border: font.border, characterSpacing: font.characterSpacing }
+  return { glyphs, capHeight, kerning: font.kerning, spaceWidth: font.spaceWidth ?? DEFAULT_SPACE_WIDTH, terminatorSpace: font.terminatorSpace, terminatorSpaceWidth: font.terminatorSpaceWidth, forcedTerminators: font.forcedTerminators, border: font.border, characterSpacing: font.characterSpacing }
 }
 
 export function drawText(canvas, parsed, text, { maxWidth, maxHeight, maxScale = 8, terminators = false, raw = false }) {

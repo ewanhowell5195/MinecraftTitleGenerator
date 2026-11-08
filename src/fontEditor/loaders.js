@@ -6,12 +6,13 @@ function sheetFromImage(image) {
   return { data: pixelsOf(image), width: image.width, height: image.height }
 }
 
-function fileUrl(file) {
-  return URL.createObjectURL(file)
+export function fullName(entry, fonts) {
+  const parent = entry.variant && fonts.find(item => item.id === entry.variant)
+  return parent ? `${parent.name} ${entry.name}` : entry.name
 }
 
 export async function imageOf(file) {
-  const url = fileUrl(file)
+  const url = URL.createObjectURL(file)
   try {
     return sheetFromImage(await loadImage(url))
   } catch {
@@ -43,6 +44,5 @@ export async function fontFromList(entry, fonts) {
   const image = await loadImage(`${sheetFolder(entry, fonts)}/font.png`)
   const { list, capHeight } = parseMask(pixelsOf(image), image.width, image.height, fullOrder(entry, fonts), 0)
   const { glyphs } = splitCells(entry, fonts, list)
-  const parent = entry.variant && fonts.find(item => item.id === entry.variant)
-  return fontFromPublished({ ...entry, name: parent ? `${parent.name} ${entry.name}` : entry.name }, Object.values(glyphs), capHeight)
+  return fontFromPublished({ ...entry, name: fullName(entry, fonts) }, Object.values(glyphs), capHeight)
 }

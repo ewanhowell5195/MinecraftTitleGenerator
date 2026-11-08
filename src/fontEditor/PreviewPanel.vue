@@ -1,69 +1,29 @@
 <script setup>
   import { computed, onBeforeUnmount, onMounted, ref, toRaw, watch } from "vue"
-  import { renderFont } from "./render3d.js"
+  import RenderView from "./RenderView.vue"
   import { previewFont, drawText } from "./textCanvas.js"
   import { font } from "./store.js"
 
   const SPLIT_WIDTH = 640
-  const RENDER_DELAY = 50
-  const MAX_RENDER_WIDTH = 1600
+  const DRAW_DELAY = 40
+  const EMPTY = "Nothing to show yet. Draw the characters in your preview text."
 
   const text = ref("minecraft")
   const terminators = ref(false)
   const canvas = ref(null)
   const holder = ref(null)
   const views = ref(null)
-  const stage = ref(null)
   const empty = ref(false)
   const error = ref("")
   const wide = ref(true)
   const mode = ref("2d")
-  const rendered = ref(false)
-  const busy = ref(false)
-  const error3d = ref("")
-  const show3d = computed(() => wide.value || mode.value === "3d")
+  const request = computed(() => wide.value || mode.value === "3d" ? { font: toRaw(font.value), text: text.value, terminators: terminators.value } : null)
   let observer = null
   let timer = null
-  let timer3d = null
-  let rendering = false
-  let again = false
 
   function measure() {
     wide.value = views.value.clientWidth >= SPLIT_WIDTH
     schedule()
-  }
-
-  function schedule3d() {
-    clearTimeout(timer3d)
-    timer3d = setTimeout(render3d, RENDER_DELAY)
-  }
-
-  async function render3d() {
-    if (!show3d.value || !stage.value) return
-    if (rendering) {
-      again = true
-      return
-    }
-    rendering = true
-    busy.value = true
-    try {
-      const width = Math.min(MAX_RENDER_WIDTH, Math.round(stage.value.parentElement.clientWidth * (devicePixelRatio || 1) * 2))
-      const result = await renderFont(toRaw(font.value), text.value, { terminators: terminators.value, width })
-      stage.value?.replaceChildren(...(result ? [result] : []))
-      rendered.value = !!result
-      error3d.value = ""
-    } catch (err) {
-      stage.value?.replaceChildren()
-      rendered.value = false
-      error3d.value = err.message
-    } finally {
-      rendering = false
-      busy.value = false
-      if (again) {
-        again = false
-        render3d()
-      }
-    }
   }
 
   function draw() {
@@ -78,7 +38,7 @@
 
   function schedule() {
     clearTimeout(timer)
-    timer = setTimeout(draw, 40)
+    timer = setTimeout(draw, DRAW_DELAY)
   }
 
   onMounted(() => {
@@ -86,21 +46,14 @@
     observer.observe(views.value)
     measure()
     draw()
-    schedule3d()
   })
 
   onBeforeUnmount(() => {
     observer.disconnect()
     clearTimeout(timer)
-    clearTimeout(timer3d)
   })
 
-  watch([font, text, terminators], () => {
-    schedule()
-    schedule3d()
-  })
-  watch(show3d, schedule3d)
-  watch(mode, schedule)
+  watch([font, text, terminators, mode], schedule)
 </script>
 
 <template>
@@ -119,14 +72,10 @@
       <div v-show="wide || mode === '2d'" ref="holder" class="view">
         <canvas ref="canvas" v-show="!empty && !error"></canvas>
         <p v-if="error" class="message bad">{{ error }}</p>
-        <p v-else-if="empty" class="message">Nothing to show yet. Draw the characters in your preview text.</p>
+        <p v-else-if="empty" class="message">{{ EMPTY }}</p>
       </div>
-      <div v-show="show3d" class="view three" :class="{ busy }">
-        <div ref="stage" class="stage"></div>
-        <p v-if="error3d" class="message bad">{{ error3d }}</p>
-        <p v-else-if="!rendered" class="message">{{ busy ? "Rendering..." : "Nothing to show yet. Draw the characters in your preview text." }}</p>
-      </div>
-      <button v-if="!wide" class="small switch" :title="mode === '2d' ? 'Show the 3D preview' : 'Show the flat preview'" @click="mode = mode === '2d' ? '3d' : '2d'">{{ mode === "2d" ? "3D" : "2D" }}</button>
+      <RenderView v-show="request" class="view" :request="request" :empty="EMPTY" />
+      <button v-if="!wide" class="small mode-switch" :title="mode === '2d' ? 'Show the 3D preview' : 'Show the flat preview'" @click="mode = mode === '2d' ? '3d' : '2d'">{{ mode === "2d" ? "3D" : "2D" }}</button>
     </div>
   </section>
 </template>
@@ -164,22 +113,6 @@
     min-width: 0;
   }
 
-  .checkbox {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: var(--font-md);
-    color: var(--muted);
-    white-space: nowrap;
-    cursor: pointer;
-    user-select: none;
-  }
-
-  .checkbox input {
-    margin: 0;
-    accent-color: var(--accent);
-  }
-
   .views {
     position: relative;
     display: grid;
@@ -201,26 +134,7 @@
     background: var(--checker);
   }
 
-  .stage {
-    display: contents;
-  }
-
-  .stage :deep(canvas) {
-    display: block;
-    max-width: calc(100% - 16px);
-    max-height: calc(100% - 16px);
-    image-rendering: auto;
-  }
-
-  .three .message {
-    position: absolute;
-  }
-
-  .three.busy .stage :deep(canvas) {
-    opacity: 0.6;
-  }
-
-  .switch {
+  .mode-switch {
     position: absolute;
     top: 6px;
     right: 6px;
@@ -231,7 +145,7 @@
     user-select: none;
   }
 
-  .switch:hover {
+  .mode-switch:hover {
     background: var(--card-hover);
   }
 

@@ -54,11 +54,11 @@
     </div>
     <div class="pair">
       <label class="field">
-        <span class="label">Extra rows above topline</span>
+        <span class="label">Rows above topline</span>
         <input type="number" min="0" :value="squaresOf(font, glyph.above)" @input="setNumber('above', $event, 0)" @change="setNumber('above', $event, 0)">
       </label>
       <label class="field">
-        <span class="label">Extra rows below baseline</span>
+        <span class="label">Rows below baseline</span>
         <input type="number" min="0" :value="squaresOf(font, glyph.below)" @input="setNumber('below', $event, 0)" @change="setNumber('below', $event, 0)">
       </label>
     </div>

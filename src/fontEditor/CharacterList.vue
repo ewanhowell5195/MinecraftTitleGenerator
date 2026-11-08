@@ -5,7 +5,7 @@
   import RenderDialog from "../components/RenderDialog.vue"
   import { CREEPER, SPACE_CHAR, addCharacters, characterName, glyphOf, isBlank, isOptional, removeCharacter, setGlyph } from "../lib/fontEditor.js"
   import GlyphThumb from "./GlyphThumb.vue"
-  import { arrowsMove, characters, clipboard, copyGlyph, font, pasteGlyph, selected, update } from "./store.js"
+  import { arrowsMove, characters, clipboard, copyGlyph, font, pasteGlyph, selected, typing, update } from "./store.js"
 
   const ARROWS = { ArrowLeft: -1, ArrowRight: 1 }
 
@@ -60,12 +60,16 @@
 
   function perRow() {
     const tiles = Array.from(list.value?.children ?? [])
-    return Math.max(1, tiles.filter(tile => tile.offsetTop === tiles[0]?.offsetTop).length)
+    const count = tiles.filter(tile => tile.offsetTop === tiles[0]?.offsetTop).length
+    return count === tiles.length ? 0 : Math.max(1, count)
+  }
+
+  function reveal() {
+    list.value?.children[characters.value.indexOf(selected.value)]?.scrollIntoView({ block: "nearest", inline: "nearest" })
   }
 
   async function key(event) {
-    const target = event.target
-    if (arrowsMove.value !== "list" || adding.value || context.value || event.ctrlKey || event.metaKey || event.altKey || (target instanceof HTMLElement && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))) return
+    if (arrowsMove.value !== "list" || adding.value || context.value || event.ctrlKey || event.metaKey || event.altKey || typing(event.target)) return
     const step = ARROWS[event.key] ?? { ArrowUp: -perRow(), ArrowDown: perRow() }[event.key]
     if (!step) return
     event.preventDefault()
@@ -74,10 +78,13 @@
     if (next === undefined || next === selected.value) return
     selected.value = next
     await nextTick()
-    list.value?.children[chars.indexOf(next)]?.scrollIntoView({ block: "nearest" })
+    reveal()
   }
 
-  onMounted(() => addEventListener("keydown", key))
+  onMounted(() => {
+    addEventListener("keydown", key)
+    reveal()
+  })
   onBeforeUnmount(() => removeEventListener("keydown", key))
 
   function addMenu(event) {
@@ -100,7 +107,7 @@
     <div ref="list" class="list">
       <button v-for="char of characters" :key="char" class="character" :class="{ selected: selected === char, blank: isBlank(glyphOf(font, char)) }" :title="characterName(char)" @click="selected = char" @contextmenu.prevent="menu($event, char)">
         <span class="picture"><GlyphThumb :font="font" :glyph="glyphOf(font, char)" /></span>
-        <span class="char">{{ shownLabel(char) }}</span>
+        <span class="char ellipsis">{{ shownLabel(char) }}</span>
       </button>
       <button class="character add" title="Add a character" aria-label="Add a character" @click="addMenu"><Icon name="plus" :size="20" /></button>
     </div>
@@ -205,17 +212,31 @@
   }
 
   .char {
-    overflow: hidden;
     width: 100%;
     font-size: var(--font-xs);
     font-weight: 500;
     line-height: 1.2;
     color: var(--muted);
-    white-space: nowrap;
-    text-overflow: ellipsis;
   }
 
   .selected .char {
     color: var(--text);
+  }
+
+  @media (max-width: 1000px) {
+    header {
+      padding: 10px 16px 6px;
+    }
+
+    .list {
+      grid-template-columns: none;
+      grid-auto-flow: column;
+      grid-auto-columns: 52px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 0 16px 10px;
+      overscroll-behavior-x: contain;
+      scroll-padding: 0 16px;
+    }
   }
 </style>

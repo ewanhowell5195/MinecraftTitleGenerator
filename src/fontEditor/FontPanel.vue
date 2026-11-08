@@ -3,14 +3,15 @@
   import Icon from "../components/Icon.vue"
   import { loadFontList } from "../lib/font.js"
   import { DEFAULT_BORDER, DEFAULT_DEPTH, DEFAULT_SPACE_WIDTH, autoStretch, lostPixels, resizeFont, setSquareSize, slug, squareSizeLoss, squaresOf } from "../lib/fontEditor.js"
+  import { fullName } from "./loaders.js"
   import { font, update } from "./store.js"
 
-  const FLAGS = [
-    { key: "terminatorSpace", label: "Space beside terminators", hint: "Leaves a gap between the ┫ ┣ end pieces and the text." },
-    { key: "forcedTerminators", label: "Always use terminators", hint: "Every line gets the ┫ ┣ end pieces, and the option to turn them off is hidden." },
-    { key: "autoBorder", label: "Automatic border frame", hint: "Draws a filled frame around the whole line, for outline style fonts." },
-    { key: "flat", label: "Flat font", hint: "Update Text won't get its usual 30 extra depth." },
-    { key: "overlay", label: "Forced overlay", hint: "Draws an overlay.png over the letters on every texture except premade sheets. This editor doesn't make that file: you add it to the font's folder yourself, on the same layout as the font's flat.png." }
+  const ABOUT = [
+    { key: "name", label: "Name", required: true, hint: "Shown in the font list and the credits." },
+    { key: "id", label: "ID", required: true, slug: true, hint: "Lowercase letters, numbers and dashes. Made from the name until you change it." },
+    { key: "author", label: "Author", required: true, hint: "Who made the font, shown in the credits." },
+    { key: "basedOn", label: "Based on font", slug: true, placeholder: "minecraft-ten", hint: "The ID of the font yours was made from, so its author is credited too." },
+    { key: "description", label: "Description", full: true, hint: "A short line shown under the font's name in the generator." }
   ]
 
   const SPACING = [
@@ -20,38 +21,33 @@
     { key: "border", label: "Border", min: 0, fallback: DEFAULT_BORDER }
   ]
 
-  const ABOUT = [
-    { key: "name", label: "Name", required: true, hint: "Shown in the font list and the credits." },
-    { key: "id", label: "ID", required: true, slug: true, hint: "Lowercase letters, numbers and dashes. Made from the name until you change it." },
-    { key: "author", label: "Author", required: true, hint: "Who made the font, shown in the credits." },
-    { key: "description", label: "Description", required: false, hint: "A short line shown under the font's name in the generator." },
-    { key: "basedOn", label: "Based on font", required: false, slug: true, placeholder: "minecraft-ten", hint: "The ID of the font yours was made from, so its author is credited too." }
+  const FLAGS = [
+    { key: "terminatorSpace", label: "Space beside terminators", hint: "Leaves a gap between the ┫ ┣ end pieces and the text." },
+    { key: "forcedTerminators", label: "Always use terminators", hint: "Every line gets the ┫ ┣ end pieces, and the option to turn them off is hidden." },
+    { key: "autoBorder", label: "Automatic border frame", hint: "Draws a filled frame around the whole line, for outline style fonts." },
+    { key: "flat", label: "Flat font", hint: "Update Text won't get its usual 30 extra depth." },
+    { key: "overlay", label: "Forced overlay", hint: "Draws an overlay.png over the letters on every texture except premade sheets. This editor doesn't make that file: you add it to the font's folder yourself, on the same layout as the font's flat.png." }
   ]
 
   const warning = ref(null)
   const published = shallowRef([])
 
   const previewId = computed(() => font.value.id || slug(font.value.name) || "my-font")
+  const finalSize = computed(() => `${font.value.height * font.value.density} pixels tall and ${font.value.width * font.value.density} wide`)
   const clashes = computed(() => {
     const name = font.value.name.trim().toLowerCase()
     const id = font.value.id || slug(font.value.name)
-    const sameName = published.value.find(entry => fullName(entry).toLowerCase() === name)
+    const sameName = published.value.find(entry => fullName(entry, published.value).toLowerCase() === name)
     const sameId = published.value.find(entry => entry.id === id)
     return {
-      name: sameName ? `${fullName(sameName)} already uses this name. Pick another so the two aren't mixed up.` : null,
-      id: sameId ? `${fullName(sameId)} already uses this ID, so the generator would treat your font as that one.` : null
+      name: sameName ? `${fullName(sameName, published.value)} already uses this name. Pick another so the two aren't mixed up.` : null,
+      id: sameId ? `${fullName(sameId, published.value)} already uses this ID, so the generator would treat your font as that one.` : null
     }
   })
 
   onMounted(async () => {
     published.value = await loadFontList()
   })
-
-  function fullName(entry) {
-    const parent = entry.variant && published.value.find(item => item.id === entry.variant)
-    return parent ? `${parent.name} ${entry.name}` : entry.name
-  }
-  const finalSize = computed(() => `${font.value.height * font.value.density} pixels tall and ${font.value.width * font.value.density} wide`)
 
   function setField(key, value, group = true) {
     update({ ...font.value, [key]: value }, group ? `font.${key}` : null)
@@ -114,108 +110,147 @@
 </script>
 
 <template>
-  <div class="flow">
-    <h3>About</h3>
-    <label v-for="item of ABOUT" :key="item.key" class="field">
-      <span class="label-row"><span class="label">{{ item.label }}</span><span class="need" :class="{ required: item.required }">{{ item.required ? "Required" : "Optional" }}</span></span>
-      <input v-if="item.slug" type="text" :value="font[item.key]" :placeholder="item.key === 'id' ? previewId : item.placeholder" @change="setField(item.key, slug($event.target.value), false)">
-      <input v-else type="text" :value="font[item.key]" @input="setText(item.key, $event)">
-      <small class="about-hint">{{ item.hint }}</small>
-      <small v-if="clashes[item.key]" class="clash">{{ clashes[item.key] }}</small>
-    </label>
-
-    <h3>Size</h3>
-    <div class="numbers">
-      <label class="field"><span class="label">Height</span><input type="number" min="1" :value="squaresOf(font, font.height)" @input="setSize('height', $event)" @change="setSize('height', $event)"></label>
-      <label class="field"><span class="label">Default width</span><input type="number" min="1" :value="squaresOf(font, font.width)" @input="setSize('width', $event)" @change="setSize('width', $event)"></label>
-      <label class="field"><span class="label">Square size</span><input type="number" min="1" :value="font.grid" @input="setSquare" @change="setSquare"></label>
-    </div>
-    <p class="hint">Height and width count squares, and one click paints one square. Square size is how many pixels each square is. Each character is {{ finalSize }}.</p>
-    <div v-if="warning" class="warning">
-      <p>{{ warning.text }} changes {{ warning.lost }} drawn {{ warning.lost === 1 ? "pixel" : "pixels" }}.</p>
-      <div class="row">
-        <button class="small" @click="warning = null">Cancel</button>
-        <button class="small danger" @click="confirmResize">Change anyway</button>
+  <div class="settings">
+    <section class="flow">
+      <h3>About</h3>
+      <div class="about">
+        <label v-for="item of ABOUT" :key="item.key" class="field" :class="{ full: item.full }">
+          <span class="label-row"><span class="label">{{ item.label }}</span><span class="tag" :class="{ required: item.required }">{{ item.required ? "Required" : "Optional" }}</span></span>
+          <input v-if="item.slug" type="text" :class="{ clashing: clashes[item.key] }" :value="font[item.key]" :placeholder="item.key === 'id' ? previewId : item.placeholder" spellcheck="false" @change="setField(item.key, slug($event.target.value), false)">
+          <input v-else type="text" :class="{ clashing: clashes[item.key] }" :value="font[item.key]" @input="setText(item.key, $event)">
+          <small v-if="clashes[item.key]" class="hint bad">{{ clashes[item.key] }}</small>
+          <small class="hint">{{ item.hint }}</small>
+        </label>
       </div>
-    </div>
+    </section>
 
-    <h3>Spacing and shape</h3>
-    <div class="numbers">
-      <div v-for="item of SPACING" :key="item.key" class="field">
-        <span class="label-row">
+    <section class="flow">
+      <h3>Size</h3>
+      <div class="numbers">
+        <label class="field"><span class="label">Height</span><input type="number" min="1" :value="squaresOf(font, font.height)" @input="setSize('height', $event)" @change="setSize('height', $event)"></label>
+        <label class="field"><span class="label">Default width</span><input type="number" min="1" :value="squaresOf(font, font.width)" @input="setSize('width', $event)" @change="setSize('width', $event)"></label>
+        <label class="field"><span class="label">Square size</span><input type="number" min="1" :value="font.grid" @input="setSquare" @change="setSquare"></label>
+      </div>
+      <p class="hint">Height and width count squares, and one click paints one square. Square size is how many pixels each square is. Each character is {{ finalSize }}.</p>
+      <div v-if="warning" class="warning">
+        <p>{{ warning.text }} changes {{ warning.lost }} drawn {{ warning.lost === 1 ? "pixel" : "pixels" }}.</p>
+        <div class="row">
+          <button class="small" @click="warning = null">Cancel</button>
+          <button class="small danger" @click="confirmResize">Change anyway</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="flow">
+      <h3>Spacing and shape</h3>
+      <p class="hint">These are in pixels, not squares.</p>
+      <div class="numbers">
+        <div v-for="item of SPACING" :key="item.key" class="field">
           <label class="label" :for="`font-${item.key}`">{{ item.label }}</label>
-          <button v-if="font[item.key] !== item.fallback" class="icon-button reset" :title="`Reset to ${item.fallback}`" :aria-label="`Reset ${item.label.toLowerCase()} to ${item.fallback}`" @click="setField(item.key, item.fallback, false)"><Icon name="reset" :size="14" /></button>
-        </span>
-        <input :id="`font-${item.key}`" type="number" :min="item.min" :value="font[item.key]" @input="setNumber(item.key, $event, item.min ?? -1000)" @change="setNumber(item.key, $event, item.min ?? -1000)">
+          <div class="resettable">
+            <input :id="`font-${item.key}`" type="number" :min="item.min" :value="font[item.key]" @input="setNumber(item.key, $event, item.min ?? -1000)" @change="setNumber(item.key, $event, item.min ?? -1000)">
+            <button v-if="font[item.key] !== item.fallback" class="icon-button small" :title="`Reset to ${item.fallback}`" :aria-label="`Reset ${item.label.toLowerCase()} to ${item.fallback}`" @click="setField(item.key, item.fallback, false)"><Icon name="reset" :size="14" /></button>
+          </div>
+        </div>
       </div>
-    </div>
-    <p class="hint">These are in pixels, not squares.</p>
+    </section>
 
-    <h3>Options</h3>
-    <template v-for="flag of FLAGS" :key="flag.key">
-      <label class="check">
-        <input type="checkbox" :checked="font[flag.key]" @change="setField(flag.key, $event.target.checked, false)">
-        <span><strong>{{ flag.label }}</strong><small>{{ flag.hint }}</small></span>
-      </label>
-      <label v-if="flag.key === 'terminatorSpace' && font.terminatorSpace" class="field nested">
-        <span class="label">Terminator space width</span>
-        <input type="number" min="0" :value="font.defineSpace ? '' : font.terminatorSpaceWidth ?? ''" :placeholder="font.defineSpace ? '' : String(font.spaceWidth)" :disabled="font.defineSpace" @input="setTerminatorWidth" @change="setTerminatorWidth">
-        <small class="about-hint">{{ font.defineSpace ? "Your font draws its own space character, which is always used beside the terminators." : `In pixels. Leave empty to use the normal space width of ${font.spaceWidth}.` }}</small>
-      </label>
-    </template>
+    <section class="flow">
+      <h3>Options</h3>
+      <div v-for="flag of FLAGS" :key="flag.key" class="option">
+        <label class="check">
+          <input type="checkbox" :checked="font[flag.key]" @change="setField(flag.key, $event.target.checked, false)">
+          <span class="check-text"><span class="check-label">{{ flag.label }}</span><small class="hint">{{ flag.hint }}</small></span>
+        </label>
+        <div v-if="flag.key === 'terminatorSpace' && font.terminatorSpace" class="field nested">
+          <label class="label" for="font-terminatorSpaceWidth">Terminator space width</label>
+          <input id="font-terminatorSpaceWidth" type="number" min="0" :value="font.defineSpace ? '' : font.terminatorSpaceWidth ?? ''" :placeholder="font.defineSpace ? '' : String(font.spaceWidth)" :disabled="font.defineSpace" @input="setTerminatorWidth" @change="setTerminatorWidth">
+          <small class="hint">{{ font.defineSpace ? "Your font draws its own space character, which is always used beside the terminators." : `In pixels. Leave empty to use the normal space width of ${font.spaceWidth}.` }}</small>
+        </div>
+      </div>
+    </section>
 
-    <h3>All characters</h3>
-    <button class="small" @click="markAll"><Icon name="wand" :size="14" />Mark every character's stretch zones</button>
+    <section class="flow">
+      <h3>Stretch zones</h3>
+      <p class="hint">Marks the stretch zones of every character automatically, replacing the ones marked now. Each character can still be changed on the Characters tab.</p>
+      <button class="small start" @click="markAll"><Icon name="wand" :size="14" />Mark every character</button>
+    </section>
   </div>
 </template>
 
 <style scoped>
+  .about {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 14px;
+  }
+
+  .full {
+    grid-column: 1 / -1;
+  }
+
+  .label-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .tag {
+    font-size: var(--font-xs);
+    color: var(--faint);
+  }
+
+  .tag.required {
+    color: var(--accent);
+  }
+
+  input.clashing {
+    border-color: var(--danger);
+  }
+
   .numbers {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
   }
 
   .numbers input[type="number"] {
     width: 100%;
   }
 
-  .label-row {
+  .resettable {
+    position: relative;
+  }
+
+  .resettable input[type="number"] {
+    padding-right: 36px;
+  }
+
+  .resettable .icon-button {
+    position: absolute;
+    top: 50%;
+    right: 4px;
+    margin-top: -14px;
+  }
+
+  .warning {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 20px;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    font-size: var(--font-md);
+    background: var(--card);
+    border-left: 3px solid var(--danger);
   }
 
-  .need {
-    font-size: var(--font-xs);
-    color: var(--faint);
+  .warning p {
+    margin: 0;
   }
 
-  .need.required {
-    color: var(--accent);
-  }
-
-  .about-hint {
-    font-size: var(--font-sm);
-    line-height: 1.35;
-    color: var(--faint);
-  }
-
-  .nested {
-    margin-left: 23px;
-  }
-
-  .clash {
-    font-size: var(--font-sm);
-    line-height: 1.35;
-    color: var(--danger);
-  }
-
-  .reset {
-    width: 20px;
-    height: 20px;
-    padding: 0;
+  .option {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
   }
 
   .check {
@@ -227,48 +262,45 @@
 
   .check input {
     flex: none;
-    margin: 3px 0 0;
+    width: 16px;
+    height: 16px;
+    margin: 1px 0 0;
     accent-color: var(--accent);
+    cursor: pointer;
   }
 
-  .check span {
+  .check-text {
     display: flex;
     flex-direction: column;
     gap: 2px;
     min-width: 0;
   }
 
-  .check strong {
+  .check-label {
     font-size: var(--font-md);
     font-weight: 600;
   }
 
-  .check small {
-    font-size: var(--font-sm);
-    line-height: 1.35;
-    color: var(--faint);
+  .nested {
+    margin-left: 26px;
   }
 
-  .warning {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 10px;
-    font-size: var(--font-md);
-    background: var(--card);
-    border-left: 3px solid var(--danger);
+  .nested input {
+    width: 96px;
   }
 
-  .warning p {
-    margin: 0;
+  .start {
+    align-self: flex-start;
   }
 
-  .danger {
-    color: #1d0a08;
-    background: var(--danger);
-  }
+  @media (max-width: 520px) {
+    .about,
+    .numbers {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 
-  .danger:hover {
-    background: #ffa79f;
+    .about > .field {
+      grid-column: 1 / -1;
+    }
   }
 </style>

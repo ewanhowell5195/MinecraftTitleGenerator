@@ -11,9 +11,9 @@
   import PreviewPanel from "./PreviewPanel.vue"
   import TexturesPanel from "./TexturesPanel.vue"
   import StartScreen from "./StartScreen.vue"
-  import { canRedo, canUndo, closeFont, downloadJson, downloadTexture, flushSave, font, redo, restoreFont, saveError, undo } from "./store.js"
+  import { canRedo, canUndo, closeFont, downloadJson, downloadTexture, flushSave, font, redo, restoreFont, saveError, typing, undo } from "./store.js"
 
-  const TABS = [{ id: "font", label: "Font" }, { id: "characters", label: "Characters" },{ id: "textures", label: "Textures" }, { id: "kerning", label: "Kerning" }]
+  const TABS = [{ id: "font", label: "Font" }, { id: "characters", label: "Characters" }, { id: "textures", label: "Textures" }, { id: "kerning", label: "Kerning" }]
 
   const TAB_KEY = "minecraft-title-font-editor-tab"
 
@@ -24,9 +24,10 @@
     return TABS.some(item => item.id === saved) ? saved : "characters"
   }
 
-  watch(tab, value => localStorage.setItem(TAB_KEY, value))
   const asking = ref(false)
   const loadError = ref("")
+
+  watch(tab, value => localStorage.setItem(TAB_KEY, value))
 
   try {
     restoreFont()
@@ -34,26 +35,12 @@
     loadError.value = `Your saved font couldn't be opened: ${err.message}`
   }
 
-  function typing(target) {
-    return target instanceof HTMLElement && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))
-  }
-
   function key(event) {
-    if (!font.value) return
-    const command = event.ctrlKey || event.metaKey
-    if (command && event.key.toLowerCase() === "z") {
-      if (typing(event.target)) return
-      event.preventDefault()
-      if (event.shiftKey) redo()
-      else undo()
-      return
-    }
-    if (command && event.key.toLowerCase() === "y") {
-      if (typing(event.target)) return
-      event.preventDefault()
-      redo()
-      return
-    }
+    const letter = event.key.toLowerCase()
+    if (!font.value || !(event.ctrlKey || event.metaKey) || !["y", "z"].includes(letter) || typing(event.target)) return
+    event.preventDefault()
+    if (letter === "z" && !event.shiftKey) undo()
+    else redo()
   }
 
   function startAgain() {
@@ -74,10 +61,10 @@
 
 <template>
   <div class="editor-page">
-    <header class="top">
+    <header class="top" :class="{ editing: font }">
       <a class="brand" href="/"><img src="/favicon.svg" alt="" width="24" height="24"><span>Minecraft Title Generator</span></a>
       <template v-if="font">
-        <span class="name">{{ font.name }}</span>
+        <span class="name ellipsis">{{ font.name }}</span>
         <FluidTabs class="main-tabs" v-model="tab" :tabs="TABS" tab-style="nav">
           <template #label="{ tab: item }"><span>{{ item.label }}</span></template>
         </FluidTabs>
@@ -116,7 +103,7 @@
     </main>
 
     <RenderDialog v-if="asking" title="Start a new font?" close-title="Cancel" dismissable @close="asking = false">
-      <div class="confirm">
+      <div class="dialog-body">
         <p>This browser only remembers one font, so <strong>{{ font.name }}</strong> will be removed. Download its JSON first if you want to keep it.</p>
         <div class="buttons">
           <button @click="downloadJson"><Icon name="download" :size="14" />Download JSON</button>
@@ -169,13 +156,10 @@
 
   .name {
     min-width: 0;
-    overflow: hidden;
     margin-left: 8px;
     padding-left: 12px;
     font-size: var(--font-md);
     color: var(--muted);
-    white-space: nowrap;
-    text-overflow: ellipsis;
     border-left: 1px solid var(--line-strong);
   }
 
@@ -271,39 +255,58 @@
     max-width: 1280px;
   }
 
-  .confirm {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    padding: 20px;
-  }
-
-  .confirm p {
-    margin: 0;
-    font-size: var(--font-md);
-  }
-
   .buttons {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
   }
 
-  .danger {
-    color: #1d0a08;
-    background: var(--danger);
-  }
-
-  .danger:hover {
-    background: #ffa79f;
-  }
-
   @media (max-width: 1000px) {
-    html,
-    body,
-    #app,
     .editor-page {
       height: auto;
+      min-height: 100%;
+    }
+
+    .top {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      flex-wrap: wrap;
+      height: auto;
+      min-height: 52px;
+    }
+
+    .brand,
+    .top > button {
+      height: 52px;
+    }
+
+    .top > button.small {
+      align-self: center;
+      height: 32px;
+      padding: 0 8px;
+      gap: 4px;
+    }
+
+    .main-tabs {
+      order: 10;
+      flex-basis: calc(100% + 24px);
+      height: 44px;
+      margin: 0 -12px;
+      border-top: 1px solid var(--line);
+    }
+
+    .main-tabs :deep(.tab-bar) {
+      width: 100%;
+    }
+
+    .main-tabs :deep(.tab-bar-button) {
+      flex: 1;
+      padding: 0 6px;
+    }
+
+    .name {
+      display: none;
     }
 
     .workspace {
@@ -312,67 +315,43 @@
     }
 
     .left {
-      order: 2;
-      max-height: 280px;
       border-right: 0;
-      border-top: 1px solid var(--line);
       border-bottom: 1px solid var(--line);
     }
 
-    .centre {
-      order: 1;
-    }
-
     .right {
-      order: 3;
       overflow: visible;
+      padding: 16px;
+      border-top: 1px solid var(--line);
       border-left: 0;
     }
 
     .page-body {
       overflow: visible;
     }
-
-    .top {
-      flex-wrap: wrap;
-      height: auto;
-      min-height: 52px;
-    }
-
-    .main-tabs {
-      order: 10;
-      width: calc(100% + 24px);
-      height: 44px;
-      margin: 0 -12px;
-      border-top: 1px solid var(--line);
-    }
-
-    .main-tabs :deep(.tab-bar-button) {
-      flex: 1;
-    }
-
-    .name {
-      display: none;
-    }
-
-    .top button.small {
-      padding: 5px 7px;
-      gap: 4px;
-    }
   }
 
   @media (max-width: 520px) {
-    .brand span {
+    .editing .brand span {
       display: none;
     }
 
     .top {
-      gap: 4px;
+      gap: 2px;
       padding: 0 8px;
     }
 
-    .top .icon-button {
-      width: 30px;
+    .main-tabs {
+      flex-basis: calc(100% + 16px);
+      margin: 0 -8px;
+    }
+
+    .top > .icon-button {
+      width: 32px;
+    }
+
+    .page-body {
+      padding: 16px;
     }
   }
 </style>

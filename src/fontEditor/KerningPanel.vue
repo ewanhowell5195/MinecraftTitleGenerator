@@ -86,7 +86,7 @@
 <template>
   <div class="kerning">
     <div class="input-row">
-      <input v-model="search" type="text" placeholder="Show pairs with any of these characters, eg minecraft" aria-label="Search pairs" spellcheck="false">
+      <input v-model="search" type="text" placeholder="Filter by characters, eg minecraft" aria-label="Search pairs" spellcheck="false">
     </div>
     <div class="columns">
       <section class="flow">
@@ -250,10 +250,6 @@
     gap: 4px;
   }
 
-  .hint.bad {
-    color: var(--danger);
-  }
-
   @media (max-width: 900px) {
     .columns {
       grid-template-columns: minmax(0, 1fr);
@@ -261,7 +257,18 @@
     }
 
     .columns > section > .list {
-      overflow: visible;
+      max-height: 70svh;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .pair-row {
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .picture.big {
+      width: 100%;
     }
   }
 </style>

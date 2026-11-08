@@ -6,7 +6,7 @@
   import { createFont } from "../lib/fontEditor.js"
   import { fontCredit } from "../lib/credits.js"
   import { fontThumbnail } from "../lib/ui.js"
-  import { fontFromList, fontFromUploads, imageOf } from "./loaders.js"
+  import { fontFromList, fontFromUploads, fullName, imageOf } from "./loaders.js"
   import { openFont } from "./store.js"
 
   const height = ref(10)
@@ -29,11 +29,6 @@
       error.value = err.message
     }
   })
-
-  function tileName(entry) {
-    const parent = entry.variant && fonts.value.find(item => item.id === entry.variant)
-    return parent ? `${parent.name} ${entry.name}` : entry.name
-  }
 
   async function attempt(label, task) {
     error.value = ""
@@ -114,7 +109,7 @@
         <h2>Start from a font</h2>
         <p class="hint">Copies its characters and settings into a new font of your own.</p>
         <div class="grid fonts">
-          <Tile v-for="entry of startable" :key="entry.id" :label="tileName(entry)" :image="fontThumbnail(fonts, entry.id)" :author="fontCredit(entry, fonts)" @pick="startFrom(entry)" />
+          <Tile v-for="entry of startable" :key="entry.id" :label="fullName(entry, fonts)" :image="fontThumbnail(fonts, entry.id)" :author="fontCredit(entry, fonts)" @pick="startFrom(entry)" />
         </div>
       </section>
     </div>
@@ -197,19 +192,8 @@
     width: 100%;
   }
 
-  .checkbox {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding-bottom: 8px;
-    font-size: var(--font-md);
-    color: var(--muted);
-    cursor: pointer;
-    user-select: none;
-  }
-
-  .checkbox input {
-    accent-color: var(--accent);
+  .numbers .checkbox {
+    padding-bottom: 10px;
   }
 
   .fonts {
