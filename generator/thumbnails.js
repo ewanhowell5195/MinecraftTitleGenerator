@@ -1,8 +1,8 @@
 import { execFile } from "node:child_process"
 import fs from "node:fs"
-import os from "node:os"
 import path from "node:path"
 import { PNG } from "pngjs"
+import { stripRange } from "../src/lib/assets.js"
 import { rgbOf } from "../src/lib/colour.js"
 import { sheetLayout, solidMask, splitCells } from "../src/lib/font.js"
 import { GENERATED_EDGE_OVERLAYS, edgeAlpha, generatedAlpha, withGenerated } from "../src/lib/generated.js"
@@ -10,7 +10,7 @@ import { layout } from "../src/lib/layout.js"
 import { defaultBorder, defaultDepth, overlayLayer } from "../src/lib/settings.js"
 import { stripRows, stripY } from "../src/lib/strips.js"
 import { blend } from "./blend.js"
-import { cli, readPng, rgb, rgba, writePng } from "./common.js"
+import { cli, inParallel, readPng, rgb, rgba, writePng } from "./common.js"
 import { PUBLIC, fontDir, fontTextureList, publishedFonts, readMask } from "./fonts.js"
 
 const MARGIN = 2
@@ -203,7 +203,6 @@ function sceneFor(entry) {
   const ring = defaultBorder("top", entry) > 0
   const margin = ring || entry.autoBorder ? MARGIN : 0
   const frame = { width: maxX - minX + margin * 2, height: top - bottom + margin * 2 }
-  const drawn = cells.filter(glyph => glyph.width)
   return {
     folder,
     layouts: sheetLayout(cells, capHeight, depth),
@@ -211,8 +210,7 @@ function sceneFor(entry) {
     frame,
     capHeight,
     ring,
-    stripTop: Math.max(capHeight, ...drawn.map(glyph => glyph.top)),
-    stripBottom: Math.min(0, ...drawn.map(glyph => glyph.bottom)),
+    stripRange: stripRange({ cells, capHeight }),
     placed: placed.map(item => ({ glyph: item.glyph, x: item.x - minX + margin, y: top - item.glyph.top + margin, lineX: item.x - placed[0].x }))
   }
 }
@@ -230,7 +228,7 @@ function textureThumbnail({ entry, scene, meta, sheet, width, densityOf }, name,
   if (merged.type === "strip") {
     const tiling = merged.tiling ?? "line"
     if (tiling !== "line" && tiling !== "character") throw new Error(`${name} has tiling "${tiling}", strips tile by "line" or "character"`)
-    const shape = stripRows(merged, { top: scene.stripTop, bottom: scene.stripBottom }, scene.depth, scene.capHeight)
+    const shape = stripRows(merged, scene.stripRange, scene.depth, scene.capHeight)
     const strip = { image, density: image.height / shape.rows, top: shape.depth + shape.top, tiling, shape }
     png = render(scene, null, { density: Math.max(1, Math.ceil(strip.density)), border, width, ring: scene.ring, strip, layers, fontOverlay: entry.overlay ? sheet(".", "overlay") : null })
   } else {
@@ -316,14 +314,7 @@ function child(id) {
 
 async function allFonts() {
   const outputs = []
-  let next = 0
-  async function worker() {
-    while (next < list.length) {
-      const index = next++
-      outputs[index] = await child(list[index].id)
-    }
-  }
-  await Promise.all(Array.from({ length: os.availableParallelism() }, worker))
+  await inParallel(list, async (entry, index) => outputs[index] = await child(entry.id))
   process.stdout.write(outputs.join(""))
 }
 

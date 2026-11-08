@@ -25,8 +25,8 @@ function withDetails(html, details) {
   const { title, description, url, canonical = url } = details
   return html
     .replace(/<title>[^<]*<\/title>/, () => `<title>${escaped(title)}</title>`)
-    .replace(/(<meta name="description" content=")[^"]*/, (match, start) => start + escaped(description))
-    .replace(/(<link rel="canonical" href=")[^"]*/, (match, start) => start + escaped(canonical))
+    .replace(/(<meta name="description" content=")[^"]*/, (_, start) => start + escaped(description))
+    .replace(/(<link rel="canonical" href=")[^"]*/, (_, start) => start + escaped(canonical))
     .replace("</head>", () => `${shareTags(details)}</head>`)
 }
 

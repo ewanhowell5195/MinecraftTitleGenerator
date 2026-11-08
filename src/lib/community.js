@@ -71,12 +71,8 @@ function jsonOptions(method, body) {
   return { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body ?? {}) }
 }
 
-function sent(method, path, body) {
-  return request(path, jsonOptions(method, body))
-}
-
 function posted(path, body) {
-  return sent("POST", path, body)
+  return request(path, jsonOptions("POST", body))
 }
 
 function currentChange(id) {
@@ -168,7 +164,8 @@ export async function sharePublicly(code, name, id) {
   if (result.onAccount) setAccountPresets(store.owned.concat(result.preset.id))
   if (result.token) keepToken(result.preset.id, result.token)
   forgetLists()
-  store.usage = { ...(store.usage?.day === currentDay() ? store.usage : { used: 0 }), day: currentDay(), used: (store.usage?.day === currentDay() ? store.usage.used : 0) + 1 }
+  const today = store.usage?.day === currentDay() ? store.usage : { used: 0 }
+  store.usage = { ...today, day: currentDay(), used: today.used + 1 }
   persist()
   showUsage()
   return result
@@ -195,9 +192,13 @@ function forgetLists() {
   store.pool = null
 }
 
+function setOwn(ids) {
+  store.own = ids
+  ownPresets.value = ids
+}
+
 function addOwn(ids) {
-  store.own = Array.from(new Set(store.own.concat(ids)))
-  ownPresets.value = store.own
+  setOwn(Array.from(new Set(store.own.concat(ids))))
 }
 
 function setAccountPresets(ids) {
@@ -257,32 +258,30 @@ export async function replaceShared(id, code, name) {
   return preset
 }
 
-export async function unshareShared(id) {
-  const { preset } = await request(`/${id}/unshare`, withToken(id, jsonOptions("POST")))
+function forgetShared(id) {
   remember(id, { deleted: true })
   forgetLists()
   setAccountPresets(store.owned.filter(item => item !== id))
-  store.own = store.own.filter(item => item !== id)
-  ownPresets.value = store.own
+  setOwn(store.own.filter(item => item !== id))
+}
+
+export async function unshareShared(id) {
+  const { preset } = await request(`/${id}/unshare`, withToken(id, jsonOptions("POST")))
+  forgetShared(id)
   persist()
   return preset
 }
 
 export async function deleteShared(id) {
   await request(`/${id}`, withToken(id, { method: "DELETE" }))
-  remember(id, { deleted: true })
-  forgetLists()
+  forgetShared(id)
   forgetTokens([id])
-  setAccountPresets(store.owned.filter(item => item !== id))
-  store.own = store.own.filter(item => item !== id)
-  ownPresets.value = store.own
   persist()
 }
 
 function setAccount(user) {
   if (store.account?.id !== user?.id) {
-    store.own = Object.keys(store.tokens).map(Number)
-    ownPresets.value = store.own
+    setOwn(Object.keys(store.tokens).map(Number))
     store.votes = {}
     setAccountPresets([])
   }

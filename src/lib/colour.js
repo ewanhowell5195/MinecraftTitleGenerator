@@ -5,3 +5,7 @@ export function rgbOf(hex) {
 export function hexOf(rgb) {
   return `#${rgb.map(value => Math.round(value).toString(16).padStart(2, "0")).join("")}`
 }
+
+export function packed(data, at) {
+  return data[at] | data[at + 1] << 8 | data[at + 2] << 16
+}

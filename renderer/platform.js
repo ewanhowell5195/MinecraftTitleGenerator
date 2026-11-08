@@ -15,16 +15,16 @@ function publicFile(url) {
   return file
 }
 
-function fetchPublic(url) {
+async function fetchPublic(url) {
   try {
-    return Promise.resolve(new Response(fs.readFileSync(publicFile(url))))
+    return new Response(await fs.promises.readFile(publicFile(url)))
   } catch (err) {
     if (err.code !== "ENOENT") throw err
-    return Promise.resolve(new Response(null, { status: 404 }))
+    return new Response(null, { status: 404 })
   }
 }
 
-function loadSafely(src) {
+async function loadSafely(src) {
   if (src.startsWith("data:image/")) return loadImage(src)
   if (/^[a-z][a-z0-9+.-]*:/i.test(src)) throw new Error(`${src.slice(0, 40)} is not an image the renderer may load`)
   return loadImage(publicFile(src))
@@ -156,7 +156,6 @@ export async function useNode() {
   globalThis.ImageData ??= ImageData
   globalThis.DOMMatrix ??= DOMMatrix
   usePlatform({
-    storage: { getItem: () => null, setItem() {} },
     fetch: fetchPublic,
     createCanvas: softwareCanvas,
     createWebGLRenderer: webGLRenderer(THREE),
@@ -164,6 +163,6 @@ export async function useNode() {
     pngUrl,
     frame: callback => setTimeout(callback),
     cancelFrame: clearTimeout,
-    loadImage: async src => loadSafely(src)
+    loadImage: loadSafely
   })
 }

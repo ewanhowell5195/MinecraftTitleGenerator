@@ -15,7 +15,7 @@ const { stroke, block, marked, differences } = markSheet(png, cells, capHeight, 
 function ranges(rows) {
   const list = []
   for (const y of rows) {
-    const last = list[list.length - 1]
+    const last = list.at(-1)
     if (last && last[1] === y - 1) last[1] = y
     else list.push([y, y])
   }

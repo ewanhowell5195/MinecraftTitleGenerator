@@ -11,12 +11,14 @@ export function reply(status, body, headers = {}) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json", ...headers } })
 }
 
-export function guarded(handler) {
+export const INVALID = "This request isn't valid."
+
+export function guarded(handler, refused = err => reply(err.status, { error: err.message })) {
   return async context => {
     try {
       return await handler(context)
     } catch (err) {
-      if (err instanceof Refusal) return reply(err.status, { error: err.message })
+      if (err instanceof Refusal) return refused(err)
       throw err
     }
   }
@@ -53,5 +55,5 @@ export async function jsonBody(request, limit = LIMITS.body) {
     const body = JSON.parse(text)
     if (body && typeof body === "object" && !Array.isArray(body)) return body
   } catch {}
-  throw new Refusal(400, "This request isn't valid.")
+  throw new Refusal(400, INVALID)
 }

@@ -31,15 +31,17 @@ function stops(type) {
   return TYPES[type].stops.map(([colour, position]) => ({ colour, position }))
 }
 
-const TILING = () => ({
-  tileableScale: 2,
-  tileableXOffset: 0,
-  tileableYOffset: 0,
-  tileableRandomRotations: false,
-  tileableRandomMirroring: false,
-  tileableTileEdges: false,
-  tileablePerCharacter: false
-})
+function tiling() {
+  return {
+    tileableScale: 2,
+    tileableXOffset: 0,
+    tileableYOffset: 0,
+    tileableRandomRotations: false,
+    tileableRandomMirroring: false,
+    tileableTileEdges: false,
+    tileablePerCharacter: false
+  }
+}
 
 const PANELS = {
   text: () => ({
@@ -145,9 +147,9 @@ const PANELS = {
     stops: stops("top"),
     smooth: true,
     gradientAngle: 0,
-    ...TILING()
+    ...tiling()
   }),
-  tiling: TILING,
+  tiling,
   overlays: () => ({
     overlayMode: "default",
     overlays: [],
@@ -220,7 +222,7 @@ export function createObject(values = {}, id = next) {
   next = Math.max(next, id + 1)
   const object = reactive({ ...defaults(), id })
   restore(object, values)
-  for (const key of Object.values(TYPE_KEYS).flat()) {
+  for (const key of TYPED_KEYS) {
     if (!(key in values)) object[key] = TYPES[object.type][key]
   }
   return object
@@ -252,6 +254,8 @@ const TYPE_KEYS = {
   inner: ["internalFaces", "fadeInternal", "internalFade"],
   sides: ["sideFaces", "fadeSides", "sideFade"]
 }
+
+const TYPED_KEYS = Object.values(TYPE_KEYS).flat()
 
 function panelKeys(object, name) {
   if (name === "texture") return TEXTURE_TABS[object.textureSource]
@@ -370,7 +374,7 @@ export function typeDefaults(type) {
 
 export function applyType(object, type, font) {
   object.stops = stops(type)
-  for (const key of Object.values(TYPE_KEYS).flat()) object[key] = TYPES[type][key]
+  for (const key of TYPED_KEYS) object[key] = TYPES[type][key]
   object.border = defaultBorder(type, font)
   object.spacing = defaultSpacing(type, font)
 }

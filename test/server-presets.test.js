@@ -3,7 +3,8 @@ import assert from "node:assert/strict"
 import fs from "node:fs"
 import { DatabaseSync } from "node:sqlite"
 
-const { LIMITS, checkTitle, claimPresets, countDownload, deletePreset, getPreset, listPresets, presetPageDetails, presetStats, renamePreset, replacePreset, submissionUsage, submitPreset, titleFacts, unsharePreset, votePreset } = await import("../src/server/presets.js")
+const { LIMITS } = await import("../src/lib/limits.js")
+const { checkTitle, claimPresets, countDownload, deletePreset, getPreset, listPresets, presetPageDetails, presetStats, renamePreset, replacePreset, submissionUsage, submitPreset, titleFacts, unsharePreset, votePreset } = await import("../src/server/presets.js")
 const { accountDetails, finishSignIn, receiveSignIn, signOut, startSignIn } = await import("../src/server/accounts.js")
 const { addSaved, changeSaved, listSaved, removeSaved } = await import("../src/server/saved.js")
 const { encodeTitle } = await import("../src/lib/linkformat.js")

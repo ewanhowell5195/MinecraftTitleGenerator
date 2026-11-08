@@ -42,7 +42,7 @@ export function forgetImages(keep) {
   }
 }
 
-export function textureList(folder) {
+function textureList(folder) {
   return fetchJson(`${folder}/textures.json`).then(data => ({ ...data, overlays: withGenerated(data.overlays), edgeOverlays: GENERATED_EDGE_OVERLAYS }))
 }
 

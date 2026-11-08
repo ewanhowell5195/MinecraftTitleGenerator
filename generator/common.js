@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto"
 import fs from "node:fs"
+import os from "node:os"
 import path from "node:path"
 import { PNG } from "pngjs"
 
@@ -42,6 +43,17 @@ export function cli(usage, { optional = false } = {}) {
   const [first, ...flags] = process.argv.slice(2)
   if (!first && !optional) throw new Error(`usage: node generator/${usage}`)
   return { first, has: name => flags.includes(name), option: name => flags.includes(name) ? flags[flags.indexOf(name) + 1] : undefined }
+}
+
+export async function inParallel(items, run) {
+  let next = 0
+  async function worker() {
+    while (next < items.length) {
+      const index = next++
+      await run(items[index], index)
+    }
+  }
+  await Promise.all(Array.from({ length: os.availableParallelism() }, worker))
 }
 
 export function rgba(data, i) {

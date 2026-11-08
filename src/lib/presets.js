@@ -146,6 +146,10 @@ function uniqueName(name, taken = new Set(presets.value.map(preset => preset.nam
   return `${name} ${number}`
 }
 
+function cleanName(name) {
+  return name.trim().slice(0, NAME_LIMIT)
+}
+
 export function addPreset(name, code) {
   const existing = savedWithCode(code)
   if (existing) return existing
@@ -158,7 +162,7 @@ export function addPreset(name, code) {
 }
 
 export function renamePreset(preset, name) {
-  const trimmed = name.trim().slice(0, NAME_LIMIT)
+  const trimmed = cleanName(name)
   if (!trimmed) return preset
   const named = name => list => list.map(item => item.code === preset.code ? { ...item, name } : item)
   if (managedPresets.value.includes(preset.shared)) {
@@ -219,7 +223,7 @@ export function replaceTargets(code) {
 }
 
 export async function replaceWith(target, code, name) {
-  if (!target.online) return { preset: changeCode(savedWithCode(target.code), code, name.trim().slice(0, NAME_LIMIT) || target.name), online: null }
+  if (!target.online) return { preset: changeCode(savedWithCode(target.code), code, cleanName(name) || target.name), online: null }
   const online = await replaceShared(target.shared, code, name)
   setList(list => list.filter(item => titleBody(item.code) !== titleBody(code)).map(item => item.shared === online.id ? { ...item, code, name: online.name } : item))
   return { preset: savedWithCode(code), online }
@@ -312,7 +316,7 @@ export function savePreset(name = "", { keepOpen = false } = {}) {
     const { code, skipped } = encodeTitle(titleData())
     submitStats()
     const existing = savedWithCode(code)
-    const preset = existing ? renamePreset(existing, name) : addPreset(name.trim().slice(0, NAME_LIMIT) || automaticName(), code)
+    const preset = existing ? renamePreset(existing, name) : addPreset(cleanName(name) || automaticName(), code)
     savedPreset.value = { name: preset.name, skipped }
     if (!skipped) showNotice(`Saved as ${preset.name}`)
     return preset

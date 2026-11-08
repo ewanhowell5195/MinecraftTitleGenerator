@@ -1,3 +1,4 @@
+import { hexOf, rgbOf } from "./colour.js"
 import { OVERLAY_KINDS } from "./settings.js"
 
 const LAYERS = Object.keys(OVERLAY_KINDS)
@@ -71,11 +72,11 @@ function isColour(value) {
 }
 
 function writeColour(out, value) {
-  for (const start of [1, 3, 5]) out.push(parseInt(value.slice(start, start + 2), 16))
+  out.push(...rgbOf(value))
 }
 
 function readColour(reader) {
-  return `#${Array.from(readBytes(reader, 3), byte => byte.toString(16).padStart(2, "0")).join("")}`
+  return hexOf(Array.from(readBytes(reader, 3)))
 }
 
 function isStop(stop) {
@@ -302,16 +303,20 @@ const KEYS = [
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))
 
+function fittingType(key, value) {
+  const type = KEYS[IDS.get(key) - 1]?.[1]
+  return type && (value === null ? type !== BOOLEAN : type.fits(value)) ? type : null
+}
+
 function writeEntry(out, key, value) {
-  const id = IDS.get(key)
-  const type = KEYS[id - 1]?.[1]
-  if (!type || !(value === null ? type !== BOOLEAN : type.fits(value))) {
+  const type = fittingType(key, value)
+  if (!type) {
     writeVarint(out, 0)
     writeText(out, key)
     writeText(out, JSON.stringify(value))
     return
   }
-  writeVarint(out, id * 2 + (value === null || value === true ? 1 : 0))
+  writeVarint(out, IDS.get(key) * 2 + (value === null || value === true ? 1 : 0))
   if (value !== null && type !== BOOLEAN) type.write(out, value)
 }
 
@@ -325,13 +330,12 @@ function readEntry(reader) {
   return [key, flagged ? null : type.read(reader)]
 }
 
-const NESTED = new Set(["words", "overlays", "edgeOverlays"])
+const NESTED = new Set(["words"].concat(LAYERS))
 
 export function unknownSetting(items, names = new Map()) {
   for (const item of items) {
     for (const [key, value] of Object.entries(item)) {
-      const type = KEYS[IDS.get(names.get(key) ?? key) - 1]?.[1]
-      if (!type || !(value === null ? type !== BOOLEAN : type.fits(value))) return key
+      if (!fittingType(names.get(key) ?? key, value)) return key
       const nested = NESTED.has(key) && value ? unknownSetting(value, key === "words" ? new Map() : OVERLAY_KEYS) : null
       if (nested) return nested
     }

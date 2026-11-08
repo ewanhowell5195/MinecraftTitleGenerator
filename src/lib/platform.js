@@ -2,7 +2,6 @@ import * as THREE from "three"
 
 export const platform = {
   minecraftAsset: null,
-  storage: { getItem: key => localStorage.getItem(key), setItem: (key, value) => localStorage.setItem(key, value) },
   fetch: (...args) => fetch(...args),
   createCanvas: () => document.createElement("canvas"),
   createWebGLRenderer: () => new THREE.WebGLRenderer({ antialias: false, alpha: true }),

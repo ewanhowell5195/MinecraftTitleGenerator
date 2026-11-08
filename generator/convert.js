@@ -88,7 +88,7 @@ function installedFont(name) {
 function sheetRows(cells, capHeight) {
   const rows = []
   for (const cell of cells) {
-    const row = rows[rows.length - 1]
+    const row = rows.at(-1)
     if (!row || row.width + cell.width + 1 > SHEET_MAX_WIDTH) rows.push({ cells: [cell], width: 1 + cell.width + 1 })
     else {
       row.cells.push(cell)

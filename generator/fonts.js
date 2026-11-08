@@ -1,5 +1,5 @@
 import path from "node:path"
-import { flattenFonts, fullOrder, parseMask, stripsOf } from "../src/lib/font.js"
+import { flattenFonts, fullOrder, parseMask, sheetOwner, stripsOf } from "../src/lib/font.js"
 import { defaultBorder } from "../src/lib/settings.js"
 import { mergeStrips, stripFolder, stripUse } from "../src/lib/strips.js"
 import { readJson, readPng } from "./common.js"
@@ -14,8 +14,7 @@ export function readStripSet(item) {
 }
 
 export function fontTextureList(entry, list) {
-  const owner = entry.inherits ? list.find(font => font.id === entry.variant) : entry
-  return mergeStrips(readJson(path.join(fontDir(owner), "textures.json")), stripsOf(entry, list).map(readStripSet))
+  return mergeStrips(readJson(path.join(fontDir(sheetOwner(entry, list)), "textures.json")), stripsOf(entry, list).map(readStripSet))
 }
 
 export function fontDir(font) {

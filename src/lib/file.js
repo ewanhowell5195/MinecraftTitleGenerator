@@ -1,9 +1,9 @@
 import { ref } from "vue"
 import { matchSolved } from "./match.js"
 import { keptObject, runtime, scene, titleFileName, validSelection } from "./scene.js"
-import { FILE_VERSION, LAYER, LINE, createObject, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, snapshot, typeDefaults } from "./settings.js"
+import { FILE_VERSION, LAYER, LINE, OVERLAY_KINDS, createObject, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, snapshot, typeDefaults } from "./settings.js"
 import { submitStats } from "./stats.js"
-import { download } from "./ui.js"
+import { downloadBlob } from "./ui.js"
 
 const FORMAT = "minecraft-title"
 export const EXTENSION = "mctitle"
@@ -43,7 +43,7 @@ const UNUSED = [
   [object => object.matchWidth === null, ["matchScaleY"]]
 ]
 
-const LAYERS = ["overlays", "edgeOverlays"]
+const LAYERS = Object.keys(OVERLAY_KINDS)
 
 export const fileError = ref(null)
 
@@ -132,9 +132,7 @@ export function titleData() {
 export function saveTitle() {
   if (!scene.objects.length) return
   submitStats()
-  const url = URL.createObjectURL(new Blob([JSON.stringify(titleData(), null, 2)], { type: "application/json" }))
-  download(`${titleFileName()}.${EXTENSION}`, url)
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  downloadBlob(`${titleFileName()}.${EXTENSION}`, new Blob([JSON.stringify(titleData(), null, 2)], { type: "application/json" }))
   fileError.value = null
 }
 
@@ -184,30 +182,28 @@ function anchorDepthAtFront(line) {
   return deepened ? { ...line, depthAnchor: "front" } : line
 }
 
-function upgradeOlderLine(line, version) {
-  if (version >= 4) return line
-  if (version === 3) return widenBlockSerif(line)
-  if (version === 2) return widenBlockSerif(separateMatchScale(line))
-  const upgraded = widenBlockSerif(separateMatchScale(restartTilesPerCharacter(line)))
-  return Array.isArray(line.words) ? { ...upgraded, words: line.words.map(restartTilesPerCharacter) } : upgraded
+function restartLineTiles(line) {
+  const restarted = restartTilesPerCharacter(line)
+  return Array.isArray(line.words) ? { ...restarted, words: line.words.map(restartTilesPerCharacter) } : restarted
 }
 
+const UPGRADES = [[2, restartLineTiles], [3, separateMatchScale], [4, widenBlockSerif], [5, anchorDepthAtFront]]
+
 function upgradeLine(line, version) {
-  if (version >= 5) return line
-  return anchorDepthAtFront(upgradeOlderLine(line, version))
+  return UPGRADES.reduce((upgraded, [to, upgrade]) => version < to ? upgrade(upgraded) : upgraded, line)
 }
 
 function readData(data) {
   if (data.version > FILE_VERSION) throw new Error(`it was saved by a newer version of the generator (format ${data.version})`)
   if (!Array.isArray(data.lines) || !data.lines.length) throw new Error("it has no text in it")
-  data = { ...data, lines: data.lines.map(line => upgradeLine(line, data.version ?? 0)) }
-  for (const line of data.lines) {
-    if (line.matchWidth !== undefined && !data.lines[line.matchWidth]) throw new Error(`a line matches the width of line ${line.matchWidth}, which doesn't exist`)
+  const lines = data.lines.map(line => upgradeLine(line, data.version ?? 0))
+  for (const line of lines) {
+    if (line.matchWidth !== undefined && !lines[line.matchWidth]) throw new Error(`a line matches the width of line ${line.matchWidth}, which doesn't exist`)
   }
-  data.lines.forEach((line, index) => {
-    if (matchLoops(data.lines, index)) throw new Error(`line ${index} matches its own width`)
-  })
-  return data.lines.map((line, index) => expandLine(line, index + 1))
+  for (const index of lines.keys()) {
+    if (matchLoops(lines, index)) throw new Error(`line ${index} matches its own width`)
+  }
+  return lines.map((line, index) => expandLine(line, index + 1))
 }
 
 export function isDefaultTitle() {
@@ -219,11 +215,14 @@ export function isDefaultTitle() {
   return same(trim(object), trim(reference))
 }
 
-export function resetTitle() {
-  const objects = [createObject()]
+function showObjects(objects) {
   scene.objects.splice(0, scene.objects.length, ...objects)
   Object.assign(scene, validSelection(objects, null, null))
   fileError.value = null
+}
+
+export function resetTitle() {
+  showObjects([createObject()])
 }
 
 function titleObjects(values) {
@@ -239,22 +238,15 @@ export function readTitleObjects(data) {
   return titleObjects(readData(data))
 }
 
-function applyTitle(values) {
-  const objects = titleObjects(values)
-  scene.objects.splice(0, scene.objects.length, ...objects)
-  Object.assign(scene, validSelection(objects, null, null))
-  fileError.value = null
-}
-
 export function openTitleData(data) {
-  applyTitle(readData(data))
+  showObjects(readTitleObjects(data))
 }
 
 export async function openTitle(file, allow = () => true) {
   try {
     const values = readTitle(await file.text())
     if (!allow()) return
-    applyTitle(values)
+    showObjects(titleObjects(values))
   } catch (err) {
     fileError.value = `Couldn't open ${file.name}: ${err.message}`
   }

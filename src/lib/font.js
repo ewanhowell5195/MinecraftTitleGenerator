@@ -234,12 +234,16 @@ function fontFolder(data) {
   return data.variant ? `${FOLDER}/${data.variant}/${data.id}` : `${FOLDER}/${data.id}`
 }
 
+export function sheetOwner(data, list) {
+  return data.inherits ? list.find(entry => entry.id === data.variant) ?? data : data
+}
+
 export function sheetFolder(data, list) {
-  return fontFolder(data.inherits ? list.find(entry => entry.id === data.variant) ?? data : data)
+  return fontFolder(sheetOwner(data, list))
 }
 
 export function stripsOf(data, list) {
-  return (data.inherits ? list.find(entry => entry.id === data.variant) ?? data : data).strips ?? []
+  return sheetOwner(data, list).strips ?? []
 }
 
 export function flattenFonts(list) {

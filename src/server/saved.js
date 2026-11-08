@@ -1,7 +1,7 @@
 import { LIMITS } from "../lib/limits.js"
 import { decodeTitle } from "../lib/linkformat.js"
 import { USER_ROW, forgetUnusedUser, saveUser, signedInUser } from "./accounts.js"
-import { Refusal, guarded, jsonBody, reply, textField } from "./http.js"
+import { INVALID, Refusal, guarded, jsonBody, reply, textField } from "./http.js"
 import { NEXT_ID } from "./presets.js"
 
 const BATCH_BODY = LIMITS.savedBatch * (LIMITS.savedCode + 512)
@@ -32,7 +32,7 @@ function savable(preset) {
 }
 
 function requireCode(body) {
-  if (typeof body.code !== "string" || !body.code) throw new Refusal(400, "This request isn't valid.")
+  if (typeof body.code !== "string" || !body.code) throw new Refusal(400, INVALID)
   return body.code
 }
 
@@ -46,7 +46,7 @@ export const addSaved = guarded(async context => {
   const { request, env } = context
   const user = await requireUser(context)
   const { presets } = await jsonBody(request, BATCH_BODY)
-  if (!Array.isArray(presets) || presets.length > LIMITS.savedBatch) throw new Refusal(400, "This request isn't valid.")
+  if (!Array.isArray(presets) || presets.length > LIMITS.savedBatch) throw new Refusal(400, INVALID)
   const { results } = await env.DB.prepare(`SELECT code, shared FROM presets WHERE user_id = ${USER_ROW}`).bind(user.provider, user.providerId).all()
   const existing = new Set(results.map(row => row.code))
   let hidden = results.filter(row => !row.shared).length
@@ -75,7 +75,7 @@ export const changeSaved = guarded(async context => {
   const sets = []
   const values = []
   if (Object.hasOwn(body, "replacement")) {
-    if (!savableCode(body.replacement)) throw new Refusal(400, "This request isn't valid.")
+    if (!savableCode(body.replacement)) throw new Refusal(400, INVALID)
     const taken = await env.DB.prepare(`SELECT id FROM presets WHERE user_id = ${USER_ROW} AND code = ?`).bind(user.provider, user.providerId, body.replacement).first()
     if (taken) throw new Refusal(409, "You already have a preset with this title.")
     sets.push("code = ?")
@@ -87,7 +87,7 @@ export const changeSaved = guarded(async context => {
     sets.push("name = ?")
     values.push(name)
   }
-  if (!sets.length) throw new Refusal(400, "This request isn't valid.")
+  if (!sets.length) throw new Refusal(400, INVALID)
   await env.DB.prepare(`UPDATE presets SET ${sets.join(", ")} WHERE user_id = ${USER_ROW} AND code = ? AND shared = 0`).bind(...values, user.provider, user.providerId, code).run()
   return reply(200, { changed: true })
 })

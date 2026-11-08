@@ -6,9 +6,7 @@ import { pictureUrl } from "../lib/pictures.js"
 import { parseSearch } from "../lib/presetSearch.js"
 import { FILE_VERSION, typeDefaults } from "../lib/settings.js"
 import { USER_ROW, forgetUnusedUser, saveUser, signedInUser } from "./accounts.js"
-import { Refusal, escaped, guarded, hashed, jsonBody, randomToken, reply, textField } from "./http.js"
-
-export { LIMITS }
+import { INVALID, Refusal, escaped, guarded, hashed, jsonBody, randomToken, reply, textField } from "./http.js"
 
 const SORTS = { week: "week DESC, downloads DESC, id DESC", popular: "downloads DESC, id DESC", top: "rating DESC, votes DESC, id DESC", new: "created_at DESC, id DESC", needs: "votes, id" }
 const MATCHES = "lower(name) LIKE ?1 ESCAPE '\\' OR lower(text) LIKE ?1 ESCAPE '\\'"
@@ -16,10 +14,12 @@ const EDGE_SECONDS = 1800
 const DAY = 86400000
 const WEEK_DAYS = 7
 const SITE_NAME = "Minecraft Title Generator"
-const FIRST_PAGES = ["week", "popular", "top", "new", "needs"].map(sort => `?sort=${sort}&offset=0`)
+const FIRST_PAGES = Object.keys(SORTS).map(sort => `?sort=${sort}&offset=0`)
+const MISSING = "This preset doesn't exist."
 const STAT_COLUMNS = "downloads, votes, rating, created_at AS createdAt, (SELECT users.name FROM users WHERE users.id = presets.user_id) AS author, (SELECT users.provider FROM users WHERE users.id = presets.user_id) AS authorProvider"
 const COLUMNS = `id, code, fingerprint, name, text, ${STAT_COLUMNS}`
 
+// sqlite reuses the rowid of a deleted newest row, which would repoint old links and browsers' vote records
 export const NEXT_ID = "MAX(COALESCE((SELECT MAX(id) FROM presets), 0), COALESCE((SELECT MAX(id) FROM deleted_presets), 0)) + 1"
 const SCORES_RESET = ", downloads = 0, ups = 0, votes = 0, rating = -1"
 
@@ -31,7 +31,7 @@ function canonical(value) {
   return Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])]))
 }
 
-export function titleFingerprint(code) {
+function titleFingerprint(code) {
   return hashed(JSON.stringify(canonical(decodeTitle(code).lines)))
 }
 
@@ -88,13 +88,13 @@ function checkWords(label, text) {
 
 function presetId(params) {
   const id = Number(params.id)
-  if (!Number.isSafeInteger(id) || id < 1) throw new Refusal(404, "This preset doesn't exist.")
+  if (!Number.isSafeInteger(id) || id < 1) throw new Refusal(404, MISSING)
   return id
 }
 
 async function requirePreset(env, id, condition = "") {
   const found = await env.DB.prepare(`SELECT token_hash, (SELECT users.provider || ':' || users.provider_id FROM users WHERE users.id = presets.user_id) AS owner FROM presets WHERE id = ?${condition}`).bind(id).first()
-  if (!found) throw new Refusal(404, "This preset doesn't exist.")
+  if (!found) throw new Refusal(404, MISSING)
   return found
 }
 
@@ -235,7 +235,7 @@ export const getPreset = guarded(async context => {
   const id = presetId(context.params)
   return cachedAtEdge(context, async () => {
     const preset = await context.env.DB.prepare(`SELECT ${COLUMNS} FROM presets WHERE id = ? AND shared = 1`).bind(id).first()
-    if (!preset) throw new Refusal(404, "This preset doesn't exist.")
+    if (!preset) throw new Refusal(404, MISSING)
     return reply(200, { preset: rated(preset) })
   })
 })
@@ -279,8 +279,13 @@ function linkedTitlePage(page, url, code, canonical) {
   return pageWithDetails(page, linkedTitleDetails(url, code, canonical))
 }
 
-export async function presetPage({ env, params, request }) {
-  const page = await env.ASSETS.fetch(new URL("/app/", request.url))
+function appShell({ env, request }) {
+  return env.ASSETS.fetch(new URL("/app/", request.url))
+}
+
+export async function presetPage(context) {
+  const { env, params, request } = context
+  const page = await appShell(context)
   const address = new URL(request.url)
   const code = params.id?.length ? null : linkedCode(address)
   if (code) return linkedTitlePage(page, address, code, "/app/presets")
@@ -290,11 +295,12 @@ export async function presetPage({ env, params, request }) {
   return pageWithDetails(page, presetDetails(address.origin, preset, id))
 }
 
-export async function appPage({ env, next, request }) {
+export async function appPage(context) {
+  const { next, request } = context
   const url = new URL(request.url)
   const code = linkedCode(url)
   if (!code) return next()
-  return linkedTitlePage(await env.ASSETS.fetch(new URL("/app/", request.url)), url, code, "/app/")
+  return linkedTitlePage(await appShell(context), url, code, "/app/")
 }
 
 async function hiddenPreset({ request, env }, body, user) {
@@ -313,24 +319,32 @@ function forgetHiddenCopy(env, user, code, id) {
   return [env.DB.prepare(`INSERT INTO deleted_presets (id) SELECT id FROM presets WHERE ${where}`).bind(user.provider, user.providerId, code, id), env.DB.prepare(`DELETE FROM presets WHERE ${where}`).bind(user.provider, user.providerId, code, id)]
 }
 
-export const submitPreset = guarded(async context => {
-  const { request, env } = context
-  const body = await jsonBody(request)
-  const user = await signedInUser(context)
-  if (body.account && !user) throw new Refusal(401, "You've been signed out. Sign in again to share this on your account.")
-  if (user) checkWords("username", user.name)
+async function checkedSubmission(env, body) {
   const facts = checkTitle(body.code)
   const name = textField(body, "name", "name", LIMITS.name) || capitalWords(facts.text)
   checkWords("title", facts.all)
   checkWords("name", name)
   const fingerprint = await titleFingerprint(body.code)
   const existing = await env.DB.prepare("SELECT id FROM presets WHERE fingerprint = ? AND shared = 1").bind(fingerprint).first()
-  if (existing) return reply(409, { error: "This title has already been shared.", id: existing.id })
+  return { facts, name, fingerprint, existing }
+}
+
+function alreadyShared(existing) {
+  return reply(409, { error: "This title has already been shared.", id: existing.id })
+}
+
+export const submitPreset = guarded(async context => {
+  const { request, env } = context
+  const body = await jsonBody(request)
+  const user = await signedInUser(context)
+  if (body.account && !user) throw new Refusal(401, "You've been signed out. Sign in again to share this on your account.")
+  if (user) checkWords("username", user.name)
+  const { facts, name, fingerprint, existing } = await checkedSubmission(env, body)
+  if (existing) return alreadyShared(existing)
   const ip = await hashedIp(context)
   if (await usedToday(env, user, ip) >= LIMITS.perDay && !await hasUnlimitedShares(env, user)) throw new Refusal(429, `You can share up to ${LIMITS.perDay} titles a day. Try again tomorrow.`)
   const hidden = await hiddenPreset(context, body, user)
   const changedTitle = hidden && hidden.fingerprint !== fingerprint
-  // sqlite reuses the rowid of a deleted newest row, which would repoint old links and browsers' vote records
   const token = user || hidden ? null : randomToken()
   const saving = hidden ? env.DB.prepare(`UPDATE presets SET shared = 1, code = ?, fingerprint = ?, name = ?, text = ?, created_at = COALESCE(created_at, ?)${changedTitle ? SCORES_RESET : ""} WHERE id = ? RETURNING ${COLUMNS}`).bind(body.code, fingerprint, name, facts.text, Date.now(), hidden.id) : env.DB.prepare(`INSERT INTO presets (id, code, fingerprint, name, text, token_hash, user_id, created_at, shared) VALUES (${NEXT_ID}, ?, ?, ?, ?, ?, ${USER_ROW}, ?, 1) RETURNING ${COLUMNS}`).bind(body.code, fingerprint, name, facts.text, token && await hashed(token), user?.provider ?? null, user?.providerId ?? null, Date.now())
   const before = (user ? [saveUser(env, user)] : []).concat(changedTitle ? scoreResets(env, hidden.id) : [])
@@ -341,7 +355,7 @@ export const submitPreset = guarded(async context => {
 
 async function forgetCached(request, ...ids) {
   const paths = FIRST_PAGES.map(page => `/api/presets${page}`).concat(ids.map(id => `/api/presets/${id}`))
-  for (const path of paths) await globalThis.caches?.default.delete(new Request(new URL(path, request.url)))
+  await Promise.all(paths.map(path => globalThis.caches?.default.delete(new Request(new URL(path, request.url)))))
 }
 
 async function ownedPreset(context) {
@@ -370,13 +384,8 @@ export const replacePreset = guarded(async context => {
   const { request, env } = context
   const { id, user } = await ownedPreset(context)
   const body = await jsonBody(request)
-  const facts = checkTitle(body.code)
-  const name = textField(body, "name", "name", LIMITS.name) || capitalWords(facts.text)
-  checkWords("title", facts.all)
-  checkWords("name", name)
-  const fingerprint = await titleFingerprint(body.code)
-  const existing = await env.DB.prepare("SELECT id FROM presets WHERE fingerprint = ? AND shared = 1").bind(fingerprint).first()
-  if (existing && existing.id !== id) return reply(409, { error: "This title has already been shared.", id: existing.id })
+  const { facts, name, fingerprint, existing } = await checkedSubmission(env, body)
+  if (existing && existing.id !== id) return alreadyShared(existing)
   const before = (user ? forgetHiddenCopy(env, user, body.code, id) : []).concat(existing ? [] : scoreResets(env, id))
   const results = await env.DB.batch(before.concat(env.DB.prepare(`UPDATE presets SET code = ?, fingerprint = ?, name = ?, text = ?${existing ? "" : SCORES_RESET} WHERE id = ? RETURNING ${COLUMNS}`).bind(body.code, fingerprint, name, facts.text, id)))
   await forgetCached(request, id)
@@ -405,7 +414,7 @@ export const deletePreset = guarded(async context => {
 
 export const presetStats = guarded(async ({ request, env }) => {
   const ids = (new URL(request.url).searchParams.get("ids") ?? "").split(",").filter(Boolean).map(Number)
-  if (ids.length > LIMITS.savedPresets || ids.some(id => !Number.isSafeInteger(id) || id < 1)) throw new Refusal(400, "This request isn't valid.")
+  if (ids.length > LIMITS.savedPresets || ids.some(id => !Number.isSafeInteger(id) || id < 1)) throw new Refusal(400, INVALID)
   if (!ids.length) return reply(200, { stats: {} })
   const { results } = await env.DB.prepare(`SELECT id, ${STAT_COLUMNS} FROM presets WHERE shared = 1 AND id IN (${ids.join(", ")})`).all()
   return reply(200, { stats: Object.fromEntries(results.map(row => [row.id, rated(row)])) })
@@ -417,7 +426,7 @@ export const claimPresets = guarded(async context => {
   if (!user) throw new Refusal(401, "Sign in to move these presets to your account.")
   checkWords("username", user.name)
   const { tokens } = await jsonBody(request)
-  if (!Array.isArray(tokens) || tokens.length > LIMITS.claimBatch || tokens.some(item => !Number.isSafeInteger(item?.id) || typeof item.token !== "string")) throw new Refusal(400, "This request isn't valid.")
+  if (!Array.isArray(tokens) || tokens.length > LIMITS.claimBatch || tokens.some(item => !Number.isSafeInteger(item?.id) || typeof item.token !== "string")) throw new Refusal(400, INVALID)
   if (!tokens.length) return reply(200, { moved: [] })
   const claims = (await Promise.all(tokens.map(async ({ id, token }) => {
     const hash = await hashed(token)

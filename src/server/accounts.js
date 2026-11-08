@@ -104,14 +104,7 @@ function leaveScript(before = "") {
 }
 
 function showingRefusals(handler) {
-  return async context => {
-    try {
-      return await handler(context)
-    } catch (err) {
-      if (err instanceof Refusal) return page(err.status, "Couldn't sign in", err.message)
-      throw err
-    }
-  }
+  return guarded(handler, err => page(err.status, "Couldn't sign in", err.message))
 }
 
 async function providerJson(provider, url, options) {
@@ -132,7 +125,7 @@ function shownUser(user) {
   return user && { id: user.id, name: user.name, provider: user.provider }
 }
 
-export const USER_ROW ="(SELECT id FROM users WHERE provider = ? AND provider_id = ?)"
+export const USER_ROW = "(SELECT id FROM users WHERE provider = ? AND provider_id = ?)"
 
 export async function signedInUser({ request, env }) {
   const session = await verified(env, "session", cookieValue(request, SESSION_COOKIE))
