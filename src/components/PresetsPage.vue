@@ -357,7 +357,7 @@
     </header>
     <div class="body">
       <main class="browse">
-        <div class="tools">
+        <div class="tools input-row">
           <input class="search" type="text" v-model="search" :placeholder="tab === 'community' ? 'Search names, text or user:name' : 'Search your presets'" aria-label="Search presets" spellcheck="false">
           <template v-if="tab === 'community'">
             <Dropdown class="sort" :options="SORTS" v-model="sort" />
@@ -484,16 +484,7 @@
 
   .tools {
     flex: none;
-    display: flex;
-    align-items: center;
-    gap: 8px;
     padding: 16px 20px;
-  }
-
-  .search,
-  .sort,
-  .random {
-    height: 40px;
   }
 
   .search {

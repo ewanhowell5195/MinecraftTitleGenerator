@@ -102,7 +102,7 @@
     <template v-if="framing.tab === 'custom'">
       <div class="field">
         <span class="label">Size</span>
-        <div class="row">
+        <div class="input-row">
           <input type="number" :value="framing.width" min="1" :max="max" title="Width" @input="setResolution('width', $event.target.value)" @change="$event.target.value = framing.width">
           <span class="times">&times;</span>
           <input type="number" :value="framing.height" min="1" :max="max" title="Height" @input="setResolution('height', $event.target.value)" @change="$event.target.value = framing.height">
@@ -111,7 +111,7 @@
       </div>
       <div class="field">
         <span class="label">Aspect ratio</span>
-        <div class="row">
+        <div class="input-row">
           <input type="number" :value="framing.aspectWidth" min="1" :max="max" title="Aspect width" @input="setAspect('aspectWidth', $event.target.value)" @change="$event.target.value = framing.aspectWidth">
           <span class="times">:</span>
           <input type="number" :value="framing.aspectHeight" min="1" :max="max" title="Aspect height" @input="setAspect('aspectHeight', $event.target.value)" @change="$event.target.value = framing.aspectHeight">
@@ -184,7 +184,7 @@
     font-size: var(--font-lg);
   }
 
-  .row input[type="number"] {
+  .input-row input[type="number"] {
     flex: 1;
     width: auto;
     min-width: 0;

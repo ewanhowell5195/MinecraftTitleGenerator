@@ -279,6 +279,34 @@ button:focus-visible,
   min-width: 0;
 }
 
+.input-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.input-row > input[type="text"] {
+  flex: 1;
+  min-width: 0;
+}
+
+.input-row > button,
+.input-row > .button,
+.input-row > input {
+  height: auto;
+}
+
+.input-row > .icon-button,
+.input-row > .icon-button.small {
+  flex: none;
+  height: auto;
+}
+
+.input-row > span {
+  display: flex;
+  align-items: center;
+}
+
 .switch {
   position: relative;
   flex: none;

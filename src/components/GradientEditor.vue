@@ -151,7 +151,7 @@
       <span>{{ ends[1] }}</span>
     </div>
     <div ref="box" class="stop-rows">
-      <div v-for="index of order" :key="index" :ref="el => (rows[index] = el)" class="stop-row" :class="{ dragged: dragged === index }" @focusin="selected = index">
+      <div v-for="index of order" :key="index" :ref="el => (rows[index] = el)" class="stop-row input-row" :class="{ dragged: dragged === index }" @focusin="selected = index">
         <span v-if="stops.length > 1" class="grip" @pointerdown="press($event, index)" title="Drag to reorder"><Icon name="grip" :size="14" /></span>
         <ColourPicker class="grow" v-model="stops[index].colour" />
         <label class="location" title="Location">
@@ -259,13 +259,7 @@
   }
 
   .stop-row {
-    display: flex;
-    align-items: stretch;
     gap: 6px;
-  }
-
-  .stop-row .icon-button {
-    align-self: center;
   }
 
   .stop-row.dragged {
