@@ -30,6 +30,12 @@ export function image(url) {
   return images.get(url)
 }
 
+export function forgetFolder(folder) {
+  for (const cache of [json, images]) {
+    for (const url of cache.keys()) if (url.startsWith(`${folder}/`)) cache.delete(url)
+  }
+}
+
 export function forgetImages(keep) {
   for (const url of images.keys()) {
     if (url.startsWith("data:") && !keep(url)) images.delete(url)

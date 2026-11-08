@@ -3,7 +3,7 @@ const CREEPER = "\u{1F633}"
 
 const NOT_THUMBNAILS = new Set(["┫", "┣", " "])
 
-function normalise(text) {
+export function normalise(text) {
   return text.replace(/A/g, "\u{1F633}").replace(/(\s|^)'/g, "$1\u{1F629}").replace(/(\s|^)"/g, "$1\u{1F629}\u{1F629}").replace(/"/g, "''").toLowerCase()
 }
 
@@ -40,7 +40,7 @@ function creeperText(font, item) {
 export function lineLayout(font, words, options) {
   const spacing = options.spacing ?? 0
   const space = font.spaceWidth ?? SPACE
-  const parts = words.map((item, word) => ({ space: item.space, chars: Array.from(normalise(font.glyphs[" "] ? creeperText(font, item) : creeperText(font, item).trim()), char => ({ char, word })) })).filter(part => part.chars.length)
+  const parts = words.map((item, word) => ({ space: item.space, chars: Array.from(options.raw ? item.text : normalise(font.glyphs[" "] ? creeperText(font, item) : creeperText(font, item).trim()), char => ({ char, word })) })).filter(part => part.chars.length)
   let chars = parts.flatMap((part, index) => index && part.space ? [{ char: " ", word: parts[index - 1].chars[0].word }].concat(part.chars) : part.chars)
   if (chars.length && (options.terminators || font.forcedTerminators) && font.glyphs["┫"] && font.glyphs["┣"]) {
     const gap = font.terminatorSpace ? [{ char: " " }] : []

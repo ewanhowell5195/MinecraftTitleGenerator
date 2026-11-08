@@ -109,6 +109,14 @@ export async function titleCanvas(code, width = PICTURE_WIDTH) {
   if (unknown) throw new Error(`the title has a setting this version does not know: ${unknown}`)
   const title = createTitle(reactive(readTitleObjects(decoded)), VIEW)
   await Promise.all(title.objects.map(object => refuseUnknownNames(object, fonts, tileables)))
+  return pictureOf(title, fonts, tileables, width)
+}
+
+export function linesCanvas(decoded, fonts, tileables, width = PICTURE_WIDTH) {
+  return pictureOf(createTitle(reactive(readTitleObjects(decoded)), VIEW), fonts, tileables, width)
+}
+
+async function pictureOf(title, fonts, tileables, width) {
   const scope = effectScope(true)
   const items = scope.run(() => {
     keepMatched(title)

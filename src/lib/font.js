@@ -264,6 +264,10 @@ function meta(data) {
 
 const loaded = new Map()
 
+export function forgetFont(id) {
+  loaded.delete(id)
+}
+
 export function loadFont(data, list) {
   if (!loaded.has(data.id)) {
     loaded.set(data.id, readFont(data, list).catch(err => {
