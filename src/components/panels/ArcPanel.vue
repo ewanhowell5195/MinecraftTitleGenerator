@@ -33,5 +33,7 @@
       <p class="hint">Moves the outer characters more than the inner ones.</p>
       <Slider label="Curve" v-model="object[k('arcMove')]" :min="-100" :max="100" />
     </template>
+    <Slider label="Centre" v-model="object[k('arcCentre')]" :min="0" :max="100" />
+    <p class="hint">0 is the left end and 100 is the right end.</p>
   </Panel>
 </template>

@@ -5,10 +5,11 @@ import { R, idOf } from "./paint.js"
 const GAP = 2
 const remaps = new WeakMap()
 
-function strengths(placed) {
+function strengths(placed, centre = 0.5) {
   const minX = Math.min(...placed.map(item => item.x))
   const maxX = Math.max(...placed.map(item => item.x + item.glyph.width))
-  const centres = placed.map(item => item.x + item.glyph.width / 2 - (minX + maxX) / 2)
+  const pivot = minX * (1 - centre) + maxX * centre
+  const centres = placed.map(item => item.x + item.glyph.width / 2 - pivot)
   const reach = Math.max(...centres.map(Math.abs))
   return centres.map(centre => reach ? (centre / reach) ** 2 : 0)
 }
@@ -51,11 +52,11 @@ function stretched(glyph, key, arcs, grow) {
 export function arcLayout(font, sheet, words, word, options) {
   const placed = lineLayout(font, words, options)
   if (!placed.some(item => item.word === word)) return null
-  const amounts = strengths(placed)
+  const amounts = strengths(placed, options.arcCentre)
   const wordAmounts = new Array(placed.length).fill(0)
   for (const index of words.keys()) {
     const members = placed.flatMap((item, at) => item.word === index ? [at] : [])
-    if (members.length) strengths(members.map(at => placed[at])).forEach((amount, at) => (wordAmounts[members[at]] = amount))
+    if (members.length) strengths(members.map(at => placed[at]), words[index].arc?.centre).forEach((amount, at) => (wordAmounts[members[at]] = amount))
   }
   const depth = Math.max(1, Math.round(options.depth))
   const glyphs = {}

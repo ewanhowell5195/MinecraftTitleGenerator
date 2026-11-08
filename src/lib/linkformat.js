@@ -295,7 +295,9 @@ const KEYS = [
   ["depthAnchor", choice("front", "middle", "back")],
   ["creeperFace", BOOLEAN],
   ["twistRibbonCentre", NUMBER],
-  ["twistDoorCentre", NUMBER]
+  ["twistDoorCentre", NUMBER],
+  ["arcCentre", NUMBER],
+  ["wordArcCentre", NUMBER]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))

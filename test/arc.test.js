@@ -146,6 +146,24 @@ describe("line arc stretch", () => {
   })
 })
 
+describe("arc centre", () => {
+  test("the middle is the default", () => {
+    assert.deepEqual(heights(arced("aaaaa", { arcTop: 0.5, arcCentre: 0.5 })), heights(arced("aaaaa", { arcTop: 0.5 })))
+  })
+
+  test("a centre at the left end leaves the first character flat and stretches the last the most", () => {
+    const stretched = heights(arced("aaaaa", { arcTop: 0.5, arcCentre: 0 }))
+    assert.ok(stretched[0] < stretched[4])
+    assert.deepEqual(stretched, stretched.toSorted((a, b) => a - b))
+  })
+
+  test("a word can have its own centre", () => {
+    const list = [{ text: "aaa", space: false, arc: { mode: "stretch", top: 0.5, bottom: 0, move: 0, centre: 1, marked: true } }]
+    const stretched = heights(words(list, 0))
+    assert.ok(stretched[0] > stretched[2])
+  })
+})
+
 describe("line arc move", () => {
   test("lifts whole glyphs instead of stretching them", () => {
     const laid = arced("aaa", { arcMode: "move", arcMove: 0.5 })

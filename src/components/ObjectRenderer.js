@@ -16,7 +16,7 @@ import { activeOverlays, defaultBorder, defaultDepth, defaultSpacing, defaultTex
 
 const BASE = ["font", "source", "texture", "textureVariant", "tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "stops", "smooth", "gradientAngle", "arcGradient", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "tileablePerCharacter", "disableFontOverlay", "edgeBrightness"]
 
-const LAYOUT = new Set(["spacing", "kerning", "arcMode", "arcTop", "arcBottom", "arcMove", "arcMarked", "stretch", "terminators", "twist"])
+const LAYOUT = new Set(["spacing", "kerning", "arcMode", "arcTop", "arcBottom", "arcMove", "arcCentre", "arcMarked", "stretch", "terminators", "twist"])
 
 export default {
   props: {
@@ -132,7 +132,7 @@ export default {
         text: other.text,
         creeper: other.creeperFace,
         space: other.spaceBefore,
-        arc: { mode: other.wordArcMode, top: other.wordArcTop / 100, bottom: other.wordArcBottom / 100, move: other.wordArcMove / 100, marked: other.wordArcMarked },
+        arc: { mode: other.wordArcMode, top: other.wordArcTop / 100, bottom: other.wordArcBottom / 100, move: other.wordArcMove / 100, centre: other.wordArcCentre / 100, marked: other.wordArcMarked },
         stretch: other.wordScaleMarked && marked.value ? other.wordScaleY : 1
       }
     }
@@ -149,6 +149,7 @@ export default {
       arcTop: object.arcTop / 100,
       arcBottom: object.arcBottom / 100,
       arcMove: object.arcMove / 100,
+      arcCentre: object.arcCentre / 100,
       arcMarked: object.arcMarked,
       twist: object.twistRibbon || object.twistDoor ? { ribbon: { amount: object.twistRibbon, centre: object.twistRibbonCentre / 100, same: object.twistRibbonMirror }, door: { amount: object.twistDoor, centre: object.twistDoorCentre / 100, same: object.twistDoorSame } } : null,
       stretch: stretching.value ? effectiveScale(object)[1] : 1,
@@ -307,7 +308,7 @@ export default {
     }
 
     function lineFor(source, list, word, options) {
-      const key = JSON.stringify([list, word, options.depth, options.arcMode, options.arcTop, options.arcBottom, options.arcMove, options.arcMarked, options.stretch, options.terminators, options.spacing, options.kerning])
+      const key = JSON.stringify([list, word, options.depth, options.arcMode, options.arcTop, options.arcBottom, options.arcMove, options.arcCentre, options.arcMarked, options.stretch, options.terminators, options.spacing, options.kerning])
       if (line?.painted === painted.value && line.source === source && line.key === key) return line
       const same = line?.source === source && line.key === key
       const laid = same ? line.arced : arcLayout(source, sheet.value, list, word, options)
