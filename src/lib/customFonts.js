@@ -21,8 +21,8 @@ function hash(text) {
   return (value >>> 0).toString(36)
 }
 
-export function customFontId({ kind, data, height, lowercase }) {
-  return CUSTOM_FONT + hash(JSON.stringify([kind, data, height, lowercase]))
+export function customFontId({ kind, data, height, lowercase, mesh }) {
+  return CUSTOM_FONT + hash(JSON.stringify([kind, data, height, lowercase].concat(mesh ? ["mesh"] : [])))
 }
 
 export function customThumbnail(fontId, name) {
@@ -43,19 +43,20 @@ async function pixels(url) {
   return { data: pixelsOf(image), width: image.width, height: image.height }
 }
 
-async function editorFont({ kind, data, height, lowercase }) {
+async function editorFont({ kind, data, height, lowercase, mesh }) {
   if (kind === "json") {
     const { fontFromFiles, parseFontJson } = await import("./fontEditor.js")
     const json = parseFontJson(await (await fetch(data)).text())
     if (!json.editor?.texture) throw new Error("this JSON has no font sheet in it. Download the JSON from the font editor")
-    return fontFromFiles({ sheet: await pixels(json.editor.texture), json })
+    return { font: fontFromFiles({ sheet: await pixels(json.editor.texture), json }) }
   }
   if (kind === "ascii") {
     const { fontFromAscii } = await import("./asciiImport.js")
-    return fontFromAscii(await pixels(data), { height, lowercase })
+    return { font: fontFromAscii(await pixels(data), { height, lowercase }) }
   }
-  const { fontFromOutlines, parseFontFile } = await import("./fontImport.js")
-  return fontFromOutlines(await parseFontFile(await (await fetch(data)).arrayBuffer()), { height, lowercase })
+  const { fontFromOutlines, meshOutlines, parseFontFile } = await import("./fontImport.js")
+  const source = await parseFontFile(await (await fetch(data)).arrayBuffer())
+  return { font: fontFromOutlines(source, { height, lowercase }), outlines: mesh ? meshOutlines(source, { height, lowercase }) : null }
 }
 
 function plainStrip(rows, colour) {
@@ -86,8 +87,12 @@ async function drawThumbnails(font, folder, strips) {
 
 async function build(id, source) {
   const { buildSheet, exportJson, flatTexture } = await import("./fontEditor.js")
-  const font = await editorFont(source)
+  const { font, outlines } = await editorFont(source)
   const { editor, ...entry } = { ...exportJson(font, ""), id, name: font.name || "Custom font" }
+  if (outlines) {
+    const tools = await import("./meshGlyphs.js")
+    entry.mesh = { glyphs: tools.glyphMeshes(outlines), tools }
+  }
   const folder = `font/${id}`
   serveFile(`${folder}/font.png`, pngUrl(buildSheet(font)))
   serveFile(`${folder}/textures/flat.png`, pngUrl(flatTexture(font)))

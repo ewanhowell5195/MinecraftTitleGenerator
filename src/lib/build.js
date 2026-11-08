@@ -13,7 +13,7 @@ function expand(bounds, faces) {
   }
 }
 
-function shift({ body, boxes }, axis, offset) {
+function shift({ body, boxes, rings }, axis, offset) {
   for (const face of body) {
     for (const point of face.points) point[axis] += offset
   }
@@ -21,6 +21,13 @@ function shift({ body, boxes }, axis, offset) {
     box.from[axis] += offset
     box.to[axis] += offset
   }
+  for (const ring of rings ?? []) {
+    for (const point of ring) point[axis] += offset
+  }
+}
+
+function glyphRings({ rings, boxes }) {
+  return rings ?? boxes.map(({ from, to }) => [[from[0], from[1]], [from[0], to[1]], [to[0], to[1]], [to[0], from[1]]])
 }
 
 function frameRects(boxes) {
@@ -74,7 +81,7 @@ function toBuffers(faces, units) {
   const positions = []
   const uvs = []
   for (const face of faces) {
-    for (const index of [0, 1, 2, 0, 2, 3]) {
+    for (const index of face.points.length === 3 ? [0, 1, 2] : [0, 1, 2, 0, 2, 3]) {
       const point = face.points[index]
       const coord = face.uvs[index]
       positions.push(point[0], point[1], point[2])
@@ -109,9 +116,12 @@ export function buildText(font, options) {
   for (const item of placed) {
     const glyph = item.glyph
     const boxes = boxesFor(glyph.mask, glyph.width, glyph.height, item.x, glyph.bottom)
-    const body = boxFaces(boxes, -depth / 2, depth / 2)
+    const char = glyph.char.split("\u0000")[0]
+    const mesh = font.mesh?.glyphs[char]
+    const shaped = mesh ? font.mesh.tools.meshFaces(mesh, glyph, font.glyphs[char], item.x, depth) : null
+    const body = shaped ? shaped.faces : boxFaces(boxes, -depth / 2, depth / 2)
     for (const face of body) face.glyph = glyphs.length
-    glyphs.push({ body, boxes, spaces: item.spaces, char: glyph.char, rect: { minX: item.x, maxX: item.x + glyph.width, minY: glyph.bottom, maxY: glyph.bottom + glyph.height } })
+    glyphs.push({ body, boxes, rings: shaped?.rings ?? null, spaces: item.spaces, char: glyph.char, rect: { minX: item.x, maxX: item.x + glyph.width, minY: glyph.bottom, maxY: glyph.bottom + glyph.height } })
     expand(bounds, body)
   }
   const line = options.line ?? bounds
@@ -139,7 +149,7 @@ export function buildText(font, options) {
   const twist = options.twist ? glyphs.map(glyph => {
     const turn = twistTurn(options.twist, glyph.rect, line, first, last)
     for (const face of glyph.body) face.points = face.points.map(point => turned(point, turn))
-    return { turn, sources: font.autoBorder ? frameRects(glyph.boxes) : glyph.boxes.map(box => [box.from[0], box.from[1], box.to[0], box.to[1]]) }
+    return { turn, rings: font.mesh ? glyphRings(glyph) : null, sources: font.autoBorder ? frameRects(glyph.boxes) : glyph.boxes.map(box => [box.from[0], box.from[1], box.to[0], box.to[1]]) }
   }) : null
   return {
     body: toBuffers(body, texture.units),
@@ -154,6 +164,8 @@ export function buildText(font, options) {
     bottom: rowBottom(glyphs.map(glyph => glyph.boxes)),
     line: { min: [line.minX + offset, line.minY, depth / 2 - (options.lineDepth ?? depth)], max: [line.maxX + offset, line.maxY, depth / 2] },
     frame: font.autoBorder ? frameRects(glyphs.flatMap(glyph => glyph.boxes)) : null,
+    shapes: font.mesh ? glyphs.flatMap(glyphRings) : null,
+    tools: font.mesh?.tools ?? null,
     twist,
     swatch: texture.swatch ? [(texture.swatch.x + 0.5) / texture.units.width, 1 - (texture.swatch.y + 0.5) / texture.units.height] : null,
     averages: { side: texture.side, get edge() { return options.painted.edgeAverage() } }
@@ -183,6 +195,7 @@ export function buildOutline(built, scale, extra = [0, 0, 0]) {
   const [sx, sy, sz] = scale
   const [rx, ry, rz] = extra.map(value => built.border + value)
   const z = sz * built.depth / 2 + rz
+  if (built.shapes) return meshOutline(built, scale, [rx, ry], z)
   const positions = []
   function shell(sources, turn) {
     const rects = sources.map(([x0, y0, x1, y1]) => [x0 * sx - rx, y0 * sy - ry, x1 * sx + rx, y1 * sy + ry])
@@ -200,7 +213,25 @@ export function buildOutline(built, scale, extra = [0, 0, 0]) {
   return { positions: new Float32Array(positions), uvs, triangles: positions.length / 9, scale, rects, z }
 }
 
+function meshOutline(built, scale, radius, z) {
+  const groups = built.twist ? built.twist.map(({ turn, rings }) => ({ rings, turn: point => turned(point, turn, scale) })) : [{ rings: built.shapes }]
+  const shell = radius[0] > 0 && radius[1] > 0 ? built.tools.outlineShell(groups, scale, radius, z) : { positions: [], shapes: [] }
+  const uvs = new Float32Array(shell.positions.length / 3 * 2)
+  if (built.swatch) {
+    for (let i = 0; i < uvs.length; i += 2) uvs.set(built.swatch, i)
+  }
+  return { positions: new Float32Array(shell.positions), uvs, triangles: shell.positions.length / 9, scale, rects: [], shapes: shell.shapes, tools: built.tools, z }
+}
+
+function meshHoles(outlines, tools) {
+  const positions = tools.holeFill(outlines.map(outline => outline.shapes ? { shapes: outline.shapes } : { rects: outline.rects }), -Math.max(...outlines.map(outline => outline.z)))
+  if (!positions.length) return null
+  return { positions: new Float32Array(positions), uvs: new Float32Array(positions.length / 3 * 2), triangles: positions.length / 9, scale: outlines[0].scale }
+}
+
 export function buildHoles(outlines) {
+  const tools = outlines.find(outline => outline.tools)?.tools
+  if (tools) return meshHoles(outlines, tools)
   const rects = outlines.flatMap(outline => outline.rects)
   if (!rects.length) return null
   const { xs, ys, width, height, mask: solid } = rectGrid(rects)

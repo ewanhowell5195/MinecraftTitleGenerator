@@ -17,6 +17,7 @@
   const TABS = [{ value: "published", label: "All fonts" }, { value: "custom", label: "Custom" }]
   const IMPORT_HEIGHT = 40
   const PREVIEW_SCALE = 3
+  const BUILDS = [{ value: false, label: "Cubes" }, { value: true, label: "Mesh" }]
 
   const info = ref(false)
   const { object, font, modified, reset } = usePanel("font")
@@ -136,6 +137,10 @@
       <p v-if="customError" class="hint bad">{{ customError }}</p>
       <p v-else class="hint">A JSON from the font editor, a Minecraft ascii.png, or a .ttf, .otf, .woff or .woff2 font.</p>
       <template v-if="imported && usingCustom">
+        <template v-if="object.customFont.kind === 'outline'">
+          <Segments label="Build from" :options="BUILDS" :model-value="!!object.customFont.mesh" @update:model-value="changeImport('mesh', $event)" />
+          <p class="hint">{{ object.customFont.mesh ? "Smooth edges that follow the font's own curves." : "Pixel cubes, like the other fonts." }}</p>
+        </template>
         <label class="field">
           <span class="label">Height in pixels</span>
           <input type="number" min="1" :value="object.customFont.height" :disabled="loading" @change="setHeight">

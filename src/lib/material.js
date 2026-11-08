@@ -239,6 +239,59 @@ function cornerPixels(painted, x, y, count, vertical, step) {
   return row
 }
 
+function inside(value, start, size) {
+  return clamp(value, start, start + Math.max(1, size) - 1)
+}
+
+function fillCells(image, left, top, width, height, solid) {
+  const cells = width * height
+  const source = new Int32Array(cells).fill(-1)
+  const queue = []
+  for (let cell = 0; cell < cells; cell++) {
+    if (solid(cell % width, Math.floor(cell / width))) {
+      source[cell] = cell
+      queue.push(cell)
+    }
+  }
+  if (!queue.length) return
+  for (let at = 0; at < queue.length; at++) {
+    const cell = queue[at]
+    const x = cell % width
+    const y = Math.floor(cell / width)
+    for (const [nx, ny] of [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]]) {
+      const next = ny * width + nx
+      if (nx < 0 || ny < 0 || nx >= width || ny >= height || source[next] !== -1) continue
+      source[next] = source[cell]
+      queue.push(next)
+    }
+  }
+  const row = image.width * 4
+  for (let cell = 0; cell < cells; cell++) {
+    if (source[cell] === cell) continue
+    const from = source[cell]
+    const fromX = (left + from % width) * SCALE
+    const fromY = (top + Math.floor(from / width)) * SCALE
+    const toX = (left + cell % width) * SCALE
+    const toY = (top + Math.floor(cell / width)) * SCALE
+    for (let dy = 0; dy < SCALE; dy++) image.data.copyWithin((toY + dy) * row + toX * 4, (fromY + dy) * row + fromX * 4, (fromY + dy) * row + (fromX + SCALE) * 4)
+  }
+}
+
+function fillMeshGaps(ctx, blocks, depth) {
+  if (!blocks.length) return
+  const image = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height)
+  for (const block of blocks) {
+    const { entry, bounds, own } = block
+    const { mask } = entry.glyph
+    const solid = (column, row) => mask[row * entry.width + column] === 1
+    const faceTop = block.y + depth
+    fillCells(image, block.x, faceTop + bounds.maxY - own.maxY, entry.width, entry.height, (column, row) => solid(column, entry.height - 1 - row))
+    fillCells(image, block.x, block.y, entry.width, depth, column => solid(column, entry.height - 1))
+    fillCells(image, block.x, faceTop + bounds.height, entry.width, depth, column => solid(column, 0))
+  }
+  ctx.putImageData(image, 0, 0)
+}
+
 export function buildAtlas(faces, options) {
   const depth = Math.max(1, Math.round(options.depth))
   const half = depth / 2
@@ -254,8 +307,8 @@ export function buildAtlas(faces, options) {
     groups.get(face.glyph).push(face)
   }
   const owns = new Map(Array.from(groups.entries()).map(([index, group]) => {
-    const faces = boundsOf(group)
     const rect = options.rects[index]
+    const faces = group[0].mesh ? rect : boundsOf(group)
     const minX = Math.min(faces.minX, rect.minX)
     const maxX = Math.max(faces.maxX, rect.maxX)
     const minY = Math.min(faces.minY, rect.minY)
@@ -304,14 +357,15 @@ export function buildAtlas(faces, options) {
   }
 
   for (const block of blocks) {
-    const bounds = block.bounds
+    const { bounds, own } = block
     for (const face of block.group) {
+      const points = face.mesh ? face.points.map(point => [clamp(point[0], own.minX, own.maxX), clamp(point[1], own.minY, own.maxY), point[2]]) : face.points
       if (face.kind === "top") {
-        face.uvs = face.points.map(point => [block.x + (point[0] - bounds.minX), block.y + (half + point[2])])
+        face.uvs = points.map(point => [block.x + (point[0] - bounds.minX), block.y + (half + point[2])])
       } else if (face.kind === "bottom") {
-        face.uvs = face.points.map(point => [block.x + (point[0] - bounds.minX), block.y + depth + bounds.height + (half - point[2])])
+        face.uvs = points.map(point => [block.x + (point[0] - bounds.minX), block.y + depth + bounds.height + (half - point[2])])
       } else {
-        face.uvs = face.points.map(point => [block.x + (point[0] - bounds.minX), block.y + depth + (bounds.maxY - point[1])])
+        face.uvs = points.map(point => [block.x + (point[0] - bounds.minX), block.y + depth + (bounds.maxY - point[1])])
       }
     }
   }
@@ -349,6 +403,7 @@ export function buildAtlas(faces, options) {
   }
 
   copyBlocks(ctx, painted.canvas)
+  fillMeshGaps(ctx, blocks.filter(block => block.entry && block.group[0]?.mesh), depth)
 
   function labels() {
     const target = surface(canvas.width, canvas.height, { willReadFrequently: true })
@@ -466,8 +521,8 @@ export function buildAtlas(faces, options) {
     if (face.kind === "side") {
       const span = extent(face.points, 1)
       const west = face.name === "west"
-      const column = entry.x + Math.round(face.points[0][0] - block.own.minX) - (west ? 0 : 1)
-      const row = entry.top + Math.round(block.own.maxY - span.max)
+      const column = inside(entry.x + Math.round(face.points[0][0] - block.own.minX) - (west ? 0 : 1), entry.x, entry.width)
+      const row = inside(entry.top + Math.round(block.own.maxY - span.max), entry.top, entry.height)
       if (painted.tiles) {
         tile(face.rect)
         const totals = totalsOf(painted.tiles)
@@ -494,11 +549,11 @@ export function buildAtlas(faces, options) {
       continue
     }
     const span = extent(face.points, 0)
-    const column = entry.x + Math.round(span.min - block.own.minX)
+    const column = inside(entry.x + Math.round(span.min - block.own.minX), entry.x, entry.width)
     const front = face.kind === "top" ? (y + height) * SCALE : y * SCALE
     const back = face.kind === "top" ? y * SCALE : (y + height) * SCALE
     const level = extent(face.points, 1).min
-    const row = entry.top + Math.round(block.own.maxY - level) - (face.kind === "top" ? 0 : 1)
+    const row = inside(entry.top + Math.round(block.own.maxY - level) - (face.kind === "top" ? 0 : 1), entry.top, entry.height)
     const edge = face.kind === "top" ? row * R : (row + 1) * R - 1
     if (painted.tiles) tile(face.rect, painted.tilesAcrossLine ? column - entry.x + entry.glyph.lineX : 0)
     else drawLine(cornerPixels(painted, column * R, edge, width * R, false, face.kind === "top" ? 1 : -1), face.rect)
