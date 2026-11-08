@@ -337,6 +337,18 @@ export default {
       if (known?.top !== arc.top || known?.bottom !== arc.bottom) heights[object.id] = { ...heights[object.id], arc }
     }
 
+    function twistedReach(text, reach) {
+      if (!text?.twist) return reach
+      const positions = text.body.positions
+      let low = Infinity
+      let high = -Infinity
+      for (let at = 1; at < positions.length; at += 3) {
+        low = Math.min(low, positions[at])
+        high = Math.max(high, positions[at])
+      }
+      return { top: reach.top + Math.max(0, high - text.line.max[1]), bottom: reach.bottom + Math.max(0, text.line.min[1] - low) }
+    }
+
     function previewFor(source, options, placed, sheet, own) {
       const key = JSON.stringify([placed.map(item => [item.glyph.char, item.glyph.width, item.x, item.spaces]), ownDepth.value, Object.entries(options).filter(([name]) => !LAYOUT.has(name))])
       if (shown?.source === source && shown.sheet === sheet && shown.own === own && shown.key === key) return shown.value
@@ -363,6 +375,7 @@ export default {
           return
         }
         built.value = buildText(source, { ...options, lineDepth, placed: arced.placed, line: arced.line, ends: arced.ends, sheet: arced.sheet, painted: own })
+        measure(twistedReach(built.value, arced.reach))
         const thumbnail = view.previews === false ? [] : thumbnailItems(source, arced.placed)
         preview.value = thumbnail.length ? previewFor(source, options, thumbnail, arced.sheet, own) : null
         error.value = null
