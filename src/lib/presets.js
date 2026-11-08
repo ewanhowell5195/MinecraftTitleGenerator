@@ -18,6 +18,8 @@ export const presetsError = ref("")
 export const savedPreset = ref(null)
 export const namingPreset = ref(null)
 export const namingShared = ref(false)
+export const namingSharedId = ref(null)
+export const namingForShare = ref(false)
 export const namingCode = ref("")
 
 let opening = 0
@@ -259,11 +261,13 @@ function automaticName() {
   return capitalWords(titleText()).slice(0, NAME_LIMIT)
 }
 
-export function startSavingPreset() {
+export function startSavingPreset({ share = false } = {}) {
   try {
     const { code } = encodeTitle(titleData())
     const existing = savedWithCode(code)
+    namingForShare.value = share
     namingShared.value = !!existing?.shared
+    namingSharedId.value = existing?.shared ?? null
     namingCode.value = code
     namingPreset.value = existing?.name ?? automaticName()
   } catch (err) {

@@ -1,7 +1,7 @@
 <script setup>
   import { computed, onBeforeUnmount, ref, watch } from "vue"
   import { clamp } from "../lib/maths.js"
-  import { namingPreset, savedPreset } from "../lib/presets.js"
+  import { namingForShare, namingPreset, savedPreset } from "../lib/presets.js"
   import { openPresetsPage } from "../lib/presetsPage.js"
   import { dropPreview, previews, renderPreview } from "../lib/previews.js"
   import { useReorderDrag } from "../lib/reorder.js"
@@ -227,7 +227,7 @@
       <span>Render</span>
     </button>
     <ContextMenu :items="context?.items" :at="context?.at" @close="context = null" />
-    <SavePresetDialog v-if="namingPreset !== null" :suggested="namingPreset" @close="namingPreset = null" />
+    <SavePresetDialog v-if="namingPreset !== null" :suggested="namingPreset" :share-only="namingForShare" @close="namingPreset = null" />
     <RenderDialog v-if="savedPreset?.skipped" title="Preset saved" close-title="Close" dismissable @close="savedPreset = null">
       <div class="skipped">
         <p>{{ savedPreset.skipped === 1 ? "1 uploaded overlay" : `${savedPreset.skipped} uploaded overlays` }} could not be saved, so {{ savedPreset.name }} opens without {{ savedPreset.skipped === 1 ? "it" : "them" }}.</p>

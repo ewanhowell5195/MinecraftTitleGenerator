@@ -1,7 +1,7 @@
 <script setup>
   import { onMounted, ref, watch } from "vue"
   import { usage } from "../lib/community.js"
-  import { NAME_LIMIT, confirmReplacing, confirmSharing, namingCode, namingShared, saveOver, savePreset, sharePreset } from "../lib/presets.js"
+  import { NAME_LIMIT, confirmReplacing, confirmSharing, namingCode, namingShared, namingSharedId, saveOver, savePreset, sharePreset } from "../lib/presets.js"
   import { openPresetsPage, showPreset } from "../lib/presetsPage.js"
   import RenderDialog from "./RenderDialog.vue"
   import ReplaceSelect from "./ReplaceSelect.vue"
@@ -9,7 +9,8 @@
   import SubmissionUsage from "./SubmissionUsage.vue"
 
   const props = defineProps({
-    suggested: { type: String, required: true }
+    suggested: { type: String, required: true },
+    shareOnly: { type: Boolean, default: false }
   })
 
   const emit = defineEmits(["close"])
@@ -65,16 +66,36 @@
     }
   }
 
+  function viewShared() {
+    emit("close")
+    openPresetsPage()
+    showPreset(namingSharedId.value, { replace: true })
+  }
+
+  function submit() {
+    if (!props.shareOnly) save()
+    else if (namingShared.value) viewShared()
+    else saveAndShare()
+  }
+
   onMounted(() => {
-    field.value.focus()
-    field.value.select()
+    field.value?.focus()
+    field.value?.select()
   })
 </script>
 
 <template>
-  <RenderDialog title="Save preset" close-title="Cancel" :wide="!namingShared" dismissable @close="emit('close')">
-    <form class="body" @submit.prevent="save">
-      <ReplaceSelect v-if="!namingShared" v-model="target" :code="namingCode" label="Save as" />
+  <RenderDialog v-if="shareOnly && namingShared" title="Share publicly" close-title="Cancel" dismissable @close="emit('close')">
+    <form class="body" @submit.prevent="submit">
+      <p class="hint">This title is already shared as {{ suggested }}.</p>
+      <div class="buttons">
+        <button class="primary" type="submit">View in Community</button>
+      </div>
+    </form>
+  </RenderDialog>
+  <RenderDialog v-else :title="shareOnly ? 'Share publicly' : 'Save preset'" close-title="Cancel" :wide="!namingShared && !shareOnly" dismissable @close="emit('close')">
+    <form class="body" @submit.prevent="submit">
+      <ReplaceSelect v-if="!namingShared && !shareOnly" v-model="target" :code="namingCode" label="Save as" />
       <label>
         <span>Name</span>
         <input ref="field" type="text" v-model="name" :maxlength="NAME_LIMIT" :placeholder="target?.name ?? suggested" spellcheck="false">
@@ -87,8 +108,8 @@
       <div class="footer">
         <SubmissionUsage v-if="!namingShared && !target?.online" class="usage" />
         <div class="buttons">
-          <button type="submit" :class="{ primary: namingShared || target?.online }" :disabled="sending">{{ target ? "Replace" : "Save" }}</button>
-          <button v-if="!namingShared && !target?.online" class="primary" type="button" :disabled="sending || usage && usage.used >= usage.limit" @click="saveAndShare">{{ sending ? "Sharing" : target ? "Replace and share" : "Save and share" }}</button>
+          <button v-if="!shareOnly" type="submit" :class="{ primary: namingShared || target?.online }" :disabled="sending">{{ target ? "Replace" : "Save" }}</button>
+          <button v-if="!namingShared && !target?.online" class="primary" type="button" :disabled="sending || usage && usage.used >= usage.limit" @click="saveAndShare">{{ sending ? "Sharing" : shareOnly ? "Share" : target ? "Replace and share" : "Save and share" }}</button>
         </div>
       </div>
     </form>
