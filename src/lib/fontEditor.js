@@ -1,5 +1,7 @@
+import { flatPixels } from "./flatSheet.js"
 import { DEFAULT_ORDER, SHEET_MAX_WIDTH, parseMask, scanMask } from "./font.js"
 import { titleCase } from "./names.js"
+import { defaultBorder, defaultDepth } from "./settings.js"
 import { marksFor, sheetMeasures } from "./stretchMarks.js"
 
 export const SPACE_CHAR = " "
@@ -404,6 +406,12 @@ export function buildSheet(font) {
 
 export function sheetOrder(font) {
   return charactersOf(font).join("")
+}
+
+export function flatTexture(value) {
+  const entry = exportJson(value, "")
+  const { list, capHeight } = parsedSheet(value, defaultBorder("top", entry))
+  return flatPixels(list, capHeight, defaultDepth(entry))
 }
 
 export function parsedSheet(font, gap = font.border) {

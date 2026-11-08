@@ -1,9 +1,8 @@
 import { computed, ref, shallowRef, watch } from "vue"
 import { DEFAULT_ORDER } from "../lib/font.js"
-import { buildSheet, charactersOf, exportJson, fitGlyph, glyphOf, parsedSheet, setGlyph, slug } from "../lib/fontEditor.js"
-import { flatPixels } from "../lib/flatSheet.js"
-import { defaultBorder, defaultDepth } from "../lib/settings.js"
+import { buildSheet, charactersOf, exportJson, fitGlyph, flatTexture, glyphOf, setGlyph, slug } from "../lib/fontEditor.js"
 import { download, downloadBlob } from "../lib/ui.js"
+import { pngUrl } from "../lib/virtualFiles.js"
 
 const STORAGE_KEY = "minecraft-title-font-editor"
 const HISTORY_LIMIT = 200
@@ -141,34 +140,15 @@ export function flushSave() {
   save()
 }
 
-export function canvasOf({ data, width, height }) {
-  const canvas = document.createElement("canvas")
-  canvas.width = Math.max(1, width)
-  canvas.height = Math.max(1, height)
-  if (width && height) canvas.getContext("2d").putImageData(new ImageData(data, width, height), 0, 0)
-  return canvas
-}
-
-function sheetCanvas() {
-  return canvasOf(buildSheet(font.value))
-}
-
-export function flatTexture(value) {
-  const entry = exportJson(value, "")
-  const { list, capHeight } = parsedSheet(value, defaultBorder("top", entry))
-  return flatPixels(list, capHeight, defaultDepth(entry))
-}
-
 export function downloadFlatTexture() {
-  download("flat.png", canvasOf(flatTexture(font.value)).toDataURL("image/png"))
+  download("flat.png", pngUrl(flatTexture(font.value)))
 }
-
 
 export function downloadTexture() {
-  download("font.png", sheetCanvas().toDataURL("image/png"))
+  download("font.png", pngUrl(buildSheet(font.value)))
 }
 
 export function downloadJson() {
-  const text = JSON.stringify(exportJson(font.value, sheetCanvas().toDataURL("image/png")), null, 2) + "\n"
+  const text = JSON.stringify(exportJson(font.value, pngUrl(buildSheet(font.value))), null, 2) + "\n"
   downloadBlob(`${font.value.id || slug(font.value.name) || "font"}.json`, new Blob([text], { type: "application/json" }))
 }
