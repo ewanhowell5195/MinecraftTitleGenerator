@@ -19,6 +19,8 @@ const BASE = ["font", "source", "texture", "textureVariant", "tileable", "tileab
 
 const CUSTOM_SOURCES = { standard: "texture", tileable: "tile", strip: "strip" }
 
+const REST = 0.5
+
 const LAYOUT = new Set(["spacing", "kerning", "arcMode", "arcTop", "arcBottom", "arcMove", "arcCentre", "arcMarked", "stretch", "terminators", "twist"])
 
 export default {
@@ -44,6 +46,7 @@ export default {
     let painting = false
     let pending = false
     let frame = 0
+    let rested = 0
     let line = null
     let shown = null
     let paintedKey = null
@@ -371,7 +374,6 @@ export default {
     }
 
     function rebuild() {
-      frame = 0
       if (!font.value || !painted.value) return
       const { words: list, word, lineDepth, ...options } = inputs.value
       const source = shaped.value?.id === font.value.id ? shaped.value : font.value
@@ -400,8 +402,20 @@ export default {
       }
     }
 
+    function tick() {
+      if (performance.now() < rested) {
+        frame = platform.frame(tick)
+        return
+      }
+      frame = 0
+      const began = performance.now()
+      rebuild()
+      const ended = performance.now()
+      rested = ended + (ended - began) * REST
+    }
+
     function schedule() {
-      if (!frame) frame = platform.frame(rebuild)
+      if (!frame) frame = platform.frame(tick)
     }
 
     async function pick(id) {
