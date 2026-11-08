@@ -14,6 +14,8 @@
   const { object, font, modified, reset } = usePanel("font")
   const hasTerminators = computed(() => font.value && font.value.glyphs["┫"] && font.value.glyphs["┣"] && !font.value.forcedTerminators)
   const terminators = usePanel("terminators")
+  const creeper = usePanel("creeper")
+  const hasCreeper = computed(() => !!font.value?.glyphs["\u{1F633}"])
   const entry = computed(() => library.fonts.find(item => item.id === object.value.font))
   const baseId = computed(() => entry.value?.variant ?? object.value.font)
   const baseFonts = computed(() => popular(library.fonts.filter(item => !item.variant), item => item.id, item => item.name, ["minecraft-ten"]))
@@ -42,7 +44,6 @@
     <div class="info" v-if="info && font">
       <p class="hint" v-if="font.description">{{ font.description }}</p>
       <div class="code">{{ characters }}</div>
-      <p class="hint">An uppercase <code>A</code> gives the <code>a</code> with the creeper face.</p>
     </div>
     <div class="grid">
       <Tile v-for="data of baseFonts" :key="data.id" keyboard :label="data.name" :image="fontThumbnail(library.fonts, data.id)" :author="fontCredit(data, library.fonts)" :badge="variantBadges[data.id]" :selected="baseId === data.id" @pick="object.font = data.id" />
@@ -57,6 +58,9 @@
   </Panel>
   <Panel v-if="hasTerminators" title="Terminators" :modified="terminators.modified.value" @reset="terminators.reset">
     <Toggle label="Line terminators" hint="Adds the end pieces either side of the text" v-model="object.terminators" />
+  </Panel>
+  <Panel v-if="hasCreeper" title="Creeper face" :modified="creeper.modified.value" @reset="creeper.reset">
+    <Toggle label="Creeper face on a" hint="Every a gets the creeper face. Split a word off to set it for just part of the text" v-model="object.creeperFace" />
   </Panel>
 </template>
 

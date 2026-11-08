@@ -149,6 +149,26 @@ describe("layout text normalising", () => {
   })
 })
 
+describe("creeper face", () => {
+  const font = fontOf("abn" + SMILE)
+
+  test("turns every a in a word into the creeper face", () => {
+    assert.deepEqual(charsOf(lineLayout(font, [{ text: "banAna", space: false, creeper: true }], {})), ["b", SMILE, "n", SMILE, "n", SMILE])
+  })
+
+  test("a capital A is a plain a when it is off", () => {
+    assert.deepEqual(charsOf(lineLayout(font, [{ text: "banAna", space: false, creeper: false }], {})), ["b", "a", "n", "a", "n", "a"])
+  })
+
+  test("is set for each word", () => {
+    assert.deepEqual(charsOf(lineLayout(font, [{ text: "ba", space: false, creeper: true }, { text: "na", space: false, creeper: false }], {})), ["b", SMILE, "n", "a"])
+  })
+
+  test("leaves the a alone when the font has no creeper face", () => {
+    assert.deepEqual(charsOf(lineLayout(fontOf("ab"), [{ text: "ba", space: false, creeper: true }], {})), ["b", "a"])
+  })
+})
+
 describe("layout kerning", () => {
   test("pulls the pair together", () => {
     assert.deepEqual(xsOf(layout(fontOf("ab", { kerning: { ab: 2 } }), "ab", {})), [1, 5])

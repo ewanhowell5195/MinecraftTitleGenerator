@@ -3,9 +3,9 @@ import { reactive } from "vue"
 export const FILE_VERSION = 5
 
 export const TYPES = {
-  top: { name: "Top Text", clipHoles: true, depthAnchor: "back", stops: [["#FFCF76", 0], ["#DA371E", 100]], fade: false, outerFade: 0, internalFaces: false, fadeInternal: true, internalFade: 0, sideFaces: false, fadeSides: true, sideFade: 0, border: 2, spacing: 0 },
-  bottom: { name: "Update Text", clipHoles: true, depthAnchor: "front", stops: [["#FFCF76", 0], ["#DA371E", 100]], fade: true, outerFade: 50, internalFaces: true, fadeInternal: true, internalFade: 75, sideFaces: false, fadeSides: true, sideFade: 75, border: 2, spacing: 0 },
-  small: { name: "Edition Text", clipHoles: false, depthAnchor: "middle", stops: [["#E0E0E0", 0], ["#8A8A8A", 100]], fade: false, outerFade: 0, internalFaces: true, fadeInternal: false, internalFade: 75, sideFaces: true, fadeSides: false, sideFade: 75, border: 3, spacing: 2 }
+  top: { name: "Top Text", creeperFace: true, clipHoles: true, depthAnchor: "back", stops: [["#FFCF76", 0], ["#DA371E", 100]], fade: false, outerFade: 0, internalFaces: false, fadeInternal: true, internalFade: 0, sideFaces: false, fadeSides: true, sideFade: 0, border: 2, spacing: 0 },
+  bottom: { name: "Update Text", creeperFace: false, clipHoles: true, depthAnchor: "front", stops: [["#FFCF76", 0], ["#DA371E", 100]], fade: true, outerFade: 50, internalFaces: true, fadeInternal: true, internalFade: 75, sideFaces: false, fadeSides: true, sideFade: 75, border: 2, spacing: 0 },
+  small: { name: "Edition Text", creeperFace: false, clipHoles: false, depthAnchor: "middle", stops: [["#E0E0E0", 0], ["#8A8A8A", 100]], fade: false, outerFade: 0, internalFaces: true, fadeInternal: false, internalFade: 75, sideFaces: true, fadeSides: false, sideFade: 75, border: 3, spacing: 2 }
 }
 
 const BLENDS = {
@@ -48,6 +48,9 @@ const PANELS = {
   }),
   terminators: () => ({
     terminators: false
+  }),
+  creeper: () => ({
+    creeperFace: true
   }),
   font: () => ({
     font: "minecraft-ten"
@@ -241,6 +244,7 @@ const TEXTURE_TABS = {
 }
 
 const TYPE_KEYS = {
+  creeper: ["creeperFace"],
   geometry: ["clipHoles", "depthAnchor"],
   faces: ["fade", "outerFade"],
   inner: ["internalFaces", "fadeInternal", "internalFade"],

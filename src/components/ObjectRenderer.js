@@ -130,6 +130,7 @@ export default {
     function wordShape(other) {
       return {
         text: other.text,
+        creeper: other.creeperFace,
         space: other.spaceBefore,
         arc: { mode: other.wordArcMode, top: other.wordArcTop / 100, bottom: other.wordArcBottom / 100, move: other.wordArcMove / 100, marked: other.wordArcMarked },
         stretch: other.wordScaleMarked && marked.value ? other.wordScaleY : 1

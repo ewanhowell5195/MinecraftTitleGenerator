@@ -13,6 +13,7 @@ const TOP_DEFAULTS = {
   type: "top",
   row: 0,
   rowSpacing: 0,
+  creeperFace: true,
   depth: 22,
   depthAnchor: "back",
   border: 2,
@@ -133,6 +134,7 @@ const TOP_DEFAULTS = {
 const BOTTOM_DEFAULTS = {
   ...TOP_DEFAULTS,
   type: "bottom",
+  creeperFace: false,
   depthAnchor: "front",
   internalFaces: true,
   internalFade: 75,
@@ -144,6 +146,7 @@ const BOTTOM_DEFAULTS = {
 const SMALL_DEFAULTS = {
   ...TOP_DEFAULTS,
   type: "small",
+  creeperFace: false,
   depthAnchor: "middle",
   border: 3,
   clipHoles: false,
