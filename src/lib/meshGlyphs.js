@@ -2,7 +2,7 @@ import { ClipType, EndType, FillRule, JoinType, PolyTreeD, booleanOpDWithPolyTre
 import { ShapeUtils, Vector2 } from "three"
 
 const PRECISION = 4
-const ARC_TOLERANCE = 0.01
+const ARC_TOLERANCE = 0.05
 const EDGE_ROW = 1
 const FAR = 1e6
 
