@@ -12,9 +12,9 @@
 
   const info = ref(false)
   const { object, font, modified, reset } = usePanel("font")
-  const hasTerminators = computed(() => font.value && font.value.glyphs["┫"] && font.value.glyphs["┣"] && !font.value.forcedTerminators)
   const terminators = usePanel("terminators")
   const creeper = usePanel("creeper")
+  const hasTerminators = computed(() => font.value && font.value.glyphs["┫"] && font.value.glyphs["┣"] && !font.value.forcedTerminators)
   const hasCreeper = computed(() => !!font.value?.glyphs["\u{1F633}"])
   const entry = computed(() => library.fonts.find(item => item.id === object.value.font))
   const baseId = computed(() => entry.value?.variant ?? object.value.font)

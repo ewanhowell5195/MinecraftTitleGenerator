@@ -4,7 +4,7 @@
   import { FRAMINGS, MINECRAFT_MODES, framing, framingModified, outlineModified, paddingScale, renderFramed, renderVector, resetFraming, resetOutline, resolutionLimit, setAspect, setResolution, textureSize, textureSizes } from "../../lib/framing.js"
   import { scene, titleFileName } from "../../lib/scene.js"
   import { submitStats } from "../../lib/stats.js"
-  import { download } from "../../lib/ui.js"
+  import { downloadBlob } from "../../lib/ui.js"
   import { DEFAULT_FOV, view } from "../../lib/view.js"
   import ColourPicker from "../ColourPicker.vue"
   import Dropdown from "../Dropdown.vue"
@@ -81,9 +81,7 @@
         failed.value = "Nothing in frame."
         return
       }
-      const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }))
-      download(`${titleFileName()}.svg`, url)
-      setTimeout(() => URL.revokeObjectURL(url), 10000)
+      downloadBlob(`${titleFileName()}.svg`, new Blob([svg], { type: "image/svg+xml" }))
     } catch (err) {
       failed.value = `Render failed: ${err.message}`
       throw err

@@ -18,6 +18,7 @@
   import Toggle from "../Toggle.vue"
   import VersionDialog from "../VersionDialog.vue"
 
+  const SEARCH_ABOVE = 16
   const TILE_SCALES = [1 / 4, 1 / 3, 1 / 2, 1, 2, 3, 4, 5, 6, 7, 8]
   const SOURCES = [{ value: "premade", label: "Textures" }, { value: "tileable", label: "Tileables" }, { value: "gradient", label: "Gradient" }]
   const TILEABLE_SOURCES = [{ value: "premade", label: "Premade" }, { value: "minecraft", label: "Minecraft textures" }]
@@ -30,6 +31,7 @@
   const blocksError = ref("")
   const choosingVersion = ref(false)
   let blocksRequest = 0
+  let sizeRequest = 0
 
   const usingMinecraft = computed(() => object.value.textureSource === "tileable" && object.value.tileableSource === "minecraft")
   const textures = computed(() => {
@@ -39,19 +41,23 @@
   })
   const tileables = computed(() => popular(Object.entries(library.tileables), ([id]) => `tileable.${id}`, ([id, data]) => label(id, data)))
   const blockEntries = computed(() => popular(Array.from(blocks.value ?? []).filter(([id, { opaque }]) => opaque || id === object.value.minecraftTexture).map(([id, { url }]) => [id, { name: blockName(id), author: "Mojang", url }]), ([id]) => minecraftStatId(id), ([, data]) => data.name))
-  const shownBlocks = computed(() => searched(blockEntries.value, object.value.minecraftTexture))
   const jarProgress = computed(() => jar.total ? jar.done / jar.total : 0)
   const textureVariants = computed(() => Object.entries(list.value?.textures[object.value.texture]?.variants ?? {}))
   const tileableVariants = computed(() => Object.entries(library.tileables[object.value.tileable]?.variants ?? {}))
 
+  function searchable(entries) {
+    return entries.length > SEARCH_ABOVE
+  }
+
   function searched(entries, selected) {
     const term = search.value.trim().toLowerCase()
-    if (entries.length <= 16 || !term) return entries
+    if (!searchable(entries) || !term) return entries
     return entries.filter(([id, data]) => id === selected || id.includes(term) || (data.name ?? "").toLowerCase().includes(term) || (data.category ?? "").toLowerCase().includes(term) || Object.keys(data.variants ?? {}).some(key => key.includes(term)))
   }
 
   const shownTextures = computed(() => searched(textures.value, object.value.texture))
   const shownTileables = computed(() => searched(tileables.value, object.value.tileable))
+  const shownBlocks = computed(() => searched(blockEntries.value, object.value.minecraftTexture))
 
   function spread() {
     const order = object.value.stops.slice().sort((a, b) => a.position - b.position)
@@ -120,8 +126,9 @@
     const target = object.value
     if (target.textureSource !== "tileable") return
     if (target.tileableSource !== "minecraft" && !library.tileables[target.tileable]) return
+    const request = ++sizeRequest
     const img = await (target.tileableSource === "minecraft" ? blockTextureImage(target.minecraftVersion, target.minecraftTexture) : image(tileableUrl(library.tileables, target.tileable, target.tileableVariant)))
-    tileSize.value = { width: img.width, height: img.height }
+    if (request === sizeRequest) tileSize.value = { width: img.width, height: img.height }
   }, { immediate: true })
 </script>
 
@@ -131,7 +138,7 @@
       <Segments :options="SOURCES" :model-value="object.textureSource" @update:model-value="chooseSource" />
 
       <template v-if="object.textureSource === 'premade'">
-        <input v-if="textures.length > 16" type="text" v-model="search" placeholder="Search textures">
+        <input v-if="searchable(textures)" type="text" v-model="search" placeholder="Search textures">
         <div class="grid scroll">
           <Tile v-for="[id, data] of shownTextures" :key="id" :label="label(id, data)" :unit="thumbnailHeight(font)" :image="thumbnail(font, id)" :author="credit(data, font?.id, library.fonts)" :badge="variantBadge(data)" :selected="object.texture === id" @pick="setTexture(object, { texture: id, textureVariant: null })" />
         </div>
@@ -158,7 +165,7 @@
         <p v-if="blocksError" class="hint">{{ blocksError }}</p>
         <p v-else-if="blocks && !blockEntries.length" class="hint">This version has no block textures without transparency.</p>
         <template v-if="blockEntries.length">
-          <input type="text" v-model="search" placeholder="Search textures">
+          <input v-if="searchable(blockEntries)" type="text" v-model="search" placeholder="Search textures">
           <div class="grid scroll">
             <Tile v-for="[id, data] of shownBlocks" :key="id" :label="data.name" :pattern="{ backgroundImage: `url(${data.url})` }" :author="data.author" :selected="object.minecraftTexture === id" @pick="object.minecraftTexture = id" />
           </div>
@@ -167,7 +174,7 @@
       </template>
 
       <template v-if="object.textureSource === 'tileable' && !usingMinecraft">
-        <input v-if="tileables.length > 16" type="text" v-model="search" placeholder="Search textures">
+        <input v-if="searchable(tileables)" type="text" v-model="search" placeholder="Search textures">
         <div class="grid scroll">
           <Tile v-for="[id, data] of shownTileables" :key="id" :label="label(id, data)" :pattern="tilePreview(library.tileables, id)" :author="data.author" :badge="variantBadge(data)" :selected="object.tileable === id" @pick="object.tileable = id; object.tileableVariant = null" />
         </div>
@@ -222,7 +229,6 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    user-select: none;
   }
 
   .download {

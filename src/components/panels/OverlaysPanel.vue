@@ -36,7 +36,7 @@
   const layer = computed(() => layers.value[selected.value] ?? null)
   const generated = computed(() => layer.value?.source === "premade" ? available.value[layer.value.overlay]?.generated ?? null : null)
   const kind = computed(() => !layer.value ? pending.value : layer.value.source === "file" ? "file" : generated.value ? "generated" : "texture")
-  const shown = computed(() => overlays.value.filter(([, data]) => !!data.generated === (kind.value === "generated")))
+  const shown = computed(() => overlays.value.filter(ofKind(kind.value)))
   const settings = computed(() => GENERATED_SETTINGS[generated.value] ?? [])
   const baseline = computed(() => layer.value ? { ...overlayLayer(layer.value.overlay, layer.value.source === "file" ? null : available.value[layer.value.overlay]), source: layer.value.source, file: layer.value.file } : null)
   const layerModified = computed(() => {
@@ -44,6 +44,10 @@
     if (["blend", "colour", "colourBlend", "opacity"].some(key => layer.value[key] !== baseline.value[key])) return true
     return settings.value.some(item => item.key !== "seed" && generatedSetting(layer.value, item) !== generatedSetting(baseline.value, item))
   })
+
+  function ofKind(value) {
+    return ([, data]) => !!data.generated === (value === "generated")
+  }
 
   function layerName(item) {
     if (item.source === "file") return "Custom file"
@@ -102,7 +106,7 @@
       set("source", "file")
       return
     }
-    const matches = ([, data]) => !!data.generated === (value === "generated")
+    const matches = ofKind(value)
     const first = overlays.value.find(matches)
     const own = overlays.value.find(entry => entry[0] === layer.value.overlay)
     set("source", "premade")
@@ -110,8 +114,9 @@
   }
 
   function resetLayer() {
-    const { seed } = layer.value
-    custom()[selected.value] = seed === undefined ? structuredClone(toRaw(baseline.value)) : { ...structuredClone(toRaw(baseline.value)), seed }
+    const fresh = structuredClone(toRaw(baseline.value))
+    if (layer.value.seed !== undefined) fresh.seed = layer.value.seed
+    custom()[selected.value] = fresh
   }
 
   function removeLayer(index) {
@@ -134,7 +139,7 @@
 
   const box = ref(null)
   const rows = []
-  const { dragged, press } = useReorderDrag({ prevent: true, begin, point: event => event.clientY, reorder, follow, release })
+  const { dragged, press } = useReorderDrag({ prevent: true, begin, point: event => event.clientY, reorder, follow, release: clearRows })
 
   function begin(event, index) {
     return { id: index, grab: event.clientY - rows[index].getBoundingClientRect().top }
@@ -152,14 +157,14 @@
   }
 
   function follow(drag) {
-    for (const row of rows.slice(0, layers.value.length)) row.style.transform = ""
+    clearRows()
     const row = rows[drag.id]
     const rect = row.getBoundingClientRect()
     const area = box.value.getBoundingClientRect()
     row.style.transform = `translateY(${clamp(drag.point - drag.grab, area.top, area.bottom - rect.height) - rect.top}px)`
   }
 
-  function release() {
+  function clearRows() {
     for (const row of rows.slice(0, layers.value.length)) row.style.transform = ""
   }
 
@@ -178,15 +183,15 @@
       <div :ref="el => (rows[index] = el)" class="layer card" v-for="(item, index) of layers" :key="index" tabindex="0" @click="selected = index" @keydown.enter="selected = index" :class="{ selected: selected === index, dragged: dragged === index }">
         <span class="grip" @pointerdown="press($event, index)" title="Drag to reorder"><Icon name="grip" :size="14" /></span>
         <img :src="item.source === 'file' ? item.file : thumbnail(font, item.overlay)" alt="">
-        <span class="name">{{ layerName(item) }}</span>
+        <span class="grow ellipsis">{{ layerName(item) }}</span>
         <button class="icon-button small" @click.stop="duplicateLayer(index)" title="Duplicate overlay"><Icon name="copy" :size="14" /></button>
         <button class="icon-button small" @click.stop="removeLayer(index)" title="Remove overlay"><Icon name="trash" :size="14" /></button>
       </div>
     </div>
     <button class="wide" v-if="layer" @click="selected = null"><Icon name="plus" :size="16" /><span>Add overlay</span></button>
 
-    <div class="editing row" v-if="layer">
-      <h3>Editing "{{ layerName(layer) }}"</h3>
+    <div class="row" v-if="layer">
+      <h3 class="grow">Editing "{{ layerName(layer) }}"</h3>
       <button v-if="layerModified" class="small ghost" @click="resetLayer" title="Reset this overlay">Reset</button>
     </div>
     <Segments v-if="!edge" :options="KINDS" :model-value="kind" @update:model-value="pickKind" />
@@ -195,7 +200,7 @@
     </div>
     <template v-else>
       <div class="file">
-        <img v-if="layer?.file" :src="layer.file">
+        <img v-if="layer?.file" :src="layer.file" alt="">
         <div v-else class="empty">No file selected</div>
       </div>
       <label class="button wide">
@@ -268,19 +273,6 @@
     object-fit: contain;
     image-rendering: pixelated;
     background: var(--field);
-  }
-
-  .editing h3 {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .layer .name {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   .scroll {

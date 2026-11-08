@@ -2,13 +2,19 @@ import { reactive } from "vue"
 import { image, tileableUrl } from "./assets.js"
 import { surface } from "./canvas.js"
 
-const units = reactive({})
+const heights = reactive({})
 
 export function download(name, url) {
   const link = document.createElement("a")
   link.download = name
   link.href = url
   link.click()
+}
+
+export function downloadBlob(name, blob) {
+  const url = URL.createObjectURL(blob)
+  download(name, url)
+  setTimeout(() => URL.revokeObjectURL(url), 10000)
 }
 
 export function readFile(event, apply) {
@@ -31,11 +37,11 @@ export function thumbnail(font, id) {
 
 export function thumbnailHeight(font) {
   const url = thumbnail(font, "flat")
-  if (!(url in units)) {
-    units[url] = null
-    image(url).then(loaded => units[url] = loaded.height)
+  if (!(url in heights)) {
+    heights[url] = null
+    image(url).then(loaded => heights[url] = loaded.height)
   }
-  return units[url]
+  return heights[url]
 }
 
 export function tilePreview(tileables, id, variant) {
@@ -44,8 +50,8 @@ export function tilePreview(tileables, id, variant) {
 
 export async function saveSheet(font, kind, id) {
   const [source, flat] = await Promise.all([image(`${font.sheetFolder}/${kind}/${id}.png`), image(`${font.sheetFolder}/textures/flat.png`)])
-  const scale = source.width / flat.width
-  const { canvas, ctx } = surface(flat.width * scale, flat.height * scale)
-  ctx.drawImage(source, 0, 0, flat.width * scale, flat.height * scale)
+  const height = flat.height * source.width / flat.width
+  const { canvas, ctx } = surface(source.width, height)
+  ctx.drawImage(source, 0, 0, source.width, height)
   download(`${id}.png`, canvas.toDataURL())
 }

@@ -105,7 +105,6 @@
 
   .bake {
     align-self: flex-start;
-    user-select: none;
   }
 
   .spare {

@@ -14,12 +14,12 @@
 
 <template>
   <Panel title="Twist" :modified="modified" @reset="reset">
-    <template v-for="twist in TWISTS" :key="twist.label">
+    <template v-for="twist of TWISTS" :key="twist.label">
       <p class="hint">{{ twist.hint }}</p>
       <Slider :label="twist.label" v-model="object[twist.amount]" :min="-180" :max="180" />
       <template v-if="object[twist.amount]">
         <Slider :label="`${twist.label} centre`" v-model="object[twist.centre]" :min="0" :max="100" />
-        <p class="hint">0 is the left end of the line and 100 is the right end.</p>
+        <p class="hint">0 is the left end and 100 is the right end.</p>
         <Toggle :label="twist.sameLabel" v-model="object[twist.same]" />
       </template>
     </template>

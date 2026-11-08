@@ -43,13 +43,13 @@
     const values = parts.map(([from, to], index) => ({ text: text.slice(from, to).trim(), spaceBefore: index ? /\s/.test(text[from - 1] + text[from]) : word.spaceBefore }))
     const gradients = splitGradients(runtime[word.id]?.font, line.value, word, values)
     let last = word
-    let chosen = word
+    let target = word
     for (const [index, [from]] of parts.entries()) {
       if (index) last = insertWord(last, { ...values[index], ...gradients[index] })
       else Object.assign(word, { text: values[0].text }, gradients[0])
-      if (from === start) chosen = last
+      if (from === start) target = last
     }
-    select(chosen)
+    select(target)
     return true
   }
 
@@ -64,10 +64,10 @@
 
   async function remove(word) {
     const index = line.value.indexOf(word)
-    const before = line.value[index - 1] ?? line.value[index + 1]
+    const neighbour = line.value[index - 1] ?? line.value[index + 1]
     removeObject(word)
     await nextTick()
-    const field = fields[before.id]
+    const field = fields[neighbour.id]
     field.focus()
     field.setSelectionRange(field.value.length, field.value.length)
   }
@@ -251,10 +251,10 @@
     background: transparent;
   }
 
+  .hide,
   .remove {
     position: absolute;
     top: -7px;
-    right: -7px;
     width: 18px;
     height: 18px;
     padding: 0;
@@ -266,17 +266,11 @@
   }
 
   .hide {
-    position: absolute;
-    top: -7px;
     left: -7px;
-    width: 18px;
-    height: 18px;
-    padding: 0;
-    color: var(--text);
-    background: var(--line-strong);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity var(--duration), background var(--duration);
+  }
+
+  .remove {
+    right: -7px;
   }
 
   .chip:hover .remove,
@@ -292,12 +286,12 @@
     background: var(--accent);
   }
 
-  .chip.hidden input {
-    color: var(--faint);
-  }
-
   .remove:hover {
     background: var(--danger);
+  }
+
+  .chip.hidden input {
+    color: var(--faint);
   }
 
   .join {
