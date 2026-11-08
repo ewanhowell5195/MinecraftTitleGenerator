@@ -215,8 +215,36 @@ export function buildOutline(built, scale, extra = [0, 0, 0]) {
   return { positions: new Float32Array(positions), uvs, triangles: positions.length / 9, scale, rects, z }
 }
 
+const CACHED_SHELLS = 16
+const shells = new Map()
+const holes = new WeakMap()
+
+function ringsKey(groups, ...values) {
+  let hash = 2166136261
+  let count = 0
+  for (const { rings } of groups) {
+    for (const ring of rings) {
+      for (const [x, y] of ring) {
+        hash = Math.imul(hash ^ Math.round(x * 1000), 16777619)
+        hash = Math.imul(hash ^ Math.round(y * 1000), 16777619)
+        count++
+      }
+    }
+  }
+  return JSON.stringify([hash, count].concat(values))
+}
+
 function meshOutline(built, scale, radius, z) {
   const groups = built.twist ? built.twist.map(({ turn, rings }) => ({ rings, turn: point => turned(point, turn, scale) })) : [{ rings: built.shapes }]
+  const key = ringsKey(groups, scale, radius, z, built.swatch, built.twist?.map(({ turn }) => turn))
+  if (!shells.has(key)) {
+    shells.set(key, shellOutline(built, groups, scale, radius, z))
+    if (shells.size > CACHED_SHELLS) shells.delete(shells.keys().next().value)
+  }
+  return shells.get(key)
+}
+
+function shellOutline(built, groups, scale, radius, z) {
   const shell = radius[0] > 0 && radius[1] > 0 ? built.tools.outlineShell(groups, scale, radius, z) : { positions: [], sizes: [], shapes: [] }
   const uvs = new Float32Array(shell.positions.length / 3 * 2)
   if (built.swatch) {
@@ -226,6 +254,14 @@ function meshOutline(built, scale, radius, z) {
 }
 
 function meshHoles(outlines, tools) {
+  const last = holes.get(outlines[0])
+  if (last?.outlines.length === outlines.length && last.outlines.every((outline, index) => outline === outlines[index])) return last.result
+  const result = filledHoles(outlines, tools)
+  holes.set(outlines[0], { outlines, result })
+  return result
+}
+
+function filledHoles(outlines, tools) {
   const positions = tools.holeFill(outlines.map(outline => outline.shapes ? { shapes: outline.shapes } : { rects: outline.rects }), -Math.max(...outlines.map(outline => outline.z)))
   if (!positions.length) return null
   return { positions: new Float32Array(positions), uvs: new Float32Array(positions.length / 3 * 2), triangles: positions.length / 9, sizes: new Uint8Array(positions.length / 9).fill(3), scale: outlines[0].scale }
