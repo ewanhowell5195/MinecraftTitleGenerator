@@ -1,0 +1,10 @@
+{
+  "textures": {
+    "flat": {
+      "border": "#000000"
+    }
+  },
+  "overlays": {},
+  "primary": "smooth",
+  "secondary": "gradient"
+}
