@@ -49,6 +49,22 @@ const presetPages = {
   }
 }
 
+function slashFolders(server) {
+  server.middlewares.use((request, response, next) => {
+    const url = new URL(request.url, "http://localhost")
+    if (url.pathname.endsWith("/") || !fs.existsSync(path.join(server.config.root, url.pathname, "index.html"))) return next()
+    response.statusCode = 308
+    response.setHeader("Location", `${url.pathname}/${url.search}`)
+    response.end()
+  })
+}
+
+const folderSlashes = {
+  name: "folder-slashes",
+  configureServer: slashFolders,
+  configurePreviewServer: slashFolders
+}
+
 const creditsPage = {
   name: "credits-page",
   transformIndexHtml: {
@@ -68,7 +84,7 @@ function allowCookiesOverHttp(proxy) {
 }
 
 export default defineConfig({
-  plugins: [vue(), presetPages, creditsPage],
+  plugins: [vue(), folderSlashes, presetPages, creditsPage],
   build: { rolldownOptions: { input: ["index.html", "app/index.html", "font-editor/index.html", "credits/index.html"] } },
   server: { host: "127.0.0.1", port: 9123, strictPort: true, proxy: { "/api": { target: LIVE, changeOrigin: true, configure: allowCookiesOverHttp } } }
 })
