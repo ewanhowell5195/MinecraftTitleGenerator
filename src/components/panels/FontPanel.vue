@@ -58,6 +58,11 @@
     }
   }
 
+  function chooseTab(value) {
+    tab.value = value
+    if (value === "custom" && object.value.customFont && !usingCustom.value) applyCustom(object.value.customFont)
+  }
+
   function upload(event) {
     const file = event.target.files[0]
     event.target.value = ""
@@ -119,7 +124,7 @@
     <template #actions>
       <button class="icon-button small" :class="{ active: info }" @click.stop="info = !info" title="Font info and characters"><Icon name="info" :size="17" /></button>
     </template>
-    <Segments :options="TABS" v-model="tab" />
+    <Segments :options="TABS" :model-value="tab" @update:model-value="chooseTab" />
     <div class="info" v-if="info && font">
       <p class="hint" v-if="font.description">{{ font.description }}</p>
       <div class="code">{{ characters }}</div>
