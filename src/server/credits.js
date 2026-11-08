@@ -42,9 +42,15 @@ function counted(pieces) {
   }).filter(Boolean).join(", ")
 }
 
+function listed(names) {
+  return names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : names[0]
+}
+
 function pieceHtml(piece) {
   const based = piece.based ? `<span class="based">Based on ${escaped(piece.based)}</span>` : ""
-  return `<li class="piece"><div class="thumb"><img src="${escaped(piece.image)}" alt="" loading="lazy"></div><span class="name">${escaped(piece.name)}</span><span class="where">${escaped(piece.where)}</span>${based}</li>`
+  const others = piece.people.filter(person => person !== piece.person)
+  const shared = others.length ? `<button type="button" class="with" data-id="${escaped(piece.id)}">With ${escaped(listed(others))}</button>` : ""
+  return `<li class="piece" data-id="${escaped(piece.id)}" data-stats="${escaped(piece.stats.join(" "))}"><div class="thumb"><img src="${escaped(piece.image)}" alt="" loading="lazy"></div><span class="name">${escaped(piece.name)}</span><span class="where">${escaped(piece.where)}</span>${based}${shared}</li>`
 }
 
 export function creditsHtml(root) {
@@ -63,7 +69,8 @@ export function creditsHtml(root) {
   function add(author, piece) {
     if (!author) return
     if (!fs.existsSync(path.join(folder, piece.image))) throw new Error(`the credits page needs ${piece.image}, which does not exist`)
-    for (const person of peopleIn(author)) pieces.push({ ...piece, person })
+    const people = peopleIn(author)
+    for (const person of people) pieces.push({ ...piece, person, people })
   }
 
   function basedOnLabel(basedOn, owner) {
@@ -79,27 +86,29 @@ export function creditsHtml(root) {
 
   for (const font of fonts) {
     const based = font.basedOn ? fullName(fontOf(font.basedOn), fonts) : null
-    add(font.author, { kind: "font", name: fullName(font, fonts), image: `${fontFolder(font)}/thumbnails/flat.png`, where: "Font", based })
+    add(font.author, { kind: "font", name: fullName(font, fonts), image: `${fontFolder(font)}/thumbnails/flat.png`, where: "Font", based, stats: [font.id], id: font.id })
   }
 
   for (const [owner, list] of lists) {
     const strips = owner.startsWith(STRIPS)
-    const user = strips ? fonts.find(font => (font.strips ?? []).some(item => stripUse(item).id === owner.slice(STRIPS.length))) : fontOf(owner)
-    if (!user) throw new Error(`no font uses the ${owner} strips, so their thumbnails can't be found`)
-    const thumbnails = `${fontFolder(user)}/thumbnails`
+    const users = strips ? fonts.filter(font => (font.strips ?? []).some(item => stripUse(item).id === owner.slice(STRIPS.length))) : [fontOf(owner)]
+    if (!users.length) throw new Error(`no font uses the ${owner} strips, so their thumbnails can't be found`)
+    const thumbnails = `${fontFolder(users[0])}/thumbnails`
     for (const [group, kind] of [["textures", "texture"], ["overlays", "overlay"]]) {
-      const where = strips ? `Strip ${kind}` : `${fullName(user, fonts)} ${kind}`
+      const where = strips ? `Strip ${kind}` : `${fullName(users[0], fonts)} ${kind}`
       for (const [id, entry] of Object.entries(list[group] ?? {})) {
-        add(entry.author, { kind, name: entry.name ?? titleCase(id), image: `${thumbnails}/${id}.png`, where, based: basedOnLabel(entry.basedOn, owner) })
-        for (const [variantId, variant] of Object.entries(entry.variants ?? {})) add(variant.author, { kind, name: variant.name ?? titleCase(variantId), image: `${thumbnails}/${variantId}.png`, where, based: basedOnLabel(variant.basedOn, owner) })
+        const stats = users.map(font => `${font.id}.${id}`)
+        add(entry.author, { kind, name: entry.name ?? titleCase(id), image: `${thumbnails}/${id}.png`, where, based: basedOnLabel(entry.basedOn, owner), stats, id: `${owner}.${id}` })
+        for (const [variantId, variant] of Object.entries(entry.variants ?? {})) add(variant.author, { kind, name: variant.name ?? titleCase(variantId), image: `${thumbnails}/${variantId}.png`, where, based: basedOnLabel(variant.basedOn, owner), stats: [], id: `${owner}.${variantId}` })
       }
     }
   }
 
   for (const [id, tileable] of Object.entries(tileables)) {
-    if (tileable.author !== "Mojang") add(tileable.author, { kind: "tileable", name: tileable.name ?? titleCase(id), image: `tileables/${tileable.path ?? "minecraft"}/${id}.png`, where: "Tileable texture" })
+    const stats = [`tileable.${id}`]
+    if (tileable.author !== "Mojang") add(tileable.author, { kind: "tileable", name: tileable.name ?? titleCase(id), image: `tileables/${tileable.path ?? "minecraft"}/${id}.png`, where: "Tileable texture", stats, id: `tileable.${id}` })
     for (const [variantId, variant] of Object.entries(tileable.variants ?? {})) {
-      if (variant.author !== "Mojang") add(variant.author, { kind: "tileable", name: variant.name ?? titleCase(variantId), image: `tileables/${variant.path ?? tileable.path ?? "minecraft"}/${variantId}.png`, where: "Tileable texture" })
+      if (variant.author !== "Mojang") add(variant.author, { kind: "tileable", name: variant.name ?? titleCase(variantId), image: `tileables/${variant.path ?? tileable.path ?? "minecraft"}/${variantId}.png`, where: "Tileable texture", stats: [], id: `tileable.${variantId}` })
     }
   }
 
@@ -111,5 +120,5 @@ export function creditsHtml(root) {
     return `<article class="person"><header><h2>${escaped(person)}</h2><p>${counted(made)}</p></header><ul class="pieces">${listed.map(piece => ({ ...piece, image: `/${piece.image}` })).map(pieceHtml).join("")}</ul></article>`
   })
   const libraries = LIBRARIES.map(library => `<li><a href="${library.url}">${escaped(library.name)}</a> by ${escaped(library.by)}, ${library.licence} licence</li>`)
-  return `<section class="intro wrap"><h1>Credits</h1><p>${sorted.length} people have made the fonts and textures in the generator. Thank you to every one of them!</p></section><section class="people wrap">${sections.join("")}</section><section class="libraries wrap"><h2>Built with</h2><ul>${libraries.join("")}</ul></section>`
+  return `<section class="intro wrap"><h1>Credits</h1><p>${sorted.length} people have made the fonts and textures in the generator. Thank you to every one of them!</p><div class="search" hidden><input type="search" placeholder="Search people, fonts and textures" aria-label="Search the credits" spellcheck="false"><p class="empty" hidden>Nothing matches this search.</p></div></section><section class="people wrap">${sections.join("")}</section><section class="libraries wrap"><h2>Built with</h2><ul>${libraries.join("")}</ul></section>`
 }
