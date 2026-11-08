@@ -3,7 +3,8 @@ import { describe, test } from "node:test"
 import opentype from "opentype.js"
 import { parsedSheet } from "../src/lib/fontEditor.js"
 import { fontFromOutlines, meshOutlines, parseFontFile } from "../src/lib/fontImport.js"
-import { glyphMeshes, holeFill, meshFaces, outlineShell } from "../src/lib/meshGlyphs.js"
+import { generatedAlpha } from "../src/lib/generated.js"
+import { fineMasks, glyphMeshes, holeFill, meshFaces, outlineShell } from "../src/lib/meshGlyphs.js"
 
 function area(points) {
   let sum = 0
@@ -105,6 +106,42 @@ describe("mesh glyphs", () => {
     const covered = faces => faces.reduce((sum, face) => sum - area(face.points), 0)
     assert.ok(Math.abs(covered(after) - covered(before) - width * 20) < 1e-6)
     assert.equal(Math.max(...after.flatMap(face => face.points.map(point => point[1]))), 50)
+  })
+
+  test("a fine mask at one sample per pixel is the cube glyph", async () => {
+    const source = await testFont()
+    const meshes = glyphMeshes(meshOutlines(source, { height: 30 }))
+    const { list } = parsedSheet(fontFromOutlines(source, { height: 30 }), 2)
+    for (const cell of list.filter(item => meshes[item.char] && item.width)) {
+      assert.deepEqual(Array.from(fineMasks(meshes[cell.char], cell, cell)(1)), Array.from(cell.mask), cell.char)
+    }
+  })
+
+  test("walls only share a run with neighbours of the same kind", async () => {
+    const mesh = glyphMeshes(meshOutlines(await testFont(), { height: 30 })).c
+    const { faces } = meshFaces(mesh, { bottom: 0, height: 30, arc: { map: Array.from({ length: 30 }, (_, row) => row) } }, { bottom: 0, height: 30 }, 0, 6)
+    const walls = faces.filter(face => face.kind !== "front" && face.kind !== "back")
+    const runs = new Set(walls.map(face => face.run))
+    assert.ok(runs.size < walls.length)
+    for (const run of runs) {
+      const members = walls.filter(face => face.run === run)
+      assert.equal(new Set(members.map(face => `${face.kind}:${face.name}:${face.internal}`)).size, 1)
+    }
+  })
+
+  test("a smooth outline overlay stays inside the letter", async () => {
+    const source = await testFont()
+    const mesh = glyphMeshes(meshOutlines(source, { height: 30 })).c
+    const cell = parsedSheet(fontFromOutlines(source, { height: 30 }), 2).list.find(item => item.char === "c")
+    const fine = fineMasks(mesh, cell, cell)
+    const alpha = generatedAlpha({ ...cell, placedX: 0, fine }, "outline", {}, 30, 4)
+    const solid = fine(4)
+    const columns = cell.width * 4
+    const rows = cell.height * 4
+    assert.ok(alpha.some(value => value > 0))
+    for (let index = 0; index < alpha.length; index++) {
+      if (alpha[index]) assert.equal(solid[(rows - 1 - Math.floor(index / columns)) * columns + index % columns], 1)
+    }
   })
 
   test("a border grows round the letters, and the gap inside an O can be filled", async () => {
