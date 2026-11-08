@@ -1,6 +1,6 @@
 import opentype from "opentype.js"
 import { DEFAULT_SPACE_WIDTH, REQUIRED_CHARACTERS, fontFromShapes } from "./fontEditor.js"
-import { capUnits, glyphFor, gridShift, pixelGrid, rasterise } from "./fontOutline.js"
+import { capUnits, flatten, glyphFor, gridShift, pixelGrid, rasterise } from "./fontOutline.js"
 
 export async function parseFontFile(buffer) {
   const start = String.fromCharCode(...new Uint8Array(buffer, 0, 4))
@@ -11,7 +11,7 @@ export async function parseFontFile(buffer) {
   return opentype.parse(font.buffer.slice(font.byteOffset, font.byteOffset + font.byteLength))
 }
 
-export function fontFromOutlines(source, { height = 40, lowercase = false } = {}) {
+function scaled(source, { height = 40, lowercase = false }) {
   const glyphs = REQUIRED_CHARACTERS.map(char => glyphFor(source, char, lowercase))
   const units = capUnits(source)
   const unit = pixelGrid(glyphs.filter(Boolean), units)
@@ -19,6 +19,22 @@ export function fontFromOutlines(source, { height = 40, lowercase = false } = {}
   const scale = unit ? block / unit : height / units
   const capHeight = Math.round(units * scale)
   if (!Number.isFinite(scale) || capHeight < 1) throw new Error("this font has no usable cap height")
+  return { glyphs, unit, block, scale, capHeight }
+}
+
+export function meshOutlines(source, options = {}) {
+  const { glyphs, unit, scale } = scaled(source, options)
+  return Object.fromEntries(REQUIRED_CHARACTERS.flatMap((char, index) => {
+    const glyph = glyphs[index]
+    const shift = glyph ? gridShift(glyph, unit) : 0
+    const shape = glyph && rasterise(glyph, scale, shift)
+    if (!shape) return []
+    return [[char, flatten(glyph).map(points => points.map(([x, y]) => [(x + shift) * scale - shape.left, y * scale]))]]
+  }))
+}
+
+export function fontFromOutlines(source, options = {}) {
+  const { glyphs, unit, block, scale, capHeight } = scaled(source, options)
   const shapes = new Map(REQUIRED_CHARACTERS.map((char, index) => {
     const glyph = glyphs[index]
     return [char, glyph ? rasterise(glyph, scale, gridShift(glyph, unit)) : null]

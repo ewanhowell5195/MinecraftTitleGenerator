@@ -15,7 +15,7 @@ export function glyphFor(font, char, lowercase) {
   return null
 }
 
-function flatten(glyph) {
+export function flatten(glyph) {
   const contours = []
   let points = []
   let at = [0, 0]
