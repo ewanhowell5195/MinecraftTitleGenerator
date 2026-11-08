@@ -163,7 +163,7 @@ const capHeight = Math.round(units * scale)
 if (!Number.isFinite(scale) || capHeight < 1) throw new Error("could not work out a cap height, pass --height")
 
 const cells = glyphs.map(glyph => {
-  const shape = glyph ? rasterise(glyph, scale, gridShift(glyph, grid)) : null
+  const shape = glyph ? rasterise(glyph, scale, gridShift(glyph, grid, scale)) : null
   return { shape, width: shape?.width ?? Math.round(capHeight / 2) }
 })
 const png = drawSheet(cells, capHeight)

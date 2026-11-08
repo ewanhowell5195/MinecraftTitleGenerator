@@ -26,7 +26,7 @@ export function meshOutlines(source, options = {}) {
   const { glyphs, unit, scale } = scaled(source, options)
   return Object.fromEntries(REQUIRED_CHARACTERS.flatMap((char, index) => {
     const glyph = glyphs[index]
-    const shift = glyph ? gridShift(glyph, unit) : 0
+    const shift = glyph ? gridShift(glyph, unit, scale) : 0
     const shape = glyph && rasterise(glyph, scale, shift)
     if (!shape) return []
     return [[char, flatten(glyph).map(points => points.map(([x, y]) => [(x + shift) * scale - shape.left, y * scale]))]]
@@ -37,7 +37,7 @@ export function fontFromOutlines(source, options = {}) {
   const { glyphs, unit, block, scale, capHeight } = scaled(source, options)
   const shapes = new Map(REQUIRED_CHARACTERS.map((char, index) => {
     const glyph = glyphs[index]
-    return [char, glyph ? rasterise(glyph, scale, gridShift(glyph, unit)) : null]
+    return [char, glyph ? rasterise(glyph, scale, gridShift(glyph, unit, scale)) : null]
   }))
   const space = source.charToGlyph(" ")
   const spaceWidth = space && space.index !== 0 ? Math.round(space.advanceWidth * scale) : Math.round(capHeight / 4) || DEFAULT_SPACE_WIDTH

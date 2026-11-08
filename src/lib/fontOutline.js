@@ -63,11 +63,18 @@ export function pixelGrid(glyphs, cap) {
   return null
 }
 
-export function gridShift(glyph, unit) {
-  const points = glyph.path.commands.filter(command => command.x !== undefined)
-  if (!unit || !points.length) return 0
-  const left = Math.min(...points.map(command => command.x))
-  return Math.round(left / unit) * unit - left
+export function gridShift(glyph, unit, scale) {
+  if (unit) {
+    const points = glyph.path.commands.filter(command => command.x !== undefined)
+    if (!points.length) return 0
+    const left = Math.min(...points.map(command => command.x))
+    return Math.round(left / unit) * unit - left
+  }
+  const xs = flatten(glyph).flat().map(point => point[0] * scale)
+  if (!xs.length) return 0
+  const left = Math.min(...xs)
+  const width = Math.max(...xs) - left
+  return (Math.round(left) + (Math.round(width) - width) / 2 - left) / scale
 }
 
 export function capUnits(font) {

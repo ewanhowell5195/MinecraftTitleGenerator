@@ -9,7 +9,7 @@ import { DEFAULT_ORDER } from "../src/lib/order.js"
 import { CREEPER, REQUIRED_CHARACTERS, SPACE_CHAR, addCharacters, autoStretch, blankGlyph, blockAt, buildSheet, changeGlyph, charactersOf, createFont, exportJson, fillCells, fitGlyph, fontFromFiles, fontFromPublished, glyphOf, isBlank, isOptional, lineCells, lostPixels, paint, parseFontJson, rectangleCells, removeCharacter, resizeFont, rowOfY, setGlyph, setSquareSize, setStretch, sheetOrder, shiftGlyph, slug, squareSizeLoss, squaresOf, stripProblems, trimGlyph, widthOf, yOfRow } from "../src/lib/fontEditor.js"
 import { fontFromAscii } from "../src/lib/asciiImport.js"
 import { fontFromOutlines, parseFontFile } from "../src/lib/fontImport.js"
-import { rasterise } from "../src/lib/fontOutline.js"
+import { gridShift, rasterise } from "../src/lib/fontOutline.js"
 
 function drawn(font, char, cells) {
   return setGlyph(font, char, paint(glyphOf(font, char), cells, true))
@@ -547,6 +547,24 @@ describe("importing a font file", () => {
       const filled = Array.from(shape.mask.slice(row * shape.width, (row + 1) * shape.width))
       assert.equal(filled.indexOf(1), shape.height - 1 - row, `row ${row}`)
       assert.equal(filled.filter(Boolean).length, 10, `row ${row}`)
+    }
+  })
+
+  test("a mirror symmetric letter stays symmetric wherever it sits off the pixel grid", () => {
+    for (const offset of [0, 13, 29, 41]) {
+      const path = new opentype.Path()
+      path.moveTo(offset, 0)
+      path.lineTo(offset + 310, 1000)
+      path.lineTo(offset + 690, 1000)
+      path.lineTo(offset + 1000, 0)
+      path.close()
+      const glyph = new opentype.Glyph({ name: "trapezoid", unicode: 65, advanceWidth: 1100, path })
+      const scale = 0.0263
+      const shape = rasterise(glyph, scale, gridShift(glyph, null, scale))
+      for (let row = 0; row < shape.height; row++) {
+        const filled = Array.from(shape.mask.slice(row * shape.width, (row + 1) * shape.width))
+        assert.deepEqual(filled, filled.toReversed(), `offset ${offset} row ${row}`)
+      }
     }
   })
 
