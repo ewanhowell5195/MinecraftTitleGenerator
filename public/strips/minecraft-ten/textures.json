@@ -19,6 +19,7 @@
     },
     "smooth": {
       "type": "strip",
+      "stretch": true,
       "overlays": [
         {
           "overlay": "highlights_bottom",
@@ -75,6 +76,7 @@
     },
     "story_mode": {
       "type": "strip",
+      "stretch": true,
       "overlays": [
         {
           "overlay": "highlights_top",
@@ -372,6 +374,7 @@
     },
     "netherite": {
       "type": "strip",
+      "stretch": true,
       "overlays": [
         {
           "overlay": "highlights_left",
