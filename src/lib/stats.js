@@ -1,6 +1,6 @@
 import { shallowRef } from "vue"
 import { scene } from "./scene.js"
-import { OVERLAY_KINDS } from "./settings.js"
+import { OVERLAY_KINDS, isCustomFont } from "./settings.js"
 
 const API = "https://api.wynem.com/minecrafttitlegenerator/stats"
 
@@ -34,7 +34,7 @@ function statIds() {
   const ids = new Set()
   const minecraft = new Map()
   for (const object of scene.objects) {
-    if (object.hidden || !object.text.trim()) continue
+    if (object.hidden || !object.text.trim() || isCustomFont(object.font)) continue
     ids.add(object.font)
     if (object.textureSource === "premade") ids.add(`${object.font}.${object.texture}`)
     if (object.textureSource === "tileable" && object.tileableSource === "minecraft") minecraft.set(object.minecraftTexture, object.minecraftVersion)

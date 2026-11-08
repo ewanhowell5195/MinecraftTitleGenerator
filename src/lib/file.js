@@ -1,7 +1,7 @@
 import { ref } from "vue"
 import { matchSolved } from "./match.js"
 import { keptObject, runtime, scene, titleFileName, validSelection } from "./scene.js"
-import { FILE_VERSION, LAYER, LINE, OVERLAY_KINDS, createObject, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, snapshot, typeDefaults } from "./settings.js"
+import { CUSTOM_FONT_KINDS, FILE_VERSION, LAYER, LINE, OVERLAY_KINDS, createObject, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, isCustomFont, snapshot, typeDefaults } from "./settings.js"
 import { submitStats } from "./stats.js"
 import { downloadBlob } from "./ui.js"
 
@@ -13,6 +13,7 @@ const UNUSED = [
   [object => object.textureSource !== "tileable", ["tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion"]],
   [object => object.textureSource !== "tileable" && !(object.textureSource === "custom" && object.customTextureMode === "tileable"), ["tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "tileablePerCharacter"]],
   [object => object.textureSource !== "custom", ["customTexture", "customTextureMode"]],
+  [object => !isCustomFont(object.font), ["customFont"]],
   [object => object.tileableSource !== "minecraft", ["minecraftTexture", "minecraftVersion"]],
   [object => object.tileableSource === "minecraft", ["tileable", "tileableVariant"]],
   [object => object.textureSource !== "gradient", ["stops", "smooth", "gradientAngle"]],
@@ -108,6 +109,7 @@ function twistCentres(values) {
 
 function expand(values) {
   if (values.customTexture && !values.customTexture.startsWith("data:image/")) throw new Error("it has a texture image that isn't embedded in it")
+  if (values.customFont && (!CUSTOM_FONT_KINDS.includes(values.customFont.kind) || !values.customFont.data?.startsWith?.("data:"))) throw new Error("it has a custom font that isn't embedded in it")
   const object = { ...typeDefaults(values.type ?? "top"), ...twistCentres(values) }
   for (const key of LAYERS) {
     if (values[key]) object[key] = values[key].map(expandLayer)

@@ -282,4 +282,10 @@ describe("uploads in links", () => {
     assert.equal(skipped, 1)
     assert.deepEqual(decodeTitle(code).lines, [{ text: "a", tileableScale: 3 }])
   })
+
+  test("a custom font is left out, so the link opens in the default font", () => {
+    const { code, skipped } = encodeTitle({ version: 1, lines: [{ text: "a", font: "custom-abc", customFont: { kind: "ascii", data: "data:image/png;base64,AAAA" }, depth: 30 }] })
+    assert.equal(skipped, 1)
+    assert.deepEqual(decodeTitle(code).lines, [{ text: "a", depth: 30 }])
+  })
 })

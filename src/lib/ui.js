@@ -1,6 +1,7 @@
 import { reactive } from "vue"
 import { image, tileableUrl } from "./assets.js"
 import { surface } from "./canvas.js"
+import { customThumbnail } from "./customFonts.js"
 
 const heights = reactive({})
 
@@ -32,7 +33,7 @@ export function fontThumbnail(fonts, id) {
 }
 
 export function thumbnail(font, id) {
-  return `${font?.folder ?? "font"}/thumbnails/${id}.png`
+  return customThumbnail(font?.id, id) ?? `${font?.folder ?? "font"}/thumbnails/${id}.png`
 }
 
 export function thumbnailHeight(font) {

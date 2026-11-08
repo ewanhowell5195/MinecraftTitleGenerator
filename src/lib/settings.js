@@ -55,7 +55,8 @@ const PANELS = {
     creeperFace: true
   }),
   font: () => ({
-    font: "minecraft-ten"
+    font: "minecraft-ten",
+    customFont: null
   }),
   placement: () => ({
     type: "top",
@@ -210,7 +211,7 @@ const PANELS = {
   })
 }
 
-export const LINE = new Set(["font", "terminators", "type", "row", "rowSpacing", "depth", "depthAnchor", "border", "clipHoles", "layerWords", "spacing", "kerning", "arcMode", "arcTop", "arcBottom", "arcMove", "arcCentre", "arcMarked", "twistRibbon", "twistRibbonCentre", "twistRibbonMirror", "twistDoor", "twistDoorCentre", "twistDoorSame"].concat(Object.keys(PANELS.transform())))
+export const LINE = new Set(["font", "customFont", "terminators", "type", "row", "rowSpacing", "depth", "depthAnchor", "border", "clipHoles", "layerWords", "spacing", "kerning", "arcMode", "arcTop", "arcBottom", "arcMove", "arcCentre", "arcMarked", "twistRibbon", "twistRibbonCentre", "twistRibbonMirror", "twistDoor", "twistDoorCentre", "twistDoorSame"].concat(Object.keys(PANELS.transform())))
 
 function defaults() {
   return Object.assign({ hidden: false, group: null }, ...Object.values(PANELS).map(panel => panel()))
@@ -301,6 +302,13 @@ export function transformKeys(group, word) {
 export function resetTransform(object, group, word = false) {
   const values = PANELS[word ? "wordTransform" : "transform"]()
   for (const key of transformKeys(group, word)) object[key] = values[key]
+}
+
+export const CUSTOM_FONT = "custom-"
+export const CUSTOM_FONT_KINDS = ["json", "ascii", "outline"]
+
+export function isCustomFont(id) {
+  return typeof id === "string" && id.startsWith(CUSTOM_FONT)
 }
 
 export const LAYER = { source: "premade", file: null, blend: "overlay", colour: "#ffffff", colourBlend: "multiply", opacity: 100 }

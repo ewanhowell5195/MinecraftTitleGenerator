@@ -2,6 +2,7 @@ import { computed, onBeforeUnmount, shallowRef, watch } from "vue"
 import { fontTextures, image, preload, shapeFont, sheetFor, stripRange, tileableUrl } from "../lib/assets.js"
 import { arcAssets, arcLayout } from "../lib/arc.js"
 import { buildOutline, buildText } from "../lib/build.js"
+import { customFontEntry } from "../lib/customFonts.js"
 import { framing } from "../lib/framing.js"
 import { hasMarks, loadFont, sheetFolder } from "../lib/font.js"
 import { stripRows } from "../lib/strips.js"
@@ -12,7 +13,7 @@ import { platform } from "../lib/platform.js"
 import { quietly } from "../lib/history.js"
 import { DEFAULT_CAP_HEIGHT, DEFAULT_HEIGHT, rowStart } from "../lib/rows.js"
 import { editorTitle, keepTexture, loadedFont, words } from "../lib/scene.js"
-import { activeOverlays, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, effectiveScale, setTexture, textureEntry } from "../lib/settings.js"
+import { activeOverlays, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, effectiveScale, isCustomFont, setTexture, textureEntry } from "../lib/settings.js"
 
 const BASE = ["font", "source", "texture", "textureVariant", "tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "customTexture", "stops", "smooth", "gradientAngle", "arcGradient", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "tileablePerCharacter", "disableFontOverlay", "edgeBrightness"]
 
@@ -404,12 +405,15 @@ export default {
     }
 
     async function pick(id) {
-      const data = props.fonts.find(entry => entry.id === id) ?? props.fonts[0]
+      const token = ++fontRequest
+      const custom = isCustomFont(id) && object.customFont ? await customFontEntry(object.customFont) : null
+      if (token !== fontRequest) return
+      const fonts = custom ? props.fonts.concat(custom) : props.fonts
+      const data = custom ?? props.fonts.find(entry => entry.id === id) ?? props.fonts[0]
       if (!data) throw new Error("no fonts available")
       if (object.font !== data.id) quietly(() => (object.font = data.id))
-      const token = ++fontRequest
-      preload(sheetFolder(data, props.fonts))
-      const loaded = await loadFont(data, props.fonts)
+      preload(sheetFolder(data, fonts))
+      const loaded = await loadFont(data, fonts)
       const [layout, textures] = await Promise.all([sheetFor(loaded), fontTextures(loaded.sheetFolder, loaded.strips)])
       if (token !== fontRequest) return
       if (!keepTexture.has(object) && loadedFont.get(object) !== loaded.id) {

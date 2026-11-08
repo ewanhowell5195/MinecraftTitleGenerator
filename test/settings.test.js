@@ -10,6 +10,7 @@ const TOP_DEFAULTS = {
   spaceBefore: true,
   terminators: false,
   font: "minecraft-ten",
+  customFont: null,
   type: "top",
   row: 0,
   rowSpacing: 0,

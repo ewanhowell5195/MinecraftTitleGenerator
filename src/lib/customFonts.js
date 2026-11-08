@@ -1,0 +1,97 @@
+import { fontTextures } from "./assets.js"
+import { pixelsOf } from "./canvas.js"
+import { loadImage } from "./font.js"
+import { GENERATED_EDGE_OVERLAYS, withGenerated } from "./generated.js"
+import { CUSTOM_FONT } from "./settings.js"
+import { stripRows } from "./strips.js"
+import { pngUrl, serveFile } from "./virtualFiles.js"
+
+const OVERLAY_BASE = "#404040"
+const KINDS = [["json", /\.json$/i], ["ascii", /\.png$/i], ["outline", /\.(ttf|otf|woff)$/i]]
+const built = new Map()
+const thumbnails = new Map()
+
+export function customFontKind(fileName) {
+  return KINDS.find(([, pattern]) => pattern.test(fileName))?.[0] ?? null
+}
+
+function hash(text) {
+  let value = 2166136261
+  for (let i = 0; i < text.length; i++) value = Math.imul(value ^ text.charCodeAt(i), 16777619)
+  return (value >>> 0).toString(36)
+}
+
+export function customFontId({ kind, data, height, lowercase }) {
+  return CUSTOM_FONT + hash(JSON.stringify([kind, data, height, lowercase]))
+}
+
+export function customThumbnail(fontId, name) {
+  return thumbnails.get(fontId)?.[name] ?? null
+}
+
+export function customFontEntry(source) {
+  const id = customFontId(source)
+  if (!built.has(id)) built.set(id, build(id, source).catch(err => {
+    built.delete(id)
+    throw err
+  }))
+  return built.get(id)
+}
+
+async function pixels(url) {
+  const image = await loadImage(url)
+  return { data: pixelsOf(image), width: image.width, height: image.height }
+}
+
+async function editorFont({ kind, data, height, lowercase }) {
+  if (kind === "json") {
+    const { fontFromFiles, parseFontJson } = await import("./fontEditor.js")
+    const json = parseFontJson(await (await fetch(data)).text())
+    if (!json.editor?.texture) throw new Error("this JSON has no font sheet in it. Download the JSON from the font editor")
+    return fontFromFiles({ sheet: await pixels(json.editor.texture), json })
+  }
+  if (kind === "ascii") {
+    const { fontFromAscii } = await import("./asciiImport.js")
+    return fontFromAscii(await pixels(data), { height, lowercase })
+  }
+  const { fontFromOutlines, parseFontFile } = await import("./fontImport.js")
+  return fontFromOutlines(parseFontFile(await (await fetch(data)).arrayBuffer()), { height, lowercase })
+}
+
+function plainStrip(rows, colour) {
+  const canvas = document.createElement("canvas")
+  canvas.width = 1
+  canvas.height = rows
+  const ctx = canvas.getContext("2d")
+  ctx.fillStyle = colour
+  ctx.fillRect(0, 0, 1, rows)
+  return canvas
+}
+
+async function drawThumbnails(font, folder, strips) {
+  const { stripThumbnail, thumbnailScene } = await import("../fontEditor/stripThumbs.js")
+  const scene = thumbnailScene(font)
+  if (!scene) return {}
+  const rows = stripRows({}, { top: scene.stripTop, bottom: scene.stripBottom }, scene.depth, scene.capHeight).rows
+  const shaded = plainStrip(rows, OVERLAY_BASE)
+  const drawn = { flat: stripThumbnail(scene, {}, plainStrip(rows, "#ffffff")) }
+  for (const name of Object.keys(withGenerated({}))) drawn[name] = stripThumbnail(scene, { overlays: [{ overlay: name, blend: "source-over", colour: "#ffffff", colourBlend: "multiply", opacity: 100 }] }, shaded)
+  for (const name of Object.keys(GENERATED_EDGE_OVERLAYS)) drawn[name] = stripThumbnail(scene, {}, shaded)
+  const list = await fontTextures(folder, strips)
+  await Promise.all(Object.entries(list.textures).filter(([, entry]) => entry.type === "strip").flatMap(([id, entry]) => [[id, entry]].concat(Object.entries(entry.variants ?? {}).map(([name, variant]) => [name, { ...entry, ...variant }]))).map(async ([name, entry]) => {
+    drawn[name] = stripThumbnail(scene, entry, await loadImage(`${entry.folder}/textures/${name}.png`))
+  }))
+  return drawn
+}
+
+async function build(id, source) {
+  const { buildSheet, exportJson, flatTexture } = await import("./fontEditor.js")
+  const font = await editorFont(source)
+  const { editor, ...entry } = { ...exportJson(font, ""), id, name: font.name || "Custom font" }
+  const folder = `font/${id}`
+  serveFile(`${folder}/font.png`, pngUrl(buildSheet(font)))
+  serveFile(`${folder}/textures/flat.png`, pngUrl(flatTexture(font)))
+  serveFile(`${folder}/textures.json`, { primary: "flat", secondary: "flat", textures: { flat: { border: "#000000" } }, overlays: {} })
+  thumbnails.set(id, await drawThumbnails(font, folder, entry.strips))
+  return entry
+}

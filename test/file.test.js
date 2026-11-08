@@ -572,7 +572,9 @@ describe("rejected files", () => {
     ["a longer loop", title([{ matchWidth: 1 }, { matchWidth: 2 }, { matchWidth: 0 }]), "Couldn't open test.mctitle: line 0 matches its own width"],
     ["a line leading into a loop", title([{ matchWidth: 1 }, { matchWidth: 2 }, { matchWidth: 1 }]), "Couldn't open test.mctitle: line 0 matches its own width"],
     ["empty words", title([{ words: [] }]), "Couldn't open test.mctitle: a line has no words in it"],
-    ["words that are not a list", title([{ words: "hello" }]), "Couldn't open test.mctitle: a line has no words in it"]
+    ["words that are not a list", title([{ words: "hello" }]), "Couldn't open test.mctitle: a line has no words in it"],
+    ["a texture image that isn't embedded", title([{ textureSource: "custom", customTexture: "https://example.com/a.png" }]), "Couldn't open test.mctitle: it has a texture image that isn't embedded in it"],
+    ["a custom font that isn't embedded", title([{ font: "custom-abc", customFont: { kind: "outline", data: "https://example.com/a.ttf" } }]), "Couldn't open test.mctitle: it has a custom font that isn't embedded in it"]
   ]
 
   for (const [name, content, message] of CASES) {
@@ -626,6 +628,20 @@ describe("saving then reopening", () => {
     const first = await save()
     await openTitle(fileOf(first))
     assert.deepEqual(await save(), first)
+  })
+
+  test("keeps uploaded textures and fonts", async () => {
+    const customFont = { kind: "ascii", fileName: "ascii.png", data: "data:image/png;base64,AAAA", height: 40, lowercase: false }
+    setScene(make("top", { text: "upload", font: "custom-abc", customFont, textureSource: "custom", customTexture: "data:image/png;base64,BBBB", customTextureMode: "tileable", tileableScale: 3 }))
+    await openTitle(fileOf(await save()))
+    assert.equal(fileError.value, null)
+    const [object] = scene.objects
+    assert.deepEqual([object.font, object.customFont, object.customTexture, object.customTextureMode, object.tileableScale], ["custom-abc", customFont, "data:image/png;base64,BBBB", "tileable", 3])
+  })
+
+  test("an uploaded font that isn't in use isn't saved", async () => {
+    setScene(make("top", { text: "plain", customFont: { kind: "ascii", fileName: "ascii.png", data: "data:image/png;base64,AAAA", height: 40, lowercase: false } }))
+    assert.equal(JSON.stringify(await save()).includes("customFont"), false)
   })
 
   test("settings that were not saved go back to their defaults", async () => {
