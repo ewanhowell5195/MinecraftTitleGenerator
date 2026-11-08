@@ -3,6 +3,7 @@
   import ContextMenu from "../components/ContextMenu.vue"
   import Icon from "../components/Icon.vue"
   import RenderDialog from "../components/RenderDialog.vue"
+  import { vLongPress } from "../lib/events.js"
   import { CREEPER, SPACE_CHAR, addCharacters, characterName, glyphOf, isBlank, isOptional, removeCharacter, setGlyph } from "../lib/fontEditor.js"
   import GlyphThumb from "./GlyphThumb.vue"
   import { arrowsMove, characters, clipboard, copyGlyph, font, pasteGlyph, selected, typing, update } from "./store.js"
@@ -105,7 +106,7 @@
       <span class="hint">{{ blanks ? `${blanks} still blank` : "All drawn" }}</span>
     </header>
     <div ref="list" class="list">
-      <button v-for="char of characters" :key="char" class="character" :class="{ selected: selected === char, blank: isBlank(glyphOf(font, char)) }" :title="characterName(char)" @click="selected = char" @contextmenu.prevent="menu($event, char)">
+      <button v-for="char of characters" :key="char" class="character" :class="{ selected: selected === char, blank: isBlank(glyphOf(font, char)) }" :title="characterName(char)" @click="selected = char" v-long-press @contextmenu.prevent="menu($event, char)">
         <span class="picture"><GlyphThumb :font="font" :glyph="glyphOf(font, char)" /></span>
         <span class="char ellipsis">{{ shownLabel(char) }}</span>
       </button>

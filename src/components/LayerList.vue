@@ -1,5 +1,6 @@
 <script setup>
   import { computed, onBeforeUnmount, ref, watch } from "vue"
+  import { vLongPress } from "../lib/events.js"
   import { clamp } from "../lib/maths.js"
   import { namingForShare, namingPreset, savedPreset } from "../lib/presets.js"
   import { openPresetsPage } from "../lib/presetsPage.js"
@@ -206,10 +207,10 @@
     <div class="divider"></div>
     <div ref="list" class="list" :class="{ dragging: dragged !== null }" @dragstart.prevent>
       <div v-for="row of rows" :key="row.key" :data-row="row.key" :class="row.group === null ? 'single' : { group: true, selected: !view.render && scene.selectedGroup === row.group, hidden: lineHidden(row.words[0]), dragged: dragged === row.key }">
-        <div v-if="row.group !== null" class="head" tabindex="0" @pointerdown="press($event, row, null)" @click="pickGroup(row.group)" @contextmenu.prevent="menu($event, row, null)" @keydown.enter="pickGroup(row.group)" :title="`${lineText(row.words[0]) || '(empty)'} (${TYPES[row.words[0].type].name})`">
+        <div v-if="row.group !== null" class="head" tabindex="0" @pointerdown="press($event, row, null)" @click="pickGroup(row.group)" v-long-press @contextmenu.prevent="menu($event, row, null)" @keydown.enter="pickGroup(row.group)" :title="`${lineText(row.words[0]) || '(empty)'} (${TYPES[row.words[0].type].name})`">
           <Icon name="layers" :size="14" />
         </div>
-        <div class="layer" v-for="object of row.words" :key="object.id" tabindex="0" @pointerdown="press($event, row, row.group === null ? null : object)" @click="pick(object)" @contextmenu.prevent="menu($event, row, row.group === null ? null : object)" @keydown.enter="pick(object)" :class="{ selected: selected(object), hidden: object.hidden, error: runtime[object.id]?.error, dragged: dragged === object.id || dragged === row.key && row.group === null }" :title="`${label(object)} (${TYPES[object.type].name})`">
+        <div class="layer" v-for="object of row.words" :key="object.id" tabindex="0" @pointerdown="press($event, row, row.group === null ? null : object)" @click="pick(object)" v-long-press @contextmenu.prevent="menu($event, row, row.group === null ? null : object)" @keydown.enter="pick(object)" :class="{ selected: selected(object), hidden: object.hidden, error: runtime[object.id]?.error, dragged: dragged === object.id || dragged === row.key && row.group === null }" :title="`${label(object)} (${TYPES[object.type].name})`">
           <div class="thumb">
             <img v-if="previews[object.id]" :src="previews[object.id]" alt="">
           </div>

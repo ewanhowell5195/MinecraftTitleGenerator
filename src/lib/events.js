@@ -1,6 +1,7 @@
 import { onBeforeUnmount, watch } from "vue"
 
 const DRAG_DISTANCE = 6
+const LONG_PRESS = 500
 
 export function trackPointer(move, end) {
   function stop(event) {
@@ -25,6 +26,61 @@ export function dragPointer(event, { start, move, end }) {
     }
     move(moveEvent)
   }, () => end(active))
+}
+
+const handlers = new WeakMap()
+
+export const vLongPress = {
+  mounted(element) {
+    let timer = null
+    let start = null
+    let fired = false
+
+    function cancel() {
+      clearTimeout(timer)
+      timer = null
+    }
+
+    function down(event) {
+      fired = false
+      cancel()
+      if (event.pointerType !== "touch") return
+      start = event
+      timer = setTimeout(() => {
+        timer = null
+        fired = true
+        element.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: start.clientX, clientY: start.clientY }))
+      }, LONG_PRESS)
+    }
+
+    function move(event) {
+      if (timer && Math.hypot(event.clientX - start.clientX, event.clientY - start.clientY) >= DRAG_DISTANCE) cancel()
+    }
+
+    function menu(event) {
+      if (!event.isTrusted) return
+      cancel()
+      if (fired) event.stopImmediatePropagation()
+    }
+
+    function click(event) {
+      if (!fired) return
+      fired = false
+      event.preventDefault()
+      event.stopImmediatePropagation()
+    }
+
+    const listeners = { pointerdown: down, pointermove: move, pointerup: cancel, pointercancel: cancel, contextmenu: menu, click }
+    for (const [type, listener] of Object.entries(listeners)) element.addEventListener(type, listener, true)
+    element.style.webkitTouchCallout = "none"
+    handlers.set(element, { listeners, cancel })
+  },
+  unmounted(element) {
+    const { listeners, cancel } = handlers.get(element)
+    cancel()
+    for (const [type, listener] of Object.entries(listeners)) element.removeEventListener(type, listener, true)
+    handlers.delete(element)
+  }
 }
 
 export function useWindowEvents(active, handlers, capturing = {}) {
