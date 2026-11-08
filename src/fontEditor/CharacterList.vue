@@ -12,6 +12,7 @@
 
   const context = ref(null)
   const list = ref(null)
+  const section = ref(null)
   const adding = ref(false)
   const typed = ref("")
   const field = ref(null)
@@ -82,11 +83,20 @@
     reveal()
   }
 
+  function touched(event) {
+    if (event.target instanceof Element && event.target.closest("[role=menu]")) return
+    arrowsMove.value = section.value?.contains(event.target) ? "list" : "drawing"
+  }
+
   onMounted(() => {
     addEventListener("keydown", key)
+    addEventListener("pointerdown", touched, true)
     reveal()
   })
-  onBeforeUnmount(() => removeEventListener("keydown", key))
+  onBeforeUnmount(() => {
+    removeEventListener("keydown", key)
+    removeEventListener("pointerdown", touched, true)
+  })
 
   function addMenu(event) {
     const box = event.currentTarget.getBoundingClientRect()
@@ -100,7 +110,7 @@
 </script>
 
 <template>
-  <section class="characters" @pointerdown="arrowsMove = 'list'">
+  <section ref="section" class="characters">
     <header>
       <h3>Characters</h3>
       <span class="hint">{{ blanks ? `${blanks} still blank` : "All drawn" }}</span>

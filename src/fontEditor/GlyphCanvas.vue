@@ -469,7 +469,7 @@
 </script>
 
 <template>
-  <section class="drawing" @pointerdown="arrowsMove = 'drawing'">
+  <section class="drawing">
     <div class="tools">
       <span class="group">
         <button v-for="item of TOOLS" :key="item.id" class="tool" :class="{ active: tool === item.id }" :title="`${item.label} (${item.key.toUpperCase()})${item.hint ? `. ${item.hint}` : ''}`" :aria-label="item.label" :aria-pressed="tool === item.id" @click="tool = item.id"><Icon :name="item.icon" :size="18" /></button>
