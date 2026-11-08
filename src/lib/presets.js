@@ -15,7 +15,6 @@ export const NAME_LIMIT = LIMITS.name
 export const presets = ref([])
 export const presetsLoading = ref(false)
 export const presetsError = ref("")
-export const savedPreset = ref(null)
 export const namingPreset = ref(null)
 export const namingShared = ref(false)
 export const namingSharedId = ref(null)
@@ -230,11 +229,10 @@ export async function replaceWith(target, code, name) {
 }
 
 export async function saveOver(target, name) {
-  const { code, skipped } = encodeTitle(titleData())
+  const code = presetCode()
   submitStats()
   const replaced = await replaceWith(target, code, name)
-  savedPreset.value = { name: replaced.preset.name, skipped }
-  if (!skipped) showNotice(`Saved as ${replaced.preset.name}`)
+  showNotice(`Saved as ${replaced.preset.name}`)
   return replaced
 }
 
@@ -265,9 +263,15 @@ function automaticName() {
   return capitalWords(titleText()).slice(0, NAME_LIMIT)
 }
 
+function presetCode() {
+  const { code, skipped } = encodeTitle(titleData())
+  if (skipped) throw new Error("presets can't include uploaded fonts, textures or overlays. Save the title as a file to keep them")
+  return code
+}
+
 export function startSavingPreset({ share = false } = {}) {
   try {
-    const { code } = encodeTitle(titleData())
+    const code = presetCode()
     const existing = savedWithCode(code)
     namingForShare.value = share
     namingShared.value = !!existing?.shared
@@ -313,12 +317,11 @@ export async function sharePreset(preset, name) {
 export function savePreset(name = "", { keepOpen = false } = {}) {
   if (!keepOpen) namingPreset.value = null
   try {
-    const { code, skipped } = encodeTitle(titleData())
+    const code = presetCode()
     submitStats()
     const existing = savedWithCode(code)
     const preset = existing ? renamePreset(existing, name) : addPreset(cleanName(name) || automaticName(), code)
-    savedPreset.value = { name: preset.name, skipped }
-    if (!skipped) showNotice(`Saved as ${preset.name}`)
+    showNotice(`Saved as ${preset.name}`)
     return preset
   } catch (err) {
     fileError.value = `Couldn't save this preset: ${err.message}`

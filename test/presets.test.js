@@ -27,7 +27,7 @@ const { scene, validSelection } = await import("../src/lib/scene.js")
 const { fileError } = await import("../src/lib/file.js")
 const { notice } = await import("../src/lib/notices.js")
 const { decodeTitle } = await import("../src/lib/linkformat.js")
-const { NAME_LIMIT, addPreset, loadPreset, markShared, namingPreset, namingShared, presets, removePreset, renamePreset, savePreset, savedPreset, startSavingPreset } = await import("../src/lib/presets.js")
+const { NAME_LIMIT, addPreset, loadPreset, markShared, namingPreset, namingShared, presets, removePreset, renamePreset, savePreset, startSavingPreset } = await import("../src/lib/presets.js")
 
 const STORAGE = "minecraft-title-presets"
 
@@ -46,7 +46,6 @@ describe("presets", () => {
     presets.value = []
     posts.length = 0
     answer = true
-    savedPreset.value = null
     namingPreset.value = null
     fileError.value = null
   })
@@ -63,9 +62,8 @@ describe("presets", () => {
 
   test("are named after the title's text", async () => {
     setTitle(createObject({ text: "My Server" }), createObject({ type: "bottom", text: "season 2" }))
-    await savePreset()
+    assert.equal(savePreset().name, "My Server Season 2")
     assert.equal(presets.value[0].name, "My Server Season 2")
-    assert.equal(savedPreset.value.name, "My Server Season 2")
   })
 
   for (const [text, name] of [["UPDATE TEXT HERE", "Update Text Here"], ["mInEcRaFt", "Minecraft"], ["2 FAST", "2 Fast"], ["ÉCLAIR BLANC", "Éclair Blanc"], ["DON'T STOP", "Don't Stop"], ["'QUOTED' IRON-BLOCK", "'Quoted' Iron-block"]]) {
@@ -118,10 +116,9 @@ describe("presets", () => {
 
   test("saving the same title twice keeps one preset", async () => {
     setTitle(createObject({ text: "twice" }))
-    await savePreset()
-    await savePreset()
+    savePreset()
+    assert.equal(savePreset().name, "Twice")
     assert.equal(presets.value.length, 1)
-    assert.equal(savedPreset.value.name, "Twice")
   })
 
   test("a title with no text still gets a name", () => {
@@ -134,11 +131,16 @@ describe("presets", () => {
     assert.deepEqual(posts[0], ["minecraft-ten", "minecraft-ten.grass"])
   })
 
-  test("report uploaded overlays that could not be kept", async () => {
-    setTitle(createObject({ text: "upload", overlayMode: "custom", overlays: [{ ...LAYER, source: "file", file: "data:image/png;base64,AAAA" }] }))
-    await savePreset()
-    assert.equal(savedPreset.value.skipped, 1)
-    assert.equal(stored.get(STORAGE).includes("data:image/png"), false)
+  test("refuse titles with uploaded overlays or textures", () => {
+    for (const object of [createObject({ text: "upload", overlayMode: "custom", overlays: [{ ...LAYER, source: "file", file: "data:image/png;base64,AAAA" }] }), createObject({ text: "upload", textureSource: "custom", customTexture: "data:image/png;base64,AAAA" })]) {
+      setTitle(object)
+      fileError.value = null
+      assert.equal(savePreset(), null)
+      assert.match(fileError.value, /can't include uploaded/)
+      startSavingPreset()
+      assert.equal(namingPreset.value, null)
+    }
+    assert.equal(stored.get(STORAGE), undefined)
   })
 
   test("a full browser store reports the problem and keeps the list", async () => {
@@ -199,9 +201,8 @@ describe("presets", () => {
 
   test("use the name typed when saving", () => {
     setTitle(createObject({ text: "plain" }))
-    savePreset("  My name  ")
+    assert.equal(savePreset("  My name  ").name, "My name")
     assert.deepEqual(savedList().map(preset => preset.name), ["My name"])
-    assert.equal(savedPreset.value.name, "My name")
   })
 
   test("show a notice for a few seconds once saved", () => {
@@ -264,18 +265,16 @@ describe("presets", () => {
   test("saving the same title under a new name renames it", () => {
     setTitle(createObject({ text: "plain" }))
     savePreset("First")
-    savePreset("Second")
+    assert.equal(savePreset("Second").name, "Second")
     assert.deepEqual(savedList().map(preset => preset.name), ["Second"])
-    assert.equal(savedPreset.value.name, "Second")
   })
 
   test("saving the same title again keeps the name you gave it", async () => {
     setTitle(createObject({ text: "plain" }))
     await savePreset()
     renamePreset(presets.value[0], "Better name")
-    await savePreset()
+    assert.equal(savePreset().name, "Better name")
     assert.deepEqual(presets.value.map(preset => preset.name), ["Better name"])
-    assert.equal(savedPreset.value.name, "Better name")
   })
 
   test("remember that they were shared", () => {

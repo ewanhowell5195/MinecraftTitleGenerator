@@ -2,7 +2,7 @@
   import { computed, onBeforeUnmount, ref, watch } from "vue"
   import { vLongPress } from "../lib/events.js"
   import { clamp } from "../lib/maths.js"
-  import { namingForShare, namingPreset, savedPreset } from "../lib/presets.js"
+  import { namingForShare, namingPreset } from "../lib/presets.js"
   import { openPresetsPage } from "../lib/presetsPage.js"
   import { dropPreview, previews, renderPreview } from "../lib/previews.js"
   import { useReorderDrag } from "../lib/reorder.js"
@@ -11,7 +11,6 @@
   import { view } from "../lib/view.js"
   import ContextMenu from "./ContextMenu.vue"
   import Icon from "./Icon.vue"
-  import MessageDialog from "./MessageDialog.vue"
   import SavePresetDialog from "./SavePresetDialog.vue"
 
   const SETTLE = 150
@@ -228,7 +227,6 @@
     </button>
     <ContextMenu :items="context?.items" :at="context?.at" @close="context = null" />
     <SavePresetDialog v-if="namingPreset !== null" :suggested="namingPreset" :share-only="namingForShare" @close="namingPreset = null" />
-    <MessageDialog v-if="savedPreset?.skipped" title="Preset saved" @close="savedPreset = null">{{ savedPreset.skipped === 1 ? "1 uploaded overlay" : `${savedPreset.skipped} uploaded overlays` }} could not be saved, so {{ savedPreset.name }} opens without {{ savedPreset.skipped === 1 ? "it" : "them" }}.</MessageDialog>
   </nav>
 </template>
 
