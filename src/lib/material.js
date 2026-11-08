@@ -6,6 +6,7 @@ const PAD = 1
 const GAP = 2
 const SWATCH = 1
 const SCALE = 4
+const INSET = 0.5 / SCALE
 const MAX_TEXTURE = 4096
 const MAX_WIDTH = MAX_TEXTURE / SCALE
 const CORNER_SAMPLE = 3
@@ -323,7 +324,7 @@ export function buildAtlas(faces, options) {
   for (const block of blocks) {
     const { bounds, own } = block
     for (const face of block.group) {
-      const points = face.mesh ? face.points.map(point => [clamp(point[0], own.minX, own.maxX), clamp(point[1], own.minY, own.maxY), point[2]]) : face.points
+      const points = face.mesh ? face.points.map(point => [clamp(point[0], own.minX + INSET, own.maxX - INSET), clamp(point[1], own.minY + INSET, own.maxY - INSET), clamp(point[2], INSET - half, half - INSET)]) : face.points
       if (face.kind === "top") {
         face.uvs = points.map(point => [block.x + (point[0] - bounds.minX), block.y + (half + point[2])])
       } else if (face.kind === "bottom") {
@@ -336,9 +337,11 @@ export function buildAtlas(faces, options) {
 
   for (const run of packed) {
     const span = extent(run.points, run.kind === "side" ? 1 : 0)
+    const { x, y, width, height } = run.rect
+    const within = run.faces[0].mesh ? (value, size) => clamp(value, INSET, size - INSET) : value => value
     for (const face of run.faces) {
-      if (run.kind === "side") face.uvs = face.points.map(point => [run.rect.x + half + point[2], run.rect.y + (span.max - point[1])])
-      else face.uvs = face.points.map(point => [run.rect.x + (point[0] - span.min), run.rect.y + (run.kind === "top" ? half + point[2] : half - point[2])])
+      if (run.kind === "side") face.uvs = face.points.map(point => [x + within(half + point[2], width), y + within(span.max - point[1], height)])
+      else face.uvs = face.points.map(point => [x + within(point[0] - span.min, width), y + within(run.kind === "top" ? half + point[2] : half - point[2], height)])
     }
   }
 
