@@ -69,7 +69,7 @@
         <input v-model="text" type="text" placeholder="Type something" aria-label="Preview text">
       </label>
       <div class="stretch" title="Makes the 3D preview taller using only the marked stretch zones">
-        <Slider inline label="Stretch" :min="1" :max="3" :step="0.05" v-model="stretch" />
+        <Slider inline label="Stretch" :min="1" :max="2" :step="0.05" v-model="stretch" />
       </div>
       <label class="checkbox" :title="font.forcedTerminators ? 'This font always uses terminators' : 'Add the ┫ ┣ line terminators'">
         <input type="checkbox" :checked="terminators || font.forcedTerminators" :disabled="font.forcedTerminators" @change="terminators = $event.target.checked">
