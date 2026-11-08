@@ -5,6 +5,8 @@ import { defaultBorder } from "./settings.js"
 
 export const DEFAULT_ORDER = "\u{1F633}abcdefghijklmnopqrstuvwxyz0123456789&#()[]{}/\\?!.:-\u{1F629}'+=<>%^*~,;_$£€@┫┣"
 
+export const SHEET_MAX_WIDTH = 560
+
 const SHEET_GAP = 2
 
 const EMPTY = 0
