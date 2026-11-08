@@ -458,7 +458,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 16px 20px 0;
+    padding: 16px 20px;
   }
 
   .search,
@@ -498,7 +498,7 @@
   .list {
     flex: 1;
     min-height: 0;
-    padding: 16px 20px 24px;
+    padding: 0 20px 24px;
     overflow-y: auto;
   }
 
