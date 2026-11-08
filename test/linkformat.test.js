@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import fs from "node:fs"
 import { describe, test } from "node:test"
 import { GENERATED_SETTINGS } from "../src/lib/generated.js"
-import { decodeTitle, encodeTitle, readLines, writeLines } from "../src/lib/linkformat.js"
+import { decodeTitle, encodeTitle, readLines, unknownSetting, writeLines } from "../src/lib/linkformat.js"
 import { LAYER, typeDefaults } from "../src/lib/settings.js"
 
 const fixtures = JSON.parse(fs.readFileSync(new URL("links.json", import.meta.url), "utf8"))
@@ -51,12 +51,27 @@ describe("settings table", () => {
   }
 
   const generated = new Set(Object.values(GENERATED_SETTINGS).flat().map(setting => setting.key))
-  generated.delete("fade")
   for (const key of generated) {
     test(`generated overlay ${key} is stored compactly`, () => {
-      assert.ok(isCompact(key, 1))
+      for (const list of ["overlays", "edgeOverlays"]) {
+        const lines = [{ [list]: [{ overlay: "shine", source: "premade", [key]: 40 }] }]
+        assert.ok(!Buffer.from(writeLines(lines)).includes(key))
+        assert.deepEqual(roundTrip(lines), lines)
+        assert.equal(unknownSetting(lines), null)
+      }
     })
   }
+
+  test("a line's fade is still on or off", () => {
+    assert.ok(isCompact("fade", true))
+    assert.equal(unknownSetting([{ fade: 40 }]), "fade")
+  })
+
+  test("an overlay fade from an older link still opens and can be shared", () => {
+    const { lines } = decodeTitle("2AQICBVNoaW5lOAEEPgVzaGluZUAARMAMAARmYWRlAjgw")
+    assert.deepEqual(lines, [{ text: "Shine", overlays: [{ overlay: "shine", source: "premade", opacity: 100, fade: 80 }] }])
+    assert.equal(unknownSetting(lines), null)
+  })
 })
 
 describe("values", () => {

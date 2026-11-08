@@ -86,6 +86,10 @@ function isObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value)
 }
 
+function renamed(value, names) {
+  return Object.fromEntries(Object.entries(value).map(([key, item]) => [names.get(key) ?? key, item]))
+}
+
 function writeObject(out, value) {
   const entries = Object.entries(value)
   writeVarint(out, entries.length)
@@ -130,6 +134,9 @@ const TEXT = { fits: value => typeof value === "string", write: writeText, read:
 const NUMBER = { fits: Number.isFinite, write: writeNumber, read: readNumber }
 const COLOUR = { fits: isColour, write: writeColour, read: readColour }
 const OBJECTS = list(isObject, writeObject, readObject)
+const OVERLAY_KEYS = new Map([["fade", "overlayFade"]])
+const OVERLAY_NAMES = new Map(Array.from(OVERLAY_KEYS, ([name, key]) => [key, name]))
+const OVERLAYS = list(isObject, (out, value) => writeObject(out, renamed(value, OVERLAY_KEYS)), reader => renamed(readObject(reader), OVERLAY_NAMES))
 const STOPS = list(isStop, (out, { colour, position }) => {
   writeColour(out, colour)
   writeNumber(out, position)
@@ -170,9 +177,9 @@ const KEYS = [
   ["smooth", BOOLEAN],
   ["gradientAngle", NUMBER],
   ["overlayMode", OVERLAY_MODE],
-  ["overlays", OBJECTS],
+  ["overlays", OVERLAYS],
   ["edgeOverlayMode", OVERLAY_MODE],
-  ["edgeOverlays", OBJECTS],
+  ["edgeOverlays", OVERLAYS],
   ["overlay", TEXT],
   ["source", choice("premade", "file")],
   ["colourBlend", BLEND],
@@ -283,7 +290,8 @@ const KEYS = [
   ["matchBottom", BOOLEAN],
   ["matchOffset", NUMBER],
   ["matchScale", NUMBER],
-  ["matchScaleY", BOOLEAN]
+  ["matchScaleY", BOOLEAN],
+  ["overlayFade", NUMBER]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))
@@ -313,12 +321,12 @@ function readEntry(reader) {
 
 const NESTED = new Set(["words", "overlays", "edgeOverlays"])
 
-export function unknownSetting(items) {
+export function unknownSetting(items, names = new Map()) {
   for (const item of items) {
     for (const [key, value] of Object.entries(item)) {
-      const type = KEYS[IDS.get(key) - 1]?.[1]
+      const type = KEYS[IDS.get(names.get(key) ?? key) - 1]?.[1]
       if (!type || !(value === null ? type !== BOOLEAN : type.fits(value))) return key
-      const nested = NESTED.has(key) && value ? unknownSetting(value) : null
+      const nested = NESTED.has(key) && value ? unknownSetting(value, key === "words" ? new Map() : OVERLAY_KEYS) : null
       if (nested) return nested
     }
   }
