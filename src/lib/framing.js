@@ -91,14 +91,18 @@ function captureResolution() {
   return Math.min(Math.ceil(Math.max(title.width, title.height) * scale), resolutionLimit())
 }
 
+function outputSettings() {
+  return { ...framing, padding: paddingPixels(), textureSize: textureSize() }
+}
+
 export function renderVector() {
   const title = viewport.vector(captureResolution())
-  return title && composeVector(title, { ...framing, padding: paddingPixels() })
+  return title && composeVector(title, outputSettings())
 }
 
 export async function renderFramed(task) {
   const shot = await viewport.capture(captureResolution(), view.antialias, task)
-  return shot && compose(shot, { ...framing, padding: paddingPixels(), textureSize: textureSize() }, await image("render/legacy-title.png"))
+  return shot && compose(shot, outputSettings(), await image("render/legacy-title.png"))
 }
 
 function around(title, width, height) {
@@ -108,15 +112,13 @@ function around(title, width, height) {
 function minecraftPlacement(title) {
   const layout = minecraftLayout(framing.mode, textureSize())
   const { scale, x, y } = fitTitle(layout, title.width, title.height)
-  const left = title.left - x / scale
-  const top = title.top - y / scale
-  return { layout, scale, left, frame: { left, top, width: layout.output[0] / scale, height: layout.output[1] / scale } }
+  return { layout, scale, frame: { left: title.left - x / scale, top: title.top - y / scale, width: layout.output[0] / scale, height: layout.output[1] / scale } }
 }
 
 export function frameSplit(title) {
   if (framing.tab !== "minecraft") return null
-  const { layout, scale, left } = minecraftPlacement(title)
-  return layout.split === null ? null : { x: left + layout.split / scale, shift: layout.shift.map(value => value / scale) }
+  const { layout, scale, frame } = minecraftPlacement(title)
+  return layout.split === null ? null : { x: frame.left + layout.split / scale, shift: layout.shift.map(value => value / scale) }
 }
 
 export function framePixels(title, rect) {

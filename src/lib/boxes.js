@@ -1,28 +1,22 @@
 function rectangles(mask, width, height) {
   const used = new Uint8Array(width * height)
+  const open = index => mask[index] && !used[index]
+  function runOpen(from, length) {
+    for (let i = 0; i < length; i++) {
+      if (!open(from + i)) return false
+    }
+    return true
+  }
   const rects = []
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const start = y * width + x
-      if (!mask[start] || used[start]) continue
+      if (!open(start)) continue
       let w = 0
-      while (x + w < width && mask[start + w] && !used[start + w]) w++
+      while (x + w < width && open(start + w)) w++
       let h = 1
-      while (y + h < height) {
-        let whole = true
-        for (let i = 0; i < w; i++) {
-          const index = (y + h) * width + x + i
-          if (!mask[index] || used[index]) {
-            whole = false
-            break
-          }
-        }
-        if (!whole) break
-        h++
-      }
-      for (let j = 0; j < h; j++) {
-        for (let i = 0; i < w; i++) used[(y + j) * width + x + i] = 1
-      }
+      while (y + h < height && runOpen((y + h) * width + x, w)) h++
+      for (let j = 0; j < h; j++) used.fill(1, (y + j) * width + x, (y + j) * width + x + w)
       rects.push([x, y, w, h])
     }
   }
@@ -62,31 +56,22 @@ export function boxesFor(mask, width, height, originX = 0, originY = 0) {
   return boxes
 }
 
-const QUADS = {
-  front: (a, b) => [[a[0], a[1], a[2]], [a[0], b[1], a[2]], [b[0], b[1], a[2]], [b[0], a[1], a[2]]],
-  back: (a, b) => [[a[0], a[1], b[2]], [b[0], a[1], b[2]], [b[0], b[1], b[2]], [a[0], b[1], b[2]]],
-  west: (a, b) => [[a[0], a[1], a[2]], [a[0], a[1], b[2]], [a[0], b[1], b[2]], [a[0], b[1], a[2]]],
-  east: (a, b) => [[b[0], a[1], a[2]], [b[0], b[1], a[2]], [b[0], b[1], b[2]], [b[0], a[1], b[2]]],
-  down: (a, b) => [[a[0], a[1], a[2]], [b[0], a[1], a[2]], [b[0], a[1], b[2]], [a[0], a[1], b[2]]],
-  up: (a, b) => [[a[0], b[1], a[2]], [a[0], b[1], b[2]], [b[0], b[1], b[2]], [b[0], b[1], a[2]]]
-}
-
-const KINDS = {
-  front: "front",
-  back: "back",
-  west: "side",
-  east: "side",
-  down: "bottom",
-  up: "top"
-}
+const SIDES = [
+  { name: "front", kind: "front", quad: (a, b) => [[a[0], a[1], a[2]], [a[0], b[1], a[2]], [b[0], b[1], a[2]], [b[0], a[1], a[2]]] },
+  { name: "back", kind: "back", quad: (a, b) => [[a[0], a[1], b[2]], [b[0], a[1], b[2]], [b[0], b[1], b[2]], [a[0], b[1], b[2]]] },
+  { name: "west", kind: "side", quad: (a, b) => [[a[0], a[1], a[2]], [a[0], a[1], b[2]], [a[0], b[1], b[2]], [a[0], b[1], a[2]]] },
+  { name: "east", kind: "side", quad: (a, b) => [[b[0], a[1], a[2]], [b[0], b[1], a[2]], [b[0], b[1], b[2]], [b[0], a[1], b[2]]] },
+  { name: "down", kind: "bottom", quad: (a, b) => [[a[0], a[1], a[2]], [b[0], a[1], a[2]], [b[0], a[1], b[2]], [a[0], a[1], b[2]]] },
+  { name: "up", kind: "top", quad: (a, b) => [[a[0], b[1], a[2]], [a[0], b[1], b[2]], [b[0], b[1], b[2]], [b[0], b[1], a[2]]] }
+]
 
 export function boxFaces(boxes, zFront, zBack) {
   const out = []
   for (const box of boxes) {
     const a = [box.from[0], box.from[1], zFront]
     const b = [box.to[0], box.to[1], zBack]
-    for (const name of Object.keys(QUADS)) {
-      if (box.faces[name]) out.push({ points: QUADS[name](a, b), kind: KINDS[name], name, internal: box.internal[name] ?? false })
+    for (const { name, kind, quad } of SIDES) {
+      if (box.faces[name]) out.push({ points: quad(a, b), kind, name, internal: box.internal[name] ?? false })
     }
   }
   return out

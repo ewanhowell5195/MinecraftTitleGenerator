@@ -66,6 +66,17 @@ export function screenBounds(scene, camera) {
   return { minX, maxX, minY, maxY }
 }
 
+export function titleShot(scene, camera, size, target) {
+  camera.updateMatrixWorld()
+  const bounds = screenBounds(scene, camera)
+  if (!bounds) return null
+  const view = camera.view?.enabled ? camera.view : { fullWidth: size.x, fullHeight: size.y, offsetX: 0, offsetY: 0, width: size.x, height: size.y }
+  const width = (bounds.maxX - bounds.minX) * view.width
+  const height = (bounds.maxY - bounds.minY) * view.height
+  const longest = Math.max(width, height)
+  return { bounds, view, width, height, outWidth: Math.max(1, Math.round(width * target / longest)), outHeight: Math.max(1, Math.round(height * target / longest)) }
+}
+
 function neighbours(p, width, height) {
   const x = p % width
   let count = 0
@@ -161,9 +172,9 @@ export function writeFlipped(ctx, data, width, height) {
 
 function tracker({ signal, progress }) {
   let last = performance.now()
-  return async function step(from, to, fraction) {
+  return async function step(fraction) {
     if (performance.now() - last < 100) return
-    progress(from + (to - from) * fraction)
+    progress(fraction)
     await new Promise(resolve => setTimeout(resolve))
     signal.throwIfAborted()
     last = performance.now()
@@ -191,21 +202,15 @@ function hiddenRenderer() {
 
 export async function renderTitle(size, scene, camera, resolution, antialias, task) {
   const step = tracker(task)
-  camera.updateMatrixWorld()
-  const bounds = screenBounds(scene, camera)
-  if (!bounds) return null
-  const view =camera.view?.enabled ? camera.view : { fullWidth: size.x, fullHeight: size.y, offsetX: 0, offsetY: 0, width: size.x, height: size.y }
-  const width = (bounds.maxX - bounds.minX) * view.width
-  const height = (bounds.maxY - bounds.minY) * view.height
   const samples = antialias ? SAMPLES : 1
-  const target = resolution * samples
-  const outWidth = Math.max(1, Math.round(width * target / Math.max(width, height)))
-  const outHeight = Math.max(1, Math.round(height * target / Math.max(width, height)))
+  const framed = titleShot(scene, camera, size, resolution * samples)
+  if (!framed) return null
+  const { bounds, view, width, height, outWidth, outHeight } = framed
   const scaleX = outWidth / width
   const scaleY = outHeight / height
   const shot = camera.clone()
   shot.layers.set(0)
-  const left =(view.offsetX + bounds.minX * view.width) * scaleX
+  const left = (view.offsetX + bounds.minX * view.width) * scaleX
   const top = (view.offsetY + bounds.minY * view.height) * scaleY
   const finalWidth = Math.ceil(outWidth / samples)
   const finalHeight = Math.ceil(outHeight / samples)
@@ -220,7 +225,9 @@ export async function renderTitle(size, scene, camera, resolution, antialias, ta
   const half = canvasOf(1, 1)
   const quarter = canvasOf(1, 1)
   const data = new Uint8ClampedArray(Math.min(TILE, renderWidth) * Math.min(TILE, renderHeight) * 4)
+  const bytes = new Uint8Array(data.buffer)
   const renderer = hiddenRenderer()
+  const gl = renderer.getContext()
   try {
     const tiles = Math.ceil(renderWidth / STRIDE) * Math.ceil(renderHeight / STRIDE)
     let done = 0
@@ -231,16 +238,14 @@ export async function renderTitle(size, scene, camera, resolution, antialias, ta
         const tileWidth = Math.min(renderWidth, x + STRIDE + MARGIN) - tileLeft
         const tileHeight = Math.min(renderHeight, y + STRIDE + MARGIN) - tileTop
         renderer.setSize(tileWidth, tileHeight, false)
-        const { drawingBufferWidth, drawingBufferHeight } = renderer.getContext()
-        if (drawingBufferWidth !== tileWidth || drawingBufferHeight !== tileHeight) throw new Error(`the browser only allowed a ${drawingBufferWidth}x${drawingBufferHeight} tile of ${tileWidth}x${tileHeight}`)
+        if (gl.drawingBufferWidth !== tileWidth || gl.drawingBufferHeight !== tileHeight) throw new Error(`the browser only allowed a ${gl.drawingBufferWidth}x${gl.drawingBufferHeight} tile of ${tileWidth}x${tileHeight}`)
         shot.setViewOffset(view.fullWidth * scaleX, view.fullHeight * scaleY, left + tileLeft, top + tileTop, tileWidth, tileHeight)
         renderer.render(scene, shot)
         resize(tile, tileWidth, tileHeight)
         tile.ctx.imageSmoothingEnabled = false
         tile.ctx.drawImage(renderer.domElement, 0, 0)
-        const gl = renderer.getContext()
-        gl.readPixels(0, 0, tileWidth, tileHeight, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(data.buffer))
-        if (await clean(data, tileWidth, tileHeight, fraction => step(0, 1, (done + fraction) / tiles))) writeFlipped(tile.ctx, data, tileWidth, tileHeight)
+        gl.readPixels(0, 0, tileWidth, tileHeight, gl.RGBA, gl.UNSIGNED_BYTE, bytes)
+        if (await clean(data, tileWidth, tileHeight, fraction => step((done + fraction) / tiles))) writeFlipped(tile.ctx, data, tileWidth, tileHeight)
         done++
         const shrunk = antialias ? halve(halve(tile.canvas, half), quarter) : tile.canvas
         const shownWidth = Math.min(STRIDE, renderWidth - x) / samples
@@ -301,23 +306,29 @@ export function outputSize(image, settings, padding) {
   return [Math.max(1, Math.round(image.width * scale)) + padding * 2, Math.max(1, Math.round(image.height * scale)) + padding * 2]
 }
 
-export function compose(image, settings, base) {
-  if (settings.tab === "minecraft") return minecraft(image, settings.mode, base, settings.textureSize)
+export function placement(image, settings) {
   const shortest = settings.tab === "custom" ? Math.min(settings.width, settings.height) : Math.max(image.width, image.height)
   const padding = clamp(settings.padding, 0, Math.floor((shortest - 1) / 2))
   const [width, height] = outputSize(image, settings, padding)
-  const result = canvasOf(width, height)
-  if (settings.backgroundEnabled) {
-    const [from, to] = gradientLine(0, 0, width, height, settings.backgroundAngle)
-    const gradient = result.ctx.createLinearGradient(...from, ...to)
-    for (const stop of gradientStops(settings.backgroundStops, settings.backgroundSmooth)) gradient.addColorStop(stop.position, stop.colour)
-    result.ctx.fillStyle = gradient
-    result.ctx.fillRect(0, 0, width, height)
-  }
   const ratio = Math.min((width - padding * 2) / image.width, (height - padding * 2) / image.height)
   const drawWidth = Math.round(image.width * ratio)
   const drawHeight = Math.round(image.height * ratio)
-  result.ctx.drawImage(image, Math.floor((width - drawWidth) / 2), Math.floor((height - drawHeight) / 2), drawWidth, drawHeight)
+  const background = settings.backgroundEnabled ? { line: gradientLine(0, 0, width, height, settings.backgroundAngle), stops: gradientStops(settings.backgroundStops, settings.backgroundSmooth) } : null
+  return { width, height, ratio, x: Math.floor((width - drawWidth) / 2), y: Math.floor((height - drawHeight) / 2), drawWidth, drawHeight, background }
+}
+
+export function compose(image, settings, base) {
+  if (settings.tab === "minecraft") return minecraft(image, settings.mode, base, settings.textureSize)
+  const { width, height, x, y, drawWidth, drawHeight, background } = placement(image, settings)
+  const result = canvasOf(width, height)
+  if (background) {
+    const [from, to] = background.line
+    const gradient = result.ctx.createLinearGradient(...from, ...to)
+    for (const stop of background.stops) gradient.addColorStop(stop.position, stop.colour)
+    result.ctx.fillStyle = gradient
+    result.ctx.fillRect(0, 0, width, height)
+  }
+  result.ctx.drawImage(image, x, y, drawWidth, drawHeight)
   return result.canvas
 }
 

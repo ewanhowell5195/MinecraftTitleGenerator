@@ -1,8 +1,8 @@
 import * as THREE from "three"
-import { gradientLine, gradientStops } from "./material.js"
+import { packed } from "./colour.js"
 import { clamp } from "./maths.js"
-import { SAMPLES, outputSize, screenBounds } from "./render.js"
-import { near, jump, mixed, within, simplifyStops, colourTotals, analyse, contains, maskOf, BASE } from "./vectorTexture.js"
+import { SAMPLES, placement, titleShot } from "./render.js"
+import { near, jump, mixed, within, brightness, simplifyStops, colourTotals, analyse, contains, maskOf, BASE } from "./vectorTexture.js"
 import { area, signedArea, sameWinding, sharedEdges, number, writePath, loopsInHundredths, stitched, addInOrder, addTo, boxOfPolygons, boxesOverlap, shapesOverlap, shapeOfPolygons, mergedByFill, linesOf, unionOf, coverOf, addToCover, visibleLoops } from "./vectorPaths.js"
 
 const EPSILON = 1e-4
@@ -75,9 +75,8 @@ function facesOf(mesh, view, project, cache) {
   function faceFrom(corners, texels, rect, analysis, normal) {
     const points = view.perspective ? split(corners, view.direction, view.direction.dot(view.eye) + view.near)[0] : corners
     if (!points) return null
-    const screen = points.map(project)
     const facing = corners[1].clone().sub(corners[0]).cross(corners[2].clone().sub(corners[0])).normalize()
-    return { index: faces.length, corners, texels, rect, image, analysis, points, facing, normal: normal.dot(toViewer(view, corners[0])) < 0 ? normal.clone().negate().normalize() : normal.clone().normalize(), box: { minX: Math.min(...screen.map(point => point[0])), maxX: Math.max(...screen.map(point => point[0])), minY: Math.min(...screen.map(point => point[1])), maxY: Math.max(...screen.map(point => point[1])) } }
+    return { index: faces.length, corners, texels, rect, image, analysis, points, facing, normal: normal.dot(toViewer(view, corners[0])) < 0 ? normal.clone().negate().normalize() : normal.clone().normalize(), box: boxOfPolygons([points.map(project)]) }
   }
   function analysisOf(rect, parts = null) {
     const key = [rect].concat(parts ?? []).map(({ left, top, right, bottom }) => `${left},${top},${right},${bottom}`).join(" ")
@@ -87,14 +86,12 @@ function facesOf(mesh, view, project, cache) {
   function wholeOf(panel, { corners, normal, texels, rect }) {
     if (panel.whole !== undefined) return panel.whole
     const rects = panel.parts.map(part => part.rect)
-    const area = { left: Math.min(...rects.map(item => item.left)), top: Math.min(...rects.map(item => item.top)), right: Math.max(...rects.map(item => item.right)), bottom: Math.max(...rects.map(item => item.bottom)) }
+    const bounds = { left: Math.min(...rects.map(item => item.left)), top: Math.min(...rects.map(item => item.top)), right: Math.max(...rects.map(item => item.right)), bottom: Math.max(...rects.map(item => item.bottom)) }
     const toWorld = worldMap({ corners, texels })
-    const wholeTexels = texels.map(([x, y]) => [x === rect.left ? area.left : area.right, y === rect.top ? area.top : area.bottom])
-    const analysis = analysisOf(area, rects)
-    panel.whole = analysis && faceFrom(wholeTexels.map(([x, y]) => toWorld(x, y)), wholeTexels, area, analysis, normal)
-    if (panel.whole) {
-      faces.push(panel.whole)
-    }
+    const wholeTexels = texels.map(([x, y]) => [x === rect.left ? bounds.left : bounds.right, y === rect.top ? bounds.top : bounds.bottom])
+    const analysis = analysisOf(bounds, rects)
+    panel.whole = analysis && faceFrom(wholeTexels.map(([x, y]) => toWorld(x, y)), wholeTexels, bounds, analysis, normal)
+    if (panel.whole) faces.push(panel.whole)
     return panel.whole
   }
   const quads = []
@@ -135,8 +132,7 @@ function facesOf(mesh, view, project, cache) {
       if (!part) continue
       solids.push(part)
       const whole = wholeOf(panel, quad)
-      if (!whole) continue
-      part.whole = whole
+      if (whole) part.whole = whole
       continue
     }
     const analysis = rect ? analysisOf(rect) : { base: { colour: materialColour(mesh.material) }, layers: [] }
@@ -225,10 +221,19 @@ function neighbourOf(face, others, point) {
   return others.find(other => other !== face && other.image && Math.abs(other.normal.dot(face.normal) - 1) < EPSILON && Math.abs(other.normal.dot(point) - other.normal.dot(other.corners[0])) < PLANE_ERROR && insideFace(point, other))
 }
 
+function neighbourBeside(face, others, toWorld, x, y, dx, dy) {
+  return neighbourOf(face, others, toWorld(face.rect.left + x + 0.5 + dx, face.rect.top + y + 0.5 + dy))
+}
+
+function texelIn({ left, top, right, bottom }, x, y) {
+  return [clamp(Math.floor(x), left, right - 1), clamp(Math.floor(y), top, bottom - 1)]
+}
+
 function colourAt(face, x, y) {
   const { data, width } = face.image
-  const at = (clamp(Math.floor(y), face.rect.top, face.rect.bottom - 1) * width + clamp(Math.floor(x), face.rect.left, face.rect.right - 1)) * 4
-  return data[at + 3] < 128 ? null : data[at] | data[at + 1] << 8 | data[at + 2] << 16
+  const [column, row] = texelIn(face.rect, x, y)
+  const at = (row * width + column) * 4
+  return data[at + 3] < 128 ? null : packed(data, at)
 }
 
 function texelOf(face, point) {
@@ -243,10 +248,9 @@ function texelOf(face, point) {
 }
 
 function layerOwns(face, x, y) {
-  const { left, top, right, bottom } = face.rect
-  const column = clamp(Math.floor(x), left, right - 1) - left
-  const row = clamp(Math.floor(y), top, bottom - 1) - top
-  return face.analysis.owner?.[row * (right - left) + column] >= 0
+  const { left, top, right } = face.rect
+  const [column, row] = texelIn(face.rect, x, y)
+  return face.analysis.owner?.[(row - top) * (right - left) + column - left] >= 0
 }
 
 function joinKind(face, others, toWorld, x, y, dx, dy) {
@@ -317,7 +321,7 @@ function outerPixels(face, others, list) {
     const x = index % width
     const y = Math.floor(index / width)
     const sides = [x === 0 && [-1, 0], x === width - 1 && [1, 0], y === 0 && [0, -1], y === height - 1 && [0, 1]].filter(Boolean)
-    return sides.every(([dx, dy]) => !neighbourOf(face, others, toWorld(left + x + 0.5 + dx, top + y + 0.5 + dy)))
+    return sides.every(([dx, dy]) => !neighbourBeside(face, others, toWorld, x, y, dx, dy))
   })
 }
 
@@ -338,7 +342,7 @@ function trimmedBase(face, others) {
   }
   function check(x, y, dx, dy) {
     const index = y * width + x
-    if (owner[index] >= 0 && !touchesBase(x, y) && !neighbourOf(face, others, toWorld(left + x + 0.5 + dx, top + y + 0.5 + dy))) dropped.add(index)
+    if (owner[index] >= 0 && !touchesBase(x, y) && !neighbourBeside(face, others, toWorld, x, y, dx, dy)) dropped.add(index)
   }
   for (let x = 0; x < width; x++) {
     check(x, 0, 0, -1)
@@ -372,7 +376,7 @@ function fitGradient(face, rect, model, project, limits) {
   let ny = (to[0] - from[0]) / length
   const first = model.stops[0].t
   const last = model.stops.at(-1).t
-  const along = t => {
+  function along(t) {
     const [x, y] = at(t, 0)
     return x * nx + y * ny
   }
@@ -392,12 +396,12 @@ function fitGradient(face, rect, model, project, limits) {
     }
   }
   const knots = []
-  function refine(a, b, depth) {
+  function refine(a, b, level) {
     const halfway = (a.t + b.t) / 2
-    if (depth < 6 && b.t > a.t && Math.abs(along(halfway) - (along(a.t) + along(b.t)) / 2) > limits.spacing) {
+    if (level < 6 && b.t > a.t && Math.abs(along(halfway) - (along(a.t) + along(b.t)) / 2) > limits.spacing) {
       const centre = { t: halfway, colour: mixed(a.colour, b.colour, 0.5) }
-      refine(a, centre, depth + 1)
-      refine(centre, b, depth + 1)
+      refine(a, centre, level + 1)
+      refine(centre, b, level + 1)
       return
     }
     knots.push(b)
@@ -419,9 +423,18 @@ function offsetOf(value) {
   return String(Math.round(value * 1e3) / 1e3).replace(/^0\./, ".")
 }
 
-function lineOf({ x1, y1, x2, y2, stops }) {
-  const upright = Math.abs(x2 - x1) < GRADIENT_MATCH
-  if (!upright && Math.abs(y2 - y1) >= GRADIENT_MATCH) return null
+function alignment({ x1, y1, x2, y2 }) {
+  return { upright: Math.abs(x2 - x1) < GRADIENT_MATCH, level: Math.abs(y2 - y1) < GRADIENT_MATCH }
+}
+
+function middleOf(list) {
+  return list[Math.floor(list.length / 2)]
+}
+
+function lineOf(gradient) {
+  const { x1, y1, x2, y2, stops } = gradient
+  const { upright, level } = alignment(gradient)
+  if (!upright && !level) return null
   const [from, to] = upright ? [y1, y2] : [x1, x2]
   if (to < from) return null
   return { upright, points: stops.map(([offset, colour]) => ({ t: from + offset * (to - from), colour })) }
@@ -458,14 +471,11 @@ class Output {
 
   brightness(fill) {
     const stops = this.fills.get(fill)?.stops
-    const colour = stops ? stops[Math.floor(stops.length / 2)][1] : parseInt(fill.slice(1), 16)
-    return (colour & 255) + (colour >> 8 & 255) + (colour >> 16 & 255)
+    return brightness(stops ? middleOf(stops)[1] : parseInt(fill.slice(1), 16))
   }
 
-  fill(model, gradient) {
-    if (gradient === undefined) return hexOf(model.colour)
-    const upright = Math.abs(gradient.x2 - gradient.x1) < GRADIENT_MATCH
-    const level = Math.abs(gradient.y2 - gradient.y1) < GRADIENT_MATCH
+  fill(gradient) {
+    const { upright, level } = alignment(gradient)
     const key = JSON.stringify([upright ? 0 : gradient.x1, level ? 0 : gradient.y1, upright ? 0 : gradient.x2, level ? 0 : gradient.y2].map(value => Math.round(value / GRADIENT_MATCH)).concat(gradient.stops.map(([offset, colour]) => [Math.round(offset * 1e3), colour])))
     if (!this.gradients.has(key)) this.gradients.set(key, { id: `g${this.nextId++}`, key, gradient })
     const fill = `url(#${this.gradients.get(key).id})`
@@ -500,7 +510,7 @@ class Output {
     const flattened = new Map()
     for (const entry of Array.from(this.gradients.values())) {
       const { x1, y1, x2, y2, stops } = entry.gradient
-      const middle = stops[Math.floor(stops.length / 2)][1]
+      const middle = middleOf(stops)[1]
       if (Math.hypot(x2 - x1, y2 - y1) > shortest && !stops.every(([, colour]) => within(colour, middle, NEARLY_FLAT))) {
         entry.gradient.stops = simplifyStops(stops.map(([t, colour]) => ({ t, colour })), NEARLY_FLAT).map(({ t, colour }) => [t, colour])
         continue
@@ -521,8 +531,7 @@ class Output {
   defs(left, top) {
     const owners = new Map()
     return Array.from(this.gradients.values(), ({ id, gradient }) => {
-      const upright = Math.abs(gradient.x2 - gradient.x1) < GRADIENT_MATCH
-      const level = Math.abs(gradient.y2 - gradient.y1) < GRADIENT_MATCH
+      const { upright, level } = alignment(gradient)
       const line = `x1="${upright ? 0 : tenth(gradient.x1 - left)}" y1="${level ? 0 : tenth(gradient.y1 - top)}" x2="${upright ? 0 : tenth(gradient.x2 - left)}" y2="${level ? 0 : tenth(gradient.y2 - top)}"`
       const stops = gradient.stops.map(([offset, colour]) => `<stop offset="${offsetOf(offset)}" stop-color="${hexOf(colour)}"/>`).join("")
       if (owners.has(stops)) return `<linearGradient id="${id}" xlink:href="#${owners.get(stops)}" ${line}/>`
@@ -530,10 +539,6 @@ class Output {
       return `<linearGradient id="${id}" gradientUnits="userSpaceOnUse" ${line}>${stops}</linearGradient>`
     }).join("")
   }
-}
-
-function middleColour(model) {
-  return model.stops[Math.floor(model.stops.length / 2)].colour
 }
 
 function halved(model, rect) {
@@ -617,9 +622,8 @@ function aroundStrokes(polygons, strokes, bleed) {
 function markupOf({ base, layers, joins, covers }, index, { left, top, bleed, output, totals, cover }) {
   const list = Array.from(base)
   const parts = []
-  const strokePath = ([fill, segments]) => `<path fill="none" stroke="${fill}" d="${linesOf(segments, left, top)}"/>`
   const strokes = list.length > 1 ? Array.from(sharedEdges(list)).sort((a, b) => output.brightness(a[0]) - output.brightness(b[0])) : []
-  const under = strokes.map(strokePath)
+  const under = strokes.map(([fill, segments]) => `<path fill="none" stroke="${fill}" d="${linesOf(segments, left, top)}"/>`)
   if (under.length) parts.push(`<defs><clipPath id="c${index}"><path d="${writePath(unionOf(stitched(loopsInHundredths(aroundStrokes(list.flatMap(entry => entry[1]), strokes, bleed), left, top))))}"/></clipPath></defs>`, `<g clip-path="url(#c${index})" stroke-width="${number(bleed)}">${under.join("")}</g>`)
   const placed = mergedByFill(layers, totals)
   const entries = basesJoinedToLayers(list, placed).concat(placed, mergedByFill(joins, totals), Array.from(covers))
@@ -630,13 +634,12 @@ function markupOf({ base, layers, joins, covers }, index, { left, top, bleed, ou
     if (shown.length) shapes.unshift(`<path fill="${fill}" d="${writePath(shown)}"/>`)
     addToCover(cover, loops)
   }
-  parts.push(...shapes)
-  return parts.join("")
+  return parts.concat(shapes).join("")
 }
 
 function useMergedFills(layers, merged) {
   const renamed = entries => entries.map(([fill, polygons]) => [merged.get(fill) ?? fill, polygons])
-  const renamedMap = map => {
+  function renamedMap(map) {
     const next = new Map()
     for (const [fill, polygons] of map) addTo(next, merged.get(fill) ?? fill, polygons)
     return next
@@ -670,7 +673,10 @@ function nearFillsJoined(layers, totals, level) {
 function fillTotals(cache, bandFills) {
   const totals = new Map()
   for (const image of cache.values()) {
-    for (const [colour, count] of colourTotals(image)) totals.set(hexOf(colour), (totals.get(hexOf(colour)) ?? 0) + count)
+    for (const [colour, count] of colourTotals(image)) {
+      const fill = hexOf(colour)
+      totals.set(fill, (totals.get(fill) ?? 0) + count)
+    }
   }
   for (const fill of bandFills) totals.delete(fill)
   return totals
@@ -699,14 +705,11 @@ function joinFacesToLayerBelow(layers) {
 }
 
 export function vectorTitle(scene, camera, size, resolution) {
-  camera.updateMatrixWorld()
-  const bounds = screenBounds(scene, camera)
-  if (!bounds) return null
-  const frame = camera.view?.enabled ? camera.view : { width: size.x, height: size.y }
-  const width = (bounds.maxX - bounds.minX) * frame.width
-  const height = (bounds.maxY - bounds.minY) * frame.height
-  const scaleX = Math.max(1, Math.round(width * resolution * SAMPLES / Math.max(width, height))) / SAMPLES / (bounds.maxX - bounds.minX)
-  const scaleY = Math.max(1, Math.round(height * resolution * SAMPLES / Math.max(width, height))) / SAMPLES / (bounds.maxY - bounds.minY)
+  const shot = titleShot(scene, camera, size, resolution * SAMPLES)
+  if (!shot) return null
+  const { bounds } = shot
+  const scaleX = shot.outWidth / SAMPLES / (bounds.maxX - bounds.minX)
+  const scaleY = shot.outHeight / SAMPLES / (bounds.maxY - bounds.minY)
   const view = { perspective: camera.isPerspectiveCamera, eye: camera.getWorldPosition(new THREE.Vector3()), direction: camera.getWorldDirection(new THREE.Vector3()), near: camera.near }
   const limits = { fit: resolution * FIT_ERROR, spacing: resolution * SPACING_ERROR }
   const output = new Output()
@@ -718,17 +721,25 @@ export function vectorTitle(scene, camera, size, resolution) {
   }
 
   function bandFill(colour) {
-    bandFills.add(hexOf(colour))
-    return hexOf(colour)
+    const fill = hexOf(colour)
+    bandFills.add(fill)
+    return fill
   }
 
   function onScreen(pieces) {
     return pieces.map(piece => piece.map(project)).filter(polygon => area(polygon) >= SLIVER)
   }
 
+  function gradientOf(face, rect, model) {
+    return model.stops ? fitGradient(face, rect, model, project, limits) : null
+  }
+
+  function splits(gradient, depth) {
+    return gradient && gradient.error > limits.fit && depth < MAX_SPLITS
+  }
+
   function fillFor(model, gradient) {
-    if (gradient) return output.fill(model, gradient)
-    return model.stops ? hexOf(middleColour(model)) : output.fill(model)
+    return gradient ? output.fill(gradient) : hexOf(model.stops ? middleOf(model.stops).colour : model.colour)
   }
 
   function fillBase(face, model, rect, pieces, groups, depth) {
@@ -737,9 +748,9 @@ export function vectorTitle(scene, camera, size, resolution) {
       for (const { colour, from, to } of bandRuns(model.stops)) addTo(groups, bandFill(colour), onScreen(clippedToBand(pieces, plane, from, to)))
       return
     }
-    const gradient = model.stops ? fitGradient(face, rect, model, project, limits) : null
-    const half = gradient && halved(model, rect)
-    if (gradient && gradient.error > limits.fit && depth < MAX_SPLITS && half.size >= 2) {
+    const gradient = gradientOf(face, rect, model)
+    const half = splits(gradient, depth) && halved(model, rect)
+    if (half?.size >= 2) {
       const toWorld = worldMap(face)
       const { acrossX, middle } = half
       const to = acrossX ? toWorld(rect.right, rect.top) : toWorld(rect.left, rect.bottom)
@@ -760,40 +771,37 @@ export function vectorTitle(scene, camera, size, resolution) {
   }
 
   function paintPixels(face, layer, list, rect, groups, depth, stacked = true) {
+    const toWorld = worldMap(face)
     if (layer.bands) {
-      const toWorld = worldMap(face)
       const plane = bandPlane(face, layer.axis)
       const loops = face.analysis.shapeOf(list, layer.smooth).map(loop => loop.map(([x, y]) => toWorld(x, y)))
       for (const { colour, from, to } of bandRuns(layer.stops)) addInOrder(groups, bandFill(colour), clippedToBand(loops, plane, from, stacked ? to + BAND_OVERLAP : to).map(piece => piece.map(project)))
       return
     }
-    const gradient = layer.stops ? fitGradient(face, rect, layer, project, limits) : null
-    if (gradient && gradient.error > limits.fit && depth < MAX_SPLITS) {
-      const half = halved(layer, rect)
-      if (half.size >= 2) {
-        const { acrossX, middle } = half
-        const faceWidth = face.rect.right - face.rect.left
-        const coordinate = index => acrossX ? face.rect.left + index % faceWidth : face.rect.top + Math.floor(index / faceWidth)
-        const low = list.filter(index => coordinate(index) <= middle)
-        const high = list.filter(index => coordinate(index) >= middle)
-        if (low.length && high.length && low.length < list.length && high.length < list.length) {
-          paintPixels(face, layer, low, half.low, groups, depth + 1)
-          paintPixels(face, layer, high, half.high, groups, depth + 1)
-          return
-        }
+    const gradient = gradientOf(face, rect, layer)
+    const half = splits(gradient, depth) && halved(layer, rect)
+    if (half?.size >= 2) {
+      const { acrossX, middle } = half
+      const faceWidth = face.rect.right - face.rect.left
+      const coordinate = index => acrossX ? face.rect.left + index % faceWidth : face.rect.top + Math.floor(index / faceWidth)
+      const low = list.filter(index => coordinate(index) <= middle)
+      const high = list.filter(index => coordinate(index) >= middle)
+      if (low.length && high.length && low.length < list.length && high.length < list.length) {
+        paintPixels(face, layer, low, half.low, groups, depth + 1)
+        paintPixels(face, layer, high, half.high, groups, depth + 1)
+        return
       }
     }
-    const toWorld = worldMap(face)
     addInOrder(groups, fillFor(layer, gradient), face.analysis.shapeOf(list, layer.smooth).map(loop => loop.map(([x, y]) => project(toWorld(x, y)))))
   }
 
   function wholeFill(face, model) {
-    return fillFor(model, model.stops ? fitGradient(face, face.rect, model, project, limits) : null)
+    return fillFor(model, gradientOf(face, face.rect, model))
   }
 
-  function fillLayer(face, layer, { groups, joins, covers }) {
+  function fillLayer(face, faces, layer, { groups, joins, covers }) {
     const toWorld = worldMap(face)
-    const found = layer.exact.map(loop => joinsOf(face, loop, sameMesh, toWorld))
+    const found = layer.exact.map(loop => joinsOf(face, loop, faces, toWorld))
     const projected = list => list.map(join => join.map(([x, y]) => project(toWorld(x, y))))
     const under = projected(found.flatMap(item => item.under))
     const over = projected(found.flatMap(item => item.over)).map(sameWinding)
@@ -803,7 +811,7 @@ export function vectorTitle(scene, camera, size, resolution) {
       addInOrder(joins, fill, over)
     }
     for (const { neighbour, quad } of found.flatMap(item => item.covers)) addTo(covers, wholeFill(neighbour, neighbour.analysis.base), projected([quad]).map(sameWinding))
-    paintPixels(face, layer, layer.edges?.length ? layer.pixels.concat(outerPixels(face, sameMesh, layer.edges)) : layer.pixels, face.rect, groups, 0)
+    paintPixels(face, layer, layer.edges?.length ? layer.pixels.concat(outerPixels(face, faces, layer.edges)) : layer.pixels, face.rect, groups, 0)
   }
 
   const meshes = []
@@ -815,10 +823,8 @@ export function vectorTitle(scene, camera, size, resolution) {
   const cache = new Map()
   const occluders = []
   const layers = []
-  let sameMesh = []
   for (const mesh of meshes) {
     const { faces, solids } = facesOf(mesh, view, project, cache)
-    sameMesh = faces
     const own = mesh.material.depthWrite ? solids.map(face => occluderOf(face, view)) : []
     if (!mesh.material.colorWrite) {
       occluders.push(...own)
@@ -831,16 +837,16 @@ export function vectorTitle(scene, camera, size, resolution) {
       const { base, layers: shapes } = face.analysis
       const whole = visible.length === 1 && visible[0] === face.corners
       const target = whole ? { groups: layer.layers, joins: layer.joins, covers: layer.covers } : { groups: [], joins: [], covers: new Map() }
-      if (base.masked) fillLayer(face, base, target)
+      if (base.masked) fillLayer(face, faces, base, target)
       else {
-        const trimmed = whole && shapes.length ? trimmedBase(face, sameMesh) : null
+        const trimmed = whole && shapes.length ? trimmedBase(face, faces) : null
         if (trimmed) {
           const painted = []
           paintPixels(face, base, trimmed, face.rect, painted, 0, false)
           for (const [fill, polygons] of painted) addTo(layer.base, fill, polygons)
         } else fillBase(face, base, face.rect, visible, layer.base, 0)
       }
-      for (const shape of shapes) fillLayer(face, shape, target)
+      for (const shape of shapes) fillLayer(face, faces, shape, target)
       if (!whole) {
         const pieces = visible.map(piece => piece.map(project))
         const shown = polygons => polygons.flatMap(polygon => pieces.map(piece => withinConvex(polygon, piece)).filter(Boolean))
@@ -864,7 +870,8 @@ export function vectorTitle(scene, camera, size, resolution) {
   const totals = fillTotals(cache, bandFills)
   useMergedFills(layers, nearFillsJoined(layers, totals, NEAR_FILLS))
   const context = { left, top, bleed: resolution * BLEED, output, totals, cover: coverOf(right - left, bottom - top) }
-  const markup = layers.map((layer, index) => [layer, index]).toReversed().map(([layer, index]) => markupOf(layer, index, context)).toReversed()
+  const markup = []
+  for (let index = layers.length - 1; index >= 0; index--) markup[index] = markupOf(layers[index], index, context)
   const defs = output.defs(left, top)
   return { width: right - left, height: bottom - top, markup: (defs ? `<defs>${defs}</defs>` : "") + markup.join("") }
 }
@@ -878,18 +885,12 @@ function titleGroup(title, x, y, scale) {
   return x || y || ratio !== 1 ? `<g transform="translate(${number(x)} ${number(y)}) scale(${ratio})">${title.markup}</g>` : title.markup
 }
 
+function backgroundOf({ line: [from, to], stops }, width, height) {
+  const offsets = stops.map(stop => `<stop offset="${stop.position}" stop-color="${stop.colour}"/>`).join("")
+  return `<defs><linearGradient id="background" gradientUnits="userSpaceOnUse" x1="${number(from[0])}" y1="${number(from[1])}" x2="${number(to[0])}" y2="${number(to[1])}">${offsets}</linearGradient></defs><rect width="${width}" height="${height}" fill="url(#background)"/>`
+}
+
 export function composeVector(title, settings) {
-  const shortest = settings.tab === "custom" ? Math.min(settings.width, settings.height) : Math.max(title.width, title.height)
-  const padding = clamp(settings.padding, 0, Math.floor((shortest - 1) / 2))
-  const [width, height] = outputSize(title, settings, padding)
-  const ratio = Math.min((width - padding * 2) / title.width, (height - padding * 2) / title.height)
-  const x = Math.floor((width - Math.round(title.width * ratio)) / 2)
-  const y = Math.floor((height - Math.round(title.height * ratio)) / 2)
-  let background = ""
-  if (settings.backgroundEnabled) {
-    const [from, to] = gradientLine(0, 0, width, height, settings.backgroundAngle)
-    const stops = gradientStops(settings.backgroundStops, settings.backgroundSmooth).map(stop => `<stop offset="${stop.position}" stop-color="${stop.colour}"/>`).join("")
-    background = `<defs><linearGradient id="background" gradientUnits="userSpaceOnUse" x1="${number(from[0])}" y1="${number(from[1])}" x2="${number(to[0])}" y2="${number(to[1])}">${stops}</linearGradient></defs><rect width="${width}" height="${height}" fill="url(#background)"/>`
-  }
-  return svgOf(width, height, background + titleGroup(title, x, y, ratio))
+  const { width, height, ratio, x, y, background } = placement(title, settings)
+  return svgOf(width, height, (background ? backgroundOf(background, width, height) : "") + titleGroup(title, x, y, ratio))
 }

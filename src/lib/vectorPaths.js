@@ -46,10 +46,10 @@ export function sharedEdges(list) {
           dy = -dy
         }
         const offset = dy * from[0] - dx * from[1]
-        const edge = { fill, polygon, from, dx, dy, offset, start: dx * from[0] + dy * from[1], end: dx * to[0] + dy * to[1], id: edges.length }
+        const edge = { fill, polygon, from, dx, dy, offset, start: dx * from[0] + dy * from[1], end: dx * to[0] + dy * to[1], id: edges.length, angleBucket: Math.round(Math.atan2(dy, dx) / SHARED_ANGLE), offsetBucket: Math.round(offset / SHARED_OFFSET) }
         if (edge.start > edge.end) [edge.start, edge.end] = [edge.end, edge.start]
         edges.push(edge)
-        const key = keyOf(Math.round(Math.atan2(dy, dx) / SHARED_ANGLE), Math.round(offset / SHARED_OFFSET))
+        const key = keyOf(edge.angleBucket, edge.offsetBucket)
         if (!buckets.has(key)) buckets.set(key, [])
         buckets.get(key).push(edge)
       }
@@ -57,8 +57,7 @@ export function sharedEdges(list) {
   }
   const shared = new Map()
   for (const edge of edges) {
-    const angle = Math.round(Math.atan2(edge.dy, edge.dx) / SHARED_ANGLE)
-    const offset = Math.round(edge.offset / SHARED_OFFSET)
+    const { angleBucket: angle, offsetBucket: offset } = edge
     for (const nearAngle of [angle - 1, angle, angle + 1]) {
       for (const nearOffset of [offset - 1, offset, offset + 1]) {
         for (const other of buckets.get(keyOf(nearAngle, nearOffset)) ?? []) {
@@ -78,8 +77,8 @@ export function number(value) {
   return String(Math.round(value * 100) / 100)
 }
 
-function short(hundredths) {
-  return String(hundredths / 100).replace(/^(-?)0\./, "$1.")
+function short(value) {
+  return String(value / 100).replace(/^(-?)0\./, "$1.")
 }
 
 function pair(x, y) {
@@ -107,27 +106,27 @@ function snapped(loops) {
 }
 
 function closedByLongestEdge(loop) {
-  const edge = index => short(loop[index][0] - loop.at(index - 1)[0]).length + short(loop[index][1] - loop.at(index - 1)[1]).length
-  const start = loop.reduce((best, point, index) => edge(index) > edge(best) ? index : best, 0)
+  const lengths = loop.map((point, index) => short(point[0] - loop.at(index - 1)[0]).length + short(point[1] - loop.at(index - 1)[1]).length)
+  const start = lengths.reduce((best, length, index) => length > lengths[best] ? index : best, 0)
   return loop.slice(start).concat(loop.slice(0, start))
 }
 
 function nearestFirst(loops) {
   const left = loops.slice()
   const ordered = []
-  let [atX, atY] = [0, 0]
+  let at = [0, 0]
   while (left.length) {
     let best = 0
     let closest = Infinity
     for (const [index, [[x, y]]] of left.entries()) {
-      const distance = Math.abs(x - atX) + Math.abs(y - atY)
+      const distance = Math.abs(x - at[0]) + Math.abs(y - at[1])
       if (distance >= closest) continue
       closest = distance
       best = index
     }
     const [loop] = left.splice(best, 1)
     ordered.push(loop)
-    ;[atX, atY] = loop[0]
+    at = loop[0]
   }
   return ordered
 }
@@ -530,35 +529,47 @@ export function coverOf(width, height) {
   return { cell, columns, rows, cells: new Uint8Array(columns * rows) }
 }
 
-function everyCellInside({ cell, columns, rows }, polygons, check) {
-  const { minY, maxY } = boxOfPolygons(polygons)
-  for (let row = Math.max(0, Math.floor(minY / cell)); row <= Math.min(rows - 1, Math.ceil(maxY / cell)); row++) {
-    const y = (row + 0.5) * cell
-    const crossings = []
-    for (const polygon of polygons) {
-      for (const [index, [ax, ay]] of polygon.entries()) {
-        const [bx, by] = polygon[(index + 1) % polygon.length]
-        if (ay > y !== by > y) crossings.push({ x: ax + (y - ay) / (by - ay) * (bx - ax), winding: by > ay ? 1 : -1 })
-      }
+function everySpanInside({ cell, columns, rows }, polygons, check) {
+  const edges = []
+  for (const polygon of polygons) {
+    for (const [index, [ax, ay]] of polygon.entries()) {
+      const [bx, by] = polygon[(index + 1) % polygon.length]
+      if (ay !== by) edges.push({ ax, ay, bx, by, low: Math.min(ay, by), high: Math.max(ay, by) })
     }
-    crossings.sort((a, b) => a.x - b.x)
+  }
+  if (!edges.length) return true
+  edges.sort((a, b) => a.low - b.low)
+  const highest = edges.reduce((most, edge) => Math.max(most, edge.high), -Infinity)
+  let active = []
+  let next = 0
+  for (let row = Math.max(0, Math.floor(edges[0].low / cell)); row <= Math.min(rows - 1, Math.ceil(highest / cell)); row++) {
+    const y = (row + 0.5) * cell
+    while (next < edges.length && edges[next].low <= y) active.push(edges[next++])
+    active = active.filter(edge => edge.high > y)
+    const crossings = active.map(({ ax, ay, bx, by }) => ({ x: ax + (y - ay) / (by - ay) * (bx - ax), winding: by > ay ? 1 : -1 })).sort((a, b) => a.x - b.x)
     let winding = 0
     for (const [index, crossing] of crossings.entries()) {
       winding += crossing.winding
       if (!winding || index === crossings.length - 1) continue
-      const last = Math.min(columns - 1, Math.ceil(crossings[index + 1].x / cell - 0.5) - 1)
-      for (let column = Math.max(0, Math.ceil(crossing.x / cell - 0.5)); column <= last; column++) {
-        if (!check(column, row)) return false
-      }
+      if (!check(row, Math.max(0, Math.ceil(crossing.x / cell - 0.5)), Math.min(columns - 1, Math.ceil(crossings[index + 1].x / cell - 0.5) - 1))) return false
     }
   }
   return true
 }
 
+function everyCellInside(cover, polygons, check) {
+  return everySpanInside(cover, polygons, (row, first, last) => {
+    for (let column = first; column <= last; column++) {
+      if (!check(column, row)) return false
+    }
+    return true
+  })
+}
+
 export function addToCover(cover, loops) {
   const { columns, cells } = cover
-  everyCellInside(cover, loops, (column, row) => {
-    cells[row * columns + column] = 1
+  everySpanInside(cover, loops, (row, first, last) => {
+    if (first <= last) cells.fill(1, row * columns + first, row * columns + last + 1)
     return true
   })
 }

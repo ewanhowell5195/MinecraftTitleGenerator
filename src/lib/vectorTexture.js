@@ -1,3 +1,4 @@
+import { packed } from "./colour.js"
 import { clamp } from "./maths.js"
 
 const TOLERANCE = 2
@@ -22,6 +23,7 @@ const DIAGONAL_SHARE = 0.95
 const SIDES = [[1, 0], [-1, 0], [0, 1], [0, -1]]
 const HOLE = -2
 export const BASE = -1
+const COVERED = -1
 const PAINTED_EDGE_REACH = 1.5
 const FADE_USABLE = 0.8
 const FADE_MATCH = 3
@@ -41,6 +43,10 @@ export function near(a, b) {
 
 export function jump(a, b) {
   return !within(a, b, HARD_EDGE)
+}
+
+export function brightness(colour) {
+  return (colour & 255) + (colour >> 8 & 255) + (colour >> 16 & 255)
 }
 
 function tally(counts, key) {
@@ -137,8 +143,8 @@ function stepSize(a, b) {
   return Math.max(...change(a, b).map(Math.abs))
 }
 
-function averaged(values, from, to, row) {
-  const reach = Math.min(row - from, to - row, values.reach)
+function averaged(values, from, to, row, widest) {
+  const reach = Math.min(row - from, to - row, widest)
   const sum = [0, 0, 0]
   for (let other = row - reach; other <= row + reach; other++) {
     for (let channel = 0; channel < 3; channel++) sum[channel] += values[other][channel]
@@ -160,11 +166,10 @@ function smoothRun(rows, from, to, smooth) {
   const spacing = gaps[Math.floor(gaps.length * 0.75)]
   if (spacing < MIN_BAND_ROWS) return
   let values = rows.map(colour => [colour & 255, colour >> 8 & 255, colour >> 16 & 255])
-  values.reach = Math.floor(spacing / 2)
+  const reach = Math.floor(spacing / 2)
   for (let pass = 0; pass < 2; pass++) {
     const next = values.slice()
-    for (let row = from; row <= to; row++) next[row] = averaged(values, from, to, row)
-    next.reach = values.reach
+    for (let row = from; row <= to; row++) next[row] = averaged(values, from, to, row, reach)
     values = next
   }
   for (let row = from; row <= to; row++) smooth.set(row, values[row].reduce((colour, value, channel) => colour | Math.round(value) << channel * 8, 0))
@@ -232,7 +237,6 @@ function fitAxis(list, colours, width, axis, exact, bands) {
 function diagonalOf(list, colours, width, height) {
   let dx = 0
   let dy = 0
-  const brightness = colour => (colour & 255) + (colour >> 8 & 255) + (colour >> 16 & 255)
   const present = new Set(list)
   for (const index of list) {
     if (index % width < width - 1 && present.has(index + 1)) dx += brightness(colours[index + 1]) - brightness(colours[index])
@@ -244,9 +248,18 @@ function diagonalOf(list, colours, width, height) {
 }
 
 function rampsOneWay(stops) {
-  const brightness = stops.map(({ colour }) => (colour & 255) + (colour >> 8 & 255) + (colour >> 16 & 255))
-  const steps = brightness.slice(1).map((value, index) => value - brightness[index])
+  const levels = stops.map(stop => brightness(stop.colour))
+  const steps = levels.slice(1).map((value, index) => value - levels[index])
   return steps.every(step => step >= -RAMP_WOBBLE) || steps.every(step => step <= RAMP_WOBBLE)
+}
+
+function rising(stops) {
+  return stops.every((stop, index) => !index || stop.t > stops[index - 1].t)
+}
+
+function without(list, removed) {
+  const gone = new Set(removed)
+  return list.filter(index => !gone.has(index))
 }
 
 function flatIfOneColour(model) {
@@ -289,7 +302,7 @@ function modelOf(list, colours, width, height, share, exact, bands) {
   if (!best || best.matched.length < list.length * BASE_SHARE) {
     const diagonal = diagonalOf(list, colours, width, height)
     const fit = diagonal && fitAxis(list, colours, width, diagonal, exact)
-    if (fit && fit.stops.length <= MAX_STOPS && fit.matched.length >= list.length * DIAGONAL_SHARE && fit.stops.every((stop, index) => !index || stop.t > fit.stops[index - 1].t)) best = fit
+    if (fit && fit.stops.length <= MAX_STOPS && fit.matched.length >= list.length * DIAGONAL_SHARE && rising(fit.stops)) best = fit
   }
   if (best && best.matched.length >= list.length * share) return best
   return flat.matched.length >= list.length * share ? flat : null
@@ -386,7 +399,7 @@ export function colourTotals(image) {
   const totals = new Map()
   for (let at = 0; at < image.data.length; at += 4) {
     if (image.data[at + 3] < 128) continue
-    tally(totals, image.data[at] | image.data[at + 1] << 8 | image.data[at + 2] << 16)
+    tally(totals, packed(image.data, at))
   }
   image.totals = totals
   return totals
@@ -511,9 +524,9 @@ export function analyse(image, rect, mask = null) {
         continue
       }
       const index = y * width + x
-      colours[index] = data[at] | data[at + 1] << 8 | data[at + 2] << 16
+      colours[index] = packed(data, at)
       solid.push(index)
-      const label = labels ? labels[at] | labels[at + 1] << 8 | labels[at + 2] << 16 : 0
+      const label = labels ? packed(labels, at) : 0
       if (!regions.has(label)) regions.set(label, [])
       regions.get(label).push(index)
     }
@@ -539,9 +552,9 @@ export function analyse(image, rect, mask = null) {
 
   const [main, ...overlaid] = Array.from(regions.entries()).sort((a, b) => b[1].length - a[1].length)
   const anySoft = main[0] >= SOFT_LABEL || overlaid.some(([label]) => label >= SOFT_LABEL)
+  const totals = colourTotals(image)
 
   function bandsOf(label) {
-    const COVERED = -1
     function rowColour(y) {
       const counts = new Map()
       let opaque = false
@@ -549,8 +562,8 @@ export function analyse(image, rect, mask = null) {
         const at = (y * atlasWidth + x) * 4
         if (data[at + 3] < 128) return
         opaque = true
-        if (labels && (labels[at] | labels[at + 1] << 8 | labels[at + 2] << 16) !== label) return
-        tally(counts, data[at] | data[at + 1] << 8 | data[at + 2] << 16)
+        if (labels && packed(labels, at) !== label) return
+        tally(counts, packed(data, at))
       }
       for (let x = rect.left; x < rect.right; x++) count(x)
       for (let reach = 1; !counts.size && (rect.left - reach >= 0 || rect.right - 1 + reach < atlasWidth); reach++) {
@@ -613,30 +626,27 @@ export function analyse(image, rect, mask = null) {
   function decompose(region, exact, known = null) {
     let free = region
     function take(matched) {
-      const gone = new Set(matched)
-      free = free.filter(index => !gone.has(index))
+      free = without(free, matched)
     }
     const layers = []
     let fitted = known ?? modelOf(free, colours, width, height, BASE_SHARE, exact, exact ? null : bandsOf(main[0])) ?? flatOf(free, colours)
     if (!known && fitted.stops?.some((stop, index) => index && stop.t === fitted.stops[index - 1].t)) {
       const peeled = flatOf(free, colours)
-      const gone = new Set(peeled.matched)
-      const remainder = free.filter(index => !gone.has(index))
+      const remainder = without(free, peeled.matched)
       const trial = peeled.matched.length >= free.length * PEEL_SHARE && remainder.length ? modelOf(remainder, colours, width, height, BASE_SHARE, exact) : null
-      if (trial?.stops && trial.stops.every((stop, index) => !index || stop.t > trial.stops[index - 1].t)) {
+      if (trial?.stops && rising(trial.stops)) {
         layers.push({ ...peeled, pixels: peeled.matched, smooth: anySoft })
         take(peeled.matched)
         fitted = trial
       }
     }
-    const shared = colourTotals(image)
     if (!known && !fitted.stops) {
       const counts = new Map()
       for (const index of free) tally(counts, colours[index])
-      const common = Array.from(counts).filter(([, count]) => count >= free.length * PEEL_SHARE).reduce((best, [colour]) => (shared.get(colour) ?? 0) > (shared.get(best) ?? 0) ? colour : best, fitted.colour)
+      const common = Array.from(counts).filter(([, count]) => count >= free.length * PEEL_SHARE).reduce((best, [colour]) => (totals.get(colour) ?? 0) > (totals.get(best) ?? 0) ? colour : best, fitted.colour)
       fitted = { colour: common, matched: free.filter(index => near(colours[index], common)) }
     }
-    const [largest, ...others] = known ? known.parts ?? [known] : segmentsOf(fitted, width).sort((a, b) => a.stops || b.stops ? b.matched.length - a.matched.length : (shared.get(b.colour) ?? 0) - (shared.get(a.colour) ?? 0))
+    const [largest, ...others] = known ? known.parts ?? [known] : segmentsOf(fitted, width).sort((a, b) => a.stops || b.stops ? b.matched.length - a.matched.length : (totals.get(b.colour) ?? 0) - (totals.get(a.colour) ?? 0))
     take(fitted.matched)
     for (const segment of others) layers.push({ ...placedOn(segment), pixels: segment.matched, smooth: false })
     const continuous = anySoft || isGentle(region)
@@ -677,7 +687,6 @@ export function analyse(image, rect, mask = null) {
     painted.push({ ...part.base, pixels: part.base.matched, smooth: anySoft }, ...part.layers)
   }
   const layers = joinedBands(painted)
-  const totals = colourTotals(image)
   layers.sort((a, b) => a.stops || b.stops ? !!b.stops - !!a.stops : (totals.get(b.colour) ?? 0) - (totals.get(a.colour) ?? 0) || a.colour - b.colour)
   const owner = new Int32Array(width * height).fill(HOLE)
   for (const pixel of solid) owner[pixel] = BASE
