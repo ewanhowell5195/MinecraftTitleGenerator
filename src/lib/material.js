@@ -1,4 +1,4 @@
-import { surface } from "./canvas.js"
+import { fillPattern, surface } from "./canvas.js"
 import { hexOf, rgbOf } from "./colour.js"
 import { clamp } from "./maths.js"
 
@@ -437,7 +437,6 @@ export function buildAtlas(faces, options) {
     return options.customEdge ? options.edgeColour : `rgba(0, 0, 0, ${1 - options.internalBrightness / 100})`
   }
 
-  const tiles = painted.tiles ? ctx.createPattern(painted.tiles, "repeat") : null
   const linesTop = Math.min(...packed.map(face => face.rect.y)) * SCALE
   const shades = []
   let lines = null
@@ -460,8 +459,7 @@ export function buildAtlas(faces, options) {
   }
 
   function tile(rect, column = 0) {
-    tiles.setTransform(new DOMMatrix().translate((rect.x - column) * SCALE, rect.y * SCALE).scale(SCALE / R))
-    ctx.fillStyle = tiles
+    fillPattern(ctx, painted.tiles, new DOMMatrix().translate((rect.x - column) * SCALE, rect.y * SCALE).scale(SCALE / R))
     ctx.fillRect(rect.x * SCALE, rect.y * SCALE, rect.width * SCALE, rect.height * SCALE)
   }
 
@@ -475,7 +473,7 @@ export function buildAtlas(faces, options) {
       const west = face.name === "west"
       const column = entry.x + Math.round(face.points[0][0] - block.own.minX) - (west ? 0 : 1)
       const row = entry.top + Math.round(block.own.maxY - span.max)
-      if (tiles) {
+      if (painted.tiles) {
         tile(face.rect)
         const totals = totalsOf(painted.tiles)
         const whole = Math.floor(width * SCALE / totals.width)
@@ -507,7 +505,7 @@ export function buildAtlas(faces, options) {
     const level = extent(face.points, 1).min
     const row = entry.top + Math.round(block.own.maxY - level) - (face.kind === "top" ? 0 : 1)
     const edge = face.kind === "top" ? row * R : (row + 1) * R - 1
-    if (tiles) tile(face.rect, painted.tilesAcrossLine ? column - entry.x + entry.glyph.lineX : 0)
+    if (painted.tiles) tile(face.rect, painted.tilesAcrossLine ? column - entry.x + entry.glyph.lineX : 0)
     else drawLine(cornerPixels(painted, column * R, edge, width * R, false, face.kind === "top" ? 1 : -1), face.rect)
     shades.push([face.rect, innerFill(face, block, span, level), options.internalFade, back, front, false])
     if (options.internalFade === null && innerGradient && innerGradient.direction !== "up") {

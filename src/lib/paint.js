@@ -1,4 +1,4 @@
-import { surface } from "./canvas.js"
+import { fillPattern, surface } from "./canvas.js"
 import { hexOf } from "./colour.js"
 import { PLACED_KINDS, edgeAlpha, generatedAlpha } from "./generated.js"
 import { gradientLine, gradientStops } from "./material.js"
@@ -151,7 +151,7 @@ function tileBlock(look, image) {
 
 function paintTiles(ctx, entries, look, image, capHeight) {
   const { tile, tw, th } = tiling(look, image)
-  const pattern = look.tileableRandomRotations || look.tileableRandomMirroring ? null : ctx.createPattern(tile, "repeat")
+  const random = look.tileableRandomRotations || look.tileableRandomMirroring
 
   function originOf(entry) {
     return look.tileablePerCharacter ? entry.x : entry.x - entry.glyph.lineX
@@ -166,9 +166,8 @@ function paintTiles(ctx, entries, look, image, capHeight) {
     ctx.fillStyle = "#ffffff"
     fillRect(ctx, [x, y, w, h])
     const start = anchor - Math.ceil((anchor - y * R) / th) * th
-    if (pattern) {
-      pattern.setTransform(new DOMMatrix().translate(left, start).scale(tw / tile.width, th / tile.height))
-      ctx.fillStyle = pattern
+    if (!random) {
+      fillPattern(ctx, tile, new DOMMatrix().translate(left, start).scale(tw / tile.width, th / tile.height))
       fillRect(ctx, [x, y, w, h])
     } else {
       for (let ty = start; ty < (y + h) * R; ty += th) {
@@ -212,8 +211,6 @@ function stripRuns(map) {
 }
 
 function paintStrip(ctx, entries, strip) {
-  const pattern = ctx.createPattern(strip.image, "repeat")
-  ctx.fillStyle = pattern
   for (const entry of entries) {
     const { glyph, source } = entry
     const origin = strip.tiling === "character" ? entry.x : entry.x - glyph.lineX
@@ -222,13 +219,13 @@ function paintStrip(ctx, entries, strip) {
       for (const [first, start, count] of rows) {
         const band = strip.depth + strip.top - 1 - stripY(strip, source.glyph.bottom + start)
         const y = entry.top + glyph.height - 1 - first
-        pattern.setTransform(new DOMMatrix().translate(origin * R, (y - band) * R).scale(R / strip.density))
+        fillPattern(ctx, strip.image, new DOMMatrix().translate(origin * R, (y - band) * R).scale(R / strip.density))
         fillRect(ctx, [entry.x, y - count + 1, entry.width, count])
       }
     }
     for (const [y, from, depth] of [[entry.up, 0, entry.upHeight], [entry.down, strip.depth + strip.top - strip.bottom, entry.downHeight]]) {
       const stretch = depth / strip.depth
-      pattern.setTransform(new DOMMatrix().translate(origin * R, (y - from * stretch) * R).scale(R / strip.density, R / strip.density * stretch))
+      fillPattern(ctx, strip.image, new DOMMatrix().translate(origin * R, (y - from * stretch) * R).scale(R / strip.density, R / strip.density * stretch))
       fillRect(ctx, [entry.x, y, entry.width, depth])
     }
   }

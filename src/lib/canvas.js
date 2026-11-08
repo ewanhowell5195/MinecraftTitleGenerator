@@ -13,6 +13,13 @@ export function surface(width, height, options) {
   return result
 }
 
+export function fillPattern(ctx, image, matrix) {
+  // Safari keeps a pattern's first transform, so every transform needs a fresh pattern
+  const pattern = ctx.createPattern(image, "repeat")
+  pattern.setTransform(matrix)
+  ctx.fillStyle = pattern
+}
+
 let largest = 0
 
 export function canvasLimit() {
