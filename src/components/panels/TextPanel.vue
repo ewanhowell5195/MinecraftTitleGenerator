@@ -22,6 +22,15 @@
     if (line.value.length > 1 && scene.selectedGroup === null && scene.selected !== word.id) select(word)
   }
 
+  function typed(event, word) {
+    const field = event.target
+    const { selectionStart, selectionEnd } = field
+    word.text = field.value.toLowerCase()
+    if (field.value === word.text) return
+    field.value = word.text
+    field.setSelectionRange(selectionStart, selectionEnd)
+  }
+
   function capture() {
     const word = line.value.find(word => fields[word.id] === document.activeElement)
     picked = word ? { word, start: fields[word.id].selectionStart, end: fields[word.id].selectionEnd } : null
@@ -120,7 +129,7 @@
           <span v-if="line.length > 1" class="grip" @pointerdown="press($event, word)" title="Drag to reorder">
             <Icon name="grip" :size="14" />
           </span>
-          <input :ref="el => (fields[word.id] = el)" type="text" size="1" v-model="word.text" spellcheck="false" autocomplete="off" :placeholder="placeholder" :aria-label="line.length > 1 ? `Word ${index + 1}` : 'Text'" @focus="focus(word)" @keydown.backspace="backspace($event, word)">
+          <input :ref="el => (fields[word.id] = el)" type="text" size="1" :value="word.text" spellcheck="false" autocomplete="off" :placeholder="placeholder" :aria-label="line.length > 1 ? `Word ${index + 1}` : 'Text'" @input="typed($event, word)" @focus="focus(word)" @keydown.backspace="backspace($event, word)">
           <button v-if="line.length > 1" class="remove" tabindex="-1" @click.prevent="remove(word)" title="Remove this word">
             <Icon name="close" :size="12" />
           </button>
@@ -164,6 +173,7 @@
     padding: 6px 10px;
     font-size: var(--font-xl);
     font-weight: 600;
+    text-transform: lowercase;
   }
 
   .chip::after {
