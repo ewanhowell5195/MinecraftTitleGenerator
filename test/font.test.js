@@ -86,10 +86,18 @@ describe("scanMask", () => {
     assert.deepEqual(rows.map(row => row.top), [3])
   })
 
+  test("reads each pixel as the closest sheet colour", () => {
+    const { data, width, height } = mask(["RRRR", "B#.R", "G#.R", "RRRR"])
+    data.set([254, 1, 0], 0)
+    data.set([90, 200, 40], (2 * width) * 4)
+    data.set([100, 20, 120], (1 * width + 1) * 4)
+    assert.deepEqual(scanMask(data, width, height).rows.map(row => [row.top, row.bottom]), [[1, 2]])
+  })
+
   test("names the position and colour of an unknown pixel", () => {
     const { data, width, height } = mask(SHEET)
-    data.set([128, 64, 32], (1 * width + 1) * 4)
-    assert.throws(() => scanMask(data, width, height), { message: "unexpected colour at 1,1: rgb(128, 64, 32)" })
+    data.set([200, 180, 32], (1 * width + 1) * 4)
+    assert.throws(() => scanMask(data, width, height), { message: "unexpected colour at 1,1: rgb(200, 180, 32)" })
   })
 
   test("throws with fewer than two horizontal lines", () => {

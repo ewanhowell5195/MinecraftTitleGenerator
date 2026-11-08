@@ -15,16 +15,10 @@ const GRID = 2
 const BASELINE = 3
 const TOPLINE = 4
 
+const KINDS = [GLYPH, TOPLINE, BASELINE, -1, GRID, -1, -1, EMPTY]
+
 function classify(data, i) {
-  const r = data[i]
-  const g = data[i + 1]
-  const b = data[i + 2]
-  if (r === 255 && g === 255 && b === 255) return EMPTY
-  if (r === 0 && g === 0 && b === 0) return GLYPH
-  if (r === 255 && g === 0 && b === 0) return GRID
-  if (r === 0 && g === 255 && b === 0) return BASELINE
-  if (r === 0 && g === 0 && b === 255) return TOPLINE
-  return -1
+  return KINDS[(data[i] > 127) << 2 | (data[i + 1] > 127) << 1 | (data[i + 2] > 127)]
 }
 
 function classifyAll(data, width, height) {
