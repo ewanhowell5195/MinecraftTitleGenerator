@@ -45,10 +45,7 @@
       <template v-else>
         <GradientEditor v-model="object[group.stops]" :smooth="object[group.smooth]" :angle="group.direction ? END_ANGLES[object[group.direction]] : END_ANGLES.along" />
         <Toggle label="Smooth gradient" v-model="object[group.smooth]" />
-        <div v-if="group.direction" class="field">
-          <span class="label">Direction</span>
-          <Segments :options="DIRECTIONS" v-model="object[group.direction]" />
-        </div>
+        <Segments v-if="group.direction" label="Direction" :options="DIRECTIONS" v-model="object[group.direction]" />
       </template>
     </ColourToggle>
     <p v-if="group.inherits && object[group.inherits] && !object[group.custom]" class="hint">Uses the custom colour of the top and bottom faces.</p>

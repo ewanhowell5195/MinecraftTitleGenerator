@@ -140,17 +140,11 @@
 
   <Panel title="Image">
     <template v-if="framing.tab === 'minecraft'">
-      <div class="field">
-        <span class="label">Texture size</span>
-        <Segments :options="sizes" :model-value="textureSize()" @update:model-value="framing.textureSize = $event" />
-      </div>
+      <Segments label="Texture size" :options="sizes" :model-value="textureSize()" @update:model-value="framing.textureSize = $event" />
       <p class="hint">The title is rendered at the size it takes up in the texture.</p>
     </template>
     <template v-else>
-      <div class="field">
-        <span class="label">Resolution</span>
-        <Segments :options="presets" :model-value="custom ? 'custom' : view.resolution" @update:model-value="pick" />
-      </div>
+      <Segments label="Resolution" :options="presets" :model-value="custom ? 'custom' : view.resolution" @update:model-value="pick" />
       <Slider v-if="custom" label="Size" v-model="view.resolution" :min="128" :max="resolutionLimit()" log />
       <p class="hint">The longer side of the title, in pixels. The final size may differ slightly.</p>
     </template>
@@ -163,7 +157,7 @@
       <Icon name="download" :size="16" />
       <span>Save SVG</span>
     </button>
-    <p v-if="failed" class="failed">{{ failed }}</p>
+    <p v-if="failed" class="hint bad">{{ failed }}</p>
   </Panel>
 
   <RenderProgress v-if="progress !== null" :progress="progress" @close="cancel" />
@@ -190,11 +184,5 @@
 
   .times {
     color: var(--faint);
-  }
-
-  .failed {
-    margin: 0;
-    font-size: var(--font-md);
-    color: var(--danger);
   }
 </style>

@@ -9,10 +9,6 @@
   border-top: 1px solid var(--line);
 }
 
-.hint.bad {
-  color: var(--danger);
-}
-
 .checkbox {
   display: flex;
   align-items: center;

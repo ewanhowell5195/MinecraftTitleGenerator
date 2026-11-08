@@ -248,17 +248,8 @@
   }
 
   .grip {
-    display: flex;
     align-self: stretch;
-    align-items: center;
     margin-right: -4px;
-    color: var(--faint);
-    cursor: grab;
-    touch-action: none;
-  }
-
-  .grip:hover {
-    color: var(--text);
   }
 
   .layer.dragged,

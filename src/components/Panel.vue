@@ -16,7 +16,7 @@
       <div class="spacer"></div>
       <slot name="actions"></slot>
       <button v-if="modified" class="small ghost" @click="$emit('reset')" title="Reset to defaults">Reset</button>
-      <label v-if="enabled !== null" class="switch" :title="enabled ? 'Turn off' : 'Turn on'">
+      <label v-if="enabled !== null" class="toggle-switch" :title="enabled ? 'Turn off' : 'Turn on'">
         <input type="checkbox" v-model="enabled">
         <span></span>
       </label>

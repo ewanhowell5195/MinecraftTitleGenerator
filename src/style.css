@@ -87,6 +87,10 @@ p.hint {
   line-height: 1.45;
 }
 
+.hint.bad {
+  color: var(--danger);
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -159,7 +163,7 @@ button,
 
 button,
 .button,
-.switch,
+.toggle-switch,
 .toggle,
 .card,
 .layer,
@@ -174,6 +178,18 @@ button,
 button:hover,
 .button:hover {
   background: var(--card-hover);
+}
+
+.grip {
+  display: flex;
+  align-items: center;
+  color: var(--faint);
+  cursor: grab;
+  touch-action: none;
+}
+
+.grip:hover {
+  color: var(--text);
 }
 
 button:active:not(:disabled) {
@@ -273,7 +289,7 @@ button.link-button:hover {
 button:focus-visible,
 .button:focus-within,
 .card:focus-visible,
-.switch:focus-within span {
+.toggle-switch:focus-within span {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -318,7 +334,7 @@ button:focus-visible,
   align-items: center;
 }
 
-.switch {
+.toggle-switch {
   position: relative;
   flex: none;
   display: inline-block;
@@ -327,20 +343,20 @@ button:focus-visible,
   cursor: pointer;
 }
 
-.switch input {
+.toggle-switch input {
   position: absolute;
   opacity: 0;
   pointer-events: none;
 }
 
-.switch span {
+.toggle-switch span {
   position: absolute;
   inset: 0;
   background: var(--line-strong);
   transition: background 0.18s;
 }
 
-.switch span::after {
+.toggle-switch span::after {
   content: "";
   position: absolute;
   top: 3px;
@@ -351,11 +367,11 @@ button:focus-visible,
   transition: transform 0.18s;
 }
 
-.switch input:checked + span {
+.toggle-switch input:checked + span {
   background: var(--accent);
 }
 
-.switch input:checked + span::after {
+.toggle-switch input:checked + span::after {
   transform: translateX(16px);
 }
 

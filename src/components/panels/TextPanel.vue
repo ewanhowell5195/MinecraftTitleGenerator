@@ -215,16 +215,7 @@
     top: 0;
     bottom: 0;
     left: 1px;
-    display: flex;
-    align-items: center;
     padding: 0 4px;
-    color: var(--faint);
-    cursor: grab;
-    touch-action: none;
-  }
-
-  .grip:hover {
-    color: var(--text);
   }
 
   .chip.dragged {

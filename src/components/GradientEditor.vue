@@ -269,18 +269,6 @@
     box-shadow: var(--drag-shadow);
   }
 
-  .grip {
-    display: flex;
-    align-items: center;
-    color: var(--faint);
-    cursor: grab;
-    touch-action: none;
-  }
-
-  .grip:hover {
-    color: var(--text);
-  }
-
   .stop-row.dragged,
   .stop-row.dragged .grip {
     cursor: grabbing;

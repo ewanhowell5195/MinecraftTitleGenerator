@@ -162,7 +162,7 @@
           <span>Downloading Minecraft {{ jar.version }}</span>
           <div class="bar" role="progressbar" :aria-valuenow="Math.round(jarProgress * 100)" aria-valuemin="0" aria-valuemax="100"><div class="fill" :style="{ width: `${jarProgress * 100}%` }"></div></div>
         </div>
-        <p v-if="blocksError" class="hint">{{ blocksError }}</p>
+        <p v-if="blocksError" class="hint bad">{{ blocksError }}</p>
         <p v-else-if="blocks && !blockEntries.length" class="hint">This version has no block textures without transparency.</p>
         <template v-if="blockEntries.length">
           <input v-if="searchable(blockEntries)" type="text" v-model="search" placeholder="Search textures">

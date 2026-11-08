@@ -15,7 +15,7 @@
       <span class="label">{{ label }}</span>
       <span v-if="hint" class="hint">{{ hint }}</span>
     </span>
-    <span class="switch">
+    <span class="toggle-switch">
       <input type="checkbox" v-model="value" @change="$emit('change')">
       <span></span>
     </span>
