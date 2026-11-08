@@ -3,22 +3,18 @@
   import Slider from "../components/Slider.vue"
   import RenderView from "./RenderView.vue"
   import { previewFont, drawText } from "./textCanvas.js"
-  import { font } from "./store.js"
+  import { font, previewMode as mode, previewStretch as stretch, previewTerminators as terminators, previewText as text } from "./store.js"
 
   const SPLIT_WIDTH = 640
   const DRAW_DELAY = 40
   const EMPTY = "Nothing to show yet. Draw the characters in your preview text."
 
-  const text = ref("minecraft")
-  const terminators = ref(false)
-  const stretch = ref(0)
   const canvas = ref(null)
   const holder = ref(null)
   const views = ref(null)
   const empty = ref(false)
   const error = ref("")
   const wide = ref(true)
-  const mode = ref("2d")
   const request = computed(() => wide.value || mode.value === "3d" ? { font: toRaw(font.value), text: text.value, terminators: terminators.value, stretch: 1 + stretch.value / 100 } : null)
   let observer = null
   let timer = null
