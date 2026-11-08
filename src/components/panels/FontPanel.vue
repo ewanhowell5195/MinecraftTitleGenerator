@@ -129,7 +129,7 @@
         <input type="file" accept=".json,.png,.ttf,.otf,.woff,application/json,image/png,font/ttf,font/otf,font/woff" :disabled="loading" @change="upload">
       </label>
       <p v-if="customError" class="hint bad">{{ customError }}</p>
-      <p v-else class="hint">A JSON from the font editor, a Minecraft ascii.png, or a .ttf, .otf or .woff font. Uploaded fonts stay out of presets and share links.</p>
+      <p v-else class="hint">A JSON from the font editor, a Minecraft ascii.png, or a .ttf, .otf or .woff font.</p>
       <template v-if="imported && usingCustom">
         <label class="field">
           <span class="label">Height in pixels</span>
