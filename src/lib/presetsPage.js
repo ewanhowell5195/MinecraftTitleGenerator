@@ -32,14 +32,14 @@ export function openPresetsPage() {
   syncPresetsPage()
 }
 
-function showAddress(path) {
-  if (presetsPage.id !== null || presetsPage.code !== null) history.replaceState(null, "", path)
+function showAddress(path, replace = presetsPage.id !== null || presetsPage.code !== null) {
+  if (replace) history.replaceState(null, "", path)
   else history.pushState(null, "", path)
   syncPresetsPage()
 }
 
-export function showPreset(id) {
-  showAddress(id === null ? PATH : `${PATH}/${id}`)
+export function showPreset(id, { replace } = {}) {
+  showAddress(id === null ? PATH : `${PATH}/${id}`, replace)
 }
 
 export function showOwnPreset(code) {

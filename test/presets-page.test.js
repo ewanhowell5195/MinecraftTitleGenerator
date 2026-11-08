@@ -63,6 +63,14 @@ describe("preset addresses", () => {
     assert.equal(location.search, "")
   })
 
+  test("a preset can replace the list address", () => {
+    showPreset(null)
+    pushed.length = 0
+    showPreset(12, { replace: true })
+    assert.equal(presetsPage.id, 12)
+    assert.deepEqual(pushed, [])
+  })
+
   test("someone else's preset link opens the editor", () => {
     showOwnPreset("abc")
     openLinkInEditor("abc")
