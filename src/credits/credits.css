@@ -1,0 +1,117 @@
+.credits {
+  padding-top: clamp(104px, 14vh, 140px);
+}
+
+.intro h1 {
+  font-size: clamp(36px, 5.4vw, 60px);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.intro p {
+  max-width: 62ch;
+  margin-top: 14px;
+  font-size: 19px;
+}
+
+.people {
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+  margin-top: clamp(40px, 6vw, 64px);
+}
+
+.person header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+  border-bottom: 2px solid var(--line);
+}
+
+.person h2 {
+  font-size: 26px;
+  overflow-wrap: anywhere;
+}
+
+.person header p {
+  font-size: 15px;
+  color: var(--faint);
+}
+
+.pieces {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+  gap: 12px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.piece {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 8px 10px;
+  font-size: 13px;
+  line-height: 1.35;
+  background: var(--surface);
+}
+
+.thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 288 / 132;
+  margin-bottom: 6px;
+}
+
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.piece .name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.piece .where,
+.piece .based {
+  color: var(--faint);
+}
+
+.libraries {
+  margin-top: clamp(64px, 9vw, 104px);
+}
+
+.libraries h2 {
+  font-size: 26px;
+}
+
+.libraries ul {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0;
+  margin: 16px 0 0;
+  list-style: none;
+}
+
+@media (max-width: 600px) {
+  .intro p {
+    font-size: 17px;
+  }
+
+  .pieces {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+  }
+}

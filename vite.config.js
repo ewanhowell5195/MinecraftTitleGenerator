@@ -2,6 +2,7 @@ import vue from "@vitejs/plugin-vue"
 import fs from "node:fs"
 import path from "node:path"
 import { defineConfig } from "vite"
+import { creditsHtml } from "./src/server/credits.js"
 import { escaped } from "./src/server/http.js"
 import { linkedCode, linkedTitleDetails, presetDetails, shareTags } from "./src/server/presets.js"
 
@@ -48,6 +49,17 @@ const presetPages = {
   }
 }
 
+const creditsPage = {
+  name: "credits-page",
+  transformIndexHtml: {
+    order: "pre",
+    handler(html, context) {
+      if (context.path !== "/credits/index.html") return html
+      return html.replace("<main class=\"credits\"></main>", () => `<main class="credits">${creditsHtml(import.meta.dirname)}</main>`)
+    }
+  }
+}
+
 function allowCookiesOverHttp(proxy) {
   proxy.on("proxyRes", response => {
     const cookies = response.headers["set-cookie"]
@@ -56,7 +68,7 @@ function allowCookiesOverHttp(proxy) {
 }
 
 export default defineConfig({
-  plugins: [vue(), presetPages],
-  build: { rolldownOptions: { input: ["index.html", "app/index.html", "font-editor/index.html"] } },
+  plugins: [vue(), presetPages, creditsPage],
+  build: { rolldownOptions: { input: ["index.html", "app/index.html", "font-editor/index.html", "credits/index.html"] } },
   server: { host: "127.0.0.1", port: 9123, strictPort: true, proxy: { "/api": { target: LIVE, changeOrigin: true, configure: allowCookiesOverHttp } } }
 })
