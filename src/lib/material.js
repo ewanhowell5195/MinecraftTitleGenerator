@@ -340,13 +340,26 @@ export function buildAtlas(faces, options) {
     packWidth = Math.max(packWidth, size.width)
   }
 
-  for (const kind of ["top", "bottom"]) {
-    const members = options.internalFaces ? faces.filter(face => face.internal && face.kind === kind) : []
-    if (members.length) pack(members.map(face => ({ face, width: extent(face.points, 0).size, height: depth })))
+  function runsOf(list) {
+    const runs = new Map()
+    for (const face of list) {
+      const key = face.run ?? face
+      if (!runs.has(key)) runs.set(key, { kind: face.kind, name: face.name, glyph: face.glyph, faces: [], points: [] })
+      runs.get(key).faces.push(face)
+      runs.get(key).points.push(...face.points)
+    }
+    return Array.from(runs.values())
   }
-  const sides = options.sideFaces ? faces.filter(face => face.kind === "side") : []
+
+  const packed = []
+  for (const kind of ["top", "bottom"]) {
+    const members = options.internalFaces ? runsOf(faces.filter(face => face.internal && face.kind === kind)) : []
+    if (members.length) pack(members.map(face => ({ face, width: extent(face.points, 0).size, height: depth })))
+    packed.push(...members)
+  }
+  const sides = options.sideFaces ? runsOf(faces.filter(face => face.kind === "side")) : []
   if (sides.length) pack(sides.map(face => ({ face, width: depth, height: extent(face.points, 1).size })))
-  const packed = faces.filter(face => face.rect)
+  packed.push(...sides)
 
   const edges = faces.filter(face => face.kind === "side" ? !options.sideFaces : face.kind === "front" ? painted.fade !== null : face.internal && !options.internalFaces)
   if (edges.length || options.outline) {
@@ -370,14 +383,12 @@ export function buildAtlas(faces, options) {
     }
   }
 
-  for (const face of packed) {
-    if (face.kind === "side") {
-      const span = extent(face.points, 1)
-      face.uvs = face.points.map(point => [face.rect.x + half + point[2], face.rect.y + (span.max - point[1])])
-      continue
+  for (const run of packed) {
+    const span = extent(run.points, run.kind === "side" ? 1 : 0)
+    for (const face of run.faces) {
+      if (run.kind === "side") face.uvs = face.points.map(point => [run.rect.x + half + point[2], run.rect.y + (span.max - point[1])])
+      else face.uvs = face.points.map(point => [run.rect.x + (point[0] - span.min), run.rect.y + (run.kind === "top" ? half + point[2] : half - point[2])])
     }
-    const span = extent(face.points, 0)
-    face.uvs = face.points.map(point => [face.rect.x + (point[0] - span.min), face.rect.y + (face.kind === "top" ? half + point[2] : half - point[2])])
   }
 
   for (const face of edges) {

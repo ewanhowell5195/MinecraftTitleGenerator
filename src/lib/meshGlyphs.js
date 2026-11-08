@@ -144,12 +144,53 @@ export function meshFaces(mesh, glyph, original, x, depth) {
     faces.push({ points: corners.slice().reverse().map(([px, py]) => [px, py, zBack]), kind: "back", name: "back", internal: false, mesh: true })
   }
   for (const ring of rings) {
+    let last = null
     for (let i = 0; i < ring.length; i++) {
       const face = wall(ring[i], ring[(i + 1) % ring.length], zFront, zBack, top, glyph.bottom)
-      if (face) faces.push(face)
+      if (!face) continue
+      face.run = last && last.kind === face.kind && last.name === face.name && last.internal === face.internal ? last.run : {}
+      faces.push(face)
+      last = face
     }
   }
   return { faces, rings }
+}
+
+function scanFill(rings, width, height, scale, bottom) {
+  const columns = width * scale
+  const rows = height * scale
+  const mask = new Uint8Array(columns * rows)
+  const edges = rings.flatMap(ring => ring.map((point, index) => [point, ring[(index + 1) % ring.length]])).filter(([p, q]) => p[1] !== q[1])
+  for (let row = 0; row < rows; row++) {
+    const y = bottom + (row + 0.5) / scale
+    const crossings = []
+    for (const [p, q] of edges) {
+      if (p[1] <= y === q[1] <= y) continue
+      crossings.push([p[0] + (y - p[1]) / (q[1] - p[1]) * (q[0] - p[0]), q[1] > p[1] ? 1 : -1])
+    }
+    crossings.sort((a, b) => a[0] - b[0])
+    let winding = 0
+    for (let i = 0; i < crossings.length - 1; i++) {
+      winding += crossings[i][1]
+      if (!winding) continue
+      const from = Math.max(0, Math.ceil(crossings[i][0] * scale - 0.5))
+      const to = Math.min(columns, Math.ceil(crossings[i + 1][0] * scale - 0.5))
+      if (to > from) mask.fill(1, row * columns + from, row * columns + to)
+    }
+  }
+  return mask
+}
+
+export function fineMasks(mesh, glyph, original) {
+  const masks = new Map()
+  return scale => {
+    if (!masks.has(scale)) {
+      const { lift, breaks } = rowMapping(glyph, original)
+      const rings = ringsOf(mesh.shapes).map(ring => divided(ring, breaks).map(([px, py]) => [px, lift(py)]))
+      masks.set(scale, scanFill(rings, glyph.width, glyph.height, scale, glyph.bottom))
+    }
+    return masks.get(scale)
+  }
 }
 
 function grown(rings, [sx, sy], [rx, ry]) {
