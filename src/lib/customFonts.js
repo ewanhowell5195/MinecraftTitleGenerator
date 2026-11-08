@@ -7,6 +7,7 @@ import { stripRows } from "./strips.js"
 import { pngUrl, serveFile } from "./virtualFiles.js"
 
 const OVERLAY_BASE = "#404040"
+export const PREVIEW_DETAIL = 3
 const KINDS = [["json", /\.json$/i], ["ascii", /\.png$/i], ["outline", /\.(ttf|otf|woff2?)$/i]]
 const built = new Map()
 const thumbnails = new Map()
@@ -69,13 +70,14 @@ function plainStrip(rows, colour) {
   return canvas
 }
 
-async function drawThumbnails(font, folder, strips) {
+async function drawThumbnails(font, folder, strips, meshes) {
   const { stripThumbnail, thumbnailScene } = await import("../fontEditor/stripThumbs.js")
-  const scene = thumbnailScene(font)
+  const scene = thumbnailScene(font, meshes)
   if (!scene) return {}
   const rows = stripRows({}, { top: scene.stripTop, bottom: scene.stripBottom }, scene.depth, scene.capHeight).rows
   const shaded = plainStrip(rows, OVERLAY_BASE)
   const drawn = { flat: stripThumbnail(scene, {}, plainStrip(rows, "#ffffff")) }
+  if (meshes) drawn.preview = stripThumbnail(scene, {}, plainStrip(rows, "#ffffff"), PREVIEW_DETAIL)
   for (const name of Object.keys(withGenerated({}))) drawn[name] = stripThumbnail(scene, { overlays: [{ overlay: name, blend: "source-over", colour: "#ffffff", colourBlend: "multiply", opacity: 100 }] }, shaded)
   for (const name of Object.keys(GENERATED_EDGE_OVERLAYS)) drawn[name] = stripThumbnail(scene, {}, shaded)
   const list = await fontTextures(folder, strips)
@@ -97,6 +99,6 @@ async function build(id, source) {
   serveFile(`${folder}/font.png`, pngUrl(buildSheet(font)))
   serveFile(`${folder}/textures/flat.png`, pngUrl(flatTexture(font)))
   serveFile(`${folder}/textures.json`, { primary: "flat", secondary: "flat", textures: { flat: { border: "#000000" } }, overlays: {} })
-  thumbnails.set(id, await drawThumbnails(font, folder, entry.strips))
+  thumbnails.set(id, await drawThumbnails(font, folder, entry.strips, entry.mesh?.glyphs))
   return entry
 }

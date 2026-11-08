@@ -1,7 +1,7 @@
 <script setup>
   import { computed, ref, watch } from "vue"
   import { fontCredit } from "../../lib/credits.js"
-  import { customFontEntry, customFontKind, customThumbnail } from "../../lib/customFonts.js"
+  import { PREVIEW_DETAIL, customFontEntry, customFontKind, customThumbnail } from "../../lib/customFonts.js"
   import { loadImage } from "../../lib/font.js"
   import { usePanel } from "../../lib/panel.js"
   import { library } from "../../lib/scene.js"
@@ -16,7 +16,6 @@
 
   const TABS = [{ value: "published", label: "All fonts" }, { value: "custom", label: "Custom" }]
   const IMPORT_HEIGHT = 40
-  const PREVIEW_SCALE = 3
   const BUILDS = [{ value: false, label: "Cubes" }, { value: true, label: "Mesh" }]
 
   const info = ref(false)
@@ -92,8 +91,9 @@
     try {
       const entry = await customFontEntry(source)
       customName.value = entry.name
-      const image = customThumbnail(entry.id, "flat")
-      customUnit.value = image && (await loadImage(image)).height * PREVIEW_SCALE
+      const detailed = customThumbnail(entry.id, "preview")
+      const image = detailed ?? customThumbnail(entry.id, "flat")
+      customUnit.value = image && (await loadImage(image)).height * (detailed ? 1 : PREVIEW_DETAIL)
       customImage.value = image
     } catch (err) {
       customError.value = `Couldn't use this font: ${err.message}`

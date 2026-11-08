@@ -3,6 +3,7 @@ import { pixelsOf } from "../lib/canvas.js"
 import { rgbOf } from "../lib/colour.js"
 import { generatedAlpha, withGenerated } from "../lib/generated.js"
 import { layout } from "../lib/layout.js"
+import { clamp } from "../lib/maths.js"
 import { defaultBorder, defaultDepth, overlayLayer } from "../lib/settings.js"
 import { stripRows, stripY } from "../lib/strips.js"
 import { previewFont } from "./textCanvas.js"
@@ -11,7 +12,7 @@ const MARGIN = 2
 const TEXT = "abc"
 const OVERLAYS = withGenerated({})
 
-export function thumbnailScene(font) {
+export function thumbnailScene(font, meshes = null) {
   const parsed = previewFont(font)
   const placed = layout(parsed, TEXT, { spacing: font.characterSpacing })
   if (!placed.length) return null
@@ -26,6 +27,7 @@ export function thumbnailScene(font) {
     capHeight: parsed.capHeight,
     depth: defaultDepth(font),
     ring,
+    meshes,
     frame: { width: maxX - minX + margin * 2, height: top - bottom + margin * 2 },
     stripTop: Math.max(parsed.capHeight, ...drawn.map(glyph => glyph.top)),
     stripBottom: Math.min(0, ...drawn.map(glyph => glyph.bottom)),
@@ -50,7 +52,93 @@ function filled(glyph, column, row) {
   return glyph.mask[(glyph.height - 1 - row) * glyph.width + column]
 }
 
-export function stripThumbnail(scene, entry, image) {
+function coverage(scene, size, items, grow) {
+  const canvas = document.createElement("canvas")
+  canvas.width = size.width
+  canvas.height = size.height
+  const ctx = canvas.getContext("2d")
+  ctx.fillStyle = "#ffffff"
+  ctx.strokeStyle = "#ffffff"
+  ctx.beginPath()
+  for (const { glyph, x, y } of items) {
+    for (const shape of scene.meshes[glyph.char]?.shapes ?? []) {
+      for (const ring of [shape.outer].concat(shape.holes)) {
+        for (const [index, [px, py]] of ring.entries()) {
+          const at = [(x + px) * size.scale, (y + glyph.top - py) * size.scale]
+          if (index) ctx.lineTo(...at)
+          else ctx.moveTo(...at)
+        }
+        ctx.closePath()
+      }
+    }
+  }
+  ctx.fill("nonzero")
+  if (grow) {
+    ctx.lineJoin = "round"
+    ctx.lineWidth = grow * 2
+    ctx.stroke()
+  }
+  return ctx.getImageData(0, 0, size.width, size.height).data
+}
+
+function meshThumbnail(scene, entry, image, detail) {
+  const pixels = pixelsOf(image)
+  const shape = stripRows(entry, { top: scene.stripTop, bottom: scene.stripBottom }, scene.depth, scene.capHeight)
+  const density = image.height / shape.rows
+  const scale = Math.max(1, Math.ceil(density)) * detail
+  const size = { width: scene.frame.width * scale, height: scene.frame.height * scale, scale }
+  const data = new Uint8ClampedArray(size.width * size.height * 4)
+  if (scene.ring) {
+    const border = rgbOf(entry.border ?? "#000000")
+    const ring = coverage(scene, size, scene.placed, MARGIN * scale)
+    for (let i = 3; i < ring.length; i += 4) over(data, size.width, (i - 3) / 4 % size.width, Math.floor((i - 3) / 4 / size.width), border.concat(ring[i]))
+  }
+  const stripTop = shape.depth + shape.top
+  for (const item of scene.placed) {
+    const { glyph, x, y, lineX } = item
+    const origin = (entry.tiling ?? "line") === "character" ? 0 : lineX
+    const solid = coverage(scene, size, [item], 0)
+    for (let at = 3; at < solid.length; at += 4) {
+      if (!solid[at]) continue
+      const px = (at - 3) / 4 % size.width
+      const py = Math.floor((at - 3) / 4 / size.width)
+      const across = (px + 0.5) / scale - x
+      const down = clamp((py + 0.5) / scale - y, 0, glyph.height - 0.001)
+      const row = stripTop - 1 - stripY(shape, glyph.top - 1 - Math.floor(down))
+      const sx = ((Math.floor((origin + across) * density) % image.width) + image.width) % image.width
+      const sy = clamp(Math.floor((row + down % 1) * density), 0, image.height - 1)
+      const k = (sy * image.width + sx) * 4
+      over(data, size.width, px, py, [pixels[k], pixels[k + 1], pixels[k + 2], Math.round(pixels[k + 3] * solid[at] / 255)])
+    }
+  }
+  for (const layer of entry.overlays ?? []) {
+    const known = OVERLAYS[layer.overlay]
+    if (!known?.generated) continue
+    const settings = { ...overlayLayer(layer.overlay, known), ...layer }
+    const tint = rgbOf(settings.colour)
+    for (const { glyph, x, y } of scene.placed) {
+      const alpha = generatedAlpha({ ...glyph, placedX: x }, known.generated, settings, scene.capHeight, scale)
+      for (let py = 0; py < glyph.height * scale; py++) {
+        for (let px = 0; px < glyph.width * scale; px++) {
+          const strength = alpha[py * glyph.width * scale + px] * settings.opacity / 100
+          const i = ((y * scale + py) * size.width + x * scale + px) * 4
+          if (!strength || !data[i + 3]) continue
+          const base = [data[i], data[i + 1], data[i + 2]]
+          const mixed = blend(settings.blend, base, blend(settings.colourBlend, [255, 255, 255], tint))
+          for (let c = 0; c < 3; c++) data[i + c] = Math.round(base[c] + (mixed[c] - base[c]) * strength)
+        }
+      }
+    }
+  }
+  const canvas = document.createElement("canvas")
+  canvas.width = size.width
+  canvas.height = size.height
+  canvas.getContext("2d").putImageData(new ImageData(data, size.width, size.height), 0, 0)
+  return canvas.toDataURL("image/png")
+}
+
+export function stripThumbnail(scene, entry, image, detail = 1) {
+  if (scene.meshes) return meshThumbnail(scene, entry, image, detail)
   const pixels = pixelsOf(image)
   const shape = stripRows(entry, { top: scene.stripTop, bottom: scene.stripBottom }, scene.depth, scene.capHeight)
   const density = image.height / shape.rows
