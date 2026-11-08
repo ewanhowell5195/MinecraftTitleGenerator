@@ -208,11 +208,37 @@ function stripRuns(map) {
   return runs
 }
 
+function stretchedStrip(strip, low, high) {
+  const { image, density } = strip
+  if (!stretchedStrips.has(image)) stretchedStrips.set(image, new Map())
+  return remember(stretchedStrips.get(image), JSON.stringify([strip.scale, density, strip.depth, strip.top, low, high]), () => {
+    const out = surface(image.width, (high - low + 1) * density)
+    for (let at = low; at <= high; at++) {
+      const from = ((strip.depth + strip.top - 1 - stripY(strip, at)) * density % image.height + image.height) % image.height
+      const to = (high - at) * density
+      const first = Math.min(density, image.height - from)
+      out.ctx.drawImage(image, 0, from, image.width, first, 0, to, image.width, first)
+      if (first < density) out.ctx.drawImage(image, 0, 0, image.width, density - first, 0, to + first, image.width, density - first)
+    }
+    return out.canvas
+  })
+}
+
 function paintStrip(ctx, entries, strip) {
-  for (const entry of entries) {
+  const runs = new Map(entries.map(entry => [entry, stripRuns(entry.glyph.arc.map)]))
+  const spans = Array.from(runs).flatMap(([entry, list]) => list.flatMap(run => [entry.source.glyph.bottom + run.from, entry.source.glyph.bottom + run.from + run.height - 1]))
+  const high = Math.max(...spans)
+  const stretched = strip.scale && Number.isInteger(strip.density) && spans.length ? stretchedStrip(strip, Math.min(...spans), high) : null
+  for (const [entry, list] of runs) {
     const { glyph, source } = entry
     const origin = strip.tiling === "character" ? entry.x : entry.x - glyph.lineX
-    for (const { row, from, height } of stripRuns(glyph.arc.map)) {
+    for (const { row, from, height } of list) {
+      if (stretched) {
+        const y = entry.top + glyph.height - 1 - row
+        fillPattern(ctx, stretched, new DOMMatrix().translate(origin * R, (y - high + source.glyph.bottom + from) * R).scale(R / strip.density))
+        fillRect(ctx, [entry.x, y - height + 1, entry.width, height])
+        continue
+      }
       const rows = strip.scale ? Array.from({ length: height }, (_, step) => [row + step, from + step, 1]) : [[row, from, height]]
       for (const [first, start, count] of rows) {
         const band = strip.depth + strip.top - 1 - stripY(strip, source.glyph.bottom + start)
@@ -273,6 +299,7 @@ function colourOverlay(mask, layer) {
 
 const ids = new WeakMap()
 const overlays = new WeakMap()
+const stretchedStrips = new WeakMap()
 const adjustedColours = new Map()
 let nextId = 0
 
