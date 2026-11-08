@@ -199,7 +199,7 @@
       <Tile v-for="[id, data] of shown" :key="id" :label="data.name ?? titleCase(id)" :unit="thumbnailHeight(font)" :image="thumbnail(font, id)" :author="credit(data, font?.id, library.fonts)" :selected="layer?.overlay === id" :save="data.generated ? null : 'Download this overlay'" @pick="pickOverlay(id)" @save="saveSheet(font, 'overlays', id)" />
     </div>
     <template v-else>
-      <div class="file">
+      <div class="upload-preview">
         <img v-if="layer?.file" :src="layer.file" alt="">
         <div v-else class="empty">No file selected</div>
       </div>
@@ -268,26 +268,5 @@
 
   .scroll {
     max-height: 360px;
-  }
-
-  .file {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 88px;
-    padding: 8px;
-    background: var(--field);
-    border: 2px dashed var(--line-strong);
-  }
-
-  .file img {
-    max-width: 100%;
-    max-height: 140px;
-    image-rendering: pixelated;
-  }
-
-  .file .empty {
-    font-size: var(--font-md);
-    color: var(--faint);
   }
 </style>

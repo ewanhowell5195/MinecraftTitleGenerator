@@ -144,6 +144,8 @@ const PANELS = {
     tileableSource: "premade",
     minecraftTexture: "cobblestone",
     minecraftVersion: null,
+    customTexture: null,
+    customTextureMode: "standard",
     stops: stops("top"),
     smooth: true,
     gradientAngle: 0,
@@ -244,7 +246,8 @@ export const TRANSFORM_LIMITS = { scale: [0.05, 4], rotation: [-180, 180], trans
 const TEXTURE_TABS = {
   premade: ["texture", "textureVariant"],
   tileable: ["tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "tileablePerCharacter"],
-  gradient: ["stops", "smooth", "gradientAngle"]
+  gradient: ["stops", "smooth", "gradientAngle"],
+  custom: ["customTexture", "customTextureMode"]
 }
 
 const TYPE_KEYS = {

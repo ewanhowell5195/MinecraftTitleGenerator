@@ -79,6 +79,8 @@ const TOP_DEFAULTS = {
   tileableSource: "premade",
   minecraftTexture: "cobblestone",
   minecraftVersion: null,
+  customTexture: null,
+  customTextureMode: "standard",
   stops: [{ colour: "#FFCF76", position: 0 }, { colour: "#DA371E", position: 100 }],
   smooth: true,
   gradientAngle: 0,

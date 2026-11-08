@@ -14,7 +14,9 @@ import { DEFAULT_CAP_HEIGHT, DEFAULT_HEIGHT, rowStart } from "../lib/rows.js"
 import { editorTitle, keepTexture, loadedFont, words } from "../lib/scene.js"
 import { activeOverlays, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, effectiveScale, setTexture, textureEntry } from "../lib/settings.js"
 
-const BASE = ["font", "source", "texture", "textureVariant", "tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "stops", "smooth", "gradientAngle", "arcGradient", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "tileablePerCharacter", "disableFontOverlay", "edgeBrightness"]
+const BASE = ["font", "source", "texture", "textureVariant", "tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "customTexture", "stops", "smooth", "gradientAngle", "arcGradient", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "tileablePerCharacter", "disableFontOverlay", "edgeBrightness"]
+
+const CUSTOM_SOURCES = { standard: "texture", tileable: "tile", strip: "strip" }
 
 const LAYOUT = new Set(["spacing", "kerning", "arcMode", "arcTop", "arcBottom", "arcMove", "arcCentre", "arcMarked", "stretch", "terminators", "twist"])
 
@@ -49,6 +51,7 @@ export default {
     const source = computed(() => {
       if (object.textureSource === "gradient") return "gradient"
       if (object.textureSource === "tileable") return "tile"
+      if (object.textureSource === "custom") return object.customTexture ? CUSTOM_SOURCES[object.customTextureMode] : "texture"
       if (list.value && textureEntry(list.value, object)?.type === "strip") return "strip"
       return "texture"
     })
@@ -67,6 +70,7 @@ export default {
       tileableSource: object.tileableSource,
       minecraftTexture: object.minecraftTexture,
       minecraftVersion: object.minecraftVersion,
+      customTexture: object.customTexture,
       stops: plainStops(object.stops),
       smooth: object.smooth,
       gradientAngle: object.gradientAngle,
@@ -216,7 +220,9 @@ export default {
     async function loadAssets(value) {
       const assets = { shape: sheetImage("textures/flat.png"), border: list.value.textures.flat?.border ?? "#000000", densities: [] }
       if (value.source === "gradient") assets.densities.push(1)
-      if (value.source === "texture") {
+      if (value.source === "texture" && object.textureSource === "custom") {
+        assets.base = object.customTexture ? image(object.customTexture) : sheetImage("textures/flat.png")
+      } else if (value.source === "texture") {
         const premade = textureEntry(list.value, object)
         const id = premade ? object.textureVariant ?? object.texture : "flat"
         assets.base = sheetImage(`textures/${id}.png`)
@@ -224,9 +230,10 @@ export default {
         assets.densities.push((premade || list.value.textures.flat)?.density ?? 1)
       }
       if (value.source === "strip") {
-        const entry = textureEntry(list.value, object)
-        const id = object.textureVariant ?? object.texture
-        const strip = await image(`${entry.folder ?? font.value.sheetFolder}/textures/${id}.png`)
+        const custom = object.textureSource === "custom"
+        const entry = custom ? {} : textureEntry(list.value, object)
+        const id = custom ? "custom" : object.textureVariant ?? object.texture
+        const strip = await image(custom ? object.customTexture : `${entry.folder ?? font.value.sheetFolder}/textures/${id}.png`)
         const { depth, top, bottom, rows, scale } = stripRows(entry, stripRange(font.value), defaultDepth(font.value), font.value.capHeight)
         const density = strip.height / rows
         const tiling = entry.tiling ?? "line"
@@ -236,7 +243,7 @@ export default {
         assets.densities.push(Math.max(1, density))
       }
       if (value.source === "tile") {
-        assets.tile = object.tileableSource === "minecraft" ? blockTextureImage(object.minecraftVersion, object.minecraftTexture) : image(tileableUrl(props.tileables, object.tileable, object.tileableVariant))
+        assets.tile = object.textureSource === "custom" ? image(object.customTexture) : object.tileableSource === "minecraft" ? blockTextureImage(object.minecraftVersion, object.minecraftTexture) : image(tileableUrl(props.tileables, object.tileable, object.tileableVariant))
         assets.densities.push(1 / object.tileableScale)
       }
       if (value.source !== "texture" && font.value.overlay && !object.disableFontOverlay) {
@@ -268,6 +275,7 @@ export default {
       for (const [index, key] of keys.entries()) assets[key] = loaded[index]
       assets.overlays = overlays
       for (const file of sizes) assets.densities.push(file.width / sheet.value.width)
+      if (value.source === "texture" && object.textureSource === "custom") assets.densities.push(assets.base.width / sheet.value.width)
       assets.edgeOverlays = value.edgeOverlays.flatMap(layer => list.value.edgeOverlays[layer.overlay] ? [{ layer, generated: list.value.edgeOverlays[layer.overlay].generated }] : [])
       return assets
     }

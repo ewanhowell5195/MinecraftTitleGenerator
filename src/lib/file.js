@@ -10,7 +10,9 @@ export const EXTENSION = "mctitle"
 
 const UNUSED = [
   [object => object.textureSource !== "premade", ["texture", "textureVariant"]],
-  [object => object.textureSource !== "tileable", ["tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "tileablePerCharacter"]],
+  [object => object.textureSource !== "tileable", ["tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion"]],
+  [object => object.textureSource !== "tileable" && !(object.textureSource === "custom" && object.customTextureMode === "tileable"), ["tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "tileablePerCharacter"]],
+  [object => object.textureSource !== "custom", ["customTexture", "customTextureMode"]],
   [object => object.tileableSource !== "minecraft", ["minecraftTexture", "minecraftVersion"]],
   [object => object.tileableSource === "minecraft", ["tileable", "tileableVariant"]],
   [object => object.textureSource !== "gradient", ["stops", "smooth", "gradientAngle"]],
@@ -105,6 +107,7 @@ function twistCentres(values) {
 }
 
 function expand(values) {
+  if (values.customTexture && !values.customTexture.startsWith("data:image/")) throw new Error("it has a texture image that isn't embedded in it")
   const object = { ...typeDefaults(values.type ?? "top"), ...twistCentres(values) }
   for (const key of LAYERS) {
     if (values[key]) object[key] = values[key].map(expandLayer)

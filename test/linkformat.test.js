@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import fs from "node:fs"
 import { describe, test } from "node:test"
 import { GENERATED_SETTINGS } from "../src/lib/generated.js"
-import { decodeTitle, encodeTitle, readLines, unknownSetting, writeLines } from "../src/lib/linkformat.js"
+import { UPLOAD_KEYS, decodeTitle, encodeTitle, readLines, unknownSetting, writeLines } from "../src/lib/linkformat.js"
 import { LAYER, typeDefaults } from "../src/lib/settings.js"
 
 const fixtures = JSON.parse(fs.readFileSync(new URL("links.json", import.meta.url), "utf8"))
@@ -38,7 +38,7 @@ describe("old links", () => {
 describe("settings table", () => {
   const { group, ...settings } = typeDefaults("top")
 
-  for (const [key, value] of Object.entries(settings)) {
+  for (const [key, value] of Object.entries(settings).filter(([key]) => !UPLOAD_KEYS.includes(key))) {
     test(`${key} is stored compactly`, () => {
       assert.ok(isCompact(key, value))
       assert.deepEqual(roundTrip([{ [key]: value }])[0][key], Array.isArray(value) && key === "stops" ? value.map(stop => ({ ...stop, colour: stop.colour.toLowerCase() })) : value)
@@ -273,5 +273,13 @@ describe("fonts in links", () => {
   test("every published font is stored compactly", () => {
     const list = JSON.parse(fs.readFileSync(new URL("../public/font/fonts.json", import.meta.url), "utf8"))
     for (const entry of list.flatMap(({ variants, ...font }) => [font].concat(variants ?? []))) assert.ok(isCompact("font", entry.id), entry.id)
+  })
+})
+
+describe("uploads in links", () => {
+  test("a custom texture is left out and counted", () => {
+    const { code, skipped } = encodeTitle({ version: 1, lines: [{ text: "a", textureSource: "custom", customTexture: "data:image/png;base64,AAAA", customTextureMode: "tileable", tileableScale: 3 }] })
+    assert.equal(skipped, 1)
+    assert.deepEqual(decodeTitle(code).lines, [{ text: "a", tileableScale: 3 }])
   })
 })

@@ -365,12 +365,15 @@ function fromBase64Url(text) {
 }
 
 function countUploads(entry) {
-  const own = LAYERS.flatMap(key => entry[key] ?? []).filter(layer => layer.source === "file" && layer.file).length
+  const own = LAYERS.flatMap(key => entry[key] ?? []).filter(layer => layer.source === "file" && layer.file).length + (entry.textureSource === "custom" ? 1 : 0)
   return (entry.words ?? []).reduce((total, word) => total + countUploads(word), own)
 }
 
+export const UPLOAD_KEYS = ["customTexture", "customTextureMode"]
+
 function withoutUploads(entry) {
-  const stripped = { ...entry }
+  const stripped = Object.fromEntries(Object.entries(entry).filter(([key]) => !UPLOAD_KEYS.includes(key)))
+  if (entry.textureSource === "custom") delete stripped.textureSource
   for (const key of LAYERS) {
     if (entry[key]) stripped[key] = entry[key].filter(layer => layer.source !== "file").map(({ file, ...layer }) => layer)
   }
