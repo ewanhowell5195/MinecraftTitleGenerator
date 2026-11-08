@@ -443,6 +443,7 @@ export default {
           object.wordBorder = null
         })
       } else if (object.texture === null) quietly(() => (object.texture = defaultTexture(textures, object.type)))
+      if (loaded.mesh && object.textureSource === "custom") quietly(() => setTexture(object, { textureSource: "premade" }))
       keepTexture.delete(object)
       loadedFont.set(object, loaded.id)
       font.value = loaded

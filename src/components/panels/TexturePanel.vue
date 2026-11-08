@@ -27,6 +27,7 @@
 
   const { object, font, list, modified, reset } = usePanel("texture")
   const tiling = usePanel("tiling")
+  const sources = computed(() => font.value?.mesh ? SOURCES.filter(source => source.value !== "custom") : SOURCES)
   const search = ref("")
   const tileSize = ref({ width: 16, height: 16 })
   const blocks = shallowRef(null)
@@ -167,7 +168,7 @@
 <template>
   <Panel title="Source" :modified="modified" @reset="reset">
     <div class="flow" :class="{ pick: object.textureSource === 'premade' || object.textureSource === 'tileable', peek: object.textureSource === 'tileable' }">
-      <Segments :options="SOURCES" :model-value="object.textureSource" @update:model-value="chooseSource" />
+      <Segments :options="sources" :model-value="object.textureSource" @update:model-value="chooseSource" />
 
       <template v-if="object.textureSource === 'premade'">
         <input v-if="searchable(textures)" type="text" v-model="search" placeholder="Search textures">
