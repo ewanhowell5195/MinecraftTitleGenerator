@@ -7,7 +7,7 @@
   import { notice } from "../lib/notices.js"
   import { addPreset, deleteSharedPreset, loadPreset, presets, presetsError, presetsLoaded, presetsLoading, removePreset, renamePreset, renameSharedPreset, unmarkShared, unsharePreset } from "../lib/presets.js"
   import { parseSearch, searchWithUser } from "../lib/presetSearch.js"
-  import { closePresetsPage, leavePresetsForEditor, openLinkInEditor, presetsPage, showOwnPreset, showPreset } from "../lib/presetsPage.js"
+  import { closePresetsPage, leavePresetsForEditor, openLinkInEditor, presetsPage, showOwnPreset, showPreset, takeLanding } from "../lib/presetsPage.js"
   import { providerLabel } from "../lib/providers.js"
   import { openSharedLink } from "../lib/share.js"
   import AccountMenu from "./AccountMenu.vue"
@@ -24,8 +24,10 @@
   const SORTS = [{ value: "week", label: "Popular this week" }, { value: "popular", label: "Popular all time" }, { value: "top", label: "Top rated" }, { value: "new", label: "Newest" }, { value: "needs", label: "Needs votes" }]
   const SEARCH_DELAY = 500
   const EDITOR_TITLE = "Minecraft Title Generator"
+  const TAB_STORAGE = "minecraft-title-presets-tab"
 
-  const tab = ref(presetsPage.code !== null || presetsPage.fromEditor && presetsPage.id === null && presets.value.length ? "mine" : "community")
+  const landed = takeLanding()
+  const tab = ref(startingTab())
   const sort = ref("week")
   const search = ref("")
   const results = ref([])
@@ -58,6 +60,30 @@
   let next = 0
   let searching = null
   let observer = null
+
+  function storedTab(storage) {
+    return storage.getItem(TAB_STORAGE) === "mine" ? "mine" : "community"
+  }
+
+  function startingTab() {
+    if (presetsPage.code !== null) return "mine"
+    if (!landed) return presetsPage.id === null ? storedTab(localStorage) : "community"
+    return performance.getEntriesByType("navigation")[0]?.type === "reload" ? storedTab(sessionStorage) : "community"
+  }
+
+  function rememberTab(value) {
+    localStorage.setItem(TAB_STORAGE, value)
+    sessionStorage.setItem(TAB_STORAGE, value)
+  }
+
+  async function followOwnShared(id) {
+    await refreshAccount()
+    await presetsLoaded()
+    const own = presets.value.find(preset => preset.shared === id)
+    if (presetsPage.id !== id) return
+    if (own) selectedLocalCode.value = own.code
+    else followAddress()
+  }
 
   function isMine(preset) {
     return ownPresets.value.includes(preset.id)
@@ -255,6 +281,7 @@
   useWindowEvents(() => true, { keydown: key })
 
   watch(tab, value => {
+    rememberTab(value)
     search.value = ""
     selectedLocalCode.value = null
     if (value === "community") {
@@ -296,7 +323,9 @@
     refreshUsage()
     refreshAccount()
     if (tab.value === "community") load(0)
-    followAddress()
+    rememberTab(tab.value)
+    if (landed && tab.value === "mine" && presetsPage.id !== null) followOwnShared(presetsPage.id)
+    else followAddress()
     observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting && tab.value === "community" && more.value && !loading.value) load(next)
     }, { rootMargin: "300px" })
