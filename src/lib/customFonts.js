@@ -57,7 +57,7 @@ async function editorFont({ kind, data, height, lowercase, mesh }) {
   }
   const { fontFromOutlines, meshOutlines, parseFontFile } = await import("./fontImport.js")
   const source = await parseFontFile(await (await fetch(data)).arrayBuffer())
-  return { font: fontFromOutlines(source, { height, lowercase }), outlines: mesh ? meshOutlines(source, { height, lowercase }) : null }
+  return { font: fontFromOutlines(source, { height, lowercase }), outlines: meshOutlines(source, { height, lowercase }), mesh }
 }
 
 function plainStrip(rows, colour) {
@@ -89,15 +89,16 @@ async function drawThumbnails(font, folder, strips, mesh) {
 
 async function build(id, source) {
   const { buildSheet, exportJson, flatTexture } = await import("./fontEditor.js")
-  const { font, outlines } = await editorFont(source)
+  const { font, outlines, mesh } = await editorFont(source)
   const { editor, ...entry } = { ...exportJson(font, ""), id, name: font.name || "Custom font" }
-  if (outlines) {
+  if (outlines) entry.outlines = outlines
+  if (mesh) {
     const tools = await import("./meshGlyphs.js")
     entry.mesh = { glyphs: tools.glyphMeshes(outlines), tools }
   }
   const folder = `font/${id}`
   serveFile(`${folder}/font.png`, pngUrl(buildSheet(font)))
-  serveFile(`${folder}/textures/flat.png`, pngUrl(flatTexture(font, !!outlines)))
+  serveFile(`${folder}/textures/flat.png`, pngUrl(flatTexture(font, !!mesh)))
   serveFile(`${folder}/textures.json`, { primary: "flat", secondary: "flat", textures: { flat: { border: "#000000" } }, overlays: {} })
   thumbnails.set(id, await drawThumbnails(font, folder, entry.strips, entry.mesh))
   return entry

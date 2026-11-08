@@ -2,6 +2,8 @@ import { boxFaces, boxesFor } from "./boxes.js"
 import { SPACE } from "./layout.js"
 import { buildAtlas } from "./material.js"
 
+const EDGE_SHARE = 0.1
+
 function expand(bounds, faces) {
   for (const face of faces) {
     for (const point of face.points) {
@@ -23,6 +25,43 @@ function shift({ body, boxes, rings }, axis, offset) {
   }
   for (const ring of rings ?? []) {
     for (const point of ring) point[axis] += offset
+  }
+}
+
+function gentleAt(contours, x, y) {
+  let nearest = Infinity
+  let gentle = false
+  for (const points of contours) {
+    for (let i = 0; i < points.length; i++) {
+      const [x0, y0] = points[i]
+      const [x1, y1] = points[(i + 1) % points.length]
+      const dx = x1 - x0
+      const dy = y1 - y0
+      const t = dx || dy ? Math.max(0, Math.min(1, ((x - x0) * dx + (y - y0) * dy) / (dx * dx + dy * dy))) : 0
+      const distance = Math.hypot(x0 + t * dx - x, y0 + t * dy - y)
+      if (distance >= nearest) continue
+      nearest = distance
+      gentle = Math.abs(dy) <= Math.abs(dx)
+    }
+  }
+  return gentle
+}
+
+function sourceRow(glyph, original, row) {
+  const map = glyph.arc?.map
+  return original.bottom + (map ? map[Math.max(0, Math.min(map.length - 1, row))] : row)
+}
+
+function roundEdges(body, contours, glyph, original, x, reach) {
+  const top = glyph.bottom + glyph.height
+  for (const face of body) {
+    if (!face.internal || face.kind !== "top" && face.kind !== "bottom") continue
+    const y = face.points[0][1]
+    if (face.kind === "top" ? y < top - reach : y > glyph.bottom + reach) continue
+    const xs = face.points.map(point => point[0])
+    const across = (Math.min(...xs) + Math.max(...xs)) / 2 - x
+    const level = face.kind === "top" ? sourceRow(glyph, original, y - glyph.bottom - 1) + 1 : sourceRow(glyph, original, y - glyph.bottom)
+    if (gentleAt(contours, across, level)) face.internal = false
   }
 }
 
@@ -120,8 +159,10 @@ export function buildText(font, options) {
     const boxes = boxesFor(glyph.mask, glyph.width, glyph.height, item.x, glyph.bottom)
     const char = glyph.char.split("\u0000")[0]
     const mesh = font.mesh?.glyphs[char]
-    const shaped = mesh ? font.mesh.tools.meshFaces(mesh, glyph, font.glyphs[char], item.x, depth, font.capHeight) : null
+    const reach = font.capHeight * EDGE_SHARE
+    const shaped = mesh ? font.mesh.tools.meshFaces(mesh, glyph, font.glyphs[char], item.x, depth, reach) : null
     const body = shaped ? shaped.faces : boxFaces(boxes, -depth / 2, depth / 2)
+    if (!shaped && font.outlines?.[char]) roundEdges(body, font.outlines[char], glyph, font.glyphs[char], item.x, reach)
     for (const face of body) face.glyph = glyphs.length
     glyphs.push({ body, boxes, rings: shaped?.rings ?? null, spaces: item.spaces, char: glyph.char, rect: { minX: item.x, maxX: item.x + glyph.width, minY: glyph.bottom, maxY: glyph.bottom + glyph.height } })
     expand(bounds, body)

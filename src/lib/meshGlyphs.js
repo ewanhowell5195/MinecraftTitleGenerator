@@ -3,7 +3,6 @@ import { ShapeUtils, Vector2 } from "three"
 
 const PRECISION = 4
 const ARC_TOLERANCE = 0.05
-const EDGE_SHARE = 0.1
 const FAR = 1e6
 
 function signedArea(ring) {
@@ -129,7 +128,7 @@ function wall(p, q, zFront, zBack, top, bottom, reach) {
   return { points, kind, name: kind === "top" ? "up" : "down", internal, mesh: true }
 }
 
-export function meshFaces(mesh, glyph, original, x, depth, capHeight) {
+export function meshFaces(mesh, glyph, original, x, depth, reach) {
   const { lift, breaks, identity } = rowMapping(glyph, original)
   const place = ([px, py]) => [x + px, lift(py)]
   const triangles = identity ? mesh.triangles : bandTriangles(mesh.shapes, breaks)
@@ -146,7 +145,7 @@ export function meshFaces(mesh, glyph, original, x, depth, capHeight) {
   for (const ring of rings) {
     let last = null
     for (let i = 0; i < ring.length; i++) {
-      const face = wall(ring[i], ring[(i + 1) % ring.length], zFront, zBack, top, glyph.bottom, capHeight * EDGE_SHARE)
+      const face = wall(ring[i], ring[(i + 1) % ring.length], zFront, zBack, top, glyph.bottom, reach)
       if (!face) continue
       face.run = last && last.kind === face.kind && last.name === face.name && last.internal === face.internal ? last.run : {}
       faces.push(face)
