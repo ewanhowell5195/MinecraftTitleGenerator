@@ -2,11 +2,11 @@
   import { computed, onMounted, ref, shallowRef } from "vue"
   import Icon from "../components/Icon.vue"
   import Tile from "../components/Tile.vue"
-  import { loadFontList } from "../lib/font.js"
+  import { fullName, loadFontList } from "../lib/font.js"
   import { createFont } from "../lib/fontEditor.js"
   import { fontCredit } from "../lib/credits.js"
   import { fontThumbnail } from "../lib/ui.js"
-  import { fontFromList, fontFromUploads, fullName, imageOf } from "./loaders.js"
+  import { fontFromList, fontFromUploads, imageOf } from "./loaders.js"
   import { openFont } from "./store.js"
 
   const height = ref(10)

@@ -1,14 +1,9 @@
 import { pixelsOf } from "../lib/canvas.js"
 import { fontFromFiles, fontFromPublished, parseFontJson } from "../lib/fontEditor.js"
-import { loadImage, parseMask, sheetFolder, splitCells, fullOrder } from "../lib/font.js"
+import { fullName, loadImage, parseMask, sheetFolder, splitCells, fullOrder } from "../lib/font.js"
 
 function sheetFromImage(image) {
   return { data: pixelsOf(image), width: image.width, height: image.height }
-}
-
-export function fullName(entry, fonts) {
-  const parent = entry.variant && fonts.find(item => item.id === entry.variant)
-  return parent ? `${parent.name} ${entry.name}` : entry.name
 }
 
 export async function imageOf(file) {

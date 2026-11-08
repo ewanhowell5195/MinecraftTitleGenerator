@@ -2,9 +2,8 @@
   import { computed, onMounted, ref, shallowRef } from "vue"
   import Dropdown from "../components/Dropdown.vue"
   import Icon from "../components/Icon.vue"
-  import { loadFontList } from "../lib/font.js"
+  import { fullName, loadFontList } from "../lib/font.js"
   import { DEFAULT_BORDER, DEFAULT_DEPTH, DEFAULT_SPACE_WIDTH, autoStretch, lostPixels, resizeFont, setSquareSize, slug, squareSizeLoss, squaresOf } from "../lib/fontEditor.js"
-  import { fullName } from "./loaders.js"
   import { font, update } from "./store.js"
 
   const ABOUT = [

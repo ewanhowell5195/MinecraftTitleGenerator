@@ -1,6 +1,6 @@
 import { reactive } from "vue"
 import { fontTextures, stripTextures } from "./assets.js"
-import { sheetFolder, stripsOf } from "./font.js"
+import { fullName, sheetFolder, stripsOf } from "./font.js"
 import { titleCase } from "./names.js"
 
 const STRIPS = "strips."
@@ -47,7 +47,7 @@ export function findEntry(list, id) {
 function basedOnName(target, viewed, fonts) {
   if (target.owner === viewed) return titleCase(target.id)
   if (target.owner.startsWith(STRIPS)) return `${titleCase(target.owner.slice(STRIPS.length))} Strips: ${titleCase(target.id)}`
-  return `${fontNamed(target.owner, fonts).name}: ${titleCase(target.id)}`
+  return `${fullName(fontNamed(target.owner, fonts), fonts)}: ${titleCase(target.id)}`
 }
 
 function ownerOf(data, fallback) {
@@ -69,7 +69,7 @@ export function fontCredit(data, fonts) {
   if (!data.basedOn) return data.author ?? null
   const target = fonts.find(font => font.id === data.basedOn)
   if (!target) throw new Error(`${data.id} is based on ${data.basedOn}, which is not in the font list`)
-  return data.author ? `${data.author}, based on ${target.name}` : fontCredit(target, fonts)
+  return data.author ? `${data.author}, based on ${fullName(target, fonts)}` : fontCredit(target, fonts)
 }
 
 export function credit(data, fontId, fonts, parent = null) {

@@ -245,6 +245,11 @@ export function stripsOf(data, list) {
   return sheetOwner(data, list).strips ?? []
 }
 
+export function fullName(entry, fonts) {
+  const parent = entry.variant && fonts.find(item => item.id === entry.variant)
+  return parent ? `${parent.name}: ${entry.name}` : entry.name
+}
+
 export function flattenFonts(list) {
   return list.flatMap(({ variants, ...entry }) => [entry].concat((variants ?? []).map(variant => ({ ...variant, variant: entry.id }))))
 }

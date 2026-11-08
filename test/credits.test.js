@@ -92,6 +92,11 @@ describe("fontCredit", () => {
     assert.equal(of("copy2"), "porter, based on Plain")
   })
 
+  test("a font based on a variant names the variant after its parent", () => {
+    const listed = fonts.concat([{ id: "cyrillic", name: "Cyrillic", variant: "base" }, { id: "redrawn", name: "Redrawn", author: "porter", basedOn: "cyrillic" }])
+    assert.equal(fontCredit(listed.find(font => font.id === "redrawn"), listed), "porter, based on Base Font: Cyrillic")
+  })
+
   test("an unknown font fails loudly", () => {
     assert.throws(() => fontCredit({ id: "a", basedOn: "missing" }, fonts), /missing/)
   })
