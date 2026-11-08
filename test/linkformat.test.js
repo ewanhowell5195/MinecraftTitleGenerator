@@ -268,3 +268,10 @@ describe("damaged links", () => {
     })
   }
 })
+
+describe("fonts in links", () => {
+  test("every published font is stored compactly", () => {
+    const list = JSON.parse(fs.readFileSync(new URL("../public/font/fonts.json", import.meta.url), "utf8"))
+    for (const entry of list.flatMap(({ variants, ...font }) => [font].concat(variants ?? []))) assert.ok(isCompact("font", entry.id), entry.id)
+  })
+})

@@ -156,7 +156,7 @@ const KEYS = [
   ["type", choice("top", "bottom", "small")],
   ["words", OBJECTS],
   ["matchWidth", NUMBER],
-  ["font", choice("minecraft-ten", "minecraft-ten-v2", "minecraft-ten-cyrillic", "minecraft-five-bold", "minecraft-five-bold-cyrillic", "minecraft-five-bold-block", "minecraft-ten-outline", "minecraft-dungeons", "minecraft-gui", "minecraft-seven", "minecraft-five", "minecraft-sga", "block-serif", "minecraft-legends", "minecraft-ten-serif", "minecraft-ten-rounded")],
+  ["font", choice("minecraft-ten", "minecraft-ten-v2", "minecraft-ten-cyrillic", "minecraft-five-bold", "minecraft-five-bold-cyrillic", "minecraft-five-bold-block", "minecraft-ten-outline", "minecraft-dungeons", "minecraft-gui", "minecraft-seven", "minecraft-five", "minecraft-sga", "block-serif", "minecraft-legends", "minecraft-ten-serif", "minecraft-ten-rounded", "geo-squares")],
   ["hue", NUMBER],
   ["saturation", NUMBER],
   ["brightness", NUMBER],
