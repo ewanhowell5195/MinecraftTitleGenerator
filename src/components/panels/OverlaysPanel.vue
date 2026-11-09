@@ -31,6 +31,10 @@
   const overlays = computed(() => popular(Object.entries(available.value), ([id]) => `${font.value?.id}.${id}`, ([id, data]) => data.name ?? titleCase(id)))
   const selected = ref(0)
   const pending = ref("generated")
+
+  function overlayMenu(id, data) {
+    return data.generated ? null : [{ label: "Download overlay", icon: "download", action: () => saveSheet(font.value, "overlays", id) }]
+  }
   const defaults = computed(() => defaultOverlays(list.value, object.value, listKey))
   const layers = computed(() => activeOverlays(list.value, object.value, listKey))
   const layer = computed(() => layers.value[selected.value] ?? null)
@@ -196,7 +200,7 @@
     </div>
     <Segments v-if="!edge" :options="KINDS" :model-value="kind" @update:model-value="pickKind" />
     <div class="grid scroll" v-if="kind !== 'file'">
-      <Tile v-for="[id, data] of shown" :key="id" :label="data.name ?? titleCase(id)" :unit="thumbnailHeight(font)" :image="thumbnail(font, id)" :author="credit(data, font?.id, library.fonts)" :selected="layer?.overlay === id" :save="data.generated ? null : 'Download this overlay'" @pick="pickOverlay(id)" @save="saveSheet(font, 'overlays', id)" />
+      <Tile v-for="[id, data] of shown" :key="id" :label="data.name ?? titleCase(id)" :unit="thumbnailHeight(font)" :image="thumbnail(font, id)" :author="credit(data, font?.id, library.fonts)" :selected="layer?.overlay === id" :menu="overlayMenu(id, data)" :save="data.generated ? null : 'Download this overlay'" @pick="pickOverlay(id)" @save="saveSheet(font, 'overlays', id)" />
     </div>
     <template v-else>
       <div class="upload-preview">

@@ -49,6 +49,13 @@ export function tilePreview(tileables, id, variant) {
   return { backgroundImage: `url(${tileableUrl(tileables, id, variant)})` }
 }
 
+export async function saveImage(path, name) {
+  const source = await image(path)
+  const { canvas, ctx } = surface(source.width, source.height)
+  ctx.drawImage(source, 0, 0)
+  download(name, canvas.toDataURL())
+}
+
 export async function saveSheet(font, kind, id) {
   const [source, flat] = await Promise.all([image(`${font.sheetFolder}/${kind}/${id}.png`), image(`${font.sheetFolder}/textures/flat.png`)])
   const height = flat.height * source.width / flat.width

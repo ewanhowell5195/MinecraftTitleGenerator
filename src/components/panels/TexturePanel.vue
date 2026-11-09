@@ -8,7 +8,7 @@
   import { library } from "../../lib/scene.js"
   import { pinnedTextures, setTexture } from "../../lib/settings.js"
   import { minecraftStatId, popular } from "../../lib/stats.js"
-  import { readFile, thumbnail, thumbnailHeight, tilePreview } from "../../lib/ui.js"
+  import { readFile, saveImage, thumbnail, thumbnailHeight, tilePreview } from "../../lib/ui.js"
   import GradientEditor from "../GradientEditor.vue"
   import Icon from "../Icon.vue"
   import Panel from "../Panel.vue"
@@ -27,6 +27,18 @@
   const WHITE = "#ffffff"
 
   const { object, font, list, modified, reset } = usePanel("texture")
+
+  function textureMenu(id, data) {
+    return [{ label: "Download texture", icon: "download", action: () => saveImage(`${data.folder ?? font.value.sheetFolder}/textures/${id}.png`, `${id}.png`) }]
+  }
+
+  function blockMenu(id, data) {
+    return [{ label: "Download texture", icon: "download", action: () => saveImage(data.url, `${id}.png`) }]
+  }
+
+  function tileableMenu(id, variant = null) {
+    return [{ label: "Download tileable", icon: "download", action: () => saveImage(tileableUrl(library.tileables, id, variant), `${variant ?? id}.png`) }]
+  }
   const tiling = usePanel("tiling")
   const sources = computed(() => font.value?.mesh ? SOURCES.filter(source => source.value !== "custom") : SOURCES)
   const search = ref("")
@@ -191,13 +203,13 @@
       <template v-if="object.textureSource === 'premade'">
         <input v-if="searchable(textures)" type="text" v-model="search" placeholder="Search textures">
         <div class="grid scroll">
-          <Tile v-for="[id, data] of shownTextures" :key="id" :label="label(id, data)" :unit="thumbnailHeight(font)" :image="thumbnail(font, id)" :author="credit(data, font?.id, library.fonts)" :badge="variantBadge(data)" :selected="object.texture === id" @pick="setTexture(object, { texture: id, textureVariant: null })" />
+          <Tile v-for="[id, data] of shownTextures" :key="id" :label="label(id, data)" :unit="thumbnailHeight(font)" :image="thumbnail(font, id)" :author="credit(data, font?.id, library.fonts)" :badge="variantBadge(data)" :selected="object.texture === id" :menu="textureMenu(id, data)" @pick="setTexture(object, { texture: id, textureVariant: null })" />
         </div>
         <template v-if="textureVariants.length">
           <h3>Variants</h3>
           <div class="grid scroll variants" :style="{ '--rows': rows(textureVariants) }">
-            <Tile :label="list.textures[object.texture].name ?? titleCase(object.texture)" :unit="thumbnailHeight(font)" :image="thumbnail(font, object.texture)" :selected="!object.textureVariant" @pick="setTexture(object, { textureVariant: null })" />
-            <Tile v-for="[id, data] of textureVariants" :key="id" :label="data.name ?? titleCase(id)" :unit="thumbnailHeight(font)" :image="thumbnail(font, id)" :author="credit(data, font?.id, library.fonts, list.textures[object.texture])" :selected="object.textureVariant === id" @pick="setTexture(object, { textureVariant: id })" />
+            <Tile :label="list.textures[object.texture].name ?? titleCase(object.texture)" :unit="thumbnailHeight(font)" :image="thumbnail(font, object.texture)" :selected="!object.textureVariant" :menu="textureMenu(object.texture, list.textures[object.texture])" @pick="setTexture(object, { textureVariant: null })" />
+            <Tile v-for="[id, data] of textureVariants" :key="id" :label="data.name ?? titleCase(id)" :unit="thumbnailHeight(font)" :image="thumbnail(font, id)" :author="credit(data, font?.id, library.fonts, list.textures[object.texture])" :selected="object.textureVariant === id" :menu="textureMenu(id, { ...list.textures[object.texture], ...data })" @pick="setTexture(object, { textureVariant: id })" />
           </div>
         </template>
       </template>
@@ -218,7 +230,7 @@
         <template v-if="blockEntries.length">
           <input v-if="searchable(blockEntries)" type="text" v-model="search" placeholder="Search textures">
           <div class="grid scroll">
-            <Tile v-for="[id, data] of shownBlocks" :key="id" :label="data.name" :pattern="{ backgroundImage: `url(${data.url})` }" :author="data.author" :selected="object.minecraftTexture === id" @pick="pickBlock(id)" />
+            <Tile v-for="[id, data] of shownBlocks" :key="id" :label="data.name" :pattern="{ backgroundImage: `url(${data.url})` }" :author="data.author" :selected="object.minecraftTexture === id" :menu="blockMenu(id, data)" @pick="pickBlock(id)" />
           </div>
         </template>
         <VersionDialog v-if="choosingVersion" :current="object.minecraftVersion" @pick="chooseVersion" @close="choosingVersion = false" />
@@ -227,13 +239,13 @@
       <template v-if="object.textureSource === 'tileable' && !usingMinecraft">
         <input v-if="searchable(tileables)" type="text" v-model="search" placeholder="Search textures">
         <div class="grid scroll">
-          <Tile v-for="[id, data] of shownTileables" :key="id" :label="label(id, data)" :pattern="tilePreview(library.tileables, id)" :author="data.author" :badge="variantBadge(data)" :selected="object.tileable === id" @pick="object.tileable = id; object.tileableVariant = null" />
+          <Tile v-for="[id, data] of shownTileables" :key="id" :label="label(id, data)" :pattern="tilePreview(library.tileables, id)" :author="data.author" :badge="variantBadge(data)" :selected="object.tileable === id" :menu="tileableMenu(id)" @pick="object.tileable = id; object.tileableVariant = null" />
         </div>
         <template v-if="tileableVariants.length">
           <h3>Variants</h3>
           <div class="grid scroll variants" :style="{ '--rows': rows(tileableVariants) }">
-            <Tile :label="library.tileables[object.tileable].name" :pattern="tilePreview(library.tileables, object.tileable)" :selected="!object.tileableVariant" @pick="object.tileableVariant = null" />
-            <Tile v-for="[id, data] of tileableVariants" :key="id" :label="data.name" :pattern="tilePreview(library.tileables, object.tileable, id)" :author="data.author ?? library.tileables[object.tileable].author" :selected="object.tileableVariant === id" @pick="object.tileableVariant = id" />
+            <Tile :label="library.tileables[object.tileable].name" :pattern="tilePreview(library.tileables, object.tileable)" :selected="!object.tileableVariant" :menu="tileableMenu(object.tileable)" @pick="object.tileableVariant = null" />
+            <Tile v-for="[id, data] of tileableVariants" :key="id" :label="data.name" :pattern="tilePreview(library.tileables, object.tileable, id)" :author="data.author ?? library.tileables[object.tileable].author" :selected="object.tileableVariant === id" :menu="tileableMenu(object.tileable, id)" @pick="object.tileableVariant = id" />
           </div>
         </template>
       </template>

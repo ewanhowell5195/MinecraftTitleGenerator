@@ -52,7 +52,7 @@
 
   watch(() => props.at, at => {
     if (at) place()
-  })
+  }, { immediate: true })
 </script>
 
 <template>
