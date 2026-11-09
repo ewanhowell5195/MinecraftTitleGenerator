@@ -13,6 +13,7 @@ const PULL = "https://github.com/ewanhowell5195/MinecraftTitleGenerator/pull/222
 const PREVIEW = "https://submission-1.minecrafttitlegenerator.pages.dev/app/"
 const READY = new Set(["clean", "behind", "has_hooks"])
 const HOUR = 3600000
+const PROCESSING_TIME = 12000
 const ME = { id: "discord:1", provider: "discord", name: "ewanhowell5195", avatar: "https://cdn.discordapp.com/embed/avatars/1.png" }
 
 function asset(file) {
@@ -41,7 +42,9 @@ const SEEDS = [
   { kind: "font", target: "minecraft-ten", name: "Ten Greek", credit: "Alphabet Person", notes: "", details: {}, json: ["minecraft-ten-cyrillic", { id: "ten-greek", name: "Ten Greek" }], owner: ["alphabets", "github"], state: "dirty", age: 4, comments: [["", "submitter", "Sent before I deleted my account.", ""]] },
   { kind: "texture", target: "minecraft-five", name: "Five Flat", credit: "Gone", notes: "", details: { border: "#000000" }, file: "font/minecraft-five/textures/flat.png", owner: [null, null], state: "blocked", age: 3 },
   { kind: "texture", target: "minecraft-ten", name: "An Extremely Long Name For A Texture Xx", credit: "Somebody With A Very Long Credit Line That Goes On And On Xx", notes: "Notes can be long too. ".repeat(21).trim(), details: { border: "#ffffff" }, file: "font/minecraft-ten/textures/bevelled_gold.png", owner: ["averyveryverylongusernamehere", "discord"], state: "behind", age: 2 },
-  { kind: "texture", target: "minecraft-ten", name: "Flat Copy", credit: "Me", notes: "", details: { border: "#000000" }, file: "font/minecraft-ten/textures/flat.png", mine: true, state: "clean", age: 1 }
+  { kind: "texture", target: "minecraft-ten", name: "Flat Copy", credit: "Me", notes: "", details: { border: "#000000" }, file: "font/minecraft-ten/textures/flat.png", mine: true, state: "clean", age: 1 },
+  { kind: "overlay", target: "minecraft-ten", name: "Still Processing", credit: "Me", notes: "", details: {}, file: "font/minecraft-ten/overlays/bevel.png", mine: true, state: "unknown", processing: "processing", age: 0.1 },
+  { kind: "texture", target: "minecraft-ten", name: "Broken Build", credit: "Me", notes: "", details: { border: "#000000" }, file: "font/minecraft-ten/textures/flat.png", mine: true, state: "unstable", processing: "failed", age: 0.5 }
 ]
 
 const NEWS = [[1, "comment", "someone", "Is the border colour too dark?", false, 0.5], [9, "submitted", "ewanhowell5195", "", false, 1], [2, "submitted", "overlayfan", "", false, 20], [8, "edited", "averyveryverylongusernamehere", "", true, 2], [5, "changes", "ewanhowell5195", "Can you check the kerning on the lowercase t?", false, 5], [3, "published", "ewanhowell5195", "", true, 190], [4, "rejected", "ewanhowell5195", "This is already in the Minecraft textures list, so it isn't needed here.", true, 140]]
@@ -58,14 +61,14 @@ async function build() {
     if (Object.keys(problems).length) console.warn(`mock submission ${seed.name} wouldn't pass:`, problems)
     const [ownerName, ownerProvider] = seed.mine ? [ME.name, ME.provider] : seed.owner
     const id = index + 1
-    list.push({ id, kind: seed.kind, target: clean.target ?? seed.target, asset: "", name: seed.name, credit: seed.credit, notes: seed.notes, details: { ...seed.details, ...clean.details, ...(Object.keys(files).length && { files: Object.fromEntries(Object.keys(files).map(key => [key, `${key}-1`])) }) }, version: 1, status: seed.status ?? "open", pull: 222, createdAt: now - seed.age * HOUR, updatedAt: now - seed.age * HOUR, ownerName, ownerProvider, mine: !!seed.mine, state: seed.state ?? null, bytes, files, comments: (seed.comments ?? []).map(([author, role, body, url], at) => ({ id: id * 100 + at, author, role, body, url, createdAt: now - (seed.age - at - 0.2) * HOUR })) })
+    list.push({ id, kind: seed.kind, target: clean.target ?? seed.target, asset: "", name: seed.name, credit: seed.credit, notes: seed.notes, details: { ...seed.details, ...clean.details, ...(Object.keys(files).length && { files: Object.fromEntries(Object.keys(files).map(key => [key, `${key}-1`])) }) }, version: 1, status: seed.status ?? "open", pull: 222, createdAt: now - seed.age * HOUR, updatedAt: now - seed.age * HOUR, ownerName, ownerProvider, mine: !!seed.mine, state: seed.state ?? null, processing: seed.processing ?? "done", processedAt: 0, bytes, files, comments: (seed.comments ?? []).map(([author, role, body, url], at) => ({ id: id * 100 + at, author, role, body, url, createdAt: now - (seed.age - at - 0.2) * HOUR })) })
   }
   const notifications = NEWS.map(([submission, kind, author, body, seen, age], index) => ({ id: index + 1, submission, kind, author, body, url: "", seen, createdAt: now - age * HOUR }))
   return { list, notifications, signedIn: true, nextId: list.length + 1, ctx }
 }
 
 function shown(item) {
-  const { bytes, files, state, version, comments, ...rest } = item
+  const { bytes, files, state, version, comments, processing, processedAt, ...rest } = item
   return { ...rest, file: `mock-${item.id}-${version}`, pullUrl: item.pull ? PULL : null, previewUrl: item.status === "open" ? PREVIEW : null }
 }
 
@@ -134,7 +137,7 @@ export function mockSubmissions() {
               const problem = Object.values(problems)[0]
               if (problem) return send(res, 400, { error: problem })
               const id = state.nextId++
-              list.push({ id, ...clean, asset: "", details: { ...clean.details, ...(Object.keys(fields.files).length && { files: Object.fromEntries(Object.keys(fields.files).map(key => [key, `${key}-1`])) }) }, version: 1, status: "open", pull: 222, createdAt: Date.now(), updatedAt: Date.now(), ownerName: ME.name, ownerProvider: ME.provider, mine: true, state: "unknown", bytes: fields.bytes, files: fields.files, comments: [] })
+              list.push({ id, ...clean, asset: "", details: { ...clean.details, ...(Object.keys(fields.files).length && { files: Object.fromEntries(Object.keys(fields.files).map(key => [key, `${key}-1`])) }) }, version: 1, status: "open", pull: 222, createdAt: Date.now(), updatedAt: Date.now(), ownerName: ME.name, ownerProvider: ME.provider, mine: true, state: "unknown", processing: "timed", processedAt: Date.now() + PROCESSING_TIME, bytes: fields.bytes, files: fields.files, comments: [] })
               return send(res, 201, { id, pull: 222 })
             }
             const wanted = url.searchParams.has("review") ? list.filter(item => item.status === "open") : list.filter(item => item.mine).reverse()
@@ -142,6 +145,10 @@ export function mockSubmissions() {
           }
           const item = list.find(entry => entry.id === Number(parts[1]))
           if (!item) return send(res, 404, { error: "This submission doesn't exist." })
+          if (parts[2] === "processing") {
+            if (item.status !== "open" || item.processing === "done" || item.processing === "timed" && Date.now() >= item.processedAt) return send(res, 200, { state: "done" })
+            return send(res, 200, item.processing === "failed" ? { state: "failed", url: PULL } : { state: "processing" })
+          }
           if (parts[2] === "file") return send(res, 200, Buffer.from(item.bytes), SUBMISSION_KINDS[item.kind].accept)
           if (parts[2] === "files") return send(res, 200, Buffer.from(item.files[parts[3]] ?? []), "image/png")
           if (parts[2] === "comments") {

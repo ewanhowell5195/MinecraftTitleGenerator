@@ -21,6 +21,9 @@ const ANONYMOUS_ROLES = { "The submitter": "submitter", "A reviewer": "reviewer"
 const SITE_COMMENT = /^(?:(`+) (.+?) \1 \((submitter|reviewer)\)|(The submitter|A reviewer)) commented on the site:\n\n(`{3,})text\n([\s\S]*)\n\5$/
 const UNMERGEABLE = [405, 409, 422]
 const PREVIEW_HOST = "minecrafttitlegenerator.pages.dev"
+const WORKFLOW = "submission.yml"
+// the commit message .github/workflows/submission.yml makes after converting
+const WORKFLOW_COMMIT = "add thumbnails and compress textures"
 const SHOWN = "id, kind, target, asset, name, credit, notes, details, file, status, pull, created_at AS createdAt, updated_at AS updatedAt"
 const OWNER = "(SELECT users.provider || ':' || users.provider_id FROM users WHERE users.id = submissions.user_id) AS owner, (SELECT users.name FROM users WHERE users.id = submissions.user_id) AS ownerName, (SELECT users.provider FROM users WHERE users.id = submissions.user_id) AS ownerProvider"
 
@@ -447,6 +450,20 @@ export const addComment = guarded(async context => {
   await onGitHub(() => postComment(env, row, user, role, text))
   await env.DB.batch([saveUser(env, user), notify(env, row, "comment", { author: user.name, body: text, admins: true, actor: user })])
   return reply(201, { comments: await threadOf(env, row) })
+})
+
+async function processingOf(env, row) {
+  if (row.status !== "open" || !row.pull) return { state: "done" }
+  const head = (await github(env, `git/ref/heads/${branchOf(row.id)}`)).object.sha
+  if ((await github(env, `git/commits/${head}`)).message.startsWith(WORKFLOW_COMMIT)) return { state: "done" }
+  const run = (await github(env, `actions/workflows/${WORKFLOW}/runs?head_sha=${head}&per_page=1`)).workflow_runs[0]
+  if (!run || run.status !== "completed") return { state: "processing" }
+  return run.conclusion === "success" ? { state: "done" } : { state: "failed", url: run.html_url }
+}
+
+export const submissionProcessing = guarded(async context => {
+  const row = await findSubmission(context.env, submissionId(context.params))
+  return reply(200, await onGitHub(() => processingOf(context.env, row)))
 })
 
 export const reviewState = guarded(async context => {

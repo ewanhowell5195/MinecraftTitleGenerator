@@ -44,6 +44,10 @@ function json(method, body) {
   return { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
 }
 
+export function submissionProcessing(id) {
+  return called(`${API}/${id}/processing`)
+}
+
 export function submissionThread(id) {
   return called(`${API}/${id}`)
 }

@@ -8,7 +8,7 @@ import { PNG } from "pngjs"
 import { fakeGitHub } from "./fakeGitHub.js"
 
 const { accountDetails, finishSignIn, receiveSignIn, startSignIn } = await import("../src/server/accounts.js")
-const { addComment, clearNotifications, createSubmission, editSubmission, listNotifications, listSubmissions, markNotificationsSeen, receiveWebhook, reviewState, reviewSubmission, submissionDetails, submissionFile, withdrawSubmission } = await import("../src/server/submissions.js")
+const { addComment, clearNotifications, createSubmission, editSubmission, listNotifications, listSubmissions, markNotificationsSeen, receiveWebhook, reviewState, reviewSubmission, submissionDetails, submissionFile, submissionProcessing, withdrawSubmission } = await import("../src/server/submissions.js")
 const { jsonText } = await import("../src/lib/jsonText.js")
 
 const REPO = "owner/repo"
@@ -273,6 +273,22 @@ describe("a sent submission", () => {
     const cookie = await signIn()
     const { id } = await send(cookie)
     assert.match((await edit(cookie, id, { font: "minecraft-five" })).error, /Choose the texture's file again/)
+  })
+
+  test("reports processing until the workflow has run on the branch", async () => {
+    const cookie = await signIn()
+    const { id } = await send(cookie)
+    const processing = async () => (await (await submissionProcessing(context(`/api/submissions/${id}/processing`, { params: { id: String(id) } }))).json())
+    const head = () => gh.refs.get(`heads/submission/${id}`)
+    assert.deepEqual(await processing(), { state: "processing" })
+    gh.runs.push({ head_sha: head(), status: "in_progress", conclusion: null, html_url: "https://github.com/run/1" })
+    assert.deepEqual(await processing(), { state: "processing" })
+    Object.assign(gh.runs[0], { status: "completed", conclusion: "failure" })
+    assert.deepEqual(await processing(), { state: "failed", url: "https://github.com/run/1" })
+    gh.runs[0].conclusion = "success"
+    assert.deepEqual(await processing(), { state: "done" })
+    gh.refs.set(`heads/submission/${id}`, gh.commit(gh.filesAt(`submission/${id}`), [head()], "add thumbnails and compress textures"))
+    assert.deepEqual(await processing(), { state: "done" })
   })
 
   test("can be withdrawn, which closes the pull request but keeps its branch, and the site forgets it", async () => {
