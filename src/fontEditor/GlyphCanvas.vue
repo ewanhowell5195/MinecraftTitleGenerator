@@ -41,6 +41,7 @@
   let observer = null
   let gesture = null
   let pendingFill = null
+  let blockingMenu = false
   let over = false
   let backdrop = "#000"
 
@@ -301,6 +302,10 @@
     }
     if (event.button !== 0 && event.button !== 2) return
     event.preventDefault()
+    if (event.button === 2 && !blockingMenu) {
+      blockingMenu = true
+      addEventListener("contextmenu", blockMenu, true)
+    }
     const erasing = event.button === 2 || tool.value === "eraser"
     if (at.gutter) {
       const row = clampRow(at.row)
@@ -367,6 +372,16 @@
     }
     if (stroke?.kind === "paint" && stroke.shape !== "rectangle") anchor = stroke.end ?? stroke.last
     stroke = null
+    if (blockingMenu) setTimeout(unblockMenu)
+  }
+
+  function blockMenu(event) {
+    event.preventDefault()
+  }
+
+  function unblockMenu() {
+    blockingMenu = false
+    removeEventListener("contextmenu", blockMenu, true)
   }
 
   function enter() {
@@ -458,6 +473,7 @@
     removeEventListener("keydown", spaceChanged)
     removeEventListener("keyup", spaceChanged)
     removeEventListener("blur", release)
+    unblockMenu()
   })
 
   watch(selected, () => {
