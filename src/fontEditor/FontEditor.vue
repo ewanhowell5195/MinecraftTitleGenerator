@@ -46,6 +46,7 @@
   function startAgain() {
     asking.value = false
     closeFont()
+    tab.value = "characters"
   }
 
   onMounted(() => {

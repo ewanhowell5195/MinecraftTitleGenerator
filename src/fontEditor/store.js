@@ -133,6 +133,11 @@ export function closeFont() {
   group = null
   localStorage.removeItem(STORAGE_KEY)
   saveError.value = ""
+  arrowsMove.value = "drawing"
+  previewText.value = "minecraft"
+  previewTerminators.value = false
+  previewStretch.value = 0
+  previewMode.value = "2d"
 }
 
 function save() {
