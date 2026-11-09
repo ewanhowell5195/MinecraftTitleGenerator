@@ -197,5 +197,9 @@
     "depth": 30,
     "terminatorSpace": true,
     "terminatorSpaceWidth": 4
+  },
+  {
+    "id": "minecraft-ten-light",
+    "author": "Ewan Howell"
   }
 ]
