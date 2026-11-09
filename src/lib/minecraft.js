@@ -1,12 +1,14 @@
 import MinecraftAssets from "minecraft-asset-loader"
 import { reactive } from "vue"
 import { image } from "./assets.js"
+import { blockTints, grassColormapPixel } from "./blockTints.js"
 import { surface } from "./canvas.js"
 import { titleCase } from "./names.js"
 import { platform } from "./platform.js"
 
 const BLOCK_TEXTURE = /^(?:assets\/minecraft\/)?textures\/blocks?\/([^/]+)\.png$/
 const FIRST_BLOCK_FOLDER = Date.parse("2013-01-10T00:00:00+00:00")
+const GRASS_COLORMAP = "assets/minecraft/textures/colormap/grass.png"
 
 const assets = new MinecraftAssets()
 const loaded = new Map()
@@ -51,24 +53,50 @@ export function isOpaque(pixels) {
   return true
 }
 
-async function readTexture(bytes) {
+function tintedUrl(canvas, tint) {
+  const { canvas: out, ctx } = surface(canvas.width, canvas.height)
+  ctx.drawImage(canvas, 0, 0)
+  ctx.globalCompositeOperation = "multiply"
+  ctx.fillStyle = tint
+  ctx.fillRect(0, 0, out.width, out.height)
+  ctx.globalCompositeOperation = "destination-in"
+  ctx.drawImage(canvas, 0, 0)
+  return out.toDataURL("image/png")
+}
+
+async function readTexture(bytes, tint = null) {
   const { width, height } = pngSize(bytes)
   const bitmap = await platform.decodePng(bytes)
   const { canvas, ctx } = surface(width, Math.min(width, height), { willReadFrequently: true })
   ctx.drawImage(bitmap, 0, 0)
   bitmap.close?.()
-  return { url: height > width ? canvas.toDataURL("image/png") : platform.pngUrl(bytes), opaque: isOpaque(ctx.getImageData(0, 0, canvas.width, canvas.height).data) }
+  const url = height > width ? canvas.toDataURL("image/png") : platform.pngUrl(bytes)
+  return { url, preview: tint ? tintedUrl(canvas, tint) : url, opaque: isOpaque(ctx.getImageData(0, 0, canvas.width, canvas.height).data), tint }
+}
+
+async function colormapReader(version) {
+  const bitmap = await platform.decodePng(await assets.read(GRASS_COLORMAP, { version }))
+  const { ctx } = surface(bitmap.width, bitmap.height, { willReadFrequently: true })
+  ctx.drawImage(bitmap, 0, 0)
+  bitmap.close?.()
+  return (temperature, downfall) => {
+    const { x, y } = grassColormapPixel(temperature, downfall)
+    return Array.from(ctx.getImageData(x, y, 1, 1).data.subarray(0, 3))
+  }
 }
 
 async function readBlockTextures(version) {
-  const found = blockTexturePaths((await assets.list({ version })).map(file => file.path))
+  const paths = (await assets.list({ version })).map(file => file.path)
+  const found = blockTexturePaths(paths)
   Object.assign(jar, { version, done: 0, total: 0 })
   try {
     await assets.loadJar({ version, onProgress: (done, total) => Object.assign(jar, { version, done, total: total ?? 0 }) })
   } finally {
     jar.version = null
   }
-  return new Map(await Promise.all(Array.from(found, async ([id, path]) => [id, await readTexture(await assets.read(path, { version }))])))
+  let colormap = null
+  const tints = await blockTints(new Set(paths), async file => JSON.parse(new TextDecoder().decode(await assets.read(file, { version }))), async (temperature, downfall) => (colormap ??= await colormapReader(version))(temperature, downfall))
+  return new Map(await Promise.all(Array.from(found, async ([id, path]) => [id, await readTexture(await assets.read(path, { version }), tints.get(id) ?? null)])))
 }
 
 export function blockTextures(version) {

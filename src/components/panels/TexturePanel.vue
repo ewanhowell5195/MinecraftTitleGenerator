@@ -24,6 +24,7 @@
   const CUSTOM_MODES = [{ value: "standard", label: "Standard" }, { value: "tileable", label: "Tileable" }, { value: "strip", label: "Strip" }]
   const SAME_SHAPE = 0.01
   const TILEABLE_SOURCES = [{ value: "premade", label: "Premade" }, { value: "minecraft", label: "Minecraft textures" }]
+  const WHITE = "#ffffff"
 
   const { object, font, list, modified, reset } = usePanel("texture")
   const tiling = usePanel("tiling")
@@ -52,7 +53,7 @@
     return popular(entries, ([id]) => statId(id), ([id, data]) => label(id, data), list.value ? pinnedTextures(list.value).map(statId) : [])
   })
   const tileables = computed(() => popular(Object.entries(library.tileables), ([id]) => `tileable.${id}`, ([id, data]) => label(id, data)))
-  const blockEntries = computed(() => popular(Array.from(blocks.value ?? []).filter(([id, { opaque }]) => opaque || id === object.value.minecraftTexture).map(([id, { url }]) => [id, { name: blockName(id), author: "Mojang", url }]), ([id]) => minecraftStatId(id), ([, data]) => data.name))
+  const blockEntries = computed(() => popular(Array.from(blocks.value ?? []).filter(([id, { opaque }]) => opaque || id === object.value.minecraftTexture).map(([id, { preview }]) => [id, { name: blockName(id), author: "Mojang", url: preview }]), ([id]) => minecraftStatId(id), ([, data]) => data.name))
   const jarProgress = computed(() => jar.total ? jar.done / jar.total : 0)
   const textureVariants = computed(() => Object.entries(list.value?.textures[object.value.texture]?.variants ?? {}))
   const tileableVariants = computed(() => Object.entries(library.tileables[object.value.tileable]?.variants ?? {}))
@@ -99,13 +100,30 @@
     target.customTextureMode = sameShape(upload, flat) ? "standard" : "tileable"
   }
 
+  function blockTint(id) {
+    return blocks.value?.get(id)?.tint ?? null
+  }
+
+  function retint(next) {
+    const target = object.value
+    const current = usingMinecraft.value ? blockTint(target.minecraftTexture) : null
+    if (target.colour.toLowerCase() === WHITE || target.colour.toLowerCase() === current) target.colour = next ?? WHITE
+  }
+
+  function pickBlock(id) {
+    retint(blockTint(id))
+    object.value.minecraftTexture = id
+  }
+
   function chooseSource(source) {
     search.value = ""
+    if (source !== "tileable") retint(null)
     setTexture(object.value, { textureSource: source })
   }
 
   async function chooseTileables(source) {
     search.value = ""
+    if (source !== "minecraft") retint(null)
     const target = object.value
     if (source === "minecraft" && !target.minecraftVersion) {
       try {
@@ -200,7 +218,7 @@
         <template v-if="blockEntries.length">
           <input v-if="searchable(blockEntries)" type="text" v-model="search" placeholder="Search textures">
           <div class="grid scroll">
-            <Tile v-for="[id, data] of shownBlocks" :key="id" :label="data.name" :pattern="{ backgroundImage: `url(${data.url})` }" :author="data.author" :selected="object.minecraftTexture === id" @pick="object.minecraftTexture = id" />
+            <Tile v-for="[id, data] of shownBlocks" :key="id" :label="data.name" :pattern="{ backgroundImage: `url(${data.url})` }" :author="data.author" :selected="object.minecraftTexture === id" @pick="pickBlock(id)" />
           </div>
         </template>
         <VersionDialog v-if="choosingVersion" :current="object.minecraftVersion" @pick="chooseVersion" @close="choosingVersion = false" />
