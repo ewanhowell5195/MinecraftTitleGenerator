@@ -289,6 +289,7 @@
   }
 
   function down(event) {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
     canvas.value.setPointerCapture(event.pointerId)
     if (event.pointerType === "touch") {
       touches.set(event.pointerId, { x: event.clientX, y: event.clientY })
