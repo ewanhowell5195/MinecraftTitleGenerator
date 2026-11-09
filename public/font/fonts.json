@@ -200,6 +200,15 @@
   },
   {
     "id": "minecraft-ten-light",
-    "author": "Ewan Howell"
+    "author": "Ewan Howell",
+    "basedOn": "minecraft-ten",
+    "strips": ["minecraft-ten"],
+    "terminatorSpace": true,
+    "kerning": {
+      "4": ["lv", "qt", "qv", "{{", "}}", "}]", "[{", "l?", "q?", "t.", "t,", "t_", "t-", "&t"],
+      "6": ["yj"],
+      "8": ["tj", "lt", "ly", "l-", "/j", "l\\"],
+      "16": ["//", "\\\\"]
+    }
   }
 ]
