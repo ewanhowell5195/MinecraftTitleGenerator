@@ -3,8 +3,7 @@
   import Icon from "../components/Icon.vue"
   import { account, signIn, signInProviders } from "../lib/community.js"
   import { providerLabel } from "../lib/providers.js"
-  import { markNotificationsSeen, mySubmissions, notifications, reviewQueue } from "../lib/submissionsApi.js"
-  import NotificationList from "./NotificationList.vue"
+  import { mySubmissions, reviewQueue } from "../lib/submissionsApi.js"
   import SubmissionList from "./SubmissionList.vue"
 
   const props = defineProps({
@@ -13,23 +12,19 @@
 
   const submissions = ref(null)
   const waiting = ref(null)
-  const news = ref([])
   const error = ref("")
 
-  const empty = computed(() => !!submissions.value && !submissions.value.length && !waiting.value?.length && !news.value.length)
+  const empty = computed(() => !!submissions.value && !submissions.value.length && !waiting.value?.length)
 
   async function load() {
     submissions.value = null
     waiting.value = null
-    news.value = []
     error.value = ""
     if (!account.value) return
     try {
-      const [mine, latest, queue] = await Promise.all([mySubmissions(), notifications(), account.value.admin ? reviewQueue() : null])
+      const [mine, queue] = await Promise.all([mySubmissions(), account.value.admin ? reviewQueue() : null])
       submissions.value = mine
-      news.value = latest
       waiting.value = queue
-      if (latest.some(item => !item.seen)) await markNotificationsSeen()
     } catch (err) {
       error.value = err.message
     }
@@ -54,10 +49,6 @@
   </template>
   <p v-else-if="error" class="hint bad">{{ error }}</p>
   <p v-else-if="empty" class="hint">You haven't sent anything yet. <a href="/submit/">Send your first submission</a>.</p>
-  <section v-if="news.length" class="section">
-    <h2>Notifications</h2>
-    <NotificationList :items="news" show-submission />
-  </section>
   <section v-if="waiting?.length" class="section">
     <h2>Waiting for review</h2>
     <SubmissionList :items="waiting" :fonts="props.fonts" show-sender />

@@ -11,6 +11,7 @@
   import { providerLabel } from "../lib/providers.js"
   import { openSharedLink } from "../lib/share.js"
   import AccountMenu from "./AccountMenu.vue"
+  import NotificationBell from "./NotificationBell.vue"
   import DeletePresetDialog from "./DeletePresetDialog.vue"
   import Dropdown from "./Dropdown.vue"
   import Icon from "./Icon.vue"
@@ -354,6 +355,7 @@
       <SubmissionUsage v-if="tab === 'mine'" class="usage" />
       <Segments class="tabs" :options="TABS" v-model="tab" />
       <AccountMenu />
+      <NotificationBell />
     </header>
     <div class="body">
       <main class="browse">

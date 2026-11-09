@@ -2,6 +2,7 @@
   import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
   import FluidTabs from "fluid-tabs-vue"
   import AccountMenu from "../components/AccountMenu.vue"
+  import NotificationBell from "../components/NotificationBell.vue"
   import Icon from "../components/Icon.vue"
   import MenuStrip from "../components/MenuStrip.vue"
   import RenderDialog from "../components/RenderDialog.vue"
@@ -88,6 +89,7 @@
       <div class="spacer"></div>
       <button v-if="font" class="small" title="Send this font to be added to the title generator" @click="submitFont"><Icon name="upload" :size="14" />Submit</button>
       <AccountMenu />
+      <NotificationBell />
     </header>
 
     <p v-if="loadError" class="notice">{{ loadError }}</p>

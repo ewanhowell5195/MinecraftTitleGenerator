@@ -2,6 +2,7 @@
   import { computed, onMounted, ref, watch } from "vue"
   import FluidTabs from "fluid-tabs-vue"
   import AccountMenu from "./components/AccountMenu.vue"
+  import NotificationBell from "./components/NotificationBell.vue"
   import Icon from "./components/Icon.vue"
   import LayerActions from "./components/LayerActions.vue"
   import Panel from "./components/Panel.vue"
@@ -101,6 +102,7 @@
       <MenuBar ref="menuBar" />
       <ShareButton />
       <AccountMenu />
+      <NotificationBell />
     </header>
 
     <LayerList />
@@ -194,6 +196,10 @@
 
   .account {
     margin-left: 10px;
+  }
+
+  .notification-bell {
+    margin-left: 6px;
   }
 
   h1 {

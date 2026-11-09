@@ -208,10 +208,6 @@ textarea:focus {
   border-left: 3px solid transparent;
 }
 
-.notifications li.fresh {
-  border-left-color: var(--accent);
-}
-
 .notifications .headline {
   margin: 0;
 }

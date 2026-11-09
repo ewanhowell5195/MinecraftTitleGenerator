@@ -69,6 +69,7 @@
   margin-left: auto;
 }
 
+.bar-notifications,
 .bar-account {
   display: flex;
 }
