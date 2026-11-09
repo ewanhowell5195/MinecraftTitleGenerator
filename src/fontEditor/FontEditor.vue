@@ -1,8 +1,9 @@
 <script setup>
-  import { onBeforeUnmount, onMounted, ref, watch } from "vue"
+  import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
   import FluidTabs from "fluid-tabs-vue"
   import AccountMenu from "../components/AccountMenu.vue"
   import Icon from "../components/Icon.vue"
+  import MenuStrip from "../components/MenuStrip.vue"
   import RenderDialog from "../components/RenderDialog.vue"
   import CharacterList from "./CharacterList.vue"
   import CharacterPanel from "./CharacterPanel.vue"
@@ -27,6 +28,18 @@
 
   const asking = ref(false)
   const loadError = ref("")
+
+  const menus = computed(() => ({
+    File: [
+      { label: "New font...", icon: "plus", action: () => asking.value = true },
+      { label: "Save", icon: "download", action: downloadJson },
+      { label: "Save texture", icon: "download", action: downloadTexture }
+    ],
+    Edit: [
+      { label: "Undo", icon: "undo", disabled: !canUndo.value, keepOpen: true, action: undo },
+      { label: "Redo", icon: "redo", disabled: !canRedo.value, keepOpen: true, action: redo }
+    ]
+  }))
 
   watch(tab, value => localStorage.setItem(TAB_KEY, value))
 
@@ -66,16 +79,11 @@
     <header class="top" :class="{ editing: font }">
       <a class="brand" href="/"><img src="/favicon.svg" alt="" width="24" height="24"><span>Minecraft Title Generator</span></a>
       <template v-if="font">
+        <MenuStrip :menus="menus" />
         <span class="name ellipsis">{{ font.name }}</span>
         <FluidTabs class="main-tabs" v-model="tab" :tabs="TABS" tab-style="nav">
           <template #label="{ tab: item }"><span>{{ item.label }}</span></template>
         </FluidTabs>
-        <div class="spacer"></div>
-        <button class="icon-button" title="Undo (Ctrl+Z)" :disabled="!canUndo" @click="undo"><Icon name="undo" :size="18" /></button>
-        <button class="icon-button" title="Redo (Ctrl+Y)" :disabled="!canRedo" @click="redo"><Icon name="redo" :size="18" /></button>
-        <button class="small" @click="asking = true"><Icon name="plus" :size="14" />New</button>
-        <button class="small" title="The sheet the generator reads your letters from" @click="downloadTexture"><Icon name="download" :size="14" />Texture</button>
-        <button class="small primary" title="Everything in one file, including the texture" @click="downloadJson"><Icon name="download" :size="14" />JSON</button>
       </template>
       <AccountMenu />
     </header>
@@ -159,10 +167,6 @@
 
   .account {
     margin-left: auto;
-  }
-
-  .editing .account {
-    margin-left: 6px;
   }
 
   .name {
@@ -287,16 +291,8 @@
       min-height: 52px;
     }
 
-    .brand,
-    .top > button {
+    .brand {
       height: 52px;
-    }
-
-    .top > button.small {
-      align-self: center;
-      height: 32px;
-      padding: 0 8px;
-      gap: 4px;
     }
 
     .main-tabs {
@@ -355,10 +351,6 @@
     .main-tabs {
       flex-basis: calc(100% + 16px);
       margin: 0 -8px;
-    }
-
-    .top > .icon-button {
-      width: 32px;
     }
 
     .page-body {
