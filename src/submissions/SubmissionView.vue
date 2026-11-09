@@ -41,14 +41,13 @@
   }
 
   async function withdraw() {
-    if (!confirm(`Withdraw ${item.value.name}? It won't be reviewed.`)) return
+    if (!confirm(`Withdraw ${item.value.name}? It's removed from this site, but it can still be accepted.`)) return
     busy.value = true
     try {
       await withdrawSubmission(props.id)
-      await load()
+      location.assign("/submit/")
     } catch (err) {
       error.value = err.message
-    } finally {
       busy.value = false
     }
   }

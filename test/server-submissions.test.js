@@ -272,17 +272,18 @@ describe("a sent submission", () => {
     assert.match((await edit(cookie, id, { font: "minecraft-five" })).error, /Choose the texture's file again/)
   })
 
-  test("can be withdrawn, which closes the pull request and deletes the branch", async () => {
+  test("can be withdrawn, which closes the pull request but keeps its branch, and the site forgets it", async () => {
     const cookie = await signIn()
     const { id } = await send(cookie)
     const response = await withdrawSubmission(context(`/api/submissions/${id}`, { method: "DELETE", cookie, params: { id: String(id) } }))
     assert.equal(response.status, 200)
     assert.equal(gh.pulls.get(1).state, "closed")
-    assert.equal(gh.refs.has(`heads/submission/${id}`), false)
-    assert.match(gh.comments[0].body, /Withdrawn/)
-    await hook("pull_request", closed(1, false, id))
-    assert.equal((await details(id)).status, "withdrawn")
-    assert.equal((await edit(cookie, id, { name: "Again" })).status, 409)
+    assert.ok(gh.refs.has(`heads/submission/${id}`))
+    assert.match(gh.comments[0].body, /Reopen this pull request to accept it anyway/)
+    assert.equal(await details(id), undefined)
+    await hook("pull_request", closed(1, true, id))
+    assert.deepEqual((await (await listNotifications(context("/api/notifications", { cookie }))).json()).notifications, [])
+    assert.equal((await edit(cookie, id, { name: "Again" })).status, 404)
   })
 })
 

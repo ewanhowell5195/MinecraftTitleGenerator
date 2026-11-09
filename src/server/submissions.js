@@ -2,7 +2,7 @@ import { flattenFonts } from "../lib/font.js"
 import { titleCase } from "../lib/names.js"
 import { SUBMISSION_KINDS, checkSubmission, submissionContext } from "../lib/submissionKinds/index.js"
 import { EXTRA_FILE, SUBMISSION_LIMITS, assetId, sizedProblem } from "../lib/submissions.js"
-import { USER_ROW, saveUser, signedInUser } from "./accounts.js"
+import { USER_ROW, forgetUnusedUser, saveUser, signedInUser } from "./accounts.js"
 import { GitHubError, base64, github, repository, verifiedWebhook } from "./github.js"
 import { Refusal, guarded, reply } from "./http.js"
 import { SERVER_KINDS } from "./submissionKinds/index.js"
@@ -265,20 +265,24 @@ export const editSubmission = guarded(async context => {
 
 export const withdrawSubmission = guarded(async context => {
   const { env } = context
-  const { row } = await ownSubmission(context)
+  const { user, row } = await ownSubmission(context)
   await env.DB.prepare("UPDATE submissions SET status = 'withdrawn', updated_at = ? WHERE id = ? AND status = 'open'").bind(Date.now(), row.id).run()
   try {
     await onGitHub(async () => {
       if (row.pull) {
-        await github(env, `issues/${row.pull}/comments`, { method: "POST", body: { body: "Withdrawn by the person who sent it." } })
+        await github(env, `issues/${row.pull}/comments`, { method: "POST", body: { body: "Withdrawn by the person who sent it. Reopen this pull request to accept it anyway." } })
         await github(env, `pulls/${row.pull}`, { method: "PATCH", body: { state: "closed" } })
       }
-      await deleteBranch(env, row.id)
     })
   } catch (err) {
     await env.DB.prepare("UPDATE submissions SET status = 'open' WHERE id = ?").bind(row.id).run()
     throw err
   }
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM notifications WHERE submission_id = ?").bind(row.id),
+    env.DB.prepare("DELETE FROM submissions WHERE id = ?").bind(row.id),
+    forgetUnusedUser(env, user)
+  ])
   return reply(200, { id: row.id })
 })
 

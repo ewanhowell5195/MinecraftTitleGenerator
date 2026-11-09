@@ -7,8 +7,7 @@ export const EXTRA_FILE = /^[a-z0-9-]{1,40}$/
 export const SUBMISSION_STATUSES = {
   open: "Waiting for review",
   published: "Published",
-  rejected: "Not accepted",
-  withdrawn: "Withdrawn"
+  rejected: "Not accepted"
 }
 
 export const HEX_COLOUR = /^#[0-9a-f]{6}$/i
