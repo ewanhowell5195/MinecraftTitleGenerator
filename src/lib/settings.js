@@ -141,7 +141,7 @@ const PANELS = {
     textureSource: "premade",
     texture: null,
     textureVariant: null,
-    tileable: "cobblestone",
+    tileable: "checkerboard",
     tileableVariant: null,
     tileableSource: "premade",
     minecraftTexture: "cobblestone",

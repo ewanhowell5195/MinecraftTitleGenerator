@@ -75,7 +75,7 @@ const TOP_DEFAULTS = {
   textureSource: "premade",
   texture: null,
   textureVariant: null,
-  tileable: "cobblestone",
+  tileable: "checkerboard",
   tileableVariant: null,
   tileableSource: "premade",
   minecraftTexture: "cobblestone",
@@ -418,7 +418,7 @@ describe("resetPanel", () => {
   test("tileable texture only resets the tileable tab", () => {
     const object = createObject({ textureSource: "tileable", tileable: "dirt", tileableVariant: "a", tileableScale: 8, texture: "other", smooth: false })
     resetPanel(object, "texture")
-    assert.equal(object.tileable, "cobblestone")
+    assert.equal(object.tileable, "checkerboard")
     assert.equal(object.tileableVariant, null)
     assert.equal(object.tileableScale, 2)
     assert.equal(object.texture, "other")

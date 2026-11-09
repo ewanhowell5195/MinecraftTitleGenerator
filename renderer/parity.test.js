@@ -39,7 +39,7 @@ const TITLES = {
   "small line": [line({ texture: "cracked" }), line({ type: "small", text: "small text" })],
   "several words": [{ words: [{ text: "Two", texture: "fired", hue: 180 }, { text: "Words", texture: "ice", customBorder: true, borderColour: "#230f00" }] }],
   "gradient fill": [line({ textureSource: "gradient", gradientAngle: 45, stops: [{ colour: "#ff0000", position: 0 }, { colour: "#0000ff", position: 100 }] })],
-  "tileable fill": [line({ textureSource: "tileable", tileable: "oak_planks" })],
+  "tileable fill": [line({ textureSource: "tileable", tileable: "diagonal_up", tileableVariant: "diagonal_down" })],
   "random tileable fill": [line({ textureSource: "tileable", tileable: "checkerboard", tileableRandomRotations: true, tileableRandomMirroring: true, tileableScale: 2 })],
   "premade overlay": [line({ ...FILLED, overlayMode: "custom", overlays: [layer("cracks", { opacity: 80 })] })],
   "generated overlay": [line({ ...FILLED, overlayMode: "custom", overlays: [layer("shine")] })],
@@ -55,7 +55,7 @@ const UNKNOWN = [
   ["a texture", { texture: "not_a_texture" }, /no minecraft-ten texture called not_a_texture/],
   ["a texture variant", { texture: "cracked", textureVariant: "not_a_variant" }, /cracked has no variant called not_a_variant/],
   ["a tileable", { textureSource: "tileable", tileable: "not_a_tileable" }, /no tileable called not_a_tileable/],
-  ["a tileable variant", { textureSource: "tileable", tileable: "oak_planks", tileableVariant: "not_a_variant" }, /oak_planks has no variant called not_a_variant/],
+  ["a tileable variant", { textureSource: "tileable", tileable: "diagonal_up", tileableVariant: "not_a_variant" }, /diagonal_up has no variant called not_a_variant/],
   ["an overlay", { ...FILLED, overlayMode: "custom", overlays: [layer("not_an_overlay")] }, /overlay called not_an_overlay/],
   ["an edge overlay", { ...FILLED, edgeOverlayMode: "custom", edgeOverlays: [layer("not_an_overlay")] }, /overlay called not_an_overlay/],
   ["a setting", { texture: "cracked", someFutureOption: 5 }, /does not know: someFutureOption/],
@@ -148,7 +148,7 @@ describe("node and browser renderers", () => {
 })
 
 describe("minecraft asset requests", () => {
-  const cobblestone = fs.readFileSync(new URL("../public/tileables/minecraft/stone/cobblestone.png", import.meta.url))
+  const cobblestone = fs.readFileSync(new URL("../public/tileables/minecraft/classic_cobblestone.png", import.meta.url))
 
   after(() => answerMinecraftAssets(null))
 
@@ -160,7 +160,7 @@ describe("minecraft asset requests", () => {
     })
     const answered = await renderTitle(minecraftTitle("1.21.11"), { format: "png" })
     assert.deepEqual(asked, [{ id: "cobblestone", version: "1.21.11" }])
-    await assertSamePicture(answered, await renderTitle(code(line({ textureSource: "tileable", tileable: "cobblestone" })), { format: "png" }))
+    await assertSamePicture(answered, await renderTitle(code(line({ textureSource: "tileable", tileable: "classic_cobblestone" })), { format: "png" }))
   })
 
   test("ask for latest when the title has no version", async () => {
@@ -186,7 +186,7 @@ describe("minecraft asset requests", () => {
 })
 
 describe("render process", () => {
-  const cobblestone = fs.readFileSync(new URL("../public/tileables/minecraft/stone/cobblestone.png", import.meta.url))
+  const cobblestone = fs.readFileSync(new URL("../public/tileables/minecraft/classic_cobblestone.png", import.meta.url))
   const asked = []
   let renderer
   let nextJob = 0
