@@ -2,10 +2,11 @@
   import { computed, onMounted, ref, watch } from "vue"
   import Icon from "../components/Icon.vue"
   import { account } from "../lib/community.js"
+  import { providerLabel } from "../lib/providers.js"
   import { SUBMISSION_KINDS } from "../lib/submissionKinds/index.js"
   import { SUBMISSION_PARAM } from "../lib/submissionLink.js"
   import { SUBMISSION_STATUSES } from "../lib/submissions.js"
-  import { markNotificationsSeen, notifications, submissionFileUrl, submissionThread, withdrawSubmission } from "../lib/submissionsApi.js"
+  import { markNotificationsSeen, notifications, submissionFileUrl, submissionPage, submissionThread, withdrawSubmission } from "../lib/submissionsApi.js"
   import CommentThread from "./CommentThread.vue"
   import { KIND_COMPONENTS } from "./kinds/components.js"
   import { CLIENT_KINDS } from "./kinds/index.js"
@@ -14,7 +15,8 @@
 
   const props = defineProps({
     id: { type: Number, required: true },
-    fonts: { type: Array, required: true }
+    fonts: { type: Array, required: true },
+    editing: { type: Boolean, default: false }
   })
 
   const item = ref(null)
@@ -22,11 +24,11 @@
   const reviewer = ref(false)
   const error = ref("")
   const text = ref("")
-  const editing = ref(false)
   const busy = ref(false)
 
   const client = computed(() => CLIENT_KINDS[item.value?.kind])
   const changeable = computed(() => item.value?.mine && item.value.status === "open")
+  const page = submissionPage(props.id)
 
   async function load() {
     try {
@@ -34,6 +36,7 @@
       item.value = thread.submission
       comments.value = thread.comments
       reviewer.value = thread.reviewer
+      if (props.editing && !changeable.value) location.replace(page)
     } catch (err) {
       error.value = err.message
     }
@@ -61,14 +64,18 @@
     }
   }
 
-  function saved(changed) {
-    item.value = changed
-    editing.value = false
+  function saved() {
+    location.replace(page)
+  }
+
+  function cancel() {
+    if (document.referrer === new URL(page, location.origin).href) history.back()
+    else location.assign(page)
   }
 
   onMounted(load)
   watch(() => item.value?.name, name => {
-    if (name) document.title = `${name} | Submissions | Minecraft Title Generator`
+    if (name) document.title = `${props.editing ? "Edit " : ""}${name} | Submissions | Minecraft Title Generator`
   })
   watch(() => [item.value?.mine, reviewer.value, account.value?.id], () => markSeen().catch(err => console.error(err)))
   watch(() => account.value?.id, () => {
@@ -84,7 +91,7 @@
       <h1>{{ item.name }}</h1>
       <p>{{ client.summary(item, fonts) }}, made by {{ item.credit }}.</p>
     </section>
-    <SubmissionForm v-if="editing" :fonts="fonts" :initial="item" @done="saved" @cancel="editing = false" />
+    <SubmissionForm v-if="editing" :fonts="fonts" :initial="item" @done="saved" @cancel="cancel" />
     <div v-else class="submission-view">
       <div class="preview flow">
         <component :is="KIND_COMPONENTS[item.kind].Preview" :fonts="fonts" :kind="item.kind" :target="item.target" :details="item.details" :initial="item" :url="submissionFileUrl(item)" :text="text || item.name" />
@@ -102,7 +109,8 @@
           <dt>Credit</dt>
           <dd>{{ item.credit }}</dd>
           <dt>Sent by</dt>
-          <dd>{{ item.ownerName }}</dd>
+          <dd v-if="item.ownerName"><Icon :name="item.ownerProvider" :size="14" :title="providerLabel(item.ownerProvider)" />{{ item.ownerName }}</dd>
+          <dd v-else>A deleted account</dd>
         </dl>
         <p v-if="item.notes" class="notes">{{ item.notes }}</p>
         <div v-if="client.image" class="upload-preview"><img :src="submissionFileUrl(item)" alt=""></div>
@@ -111,7 +119,7 @@
           <a v-if="item.pullUrl" class="button" :href="item.pullUrl" target="_blank" rel="noopener"><Icon name="github" :size="16" />Pull request</a>
         </div>
         <div v-if="changeable" class="buttons">
-          <button type="button" :disabled="busy" @click="editing = true"><Icon name="pencil" :size="16" />Edit</button>
+          <a class="button" :href="`${page}/edit`"><Icon name="pencil" :size="16" />Edit</a>
           <button type="button" class="danger" :disabled="busy" @click="withdraw"><Icon name="trash" :size="16" />Withdraw</button>
         </div>
         <p v-if="error" class="hint bad">{{ error }}</p>

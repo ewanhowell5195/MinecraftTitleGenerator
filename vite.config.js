@@ -9,7 +9,7 @@ import { linkedCode, linkedTitleDetails, presetDetails, shareTags } from "./src/
 const LIVE = "https://mctitlegenerator.com"
 const PRESET_PAGE = /^\/app\/presets(?:\/(\d+))?\/?$/
 const APP_PAGE = /^\/app\/(index\.html)?$/
-const SUBMISSION_PAGE = /^\/submissions\/\d+\/?$/
+const SUBMISSION_PAGE = /^\/submissions\/\d+(\/edit)?\/?$/
 
 async function pageDetails(url) {
   const preset = url.pathname.match(PRESET_PAGE)

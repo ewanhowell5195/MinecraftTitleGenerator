@@ -228,7 +228,7 @@ async function uploadFile(env, bytes) {
 }
 
 function shown(env, row, user) {
-  const { owner, ownerProvider, details, ...rest } = row
+  const { owner, details, ...rest } = row
   return { ...rest, details: JSON.parse(details), pullUrl: row.pull ? `https://github.com/${repository(env)}/pull/${row.pull}` : null, mine: !!user && user.id === owner }
 }
 
