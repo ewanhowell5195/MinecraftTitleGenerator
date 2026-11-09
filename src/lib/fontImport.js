@@ -11,35 +11,46 @@ export async function parseFontFile(buffer) {
   return opentype.parse(font.buffer.slice(font.byteOffset, font.byteOffset + font.byteLength))
 }
 
-function scaled(source, { height = 40, lowercase = false }) {
+function scaled(source, { height = 40, lowercase = false, density = 1 }) {
   const glyphs = REQUIRED_CHARACTERS.map(char => glyphFor(source, char, lowercase))
   const units = capUnits(source)
   const unit = pixelGrid(glyphs.filter(Boolean), units)
-  const block = unit ? Math.max(1, Math.round(height / (units / unit))) : null
-  const scale = unit ? block / unit : height / units
-  const capHeight = Math.round(units * scale)
+  const block = unit ? Math.max(1, Math.round(height / (units / unit))) : density > 1 ? density : null
+  const square = unit ? 1 : density
+  const scale = unit ? block / unit : Math.max(1, Math.round(height / square)) / units
+  const capHeight = Math.round(units * scale) * square
   if (!Number.isFinite(scale) || capHeight < 1) throw new Error("this font has no usable cap height")
-  return { glyphs, unit, block, scale, capHeight }
+  return { glyphs, unit, block, scale, square, capHeight }
+}
+
+function enlarged(shape, square) {
+  if (!shape || square === 1) return shape
+  const width = shape.width * square
+  const mask = new Uint8Array(width * shape.height * square)
+  for (let y = 0; y < mask.length / width; y++) {
+    for (let x = 0; x < width; x++) mask[y * width + x] = shape.mask[Math.floor(y / square) * shape.width + Math.floor(x / square)]
+  }
+  return { left: shape.left * square, bottom: shape.bottom * square, top: shape.top * square, width, height: shape.height * square, mask }
 }
 
 export function meshOutlines(source, options = {}) {
-  const { glyphs, unit, scale } = scaled(source, options)
+  const { glyphs, unit, scale, square } = scaled(source, options)
   return Object.fromEntries(REQUIRED_CHARACTERS.flatMap((char, index) => {
     const glyph = glyphs[index]
     const shift = glyph ? gridShift(glyph, unit, scale) : 0
     const shape = glyph && rasterise(glyph, scale, shift)
     if (!shape) return []
-    return [[char, flatten(glyph).map(points => points.map(([x, y]) => [(x + shift) * scale - shape.left, y * scale]))]]
+    return [[char, flatten(glyph).map(points => points.map(([x, y]) => [((x + shift) * scale - shape.left) * square, y * scale * square]))]]
   }))
 }
 
 export function fontFromOutlines(source, options = {}) {
-  const { glyphs, unit, block, scale, capHeight } = scaled(source, options)
+  const { glyphs, unit, block, scale, square, capHeight } = scaled(source, options)
   const shapes = new Map(REQUIRED_CHARACTERS.map((char, index) => {
     const glyph = glyphs[index]
-    return [char, glyph ? rasterise(glyph, scale, gridShift(glyph, unit, scale)) : null]
+    return [char, glyph ? enlarged(rasterise(glyph, scale, gridShift(glyph, unit, scale)), square) : null]
   }))
   const space = source.charToGlyph(" ")
-  const spaceWidth = space && space.index !== 0 ? Math.round(space.advanceWidth * scale) : Math.round(capHeight / 4) || DEFAULT_SPACE_WIDTH
+  const spaceWidth = space && space.index !== 0 ? Math.round(space.advanceWidth * scale) * square : Math.round(capHeight / 4) || DEFAULT_SPACE_WIDTH
   return fontFromShapes(shapes, { name: (source.getEnglishName("fullName") ?? "Imported Font").trim(), author: (source.getEnglishName("designer") ?? "").trim(), capHeight, grid: block, spaceWidth, missing: REQUIRED_CHARACTERS.filter((_, index) => !glyphs[index]) })
 }

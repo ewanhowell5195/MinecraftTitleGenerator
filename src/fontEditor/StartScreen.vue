@@ -13,6 +13,7 @@
   const width = ref(6)
   const grid = ref(4)
   const importHeight = ref(40)
+  const importDensity = ref(1)
   const lowercase = ref(false)
   const fonts = shallowRef([])
   const error = ref("")
@@ -65,7 +66,7 @@
         return fontFromAscii(image, options)
       }
       const { fontFromOutlines, parseFontFile } = await import("../lib/fontImport.js")
-      return fontFromOutlines(await parseFontFile(await file.arrayBuffer()), options)
+      return fontFromOutlines(await parseFontFile(await file.arrayBuffer()), { ...options, density: importDensity.value })
     }).finally(() => event.target.value = "")
   }
 </script>
@@ -97,9 +98,10 @@
         <label class="button wide"><Icon name="open" />Choose files<input type="file" multiple accept=".png,.json,image/png,application/json" @change="upload"></label>
 
         <h2 class="second">Import a font file</h2>
-        <p class="hint">Turns a .ttf, .otf, .woff or .woff2, or a Minecraft ascii.png, into pixels at this height, ready for you to edit. Each character can go back to its imported shape.</p>
-        <div class="numbers two">
+        <p class="hint">Turns a .ttf, .otf, .woff or .woff2, or a Minecraft ascii.png, into pixels at this height, ready for you to edit. Square size is how many pixels each square is, for font files that aren't already drawn on a pixel grid. Each character can go back to its imported shape.</p>
+        <div class="numbers import">
           <label class="field"><span class="label">Height in pixels</span><input type="number" min="1" v-model.number="importHeight"></label>
+          <label class="field"><span class="label">Square size</span><input type="number" min="1" v-model.number="importDensity"></label>
           <label class="checkbox"><input type="checkbox" v-model="lowercase"><span>Use lowercase letters</span></label>
         </div>
         <label class="button wide"><Icon name="open" />Choose font file<input type="file" accept=".ttf,.otf,.woff,.woff2,.png,font/ttf,font/otf,font/woff,font/woff2,image/png" @change="importFile"></label>
@@ -183,8 +185,7 @@
     gap: 10px;
   }
 
-  .numbers.two {
-    grid-template-columns: 96px 1fr;
+  .numbers.import {
     align-items: end;
   }
 

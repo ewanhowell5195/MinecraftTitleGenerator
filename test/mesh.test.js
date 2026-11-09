@@ -69,6 +69,19 @@ describe("mesh glyphs", () => {
     }
   })
 
+  test("with bigger squares, each square's centre sits inside the outline exactly when the square is filled", async () => {
+    const source = await testFont()
+    const outlines = meshOutlines(source, { height: 32, density: 4 })
+    const font = fontFromOutlines(source, { height: 32, density: 4 })
+    assert.equal(font.grid, 4)
+    const { list } = parsedSheet(font, 2)
+    for (const cell of list.filter(item => outlines[item.char] && item.width)) {
+      for (let row = 0; row < cell.height; row += 4) {
+        for (let column = 0; column < cell.width; column += 4) assert.equal(inside(outlines[cell.char], column + 2, cell.bottom + row + 2), cell.mask[(row + 2) * cell.width + column + 2] === 1, `${cell.char} ${column},${row}`)
+      }
+    }
+  })
+
   test("triangles cover the outline exactly, facing the same way", async () => {
     const meshes = glyphMeshes(meshOutlines(await testFont(), { height: 30 }))
     for (const [char, mesh] of Object.entries(meshes)) {

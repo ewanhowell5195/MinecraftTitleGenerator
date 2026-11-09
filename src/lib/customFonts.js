@@ -22,8 +22,12 @@ function hash(text) {
   return (value >>> 0).toString(36)
 }
 
-export function customFontId({ kind, data, height, lowercase, mesh }) {
-  return CUSTOM_FONT + hash(JSON.stringify([kind, data, height, lowercase].concat(mesh ? ["mesh"] : [])))
+export function customFontId({ kind, data, height, lowercase, mesh, density }) {
+  return CUSTOM_FONT + hash(JSON.stringify([kind, data, height, lowercase].concat(mesh ? ["mesh"] : [], squareSize({ kind, mesh, density }) > 1 ? [squareSize({ kind, mesh, density })] : [])))
+}
+
+export function squareSize({ kind, mesh, density }) {
+  return kind === "outline" && !mesh ? density ?? 1 : 1
 }
 
 export function customThumbnail(fontId, name) {
@@ -44,7 +48,7 @@ async function pixels(url) {
   return { data: pixelsOf(image), width: image.width, height: image.height }
 }
 
-async function editorFont({ kind, data, height, lowercase, mesh }) {
+async function editorFont({ kind, data, height, lowercase, mesh, density }) {
   if (kind === "json") {
     const { fontFromFiles, parseFontJson } = await import("./fontEditor.js")
     const json = parseFontJson(await (await fetch(data)).text())
@@ -57,7 +61,8 @@ async function editorFont({ kind, data, height, lowercase, mesh }) {
   }
   const { fontFromOutlines, meshOutlines, parseFontFile } = await import("./fontImport.js")
   const source = await parseFontFile(await (await fetch(data)).arrayBuffer())
-  return { font: fontFromOutlines(source, { height, lowercase }), outlines: meshOutlines(source, { height, lowercase }), mesh }
+  const options = { height, lowercase, density: squareSize({ kind, mesh, density }) }
+  return { font: fontFromOutlines(source, options), outlines: meshOutlines(source, options), mesh }
 }
 
 function plainStrip(rows, colour) {

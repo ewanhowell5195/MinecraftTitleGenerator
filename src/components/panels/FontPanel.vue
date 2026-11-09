@@ -97,6 +97,12 @@
     else event.target.value = object.value.customFont.height
   }
 
+  function setDensity(event) {
+    const value = event.target.valueAsNumber
+    if (Number.isInteger(value) && value >= 1) changeImport("density", value)
+    else event.target.value = object.value.customFont.density ?? 1
+  }
+
   watch(() => object.value.customFont, async source => {
     customName.value = ""
     customImage.value = null
@@ -162,6 +168,13 @@
           <span class="label">Height in pixels</span>
           <input type="number" min="1" :value="object.customFont.height" :disabled="loading" @change="setHeight">
         </label>
+        <template v-if="object.customFont.kind === 'outline' && !object.customFont.mesh">
+          <label class="field">
+            <span class="label">Square size</span>
+            <input type="number" min="1" :value="object.customFont.density ?? 1" :disabled="loading" @change="setDensity">
+          </label>
+          <p class="hint">How many pixels each square is. 4 gives chunky squares like Minecraft Ten. Fonts drawn on a pixel grid keep their own.</p>
+        </template>
         <Toggle label="Use lowercase letters" hint="Titles use one case. Off uses the capital letters" :model-value="object.customFont.lowercase" @update:model-value="changeImport('lowercase', $event)" />
       </template>
     </template>
