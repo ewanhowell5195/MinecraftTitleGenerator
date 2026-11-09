@@ -15,6 +15,8 @@
   --accent-soft: #6cc04a24;
   --danger: #ff8f85;
   --danger-soft: #2c1513;
+  --danger-fill: #c9372c;
+  --danger-fill-hover: #dc4236;
   --knob: #fff;
   --tile-overlay: #000a;
   --checker: #1a1b1f conic-gradient(#25272c 25%, transparent 0 50%, #25272c 0 75%, transparent 0) 0 0 / 16px 16px;
@@ -264,7 +266,16 @@ button.ghost:hover {
 }
 
 button.danger {
-  color: var(--danger);
+  color: #fff;
+  background: var(--danger-fill);
+}
+
+button.danger:hover {
+  background: var(--danger-fill-hover);
+}
+
+button.danger:disabled:hover {
+  background: var(--danger-fill);
 }
 
 button.link-button {

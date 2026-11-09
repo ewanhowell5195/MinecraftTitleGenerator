@@ -100,6 +100,11 @@
     color: var(--muted);
   }
 
+  button.danger {
+    color: var(--danger);
+    background: transparent;
+  }
+
   button.danger svg {
     color: var(--danger);
   }
