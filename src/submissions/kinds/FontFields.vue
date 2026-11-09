@@ -4,10 +4,9 @@
   import Dropdown from "../../components/Dropdown.vue"
   import Icon from "../../components/Icon.vue"
   import Segments from "../../components/Segments.vue"
-  import { fullName } from "../../lib/font.js"
-  import { flatTexture, slug } from "../../lib/fontEditor.js"
+  import { flatTexture } from "../../lib/fontEditor.js"
   import { popular } from "../../lib/stats.js"
-  import { EXTRA_KINDS, FONT_ID_LENGTH, fontParents, stripHeightsFor } from "../../lib/submissionKinds/font.js"
+  import { EXTRA_KINDS, fontParents, stripHeightsFor, submittedFontId } from "../../lib/submissionKinds/font.js"
   import { ownFont, submittedFont } from "../../lib/submissionKinds/fontBuild.js"
   import { SUBMISSION_LIMITS } from "../../lib/submissions.js"
   import { submissionExtraUrl } from "../../lib/submissionsApi.js"
@@ -36,16 +35,10 @@
 
   const variant = ref(!!props.target)
   let lastParent = props.target || DEFAULT_PARENT
-  let autoId = ""
 
   const parents = computed(() => popular(fontParents(props.fonts), font => font.id, font => font.name, [DEFAULT_PARENT]).map(font => ({ value: font.id, label: font.name, image: fontThumbnail(props.fonts, font.id) })))
-  const parentEntry = computed(() => props.fonts.find(font => font.id === props.target && !font.variant))
-  const parentName = computed(() => parentEntry.value?.name ?? "the font")
-  const inherits = computed(() => !!props.target && !!props.details.inherits)
   const extras = computed(() => Array.isArray(props.details.extras) ? props.details.extras : [])
   const newExamples = computed(() => NEW_EXAMPLES.map(id => props.fonts.find(font => font.id === id && !font.variant)?.name).filter(Boolean))
-  const sharedExamples = computed(() => props.fonts.filter(font => font.inherits).map(font => fullName(font, props.fonts)))
-  const ownExamples = computed(() => props.fonts.filter(font => font.variant && !font.inherits).map(font => fullName(font, props.fonts)))
 
   const mode = computed({
     get: () => variant.value ? "variant" : "new",
@@ -61,13 +54,10 @@
       emit("update:target", value)
     }
   })
-  const id = computed({
-    get: () => props.details.id ?? "",
-    set: value => emit("update:details", { ...props.details, id: value.toLowerCase() })
-  })
+  const fontId = computed(() => props.file?.bytes ? submittedFontId(props.file.bytes) : props.details.id ?? null)
 
   const built = computed(() => {
-    if (!props.file?.bytes || inherits.value) return null
+    if (!props.file?.bytes) return null
     try {
       return ownFont(submittedFont(props.file.bytes).font, props.target || null)
     } catch {
@@ -95,29 +85,9 @@
     return list.length > 1 ? `${list.slice(0, -1).join(", ")} or ${list.at(-1)}` : String(list[0])
   }
 
-  function fileName() {
-    if (!props.file?.bytes) return ""
-    try {
-      const json = JSON.parse(new TextDecoder().decode(props.file.bytes))
-      return slug(json.name ?? "") || slug(json.id ?? "")
-    } catch {
-      return ""
-    }
-  }
-
-  function suggestId(value) {
-    const next = value.slice(0, FONT_ID_LENGTH).replace(/-+$/, "")
-    if (!next) return
-    if (!props.details.id || props.details.id === autoId) emit("update:details", { ...props.details, id: next })
-    autoId = next
-  }
-
   watch(() => props.target, target => {
     if (target) variant.value = true
   })
-
-  watch(() => props.name, value => suggestId(slug(value)))
-  watch(() => props.file, () => suggestId(slug(props.name) || fileName()), { immediate: true })
 
   function update(key, change) {
     emit("update:details", { ...props.details, extras: extras.value.map(item => item.key === key ? { ...item, ...change } : item) })
@@ -159,34 +129,21 @@
   <div class="field">
     <span class="label">Add it as</span>
     <Segments v-model="mode" :options="MODES" />
-    <p class="hint">Make the font in the <a href="/font-editor/" target="_blank">font editor</a> and send the JSON it downloads. A variant is another version of a font that is already here, listed under it. Anything else is a new font<template v-if="newExamples.length">, like {{ joined(newExamples) }}</template>.</p>
+    <p class="hint">Make the font in the <a href="/font-editor/" target="_blank">font editor</a> and send the JSON it downloads. A variant is another version of a font that is already here, listed under it with its own textures, eg the same letters for another alphabet. Anything else is a new font<template v-if="newExamples.length">, like {{ joined(newExamples) }}</template>.</p>
   </div>
   <template v-if="variant">
     <div class="field">
       <Dropdown v-if="parents.length" v-model="parent" :options="parents" label="Variant of" searchable />
       <span v-if="tried && problems.target" class="hint bad">{{ problems.target }}</span>
     </div>
-    <div class="field">
-      <span class="label">Kind of variant</span>
-      <label class="choice" :class="{ chosen: inherits }">
-        <input type="radio" :checked="inherits" @change="emit('update:details', { ...details, inherits: true })">
-        <span class="choice-title">A variation of {{ parentName }}</span>
-        <span class="hint">Redraws some of {{ parentName }}'s characters and uses everything else from it, including every texture. Only the characters you change are added, so draw it at the same height and square size.<template v-if="sharedExamples.length"> Like {{ joined(sharedExamples) }}.</template></span>
-      </label>
-      <label class="choice" :class="{ chosen: !inherits }">
-        <input type="radio" :checked="!inherits" @change="emit('update:details', { ...details, inherits: false })">
-        <span class="choice-title">A separate font</span>
-        <span class="hint">A whole font of its own, listed under {{ parentName }} because it belongs with it, eg the same letters for another alphabet. It gets its own textures, starting with a flat one.<template v-if="ownExamples.length"> Like {{ joined(ownExamples) }}.</template></span>
-      </label>
-    </div>
   </template>
-  <label class="field">
-    <span class="label">Font id</span>
-    <input type="text" v-model="id" :maxlength="FONT_ID_LENGTH" spellcheck="false" placeholder="my-font">
-    <span v-if="problems.id && (tried || id)" class="hint bad">{{ problems.id }}</span>
-    <span v-else class="hint">Used in links and file names. Lowercase letters, numbers and hyphens.</span>
-  </label>
-  <div v-if="!inherits" class="field">
+  <div v-if="fontId !== null" class="field">
+    <span class="label">Font ID</span>
+    <code class="font-id">{{ fontId || "None" }}</code>
+    <span v-if="problems.id" class="hint bad">{{ problems.id }}</span>
+    <span v-else class="hint">From the font's JSON. Change it in the font editor's Font tab.</span>
+  </div>
+  <div class="field">
     <span class="label">Textures, overlays and strips for this font</span>
     <p class="hint">Optional. Paint textures and overlays over the font's <a v-if="blankTexture" :href="blankTexture" :download="`${id || 'font'}-template.png`">blank texture</a><template v-else>blank texture, from the Textures tab of the font editor</template>, at its size or a whole number of times bigger.<template v-if="stripHeights"> Strips can be {{ either(stripHeights) }} pixels tall.</template> Up to {{ SUBMISSION_LIMITS.extraFiles }} files.</p>
     <div v-for="item of extras" :key="item.key" class="extra">
@@ -217,35 +174,12 @@
 </template>
 
 <style scoped>
-  .choice {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 4px 10px;
-    padding: 10px 12px;
+  .font-id {
+    align-self: flex-start;
+    padding: 6px 10px;
+    font-family: var(--mono);
+    font-size: var(--font-md);
     background: var(--card);
-    border: 1px solid transparent;
-    cursor: pointer;
-    user-select: none;
-    transition: background var(--duration), border-color var(--duration);
-  }
-
-  .choice:hover {
-    background: var(--card-hover);
-  }
-
-  .choice.chosen {
-    border-color: var(--accent);
-    background: var(--accent-soft);
-  }
-
-  .choice input {
-    grid-row: span 2;
-    margin: 2px 0 0;
-    accent-color: var(--accent);
-  }
-
-  .choice-title {
-    font-weight: 600;
   }
 
   .extra {

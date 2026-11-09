@@ -46,8 +46,7 @@ export const font = {
     const parent = parentOf(row, fonts)
     const list = JSON.parse(await read(LIST))
     const asset = freeId(details.id, new Set(flattenFonts(list).map(entry => entry.id).concat(taken)))
-    const inherits = !!parent && !!details.inherits
-    const entry = { id: asset, ...(row.name !== titleCase(asset) && { name: row.name }), ...(inherits && { inherits: true }), author: row.credit }
+    const entry = { id: asset, ...(row.name !== titleCase(asset) && { name: row.name }), author: row.credit }
     if (parent) {
       const owner = list.find(item => item.id === parent.id)
       if (!owner) throw new Error(`${LIST} on main has no ${parent.id}`)
@@ -55,7 +54,7 @@ export const font = {
     } else {
       list.push(entry)
     }
-    const extras = inherits ? [] : bundle(row, details, fontFolder({ id: asset, variant: parent?.id }))
+    const extras = bundle(row, details, fontFolder({ id: asset, variant: parent?.id }))
     return { asset, files: [{ path: LIST, content: `${jsonText(list)}\n` }, { path: holdingPath(asset), sha: row.file }].concat(extras) }
   },
   describe({ row, fonts }) {

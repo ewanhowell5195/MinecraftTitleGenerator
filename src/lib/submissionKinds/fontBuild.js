@@ -1,5 +1,5 @@
-import { SHEET_MAX_WIDTH, fullOrder, groupedKerning, parseMask, sheetLayout, splitCells } from "../font.js"
-import { DEFAULT_SPACE_WIDTH, exportJson, fontFromFiles, fontFromPublished, parseFontJson, buildSheet, sheetOrder } from "../fontEditor.js"
+import { SHEET_MAX_WIDTH, groupedKerning, parseMask, sheetLayout } from "../font.js"
+import { exportJson, fontFromFiles, parseFontJson, buildSheet, sheetOrder } from "../fontEditor.js"
 import { DEFAULT_ORDER } from "../order.js"
 import { defaultBorder, defaultDepth } from "../settings.js"
 import { marksFor, sheetMeasures } from "../stretchMarks.js"
@@ -7,13 +7,11 @@ import { decodePng } from "./png.js"
 
 export const FONT_LIMITS = { capHeight: [8, 128], characters: 400, letters: 20 }
 export const HOLDING_FOLDER = "submissions/fonts"
-export const SHARED_SETTINGS = ["depth", "border", "flat", "overlay", "autoBorder"]
 
 const GLYPH = [0, 0, 0]
 const GRID = [255, 0, 0]
 const BASELINE = [0, 255, 0]
 const TOPLINE = [0, 0, 255]
-const OWN_SETTINGS = ["spaceWidth", "characterSpacing", "terminatorSpace", "terminatorSpaceWidth", "forcedTerminators"]
 const NOT_PREVIEWED = new Set([" ", "┫", "┣", "'"])
 const read = new WeakMap()
 
@@ -161,25 +159,6 @@ export function drawSheet(cells, capHeight, { width: fixed = null, ...limits } =
   return { width, height, data }
 }
 
-export function stackSheets(top, bottom) {
-  if (top.width !== bottom.width) throw new Error(`sheets ${top.width} and ${bottom.width} pixels wide can't be stacked`)
-  const data = new Uint8ClampedArray(top.width * (top.height + bottom.height - 1) * 4)
-  data.set(top.data.subarray(0, top.width * (top.height - 1) * 4))
-  data.set(bottom.data, top.width * (top.height - 1) * 4)
-  return { width: top.width, height: top.height + bottom.height - 1, data }
-}
-
-export function parentSheet(entry, list, sheet) {
-  const { list: cells, capHeight } = parseMask(sheet.data, sheet.width, sheet.height, fullOrder(entry, list), 0)
-  const { glyphs } = splitCells(entry, list, cells)
-  const grid = fontFromPublished({ ...entry, name: entry.name ?? entry.id }, Object.values(glyphs), capHeight).grid
-  return { entry, sheet, cells, glyphs, capHeight, grid }
-}
-
-function sameGlyph(a, b) {
-  return !!b && ["width", "height", "bottom", "originX", "advance"].every(key => a[key] === b[key]) && a.mask.every((value, index) => value === b.mask[index])
-}
-
 function previewOf(chars) {
   const shown = chars.filter(char => !NOT_PREVIEWED.has(char))
   return (shown.length ? shown : chars).slice(0, 3).join("")
@@ -193,19 +172,6 @@ function previewFor(drawn) {
 
 function ownKerning(font, drawn) {
   return Object.fromEntries(Object.entries(font.kerning).filter(([pair, amount]) => amount && Array.from(pair).every(char => drawn.includes(char))))
-}
-
-function settingOf(entry, key) {
-  if (key === "spaceWidth") return entry.spaceWidth ?? DEFAULT_SPACE_WIDTH
-  if (key === "characterSpacing") return entry.characterSpacing ?? 0
-  if (key === "terminatorSpaceWidth") return entry.terminatorSpaceWidth ?? entry.spaceWidth ?? DEFAULT_SPACE_WIDTH
-  return !!entry[key]
-}
-
-export function sharedSettingOf(entry, key) {
-  if (key === "depth") return defaultDepth(entry)
-  if (key === "border") return defaultBorder("top", entry)
-  return !!entry[key]
 }
 
 export function exported(font) {
@@ -242,27 +208,7 @@ export function fontTemplate(cells, capHeight, depth) {
   return { width, height, rows: depth * 2 + top - bottom }
 }
 
-export function variation(font, parent) {
-  const { cells, capHeight } = drawnCells(font)
-  const changed = cells.filter(cell => !sameGlyph(cell, parent.glyphs[cell.char]))
-  const all = exported(font)
-  const entry = {}
-  if (all.description) entry.description = all.description
-  if (all.basedOn && all.basedOn !== parent.entry.id) entry.basedOn = all.basedOn
-  entry.order = changed.map(cell => cell.char).join("")
-  for (const key of OWN_SETTINGS) {
-    if (key === "terminatorSpaceWidth" && all[key] === undefined && parent.entry[key] === undefined) continue
-    if (settingOf(all, key) !== settingOf(parent.entry, key)) entry[key] = settingOf(all, key)
-  }
-  if (changed.length) entry.preview = previewOf(changed.map(cell => cell.char))
-  const own = ownKerning(font, cells.map(cell => cell.char).concat(Object.keys(parent.glyphs)))
-  const inherited = parent.entry.kerning ?? {}
-  const pairs = Object.fromEntries(Array.from(new Set(Object.keys(own).concat(Object.keys(inherited)))).filter(pair => (own[pair] ?? 0) !== (inherited[pair] ?? 0) && (pair in own || Array.from(pair).some(char => entry.order.includes(char)))).map(pair => [pair, own[pair] ?? 0]))
-  if (Object.keys(pairs).length) entry.kerning = groupedKerning(pairs)
-  return { cells: withMarks(changed, capHeight), capHeight, entry, settings: all }
-}
-
 export function finalEntry(skeleton, derived) {
-  const { id, name, inherits, author, ...rest } = skeleton
-  return { id, ...(name !== undefined && { name }), ...(inherits && { inherits }), author, ...rest, ...derived }
+  const { id, name, author, ...rest } = skeleton
+  return { id, ...(name !== undefined && { name }), author, ...rest, ...derived }
 }

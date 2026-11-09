@@ -19,12 +19,12 @@ export const font = {
   },
   summary(item, fonts) {
     if (!item.target) return "A new font"
-    return item.details.inherits ? `A variation of ${parentName(item, fonts)}` : `A font listed under ${parentName(item, fonts)}`
+    return `A font listed under ${parentName(item, fonts)}`
   },
   rows(item, fonts) {
-    const kind = !item.target ? "New font" : item.details.inherits ? `Variation of ${parentName(item, fonts)}, using its textures` : `Variant of ${parentName(item, fonts)}, with its own textures`
+    const kind = item.target ? `Variant of ${parentName(item, fonts)}` : "New font"
     const extras = item.details.extras ?? []
     const bundled = Object.entries(KIND_NAMES).map(([kind, label]) => ({ label, value: extras.filter(extra => extra.kind === kind).map(extra => extra.name).join(", ") })).filter(row => row.value)
-    return [{ label: "Id", value: item.details.id }, { label: "Added as", value: kind }].concat(bundled)
+    return [{ label: "ID", value: item.details.id }, { label: "Added as", value: kind }].concat(bundled)
   }
 }

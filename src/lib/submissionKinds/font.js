@@ -6,8 +6,8 @@ import { defaultBorder, defaultDepth } from "../settings.js"
 import { centredOffset, stripUse } from "../strips.js"
 import { GENERATED_EDGE_OVERLAYS, withGenerated } from "../generated.js"
 import { EXTRA_FILE, HEX_COLOUR, SUBMISSION_LIMITS, assetId, pngProblem, pngSize, sizedProblem, textProblem, textureDensity } from "../submissions.js"
-import { FONT_LIMITS, SHARED_SETTINGS, exported, ownFont, parentSheet, sharedSettingOf, submittedFont, variation } from "./fontBuild.js"
-import { decodePng } from "./png.js"
+import { slug } from "../fontEditor.js"
+import { FONT_LIMITS, ownFont, submittedFont } from "./fontBuild.js"
 
 export const FONT_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/
 export const FONT_ID_LENGTH = 40
@@ -17,7 +17,6 @@ const LATIN = Array.from("abcdefghijklmnopqrstuvwxyz")
 export const EXTRA_KINDS = ["texture", "overlay", "strip"]
 const RESERVED_ASSETS = new Set(["flat"].concat(Object.keys(withGenerated({})), Object.keys(GENERATED_EDGE_OVERLAYS)))
 const built = new WeakMap()
-const SETTING_NAMES = { depth: "depth", border: "border", flat: "Flat setting", overlay: "Overlay setting", autoBorder: "Automatic border setting" }
 
 export function fontParents(fonts) {
   return fonts.filter(font => !font.variant)
@@ -27,14 +26,28 @@ export function fontParent(fonts, id) {
   return id ? fontParents(fonts).find(font => font.id === id) ?? null : null
 }
 
-export function fontIdProblem(id, fonts) {
-  if (!id) return "Give the font an id."
-  if (Array.from(id).length > FONT_ID_LENGTH) return `The id can be up to ${FONT_ID_LENGTH} characters.`
-  if (!FONT_ID.test(id)) return "The id can only have lowercase letters and numbers, with single hyphens between words, like my-font."
-  if (RESERVED.includes(id) || RESERVED_PREFIXES.some(prefix => id.startsWith(prefix))) return `The id ${id} is kept for the site itself. Pick another one.`
+function idProblem(id, fonts) {
+  if (!id) return "The font has no ID."
+  if (Array.from(id).length > FONT_ID_LENGTH) return `The font's ID can be up to ${FONT_ID_LENGTH} characters.`
+  if (!FONT_ID.test(id)) return "The font's ID can only have lowercase letters and numbers, with single hyphens between words, like my-font."
+  if (RESERVED.includes(id) || RESERVED_PREFIXES.some(prefix => id.startsWith(prefix))) return `The ID ${id} is kept for the site itself.`
   const taken = fonts.find(font => font.id === id)
-  if (taken) return `${fullName(taken, fonts)} already has the id ${id}. Pick another one.`
+  if (taken) return `${fullName(taken, fonts)} already has the ID ${id}.`
   return null
+}
+
+export function fontIdProblem(id, fonts) {
+  const problem = idProblem(id, fonts)
+  return problem && `${problem} Change it in the font editor's Font tab.`
+}
+
+export function submittedFontId(bytes) {
+  try {
+    const { fields } = submittedFont(bytes)
+    return fields.id || slug(fields.name ?? "")
+  } catch {
+    return null
+  }
 }
 
 export function kerningStep(pairs) {
@@ -130,25 +143,7 @@ async function ownFontProblem(font, parent, ctx) {
   return await stripProblem(entry, own.cells, own.capHeight, ctx) ?? kerningProblem(entry, own.sheet)
 }
 
-export function loadParent(ctx, parent) {
-  return ctx.memo(`font-sheet:${parent.id}`, async () => parentSheet(parent, ctx.fonts, decodePng(await ctx.bytes(`/font/${parent.id}/font.png`))))
-}
-
-async function variationProblem(font, parent, ctx) {
-  const name = parent.name
-  const shared = await loadParent(ctx, parent)
-  const changed = variation(font, shared)
-  if (changed.capHeight !== shared.capHeight) return `A variation has to be the same height as ${name}, which is ${shared.capHeight} pixels tall, and this one is ${changed.capHeight}.`
-  const grid = font.grid * font.density
-  if (grid !== shared.grid) return `A variation has to use the same square size as ${name}, ${shared.grid} pixels, and this one uses ${grid}. Change the square size in the font editor's Font tab.`
-  const settings = exported(font)
-  const different = SHARED_SETTINGS.find(key => sharedSettingOf(settings, key) !== sharedSettingOf(parent, key))
-  if (different) return `A variation uses ${name}'s textures, so its ${SETTING_NAMES[different]} has to match ${name}'s.`
-  if (!changed.cells.length) return `None of the characters are different from ${name}. Redraw the ones the variation changes.`
-  return sizeProblem(changed.capHeight, changed.cells.length)
-}
-
-async function readFile(bytes, parent, inherits, ctx) {
+async function readFile(bytes, parent, ctx) {
   const sized = sizedProblem(bytes, "font")
   if (sized) return { problem: sized }
   let font
@@ -157,7 +152,6 @@ async function readFile(bytes, parent, inherits, ctx) {
   } catch (err) {
     return { problem: err.message }
   }
-  if (inherits) return { problem: await variationProblem(font, parent, ctx) }
   const problem = await ownFontProblem(font, parent, ctx)
   return { problem, template: problem ? null : builtFont(font, parent?.id ?? null).template }
 }
@@ -231,7 +225,7 @@ export const font = {
   noun: "font",
   available: true,
   accept: "application/json",
-  derived: ["template"],
+  derived: ["id", "template"],
   fileKeys(details) {
     return Array.isArray(details.extras) ? details.extras.map(item => item.key) : []
   },
@@ -243,21 +237,18 @@ export const font = {
     const clean = {}
     const parent = fontParent(ctx.fonts, target)
     if (target && !parent) problems.target = "Pick the font this is a variant of."
-    const id = typeof details.id === "string" ? details.id.trim().toLowerCase() : ""
-    problems.id = fontIdProblem(id, ctx.fonts)
-    clean.id = id
-    const inherits = !!parent && (details.inherits === true || details.inherits === "true")
-    if (parent) clean.inherits = inherits
+    const id = bytes ? submittedFontId(bytes) : typeof details.id === "string" ? details.id : ""
+    if (id !== null) problems.id = fontIdProblem(id, ctx.fonts)
+    if (bytes && id) clean.id = id
     let template = bytes ? null : storedTemplate(details.template)
     if (bytes && (!target || parent)) {
-      const read = await readFile(bytes, parent, inherits, ctx)
+      const read = await readFile(bytes, parent, ctx)
       problems.file = read.problem
       if (read.template) clean.template = template = read.template
     }
     const sent = Object.keys(files).length
     if (!bytes && sent && !template) problems.extras = "Choose the font's JSON file again to add new textures, overlays or strips."
     const extras = extrasOf(details.extras, files, details.files, template, problems)
-    if (inherits && extras.length) problems.extras = `A variation uses ${parent.name}'s textures, so it can't include its own.`
     if (extras.length) clean.extras = extras
     return { problems, target: parent?.id ?? target, details: clean }
   }

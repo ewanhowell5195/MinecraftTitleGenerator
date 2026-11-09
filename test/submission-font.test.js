@@ -35,11 +35,6 @@ function copyOf(id) {
   return fontFromPublished({ ...entry, name: entry.name ?? entry.id }, Object.values(glyphs), zero.capHeight)
 }
 
-function filledRow(font, char, row) {
-  const glyph = font.glyphs[char]
-  return { ...font, glyphs: { ...font.glyphs, [char]: { ...glyph, rows: glyph.rows.map((line, index) => index === row ? "1".repeat(line.length) : line) } } }
-}
-
 function pngBytes({ width, height, data }) {
   const png = new PNG({ width, height })
   png.data.set(data)
@@ -52,19 +47,21 @@ function plainPng(width, height) {
   return new Uint8Array(PNG.sync.write(png))
 }
 
-function jsonOf(font) {
-  return new TextEncoder().encode(`${jsonText(exportJson(font, `data:image/png;base64,${pngBytes(buildSheet(font)).toString("base64")}`))}\n`)
+function jsonOf(font, id = "test-font") {
+  return new TextEncoder().encode(`${jsonText(exportJson({ ...font, id }, `data:image/png;base64,${pngBytes(buildSheet(font)).toString("base64")}`))}\n`)
+}
+
+function withFields(bytes, fields) {
+  return new TextEncoder().encode(JSON.stringify({ ...JSON.parse(new TextDecoder().decode(bytes)), ...fields }))
 }
 
 const ctx = submissionContext(fonts, async file => fs.existsSync(`public${file}`) ? new Response(fs.readFileSync(`public${file}`)) : new Response("missing", { status: 404 }))
 
 function check(input) {
-  return kind.check({ target: "", details: { id: "test-font" }, bytes: null, files: {}, ...input }, ctx)
+  return kind.check({ target: "", details: {}, bytes: null, files: {}, ...input }, ctx)
 }
 
 const f8thful = jsonOf(copyOf("f8thful"))
-const ten = copyOf("minecraft-ten")
-const tenChanged = filledRow(filledRow(ten, "e", 10), "a", 12)
 
 describe("checking a font", () => {
   test("decodes the PNGs the repo uses, palette, grey and colour key ones included", () => {
@@ -81,11 +78,14 @@ describe("checking a font", () => {
     assert.deepEqual(details, { id: "test-font", template: { width: 566, height: 356, rows: 92 } })
   })
 
-  test("ids are slugs that no published font has", async () => {
-    assert.match((await check({ details: { id: "f8thful" } })).problems.id, /F8thful already has the id f8thful/)
-    assert.match((await check({ details: { id: "My Font" } })).problems.id, /lowercase letters and numbers/)
-    assert.match((await check({ details: { id: "custom-thing" } })).problems.id, /kept for the site/)
-    assert.match((await check({ details: { id: "" } })).problems.id, /Give the font an id/)
+  test("the id comes from the JSON, and has to be a slug no published font has", async () => {
+    assert.equal((await check({ bytes: withFields(f8thful, { id: "f8thful" }) })).problems.id, "F8thful already has the ID f8thful. Change it in the font editor's Font tab.")
+    assert.match((await check({ bytes: withFields(f8thful, { id: "My Font" }) })).problems.id, /lowercase letters and numbers/)
+    assert.match((await check({ bytes: withFields(f8thful, { id: "custom-thing" }) })).problems.id, /kept for the site/)
+    assert.equal((await check({ bytes: withFields(f8thful, { id: "", name: "Shiny Font" }) })).details.id, "shiny-font")
+    assert.match((await check({ bytes: withFields(f8thful, { id: "", name: "" }) })).problems.id, /The font has no ID/)
+    assert.equal((await check({ bytes: f8thful, details: { id: "forged" } })).details.id, "test-font")
+    assert.equal((await check({ details: { id: "kept-from-before" } })).problems.id, null)
   })
 
   test("letters left blank are named", async () => {
@@ -106,13 +106,6 @@ describe("checking a font", () => {
   test("a file that isn't from the font editor says so", async () => {
     assert.match((await check({ bytes: new TextEncoder().encode("{ \"id\": \"x\" }") })).problems.file, /no font sheet in it/)
     assert.match((await check({ bytes: new TextEncoder().encode("nope") })).problems.file, /isn't a font editor JSON file/)
-  })
-
-  test("a variation has to change something and match its parent's height", async () => {
-    assert.equal((await check({ target: "minecraft-ten", details: { id: "x", inherits: true }, bytes: jsonOf(tenChanged) })).problems.file, null)
-    assert.match((await check({ target: "minecraft-ten", details: { id: "x", inherits: true }, bytes: jsonOf(ten) })).problems.file, /None of the characters are different/)
-    assert.match((await check({ target: "minecraft-ten", details: { id: "x", inherits: true }, bytes: f8thful })).problems.file, /same height as Minecraft Ten/)
-    assert.equal((await check({ target: "minecraft-ten", details: { id: "x", inherits: "true" }, bytes: jsonOf(tenChanged) })).details.inherits, true)
   })
 
   test("variants have to be of a font that isn't a variant itself", async () => {
@@ -142,17 +135,12 @@ describe("checking a font", () => {
     assert.equal(kept.problems["extra:b"], undefined)
   })
 
-  test("a variation can't bring textures of its own", async () => {
-    const { problems } = await check({ target: "minecraft-ten", bytes: jsonOf(tenChanged), details: { id: "x", inherits: true, extras: [{ key: "a", kind: "overlay", name: "Sparkle" }] }, files: { a: plainPng(10, 10) } })
-    assert.match(problems.extras, /uses Minecraft Ten's textures/)
-  })
-
   test("opens in the generator as a custom font", () => {
     const line = client.line({ target: "", details: { id: "x" } }, "data:application/json;base64,e30=", "Hello")
     assert.equal(line.text, "Hello")
     assert.equal(line.customFont.kind, "json")
     assert.match(line.font, /^custom-/)
-    assert.equal(client.summary({ target: "minecraft-ten", details: { inherits: true } }, fonts), "A variation of Minecraft Ten")
+    assert.equal(client.summary({ target: "minecraft-ten", details: {} }, fonts), "A font listed under Minecraft Ten")
   })
 })
 
@@ -238,25 +226,6 @@ describe("the workflow step", () => {
     assert.equal(entry.preview, "ёєі")
     assert.equal(entry.basedOn, "minecraft-ten-cyrillic")
     assert.deepEqual(JSON.parse(fs.readFileSync(path.join(folder, "textures.json"), "utf8")), { textures: { flat: { border: "#000000" } }, overlays: {} })
-  })
-
-  test("adds a variation's changed characters to its parent without growing the parent's template", async () => {
-    const root = tempRoot()
-    const before = readPngFile(path.join(root, "public/font/minecraft-ten/textures/flat.png"))
-    const gold = readPngFile(path.join(root, "public/font/minecraft-ten/textures/bevelled_gold.png"))
-    addEntry(root, { id: "ten-alt", name: "Alt", inherits: true, author: "Someone" }, "minecraft-ten")
-    const held = hold(root, "ten-alt", jsonOf(tenChanged))
-    await prepare({ root, changed: [held], node: () => {} })
-    const { entry, list, flat } = assertPublishable(root, "minecraft-ten")
-    const variant = list.find(item => item.id === "ten-alt")
-    assert.deepEqual([variant.order, variant.preview, variant.basedOn], ["ae", "ae", undefined])
-    assert.deepEqual([flat.width, flat.height], [before.width, before.height])
-    const after = readPngFile(path.join(root, "public/font/minecraft-ten/textures/bevelled_gold.png"))
-    assert.deepEqual([after.width, after.height], [gold.width, gold.height])
-    const { glyphs, alternates } = splitCells(entry, list, parseMask(readPngFile(path.join(root, "public/font/minecraft-ten/font.png")).data, 552, 222, fullOrder(entry, list), 0).list)
-    assert.deepEqual(Object.keys(alternates["ten-alt"]), ["a", "e"])
-    assert.notDeepEqual(alternates["ten-alt"].e.mask, glyphs.e.mask)
-    assert.ok(!after.data.equals(gold.data))
   })
 })
 
@@ -394,12 +363,12 @@ describe("sending a font", () => {
 
   test("puts variants under their parent and keeps ids apart from other open font submissions", async () => {
     const cookie = await signIn()
-    const first = await send(cookie, { target: "minecraft-ten", name: "Alt", details: { id: "ten-alt", inherits: true }, file: jsonOf(tenChanged) })
+    const first = await send(cookie, { target: "minecraft-ten", name: "Alt", file: jsonOf(copyOf("minecraft-ten-cyrillic"), "ten-alt") })
     assert.equal(first.status, 201)
     const parent = JSON.parse(branchFile(first.id, LIST).toString()).find(item => item.id === "minecraft-ten")
-    assert.deepEqual(parent.variants.at(-1), { id: "ten-alt", name: "Alt", inherits: true, author: "Someone" })
+    assert.deepEqual(parent.variants.at(-1), { id: "ten-alt", name: "Alt", author: "Someone" })
     assert.equal(gh.pulls.get(1).title, "Alt font for Minecraft Ten")
-    const second = await send(cookie, { name: "Ten Alt", details: { id: "ten-alt" } })
+    const second = await send(cookie, { name: "Ten Alt", file: jsonOf(copyOf("f8thful"), "ten-alt") })
     assert.equal(second.status, 201)
     assert.deepEqual(JSON.parse(branchFile(second.id, LIST).toString()).at(-1), { id: "ten-alt-2", name: "Ten Alt", author: "Someone" })
     assert.ok(branchFile(second.id, "submissions/fonts/ten-alt-2.json"))
