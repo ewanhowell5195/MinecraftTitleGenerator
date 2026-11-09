@@ -148,7 +148,7 @@
         <ul>
           <li>You confirm that it is your own work, or that you have permission to submit it.</li>
           <li>You agree that it can stay in this project permanently, and that removal is at my discretion.</li>
-          <li>You allow people to use it in the title generator, and they own the titles they make with it.</li>
+          <li>You allow people to use it in the title generator, and they own the titles they make with it, without needing to credit you.</li>
           <li>You give this permission for free, and you cannot withdraw it.</li>
         </ul>
         <p>Submitting does not give anyone permission to take it and use it outside of the title generator and its generated titles.</p>

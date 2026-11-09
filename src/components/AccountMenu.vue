@@ -10,7 +10,7 @@
 </script>
 
 <template>
-  <MenuButton v-if="account || signInProviders.length" class="account" :items="items" :title="account ? `Signed in as ${account.name}` : 'Sign in to keep your presets on your account'"><Icon :name="account ? account.provider : 'user'" :size="16" /><span class="ellipsis">{{ account ? account.name : "Sign in" }}</span><span v-if="unread" class="unread" :title="`${unread} new on your submissions`">{{ unread }}</span></MenuButton>
+  <MenuButton v-if="account || signInProviders.length" class="account" :items="items" :title="account ? `Signed in as ${account.name}` : 'Sign in to keep your presets under your account'"><Icon :name="account ? account.provider : 'user'" :size="16" /><span class="ellipsis">{{ account ? account.name : "Sign in" }}</span><span v-if="unread" class="unread" :title="`${unread} new on your submissions`">{{ unread }}</span></MenuButton>
 </template>
 
 <style scoped>

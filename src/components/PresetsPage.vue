@@ -370,7 +370,7 @@
           <p v-else-if="tab === 'mine' && presetsError" class="message error">{{ presetsError }}</p>
           <p v-else-if="tab === 'mine' && presetsLoading" class="message">Loading your presets</p>
           <p v-else-if="tab === 'community' ? !results.length && !loading : !localShown.length" class="message">{{ emptyMessage }}</p>
-          <p v-if="tab === 'mine' && !account && signInProviders.length" class="message">Sign in to keep your presets on your account. The presets saved in this browser, and anything shared from it, move to your account when you do.</p>
+          <p v-if="tab === 'mine' && !account && signInProviders.length" class="message">Sign in to keep your presets under your account. The presets saved in this browser, and anything shared from it, move to your account when you do.</p>
           <div v-if="tab === 'community'" class="grid">
             <div v-for="preset of results" :key="preset.id" class="card" :class="{ selected: selected?.id === preset.id }" @click="selectCommunity(preset)">
               <TitlePicture :code="preset.code" :fingerprint="preset.fingerprint" :title="preset.name" @open="selectCommunity(preset)" />

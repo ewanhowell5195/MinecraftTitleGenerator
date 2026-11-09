@@ -1,0 +1,40 @@
+.legal {
+  max-width: 760px;
+  padding-top: clamp(104px, 14vh, 140px);
+}
+
+.legal h1 {
+  font-size: clamp(36px, 5.4vw, 60px);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.legal h2 {
+  margin-top: 44px;
+  font-size: clamp(22px, 3vw, 28px);
+}
+
+.legal p,
+.legal ul {
+  margin-top: 12px;
+}
+
+.legal h2 + p {
+  max-width: none;
+  font-size: inherit;
+}
+
+.legal ul {
+  padding-left: 22px;
+}
+
+.legal li + li {
+  margin-top: 6px;
+}
+
+.legal .updated {
+  font-size: 15px;
+  color: var(--faint);
+}

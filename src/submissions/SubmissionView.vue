@@ -69,7 +69,7 @@
   <p v-if="error && !item" class="hint bad">{{ error }}</p>
   <template v-else-if="item">
     <section class="intro">
-      <a class="hint" href="/submit/">Submit a texture or overlay</a>
+      <a class="hint" href="/submit/">Submit to the title generator</a>
       <h1>{{ item.name }}</h1>
       <p>{{ client.summary(item, fonts) }}, made by {{ item.credit }}.</p>
     </section>
