@@ -19,7 +19,7 @@
   import SubmissionForm from "./SubmissionForm.vue"
 
   const PROCESSING_POLL = 5000
-  const SHEET_TABS = [{ value: "files", label: "Files" }, { value: "characters", label: "Characters" }]
+  const SHEET_TABS = [{ value: "characters", label: "Characters" }, { value: "files", label: "Files" }]
 
   const props = defineProps({
     id: { type: Number, required: true },
@@ -35,7 +35,7 @@
   const busy = ref(false)
 
   const processing = ref(null)
-  const sheetTab = ref("files")
+  const sheetTab = ref("characters")
   let pollTimer = null
 
   const client = computed(() => CLIENT_KINDS[item.value?.kind])
