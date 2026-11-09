@@ -253,6 +253,13 @@ describe("submitting", () => {
     }
   })
 
+  test("forgets signed out daily counts after their day", async () => {
+    await post({ code: code([{ text: "old" }]) }, "7.7.7.7")
+    db.prepare("UPDATE preset_submissions SET day = '2000-01-01'").run()
+    await post({ code: code([{ text: "new" }]) }, "8.8.8.8")
+    assert.deepEqual(db.prepare("SELECT day FROM preset_submissions").all().map(row => row.day), [new Date().toISOString().slice(0, 10)])
+  })
+
   test("never stores an IP address, only its hash", async () => {
     await post({ code: code([{ text: "a" }]) }, "123.45.67.89")
     const [row] = db.prepare("SELECT ip_hash FROM preset_submissions").all()

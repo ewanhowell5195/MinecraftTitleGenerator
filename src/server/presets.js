@@ -114,8 +114,8 @@ async function hasUnlimitedShares(env, user) {
   return !!(await env.DB.prepare("SELECT unlimited_shares FROM users WHERE provider = ? AND provider_id = ?").bind(user.provider, user.providerId).first())?.unlimited_shares
 }
 
-function forgetOldAccountCounts(env) {
-  return env.DB.prepare("DELETE FROM account_submissions WHERE day < ?").bind(today())
+function forgetOldCounts(env) {
+  return ["account_submissions", "preset_submissions"].map(table => env.DB.prepare(`DELETE FROM ${table} WHERE day < ?`).bind(today()))
 }
 
 function likePattern(term) {
@@ -328,7 +328,7 @@ export const submitPreset = guarded(async context => {
   const token = user || hidden ? null : randomToken()
   const saving = hidden ? env.DB.prepare(`UPDATE presets SET shared = 1, code = ?, fingerprint = ?, name = ?, text = ?, created_at = COALESCE(created_at, ?)${changedTitle ? SCORES_RESET : ""} WHERE id = ? RETURNING ${COLUMNS}`).bind(body.code, fingerprint, name, facts.text, Date.now(), hidden.id) : env.DB.prepare(`INSERT INTO presets (id, code, fingerprint, name, text, token_hash, user_id, created_at, shared) VALUES (${NEXT_ID}, ?, ?, ?, ?, ?, ${USER_ROW}, ?, 1) RETURNING ${COLUMNS}`).bind(body.code, fingerprint, name, facts.text, token && await hashed(token), user?.provider ?? null, user?.providerId ?? null, Date.now())
   const before = (user ? [saveUser(env, user)] : []).concat(changedTitle ? scoreResets(env, hidden.id) : [])
-  const results = await env.DB.batch(before.concat(saving, await countSubmission(env, user, ip), forgetOldAccountCounts(env)))
+  const results = await env.DB.batch(before.concat(saving, await countSubmission(env, user, ip), forgetOldCounts(env)))
   await forgetCached(request, ...(hidden ? [hidden.id] : []))
   return reply(hidden ? 200 : 201, { preset: rated(results[before.length].results[0]), onAccount: !!user, ...(token && { token }) })
 })
@@ -385,9 +385,8 @@ export const deletePreset = guarded(async context => {
   const { id, user } = await ownedPreset(context)
   await env.DB.batch([
     env.DB.prepare("INSERT INTO deleted_presets (id) VALUES (?)").bind(id),
-    env.DB.prepare("DELETE FROM presets WHERE id = ?").bind(id),
-    forgetOldAccountCounts(env)
-  ].concat(user ? forgetUnusedUser(env, user) : []))
+    env.DB.prepare("DELETE FROM presets WHERE id = ?").bind(id)
+  ].concat(forgetOldCounts(env), user ? forgetUnusedUser(env, user) : []))
   await forgetCached(request, id)
   return reply(200, { deleted: true })
 })
