@@ -2,6 +2,7 @@ import { computed, ref, shallowRef, watch } from "vue"
 import { DEFAULT_ORDER } from "../lib/order.js"
 import { buildSheet, charactersOf, exportJson, fitGlyph, flatTexture, glyphOf, moveGlyph, reshapeGlyph, setGlyph, slug } from "../lib/fontEditor.js"
 import { jsonText } from "../lib/jsonText.js"
+import { EDITOR_SUBMISSION } from "../lib/submissions.js"
 import { download, downloadBlob } from "../lib/ui.js"
 import { pngUrl } from "../lib/virtualFiles.js"
 
@@ -183,7 +184,17 @@ export function downloadTexture() {
   download("font.png", pngUrl(buildSheet(font.value)))
 }
 
+function jsonFile() {
+  return { name: `${font.value.id || slug(font.value.name) || "font"}.json`, text: jsonText(exportJson(font.value, pngUrl(buildSheet(font.value)))) + "\n" }
+}
+
 export function downloadJson() {
-  const text = jsonText(exportJson(font.value, pngUrl(buildSheet(font.value)))) + "\n"
-  downloadBlob(`${font.value.id || slug(font.value.name) || "font"}.json`, new Blob([text], { type: "application/json" }))
+  const { name, text } = jsonFile()
+  downloadBlob(name, new Blob([text], { type: "application/json" }))
+}
+
+export function submitFont() {
+  flushSave()
+  sessionStorage.setItem(EDITOR_SUBMISSION, JSON.stringify(jsonFile()))
+  location.assign("/submit/?type=font&from=editor")
 }

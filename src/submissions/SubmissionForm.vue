@@ -5,7 +5,7 @@
   import { account, signIn, signInProviders } from "../lib/community.js"
   import { providerLabel } from "../lib/providers.js"
   import { SUBMISSION_KINDS, checkSubmission, submissionContext } from "../lib/submissionKinds/index.js"
-  import { SUBMISSION_LIMITS } from "../lib/submissions.js"
+  import { EDITOR_SUBMISSION, SUBMISSION_LIMITS } from "../lib/submissions.js"
   import { editSubmission, sendSubmission, submissionFileUrl } from "../lib/submissionsApi.js"
   import { KIND_COMPONENTS } from "./kinds/components.js"
   import { CLIENT_KINDS } from "./kinds/index.js"
@@ -21,7 +21,7 @@
   const KINDS = Object.values(SUBMISSION_KINDS).filter(type => type.available).map(type => ({ value: type.id, label: type.label }))
   const TEXTURE_KINDS = KINDS.filter(item => item.value !== "font")
   const GROUPS = [{ value: "texture", label: "Texture" }].concat(KINDS.some(item => item.value === "font") ? { value: "font", label: "Font" } : [])
-  const { type: prefillKind, font: prefillTarget, name: prefillName, credit: prefillCredit, ...prefillDetails } = props.prefill
+  const { type: prefillKind, font: prefillTarget, name: prefillName, credit: prefillCredit, from: prefillFrom, ...prefillDetails } = props.prefill
   const startKind = props.initial?.kind ?? prefillKind
   const kind = ref(SUBMISSION_KINDS[startKind]?.available ? startKind : "texture")
   const target = ref(props.initial?.target ?? prefillTarget ?? "")
@@ -84,14 +84,39 @@
     if (check === checks) problems.value = result.problems
   }, { immediate: true })
 
-  async function pick(event) {
-    const file = event.target.files[0]
-    event.target.value = ""
-    if (!file) return
+  function fillFromFont(bytes) {
+    let json
+    try {
+      json = JSON.parse(new TextDecoder().decode(bytes))
+    } catch {
+      return
+    }
+    if (!name.value && typeof json.name === "string") name.value = json.name.slice(0, SUBMISSION_LIMITS.name)
+    if (typeof json.author === "string" && json.author && (!credit.value || credit.value === account.value?.name)) credit.value = json.author.slice(0, SUBMISSION_LIMITS.credit)
+  }
+
+  async function use(file) {
     if (chosen.value) URL.revokeObjectURL(chosen.value.url)
     extraProblem.value = null
     chosen.value = { blob: file, bytes: new Uint8Array(await file.arrayBuffer()), url: URL.createObjectURL(file), name: file.name }
+    if (kind.value === "font") fillFromFont(chosen.value.bytes)
   }
+
+  function pick(event) {
+    const file = event.target.files[0]
+    event.target.value = ""
+    if (file) use(file)
+  }
+
+  function takeEditorFont() {
+    const saved = sessionStorage.getItem(EDITOR_SUBMISSION)
+    sessionStorage.removeItem(EDITOR_SUBMISSION)
+    if (!saved) return
+    const { name: fileName, text } = JSON.parse(saved)
+    use(new File([text], fileName, { type: "application/json" }))
+  }
+
+  if (prefillFrom === "editor" && kind.value === "font" && !props.initial) takeEditorFont()
 
   async function send() {
     tried.value = true

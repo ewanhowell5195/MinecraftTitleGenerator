@@ -13,7 +13,7 @@
   import PreviewPanel from "./PreviewPanel.vue"
   import TexturesPanel from "./TexturesPanel.vue"
   import StartScreen from "./StartScreen.vue"
-  import { canRedo, canUndo, closeFont, downloadJson, downloadTexture, flushSave, font, redo, restoreFont, saveError, typing, undo } from "./store.js"
+  import { canRedo, canUndo, closeFont, downloadJson, downloadTexture, flushSave, font, redo, restoreFont, saveError, submitFont, typing, undo } from "./store.js"
 
   const TABS = [{ id: "font", label: "Font" }, { id: "characters", label: "Characters" }, { id: "textures", label: "Textures" }, { id: "kerning", label: "Kerning" }]
 
@@ -85,6 +85,8 @@
           <template #label="{ tab: item }"><span>{{ item.label }}</span></template>
         </FluidTabs>
       </template>
+      <div class="spacer"></div>
+      <button v-if="font" class="small" title="Send this font to be added to the title generator" @click="submitFont"><Icon name="upload" :size="14" />Submit</button>
       <AccountMenu />
     </header>
 
@@ -163,10 +165,6 @@
     text-decoration: none;
     user-select: none;
     white-space: nowrap;
-  }
-
-  .account {
-    margin-left: auto;
   }
 
   .name {
