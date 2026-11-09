@@ -1,3 +1,4 @@
+import { stretched } from "../lib/arc.js"
 import { lineLayout } from "../lib/layout.js"
 import { DEFAULT_SPACE_WIDTH, parsedSheet } from "../lib/fontEditor.js"
 
@@ -6,8 +7,9 @@ export function previewFont(font) {
   return { glyphs, capHeight, kerning: font.kerning, spaceWidth: font.spaceWidth ?? DEFAULT_SPACE_WIDTH, terminatorSpace: font.terminatorSpace, terminatorSpaceWidth: font.terminatorSpaceWidth, forcedTerminators: font.forcedTerminators, border: font.border, characterSpacing: font.characterSpacing }
 }
 
-export function drawText(canvas, parsed, text, { maxWidth, maxHeight, maxScale = 8, terminators = false, raw = false }) {
-  const placed = lineLayout(parsed, [{ text, space: false, creeper: true }], { spacing: parsed.characterSpacing, terminators, raw })
+export function drawText(canvas, parsed, text, { maxWidth, maxHeight, maxScale = 8, terminators = false, raw = false, stretch = 1 }) {
+  const grow = Math.round((stretch - 1) * parsed.capHeight)
+  const placed = lineLayout(parsed, [{ text, space: false, creeper: true }], { spacing: parsed.characterSpacing, terminators, raw }).map(item => grow && item.glyph.mask ? { ...item, glyph: stretched(item.glyph, item.glyph.char, [], grow) } : item)
   const ctx = canvas.getContext("2d")
   const border = parsed.border
   if (!placed.length) {

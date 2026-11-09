@@ -27,7 +27,7 @@
   function draw() {
     if (!canvas.value || !holder.value) return
     try {
-      empty.value = !drawText(canvas.value, previewFont(font.value), text.value, { maxWidth: holder.value.clientWidth - 16, maxHeight: holder.value.clientHeight - 16, terminators: terminators.value })
+      empty.value = !drawText(canvas.value, previewFont(font.value), text.value, { maxWidth: holder.value.clientWidth - 16, maxHeight: holder.value.clientHeight - 16, terminators: terminators.value, stretch: 1 + stretch.value / 100 })
       error.value = ""
     } catch (err) {
       error.value = err.message
@@ -51,10 +51,7 @@
     clearTimeout(timer)
   })
 
-  watch([font, text, terminators, mode], schedule)
-  watch(stretch, value => {
-    if (value && !wide.value) mode.value = "3d"
-  })
+  watch([font, text, terminators, mode, stretch], schedule)
 </script>
 
 <template>
@@ -64,7 +61,7 @@
         <span class="label">Preview</span>
         <input v-model="text" type="text" placeholder="Type something" aria-label="Preview text">
       </label>
-      <div class="stretch" title="Makes the 3D preview up to twice as tall, using only the marked stretch zones">
+      <div class="stretch" title="Makes the preview up to twice as tall, using only the marked stretch zones">
         <Slider inline label="Stretch" :min="0" :max="100" v-model="stretch" />
       </div>
       <label class="checkbox" :title="font.forcedTerminators ? 'This font always uses terminators' : 'Add the ┫ ┣ line terminators'">

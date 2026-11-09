@@ -20,7 +20,7 @@ function spread(rows, extra, length) {
   return added
 }
 
-function stretched(glyph, key, arcs, grow) {
+export function stretched(glyph, key, arcs, grow) {
   const marks = glyph.stretch && (grow || arcs.some(arc => arc.marked)) ? new Set(glyph.stretch) : null
   const low = Math.min(glyph.bottom, ...(marks ? glyph.stretch : []))
   const high = Math.max(glyph.top, ...(marks ? glyph.stretch.map(y => y + 1) : []))
