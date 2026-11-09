@@ -29,6 +29,11 @@
         "terminatorSpace": true,
         "order": "😳0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣ёєіїабвгдежзийклмнопрстуфхцчшщъыьэюяґғқңүұәө₽",
         "preview": "абв"
+      },
+      {
+        "id": "minecraft-ten-simlish",
+        "name": "Simlish",
+        "author": "Logan2020"
       }
     ]
   },
