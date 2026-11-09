@@ -1,8 +1,8 @@
 <script setup>
   import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
   import Icon from "../components/Icon.vue"
-  import { blockAt, fillCells, lineCells, paint, rectangleCells, rowOfY, setGlyph, setStretch, shiftGlyph, widthOf, yOfRow } from "../lib/fontEditor.js"
-  import { arrowsMove, beginStroke, cancelStroke, font, glyph, selected, strokeTo, typing, updateGlyph } from "./store.js"
+  import { NOTHING_OUTSIDE, blockAt, fillCells, lineCells, paint, rectangleCells, rowOfY, setGlyph, setStretch, widthOf, yOfRow } from "../lib/fontEditor.js"
+  import { arrowsMove, beginStroke, cancelStroke, font, glyph, moveSelected, selected, strokeTo, typing, updateGlyph } from "./store.js"
 
   const TOOLS = [
     { id: "pencil", icon: "pencil", label: "Pencil", key: "b", hint: "Shift-click draws a line from the last point, holding Shift while drawing keeps it horizontal or vertical" },
@@ -407,8 +407,7 @@
     const step = ARROWS[event.key]
     if (step && arrowsMove.value === "drawing") {
       event.preventDefault()
-      const moved = shiftGlyph(glyph.value, step[0] * brush.value, step[1] * brush.value)
-      if (moved) updateGlyph(moved, `${selected.value}.move`)
+      moveSelected(step[0] * brush.value, step[1] * brush.value)
       return
     }
     if (event.key === "0") return fit()
@@ -424,17 +423,17 @@
   }
 
   function clearGlyph() {
-    updateGlyph({ ...glyph.value, rows: glyph.value.rows.map(row => "0".repeat(row.length)) })
+    updateGlyph({ ...glyph.value, rows: glyph.value.rows.map(row => "0".repeat(row.length)) }, null, NOTHING_OUTSIDE)
   }
 
   function flipX() {
-    updateGlyph({ ...glyph.value, rows: glyph.value.rows.map(row => Array.from(row).reverse().join("")) })
+    updateGlyph({ ...glyph.value, rows: glyph.value.rows.map(row => Array.from(row).reverse().join("")) }, null, NOTHING_OUTSIDE)
   }
 
   function flipY() {
     const current = glyph.value
     const top = current.above + font.value.height - 1
-    updateGlyph({ ...current, rows: current.rows.slice().reverse(), stretch: current.stretch.map(y => top - current.below - y).sort((a, b) => a - b) })
+    updateGlyph({ ...current, rows: current.rows.slice().reverse(), stretch: current.stretch.map(y => top - current.below - y).sort((a, b) => a - b) }, null, NOTHING_OUTSIDE)
   }
 
   onMounted(() => {

@@ -167,13 +167,37 @@ export function setSquareSize(font, grid) {
   return { ...next, glyphs: rescale(font.glyphs), imported: rescale(font.imported) }
 }
 
-export function shiftGlyph(glyph, dx, dy) {
-  const height = glyph.rows.length
-  const width = glyph.rows[0]?.length ?? 0
-  const cells = glyph.rows.flatMap((text, row) => Array.from(text).flatMap((value, x) => value === "1" ? [[x + dx, row - dy]] : []))
-  if (cells.some(([x, row]) => x < 0 || x >= width || row < 0 || row >= height)) return null
-  const stretch = glyph.stretch.map(y => y + dy).filter(y => y >= -glyph.below && y < height - glyph.below)
-  return { ...glyph, rows: rowsOf(width, height, cells), stretch }
+export const NOTHING_OUTSIDE = { cells: [], stretch: [] }
+
+function inkCells(font, glyph) {
+  return glyph.rows.flatMap((text, row) => Array.from(text).flatMap((value, x) => value === "1" ? [[x, yOfRow(font, glyph, row)]] : []))
+}
+
+function placed(font, glyph, cells, stretch) {
+  const width = widthOf(font, glyph)
+  const inside = inRows({ height: font.height, above: glyph.above, below: glyph.below })
+  const fits = ([x, y]) => x >= 0 && x < width && inside(y)
+  const rows = rowsOf(width, font.height + glyph.above + glyph.below, cells.filter(fits).map(([x, y]) => [x, rowOfY(font, glyph, y)]))
+  return { glyph: { ...glyph, rows, stretch: stretch.filter(inside) }, outside: { cells: cells.filter(cell => !fits(cell)), stretch: stretch.filter(y => !inside(y)) } }
+}
+
+export function moveGlyph(font, glyph, dx, dy, outside = NOTHING_OUTSIDE) {
+  const cells = inkCells(font, glyph).concat(outside.cells).map(([x, y]) => [x + dx, y + dy])
+  return placed(font, glyph, cells, glyph.stretch.concat(outside.stretch).map(y => y + dy))
+}
+
+export function reshapeGlyph(font, char, { width, above, below }, outside = NOTHING_OUTSIDE) {
+  const glyph = glyphOf(font, char)
+  const changed = { ...glyph }
+  if (width !== undefined) changed.width = width === font.width ? null : width
+  if (above !== undefined) changed.above = above
+  if (below !== undefined) changed.below = below
+  const cut = widthOf(font, glyph) - widthOf(font, changed)
+  const inked = (start, end) => glyph.rows.some(row => row.slice(start, end).includes("1"))
+  const start = cut > 0 && inked(widthOf(font, changed), widthOf(font, glyph)) && !inked(0, cut) ? cut : 0
+  const cells = inkCells(font, glyph).concat(outside.cells).map(([x, y]) => [x - start, y])
+  const result = placed(font, changed, cells, glyph.stretch.concat(outside.stretch))
+  return { font: setGlyph(font, char, result.glyph), outside: result.outside }
 }
 
 function inkExtent(font, glyph) {
@@ -237,13 +261,8 @@ export function setGlyph(font, char, glyph) {
   return { ...font, glyphs: { ...font.glyphs, [char]: glyph } }
 }
 
-export function changeGlyph(font, char, { width, above, below }) {
-  const glyph = glyphOf(font, char)
-  const changed = { ...glyph }
-  if (width !== undefined) changed.width = width === font.width ? null : width
-  if (above !== undefined) changed.above = above
-  if (below !== undefined) changed.below = below
-  return setGlyph(font, char, reshape(changed, shapeOf(font, glyph), shapeOf(font, changed)))
+export function changeGlyph(font, char, change) {
+  return reshapeGlyph(font, char, change).font
 }
 
 export function paint(glyph, cells, value) {

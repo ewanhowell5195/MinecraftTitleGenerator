@@ -2,7 +2,7 @@
   import { computed } from "vue"
   import Icon from "../components/Icon.vue"
   import { autoStretch, changeGlyph, characterName, setGlyph, squaresOf, widthOf } from "../lib/fontEditor.js"
-  import { font, glyph, selected, update, updateGlyph } from "./store.js"
+  import { font, glyph, reshapeSelected, selected, update, updateGlyph } from "./store.js"
 
   const width = computed(() => widthOf(font.value, glyph.value))
   const overridden = computed(() => glyph.value.width !== null && glyph.value.width !== font.value.width)
@@ -21,11 +21,11 @@
     }
     const next = changeGlyph(font.value, selected.value, { [key]: pixels })
     if (!final && ink(next.glyphs[selected.value]) < ink(glyph.value)) return
-    update(next, `${selected.value}.${key}`)
+    reshapeSelected({ [key]: pixels }, `${selected.value}.${key}`)
   }
 
   function resetWidth() {
-    update(changeGlyph(font.value, selected.value, { width: font.value.width }))
+    reshapeSelected({ width: font.value.width })
   }
 
   function revert() {

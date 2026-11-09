@@ -6,7 +6,7 @@ import { compress } from "woff2-encoder"
 import { publishedFonts, readMask } from "../generator/fonts.js"
 import { parseMask, splitCells } from "../src/lib/font.js"
 import { DEFAULT_ORDER } from "../src/lib/order.js"
-import { CREEPER, REQUIRED_CHARACTERS, SPACE_CHAR, addCharacters, autoStretch, blankGlyph, blockAt, buildSheet, changeGlyph, charactersOf, createFont, exportJson, fillCells, fitGlyph, fontFromFiles, fontFromPublished, glyphOf, isBlank, isOptional, lineCells, lostPixels, paint, parseFontJson, rectangleCells, removeCharacter, resizeFont, rowOfY, setGlyph, setSquareSize, setStretch, sheetOrder, shiftGlyph, slug, squareSizeLoss, squaresOf, stripProblems, trimGlyph, widthOf, yOfRow } from "../src/lib/fontEditor.js"
+import { CREEPER, REQUIRED_CHARACTERS, SPACE_CHAR, addCharacters, autoStretch, blankGlyph, blockAt, buildSheet, changeGlyph, charactersOf, createFont, exportJson, fillCells, fitGlyph, fontFromFiles, fontFromPublished, glyphOf, isBlank, isOptional, lineCells, lostPixels, moveGlyph, paint, parseFontJson, rectangleCells, removeCharacter, reshapeGlyph, resizeFont, rowOfY, setGlyph, setSquareSize, setStretch, sheetOrder, slug, squareSizeLoss, squaresOf, stripProblems, trimGlyph, widthOf, yOfRow } from "../src/lib/fontEditor.js"
 import { fontFromAscii } from "../src/lib/asciiImport.js"
 import { fontFromOutlines, parseFontFile } from "../src/lib/fontImport.js"
 import { gridShift, rasterise } from "../src/lib/fontOutline.js"
@@ -112,13 +112,30 @@ describe("character overrides", () => {
     assert.equal(trimGlyph(font, "c"), font)
   })
 
-  test("moving a drawing carries its stretch zones and stops at the edge", () => {
+  test("moving a drawing carries its stretch zones", () => {
     const marked = setGlyph(font, "a", { ...font.glyphs.a, stretch: [0] })
-    const moved = shiftGlyph(marked.glyphs.a, -2, 1)
-    assert.deepEqual(moved.rows, ["0000", "0000", "0100", "0000"])
-    assert.deepEqual(moved.stretch, [1])
-    assert.equal(shiftGlyph(marked.glyphs.a, 1, 0), null)
-    assert.equal(shiftGlyph(marked.glyphs.a, 0, -1), null)
+    const moved = moveGlyph(marked, marked.glyphs.a, -2, 1)
+    assert.deepEqual(moved.glyph.rows, ["0000", "0000", "0100", "0000"])
+    assert.deepEqual(moved.glyph.stretch, [1])
+    assert.deepEqual(moved.outside, { cells: [], stretch: [] })
+  })
+
+  test("moving off the edge and back keeps what went outside", () => {
+    const marked = setGlyph(font, "a", { ...font.glyphs.a, stretch: [0] })
+    const out = moveGlyph(marked, marked.glyphs.a, 1, -1)
+    assert.ok(isBlank(out.glyph))
+    assert.deepEqual(out.glyph.stretch, [])
+    const back = moveGlyph(marked, out.glyph, -1, 1, out.outside)
+    assert.deepEqual(back.glyph.rows, marked.glyphs.a.rows)
+    assert.deepEqual(back.glyph.stretch, [0])
+  })
+
+  test("narrowing and widening again keeps what was cropped", () => {
+    const both = strokeCell(font, "a", 0, 0)
+    const narrow = reshapeGlyph(both, "a", { width: 2 })
+    assert.equal(narrow.font.glyphs.a.rows[3], "10")
+    const wide = reshapeGlyph(narrow.font, "a", { width: 4 }, narrow.outside)
+    assert.equal(wide.font.glyphs.a.rows[3], "1001")
   })
 
   test("going back to the default width clears the override", () => {

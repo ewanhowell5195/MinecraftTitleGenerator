@@ -1,6 +1,6 @@
 import { computed, ref, shallowRef, watch } from "vue"
 import { DEFAULT_ORDER } from "../lib/order.js"
-import { buildSheet, charactersOf, exportJson, fitGlyph, flatTexture, glyphOf, setGlyph, slug } from "../lib/fontEditor.js"
+import { buildSheet, charactersOf, exportJson, fitGlyph, flatTexture, glyphOf, moveGlyph, reshapeGlyph, setGlyph, slug } from "../lib/fontEditor.js"
 import { download, downloadBlob } from "../lib/ui.js"
 import { pngUrl } from "../lib/virtualFiles.js"
 
@@ -20,6 +20,7 @@ export const previewMode = ref("2d")
 
 const undoStack = shallowRef([])
 const redoStack = shallowRef([])
+let offCanvas = new WeakMap()
 let group = null
 let saveTimer = null
 let strokeStart = null
@@ -59,11 +60,31 @@ export function typing(target) {
 }
 
 export function strokeTo(next) {
+  const before = glyph.value
   font.value = next
+  carryOutside(before, glyph.value)
 }
 
-export function updateGlyph(next, key = null) {
+export function updateGlyph(next, key = null, outside = null) {
+  const before = glyph.value
   update(setGlyph(font.value, selected.value, next), key)
+  if (outside) offCanvas.set(glyph.value, outside)
+  else carryOutside(before, glyph.value)
+}
+
+function carryOutside(before, after) {
+  if (after !== before && offCanvas.has(before) && !offCanvas.has(after)) offCanvas.set(after, offCanvas.get(before))
+}
+
+export function moveSelected(dx, dy) {
+  const { glyph: moved, outside } = moveGlyph(font.value, glyph.value, dx, dy, offCanvas.get(glyph.value))
+  updateGlyph(moved, `${selected.value}.move`, outside)
+}
+
+export function reshapeSelected(change, key = null) {
+  const { font: next, outside } = reshapeGlyph(font.value, selected.value, change, offCanvas.get(glyph.value))
+  update(next, key)
+  offCanvas.set(glyph.value, outside)
 }
 
 export function copyGlyph(char) {
@@ -137,6 +158,10 @@ export function restoreFont() {
 watch([font, selected], () => {
   clearTimeout(saveTimer)
   saveTimer = setTimeout(save, SAVE_DELAY)
+})
+
+watch(selected, () => {
+  offCanvas = new WeakMap()
 })
 
 export function flushSave() {
