@@ -7,12 +7,7 @@
     "edition": {
       "type": "strip",
       "overlays": [
-        {
-          "overlay": "highlights_bottom",
-          "blend": "source-over",
-          "colour": "#fff9f7",
-          "opacity": 61
-        }
+        { "overlay": "highlights_bottom", "blend": "source-over", "colour": "#fff9f7", "opacity": 61 }
       ],
       "author": "Ewan Howell",
       "border": "#000000"
@@ -160,23 +155,14 @@
     "mob_vote": {
       "type": "strip",
       "overlays": [
-        {
-          "overlay": "outline",
-          "blend": "source-over",
-          "colour": "#f37eff",
-          "opacity": 68
-        }
+        { "overlay": "outline", "blend": "source-over", "colour": "#f37eff", "opacity": 68 }
       ],
       "author": "Ewan Howell",
       "border": "#000000",
       "variants": {
         "mob_vote_gold": {
           "overlays": [
-            {
-              "overlay": "outline",
-              "blend": "source-over",
-              "colour": "#b98130"
-            }
+            { "overlay": "outline", "blend": "source-over", "colour": "#b98130" }
           ],
           "border": "#000000"
         }

@@ -3,13 +3,14 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { PNG } from "pngjs"
+import { jsonText } from "../src/lib/jsonText.js"
 
 export function readJson(file) {
   return JSON.parse(fs.readFileSync(file, "utf8"))
 }
 
 export function writeJson(file, data) {
-  fs.writeFileSync(file, JSON.stringify(data, null, 2))
+  fs.writeFileSync(file, `${jsonText(data)}\n`)
 }
 
 export function readPng(file) {

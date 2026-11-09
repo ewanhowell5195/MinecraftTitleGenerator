@@ -3,824 +3,195 @@
     "name": "each setting on its own",
     "code": "DLZFvRN1hHMX73Dt3UbZr_4xNxmZsZpukkkRJkiRJkiRRUlGUJElSSSI3lUj68743UaReRCRR6V2SRFGSKIkkdU63F59zznO-z_P8Hn7NBN5X7sVW8Sr0bJ8I_CYmPB2iIRLkQ_h1_ei_o-6PM-Vxb_mvpkB0IykSsTPza8QHKVSups2rXyTaRrzlK_yI3rpH1PdffN3jpMDjTmvMfkrCajwLMObuDbwDfz4ZsqIpFD1zAPwMEtauPyJdJIjPIlWkiRox6GsOLYuWdvFNtIg8ceQyjiU4hk7lLwzBuNtM8v30DMXvRODEZSNNLnMUN_SADnmr2PRsC3phDiZgGbJVTcIp9Hl6ZlnRmXOHC8ul5Qq67LVi2-HasgtTMO04bOm35IpZhwHLjeXWcgf38ACPUKZ1uSgRXQFJhagUVf5TLv6KHodiUSdKI8En",
     "lines": [
-      {
-        "text": "sample"
-      },
-      {
-        "texture": "sample"
-      },
-      {
-        "type": "bottom"
-      },
-      {
-        "words": [
-          {
-            "opacity": 50
-          }
-        ]
-      },
-      {
-        "matchWidth": 2.5
-      },
-      {
-        "font": "minecraft-ten-v2"
-      },
-      {
-        "hue": 2.5
-      },
-      {
-        "saturation": 2.5
-      },
-      {
-        "brightness": 2.5
-      },
-      {
-        "contrast": 2.5
-      },
-      {
-        "colour": "#a1b2c3"
-      },
-      {
-        "blend": "screen"
-      },
-      {
-        "colourOpacity": 2.5
-      },
-      {
-        "customBorder": true
-      },
-      {
-        "borderColour": "#a1b2c3"
-      },
-      {
-        "customEdge": true
-      },
-      {
-        "edgeColour": "#a1b2c3"
-      },
-      {
-        "edgeBrightness": 2.5
-      },
-      {
-        "textureSource": "tileable"
-      },
-      {
-        "textureVariant": "sample"
-      },
-      {
-        "tileable": "sample"
-      },
-      {
-        "tileableVariant": "sample"
-      },
-      {
-        "tileableScale": 2.5
-      },
-      {
-        "stops": [
-          {
-            "colour": "#ffcf76",
-            "position": 0
-          },
-          {
-            "colour": "#da371e",
-            "position": 100
-          }
-        ]
-      },
-      {
-        "smooth": true
-      },
-      {
-        "gradientAngle": 2.5
-      },
-      {
-        "overlayMode": "custom"
-      },
-      {
-        "overlays": [
-          {
-            "opacity": 50
-          }
-        ]
-      },
-      {
-        "edgeOverlayMode": "custom"
-      },
-      {
-        "edgeOverlays": [
-          {
-            "opacity": 50
-          }
-        ]
-      },
-      {
-        "overlay": "sample"
-      },
-      {
-        "source": "file"
-      },
-      {
-        "colourBlend": "screen"
-      },
-      {
-        "opacity": 2.5
-      },
-      {
-        "seed": 2.5
-      },
-      {
-        "spacing": 2.5
-      },
-      {
-        "border": 2.5
-      },
-      {
-        "depth": 2.5
-      },
-      {
-        "scaleX": 2.5
-      },
-      {
-        "scaleY": 2.5
-      },
-      {
-        "linkScale": 2.5
-      },
-      {
-        "rotationX": 2.5
-      },
-      {
-        "rotationY": 2.5
-      },
-      {
-        "rotationZ": 2.5
-      },
-      {
-        "translateX": 2.5
-      },
-      {
-        "translateY": 2.5
-      },
-      {
-        "translateZ": 2.5
-      },
-      {
-        "row": 2.5
-      },
-      {
-        "rowSpacing": 2.5
-      },
-      {
-        "spaceBefore": true
-      },
-      {
-        "hidden": true
-      },
-      {
-        "fade": true
-      },
-      {
-        "outerFade": 2.5
-      },
-      {
-        "internalFaces": true
-      },
-      {
-        "fadeInternal": true
-      },
-      {
-        "internalFade": 2.5
-      },
-      {
-        "customInternal": true
-      },
-      {
-        "internalColour": "#a1b2c3"
-      },
-      {
-        "internalBrightness": 2.5
-      },
-      {
-        "sideFaces": true
-      },
-      {
-        "fadeSides": true
-      },
-      {
-        "sideFade": 2.5
-      },
-      {
-        "customSide": true
-      },
-      {
-        "sideColour": "#a1b2c3"
-      },
-      {
-        "sideBrightness": 2.5
-      },
-      {
-        "arcMode": "move"
-      },
-      {
-        "arcTop": 2.5
-      },
-      {
-        "arcBottom": 2.5
-      },
-      {
-        "arcMove": 2.5
-      },
-      {
-        "arcMarked": true
-      },
-      {
-        "arcGradient": true
-      },
-      {
-        "clipHoles": true
-      },
-      {
-        "terminators": true
-      },
-      {
-        "kerning": true
-      },
-      {
-        "scaleZ": 2.5
-      },
-      {
-        "scaleMarked": true
-      },
-      {
-        "scaleOutline": true
-      },
-      {
-        "wordDepth": 2.5
-      },
-      {
-        "wordBorder": 2.5
-      },
-      {
-        "wordArcMode": "move"
-      },
-      {
-        "wordArcTop": 2.5
-      },
-      {
-        "wordArcBottom": 2.5
-      },
-      {
-        "wordArcMove": 2.5
-      },
-      {
-        "wordArcMarked": true
-      },
-      {
-        "wordScaleX": 2.5
-      },
-      {
-        "wordScaleY": 2.5
-      },
-      {
-        "wordLinkScale": 2.5
-      },
-      {
-        "wordScaleZ": 2.5
-      },
-      {
-        "wordScaleMarked": true
-      },
-      {
-        "wordScaleOutline": true
-      },
-      {
-        "wordRotationX": 2.5
-      },
-      {
-        "wordRotationY": 2.5
-      },
-      {
-        "wordRotationZ": 2.5
-      },
-      {
-        "wordTranslateX": 2.5
-      },
-      {
-        "wordTranslateY": 2.5
-      },
-      {
-        "wordTranslateZ": 2.5
-      },
-      {
-        "tileableXOffset": 2.5
-      },
-      {
-        "tileableYOffset": 2.5
-      },
-      {
-        "tileableRandomRotations": true
-      },
-      {
-        "tileableRandomMirroring": true
-      },
-      {
-        "tileableTileEdges": true
-      },
-      {
-        "disableFontOverlay": true
-      },
-      {
-        "amplitude": 2.5
-      },
-      {
-        "angle": 2.5
-      },
-      {
-        "gap": 2.5
-      },
-      {
-        "inset": 2.5
-      },
-      {
-        "length": 2.5
-      },
-      {
-        "level": 2.5
-      },
-      {
-        "offset": 2.5
-      },
-      {
-        "radius": 2.5
-      },
-      {
-        "randomness": 2.5
-      },
-      {
-        "size": 2.5
-      },
-      {
-        "spread": 2.5
-      },
-      {
-        "thickness": 2.5
-      },
-      {
-        "width": 2.5
-      }
+      { "text": "sample" },
+      { "texture": "sample" },
+      { "type": "bottom" },
+      { "words": [{ "opacity": 50 }] },
+      { "matchWidth": 2.5 },
+      { "font": "minecraft-ten-v2" },
+      { "hue": 2.5 },
+      { "saturation": 2.5 },
+      { "brightness": 2.5 },
+      { "contrast": 2.5 },
+      { "colour": "#a1b2c3" },
+      { "blend": "screen" },
+      { "colourOpacity": 2.5 },
+      { "customBorder": true },
+      { "borderColour": "#a1b2c3" },
+      { "customEdge": true },
+      { "edgeColour": "#a1b2c3" },
+      { "edgeBrightness": 2.5 },
+      { "textureSource": "tileable" },
+      { "textureVariant": "sample" },
+      { "tileable": "sample" },
+      { "tileableVariant": "sample" },
+      { "tileableScale": 2.5 },
+      { "stops": [{ "colour": "#ffcf76", "position": 0 }, { "colour": "#da371e", "position": 100 }] },
+      { "smooth": true },
+      { "gradientAngle": 2.5 },
+      { "overlayMode": "custom" },
+      { "overlays": [{ "opacity": 50 }] },
+      { "edgeOverlayMode": "custom" },
+      { "edgeOverlays": [{ "opacity": 50 }] },
+      { "overlay": "sample" },
+      { "source": "file" },
+      { "colourBlend": "screen" },
+      { "opacity": 2.5 },
+      { "seed": 2.5 },
+      { "spacing": 2.5 },
+      { "border": 2.5 },
+      { "depth": 2.5 },
+      { "scaleX": 2.5 },
+      { "scaleY": 2.5 },
+      { "linkScale": 2.5 },
+      { "rotationX": 2.5 },
+      { "rotationY": 2.5 },
+      { "rotationZ": 2.5 },
+      { "translateX": 2.5 },
+      { "translateY": 2.5 },
+      { "translateZ": 2.5 },
+      { "row": 2.5 },
+      { "rowSpacing": 2.5 },
+      { "spaceBefore": true },
+      { "hidden": true },
+      { "fade": true },
+      { "outerFade": 2.5 },
+      { "internalFaces": true },
+      { "fadeInternal": true },
+      { "internalFade": 2.5 },
+      { "customInternal": true },
+      { "internalColour": "#a1b2c3" },
+      { "internalBrightness": 2.5 },
+      { "sideFaces": true },
+      { "fadeSides": true },
+      { "sideFade": 2.5 },
+      { "customSide": true },
+      { "sideColour": "#a1b2c3" },
+      { "sideBrightness": 2.5 },
+      { "arcMode": "move" },
+      { "arcTop": 2.5 },
+      { "arcBottom": 2.5 },
+      { "arcMove": 2.5 },
+      { "arcMarked": true },
+      { "arcGradient": true },
+      { "clipHoles": true },
+      { "terminators": true },
+      { "kerning": true },
+      { "scaleZ": 2.5 },
+      { "scaleMarked": true },
+      { "scaleOutline": true },
+      { "wordDepth": 2.5 },
+      { "wordBorder": 2.5 },
+      { "wordArcMode": "move" },
+      { "wordArcTop": 2.5 },
+      { "wordArcBottom": 2.5 },
+      { "wordArcMove": 2.5 },
+      { "wordArcMarked": true },
+      { "wordScaleX": 2.5 },
+      { "wordScaleY": 2.5 },
+      { "wordLinkScale": 2.5 },
+      { "wordScaleZ": 2.5 },
+      { "wordScaleMarked": true },
+      { "wordScaleOutline": true },
+      { "wordRotationX": 2.5 },
+      { "wordRotationY": 2.5 },
+      { "wordRotationZ": 2.5 },
+      { "wordTranslateX": 2.5 },
+      { "wordTranslateY": 2.5 },
+      { "wordTranslateZ": 2.5 },
+      { "tileableXOffset": 2.5 },
+      { "tileableYOffset": 2.5 },
+      { "tileableRandomRotations": true },
+      { "tileableRandomMirroring": true },
+      { "tileableTileEdges": true },
+      { "disableFontOverlay": true },
+      { "amplitude": 2.5 },
+      { "angle": 2.5 },
+      { "gap": 2.5 },
+      { "inset": 2.5 },
+      { "length": 2.5 },
+      { "level": 2.5 },
+      { "offset": 2.5 },
+      { "radius": 2.5 },
+      { "randomness": 2.5 },
+      { "size": 2.5 },
+      { "spread": 2.5 },
+      { "thickness": 2.5 },
+      { "width": 2.5 }
     ]
   },
   {
     "name": "every setting, first values",
     "code": "DZZBNKK1RGIX3e5x77uneQ_6SJEmStJIkJEmSJEmSJEmSJEmRhCT5S5IkSZJMGQrJwEiSMJQkSZKklSRJWH5mBs_7fGu9fbvdtg5PRP2Jv8Hr-5xRLsVcKxEZ7E9f2R4-2vjjTSPKiEEjKgi_cy4QVE40dusrOV1jRptYl_j1-4l96fRbu9pkeN6PutxpVtxOYM1mVYS4cPOGLvl8f_9f956FBYIwNRrIdAW_y59wZi7JafdZ5RJxRDSRTeQQTcSEjjwX66KHiCc6iRLiQvnfpl1aPxEzaXOK-aW6bR6RMGVXim3tikXEnrk-oovYV3lgQ7Zq87ZlhcSCXduIyhuxbe5WuhP3gjag2UwcSg_i2BZtSZ4WY6KYWJbGxaN4Es_2Yq_2ZjVELVFFDHiIOqKeaNADK6QSQ1Il0UJUEx8",
     "lines": [
-      {
-        "type": "top",
-        "words": [
-          {
-            "text": "sample",
-            "texture": "sample",
-            "hue": 359,
-            "saturation": 359,
-            "brightness": 359,
-            "contrast": 359,
-            "colour": "#000000",
-            "blend": "screen",
-            "colourOpacity": 359,
-            "customBorder": false,
-            "borderColour": "#000000",
-            "customEdge": false,
-            "edgeColour": "#000000",
-            "edgeBrightness": 359,
-            "textureSource": "premade",
-            "textureVariant": "sample",
-            "tileable": "sample",
-            "tileableVariant": "sample",
-            "tileableScale": 359,
-            "stops": [
-              {
-                "colour": "#ffcf76",
-                "position": 0
-              },
-              {
-                "colour": "#da371e",
-                "position": 100
-              }
-            ],
-            "smooth": false,
-            "gradientAngle": 359,
-            "overlayMode": "default",
-            "overlays": [
-              {
-                "opacity": 50,
-                "overlay": "outline",
-                "blend": "screen",
-                "seed": 12345
-              }
-            ],
-            "edgeOverlayMode": "default",
-            "edgeOverlays": [
-              {
-                "opacity": 50,
-                "overlay": "outline",
-                "blend": "screen",
-                "seed": 12345
-              }
-            ],
-            "overlay": "outline",
-            "source": "premade",
-            "colourBlend": "multiply",
-            "opacity": 50,
-            "seed": 12345,
-            "spaceBefore": false,
-            "hidden": false,
-            "fade": false,
-            "outerFade": 359,
-            "internalFaces": false,
-            "fadeInternal": false,
-            "internalFade": 359,
-            "customInternal": false,
-            "internalColour": "#000000",
-            "internalBrightness": 359,
-            "sideFaces": false,
-            "fadeSides": false,
-            "sideFade": 359,
-            "customSide": false,
-            "sideColour": "#000000",
-            "sideBrightness": 359,
-            "arcGradient": false,
-            "wordDepth": 359,
-            "wordBorder": 359,
-            "wordArcMode": "stretch",
-            "wordArcTop": 359,
-            "wordArcBottom": 359,
-            "wordArcMove": 359,
-            "wordArcMarked": false,
-            "wordScaleX": 359,
-            "wordScaleY": 359,
-            "wordLinkScale": 359,
-            "wordScaleZ": 359,
-            "wordScaleMarked": false,
-            "wordScaleOutline": false,
-            "wordRotationX": 359,
-            "wordRotationY": 359,
-            "wordRotationZ": 359,
-            "wordTranslateX": 359,
-            "wordTranslateY": 359,
-            "wordTranslateZ": 359,
-            "tileableXOffset": 359,
-            "tileableYOffset": 359,
-            "tileableRandomRotations": false,
-            "tileableRandomMirroring": false,
-            "tileableTileEdges": false,
-            "disableFontOverlay": false,
-            "amplitude": 359,
-            "angle": 359,
-            "gap": 359,
-            "inset": 359,
-            "length": 359,
-            "level": 359,
-            "offset": 359,
-            "radius": 359,
-            "randomness": 359,
-            "size": 359,
-            "spread": 359,
-            "thickness": 359,
-            "width": 359
-          }
-        ],
-        "matchWidth": 359,
-        "font": "minecraft-ten",
-        "spacing": 359,
-        "border": 359,
-        "depth": 359,
-        "scaleX": 359,
-        "scaleY": 359,
-        "linkScale": 359,
-        "rotationX": 359,
-        "rotationY": 359,
-        "rotationZ": 359,
-        "translateX": 359,
-        "translateY": 359,
-        "translateZ": 359,
-        "row": 359,
-        "rowSpacing": 359,
-        "arcMode": "stretch",
-        "arcTop": 359,
-        "arcBottom": 359,
-        "arcMove": 359,
-        "arcMarked": false,
-        "clipHoles": false,
-        "terminators": false,
-        "kerning": false,
-        "scaleZ": 359,
-        "scaleMarked": false,
-        "scaleOutline": false
-      }
+      { "type": "top", "words": [{ "text": "sample", "texture": "sample", "hue": 359, "saturation": 359, "brightness": 359, "contrast": 359, "colour": "#000000", "blend": "screen", "colourOpacity": 359, "customBorder": false, "borderColour": "#000000", "customEdge": false, "edgeColour": "#000000", "edgeBrightness": 359, "textureSource": "premade", "textureVariant": "sample", "tileable": "sample", "tileableVariant": "sample", "tileableScale": 359, "stops": [{ "colour": "#ffcf76", "position": 0 }, { "colour": "#da371e", "position": 100 }], "smooth": false, "gradientAngle": 359, "overlayMode": "default", "overlays": [{ "opacity": 50, "overlay": "outline", "blend": "screen", "seed": 12345 }], "edgeOverlayMode": "default", "edgeOverlays": [{ "opacity": 50, "overlay": "outline", "blend": "screen", "seed": 12345 }], "overlay": "outline", "source": "premade", "colourBlend": "multiply", "opacity": 50, "seed": 12345, "spaceBefore": false, "hidden": false, "fade": false, "outerFade": 359, "internalFaces": false, "fadeInternal": false, "internalFade": 359, "customInternal": false, "internalColour": "#000000", "internalBrightness": 359, "sideFaces": false, "fadeSides": false, "sideFade": 359, "customSide": false, "sideColour": "#000000", "sideBrightness": 359, "arcGradient": false, "wordDepth": 359, "wordBorder": 359, "wordArcMode": "stretch", "wordArcTop": 359, "wordArcBottom": 359, "wordArcMove": 359, "wordArcMarked": false, "wordScaleX": 359, "wordScaleY": 359, "wordLinkScale": 359, "wordScaleZ": 359, "wordScaleMarked": false, "wordScaleOutline": false, "wordRotationX": 359, "wordRotationY": 359, "wordRotationZ": 359, "wordTranslateX": 359, "wordTranslateY": 359, "wordTranslateZ": 359, "tileableXOffset": 359, "tileableYOffset": 359, "tileableRandomRotations": false, "tileableRandomMirroring": false, "tileableTileEdges": false, "disableFontOverlay": false, "amplitude": 359, "angle": 359, "gap": 359, "inset": 359, "length": 359, "level": 359, "offset": 359, "radius": 359, "randomness": 359, "size": 359, "spread": 359, "thickness": 359, "width": 359 }], "matchWidth": 359, "font": "minecraft-ten", "spacing": 359, "border": 359, "depth": 359, "scaleX": 359, "scaleY": 359, "linkScale": 359, "rotationX": 359, "rotationY": 359, "rotationZ": 359, "translateX": 359, "translateY": 359, "translateZ": 359, "row": 359, "rowSpacing": 359, "arcMode": "stretch", "arcTop": 359, "arcBottom": 359, "arcMove": 359, "arcMarked": false, "clipHoles": false, "terminators": false, "kerning": false, "scaleZ": 359, "scaleMarked": false, "scaleOutline": false }
     ]
   },
   {
     "name": "every setting, second values",
     "code": "DfZFdKENhGMfPsxs0-baItChFvkK-kiJJkiQtaWHL0cbJNMcsSWshLbUIKcRc2YVaykrcrSQ1H7dLa6GGpCYpSfN_ri0Xv9_7P__nnPet89Kkosrgc0uSST3t85qlYfX99oGgSnZ74gP1-X8m-SoqFiSHPzUjJW5svTxkz3RplckVKLqAnaAeEO868iUmdCOJVsSiSmiNh7kkFMuiVZ4yixqd2agbl2MdImQrxGB62BNzViobJVGnl_7b4JzPqlZEry1CoDYvUnRMG9wkUZpQQy2CoFI-3zgHY315R1SYkIJ3S0AjyANZoA40gBGwzJsFWV7WDFADGXSAEJfKE3qgOYQcJ21y0dyJn9CEULBCj1yYJlC0IVwQzWKxgEse-GmBDmmLTqkVTzsUpkWun1hnRC-8vrLeWBGy8WIAVxzeWbe0S3scVllLrHawz8HB-mB9sr7om34oSv3IWqABNgU0AIaAnm-WizIwz6EXjII-8As",
     "lines": [
-      {
-        "type": "bottom",
-        "words": [],
-        "matchWidth": -180.25,
-        "font": "minecraft-ten-v2",
-        "spacing": -180.25,
-        "border": -180.25,
-        "depth": -180.25,
-        "scaleX": -180.25,
-        "scaleY": -180.25,
-        "linkScale": -180.25,
-        "rotationX": -180.25,
-        "rotationY": -180.25,
-        "rotationZ": -180.25,
-        "translateX": -180.25,
-        "translateY": -180.25,
-        "translateZ": -180.25,
-        "row": -180.25,
-        "rowSpacing": -180.25,
-        "arcMode": "move",
-        "arcTop": -180.25,
-        "arcBottom": -180.25,
-        "arcMove": -180.25,
-        "arcMarked": true,
-        "clipHoles": true,
-        "terminators": true,
-        "kerning": true,
-        "scaleZ": -180.25,
-        "scaleMarked": true,
-        "scaleOutline": true
-      }
+      { "type": "bottom", "words": [], "matchWidth": -180.25, "font": "minecraft-ten-v2", "spacing": -180.25, "border": -180.25, "depth": -180.25, "scaleX": -180.25, "scaleY": -180.25, "linkScale": -180.25, "rotationX": -180.25, "rotationY": -180.25, "rotationZ": -180.25, "translateX": -180.25, "translateY": -180.25, "translateZ": -180.25, "row": -180.25, "rowSpacing": -180.25, "arcMode": "move", "arcTop": -180.25, "arcBottom": -180.25, "arcMove": -180.25, "arcMarked": true, "clipHoles": true, "terminators": true, "kerning": true, "scaleZ": -180.25, "scaleMarked": true, "scaleOutline": true }
     ]
   },
   {
     "name": "every nullable setting as null",
     "code": "CAVkDBRcrbRUxT4MBUwkNUXkzlQEdJdkB2wHHATWXAQ8TN0MH3QEnES09Hxk5O2eNAd8BtwF7IXVL4QF_mQFNP-UBcUfJAX13ywFFhwHpAb0B6wHtAe8BgQFpzwHzAaEBkwGJAUmjAYsB9QH3AVtdV4ECX2FjgwIvhQJVa1k",
     "lines": [
-      {
-        "text": null,
-        "texture": null,
-        "type": null,
-        "words": null,
-        "matchWidth": null,
-        "font": null,
-        "hue": null,
-        "saturation": null,
-        "brightness": null,
-        "contrast": null,
-        "colour": null,
-        "blend": null,
-        "colourOpacity": null,
-        "borderColour": null,
-        "edgeColour": null,
-        "edgeBrightness": null,
-        "textureSource": null,
-        "textureVariant": null,
-        "tileable": null,
-        "tileableVariant": null,
-        "tileableScale": null,
-        "stops": null,
-        "gradientAngle": null,
-        "overlayMode": null,
-        "overlays": null,
-        "edgeOverlayMode": null,
-        "edgeOverlays": null,
-        "overlay": null,
-        "source": null,
-        "colourBlend": null,
-        "opacity": null,
-        "seed": null,
-        "spacing": null,
-        "border": null,
-        "depth": null,
-        "scaleX": null,
-        "scaleY": null,
-        "linkScale": null,
-        "rotationX": null,
-        "rotationY": null,
-        "rotationZ": null,
-        "translateX": null,
-        "translateY": null,
-        "translateZ": null,
-        "row": null,
-        "rowSpacing": null,
-        "outerFade": null,
-        "internalFade": null,
-        "internalColour": null,
-        "internalBrightness": null,
-        "sideFade": null,
-        "sideColour": null,
-        "sideBrightness": null,
-        "arcMode": null,
-        "arcTop": null,
-        "arcBottom": null,
-        "arcMove": null,
-        "scaleZ": null,
-        "wordDepth": null,
-        "wordBorder": null,
-        "wordArcMode": null,
-        "wordArcTop": null,
-        "wordArcBottom": null,
-        "wordArcMove": null,
-        "wordScaleX": null,
-        "wordScaleY": null,
-        "wordLinkScale": null,
-        "wordScaleZ": null,
-        "wordRotationX": null,
-        "wordRotationY": null,
-        "wordRotationZ": null,
-        "wordTranslateX": null,
-        "wordTranslateY": null,
-        "wordTranslateZ": null,
-        "tileableXOffset": null,
-        "tileableYOffset": null,
-        "amplitude": null,
-        "angle": null,
-        "gap": null,
-        "inset": null,
-        "length": null,
-        "level": null,
-        "offset": null,
-        "radius": null,
-        "randomness": null,
-        "size": null,
-        "spread": null,
-        "thickness": null,
-        "width": null
-      }
+      { "text": null, "texture": null, "type": null, "words": null, "matchWidth": null, "font": null, "hue": null, "saturation": null, "brightness": null, "contrast": null, "colour": null, "blend": null, "colourOpacity": null, "borderColour": null, "edgeColour": null, "edgeBrightness": null, "textureSource": null, "textureVariant": null, "tileable": null, "tileableVariant": null, "tileableScale": null, "stops": null, "gradientAngle": null, "overlayMode": null, "overlays": null, "edgeOverlayMode": null, "edgeOverlays": null, "overlay": null, "source": null, "colourBlend": null, "opacity": null, "seed": null, "spacing": null, "border": null, "depth": null, "scaleX": null, "scaleY": null, "linkScale": null, "rotationX": null, "rotationY": null, "rotationZ": null, "translateX": null, "translateY": null, "translateZ": null, "row": null, "rowSpacing": null, "outerFade": null, "internalFade": null, "internalColour": null, "internalBrightness": null, "sideFade": null, "sideColour": null, "sideBrightness": null, "arcMode": null, "arcTop": null, "arcBottom": null, "arcMove": null, "scaleZ": null, "wordDepth": null, "wordBorder": null, "wordArcMode": null, "wordArcTop": null, "wordArcBottom": null, "wordArcMove": null, "wordScaleX": null, "wordScaleY": null, "wordLinkScale": null, "wordScaleZ": null, "wordRotationX": null, "wordRotationY": null, "wordRotationZ": null, "wordTranslateX": null, "wordTranslateY": null, "wordTranslateZ": null, "tileableXOffset": null, "tileableYOffset": null, "amplitude": null, "angle": null, "gap": null, "inset": null, "length": null, "level": null, "offset": null, "radius": null, "randomness": null, "size": null, "spread": null, "thickness": null, "width": null }
     ]
   },
   {
     "name": "every choice option",
     "code": "DU2AUY2AUY2QUY2IU4eUwWr2n9fx2VhZGEQH27Kn6D5pEF8Zw8zOKiLGJuInVBixbkX1EpGNThTmjiDDb9sTWG-fu2RV0pDG9ZxSRYfnNtIXr0yVR1bMbvC2atj3y2nmEUUSStWHxnlT1qItb2s7xmlc9nhHPKCKq_rwrx1ZVgulwzp6WpkBGESEdMcPEkicPJk7c3isJd8W2XUaMIvwGW_mixdnlHDeIMIrwMdrv0NyRtOSqwSyEqv8hjCLcDKoRPjHOv3MYRQQZFZN3eRtfdGUTdilllGFglGFklGFivMPIAMSMTDwMagxMPIxqQBaTGhMTD7MaMxMPixoLEw-rGisTD5saGxMPuxo7Ew-HGgcTD6caJwA",
     "lines": [
-      {
-        "type": "top"
-      },
-      {
-        "type": "bottom"
-      },
-      {
-        "type": "small"
-      },
-      {
-        "font": "minecraft-ten"
-      },
-      {
-        "font": "minecraft-ten-v2"
-      },
-      {
-        "font": "minecraft-ten-cyrillic"
-      },
-      {
-        "font": "minecraft-five-bold"
-      },
-      {
-        "font": "minecraft-five-bold-cyrillic"
-      },
-      {
-        "font": "minecraft-five-bold-block"
-      },
-      {
-        "font": "minecraft-ten-outline"
-      },
-      {
-        "font": "minecraft-dungeons"
-      },
-      {
-        "font": "minecraft-gui"
-      },
-      {
-        "font": "minecraft-seven"
-      },
-      {
-        "font": "minecraft-five"
-      },
-      {
-        "font": "minecraft-sga"
-      },
-      {
-        "font": "block-serif"
-      },
-      {
-        "font": "minecraft-legends"
-      },
-      {
-        "textureSource": "premade"
-      },
-      {
-        "textureSource": "tileable"
-      },
-      {
-        "textureSource": "gradient"
-      },
-      {
-        "source": "premade"
-      },
-      {
-        "source": "file"
-      },
-      {
-        "blend": "multiply",
-        "colourBlend": "multiply"
-      },
-      {
-        "blend": "color",
-        "colourBlend": "color"
-      },
-      {
-        "blend": "lighter",
-        "colourBlend": "lighter"
-      },
-      {
-        "blend": "screen",
-        "colourBlend": "screen"
-      },
-      {
-        "blend": "overlay",
-        "colourBlend": "overlay"
-      },
-      {
-        "blend": "soft-light",
-        "colourBlend": "soft-light"
-      },
-      {
-        "blend": "hue",
-        "colourBlend": "hue"
-      },
-      {
-        "blend": "saturation",
-        "colourBlend": "saturation"
-      },
-      {
-        "blend": "difference",
-        "colourBlend": "difference"
-      },
-      {
-        "blend": "source-over",
-        "colourBlend": "source-over"
-      }
+      { "type": "top" },
+      { "type": "bottom" },
+      { "type": "small" },
+      { "font": "minecraft-ten" },
+      { "font": "minecraft-ten-v2" },
+      { "font": "minecraft-ten-cyrillic" },
+      { "font": "minecraft-five-bold" },
+      { "font": "minecraft-five-bold-cyrillic" },
+      { "font": "minecraft-five-bold-block" },
+      { "font": "minecraft-ten-outline" },
+      { "font": "minecraft-dungeons" },
+      { "font": "minecraft-gui" },
+      { "font": "minecraft-seven" },
+      { "font": "minecraft-five" },
+      { "font": "minecraft-sga" },
+      { "font": "block-serif" },
+      { "font": "minecraft-legends" },
+      { "textureSource": "premade" },
+      { "textureSource": "tileable" },
+      { "textureSource": "gradient" },
+      { "source": "premade" },
+      { "source": "file" },
+      { "blend": "multiply", "colourBlend": "multiply" },
+      { "blend": "color", "colourBlend": "color" },
+      { "blend": "lighter", "colourBlend": "lighter" },
+      { "blend": "screen", "colourBlend": "screen" },
+      { "blend": "overlay", "colourBlend": "overlay" },
+      { "blend": "soft-light", "colourBlend": "soft-light" },
+      { "blend": "hue", "colourBlend": "hue" },
+      { "blend": "saturation", "colourBlend": "saturation" },
+      { "blend": "difference", "colourBlend": "difference" },
+      { "blend": "source-over", "colourBlend": "source-over" }
     ]
   },
   {
     "name": "values stored by name",
     "code": "CAQYAKnVua25vd25TZXR0aW5nIXsiYSI6WzEsMl19AA0EhwwHBKwADRFN7QQfABJzY2FsZVgJIjEiABMMuewEDyJyZWQiABACjO_whwFbeyJjb2xvdXIiOiIjZmYwMDAwIiwicG9zaXRpb24iOjAsImV4dHJhIjoxfV0",
     "lines": [
-      {
-        "unknownSetting": {
-          "a": [
-            1,
-            2
-          ]
-        },
-        "fade": 40,
-        "text": 5,
-        "scaleX": "1",
-        "colour": "red",
-        "stops": [
-          {
-            "colour": "#ff0000",
-            "position": 0,
-            "extra": 1
-          }
-        ]
-      }
+      { "unknownSetting": { "a": [1, 2] }, "fade": 40, "text": 5, "scaleX": "1", "colour": "red", "stops": [{ "colour": "#ff0000", "position": 0, "extra": 1 }] }
     ]
   },
   {
     "name": "the generator logo",
     "code": "CAgEEBwH-5a_QBhYBbAA4lOUHKgIDAhACpmT_MPAseCMPAAUCHB2_OHqHojDAFngAEykpMhFGfQQFALgjvWU",
     "lines": [
-      {
-        "texture": "cracked"
-      },
-      {
-        "type": "bottom",
-        "matchWidth": 0,
-        "scaleX": 0.7977,
-        "words": [
-          {
-            "texture": "fired",
-            "customBorder": true,
-            "text": "title",
-            "hue": 359,
-            "borderColour": "#230f00"
-          },
-          {
-            "texture": "fired",
-            "customBorder": true,
-            "text": "generator",
-            "hue": 180,
-            "borderColour": "#001329",
-            "customEdge": true,
-            "edgeColour": "#11467d"
-          }
-        ]
-      }
+      { "texture": "cracked" },
+      { "type": "bottom", "matchWidth": 0, "scaleX": 0.7977, "words": [{ "texture": "fired", "customBorder": true, "text": "title", "hue": 359, "borderColour": "#230f00" }, { "texture": "fired", "customBorder": true, "text": "generator", "hue": 180, "borderColour": "#001329", "customEdge": true, "edgeColour": "#11467d" }] }
     ]
   }
 ]

@@ -7,12 +7,7 @@
     "edition": {
       "type": "strip",
       "overlays": [
-        {
-          "overlay": "highlights_bottom",
-          "blend": "source-over",
-          "colour": "#fff9f7",
-          "opacity": 61
-        }
+        { "overlay": "highlights_bottom", "blend": "source-over", "colour": "#fff9f7", "opacity": 61 }
       ],
       "basedOn": "minecraft-five-bold.edition",
       "border": "#000000"

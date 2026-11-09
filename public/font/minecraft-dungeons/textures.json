@@ -7,24 +7,14 @@
     "gradient": {
       "type": "strip",
       "overlays": [
-        {
-          "overlay": "highlights_bottom",
-          "blend": "screen",
-          "colour": "#00f162",
-          "opacity": 73
-        }
+        { "overlay": "highlights_bottom", "blend": "screen", "colour": "#00f162", "opacity": 73 }
       ],
       "basedOn": "strips.minecraft-ten.gradient",
       "border": "#000000",
       "variants": {
         "gradient_prerelease": {
           "overlays": [
-            {
-              "overlay": "highlights_bottom",
-              "blend": "source-over",
-              "colour": "#fcff87",
-              "opacity": 82
-            }
+            { "overlay": "highlights_bottom", "blend": "source-over", "colour": "#fcff87", "opacity": 82 }
           ],
           "name": "Gradient (Early)",
           "author": "blank3times",

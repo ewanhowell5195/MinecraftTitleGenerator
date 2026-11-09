@@ -7,12 +7,7 @@
       "type": "strip",
       "stretch": true,
       "overlays": [
-        {
-          "overlay": "highlights_top",
-          "blend": "screen",
-          "colour": "#1ec877",
-          "opacity": 70
-        }
+        { "overlay": "highlights_top", "blend": "screen", "colour": "#1ec877", "opacity": 70 }
       ],
       "author": "Ewan Howell",
       "border": "#000000"
@@ -21,48 +16,28 @@
       "type": "strip",
       "stretch": true,
       "overlays": [
-        {
-          "overlay": "highlights_bottom",
-          "blend": "lighter",
-          "colour": "#4a4a4a",
-          "opacity": 47
-        }
+        { "overlay": "highlights_bottom", "blend": "lighter", "colour": "#4a4a4a", "opacity": 47 }
       ],
       "author": "Ewan Howell",
       "border": "#000000",
       "variants": {
         "smooth_inverted": {
           "overlays": [
-            {
-              "overlay": "highlights_top",
-              "blend": "lighter",
-              "colour": "#393939",
-              "opacity": 56
-            }
+            { "overlay": "highlights_top", "blend": "lighter", "colour": "#393939", "opacity": 56 }
           ],
           "name": "Smooth (Inverted Highlight)",
           "border": "#000000"
         },
         "smooth_old": {
           "overlays": [
-            {
-              "overlay": "highlights_bottom",
-              "blend": "soft-light",
-              "colour": "#ffe3e4",
-              "opacity": 98
-            }
+            { "overlay": "highlights_bottom", "blend": "soft-light", "colour": "#ffe3e4", "opacity": 98 }
           ],
           "name": "Smooth (Old)",
           "border": "#000000"
         },
         "smooth_inverted_old": {
           "overlays": [
-            {
-              "overlay": "highlights_top",
-              "blend": "soft-light",
-              "colour": "#ffe1de",
-              "opacity": 99
-            }
+            { "overlay": "highlights_top", "blend": "soft-light", "colour": "#ffe1de", "opacity": 99 }
           ],
           "name": "Smooth (Old) (Inverted Highlight)",
           "border": "#000000"
@@ -78,12 +53,7 @@
       "type": "strip",
       "stretch": true,
       "overlays": [
-        {
-          "overlay": "highlights_top",
-          "blend": "screen",
-          "colour": "#dfc184",
-          "opacity": 76
-        }
+        { "overlay": "highlights_top", "blend": "screen", "colour": "#dfc184", "opacity": 76 }
       ],
       "name": "Story Mode (Season 2)",
       "category": "Story Mode",
@@ -92,11 +62,7 @@
       "variants": {
         "story_mode1": {
           "overlays": [
-            {
-              "overlay": "highlights_top",
-              "blend": "source-over",
-              "colour": "#b08d4a"
-            }
+            { "overlay": "highlights_top", "blend": "source-over", "colour": "#b08d4a" }
           ],
           "name": "Story Mode (Season 1)",
           "border": "#000000"
@@ -106,10 +72,7 @@
     "mineimator": {
       "type": "strip",
       "overlays": [
-        {
-          "overlay": "highlights_bottom",
-          "blend": "soft-light"
-        }
+        { "overlay": "highlights_bottom", "blend": "soft-light" }
       ],
       "name": "Mine-Imator Family",
       "author": "ModelBench & ShrimpSnail",
@@ -118,11 +81,7 @@
     "deep_dark": {
       "type": "strip",
       "overlays": [
-        {
-          "overlay": "highlights_top",
-          "blend": "source-over",
-          "colour": "#40b2b7"
-        }
+        { "overlay": "highlights_top", "blend": "source-over", "colour": "#40b2b7" }
       ],
       "name": "Deep Dark (Wild Update)",
       "author": "Banjoei & ShrimpSnail",
@@ -131,10 +90,7 @@
     "fruit": {
       "type": "strip",
       "overlays": [
-        {
-          "overlay": "highlights_top",
-          "opacity": 58
-        }
+        { "overlay": "highlights_top", "opacity": 58 }
       ],
       "author": "Ewan Howell & DamienBrittan",
       "border": "#260b28"
@@ -142,65 +98,39 @@
     "grass": {
       "type": "strip",
       "overlays": [
-        {
-          "overlay": "outline",
-          "colour": "#f6f6f5",
-          "opacity": 46
-        }
+        { "overlay": "outline", "colour": "#f6f6f5", "opacity": 46 }
       ],
       "author": "ShrimpSnail, DamienBrittan, & blank3times",
       "border": "#2b040c",
       "variants": {
         "grass_side": {
           "overlays": [
-            {
-              "overlay": "outline",
-              "colour": "#f9f9f8",
-              "opacity": 45
-            }
+            { "overlay": "outline", "colour": "#f9f9f8", "opacity": 45 }
           ],
           "author": "Magminer & Ewan Howell",
           "border": "#2b040c"
         },
         "podzol": {
           "overlays": [
-            {
-              "overlay": "outline",
-              "colour": "#eae5fd",
-              "opacity": 24
-            }
+            { "overlay": "outline", "colour": "#eae5fd", "opacity": 24 }
           ],
           "border": "#2b040c"
         },
         "mycelium": {
           "overlays": [
-            {
-              "overlay": "outline",
-              "colour": "#f2f4f3",
-              "opacity": 13
-            }
+            { "overlay": "outline", "colour": "#f2f4f3", "opacity": 13 }
           ],
           "border": "#2b040c"
         },
         "crimson_nylium": {
           "overlays": [
-            {
-              "overlay": "outline",
-              "blend": "lighter",
-              "colour": "#1e0a0a",
-              "opacity": 65
-            }
+            { "overlay": "outline", "blend": "lighter", "colour": "#1e0a0a", "opacity": 65 }
           ],
           "border": "#2b040c"
         },
         "warped_nylium": {
           "overlays": [
-            {
-              "overlay": "outline",
-              "blend": "soft-light",
-              "colour": "#baf5dd",
-              "opacity": 36
-            }
+            { "overlay": "outline", "blend": "soft-light", "colour": "#baf5dd", "opacity": 36 }
           ],
           "border": "#2b040c"
         }
@@ -256,11 +186,7 @@
     "bee": {
       "type": "strip",
       "overlays": [
-        {
-          "overlay": "outline",
-          "colour": "#ebebeb",
-          "opacity": 86
-        }
+        { "overlay": "outline", "colour": "#ebebeb", "opacity": 86 }
       ],
       "author": "Ewan Howell",
       "border": "#16100e"
@@ -284,10 +210,7 @@
     "dock": {
       "type": "strip",
       "overlays": [
-        {
-          "overlay": "outline",
-          "blend": "source-over"
-        }
+        { "overlay": "outline", "blend": "source-over" }
       ],
       "author": "RyanCR",
       "border": "#000000",
@@ -376,26 +299,10 @@
       "type": "strip",
       "stretch": true,
       "overlays": [
-        {
-          "overlay": "highlights_left",
-          "blend": "source-over",
-          "colour": "#4a474a"
-        },
-        {
-          "overlay": "highlights_right",
-          "blend": "source-over",
-          "colour": "#4a474a"
-        },
-        {
-          "overlay": "highlights_top",
-          "blend": "source-over",
-          "colour": "#5a575a"
-        },
-        {
-          "overlay": "highlights_bottom",
-          "blend": "source-over",
-          "colour": "#3b393b"
-        }
+        { "overlay": "highlights_left", "blend": "source-over", "colour": "#4a474a" },
+        { "overlay": "highlights_right", "blend": "source-over", "colour": "#4a474a" },
+        { "overlay": "highlights_top", "blend": "source-over", "colour": "#5a575a" },
+        { "overlay": "highlights_bottom", "blend": "source-over", "colour": "#3b393b" }
       ],
       "author": "Ewan Howell",
       "border": "#1f1a1d"
@@ -468,12 +375,7 @@
     "winter": {
       "type": "strip",
       "overlays": [
-        {
-          "overlay": "highlights_bottom",
-          "blend": "screen",
-          "colour": "#fbfcff",
-          "opacity": 55
-        }
+        { "overlay": "highlights_bottom", "blend": "screen", "colour": "#fbfcff", "opacity": 55 }
       ],
       "author": "Klayv",
       "border": "#1d193d"

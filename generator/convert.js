@@ -7,6 +7,7 @@ import { PNG } from "pngjs"
 import decompress from "woff2-encoder/decompress"
 import { SHEET_MAX_WIDTH, parseMask } from "../src/lib/font.js"
 import { capUnits, glyphFor, gridShift, pixelGrid, rasterise } from "../src/lib/fontOutline.js"
+import { jsonText } from "../src/lib/jsonText.js"
 import { DEFAULT_ORDER } from "../src/lib/order.js"
 import { defaultBorder, defaultDepth } from "../src/lib/settings.js"
 import { cli, fillPng, setPixel, writePng } from "./common.js"
@@ -181,7 +182,7 @@ const { sheet } = flatSheet(parsed.list, parsed.capHeight, defaultDepth(entry))
 writePng(path.join(folder, "font.png"), png)
 writePng(path.join(folder, "textures", "flat.png"), sheet)
 writeStarterTextures(folder)
-fs.writeFileSync(path.join(folder, "font.json"), JSON.stringify(entry, null, 2) + "\n")
+fs.writeFileSync(path.join(folder, "font.json"), `${jsonText(entry)}\n`)
 console.log(`${fullName} from ${file}`)
 console.log(`${grid ? `pixel font, ${units / grid} font pixels tall at ${blockSize} pixels each` : "vector font"}, cap height ${capHeight}, ${characters.length - missing.length} of ${characters.length} characters${missing.length ? `, missing ${missing.join(" ")}` : ""}, ${marked} marked`)
 console.log(`wrote font.png, textures/flat.png, textures.json and font.json to ${folder}`)

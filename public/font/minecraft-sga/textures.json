@@ -6,12 +6,7 @@
     "smooth": {
       "type": "strip",
       "overlays": [
-        {
-          "overlay": "highlights_bottom",
-          "blend": "source-over",
-          "colour": "#faedea",
-          "opacity": 46
-        }
+        { "overlay": "highlights_bottom", "blend": "source-over", "colour": "#faedea", "opacity": 46 }
       ],
       "basedOn": "strips.minecraft-ten.smooth"
     }
