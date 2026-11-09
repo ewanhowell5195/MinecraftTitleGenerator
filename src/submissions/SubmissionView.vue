@@ -10,6 +10,7 @@
   import CommentThread from "./CommentThread.vue"
   import { KIND_COMPONENTS } from "./kinds/components.js"
   import { CLIENT_KINDS } from "./kinds/index.js"
+  import CharacterGrid from "./kinds/CharacterGrid.vue"
   import ReviewPanel from "./ReviewPanel.vue"
   import SubmissionForm from "./SubmissionForm.vue"
 
@@ -116,6 +117,7 @@
         <div v-if="client.image" class="upload-preview"><img :src="submissionFileUrl(item)" alt=""></div>
         <div class="buttons">
           <a class="button primary" :href="`/app/?${SUBMISSION_PARAM}=${item.id}`">Open in generator</a>
+          <a v-if="item.previewUrl" class="button" :href="item.previewUrl" target="_blank" rel="noopener" title="The generator built from this submission's branch, with it added"><Icon name="eye" :size="16" />Open preview</a>
           <a v-if="item.pullUrl" class="button" :href="item.pullUrl" target="_blank" rel="noopener"><Icon name="github" :size="16" />Pull request</a>
         </div>
         <div v-if="changeable" class="buttons">
@@ -126,6 +128,7 @@
         <ReviewPanel v-if="reviewer && item.status === 'open' && item.pullUrl" :key="item.updatedAt" :item="item" @done="reviewed" />
       </div>
     </div>
+    <CharacterGrid v-if="item.kind === 'font' && !editing" :url="submissionFileUrl(item)" />
     <CommentThread :id="item.id" :comments="comments" :can-comment="item.mine || reviewer" @update="comments = $event" />
   </template>
 </template>

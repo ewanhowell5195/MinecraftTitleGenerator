@@ -18,6 +18,7 @@ const NOTE_LENGTH = 1000
 const REVIEWERS = new Set(["OWNER", "MEMBER", "COLLABORATOR"])
 const COMMENTERS = { submitter: "The submitter", reviewer: "A reviewer" }
 const UNMERGEABLE = [405, 409, 422]
+const PREVIEW_HOST = "minecrafttitlegenerator.pages.dev"
 const SHOWN = "id, kind, target, asset, name, credit, notes, details, file, status, pull, created_at AS createdAt, updated_at AS updatedAt"
 const OWNER = "(SELECT users.provider || ':' || users.provider_id FROM users WHERE users.id = submissions.user_id) AS owner, (SELECT users.name FROM users WHERE users.id = submissions.user_id) AS ownerName, (SELECT users.provider FROM users WHERE users.id = submissions.user_id) AS ownerProvider"
 
@@ -229,7 +230,8 @@ async function uploadFile(env, bytes) {
 
 function shown(env, row, user) {
   const { owner, details, ...rest } = row
-  return { ...rest, details: JSON.parse(details), pullUrl: row.pull ? `https://github.com/${repository(env)}/pull/${row.pull}` : null, mine: !!user && user.id === owner }
+  const building = row.pull && row.status === "open"
+  return { ...rest, details: JSON.parse(details), pullUrl: row.pull ? `https://github.com/${repository(env)}/pull/${row.pull}` : null, previewUrl: building ? `https://${branchOf(row.id).replace(/\//g, "-")}.${PREVIEW_HOST}/app/` : null, mine: !!user && user.id === owner }
 }
 
 function clipped(text, limit) {

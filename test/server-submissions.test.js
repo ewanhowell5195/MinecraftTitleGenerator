@@ -243,6 +243,7 @@ describe("a sent submission", () => {
     const shown = await details(id)
     assert.equal(shown.mine, false)
     assert.equal(shown.pullUrl, `https://github.com/${REPO}/pull/1`)
+    assert.equal(shown.previewUrl, `https://submission-${id}.minecrafttitlegenerator.pages.dev/app/`)
     assert.equal(shown.owner, undefined)
     assert.equal((await details(id, cookie)).mine, true)
     const other = await signIn("github", { id: 9, login: "other" })
