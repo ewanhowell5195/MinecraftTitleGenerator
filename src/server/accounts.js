@@ -184,13 +184,14 @@ export const finishSignIn = showingRefusals(async ({ request, env, params }) => 
   return response
 })
 
-async function unreadCount(env, user) {
-  return (await env.DB.prepare(`SELECT COUNT(*) AS count FROM notifications WHERE seen = 0 AND user_id = ${USER_ROW}`).bind(user.provider, user.providerId).first())?.count ?? 0
+async function submissionCounts(env, user) {
+  const row = await env.DB.prepare(`SELECT (SELECT COUNT(*) FROM notifications WHERE seen = 0 AND user_id = ${USER_ROW}) AS unread, (SELECT COUNT(*) FROM submissions WHERE user_id = ${USER_ROW}) AS submissions`).bind(user.provider, user.providerId, user.provider, user.providerId).first()
+  return { unread: row?.unread ?? 0, submissions: row?.submissions ?? 0 }
 }
 
 export const accountDetails = guarded(async context => {
   const user = await signedInUser(context)
-  return reply(200, { user: user && { ...shownUser(user), unread: await unreadCount(context.env, user), admin: await isAdmin(context.env, user) }, providers: PROVIDERS.map(({ id }) => id).filter(id => context.env[`${id.toUpperCase()}_CLIENT_ID`]) })
+  return reply(200, { user: user && { ...shownUser(user), ...await submissionCounts(context.env, user), admin: await isAdmin(context.env, user) }, providers: PROVIDERS.map(({ id }) => id).filter(id => context.env[`${id.toUpperCase()}_CLIENT_ID`]) })
 })
 
 export function clearedSession() {

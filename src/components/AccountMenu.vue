@@ -10,7 +10,8 @@
   const avatar = computed(() => account.value?.avatar && account.value.avatar !== broken.value ? account.value.avatar : null)
   onMounted(() => refreshAccount())
 
-  const items = computed(() => account.value ? [{ heading: true, label: `Signed in as ${account.value.name}` }, { label: unread.value ? `Submissions (${unread.value} new)` : "Submissions", icon: "upload", action: () => location.assign("/submit/") }, { label: "Manage account", icon: "user", action: () => location.assign("/account/") }, { label: "Sign out", icon: "signOut", action: signOut }] : signInProviders.value.map(id => ({ label: `Sign in with ${providerLabel(id)}`, icon: id, action: () => signIn(id) })))
+  const hasSubmissions = computed(() => !!(account.value?.admin || account.value?.submissions || unread.value))
+  const items = computed(() => account.value ? [{ heading: true, label: `Signed in as ${account.value.name}` }].concat(hasSubmissions.value ? { label: unread.value ? `Submissions (${unread.value} new)` : "Submissions", icon: "upload", action: () => location.assign("/submissions/") } : [], { label: "Manage account", icon: "user", action: () => location.assign("/account/") }, { label: "Sign out", icon: "signOut", action: signOut }) : signInProviders.value.map(id => ({ label: `Sign in with ${providerLabel(id)}`, icon: id, action: () => signIn(id) })))
 </script>
 
 <template>

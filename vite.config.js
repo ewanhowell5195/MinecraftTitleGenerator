@@ -113,6 +113,6 @@ function allowCookiesOverHttp(proxy) {
 
 export default defineConfig({
   plugins: [vue(), submissionPages, folderSlashes, presetPages, creditsPage, siteParts],
-  build: { rolldownOptions: { input: ["index.html", "app/index.html", "font-editor/index.html", "credits/index.html", "submit/index.html", "account/index.html", "terms/index.html", "privacy/index.html"] } },
+  build: { rolldownOptions: { input: ["index.html", "app/index.html", "font-editor/index.html", "credits/index.html", "submit/index.html", "submissions/index.html", "account/index.html", "terms/index.html", "privacy/index.html"] } },
   server: { host: "127.0.0.1", port: 9123, strictPort: true, proxy: { "/api": { target: LIVE, changeOrigin: true, configure: allowCookiesOverHttp } } }
 })

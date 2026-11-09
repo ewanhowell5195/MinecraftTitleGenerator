@@ -6,11 +6,14 @@
   import AccountPage from "./AccountPage.vue"
   import SubmissionsHome from "./SubmissionsHome.vue"
   import SubmissionView from "./SubmissionView.vue"
+  import SubmitPage from "./SubmitPage.vue"
 
   const PAGE = /^\/submissions\/(\d+)(\/edit)?\/?$/
+  const LIST = /^\/submissions\/?$/
 
   const [, viewed = null, editing = null] = location.pathname.match(PAGE) ?? []
   const managing = location.pathname.startsWith("/account")
+  const listing = LIST.test(location.pathname)
   const fonts = ref(null)
   const error = ref("")
 
@@ -31,7 +34,8 @@
     <p v-else-if="error" class="hint bad">Couldn't load the fonts: {{ error }}</p>
     <template v-else-if="fonts">
       <SubmissionView v-if="viewed" :id="Number(viewed)" :fonts="fonts" :editing="!!editing" />
-      <SubmissionsHome v-else :fonts="fonts" />
+      <SubmissionsHome v-else-if="listing" :fonts="fonts" />
+      <SubmitPage v-else :fonts="fonts" />
     </template>
   </main>
 </template>
