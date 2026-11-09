@@ -171,6 +171,10 @@ h2 + p {
   color: var(--text);
 }
 
+.brand img {
+  translate: 0 7%;
+}
+
 .hero {
   position: relative;
   display: flex;

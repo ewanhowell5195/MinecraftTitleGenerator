@@ -498,6 +498,10 @@ button:focus-visible,
   flex: 1;
 }
 
+.brand img {
+  translate: 0 7%;
+}
+
 .ellipsis {
   overflow: hidden;
   white-space: nowrap;
