@@ -14,7 +14,7 @@ const { jsonText } = await import("../src/lib/jsonText.js")
 const REPO = "owner/repo"
 const API = "https://github.test"
 const TEXTURES = "public/font/minecraft-ten/textures.json"
-const FLAT = { width: 570, height: 444 }
+const FLAT = PNG.sync.read(fs.readFileSync("public/font/minecraft-ten/textures/flat.png"))
 const realFetch = globalThis.fetch
 
 function d1(sqlite) {
@@ -200,7 +200,7 @@ describe("sending a submission", () => {
   test("is refused before GitHub hears about it when the image or fields are wrong", async () => {
     assert.match((await send(await signIn(), { kind: "nope" })).error, /Pick what you're submitting/)
     const cookie = await signIn()
-    assert.match((await send(cookie, {}, png(100, 100))).error, /template size, 570x444/)
+    assert.match((await send(cookie, {}, png(100, 100))).error, new RegExp(`template size, ${FLAT.width}x${FLAT.height}`))
     assert.match((await send(cookie, {}, png(4560, 3552))).error, /up to 4096 pixels/)
     assert.match((await send(cookie, { name: "fuck" })).error, /isn't allowed/)
     assert.match((await send(cookie, { agree: "false" })).error, /Agree/)

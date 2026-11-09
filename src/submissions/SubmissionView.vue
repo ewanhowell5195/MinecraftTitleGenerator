@@ -76,7 +76,7 @@
     <SubmissionForm v-if="editing" :fonts="fonts" :initial="item" @done="saved" @cancel="editing = false" />
     <div v-else class="submission-view">
       <div class="preview flow">
-        <component :is="KIND_COMPONENTS[item.kind].Preview" :fonts="fonts" :kind="item.kind" :target="item.target" :details="item.details" :url="submissionFileUrl(item)" :text="text || item.name" />
+        <component :is="KIND_COMPONENTS[item.kind].Preview" :fonts="fonts" :kind="item.kind" :target="item.target" :details="item.details" :initial="item" :url="submissionFileUrl(item)" :text="text || item.name" />
         <input type="text" v-model="text" :placeholder="item.name" spellcheck="false" aria-label="Preview text">
       </div>
       <div class="details flow">

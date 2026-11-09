@@ -118,7 +118,8 @@ async function readForm(context, previous = null) {
   const wanted = type.fileKeys?.(clean.details) ?? []
   const missing = wanted.find(key => !files[key] && !before.files?.[key])
   if (missing) throw new Refusal(400, "One of the extra files is missing. Choose it again.")
-  return { clean, fonts, bytes, files: Object.fromEntries(wanted.map(key => [key, files[key] ?? before.files[key]])) }
+  const stored = bytes && type.cleanFile ? type.cleanFile(bytes) : bytes
+  return { clean, fonts, bytes: stored, files: Object.fromEntries(wanted.map(key => [key, files[key] ?? before.files[key]])) }
 }
 
 async function withFiles(env, clean, files) {

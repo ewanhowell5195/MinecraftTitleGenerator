@@ -4,7 +4,7 @@ import { titleCase } from "../names.js"
 import { defaultBorder, defaultDepth } from "../settings.js"
 import { centredOffset, stripRows, stripUse, stripY } from "../strips.js"
 import { SUBMISSION_LIMITS } from "../submissions.js"
-import { decodePng } from "./stripPng.js"
+import { decodePng } from "./png.js"
 
 export const STRIP_LIMITS = { depth: 64, height: 256, below: 64 }
 

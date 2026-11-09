@@ -110,7 +110,7 @@
   <form class="submission-form" @submit.prevent="send">
     <div class="fields flow">
       <Segments v-model="kind" :options="KINDS" label="Type" />
-      <component :is="parts.Fields" v-model:target="target" v-model:details="details" v-model:files="extras" :fonts="fonts" :kind="kind" :file="chosen" :initial="initial" :problems="problems" :tried="tried" @problem="extraProblem = $event" />
+      <component :is="parts.Fields" v-model:target="target" v-model:details="details" v-model:files="extras" :fonts="fonts" :kind="kind" :file="chosen" :initial="initial" :name="name" :problems="problems" :tried="tried" @problem="extraProblem = $event" />
       <div class="field">
         <span class="label">{{ type.label }}</span>
         <div class="upload-preview">
@@ -171,7 +171,7 @@
       </div>
     </div>
     <div class="preview flow">
-      <component :is="parts.Preview" :fonts="fonts" :kind="kind" :target="target" :details="details" :url="fileUrl" :text="previewText || name || 'Minecraft'" />
+      <component :is="parts.Preview" :fonts="fonts" :kind="kind" :target="target" :details="details" :files="extras" :initial="initial" :url="fileUrl" :text="previewText || name || 'Minecraft'" />
       <input type="text" v-model="previewText" :placeholder="name || 'Minecraft'" spellcheck="false" aria-label="Preview text">
     </div>
   </form>

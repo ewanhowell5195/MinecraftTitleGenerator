@@ -16,7 +16,7 @@ import { centredOffset, stripUse } from "../src/lib/strips.js"
 import { submissionContext } from "../src/lib/submissionKinds/index.js"
 import { strip as checker } from "../src/lib/submissionKinds/strip.js"
 import { fitOffset, fitProblems, fontMeasure, heightList, offsetRange, remapStrip, setEntry, stripHeights, stripTarget } from "../src/lib/submissionKinds/stripFit.js"
-import { decodePng } from "../src/lib/submissionKinds/stripPng.js"
+import { decodePng } from "../src/lib/submissionKinds/png.js"
 import { strip as writer } from "../src/server/submissionKinds/strip.js"
 import { fakeGitHub } from "./fakeGitHub.js"
 
