@@ -570,3 +570,23 @@ button:focus-visible,
     font-size: 16px;
   }
 }
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: var(--font-md);
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.check input {
+  flex: none;
+  margin: 2px 0 0;
+  accent-color: var(--accent);
+}
+
+.check a {
+  color: var(--accent);
+}

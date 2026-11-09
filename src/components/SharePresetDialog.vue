@@ -17,6 +17,7 @@
   const name = ref(props.preset.name)
   const error = ref("")
   const sending = ref(false)
+  const agreed = ref(false)
   const target = ref(null)
   const problem = computed(() => sharingProblem(props.preset.code, name.value.trim() || props.preset.name))
 
@@ -45,10 +46,14 @@
         <input type="text" v-model="name" :maxlength="NAME_LIMIT" spellcheck="false">
       </label>
       <ShareAccount v-if="!target" />
+      <label class="check">
+        <input type="checkbox" v-model="agreed">
+        <span>I agree to the <a href="/terms/" target="_blank" rel="noopener">Terms of Service</a></span>
+      </label>
       <p v-if="error || problem" class="error">{{ error || problem }}</p>
       <div class="footer">
         <SubmissionUsage v-if="!target" />
-        <button class="primary" type="submit" :disabled="sending || !!problem || !target && usage && usage.used >= usage.limit">{{ target ? sending ? "Replacing" : "Replace" : sending ? "Sharing" : "Share" }}</button>
+        <button class="primary" type="submit" :disabled="sending || !!problem || !agreed || !target && usage && usage.used >= usage.limit">{{ target ? sending ? "Replacing" : "Replace" : sending ? "Sharing" : "Share" }}</button>
       </div>
     </form>
   </RenderDialog>

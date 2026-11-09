@@ -20,6 +20,7 @@
   const field = ref(null)
   const error = ref("")
   const sending = ref(false)
+  const agreed = ref(false)
   const target = ref(null)
   const problem = computed(() => namingCode.value ? sharingProblem(namingCode.value, name.value.trim() || props.suggested) : null)
 
@@ -106,12 +107,16 @@
         <p class="hint">Share your title so other people can find it in the community presets and use it for themselves.</p>
         <ShareAccount />
       </template>
+      <label v-if="!namingShared || target?.online" class="check">
+        <input type="checkbox" v-model="agreed">
+        <span>I agree to the <a href="/terms/" target="_blank" rel="noopener">Terms of Service</a></span>
+      </label>
       <p v-if="error || problem" class="error">{{ error || problem }}</p>
       <div class="footer">
         <SubmissionUsage v-if="!namingShared && !target?.online" class="usage" />
         <div class="buttons">
-          <button v-if="!shareOnly" type="submit" :class="{ primary: namingShared || target?.online }" :disabled="sending || target?.online && !!problem">{{ target ? "Replace" : "Save" }}</button>
-          <button v-if="!namingShared && !target?.online" class="primary" type="button" :disabled="sending || !!problem || usage && usage.used >= usage.limit" @click="saveAndShare">{{ sending ? "Sharing" : shareOnly ? "Share" : target ? "Replace and share" : "Save and share" }}</button>
+          <button v-if="!shareOnly" type="submit" :class="{ primary: namingShared || target?.online }" :disabled="sending || target?.online && (!!problem || !agreed)">{{ target ? "Replace" : "Save" }}</button>
+          <button v-if="!namingShared && !target?.online" class="primary" type="button" :disabled="sending || !!problem || !agreed || usage && usage.used >= usage.limit" @click="saveAndShare">{{ sending ? "Sharing" : shareOnly ? "Share" : target ? "Replace and share" : "Save and share" }}</button>
         </div>
       </div>
     </form>

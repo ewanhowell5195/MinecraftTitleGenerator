@@ -142,20 +142,9 @@
         <textarea v-model="notes" :maxlength="SUBMISSION_LIMITS.notes" rows="3" placeholder="Optional"></textarea>
         <span v-if="shown.notes" class="hint bad">{{ shown.notes }}</span>
       </label>
-      <div v-if="!initial" class="terms">
-        <!-- must match the Submissions section of LICENSE.md -->
-        <p>You keep ownership of anything you submit. By submitting a font, texture, tileable, shape, or anything else to this project:</p>
-        <ul>
-          <li>You confirm that it is your own work, or that you have permission to submit it.</li>
-          <li>You agree that it can stay in this project permanently, and that removal is at my discretion.</li>
-          <li>You allow people to use it in the title generator, and they own the titles they make with it, without needing to credit you.</li>
-          <li>You give this permission for free, and you cannot withdraw it.</li>
-        </ul>
-        <p>Submitting does not give anyone permission to take it and use it outside of the title generator and its generated titles.</p>
-      </div>
       <label v-if="!initial" class="check">
         <input type="checkbox" v-model="agree">
-        <span>I agree to these terms</span>
+        <span>I agree to the <a href="/terms/" target="_blank" rel="noopener">Terms of Service</a></span>
       </label>
       <span v-if="shown.agree" class="hint bad">{{ shown.agree }}</span>
       <p v-if="error" class="hint bad">{{ error }}</p>

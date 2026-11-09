@@ -94,43 +94,6 @@ textarea:focus {
   background: var(--field);
 }
 
-.terms {
-  padding: 12px 14px;
-  font-size: var(--font-md);
-  line-height: 1.5;
-  color: var(--muted);
-  background: var(--surface);
-}
-
-.terms p {
-  margin: 0;
-}
-
-.terms ul {
-  margin: 8px 0;
-  padding-left: 18px;
-}
-
-.terms li + li {
-  margin-top: 4px;
-}
-
-.check {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  font-size: var(--font-md);
-  color: var(--muted);
-  cursor: pointer;
-  user-select: none;
-}
-
-.check input {
-  flex: none;
-  margin: 2px 0 0;
-  accent-color: var(--accent);
-}
-
 .buttons {
   display: flex;
   flex-wrap: wrap;
