@@ -184,6 +184,21 @@ function isPoint(runs, zone) {
   return next.parts.every((part, index) => contains(part, zone.runs[0].parts[index]))
 }
 
+function isStub(runs, zone) {
+  if (zone.runs.length !== 1) return false
+  const index = runs.indexOf(zone.runs[0])
+  const below = runs[index - 1]
+  const above = runs[index + 1]
+  const end = run => !run || run.kind === "empty"
+  const holds = run => run?.kind === "bar" && run.parts.length === 1 && zone.runs[0].parts.length === 1 && contains(run.parts[0], zone.runs[0].parts[0])
+  return end(below) && holds(above) || end(above) && holds(below)
+}
+
+function jointZones(runs, keep) {
+  const between = run => [runs[runs.indexOf(run) - 1], runs[runs.indexOf(run) + 1]].every(next => next?.kind === "bar")
+  return runs.filter(run => run.kind === "joint" && run.parts.length === 1 && !run.attached && between(run) && keep(run)).map(run => ({ runs: [run], from: run.from, to: run.to, start: run.from, end: run.to, length: run.to - run.from + 1 }))
+}
+
 function isSymmetric(glyph, body, capHeight) {
   for (let y = 0; y < capHeight; y++) if (JSON.stringify(segments(rowOf(glyph, body, y))) !== JSON.stringify(segments(rowOf(glyph, body, capHeight - 1 - y)))) return false
   return true
@@ -206,9 +221,11 @@ export function marksFor(glyph, { capHeight, stroke, block }) {
   let candidates = usable
   if (middle) {
     const below = usable.filter(zone => zone.to < middle.from && !isPoint(runs, zone))
-    candidates = below.length ? below : usable.filter(zone => zone.from > middle.to)
+    const joints = below.length ? [] : jointZones(runs, run => run.to < middle.from)
+    candidates = below.length ? below : joints.length ? joints : usable.filter(zone => zone.from > middle.to)
   }
-  const chosen = candidates.slice().sort((a, b) => b.length - a.length || a.from - b.from)[0]
+  const solid = candidates.filter(zone => !isStub(runs, zone))
+  const chosen = (solid.length ? solid : candidates).slice().sort((a, b) => b.length - a.length || a.from - b.from)[0]
   if (!chosen) return []
   const picked = [chosen]
   if (!/[\p{L}\p{N}]/u.test(glyph.char) && !centred && isSymmetric(glyph, body, capHeight)) {

@@ -104,6 +104,18 @@ describe("marking around a crossbar", () => {
   test("marks the mirrored zone in symmetric punctuation", () => {
     assert.deepEqual(marksFor("$", WAIST, 10), [0, 1, 2, 3, 6, 7])
   })
+
+  test("marks a stroke one block wider than the rest between the bars below a middle bar", () => {
+    const two = stack(["#####", 4], ["###..", 2], ["#####", 2], ["...##", 2], ["#####", 4])
+    const stems = [{ char: "l", rows: STEM }, { char: "i", rows: STEM }]
+    assert.deepEqual(mark([[{ char: "2", rows: two }].concat(stems)], 14).glyphs["2"].stretch, [4, 5])
+  })
+
+  test("leaves a tip sticking out of the end bar for the stroke inside", () => {
+    const dollar = stack(["..#..", 2], ["#####", 2], ["...##", 2], ["#####", 2], ["##...", 2], ["#####", 2], ["..#..", 2])
+    const stems = [{ char: "l", rows: STEM }, { char: "i", rows: STEM }]
+    assert.deepEqual(mark([[{ char: "$", rows: dollar }].concat(stems)], 14).glyphs.$.stretch, [4, 5])
+  })
 })
 
 describe("marking diagonals", () => {
