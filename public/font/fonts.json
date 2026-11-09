@@ -33,7 +33,10 @@
       {
         "id": "minceraft-ten-simlish-regular",
         "name": "Simlish",
-        "author": "Logan2020"
+        "author": "Logan2020",
+        "spaceWidth": 16,
+        "terminatorSpace": true,
+        "order": "abcdefghijklmnopqrstuvwxyz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣ŧ"
       }
     ]
   },
