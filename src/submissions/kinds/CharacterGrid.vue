@@ -28,7 +28,7 @@
     const ctx = canvas.getContext("2d")
     const image = ctx.createImageData(cell.width, cell.height)
     cell.mask.forEach((value, index) => {
-      if (value) image.data.set([241, 242, 244, 255], index * 4)
+      if (value) image.data.set([241, 242, 244, 255], ((cell.height - 1 - Math.floor(index / cell.width)) * cell.width + index % cell.width) * 4)
     })
     ctx.putImageData(image, 0, 0)
     return canvas.toDataURL()
