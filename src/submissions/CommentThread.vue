@@ -40,15 +40,23 @@
     <h2>Comments</h2>
     <p v-if="!comments" class="hint bad">The comments couldn't be loaded from GitHub right now.</p>
     <ul v-else-if="comments.length" class="notifications">
-      <li v-for="item of comments" :key="item.id">
-        <p class="headline">
-          <strong>{{ item.author || "Deleted account" }}</strong>
-          <span class="role">{{ ROLES[item.role] }}</span>
-          <span class="hint">{{ when(item.createdAt) }}</span>
-        </p>
-        <p class="body">{{ item.body }}</p>
-        <a v-if="item.url" class="hint" :href="item.url" target="_blank" rel="noopener">View on GitHub</a>
-      </li>
+      <template v-for="item of comments" :key="item.id">
+        <li v-if="item.kind === 'edit'" class="event">
+          <p class="headline">
+            <strong>{{ item.author || "Deleted account" }}</strong> changed the submission
+            <span class="hint">{{ when(item.createdAt) }}</span>
+          </p>
+        </li>
+        <li v-else>
+          <p class="headline">
+            <strong>{{ item.author || "Deleted account" }}</strong>
+            <span class="role">{{ ROLES[item.role] }}</span>
+            <span class="hint">{{ when(item.createdAt) }}</span>
+          </p>
+          <p class="body">{{ item.body }}</p>
+          <a v-if="item.url" class="hint" :href="item.url" target="_blank" rel="noopener">View on GitHub</a>
+        </li>
+      </template>
     </ul>
     <form v-if="canComment" class="flow" @submit.prevent="send">
       <textarea v-model="text" rows="3" :maxlength="SUBMISSION_LIMITS.comment" placeholder="Write a comment" aria-label="Comment"></textarea>
@@ -61,6 +69,12 @@
 </template>
 
 <style scoped>
+  .event {
+    padding: 8px 12px;
+    background: none;
+    border-left-color: var(--line-strong);
+  }
+
   .role {
     margin-left: 6px;
     padding: 1px 6px;

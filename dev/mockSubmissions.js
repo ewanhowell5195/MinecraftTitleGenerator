@@ -173,6 +173,7 @@ export function mockSubmissions() {
             const fields = await formFields(await requestOf(req))
             Object.assign(item, { name: fields.name, credit: fields.credit, notes: fields.notes, details: { ...item.details, ...fields.details }, updatedAt: Date.now() })
             if (fields.bytes) Object.assign(item, { bytes: fields.bytes, version: item.version + 1 })
+            item.comments.push({ id: Date.now(), kind: "edit", author: ME.name, role: "submitter", body: "", url: PULL, createdAt: Date.now() })
             return send(res, 200, { submission: shown(item) })
           }
           return send(res, 200, { submission: shown(item), comments: item.comments, reviewer: state.signedIn })

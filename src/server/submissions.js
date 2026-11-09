@@ -19,6 +19,7 @@ const REVIEWERS = new Set(["OWNER", "MEMBER", "COLLABORATOR"])
 const COMMENTERS = { submitter: "The submitter", reviewer: "A reviewer" }
 const ANONYMOUS_ROLES = { "The submitter": "submitter", "A reviewer": "reviewer" }
 const SITE_COMMENT = /^(?:(`+) (.+?) \1 \((submitter|reviewer)\)|(The submitter|A reviewer)) commented on the site:\n\n(`{3,})text\n([\s\S]*)\n\5$/
+const SITE_EDIT = /^(?:(`+) (.+?) \1 \((submitter|reviewer)\)|(The submitter|A reviewer)) changed the submission on the site\.$/
 const UNMERGEABLE = [405, 409, 422]
 const PREVIEW_HOST = "minecrafttitlegenerator.pages.dev"
 const WORKFLOW = "submission.yml"
@@ -252,8 +253,10 @@ function notify(env, row, kind, { author = "", body = "", url = "", owner = true
 }
 
 function siteComment(text) {
-  const match = SITE_COMMENT.exec(text ?? "")
-  return match && { author: match[2] ?? "", role: match[3] ?? ANONYMOUS_ROLES[match[4]], body: match[6] }
+  const comment = SITE_COMMENT.exec(text ?? "")
+  if (comment) return { kind: "comment", author: comment[2] ?? "", role: comment[3] ?? ANONYMOUS_ROLES[comment[4]], body: comment[6] }
+  const edit = SITE_EDIT.exec(text ?? "")
+  return edit && { kind: "edit", author: edit[2] ?? "", role: edit[3] ?? ANONYMOUS_ROLES[edit[4]], body: "" }
 }
 
 function fromApp(env, entry) {
@@ -268,10 +271,10 @@ async function commentsOf(env, row) {
   if (!row.pull) return []
   const [comments, reviews] = await Promise.all([github(env, `issues/${row.pull}/comments?per_page=100`), github(env, `pulls/${row.pull}/reviews?per_page=100`)])
   const written = comments.flatMap(entry => {
-    const shownAs = fromApp(env, entry) ? siteComment(entry.body) : fromReviewer(entry) ? { author: entry.user.login, role: "reviewer", body: entry.body ?? "" } : null
+    const shownAs = fromApp(env, entry) ? siteComment(entry.body) : fromReviewer(entry) ? { kind: "comment", author: entry.user.login, role: "reviewer", body: entry.body ?? "" } : null
     return shownAs ? [{ id: entry.id, ...shownAs, url: entry.html_url, createdAt: Date.parse(entry.created_at) }] : []
   })
-  const reviewed = reviews.filter(entry => entry.body && fromReviewer(entry)).map(entry => ({ id: entry.id, author: entry.user.login, role: "reviewer", body: entry.body, url: entry.html_url, createdAt: Date.parse(entry.submitted_at) }))
+  const reviewed = reviews.filter(entry => entry.body && fromReviewer(entry)).map(entry => ({ id: entry.id, kind: "comment", author: entry.user.login, role: "reviewer", body: entry.body, url: entry.html_url, createdAt: Date.parse(entry.submitted_at) }))
   return written.concat(reviewed).sort((a, b) => a.createdAt - b.createdAt)
 }
 
@@ -291,18 +294,19 @@ function commentText(value) {
   return text
 }
 
-function commentOnGitHub(name, role, text) {
-  return `${name ? `${inline(name)} (${role})` : COMMENTERS[role]} commented on the site:\n\n${block(text)}`
+function onGitHubText(name, { kind = "comment", role, body = "" }) {
+  const who = name ? `${inline(name)} (${role})` : COMMENTERS[role]
+  return kind === "edit" ? `${who} changed the submission on the site.` : `${who} commented on the site:\n\n${block(body)}`
 }
 
 function postComment(env, row, user, role, text) {
-  return github(env, `issues/${row.pull}/comments`, { method: "POST", body: { body: commentOnGitHub(user.name, role, text) } })
+  return github(env, `issues/${row.pull}/comments`, { method: "POST", body: { body: onGitHubText(user.name, { role, body: text }) } })
 }
 
 async function anonymiseComments(env, pull, theirs) {
   for (const entry of await github(env, `issues/${pull}/comments?per_page=100`)) {
     const comment = fromApp(env, entry) && siteComment(entry.body)
-    if (comment?.author && theirs(comment)) await github(env, `issues/comments/${entry.id}`, { method: "PATCH", body: { body: commentOnGitHub(null, comment.role, comment.body) } })
+    if (comment?.author && theirs(comment)) await github(env, `issues/comments/${entry.id}`, { method: "PATCH", body: { body: onGitHubText(null, comment) } })
   }
 }
 
@@ -353,8 +357,14 @@ export const editSubmission = guarded(async context => {
   const { clean, fonts, bytes, files } = await readForm(context, row)
   const file = bytes ? await onGitHub(() => uploadFile(env, bytes)) : row.file
   const changed = { ...row, ...await onGitHub(() => withFiles(env, clean, files)), file }
-  await onGitHub(() => syncSubmission(context, changed, fonts))
-  await notify(env, changed, "edited", { author: user.name, owner: false, admins: true, actor: user }).run()
+  await onGitHub(async () => {
+    await syncSubmission(context, changed, fonts)
+    await github(env, `issues/${changed.pull}/comments`, { method: "POST", body: { body: onGitHubText(user.name, { kind: "edit", role: "submitter" }) } })
+  })
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM notifications WHERE submission_id = ? AND kind = 'edited' AND seen = 0").bind(changed.id),
+    notify(env, changed, "edited", { author: user.name, owner: false, admins: true, actor: user })
+  ])
   return reply(200, { submission: shown(env, changed, { id: row.owner }) })
 })
 
