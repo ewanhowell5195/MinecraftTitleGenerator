@@ -32,6 +32,7 @@
   const loading = ref(false)
   const usingCustom = computed(() => isCustomFont(object.value.font) && !!object.value.customFont)
   const imported = computed(() => object.value.customFont && object.value.customFont.kind !== "json")
+  const squares = computed(() => object.value.customFont?.kind === "outline" && !object.value.customFont.mesh)
   const terminators = usePanel("terminators")
   const creeper = usePanel("creeper")
   const hasTerminators = computed(() => font.value && font.value.glyphs["┫"] && font.value.glyphs["┣"] && !font.value.forcedTerminators)
@@ -164,17 +165,17 @@
           <Segments label="Build from" :options="BUILDS" :model-value="!!object.customFont.mesh" @update:model-value="changeImport('mesh', $event)" />
           <p class="hint">{{ object.customFont.mesh ? "Smooth edges that follow the font's own curves." : "Pixel cubes, like the other fonts." }}</p>
         </template>
-        <label class="field">
-          <span class="label">Height in pixels</span>
-          <input type="number" min="1" :value="object.customFont.height" :disabled="loading" @change="setHeight">
-        </label>
-        <template v-if="object.customFont.kind === 'outline' && !object.customFont.mesh">
+        <div class="sizes">
           <label class="field">
+            <span class="label">Height in pixels</span>
+            <input type="number" min="1" :value="object.customFont.height" :disabled="loading" @change="setHeight">
+          </label>
+          <label v-if="squares" class="field">
             <span class="label">Square size</span>
             <input type="number" min="1" :value="object.customFont.density ?? 1" :disabled="loading" @change="setDensity">
           </label>
-          <p class="hint">How many pixels each square is. 4 gives chunky squares like Minecraft Ten. Fonts drawn on a pixel grid keep their own.</p>
-        </template>
+        </div>
+        <p v-if="squares" class="hint">Square size is how many pixels each square is. 4 gives chunky squares like Minecraft Ten. Fonts drawn on a pixel grid keep their own.</p>
         <Toggle label="Use lowercase letters" hint="Titles use one case. Off uses the capital letters" :model-value="object.customFont.lowercase" @update:model-value="changeImport('lowercase', $event)" />
       </template>
     </template>
@@ -198,6 +199,16 @@
 </template>
 
 <style scoped>
+  .sizes {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .sizes input {
+    width: 100%;
+  }
+
   .custom-font {
     display: flex;
     flex-direction: column;
