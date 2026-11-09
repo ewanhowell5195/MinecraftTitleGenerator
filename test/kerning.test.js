@@ -8,6 +8,11 @@ import { collisionAmount, pairRank, suggestKerning } from "../src/lib/kerning.js
 describe("kerning suggestions", () => {
   const fonts = publishedFonts()
 
+  function kerningStep(kerning) {
+    const amounts = Object.values(kerning)
+    return [8, 6, 4, 2].find(step => amounts.filter(amount => amount % step === 0).length >= amounts.length * 0.9) ?? 1
+  }
+
   function glyphsOf(entry) {
     const { cells, capHeight } = readMask(entry, fonts)
     return { glyphs: splitCells(entry, fonts, cells).glyphs, capHeight, border: defaultBorder("top", entry) }
@@ -22,12 +27,13 @@ describe("kerning suggestions", () => {
     let exact = 0
     for (const entry of fonts.filter(font => !font.inherits && font.kerning)) {
       const { glyphs, capHeight, border } = glyphsOf(entry)
-      const amounts = new Map(suggestKerning(glyphs, { capHeight, unit: 4, border }).map(item => [item.pair, item.amount]))
+      const unit = kerningStep(entry.kerning)
+      const amounts = new Map(suggestKerning(glyphs, { capHeight, unit, border }).map(item => [item.pair, item.amount]))
       for (const [pair, amount] of Object.entries(entry.kerning)) {
         const got = amounts.get(pair) ?? 0
         total++
         if (got === amount) exact++
-        assert.ok(got <= amount + 4, `${entry.id} ${pair} suggested ${got}, kerned ${amount}`)
+        assert.ok(got <= amount + unit, `${entry.id} ${pair} suggested ${got}, kerned ${amount}`)
         assert.ok(amount <= collisionAmount(glyphs, pair, border), `${entry.id} ${pair} kerned ${amount}, past its collision`)
       }
     }
