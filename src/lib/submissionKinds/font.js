@@ -7,7 +7,7 @@ import { centredOffset, stripUse } from "../strips.js"
 import { GENERATED_EDGE_OVERLAYS, withGenerated } from "../generated.js"
 import { EXTRA_FILE, HEX_COLOUR, SUBMISSION_LIMITS, assetId, pngProblem, pngSize, sizedProblem, textProblem, textureDensity } from "../submissions.js"
 import { slug } from "../fontEditor.js"
-import { FONT_LIMITS, ownFont, submittedFont } from "./fontBuild.js"
+import { FONT_LIMITS, drawnCells, ownFont, submittedFont } from "./fontBuild.js"
 
 export const FONT_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/
 export const FONT_ID_LENGTH = 40
@@ -134,6 +134,7 @@ function builtFont(font, parentId) {
 }
 
 async function ownFontProblem(font, parent, ctx) {
+  if (!drawnCells(font).cells.length) return "None of the characters are drawn yet."
   const own = builtFont(font, parent?.id ?? null)
   const drawn = own.cells.map(cell => cell.char)
   const problem = sizeProblem(own.capHeight, drawn.length) ?? lettersProblem(drawn)
@@ -237,7 +238,7 @@ export const font = {
     const clean = {}
     const parent = fontParent(ctx.fonts, target)
     if (target && !parent) problems.target = "Pick the font this is a variant of."
-    const id = bytes ? submittedFontId(bytes) : typeof details.id === "string" ? details.id : ""
+    const id = bytes ? submittedFontId(bytes) : typeof details.id === "string" ? details.id : null
     if (id !== null) problems.id = fontIdProblem(id, ctx.fonts)
     if (bytes && id) clean.id = id
     let template = bytes ? null : storedTemplate(details.template)

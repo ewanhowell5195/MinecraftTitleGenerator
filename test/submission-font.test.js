@@ -94,6 +94,12 @@ describe("checking a font", () => {
     assert.match(problems.file, /These are blank: q\./)
   })
 
+  test("a font with nothing drawn says so", async () => {
+    const font = copyOf("f8thful")
+    const blank = Object.fromEntries(Object.entries(font.glyphs).map(([char, glyph]) => [char, { ...glyph, rows: glyph.rows.map(row => "0".repeat(row.length)) }]))
+    assert.equal((await check({ bytes: jsonOf({ ...font, glyphs: blank }) })).problems.file, "None of the characters are drawn yet.")
+  })
+
   test("another alphabet doesn't need a to z", async () => {
     assert.equal((await check({ target: "minecraft-ten", bytes: jsonOf(copyOf("minecraft-ten-cyrillic")) })).problems.file, null)
   })
