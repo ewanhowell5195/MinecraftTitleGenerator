@@ -4,6 +4,7 @@
   import Icon from "../components/Icon.vue"
   import { fullName, loadFontList } from "../lib/font.js"
   import { DEFAULT_BORDER, DEFAULT_DEPTH, DEFAULT_SPACE_WIDTH, autoStretch, lostPixels, resizeFont, setSquareSize, slug, squareSizeLoss, squaresOf } from "../lib/fontEditor.js"
+  import { fontThumbnail } from "../lib/ui.js"
   import { font, update } from "./store.js"
 
   const ABOUT = [
@@ -34,7 +35,7 @@
 
   const basedOnOptions = computed(() => {
     const own = font.value.id || slug(font.value.name)
-    const fonts = published.value.filter(entry => entry.id !== own).map(entry => ({ value: entry.id, label: fullName(entry, published.value) })).sort((a, b) => a.label.localeCompare(b.label))
+    const fonts = published.value.filter(entry => entry.id !== own).map(entry => ({ value: entry.id, label: fullName(entry, published.value), image: fontThumbnail(published.value, entry.id) })).sort((a, b) => a.label.localeCompare(b.label))
     const current = font.value.basedOn && !fonts.some(option => option.value === font.value.basedOn) ? [{ value: font.value.basedOn, label: font.value.basedOn, hint: "Not a published font" }] : []
     return [{ value: "", label: "None" }].concat(current, fonts)
   })
