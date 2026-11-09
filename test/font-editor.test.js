@@ -10,6 +10,7 @@ import { CREEPER, REQUIRED_CHARACTERS, SPACE_CHAR, addCharacters, autoStretch, b
 import { fontFromAscii } from "../src/lib/asciiImport.js"
 import { fontFromOutlines, parseFontFile } from "../src/lib/fontImport.js"
 import { gridShift, rasterise } from "../src/lib/fontOutline.js"
+import { jsonText } from "../src/lib/jsonText.js"
 
 function drawn(font, char, cells) {
   return setGlyph(font, char, paint(glyphOf(font, char), cells, true))
@@ -306,7 +307,7 @@ describe("the sheet", () => {
 describe("saving and reopening", () => {
   function roundTrip(font, parts) {
     const sheet = buildSheet(font)
-    const json = JSON.parse(JSON.stringify(exportJson(font, "data:image/png;base64,AAAA")))
+    const json = parseFontJson(jsonText(exportJson(font, "data:image/png;base64,AAAA")))
     return fontFromFiles({ sheet: parts.includes("sheet") ? sheet : null, json: parts.includes("json") ? json : null })
   }
 
@@ -322,12 +323,23 @@ describe("saving and reopening", () => {
     assert.equal(entry.editor.texture, "data:image/png;base64,AAAA")
     assert.equal(entry.height, undefined)
     assert.equal(entry.order, undefined)
-    assert.deepEqual(entry.kerning, { av: 4 })
+    assert.deepEqual(entry.kerning, { 4: ["av"] })
   })
 
   test("kerning pairs set to 0 are left out of the JSON", () => {
-    assert.deepEqual(exportJson({ ...createFont(), kerning: { av: 4, lt: 0 } }, "t").kerning, { av: 4 })
+    assert.deepEqual(exportJson({ ...createFont(), kerning: { av: 4, lt: 0 } }, "t").kerning, { 4: ["av"] })
     assert.equal(exportJson({ ...createFont(), kerning: { lt: 0 } }, "t").kerning, undefined)
+  })
+
+  test("kerning is saved grouped by amount, one line per amount", () => {
+    const entry = exportJson({ ...createFont(), kerning: { lt: 8, av: 4, ly: 8, "a-": -2 } }, "t")
+    assert.deepEqual(entry.kerning, { 4: ["av"], 8: ["lt", "ly"], "-2": ["a-"] })
+    assert.ok(jsonText(entry).includes(`"8": ["lt", "ly"]`))
+    assert.deepEqual(parseFontJson(jsonText(entry)).kerning, { lt: 8, av: 4, ly: 8, "a-": -2 })
+  })
+
+  test("kerning that isn't grouped by amount is refused", () => {
+    assert.throws(() => parseFontJson(JSON.stringify({ id: "t", kerning: { lt: 8 } })), /grouped by amount/)
   })
 
   test("defaults are left out of the JSON", () => {

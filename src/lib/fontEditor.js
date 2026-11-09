@@ -1,5 +1,5 @@
 import { flatPixels } from "./flatSheet.js"
-import { SHEET_MAX_WIDTH, parseMask, scanMask } from "./font.js"
+import { SHEET_MAX_WIDTH, groupedKerning, kerningPairs, parseMask, scanMask } from "./font.js"
 import { titleCase } from "./names.js"
 import { DEFAULT_ORDER } from "./order.js"
 import { defaultBorder, defaultDepth } from "./settings.js"
@@ -492,7 +492,7 @@ export function parseFontJson(text) {
     throw new Error(`that JSON file can't be read: ${err.message}`)
   }
   if (!entry || typeof entry !== "object" || Array.isArray(entry)) throw new Error("that JSON file isn't a font entry")
-  return entry
+  return entry.kerning === undefined ? entry : { ...entry, kerning: kerningPairs(entry.kerning, "that JSON file") }
 }
 
 function resizeDefaultWidth(font, width) {
@@ -573,7 +573,7 @@ export function exportJson(font, texture) {
   for (const key of ["terminatorSpace", "forcedTerminators", "autoBorder", "flat", "overlay"]) if (font[key]) entry[key] = true
   if (font.terminatorSpace && !font.defineSpace && (font.terminatorSpaceWidth ?? font.spaceWidth) !== font.spaceWidth) entry.terminatorSpaceWidth = font.terminatorSpaceWidth
   const kerning = Object.fromEntries(Object.entries(font.kerning).filter(([, amount]) => amount))
-  if (Object.keys(kerning).length) entry.kerning = kerning
+  if (Object.keys(kerning).length) entry.kerning = groupedKerning(kerning)
   entry.editor = { height: font.height, width: font.width, grid: font.grid, density: font.density, texture }
   return entry
 }

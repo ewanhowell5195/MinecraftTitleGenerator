@@ -250,8 +250,25 @@ export function fullName(entry, fonts) {
   return parent ? `${parent.name}: ${entry.name}` : entry.name
 }
 
+export function kerningPairs(grouped, owner) {
+  if (grouped === undefined) return undefined
+  const valid = grouped && typeof grouped === "object" && !Array.isArray(grouped) && Object.entries(grouped).every(([amount, pairs]) => Number.isInteger(Number(amount)) && Array.isArray(pairs) && pairs.every(pair => typeof pair === "string"))
+  if (!valid) throw new Error(`${owner}'s kerning isn't grouped by amount, like { "4": ["lt", "ly"] }`)
+  return Object.fromEntries(Object.entries(grouped).flatMap(([amount, pairs]) => pairs.map(pair => [pair, Number(amount)])))
+}
+
+export function groupedKerning(pairs) {
+  const grouped = {}
+  for (const [pair, amount] of Object.entries(pairs)) (grouped[amount] ??= []).push(pair)
+  return grouped
+}
+
+function withPairs(entry) {
+  return entry.kerning === undefined ? entry : { ...entry, kerning: kerningPairs(entry.kerning, entry.id) }
+}
+
 export function flattenFonts(list) {
-  return list.flatMap(({ variants, ...entry }) => [entry].concat((variants ?? []).map(variant => ({ ...variant, variant: entry.id }))))
+  return list.flatMap(({ variants, ...entry }) => [withPairs(entry)].concat((variants ?? []).map(variant => withPairs({ ...variant, variant: entry.id }))))
 }
 
 export async function loadFontList() {
