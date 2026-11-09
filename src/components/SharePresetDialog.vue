@@ -1,7 +1,8 @@
 <script setup>
-  import { ref, watch } from "vue"
+  import { computed, ref, watch } from "vue"
   import { usage } from "../lib/community.js"
   import { NAME_LIMIT, confirmReplacing, confirmSharing, replaceWith, sharePreset } from "../lib/presets.js"
+  import { sharingProblem } from "../lib/titleFacts.js"
   import RenderDialog from "./RenderDialog.vue"
   import ReplaceSelect from "./ReplaceSelect.vue"
   import ShareAccount from "./ShareAccount.vue"
@@ -17,6 +18,7 @@
   const error = ref("")
   const sending = ref(false)
   const target = ref(null)
+  const problem = computed(() => sharingProblem(props.preset.code, name.value.trim() || props.preset.name))
 
   watch(target, next => name.value = next?.name ?? props.preset.name)
 
@@ -43,10 +45,10 @@
         <input type="text" v-model="name" :maxlength="NAME_LIMIT" spellcheck="false">
       </label>
       <ShareAccount v-if="!target" />
-      <p v-if="error" class="error">{{ error }}</p>
+      <p v-if="error || problem" class="error">{{ error || problem }}</p>
       <div class="footer">
         <SubmissionUsage v-if="!target" />
-        <button class="primary" type="submit" :disabled="sending || !target && usage && usage.used >= usage.limit">{{ target ? sending ? "Replacing" : "Replace" : sending ? "Sharing" : "Share" }}</button>
+        <button class="primary" type="submit" :disabled="sending || !!problem || !target && usage && usage.used >= usage.limit">{{ target ? sending ? "Replacing" : "Replace" : sending ? "Sharing" : "Share" }}</button>
       </div>
     </form>
   </RenderDialog>

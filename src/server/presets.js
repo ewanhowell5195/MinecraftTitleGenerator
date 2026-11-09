@@ -1,10 +1,11 @@
-import { RegExpMatcher, englishDataset, englishRecommendedTransformers } from "obscenity"
 import { LIMITS } from "../lib/limits.js"
 import { decodeTitle, unknownSetting } from "../lib/linkformat.js"
 import { capitalWords } from "../lib/names.js"
 import { pictureUrl } from "../lib/pictures.js"
 import { parseSearch } from "../lib/presetSearch.js"
-import { FILE_VERSION, typeDefaults } from "../lib/settings.js"
+import { FILE_VERSION } from "../lib/settings.js"
+import { titleFacts } from "../lib/titleFacts.js"
+import { blockedWordProblem } from "../lib/wording.js"
 import { USER_ROW, forgetUnusedUser, saveUser, signedInUser } from "./accounts.js"
 import { INVALID, Refusal, escaped, guarded, hashed, jsonBody, randomToken, reply, textField } from "./http.js"
 
@@ -23,8 +24,6 @@ const COLUMNS = `id, code, fingerprint, name, text, ${STAT_COLUMNS}`
 export const NEXT_ID = "MAX(COALESCE((SELECT MAX(id) FROM presets), 0), COALESCE((SELECT MAX(id) FROM deleted_presets), 0)) + 1"
 const SCORES_RESET = ", downloads = 0, ups = 0, votes = 0, rating = -1"
 
-const rude = new RegExpMatcher({ ...englishDataset.build(), ...englishRecommendedTransformers })
-
 function canonical(value) {
   if (Array.isArray(value)) return value.map(canonical)
   if (value === null || typeof value !== "object") return value
@@ -40,26 +39,6 @@ async function hashedIp({ request, env }) {
   const ip = request.headers.get("CF-Connecting-IP")
   if (!ip) throw new Error("the request has no CF-Connecting-IP header")
   return hashed(`${env.IP_SALT}:${ip}`)
-}
-
-function wordsOf(line) {
-  return line.words ? line.words.map(word => ({ ...line, ...word })) : [line]
-}
-
-function textOf(word, fallback) {
-  return (typeof word.text === "string" ? word.text : fallback).trim()
-}
-
-export function titleFacts(lines) {
-  const fallback = typeDefaults("top").text
-  const texts = lines.map(line => wordsOf(line).filter(word => !word.hidden).map((word, index) => (index && word.spaceBefore ? " " : "") + textOf(word, fallback)).join("").trim())
-  const everything = lines.flatMap(wordsOf).map(word => textOf(word, fallback))
-  return {
-    text: texts.filter(Boolean).join(" "),
-    all: everything.join(" "),
-    words: everything.length,
-    characters: everything.reduce((total, text) => total + Array.from(text).length, 0)
-  }
 }
 
 export function checkTitle(code) {
@@ -83,7 +62,8 @@ export function checkTitle(code) {
 }
 
 function checkWords(label, text) {
-  if (rude.hasMatch(text)) throw new Refusal(400, `The ${label} has a word in it that isn't allowed.`)
+  const problem = blockedWordProblem(label, text)
+  if (problem) throw new Refusal(400, problem)
 }
 
 function presetId(params) {

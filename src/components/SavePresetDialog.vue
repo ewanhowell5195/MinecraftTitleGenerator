@@ -1,8 +1,9 @@
 <script setup>
-  import { onMounted, ref, watch } from "vue"
+  import { computed, onMounted, ref, watch } from "vue"
   import { usage } from "../lib/community.js"
   import { NAME_LIMIT, confirmReplacing, confirmSharing, namingCode, namingShared, namingSharedId, saveOver, savePreset, sharePreset } from "../lib/presets.js"
   import { openPresetsPage, showPreset } from "../lib/presetsPage.js"
+  import { sharingProblem } from "../lib/titleFacts.js"
   import RenderDialog from "./RenderDialog.vue"
   import ReplaceSelect from "./ReplaceSelect.vue"
   import ShareAccount from "./ShareAccount.vue"
@@ -20,6 +21,7 @@
   const error = ref("")
   const sending = ref(false)
   const target = ref(null)
+  const problem = computed(() => namingCode.value ? sharingProblem(namingCode.value, name.value.trim() || props.suggested) : null)
 
   watch(target, next => name.value = next?.name ?? props.suggested)
 
@@ -104,12 +106,12 @@
         <p class="hint">Share your title so other people can find it in the community presets and use it for themselves.</p>
         <ShareAccount />
       </template>
-      <p v-if="error" class="error">{{ error }}</p>
+      <p v-if="error || problem" class="error">{{ error || problem }}</p>
       <div class="footer">
         <SubmissionUsage v-if="!namingShared && !target?.online" class="usage" />
         <div class="buttons">
-          <button v-if="!shareOnly" type="submit" :class="{ primary: namingShared || target?.online }" :disabled="sending">{{ target ? "Replace" : "Save" }}</button>
-          <button v-if="!namingShared && !target?.online" class="primary" type="button" :disabled="sending || usage && usage.used >= usage.limit" @click="saveAndShare">{{ sending ? "Sharing" : shareOnly ? "Share" : target ? "Replace and share" : "Save and share" }}</button>
+          <button v-if="!shareOnly" type="submit" :class="{ primary: namingShared || target?.online }" :disabled="sending || target?.online && !!problem">{{ target ? "Replace" : "Save" }}</button>
+          <button v-if="!namingShared && !target?.online" class="primary" type="button" :disabled="sending || !!problem || usage && usage.used >= usage.limit" @click="saveAndShare">{{ sending ? "Sharing" : shareOnly ? "Share" : target ? "Replace and share" : "Save and share" }}</button>
         </div>
       </div>
     </form>
