@@ -87,14 +87,19 @@ const creditsPage = {
   }
 }
 
-const sharedFooter = {
-  name: "shared-footer",
+function sitePart(name) {
+  return fs.readFileSync(path.join(import.meta.dirname, "src/site", name), "utf8").trim()
+}
+
+const siteParts = {
+  name: "site-parts",
   transformIndexHtml: {
     order: "pre",
-    handler(html) {
-      if (!html.includes("<footer class=\"footer\"></footer>")) return html
-      const footer = fs.readFileSync(path.join(import.meta.dirname, "src/home/footer.html"), "utf8").trim().replace("%YEAR%", new Date().getFullYear())
-      return html.replace("<footer class=\"footer\"></footer>", () => footer)
+    handler(html, context) {
+      const page = context.path.replace(/index\.html$/, "")
+      return html
+        .replace(/<header class="bar([^"]*)"><\/header>/, (_, classes) => sitePart("header.html").replace("%CLASSES%", classes).replace(`href="${page}"`, `href="${page}" aria-current="page"`))
+        .replace("<footer class=\"footer\"></footer>", () => sitePart("footer.html").replace("%YEAR%", new Date().getFullYear()))
     }
   }
 }
@@ -107,7 +112,7 @@ function allowCookiesOverHttp(proxy) {
 }
 
 export default defineConfig({
-  plugins: [vue(), submissionPages, folderSlashes, presetPages, creditsPage, sharedFooter],
+  plugins: [vue(), submissionPages, folderSlashes, presetPages, creditsPage, siteParts],
   build: { rolldownOptions: { input: ["index.html", "app/index.html", "font-editor/index.html", "credits/index.html", "submit/index.html", "account/index.html", "terms/index.html", "privacy/index.html"] } },
   server: { host: "127.0.0.1", port: 9123, strictPort: true, proxy: { "/api": { target: LIVE, changeOrigin: true, configure: allowCookiesOverHttp } } }
 })

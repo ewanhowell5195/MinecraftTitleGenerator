@@ -20,14 +20,14 @@ const ENDPOINTS = {
     token: "https://discord.com/api/oauth2/token",
     profile: "https://discord.com/api/v10/users/@me",
     scope: "identify",
-    person: user => ({ id: user.id, name: user.username })
+    person: user => ({ id: user.id, name: user.username, avatar: user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64` : `https://cdn.discordapp.com/embed/avatars/${(BigInt(user.id) >> 22n) % 6n}.png` })
   },
   github: {
     authorize: "https://github.com/login/oauth/authorize",
     token: "https://github.com/login/oauth/access_token",
     profile: "https://api.github.com/user",
     scope: "",
-    person: user => ({ id: String(user.id), name: user.login })
+    person: user => ({ id: String(user.id), name: user.login, avatar: `https://avatars.githubusercontent.com/u/${user.id}?s=64` })
   }
 }
 
@@ -118,18 +118,18 @@ async function fetchPerson(provider, code) {
   const form = new URLSearchParams({ grant_type: "authorization_code", code, redirect_uri: callbackUrl(provider), client_id: provider.clientId, client_secret: provider.secret })
   const { access_token: token } = await providerJson(provider, provider.token, { method: "POST", body: form })
   const person = provider.person(await providerJson(provider, provider.profile, { headers: { Authorization: `Bearer ${token}` } }))
-  return { id: person.id, name: Array.from(person.name).slice(0, LIMITS.name).join("") }
+  return { id: person.id, name: Array.from(person.name).slice(0, LIMITS.name).join(""), avatar: person.avatar }
 }
 
 function shownUser(user) {
-  return user && { id: user.id, name: user.name, provider: user.provider }
+  return user && { id: user.id, name: user.name, provider: user.provider, avatar: user.avatar }
 }
 
 export const USER_ROW = "(SELECT id FROM users WHERE provider = ? AND provider_id = ?)"
 
 export async function signedInUser({ request, env }) {
   const session = await verified(env, "session", cookieValue(request, SESSION_COOKIE))
-  return session && { id: session.id, name: session.name, provider: session.provider, providerId: session.id.slice(session.provider.length + 1) }
+  return session && { id: session.id, name: session.name, provider: session.provider, avatar: session.avatar ?? null, providerId: session.id.slice(session.provider.length + 1) }
 }
 
 export function saveUser(env, user) {
@@ -171,7 +171,7 @@ export const finishSignIn = showingRefusals(async ({ request, env, params }) => 
   const handoff = await verified(env, "handoff", url.searchParams.get("handoff"))
   if (!handoff || handoff.nonce !== cookieValue(request, STATE_COOKIE)) throw new Refusal(400, "This sign-in has expired. Close this window and try again.")
   const id = `${provider.id}:${handoff.id}`
-  const session = await signed(env, "session", SESSION_SECONDS, { id, name: handoff.name, provider: provider.id })
+  const session = await signed(env, "session", SESSION_SECONDS, { id, name: handoff.name, provider: provider.id, avatar: handoff.avatar })
   await env.DB.prepare("UPDATE users SET name = ? WHERE provider = ? AND provider_id = ? AND name != ?").bind(handoff.name, provider.id, handoff.id, handoff.name).run()
   const response = page(200, "You're signed in", "You can close this window.", leaveScript(`new BroadcastChannel("${ACCOUNT_CHANNEL}").postMessage("changed");`))
   response.headers.append("Set-Cookie", cookie(SESSION_COOKIE, session, SESSION_SECONDS, SESSION_PATH))

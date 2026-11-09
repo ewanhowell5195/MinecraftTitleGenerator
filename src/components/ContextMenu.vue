@@ -60,6 +60,7 @@
     <div v-if="at" ref="menu" class="context-menu popover" role="menu" :style="position" @contextmenu.prevent>
       <template v-for="(item, index) of items" :key="index">
         <div v-if="item.divider" class="divider"></div>
+        <p v-else-if="item.heading" class="heading">{{ item.label }}</p>
         <button v-else type="button" role="menuitem" :class="{ danger: item.danger }" :disabled="item.disabled" @click="choose(item)">
           <Icon :name="item.icon" :size="16" />
           <span>{{ item.label }}</span>
@@ -79,11 +80,30 @@
   }
 
   button {
+    display: flex;
+    align-items: center;
     justify-content: flex-start;
     gap: 10px;
     padding: 7px 10px;
+    font: inherit;
+    font-size: var(--font-base);
     font-weight: 500;
+    color: var(--text);
     background: transparent;
+    border: 0;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .heading {
+    max-width: 240px;
+    margin: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    padding: 7px 10px;
+    font-size: var(--font-sm);
+    color: var(--muted);
   }
 
   button:hover:not(:disabled),

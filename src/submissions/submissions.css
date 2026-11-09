@@ -2,35 +2,6 @@ a {
   color: var(--accent);
 }
 
-.bar {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 16px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--line);
-}
-
-.bar .brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  font-weight: 700;
-  color: var(--text);
-  text-decoration: none;
-}
-
-.bar nav {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 a.button {
   line-height: normal;
   white-space: nowrap;
@@ -43,7 +14,7 @@ a.button {
   gap: 28px;
   max-width: 1080px;
   margin: 0 auto;
-  padding: 28px 16px 64px;
+  padding: 92px 16px 64px;
 }
 
 .intro h1 {
@@ -265,11 +236,5 @@ textarea:focus {
 
   .preview {
     position: static;
-  }
-}
-
-@media (max-width: 480px) {
-  .bar .brand span {
-    display: none;
   }
 }

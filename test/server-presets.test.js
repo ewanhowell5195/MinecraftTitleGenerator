@@ -1117,11 +1117,16 @@ describe("accounts", () => {
 
   test("github uses the numeric id and the login, not the changeable display name", async () => {
     const cookie = await signIn("github", { id: 42, login: "octo", name: "Fake Name" })
-    assert.deepEqual(await who(cookie), { id: "github:42", name: "octo", provider: "github", unread: 0 })
+    assert.deepEqual(await who(cookie), { id: "github:42", name: "octo", provider: "github", avatar: "https://avatars.githubusercontent.com/u/42?s=64", unread: 0 })
   })
 
   test("discord uses the username, not the display name", async () => {
     assert.equal((await who(await signIn())).name, "someone")
+  })
+
+  test("discord profile pictures fall back to the default one for the id", async () => {
+    assert.equal((await who(await signIn("discord", { id: "80351110224678912", username: "a", avatar: "a_1f2e" }))).avatar, "https://cdn.discordapp.com/avatars/80351110224678912/a_1f2e.png?size=64")
+    assert.equal((await who(await signIn("discord", { id: "80351110224678912", username: "a", avatar: null }))).avatar, "https://cdn.discordapp.com/embed/avatars/5.png")
   })
 
   test("the same id on another provider is another account", async () => {

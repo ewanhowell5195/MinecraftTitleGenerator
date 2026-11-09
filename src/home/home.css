@@ -9,6 +9,24 @@
   --accent-deep: #467f2e;
   --accent-text: #0d1a07;
   --gutter: 16px;
+  /* the account menu's tokens, same values as src/style.css */
+  --card: #202227;
+  --card-hover: #272a30;
+  --line-strong: #3a3e47;
+  --danger: #ff8f85;
+  --shadow: 0 8px 24px #0009;
+  --font-xs: 11px;
+  --font-sm: 12px;
+  --font-base: 14px;
+  --duration: 0.15s;
+}
+
+.popover {
+  position: fixed;
+  z-index: 100;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow);
 }
 
 * {
@@ -124,55 +142,6 @@ h2 + p {
 
 .button.dark:active {
   box-shadow: inset 0 4px 0 #000, inset 0 -4px 0 #3a3e45;
-}
-
-.button.small {
-  padding: 9px 14px;
-  font-size: 15px;
-  box-shadow: inset 0 -2px 0 var(--accent-deep), inset 0 2px 0 #9be37b;
-}
-
-.button.small:active {
-  box-shadow: inset 0 2px 0 var(--accent-deep), inset 0 -2px 0 #9be37b;
-}
-
-.bar {
-  position: fixed;
-  top: 0;
-  right: 0;
-  left: 0;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px max(var(--gutter), calc((100% - 1120px) / 2));
-  border-bottom: 1px solid transparent;
-  transition: background-color 0.4s, border-color 0.4s;
-}
-
-.bar.scrolled {
-  background-color: var(--surface);
-  border-bottom-color: var(--line);
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 700;
-  line-height: 1.15;
-  text-decoration: none;
-  color: var(--text);
-  user-select: none;
-}
-
-.brand:hover {
-  color: var(--text);
-}
-
-.brand img {
-  translate: 0 7%;
 }
 
 .hero {
@@ -498,10 +467,6 @@ section + section {
 
   h2 + p {
     font-size: 17px;
-  }
-
-  .bar .button {
-    display: none;
   }
 
   .button {

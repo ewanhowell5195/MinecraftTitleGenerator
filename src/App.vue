@@ -1,6 +1,7 @@
 <script setup>
   import { computed, onMounted, ref, watch } from "vue"
   import FluidTabs from "fluid-tabs-vue"
+  import AccountMenu from "./components/AccountMenu.vue"
   import Icon from "./components/Icon.vue"
   import LayerActions from "./components/LayerActions.vue"
   import Panel from "./components/Panel.vue"
@@ -99,6 +100,7 @@
       <h1><a class="brand" href="/" aria-label="Minecraft Title Generator"><img src="/favicon.svg" alt="" width="24" height="24"><span class="ellipsis">Minecraft Title Generator</span></a></h1>
       <MenuBar ref="menuBar" />
       <ShareButton />
+      <AccountMenu />
     </header>
 
     <LayerList />
@@ -188,6 +190,10 @@
     padding: 0 14px 0 18px;
     background: var(--surface);
     border-bottom: 1px solid var(--line);
+  }
+
+  .account {
+    margin-left: 10px;
   }
 
   h1 {

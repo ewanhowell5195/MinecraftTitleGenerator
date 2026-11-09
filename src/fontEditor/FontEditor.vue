@@ -1,6 +1,7 @@
 <script setup>
   import { onBeforeUnmount, onMounted, ref, watch } from "vue"
   import FluidTabs from "fluid-tabs-vue"
+  import AccountMenu from "../components/AccountMenu.vue"
   import Icon from "../components/Icon.vue"
   import RenderDialog from "../components/RenderDialog.vue"
   import CharacterList from "./CharacterList.vue"
@@ -76,6 +77,7 @@
         <button class="small" title="The sheet the generator reads your letters from" @click="downloadTexture"><Icon name="download" :size="14" />Texture</button>
         <button class="small primary" title="Everything in one file, including the texture" @click="downloadJson"><Icon name="download" :size="14" />JSON</button>
       </template>
+      <AccountMenu />
     </header>
 
     <p v-if="loadError" class="notice">{{ loadError }}</p>
@@ -153,6 +155,14 @@
     text-decoration: none;
     user-select: none;
     white-space: nowrap;
+  }
+
+  .account {
+    margin-left: auto;
+  }
+
+  .editing .account {
+    margin-left: 6px;
   }
 
   .name {

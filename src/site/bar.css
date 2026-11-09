@@ -1,0 +1,139 @@
+.bar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  height: 64px;
+  padding: 0 max(16px, calc((100% - 1120px) / 2));
+  font-family: system-ui, "Segoe UI", sans-serif;
+  line-height: 1.15;
+  border-bottom: 1px solid transparent;
+  transition: background-color 0.4s, border-color 0.4s;
+}
+
+.bar.scrolled {
+  background-color: var(--surface);
+  border-bottom-color: var(--line);
+}
+
+.bar .brand {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  font-size: 17px;
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--text);
+  user-select: none;
+}
+
+.bar .brand img {
+  flex: none;
+  translate: 0 7%;
+}
+
+.bar .brand span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.bar-links {
+  display: flex;
+  gap: 22px;
+}
+
+.bar-links a {
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--muted);
+  user-select: none;
+  transition: color 0.15s;
+}
+
+.bar-links a:hover,
+.bar-links a[aria-current] {
+  color: var(--text);
+}
+
+.bar-end {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-left: auto;
+}
+
+.bar-account {
+  display: flex;
+}
+
+.bar-button,
+.bar .account:not(.signed) {
+  padding: 9px 14px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.15;
+  white-space: nowrap;
+  text-decoration: none;
+  border: 0;
+  cursor: pointer;
+  user-select: none;
+  transition: filter 0.12s;
+}
+
+.bar-button,
+.bar-button:hover {
+  color: var(--accent-text);
+  background: var(--accent);
+  box-shadow: inset 0 -2px 0 #467f2e, inset 0 2px 0 #9be37b;
+}
+
+.bar-button:active {
+  box-shadow: inset 0 2px 0 #467f2e, inset 0 -2px 0 #9be37b;
+}
+
+.bar .account:not(.signed) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  background: #16181b;
+  box-shadow: inset 0 -2px 0 #000, inset 0 2px 0 #3a3e45;
+}
+
+.bar .account:not(.signed):active {
+  box-shadow: inset 0 2px 0 #000, inset 0 -2px 0 #3a3e45;
+}
+
+.bar-button:hover,
+.bar .account:not(.signed):hover {
+  filter: brightness(1.1);
+}
+
+@media (max-width: 900px) {
+  .bar-links {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .bar {
+    gap: 12px;
+  }
+
+  .bar-button,
+  .bar .account:not(.signed) span {
+    display: none;
+  }
+
+  .bar .account:not(.signed) {
+    padding: 9px 10px;
+  }
+}

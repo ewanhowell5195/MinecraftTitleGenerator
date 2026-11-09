@@ -1,6 +1,5 @@
 <script setup>
   import { onMounted, ref } from "vue"
-  import AccountMenu from "../components/AccountMenu.vue"
   import { refreshAccount } from "../lib/community.js"
   import { loadFontList } from "../lib/font.js"
   import { loadStats } from "../lib/stats.js"
@@ -27,13 +26,6 @@
 </script>
 
 <template>
-  <header class="bar">
-    <a class="brand" href="/"><img src="/favicon.svg" alt="" width="24" height="24"><span class="ellipsis">Minecraft Title Generator</span></a>
-    <nav>
-      <a class="button" href="/app/">Open the generator</a>
-      <AccountMenu />
-    </nav>
-  </header>
   <main class="page">
     <AccountPage v-if="managing" />
     <p v-else-if="error" class="hint bad">Couldn't load the fonts: {{ error }}</p>
