@@ -11,8 +11,16 @@ export function fakeGitHub(publicKey, { repo, api, files }) {
   const refs = new Map()
   const pulls = new Map()
   const comments = []
+  const reviews = []
   const calls = []
   const failing = new Set()
+
+  function comment(number, body, { user = { login: "app[bot]", type: "Bot" }, association = "NONE", app = true } = {}) {
+    const id = comments.length + 1
+    const made = { id, number, body, user, author_association: association, html_url: `https://github.com/${repo}/pull/${number}#issuecomment-${id}`, created_at: new Date(Date.UTC(2026, 0, 1) + id * 1000).toISOString(), ...(app && { performed_via_github_app: { id: 123 } }) }
+    comments.push(made)
+    return made
+  }
 
   function blob(bytes) {
     const sha = createHash("sha1").update(bytes).digest("hex")
@@ -112,10 +120,11 @@ export function fakeGitHub(publicKey, { repo, api, files }) {
       if (method === "PATCH") Object.assign(pull, body)
       return json(pull)
     }
-    if ((match = at.match(/^issues\/(\d+)\/comments$/))) {
-      comments.push({ number: Number(match[1]), body: body.body })
-      return json({ id: comments.length }, 201)
+    if ((match = at.match(/^issues\/(\d+)\/comments(\?.*)?$/))) {
+      if (method === "GET") return json(comments.filter(item => item.number === Number(match[1])))
+      return json({ id: comment(Number(match[1]), body.body).id }, 201)
     }
+    if ((match = at.match(/^pulls\/(\d+)\/reviews(\?.*)?$/))) return json(reviews.filter(item => item.number === Number(match[1])))
     if (method === "PATCH" && (match = at.match(/^issues\/comments\/(\d+)$/))) {
       const comment = comments[Number(match[1]) - 1]
       if (!comment) return json({ message: "Not Found" }, 404)
@@ -125,5 +134,5 @@ export function fakeGitHub(publicKey, { repo, api, files }) {
     throw new Error(`the fake GitHub has no ${method} ${route}`)
   }
 
-  return { handle, refs, commits, pulls, comments, calls, failing, filesAt, blobs, main: () => refs.get("heads/main"), commit, blob }
+  return { handle, refs, commits, pulls, comments, comment, reviews, calls, failing, filesAt, blobs, main: () => refs.get("heads/main"), commit, blob }
 }

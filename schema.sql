@@ -106,17 +106,3 @@ CREATE TABLE notifications (
 );
 
 CREATE INDEX notifications_by_user ON notifications (user_id, id DESC);
-
-CREATE TABLE submission_comments (
-  id INTEGER PRIMARY KEY,
-  submission_id INTEGER NOT NULL REFERENCES submissions (id),
-  user_id INTEGER REFERENCES users (id),
-  author TEXT NOT NULL DEFAULT '',
-  role TEXT NOT NULL,
-  body TEXT NOT NULL,
-  url TEXT NOT NULL DEFAULT '',
-  github_id INTEGER,
-  created_at INTEGER NOT NULL
-);
-
-CREATE INDEX submission_comments_by_submission ON submission_comments (submission_id, id);

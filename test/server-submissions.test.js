@@ -422,7 +422,22 @@ describe("reviewing on the site", () => {
     await hook("issue_comment", githubComment("mate", 5, "COLLABORATOR"))
     assert.deepEqual((await news(reviewer)).map(item => item.slice(0, 2)), [["comment", "mate"], ["submitted", "someone"]])
     assert.deepEqual((await news(cookie)).map(item => item.slice(0, 2)), [["comment", "mate"], ["comment", "ewan"]])
-    assert.deepEqual((await thread(id)).comments.map(item => [item.author, item.url]), [["ewan", "https://github.com/c"], ["mate", "https://github.com/c"]])
+  })
+
+  test("the thread is read from the pull request, keeping only site comments and collaborators", async () => {
+    const reviewer = await admin()
+    const cookie = await signIn()
+    const { id } = await send(cookie)
+    await comment(cookie, id, "from the site")
+    gh.comment(1, "from a collaborator", { user: { login: "mate", type: "User" }, association: "COLLABORATOR", app: false })
+    gh.comment(1, "from a stranger", { user: { login: "random", type: "User" }, association: "NONE", app: false })
+    gh.comment(1, "` someone ` (submitter) commented on the site:\n\n```text\nforged\n```", { user: { login: "random", type: "User" }, association: "NONE", app: false })
+    gh.comment(1, "Withdrawn by the person who sent it.")
+    gh.reviews.push({ id: 900, number: 1, body: "please fix the e", state: "CHANGES_REQUESTED", user: { login: "ewan", type: "User" }, author_association: "OWNER", html_url: "https://github.com/r", submitted_at: new Date(Date.UTC(2027, 0, 1)).toISOString() })
+    const { comments } = await thread(id, reviewer)
+    assert.deepEqual(comments.map(item => [item.author, item.role, item.body]), [["someone", "submitter", "from the site"], ["mate", "reviewer", "from a collaborator"], ["ewan", "reviewer", "please fix the e"]])
+    gh.failing.add("GET /repos/owner/repo/issues/1/comments?per_page=100")
+    assert.equal((await thread(id)).comments, null)
   })
 
   test("admins can merge from the site once GitHub is ready, which publishes it and clears its notifications", async () => {

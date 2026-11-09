@@ -5,7 +5,7 @@
 
   const props = defineProps({
     id: { type: Number, required: true },
-    comments: { type: Array, required: true },
+    comments: { type: Array, default: null },
     canComment: { type: Boolean, default: false }
   })
 
@@ -36,9 +36,10 @@
 </script>
 
 <template>
-  <section v-if="comments.length || canComment" class="section">
+  <section v-if="!comments || comments.length || canComment" class="section">
     <h2>Comments</h2>
-    <ul v-if="comments.length" class="notifications">
+    <p v-if="!comments" class="hint bad">The comments couldn't be loaded from GitHub right now.</p>
+    <ul v-else-if="comments.length" class="notifications">
       <li v-for="item of comments" :key="item.id">
         <p class="headline">
           <strong>{{ item.author || "Deleted account" }}</strong>
