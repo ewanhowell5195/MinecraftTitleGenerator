@@ -343,6 +343,11 @@ export function activeOverlays(list, object, kind) {
   return object[OVERLAY_KINDS[kind]] === "custom" ? object[kind] : defaultOverlays(list, object, kind)
 }
 
+export function untouchedTileable(object) {
+  const values = PANELS.texture()
+  return ["tileable", "tileableVariant", "tileableSource", "minecraftVersion"].every(key => object[key] === values[key])
+}
+
 export function setTexture(object, values) {
   let changed = false
   for (const [key, value] of Object.entries(values)) {

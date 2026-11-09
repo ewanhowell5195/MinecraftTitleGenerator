@@ -6,7 +6,7 @@
   import { titleCase } from "../../lib/names.js"
   import { usePanel } from "../../lib/panel.js"
   import { library } from "../../lib/scene.js"
-  import { pinnedTextures, setTexture } from "../../lib/settings.js"
+  import { pinnedTextures, setTexture, untouchedTileable } from "../../lib/settings.js"
   import { minecraftStatId, popular } from "../../lib/stats.js"
   import { readFile, saveImage, thumbnail, thumbnailHeight, tilePreview } from "../../lib/ui.js"
   import GradientEditor from "../GradientEditor.vue"
@@ -23,7 +23,7 @@
   const SOURCES = [{ value: "premade", label: "Textures" }, { value: "tileable", label: "Tileables" }, { value: "gradient", label: "Gradient" }, { value: "custom", label: "Custom" }]
   const CUSTOM_MODES = [{ value: "standard", label: "Standard" }, { value: "tileable", label: "Tileable" }, { value: "strip", label: "Strip" }]
   const SAME_SHAPE = 0.01
-  const TILEABLE_SOURCES = [{ value: "premade", label: "Premade" }, { value: "minecraft", label: "Minecraft textures" }]
+  const TILEABLE_SOURCES = [{ value: "minecraft", label: "Minecraft textures" }, { value: "premade", label: "Premade" }]
   const WHITE = "#ffffff"
 
   const { object, font, list, modified, reset } = usePanel("texture")
@@ -130,7 +130,9 @@
   function chooseSource(source) {
     search.value = ""
     if (source !== "tileable") retint(null)
+    const fresh = source === "tileable" && untouchedTileable(object.value)
     setTexture(object.value, { textureSource: source })
+    if (fresh) chooseTileables("minecraft")
   }
 
   async function chooseTileables(source) {
