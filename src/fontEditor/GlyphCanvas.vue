@@ -90,9 +90,11 @@
     const measured = ctx.measureText(text)
     const textWidth = measured.actualBoundingBoxLeft + measured.actualBoundingBoxRight
     const below = Math.max(0, measured.actualBoundingBoxDescent)
-    const scale = Math.min(1, width * 0.9 / textWidth, capHeight / (measured.actualBoundingBoxAscent + below))
-    ctx.translate(centre, baseline - below * scale)
-    ctx.scale(scale, scale)
+    const tall = Math.min(1, capHeight / (measured.actualBoundingBoxAscent + below))
+    const even = Math.min(tall, width * 0.9 / textWidth)
+    const letter = /^[\p{L}\p{N}]+$/u.test(text)
+    ctx.translate(centre, baseline - below * (letter ? tall : even))
+    ctx.scale(letter ? width / textWidth : even, letter ? tall : even)
     ctx.fillStyle = "#2f7cf659"
     ctx.fillText(text, (measured.actualBoundingBoxLeft - measured.actualBoundingBoxRight) / 2, 0)
     ctx.restore()
