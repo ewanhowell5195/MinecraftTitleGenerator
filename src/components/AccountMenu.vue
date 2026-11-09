@@ -6,7 +6,7 @@
   import MenuButton from "./MenuButton.vue"
 
   const unread = computed(() => account.value?.unread ?? 0)
-  const items = computed(() => account.value ? [{ label: unread.value ? `Submissions (${unread.value} new)` : "Submissions", icon: "upload", action: () => location.assign("/submit/") }, { label: "Sign out", icon: "signOut", action: signOut }] : signInProviders.value.map(id => ({ label: `Sign in with ${providerLabel(id)}`, icon: id, action: () => signIn(id) })))
+  const items = computed(() => account.value ? [{ label: unread.value ? `Submissions (${unread.value} new)` : "Submissions", icon: "upload", action: () => location.assign("/submit/") }, { label: "Manage account", icon: "user", action: () => location.assign("/account/") }, { label: "Sign out", icon: "signOut", action: signOut }] : signInProviders.value.map(id => ({ label: `Sign in with ${providerLabel(id)}`, icon: id, action: () => signIn(id) })))
 </script>
 
 <template>

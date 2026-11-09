@@ -188,4 +188,8 @@ export const accountDetails = guarded(async context => {
   return reply(200, { user: user && { ...shownUser(user), unread: await unreadCount(context.env, user) }, providers: PROVIDERS.map(({ id }) => id).filter(id => context.env[`${id.toUpperCase()}_CLIENT_ID`]) })
 })
 
-export const signOut = guarded(async () => reply(200, { user: null }, { "Set-Cookie": cookie(SESSION_COOKIE, "", 0, SESSION_PATH) }))
+export function clearedSession() {
+  return cookie(SESSION_COOKIE, "", 0, SESSION_PATH)
+}
+
+export const signOut = guarded(async () => reply(200, { user: null }, { "Set-Cookie": clearedSession() }))

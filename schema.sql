@@ -73,7 +73,7 @@ CREATE TABLE deleted_presets (
 
 CREATE TABLE submissions (
   id INTEGER PRIMARY KEY,
-  user_id INTEGER NOT NULL REFERENCES users (id),
+  user_id INTEGER REFERENCES users (id),
   kind TEXT NOT NULL,
   target TEXT NOT NULL,
   asset TEXT NOT NULL,

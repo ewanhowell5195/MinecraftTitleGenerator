@@ -12,6 +12,8 @@ const MISSING = "This submission doesn't exist."
 const UNAVAILABLE = "GitHub isn't taking submissions right now. Try again in a few minutes."
 const FORM_ALLOWANCE = 20000
 const EXTRA_PREFIX = "extra:"
+const ANONYMOUS = "Sent from the website."
+const SENDER = /^Sent from the website by .*$/m
 const NOTE_LENGTH = 1000
 const REVIEWERS = new Set(["OWNER", "MEMBER", "COLLABORATOR"])
 const SHOWN = "id, kind, target, asset, name, credit, notes, details, file, status, pull, created_at AS createdAt, updated_at AS updatedAt"
@@ -154,7 +156,7 @@ function pullText(env, origin, row, described, preview, commit) {
   const { noun } = SUBMISSION_KINDS[row.kind]
   const body = [
     `New ${phrase(noun, inline(row.name), described.where)}, credited to ${inline(row.credit)}.`,
-    `Sent from the website by ${inline(row.ownerName)} (${row.ownerProvider}).`,
+    row.ownerName ? `Sent from the website by ${inline(row.ownerName)} (${row.ownerProvider}).` : ANONYMOUS,
     `**[Preview it on the site](${origin}/submissions/${row.id})**`,
     preview ? `<img src="https://raw.githubusercontent.com/${repository(env)}/${commit}/${preview}" alt="" width="512">` : null,
     row.notes ? `Notes from the submitter:\n\n${block(row.notes)}` : null,
@@ -286,6 +288,35 @@ export const withdrawSubmission = guarded(async context => {
   return reply(200, { id: row.id })
 })
 
+async function anonymisePull(env, number) {
+  const pull = await github(env, `pulls/${number}`)
+  if (typeof pull.body === "string" && SENDER.test(pull.body)) await github(env, `pulls/${number}`, { method: "PATCH", body: { body: pull.body.replace(SENDER, ANONYMOUS) } })
+}
+
+export async function releaseSubmissions(context, user, keep) {
+  const { env } = context
+  const { results } = await env.DB.prepare(`SELECT id, status, pull FROM submissions WHERE user_id = ${USER_ROW}`).bind(user.provider, user.providerId).all()
+  const withdrawing = keep ? [] : results.filter(row => row.status === "open")
+  if (withdrawing.length) await env.DB.prepare(`UPDATE submissions SET status = 'withdrawn', updated_at = ? WHERE status = 'open' AND user_id = ${USER_ROW}`).bind(Date.now(), user.provider, user.providerId).run()
+  try {
+    await onGitHub(async () => {
+      for (const row of results.filter(item => item.pull)) {
+        await anonymisePull(env, row.pull)
+        if (!withdrawing.includes(row)) continue
+        await github(env, `issues/${row.pull}/comments`, { method: "POST", body: { body: "Withdrawn because the person who sent it deleted their account. Reopen this pull request to accept it anyway." } })
+        await github(env, `pulls/${row.pull}`, { method: "PATCH", body: { state: "closed" } })
+      }
+    })
+  } catch (err) {
+    if (withdrawing.length) await env.DB.prepare(`UPDATE submissions SET status = 'open' WHERE status = 'withdrawn' AND id IN (SELECT value FROM json_each(?))`).bind(JSON.stringify(withdrawing.map(row => row.id))).run()
+    throw err
+  }
+  return [
+    env.DB.prepare(`DELETE FROM notifications WHERE user_id = ${USER_ROW}`).bind(user.provider, user.providerId),
+    keep ? env.DB.prepare(`UPDATE submissions SET user_id = NULL WHERE user_id = ${USER_ROW}`).bind(user.provider, user.providerId) : env.DB.prepare(`DELETE FROM submissions WHERE user_id = ${USER_ROW}`).bind(user.provider, user.providerId)
+  ]
+}
+
 export const listSubmissions = guarded(async context => {
   const user = await requireUser(context)
   const { results } = await context.env.DB.prepare(`SELECT ${SHOWN}, ${OWNER} FROM submissions WHERE user_id = ${USER_ROW} ORDER BY id DESC LIMIT ?`).bind(user.provider, user.providerId, SUBMISSION_LIMITS.listed).all()
@@ -328,7 +359,7 @@ export const markNotificationsSeen = guarded(async context => {
 })
 
 function notify(env, row, kind, { author = "", body = "", url = "" }) {
-  return env.DB.prepare("INSERT INTO notifications (user_id, submission_id, kind, author, body, url, created_at) SELECT user_id, id, ?, ?, ?, ?, ? FROM submissions WHERE id = ?").bind(kind, author, Array.from(body).slice(0, NOTE_LENGTH).join(""), url, Date.now(), row.id).run()
+  return env.DB.prepare("INSERT INTO notifications (user_id, submission_id, kind, author, body, url, created_at) SELECT user_id, id, ?, ?, ?, ?, ? FROM submissions WHERE id = ? AND user_id IS NOT NULL").bind(kind, author, Array.from(body).slice(0, NOTE_LENGTH).join(""), url, Date.now(), row.id).run()
 }
 
 async function pulledSubmission(env, pull) {

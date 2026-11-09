@@ -353,6 +353,12 @@ export function deleteSaved(code) {
   return called(SAVED_API, jsonOptions("DELETE", { code }))
 }
 
+export async function deleteAccount(mode) {
+  await called(`${ACCOUNT_API}/delete`, jsonOptions("POST", { mode }))
+  await fetchAccount()
+  announceAccountChange()
+}
+
 export async function signOut() {
   try {
     await called(`${ACCOUNT_API}/logout`, { method: "POST" })

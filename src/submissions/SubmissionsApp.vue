@@ -4,12 +4,14 @@
   import { refreshAccount } from "../lib/community.js"
   import { loadFontList } from "../lib/font.js"
   import { loadStats } from "../lib/stats.js"
+  import AccountPage from "./AccountPage.vue"
   import SubmissionsHome from "./SubmissionsHome.vue"
   import SubmissionView from "./SubmissionView.vue"
 
   const PAGE = /^\/submissions\/(\d+)\/?$/
 
   const viewed = location.pathname.match(PAGE)?.[1] ?? null
+  const managing = location.pathname.startsWith("/account")
   const fonts = ref(null)
   const error = ref("")
 
@@ -33,7 +35,8 @@
     </nav>
   </header>
   <main class="page">
-    <p v-if="error" class="hint bad">Couldn't load the fonts: {{ error }}</p>
+    <AccountPage v-if="managing" />
+    <p v-else-if="error" class="hint bad">Couldn't load the fonts: {{ error }}</p>
     <template v-else-if="fonts">
       <SubmissionView v-if="viewed" :id="Number(viewed)" :fonts="fonts" />
       <SubmissionsHome v-else :fonts="fonts" />

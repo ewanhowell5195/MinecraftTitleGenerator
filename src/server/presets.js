@@ -333,7 +333,25 @@ export const submitPreset = guarded(async context => {
   return reply(hidden ? 200 : 201, { preset: rated(results[before.length].results[0]), onAccount: !!user, ...(token && { token }) })
 })
 
-async function forgetCached(request, ...ids) {
+export async function presetsForDeletion(env, user, keep) {
+  const voter = await accountHash(env, user)
+  const owner = [user.provider, user.providerId]
+  const voted = (await env.DB.prepare("SELECT preset_id AS id FROM preset_votes WHERE ip_hash = ?").bind(voter).all()).results.map(row => row.id)
+  const removed = (await env.DB.prepare(`SELECT id FROM presets WHERE user_id = ${USER_ROW}${keep ? " AND shared = 0" : ""}`).bind(...owner).all()).results.map(row => row.id)
+  const ups = "(SELECT COUNT(*) FROM preset_votes WHERE preset_id = presets.id AND value = 1)"
+  const votes = "(SELECT COUNT(*) FROM preset_votes WHERE preset_id = presets.id)"
+  const statements = [
+    env.DB.prepare("DELETE FROM preset_votes WHERE ip_hash = ?").bind(voter),
+    env.DB.prepare(`UPDATE presets SET ups = ${ups}, votes = ${votes}, rating = CASE WHEN ${votes} >= ? THEN ${ups} * 5.0 / ${votes} ELSE -1 END WHERE id IN (SELECT value FROM json_each(?))`).bind(LIMITS.minVotes, JSON.stringify(voted)),
+    env.DB.prepare("DELETE FROM account_submissions WHERE account_hash = ?").bind(voter),
+    env.DB.prepare("INSERT INTO deleted_presets (id) SELECT value FROM json_each(?)").bind(JSON.stringify(removed)),
+    env.DB.prepare("DELETE FROM presets WHERE id IN (SELECT value FROM json_each(?))").bind(JSON.stringify(removed))
+  ]
+  if (keep) statements.push(env.DB.prepare(`UPDATE presets SET user_id = NULL WHERE user_id = ${USER_ROW}`).bind(...owner))
+  return { statements, changed: removed.concat(voted.filter(id => !removed.includes(id))) }
+}
+
+export async function forgetCached(request, ...ids) {
   const paths = FIRST_PAGES.map(page => `/api/presets${page}`).concat(ids.map(id => `/api/presets/${id}`))
   await Promise.all(paths.map(path => globalThis.caches?.default.delete(new Request(new URL(path, request.url)))))
 }
