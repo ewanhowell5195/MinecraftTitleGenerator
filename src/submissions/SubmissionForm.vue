@@ -19,6 +19,8 @@
   const emit = defineEmits(["done", "cancel"])
 
   const KINDS = Object.values(SUBMISSION_KINDS).filter(type => type.available).map(type => ({ value: type.id, label: type.label }))
+  const TEXTURE_KINDS = KINDS.filter(item => item.value !== "font")
+  const GROUPS = [{ value: "texture", label: "Texture" }].concat(KINDS.some(item => item.value === "font") ? { value: "font", label: "Font" } : [])
   const { type: prefillKind, font: prefillTarget, name: prefillName, credit: prefillCredit, ...prefillDetails } = props.prefill
   const startKind = props.initial?.kind ?? prefillKind
   const kind = ref(SUBMISSION_KINDS[startKind]?.available ? startKind : "texture")
@@ -39,6 +41,12 @@
   const context = submissionContext(props.fonts, path => fetch(path))
   let checks = 0
 
+  let textureKind = kind.value === "font" ? "texture" : kind.value
+
+  const group = computed({
+    get: () => kind.value === "font" ? "font" : "texture",
+    set: value => kind.value = value === "font" ? "font" : textureKind
+  })
   const type = computed(() => SUBMISSION_KINDS[kind.value])
   const parts = computed(() => KIND_COMPONENTS[kind.value])
   const isImage = computed(() => type.value.accept === "image/png")
@@ -55,6 +63,7 @@
   const blocked = computed(() => !account.value || sending.value)
 
   watch(kind, (next, before) => {
+    if (next !== "font") textureKind = next
     if (KIND_COMPONENTS[next] !== KIND_COMPONENTS[before]) {
       details.value = {}
       target.value = ""
@@ -109,7 +118,8 @@
 <template>
   <form class="submission-form" @submit.prevent="send">
     <div class="fields flow">
-      <Segments v-model="kind" :options="KINDS" label="Type" />
+      <Segments v-if="GROUPS.length > 1" v-model="group" :options="GROUPS" label="Type" />
+      <Segments v-if="group === 'texture'" v-model="kind" :options="TEXTURE_KINDS" label="Texture type" />
       <component :is="parts.Fields" v-model:target="target" v-model:details="details" v-model:files="extras" :fonts="fonts" :kind="kind" :file="chosen" :initial="initial" :name="name" :problems="problems" :tried="tried" @problem="extraProblem = $event" />
       <div class="field">
         <span class="label">{{ type.label }}</span>
