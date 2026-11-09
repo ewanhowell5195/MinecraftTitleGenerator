@@ -115,6 +115,7 @@ CREATE TABLE submission_comments (
   role TEXT NOT NULL,
   body TEXT NOT NULL,
   url TEXT NOT NULL DEFAULT '',
+  github_id INTEGER,
   created_at INTEGER NOT NULL
 );
 

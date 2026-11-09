@@ -168,6 +168,7 @@ describe("deleting an account", () => {
     assert.ok(gh.refs.has(`heads/submission/${submission}`))
     assert.doesNotMatch(gh.pulls.get(1).body, /leaving/)
     assert.match(gh.pulls.get(1).body, /^Sent from the website\.$/m)
+    assert.ok(gh.comments.every(item => !item.body.includes("leaving")))
   })
 
   test("anonymising keeps shared presets and submissions without the account", async () => {
@@ -178,6 +179,7 @@ describe("deleting an account", () => {
     assert.equal(count("SELECT COUNT(*) AS total FROM presets WHERE shared = 0"), 0)
     assert.deepEqual({ ...db.prepare("SELECT user_id, status FROM submissions WHERE id = ?").get(submission) }, { user_id: null, status: "open" })
     assert.deepEqual({ ...db.prepare("SELECT user_id, author, body FROM submission_comments").get() }, { user_id: null, author: "", body: "my note" })
+    assert.equal(gh.comments[0].body, "The submitter commented on the site:\n\n```text\nmy note\n```")
     assert.deepEqual(db.prepare("SELECT kind, author FROM notifications").all().map(row => [row.kind, row.author]), [["submitted", ""], ["comment", ""]])
     assert.equal(gh.pulls.get(1).state, "open")
     assert.doesNotMatch(gh.pulls.get(1).body, /leaving/)

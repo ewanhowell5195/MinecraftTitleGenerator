@@ -116,6 +116,12 @@ export function fakeGitHub(publicKey, { repo, api, files }) {
       comments.push({ number: Number(match[1]), body: body.body })
       return json({ id: comments.length }, 201)
     }
+    if (method === "PATCH" && (match = at.match(/^issues\/comments\/(\d+)$/))) {
+      const comment = comments[Number(match[1]) - 1]
+      if (!comment) return json({ message: "Not Found" }, 404)
+      comment.body = body.body
+      return json({ id: Number(match[1]) })
+    }
     throw new Error(`the fake GitHub has no ${method} ${route}`)
   }
 
