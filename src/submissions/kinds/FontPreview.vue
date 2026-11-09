@@ -18,9 +18,9 @@
     text: { type: String, required: true }
   })
 
+  const chosen = defineModel("texture", { type: String, default: "" })
   const line = shallowRef(null)
   const problem = ref("")
-  const chosen = ref("")
 
   const extras = computed(() => (props.details.extras ?? []).filter(extra => extraUrl(extra.key)))
   const options = computed(() => [{ value: "", label: "Flat" }].concat(extras.value.map(extra => ({ value: extra.key, label: extra.name || extra.key, hint: extra.kind }))))
@@ -57,8 +57,18 @@
 </script>
 
 <template>
-  <div class="flow">
-    <Dropdown v-if="extras.length" v-model="chosen" :options="options" label="Texture" />
+  <div class="font-preview">
     <TitleRender :fonts="fonts" :line="line" :message="problem || (url ? 'Type some text to preview it' : 'Choose a font JSON file to preview it')" />
+    <Dropdown v-if="extras.length" v-model="chosen" class="texture-pick" :options="options" label="Texture" />
   </div>
 </template>
+
+<style scoped>
+  .font-preview {
+    display: contents;
+  }
+
+  .texture-pick {
+    order: 1;
+  }
+</style>

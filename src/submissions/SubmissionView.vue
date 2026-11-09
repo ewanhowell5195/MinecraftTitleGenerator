@@ -9,7 +9,7 @@
   import { SUBMISSION_KINDS } from "../lib/submissionKinds/index.js"
   import { SUBMISSION_PARAM } from "../lib/submissionLink.js"
   import { SUBMISSION_STATUSES } from "../lib/submissions.js"
-  import { markNotificationsSeen, notifications, submissionFileUrl, submissionPage, submissionProcessing, submissionThread, withdrawSubmission } from "../lib/submissionsApi.js"
+  import { markNotificationsSeen, notifications, submissionExtraUrl, submissionFileUrl, submissionPage, submissionProcessing, submissionThread, withdrawSubmission } from "../lib/submissionsApi.js"
   import CommentThread from "./CommentThread.vue"
   import { KIND_COMPONENTS } from "./kinds/components.js"
   import { CLIENT_KINDS } from "./kinds/index.js"
@@ -36,9 +36,14 @@
 
   const processing = ref(null)
   const sheetTab = ref("characters")
+  const textureKey = ref("")
   let pollTimer = null
 
   const client = computed(() => CLIENT_KINDS[item.value?.kind])
+  const gridTexture = computed(() => {
+    const extra = (item.value?.details.extras ?? []).find(entry => entry.key === textureKey.value)
+    return extra ? { kind: extra.kind, url: submissionExtraUrl(item.value, extra.key) } : null
+  })
   const previewLink = computed(() => item.value?.previewUrl && `${item.value.previewUrl}?title=${encodeTitle({ version: FILE_VERSION, lines: [client.value.publishedLine(item.value, props.fonts, item.value.name)] }).code}`)
   const changeable = computed(() => item.value?.mine && item.value.status === "open")
   const page = submissionPage(props.id)
@@ -133,7 +138,7 @@
       <p v-if="processing?.state === 'failed'" class="hint bad">Processing this submission failed on GitHub. <a :href="processing.url" target="_blank" rel="noopener">See what went wrong</a>.</p>
       <div class="submission-view">
         <div class="preview flow">
-          <component :is="KIND_COMPONENTS[item.kind].Preview" :fonts="fonts" :kind="item.kind" :target="item.target" :details="item.details" :initial="item" :url="submissionFileUrl(item)" :text="text || item.name" />
+          <component :is="KIND_COMPONENTS[item.kind].Preview" v-model:texture="textureKey" :fonts="fonts" :kind="item.kind" :target="item.target" :details="item.details" :initial="item" :url="submissionFileUrl(item)" :text="text || item.name" />
           <input type="text" v-model="text" :placeholder="item.name" spellcheck="false" aria-label="Preview text">
         </div>
         <div class="details flow">
@@ -169,7 +174,7 @@
         <Segments v-if="item.kind === 'font'" v-model="sheetTab" :options="SHEET_TABS" class="sheet-tabs" />
         <h2 v-else>Files</h2>
         <SubmissionFiles v-show="sheetTab === 'files' || item.kind !== 'font'" :item="item" />
-        <CharacterGrid v-if="item.kind === 'font'" v-show="sheetTab === 'characters'" :url="submissionFileUrl(item)" />
+        <CharacterGrid v-if="item.kind === 'font'" v-show="sheetTab === 'characters'" :url="submissionFileUrl(item)" :texture="gridTexture" />
       </section>
       <CommentThread :id="item.id" :comments="comments" :can-comment="item.mine || reviewer" @update="comments = $event" />
     </template>
