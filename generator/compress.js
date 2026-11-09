@@ -9,12 +9,14 @@ const run = promisify(execFile)
 const root = path.join(import.meta.dirname, "../public")
 const recordFile = path.join(import.meta.dirname, "compressed.json")
 
+const only = process.argv.slice(2).map(file => path.relative(root, path.resolve(file)).replaceAll("\\", "/"))
 const saved = fs.existsSync(recordFile) ? readJson(recordFile) : {}
-const files = fs.readdirSync(root, { recursive: true }).map(file => file.replaceAll("\\", "/")).filter(file => file.endsWith(".png"))
+const files = only.length ? only : fs.readdirSync(root, { recursive: true }).map(file => file.replaceAll("\\", "/")).filter(file => file.endsWith(".png"))
 const record = {}
 const pending = []
 
 function saveRecord() {
+  if (only.length) return
   writeJson(recordFile, Object.fromEntries(Object.entries(record).sort(([a], [b]) => a < b ? -1 : 1)))
 }
 

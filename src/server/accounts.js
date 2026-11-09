@@ -137,7 +137,7 @@ export function saveUser(env, user) {
 }
 
 export function forgetUnusedUser(env, user) {
-  return env.DB.prepare("DELETE FROM users WHERE provider = ? AND provider_id = ? AND NOT EXISTS (SELECT 1 FROM presets WHERE presets.user_id = users.id)").bind(user.provider, user.providerId)
+  return env.DB.prepare("DELETE FROM users WHERE provider = ? AND provider_id = ? AND NOT EXISTS (SELECT 1 FROM presets WHERE presets.user_id = users.id) AND NOT EXISTS (SELECT 1 FROM submissions WHERE submissions.user_id = users.id)").bind(user.provider, user.providerId)
 }
 
 export const startSignIn = showingRefusals(async ({ request, env, params }) => {
@@ -179,6 +179,13 @@ export const finishSignIn = showingRefusals(async ({ request, env, params }) => 
   return response
 })
 
-export const accountDetails = guarded(async context => reply(200, { user: shownUser(await signedInUser(context)), providers: PROVIDERS.map(({ id }) => id).filter(id => context.env[`${id.toUpperCase()}_CLIENT_ID`]) }))
+async function unreadCount(env, user) {
+  return (await env.DB.prepare(`SELECT COUNT(*) AS count FROM notifications WHERE seen = 0 AND user_id = ${USER_ROW}`).bind(user.provider, user.providerId).first())?.count ?? 0
+}
+
+export const accountDetails = guarded(async context => {
+  const user = await signedInUser(context)
+  return reply(200, { user: user && { ...shownUser(user), unread: await unreadCount(context.env, user) }, providers: PROVIDERS.map(({ id }) => id).filter(id => context.env[`${id.toUpperCase()}_CLIENT_ID`]) })
+})
 
 export const signOut = guarded(async () => reply(200, { user: null }, { "Set-Cookie": cookie(SESSION_COOKIE, "", 0, SESSION_PATH) }))

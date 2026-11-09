@@ -70,3 +70,38 @@ CREATE TABLE account_submissions (
 CREATE TABLE deleted_presets (
   id INTEGER PRIMARY KEY
 );
+
+CREATE TABLE submissions (
+  id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users (id),
+  kind TEXT NOT NULL,
+  target TEXT NOT NULL,
+  asset TEXT NOT NULL,
+  name TEXT NOT NULL,
+  credit TEXT NOT NULL,
+  notes TEXT NOT NULL DEFAULT '',
+  details TEXT NOT NULL DEFAULT '{}',
+  file TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'open',
+  pull INTEGER,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE INDEX submissions_by_user ON submissions (user_id, id DESC);
+CREATE INDEX submissions_by_pull ON submissions (pull);
+CREATE INDEX submissions_by_status ON submissions (status, target);
+
+CREATE TABLE notifications (
+  id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users (id),
+  submission_id INTEGER NOT NULL REFERENCES submissions (id),
+  kind TEXT NOT NULL,
+  author TEXT NOT NULL DEFAULT '',
+  body TEXT NOT NULL DEFAULT '',
+  url TEXT NOT NULL DEFAULT '',
+  seen INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL
+);
+
+CREATE INDEX notifications_by_user ON notifications (user_id, id DESC);

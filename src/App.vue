@@ -35,6 +35,7 @@
   import { presetsPage, syncPresetsPage } from "./lib/presetsPage.js"
   import { active, addObject, currentWord, library, saveError, scene, selection, shapingWord, wordTabs, words } from "./lib/scene.js"
   import { openSharedLink } from "./lib/share.js"
+  import { openSubmissionLink } from "./lib/submissionLink.js"
   import { loadStats } from "./lib/stats.js"
   import { SECTIONS, SHAPE_SECTIONS, view } from "./lib/view.js"
 
@@ -82,7 +83,7 @@
   onMounted(async () => {
     loadStats().catch(console.error)
     try {
-      const [fonts, tileables] = await Promise.all([loadFontList(), loadTileables(), openSharedLink()])
+      const [fonts, tileables] = await Promise.all([loadFontList(), loadTileables(), openSharedLink(), openSubmissionLink()])
       library.fonts = fonts
       library.tileables = tileables
       ready.value = true

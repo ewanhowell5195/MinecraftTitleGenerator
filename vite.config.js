@@ -9,6 +9,7 @@ import { linkedCode, linkedTitleDetails, presetDetails, shareTags } from "./src/
 const LIVE = "https://mctitlegenerator.com"
 const PRESET_PAGE = /^\/app\/presets(?:\/(\d+))?\/?$/
 const APP_PAGE = /^\/app\/(index\.html)?$/
+const SUBMISSION_PAGE = /^\/submissions\/\d+\/?$/
 
 async function pageDetails(url) {
   const preset = url.pathname.match(PRESET_PAGE)
@@ -65,6 +66,16 @@ const folderSlashes = {
   configurePreviewServer: slashFolders
 }
 
+const submissionPages = {
+  name: "submission-pages",
+  configureServer(server) {
+    server.middlewares.use((request, response, next) => {
+      if (SUBMISSION_PAGE.test(new URL(request.url, "http://localhost").pathname)) request.url = "/submit/"
+      next()
+    })
+  }
+}
+
 const creditsPage = {
   name: "credits-page",
   transformIndexHtml: {
@@ -84,7 +95,7 @@ function allowCookiesOverHttp(proxy) {
 }
 
 export default defineConfig({
-  plugins: [vue(), folderSlashes, presetPages, creditsPage],
-  build: { rolldownOptions: { input: ["index.html", "app/index.html", "font-editor/index.html", "credits/index.html"] } },
+  plugins: [vue(), submissionPages, folderSlashes, presetPages, creditsPage],
+  build: { rolldownOptions: { input: ["index.html", "app/index.html", "font-editor/index.html", "credits/index.html", "submit/index.html"] } },
   server: { host: "127.0.0.1", port: 9123, strictPort: true, proxy: { "/api": { target: LIVE, changeOrigin: true, configure: allowCookiesOverHttp } } }
 })
