@@ -116,10 +116,14 @@ export function mockSubmissions() {
               res.setHeader("Location", "/submissions/")
               return res.end()
             }
-            return send(res, 200, { user: state.signedIn ? { ...ME, unread, submissions: list.filter(item => item.mine).length, admin: true } : null, providers: ["discord", "github"] })
+            return send(res, 200, { user: state.signedIn ? { ...ME, unread, notifications: notifications.length, submissions: list.filter(item => item.mine).length, admin: true } : null, providers: ["discord", "github"] })
           }
           if (!state.signedIn && !(parts[0] === "submissions" && parts[1] && req.method === "GET")) return send(res, 401, { error: "Sign in to see submissions." })
           if (parts[0] === "notifications") {
+            if (req.method === "DELETE") {
+              notifications.length = 0
+              return send(res, 200, { notifications: [] })
+            }
             if (req.method === "POST") notifications.forEach(item => item.seen = true)
             return send(res, 200, req.method === "POST" ? { unread: 0 } : { notifications: notifications.filter(item => list.some(entry => entry.id === item.submission)).map(item => ({ ...item, submissionName: list.find(entry => entry.id === item.submission).name })).sort((a, b) => b.createdAt - a.createdAt) })
           }

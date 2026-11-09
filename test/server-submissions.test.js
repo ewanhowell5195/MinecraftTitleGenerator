@@ -8,7 +8,7 @@ import { PNG } from "pngjs"
 import { fakeGitHub } from "./fakeGitHub.js"
 
 const { accountDetails, finishSignIn, receiveSignIn, startSignIn } = await import("../src/server/accounts.js")
-const { addComment, createSubmission, editSubmission, listNotifications, listSubmissions, markNotificationsSeen, receiveWebhook, reviewState, reviewSubmission, submissionDetails, submissionFile, withdrawSubmission } = await import("../src/server/submissions.js")
+const { addComment, clearNotifications, createSubmission, editSubmission, listNotifications, listSubmissions, markNotificationsSeen, receiveWebhook, reviewState, reviewSubmission, submissionDetails, submissionFile, withdrawSubmission } = await import("../src/server/submissions.js")
 const { jsonText } = await import("../src/lib/jsonText.js")
 
 const REPO = "owner/repo"
@@ -475,6 +475,20 @@ describe("reviewing on the site", () => {
     assert.deepEqual(declined.comments.map(item => item.body), ["Too close to an existing one"])
     assert.deepEqual(await news(cookie), [["rejected", "ewan", "Too close to an existing one"]])
     assert.deepEqual(await news(reviewer), [["submitted", "someone", ""]])
+  })
+
+  test("clearing deletes only your own notifications", async () => {
+    const reviewer = await admin()
+    const cookie = await signIn()
+    const { id } = await send(cookie)
+    await comment(reviewer, id, "Looks good")
+    const counts = async who => (await (await accountDetails(context("/api/account", { cookie: who }))).json()).user
+    assert.equal((await counts(cookie)).notifications, 1)
+    assert.equal((await counts(reviewer)).notifications, 1)
+    assert.equal((await clearNotifications(context("/api/notifications", { method: "DELETE", cookie }))).status, 200)
+    assert.deepEqual(await news(cookie), [])
+    assert.equal((await counts(cookie)).notifications, 0)
+    assert.equal((await counts(reviewer)).notifications, 1)
   })
 
   test("only admins see every open submission", async () => {

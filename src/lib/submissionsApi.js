@@ -88,3 +88,8 @@ export async function markNotificationsSeen() {
   await called(NOTIFICATIONS_API, { method: "POST" })
   refreshAccount(true)
 }
+
+export async function clearNotifications() {
+  await called(NOTIFICATIONS_API, { method: "DELETE" })
+  await refreshAccount(true)
+}

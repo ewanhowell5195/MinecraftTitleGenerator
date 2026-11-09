@@ -472,6 +472,12 @@ export const listNotifications = guarded(async context => {
   return reply(200, { notifications: results.map(item => ({ ...item, seen: !!item.seen })) })
 })
 
+export const clearNotifications = guarded(async context => {
+  const user = await requireUser(context)
+  await context.env.DB.prepare(`DELETE FROM notifications WHERE user_id = ${USER_ROW}`).bind(user.provider, user.providerId).run()
+  return reply(200, { notifications: [] })
+})
+
 export const markNotificationsSeen = guarded(async context => {
   const user = await requireUser(context)
   await context.env.DB.prepare(`UPDATE notifications SET seen = 1 WHERE seen = 0 AND user_id = ${USER_ROW}`).bind(user.provider, user.providerId).run()

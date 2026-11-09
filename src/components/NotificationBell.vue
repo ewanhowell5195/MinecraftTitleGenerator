@@ -2,7 +2,7 @@
   import { computed, nextTick, ref } from "vue"
   import { account } from "../lib/community.js"
   import { useWindowEvents } from "../lib/events.js"
-  import { markNotificationsSeen, notifications, submissionPage } from "../lib/submissionsApi.js"
+  import { clearNotifications, markNotificationsSeen, notifications, submissionPage } from "../lib/submissionsApi.js"
   import Icon from "./Icon.vue"
 
   const ACTIONS = {
@@ -20,9 +20,10 @@
   const items = ref(null)
   const error = ref("")
   const position = ref({})
+  const clearing = ref(false)
 
   const unread = computed(() => account.value?.unread ?? 0)
-  const shown = computed(() => !!(account.value && (account.value.admin || account.value.submissions || unread.value)))
+  const shown = computed(() => !!account.value?.notifications)
 
   function when(time) {
     return new Date(time).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
@@ -56,6 +57,20 @@
     open.value = false
   }
 
+  async function clear() {
+    clearing.value = true
+    error.value = ""
+    try {
+      await clearNotifications()
+      items.value = []
+      close()
+    } catch (err) {
+      error.value = err.message
+    } finally {
+      clearing.value = false
+    }
+  }
+
   function outside(event) {
     if (!panel.value?.contains(event.target) && !button.value?.contains(event.target)) close()
   }
@@ -77,7 +92,7 @@
       <div v-if="open" ref="panel" class="notification-panel popover" :style="position" role="dialog" aria-label="Notifications">
         <div class="panel-head">
           <strong>Notifications</strong>
-          <a href="/submissions/">Submissions</a>
+          <button v-if="items?.length" type="button" class="clear" :disabled="clearing" @click="clear">Clear all</button>
         </div>
         <p v-if="error" class="state bad">{{ error }}</p>
         <p v-else-if="!items" class="state">Loading...</p>
@@ -153,9 +168,24 @@
     border-bottom: 1px solid var(--line);
   }
 
-  .panel-head a {
+  .clear {
+    padding: 2px 4px;
+    font: inherit;
     font-size: var(--font-sm);
     color: var(--accent);
+    background: none;
+    border: 0;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .clear:hover {
+    text-decoration: underline;
+  }
+
+  .clear:disabled {
+    opacity: 0.5;
+    cursor: default;
   }
 
   .state {

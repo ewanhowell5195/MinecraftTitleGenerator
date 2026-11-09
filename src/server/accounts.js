@@ -185,8 +185,8 @@ export const finishSignIn = showingRefusals(async ({ request, env, params }) => 
 })
 
 async function submissionCounts(env, user) {
-  const row = await env.DB.prepare(`SELECT (SELECT COUNT(*) FROM notifications WHERE seen = 0 AND user_id = ${USER_ROW}) AS unread, (SELECT COUNT(*) FROM submissions WHERE user_id = ${USER_ROW}) AS submissions`).bind(user.provider, user.providerId, user.provider, user.providerId).first()
-  return { unread: row?.unread ?? 0, submissions: row?.submissions ?? 0 }
+  const row = await env.DB.prepare(`SELECT (SELECT COUNT(*) FROM notifications WHERE seen = 0 AND user_id = ${USER_ROW}) AS unread, (SELECT COUNT(*) FROM notifications WHERE user_id = ${USER_ROW}) AS notifications, (SELECT COUNT(*) FROM submissions WHERE user_id = ${USER_ROW}) AS submissions`).bind(user.provider, user.providerId, user.provider, user.providerId, user.provider, user.providerId).first()
+  return { unread: row?.unread ?? 0, notifications: row?.notifications ?? 0, submissions: row?.submissions ?? 0 }
 }
 
 export const accountDetails = guarded(async context => {
