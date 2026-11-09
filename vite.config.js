@@ -2,6 +2,7 @@ import vue from "@vitejs/plugin-vue"
 import fs from "node:fs"
 import path from "node:path"
 import { defineConfig } from "vite"
+import { mockSubmissions } from "./dev/mockSubmissions.js"
 import { creditsHtml } from "./src/server/credits.js"
 import { escaped } from "./src/server/http.js"
 import { linkedCode, linkedTitleDetails, presetDetails, shareTags } from "./src/server/presets.js"
@@ -112,7 +113,7 @@ function allowCookiesOverHttp(proxy) {
 }
 
 export default defineConfig({
-  plugins: [vue(), submissionPages, folderSlashes, presetPages, creditsPage, siteParts],
+  plugins: [vue(), mockSubmissions(), submissionPages, folderSlashes, presetPages, creditsPage, siteParts],
   build: { rolldownOptions: { input: ["index.html", "app/index.html", "font-editor/index.html", "credits/index.html", "submit/index.html", "submissions/index.html", "account/index.html", "terms/index.html", "privacy/index.html"] } },
   server: { host: "127.0.0.1", port: 9123, strictPort: true, proxy: { "/api": { target: LIVE, changeOrigin: true, configure: allowCookiesOverHttp } } }
 })
