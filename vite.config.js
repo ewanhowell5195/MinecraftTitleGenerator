@@ -87,6 +87,18 @@ const creditsPage = {
   }
 }
 
+const sharedFooter = {
+  name: "shared-footer",
+  transformIndexHtml: {
+    order: "pre",
+    handler(html) {
+      if (!html.includes("<footer class=\"footer\"></footer>")) return html
+      const footer = fs.readFileSync(path.join(import.meta.dirname, "src/home/footer.html"), "utf8").trim().replace("%YEAR%", new Date().getFullYear())
+      return html.replace("<footer class=\"footer\"></footer>", () => footer)
+    }
+  }
+}
+
 function allowCookiesOverHttp(proxy) {
   proxy.on("proxyRes", response => {
     const cookies = response.headers["set-cookie"]
@@ -95,7 +107,7 @@ function allowCookiesOverHttp(proxy) {
 }
 
 export default defineConfig({
-  plugins: [vue(), submissionPages, folderSlashes, presetPages, creditsPage],
+  plugins: [vue(), submissionPages, folderSlashes, presetPages, creditsPage, sharedFooter],
   build: { rolldownOptions: { input: ["index.html", "app/index.html", "font-editor/index.html", "credits/index.html", "submit/index.html", "account/index.html", "terms/index.html", "privacy/index.html"] } },
   server: { host: "127.0.0.1", port: 9123, strictPort: true, proxy: { "/api": { target: LIVE, changeOrigin: true, configure: allowCookiesOverHttp } } }
 })
