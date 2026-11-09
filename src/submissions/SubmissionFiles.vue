@@ -94,7 +94,6 @@
   .sheet {
     display: flex;
     justify-content: center;
-    padding: 12px;
     overflow: auto;
     background: var(--checker);
   }
