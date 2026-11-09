@@ -543,7 +543,6 @@
     "author": "PopitTart",
     "depth": 30,
     "border": 2,
-    "characterSpacing": 1,
     "terminatorSpace": true,
     "terminatorSpaceWidth": 4
   }
