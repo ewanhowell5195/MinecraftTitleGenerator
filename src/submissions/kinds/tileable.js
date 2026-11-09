@@ -7,6 +7,9 @@ export const tileable = {
   line(item, file, text) {
     return { text, font: TILEABLE_PREVIEW_FONT, textureSource: "custom", customTexture: file, customTextureMode: "tileable" }
   },
+  publishedLine(item, fonts, text) {
+    return { text, font: TILEABLE_PREVIEW_FONT, textureSource: "tileable", tileableSource: "premade", tileable: item.target || item.asset, tileableVariant: item.target ? item.asset : null }
+  },
   summary(item) {
     return item.target ? `A variant of the ${tileableName(item.target)} tileable` : "A new tileable"
   },

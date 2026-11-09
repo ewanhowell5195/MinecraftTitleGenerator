@@ -47,8 +47,7 @@
 </script>
 
 <template>
-  <section class="section">
-    <h2>Characters</h2>
+  <div class="flow">
     <p v-if="problem" class="hint bad">{{ problem }}</p>
     <p v-else-if="!drawn" class="hint">Loading the characters...</p>
     <template v-else>
@@ -64,7 +63,7 @@
         </li>
       </ul>
     </template>
-  </section>
+  </div>
 </template>
 
 <style scoped>
@@ -106,6 +105,7 @@
 
   .name {
     font-size: var(--font-sm);
+    text-align: center;
     color: var(--muted);
   }
 </style>

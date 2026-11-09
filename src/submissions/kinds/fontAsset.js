@@ -8,6 +8,10 @@ function fontAsset(kind) {
       if (kind === "overlay") return { text, font: item.target, textureSource: "premade", texture: "flat", overlayMode: "custom", overlays: [{ ...overlayLayer(null), source: "file", file }] }
       return { text, font: item.target, textureSource: "custom", customTexture: file, customTextureMode: "standard", customBorder: true, borderColour: item.details.border }
     },
+    publishedLine(item, fonts, text) {
+      if (kind === "overlay") return { text, font: item.target, textureSource: "premade", texture: "flat", overlayMode: "custom", overlays: [overlayLayer(item.asset)] }
+      return { text, font: item.target, textureSource: "premade", texture: item.asset }
+    },
     summary(item, fonts) {
       const font = fonts.find(entry => entry.id === item.target)
       return `${kind === "overlay" ? "An overlay" : "A texture"} for ${font ? fullName(font, fonts) : item.target}`

@@ -77,6 +77,9 @@ export const strip = {
     if (!font) throw new Error("none of the fonts this strip is for are published")
     return stripLine(item, file, text, font.id, fonts)
   },
+  publishedLine(item, fonts, text) {
+    return { text, font: previewFonts(item, fonts)[0]?.id ?? DEFAULT_FONT, textureSource: "premade", texture: item.asset }
+  },
   summary(item, fonts) {
     return `A strip for ${targetName(item, fonts)}`
   },

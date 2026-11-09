@@ -1,8 +1,11 @@
 <script setup>
   import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
   import Icon from "../components/Icon.vue"
+  import Segments from "../components/Segments.vue"
   import { account } from "../lib/community.js"
+  import { encodeTitle } from "../lib/linkformat.js"
   import { providerLabel } from "../lib/providers.js"
+  import { FILE_VERSION } from "../lib/settings.js"
   import { SUBMISSION_KINDS } from "../lib/submissionKinds/index.js"
   import { SUBMISSION_PARAM } from "../lib/submissionLink.js"
   import { SUBMISSION_STATUSES } from "../lib/submissions.js"
@@ -12,9 +15,11 @@
   import { CLIENT_KINDS } from "./kinds/index.js"
   import CharacterGrid from "./kinds/CharacterGrid.vue"
   import ReviewPanel from "./ReviewPanel.vue"
+  import SubmissionFiles from "./SubmissionFiles.vue"
   import SubmissionForm from "./SubmissionForm.vue"
 
   const PROCESSING_POLL = 5000
+  const SHEET_TABS = [{ value: "files", label: "Files" }, { value: "characters", label: "Characters" }]
 
   const props = defineProps({
     id: { type: Number, required: true },
@@ -30,9 +35,11 @@
   const busy = ref(false)
 
   const processing = ref(null)
+  const sheetTab = ref("files")
   let pollTimer = null
 
   const client = computed(() => CLIENT_KINDS[item.value?.kind])
+  const previewLink = computed(() => item.value?.previewUrl && `${item.value.previewUrl}?title=${encodeTitle({ version: FILE_VERSION, lines: [client.value.publishedLine(item.value, props.fonts, item.value.name)] }).code}`)
   const changeable = computed(() => item.value?.mine && item.value.status === "open")
   const page = submissionPage(props.id)
 
@@ -145,10 +152,9 @@
             <dd v-else>A deleted account</dd>
           </dl>
           <p v-if="item.notes" class="notes">{{ item.notes }}</p>
-          <div v-if="client.image" class="upload-preview"><img :src="submissionFileUrl(item)" alt=""></div>
           <div class="buttons">
             <a class="button primary" :href="`/app/?${SUBMISSION_PARAM}=${item.id}`">Open in generator</a>
-            <a v-if="item.previewUrl" class="button" :href="item.previewUrl" target="_blank" rel="noopener" title="The generator built from this submission's branch, with it added"><Icon name="eye" :size="16" />Open preview</a>
+            <a v-if="previewLink" class="button" :href="previewLink" target="_blank" rel="noopener" title="The generator built from this submission's branch, with it added"><Icon name="eye" :size="16" />Open preview</a>
             <a v-if="item.pullUrl" class="button" :href="item.pullUrl" target="_blank" rel="noopener"><Icon name="github" :size="16" />Pull request</a>
           </div>
           <div v-if="changeable" class="buttons">
@@ -159,7 +165,12 @@
           <ReviewPanel v-if="reviewer && item.status === 'open' && item.pullUrl" :key="item.updatedAt" :item="item" @done="reviewed" />
         </div>
       </div>
-      <CharacterGrid v-if="item.kind === 'font'" :url="submissionFileUrl(item)" />
+      <section class="section">
+        <Segments v-if="item.kind === 'font'" v-model="sheetTab" :options="SHEET_TABS" class="sheet-tabs" />
+        <h2 v-else>Files</h2>
+        <SubmissionFiles v-show="sheetTab === 'files' || item.kind !== 'font'" :item="item" />
+        <CharacterGrid v-if="item.kind === 'font'" v-show="sheetTab === 'characters'" :url="submissionFileUrl(item)" />
+      </section>
       <CommentThread :id="item.id" :comments="comments" :can-comment="item.mine || reviewer" @update="comments = $event" />
     </template>
   </template>

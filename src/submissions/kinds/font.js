@@ -17,6 +17,9 @@ export const font = {
     const source = fontSource(item, file)
     return { text, font: customFontId(source), customFont: source }
   },
+  publishedLine(item, fonts, text) {
+    return { text, font: item.asset }
+  },
   summary(item, fonts) {
     if (!item.target) return "A new font"
     return `A font listed under ${parentName(item, fonts)}`
