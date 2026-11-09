@@ -1,6 +1,6 @@
 import { blockedWordProblem } from "./wording.js"
 
-export const SUBMISSION_LIMITS = { name: 40, credit: 60, notes: 500, fileBytes: 1900000, totalBytes: 12000000, extraFiles: 24, side: 4096, perDay: 10, listed: 100, notifications: 50 }
+export const SUBMISSION_LIMITS = { name: 40, credit: 60, notes: 500, fileBytes: 1900000, totalBytes: 12000000, extraFiles: 24, side: 4096, perDay: 10, listed: 100, notifications: 50, comment: 2000, comments: 200 }
 
 export const EXTRA_FILE = /^[a-z0-9-]{1,40}$/
 

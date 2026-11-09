@@ -8,7 +8,7 @@ import { PNG } from "pngjs"
 import { fakeGitHub } from "./fakeGitHub.js"
 
 const { accountDetails, finishSignIn, receiveSignIn, startSignIn } = await import("../src/server/accounts.js")
-const { createSubmission, editSubmission, listNotifications, listSubmissions, markNotificationsSeen, receiveWebhook, submissionDetails, submissionFile, withdrawSubmission } = await import("../src/server/submissions.js")
+const { addComment, createSubmission, editSubmission, listNotifications, listSubmissions, markNotificationsSeen, receiveWebhook, reviewState, reviewSubmission, submissionDetails, submissionFile, withdrawSubmission } = await import("../src/server/submissions.js")
 const { jsonText } = await import("../src/lib/jsonText.js")
 
 const REPO = "owner/repo"
@@ -60,6 +60,7 @@ let env
 let gh
 let waiting
 let profile
+let db
 
 function context(url, { method = "GET", body, cookie, params = {}, headers = {} } = {}) {
   const request = new Request(`https://mctitlegenerator.com${url}`, { method, body, headers: { ...(cookie && { Cookie: cookie }), ...headers } })
@@ -119,6 +120,7 @@ function closed(number, merged, id) {
 beforeEach(() => {
   const sqlite = new DatabaseSync(":memory:")
   sqlite.exec(fs.readFileSync("schema.sql", "utf8"))
+  db = sqlite
   const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048, privateKeyEncoding: { type: "pkcs1", format: "pem" }, publicKeyEncoding: { type: "spki", format: "pem" } })
   gh = fakeGitHub(publicKey, { repo: REPO, api: API, files: [TEXTURES] })
   waiting = []
@@ -349,5 +351,138 @@ describe("the GitHub webhook", () => {
     const before = gh.refs.get(`heads/submission/${id}`)
     await hook("push", { ref: "refs/heads/main", commits: [{ added: ["README.md"], modified: [], removed: [] }] })
     assert.equal(gh.refs.get(`heads/submission/${id}`), before)
+  })
+})
+
+describe("reviewing on the site", () => {
+  async function admin() {
+    db.prepare("INSERT INTO users (provider, provider_id, name, created_at, admin) VALUES ('github', '77', 'ewan', 0, 1)").run()
+    return signIn("github", { id: 77, login: "ewan" })
+  }
+
+  async function news(cookie) {
+    return (await (await listNotifications(context("/api/notifications", { cookie }))).json()).notifications.map(item => [item.kind, item.author, item.body])
+  }
+
+  async function comment(cookie, id, body) {
+    const response = await addComment(context(`/api/submissions/${id}/comments`, { method: "POST", body: JSON.stringify({ body }), cookie, params: { id: String(id) } }))
+    return { status: response.status, ...await response.json() }
+  }
+
+  async function review(cookie, id, action, text) {
+    const response = await reviewSubmission(context(`/api/submissions/${id}/review`, { method: "POST", body: JSON.stringify({ action, comment: text }), cookie, params: { id: String(id) } }))
+    return { status: response.status, ...await response.json() }
+  }
+
+  async function thread(id, cookie) {
+    return (await (await submissionDetails(context(`/api/submissions/${id}`, { cookie, params: { id: String(id) } }))).json())
+  }
+
+  function githubComment(login, id, association = "OWNER") {
+    return { action: "created", issue: { number: 1, pull_request: {} }, comment: { body: `from ${login}`, author_association: association, html_url: "https://github.com/c", user: { login, id, type: "User" } } }
+  }
+
+  test("admins are told about new and changed submissions, and stay admins without presets", async () => {
+    const reviewer = await admin()
+    const cookie = await signIn()
+    const { id } = await send(cookie)
+    await edit(cookie, id, { name: "Shiny Gold" })
+    assert.deepEqual(await news(reviewer), [["edited", "someone", ""], ["submitted", "someone", ""]])
+    assert.deepEqual(await news(cookie), [])
+    assert.equal((await (await accountDetails(context("/api/account", { cookie: reviewer }))).json()).user.admin, true)
+    assert.equal((await thread(id, reviewer)).reviewer, true)
+    assert.equal((await thread(id, cookie)).reviewer, false)
+  })
+
+  test("the submitter and admins comment on the site, and each is told about the other's comments", async () => {
+    const reviewer = await admin()
+    const cookie = await signIn()
+    const { id } = await send(cookie)
+    assert.equal((await comment(cookie, id, "  is this @everyone ok?  ")).status, 201)
+    assert.equal(gh.comments.at(-1).body, "The submitter commented on the site:\n\n```text\nis this @everyone ok?\n```")
+    assert.equal((await comment(reviewer, id, "Looks good")).status, 201)
+    assert.match(gh.comments.at(-1).body, /^A reviewer commented on the site:/)
+    assert.deepEqual((await news(reviewer)).slice(0, 1), [["comment", "someone", "is this @everyone ok?"]])
+    assert.deepEqual(await news(cookie), [["comment", "ewan", "Looks good"]])
+    const { comments } = await thread(id)
+    assert.deepEqual(comments.map(item => [item.author, item.role, item.body]), [["someone", "submitter", "is this @everyone ok?"], ["ewan", "reviewer", "Looks good"]])
+    const stranger = await signIn("github", { id: 9, login: "other" })
+    assert.equal((await comment(stranger, id, "me too")).status, 403)
+    assert.equal((await comment(null, id, "me too")).status, 401)
+    assert.equal((await comment(cookie, id, "   ")).status, 400)
+    assert.equal((await comment(cookie, id, "x".repeat(2001))).status, 400)
+  })
+
+  test("comments from GitHub join the thread, and nobody is told about their own", async () => {
+    const reviewer = await admin()
+    const cookie = await signIn()
+    const { id } = await send(cookie)
+    await hook("issue_comment", githubComment("ewan", 77))
+    await hook("issue_comment", githubComment("mate", 5, "COLLABORATOR"))
+    assert.deepEqual((await news(reviewer)).map(item => item.slice(0, 2)), [["comment", "mate"], ["submitted", "someone"]])
+    assert.deepEqual((await news(cookie)).map(item => item.slice(0, 2)), [["comment", "mate"], ["comment", "ewan"]])
+    assert.deepEqual((await thread(id)).comments.map(item => [item.author, item.url]), [["ewan", "https://github.com/c"], ["mate", "https://github.com/c"]])
+  })
+
+  test("admins can merge from the site once GitHub is ready, which publishes it and clears its notifications", async () => {
+    const reviewer = await admin()
+    const cookie = await signIn()
+    const { id } = await send(cookie)
+    await comment(cookie, id, "ready?")
+    await comment(reviewer, id, "nearly")
+    assert.equal((await review(cookie, id, "merge")).status, 403)
+    assert.equal((await (await reviewState(context(`/api/submissions/${id}/review`, { cookie: reviewer, params: { id: String(id) } }))).json()).state, "clean")
+    gh.pulls.get(1).mergeable_state = "unstable"
+    const early = await review(reviewer, id, "merge")
+    assert.equal(early.status, 409)
+    assert.match(early.error, /Wait for its checks to finish/)
+    assert.equal((await details(id)).status, "open")
+    gh.pulls.get(1).mergeable_state = "clean"
+    const merged = await review(reviewer, id, "merge")
+    assert.equal(merged.status, 200)
+    assert.equal(merged.submission.status, "published")
+    assert.equal(gh.pulls.get(1).merged, true)
+    assert.equal(gh.pulls.get(1).merge_method, "squash")
+    assert.equal(gh.refs.has(`heads/submission/${id}`), false)
+    assert.deepEqual(await news(reviewer), [])
+    assert.deepEqual(await news(cookie), [["published", "ewan", ""]])
+    await hook("pull_request", closed(1, true, id))
+    assert.deepEqual(await news(cookie), [["published", "ewan", ""]])
+    assert.equal((await review(reviewer, id, "decline")).status, 409)
+  })
+
+  test("a merge on GitHub clears the notifications too", async () => {
+    const reviewer = await admin()
+    const cookie = await signIn()
+    const { id } = await send(cookie)
+    await comment(cookie, id, "ready?")
+    await hook("pull_request", closed(1, true, id))
+    assert.deepEqual(await news(reviewer), [])
+    assert.deepEqual(await news(cookie), [["published", "ewan", ""]])
+  })
+
+  test("admins can decline from the site with a comment the submitter is told", async () => {
+    const reviewer = await admin()
+    const cookie = await signIn()
+    const { id } = await send(cookie)
+    const declined = await review(reviewer, id, "decline", "Too close to an existing one")
+    assert.equal(declined.status, 200)
+    assert.equal(declined.submission.status, "rejected")
+    assert.equal(gh.pulls.get(1).state, "closed")
+    assert.equal(gh.pulls.get(1).merged, undefined)
+    assert.match(gh.comments.at(-1).body, /Too close to an existing one/)
+    assert.deepEqual(declined.comments.map(item => item.body), ["Too close to an existing one"])
+    assert.deepEqual(await news(cookie), [["rejected", "ewan", "Too close to an existing one"]])
+    assert.deepEqual(await news(reviewer), [["submitted", "someone", ""]])
+  })
+
+  test("only admins see every open submission", async () => {
+    const reviewer = await admin()
+    const cookie = await signIn()
+    await send(cookie)
+    await send(await signIn("github", { id: 9, login: "other" }), { name: "Iron Bricks" })
+    const listed = async who => listSubmissions(context("/api/submissions?review", { cookie: who }))
+    assert.equal((await listed(cookie)).status, 403)
+    assert.deepEqual((await (await listed(reviewer)).json()).submissions.map(item => item.name), ["Gold Bricks", "Iron Bricks"])
   })
 })

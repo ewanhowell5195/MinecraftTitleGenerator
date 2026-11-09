@@ -2,9 +2,9 @@ import { flattenFonts } from "../lib/font.js"
 import { titleCase } from "../lib/names.js"
 import { SUBMISSION_KINDS, checkSubmission, submissionContext } from "../lib/submissionKinds/index.js"
 import { EXTRA_FILE, SUBMISSION_LIMITS, assetId, sizedProblem } from "../lib/submissions.js"
-import { USER_ROW, forgetUnusedUser, saveUser, signedInUser } from "./accounts.js"
+import { USER_ROW, forgetUnusedUser, isAdmin, saveUser, signedInUser } from "./accounts.js"
 import { GitHubError, base64, github, repository, verifiedWebhook } from "./github.js"
-import { Refusal, guarded, reply } from "./http.js"
+import { Refusal, guarded, jsonBody, reply } from "./http.js"
 import { SERVER_KINDS } from "./submissionKinds/index.js"
 
 const BASE = "main"
@@ -16,6 +16,8 @@ const ANONYMOUS = "Sent from the website."
 const SENDER = /^Sent from the website by .*$/m
 const NOTE_LENGTH = 1000
 const REVIEWERS = new Set(["OWNER", "MEMBER", "COLLABORATOR"])
+const COMMENTERS = { submitter: "The submitter", reviewer: "A reviewer" }
+const UNMERGEABLE = [405, 409, 422]
 const SHOWN = "id, kind, target, asset, name, credit, notes, details, file, status, pull, created_at AS createdAt, updated_at AS updatedAt"
 const OWNER = "(SELECT users.provider || ':' || users.provider_id FROM users WHERE users.id = submissions.user_id) AS owner, (SELECT users.name FROM users WHERE users.id = submissions.user_id) AS ownerName, (SELECT users.provider FROM users WHERE users.id = submissions.user_id) AS ownerProvider"
 
@@ -160,7 +162,7 @@ function pullText(env, origin, row, described, preview, commit) {
     `**[Preview it on the site](${origin}/submissions/${row.id})**`,
     preview ? `<img src="https://raw.githubusercontent.com/${repository(env)}/${commit}/${preview}" alt="" width="512">` : null,
     row.notes ? `Notes from the submitter:\n\n${block(row.notes)}` : null,
-    "Merge to publish it, or close it to turn it down. Comments from collaborators are passed on to the submitter."
+    "Merge to publish it, or close it to turn it down, here or on the site. Comments from collaborators show on the site, and comments from the site are posted here."
   ]
   return { title: phrase(row.name, noun, described.where), body: body.filter(Boolean).join("\n\n") }
 }
@@ -230,6 +232,52 @@ function shown(env, row, user) {
   return { ...rest, details: JSON.parse(details), pullUrl: row.pull ? `https://github.com/${repository(env)}/pull/${row.pull}` : null, mine: !!user && user.id === owner }
 }
 
+function clipped(text, limit) {
+  return Array.from(text).slice(0, limit).join("")
+}
+
+function gitHubActor(person) {
+  return person?.id ? { provider: "github", providerId: String(person.id) } : null
+}
+
+function notify(env, row, kind, { author = "", body = "", url = "", owner = true, admins = false, actor = null }) {
+  const audience = [owner && "users.id = submissions.user_id", admins && "users.admin = 1"].filter(Boolean).join(" OR ")
+  return env.DB.prepare(`INSERT INTO notifications (user_id, submission_id, kind, author, body, url, created_at) SELECT users.id, submissions.id, ?, ?, ?, ?, ? FROM submissions JOIN users ON ${audience} WHERE submissions.id = ? AND NOT (users.provider = ? AND users.provider_id = ?)`).bind(kind, author, clipped(body, NOTE_LENGTH), url, Date.now(), row.id, actor?.provider ?? "", actor?.providerId ?? "")
+}
+
+function saveComment(env, row, user, { author, role, body, url = "" }) {
+  return user ? env.DB.prepare(`INSERT INTO submission_comments (submission_id, user_id, author, role, body, url, created_at) VALUES (?, ${USER_ROW}, ?, ?, ?, ?, ?)`).bind(row.id, user.provider, user.providerId, author, role, body, url, Date.now()) : env.DB.prepare("INSERT INTO submission_comments (submission_id, author, role, body, url, created_at) VALUES (?, ?, ?, ?, ?, ?)").bind(row.id, author, role, body, url, Date.now())
+}
+
+async function commentsOf(env, id) {
+  return (await env.DB.prepare("SELECT id, author, role, body, url, created_at AS createdAt FROM submission_comments WHERE submission_id = ? ORDER BY id LIMIT ?").bind(id, SUBMISSION_LIMITS.comments).all()).results
+}
+
+function commentText(value) {
+  const text = typeof value === "string" ? value.trim() : ""
+  if (Array.from(text).length > SUBMISSION_LIMITS.comment) throw new Refusal(400, `Comments can be up to ${SUBMISSION_LIMITS.comment} characters.`)
+  return text
+}
+
+function postComment(env, row, role, text) {
+  return github(env, `issues/${row.pull}/comments`, { method: "POST", body: { body: `${COMMENTERS[role]} commented on the site:\n\n${block(text)}` } })
+}
+
+async function closeSubmission(env, row, merged, { author = "", body = "", url = "", actor = null }) {
+  const status = merged ? "published" : "rejected"
+  const { meta } = await env.DB.prepare("UPDATE submissions SET status = ?, updated_at = ? WHERE id = ? AND status = 'open'").bind(status, Date.now(), row.id).run()
+  if (!meta.changes) return
+  await env.DB.batch((merged ? [env.DB.prepare("DELETE FROM notifications WHERE submission_id = ?").bind(row.id)] : []).concat(notify(env, row, status, { author, body, url, actor })))
+  await deleteBranch(env, row.id)
+}
+
+async function reviewerOf(context) {
+  const user = await signedInUser(context)
+  if (!user) throw new Refusal(401, "Sign in to review submissions.")
+  if (!await isAdmin(context.env, user)) throw new Refusal(403, "Only reviewers can do that.")
+  return user
+}
+
 export const createSubmission = guarded(async context => {
   const { env } = context
   const user = await requireUser(context)
@@ -252,16 +300,18 @@ export const createSubmission = guarded(async context => {
     if (!row.pull) await deleteBranch(env, row.id).catch(problem => console.error(problem))
     throw err
   }
+  await notify(env, row, "submitted", { author: user.name, owner: false, admins: true, actor: user }).run()
   return reply(201, { id: row.id, pull: row.pull })
 })
 
 export const editSubmission = guarded(async context => {
   const { env } = context
-  const { row } = await ownSubmission(context)
+  const { user, row } = await ownSubmission(context)
   const { clean, fonts, bytes, files } = await readForm(context, row)
   const file = bytes ? await onGitHub(() => uploadFile(env, bytes)) : row.file
   const changed = { ...row, ...await onGitHub(() => withFiles(env, clean, files)), file }
   await onGitHub(() => syncSubmission(context, changed, fonts))
+  await notify(env, changed, "edited", { author: user.name, owner: false, admins: true, actor: user }).run()
   return reply(200, { submission: shown(env, changed, { id: row.owner }) })
 })
 
@@ -282,6 +332,7 @@ export const withdrawSubmission = guarded(async context => {
   }
   await env.DB.batch([
     env.DB.prepare("DELETE FROM notifications WHERE submission_id = ?").bind(row.id),
+    env.DB.prepare("DELETE FROM submission_comments WHERE submission_id = ?").bind(row.id),
     env.DB.prepare("DELETE FROM submissions WHERE id = ?").bind(row.id),
     forgetUnusedUser(env, user)
   ])
@@ -311,21 +362,88 @@ export async function releaseSubmissions(context, user, keep) {
     if (withdrawing.length) await env.DB.prepare(`UPDATE submissions SET status = 'open' WHERE status = 'withdrawn' AND id IN (SELECT value FROM json_each(?))`).bind(JSON.stringify(withdrawing.map(row => row.id))).run()
     throw err
   }
+  const theirs = `SELECT id FROM submissions WHERE user_id = ${USER_ROW}`
+  const mine = statement => env.DB.prepare(statement).bind(user.provider, user.providerId)
   return [
-    env.DB.prepare(`DELETE FROM notifications WHERE user_id = ${USER_ROW}`).bind(user.provider, user.providerId),
-    keep ? env.DB.prepare(`UPDATE submissions SET user_id = NULL WHERE user_id = ${USER_ROW}`).bind(user.provider, user.providerId) : env.DB.prepare(`DELETE FROM submissions WHERE user_id = ${USER_ROW}`).bind(user.provider, user.providerId)
-  ]
+    mine(`DELETE FROM notifications WHERE user_id = ${USER_ROW}`),
+    env.DB.prepare(`UPDATE notifications SET author = '' WHERE author = ? AND submission_id IN (${theirs})`).bind(user.name, user.provider, user.providerId),
+    mine(`UPDATE submission_comments SET user_id = NULL, author = '' WHERE user_id = ${USER_ROW}`)
+  ].concat(keep ? mine(`UPDATE submissions SET user_id = NULL WHERE user_id = ${USER_ROW}`) : [
+    mine(`DELETE FROM notifications WHERE submission_id IN (${theirs})`),
+    mine(`DELETE FROM submission_comments WHERE submission_id IN (${theirs})`),
+    mine(`DELETE FROM submissions WHERE user_id = ${USER_ROW}`)
+  ])
 }
 
 export const listSubmissions = guarded(async context => {
+  const { env, request } = context
+  if (new URL(request.url).searchParams.has("review")) {
+    const user = await reviewerOf(context)
+    const { results } = await env.DB.prepare(`SELECT ${SHOWN}, ${OWNER} FROM submissions WHERE status = 'open' ORDER BY id LIMIT ?`).bind(SUBMISSION_LIMITS.listed).all()
+    return reply(200, { submissions: results.map(row => shown(env, row, user)) })
+  }
   const user = await requireUser(context)
-  const { results } = await context.env.DB.prepare(`SELECT ${SHOWN}, ${OWNER} FROM submissions WHERE user_id = ${USER_ROW} ORDER BY id DESC LIMIT ?`).bind(user.provider, user.providerId, SUBMISSION_LIMITS.listed).all()
-  return reply(200, { submissions: results.map(row => shown(context.env, row, user)) })
+  const { results } = await env.DB.prepare(`SELECT ${SHOWN}, ${OWNER} FROM submissions WHERE user_id = ${USER_ROW} ORDER BY id DESC LIMIT ?`).bind(user.provider, user.providerId, SUBMISSION_LIMITS.listed).all()
+  return reply(200, { submissions: results.map(row => shown(env, row, user)) })
 })
 
 export const submissionDetails = guarded(async context => {
-  const row = await findSubmission(context.env, submissionId(context.params))
-  return reply(200, { submission: shown(context.env, row, await signedInUser(context)) })
+  const { env } = context
+  const row = await findSubmission(env, submissionId(context.params))
+  const user = await signedInUser(context)
+  return reply(200, { submission: shown(env, row, user), comments: await commentsOf(env, row.id), reviewer: await isAdmin(env, user) })
+})
+
+export const addComment = guarded(async context => {
+  const { env, request } = context
+  const user = await signedInUser(context)
+  if (!user) throw new Refusal(401, "Sign in to comment.")
+  const row = await findSubmission(env, submissionId(context.params))
+  const role = row.owner === user.id ? "submitter" : "reviewer"
+  if (role === "reviewer" && !await isAdmin(env, user)) throw new Refusal(403, "Only the person who sent this and reviewers can comment on it.")
+  const text = commentText((await jsonBody(request)).body)
+  if (!text) throw new Refusal(400, "Write a comment first.")
+  if (row.pull) await onGitHub(() => postComment(env, row, role, text))
+  const fields = { author: user.name, body: text }
+  await env.DB.batch([saveUser(env, user), saveComment(env, row, user, { ...fields, role }), notify(env, row, "comment", { ...fields, admins: true, actor: user })])
+  return reply(201, { comments: await commentsOf(env, row.id) })
+})
+
+export const reviewState = guarded(async context => {
+  const { env } = context
+  await reviewerOf(context)
+  const row = await findSubmission(env, submissionId(context.params))
+  if (row.status !== "open" || !row.pull) return reply(200, { state: null })
+  const pull = await onGitHub(() => github(env, `pulls/${row.pull}`))
+  return reply(200, { state: pull.mergeable_state ?? "unknown" })
+})
+
+export const reviewSubmission = guarded(async context => {
+  const { env, request } = context
+  const user = await reviewerOf(context)
+  const row = await findSubmission(env, submissionId(context.params))
+  const { action, comment } = await jsonBody(request)
+  if (!["merge", "decline"].includes(action)) throw new Refusal(400, "Choose to merge or decline it.")
+  if (row.status !== "open" || !row.pull) throw new Refusal(409, "This submission has already been reviewed.")
+  const text = action === "decline" ? commentText(comment) : ""
+  if (action === "merge") {
+    await onGitHub(async () => {
+      try {
+        await github(env, `pulls/${row.pull}/merge`, { method: "PUT", body: { merge_method: "squash" } })
+      } catch (err) {
+        if (err instanceof GitHubError && UNMERGEABLE.includes(err.status)) throw new Refusal(409, "GitHub can't merge this yet. Wait for its checks to finish, or open the pull request to see why.")
+        throw err
+      }
+    })
+  } else {
+    await onGitHub(async () => {
+      if (text) await postComment(env, row, "reviewer", text)
+      await github(env, `pulls/${row.pull}`, { method: "PATCH", body: { state: "closed" } })
+    })
+    if (text) await env.DB.batch([saveUser(env, user), saveComment(env, row, user, { author: user.name, role: "reviewer", body: text })])
+  }
+  await closeSubmission(env, row, action === "merge", { author: user.name, body: text, actor: user })
+  return reply(200, { submission: shown(env, await findSubmission(env, row.id), user), comments: await commentsOf(env, row.id) })
 })
 
 export const submissionFile = guarded(async context => {
@@ -358,10 +476,6 @@ export const markNotificationsSeen = guarded(async context => {
   return reply(200, { unread: 0 })
 })
 
-function notify(env, row, kind, { author = "", body = "", url = "" }) {
-  return env.DB.prepare("INSERT INTO notifications (user_id, submission_id, kind, author, body, url, created_at) SELECT user_id, id, ?, ?, ?, ?, ? FROM submissions WHERE id = ? AND user_id IS NOT NULL").bind(kind, author, Array.from(body).slice(0, NOTE_LENGTH).join(""), url, Date.now(), row.id).run()
-}
-
 async function pulledSubmission(env, pull) {
   return await env.DB.prepare(`SELECT ${SHOWN} FROM submissions WHERE pull = ?`).bind(pull).first()
 }
@@ -369,24 +483,24 @@ async function pulledSubmission(env, pull) {
 async function pullClosed(env, pull, sender) {
   const row = await pulledSubmission(env, pull.number)
   if (!row || row.status !== "open" || pull.head.ref !== branchOf(row.id)) return
-  const status = pull.merged ? "published" : "rejected"
-  await env.DB.prepare("UPDATE submissions SET status = ?, updated_at = ? WHERE id = ? AND status = 'open'").bind(status, Date.now(), row.id).run()
-  await notify(env, row, status, { author: sender?.login ?? "", url: pull.html_url })
-  await deleteBranch(env, row.id)
+  await closeSubmission(env, row, pull.merged, { author: sender?.login ?? "", url: pull.html_url, actor: gitHubActor(sender) })
+}
+
+async function fromGitHub(env, number, kind, entry) {
+  if (entry.user?.type === "Bot" || !REVIEWERS.has(entry.author_association)) return
+  const row = await pulledSubmission(env, number)
+  if (!row) return
+  const fields = { author: entry.user.login, body: entry.body ?? "", url: entry.html_url }
+  await env.DB.batch((fields.body ? [saveComment(env, row, null, { ...fields, role: "reviewer" })] : []).concat(notify(env, row, kind, { ...fields, admins: true, actor: gitHubActor(entry.user) })))
 }
 
 async function commented(env, number, comment) {
-  if (comment.user?.type === "Bot" || !REVIEWERS.has(comment.author_association)) return
-  const row = await pulledSubmission(env, number)
-  if (row) await notify(env, row, "comment", { author: comment.user.login, body: comment.body ?? "", url: comment.html_url })
+  await fromGitHub(env, number, "comment", comment)
 }
 
 async function reviewed(env, number, review) {
   const changes = review.state === "changes_requested"
-  if (!review.body && !changes) return
-  if (review.user?.type === "Bot" || !REVIEWERS.has(review.author_association)) return
-  const row = await pulledSubmission(env, number)
-  if (row) await notify(env, row, changes ? "changes" : "comment", { author: review.user.login, body: review.body ?? "", url: review.html_url })
+  if (review.body || changes) await fromGitHub(env, number, changes ? "changes" : "comment", review)
 }
 
 async function rebuildAfterPush(context, payload) {

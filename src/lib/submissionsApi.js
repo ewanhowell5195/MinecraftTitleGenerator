@@ -40,8 +40,32 @@ export async function mySubmissions() {
   return (await called(API)).submissions
 }
 
+function json(method, body) {
+  return { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
+}
+
+export function submissionThread(id) {
+  return called(`${API}/${id}`)
+}
+
 export async function submission(id) {
-  return (await called(`${API}/${id}`)).submission
+  return (await submissionThread(id)).submission
+}
+
+export async function postComment(id, body) {
+  return (await called(`${API}/${id}/comments`, json("POST", { body }))).comments
+}
+
+export async function reviewState(id) {
+  return (await called(`${API}/${id}/review`)).state
+}
+
+export function reviewSubmission(id, action, comment = "") {
+  return called(`${API}/${id}/review`, json("POST", { action, comment }))
+}
+
+export async function reviewQueue() {
+  return (await called(`${API}?review`)).submissions
 }
 
 export function sendSubmission(fields, file, agree, extras) {

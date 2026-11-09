@@ -5,10 +5,11 @@
   import { SUBMISSION_KINDS } from "../lib/submissionKinds/index.js"
   import { SUBMISSION_PARAM } from "../lib/submissionLink.js"
   import { SUBMISSION_STATUSES } from "../lib/submissions.js"
-  import { markNotificationsSeen, notifications, submission, submissionFileUrl, withdrawSubmission } from "../lib/submissionsApi.js"
+  import { markNotificationsSeen, notifications, submissionFileUrl, submissionThread, withdrawSubmission } from "../lib/submissionsApi.js"
+  import CommentThread from "./CommentThread.vue"
   import { KIND_COMPONENTS } from "./kinds/components.js"
   import { CLIENT_KINDS } from "./kinds/index.js"
-  import NotificationList from "./NotificationList.vue"
+  import ReviewPanel from "./ReviewPanel.vue"
   import SubmissionForm from "./SubmissionForm.vue"
 
   const props = defineProps({
@@ -17,27 +18,35 @@
   })
 
   const item = ref(null)
+  const comments = ref([])
+  const reviewer = ref(false)
   const error = ref("")
   const text = ref("")
   const editing = ref(false)
   const busy = ref(false)
-  const news = ref([])
 
   const client = computed(() => CLIENT_KINDS[item.value?.kind])
   const changeable = computed(() => item.value?.mine && item.value.status === "open")
 
   async function load() {
     try {
-      item.value = await submission(props.id)
+      const thread = await submissionThread(props.id)
+      item.value = thread.submission
+      comments.value = thread.comments
+      reviewer.value = thread.reviewer
     } catch (err) {
       error.value = err.message
     }
   }
 
-  async function loadNews() {
-    if (!item.value?.mine) return
-    news.value = (await notifications()).filter(entry => entry.submission === props.id)
-    if (news.value.some(entry => !entry.seen)) await markNotificationsSeen()
+  async function markSeen() {
+    if (!account.value || !(item.value?.mine || reviewer.value)) return
+    if ((await notifications()).some(entry => entry.submission === props.id && !entry.seen)) await markNotificationsSeen()
+  }
+
+  function reviewed(result) {
+    item.value = result.submission
+    comments.value = result.comments
   }
 
   async function withdraw() {
@@ -61,7 +70,10 @@
   watch(() => item.value?.name, name => {
     if (name) document.title = `${name} | Submissions | Minecraft Title Generator`
   })
-  watch(() => [item.value?.mine, account.value?.id], () => loadNews().catch(err => console.error(err)))
+  watch(() => [item.value?.mine, reviewer.value, account.value?.id], () => markSeen().catch(err => console.error(err)))
+  watch(() => account.value?.id, () => {
+    if (item.value) load()
+  })
 </script>
 
 <template>
@@ -103,11 +115,9 @@
           <button type="button" class="danger" :disabled="busy" @click="withdraw"><Icon name="trash" :size="16" />Withdraw</button>
         </div>
         <p v-if="error" class="hint bad">{{ error }}</p>
+        <ReviewPanel v-if="reviewer && item.status === 'open' && item.pullUrl" :key="item.updatedAt" :item="item" @done="reviewed" />
       </div>
     </div>
-    <section v-if="news.length" class="section">
-      <h2>Review</h2>
-      <NotificationList :items="news" />
-    </section>
+    <CommentThread :id="item.id" :comments="comments" :can-comment="item.mine || reviewer" @update="comments = $event" />
   </template>
 </template>

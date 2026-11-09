@@ -1117,7 +1117,7 @@ describe("accounts", () => {
 
   test("github uses the numeric id and the login, not the changeable display name", async () => {
     const cookie = await signIn("github", { id: 42, login: "octo", name: "Fake Name" })
-    assert.deepEqual(await who(cookie), { id: "github:42", name: "octo", provider: "github", avatar: "https://avatars.githubusercontent.com/u/42?s=64", unread: 0 })
+    assert.deepEqual(await who(cookie), { id: "github:42", name: "octo", provider: "github", avatar: "https://avatars.githubusercontent.com/u/42?s=64", unread: 0, admin: false })
   })
 
   test("discord uses the username, not the display name", async () => {

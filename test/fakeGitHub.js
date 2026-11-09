@@ -98,8 +98,14 @@ export function fakeGitHub(publicKey, { repo, api, files }) {
     }
     if (method === "POST" && at === "pulls") {
       const number = pulls.size + 1
-      pulls.set(number, { ...body, number, state: "open" })
+      pulls.set(number, { ...body, number, state: "open", mergeable_state: "clean" })
       return json({ number }, 201)
+    }
+    if (method === "PUT" && (match = at.match(/^pulls\/(\d+)\/merge$/))) {
+      const pull = pulls.get(Number(match[1]))
+      if (pull.mergeable_state !== "clean") return json({ message: "Pull Request is not mergeable" }, 405)
+      Object.assign(pull, { state: "closed", merged: true, merge_method: body.merge_method })
+      return json({ merged: true })
     }
     if ((match = at.match(/^pulls\/(\d+)$/))) {
       const pull = pulls.get(Number(match[1]))
@@ -108,7 +114,7 @@ export function fakeGitHub(publicKey, { repo, api, files }) {
     }
     if ((match = at.match(/^issues\/(\d+)\/comments$/))) {
       comments.push({ number: Number(match[1]), body: body.body })
-      return json({}, 201)
+      return json({ id: comments.length }, 201)
     }
     throw new Error(`the fake GitHub has no ${method} ${route}`)
   }

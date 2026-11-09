@@ -136,8 +136,13 @@ export function saveUser(env, user) {
   return env.DB.prepare("INSERT INTO users (provider, provider_id, name, created_at) VALUES (?, ?, ?, ?) ON CONFLICT (provider, provider_id) DO UPDATE SET name = excluded.name WHERE name != excluded.name").bind(user.provider, user.providerId, user.name, Date.now())
 }
 
+export async function isAdmin(env, user) {
+  if (!user) return false
+  return !!(await env.DB.prepare("SELECT admin FROM users WHERE provider = ? AND provider_id = ?").bind(user.provider, user.providerId).first())?.admin
+}
+
 export function forgetUnusedUser(env, user) {
-  return env.DB.prepare("DELETE FROM users WHERE provider = ? AND provider_id = ? AND NOT EXISTS (SELECT 1 FROM presets WHERE presets.user_id = users.id) AND NOT EXISTS (SELECT 1 FROM submissions WHERE submissions.user_id = users.id)").bind(user.provider, user.providerId)
+  return env.DB.prepare("DELETE FROM users WHERE provider = ? AND provider_id = ? AND admin = 0 AND NOT EXISTS (SELECT 1 FROM presets WHERE presets.user_id = users.id) AND NOT EXISTS (SELECT 1 FROM submissions WHERE submissions.user_id = users.id)").bind(user.provider, user.providerId)
 }
 
 export const startSignIn = showingRefusals(async ({ request, env, params }) => {
@@ -185,7 +190,7 @@ async function unreadCount(env, user) {
 
 export const accountDetails = guarded(async context => {
   const user = await signedInUser(context)
-  return reply(200, { user: user && { ...shownUser(user), unread: await unreadCount(context.env, user) }, providers: PROVIDERS.map(({ id }) => id).filter(id => context.env[`${id.toUpperCase()}_CLIENT_ID`]) })
+  return reply(200, { user: user && { ...shownUser(user), unread: await unreadCount(context.env, user), admin: await isAdmin(context.env, user) }, providers: PROVIDERS.map(({ id }) => id).filter(id => context.env[`${id.toUpperCase()}_CLIENT_ID`]) })
 })
 
 export function clearedSession() {

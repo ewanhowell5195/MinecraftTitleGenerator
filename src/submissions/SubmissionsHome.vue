@@ -1,11 +1,10 @@
 <script setup>
   import { ref, watch } from "vue"
   import { account } from "../lib/community.js"
-  import { SUBMISSION_STATUSES } from "../lib/submissions.js"
-  import { markNotificationsSeen, mySubmissions, notifications, submissionFileUrl, submissionPage } from "../lib/submissionsApi.js"
-  import { CLIENT_KINDS } from "./kinds/index.js"
+  import { markNotificationsSeen, mySubmissions, notifications, reviewQueue, submissionPage } from "../lib/submissionsApi.js"
   import NotificationList from "./NotificationList.vue"
   import SubmissionForm from "./SubmissionForm.vue"
+  import SubmissionList from "./SubmissionList.vue"
 
   const props = defineProps({
     fonts: { type: Array, required: true }
@@ -13,18 +12,21 @@
 
   const prefill = Object.fromEntries(new URLSearchParams(location.search))
   const submissions = ref(null)
+  const waiting = ref(null)
   const news = ref([])
   const error = ref("")
 
   async function load() {
     submissions.value = null
+    waiting.value = null
     news.value = []
     error.value = ""
     if (!account.value) return
     try {
-      const [mine, latest] = await Promise.all([mySubmissions(), notifications()])
+      const [mine, latest, queue] = await Promise.all([mySubmissions(), notifications(), account.value.admin ? reviewQueue() : null])
       submissions.value = mine
       news.value = latest
+      waiting.value = queue
       if (latest.some(item => !item.seen)) await markNotificationsSeen()
     } catch (err) {
       error.value = err.message
@@ -35,7 +37,7 @@
     location.assign(submissionPage(id))
   }
 
-  watch(() => account.value?.id, load, { immediate: true })
+  watch(() => [account.value?.id, account.value?.admin], load, { immediate: true })
 </script>
 
 <template>
@@ -49,17 +51,12 @@
     <h2>Notifications</h2>
     <NotificationList :items="news" show-submission />
   </section>
+  <section v-if="waiting?.length" class="section">
+    <h2>Waiting for review</h2>
+    <SubmissionList :items="waiting" :fonts="props.fonts" show-sender />
+  </section>
   <section v-if="submissions?.length" class="section">
     <h2>Your submissions</h2>
-    <ul class="submission-list">
-      <li v-for="item of submissions" :key="item.id">
-        <a :href="submissionPage(item.id)">
-          <img v-if="CLIENT_KINDS[item.kind].image" :src="submissionFileUrl(item)" alt="" loading="lazy">
-          <span class="name">{{ item.name }}</span>
-          <span class="where">{{ CLIENT_KINDS[item.kind].summary(item, fonts) }}</span>
-          <span class="status" :class="item.status">{{ SUBMISSION_STATUSES[item.status] }}</span>
-        </a>
-      </li>
-    </ul>
+    <SubmissionList :items="submissions" :fonts="props.fonts" />
   </section>
 </template>

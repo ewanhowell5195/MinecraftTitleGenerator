@@ -11,7 +11,7 @@ const { finishSignIn, receiveSignIn, startSignIn } = await import("../src/server
 const { deleteAccount } = await import("../src/server/accountDeletion.js")
 const { submitPreset, votePreset } = await import("../src/server/presets.js")
 const { addSaved } = await import("../src/server/saved.js")
-const { createSubmission, receiveWebhook } = await import("../src/server/submissions.js")
+const { addComment, createSubmission, receiveWebhook } = await import("../src/server/submissions.js")
 const { encodeTitle } = await import("../src/lib/linkformat.js")
 const { FILE_VERSION } = await import("../src/lib/settings.js")
 
@@ -107,6 +107,7 @@ function count(sql, ...values) {
 }
 
 async function setUp() {
+  db.prepare("INSERT INTO users (provider, provider_id, name, created_at, admin) VALUES ('discord', '3', 'reviewer', 0, 1)").run()
   const owner = await signIn("1", "leaving")
   const other = await signIn("2", "staying")
   const shared = await share(owner, "mine")
@@ -114,6 +115,7 @@ async function setUp() {
   const theirs = await share(other, "theirs")
   await vote(owner, theirs.id, 1)
   const submission = await submit(owner)
+  await addComment(context(`/api/submissions/${submission}/comments`, { method: "POST", body: { body: "my note" }, cookie: owner, params: { id: String(submission) } }))
   return { owner, other, shared, theirs, submission }
 }
 
@@ -157,6 +159,8 @@ describe("deleting an account", () => {
     assert.equal(count("SELECT COUNT(*) AS total FROM preset_votes"), 0)
     assert.equal(count("SELECT votes AS total FROM presets WHERE id = ?", theirs.id), 0)
     assert.equal(count("SELECT COUNT(*) AS total FROM submissions"), 0)
+    assert.equal(count("SELECT COUNT(*) AS total FROM submission_comments"), 0)
+    assert.equal(count("SELECT COUNT(*) AS total FROM notifications"), 0)
     assert.equal(count("SELECT COUNT(*) AS total FROM users WHERE name = 'leaving'"), 0)
     assert.equal(count("SELECT COUNT(*) AS total FROM users WHERE name = 'staying'"), 1)
     assert.equal(count("SELECT COUNT(*) AS total FROM account_submissions"), 1)
@@ -173,11 +177,13 @@ describe("deleting an account", () => {
     assert.deepEqual({ ...db.prepare("SELECT user_id, shared FROM presets WHERE id = ?").get(shared.id) }, { user_id: null, shared: 1 })
     assert.equal(count("SELECT COUNT(*) AS total FROM presets WHERE shared = 0"), 0)
     assert.deepEqual({ ...db.prepare("SELECT user_id, status FROM submissions WHERE id = ?").get(submission) }, { user_id: null, status: "open" })
+    assert.deepEqual({ ...db.prepare("SELECT user_id, author, body FROM submission_comments").get() }, { user_id: null, author: "", body: "my note" })
+    assert.deepEqual(db.prepare("SELECT kind, author FROM notifications").all().map(row => [row.kind, row.author]), [["submitted", ""], ["comment", ""]])
     assert.equal(gh.pulls.get(1).state, "open")
     assert.doesNotMatch(gh.pulls.get(1).body, /leaving/)
     assert.equal(count("SELECT COUNT(*) AS total FROM users WHERE name = 'leaving'"), 0)
     const comment = { action: "created", issue: { number: 1, pull_request: {} }, comment: { body: "nice", author_association: "OWNER", html_url: "https://github.com/c", user: { login: "ewan", type: "User" } } }
     assert.equal((await hook("issue_comment", comment)).status, 200)
-    assert.equal(count("SELECT COUNT(*) AS total FROM notifications"), 0)
+    assert.equal(count("SELECT COUNT(*) AS total FROM notifications WHERE kind = 'comment' AND author = 'ewan'"), 1)
   })
 })

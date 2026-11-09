@@ -7,10 +7,12 @@
   })
 
   const ACTIONS = {
+    submitted: "sent",
+    edited: "changed",
     comment: "commented on",
     changes: "asked for changes to",
     published: "published",
-    rejected: "closed"
+    rejected: "declined"
   }
 
   function when(time) {
@@ -22,7 +24,7 @@
   <ul class="notifications">
     <li v-for="item of items" :key="item.id" :class="{ fresh: !item.seen }">
       <p class="headline">
-        <strong>{{ item.author || "A reviewer" }}</strong> {{ ACTIONS[item.kind] }}
+        <strong>{{ item.author || "Someone" }}</strong> {{ ACTIONS[item.kind] }}
         <a v-if="showSubmission" :href="submissionPage(item.submission)">{{ item.submissionName }}</a>
         <template v-else>this submission</template>
         <span class="hint">{{ when(item.createdAt) }}</span>
