@@ -1,3 +1,5 @@
+import { navigate } from "../lib/navigation.js"
+
 const STATS = "https://api.wynem.com/minecrafttitlegenerator/stats"
 const ID_FILTER = "id:"
 
@@ -66,7 +68,7 @@ export function startCredits(root, signal) {
     const url = new URL(location.href)
     if (value.trim()) url.searchParams.set("search", value.trim())
     else url.searchParams.delete("search")
-    history.replaceState(history.state, "", url)
+    history.replaceState({ ...history.state, current: `${url.pathname}${url.search}${url.hash}` }, "", url)
     render()
   }
 
@@ -86,11 +88,13 @@ export function startCredits(root, signal) {
   people.addEventListener("click", event => {
     const button = event.target.closest(".with")
     if (!button) return
-    setSearch(`${ID_FILTER}${button.dataset.id}`)
-    search.scrollIntoView({ behavior: "smooth", block: "center" })
+    const url = new URL(location.href)
+    url.searchParams.set("search", `${ID_FILTER}${button.dataset.id}`)
+    navigate(`${url.pathname}${url.search}`)
   })
   addEventListener("resize", render, { signal })
   render()
+  if (field.value.startsWith(ID_FILTER)) search.scrollIntoView({ block: "center" })
   sortByUsage().catch(err => {
     if (err.name !== "AbortError") console.error(err)
   })
