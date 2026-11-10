@@ -66,7 +66,7 @@
         <Slider inline label="Y" v-model="scaleY" :min="TRANSFORM_LIMITS.scale[0]" :max="TRANSFORM_LIMITS.scale[1]" :step="0.05" />
       </div>
       <span class="bracket" :class="{ active: linked }"></span>
-      <Button ghost :active="linked" @click="toggleLink" v-tooltip="linked ? 'Unlink X and Y' : 'Link X and Y so the text keeps its shape'" :aria-label="linked ? 'Unlink X and Y' : 'Link X and Y'" :aria-pressed="linked"><template #icon><Icon name="link" :size="14" /></template></Button>
+      <Button ghost :active="linked" @click="toggleLink" v-tooltip="linked ? 'Unlink X and Y' : 'Link X and Y so the text keeps its shape'" :aria-label="linked ? 'Unlink X and Y' : 'Link X and Y'" :aria-pressed="linked"><template #icon><Icon name="link" :size="16" /></template></Button>
     </div>
     <div class="linked">
       <Slider class="grow" inline label="Z" v-model="object[k('scaleZ')]" :min="TRANSFORM_LIMITS.scale[0]" :max="TRANSFORM_LIMITS.scale[1]" :step="0.05" />

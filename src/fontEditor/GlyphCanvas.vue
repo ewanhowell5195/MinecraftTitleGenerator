@@ -491,7 +491,7 @@
   <section class="drawing">
     <div class="tools">
       <span class="group">
-        <Button ghost :active="tool === item.id" v-for="item of TOOLS" :key="item.id" v-tooltip="{ text: `${item.label} (${item.key.toUpperCase()})${item.hint ? `. ${item.hint}` : ''}`, tooltipClass: 'slow' }" :aria-label="item.label" :aria-pressed="tool === item.id" @click="tool = item.id"><template #icon><Icon :name="item.icon" :size="18" /></template></Button>
+        <Button ghost :active="tool === item.id" v-for="item of TOOLS" :key="item.id" v-tooltip="{ text: `${item.label} (${item.key.toUpperCase()})${item.hint ? `. ${item.hint}` : ''}`, tooltipClass: 'slow' }" :aria-label="item.label" :aria-pressed="tool === item.id" @click="tool = item.id"><template #icon><Icon :name="item.icon" :size="16" /></template></Button>
       </span>
       <span v-if="brushes.length > 1" class="group density">
         <span class="group-label">Density</span>
@@ -499,8 +499,8 @@
       </span>
       <span class="group">
         <span class="group-label">Flip</span>
-        <Button ghost v-tooltip="{ text: 'Flip left to right', tooltipClass: 'slow' }" aria-label="Flip left to right" @click="flipX"><template #icon><Icon name="flipX" :size="18" /></template></Button>
-        <Button ghost v-tooltip="{ text: 'Flip upside down', tooltipClass: 'slow' }" aria-label="Flip upside down" @click="flipY"><template #icon><Icon name="flipY" :size="18" /></template></Button>
+        <Button ghost v-tooltip="{ text: 'Flip left to right', tooltipClass: 'slow' }" aria-label="Flip left to right" @click="flipX"><template #icon><Icon name="flipX" :size="16" /></template></Button>
+        <Button ghost v-tooltip="{ text: 'Flip upside down', tooltipClass: 'slow' }" aria-label="Flip upside down" @click="flipY"><template #icon><Icon name="flipY" :size="16" /></template></Button>
       </span>
       <span class="group">
         <Button ghost @click="clearGlyph">Clear</Button>

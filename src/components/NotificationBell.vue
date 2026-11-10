@@ -4,6 +4,7 @@
   import { dateTime } from "../lib/dates.js"
   import { useWindowEvents } from "../lib/events.js"
   import { clearNotifications, markNotificationsSeen, notifications, submissionPage } from "../lib/submissionsApi.js"
+  import Button from "./Button.vue"
   import Icon from "./Icon.vue"
   import Notice from "./Notice.vue"
 
@@ -28,7 +29,7 @@
   const shown = computed(() => !!account.value?.notifications)
 
   function place() {
-    const rect = button.value.getBoundingClientRect()
+    const rect = button.value.$el.getBoundingClientRect()
     position.value = { top: `${rect.bottom + 8}px`, right: `${Math.max(8, innerWidth - rect.right)}px` }
   }
 
@@ -70,7 +71,7 @@
   }
 
   function outside(event) {
-    if (!panel.value?.contains(event.target) && !button.value?.contains(event.target)) close()
+    if (!panel.value?.contains(event.target) && !button.value?.$el.contains(event.target)) close()
   }
 
   function key(event) {
@@ -82,15 +83,12 @@
 
 <template>
   <div v-if="shown" class="notification-bell">
-    <button ref="button" type="button" class="bell" :class="{ open }" v-tooltip="unread ? `${unread} unread notifications` : 'Notifications'" :aria-label="unread ? `Notifications, ${unread} unread` : 'Notifications'" :aria-expanded="open" @click="toggle">
-      <Icon name="bell" :size="20" />
-      <span v-if="unread" class="dot"></span>
-    </button>
+    <Button ref="button" ghost class="bell" :class="{ open }" v-tooltip="unread ? `${unread} unread notifications` : 'Notifications'" :aria-label="unread ? `Notifications, ${unread} unread` : 'Notifications'" :aria-expanded="open" @click="toggle"><template #icon><Icon name="bell" :size="20" /><span v-if="unread" class="dot"></span></template></Button>
     <Teleport to="body">
       <div v-if="open" ref="panel" class="notification-panel popover" :style="position" role="dialog" aria-label="Notifications">
         <div class="panel-head">
           <strong>Notifications</strong>
-          <button v-if="items?.length" type="button" class="clear" :disabled="clearing" @click="clear">Clear all</button>
+          <button v-if="items?.length" type="button" class="clear link-button" :disabled="clearing" @click="clear">Clear all</button>
         </div>
         <Notice v-if="error" class="state-notice">{{ error }}</Notice>
         <p v-else-if="!items" class="state empty-state">Loading...</p>
@@ -116,22 +114,11 @@
 
   .bell {
     position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: var(--control);
-    min-height: var(--control);
-    padding: 0;
-    color: var(--muted);
-    background: none;
-    box-shadow: none;
   }
 
-  .bell:hover,
   .bell.open {
-    color: var(--text);
+    --button-text: var(--text);
     background: var(--card);
-    filter: none;
   }
 
   .dot {
@@ -165,26 +152,13 @@
   }
 
   .clear {
-    min-height: 0;
-    padding: 2px 4px;
-    font: inherit;
     font-size: var(--font-sm);
     color: var(--accent);
-    background: none;
-    box-shadow: none;
-    border: 0;
-    cursor: pointer;
-    user-select: none;
-  }
-
-  .clear:hover {
-    text-decoration: underline;
-    filter: none;
   }
 
   .clear:disabled {
-    opacity: 0.5;
-    cursor: default;
+    opacity: 0.35;
+    cursor: not-allowed;
   }
 
   .state {

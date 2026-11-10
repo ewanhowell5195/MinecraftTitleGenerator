@@ -224,9 +224,9 @@
       <Segments v-if="object.textureSource === 'tileable'" :options="TILEABLE_SOURCES" :model-value="object.tileableSource" @update:model-value="chooseTileables" />
 
       <template v-if="usingMinecraft">
-        <button class="version" v-tooltip="'Choose a Minecraft version'" @click="choosingVersion = true">
+        <button type="button" class="version field-button" :class="{ active: choosingVersion }" v-tooltip="'Choose a Minecraft version'" @click="choosingVersion = true">
           <span>Minecraft {{ object.minecraftVersion }}</span>
-          <Icon name="down" :size="16" />
+          <Icon class="chevron" name="down" :size="14" />
         </button>
         <div v-if="jar.version" class="download">
           <span>Downloading Minecraft {{ jar.version }}</span>
@@ -303,11 +303,13 @@
   }
 
   .version {
-    display: flex;
     flex: none;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
+    padding: 0 10px;
+  }
+
+  .version .chevron {
+    margin-left: auto;
+    color: var(--faint);
   }
 
   .download {

@@ -76,14 +76,14 @@
 <template>
   <aside class="detail">
     <header>
-      <Button ghost aria-label="Close this preset" @click="emit('close')"><template #icon><Icon name="close" :size="18" /></template></Button>
+      <Button ghost aria-label="Close this preset" @click="emit('close')"><template #icon><Icon name="close" :size="16" /></template></Button>
     </header>
     <div class="content">
       <TitlePicture :code="preset.code" :fingerprint="local ? null : preset.fingerprint" large />
       <div class="heading">
         <input v-if="renaming" v-selected class="name-field" type="text" :value="preset.name" :maxlength="NAME_LIMIT" :aria-label="`Name of ${preset.name}`" spellcheck="false" @blur="finishRenaming" @keydown.enter="$event.target.blur()" @keydown.esc.stop="renaming = false">
         <h2 v-else class="ellipsis" v-tooltip="preset.name">{{ preset.name }}</h2>
-        <Button ghost v-if="(local || owned) && !renaming" v-tooltip="`Rename ${preset.name}`" :aria-label="`Rename ${preset.name}`" @click="renaming = true"><template #icon><Icon name="pencil" :size="14" /></template></Button>
+        <Button ghost v-if="(local || owned) && !renaming" v-tooltip="`Rename ${preset.name}`" :aria-label="`Rename ${preset.name}`" @click="renaming = true"><template #icon><Icon name="pencil" :size="16" /></template></Button>
         <Badge v-if="local && preset.inBrowser" class="tag" v-tooltip="'Your account is full, so this is only saved in this browser'">This browser only</Badge>
         <Badge v-if="local && preset.shared" class="tag" tone="accent">Shared publicly</Badge>
         <Badge v-else-if="mine" class="tag" tone="accent">Shared by you</Badge>

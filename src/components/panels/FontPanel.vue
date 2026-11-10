@@ -145,7 +145,7 @@
 <template>
   <Panel title="Font" :modified="modified" @reset="reset">
     <template #actions>
-      <Button ghost :disabled="!font" @click="info = true" v-tooltip="'Font info and characters'" aria-label="Font info and characters"><template #icon><Icon name="info" :size="17" /></template></Button>
+      <Button ghost :disabled="!font" @click="info = true" v-tooltip="'Font info and characters'" aria-label="Font info and characters"><template #icon><Icon name="info" :size="16" /></template></Button>
     </template>
     <RenderDialog v-if="info && font" :title="entry?.name || customName || 'Font'" close-title="Close" wide dismissable @close="info = false">
       <div class="dialog-body">

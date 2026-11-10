@@ -27,7 +27,7 @@
         <header class="row">
           <h2>{{ title }}</h2>
           <div class="spacer"></div>
-          <Button ghost @click="emit('close')" :aria-label="closeTitle"><template #icon><Icon name="close" :size="18" /></template></Button>
+          <Button ghost @click="emit('close')" :aria-label="closeTitle"><template #icon><Icon name="close" :size="16" /></template></Button>
         </header>
         <slot></slot>
       </div>

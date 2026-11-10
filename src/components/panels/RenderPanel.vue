@@ -151,7 +151,7 @@
       <p class="hint">The longer side of the title, in pixels. The final size may differ slightly.</p>
     </template>
     <Toggle label="Antialiasing" hint="Smoother edges, renders take longer" v-model="view.antialias" />
-    <Button primary wide big :disabled="progress !== null" @click="render"><template #icon><Icon name="camera" :size="17" /></template>
+    <Button primary wide :disabled="progress !== null" @click="render"><template #icon><Icon name="camera" :size="16" /></template>
       <span>Render image</span>
     </Button>
     <Button wide v-if="framing.tab !== 'minecraft'" :disabled="progress !== null" @click="saveVector"><template #icon><Icon name="download" :size="16" /></template>
@@ -170,11 +170,6 @@
 </template>
 
 <style scoped>
-  .big {
-    padding: 12px 16px;
-    font-size: var(--font-lg);
-  }
-
   .input-row .number-input {
     flex: 1;
     width: auto;

@@ -442,7 +442,6 @@
 
   .back {
     flex: none;
-    gap: 6px;
   }
 
   h1 {
@@ -490,7 +489,6 @@
 
   .random {
     flex: none;
-    gap: 6px;
   }
 
   .usage {

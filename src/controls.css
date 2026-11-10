@@ -104,6 +104,13 @@
   filter: none;
 }
 
+.button.active.negative,
+.button.active.negative:hover:not(:disabled, .disabled) {
+  --button-text: var(--danger);
+  background: var(--danger-soft);
+  box-shadow: inset 0 0 0 1px var(--danger);
+}
+
 .link-button,
 .field-button,
 .tab-bar .tab-bar-button {

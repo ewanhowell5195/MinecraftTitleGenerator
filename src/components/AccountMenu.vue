@@ -27,7 +27,6 @@
 <style scoped>
   .account {
     flex: none;
-    gap: 6px;
   }
 
   .account.signed {

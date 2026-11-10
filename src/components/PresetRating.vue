@@ -25,8 +25,8 @@
 <template>
   <div class="rating">
     <div v-if="!own" class="votes">
-      <Button class="vote upvote" :aria-pressed="mine === 1" @click="emit('vote', 1)" :class="{ chosen: mine === 1 }"><template #icon><Icon name="arrowUp" :size="20" /></template><span>{{ mine === 1 ? "Upvoted" : "Upvote" }}</span></Button>
-      <Button class="vote downvote" :aria-pressed="mine === -1" @click="emit('vote', -1)" :class="{ chosen: mine === -1 }"><template #icon><Icon name="arrowDown" :size="20" /></template><span>{{ mine === -1 ? "Downvoted" : "Downvote" }}</span></Button>
+      <Button class="vote" :active="mine === 1" :aria-pressed="mine === 1" @click="emit('vote', 1)"><template #icon><Icon name="arrowUp" :size="16" /></template><span>{{ mine === 1 ? "Upvoted" : "Upvote" }}</span></Button>
+      <Button class="vote" :class="{ negative: mine === -1 }" :active="mine === -1" :aria-pressed="mine === -1" @click="emit('vote', -1)"><template #icon><Icon name="arrowDown" :size="16" /></template><span>{{ mine === -1 ? "Downvoted" : "Downvote" }}</span></Button>
     </div>
     <div v-if="rating !== null" class="result" v-tooltip="summary">
       <span class="stars" aria-hidden="true">
@@ -60,23 +60,6 @@
 
   .vote {
     flex: 1;
-    min-height: 48px;
-  }
-
-  .upvote:hover,
-  .upvote.chosen {
-    color: var(--accent);
-    background: var(--accent-soft);
-    box-shadow: inset 0 0 0 1px var(--accent);
-    filter: none;
-  }
-
-  .downvote:hover,
-  .downvote.chosen {
-    color: var(--danger);
-    background: var(--danger-soft);
-    box-shadow: inset 0 0 0 1px var(--danger);
-    filter: none;
   }
 
   .result {
