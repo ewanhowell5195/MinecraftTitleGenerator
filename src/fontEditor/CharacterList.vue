@@ -172,11 +172,13 @@
     height: 66px;
     padding: 5px 2px 3px;
     background: var(--card);
-    border: 2px solid transparent;
+    border: 1px solid transparent;
+    box-shadow: none;
   }
 
   .character:hover {
     background: var(--card-hover);
+    filter: none;
   }
 
   .character.selected {

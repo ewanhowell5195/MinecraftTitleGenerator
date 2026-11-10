@@ -33,7 +33,7 @@
       <RouterLink to="/submit/">Submit</RouterLink>
     </nav>
     <div class="bar-end">
-      <RouterLink class="bar-button" to="/app/">Open the generator</RouterLink>
+      <RouterLink class="button primary bar-button" to="/app/">Open the generator</RouterLink>
       <div class="bar-account"><AccountMenu /></div>
       <div class="bar-notifications"><NotificationBell /></div>
     </div>

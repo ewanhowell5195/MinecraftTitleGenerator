@@ -16,7 +16,7 @@
     <img v-else class="sign" :src="pictureUrl({ code })" alt="404" width="935" height="381" @error="failed = true">
     <h1>Page not found</h1>
     <p>There's nothing at <code>{{ route.path }}</code>. The link may be wrong, or the page may have moved.</p>
-    <RouterLink class="button" to="/">Go to the home page</RouterLink>
+    <RouterLink class="button primary big" to="/">Go to the home page</RouterLink>
   </main>
 </template>
 

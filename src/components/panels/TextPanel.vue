@@ -289,14 +289,17 @@
     flex: none;
     width: 22px;
     height: 30px;
+    min-height: 0;
     padding: 0;
     color: var(--faint);
     background: transparent;
+    box-shadow: none;
   }
 
   .join:hover {
     color: var(--text);
     background: var(--card-hover);
+    filter: none;
   }
 
   .join.joined {

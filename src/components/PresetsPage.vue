@@ -543,10 +543,6 @@
     font-size: var(--font-sm);
   }
 
-  .card.selected {
-    background: var(--card-hover);
-  }
-
   .details {
     display: flex;
     justify-content: space-between;

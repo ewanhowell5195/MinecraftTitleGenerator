@@ -84,15 +84,14 @@
     align-items: center;
     justify-content: flex-start;
     gap: 10px;
-    padding: 7px 10px;
+    min-height: var(--control);
+    padding: 0 10px;
     font: inherit;
     font-size: var(--font-base);
     font-weight: 500;
     color: var(--text);
     background: transparent;
-    border: 0;
-    cursor: pointer;
-    user-select: none;
+    box-shadow: none;
   }
 
   .heading {
@@ -110,6 +109,7 @@
   button:focus-visible {
     outline: none;
     background: var(--card-hover);
+    filter: none;
   }
 
   button:disabled:hover {

@@ -81,8 +81,10 @@
     width: 100%;
     padding: 8px 10px;
     font-size: var(--font-md);
+    font-weight: 500;
     text-align: left;
-    border-width: 2px;
+    border: 1px solid transparent;
+    box-shadow: none;
   }
 
   .version.selected {

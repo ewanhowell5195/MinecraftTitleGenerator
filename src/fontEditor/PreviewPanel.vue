@@ -76,7 +76,7 @@
         <p v-else-if="empty" class="message">{{ EMPTY }}</p>
       </div>
       <RenderView v-show="request" class="view" :request="request" :empty="EMPTY" />
-      <button v-if="!wide" class="small mode-switch" :title="mode === '2d' ? 'Show the 3D preview' : 'Show the flat preview'" @click="mode = mode === '2d' ? '3d' : '2d'">{{ mode === "2d" ? "3D" : "2D" }}</button>
+      <button v-if="!wide" class="mode-switch" :title="mode === '2d' ? 'Show the 3D preview' : 'Show the flat preview'" @click="mode = mode === '2d' ? '3d' : '2d'">{{ mode === "2d" ? "3D" : "2D" }}</button>
     </div>
   </section>
 </template>
@@ -99,7 +99,7 @@
   }
 
   .text input {
-    padding: 6px 10px;
+    padding: 0 10px;
     font-size: var(--font-md);
   }
 

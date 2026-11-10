@@ -196,7 +196,7 @@
 
     <div class="row" v-if="layer">
       <h3 class="grow">Editing "{{ layerName(layer) }}"</h3>
-      <button v-if="layerModified" class="small ghost" @click="resetLayer" title="Reset this overlay">Reset</button>
+      <button v-if="layerModified" class="ghost" @click="resetLayer" title="Reset this overlay">Reset</button>
     </div>
     <Segments v-if="!edge" :options="KINDS" :model-value="kind" @update:model-value="pickKind" />
     <div class="grid scroll" v-if="kind !== 'file'">

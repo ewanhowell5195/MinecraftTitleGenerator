@@ -1,26 +1,7 @@
 :root {
   --background: #111214;
-  --surface: #18191d;
-  --line: #2b2e35;
-  --text: #f1f2f4;
-  --muted: #b0b4bd;
-  --faint: #7c818c;
-  --accent: #6cc04a;
-  --accent-deep: #467f2e;
-  --accent-text: #0d1a07;
   --gutter: 16px;
   --footer-gap: clamp(56px, 8vw, 96px);
-  /* the account menu's tokens, same values as src/style.css */
-  --card: #202227;
-  --card-hover: #272a30;
-  --line-strong: #3a3e47;
-  --danger: #ff8f85;
-  --danger-fill: #c9372c;
-  --shadow: 0 8px 24px #0009;
-  --font-xs: 11px;
-  --font-sm: 12px;
-  --font-base: 14px;
-  --duration: 0.15s;
 }
 
 .popover {
@@ -93,57 +74,6 @@ h2 + p {
 .wrap {
   width: min(1120px, 100% - var(--gutter) * 2);
   margin-inline: auto;
-}
-
-.button {
-  display: inline-block;
-  padding: 17px 30px;
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1.1;
-  text-decoration: none;
-  color: var(--accent-text);
-  background: var(--accent);
-  box-shadow: inset 0 -4px 0 var(--accent-deep), inset 0 4px 0 #9be37b;
-  user-select: none;
-  transition: filter 0.12s;
-}
-
-.button:hover {
-  color: var(--accent-text);
-  filter: brightness(1.1);
-}
-
-.button:active {
-  box-shadow: inset 0 4px 0 var(--accent-deep), inset 0 -4px 0 #9be37b;
-}
-
-.button.blue {
-  color: #04192c;
-  background: #3aa4ef;
-  box-shadow: inset 0 -4px 0 #1b6db0, inset 0 4px 0 #8fd0fa;
-}
-
-.button.blue:hover {
-  color: #04192c;
-}
-
-.button.blue:active {
-  box-shadow: inset 0 4px 0 #1b6db0, inset 0 -4px 0 #8fd0fa;
-}
-
-.button.dark {
-  color: var(--text);
-  background: #16181b;
-  box-shadow: inset 0 -4px 0 #000, inset 0 4px 0 #3a3e45;
-}
-
-.button.dark:hover {
-  color: var(--text);
-}
-
-.button.dark:active {
-  box-shadow: inset 0 4px 0 #000, inset 0 -4px 0 #3a3e45;
 }
 
 .hero {
@@ -471,7 +401,7 @@ section + section {
     font-size: 17px;
   }
 
-  .button {
+  .button.big {
     font-size: 18px;
   }
 

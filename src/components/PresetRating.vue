@@ -60,21 +60,22 @@
   .vote {
     flex: 1;
     min-height: 48px;
-    border-color: var(--line-strong);
   }
 
   .upvote:hover,
   .upvote.chosen {
     color: var(--accent);
     background: var(--accent-soft);
-    border-color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent);
+    filter: none;
   }
 
   .downvote:hover,
   .downvote.chosen {
     color: var(--danger);
     background: var(--danger-soft);
-    border-color: var(--danger);
+    box-shadow: inset 0 0 0 1px var(--danger);
+    filter: none;
   }
 
   .result {

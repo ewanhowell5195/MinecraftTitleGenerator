@@ -121,21 +121,19 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: var(--control);
+    min-height: var(--control);
     padding: 0;
     color: var(--muted);
     background: none;
-    border: 0;
-    cursor: pointer;
-    user-select: none;
-    transition: color var(--duration), background var(--duration);
+    box-shadow: none;
   }
 
   .bell:hover,
   .bell.open {
     color: var(--text);
     background: var(--card);
+    filter: none;
   }
 
   .dot {
@@ -169,11 +167,13 @@
   }
 
   .clear {
+    min-height: 0;
     padding: 2px 4px;
     font: inherit;
     font-size: var(--font-sm);
     color: var(--accent);
     background: none;
+    box-shadow: none;
     border: 0;
     cursor: pointer;
     user-select: none;
@@ -181,6 +181,7 @@
 
   .clear:hover {
     text-decoration: underline;
+    filter: none;
   }
 
   .clear:disabled {

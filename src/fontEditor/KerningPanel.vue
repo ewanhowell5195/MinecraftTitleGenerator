@@ -94,7 +94,7 @@
         <p class="hint">Each pair is pulled closer together by its amount, in pixels.</p>
         <form class="input-row" @submit.prevent="addCustom">
           <input v-model="custom" type="text" maxlength="4" placeholder="Any two characters" aria-label="Pair to add">
-          <button class="small" type="submit"><Icon name="plus" :size="14" />Add pair</button>
+          <button type="submit"><Icon name="plus" :size="14" />Add pair</button>
         </form>
         <p v-if="customError" class="hint bad">{{ customError }}</p>
         <p v-if="!allPairs.length" class="hint">None yet. Add some from the suggestions, or type your own.</p>
@@ -119,9 +119,9 @@
         <h3>Suggested</h3>
         <p class="hint">Pairs whose shapes leave room to move closer. Click one to add it.</p>
         <div class="row toolbar">
-          <button v-for="item of FILTERS" :key="item.id" class="small" :class="{ active: filter === item.id }" @click="filter = item.id">{{ item.label }}</button>
+          <button v-for="item of FILTERS" :key="item.id" :class="{ active: filter === item.id }" @click="filter = item.id">{{ item.label }}</button>
           <div class="spacer"></div>
-          <button class="small" :disabled="!suggestions.length" @click="addAll">Add all {{ suggestions.length }}</button>
+          <button :disabled="!suggestions.length" @click="addAll">Add all {{ suggestions.length }}</button>
         </div>
         <p v-if="!suggestions.length" class="hint">No suggestions here.</p>
         <div v-else class="pairs list">
@@ -179,7 +179,8 @@
     gap: 6px;
     padding: 6px;
     background: var(--card);
-    border: 2px solid transparent;
+    border: 1px solid transparent;
+    box-shadow: none;
   }
 
   .picture {
@@ -237,6 +238,7 @@
   .suggestion:hover {
     background: var(--card-hover);
     border-color: var(--accent);
+    filter: none;
   }
 
   .name {

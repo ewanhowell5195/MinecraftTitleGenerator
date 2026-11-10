@@ -143,8 +143,8 @@
       <div v-if="warning" class="warning">
         <p>{{ warning.text }} changes {{ warning.lost }} drawn {{ warning.lost === 1 ? "pixel" : "pixels" }}.</p>
         <div class="row">
-          <button class="small" @click="warning = null">Cancel</button>
-          <button class="small danger" @click="confirmResize">Change anyway</button>
+          <button @click="warning = null">Cancel</button>
+          <button class="danger" @click="confirmResize">Change anyway</button>
         </div>
       </div>
     </section>
@@ -181,7 +181,7 @@
     <section class="flow">
       <h3>Stretch zones</h3>
       <p class="hint">Marks the stretch zones of every character automatically, replacing the ones marked now. Each character can still be changed on the Characters tab.</p>
-      <button class="small start" @click="markAll"><Icon name="wand" :size="14" />Mark every character</button>
+      <button class="start" @click="markAll"><Icon name="wand" :size="14" />Mark every character</button>
     </section>
   </div>
 </template>

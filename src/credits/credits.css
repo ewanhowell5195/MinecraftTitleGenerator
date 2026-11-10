@@ -27,7 +27,8 @@
 
 .search input {
   width: min(100%, 440px);
-  padding: 12px 14px;
+  min-height: var(--control);
+  padding: 0 14px;
   font: inherit;
   font-size: 16px;
   color: var(--text);

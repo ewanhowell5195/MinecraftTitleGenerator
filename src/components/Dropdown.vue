@@ -128,8 +128,7 @@
   }
 
   .trigger {
-    min-height: 40px;
-    padding: 6px 10px;
+    padding: 0 10px;
     font-weight: 500;
     text-align: left;
   }
@@ -171,8 +170,8 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    min-height: 36px;
-    padding: 5px 8px;
+    min-height: var(--control);
+    padding: 0 8px;
     font-size: var(--font-base);
     cursor: pointer;
   }

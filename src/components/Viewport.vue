@@ -496,10 +496,6 @@
     border: 1px solid var(--line);
   }
 
-  .tools .active {
-    background: var(--accent-soft);
-  }
-
   .viewport :deep(canvas) {
     position: relative;
     z-index: 1;

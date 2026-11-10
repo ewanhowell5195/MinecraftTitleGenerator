@@ -49,13 +49,16 @@
   }
 
   .menu {
-    padding: 6px 10px;
+    min-height: var(--control);
+    padding: 0 10px;
     font-weight: 500;
     background: transparent;
+    box-shadow: none;
   }
 
   .menu:hover,
   .menu.active {
     background: var(--card-hover);
+    filter: none;
   }
 </style>

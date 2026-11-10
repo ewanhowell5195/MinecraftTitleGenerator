@@ -89,15 +89,18 @@
     top: 4px;
     left: 4px;
     display: none;
-    width: 26px;
-    height: 26px;
+    width: var(--control-tiny);
+    height: var(--control-tiny);
+    min-height: var(--control-tiny);
     padding: 0;
     color: var(--text);
     background: var(--tile-overlay);
+    box-shadow: none;
   }
 
   .save:hover {
     background: #000d;
+    filter: none;
   }
 
   .tile:hover .save,

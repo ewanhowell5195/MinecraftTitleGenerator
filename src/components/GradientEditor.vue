@@ -190,9 +190,11 @@
     width: 14px;
     height: 22px;
     margin-left: -7px;
+    min-height: 0;
     padding: 0;
     background: none;
     border: none;
+    box-shadow: none;
     cursor: ew-resize;
     touch-action: none;
   }
@@ -286,6 +288,6 @@
   .location input[type="number"] {
     align-self: stretch;
     width: 60px;
-    padding: 8px;
+    padding: 0 8px;
   }
 </style>

@@ -48,7 +48,7 @@
       <span class="label">Width</span>
       <div class="input-row">
         <input type="number" min="1" :value="squaresOf(font, width)" aria-label="Character width" @input="setNumber('width', $event, 1)" @change="setNumber('width', $event, 1)">
-        <button v-if="overridden" class="small" :title="`Go back to the default width of ${squaresOf(font, font.width)}`" @click="resetWidth">Use default</button>
+        <button v-if="overridden" :title="`Go back to the default width of ${squaresOf(font, font.width)}`" @click="resetWidth">Use default</button>
         <span v-else class="hint">Default width</span>
       </div>
     </div>
@@ -67,13 +67,13 @@
     <h3>Stretch zones</h3>
     <p class="hint">Marked rows are the ones that stretch when text is arced, so choose straight parts that won't look odd taller. {{ glyph.stretch.length ? `${glyph.stretch.length} ${glyph.stretch.length === 1 ? "row" : "rows"} marked.` : "No rows marked." }}</p>
     <div class="row">
-      <button class="small" @click="mark"><Icon name="wand" :size="14" />Mark automatically</button>
-      <button class="small" :disabled="!glyph.stretch.length" @click="clearMarks">Clear</button>
+      <button @click="mark"><Icon name="wand" :size="14" />Mark automatically</button>
+      <button :disabled="!glyph.stretch.length" @click="clearMarks">Clear</button>
     </div>
 
     <template v-if="imported">
       <h3>Imported shape</h3>
-      <button class="small" @click="revert"><Icon name="reset" :size="14" />Back to the imported character</button>
+      <button @click="revert"><Icon name="reset" :size="14" />Back to the imported character</button>
     </template>
   </div>
 </template>

@@ -136,7 +136,7 @@
   }
 
   .colour {
-    padding: 6px 12px 6px 6px;
+    padding: 0 12px 0 5px;
   }
 
   .chip {

@@ -168,7 +168,7 @@
     </div>
     <span v-if="problems.extras" class="hint bad">{{ problems.extras }}</span>
     <div v-if="extras.length < SUBMISSION_LIMITS.extraFiles" class="buttons">
-      <button v-for="kind of EXTRA_KINDS" :key="kind" type="button" class="small" @click="add(kind)"><Icon name="plus" :size="14" />{{ KIND_LABELS[kind] }}</button>
+      <button v-for="kind of EXTRA_KINDS" :key="kind" type="button" @click="add(kind)"><Icon name="plus" :size="14" />{{ KIND_LABELS[kind] }}</button>
     </div>
   </div>
 </template>
@@ -219,10 +219,6 @@
   .extra-kind {
     flex: 1;
     font-weight: 600;
-  }
-
-  .extra-fields input[type="text"] {
-    padding: 7px 10px;
   }
 
   .buttons {

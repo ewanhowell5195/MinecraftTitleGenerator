@@ -95,7 +95,8 @@
   .value {
     grid-area: value;
     width: 64px;
-    padding: 3px 8px;
+    min-height: var(--control-tiny);
+    padding: 0 8px;
     font-size: var(--font-md);
     font-weight: 600;
     text-align: right;

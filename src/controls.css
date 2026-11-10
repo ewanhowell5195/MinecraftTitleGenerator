@@ -1,0 +1,185 @@
+button,
+.button {
+  --button-fill: #3a3e47;
+  --button-light: #5a5f6a;
+  --button-dark: #24272c;
+  --button-text: var(--text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--control);
+  padding: 0 var(--control-padding);
+  font-family: inherit;
+  font-size: var(--font-base);
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+  text-decoration: none;
+  color: var(--button-text);
+  background: var(--button-fill);
+  border: 0;
+  --button-top: var(--button-light);
+  --button-bottom: var(--button-dark);
+  box-shadow: inset 0 calc(var(--bevel) * -1) 0 var(--button-bottom), inset 0 var(--bevel) 0 var(--button-top);
+  cursor: pointer;
+  user-select: none;
+  transition: filter var(--duration), background var(--duration), color var(--duration), box-shadow var(--duration);
+}
+
+button:hover:not(:disabled),
+.button:hover {
+  color: var(--button-text);
+  filter: brightness(1.1);
+}
+
+button:active:not(:disabled),
+.button:active {
+  --button-top: var(--button-dark);
+  --button-bottom: var(--button-light);
+  transition: none;
+}
+
+button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+button:focus-visible,
+.button:focus-visible,
+.button:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+button.primary,
+.button.primary {
+  --button-fill: var(--accent);
+  --button-light: #9be37b;
+  --button-dark: var(--accent-deep);
+  --button-text: var(--accent-text);
+}
+
+button.blue,
+.button.blue {
+  --button-fill: #3aa4ef;
+  --button-light: #8fd0fa;
+  --button-dark: #1b6db0;
+  --button-text: #04192c;
+}
+
+button.danger,
+.button.danger {
+  --button-fill: var(--danger-fill);
+  --button-light: #e8665c;
+  --button-dark: #8a2219;
+  --button-text: #fff;
+}
+
+button.big,
+.button.big {
+  --bevel: var(--bevel-big);
+  min-height: var(--control-big);
+  padding: 0 var(--control-padding-big);
+  font-size: var(--font-big);
+}
+
+button.wide,
+.button.wide {
+  width: 100%;
+}
+
+button.ghost,
+.button.ghost {
+  --button-text: var(--muted);
+  background: transparent;
+  box-shadow: none;
+}
+
+button.ghost:hover:not(:disabled),
+.button.ghost:hover {
+  --button-text: var(--text);
+  background: var(--card);
+  filter: none;
+}
+
+button.active,
+button.active:hover:not(:disabled) {
+  --button-text: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent);
+  filter: none;
+}
+
+.icon-button,
+button.link-button,
+.field-button,
+.tab-bar .tab-bar-button {
+  box-shadow: none;
+}
+
+.icon-button:hover:not(:disabled),
+button.link-button:hover:not(:disabled),
+.field-button:hover:not(:disabled),
+.tab-bar .tab-bar-button:hover:not(:disabled) {
+  filter: none;
+}
+
+.icon-button {
+  --button-text: var(--muted);
+  width: var(--control);
+  height: var(--control);
+  padding: 0;
+  background: transparent;
+}
+
+.icon-button:hover:not(:disabled) {
+  --button-text: var(--text);
+  background: var(--card);
+}
+
+.icon-button.active {
+  --button-text: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.icon-button.small {
+  width: var(--control-tiny);
+  height: var(--control-tiny);
+  min-height: var(--control-tiny);
+}
+
+button.link-button {
+  gap: 4px;
+  min-height: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  background: none;
+}
+
+button.link-button:hover {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.field-button {
+  justify-content: flex-start;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  font-weight: 500;
+  background: var(--card);
+  border: 1px solid transparent;
+}
+
+.field-button:hover:not(:disabled) {
+  background: var(--card-hover);
+}
+
+.field-button.active {
+  background: var(--card);
+  border-color: var(--accent);
+  box-shadow: none;
+}

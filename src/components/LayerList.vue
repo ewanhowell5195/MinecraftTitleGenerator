@@ -266,7 +266,7 @@
     width: 56px;
     height: 56px;
     background: var(--card);
-    border: 2px solid transparent;
+    border: 1px solid transparent;
     transition: border-color var(--duration), background var(--duration);
   }
 
@@ -344,7 +344,7 @@
     gap: 6px;
     width: 60px;
     padding-bottom: 4px;
-    border: 2px solid var(--line-strong);
+    border: 1px solid var(--line-strong);
     transition: border-color var(--duration), background var(--duration);
   }
 
@@ -404,12 +404,14 @@
     color: var(--faint);
     background: transparent;
     border: 2px dashed var(--line-strong);
+    box-shadow: none;
   }
 
   .add:hover {
     color: var(--text);
     border-color: var(--accent);
     background: transparent;
+    filter: none;
   }
 
   .divider {
@@ -427,11 +429,13 @@
     font-size: var(--font-xs);
     color: var(--faint);
     background: transparent;
+    box-shadow: none;
   }
 
   .rail-button:hover {
     color: var(--text);
     background: var(--card);
+    filter: none;
   }
 
   .rail-button.selected {

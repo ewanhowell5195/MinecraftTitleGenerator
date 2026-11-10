@@ -28,7 +28,7 @@
 
 <template>
   <div class="share">
-    <MenuButton class="small" title="Share this title" :disabled="!scene.objects.length" :items="items" end>
+    <MenuButton title="Share this title" :disabled="!scene.objects.length" :items="items" end>
       <Icon name="share" :size="16" />
       <span>Share</span>
     </MenuButton>

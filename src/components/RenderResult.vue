@@ -130,6 +130,5 @@
   .buttons button {
     flex: 1;
     min-width: 160px;
-    padding: 12px 16px;
   }
 </style>

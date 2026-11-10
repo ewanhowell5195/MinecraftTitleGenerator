@@ -33,14 +33,14 @@
   .account.signed {
     padding: 0;
     background: none;
-    border: 0;
-    cursor: pointer;
+    box-shadow: none;
+    filter: none;
   }
 
   .avatar {
     display: block;
-    width: 32px;
-    height: 32px;
+    width: var(--control);
+    height: var(--control);
     outline: 2px solid transparent;
     transition: outline-color var(--duration);
   }
