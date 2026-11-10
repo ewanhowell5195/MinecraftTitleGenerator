@@ -2,11 +2,14 @@ import fs from "node:fs"
 import path from "node:path"
 import { basedOnParts } from "../lib/credits.js"
 import { flattenFonts, fontFolder, fullName } from "../lib/font.js"
+import { encodeTitle } from "../lib/linkformat.js"
 import { titleCase } from "../lib/names.js"
+import { FILE_VERSION, overlayLayer } from "../lib/settings.js"
 import { stripUse } from "../lib/strips.js"
 import { escaped } from "./http.js"
 
 const STRIPS = "strips."
+const PREVIEW_FONT = "minecraft-ten"
 const KINDS = { font: ["font", "fonts"], texture: ["texture", "textures"], overlay: ["overlay", "overlays"], tileable: ["tileable", "tileables"] }
 const LIBRARIES = [
   { name: "three.js", url: "https://github.com/mrdoob/three.js", by: "mrdoob", licence: "MIT" },
@@ -49,8 +52,9 @@ function listed(names) {
 function pieceHtml(piece) {
   const based = piece.based ? `<span class="based">Based on ${escaped(piece.based)}</span>` : ""
   const others = piece.people.filter(person => person !== piece.person)
-  const shared = others.length ? `<button type="button" class="with" data-id="${escaped(piece.id)}" title="With ${escaped(listed(others))}">Collaboration</button>` : ""
-  return `<li class="piece" data-id="${escaped(piece.id)}" data-stats="${escaped(piece.stats.join(" "))}"><div class="thumb"><img src="${escaped(piece.image)}" alt="" loading="lazy"></div><span class="name">${escaped(piece.name)}</span><span class="where">${escaped(piece.where)}</span>${based}${shared}</li>`
+  const shared = others.length ? `<button type="button" class="with" data-id="${escaped(piece.id)}" data-easy-tooltip="With ${escaped(listed(others))}" data-easy-tooltip-class="slow">Collaboration</button>` : ""
+  const href = `/app/?title=${encodeTitle({ version: FILE_VERSION, lines: [{ text: piece.name, ...piece.line }] }).code}`
+  return `<li class="piece" data-id="${escaped(piece.id)}" data-stats="${escaped(piece.stats.join(" "))}"><div class="thumb"><img src="${escaped(piece.image)}" alt="" loading="lazy"></div><a class="name" href="${escaped(href)}">${escaped(piece.name)}</a><span class="where">${escaped(piece.where)}</span>${based}${shared}</li>`
 }
 
 export function creditsHtml(root) {
@@ -86,7 +90,12 @@ export function creditsHtml(root) {
 
   for (const font of fonts) {
     const based = font.basedOn ? fullName(fontOf(font.basedOn), fonts) : null
-    add(font.author, { kind: "font", name: fullName(font, fonts), image: `${fontFolder(font)}/thumbnails/flat.png`, where: "Font", based, stats: [font.id], id: font.id })
+    add(font.author, { kind: "font", name: fullName(font, fonts), image: `${fontFolder(font)}/thumbnails/flat.png`, where: "Font", based, stats: [font.id], id: font.id, line: { font: font.id } })
+  }
+
+  function lineFor(kind, font, list, id, entry, variant = null) {
+    if (kind === "texture") return { font, textureSource: "premade", texture: id, textureVariant: variant }
+    return { font, textureSource: "premade", ...(list.textures?.flat ? { texture: "flat" } : {}), overlayMode: "custom", overlays: [overlayLayer(id, entry)] }
   }
 
   for (const [owner, list] of lists) {
@@ -98,17 +107,17 @@ export function creditsHtml(root) {
       const where = strips ? `Strip ${kind}` : `${fullName(users[0], fonts)} ${kind}`
       for (const [id, entry] of Object.entries(list[group] ?? {})) {
         const stats = users.map(font => `${font.id}.${id}`)
-        add(entry.author, { kind, name: entry.name ?? titleCase(id), image: `${thumbnails}/${id}.png`, where, based: basedOnLabel(entry.basedOn, owner), stats, id: `${owner}.${id}` })
-        for (const [variantId, variant] of Object.entries(entry.variants ?? {})) add(variant.author, { kind, name: variant.name ?? titleCase(variantId), image: `${thumbnails}/${variantId}.png`, where, based: basedOnLabel(variant.basedOn, owner), stats: [], id: `${owner}.${variantId}` })
+        add(entry.author, { kind, name: entry.name ?? titleCase(id), image: `${thumbnails}/${id}.png`, where, based: basedOnLabel(entry.basedOn, owner), stats, id: `${owner}.${id}`, line: lineFor(kind, users[0].id, list, id, entry) })
+        for (const [variantId, variant] of Object.entries(entry.variants ?? {})) add(variant.author, { kind, name: variant.name ?? titleCase(variantId), image: `${thumbnails}/${variantId}.png`, where, based: basedOnLabel(variant.basedOn, owner), stats: [], id: `${owner}.${variantId}`, line: lineFor(kind, users[0].id, list, id, entry, variantId) })
       }
     }
   }
 
   for (const [id, tileable] of Object.entries(tileables)) {
     const stats = [`tileable.${id}`]
-    if (tileable.author !== "Mojang") add(tileable.author, { kind: "tileable", name: tileable.name ?? titleCase(id), image: `tileables/${tileable.path ?? "minecraft"}/${id}.png`, where: "Tileable texture", stats, id: `tileable.${id}` })
+    if (tileable.author !== "Mojang") add(tileable.author, { kind: "tileable", name: tileable.name ?? titleCase(id), image: `tileables/${tileable.path ?? "minecraft"}/${id}.png`, where: "Tileable texture", stats, id: `tileable.${id}`, line: { font: PREVIEW_FONT, textureSource: "tileable", tileableSource: "premade", tileable: id } })
     for (const [variantId, variant] of Object.entries(tileable.variants ?? {})) {
-      if (variant.author !== "Mojang") add(variant.author, { kind: "tileable", name: variant.name ?? titleCase(variantId), image: `tileables/${variant.path ?? tileable.path ?? "minecraft"}/${variantId}.png`, where: "Tileable texture", stats: [], id: `tileable.${variantId}` })
+      if (variant.author !== "Mojang") add(variant.author, { kind: "tileable", name: variant.name ?? titleCase(variantId), image: `tileables/${variant.path ?? tileable.path ?? "minecraft"}/${variantId}.png`, where: "Tileable texture", stats: [], id: `tileable.${variantId}`, line: { font: PREVIEW_FONT, textureSource: "tileable", tileableSource: "premade", tileable: id, tileableVariant: variantId } })
     }
   }
 

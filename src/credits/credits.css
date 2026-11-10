@@ -48,6 +48,8 @@
 }
 
 .with {
+  position: relative;
+  z-index: 1;
   align-self: flex-start;
   padding: 0;
   margin-top: 4px;
@@ -109,6 +111,18 @@
   font-size: 13px;
   line-height: 1.35;
   background: var(--surface);
+  position: relative;
+  user-select: none;
+  transition: background-color 0.12s;
+}
+
+.piece:hover {
+  background: #1f2126;
+}
+
+.piece:has(.name:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .piece[hidden] {
@@ -165,6 +179,14 @@
   font-size: 15px;
   font-weight: 700;
   color: var(--text);
+  text-decoration: none;
+  outline: none;
+}
+
+.piece .name::after {
+  content: "";
+  position: absolute;
+  inset: 0;
 }
 
 .piece .where,
