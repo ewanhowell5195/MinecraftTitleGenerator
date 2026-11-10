@@ -102,6 +102,22 @@ function boundsOf(polygons) {
   return { left: Math.min(...points.map(point => point[0])), right: Math.max(...points.map(point => point[0])), top: Math.min(...points.map(point => point[1])), bottom: Math.max(...points.map(point => point[1])) }
 }
 
+function windingAt(polygons, x, y) {
+  let winding = 0
+  for (const polygon of polygons) {
+    for (const [index, [ax, ay]] of polygon.entries()) {
+      const [bx, by] = polygon[(index + 1) % polygon.length]
+      if ((ay <= y) === (by <= y)) continue
+      if (ax + (y - ay) / (by - ay) * (bx - ax) > x) winding += by > ay ? 1 : -1
+    }
+  }
+  return winding
+}
+
+function fillAt(markup, x, y) {
+  return pathsOf(markup).findLast(path => windingAt(path.polygons, x, y))?.fill ?? null
+}
+
 function pathsFilled(markup, fill) {
   return pathsOf(markup).filter(path => path.fill === fill)
 }
@@ -364,11 +380,13 @@ describe("vectorTitle colours", () => {
     assert.equal(pathsFilled(markup, "#0000ff").length, 1)
   })
 
-  test("a colour stays apart where another colour lands between", () => {
+  test("a colour above another one sinks into its earlier shape, cutting what it covered", () => {
     const texture = textureOf(8, 8, (x, y) => x >= 2 && x < 6 && y >= 2 && y < 6 ? BLUE : RED)
     const words = [[2, 34], [20, 52]].map(([left, right]) => meshOf([{ left, right, bottom: 8, top: 56 }], new THREE.MeshBasicMaterial({ map: texture, depthWrite: false })))
     const { markup } = titleOf(...words)
-    assert.equal(pathsFilled(markup, "#0000ff").length, 2)
+    assert.equal(pathsFilled(markup, "#0000ff").length, 1)
+    assert.equal(pathsFilled(markup, "#ff0000").length, 1)
+    assert.deepEqual([14, 26, 40, 58].map(x => fillAt(markup, x, 24)), ["#0000ff", "#ff0000", "#0000ff", "#ff0000"])
   })
 
   test("outlines and faces of separate lines join", () => {
@@ -928,14 +946,7 @@ describe("vectorTitle joins", () => {
 
   test("a stripe ending at a plain neighbour is covered back by that neighbour", () => {
     const { markup } = titleOfTwo((x, y) => x < 8 ? y >= 6 && y < 10 ? BLUE : RED : GREEN)
-    const paths = pathsOf(markup)
-    const reach = paths.findIndex(path => path.fill === "#0000ff" && path.polygons.some(polygon => boundsOf([polygon]).right === 34))
-    const cover = paths.findLastIndex(path => path.fill === "#00ff00" && path.polygons.some(polygon => {
-      const box = boundsOf([polygon])
-      return box.left === 32 && box.right === 36 && box.top === 25 && box.bottom === 39
-    }))
-    assert.ok(reach >= 0, "the stripe reaches over the seam")
-    assert.ok(cover > reach, "the neighbour paints back over it")
+    assert.deepEqual([30, 31.5, 32.5, 35].map(x => fillAt(markup, x, 32)), ["#0000ff", "#0000ff", "#00ff00", "#00ff00"])
   })
 
   test("stripes of different colours overlap under the later face", () => {

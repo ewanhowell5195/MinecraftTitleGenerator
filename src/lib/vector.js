@@ -1,4 +1,4 @@
-import { FillRule, intersectD, unionD } from "@countertype/clipper2-ts"
+import { FillRule, difference, intersectD, union, unionD } from "@countertype/clipper2-ts"
 import * as THREE from "three"
 import { packed } from "./colour.js"
 import { clamp } from "./maths.js"
@@ -673,17 +673,55 @@ function filledArea(polygons) {
   return unionD(polygons.map(polygon => polygon.map(([x, y]) => ({ x, y }))), FillRule.NonZero, SEAM_PRECISION).map(path => path.map(point => [point.x, point.y]))
 }
 
+function pathMarkup(fill, loops) {
+  return loops.length ? `<path fill="${fill}" d="${writePath(loops)}"/>` : ""
+}
+
+function toPaths64(loops) {
+  return loops.map(loop => loop.map(([x, y]) => ({ x, y })))
+}
+
+function fromPaths64(paths) {
+  return paths.map(path => path.map(({ x, y }) => [x, y]))
+}
+
+function sinkToSameFill(shapes) {
+  for (const [later, shape] of shapes.entries()) {
+    if (!shape.shown.length) continue
+    const target = shapes.findIndex(other => other.fill === shape.fill && other.shown.length)
+    if (target >= later) continue
+    const area = toPaths64(shape.loops)
+    const box = boxOfPolygons(shape.loops)
+    const cut = []
+    for (const other of shapes.slice(target + 1, later)) {
+      if (!other.shown.length || other.fill === shape.fill || !boxesOverlap(boxOfPolygons(other.shown), box)) continue
+      cut.push({ other, shown: fromPaths64(difference(toPaths64(other.shown), area, FillRule.NonZero)), loops: fromPaths64(difference(toPaths64(other.loops), area, FillRule.NonZero)) })
+    }
+    const joined = fromPaths64(union(toPaths64(shapes[target].shown), toPaths64(shape.shown), FillRule.NonZero))
+    const before = pathMarkup(shape.fill, shapes[target].shown).length + pathMarkup(shape.fill, shape.shown).length + cut.reduce((sum, { other }) => sum + pathMarkup(other.fill, other.shown).length, 0)
+    const after = pathMarkup(shape.fill, joined).length + cut.reduce((sum, { other, shown }) => sum + pathMarkup(other.fill, shown).length, 0)
+    if (after >= before) continue
+    shapes[target].shown = joined
+    shapes[target].loops = fromPaths64(union(toPaths64(shapes[target].loops), area, FillRule.NonZero))
+    shape.shown = []
+    for (const { other, shown, loops } of cut) {
+      other.shown = shown
+      other.loops = loops
+    }
+  }
+  return shapes
+}
+
 function markupOf(entries, { left, top, totals, cover }) {
   const source = new Map(entries.flatMap(([, polygons], index) => polygons.map(polygon => [polygon, index])))
   const shapes = []
   for (const [fill, polygons] of mergedByFill(entries, totals).toReversed()) {
     const filled = Array.from(Map.groupBy(polygons, polygon => source.get(polygon)).values()).flatMap(filledArea)
     const loops = unionOf(stitched(loopsInHundredths(filled, left, top)))
-    const shown = visibleLoops(loops, cover)
-    if (shown.length) shapes.unshift(`<path fill="${fill}" d="${writePath(shown)}"/>`)
+    shapes.unshift({ fill, loops, shown: visibleLoops(loops, cover) })
     addToCover(cover, loops)
   }
-  return shapes.join("")
+  return sinkToSameFill(shapes).map(({ fill, shown }) => pathMarkup(fill, shown)).join("")
 }
 
 function useMergedFills(layers, merged) {
