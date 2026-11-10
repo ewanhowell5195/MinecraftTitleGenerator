@@ -48,7 +48,7 @@
     </div>
   </template>
   <p v-else-if="error" class="hint bad">{{ error }}</p>
-  <p v-else-if="empty" class="hint">You haven't sent anything yet. <a href="/submit/">Send your first submission</a>.</p>
+  <p v-else-if="empty" class="hint">Nothing is waiting for review. <a href="/submit/">Send a submission</a>.</p>
   <section v-if="waiting?.length" class="section">
     <h2>Waiting for review</h2>
     <SubmissionList :items="waiting" :fonts="props.fonts" show-sender />
