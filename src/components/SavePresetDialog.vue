@@ -6,6 +6,7 @@
   import { sharingProblem } from "../lib/titleFacts.js"
   import Button from "./Button.vue"
   import Field from "./Field.vue"
+  import Notice from "./Notice.vue"
   import RenderDialog from "./RenderDialog.vue"
   import ReplaceSelect from "./ReplaceSelect.vue"
   import ShareAccount from "./ShareAccount.vue"
@@ -93,7 +94,7 @@
   <RenderDialog v-if="shareOnly && namingShared" title="Share publicly" close-title="Cancel" dismissable @close="emit('close')">
     <form class="dialog-body" @submit.prevent="submit">
       <p class="hint">This title is already shared as {{ suggested }}.</p>
-      <div class="buttons">
+      <div class="dialog-actions">
         <Button primary type="submit">View in Community</Button>
       </div>
     </form>
@@ -112,8 +113,8 @@
         <input type="checkbox" v-model="agreed">
         <span>I agree to the <a href="/terms/" target="_blank" rel="noopener">Terms of Service</a></span>
       </label>
-      <p v-if="error || problem" class="error">{{ error || problem }}</p>
-      <div class="footer">
+      <Notice v-if="error || problem">{{ error || problem }}</Notice>
+      <div class="dialog-actions">
         <SubmissionUsage v-if="!namingShared && !target?.online" class="usage" />
         <div class="buttons">
           <Button v-if="!shareOnly" type="submit" :primary="namingShared || target?.online" :disabled="sending || target?.online && (!!problem || !agreed)">{{ target ? "Replace" : "Save" }}</Button>
@@ -125,13 +126,6 @@
 </template>
 
 <style scoped>
-  .footer {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-  }
-
   .buttons {
     display: flex;
     flex: none;

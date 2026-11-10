@@ -117,7 +117,7 @@
               <span v-if="option.hint" class="hint">{{ option.hint }}</span>
             </span>
           </li>
-          <li v-if="!shown.length" class="empty">Nothing matches this search</li>
+          <li v-if="!shown.length" class="empty empty-state">Nothing matches this search</li>
         </ul>
       </div>
     </Teleport>
@@ -183,7 +183,6 @@
   }
 
   li.empty {
-    color: var(--faint);
     cursor: default;
   }
 

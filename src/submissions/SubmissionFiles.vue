@@ -1,4 +1,5 @@
 <script setup>
+  import Notice from "../components/Notice.vue"
   import { onBeforeUnmount, ref, watch } from "vue"
   import { SUBMISSION_KINDS } from "../lib/submissionKinds/index.js"
   import { submissionExtraUrl, submissionFileUrl } from "../lib/submissionsApi.js"
@@ -54,7 +55,7 @@
 <template>
   <div class="files">
     <p v-if="files.length === 0 && !problem" class="hint">No files.</p>
-    <p v-if="problem" class="hint bad">{{ problem }}</p>
+    <Notice v-if="problem">{{ problem }}</Notice>
     <figure v-for="file of files" :key="file.key" class="file">
       <figcaption>
         <strong>{{ file.name }}</strong>

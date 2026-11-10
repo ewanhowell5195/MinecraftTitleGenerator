@@ -3,6 +3,7 @@
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
   import NavTabs from "../components/NavTabs.vue"
+  import Notice from "../components/Notice.vue"
   import UserName from "../components/UserName.vue"
   import { account } from "../lib/community.js"
   import { SUBMISSION_KINDS } from "../lib/submissionKinds/index.js"
@@ -122,7 +123,7 @@
 </script>
 
 <template>
-  <p v-if="error && !item" class="hint bad">{{ error }}</p>
+  <Notice v-if="error && !item">{{ error }}</Notice>
   <template v-else-if="item">
     <section class="intro">
       <a class="hint" href="/submissions/">Submissions</a>
@@ -137,7 +138,7 @@
       <p class="hint">GitHub is building its files. This usually takes a minute or two, and this page updates when it's done.</p>
     </section>
     <template v-else>
-      <p v-if="processing?.state === 'failed'" class="hint bad">Processing this submission failed on GitHub. <a :href="processing.url" target="_blank" rel="noopener">See what went wrong</a>.</p>
+      <Notice v-if="processing?.state === 'failed'">Processing this submission failed on GitHub. <a :href="processing.url" target="_blank" rel="noopener">See what went wrong</a>.</Notice>
       <ReviewPanel v-if="reviewing" :key="item.updatedAt" :item="item" @done="reviewed" />
       <div class="submission-view">
         <div class="preview flow">
@@ -167,7 +168,7 @@
             <Button :href="`${page}/edit`"><template #icon><Icon name="pencil" :size="16" /></template>Edit</Button>
             <Button danger :disabled="busy" @click="withdraw"><template #icon><Icon name="trash" :size="16" /></template>Withdraw</Button>
           </div>
-          <p v-if="error" class="hint bad">{{ error }}</p>
+          <Notice v-if="error">{{ error }}</Notice>
         </div>
       </div>
       <section class="section">

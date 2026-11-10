@@ -27,7 +27,7 @@
     <Tile v-for="item of items" :key="item.id" :label="item.name" :href="submissionPage(item.id)">
       <template #picture>
         <img v-if="imageOf(item)" class="shot" :src="imageOf(item)" alt="" loading="lazy" @error="missing.add(item.id)">
-        <span v-else class="pending">No thumbnail yet</span>
+        <span v-else class="empty-state">No thumbnail yet</span>
       </template>
       <span class="where">{{ CLIENT_KINDS[item.kind].summary(item, fonts) }}</span>
       <span v-if="showSender" class="sender">Submitted by <UserName v-if="item.ownerName" :name="item.ownerName" :provider="item.ownerProvider" :size="13" /><template v-else>a deleted account</template></span>
@@ -39,11 +39,6 @@
   .shot {
     width: 100%;
     height: 100%;
-  }
-
-  .pending {
-    font-size: var(--font-sm);
-    color: var(--faint);
   }
 
   .where {

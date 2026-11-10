@@ -2,6 +2,7 @@
   import { ref } from "vue"
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
+  import Notice from "../components/Notice.vue"
   import { SUBMISSION_LIMITS } from "../lib/submissions.js"
   import { postComment } from "../lib/submissionsApi.js"
 
@@ -39,7 +40,7 @@
 
 <template>
   <div class="comments">
-    <p v-if="!comments" class="hint bad">The comments couldn't be loaded from GitHub right now.</p>
+    <Notice v-if="!comments">The comments couldn't be loaded from GitHub right now.</Notice>
     <p v-else-if="!comments.length && !canComment" class="hint">No comments yet.</p>
     <ol v-else-if="comments.length" class="thread">
       <template v-for="item of comments" :key="item.id">
@@ -65,7 +66,7 @@
       <textarea v-model="text" rows="2" :maxlength="SUBMISSION_LIMITS.comment" placeholder="Write a comment" aria-label="Comment"></textarea>
       <Button primary type="submit" :disabled="busy || !text.trim()">Comment</Button>
     </form>
-    <p v-if="canComment && error" class="hint bad">{{ error }}</p>
+    <Notice v-if="canComment && error">{{ error }}</Notice>
   </div>
 </template>
 

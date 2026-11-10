@@ -46,8 +46,8 @@
 <template>
   <div ref="element" class="picture" :class="large ? 'large' : 'clickable'" :role="large ? null : 'button'" :tabindex="large ? null : 0" @click="open" @keydown.enter="open">
     <img v-if="seen && !failed" v-show="loaded" :src="pictureUrl({ code, fingerprint })" alt="" @load="loaded = true" @error="failed = true">
-    <span v-if="failed" class="status">Can't show this title</span>
-    <span v-else-if="(large || seen) && !loaded" class="status">Loading</span>
+    <span v-if="failed" class="status empty-state">Can't show this title</span>
+    <span v-else-if="(large || seen) && !loaded" class="status empty-state">Loading</span>
   </div>
 </template>
 
@@ -77,8 +77,4 @@
     display: block;
   }
 
-  .status {
-    font-size: var(--font-sm);
-    color: var(--faint);
-  }
 </style>

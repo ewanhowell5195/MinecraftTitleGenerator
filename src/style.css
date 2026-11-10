@@ -189,10 +189,6 @@ button:where(:not(.button, .field-button)):disabled:hover {
   image-rendering: pixelated;
 }
 
-.upload-preview .empty {
-  font-size: var(--font-md);
-  color: var(--faint);
-}
 
 .grip {
   display: flex;
@@ -454,8 +450,13 @@ button:where(:not(.button, .field-button)):disabled:hover {
   color: var(--text);
 }
 
-.dialog-body .error {
-  color: var(--danger);
+
+.dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .toast {

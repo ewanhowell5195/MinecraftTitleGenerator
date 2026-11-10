@@ -208,7 +208,7 @@
     <template v-else>
       <div class="upload-preview">
         <img v-if="layer?.file" :src="layer.file" alt="">
-        <div v-else class="empty">No file selected</div>
+        <div v-else class="empty-state">No file selected</div>
       </div>
       <Button file wide accept="image/png" @change="readFile($event, pickFile)">
         <span>Choose a PNG</span>

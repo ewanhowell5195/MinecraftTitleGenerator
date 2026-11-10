@@ -2,6 +2,7 @@
   import { onMounted, ref } from "vue"
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
+  import Notice from "../components/Notice.vue"
   import { SUBMISSION_LIMITS } from "../lib/submissions.js"
   import { reviewState, reviewSubmission } from "../lib/submissionsApi.js"
 
@@ -72,7 +73,7 @@
         <Button :disabled="busy" @click="declining = false">Cancel</Button>
       </div>
     </div>
-    <p v-if="error" class="hint bad">{{ error }}</p>
+    <Notice v-if="error">{{ error }}</Notice>
   </section>
 </template>
 

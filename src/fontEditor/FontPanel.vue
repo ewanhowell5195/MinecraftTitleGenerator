@@ -4,6 +4,7 @@
   import Dropdown from "../components/Dropdown.vue"
   import Field from "../components/Field.vue"
   import Icon from "../components/Icon.vue"
+  import Notice from "../components/Notice.vue"
   import NumberInput from "../components/NumberInput.vue"
   import { fullName, loadFontList } from "../lib/font.js"
   import { DEFAULT_BORDER, DEFAULT_DEPTH, DEFAULT_SPACE_WIDTH, autoStretch, lostPixels, resizeFont, setSquareSize, slug, squareSizeLoss, squaresOf } from "../lib/fontEditor.js"
@@ -140,13 +141,13 @@
         <Field label="Square size"><NumberInput min="1" :value="font.grid" @input="setSquare" @change="setSquare" /></Field>
       </div>
       <p class="hint">Height and width count squares, and one click paints one square. Square size is how many pixels each square is. Each character is {{ finalSize }}.</p>
-      <div v-if="warning" class="warning">
+      <Notice v-if="warning">
         <p>{{ warning.text }} changes {{ warning.lost }} drawn {{ warning.lost === 1 ? "pixel" : "pixels" }}.</p>
         <div class="row">
           <Button @click="warning = null">Cancel</Button>
           <Button danger @click="confirmResize">Change anyway</Button>
         </div>
-      </div>
+      </Notice>
     </section>
 
     <section class="flow">
@@ -220,20 +221,6 @@
     position: absolute;
     top: 0;
     right: 21px;
-  }
-
-  .warning {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 10px 12px;
-    font-size: var(--font-md);
-    background: var(--card);
-    border-left: 3px solid var(--danger);
-  }
-
-  .warning p {
-    margin: 0;
   }
 
   .option {

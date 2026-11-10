@@ -3,6 +3,7 @@
   import Button from "../components/Button.vue"
   import FluidTabs from "fluid-tabs-vue"
   import AccountMenu from "../components/AccountMenu.vue"
+  import Notice from "../components/Notice.vue"
   import NotificationBell from "../components/NotificationBell.vue"
   import Icon from "../components/Icon.vue"
   import MenuStrip from "../components/MenuStrip.vue"
@@ -93,8 +94,8 @@
       <NotificationBell />
     </header>
 
-    <p v-if="loadError" class="notice">{{ loadError }}</p>
-    <p v-if="saveError" class="notice">{{ saveError }}</p>
+    <Notice v-if="loadError" class="top-notice">{{ loadError }}</Notice>
+    <Notice v-if="saveError" class="top-notice">{{ saveError }}</Notice>
 
     <StartScreen v-if="!font" />
 
@@ -121,7 +122,7 @@
     <RenderDialog v-if="asking" title="Start a new font?" close-title="Cancel" dismissable @close="asking = false">
       <div class="dialog-body">
         <p>This browser only remembers one font, so <strong>{{ font.name }}</strong> will be removed. Download its JSON first if you want to keep it.</p>
-        <div class="buttons">
+        <div class="dialog-actions">
           <Button @click="downloadJson"><template #icon><Icon name="download" :size="14" /></template>Download JSON</Button>
           <div class="spacer"></div>
           <Button @click="asking = false">Cancel</Button>
@@ -171,13 +172,8 @@
     border-left: 1px solid var(--line-strong);
   }
 
-  .notice {
+  .top-notice {
     flex: none;
-    margin: 0;
-    padding: 8px 14px;
-    font-size: var(--font-md);
-    color: #1d0a08;
-    background: var(--danger);
   }
 
   .workspace {
@@ -261,12 +257,6 @@
 
   .page-column.wide {
     max-width: 1280px;
-  }
-
-  .buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
   }
 
   @media (max-width: 1000px) {

@@ -5,6 +5,7 @@
   import { sharingProblem } from "../lib/titleFacts.js"
   import Button from "./Button.vue"
   import Field from "./Field.vue"
+  import Notice from "./Notice.vue"
   import RenderDialog from "./RenderDialog.vue"
   import ReplaceSelect from "./ReplaceSelect.vue"
   import ShareAccount from "./ShareAccount.vue"
@@ -51,9 +52,9 @@
         <input type="checkbox" v-model="agreed">
         <span>I agree to the <a href="/terms/" target="_blank" rel="noopener">Terms of Service</a></span>
       </label>
-      <p v-if="error || problem" class="error">{{ error || problem }}</p>
-      <div class="footer">
-        <SubmissionUsage v-if="!target" />
+      <Notice v-if="error || problem">{{ error || problem }}</Notice>
+      <div class="dialog-actions">
+        <SubmissionUsage v-if="!target" class="grow" />
         <Button primary type="submit" :disabled="sending || !!problem || !agreed || !target && usage && usage.used >= usage.limit">{{ target ? sending ? "Replacing" : "Replace" : sending ? "Sharing" : "Share" }}</Button>
       </div>
     </form>
@@ -61,13 +62,6 @@
 </template>
 
 <style scoped>
-  .footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-  }
-
   button {
     flex: none;
     margin-left: auto;

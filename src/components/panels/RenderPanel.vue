@@ -12,6 +12,7 @@
   import Field from "../Field.vue"
   import GradientEditor from "../GradientEditor.vue"
   import Icon from "../Icon.vue"
+  import Notice from "../Notice.vue"
   import NumberInput from "../NumberInput.vue"
   import Panel from "../Panel.vue"
   import RenderProgress from "../RenderProgress.vue"
@@ -156,7 +157,7 @@
     <Button wide v-if="framing.tab !== 'minecraft'" :disabled="progress !== null" @click="saveVector"><template #icon><Icon name="download" :size="16" /></template>
       <span>Save SVG</span>
     </Button>
-    <p v-if="failed" class="hint bad">{{ failed }}</p>
+    <Notice v-if="failed">{{ failed }}</Notice>
   </Panel>
 
   <RenderProgress v-if="progress !== null" :progress="progress" @close="cancel" />

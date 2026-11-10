@@ -1,5 +1,6 @@
 <script setup>
   import { computed, shallowRef, watch } from "vue"
+  import Notice from "../../components/Notice.vue"
   import Tile from "../../components/Tile.vue"
   import TileGrid from "../../components/TileGrid.vue"
   import { pixelsOf } from "../../lib/canvas.js"
@@ -112,7 +113,7 @@
 
 <template>
   <div class="flow">
-    <p v-if="problem" class="hint bad">{{ problem }}</p>
+    <Notice v-if="problem">{{ problem }}</Notice>
     <p v-else-if="!drawn" class="hint">Loading the characters...</p>
     <template v-else>
       <p class="hint">{{ drawn.cells.length }} drawn<template v-if="drawn.blank.length">, {{ drawn.blank.length }} left blank</template>.</p>

@@ -136,6 +136,12 @@
   text-decoration: underline;
 }
 
+.empty-state {
+  font-size: var(--font-md);
+  line-height: 1.45;
+  color: var(--faint);
+}
+
 .field-button {
   justify-content: flex-start;
   gap: 10px;

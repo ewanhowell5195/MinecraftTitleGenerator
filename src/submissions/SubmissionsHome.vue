@@ -5,6 +5,7 @@
   import { account, signIn, signInProviders } from "../lib/community.js"
   import { providerLabel } from "../lib/providers.js"
   import { mySubmissions, reviewQueue } from "../lib/submissionsApi.js"
+  import Notice from "../components/Notice.vue"
   import SubmissionList from "./SubmissionList.vue"
 
   const props = defineProps({
@@ -48,7 +49,7 @@
       <Button v-for="id of signInProviders" :key="id" @click="signIn(id)"><template #icon><Icon :name="id" :size="16" /></template>Sign in with {{ providerLabel(id) }}</Button>
     </div>
   </template>
-  <p v-else-if="error" class="hint bad">{{ error }}</p>
+  <Notice v-else-if="error">{{ error }}</Notice>
   <p v-else-if="empty" class="hint">Nothing is waiting for review. <a href="/submit/">Send a submission</a>.</p>
   <section v-if="waiting?.length" class="section">
     <h2>Waiting for review</h2>

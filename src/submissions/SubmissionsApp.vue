@@ -4,6 +4,7 @@
   import { refreshAccount } from "../lib/community.js"
   import { loadFontList } from "../lib/font.js"
   import { loadStats } from "../lib/stats.js"
+  import Notice from "../components/Notice.vue"
   import AccountPage from "./AccountPage.vue"
   import SubmissionsHome from "./SubmissionsHome.vue"
   import SubmissionView from "./SubmissionView.vue"
@@ -31,7 +32,7 @@
 <template>
   <main class="page">
     <AccountPage v-if="managing" />
-    <p v-else-if="error" class="hint bad">Couldn't load the fonts: {{ error }}</p>
+    <Notice v-else-if="error">Couldn't load the fonts: {{ error }}</Notice>
     <template v-else-if="fonts">
       <SubmissionView v-if="viewed" :id="Number(viewed)" :fonts="fonts" :editing="!!editing" />
       <SubmissionsHome v-else-if="listing" :fonts="fonts" />

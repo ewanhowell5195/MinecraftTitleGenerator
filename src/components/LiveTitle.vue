@@ -166,7 +166,7 @@
     <div ref="stage" class="stage" :class="{ hidden: !shown || error }"></div>
     <ObjectRenderer v-for="object of title.objects" :key="object.id" :object="object" :fonts="fonts" :tileables="tileables" :title="title" />
     <p v-if="error" class="message bad">{{ error }}</p>
-    <p v-else-if="!shown" class="message">{{ busy ? "Rendering..." : message }}</p>
+    <p v-else-if="!shown" class="message empty-state">{{ busy ? "Rendering..." : message }}</p>
   </div>
 </template>
 
@@ -200,9 +200,7 @@
     justify-content: center;
     margin: 0;
     padding: 0 12px;
-    font-size: var(--font-md);
     text-align: center;
-    color: var(--muted);
   }
 
   .bad {

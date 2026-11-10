@@ -15,6 +15,7 @@
   import Button from "../Button.vue"
   import Field from "../Field.vue"
   import Icon from "../Icon.vue"
+  import Notice from "../Notice.vue"
   import NumberInput from "../NumberInput.vue"
   import Panel from "../Panel.vue"
   import RenderDialog from "../RenderDialog.vue"
@@ -159,13 +160,13 @@
         <span class="name ellipsis">{{ customName || object.customFont.fileName }}</span>
       </div>
       <div v-else class="upload-preview">
-        <div class="empty">No font uploaded</div>
+        <div class="empty-state">No font uploaded</div>
       </div>
       <Button file wide accept=".json,.png,.ttf,.otf,.woff,.woff2,application/json,image/png,font/ttf,font/otf,font/woff,font/woff2" :disabled="loading" @change="upload"><template #icon><Icon name="open" :size="16" /></template>
         <span>{{ loading ? "Loading..." : object.customFont ? "Replace font" : "Choose a font file" }}</span>
         
       </Button>
-      <p v-if="customError" class="hint bad">{{ customError }}</p>
+      <Notice v-if="customError">{{ customError }}</Notice>
       <p v-else class="hint">A JSON from the font editor, a Minecraft ascii.png, or a .ttf, .otf, .woff or .woff2 font.</p>
       <template v-if="imported && usingCustom">
         <template v-if="object.customFont.kind === 'outline'">

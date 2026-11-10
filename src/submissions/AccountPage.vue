@@ -2,6 +2,7 @@
   import { ref } from "vue"
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
+  import Notice from "../components/Notice.vue"
   import RenderDialog from "../components/RenderDialog.vue"
   import { account, deleteAccount, signIn, signInProviders } from "../lib/community.js"
   import { providerLabel } from "../lib/providers.js"
@@ -65,7 +66,7 @@
         <p class="hint">Your shared presets are deleted, and your submissions waiting for review are withdrawn. Submissions already added to the title generator stay, as the <a href="/terms/" target="_blank" rel="noopener">Terms of Service</a> allow.</p>
         <Button danger :disabled="busy" @click="remove('remove')"><template #icon><Icon name="trash" :size="16" /></template>Delete account and remove them</Button>
       </div>
-      <p v-if="error" class="error">{{ error }}</p>
+      <Notice v-if="error">{{ error }}</Notice>
     </div>
   </RenderDialog>
 </template>

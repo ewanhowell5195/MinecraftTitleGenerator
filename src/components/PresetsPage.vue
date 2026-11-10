@@ -12,6 +12,7 @@
   import { openSharedLink } from "../lib/share.js"
   import AccountMenu from "./AccountMenu.vue"
   import Button from "./Button.vue"
+  import Notice from "./Notice.vue"
   import NotificationBell from "./NotificationBell.vue"
   import DeletePresetDialog from "./DeletePresetDialog.vue"
   import Dropdown from "./Dropdown.vue"
@@ -371,12 +372,12 @@
           </template>
         </div>
         <div class="list">
-          <p v-if="tooShort" class="message">Keep typing to search.</p>
-          <p v-else-if="error" class="message error">{{ error }}</p>
-          <p v-else-if="tab === 'mine' && presetsError" class="message error">{{ presetsError }}</p>
-          <p v-else-if="tab === 'mine' && presetsLoading" class="message">Loading your presets</p>
-          <p v-else-if="tab === 'community' ? !results.length && !loading : !localShown.length" class="message">{{ emptyMessage }}</p>
-          <p v-if="tab === 'mine' && !account && signInProviders.length" class="message">Sign in to keep your presets under your account. The presets saved in this browser, and anything shared from it, move to your account when you do.</p>
+          <p v-if="tooShort" class="message empty-state">Keep typing to search.</p>
+          <Notice v-else-if="error" class="spaced">{{ error }}</Notice>
+          <Notice v-else-if="tab === 'mine' && presetsError" class="spaced">{{ presetsError }}</Notice>
+          <p v-else-if="tab === 'mine' && presetsLoading" class="message empty-state">Loading your presets</p>
+          <p v-else-if="tab === 'community' ? !results.length && !loading : !localShown.length" class="message empty-state">{{ emptyMessage }}</p>
+          <p v-if="tab === 'mine' && !account && signInProviders.length" class="message empty-state">Sign in to keep your presets under your account. The presets saved in this browser, and anything shared from it, move to your account when you do.</p>
           <div v-if="tab === 'community'" class="grid">
             <div v-for="preset of results" :key="preset.id" class="card" :class="{ selected: selected?.id === preset.id }" @click="selectCommunity(preset)">
               <TitlePicture :code="preset.code" :fingerprint="preset.fingerprint" @open="selectCommunity(preset)" />
@@ -405,7 +406,7 @@
               </div>
             </section>
           </template>
-          <p v-if="tab === 'community' && loading" class="message loading">Loading presets</p>
+          <p v-if="tab === 'community' && loading" class="message loading empty-state">Loading presets</p>
           <div ref="sentinel" class="sentinel"></div>
         </div>
       </main>
@@ -508,12 +509,10 @@
 
   .message {
     margin: 0 0 12px;
-    font-size: var(--font-md);
-    color: var(--muted);
   }
 
-  .message.error {
-    color: var(--danger);
+  .spaced {
+    margin-bottom: 12px;
   }
 
   .message.loading {

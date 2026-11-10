@@ -10,6 +10,7 @@
   import { parsedSheet, stripProblems } from "../lib/fontEditor.js"
   import { titleCase } from "../lib/names.js"
   import { centredOffset, stripFolder, stripUse } from "../lib/strips.js"
+  import Notice from "../components/Notice.vue"
   import NumberInput from "../components/NumberInput.vue"
   import Tile from "../components/Tile.vue"
   import TileGrid from "../components/TileGrid.vue"
@@ -200,7 +201,7 @@
     <section class="flow">
       <h3>Shared strips</h3>
       <p class="hint">Strip textures that several fonts share. A set works with your font when its letters and depth fit the strips.</p>
-      <p v-if="loadError" class="hint bad">Couldn't load the strip sets: {{ loadError }}</p>
+      <Notice v-if="loadError">Couldn't load the strip sets: {{ loadError }}</Notice>
       <div v-for="set of sets" :key="set.id" class="set card card-row" :class="{ selected: chosenSet === set.id }" tabindex="0" @click="choose(set.id)" @keydown.enter.self="choose(set.id)">
         <div class="set-text">
           <span class="set-name">{{ titleCase(set.id) }}</span>

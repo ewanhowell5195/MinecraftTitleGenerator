@@ -3,6 +3,7 @@
   import Button from "./components/Button.vue"
   import FluidTabs from "fluid-tabs-vue"
   import AccountMenu from "./components/AccountMenu.vue"
+  import Notice from "./components/Notice.vue"
   import NotificationBell from "./components/NotificationBell.vue"
   import Icon from "./components/Icon.vue"
   import LayerActions from "./components/LayerActions.vue"
@@ -158,7 +159,7 @@
     <main class="stage">
       <Viewport :items="titleItems" :selected="selected" />
       <RenderFrame v-if="view.render" />
-      <p v-if="status" class="error">{{ status }}</p>
+      <Notice v-if="status" class="status">{{ status }}</Notice>
       <p v-if="notice" class="toast" role="status">{{ notice }}</p>
     </main>
 
@@ -292,18 +293,12 @@
     overflow: hidden;
   }
 
-  .error {
+  .status {
     position: absolute;
     left: 16px;
     right: 16px;
     top: 16px;
     z-index: 3;
-    margin: 0;
-    padding: 10px 14px;
-    font-size: var(--font-md);
-    color: var(--danger);
-    background: var(--danger-soft);
-    border: 1px solid #5e2a25;
   }
 
   @media (max-width: 800px) {

@@ -12,6 +12,7 @@
   import Button from "../Button.vue"
   import GradientEditor from "../GradientEditor.vue"
   import Icon from "../Icon.vue"
+  import Notice from "../Notice.vue"
   import Panel from "../Panel.vue"
   import Segments from "../Segments.vue"
   import Slider from "../Slider.vue"
@@ -229,7 +230,7 @@
           <span>Downloading Minecraft {{ jar.version }}</span>
           <div class="bar" role="progressbar" :aria-valuenow="Math.round(jarProgress * 100)" aria-valuemin="0" aria-valuemax="100"><div class="fill" :style="{ width: `${jarProgress * 100}%` }"></div></div>
         </div>
-        <p v-if="blocksError" class="hint bad">{{ blocksError }}</p>
+        <Notice v-if="blocksError">{{ blocksError }}</Notice>
         <p v-else-if="blocks && !blockEntries.length" class="hint">This version has no block textures without transparency.</p>
         <template v-if="blockEntries.length">
           <input v-if="searchable(blockEntries)" type="text" v-model="search" placeholder="Search textures">
@@ -258,7 +259,7 @@
     <template v-if="object.textureSource === 'custom'">
       <div class="upload-preview">
         <img v-if="object.customTexture" :src="object.customTexture" alt="">
-        <div v-else class="empty">No texture uploaded</div>
+        <div v-else class="empty-state">No texture uploaded</div>
       </div>
       <Button file wide accept="image/png" @change="readFile($event, pickCustom)"><template #icon><Icon name="open" :size="16" /></template>
         <span>{{ object.customTexture ? "Replace texture" : "Choose a PNG" }}</span>

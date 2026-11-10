@@ -3,6 +3,7 @@
   import Button from "../components/Button.vue"
   import Field from "../components/Field.vue"
   import Icon from "../components/Icon.vue"
+  import Notice from "../components/Notice.vue"
   import NumberInput from "../components/NumberInput.vue"
   import Tile from "../components/Tile.vue"
   import TileGrid from "../components/TileGrid.vue"
@@ -80,7 +81,7 @@
     <div class="intro">
       <h1>Make a font</h1>
       <p>Draw every character yourself, or start from something that already exists. Your font stays in this browser until you download it.</p>
-      <p v-if="error" class="error">{{ error }}</p>
+      <Notice v-if="error" class="error">{{ error }}</Notice>
       <p v-if="busy" class="busy">{{ busy }}</p>
     </div>
 
@@ -146,9 +147,6 @@
 
   .intro .error {
     margin-top: 10px;
-    padding: 8px 12px;
-    color: #1d0a08;
-    background: var(--danger);
   }
 
   .intro .busy {

@@ -11,21 +11,11 @@
 
 <template>
   <RenderDialog :title="title" close-title="Close" dismissable @close="emit('close')">
-    <div class="message dialog-body">
+    <div class="dialog-body">
       <p><slot></slot></p>
-      <Button primary @click="emit('close')">OK</Button>
+      <div class="dialog-actions">
+        <Button primary @click="emit('close')">OK</Button>
+      </div>
     </div>
   </RenderDialog>
 </template>
-
-<style scoped>
-  .message {
-    align-items: flex-end;
-    gap: 16px;
-  }
-
-  .message p {
-    align-self: stretch;
-    font-size: var(--font-base);
-  }
-</style>

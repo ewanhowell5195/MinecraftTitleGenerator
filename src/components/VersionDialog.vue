@@ -1,6 +1,7 @@
 <script setup>
   import { computed, onMounted, ref } from "vue"
   import { listVersions } from "../lib/minecraft.js"
+  import Notice from "./Notice.vue"
   import RenderDialog from "./RenderDialog.vue"
   import Segments from "./Segments.vue"
 
@@ -45,9 +46,9 @@
     <div class="body">
       <Segments :options="KINDS" v-model="kind" />
       <input type="text" v-model="query" placeholder="Search versions" spellcheck="false">
-      <p v-if="error" class="message">{{ error }}</p>
-      <p v-else-if="!versions.length" class="message">Loading versions</p>
-      <p v-else-if="!shown.length" class="message">No versions match</p>
+      <Notice v-if="error">{{ error }}</Notice>
+      <p v-else-if="!versions.length" class="message empty-state">Loading versions</p>
+      <p v-else-if="!shown.length" class="message empty-state">No versions match</p>
       <div v-else class="list">
         <button v-for="version of shown" :key="version.id" class="version card card-row" :class="{ selected: version.id === current }" @click="emit('pick', version.id)">
           <span class="id">{{ version.id }}</span>
@@ -102,7 +103,5 @@
     height: min(50vh, 420px);
     margin: 0;
     padding: 8px 2px;
-    font-size: var(--font-md);
-    color: var(--muted);
   }
 </style>

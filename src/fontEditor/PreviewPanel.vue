@@ -79,7 +79,7 @@
       <div v-show="wide || mode === '2d'" ref="holder" class="view">
         <canvas ref="canvas" v-show="!empty && !error"></canvas>
         <p v-if="error" class="message bad">{{ error }}</p>
-        <p v-else-if="empty" class="message">{{ EMPTY }}</p>
+        <p v-else-if="empty" class="message empty-state">{{ EMPTY }}</p>
       </div>
       <LiveTitle v-if="live" class="view" :lines="lines" :fonts="[entry]" :message="EMPTY" @settled="settled" />
       <Button class="mode-switch" v-if="!wide" @click="mode = mode === '2d' ? '3d' : '2d'">{{ mode === "2d" ? "3D" : "2D" }}</Button>
@@ -182,9 +182,7 @@
   .message {
     margin: 0;
     padding: 0 12px;
-    font-size: var(--font-md);
     text-align: center;
-    color: var(--muted);
   }
 
   .bad {

@@ -127,13 +127,12 @@
     </TileGrid>
     <ContextMenu :items="context?.items" :at="context?.at" @close="context = null" />
     <RenderDialog v-if="adding" title="Add characters" close-title="Cancel" dismissable @close="adding = false">
-      <form class="add-form" @submit.prevent="confirmAdding">
+      <form class="dialog-body" @submit.prevent="confirmAdding">
         <Field label="Characters">
           <input ref="field" v-model="typed" type="text" placeholder="eg ä ö ü" aria-label="Characters to add">
         </Field>
         <p class="hint">{{ !typed.trim() ? "Type one or more characters. Capitals are added as lowercase." : newCharacters.length ? `Adds ${newCharacters.join(" ")}` : "Those are all in the font already." }}</p>
-        <div class="buttons">
-          <div class="spacer"></div>
+        <div class="dialog-actions">
           <Button @click="adding = false">Cancel</Button>
           <Button primary type="submit" :disabled="!newCharacters.length">Add</Button>
         </div>
@@ -173,23 +172,6 @@
 
   .add:hover {
     color: var(--text);
-  }
-
-  .add-form {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    width: min(380px, 100%);
-    padding: 20px;
-  }
-
-  .add-form .hint {
-    margin: 0;
-  }
-
-  .buttons {
-    display: flex;
-    gap: 8px;
   }
 
   @media (max-width: 1000px) {

@@ -4,6 +4,7 @@
   import { useWindowEvents } from "../lib/events.js"
   import { clearNotifications, markNotificationsSeen, notifications, submissionPage } from "../lib/submissionsApi.js"
   import Icon from "./Icon.vue"
+  import Notice from "./Notice.vue"
 
   const ACTIONS = {
     submitted: "sent",
@@ -94,9 +95,9 @@
           <strong>Notifications</strong>
           <button v-if="items?.length" type="button" class="clear" :disabled="clearing" @click="clear">Clear all</button>
         </div>
-        <p v-if="error" class="state bad">{{ error }}</p>
-        <p v-else-if="!items" class="state">Loading...</p>
-        <p v-else-if="!items.length" class="state">No notifications yet.</p>
+        <Notice v-if="error" class="state-notice">{{ error }}</Notice>
+        <p v-else-if="!items" class="state empty-state">Loading...</p>
+        <p v-else-if="!items.length" class="state empty-state">No notifications yet.</p>
         <ul v-else>
           <li v-for="item of items" :key="item.id" :class="{ fresh: !item.seen }">
             <a :href="item.link || submissionPage(item.submission)">
@@ -192,11 +193,10 @@
   .state {
     margin: 0;
     padding: 16px 14px;
-    color: var(--muted);
   }
 
-  .state.bad {
-    color: var(--danger);
+  .state-notice {
+    margin: 10px;
   }
 
   ul {
