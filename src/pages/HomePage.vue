@@ -64,7 +64,6 @@
       <div class="actions">
         <RouterLink class="button" to="/app/">Open the generator</RouterLink>
         <a class="button blue" href="https://ewanhowell.com/plugins/minecraft-title-generator" target="_blank" rel="noopener">Get the Blockbench plugin</a>
-        <RouterLink class="button dark" to="/font-editor/">Make a font</RouterLink>
       </div>
     </section>
 
