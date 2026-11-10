@@ -1,6 +1,7 @@
 <script setup>
   import { computed, onUpdated, ref } from "vue"
   import { clamp } from "../lib/maths.js"
+  import NumberInput from "./NumberInput.vue"
 
   const props = defineProps({
     label: { type: String, required: true },
@@ -45,7 +46,7 @@
     if (props.steps) return { "--from": "0%", "--to": `${index.value / (props.steps.length - 1) * 100}%` }
     if (props.log) return { "--from": "0%", "--to": `${position.value / SPAN * 100}%` }
     const origin = percent(clamp(0, props.min, props.max))
-    const current = percent(value.value)
+    const current = percent(clamp(props.min + Math.round((value.value - props.min) / props.step) * props.step, props.min, props.max))
     return { "--from": `${Math.min(origin, current)}%`, "--to": `${Math.max(origin, current)}%` }
   })
 
@@ -59,11 +60,11 @@
   <div class="slider" :class="{ inline }">
     <span class="label">{{ label }}</span>
     <template v-if="steps">
-      <input class="value" type="number" :value="+value.toFixed(2)" :min="min" :max="max" step="any" :aria-label="label" :disabled="disabled" @change="typed">
+      <NumberInput bare class="value" :value="+value.toFixed(2)" :min="min" :max="max" step="any" :aria-label="label" :disabled="disabled" @change="typed" />
       <input class="range" type="range" v-model.number="index" min="0" :max="steps.length - 1" step="1" :style="fill" :aria-label="label" :disabled="disabled">
     </template>
     <template v-else>
-      <input class="value" type="number" v-model.number="value" :min="min" :max="max" :step="step" :aria-label="label" :disabled="disabled">
+      <NumberInput bare class="value" v-model.number="value" :min="min" :max="max" :step="step" :aria-label="label" :disabled="disabled" />
       <input ref="range" class="range" type="range" v-model.number="position" :min="log ? 0 : min" :max="log ? SPAN : max" :step="log ? 1 : step" :style="fill" :aria-label="label" :disabled="disabled">
     </template>
   </div>
@@ -93,9 +94,12 @@
     color: var(--faint);
   }
 
-  .value {
+  .slider .value {
     grid-area: value;
     width: 64px;
+  }
+
+  .value :deep(input) {
     min-height: var(--control-tiny);
     padding: 0 8px;
     font-size: var(--font-md);

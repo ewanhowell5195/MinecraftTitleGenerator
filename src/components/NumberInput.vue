@@ -4,6 +4,10 @@
 
   defineOptions({ inheritAttrs: false })
 
+  defineProps({
+    bare: { type: Boolean, default: false }
+  })
+
   const model = defineModel({ type: [Number, String], default: undefined })
 
   const attrs = useAttrs()
@@ -18,6 +22,36 @@
     model.value = Number.isNaN(number) ? event.target.value : number
   }
 
+  function filter(event) {
+    const text = event.data ?? event.dataTransfer?.getData("text/plain")
+    if (text && !/^[0-9.-]+$/.test(text)) event.preventDefault()
+  }
+
+  function limit(name, fallback) {
+    const value = attrs[name]
+    return value === undefined || value === null || value === "" ? fallback : Number(value)
+  }
+
+  function correct() {
+    const field = input.value
+    if (field.value === "" && !field.validity.badInput) return
+    let next = Number.isNaN(field.valueAsNumber) ? Number(model.value ?? attrs.value) : field.valueAsNumber
+    if (Number.isNaN(next)) return
+    const min = limit("min", -Infinity)
+    const max = limit("max", Infinity)
+    if (attrs.step !== "any") {
+      const step = limit("step", 1)
+      const base = Number.isFinite(min) ? min : 0
+      const decimals = String(step).split(".")[1]?.length ?? 0
+      next = Number((base + Math.round((next - base) / step) * step).toFixed(decimals))
+    }
+    next = Math.min(max, Math.max(min, next))
+    if (String(next) === field.value) return
+    field.value = next
+    field.dispatchEvent(new Event("input", { bubbles: true }))
+    field.dispatchEvent(new Event("change", { bubbles: true }))
+  }
+
   function step(direction) {
     const field = input.value
     if (direction > 0) field.stepUp()
@@ -28,9 +62,9 @@
 </script>
 
 <template>
-  <span class="number-input" :class="[attrs.class, { disabled }]" :style="attrs.style">
-    <input ref="input" type="number" v-bind="inputAttrs" :value="model === undefined ? attrs.value : model" @input="typed">
-    <span class="steps">
+  <span class="number-input" :class="[attrs.class, { disabled, bare }]" :style="attrs.style">
+    <input ref="input" type="number" v-bind="inputAttrs" :value="model === undefined ? attrs.value : model" @beforeinput="filter" @input="typed" @blur="correct" @keydown.enter="input.blur()">
+    <span v-if="!bare" class="steps">
       <button type="button" tabindex="-1" :disabled="disabled" aria-label="Increase" @click="step(1)"><Icon name="up" :size="12" /></button>
       <button type="button" tabindex="-1" :disabled="disabled" aria-label="Decrease" @click="step(-1)"><Icon name="down" :size="12" /></button>
     </span>
@@ -48,6 +82,10 @@
   input {
     width: 100%;
     padding-right: 24px;
+  }
+
+  .bare input {
+    padding-right: 10px;
   }
 
   .steps {
