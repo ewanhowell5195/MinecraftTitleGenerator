@@ -110,6 +110,7 @@
   }
 
   function selectCommunity(preset) {
+    if (selectedCommunity.value?.id === preset.id) return clearSelection()
     error.value = ""
     selectedCommunity.value = preset
     showPreset(preset.id)
@@ -358,7 +359,7 @@
       <AccountMenu />
       <NotificationBell />
     </header>
-    <div class="body">
+    <div class="body" :class="{ open: selected }">
       <main class="browse">
         <div class="tools input-row">
           <input class="search" type="text" v-model="search" :placeholder="tab === 'community' ? 'Search names, text or user:name' : 'Search your presets'" aria-label="Search presets" spellcheck="false">
@@ -388,7 +389,7 @@
             <section v-for="group of localGroups" :key="group.label" class="group">
               <h2>{{ group.label }}</h2>
               <div class="grid">
-                <div v-for="preset of group.presets" :key="preset.code" class="card" :class="{ selected: selectedLocalCode === preset.code }" @click="selectedLocalCode = preset.code">
+                <div v-for="preset of group.presets" :key="preset.code" class="card" :class="{ selected: selectedLocalCode === preset.code }" @click="selectedLocalCode === preset.code ? clearSelection() : selectedLocalCode = preset.code">
                   <TitlePicture :code="preset.code" :title="preset.name" @open="selectedLocalCode = preset.code" />
                   <div class="details">
                     <strong class="ellipsis" :title="preset.name">{{ preset.name }}</strong>
@@ -408,7 +409,6 @@
       </main>
       <PresetDetail v-if="selected && tab === 'community'" class="side" :preset="selected" :mine="isMine(selected)" :owned="managedPresets.includes(selected.id)" :saved="saved.has(titleBody(selected.code))" @close="clearSelection" @user="filterByUser" @open="open(selected)" @save="save(selected)" @vote="vote(selected, $event)" @rename="renameCommunity(selected, $event)" @remove="removeCommunity(selected)" />
       <PresetDetail v-else-if="selected" class="side" :preset="selected" :stats="stats[selected.shared]" local @close="clearSelection" @user="filterByUser" @open="open(selected)" @rename="renamePreset(selected, $event)" @remove="remove(selected)" @share="sharing = selected" @view="viewInCommunity(selected.shared)" />
-      <aside v-else class="placeholder"><p v-if="tab === 'community' ? results.length : localShown.length">Select a preset to see it here</p></aside>
     </div>
     <SharePresetDialog v-if="sharing" :preset="sharing" @close="sharing = null" @shared="shared" />
     <DeletePresetDialog v-if="removing" :preset="removing" :can-delete-shared="managedPresets.includes(removing.shared)" @close="removing = null" @delete="confirmRemove" />
@@ -456,24 +456,12 @@
   .body {
     flex: 1;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) min(50%, 1024px);
+    grid-template-columns: minmax(0, 1fr);
     min-height: 0;
   }
 
-  .placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    font-size: var(--font-base);
-    color: var(--faint);
-    text-align: center;
-    background: var(--surface);
-    border-left: 1px solid var(--line);
-  }
-
-  .placeholder p {
-    margin: 0;
+  .body.open {
+    grid-template-columns: minmax(0, 1fr) min(50%, 1024px);
   }
 
   .browse {
@@ -611,6 +599,18 @@
     top: 68px;
   }
 
+  @media (max-width: 1420px) {
+    .body.open {
+      grid-template-columns: 720px minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 1200px) {
+    .body.open {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+  }
+
   @media (max-width: 1100px) {
     .tools {
       flex-wrap: wrap;
@@ -661,12 +661,8 @@
       padding: 12px 12px 20px;
     }
 
-    .body {
+    .body.open {
       grid-template-columns: minmax(0, 1fr);
-    }
-
-    .placeholder {
-      display: none;
     }
 
     .side {
