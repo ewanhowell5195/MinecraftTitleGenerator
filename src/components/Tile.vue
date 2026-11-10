@@ -91,7 +91,7 @@
 
   .thumb.pattern {
     background-color: var(--field);
-    background-size: 64px 64px;
+    background-size: auto 100%;
     image-rendering: pixelated;
   }
 
