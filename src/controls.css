@@ -209,11 +209,33 @@ input[type="checkbox"]:disabled {
 }
 
 .easy-tooltip {
-  font-size: var(--font-sm);
+  font-size: var(--font-md);
   font-weight: 500;
   line-height: 1.35;
 }
 
 .easy-tooltip.slow {
   --easy-tooltip-inactive-delay: 1s;
+}
+
+.easy-tooltip.rail-tip {
+  --easy-tooltip-distance: 18px;
+}
+
+/* these make up how far each item's right edge sits inside a full-width rail thumbnail in LayerList.vue */
+.easy-tooltip.rail-tip.rail-word {
+  --easy-tooltip-distance: 22px;
+}
+
+.easy-tooltip.rail-tip.rail-head {
+  --easy-tooltip-distance: 19px;
+}
+
+.easy-tooltip.rail-tip.rail-add {
+  --easy-tooltip-distance: 20px;
+}
+
+.easy-tooltip.thumb-tip {
+  /* half the name line under each thumbnail in LayerList.vue */
+  margin-top: -9px;
 }
