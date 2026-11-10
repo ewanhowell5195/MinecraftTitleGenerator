@@ -80,7 +80,7 @@
   }
 
   function submit() {
-    if (!props.shareOnly) save()
+    if (!props.shareOnly || target.value?.online) save()
     else if (namingShared.value) viewShared()
     else saveAndShare()
   }
@@ -100,9 +100,9 @@
       </div>
     </form>
   </RenderDialog>
-  <RenderDialog v-else :title="shareOnly ? 'Share publicly' : 'Save preset'" close-title="Cancel" :wide="!namingShared && !shareOnly" dismissable @close="emit('close')">
+  <RenderDialog v-else :title="shareOnly ? 'Share publicly' : 'Save preset'" close-title="Cancel" :wide="!namingShared" dismissable @close="emit('close')">
     <form class="dialog-body" @submit.prevent="submit">
-      <ReplaceSelect v-if="!namingShared && !shareOnly" v-model="target" :code="namingCode" label="Save as" />
+      <ReplaceSelect v-if="!namingShared" v-model="target" :code="namingCode" :label="shareOnly ? 'Share as' : 'Save as'" />
       <Field label="Name">
         <input ref="field" type="text" v-model="name" :maxlength="NAME_LIMIT" :placeholder="target?.name ?? suggested" spellcheck="false">
       </Field>
@@ -115,8 +115,8 @@
       <div class="dialog-actions">
         <SubmissionUsage v-if="!namingShared && !target?.online" class="usage" />
         <div class="buttons">
-          <Button v-if="!shareOnly" type="submit" :primary="namingShared || target?.online" :disabled="sending || target?.online && (!!problem || !agreed)">{{ target ? "Replace" : "Save" }}</Button>
-          <Button v-if="!namingShared && !target?.online" primary :disabled="sending || !!problem || !agreed || usage && usage.used >= usage.limit" @click="saveAndShare">{{ sending ? "Sharing" : shareOnly ? "Share" : target ? "Replace and share" : "Save and share" }}</Button>
+          <Button v-if="!shareOnly || target?.online" type="submit" :primary="namingShared || target?.online" :disabled="sending || target?.online && (!!problem || !agreed)">{{ target ? "Replace" : "Save" }}</Button>
+          <Button v-if="!namingShared && !target?.online" primary :disabled="sending || !!problem || !agreed || usage && usage.used >= usage.limit" @click="saveAndShare">{{ sending ? "Sharing" : target ? "Replace and share" : shareOnly ? "Share" : "Save and share" }}</Button>
         </div>
       </div>
     </form>
