@@ -43,6 +43,7 @@
     return extra ? { kind: extra.kind, url: submissionExtraUrl(item.value, extra.key) } : null
   })
   const previewLink = computed(() => item.value?.previewUrl && `${item.value.previewUrl}${publishedTitle(item.value, props.fonts)}`)
+  const reviewing = computed(() => reviewer.value && item.value?.status === "open" && !!item.value.pullUrl)
   const changeable = computed(() => item.value?.mine && item.value.status === "open")
   const page = submissionPage(props.id)
 
@@ -133,6 +134,7 @@
     </section>
     <template v-else>
       <p v-if="processing?.state === 'failed'" class="hint bad">Processing this submission failed on GitHub. <a :href="processing.url" target="_blank" rel="noopener">See what went wrong</a>.</p>
+      <ReviewPanel v-if="reviewing" :key="item.updatedAt" :item="item" @done="reviewed" />
       <div class="submission-view">
         <div class="preview flow">
           <component :is="KIND_COMPONENTS[item.kind].Preview" v-model:texture="textureKey" :fonts="fonts" :kind="item.kind" :target="item.target" :details="item.details" :initial="item" :url="submissionFileUrl(item)" :text="text || item.name" />
@@ -153,17 +155,16 @@
             <dd v-else>A deleted account</dd>
           </dl>
           <p v-if="item.notes" class="notes">{{ item.notes }}</p>
-          <div class="buttons">
+          <div class="actions">
             <a class="button primary" :href="`/app/?${SUBMISSION_PARAM}=${item.id}`">Open in generator</a>
             <a v-if="previewLink" class="button" :href="previewLink" target="_blank" rel="noopener" title="The generator built from this submission's branch, with it added"><Icon name="eye" :size="16" />Open preview</a>
             <a v-if="item.pullUrl" class="button" :href="item.pullUrl" target="_blank" rel="noopener"><Icon name="github" :size="16" />Pull request</a>
           </div>
-          <div v-if="changeable" class="buttons">
+          <div v-if="changeable" class="actions">
             <a class="button" :href="`${page}/edit`"><Icon name="pencil" :size="16" />Edit</a>
             <button type="button" class="danger" :disabled="busy" @click="withdraw"><Icon name="trash" :size="16" />Withdraw</button>
           </div>
           <p v-if="error" class="hint bad">{{ error }}</p>
-          <ReviewPanel v-if="reviewer && item.status === 'open' && item.pullUrl" :key="item.updatedAt" :item="item" @done="reviewed" />
         </div>
       </div>
       <section class="section">

@@ -55,27 +55,63 @@
 </script>
 
 <template>
-  <section class="review flow">
-    <h2>Review</h2>
-    <p class="hint">{{ state ? STATES[state] ?? `GitHub says it's ${state}.` : "Checking the pull request..." }} <button type="button" class="link-button" @click="check">Check again</button></p>
+  <section class="review" :class="{ ready: READY.has(state) }">
+    <div class="summary">
+      <h2>Review this submission</h2>
+      <p class="hint">{{ state ? STATES[state] ?? `GitHub says it's ${state}.` : "Checking the pull request..." }} <button type="button" class="link-button" @click="check">Check again</button></p>
+    </div>
     <div v-if="!declining" class="buttons">
       <button type="button" class="primary" :disabled="busy || !READY.has(state)" @click="act('merge')"><Icon name="check" :size="16" />Merge</button>
       <button type="button" :disabled="busy" @click="declining = true"><Icon name="close" :size="16" />Decline</button>
     </div>
-    <template v-else>
+    <div v-else class="decline">
       <textarea v-model="reason" rows="3" :maxlength="SUBMISSION_LIMITS.comment" placeholder="Why it's declined (optional, shown to the submitter)" aria-label="Reason"></textarea>
       <div class="buttons">
         <button type="button" class="danger" :disabled="busy" @click="act('decline')">Decline</button>
         <button type="button" :disabled="busy" @click="declining = false">Cancel</button>
       </div>
-    </template>
+    </div>
     <p v-if="error" class="hint bad">{{ error }}</p>
   </section>
 </template>
 
 <style scoped>
   .review {
-    padding: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 24px;
+    padding: 18px 20px;
     background: var(--surface);
+    border-left: 4px solid var(--muted);
+  }
+
+  .review.ready {
+    border-left-color: var(--accent);
+  }
+
+  .summary {
+    flex: 1 1 280px;
+  }
+
+  .summary h2 {
+    margin: 0 0 4px;
+    font-size: 20px;
+  }
+
+  .summary p {
+    margin: 0;
+  }
+
+  .decline {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1 1 100%;
+  }
+
+  .review > .hint.bad {
+    flex: 1 1 100%;
+    margin: 0;
   }
 </style>

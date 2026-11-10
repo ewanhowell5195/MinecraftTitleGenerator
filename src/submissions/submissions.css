@@ -43,7 +43,7 @@ a.button {
   grid-template-columns: minmax(0, 1fr) minmax(0, 320px);
 }
 
-.preview {
+.submission-form .preview {
   position: sticky;
   top: 76px;
 }
@@ -275,4 +275,15 @@ textarea:focus {
   to {
     transform: rotate(360deg);
   }
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.actions > .primary,
+.actions > .primary + :last-child {
+  grid-column: 1 / -1;
 }
