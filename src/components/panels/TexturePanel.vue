@@ -17,7 +17,9 @@
   import Segments from "../Segments.vue"
   import Slider from "../Slider.vue"
   import Tile from "../Tile.vue"
+  import ProgressBar from "../ProgressBar.vue"
   import TileGrid from "../TileGrid.vue"
+  import UploadField from "../UploadField.vue"
   import Toggle from "../Toggle.vue"
   import VersionDialog from "../VersionDialog.vue"
 
@@ -228,7 +230,7 @@
         </button>
         <div v-if="jar.version" class="download">
           <span>Downloading Minecraft {{ jar.version }}</span>
-          <div class="bar" role="progressbar" :aria-valuenow="Math.round(jarProgress * 100)" aria-valuemin="0" aria-valuemax="100"><div class="fill" :style="{ width: `${jarProgress * 100}%` }"></div></div>
+          <ProgressBar :value="jarProgress" />
         </div>
         <Notice v-if="blocksError">{{ blocksError }}</Notice>
         <p v-else-if="blocks && !blockEntries.length" class="hint">This version has no block textures without transparency.</p>
@@ -257,14 +259,7 @@
     </div>
 
     <template v-if="object.textureSource === 'custom'">
-      <div class="upload-preview">
-        <img v-if="object.customTexture" :src="object.customTexture" alt="">
-        <div v-else class="empty-state">No texture uploaded</div>
-      </div>
-      <Button file wide accept="image/png" @change="readFile($event, pickCustom)"><template #icon><Icon name="open" :size="16" /></template>
-        <span>{{ object.customTexture ? "Replace texture" : "Choose a PNG" }}</span>
-        
-      </Button>
+      <UploadField accept="image/png" :label="object.customTexture ? 'Replace texture' : 'Choose a PNG'" empty="No texture uploaded" :image="object.customTexture" @change="readFile($event, pickCustom)" />
       <template v-if="object.customTexture">
         <Segments label="Use as" :options="CUSTOM_MODES" v-model="object.customTextureMode" />
         <p class="hint" :class="{ bad: object.customTextureMode === 'standard' && !fitsFont }">{{ modeHint }}</p>
@@ -322,17 +317,6 @@
     gap: 6px;
     font-size: var(--font-sm);
     color: var(--muted);
-  }
-
-  .bar {
-    height: 8px;
-    background: var(--field);
-    overflow: hidden;
-  }
-
-  .fill {
-    height: 100%;
-    background: var(--accent);
   }
 
   .variants {

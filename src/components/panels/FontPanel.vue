@@ -22,6 +22,7 @@
   import Segments from "../Segments.vue"
   import Tile from "../Tile.vue"
   import TileGrid from "../TileGrid.vue"
+  import UploadField from "../UploadField.vue"
   import Toggle from "../Toggle.vue"
 
   const TABS = [{ value: "published", label: "All fonts" }, { value: "custom", label: "Custom" }]
@@ -155,17 +156,14 @@
     </RenderDialog>
     <Segments :options="TABS" :model-value="tab" @update:model-value="chooseTab" />
     <template v-if="tab === 'custom'">
-      <div v-if="object.customFont" class="custom-font">
-        <div class="preview picture"><img v-if="customImage" :src="customImage" alt="" :style="customUnit ? { height: `${customUnit}px` } : null"></div>
-        <span class="name ellipsis">{{ customName || object.customFont.fileName }}</span>
-      </div>
-      <div v-else class="upload-preview">
-        <div class="empty-state">No font uploaded</div>
-      </div>
-      <Button file wide accept=".json,.png,.ttf,.otf,.woff,.woff2,application/json,image/png,font/ttf,font/otf,font/woff,font/woff2" :disabled="loading" @change="upload"><template #icon><Icon name="open" :size="16" /></template>
-        <span>{{ loading ? "Loading..." : object.customFont ? "Replace font" : "Choose a font file" }}</span>
-        
-      </Button>
+      <UploadField accept=".json,.png,.ttf,.otf,.woff,.woff2,application/json,image/png,font/ttf,font/otf,font/woff,font/woff2" :label="loading ? 'Loading...' : object.customFont ? 'Replace font' : 'Choose a font file'" empty="No font uploaded" :disabled="loading" @change="upload">
+        <template v-if="object.customFont" #preview>
+          <div class="custom-font">
+            <div class="preview picture"><img v-if="customImage" :src="customImage" alt="" :style="customUnit ? { height: `${customUnit}px` } : null"></div>
+            <span class="name ellipsis">{{ customName || object.customFont.fileName }}</span>
+          </div>
+        </template>
+      </UploadField>
       <Notice v-if="customError">{{ customError }}</Notice>
       <p v-else class="hint">A JSON from the font editor, a Minecraft ascii.png, or a .ttf, .otf, .woff or .woff2 font.</p>
       <template v-if="imported && usingCustom">

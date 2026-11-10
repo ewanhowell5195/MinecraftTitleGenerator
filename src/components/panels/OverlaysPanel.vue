@@ -20,6 +20,7 @@
   import Slider from "../Slider.vue"
   import Tile from "../Tile.vue"
   import TileGrid from "../TileGrid.vue"
+  import UploadField from "../UploadField.vue"
   import Toggle from "../Toggle.vue"
 
   const MODES = [{ value: "default", label: "Default" }, { value: "custom", label: "Custom" }]
@@ -206,14 +207,7 @@
       <Tile v-for="[id, data] of shown" :key="id" :label="data.name ?? titleCase(id)" :unit="thumbnailHeight(font)" :image="thumbnail(font, id)" :author="credit(data, font?.id, library.fonts)" :selected="layer?.overlay === id" :menu="overlayMenu(id, data)" :save="data.generated ? null : 'Download this overlay'" @pick="pickOverlay(id)" @save="saveSheet(font, 'overlays', id)" />
     </TileGrid>
     <template v-else>
-      <div class="upload-preview">
-        <img v-if="layer?.file" :src="layer.file" alt="">
-        <div v-else class="empty-state">No file selected</div>
-      </div>
-      <Button file wide accept="image/png" @change="readFile($event, pickFile)">
-        <span>Choose a PNG</span>
-        
-      </Button>
+      <UploadField accept="image/png" :label="layer?.file ? 'Replace PNG' : 'Choose a PNG'" empty="No file selected" :image="layer?.file" @change="readFile($event, pickFile)" />
     </template>
 
     <template v-if="layer">

@@ -171,25 +171,6 @@ button:where(:not(.button, .field-button)):disabled:hover {
   background: var(--card);
 }
 
-.upload-preview {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 88px;
-  padding: 8px;
-  background: var(--field);
-  border: 2px dashed var(--line-strong);
-}
-
-.upload-preview img {
-  min-width: 48px;
-  min-height: 48px;
-  max-width: 100%;
-  max-height: 140px;
-  image-rendering: pixelated;
-}
-
-
 .grip {
   display: flex;
   align-items: center;
