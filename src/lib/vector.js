@@ -1,9 +1,10 @@
+import { FillRule, intersectD, unionD } from "@countertype/clipper2-ts"
 import * as THREE from "three"
 import { packed } from "./colour.js"
 import { clamp } from "./maths.js"
 import { SAMPLES, placement, titleShot } from "./render.js"
 import { near, jump, mixed, within, brightness, simplifyStops, colourTotals, analyse, contains, maskOf, BASE } from "./vectorTexture.js"
-import { area, signedArea, sameWinding, sharedEdges, number, writePath, loopsInHundredths, stitched, addInOrder, addTo, boxOfPolygons, boxesOverlap, shapesOverlap, shapeOfPolygons, mergedByFill, linesOf, unionOf, coverOf, addToCover, visibleLoops } from "./vectorPaths.js"
+import { area, signedArea, sameWinding, sharedEdges, number, writePath, loopsInHundredths, stitched, addInOrder, addTo, boxOfPolygons, boxesOverlap, shapesOverlap, shapeOfPolygons, mergedByFill, unionOf, coverOf, addToCover, visibleLoops } from "./vectorPaths.js"
 
 const EPSILON = 1e-4
 const SLIVER = 1e-3
@@ -12,6 +13,7 @@ const NEARLY_FLAT = 2
 const SHORT_GRADIENT = 1 / 512
 const NEAR_FILLS = 2
 const BLEED = 1 / 512
+const SEAM_PRECISION = 4
 const GROW = 0.05
 const BAND_OVERLAP = 0.5
 const GRADIENT_MATCH = 0.1
@@ -640,22 +642,48 @@ function aroundStrokes(polygons, strokes, bleed) {
   }).map(grownOutward)
 }
 
-function markupOf({ base, layers, joins, covers }, index, { left, top, bleed, output, totals, cover }) {
-  const list = Array.from(base)
-  const parts = []
+function stripsAlong(segments, width) {
+  return segments.map(([[ax, ay], [bx, by]]) => {
+    const length = Math.hypot(bx - ax, by - ay) || 1
+    const nx = (ay - by) / length * width / 2
+    const ny = (bx - ax) / length * width / 2
+    return [[ax + nx, ay + ny], [bx + nx, by + ny], [bx - nx, by - ny], [ax - nx, ay - ny]]
+  })
+}
+
+function seamsOf(list, bleed, output) {
   const strokes = list.length > 1 ? Array.from(sharedEdges(list)).sort((a, b) => output.brightness(a[0]) - output.brightness(b[0])) : []
-  const under = strokes.map(([fill, segments]) => `<path fill="none" stroke="${fill}" d="${linesOf(segments, left, top)}"/>`)
-  if (under.length) parts.push(`<defs><clipPath id="c${index}"><path d="${writePath(unionOf(stitched(loopsInHundredths(aroundStrokes(list.flatMap(entry => entry[1]), strokes, bleed), left, top))))}"/></clipPath></defs>`, `<g clip-path="url(#c${index})" stroke-width="${number(bleed)}">${under.join("")}</g>`)
+  if (!strokes.length) return []
+  const toPaths = polygons => polygons.map(polygon => polygon.map(([x, y]) => ({ x, y })))
+  const areas = list.map(([, polygons]) => toPaths(aroundStrokes(polygons, strokes, bleed))).filter(paths => paths.length)
+  return strokes.map(([fill, segments]) => {
+    const strips = toPaths(stripsAlong(segments, bleed))
+    return [fill, areas.flatMap(area => intersectD(strips, area, FillRule.NonZero, SEAM_PRECISION)).map(path => sameWinding(path.map(point => [point.x, point.y])))]
+  }).filter(([, polygons]) => polygons.length)
+}
+
+function entriesOf({ base, layers, joins, covers }, { bleed, output, totals }) {
+  const list = Array.from(base)
   const placed = mergedByFill(layers, totals)
-  const entries = basesJoinedToLayers(list, placed).concat(placed, mergedByFill(joins, totals), Array.from(covers))
+  return seamsOf(list, bleed, output).concat(basesJoinedToLayers(list, placed), placed, mergedByFill(joins, totals), Array.from(covers))
+}
+
+function filledArea(polygons) {
+  if (polygons.every(polygon => signedArea(polygon) > 0)) return polygons
+  return unionD(polygons.map(polygon => polygon.map(([x, y]) => ({ x, y }))), FillRule.NonZero, SEAM_PRECISION).map(path => path.map(point => [point.x, point.y]))
+}
+
+function markupOf(entries, { left, top, totals, cover }) {
+  const source = new Map(entries.flatMap(([, polygons], index) => polygons.map(polygon => [polygon, index])))
   const shapes = []
-  for (const [fill, polygons] of entries.toReversed()) {
-    const loops = unionOf(stitched(loopsInHundredths(polygons, left, top)))
+  for (const [fill, polygons] of mergedByFill(entries, totals).toReversed()) {
+    const filled = Array.from(Map.groupBy(polygons, polygon => source.get(polygon)).values()).flatMap(filledArea)
+    const loops = unionOf(stitched(loopsInHundredths(filled, left, top)))
     const shown = visibleLoops(loops, cover)
     if (shown.length) shapes.unshift(`<path fill="${fill}" d="${writePath(shown)}"/>`)
     addToCover(cover, loops)
   }
-  return parts.concat(shapes).join("")
+  return shapes.join("")
 }
 
 function useMergedFills(layers, merged) {
@@ -731,22 +759,6 @@ function joinFacesToLayerBelow(layers) {
   for (const layer of layers) {
     if (kept.length) joinToLayerBelow(kept.at(-1), layer)
     if (polygonsOfLayer(layer).length) kept.push(layer)
-  }
-  return kept
-}
-
-function joinApartLayers(layers) {
-  const kept = []
-  for (const layer of layers) {
-    const below = kept.at(-1)
-    if (!below || shapesOverlap(shapeOfPolygons(polygonsOfLayer(below)), shapeOfPolygons(polygonsOfLayer(layer).map(grownOutward)))) {
-      kept.push(layer)
-      continue
-    }
-    for (const [fill, polygons] of layer.base) addTo(below.base, fill, polygons)
-    for (const [fill, polygons] of layer.covers) addTo(below.covers, fill, polygons)
-    below.layers = below.layers.concat(layer.layers)
-    below.joins = below.joins.concat(layer.joins)
   }
   return kept
 }
@@ -916,12 +928,10 @@ export function vectorTitle(scene, camera, size, resolution) {
   useMergedFills(joined, output.mergeAlongAxis(resolution * SHORT_GRADIENT))
   const totals = fillTotals(cache, bandFills)
   useMergedFills(joined, nearFillsJoined(joined, totals, NEAR_FILLS))
-  const painted = joinApartLayers(joined)
   const context = { left, top, bleed: resolution * BLEED, output, totals, cover: coverOf(right - left, bottom - top) }
-  const markup = []
-  for (let index = painted.length - 1; index >= 0; index--) markup[index] = markupOf(painted[index], index, context)
+  const markup = markupOf(joined.flatMap(layer => entriesOf(layer, context)), context)
   const defs = output.defs(left, top)
-  return { width: right - left, height: bottom - top, markup: (defs ? `<defs>${defs}</defs>` : "") + markup.join("") }
+  return { width: right - left, height: bottom - top, markup: (defs ? `<defs>${defs}</defs>` : "") + markup }
 }
 
 function svgOf(width, height, content) {

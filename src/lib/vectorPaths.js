@@ -367,23 +367,6 @@ export function mergedByFill(entries, totals = new Map()) {
   return merged
 }
 
-export function linesOf(segments, left, top) {
-  let path = ""
-  let lastX = null
-  let lastY = null
-  for (const [from, to] of segments) {
-    const startX = hundredths(from[0] - left)
-    const startY = hundredths(from[1] - top)
-    const endX = hundredths(to[0] - left)
-    const endY = hundredths(to[1] - top)
-    if (startX !== lastX || startY !== lastY) path += lastX === null ? `M${pair(startX, startY)}` : `m${pair(startX - lastX, startY - lastY)}`
-    path += `l${pair(endX - startX, endY - startY)}`
-    lastX = endX
-    lastY = endY
-  }
-  return path
-}
-
 function cutsBetween(a, b, c, d) {
   const ux = b[0] - a[0]
   const uy = b[1] - a[1]

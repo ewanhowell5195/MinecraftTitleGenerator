@@ -357,11 +357,25 @@ describe("vectorTitle colours", () => {
     assert.equal(pathsFilled(markup, "#0000ff").length, 1)
   })
 
-  test("words that overlap keep their own shapes", () => {
+  test("words that overlap share a shape when no other colour lands between", () => {
     const texture = textureOf(8, 8, (x, y) => x >= 2 && x < 6 && y >= 2 && y < 6 ? BLUE : RED)
     const words = [[2, 34], [30, 62]].map(([left, right]) => meshOf([{ left, right, bottom: 8, top: 56 }], new THREE.MeshBasicMaterial({ map: texture, depthWrite: false })))
     const { markup } = titleOf(...words)
+    assert.equal(pathsFilled(markup, "#0000ff").length, 1)
+  })
+
+  test("a colour stays apart where another colour lands between", () => {
+    const texture = textureOf(8, 8, (x, y) => x >= 2 && x < 6 && y >= 2 && y < 6 ? BLUE : RED)
+    const words = [[2, 34], [20, 52]].map(([left, right]) => meshOf([{ left, right, bottom: 8, top: 56 }], new THREE.MeshBasicMaterial({ map: texture, depthWrite: false })))
+    const { markup } = titleOf(...words)
     assert.equal(pathsFilled(markup, "#0000ff").length, 2)
+  })
+
+  test("outlines and faces of separate lines join", () => {
+    const lines = [[34, 62], [2, 30]].flatMap(([bottom, top]) => [plain([{ left: 0, right: 64, bottom, top }], 0x000000), plain([{ left: 4, right: 60, bottom: bottom + 4, top: top - 4 }], 0xff0000, {}, 1)])
+    const { markup } = titleOf(...lines)
+    assert.equal(pathsFilled(markup, "#000000").length, 1)
+    assert.equal(pathsFilled(markup, "#ff0000").length, 1)
   })
 
   test("a loop inside its own colour is left out", () => {
@@ -564,8 +578,8 @@ describe("vectorTitle gradients it was told about", () => {
     assert.equal(gradientsOf(markup).length, 0)
     const paths = pathsOf(markup)
     assert.equal(paths.length, 2)
-    assert.deepEqual(paths.map(path => path.fill).sort(), ["#00ff00", "#800000"].sort())
-    const inner = paths.flatMap(path => edgeOffsets(path.polygons))
+    assert.deepEqual(paths.map(path => path.fill), ["#800000", "#00ff00"])
+    const inner = edgeOffsets(paths[1].polygons)
     for (const offset of inner) close(offset, 0.5, 1e-3)
   })
 
@@ -761,9 +775,7 @@ describe("vectorTitle letter fronts", () => {
   })
 
   test("a front needs no extra pieces at the join", () => {
-    const fronted = pathsOf(split(across, [FRONT])).flatMap(path => path.polygons).length
-    const separate = pathsOf(split(across, null)).flatMap(path => path.polygons).length
-    assert.ok(fronted < separate, `${fronted} polygons against ${separate}`)
+    assert.equal(pathsOf(split(across, [FRONT])).flatMap(path => path.polygons).length, 2)
   })
 
   test("a gap in the front stays a gap", () => {
@@ -791,9 +803,9 @@ describe("vectorTitle letter fronts", () => {
     assert.equal(boundsOf(pathsFilled(markup, "#0000ff").flatMap(path => path.polygons)).right, width)
   })
 
-  test("faces outside any front are left alone", () => {
+  test("faces outside any front still paint a colour crossing them whole", () => {
     const red = pathsFilled(split(across, [{ left: 100, top: 100, right: 164, bottom: 164 }]), "#ff0000")
-    assert.ok(red.flatMap(path => path.polygons).length >= 2)
+    assert.deepEqual(boundsOf(red.flatMap(path => path.polygons)), { left: 20, right: 44, top: 20, bottom: 30 })
   })
 })
 
@@ -883,22 +895,24 @@ describe("vectorTitle joins", () => {
     return (x, y) => y >= 6 && y < 10 ? x < 8 ? left : right : RED
   }
 
-  test("a bleed stroke runs under the seam between two colours", () => {
+  test("the darker colour runs a little under the seam between two colours", () => {
     const { markup } = titleOfTwo(x => x < 8 ? RED : GREEN)
-    assert.match(markup, /<clipPath id="c0">/)
-    assert.match(markup, /<g clip-path="url\(#c0\)" stroke-width="0.13">/)
-    const strokes = Array.from(markup.matchAll(/<path fill="none" stroke="([^"]+)" d="([^"]*)"\/>/g))
-    assert.equal(strokes.length, 1)
-    assert.equal(strokes[0][2], "M32 0l0 64")
+    assert.ok(!markup.includes("clipPath") && !markup.includes("stroke"))
+    const fills = pathsOf(markup).map(path => path.fill)
+    assert.ok(fills.indexOf("#ff0000") < fills.indexOf("#00ff00"))
+    const { right } = boundsOf(pathsFilled(markup, "#ff0000").flatMap(path => path.polygons))
+    assert.ok(right > 32 && right < 32.2, `the red reaches ${right}`)
   })
 
-  test("faces of the same colour need no bleed stroke", () => {
-    assert.ok(!titleOfTwo(() => RED).markup.includes("stroke"))
+  test("faces of the same colour need nothing under their seam", () => {
+    const paths = pathsOf(titleOfTwo(() => RED).markup)
+    assert.equal(paths.length, 1)
+    assert.deepEqual(boundsOf(paths[0].polygons), { left: 0, right: 64, top: 0, bottom: 64 })
   })
 
-  test("faces with a gap between them need no bleed stroke", () => {
+  test("faces with a gap between them need nothing under it", () => {
     const mesh = meshOf([{ ...LEFT, right: 30 }, { ...RIGHT, left: 34 }], new THREE.MeshBasicMaterial({ map: textureOf(16, 16, x => x < 8 ? RED : GREEN) }))
-    assert.ok(!titleOf(mesh).markup.includes("stroke"))
+    assert.equal(boundsOf(pathsFilled(titleOf(mesh).markup, "#ff0000").flatMap(path => path.polygons)).right, 30)
   })
 
   test("a stripe running across a seam is bridged from both sides", () => {
@@ -915,10 +929,7 @@ describe("vectorTitle joins", () => {
   test("a stripe ending at a plain neighbour is covered back by that neighbour", () => {
     const { markup } = titleOfTwo((x, y) => x < 8 ? y >= 6 && y < 10 ? BLUE : RED : GREEN)
     const paths = pathsOf(markup)
-    const reach = paths.findIndex(path => path.fill === "#0000ff" && path.polygons.some(polygon => {
-      const box = boundsOf([polygon])
-      return box.left === 30 && box.right === 34
-    }))
+    const reach = paths.findIndex(path => path.fill === "#0000ff" && path.polygons.some(polygon => boundsOf([polygon]).right === 34))
     const cover = paths.findLastIndex(path => path.fill === "#00ff00" && path.polygons.some(polygon => {
       const box = boundsOf([polygon])
       return box.left === 32 && box.right === 36 && box.top === 25 && box.bottom === 39

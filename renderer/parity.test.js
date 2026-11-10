@@ -107,7 +107,7 @@ describe("node and browser renderers", () => {
       root: fileURLToPath(new URL("..", import.meta.url)),
       cacheDir: fileURLToPath(new URL("node_modules/.vite", import.meta.url)),
       logLevel: "error",
-      optimizeDeps: { noDiscovery: true, include: ["vue", "three", "minecraft-asset-loader"] },
+      optimizeDeps: { noDiscovery: true, include: ["vue", "three", "minecraft-asset-loader", "@countertype/clipper2-ts"] },
       server: { port: 0, strictPort: false, hmr: false, watch: null }
     })
     await server.listen()
