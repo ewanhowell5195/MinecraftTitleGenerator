@@ -215,6 +215,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    font-family: var(--font-ui);
     color: var(--text);
     text-decoration: none;
     user-select: none;
