@@ -145,7 +145,7 @@
     transition: transform var(--duration);
   }
 
-  .open .chevron {
+  .trigger.open .chevron {
     transform: rotate(180deg);
   }
 
