@@ -50,7 +50,7 @@
       <span class="label">Width</span>
       <div class="input-row">
         <NumberInput min="1" :value="squaresOf(font, width)" aria-label="Character width" @input="setNumber('width', $event, 1)" @change="setNumber('width', $event, 1)" />
-        <Button v-if="overridden" :title="`Go back to the default width of ${squaresOf(font, font.width)}`" @click="resetWidth">Use default</Button>
+        <Button v-if="overridden" v-tooltip="`Go back to the default width of ${squaresOf(font, font.width)}`" @click="resetWidth">Use default</Button>
         <span v-else class="hint">Default width</span>
       </div>
     </div>

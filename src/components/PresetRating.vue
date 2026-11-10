@@ -28,7 +28,7 @@
       <Button class="vote upvote" :aria-pressed="mine === 1" @click="emit('vote', 1)" :class="{ chosen: mine === 1 }"><template #icon><Icon name="arrowUp" :size="20" /></template><span>{{ mine === 1 ? "Upvoted" : "Upvote" }}</span></Button>
       <Button class="vote downvote" :aria-pressed="mine === -1" @click="emit('vote', -1)" :class="{ chosen: mine === -1 }"><template #icon><Icon name="arrowDown" :size="20" /></template><span>{{ mine === -1 ? "Downvoted" : "Downvote" }}</span></Button>
     </div>
-    <div v-if="rating !== null" class="result" :title="summary">
+    <div v-if="rating !== null" class="result" v-tooltip="summary">
       <span class="stars" aria-hidden="true">
         <span v-for="star of STARS" :key="star" class="star">
           <Icon class="outline" name="star" :size="16" />

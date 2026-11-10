@@ -23,7 +23,7 @@
 <template>
   <ul class="submission-list">
     <li v-for="item of items" :key="item.id">
-      <a :href="submissionPage(item.id)" :title="item.name">
+      <a :href="submissionPage(item.id)" v-tooltip="item.name">
         <span class="thumb">
           <img v-if="imageOf(item)" :src="imageOf(item)" alt="" loading="lazy" @error="missing.add(item.id)">
           <span v-else class="pending">No thumbnail yet</span>

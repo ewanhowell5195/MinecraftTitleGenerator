@@ -207,8 +207,8 @@
         </div>
         <div class="input-row offset" @click.stop>
           <template v-if="canFit(set.id)">
-            <span title="0 centres your letters on the strips, higher moves them up, lower moves them down">Offset</span>
-            <NumberInput :value="chosenOffset(set.id)" :min="fitting[set.id][0]" :max="fitting[set.id].at(-1)" :title="`Your letters fit from ${fitting[set.id][0]} to ${fitting[set.id].at(-1)}`" :aria-label="`Offset for ${titleCase(set.id)}`" @input="setOffset(set.id, $event)" @change="setOffset(set.id, $event)" />
+            <span v-tooltip="'0 centres your letters on the strips, higher moves them up, lower moves them down'">Offset</span>
+            <NumberInput :value="chosenOffset(set.id)" :min="fitting[set.id][0]" :max="fitting[set.id].at(-1)" v-tooltip="`Your letters fit from ${fitting[set.id][0]} to ${fitting[set.id].at(-1)}`" :aria-label="`Offset for ${titleCase(set.id)}`" @input="setOffset(set.id, $event)" @change="setOffset(set.id, $event)" />
           </template>
           <Button v-if="used(set.id)" @click.stop="toggle(set.id)">Stop using</Button>
           <Button :primary="fits(set.id)" v-else :disabled="!fits(set.id)" @click.stop="toggle(set.id)">Use</Button>
@@ -222,7 +222,7 @@
       <label class="field"><span class="label">Text</span><input v-model="text" type="text" aria-label="Test text"></label>
       <LiveTitle class="view" :lines="lines" :fonts="[entry]" message="Nothing to show yet. Draw the characters in your text." @settled="settled" />
       <div class="textures">
-        <button v-for="item of textures" :key="item.id" class="texture" :class="{ active: chosenTexture === item.id, unfit: !fits(chosen.id) }" :title="item.name" @click="chosenTexture = item.id">
+        <button v-for="item of textures" :key="item.id" class="texture" :class="{ active: chosenTexture === item.id, unfit: !fits(chosen.id) }" v-tooltip="item.name" @click="chosenTexture = item.id">
           <span class="swatch"><img v-if="thumbs[item.id]" :src="thumbs[item.id]" alt=""></span>
           <span class="texture-name ellipsis">{{ item.name }}</span>
         </button>
@@ -230,7 +230,7 @@
       <template v-if="variants.length">
         <h3>Variants</h3>
         <div class="textures">
-          <button v-for="item of variants" :key="item.image" class="texture" :class="{ active: chosenVariant === item.id, unfit: !fits(chosen.id) }" :title="item.name" @click="chosenVariant = item.id">
+          <button v-for="item of variants" :key="item.image" class="texture" :class="{ active: chosenVariant === item.id, unfit: !fits(chosen.id) }" v-tooltip="item.name" @click="chosenVariant = item.id">
             <span class="swatch"><img v-if="thumbs[item.image]" :src="thumbs[item.image]" alt=""></span>
             <span class="texture-name ellipsis">{{ item.name }}</span>
           </button>

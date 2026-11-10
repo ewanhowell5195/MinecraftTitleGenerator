@@ -28,7 +28,7 @@
 </script>
 
 <template>
-  <div class="tile card" :class="{ selected }" :title="author ? `By ${author}` : null" :tabindex="keyboard ? 0 : null" @click="emit('pick')" @keydown.enter="keyboard && emit('pick')" @contextmenu="openMenu">
+  <div class="tile card" :class="{ selected }" v-tooltip="{ text: author ? `By ${author}` : null, tooltipClass: 'slow' }" :tabindex="keyboard ? 0 : null" @click="emit('pick')" @keydown.enter="keyboard && emit('pick')" @contextmenu="openMenu">
     <div v-if="image" class="thumb picture"><img :src="image" alt="" :style="unit ? { height: `${unit}px` } : null"></div>
     <div v-else class="thumb pattern" :style="pattern"></div>
     <div :class="{ badged: badge }">{{ label }}</div>
@@ -38,7 +38,7 @@
       <rect x="7" y="3" width="14" height="14" />
       <text x="14" y="10.5" text-anchor="middle" dominant-baseline="central" fill="currentColor" stroke="none" font-size="10" font-weight="700">{{ badge > 9 ? "9+" : badge }}</text>
     </svg>
-    <button v-if="save" class="save" @click.stop="emit('save')" :title="save"><Icon name="download" :size="12" /></button>
+    <button v-if="save" class="save" @click.stop="emit('save')" v-tooltip="save" :aria-label="save"><Icon name="download" :size="12" /></button>
     <ContextMenu v-if="at" :items="menu" :at="at" @close="at = null" />
   </div>
 </template>

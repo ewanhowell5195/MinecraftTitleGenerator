@@ -107,8 +107,8 @@
               <div class="head">
                 <span class="pair-name">{{ pairLabel(pair) }}</span>
                 <div class="spacer"></div>
-                <Button ghost v-if="suggestedAmounts.has(pair) && suggestedAmounts.get(pair) !== amount" :title="`Reset to the suggested ${suggestedAmounts.get(pair)}`" :aria-label="`Reset ${pairLabel(pair)} to the suggested ${suggestedAmounts.get(pair)}`" @click="setAmount(pair, suggestedAmounts.get(pair), max)"><template #icon><Icon name="reset" :size="14" /></template></Button>
-                <Button ghost :title="`Remove ${pairLabel(pair)}`" :aria-label="`Remove ${pairLabel(pair)}`" @click="remove(pair)"><template #icon><Icon name="close" :size="14" /></template></Button>
+                <Button ghost v-if="suggestedAmounts.has(pair) && suggestedAmounts.get(pair) !== amount" v-tooltip="`Reset to the suggested ${suggestedAmounts.get(pair)}`" :aria-label="`Reset ${pairLabel(pair)} to the suggested ${suggestedAmounts.get(pair)}`" @click="setAmount(pair, suggestedAmounts.get(pair), max)"><template #icon><Icon name="reset" :size="14" /></template></Button>
+                <Button ghost v-tooltip="`Remove ${pairLabel(pair)}`" :aria-label="`Remove ${pairLabel(pair)}`" @click="remove(pair)"><template #icon><Icon name="close" :size="14" /></template></Button>
               </div>
               <Slider label="Closer by" :min="0" :max="max" :model-value="amount" @update:model-value="setAmount(pair, $event, max)" />
             </div>
@@ -126,7 +126,7 @@
         </div>
         <p v-if="!suggestions.length" class="hint">No suggestions here.</p>
         <div v-else class="pairs list">
-          <button v-for="{ pair, amount } of suggestions" :key="pair" class="pair suggestion" :title="`Add, ${amount} closer`" @click="setKerning({ [pair]: amount })">
+          <button v-for="{ pair, amount } of suggestions" :key="pair" class="pair suggestion" v-tooltip="`Add, ${amount} closer`" @click="setKerning({ [pair]: amount })">
             <span class="picture"><PairView :parsed="parsed" :pair="pair" :amount="amount" /></span>
             <span class="name">{{ pairLabel(pair) }}</span>
           </button>

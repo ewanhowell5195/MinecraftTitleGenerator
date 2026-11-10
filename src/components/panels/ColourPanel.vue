@@ -22,7 +22,7 @@
     <h3>Tint</h3>
     <div class="row">
       <ColourPicker class="grow" v-model="object.colour" />
-      <Dropdown class="grow" :options="BLEND_OPTIONS" v-model="object.blend" title="Blend mode" />
+      <Dropdown class="grow" :options="BLEND_OPTIONS" v-model="object.blend" v-tooltip="'Blend mode'" />
     </div>
     <Slider label="Opacity" v-model="object.colourOpacity" :min="0" :max="100" />
   </Panel>

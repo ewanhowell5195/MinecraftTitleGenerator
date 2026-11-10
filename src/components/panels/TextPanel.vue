@@ -123,23 +123,23 @@
   <Panel title="Words" :modified="modified" @reset="reset">
     <div ref="box" class="line" :class="{ single: line.length < 2, dragging: dragged !== null }">
       <template v-for="(word, index) of line" :key="word.id">
-        <button v-if="index" class="join" :class="{ joined: !word.spaceBefore }" @click="word.spaceBefore = !word.spaceBefore" :aria-pressed="!word.spaceBefore" :title="word.spaceBefore ? 'Join words' : 'Add space'">
+        <button v-if="index" class="join" :class="{ joined: !word.spaceBefore }" @click="word.spaceBefore = !word.spaceBefore" :aria-pressed="!word.spaceBefore" v-tooltip="word.spaceBefore ? 'Join words' : 'Add space'" :aria-label="word.spaceBefore ? 'Join words' : 'Add space'">
           <Icon :name="word.spaceBefore ? 'space' : 'link'" :size="14" />
         </button>
         <label :ref="el => (chips[word.id] = el)" class="chip" :class="{ chosen: chosen(word), dragged: dragged === word.id, hidden: word.hidden }" :data-value="word.text || placeholder">
-          <span v-if="line.length > 1" class="grip" @pointerdown="press($event, word)" title="Drag to reorder">
+          <span v-if="line.length > 1" class="grip" @pointerdown="press($event, word)" v-tooltip="'Drag to reorder'">
             <Icon name="grip" :size="14" />
           </span>
           <input :ref="el => (fields[word.id] = el)" type="text" size="1" :value="word.text" spellcheck="false" autocomplete="off" :placeholder="placeholder" :aria-label="line.length > 1 ? `Word ${index + 1}` : 'Text'" @input="typed($event, word)" @focus="focus(word)" @keydown.backspace="backspace($event, word)">
-          <button v-if="line.length > 1" class="hide" tabindex="-1" @click.prevent="word.hidden = !word.hidden" :title="word.hidden ? 'Show this word' : 'Hide this word'" :aria-pressed="word.hidden">
+          <button v-if="line.length > 1" class="hide" tabindex="-1" @click.prevent="word.hidden = !word.hidden" v-tooltip="word.hidden ? 'Show this word' : 'Hide this word'" :aria-label="word.hidden ? 'Show this word' : 'Hide this word'" :aria-pressed="word.hidden">
             <Icon :name="word.hidden ? 'hidden' : 'eye'" :size="12" />
           </button>
-          <button v-if="line.length > 1" class="remove" tabindex="-1" @click.prevent="remove(word)" title="Remove this word">
+          <button v-if="line.length > 1" class="remove" tabindex="-1" @click.prevent="remove(word)" v-tooltip="'Remove this word'" aria-label="Remove this word">
             <Icon name="close" :size="12" />
           </button>
         </label>
       </template>
-      <Button ghost class="add" @mousedown="capture" @click="add" title="Add word"><template #icon><Icon name="plus" :size="16" /></template></Button>
+      <Button ghost class="add" @mousedown="capture" @click="add" v-tooltip="'Add word'" aria-label="Add word"><template #icon><Icon name="plus" :size="16" /></template></Button>
     </div>
     <p class="hint">Each word gets its own texture. Highlight part of a word and press + to split it off.</p>
   </Panel>

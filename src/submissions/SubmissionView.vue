@@ -160,7 +160,7 @@
           </dl>
           <div class="actions">
             <Button primary :href="`/app/?${SUBMISSION_PARAM}=${item.id}`">Open in generator</Button>
-            <Button v-if="previewLink" :href="previewLink" target="_blank" rel="noopener" title="The generator built from this submission's branch, with it added"><template #icon><Icon name="eye" :size="16" /></template>Open preview</Button>
+            <Button v-if="previewLink" :href="previewLink" target="_blank" rel="noopener" v-tooltip="'The generator built from this submission\'s branch, with it added'"><template #icon><Icon name="eye" :size="16" /></template>Open preview</Button>
             <Button v-if="item.pullUrl" :href="item.pullUrl" target="_blank" rel="noopener"><template #icon><Icon name="github" :size="16" /></template>Pull request</Button>
           </div>
           <div v-if="changeable" class="actions">

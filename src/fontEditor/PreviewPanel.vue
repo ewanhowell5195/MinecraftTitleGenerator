@@ -67,10 +67,10 @@
         <span class="label">Preview</span>
         <input v-model="text" type="text" placeholder="Type something" aria-label="Preview text">
       </label>
-      <div class="stretch" title="Makes the preview up to twice as tall, using only the marked stretch zones">
+      <div class="stretch" v-tooltip="'Makes the preview up to twice as tall, using only the marked stretch zones'">
         <Slider inline label="Stretch" :min="0" :max="100" v-model="stretch" />
       </div>
-      <label class="checkbox" :title="font.forcedTerminators ? 'This font always uses terminators' : 'Add the ┫ ┣ line terminators'">
+      <label class="checkbox" v-tooltip="font.forcedTerminators ? 'This font always uses terminators' : 'Add the ┫ ┣ line terminators'">
         <input type="checkbox" :checked="terminators || font.forcedTerminators" :disabled="font.forcedTerminators" @change="terminators = $event.target.checked">
         <span>Terminators</span>
       </label>
@@ -82,7 +82,7 @@
         <p v-else-if="empty" class="message">{{ EMPTY }}</p>
       </div>
       <LiveTitle v-if="live" class="view" :lines="lines" :fonts="[entry]" :message="EMPTY" @settled="settled" />
-      <Button class="mode-switch" v-if="!wide" :title="mode === '2d' ? 'Show the 3D preview' : 'Show the flat preview'" @click="mode = mode === '2d' ? '3d' : '2d'">{{ mode === "2d" ? "3D" : "2D" }}</Button>
+      <Button class="mode-switch" v-if="!wide" v-tooltip="mode === '2d' ? 'Show the 3D preview' : 'Show the flat preview'" @click="mode = mode === '2d' ? '3d' : '2d'">{{ mode === "2d" ? "3D" : "2D" }}</Button>
     </div>
   </section>
 </template>

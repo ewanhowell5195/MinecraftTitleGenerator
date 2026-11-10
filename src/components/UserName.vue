@@ -10,7 +10,7 @@
 </script>
 
 <template>
-  <span class="user-name"><Icon :name="provider" :size="size" :title="providerLabel(provider)" /><span class="ellipsis">{{ name }}</span></span>
+  <span class="user-name"><Icon :name="provider" :size="size" v-tooltip="providerLabel(provider)" /><span class="ellipsis">{{ name }}</span></span>
 </template>
 
 <style scoped>

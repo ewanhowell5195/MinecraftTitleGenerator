@@ -15,7 +15,7 @@
 </script>
 
 <template>
-  <MenuButton v-if="account || signInProviders.length" class="account" :class="{ signed: account }" :items="items" end :title="account ? `Signed in as ${account.name} with ${providerLabel(account.provider)}` : 'Sign in to keep your presets under your account'" :aria-label="account ? `Account: ${account.name}` : 'Sign in'">
+  <MenuButton v-if="account || signInProviders.length" class="account" :class="{ signed: account }" :items="items" end v-tooltip="account ? `Signed in as ${account.name} with ${providerLabel(account.provider)}` : 'Sign in to keep your presets under your account'" :aria-label="account ? `Account: ${account.name}` : 'Sign in'">
     <template v-if="account">
       <img v-if="avatar" class="avatar" :src="avatar" alt="" width="28" height="28" referrerpolicy="no-referrer" @error="broken = avatar">
       <span v-else class="avatar fallback"><Icon :name="account.provider" :size="16" /></span>

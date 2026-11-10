@@ -181,3 +181,26 @@ input[type="checkbox"]:disabled {
   opacity: 0.35;
   cursor: not-allowed;
 }
+
+:root {
+  --easy-tooltip-background-color: var(--surface);
+  --easy-tooltip-text-color: var(--text);
+  --easy-tooltip-border-color: var(--line-strong);
+  --easy-tooltip-border-radius: 0;
+  --easy-tooltip-padding: 6px 10px;
+  --easy-tooltip-max-width: 280px;
+  --easy-tooltip-distance: 10px;
+  --easy-tooltip-viewport-padding: 8px;
+  --easy-tooltip-arrow-size: 12px 6px;
+  --easy-tooltip-inactive-delay: 0.4s;
+}
+
+.easy-tooltip {
+  font-size: var(--font-sm);
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.easy-tooltip.slow {
+  --easy-tooltip-inactive-delay: 1s;
+}

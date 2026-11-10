@@ -113,7 +113,7 @@
 
 <template>
   <div class="field-colour">
-    <button ref="swatch" class="colour field-button" :class="{ active: open }" :disabled="disabled" @click="toggle" :title="colour">
+    <button ref="swatch" class="colour field-button" :class="{ active: open }" :disabled="disabled" @click="toggle" v-tooltip="colour">
       <span class="chip" :style="{ background: colour }"></span>
       <span class="hex">{{ colour }}</span>
     </button>

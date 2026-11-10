@@ -84,7 +84,7 @@
 
 <template>
   <div v-if="shown" class="notification-bell">
-    <button ref="button" type="button" class="bell" :class="{ open }" :title="unread ? `${unread} unread notifications` : 'Notifications'" :aria-label="unread ? `Notifications, ${unread} unread` : 'Notifications'" :aria-expanded="open" @click="toggle">
+    <button ref="button" type="button" class="bell" :class="{ open }" v-tooltip="unread ? `${unread} unread notifications` : 'Notifications'" :aria-label="unread ? `Notifications, ${unread} unread` : 'Notifications'" :aria-expanded="open" @click="toggle">
       <Icon name="bell" :size="20" />
       <span v-if="unread" class="dot"></span>
     </button>

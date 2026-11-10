@@ -117,11 +117,11 @@
       <span class="hint">{{ blanks ? `${blanks} still blank` : "All drawn" }}</span>
     </header>
     <div ref="list" class="list">
-      <button v-for="char of characters" :key="char" class="character" :class="{ selected: selected === char, blank: isBlank(glyphOf(font, char)) }" :title="characterName(char)" @click="selected = char" v-long-press @contextmenu.prevent="menu($event, char)">
+      <button v-for="char of characters" :key="char" class="character" :class="{ selected: selected === char, blank: isBlank(glyphOf(font, char)) }" v-tooltip="characterName(char) === shownLabel(char) ? null : characterName(char)" @click="selected = char" v-long-press @contextmenu.prevent="menu($event, char)">
         <span class="picture"><GlyphThumb :font="font" :glyph="glyphOf(font, char)" /></span>
         <span class="char ellipsis">{{ shownLabel(char) }}</span>
       </button>
-      <button class="character add" title="Add a character" aria-label="Add a character" @click="addMenu"><Icon name="plus" :size="20" /></button>
+      <button class="character add" v-tooltip="'Add a character'" aria-label="Add a character" @click="addMenu"><Icon name="plus" :size="20" /></button>
     </div>
     <ContextMenu :items="context?.items" :at="context?.at" @close="context = null" />
     <RenderDialog v-if="adding" title="Add characters" close-title="Cancel" dismissable @close="adding = false">

@@ -227,7 +227,7 @@
       </div>
       <ul class="fonts">
         <li v-for="item of fits" :key="item.id">
-          <label class="font" :class="{ on: picked.includes(item.id), off: item.offset === null && !picked.includes(item.id) }" :title="item.offset === null ? `Won't fit: ${item.problems.join(', and ')}.` : null">
+          <label class="font" :class="{ on: picked.includes(item.id), off: item.offset === null && !picked.includes(item.id) }" v-tooltip="item.offset === null ? `Won't fit: ${item.problems.join(', and ')}.` : null">
             <input type="checkbox" :checked="picked.includes(item.id)" :disabled="item.offset === null && !picked.includes(item.id)" @change="toggleFont(item.id, $event.target.checked)">
             <img :src="fontThumbnail(fonts, item.id)" alt="" loading="lazy">
             <span class="font-text">

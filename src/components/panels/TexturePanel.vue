@@ -220,7 +220,7 @@
       <Segments v-if="object.textureSource === 'tileable'" :options="TILEABLE_SOURCES" :model-value="object.tileableSource" @update:model-value="chooseTileables" />
 
       <template v-if="usingMinecraft">
-        <button class="version" title="Choose a Minecraft version" @click="choosingVersion = true">
+        <button class="version" v-tooltip="'Choose a Minecraft version'" @click="choosingVersion = true">
           <span>Minecraft {{ object.minecraftVersion }}</span>
           <Icon name="down" :size="16" />
         </button>

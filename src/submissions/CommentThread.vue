@@ -54,7 +54,7 @@
               <strong class="ellipsis">{{ item.author || "A deleted account" }}</strong>
               <span class="role">{{ ROLES[item.role] }}</span>
               <time>{{ when(item.createdAt) }}</time>
-              <a v-if="item.url" class="github" :href="item.url" target="_blank" rel="noopener" title="View on GitHub" aria-label="View on GitHub"><Icon name="github" :size="16" /></a>
+              <a v-if="item.url" class="github" :href="item.url" target="_blank" rel="noopener" v-tooltip="'View on GitHub'" aria-label="View on GitHub"><Icon name="github" :size="16" /></a>
             </header>
             <p>{{ item.body }}</p>
           </article>

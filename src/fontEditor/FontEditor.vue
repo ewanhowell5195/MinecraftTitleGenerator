@@ -88,7 +88,7 @@
         </FluidTabs>
       </template>
       <div class="spacer"></div>
-      <Button v-if="font" title="Send this font to be added to the title generator" @click="submitFont"><template #icon><Icon name="upload" :size="14" /></template>Submit</Button>
+      <Button v-if="font" v-tooltip="'Send this font to be added to the title generator'" @click="submitFont"><template #icon><Icon name="upload" :size="14" /></template>Submit</Button>
       <AccountMenu />
       <NotificationBell />
     </header>

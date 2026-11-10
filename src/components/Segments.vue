@@ -22,10 +22,10 @@
   <div v-if="label" class="field">
     <span class="label">{{ label }}</span>
     <FluidTabs :model-value="String(modelValue)" :tabs="tabs" tab-style="slide" @tab-changed="change">
-      <template #label="{ tab }"><span :title="tab.title">{{ tab.label }}</span></template>
+      <template #label="{ tab }"><span v-tooltip="tab.title">{{ tab.label }}</span></template>
     </FluidTabs>
   </div>
   <FluidTabs v-else :model-value="String(modelValue)" :tabs="tabs" tab-style="slide" @tab-changed="change">
-    <template #label="{ tab }"><span :title="tab.title">{{ tab.label }}</span></template>
+    <template #label="{ tab }"><span v-tooltip="tab.title">{{ tab.label }}</span></template>
   </FluidTabs>
 </template>

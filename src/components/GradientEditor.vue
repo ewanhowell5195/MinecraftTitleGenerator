@@ -143,7 +143,7 @@
 <template>
   <div class="gradient-editor">
     <div class="bar" :style="{ background }"></div>
-    <div class="track" ref="track" @pointerdown.self="add" title="Click to add a colour, drag a colour down to remove it">
+    <div class="track" ref="track" @pointerdown.self="add" v-tooltip="'Click to add a colour, drag a colour down to remove it'">
       <button v-for="(item, index) of stops" :key="index" class="stop" :class="{ selected: index === selected, removing: removing && index === selected }" :style="{ left: `${item.position}%` }" @pointerdown="begin(index, $event)" @keydown.left.prevent="nudge($event, -1)" @keydown.right.prevent="nudge($event, 1)" @keydown.delete.prevent="remove(index)" @focus="selected = index" :aria-label="`Colour at ${item.position}%`">
         <span :style="{ background: item.colour }"></span>
       </button>
@@ -154,13 +154,13 @@
     </div>
     <div ref="box" class="stop-rows">
       <div v-for="index of order" :key="index" :ref="el => (rows[index] = el)" class="stop-row input-row" :class="{ dragged: dragged === index }" @focusin="selected = index">
-        <span v-if="stops.length > 1" class="grip" @pointerdown="press($event, index)" title="Drag to reorder"><Icon name="grip" :size="14" /></span>
+        <span v-if="stops.length > 1" class="grip" @pointerdown="press($event, index)" v-tooltip="'Drag to reorder'"><Icon name="grip" :size="14" /></span>
         <ColourPicker class="grow" v-model="stops[index].colour" />
-        <label class="location" title="Location">
-          <NumberInput v-model.number="stops[index].position" min="0" max="100" step="1" @focus="typing = true" @blur="finishTyping" />
+        <label class="location" v-tooltip="'Location'">
+          <NumberInput v-model.number="stops[index].position" aria-label="Location" min="0" max="100" step="1" @focus="typing = true" @blur="finishTyping" />
           <span>%</span>
         </label>
-        <Button ghost :disabled="!removable" @click="remove(index)" title="Remove colour"><template #icon><Icon name="trash" :size="14" /></template></Button>
+        <Button ghost :disabled="!removable" @click="remove(index)" v-tooltip="'Remove colour'" aria-label="Remove colour"><template #icon><Icon name="trash" :size="14" /></template></Button>
       </div>
     </div>
   </div>

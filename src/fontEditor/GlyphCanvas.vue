@@ -491,22 +491,22 @@
   <section class="drawing">
     <div class="tools">
       <span class="group">
-        <Button ghost :active="tool === item.id" v-for="item of TOOLS" :key="item.id" :title="`${item.label} (${item.key.toUpperCase()})${item.hint ? `. ${item.hint}` : ''}`" :aria-label="item.label" :aria-pressed="tool === item.id" @click="tool = item.id"><template #icon><Icon :name="item.icon" :size="18" /></template></Button>
+        <Button ghost :active="tool === item.id" v-for="item of TOOLS" :key="item.id" v-tooltip="{ text: `${item.label} (${item.key.toUpperCase()})${item.hint ? `. ${item.hint}` : ''}`, tooltipClass: 'slow' }" :aria-label="item.label" :aria-pressed="tool === item.id" @click="tool = item.id"><template #icon><Icon :name="item.icon" :size="18" /></template></Button>
       </span>
       <span v-if="brushes.length > 1" class="group density">
         <span class="group-label">Density</span>
-        <Button ghost :active="brush === size" v-for="size of brushes" :key="size" :title="size === 1 ? 'Draw single pixels' : `Draw ${size} pixel blocks`" :aria-pressed="brush === size" @click="chosenBrush = size">{{ font.grid / size }}x</Button>
+        <Button ghost :active="brush === size" v-for="size of brushes" :key="size" v-tooltip="{ text: size === 1 ? 'Draw single pixels' : `Draw ${size} pixel blocks`, tooltipClass: 'slow' }" :aria-pressed="brush === size" @click="chosenBrush = size">{{ font.grid / size }}x</Button>
       </span>
       <span class="group">
         <span class="group-label">Flip</span>
-        <Button ghost title="Flip left to right" aria-label="Flip left to right" @click="flipX"><template #icon><Icon name="flipX" :size="18" /></template></Button>
-        <Button ghost title="Flip upside down" aria-label="Flip upside down" @click="flipY"><template #icon><Icon name="flipY" :size="18" /></template></Button>
+        <Button ghost v-tooltip="{ text: 'Flip left to right', tooltipClass: 'slow' }" aria-label="Flip left to right" @click="flipX"><template #icon><Icon name="flipX" :size="18" /></template></Button>
+        <Button ghost v-tooltip="{ text: 'Flip upside down', tooltipClass: 'slow' }" aria-label="Flip upside down" @click="flipY"><template #icon><Icon name="flipY" :size="18" /></template></Button>
       </span>
       <span class="group">
-        <Button ghost title="Remove every pixel from this character" @click="clearGlyph">Clear</Button>
+        <Button ghost v-tooltip="{ text: 'Remove every pixel from this character', tooltipClass: 'slow' }" @click="clearGlyph">Clear</Button>
       </span>
       <div class="spacer"></div>
-      <Button ghost class="zoom" :disabled="!zoomed" title="Fit to view (0). Zoom with the mouse wheel or a pinch, and move around by dragging outside the character, with the middle mouse button, Space and drag, or two fingers" aria-label="Fit to view" @click="fit"><template #icon><Icon name="fit" :size="16" /></template>{{ zoomPercent }}%</Button>
+      <Button ghost class="zoom" :disabled="!zoomed" v-tooltip="{ text: 'Fit to view (0). Zoom with the mouse wheel or a pinch, and move around by dragging outside the character, with the middle mouse button, Space and drag, or two fingers', tooltipClass: 'slow' }" aria-label="Fit to view" @click="fit"><template #icon><Icon name="fit" :size="16" /></template>{{ zoomPercent }}%</Button>
     </div>
     <div ref="holder" class="holder">
       <canvas ref="canvas" class="board" :class="{ grab: spaceHeld || outside, grabbing: panning }" @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="up" @pointerenter="enter" @pointerleave="leave" @mousedown="noAutoscroll" @wheel="wheel" @contextmenu.prevent></canvas>

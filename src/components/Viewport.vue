@@ -436,11 +436,11 @@
   <div ref="host" class="viewport" :class="{ navigable, panning }">
     <div v-if="navigable" class="toolbar">
       <div v-if="view.section === 'transform'" class="tools">
-        <Button ghost :active="view.gizmo === mode" v-for="[mode, icon, title] of TOOLS" :key="icon" :title="title" :aria-pressed="view.gizmo === mode" @click="view.gizmo = mode"><template #icon><Icon :name="icon" :size="16" /></template></Button>
+        <Button ghost :active="view.gizmo === mode" v-for="[mode, icon, title] of TOOLS" :key="icon" v-tooltip="{ text: title, tooltipClass: 'slow' }" :aria-label="title" :aria-pressed="view.gizmo === mode" @click="view.gizmo = mode"><template #icon><Icon :name="icon" :size="16" /></template></Button>
       </div>
       <div class="tools">
-        <Button ghost :active="orbiting" title="Orbit the camera" :aria-pressed="orbiting" @click="toggleOrbit"><template #icon><Icon name="orbit" :size="16" /></template></Button>
-        <Button ghost v-if="moved" title="Reset the view" @click="resetView"><template #icon><Icon name="reset" :size="16" /></template></Button>
+        <Button ghost :active="orbiting" v-tooltip="{ text: 'Orbit the camera', tooltipClass: 'slow' }" aria-label="Orbit the camera" :aria-pressed="orbiting" @click="toggleOrbit"><template #icon><Icon name="orbit" :size="16" /></template></Button>
+        <Button ghost v-if="moved" v-tooltip="{ text: 'Reset the view', tooltipClass: 'slow' }" aria-label="Reset the view" @click="resetView"><template #icon><Icon name="reset" :size="16" /></template></Button>
       </div>
     </div>
   </div>

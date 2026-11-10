@@ -1,4 +1,5 @@
 import { createApp } from "vue"
+import { vTooltip } from "easy-tooltips-vue"
 import Root from "./Root.vue"
 import { followLinks, router } from "./router.js"
 import "fluid-tabs-vue"
@@ -16,4 +17,4 @@ import "./site/bar.css"
 indexedDB.deleteDatabase("minecraft-title-pictures")
 
 followLinks(document)
-createApp(Root).use(router).mount("#app")
+createApp(Root).use(router).directive("tooltip", vTooltip).mount("#app")

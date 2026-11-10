@@ -367,7 +367,7 @@
           <input class="search" type="text" v-model="search" :placeholder="tab === 'community' ? 'Search names, text or user:name' : 'Search your presets'" aria-label="Search presets" spellcheck="false">
           <template v-if="tab === 'community'">
             <Dropdown class="sort" :options="SORTS" v-model="sort" />
-            <Button class="random" title="Show a random community preset" @click="openRandom"><template #icon><Icon name="dice" :size="16" /></template><span>Random</span></Button>
+            <Button class="random" v-tooltip="'Show a random community preset'" @click="openRandom"><template #icon><Icon name="dice" :size="16" /></template><span>Random</span></Button>
           </template>
         </div>
         <div class="list">
@@ -379,11 +379,11 @@
           <p v-if="tab === 'mine' && !account && signInProviders.length" class="message">Sign in to keep your presets under your account. The presets saved in this browser, and anything shared from it, move to your account when you do.</p>
           <div v-if="tab === 'community'" class="grid">
             <div v-for="preset of results" :key="preset.id" class="card" :class="{ selected: selected?.id === preset.id }" @click="selectCommunity(preset)">
-              <TitlePicture :code="preset.code" :fingerprint="preset.fingerprint" :title="preset.name" @open="selectCommunity(preset)" />
+              <TitlePicture :code="preset.code" :fingerprint="preset.fingerprint" v-tooltip="preset.name" @open="selectCommunity(preset)" />
               <div class="details">
-                <strong class="ellipsis" :title="preset.name">{{ preset.name }}</strong>
+                <strong class="ellipsis" v-tooltip="preset.name">{{ preset.name }}</strong>
                 <span v-if="isMine(preset) && !preset.author" class="yours">Shared by you</span>
-                <button v-else-if="preset.author" type="button" class="author link-button" :class="{ yours: isMine(preset) }" :title="`Show presets by ${preset.author} on ${providerLabel(preset.authorProvider)}`" @click.stop="filterByUser(preset.author, preset.authorProvider)"><UserName :name="preset.author" :provider="preset.authorProvider" :size="13" /></button>
+                <button v-else-if="preset.author" type="button" class="author link-button" :class="{ yours: isMine(preset) }" v-tooltip="{ text: `Show presets by ${preset.author} on ${providerLabel(preset.authorProvider)}`, tooltipClass: 'slow' }" @click.stop="filterByUser(preset.author, preset.authorProvider)"><UserName :name="preset.author" :provider="preset.authorProvider" :size="13" /></button>
               </div>
             </div>
           </div>
@@ -392,13 +392,13 @@
               <h2>{{ group.label }}</h2>
               <div class="grid">
                 <div v-for="preset of group.presets" :key="preset.code" class="card" :class="{ selected: selectedLocalCode === preset.code }" @click="selectedLocalCode === preset.code ? clearSelection() : selectedLocalCode = preset.code">
-                  <TitlePicture :code="preset.code" :title="preset.name" @open="selectedLocalCode = preset.code" />
+                  <TitlePicture :code="preset.code" v-tooltip="preset.name" @open="selectedLocalCode = preset.code" />
                   <div class="details">
-                    <strong class="ellipsis" :title="preset.name">{{ preset.name }}</strong>
-                    <span v-if="preset.inBrowser" class="browser" title="Your account is full, so this is only saved in this browser">This browser only</span>
+                    <strong class="ellipsis" v-tooltip="preset.name">{{ preset.name }}</strong>
+                    <span v-if="preset.inBrowser" class="browser" v-tooltip="'Your account is full, so this is only saved in this browser'">This browser only</span>
                     <span v-if="stats[preset.shared]" class="stats">
-                      <span title="Uses"><Icon name="download" :size="13" />{{ stats[preset.shared].downloads }}</span>
-                      <span v-if="stats[preset.shared].rating !== null" title="Rating"><Icon name="star" :size="13" />{{ stats[preset.shared].rating.toFixed(1) }}</span>
+                      <span v-tooltip="'Uses'"><Icon name="download" :size="13" />{{ stats[preset.shared].downloads }}</span>
+                      <span v-if="stats[preset.shared].rating !== null" v-tooltip="'Rating'"><Icon name="star" :size="13" />{{ stats[preset.shared].rating.toFixed(1) }}</span>
                     </span>
                   </div>
                 </div>
