@@ -162,6 +162,7 @@ textarea:focus {
 
 .submission-view > .details {
   align-self: stretch;
+  gap: 8px;
 }
 
 .submission-view > .details > .actions:first-of-type {
