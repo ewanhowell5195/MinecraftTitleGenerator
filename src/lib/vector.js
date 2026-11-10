@@ -703,26 +703,52 @@ function fillTotals(cache, bandFills) {
   return totals
 }
 
-function joinFacesToLayerBelow(layers) {
-  for (const [index, layer] of layers.entries()) {
-    const below = layers[index - 1]
-    if (!below || below.layers.length || below.joins.length || below.covers.size || below.base.size !== 1) continue
-    const [[fill, polygons]] = below.base
-    const shapes = Array.from(layer.base)
-    const at = shapes.findIndex(entry => entry[0] === fill)
-    if (at < 0) continue
-    const earlier = shapes.slice(0, at).map(entry => shapeOfPolygons(entry[1]))
-    const kept = []
-    const moved = polygons.map(sameWinding)
-    for (const polygon of shapes[at][1]) {
-      const shape = shapeOfPolygons([polygon])
-      if (earlier.some(other => shapesOverlap(other, shape))) kept.push(polygon)
-      else moved.push(sameWinding(polygon))
-    }
-    below.base.set(fill, moved)
-    if (kept.length) layer.base.set(fill, kept)
-    else layer.base.delete(fill)
+function polygonsOfLayer({ base, layers, joins, covers }) {
+  return Array.from(base.values()).concat(layers.map(entry => entry[1]), joins.map(entry => entry[1]), Array.from(covers.values())).flat()
+}
+
+function joinToLayerBelow(below, layer) {
+  if (below.layers.length || below.joins.length || below.covers.size || below.base.size !== 1) return
+  const [[fill, polygons]] = below.base
+  const shapes = Array.from(layer.base)
+  const at = shapes.findIndex(entry => entry[0] === fill)
+  if (at < 0) return
+  const earlier = shapes.slice(0, at).map(entry => shapeOfPolygons(entry[1]))
+  const kept = []
+  const moved = polygons.map(sameWinding)
+  for (const polygon of shapes[at][1]) {
+    const shape = shapeOfPolygons([polygon])
+    if (earlier.some(other => shapesOverlap(other, shape))) kept.push(polygon)
+    else moved.push(sameWinding(polygon))
   }
+  below.base.set(fill, moved)
+  if (kept.length) layer.base.set(fill, kept)
+  else layer.base.delete(fill)
+}
+
+function joinFacesToLayerBelow(layers) {
+  const kept = []
+  for (const layer of layers) {
+    if (kept.length) joinToLayerBelow(kept.at(-1), layer)
+    if (polygonsOfLayer(layer).length) kept.push(layer)
+  }
+  return kept
+}
+
+function joinApartLayers(layers) {
+  const kept = []
+  for (const layer of layers) {
+    const below = kept.at(-1)
+    if (!below || shapesOverlap(shapeOfPolygons(polygonsOfLayer(below)), shapeOfPolygons(polygonsOfLayer(layer).map(grownOutward)))) {
+      kept.push(layer)
+      continue
+    }
+    for (const [fill, polygons] of layer.base) addTo(below.base, fill, polygons)
+    for (const [fill, polygons] of layer.covers) addTo(below.covers, fill, polygons)
+    below.layers = below.layers.concat(layer.layers)
+    below.joins = below.joins.concat(layer.joins)
+  }
+  return kept
 }
 
 export function vectorTitle(scene, camera, size, resolution) {
@@ -886,13 +912,14 @@ export function vectorTitle(scene, camera, size, resolution) {
   const top = Math.floor(minY + CROP_MARGIN)
   const right = Math.ceil(maxX - CROP_MARGIN)
   const bottom = Math.ceil(maxY - CROP_MARGIN)
-  joinFacesToLayerBelow(layers)
-  useMergedFills(layers, output.mergeAlongAxis(resolution * SHORT_GRADIENT))
+  const joined = joinFacesToLayerBelow(layers)
+  useMergedFills(joined, output.mergeAlongAxis(resolution * SHORT_GRADIENT))
   const totals = fillTotals(cache, bandFills)
-  useMergedFills(layers, nearFillsJoined(layers, totals, NEAR_FILLS))
+  useMergedFills(joined, nearFillsJoined(joined, totals, NEAR_FILLS))
+  const painted = joinApartLayers(joined)
   const context = { left, top, bleed: resolution * BLEED, output, totals, cover: coverOf(right - left, bottom - top) }
   const markup = []
-  for (let index = layers.length - 1; index >= 0; index--) markup[index] = markupOf(layers[index], index, context)
+  for (let index = painted.length - 1; index >= 0; index--) markup[index] = markupOf(painted[index], index, context)
   const defs = output.defs(left, top)
   return { width: right - left, height: bottom - top, markup: (defs ? `<defs>${defs}</defs>` : "") + markup.join("") }
 }

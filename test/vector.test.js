@@ -344,6 +344,26 @@ describe("vectorTitle colours", () => {
     assert.equal(pathsFilled(markup, "#0000ff").length, 1)
   })
 
+  test("outlines of several words join into one shape", () => {
+    const { markup } = titleOf(plain([{ left: 0, right: 24, bottom: 0, top: 64 }], 0x000000), plain([{ left: 20, right: 44, bottom: 0, top: 64 }], 0x000000), plain([{ left: 40, right: 64, bottom: 0, top: 64 }], 0x000000))
+    assert.equal(pathsFilled(markup, "#000000").length, 1)
+  })
+
+  test("words that do not touch share one shape per colour", () => {
+    const texture = textureOf(8, 8, (x, y) => x >= 2 && x < 6 && y >= 2 && y < 6 ? BLUE : RED)
+    const words = [[2, 18], [24, 40], [46, 62]].map(([left, right]) => meshOf([{ left, right, bottom: 8, top: 56 }], new THREE.MeshBasicMaterial({ map: texture })))
+    const { markup } = titleOf(...words)
+    assert.equal(pathsFilled(markup, "#ff0000").length, 1)
+    assert.equal(pathsFilled(markup, "#0000ff").length, 1)
+  })
+
+  test("words that overlap keep their own shapes", () => {
+    const texture = textureOf(8, 8, (x, y) => x >= 2 && x < 6 && y >= 2 && y < 6 ? BLUE : RED)
+    const words = [[2, 34], [30, 62]].map(([left, right]) => meshOf([{ left, right, bottom: 8, top: 56 }], new THREE.MeshBasicMaterial({ map: texture, depthWrite: false })))
+    const { markup } = titleOf(...words)
+    assert.equal(pathsFilled(markup, "#0000ff").length, 2)
+  })
+
   test("a loop inside its own colour is left out", () => {
     const { markup } = titleOf(plain([{ left: 0, right: 64, bottom: 0, top: 64 }, { left: 16, right: 48, bottom: 16, top: 48 }], 0x0000ff))
     const polygons = pathsFilled(markup, "#0000ff").flatMap(path => path.polygons)
