@@ -38,7 +38,8 @@
 
   function toggleOutline(on) {
     const widths = scene.objects.filter(object => !object.hidden).map(object => object.wordBorder ?? object.border)
-    if (on && widths.length) framing.outlineWidth = Math.round(widths.reduce((sum, width) => sum + width, 0) / widths.length * 10) / 10
+    const counts = Map.groupBy(widths, width => width)
+    if (on && widths.length) framing.outlineWidth = Array.from(counts.keys()).reduce((best, width) => counts.get(width).length > counts.get(best).length ? width : best)
     framing.outline = on
   }
 
