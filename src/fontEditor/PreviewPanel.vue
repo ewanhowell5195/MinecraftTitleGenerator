@@ -102,11 +102,6 @@
     gap: 10px;
   }
 
-  .text input {
-    padding: 0 10px;
-    font-size: var(--font-md);
-  }
-
   .bar {
     display: flex;
     align-items: center;

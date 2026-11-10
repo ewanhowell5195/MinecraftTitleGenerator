@@ -4,6 +4,7 @@
   import Icon from "../components/Icon.vue"
   import { collisionAmount, pairRank, suggestKerning } from "../lib/kerning.js"
   import { normalise } from "../lib/layout.js"
+  import Segments from "../components/Segments.vue"
   import Slider from "../components/Slider.vue"
   import Tile from "../components/Tile.vue"
   import TileGrid from "../components/TileGrid.vue"
@@ -122,8 +123,7 @@
         <h3>Suggested</h3>
         <p class="hint">Pairs whose shapes leave room to move closer. Click one to add it.</p>
         <div class="row toolbar">
-          <Button :active="filter === item.id" v-for="item of FILTERS" :key="item.id" @click="filter = item.id">{{ item.label }}</Button>
-          <div class="spacer"></div>
+          <Segments class="grow" v-model="filter" :options="FILTERS.map(item => ({ value: item.id, label: item.label }))" />
           <Button :disabled="!suggestions.length" @click="addAll">Add all {{ suggestions.length }}</Button>
         </div>
         <p v-if="!suggestions.length" class="hint">No suggestions here.</p>
@@ -226,7 +226,7 @@
 
   .toolbar {
     flex-wrap: wrap;
-    gap: 4px;
+    gap: 8px;
   }
 
   @media (max-width: 900px) {

@@ -560,19 +560,11 @@
     user-select: none;
   }
 
-  .tools button {
-    min-width: var(--control);
-    min-height: var(--control);
-  }
-
   .zoom {
     gap: 6px;
     font-variant-numeric: tabular-nums;
   }
 
-  .zoom:disabled {
-    opacity: 0.6;
-  }
 
   .zoom:disabled:hover {
     background: transparent;

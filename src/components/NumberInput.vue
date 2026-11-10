@@ -62,8 +62,9 @@
 </script>
 
 <template>
-  <span class="number-input" :class="[attrs.class, { disabled, bare }]" :style="attrs.style">
+  <span class="number-input" :class="[attrs.class, { disabled, bare, acting: $slots.action }]" :style="attrs.style">
     <input ref="input" type="number" v-bind="inputAttrs" :value="model === undefined ? attrs.value : model" @beforeinput="filter" @input="typed" @blur="correct" @keydown.enter="input.blur()">
+    <span v-if="$slots.action" class="action"><slot name="action"></slot></span>
     <span v-if="!bare" class="steps">
       <button type="button" tabindex="-1" :disabled="disabled" aria-label="Increase" @click="step(1)"><Icon name="up" :size="12" /></button>
       <button type="button" tabindex="-1" :disabled="disabled" aria-label="Decrease" @click="step(-1)"><Icon name="down" :size="12" /></button>
@@ -75,8 +76,11 @@
   .number-input {
     position: relative;
     display: inline-flex;
-    width: 72px;
     min-width: 0;
+  }
+
+  :where(.number-input) {
+    width: 72px;
   }
 
   input {
@@ -86,6 +90,17 @@
 
   .bare input {
     padding-right: 10px;
+  }
+
+  .acting input {
+    padding-right: calc(24px + var(--control));
+  }
+
+  .action {
+    position: absolute;
+    top: 0;
+    right: 21px;
+    display: flex;
   }
 
   .steps {

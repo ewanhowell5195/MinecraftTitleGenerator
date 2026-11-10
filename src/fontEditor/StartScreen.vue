@@ -192,10 +192,6 @@
     align-items: end;
   }
 
-  .numbers .number-input {
-    width: 100%;
-  }
-
   .numbers .checkbox {
     align-self: end;
     padding-bottom: 9px;

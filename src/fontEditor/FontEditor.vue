@@ -144,8 +144,8 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    height: 52px;
-    padding: 0 12px;
+    height: 60px;
+    padding: 0 14px 0 18px;
     background: var(--surface);
     border-bottom: 1px solid var(--line);
   }
@@ -255,18 +255,18 @@
       z-index: 10;
       flex-wrap: wrap;
       height: auto;
-      min-height: 52px;
+      min-height: 54px;
     }
 
     .brand {
-      height: 52px;
+      height: 54px;
     }
 
     .main-tabs {
       order: 10;
-      flex-basis: calc(100% + 24px);
+      flex-basis: calc(100% + 32px);
       height: 44px;
-      margin: 0 -12px;
+      margin: 0 -14px 0 -18px;
       border-top: 1px solid var(--line);
     }
 

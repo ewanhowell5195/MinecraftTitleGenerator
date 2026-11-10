@@ -86,7 +86,4 @@
     gap: 10px;
   }
 
-  .pair .number-input {
-    width: 100%;
-  }
 </style>

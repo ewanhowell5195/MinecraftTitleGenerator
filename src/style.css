@@ -63,6 +63,10 @@ p.hint {
   gap: 6px;
 }
 
+.field > .number-input {
+  width: 100%;
+}
+
 .label {
   font-size: var(--font-md);
   font-weight: 500;

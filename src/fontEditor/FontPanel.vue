@@ -156,10 +156,9 @@
       <p class="hint">These are in pixels, not squares.</p>
       <div class="numbers">
         <Field v-for="item of SPACING" :key="item.key" group :label="item.label" :label-for="`font-${item.key}`">
-          <div class="resettable">
-            <NumberInput :id="`font-${item.key}`" :min="item.min" :value="font[item.key]" @input="setNumber(item.key, $event, item.min ?? -1000)" @change="setNumber(item.key, $event, item.min ?? -1000)" />
-            <Button ghost v-if="font[item.key] !== item.fallback" v-tooltip="`Reset to ${item.fallback}`" :aria-label="`Reset ${item.label.toLowerCase()} to ${item.fallback}`" @click="setField(item.key, item.fallback, false)"><template #icon><Icon name="reset" :size="16" /></template></Button>
-          </div>
+          <NumberInput :id="`font-${item.key}`" :min="item.min" :value="font[item.key]" @input="setNumber(item.key, $event, item.min ?? -1000)" @change="setNumber(item.key, $event, item.min ?? -1000)">
+            <template v-if="font[item.key] !== item.fallback" #action><Button ghost v-tooltip="`Reset to ${item.fallback}`" :aria-label="`Reset ${item.label.toLowerCase()} to ${item.fallback}`" @click="setField(item.key, item.fallback, false)"><template #icon><Icon name="reset" :size="16" /></template></Button></template>
+          </NumberInput>
         </Field>
       </div>
     </section>
@@ -203,24 +202,6 @@
     gap: 14px;
   }
 
-  .numbers .number-input {
-    width: 100%;
-  }
-
-  .resettable {
-    position: relative;
-  }
-
-  .resettable :deep(input) {
-    padding-right: 60px;
-  }
-
-  .resettable .icon-only {
-    position: absolute;
-    top: 0;
-    right: 21px;
-  }
-
   .option {
     display: flex;
     flex-direction: column;
@@ -231,7 +212,7 @@
     margin-left: 26px;
   }
 
-  .nested input {
+  .nested .number-input {
     width: 96px;
   }
 
