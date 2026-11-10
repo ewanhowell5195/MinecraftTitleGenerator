@@ -25,7 +25,7 @@
     tried: { type: Boolean, default: false }
   })
 
-  const emit = defineEmits(["update:target", "update:details", "problem"])
+  const emit = defineEmits(["update:target", "update:details", "problem", "preview"])
 
   const ctx = submissionContext(props.fonts, path => fetch(path))
   const owners = computed(() => stripOwners(props.fonts))
@@ -82,6 +82,7 @@
 
   function toggleFont(id, on) {
     change({ fonts: on ? picked.value.concat(id) : picked.value.filter(item => item !== id) })
+    if (on) emit("preview", id)
   }
 
   function pickFitting() {

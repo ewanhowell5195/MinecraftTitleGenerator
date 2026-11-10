@@ -18,7 +18,7 @@
 
   const line = ref(null)
   const problem = ref("")
-  const chosen = ref("")
+  const chosen = defineModel("font", { type: String, default: "" })
 
   const options = computed(() => previewFonts({ target: props.target, details: props.details }, props.fonts).map(font => ({ value: font.id, label: fullName(font, props.fonts), image: fontThumbnail(props.fonts, font.id) })))
   const font = computed(() => options.value.some(option => option.value === chosen.value) ? chosen.value : options.value[0]?.value ?? "")

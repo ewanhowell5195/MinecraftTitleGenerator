@@ -40,6 +40,7 @@
   const chosen = ref(null)
   const extras = ref({})
   const previewText = ref("")
+  const previewFont = ref("")
   const problems = ref({})
   const extraProblem = ref(null)
   const tried = ref(false)
@@ -183,7 +184,7 @@
     </div>
     <div class="stage-area" :class="{ dragging }" @dragover.prevent="dragging = true" @dragleave.self="dragging = false" @drop.prevent="drop">
       <template v-if="fileUrl || chosen">
-        <component :is="parts.Preview" :fonts="fonts" :kind="kind" :target="target" :details="details" :files="extras" :initial="initial" :url="fileUrl" :text="previewText || name || 'Minecraft'" />
+        <component :is="parts.Preview" v-bind="kind === 'strip' ? { font: previewFont, 'onUpdate:font': id => previewFont = id } : {}" :fonts="fonts" :kind="kind" :target="target" :details="details" :files="extras" :initial="initial" :url="fileUrl" :text="previewText || name || 'Minecraft'" />
         <div class="stage-bar">
           <input type="text" v-model="previewText" :placeholder="name || 'Minecraft'" spellcheck="false" aria-label="Preview text">
           <label class="button">
@@ -202,7 +203,7 @@
     </div>
     <p v-if="fileProblem && (tried || chosen)" class="hint bad">{{ fileProblem }}</p>
     <div class="kind-fields">
-      <component :is="parts.Fields" v-model:target="target" v-model:details="details" v-model:files="extras" :fonts="fonts" :kind="kind" :file="chosen" :initial="initial" :name="name" :problems="problems" :tried="tried" @problem="extraProblem = $event" />
+      <component :is="parts.Fields" v-bind="kind === 'strip' ? { onPreview: id => previewFont = id } : {}" v-model:target="target" v-model:details="details" v-model:files="extras" :fonts="fonts" :kind="kind" :file="chosen" :initial="initial" :name="name" :problems="problems" :tried="tried" @problem="extraProblem = $event" />
     </div>
     <label class="field">
       <span class="label">Notes for the reviewer</span>
