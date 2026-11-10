@@ -4,10 +4,10 @@ import { fullName, loadFont, loadFontList, loadImage, sheetOwner, stripsOf } fro
 import { platform } from "../../lib/platform.js"
 import { defaultBorder, defaultDepth, defaultSpacing } from "../../lib/settings.js"
 import { stripFolder, stripUse } from "../../lib/strips.js"
+import { stripFonts } from "../../lib/submissionKinds/published.js"
 import { remapStrip, setEntry, setName, stripTarget } from "../../lib/submissionKinds/stripFit.js"
 import { pngUrl } from "../../lib/virtualFiles.js"
 
-const DEFAULT_FONT = "minecraft-ten"
 const sets = new Map()
 
 function loadSet(id) {
@@ -28,13 +28,7 @@ function named(fonts, id) {
   return font ? fullName(font, fonts) : id
 }
 
-export function previewFonts(item, fonts) {
-  const target = stripTarget(item.target)
-  if (target.kind === "font") return fonts.filter(font => font.id === target.id)
-  if (target.kind === "set") return fonts.filter(font => stripsOf(font, fonts).some(use => stripUse(use).id === target.id)).sort((a, b) => (b.id === DEFAULT_FONT) - (a.id === DEFAULT_FONT))
-  const chosen = item.details.fonts ?? []
-  return fonts.filter(font => chosen.includes(sheetOwner(font, fonts).id))
-}
+export const previewFonts = stripFonts
 
 async function placedSet(item, font, fonts) {
   const target = stripTarget(item.target)
@@ -76,9 +70,6 @@ export const strip = {
     const font = previewFonts(item, fonts)[0]
     if (!font) throw new Error("none of the fonts this strip is for are published")
     return stripLine(item, file, text, font.id, fonts)
-  },
-  publishedLine(item, fonts, text) {
-    return { text, font: previewFonts(item, fonts)[0]?.id ?? DEFAULT_FONT, textureSource: "premade", texture: item.asset }
   },
   summary(item, fonts) {
     return `A strip for ${targetName(item, fonts)}`

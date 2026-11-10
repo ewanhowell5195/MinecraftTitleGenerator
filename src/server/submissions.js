@@ -1,6 +1,7 @@
 import { flattenFonts } from "../lib/font.js"
 import { titleCase } from "../lib/names.js"
 import { SUBMISSION_KINDS, checkSubmission, submissionContext } from "../lib/submissionKinds/index.js"
+import { publishedTitle } from "../lib/submissionKinds/published.js"
 import { EXTRA_FILE, SUBMISSION_LIMITS, assetId, sizedProblem } from "../lib/submissions.js"
 import { USER_ROW, forgetUnusedUser, isAdmin, saveUser, signedInUser } from "./accounts.js"
 import { GitHubError, base64, github, repository, verifiedWebhook } from "./github.js"
@@ -236,7 +237,7 @@ async function uploadFile(env, bytes) {
 function shown(env, row, user) {
   const { owner, details, ...rest } = row
   const building = row.pull && row.status === "open"
-  return { ...rest, details: JSON.parse(details), pullUrl: row.pull ? `https://github.com/${repository(env)}/pull/${row.pull}` : null, previewUrl: building ? `https://${branchOf(row.id).replace(/\//g, "-")}.${PREVIEW_HOST}/app/` : null, mine: !!user && user.id === owner }
+  return { ...rest, details: JSON.parse(details), pullUrl: row.pull ? pullLink(env, row) : null, previewUrl: building ? `https://${branchOf(row.id).replace(/\//g, "-")}.${PREVIEW_HOST}` : null, mine: !!user && user.id === owner }
 }
 
 function clipped(text, limit) {
@@ -310,11 +311,21 @@ async function anonymiseComments(env, pull, theirs) {
   }
 }
 
-async function closeSubmission(env, row, merged, { author = "", body = "", url = "", actor = null }) {
+function pullLink(env, row) {
+  return `https://github.com/${repository(env)}/pull/${row.pull}`
+}
+
+async function closeSubmission(context, row, merged, { author = "", body = "", url = "", actor = null }) {
+  const { env } = context
   const status = merged ? "published" : "rejected"
   const { meta } = await env.DB.prepare("UPDATE submissions SET status = ?, updated_at = ? WHERE id = ? AND status = 'open'").bind(status, Date.now(), row.id).run()
   if (!meta.changes) return
-  await env.DB.batch((merged ? [env.DB.prepare("DELETE FROM notifications WHERE submission_id = ?").bind(row.id)] : []).concat(notify(env, row, status, { author, body, url, actor })))
+  const link = merged ? publishedTitle({ ...row, details: JSON.parse(row.details) }, await publishedFonts(context)) : pullLink(env, row)
+  await env.DB.batch([
+    env.DB.prepare("INSERT INTO notifications (user_id, submission_name, kind, author, body, url, link, created_at) SELECT users.id, submissions.name, ?, ?, ?, ?, ?, ? FROM submissions JOIN users ON users.id = submissions.user_id WHERE submissions.id = ? AND NOT (users.provider = ? AND users.provider_id = ?)").bind(status, author, clipped(body, NOTE_LENGTH), url, link, Date.now(), row.id, actor?.provider ?? "", actor?.providerId ?? ""),
+    env.DB.prepare("DELETE FROM notifications WHERE submission_id = ?").bind(row.id),
+    env.DB.prepare("DELETE FROM submissions WHERE id = ?").bind(row.id)
+  ])
   await deleteBranch(env, row.id)
 }
 
@@ -508,8 +519,8 @@ export const reviewSubmission = guarded(async context => {
       await github(env, `pulls/${row.pull}`, { method: "PATCH", body: { state: "closed" } })
     })
   }
-  await closeSubmission(env, row, action === "merge", { author: user.name, body: text, actor: user })
-  return reply(200, { submission: shown(env, await findSubmission(env, row.id), user), comments: await threadOf(env, row) })
+  await closeSubmission(context, row, action === "merge", { author: user.name, body: text, actor: user })
+  return reply(200, { outcome: action === "merge" ? "published" : "rejected" })
 })
 
 export const submissionFile = guarded(async context => {
@@ -532,7 +543,7 @@ export const submissionExtraFile = guarded(async context => {
 
 export const listNotifications = guarded(async context => {
   const user = await requireUser(context)
-  const { results } = await context.env.DB.prepare(`SELECT notifications.id, notifications.submission_id AS submission, submissions.name AS submissionName, notifications.kind, notifications.author, notifications.body, notifications.url, notifications.seen, notifications.created_at AS createdAt FROM notifications JOIN submissions ON submissions.id = notifications.submission_id WHERE notifications.user_id = ${USER_ROW} ORDER BY notifications.id DESC LIMIT ?`).bind(user.provider, user.providerId, SUBMISSION_LIMITS.notifications).all()
+  const { results } = await context.env.DB.prepare(`SELECT notifications.id, notifications.submission_id AS submission, COALESCE(submissions.name, notifications.submission_name) AS submissionName, notifications.kind, notifications.author, notifications.body, notifications.url, notifications.link, notifications.seen, notifications.created_at AS createdAt FROM notifications LEFT JOIN submissions ON submissions.id = notifications.submission_id WHERE notifications.user_id = ${USER_ROW} ORDER BY notifications.id DESC LIMIT ?`).bind(user.provider, user.providerId, SUBMISSION_LIMITS.notifications).all()
   return reply(200, { notifications: results.map(item => ({ ...item, seen: !!item.seen })) })
 })
 
@@ -552,10 +563,11 @@ async function pulledSubmission(env, pull) {
   return await env.DB.prepare(`SELECT ${SHOWN} FROM submissions WHERE pull = ?`).bind(pull).first()
 }
 
-async function pullClosed(env, pull, sender) {
+async function pullClosed(context, pull, sender) {
+  const { env } = context
   const row = await pulledSubmission(env, pull.number)
   if (!row || row.status !== "open" || pull.head.ref !== branchOf(row.id)) return
-  await closeSubmission(env, row, pull.merged, { author: sender?.login ?? "", url: pull.html_url, actor: gitHubActor(sender) })
+  await closeSubmission(context, row, pull.merged, { author: sender?.login ?? "", url: pull.html_url, actor: gitHubActor(sender) })
 }
 
 async function fromGitHub(env, number, kind, entry) {
@@ -599,7 +611,7 @@ export const receiveWebhook = guarded(async context => {
   if (!payload) throw new Refusal(401, "This webhook isn't signed.")
   const event = request.headers.get("X-GitHub-Event")
   if (payload.repository?.full_name?.toLowerCase() !== repository(env).toLowerCase()) return reply(200, { ignored: true })
-  if (event === "pull_request" && payload.action === "closed") await pullClosed(env, payload.pull_request, payload.sender)
+  if (event === "pull_request" && payload.action === "closed") await pullClosed(context, payload.pull_request, payload.sender)
   else if (event === "issue_comment" && payload.action === "created" && payload.issue.pull_request) await commented(env, payload.issue.number, payload.comment)
   else if (event === "pull_request_review_comment" && payload.action === "created") await commented(env, payload.pull_request.number, payload.comment)
   else if (event === "pull_request_review" && payload.action === "submitted") await reviewed(env, payload.pull_request.number, payload.review)

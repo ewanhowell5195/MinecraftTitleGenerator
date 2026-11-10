@@ -7,6 +7,7 @@ import { buildSheet, exportJson, fontFromPublished } from "../src/lib/fontEditor
 import { jsonText } from "../src/lib/jsonText.js"
 import { titleCase } from "../src/lib/names.js"
 import { SUBMISSION_KINDS, checkSubmission, submissionContext } from "../src/lib/submissionKinds/index.js"
+import { publishedTitle } from "../src/lib/submissionKinds/published.js"
 
 const ROOT = path.join(import.meta.dirname, "..")
 const PULL = "https://github.com/ewanhowell5195/MinecraftTitleGenerator/pull/222"
@@ -63,8 +64,13 @@ async function build() {
     const id = index + 1
     list.push({ id, kind: seed.kind, target: clean.target ?? seed.target, asset: "", name: seed.name, credit: seed.credit, notes: seed.notes, details: { ...seed.details, ...clean.details, ...(Object.keys(files).length && { files: Object.fromEntries(Object.keys(files).map(key => [key, `${key}-1`])) }) }, version: 1, status: seed.status ?? "open", pull: 222, createdAt: now - seed.age * HOUR, updatedAt: now - seed.age * HOUR, ownerName, ownerProvider, mine: !!seed.mine, state: seed.state ?? null, processing: seed.processing ?? "done", processedAt: 0, bytes, files, comments: (seed.comments ?? []).map(([author, role, body, url], at) => ({ id: id * 100 + at, author, role, body, url, createdAt: now - (seed.age - at - 0.2) * HOUR })) })
   }
-  const notifications = NEWS.map(([submission, kind, author, body, seen, age], index) => ({ id: index + 1, submission, kind, author, body, url: "", seen, createdAt: now - age * HOUR }))
-  return { list, notifications, signedIn: true, nextId: list.length + 1, ctx }
+  const finished = new Map(list.filter(item => item.status !== "open").map(item => [item.id, item]))
+  const notifications = NEWS.map(([submission, kind, author, body, seen, age], index) => {
+    const closed = finished.get(submission)
+    const link = closed ? closed.status === "published" ? publishedTitle(closed, fonts) : PULL : ""
+    return { id: index + 1, submission: closed ? null : submission, submissionName: closed?.name ?? "", kind, author, body, url: "", link, seen, createdAt: now - age * HOUR }
+  })
+  return { list: list.filter(item => !finished.has(item.id)), notifications, signedIn: true, nextId: list.length + 1, ctx }
 }
 
 function shown(item) {
@@ -128,7 +134,7 @@ export function mockSubmissions() {
               return send(res, 200, { notifications: [] })
             }
             if (req.method === "POST") notifications.forEach(item => item.seen = true)
-            return send(res, 200, req.method === "POST" ? { unread: 0 } : { notifications: notifications.filter(item => list.some(entry => entry.id === item.submission)).map(item => ({ ...item, submissionName: list.find(entry => entry.id === item.submission).name })).sort((a, b) => b.createdAt - a.createdAt) })
+            return send(res, 200, req.method === "POST" ? { unread: 0 } : { notifications: notifications.filter(item => item.submission === null || list.some(entry => entry.id === item.submission)).map(item => ({ ...item, submissionName: list.find(entry => entry.id === item.submission)?.name ?? item.submissionName })).sort((a, b) => b.createdAt - a.createdAt) })
           }
           if (!parts[1]) {
             if (req.method === "POST") {
@@ -160,10 +166,12 @@ export function mockSubmissions() {
             if (req.method === "GET") return send(res, 200, { state: item.status === "open" ? item.state : null })
             const { action, comment } = await (await requestOf(req)).json()
             if (action === "merge" && !READY.has(item.state)) return send(res, 409, { error: "GitHub can't merge this yet. Wait for its checks to finish, or open the pull request to see why." })
-            item.status = action === "merge" ? "published" : "rejected"
-            if (action === "merge") state.notifications = state.notifications.filter(entry => entry.submission !== item.id)
-            if (comment?.trim()) item.comments.push({ id: Date.now(), author: ME.name, role: "reviewer", body: comment.trim(), url: "", createdAt: Date.now() })
-            return send(res, 200, { submission: shown(item), comments: item.comments })
+            const merged = action === "merge"
+            const link = merged ? publishedTitle(item, state.ctx.fonts) : PULL
+            state.notifications = state.notifications.filter(entry => entry.submission !== item.id)
+            if (item.mine) state.notifications.push({ id: Date.now(), submission: null, submissionName: item.name, kind: merged ? "published" : "rejected", author: ME.name, body: comment?.trim() ?? "", url: "", link, seen: false, createdAt: Date.now() })
+            list.splice(list.indexOf(item), 1)
+            return send(res, 200, { outcome: merged ? "published" : "rejected" })
           }
           if (req.method === "DELETE") {
             list.splice(list.indexOf(item), 1)

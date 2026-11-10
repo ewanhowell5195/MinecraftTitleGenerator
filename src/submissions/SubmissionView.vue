@@ -3,10 +3,9 @@
   import Icon from "../components/Icon.vue"
   import Segments from "../components/Segments.vue"
   import { account } from "../lib/community.js"
-  import { encodeTitle } from "../lib/linkformat.js"
   import { providerLabel } from "../lib/providers.js"
-  import { FILE_VERSION } from "../lib/settings.js"
   import { SUBMISSION_KINDS } from "../lib/submissionKinds/index.js"
+  import { publishedTitle } from "../lib/submissionKinds/published.js"
   import { SUBMISSION_PARAM } from "../lib/submissionLink.js"
   import { SUBMISSION_STATUSES } from "../lib/submissions.js"
   import { markNotificationsSeen, notifications, submissionExtraUrl, submissionFileUrl, submissionPage, submissionProcessing, submissionThread, withdrawSubmission } from "../lib/submissionsApi.js"
@@ -44,7 +43,7 @@
     const extra = (item.value?.details.extras ?? []).find(entry => entry.key === textureKey.value)
     return extra ? { kind: extra.kind, url: submissionExtraUrl(item.value, extra.key) } : null
   })
-  const previewLink = computed(() => item.value?.previewUrl && `${item.value.previewUrl}?title=${encodeTitle({ version: FILE_VERSION, lines: [client.value.publishedLine(item.value, props.fonts, item.value.name)] }).code}`)
+  const previewLink = computed(() => item.value?.previewUrl && `${item.value.previewUrl}${publishedTitle(item.value, props.fonts)}`)
   const changeable = computed(() => item.value?.mine && item.value.status === "open")
   const page = submissionPage(props.id)
 
@@ -80,9 +79,8 @@
     if ((await notifications()).some(entry => entry.submission === props.id && !entry.seen)) await markNotificationsSeen()
   }
 
-  function reviewed(result) {
-    item.value = result.submission
-    comments.value = result.comments
+  function reviewed() {
+    location.assign("/submissions/")
   }
 
   async function withdraw() {

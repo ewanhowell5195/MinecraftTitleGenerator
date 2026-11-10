@@ -96,11 +96,13 @@ CREATE INDEX submissions_by_status ON submissions (status, target);
 CREATE TABLE notifications (
   id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users (id),
-  submission_id INTEGER NOT NULL REFERENCES submissions (id),
+  submission_id INTEGER REFERENCES submissions (id),
+  submission_name TEXT NOT NULL DEFAULT '',
   kind TEXT NOT NULL,
   author TEXT NOT NULL DEFAULT '',
   body TEXT NOT NULL DEFAULT '',
   url TEXT NOT NULL DEFAULT '',
+  link TEXT NOT NULL DEFAULT '',
   seen INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL
 );

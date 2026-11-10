@@ -99,7 +99,7 @@
         <p v-else-if="!items.length" class="state">No notifications yet.</p>
         <ul v-else>
           <li v-for="item of items" :key="item.id" :class="{ fresh: !item.seen }">
-            <a :href="submissionPage(item.submission)">
+            <a :href="item.link || submissionPage(item.submission)">
               <span class="line"><strong>{{ item.author || "Someone" }}</strong> {{ ACTIONS[item.kind] }} <span class="name">{{ item.submissionName }}</span></span>
               <span v-if="item.body" class="body">{{ item.body }}</span>
               <span class="when">{{ when(item.createdAt) }}</span>

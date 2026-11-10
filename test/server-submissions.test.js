@@ -10,6 +10,7 @@ import { fakeGitHub } from "./fakeGitHub.js"
 const { accountDetails, finishSignIn, receiveSignIn, startSignIn } = await import("../src/server/accounts.js")
 const { addComment, clearNotifications, createSubmission, editSubmission, listNotifications, listSubmissions, markNotificationsSeen, receiveWebhook, reviewState, reviewSubmission, submissionDetails, submissionFile, submissionProcessing, withdrawSubmission } = await import("../src/server/submissions.js")
 const { jsonText } = await import("../src/lib/jsonText.js")
+const { decodeTitle } = await import("../src/lib/linkformat.js")
 
 const REPO = "owner/repo"
 const API = "https://github.test"
@@ -243,7 +244,7 @@ describe("a sent submission", () => {
     const shown = await details(id)
     assert.equal(shown.mine, false)
     assert.equal(shown.pullUrl, `https://github.com/${REPO}/pull/1`)
-    assert.equal(shown.previewUrl, `https://submission-${id}.minecrafttitlegenerator.pages.dev/app/`)
+    assert.equal(shown.previewUrl, `https://submission-${id}.minecrafttitlegenerator.pages.dev`)
     assert.equal(shown.owner, undefined)
     assert.equal((await details(id, cookie)).mine, true)
     const other = await signIn("github", { id: 9, login: "other" })
@@ -321,22 +322,26 @@ describe("the GitHub webhook", () => {
     assert.equal((await hook("ping", {}, "wrong")).status, 401)
   })
 
-  test("publishes on merge and tells the submitter", async () => {
+  test("forgets the submission on merge, leaving the submitter a notification that opens it in the generator", async () => {
     const { cookie, id } = await sent()
     await hook("pull_request", closed(1, true, id))
-    assert.equal((await details(id)).status, "published")
+    assert.equal(await details(id), undefined)
+    assert.equal(gh.refs.has(`heads/submission/${id}`), false)
     assert.equal(await unread(cookie), 1)
     const { notifications } = await (await listNotifications(context("/api/notifications", { cookie }))).json()
-    assert.equal(notifications[0].kind, "published")
-    assert.equal(notifications[0].submissionName, "Gold Bricks")
+    assert.deepEqual([notifications[0].kind, notifications[0].submission, notifications[0].submissionName], ["published", null, "Gold Bricks"])
+    const { lines } = decodeTitle(new URL(notifications[0].link, "https://mctitlegenerator.com").searchParams.get("title"))
+    assert.deepEqual(lines[0], { text: "gold bricks", font: "minecraft-ten", textureSource: "premade", texture: "gold_bricks" })
     await markNotificationsSeen(context("/api/notifications", { method: "POST", cookie }))
     assert.equal(await unread(cookie), 0)
   })
 
-  test("marks a closed pull request as rejected", async () => {
-    const { id } = await sent()
+  test("forgets a closed pull request, leaving a notification that links to it", async () => {
+    const { cookie, id } = await sent()
     await hook("pull_request", closed(1, false, id))
-    assert.equal((await details(id)).status, "rejected")
+    assert.equal(await details(id), undefined)
+    const { notifications } = await (await listNotifications(context("/api/notifications", { cookie }))).json()
+    assert.deepEqual([notifications[0].kind, notifications[0].link], ["rejected", `https://github.com/${REPO}/pull/1`])
   })
 
   test("passes on comments and reviews from collaborators only", async () => {
@@ -479,7 +484,8 @@ describe("reviewing on the site", () => {
     gh.pulls.get(1).mergeable_state = "clean"
     const merged = await review(reviewer, id, "merge")
     assert.equal(merged.status, 200)
-    assert.equal(merged.submission.status, "published")
+    assert.equal(merged.outcome, "published")
+    assert.equal(await details(id), undefined)
     assert.equal(gh.pulls.get(1).merged, true)
     assert.equal(gh.pulls.get(1).merge_method, "squash")
     assert.equal(gh.refs.has(`heads/submission/${id}`), false)
@@ -487,7 +493,7 @@ describe("reviewing on the site", () => {
     assert.deepEqual(await news(cookie), [["published", "ewan", ""]])
     await hook("pull_request", closed(1, true, id))
     assert.deepEqual(await news(cookie), [["published", "ewan", ""]])
-    assert.equal((await review(reviewer, id, "decline")).status, 409)
+    assert.equal((await review(reviewer, id, "decline")).status, 404)
   })
 
   test("a merge on GitHub clears the notifications too", async () => {
@@ -506,13 +512,13 @@ describe("reviewing on the site", () => {
     const { id } = await send(cookie)
     const declined = await review(reviewer, id, "decline", "Too close to an existing one")
     assert.equal(declined.status, 200)
-    assert.equal(declined.submission.status, "rejected")
+    assert.equal(declined.outcome, "rejected")
+    assert.equal(await details(id), undefined)
     assert.equal(gh.pulls.get(1).state, "closed")
     assert.equal(gh.pulls.get(1).merged, undefined)
     assert.match(gh.comments.at(-1).body, /Too close to an existing one/)
-    assert.deepEqual(declined.comments.map(item => item.body), ["Too close to an existing one"])
     assert.deepEqual(await news(cookie), [["rejected", "ewan", "Too close to an existing one"]])
-    assert.deepEqual(await news(reviewer), [["submitted", "someone", ""]])
+    assert.deepEqual(await news(reviewer), [])
   })
 
   test("clearing deletes only your own notifications", async () => {
