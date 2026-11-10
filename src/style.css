@@ -137,6 +137,40 @@ button,
   user-select: none;
 }
 
+button:where(:not(.button, .field-button)) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 14px;
+  font-family: inherit;
+  font-size: var(--font-base);
+  font-weight: 600;
+  text-align: center;
+  color: var(--text);
+  background: var(--card);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background var(--duration), color var(--duration), border-color var(--duration), transform 0.08s;
+}
+
+button:where(:not(.button, .field-button)):hover {
+  background: var(--card-hover);
+}
+
+button:where(:not(.button, .field-button)):active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+button:where(:not(.button, .field-button)):disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+button:where(:not(.button, .field-button)):disabled:hover {
+  background: var(--card);
+}
+
 .upload-preview {
   display: flex;
   align-items: center;

@@ -104,6 +104,7 @@
     padding: 0;
     color: var(--faint);
     background: transparent;
+    border: 0;
     box-shadow: none;
   }
 

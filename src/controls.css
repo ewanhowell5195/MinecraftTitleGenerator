@@ -1,5 +1,5 @@
-button,
-.button {
+.button,
+.field-button {
   --button-fill: #3a3e47;
   --button-light: #5a5f6a;
   --button-dark: #24272c;
@@ -27,33 +27,31 @@ button,
   transition: filter var(--duration), background var(--duration), color var(--duration), box-shadow var(--duration);
 }
 
-button:hover:not(:disabled),
 .button:hover:not(:disabled, .disabled) {
   color: var(--button-text);
   filter: brightness(1.1);
 }
 
-button:active:not(:disabled),
-.button:active {
+.button:active:not(:disabled) {
   --button-top: var(--button-dark);
   --button-bottom: var(--button-light);
   transition: none;
 }
 
-button:disabled,
-.button.disabled {
+.button:disabled,
+.button.disabled,
+.field-button:disabled {
   opacity: 0.35;
   cursor: not-allowed;
 }
 
-button:focus-visible,
 .button:focus-visible,
+.field-button:focus-visible,
 .button:has(input:focus-visible) {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-button.primary,
 .button.primary {
   --button-fill: var(--accent);
   --button-light: #9be37b;
@@ -61,7 +59,6 @@ button.primary,
   --button-text: var(--accent-text);
 }
 
-button.blue,
 .button.blue {
   --button-fill: #3aa4ef;
   --button-light: #8fd0fa;
@@ -69,7 +66,6 @@ button.blue,
   --button-text: #04192c;
 }
 
-button.danger,
 .button.danger {
   --button-fill: var(--danger-fill);
   --button-light: #e8665c;
@@ -77,7 +73,6 @@ button.danger,
   --button-text: #fff;
 }
 
-button.big,
 .button.big {
   --bevel: var(--bevel-big);
   min-height: var(--control-big);
@@ -85,19 +80,16 @@ button.big,
   font-size: var(--font-big);
 }
 
-button.wide,
 .button.wide {
   width: 100%;
 }
 
-button.ghost,
 .button.ghost {
   --button-text: var(--muted);
   background: transparent;
   box-shadow: none;
 }
 
-button.ghost:hover:not(:disabled),
 .button.ghost:hover:not(:disabled, .disabled) {
   --button-text: var(--text);
   background: var(--card);
@@ -112,13 +104,13 @@ button.ghost:hover:not(:disabled),
   filter: none;
 }
 
-button.link-button,
+.link-button,
 .field-button,
 .tab-bar .tab-bar-button {
   box-shadow: none;
 }
 
-button.link-button:hover:not(:disabled),
+.link-button:hover:not(:disabled),
 .field-button:hover:not(:disabled),
 .tab-bar .tab-bar-button:hover:not(:disabled) {
   filter: none;
@@ -129,16 +121,17 @@ button.link-button:hover:not(:disabled),
   padding: 0;
 }
 
-button.link-button {
+.link-button {
   gap: 4px;
   min-height: 0;
   padding: 0;
   font: inherit;
   color: inherit;
   background: none;
+  border: 0;
 }
 
-button.link-button:hover {
+.link-button:hover {
   color: inherit;
   text-decoration: underline;
 }
