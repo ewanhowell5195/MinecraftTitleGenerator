@@ -92,8 +92,8 @@ textarea:focus {
 
 .submission-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -102,9 +102,7 @@ textarea:focus {
 .submission-list a {
   display: flex;
   flex-direction: column;
-  gap: 4px;
   height: 100%;
-  padding: 10px;
   color: var(--text);
   text-decoration: none;
   background: var(--card);
@@ -115,13 +113,31 @@ textarea:focus {
   background: var(--card-hover);
 }
 
-.submission-list img {
+.submission-list .thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 128px;
+  padding: 20px 24px;
+}
+
+.submission-list .thumb img {
   width: 100%;
-  height: 96px;
-  margin-bottom: 6px;
+  height: 100%;
   object-fit: contain;
   image-rendering: pixelated;
-  background: var(--field);
+}
+
+.submission-list .pending {
+  font-size: var(--font-sm);
+  color: var(--faint);
+}
+
+.submission-list .body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 14px 14px;
 }
 
 .submission-list .name {
@@ -133,24 +149,21 @@ textarea:focus {
   color: var(--faint);
 }
 
-.status {
-  align-self: flex-start;
-  margin-top: 4px;
-  padding: 2px 8px;
+.submission-list .sender {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin-top: auto;
+  padding: 10px 14px;
   font-size: var(--font-sm);
-  font-weight: 600;
+  white-space: nowrap;
+  color: var(--faint);
+  border-top: 1px solid var(--line);
+}
+
+.submission-list .sender .user-name {
   color: var(--muted);
-  background: var(--surface);
-}
-
-.status.published {
-  color: var(--accent-text);
-  background: var(--accent);
-}
-
-.status.rejected {
-  color: var(--danger);
-  background: var(--danger-soft);
 }
 
 .details dl {

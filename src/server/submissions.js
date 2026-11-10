@@ -239,7 +239,7 @@ async function uploadFile(env, bytes) {
 function shown(env, row, user) {
   const { owner, details, ...rest } = row
   const building = row.pull && row.status === "open"
-  return { ...rest, details: JSON.parse(details), pullUrl: row.pull ? pullLink(env, row) : null, previewUrl: building ? `https://${branchOf(row.id).replace(/\//g, "-")}.${PREVIEW_HOST}` : null, mine: !!user && user.id === owner }
+  return { ...rest, details: JSON.parse(details), pullUrl: row.pull ? pullLink(env, row) : null, previewUrl: building ? `https://${branchOf(row.id).replace(/\//g, "-")}.${PREVIEW_HOST}` : null, filesUrl: building ? `https://raw.githubusercontent.com/${repository(env)}/refs/heads/${branchOf(row.id)}/public/` : null, mine: !!user && user.id === owner }
 }
 
 function clipped(text, limit) {

@@ -2,12 +2,11 @@
   import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
   import Icon from "../components/Icon.vue"
   import Segments from "../components/Segments.vue"
+  import UserName from "../components/UserName.vue"
   import { account } from "../lib/community.js"
-  import { providerLabel } from "../lib/providers.js"
   import { SUBMISSION_KINDS } from "../lib/submissionKinds/index.js"
   import { publishedTitle } from "../lib/submissionKinds/published.js"
   import { SUBMISSION_PARAM } from "../lib/submissionLink.js"
-  import { SUBMISSION_STATUSES } from "../lib/submissions.js"
   import { markNotificationsSeen, notifications, submissionExtraUrl, submissionFileUrl, submissionPage, submissionProcessing, submissionThread, withdrawSubmission } from "../lib/submissionsApi.js"
   import CommentThread from "./CommentThread.vue"
   import { KIND_COMPONENTS } from "./kinds/components.js"
@@ -140,7 +139,6 @@
           <input type="text" v-model="text" :placeholder="item.name" spellcheck="false" aria-label="Preview text">
         </div>
         <div class="details flow">
-          <span class="status" :class="item.status">{{ SUBMISSION_STATUSES[item.status] }}</span>
           <dl>
             <dt>Type</dt>
             <dd>{{ SUBMISSION_KINDS[item.kind].label }}</dd>
@@ -150,8 +148,8 @@
             </template>
             <dt>Credit</dt>
             <dd>{{ item.credit }}</dd>
-            <dt>Sent by</dt>
-            <dd v-if="item.ownerName"><Icon :name="item.ownerProvider" :size="14" :title="providerLabel(item.ownerProvider)" />{{ item.ownerName }}</dd>
+            <dt>Submitted by</dt>
+            <dd v-if="item.ownerName"><UserName :name="item.ownerName" :provider="item.ownerProvider" /></dd>
             <dd v-else>A deleted account</dd>
           </dl>
           <p v-if="item.notes" class="notes">{{ item.notes }}</p>
