@@ -16,6 +16,7 @@
   import Icon from "../Icon.vue"
   import NumberInput from "../NumberInput.vue"
   import Panel from "../Panel.vue"
+  import RenderDialog from "../RenderDialog.vue"
   import Segments from "../Segments.vue"
   import Tile from "../Tile.vue"
   import Toggle from "../Toggle.vue"
@@ -140,13 +141,16 @@
 <template>
   <Panel title="Font" :modified="modified" @reset="reset">
     <template #actions>
-      <Button ghost :active="info" @click.stop="info = !info" v-tooltip="'Font info and characters'" aria-label="Font info and characters"><template #icon><Icon name="info" :size="17" /></template></Button>
+      <Button ghost :disabled="!font" @click="info = true" v-tooltip="'Font info and characters'" aria-label="Font info and characters"><template #icon><Icon name="info" :size="17" /></template></Button>
     </template>
+    <RenderDialog v-if="info && font" :title="entry?.name || customName || 'Font'" close-title="Close" wide dismissable @close="info = false">
+      <div class="dialog-body">
+        <p v-if="font.description">{{ font.description }}</p>
+        <span class="label">Characters</span>
+        <div class="code">{{ characters }}</div>
+      </div>
+    </RenderDialog>
     <Segments :options="TABS" :model-value="tab" @update:model-value="chooseTab" />
-    <div class="info" v-if="info && font">
-      <p class="hint" v-if="font.description">{{ font.description }}</p>
-      <div class="code">{{ characters }}</div>
-    </div>
     <template v-if="tab === 'custom'">
       <div v-if="object.customFont" class="custom-font">
         <div class="preview picture"><img v-if="customImage" :src="customImage" alt="" :style="customUnit ? { height: `${customUnit}px` } : null"></div>
@@ -229,14 +233,6 @@
     font-size: var(--font-sm);
     font-weight: 600;
     color: var(--text);
-  }
-
-  .info {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 14px;
-    background: var(--card);
   }
 
   .code {
