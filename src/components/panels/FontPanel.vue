@@ -140,7 +140,7 @@
 <template>
   <Panel title="Font" :modified="modified" @reset="reset">
     <template #actions>
-      <Button tiny ghost :active="info" @click.stop="info = !info" title="Font info and characters"><template #icon><Icon name="info" :size="17" /></template></Button>
+      <Button ghost :active="info" @click.stop="info = !info" title="Font info and characters"><template #icon><Icon name="info" :size="17" /></template></Button>
     </template>
     <Segments :options="TABS" :model-value="tab" @update:model-value="chooseTab" />
     <div class="info" v-if="info && font">

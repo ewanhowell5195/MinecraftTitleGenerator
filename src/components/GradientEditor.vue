@@ -160,7 +160,7 @@
           <NumberInput v-model.number="stops[index].position" min="0" max="100" step="1" @focus="typing = true" @blur="finishTyping" />
           <span>%</span>
         </label>
-        <Button tiny ghost :disabled="!removable" @click="remove(index)" title="Remove colour"><template #icon><Icon name="trash" :size="14" /></template></Button>
+        <Button ghost :disabled="!removable" @click="remove(index)" title="Remove colour"><template #icon><Icon name="trash" :size="14" /></template></Button>
       </div>
     </div>
   </div>

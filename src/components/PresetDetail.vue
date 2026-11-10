@@ -83,7 +83,7 @@
       <div class="heading">
         <input v-if="renaming" v-selected class="name-field" type="text" :value="preset.name" :maxlength="NAME_LIMIT" :aria-label="`Name of ${preset.name}`" spellcheck="false" @blur="finishRenaming" @keydown.enter="$event.target.blur()" @keydown.esc.stop="renaming = false">
         <h2 v-else class="ellipsis" :title="preset.name">{{ preset.name }}</h2>
-        <Button tiny ghost v-if="(local || owned) && !renaming" :title="`Rename ${preset.name}`" :aria-label="`Rename ${preset.name}`" @click="renaming = true"><template #icon><Icon name="pencil" :size="14" /></template></Button>
+        <Button ghost v-if="(local || owned) && !renaming" :title="`Rename ${preset.name}`" :aria-label="`Rename ${preset.name}`" @click="renaming = true"><template #icon><Icon name="pencil" :size="14" /></template></Button>
         <span v-if="local && preset.inBrowser" class="browser" title="Your account is full, so this is only saved in this browser">This browser only</span>
         <span v-if="local && preset.shared" class="yours">Shared publicly</span>
         <span v-else-if="mine" class="yours">Shared by you</span>

@@ -15,7 +15,6 @@
     ghost: { type: Boolean, default: false },
     active: { type: Boolean, default: false },
     big: { type: Boolean, default: false },
-    tiny: { type: Boolean, default: false },
     wide: { type: Boolean, default: false }
   })
 
@@ -33,7 +32,6 @@
     ghost: props.ghost,
     active: props.active,
     big: props.big,
-    tiny: props.tiny,
     wide: props.wide,
     disabled: props.disabled,
     "icon-only": !slots.default

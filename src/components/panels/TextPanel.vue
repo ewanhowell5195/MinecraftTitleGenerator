@@ -139,7 +139,7 @@
           </button>
         </label>
       </template>
-      <Button tiny ghost class="add" @mousedown="capture" @click="add" title="Add word"><template #icon><Icon name="plus" :size="16" /></template></Button>
+      <Button ghost class="add" @mousedown="capture" @click="add" title="Add word"><template #icon><Icon name="plus" :size="16" /></template></Button>
     </div>
     <p class="hint">Each word gets its own texture. Highlight part of a word and press + to split it off.</p>
   </Panel>
@@ -247,9 +247,11 @@
     top: -7px;
     width: 18px;
     height: 18px;
+    min-height: 0;
     padding: 0;
     color: var(--text);
     background: var(--line-strong);
+    box-shadow: none;
     opacity: 0;
     pointer-events: none;
     transition: opacity var(--duration), background var(--duration);
@@ -273,11 +275,15 @@
   }
 
   .hide:hover {
+    color: var(--accent-text);
     background: var(--accent);
+    filter: none;
   }
 
   .remove:hover {
-    background: var(--danger);
+    color: #fff;
+    background: var(--danger-fill);
+    filter: none;
   }
 
   .chip.hidden input {

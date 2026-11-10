@@ -189,8 +189,8 @@
         <span class="grip" @pointerdown="press($event, index)" title="Drag to reorder"><Icon name="grip" :size="14" /></span>
         <img :src="item.source === 'file' ? item.file : thumbnail(font, item.overlay)" alt="">
         <span class="grow ellipsis">{{ layerName(item) }}</span>
-        <Button tiny ghost @click.stop="duplicateLayer(index)" title="Duplicate overlay"><template #icon><Icon name="copy" :size="14" /></template></Button>
-        <Button tiny ghost @click.stop="removeLayer(index)" title="Remove overlay"><template #icon><Icon name="trash" :size="14" /></template></Button>
+        <Button ghost @click.stop="duplicateLayer(index)" title="Duplicate overlay"><template #icon><Icon name="copy" :size="14" /></template></Button>
+        <Button ghost @click.stop="removeLayer(index)" title="Remove overlay"><template #icon><Icon name="trash" :size="14" /></template></Button>
       </div>
     </div>
     <Button wide v-if="layer" @click="selected = null"><template #icon><Icon name="plus" :size="16" /></template><span>Add overlay</span></Button>

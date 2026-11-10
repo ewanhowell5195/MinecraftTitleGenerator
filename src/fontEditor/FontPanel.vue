@@ -159,7 +159,7 @@
           <label class="label" :for="`font-${item.key}`">{{ item.label }}</label>
           <div class="resettable">
             <NumberInput :id="`font-${item.key}`" :min="item.min" :value="font[item.key]" @input="setNumber(item.key, $event, item.min ?? -1000)" @change="setNumber(item.key, $event, item.min ?? -1000)" />
-            <Button tiny ghost v-if="font[item.key] !== item.fallback" :title="`Reset to ${item.fallback}`" :aria-label="`Reset ${item.label.toLowerCase()} to ${item.fallback}`" @click="setField(item.key, item.fallback, false)"><template #icon><Icon name="reset" :size="14" /></template></Button>
+            <Button ghost v-if="font[item.key] !== item.fallback" :title="`Reset to ${item.fallback}`" :aria-label="`Reset ${item.label.toLowerCase()} to ${item.fallback}`" @click="setField(item.key, item.fallback, false)"><template #icon><Icon name="reset" :size="14" /></template></Button>
           </div>
         </div>
       </div>
@@ -233,14 +233,13 @@
   }
 
   .resettable :deep(input) {
-    padding-right: 52px;
+    padding-right: 60px;
   }
 
   .resettable .icon-only {
     position: absolute;
-    top: 50%;
-    right: 22px;
-    margin-top: -14px;
+    top: 0;
+    right: 21px;
   }
 
   .warning {

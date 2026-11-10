@@ -129,11 +129,6 @@ button.link-button:hover:not(:disabled),
   padding: 0;
 }
 
-.button.icon-only.tiny {
-  width: var(--control-tiny);
-  min-height: var(--control-tiny);
-}
-
 button.link-button {
   gap: 4px;
   min-height: 0;

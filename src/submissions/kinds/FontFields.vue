@@ -156,7 +156,7 @@
       <div class="extra-fields">
         <div class="row">
           <span class="extra-kind">{{ KIND_LABELS[item.kind] }}</span>
-          <Button tiny ghost :aria-label="`Remove ${item.name || KIND_LABELS[item.kind].toLowerCase()}`" @click="remove(item.key)"><template #icon><Icon name="trash" :size="14" /></template></Button>
+          <Button ghost :aria-label="`Remove ${item.name || KIND_LABELS[item.kind].toLowerCase()}`" @click="remove(item.key)"><template #icon><Icon name="trash" :size="14" /></template></Button>
         </div>
         <input type="text" :value="item.name" :maxlength="SUBMISSION_LIMITS.name" placeholder="Name" spellcheck="false" @input="update(item.key, { name: $event.target.value })">
         <input type="text" :value="item.credit ?? ''" :maxlength="SUBMISSION_LIMITS.credit" placeholder="Credit, if it isn't the font's" spellcheck="false" @input="update(item.key, { credit: $event.target.value })">

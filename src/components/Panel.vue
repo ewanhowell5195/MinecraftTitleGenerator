@@ -36,7 +36,7 @@
   }
 
   header {
-    min-height: 28px;
+    height: var(--control-tiny);
     margin-bottom: 14px;
   }
 
