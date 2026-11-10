@@ -1,5 +1,6 @@
 <script setup>
   import { computed, onBeforeUnmount, ref, watch } from "vue"
+  import Button from "../../components/Button.vue"
   import ColourPicker from "../../components/ColourPicker.vue"
   import Dropdown from "../../components/Dropdown.vue"
   import Icon from "../../components/Icon.vue"
@@ -155,7 +156,7 @@
       <div class="extra-fields">
         <div class="row">
           <span class="extra-kind">{{ KIND_LABELS[item.kind] }}</span>
-          <button type="button" class="icon-button small" :aria-label="`Remove ${item.name || KIND_LABELS[item.kind].toLowerCase()}`" @click="remove(item.key)"><Icon name="trash" :size="14" /></button>
+          <Button tiny ghost :aria-label="`Remove ${item.name || KIND_LABELS[item.kind].toLowerCase()}`" @click="remove(item.key)"><template #icon><Icon name="trash" :size="14" /></template></Button>
         </div>
         <input type="text" :value="item.name" :maxlength="SUBMISSION_LIMITS.name" placeholder="Name" spellcheck="false" @input="update(item.key, { name: $event.target.value })">
         <input type="text" :value="item.credit ?? ''" :maxlength="SUBMISSION_LIMITS.credit" placeholder="Credit, if it isn't the font's" spellcheck="false" @input="update(item.key, { credit: $event.target.value })">
@@ -168,7 +169,7 @@
     </div>
     <span v-if="problems.extras" class="hint bad">{{ problems.extras }}</span>
     <div v-if="extras.length < SUBMISSION_LIMITS.extraFiles" class="buttons">
-      <button v-for="kind of EXTRA_KINDS" :key="kind" type="button" @click="add(kind)"><Icon name="plus" :size="14" />{{ KIND_LABELS[kind] }}</button>
+      <Button v-for="kind of EXTRA_KINDS" :key="kind" @click="add(kind)"><template #icon><Icon name="plus" :size="14" /></template>{{ KIND_LABELS[kind] }}</Button>
     </div>
   </div>
 </template>

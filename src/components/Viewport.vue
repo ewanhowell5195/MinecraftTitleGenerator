@@ -1,5 +1,6 @@
 <script setup>
   import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue"
+  import Button from "./Button.vue"
   import * as THREE from "three"
   import { TransformControls } from "three/addons/controls/TransformControls.js"
   import { FXAA_FRAGMENT, FXAA_VERTEX } from "../lib/fxaa.js"
@@ -460,11 +461,11 @@
   <div ref="host" class="viewport" :class="{ navigable, panning }">
     <div v-if="navigable" class="toolbar">
       <div v-if="view.section === 'transform'" class="tools">
-        <button v-for="[mode, icon, title] of TOOLS" :key="icon" class="icon-button small" :class="{ active: view.gizmo === mode }" :title="title" :aria-pressed="view.gizmo === mode" @click="view.gizmo = mode"><Icon :name="icon" :size="16" /></button>
+        <Button tiny ghost :active="view.gizmo === mode" v-for="[mode, icon, title] of TOOLS" :key="icon" :title="title" :aria-pressed="view.gizmo === mode" @click="view.gizmo = mode"><template #icon><Icon :name="icon" :size="16" /></template></Button>
       </div>
       <div class="tools">
-        <button class="icon-button small" :class="{ active: orbiting }" title="Orbit the camera" :aria-pressed="orbiting" @click="toggleOrbit"><Icon name="orbit" :size="16" /></button>
-        <button v-if="moved" class="icon-button small" title="Reset the view" @click="resetView"><Icon name="reset" :size="16" /></button>
+        <Button tiny ghost :active="orbiting" title="Orbit the camera" :aria-pressed="orbiting" @click="toggleOrbit"><template #icon><Icon name="orbit" :size="16" /></template></Button>
+        <Button tiny ghost v-if="moved" title="Reset the view" @click="resetView"><template #icon><Icon name="reset" :size="16" /></template></Button>
       </div>
     </div>
   </div>

@@ -1,5 +1,6 @@
 <script setup>
   import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
+  import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
   import NavTabs from "../components/NavTabs.vue"
   import UserName from "../components/UserName.vue"
@@ -158,13 +159,13 @@
             <dd v-else>A deleted account</dd>
           </dl>
           <div class="actions">
-            <a class="button primary" :href="`/app/?${SUBMISSION_PARAM}=${item.id}`">Open in generator</a>
-            <a v-if="previewLink" class="button" :href="previewLink" target="_blank" rel="noopener" title="The generator built from this submission's branch, with it added"><Icon name="eye" :size="16" />Open preview</a>
-            <a v-if="item.pullUrl" class="button" :href="item.pullUrl" target="_blank" rel="noopener"><Icon name="github" :size="16" />Pull request</a>
+            <Button primary :href="`/app/?${SUBMISSION_PARAM}=${item.id}`">Open in generator</Button>
+            <Button v-if="previewLink" :href="previewLink" target="_blank" rel="noopener" title="The generator built from this submission's branch, with it added"><template #icon><Icon name="eye" :size="16" /></template>Open preview</Button>
+            <Button v-if="item.pullUrl" :href="item.pullUrl" target="_blank" rel="noopener"><template #icon><Icon name="github" :size="16" /></template>Pull request</Button>
           </div>
           <div v-if="changeable" class="actions">
-            <a class="button" :href="`${page}/edit`"><Icon name="pencil" :size="16" />Edit</a>
-            <button type="button" class="danger" :disabled="busy" @click="withdraw"><Icon name="trash" :size="16" />Withdraw</button>
+            <Button :href="`${page}/edit`"><template #icon><Icon name="pencil" :size="16" /></template>Edit</Button>
+            <Button danger :disabled="busy" @click="withdraw"><template #icon><Icon name="trash" :size="16" /></template>Withdraw</Button>
           </div>
           <p v-if="error" class="hint bad">{{ error }}</p>
         </div>

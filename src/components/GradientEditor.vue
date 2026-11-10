@@ -4,6 +4,7 @@
   import { blend, cssGradient, movedStopPositions } from "../lib/material.js"
   import { clamp } from "../lib/maths.js"
   import { useReorderDrag } from "../lib/reorder.js"
+  import Button from "./Button.vue"
   import ColourPicker from "./ColourPicker.vue"
   import Icon from "./Icon.vue"
 
@@ -158,7 +159,7 @@
           <input type="number" v-model.number="stops[index].position" min="0" max="100" step="1" @focus="typing = true" @blur="finishTyping">
           <span>%</span>
         </label>
-        <button class="icon-button small" :disabled="!removable" @click="remove(index)" title="Remove colour"><Icon name="trash" :size="14" /></button>
+        <Button tiny ghost :disabled="!removable" @click="remove(index)" title="Remove colour"><template #icon><Icon name="trash" :size="14" /></template></Button>
       </div>
     </div>
   </div>

@@ -1,5 +1,6 @@
 <script setup>
   import { computed, onBeforeUnmount, ref, watch } from "vue"
+  import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
   import NavTabs from "../components/NavTabs.vue"
   import Segments from "../components/Segments.vue"
@@ -159,7 +160,7 @@
   <div v-if="!account" class="sign-in banner">
     <p>Sign in to send a {{ type.noun }}. Your submission is linked to your account so you can follow its review.</p>
     <div class="buttons">
-      <button v-for="id of signInProviders" :key="id" type="button" @click="signIn(id)"><Icon :name="id" :size="16" />Sign in with {{ providerLabel(id) }}</button>
+      <Button v-for="id of signInProviders" :key="id" @click="signIn(id)"><template #icon><Icon :name="id" :size="16" /></template>Sign in with {{ providerLabel(id) }}</Button>
     </div>
   </div>
   <form class="submission-form" @submit.prevent="send">
@@ -187,11 +188,10 @@
         <component :is="parts.Preview" v-bind="kind === 'strip' ? { font: previewFont, 'onUpdate:font': id => previewFont = id } : {}" :fonts="fonts" :kind="kind" :target="target" :details="details" :files="extras" :initial="initial" :url="fileUrl" :text="previewText || name || 'Minecraft'" />
         <div class="stage-bar">
           <input type="text" v-model="previewText" :placeholder="name || 'Minecraft'" spellcheck="false" aria-label="Preview text">
-          <label class="button">
-            <Icon name="open" :size="16" />
+          <Button file :accept="isImage ? 'image/png' : '.json,application/json'" @change="pick"><template #icon><Icon name="open" :size="16" /></template>
             <span>Replace file</span>
-            <input type="file" :accept="isImage ? 'image/png' : '.json,application/json'" @change="pick">
-          </label>
+            
+          </Button>
         </div>
       </template>
       <label v-else class="drop">
@@ -217,8 +217,8 @@
       </label>
       <p v-if="shown.agree || error" class="hint bad">{{ error || shown.agree }}</p>
       <div class="buttons">
-        <button v-if="initial" type="button" @click="emit('cancel')">Cancel</button>
-        <button class="primary" type="submit" :disabled="blocked">{{ sending ? "Sending..." : initial ? "Save changes" : "Send for review" }}</button>
+        <Button v-if="initial" @click="emit('cancel')">Cancel</Button>
+        <Button primary type="submit" :disabled="blocked">{{ sending ? "Sending..." : initial ? "Save changes" : "Send for review" }}</Button>
       </div>
     </div>
   </form>

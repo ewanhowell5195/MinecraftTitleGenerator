@@ -3,6 +3,7 @@
   import { usage } from "../lib/community.js"
   import { NAME_LIMIT, confirmReplacing, confirmSharing, replaceWith, sharePreset } from "../lib/presets.js"
   import { sharingProblem } from "../lib/titleFacts.js"
+  import Button from "./Button.vue"
   import RenderDialog from "./RenderDialog.vue"
   import ReplaceSelect from "./ReplaceSelect.vue"
   import ShareAccount from "./ShareAccount.vue"
@@ -53,7 +54,7 @@
       <p v-if="error || problem" class="error">{{ error || problem }}</p>
       <div class="footer">
         <SubmissionUsage v-if="!target" />
-        <button class="primary" type="submit" :disabled="sending || !!problem || !agreed || !target && usage && usage.used >= usage.limit">{{ target ? sending ? "Replacing" : "Replace" : sending ? "Sharing" : "Share" }}</button>
+        <Button primary type="submit" :disabled="sending || !!problem || !agreed || !target && usage && usage.used >= usage.limit">{{ target ? sending ? "Replacing" : "Replace" : sending ? "Sharing" : "Share" }}</Button>
       </div>
     </form>
   </RenderDialog>

@@ -12,6 +12,7 @@
   import { DEFAULT_FONT, isCustomFont } from "../../lib/settings.js"
   import { popular } from "../../lib/stats.js"
   import { fontThumbnail } from "../../lib/ui.js"
+  import Button from "../Button.vue"
   import Icon from "../Icon.vue"
   import Panel from "../Panel.vue"
   import Segments from "../Segments.vue"
@@ -138,7 +139,7 @@
 <template>
   <Panel title="Font" :modified="modified" @reset="reset">
     <template #actions>
-      <button class="icon-button small" :class="{ active: info }" @click.stop="info = !info" title="Font info and characters"><Icon name="info" :size="17" /></button>
+      <Button tiny ghost :active="info" @click.stop="info = !info" title="Font info and characters"><template #icon><Icon name="info" :size="17" /></template></Button>
     </template>
     <Segments :options="TABS" :model-value="tab" @update:model-value="chooseTab" />
     <div class="info" v-if="info && font">
@@ -153,11 +154,10 @@
       <div v-else class="upload-preview">
         <div class="empty">No font uploaded</div>
       </div>
-      <label class="button wide">
-        <Icon name="open" :size="16" />
+      <Button file wide accept=".json,.png,.ttf,.otf,.woff,.woff2,application/json,image/png,font/ttf,font/otf,font/woff,font/woff2" :disabled="loading" @change="upload"><template #icon><Icon name="open" :size="16" /></template>
         <span>{{ loading ? "Loading..." : object.customFont ? "Replace font" : "Choose a font file" }}</span>
-        <input type="file" accept=".json,.png,.ttf,.otf,.woff,.woff2,application/json,image/png,font/ttf,font/otf,font/woff,font/woff2" :disabled="loading" @change="upload">
-      </label>
+        
+      </Button>
       <p v-if="customError" class="hint bad">{{ customError }}</p>
       <p v-else class="hint">A JSON from the font editor, a Minecraft ascii.png, or a .ttf, .otf, .woff or .woff2 font.</p>
       <template v-if="imported && usingCustom">

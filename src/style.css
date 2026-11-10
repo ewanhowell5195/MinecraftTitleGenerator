@@ -200,8 +200,7 @@ button,
   height: auto;
 }
 
-.input-row > .icon-button,
-.input-row > .icon-button.small {
+.input-row > .icon-only {
   flex: none;
   height: auto;
 }

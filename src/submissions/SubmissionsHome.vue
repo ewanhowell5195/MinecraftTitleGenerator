@@ -1,5 +1,6 @@
 <script setup>
   import { computed, ref, watch } from "vue"
+  import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
   import { account, signIn, signInProviders } from "../lib/community.js"
   import { providerLabel } from "../lib/providers.js"
@@ -39,12 +40,12 @@
       <h1>Submissions</h1>
       <p>Follow the reviews of what you've sent to the title generator.</p>
     </div>
-    <a class="button primary" href="/submit/"><Icon name="plus" :size="16" />New submission</a>
+    <Button primary href="/submit/"><template #icon><Icon name="plus" :size="16" /></template>New submission</Button>
   </section>
   <template v-if="!account">
     <p class="hint">Sign in to see your submissions.</p>
     <div v-if="signInProviders.length" class="buttons">
-      <button v-for="id of signInProviders" :key="id" type="button" @click="signIn(id)"><Icon :name="id" :size="16" />Sign in with {{ providerLabel(id) }}</button>
+      <Button v-for="id of signInProviders" :key="id" @click="signIn(id)"><template #icon><Icon :name="id" :size="16" /></template>Sign in with {{ providerLabel(id) }}</Button>
     </div>
   </template>
   <p v-else-if="error" class="hint bad">{{ error }}</p>

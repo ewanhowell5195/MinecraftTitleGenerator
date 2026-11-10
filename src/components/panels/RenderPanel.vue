@@ -6,6 +6,7 @@
   import { submitStats } from "../../lib/stats.js"
   import { downloadBlob } from "../../lib/ui.js"
   import { DEFAULT_FOV, view } from "../../lib/view.js"
+  import Button from "../Button.vue"
   import ColourPicker from "../ColourPicker.vue"
   import Dropdown from "../Dropdown.vue"
   import GradientEditor from "../GradientEditor.vue"
@@ -104,7 +105,7 @@
           <input type="number" :value="framing.width" min="1" :max="max" title="Width" @input="setResolution('width', $event.target.value)" @change="$event.target.value = framing.width">
           <span class="times">&times;</span>
           <input type="number" :value="framing.height" min="1" :max="max" title="Height" @input="setResolution('height', $event.target.value)" @change="$event.target.value = framing.height">
-          <button class="icon-button" :class="{ active: framing.linked }" @click="framing.linked = !framing.linked" title="Link width and height"><Icon name="link" :size="16" /></button>
+          <Button ghost :active="framing.linked" @click="framing.linked = !framing.linked" title="Link width and height"><template #icon><Icon name="link" :size="16" /></template></Button>
         </div>
       </div>
       <div class="field">
@@ -149,14 +150,12 @@
       <p class="hint">The longer side of the title, in pixels. The final size may differ slightly.</p>
     </template>
     <Toggle label="Antialiasing" hint="Smoother edges, renders take longer" v-model="view.antialias" />
-    <button class="primary wide big" :disabled="progress !== null" @click="render">
-      <Icon name="camera" :size="17" />
+    <Button primary wide big :disabled="progress !== null" @click="render"><template #icon><Icon name="camera" :size="17" /></template>
       <span>Render image</span>
-    </button>
-    <button v-if="framing.tab !== 'minecraft'" class="wide" :disabled="progress !== null" @click="saveVector">
-      <Icon name="download" :size="16" />
+    </Button>
+    <Button wide v-if="framing.tab !== 'minecraft'" :disabled="progress !== null" @click="saveVector"><template #icon><Icon name="download" :size="16" /></template>
       <span>Save SVG</span>
-    </button>
+    </Button>
     <p v-if="failed" class="hint bad">{{ failed }}</p>
   </Panel>
 

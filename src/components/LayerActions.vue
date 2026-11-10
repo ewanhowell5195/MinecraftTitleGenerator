@@ -2,6 +2,7 @@
   import { computed } from "vue"
   import { TYPES } from "../lib/settings.js"
   import { duplicateLine, lineHidden, lineText, removeLine, selection, toggleLine, words } from "../lib/scene.js"
+  import Button from "./Button.vue"
   import Icon from "./Icon.vue"
 
   const line = computed(() => words(selection.value[0]))
@@ -16,15 +17,12 @@
       <span class="name ellipsis">{{ lineText(line[0]) || "(empty)" }}</span>
       <span class="type ellipsis">{{ grouped ? `${line.length} words, ` : "" }}{{ TYPES[line[0].type].name }}</span>
     </div>
-    <button class="icon-button" @click="toggleLine(line[0])" :title="hidden ? 'Show' : 'Hide'" :aria-pressed="hidden">
-      <Icon :name="hidden ? 'hidden' : 'eye'" :size="18" />
-    </button>
-    <button class="icon-button" @click="duplicateLine(line[0])" title="Duplicate">
-      <Icon name="copy" :size="18" />
-    </button>
-    <button class="icon-button" @click="removeLine(line[0])" title="Delete">
-      <Icon name="trash" :size="18" />
-    </button>
+    <Button ghost @click="toggleLine(line[0])" :title="hidden ? 'Show' : 'Hide'" :aria-pressed="hidden"><template #icon><Icon :name="hidden ? 'hidden' : 'eye'" :size="18" /></template>
+    </Button>
+    <Button ghost @click="duplicateLine(line[0])" title="Duplicate"><template #icon><Icon name="copy" :size="18" /></template>
+    </Button>
+    <Button ghost @click="removeLine(line[0])" title="Delete"><template #icon><Icon name="trash" :size="18" /></template>
+    </Button>
   </div>
 </template>
 

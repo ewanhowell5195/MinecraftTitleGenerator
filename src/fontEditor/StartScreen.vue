@@ -1,5 +1,6 @@
 <script setup>
   import { computed, onMounted, ref, shallowRef } from "vue"
+  import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
   import Tile from "../components/Tile.vue"
   import { fullName, loadFontList } from "../lib/font.js"
@@ -89,13 +90,13 @@
           <label class="field"><span class="label">Square size</span><input type="number" min="1" v-model.number="grid"></label>
         </div>
         <p class="hint">Height and width count squares, and one click paints one square. Square size is how many pixels each square is. Each character is {{ final }}.</p>
-        <button class="primary wide" :disabled="!valid" @click="startBlank"><Icon name="plus" />Start drawing</button>
+        <Button primary wide :disabled="!valid" @click="startBlank"><template #icon><Icon name="plus" /></template>Start drawing</Button>
       </section>
 
       <section class="choice">
         <h2>Open a saved font</h2>
         <p class="hint">Choose a JSON from this editor, a font.png, or both. Whatever's missing is worked out or left at its default.</p>
-        <label class="button wide"><Icon name="open" />Choose files<input type="file" multiple accept=".png,.json,image/png,application/json" @change="upload"></label>
+        <Button file wide multiple accept=".png,.json,image/png,application/json" @change="upload"><template #icon><Icon name="open" /></template>Choose files</Button>
 
         <h2 class="second">Import a font file</h2>
         <p class="hint">Turns a .ttf, .otf, .woff or .woff2, or a Minecraft ascii.png, into pixels at this height, ready for you to edit. Square size is how many pixels each square is, for font files that aren't already drawn on a pixel grid. Each character can go back to its imported shape.</p>
@@ -104,7 +105,7 @@
           <label class="field"><span class="label">Square size</span><input type="number" min="1" v-model.number="importDensity"></label>
           <label class="checkbox"><input type="checkbox" v-model="lowercase"><span>Use lowercase letters</span></label>
         </div>
-        <label class="button wide"><Icon name="open" />Choose font file<input type="file" accept=".ttf,.otf,.woff,.woff2,.png,font/ttf,font/otf,font/woff,font/woff2,image/png" @change="importFile"></label>
+        <Button file wide accept=".ttf,.otf,.woff,.woff2,.png,font/ttf,font/otf,font/woff,font/woff2,image/png" @change="importFile"><template #icon><Icon name="open" /></template>Choose font file</Button>
       </section>
 
       <section class="choice wide-choice">

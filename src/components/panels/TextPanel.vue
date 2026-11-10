@@ -5,6 +5,7 @@
   import { useReorderDrag } from "../../lib/reorder.js"
   import { addWord, insertWord, removeObject, runtime, scene, select, selection, words } from "../../lib/scene.js"
   import { splitGradients } from "../../lib/wordGradients.js"
+  import Button from "../Button.vue"
   import Icon from "../Icon.vue"
   import Panel from "../Panel.vue"
 
@@ -138,9 +139,7 @@
           </button>
         </label>
       </template>
-      <button class="icon-button small add" @mousedown="capture" @click="add" title="Add word">
-        <Icon name="plus" :size="16" />
-      </button>
+      <Button tiny ghost class="add" @mousedown="capture" @click="add" title="Add word"><template #icon><Icon name="plus" :size="16" /></template></Button>
     </div>
     <p class="hint">Each word gets its own texture. Highlight part of a word and press + to split it off.</p>
   </Panel>

@@ -1,5 +1,6 @@
 <script setup>
   import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
+  import Button from "../components/Button.vue"
   import FluidTabs from "fluid-tabs-vue"
   import AccountMenu from "../components/AccountMenu.vue"
   import NotificationBell from "../components/NotificationBell.vue"
@@ -87,7 +88,7 @@
         </FluidTabs>
       </template>
       <div class="spacer"></div>
-      <button v-if="font" title="Send this font to be added to the title generator" @click="submitFont"><Icon name="upload" :size="14" />Submit</button>
+      <Button v-if="font" title="Send this font to be added to the title generator" @click="submitFont"><template #icon><Icon name="upload" :size="14" /></template>Submit</Button>
       <AccountMenu />
       <NotificationBell />
     </header>
@@ -121,10 +122,10 @@
       <div class="dialog-body">
         <p>This browser only remembers one font, so <strong>{{ font.name }}</strong> will be removed. Download its JSON first if you want to keep it.</p>
         <div class="buttons">
-          <button @click="downloadJson"><Icon name="download" :size="14" />Download JSON</button>
+          <Button @click="downloadJson"><template #icon><Icon name="download" :size="14" /></template>Download JSON</Button>
           <div class="spacer"></div>
-          <button @click="asking = false">Cancel</button>
-          <button class="danger" @click="startAgain">Start new font</button>
+          <Button @click="asking = false">Cancel</Button>
+          <Button danger @click="startAgain">Start new font</Button>
         </div>
       </div>
     </RenderDialog>

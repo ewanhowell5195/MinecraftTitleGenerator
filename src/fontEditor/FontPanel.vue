@@ -1,5 +1,6 @@
 <script setup>
   import { computed, onMounted, ref, shallowRef } from "vue"
+  import Button from "../components/Button.vue"
   import Dropdown from "../components/Dropdown.vue"
   import Icon from "../components/Icon.vue"
   import { fullName, loadFontList } from "../lib/font.js"
@@ -143,8 +144,8 @@
       <div v-if="warning" class="warning">
         <p>{{ warning.text }} changes {{ warning.lost }} drawn {{ warning.lost === 1 ? "pixel" : "pixels" }}.</p>
         <div class="row">
-          <button @click="warning = null">Cancel</button>
-          <button class="danger" @click="confirmResize">Change anyway</button>
+          <Button @click="warning = null">Cancel</Button>
+          <Button danger @click="confirmResize">Change anyway</Button>
         </div>
       </div>
     </section>
@@ -157,7 +158,7 @@
           <label class="label" :for="`font-${item.key}`">{{ item.label }}</label>
           <div class="resettable">
             <input :id="`font-${item.key}`" type="number" :min="item.min" :value="font[item.key]" @input="setNumber(item.key, $event, item.min ?? -1000)" @change="setNumber(item.key, $event, item.min ?? -1000)">
-            <button v-if="font[item.key] !== item.fallback" class="icon-button small" :title="`Reset to ${item.fallback}`" :aria-label="`Reset ${item.label.toLowerCase()} to ${item.fallback}`" @click="setField(item.key, item.fallback, false)"><Icon name="reset" :size="14" /></button>
+            <Button tiny ghost v-if="font[item.key] !== item.fallback" :title="`Reset to ${item.fallback}`" :aria-label="`Reset ${item.label.toLowerCase()} to ${item.fallback}`" @click="setField(item.key, item.fallback, false)"><template #icon><Icon name="reset" :size="14" /></template></Button>
           </div>
         </div>
       </div>
@@ -181,7 +182,7 @@
     <section class="flow">
       <h3>Stretch zones</h3>
       <p class="hint">Marks the stretch zones of every character automatically, replacing the ones marked now. Each character can still be changed on the Characters tab.</p>
-      <button class="start" @click="markAll"><Icon name="wand" :size="14" />Mark every character</button>
+      <Button class="start" @click="markAll"><template #icon><Icon name="wand" :size="14" /></template>Mark every character</Button>
     </section>
   </div>
 </template>
@@ -234,7 +235,7 @@
     padding-right: 36px;
   }
 
-  .resettable .icon-button {
+  .resettable .icon-only {
     position: absolute;
     top: 50%;
     right: 4px;

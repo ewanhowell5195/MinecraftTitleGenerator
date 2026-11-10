@@ -1,5 +1,6 @@
 <script setup>
   import { computed, onBeforeUnmount, onMounted, ref, shallowRef, toRaw, watch } from "vue"
+  import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
   import { image, stripRange } from "../lib/assets.js"
   import { loadFontList, stripsOf } from "../lib/font.js"
@@ -187,7 +188,7 @@
     <section class="flow">
       <h3>Your own textures</h3>
       <p class="hint">Textures made for your font alone are painted onto a copy of its letters, like the ones every published font has. They're made outside the font editor, starting from this blank texture.</p>
-      <button class="blank" @click="downloadFlatTexture"><Icon name="download" :size="14" />Download a blank texture</button>
+      <Button class="blank" @click="downloadFlatTexture"><template #icon><Icon name="download" :size="14" /></template>Download a blank texture</Button>
     </section>
 
     <section class="flow">
@@ -206,8 +207,8 @@
             <span title="0 centres your letters on the strips, higher moves them up, lower moves them down">Offset</span>
             <input type="number" :value="chosenOffset(set.id)" :min="fitting[set.id][0]" :max="fitting[set.id].at(-1)" :title="`Your letters fit from ${fitting[set.id][0]} to ${fitting[set.id].at(-1)}`" :aria-label="`Offset for ${titleCase(set.id)}`" @input="setOffset(set.id, $event)" @change="setOffset(set.id, $event)">
           </template>
-          <button v-if="used(set.id)" @click.stop="toggle(set.id)">Stop using</button>
-          <button v-else :class="{ primary: fits(set.id) }" :disabled="!fits(set.id)" @click.stop="toggle(set.id)">Use</button>
+          <Button v-if="used(set.id)" @click.stop="toggle(set.id)">Stop using</Button>
+          <Button :primary="fits(set.id)" v-else :disabled="!fits(set.id)" @click.stop="toggle(set.id)">Use</Button>
         </div>
       </div>
     </section>

@@ -1,6 +1,7 @@
 <script setup>
   import { onBeforeUnmount, onMounted, ref } from "vue"
   import { downloadBlob } from "../lib/ui.js"
+  import Button from "./Button.vue"
   import Icon from "./Icon.vue"
   import RenderDialog from "./RenderDialog.vue"
 
@@ -61,14 +62,12 @@
         <span>{{ size }}</span>
       </div>
       <div class="buttons">
-        <button @click="copy">
-          <Icon name="copy" :size="16" />
+        <Button @click="copy"><template #icon><Icon name="copy" :size="16" /></template>
           <span>Copy render</span>
-        </button>
-        <button class="primary" @click="save">
-          <Icon name="download" :size="16" />
+        </Button>
+        <Button primary @click="save"><template #icon><Icon name="download" :size="16" /></template>
           <span>Save render</span>
-        </button>
+        </Button>
       </div>
     </div>
   </RenderDialog>

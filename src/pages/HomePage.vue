@@ -1,6 +1,7 @@
 <script setup>
   import { onBeforeUnmount, onMounted, ref } from "vue"
   import { startHero } from "../home/hero.js"
+  import Button from "../components/Button.vue"
   import Strips from "../home/Strips.vue"
   import { startTyping } from "../home/typing.js"
 
@@ -62,8 +63,8 @@
       <h1 ref="stage" class="stage"><img class="poster" src="/home/logo.webp" alt="Minecraft Title Generator" width="1800" height="524"></h1>
       <p class="lead">Make your own Minecraft style 3D titles, right in your browser!</p>
       <div class="actions">
-        <RouterLink class="button primary big" to="/app/">Open the generator</RouterLink>
-        <a class="button blue big" href="https://ewanhowell.com/plugins/minecraft-title-generator" target="_blank" rel="noopener">Get the Blockbench plugin</a>
+        <Button primary big to="/app/">Open the generator</Button>
+        <Button blue big href="https://ewanhowell.com/plugins/minecraft-title-generator" target="_blank" rel="noopener">Get the Blockbench plugin</Button>
       </div>
     </section>
 
@@ -83,7 +84,7 @@
             <div><dt>Titles made</dt><dd data-stat="total">{{ total }}</dd></div>
             <div><dt>This week</dt><dd data-stat="week">{{ week }}</dd></div>
           </dl>
-          <RouterLink class="button big" to="/app/">Open the generator</RouterLink>
+          <Button big to="/app/">Open the generator</Button>
         </div>
         <div ref="bandTitle" class="band-title" aria-hidden="true"><img src="/home/typing/your-title.webp" alt="" width="1125" height="200" loading="lazy"><canvas></canvas></div>
       </div>

@@ -4,6 +4,7 @@
   import { NAME_LIMIT, confirmReplacing, confirmSharing, namingCode, namingShared, namingSharedId, saveOver, savePreset, sharePreset } from "../lib/presets.js"
   import { openPresetsPage, showPreset } from "../lib/presetsPage.js"
   import { sharingProblem } from "../lib/titleFacts.js"
+  import Button from "./Button.vue"
   import RenderDialog from "./RenderDialog.vue"
   import ReplaceSelect from "./ReplaceSelect.vue"
   import ShareAccount from "./ShareAccount.vue"
@@ -92,7 +93,7 @@
     <form class="dialog-body" @submit.prevent="submit">
       <p class="hint">This title is already shared as {{ suggested }}.</p>
       <div class="buttons">
-        <button class="primary" type="submit">View in Community</button>
+        <Button primary type="submit">View in Community</Button>
       </div>
     </form>
   </RenderDialog>
@@ -115,8 +116,8 @@
       <div class="footer">
         <SubmissionUsage v-if="!namingShared && !target?.online" class="usage" />
         <div class="buttons">
-          <button v-if="!shareOnly" type="submit" :class="{ primary: namingShared || target?.online }" :disabled="sending || target?.online && (!!problem || !agreed)">{{ target ? "Replace" : "Save" }}</button>
-          <button v-if="!namingShared && !target?.online" class="primary" type="button" :disabled="sending || !!problem || !agreed || usage && usage.used >= usage.limit" @click="saveAndShare">{{ sending ? "Sharing" : shareOnly ? "Share" : target ? "Replace and share" : "Save and share" }}</button>
+          <Button v-if="!shareOnly" type="submit" :primary="namingShared || target?.online" :disabled="sending || target?.online && (!!problem || !agreed)">{{ target ? "Replace" : "Save" }}</Button>
+          <Button v-if="!namingShared && !target?.online" primary :disabled="sending || !!problem || !agreed || usage && usage.used >= usage.limit" @click="saveAndShare">{{ sending ? "Sharing" : shareOnly ? "Share" : target ? "Replace and share" : "Save and share" }}</Button>
         </div>
       </div>
     </form>

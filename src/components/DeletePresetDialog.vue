@@ -1,5 +1,6 @@
 <script setup>
   import { onMounted, ref } from "vue"
+  import Button from "./Button.vue"
   import RenderDialog from "./RenderDialog.vue"
 
   defineProps({
@@ -20,14 +21,14 @@
       <template v-if="canDeleteShared">
         <p><strong>{{ preset.name }}</strong> is shared publicly. Deleting it from Community moves it back to your presets, and it keeps its votes and uses if you share it again. Fully deleting it removes it for good.</p>
         <div class="buttons">
-          <button class="danger" type="button" @click="emit('delete', 'full')">Fully delete</button>
-          <button ref="main" class="primary" type="button" @click="emit('delete', 'unshare')">Delete from Community</button>
+          <Button danger @click="emit('delete', 'full')">Fully delete</Button>
+          <Button primary ref="main" @click="emit('delete', 'unshare')">Delete from Community</Button>
         </div>
       </template>
       <template v-else>
         <p><strong>{{ preset.name }}</strong> is also shared publicly. This browser can't manage it, so it will stay in Community.</p>
         <div class="buttons">
-          <button ref="main" class="primary" type="button" @click="emit('delete', 'local')">Delete my preset only</button>
+          <Button primary ref="main" @click="emit('delete', 'local')">Delete my preset only</Button>
         </div>
       </template>
     </div>

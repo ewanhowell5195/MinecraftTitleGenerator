@@ -1,5 +1,6 @@
 <script setup>
   import { computed, ref, toRaw } from "vue"
+  import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
   import { collisionAmount, pairRank, suggestKerning } from "../lib/kerning.js"
   import { normalise } from "../lib/layout.js"
@@ -94,7 +95,7 @@
         <p class="hint">Each pair is pulled closer together by its amount, in pixels.</p>
         <form class="input-row" @submit.prevent="addCustom">
           <input v-model="custom" type="text" maxlength="4" placeholder="Any two characters" aria-label="Pair to add">
-          <button type="submit"><Icon name="plus" :size="14" />Add pair</button>
+          <Button type="submit"><template #icon><Icon name="plus" :size="14" /></template>Add pair</Button>
         </form>
         <p v-if="customError" class="hint bad">{{ customError }}</p>
         <p v-if="!allPairs.length" class="hint">None yet. Add some from the suggestions, or type your own.</p>
@@ -106,8 +107,8 @@
               <div class="head">
                 <span class="pair-name">{{ pairLabel(pair) }}</span>
                 <div class="spacer"></div>
-                <button v-if="suggestedAmounts.has(pair) && suggestedAmounts.get(pair) !== amount" class="icon-button small" :title="`Reset to the suggested ${suggestedAmounts.get(pair)}`" :aria-label="`Reset ${pairLabel(pair)} to the suggested ${suggestedAmounts.get(pair)}`" @click="setAmount(pair, suggestedAmounts.get(pair), max)"><Icon name="reset" :size="14" /></button>
-                <button class="icon-button small" :title="`Remove ${pairLabel(pair)}`" :aria-label="`Remove ${pairLabel(pair)}`" @click="remove(pair)"><Icon name="close" :size="14" /></button>
+                <Button tiny ghost v-if="suggestedAmounts.has(pair) && suggestedAmounts.get(pair) !== amount" :title="`Reset to the suggested ${suggestedAmounts.get(pair)}`" :aria-label="`Reset ${pairLabel(pair)} to the suggested ${suggestedAmounts.get(pair)}`" @click="setAmount(pair, suggestedAmounts.get(pair), max)"><template #icon><Icon name="reset" :size="14" /></template></Button>
+                <Button tiny ghost :title="`Remove ${pairLabel(pair)}`" :aria-label="`Remove ${pairLabel(pair)}`" @click="remove(pair)"><template #icon><Icon name="close" :size="14" /></template></Button>
               </div>
               <Slider label="Closer by" :min="0" :max="max" :model-value="amount" @update:model-value="setAmount(pair, $event, max)" />
             </div>
@@ -119,9 +120,9 @@
         <h3>Suggested</h3>
         <p class="hint">Pairs whose shapes leave room to move closer. Click one to add it.</p>
         <div class="row toolbar">
-          <button v-for="item of FILTERS" :key="item.id" :class="{ active: filter === item.id }" @click="filter = item.id">{{ item.label }}</button>
+          <Button :active="filter === item.id" v-for="item of FILTERS" :key="item.id" @click="filter = item.id">{{ item.label }}</Button>
           <div class="spacer"></div>
-          <button :disabled="!suggestions.length" @click="addAll">Add all {{ suggestions.length }}</button>
+          <Button :disabled="!suggestions.length" @click="addAll">Add all {{ suggestions.length }}</Button>
         </div>
         <p v-if="!suggestions.length" class="hint">No suggestions here.</p>
         <div v-else class="pairs list">

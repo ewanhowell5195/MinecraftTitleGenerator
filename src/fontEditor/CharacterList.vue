@@ -1,5 +1,6 @@
 <script setup>
   import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue"
+  import Button from "../components/Button.vue"
   import ContextMenu from "../components/ContextMenu.vue"
   import Icon from "../components/Icon.vue"
   import RenderDialog from "../components/RenderDialog.vue"
@@ -132,8 +133,8 @@
         <p class="hint">{{ !typed.trim() ? "Type one or more characters. Capitals are added as lowercase." : newCharacters.length ? `Adds ${newCharacters.join(" ")}` : "Those are all in the font already." }}</p>
         <div class="buttons">
           <div class="spacer"></div>
-          <button type="button" @click="adding = false">Cancel</button>
-          <button type="submit" class="primary" :disabled="!newCharacters.length">Add</button>
+          <Button @click="adding = false">Cancel</Button>
+          <Button primary type="submit" :disabled="!newCharacters.length">Add</Button>
         </div>
       </form>
     </RenderDialog>

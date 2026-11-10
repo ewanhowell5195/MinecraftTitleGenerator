@@ -5,6 +5,7 @@
   import { TRANSFORM_GROUPS, TRANSFORM_LIMITS, TYPES, isModified, resetTransform, transformKeys, wordKey } from "../../lib/settings.js"
   import { hasMarks } from "../../lib/font.js"
   import { active, bakeMatch, chooseMatch, current, currentWord, lineText, scene, selection, setScale, words } from "../../lib/scene.js"
+  import Button from "../Button.vue"
   import Dropdown from "../Dropdown.vue"
   import Icon from "../Icon.vue"
   import Panel from "../Panel.vue"
@@ -52,7 +53,7 @@
       <Segments :options="MATCH_MODES" v-model="object.matchBottom" />
       <Toggle label="Scale Y to match too" v-model="object.matchScaleY" />
       <p v-if="problems[object.id]" class="hint">{{ problems[object.id] }}</p>
-      <button class="bake" title="Stop matching and move its scale and position into the sliders" @click="bakeMatch(selection[0])">Bake match</button>
+      <Button class="bake" title="Stop matching and move its scale and position into the sliders" @click="bakeMatch(selection[0])">Bake match</Button>
     </template>
   </Panel>
   <Panel v-for="[group, title] of AXIS_PANELS" :key="group" :title="title" :modified="modified[group]" @reset="resetTransform(object, group, word)">
@@ -65,7 +66,7 @@
         <Slider inline label="Y" v-model="scaleY" :min="TRANSFORM_LIMITS.scale[0]" :max="TRANSFORM_LIMITS.scale[1]" :step="0.05" />
       </div>
       <span class="bracket" :class="{ active: linked }"></span>
-      <button class="icon-button small" :class="{ active: linked }" @click="toggleLink" :title="linked ? 'Unlink X and Y' : 'Link X and Y so the text keeps its shape'" :aria-pressed="linked"><Icon name="link" :size="14" /></button>
+      <Button tiny ghost :active="linked" @click="toggleLink" :title="linked ? 'Unlink X and Y' : 'Link X and Y so the text keeps its shape'" :aria-pressed="linked"><template #icon><Icon name="link" :size="14" /></template></Button>
     </div>
     <div class="linked">
       <Slider class="grow" inline label="Z" v-model="object[k('scaleZ')]" :min="TRANSFORM_LIMITS.scale[0]" :max="TRANSFORM_LIMITS.scale[1]" :step="0.05" />

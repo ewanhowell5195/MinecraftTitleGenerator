@@ -1,5 +1,6 @@
 <script setup>
   import { useWindowEvents } from "../lib/events.js"
+  import Button from "./Button.vue"
   import Icon from "./Icon.vue"
 
   defineProps({
@@ -26,7 +27,7 @@
         <header class="row">
           <h2>{{ title }}</h2>
           <div class="spacer"></div>
-          <button class="icon-button" @click="emit('close')" :title="closeTitle"><Icon name="close" :size="18" /></button>
+          <Button ghost @click="emit('close')" :title="closeTitle"><template #icon><Icon name="close" :size="18" /></template></Button>
         </header>
         <slot></slot>
       </div>

@@ -3,6 +3,7 @@
   import { NAME_LIMIT } from "../lib/presets.js"
   import { presetLink } from "../lib/presetsPage.js"
   import { providerLabel } from "../lib/providers.js"
+  import Button from "./Button.vue"
   import Icon from "./Icon.vue"
   import UserName from "./UserName.vue"
   import PresetRating from "./PresetRating.vue"
@@ -75,14 +76,14 @@
 <template>
   <aside class="detail">
     <header>
-      <button class="icon-button" title="Close this preset" aria-label="Close this preset" @click="emit('close')"><Icon name="close" :size="18" /></button>
+      <Button ghost title="Close this preset" aria-label="Close this preset" @click="emit('close')"><template #icon><Icon name="close" :size="18" /></template></Button>
     </header>
     <div class="content">
       <TitlePicture :code="preset.code" :fingerprint="local ? null : preset.fingerprint" large />
       <div class="heading">
         <input v-if="renaming" v-selected class="name-field" type="text" :value="preset.name" :maxlength="NAME_LIMIT" :aria-label="`Name of ${preset.name}`" spellcheck="false" @blur="finishRenaming" @keydown.enter="$event.target.blur()" @keydown.esc.stop="renaming = false">
         <h2 v-else class="ellipsis" :title="preset.name">{{ preset.name }}</h2>
-        <button v-if="(local || owned) && !renaming" class="icon-button small" :title="`Rename ${preset.name}`" :aria-label="`Rename ${preset.name}`" @click="renaming = true"><Icon name="pencil" :size="14" /></button>
+        <Button tiny ghost v-if="(local || owned) && !renaming" :title="`Rename ${preset.name}`" :aria-label="`Rename ${preset.name}`" @click="renaming = true"><template #icon><Icon name="pencil" :size="14" /></template></Button>
         <span v-if="local && preset.inBrowser" class="browser" title="Your account is full, so this is only saved in this browser">This browser only</span>
         <span v-if="local && preset.shared" class="yours">Shared publicly</span>
         <span v-else-if="mine" class="yours">Shared by you</span>
@@ -92,16 +93,16 @@
         <p class="facts"><span>{{ uses }}</span><span>Shared {{ sharedOn }}</span><span v-if="figures.author" class="author">By <button type="button" class="link-button" :title="`Show presets by ${figures.author} on ${providerLabel(figures.authorProvider)}`" @click="emit('user', figures.author, figures.authorProvider)"><strong><UserName :name="figures.author" :provider="figures.authorProvider" /></strong></button></span></p>
       </template>
       <div class="actions">
-        <button class="primary" @click="emit('open')">Open in editor</button>
+        <Button primary @click="emit('open')">Open in editor</Button>
         <template v-if="local">
-          <button v-if="!preset.shared" @click="emit('share')"><Icon name="share" :size="16" /><span>Share publicly</span></button>
-          <button v-else @click="emit('view')"><Icon name="open" :size="16" /><span>View in Community</span></button>
-          <button class="danger" @click="emit('remove')"><Icon name="trash" :size="16" /><span>Delete</span></button>
+          <Button v-if="!preset.shared" @click="emit('share')"><template #icon><Icon name="share" :size="16" /></template><span>Share publicly</span></Button>
+          <Button v-else @click="emit('view')"><template #icon><Icon name="open" :size="16" /></template><span>View in Community</span></Button>
+          <Button danger @click="emit('remove')"><template #icon><Icon name="trash" :size="16" /></template><span>Delete</span></Button>
         </template>
         <template v-else>
-          <button v-if="!mine" :disabled="saved" @click="emit('save')"><Icon name="bookmark" :size="16" /><span>{{ saved ? "In My presets" : "Save to My presets" }}</span></button>
-          <button @click="copyLink"><Icon name="share" :size="16" /><span>{{ copyMessage || "Copy link" }}</span></button>
-          <button v-if="owned" class="danger" @click="emit('remove')"><Icon name="trash" :size="16" /><span>Delete</span></button>
+          <Button v-if="!mine" :disabled="saved" @click="emit('save')"><template #icon><Icon name="bookmark" :size="16" /></template><span>{{ saved ? "In My presets" : "Save to My presets" }}</span></Button>
+          <Button @click="copyLink"><template #icon><Icon name="share" :size="16" /></template><span>{{ copyMessage || "Copy link" }}</span></Button>
+          <Button danger v-if="owned" @click="emit('remove')"><template #icon><Icon name="trash" :size="16" /></template><span>Delete</span></Button>
         </template>
       </div>
     </div>

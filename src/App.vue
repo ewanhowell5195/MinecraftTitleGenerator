@@ -1,5 +1,6 @@
 <script setup>
   import { computed, onMounted, ref, watch } from "vue"
+  import Button from "./components/Button.vue"
   import FluidTabs from "fluid-tabs-vue"
   import AccountMenu from "./components/AccountMenu.vue"
   import NotificationBell from "./components/NotificationBell.vue"
@@ -122,10 +123,9 @@
       </div>
       <RenderPanel v-if="view.render" />
       <Panel v-else-if="!editing">
-        <button class="primary wide" @click="addObject">
-          <Icon name="plus" :size="16" />
+        <Button primary wide @click="addObject"><template #icon><Icon name="plus" :size="16" /></template>
           <span>Add text</span>
-        </button>
+        </Button>
       </Panel>
       <template v-else-if="view.section === 'text'">
         <TextPanel />

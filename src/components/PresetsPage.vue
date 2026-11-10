@@ -11,6 +11,7 @@
   import { providerLabel } from "../lib/providers.js"
   import { openSharedLink } from "../lib/share.js"
   import AccountMenu from "./AccountMenu.vue"
+  import Button from "./Button.vue"
   import NotificationBell from "./NotificationBell.vue"
   import DeletePresetDialog from "./DeletePresetDialog.vue"
   import Dropdown from "./Dropdown.vue"
@@ -353,7 +354,7 @@
 <template>
   <div ref="root" class="page">
     <header class="top">
-      <button class="back" @click="closePresetsPage()"><Icon name="back" :size="18" /><span>Back to editor</span></button>
+      <Button class="back" @click="closePresetsPage()"><template #icon><Icon name="back" :size="18" /></template><span>Back to editor</span></Button>
       <h1>Presets</h1>
       <SubmissionUsage v-if="tab === 'mine'" class="usage" />
       <Segments class="tabs" :options="TABS" v-model="tab" />
@@ -366,7 +367,7 @@
           <input class="search" type="text" v-model="search" :placeholder="tab === 'community' ? 'Search names, text or user:name' : 'Search your presets'" aria-label="Search presets" spellcheck="false">
           <template v-if="tab === 'community'">
             <Dropdown class="sort" :options="SORTS" v-model="sort" />
-            <button class="random" title="Show a random community preset" @click="openRandom"><Icon name="dice" :size="16" /><span>Random</span></button>
+            <Button class="random" title="Show a random community preset" @click="openRandom"><template #icon><Icon name="dice" :size="16" /></template><span>Random</span></Button>
           </template>
         </div>
         <div class="list">

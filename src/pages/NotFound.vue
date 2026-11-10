@@ -4,6 +4,7 @@
   import { encodeTitle } from "../lib/linkformat.js"
   import { pictureUrl } from "../lib/pictures.js"
   import { FILE_VERSION } from "../lib/settings.js"
+  import Button from "../components/Button.vue"
 
   const route = useRoute()
   const code = encodeTitle({ version: FILE_VERSION, lines: [{ text: "404", font: "minecraft-ten", textureSource: "premade", texture: "smooth" }] }).code
@@ -16,7 +17,7 @@
     <img v-else class="sign" :src="pictureUrl({ code })" alt="404" width="935" height="381" @error="failed = true">
     <h1>Page not found</h1>
     <p>There's nothing at <code>{{ route.path }}</code>. The link may be wrong, or the page may have moved.</p>
-    <RouterLink class="button primary big" to="/">Go to the home page</RouterLink>
+    <Button primary big to="/">Go to the home page</Button>
   </main>
 </template>
 

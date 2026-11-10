@@ -1,5 +1,6 @@
 <script setup>
   import { onMounted, ref } from "vue"
+  import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
   import { SUBMISSION_LIMITS } from "../lib/submissions.js"
   import { reviewState, reviewSubmission } from "../lib/submissionsApi.js"
@@ -61,14 +62,14 @@
       <p class="hint">{{ state ? STATES[state] ?? `GitHub says it's ${state}.` : "Checking the pull request..." }} <button type="button" class="link-button" @click="check">Check again</button></p>
     </div>
     <div v-if="!declining" class="buttons">
-      <button type="button" class="primary" :disabled="busy || !READY.has(state)" @click="act('merge')"><Icon name="check" :size="16" />Merge</button>
-      <button type="button" :disabled="busy" @click="declining = true"><Icon name="close" :size="16" />Decline</button>
+      <Button primary :disabled="busy || !READY.has(state)" @click="act('merge')"><template #icon><Icon name="check" :size="16" /></template>Merge</Button>
+      <Button :disabled="busy" @click="declining = true"><template #icon><Icon name="close" :size="16" /></template>Decline</Button>
     </div>
     <div v-else class="decline">
       <textarea v-model="reason" rows="3" :maxlength="SUBMISSION_LIMITS.comment" placeholder="Why it's declined (optional, shown to the submitter)" aria-label="Reason"></textarea>
       <div class="buttons">
-        <button type="button" class="danger" :disabled="busy" @click="act('decline')">Decline</button>
-        <button type="button" :disabled="busy" @click="declining = false">Cancel</button>
+        <Button danger :disabled="busy" @click="act('decline')">Decline</Button>
+        <Button :disabled="busy" @click="declining = false">Cancel</Button>
       </div>
     </div>
     <p v-if="error" class="hint bad">{{ error }}</p>

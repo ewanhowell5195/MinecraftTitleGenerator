@@ -1,5 +1,6 @@
 <script setup>
   import { ref } from "vue"
+  import Button from "./Button.vue"
   import ContextMenu from "./ContextMenu.vue"
 
   const REOPEN_DELAY = 300
@@ -25,8 +26,8 @@
 </script>
 
 <template>
-  <button type="button" @click="show">
+  <Button @click="show">
     <slot></slot>
     <ContextMenu :items="at ? items : []" :at="at" @close="close" />
-  </button>
+  </Button>
 </template>

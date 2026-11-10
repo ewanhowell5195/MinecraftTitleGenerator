@@ -28,7 +28,7 @@ button,
 }
 
 button:hover:not(:disabled),
-.button:hover {
+.button:hover:not(:disabled, .disabled) {
   color: var(--button-text);
   filter: brightness(1.1);
 }
@@ -40,14 +40,15 @@ button:active:not(:disabled),
   transition: none;
 }
 
-button:disabled {
+button:disabled,
+.button.disabled {
   opacity: 0.35;
   cursor: not-allowed;
 }
 
 button:focus-visible,
 .button:focus-visible,
-.button:focus-within {
+.button:has(input:focus-visible) {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -97,56 +98,39 @@ button.ghost,
 }
 
 button.ghost:hover:not(:disabled),
-.button.ghost:hover {
+.button.ghost:hover:not(:disabled, .disabled) {
   --button-text: var(--text);
   background: var(--card);
   filter: none;
 }
 
-button.active,
-button.active:hover:not(:disabled) {
+.button.active,
+.button.active:hover:not(:disabled, .disabled) {
   --button-text: var(--accent);
   background: var(--accent-soft);
   box-shadow: inset 0 0 0 1px var(--accent);
   filter: none;
 }
 
-.icon-button,
 button.link-button,
 .field-button,
 .tab-bar .tab-bar-button {
   box-shadow: none;
 }
 
-.icon-button:hover:not(:disabled),
 button.link-button:hover:not(:disabled),
 .field-button:hover:not(:disabled),
 .tab-bar .tab-bar-button:hover:not(:disabled) {
   filter: none;
 }
 
-.icon-button {
-  --button-text: var(--muted);
+.button.icon-only {
   width: var(--control);
-  height: var(--control);
   padding: 0;
-  background: transparent;
 }
 
-.icon-button:hover:not(:disabled) {
-  --button-text: var(--text);
-  background: var(--card);
-}
-
-.icon-button.active {
-  --button-text: var(--accent);
-  background: var(--accent-soft);
-  box-shadow: inset 0 0 0 1px var(--accent);
-}
-
-.icon-button.small {
+.button.icon-only.tiny {
   width: var(--control-tiny);
-  height: var(--control-tiny);
   min-height: var(--control-tiny);
 }
 

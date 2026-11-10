@@ -1,5 +1,6 @@
 <script setup>
   import { computed, onBeforeUnmount, onMounted, ref, toRaw, watch } from "vue"
+  import Button from "../components/Button.vue"
   import Slider from "../components/Slider.vue"
   import RenderView from "./RenderView.vue"
   import { previewFont, drawText } from "./textCanvas.js"
@@ -76,7 +77,7 @@
         <p v-else-if="empty" class="message">{{ EMPTY }}</p>
       </div>
       <RenderView v-show="request" class="view" :request="request" :empty="EMPTY" />
-      <button v-if="!wide" class="mode-switch" :title="mode === '2d' ? 'Show the 3D preview' : 'Show the flat preview'" @click="mode = mode === '2d' ? '3d' : '2d'">{{ mode === "2d" ? "3D" : "2D" }}</button>
+      <Button class="mode-switch" v-if="!wide" :title="mode === '2d' ? 'Show the 3D preview' : 'Show the flat preview'" @click="mode = mode === '2d' ? '3d' : '2d'">{{ mode === "2d" ? "3D" : "2D" }}</Button>
     </div>
   </section>
 </template>

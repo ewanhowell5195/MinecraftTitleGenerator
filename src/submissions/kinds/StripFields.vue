@@ -1,5 +1,6 @@
 <script setup>
   import { computed, ref, watch } from "vue"
+  import Button from "../../components/Button.vue"
   import ColourPicker from "../../components/ColourPicker.vue"
   import Dropdown from "../../components/Dropdown.vue"
   import Segments from "../../components/Segments.vue"
@@ -253,7 +254,7 @@
   <div v-if="suggestions.length" class="field wide">
     <span class="label">Its height fits</span>
     <div class="suggestions">
-      <button v-for="item of suggestions" :key="item" type="button" :class="{ primary: item === target }" @click="emit('update:target', item)">{{ label(item) }}</button>
+      <Button :primary="item === target" v-for="item of suggestions" :key="item" @click="emit('update:target', item)">{{ label(item) }}</Button>
     </div>
   </div>
 </template>

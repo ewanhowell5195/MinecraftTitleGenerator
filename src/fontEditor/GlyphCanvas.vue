@@ -1,5 +1,6 @@
 <script setup>
   import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
+  import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
   import { NOTHING_OUTSIDE, blockAt, fillCells, lineCells, paint, rectangleCells, rowOfY, setGlyph, setStretch, widthOf, yOfRow } from "../lib/fontEditor.js"
   import { arrowsMove, beginStroke, cancelStroke, font, glyph, moveSelected, selected, strokeTo, typing, updateGlyph } from "./store.js"
@@ -490,22 +491,22 @@
   <section class="drawing">
     <div class="tools">
       <span class="group">
-        <button v-for="item of TOOLS" :key="item.id" class="icon-button" :class="{ active: tool === item.id }" :title="`${item.label} (${item.key.toUpperCase()})${item.hint ? `. ${item.hint}` : ''}`" :aria-label="item.label" :aria-pressed="tool === item.id" @click="tool = item.id"><Icon :name="item.icon" :size="18" /></button>
+        <Button ghost :active="tool === item.id" v-for="item of TOOLS" :key="item.id" :title="`${item.label} (${item.key.toUpperCase()})${item.hint ? `. ${item.hint}` : ''}`" :aria-label="item.label" :aria-pressed="tool === item.id" @click="tool = item.id"><template #icon><Icon :name="item.icon" :size="18" /></template></Button>
       </span>
       <span v-if="brushes.length > 1" class="group density">
         <span class="group-label">Density</span>
-        <button v-for="size of brushes" :key="size" class="ghost" :class="{ active: brush === size }" :title="size === 1 ? 'Draw single pixels' : `Draw ${size} pixel blocks`" :aria-pressed="brush === size" @click="chosenBrush = size">{{ font.grid / size }}x</button>
+        <Button ghost :active="brush === size" v-for="size of brushes" :key="size" :title="size === 1 ? 'Draw single pixels' : `Draw ${size} pixel blocks`" :aria-pressed="brush === size" @click="chosenBrush = size">{{ font.grid / size }}x</Button>
       </span>
       <span class="group">
         <span class="group-label">Flip</span>
-        <button class="icon-button" title="Flip left to right" aria-label="Flip left to right" @click="flipX"><Icon name="flipX" :size="18" /></button>
-        <button class="icon-button" title="Flip upside down" aria-label="Flip upside down" @click="flipY"><Icon name="flipY" :size="18" /></button>
+        <Button ghost title="Flip left to right" aria-label="Flip left to right" @click="flipX"><template #icon><Icon name="flipX" :size="18" /></template></Button>
+        <Button ghost title="Flip upside down" aria-label="Flip upside down" @click="flipY"><template #icon><Icon name="flipY" :size="18" /></template></Button>
       </span>
       <span class="group">
-        <button class="ghost" title="Remove every pixel from this character" @click="clearGlyph">Clear</button>
+        <Button ghost title="Remove every pixel from this character" @click="clearGlyph">Clear</Button>
       </span>
       <div class="spacer"></div>
-      <button class="ghost zoom" :disabled="!zoomed" title="Fit to view (0). Zoom with the mouse wheel or a pinch, and move around by dragging outside the character, with the middle mouse button, Space and drag, or two fingers" aria-label="Fit to view" @click="fit"><Icon name="fit" :size="16" />{{ zoomPercent }}%</button>
+      <Button ghost class="zoom" :disabled="!zoomed" title="Fit to view (0). Zoom with the mouse wheel or a pinch, and move around by dragging outside the character, with the middle mouse button, Space and drag, or two fingers" aria-label="Fit to view" @click="fit"><template #icon><Icon name="fit" :size="16" /></template>{{ zoomPercent }}%</Button>
     </div>
     <div ref="holder" class="holder">
       <canvas ref="canvas" class="board" :class="{ grab: spaceHeld || outside, grabbing: panning }" @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="up" @pointerenter="enter" @pointerleave="leave" @mousedown="noAutoscroll" @wheel="wheel" @contextmenu.prevent></canvas>

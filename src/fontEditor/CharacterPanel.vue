@@ -1,5 +1,6 @@
 <script setup>
   import { computed } from "vue"
+  import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
   import { autoStretch, changeGlyph, characterName, setGlyph, squaresOf, widthOf } from "../lib/fontEditor.js"
   import { font, glyph, reshapeSelected, selected, update, updateGlyph } from "./store.js"
@@ -48,7 +49,7 @@
       <span class="label">Width</span>
       <div class="input-row">
         <input type="number" min="1" :value="squaresOf(font, width)" aria-label="Character width" @input="setNumber('width', $event, 1)" @change="setNumber('width', $event, 1)">
-        <button v-if="overridden" :title="`Go back to the default width of ${squaresOf(font, font.width)}`" @click="resetWidth">Use default</button>
+        <Button v-if="overridden" :title="`Go back to the default width of ${squaresOf(font, font.width)}`" @click="resetWidth">Use default</Button>
         <span v-else class="hint">Default width</span>
       </div>
     </div>
@@ -67,13 +68,13 @@
     <h3>Stretch zones</h3>
     <p class="hint">Marked rows are the ones that stretch when text is arced, so choose straight parts that won't look odd taller. {{ glyph.stretch.length ? `${glyph.stretch.length} ${glyph.stretch.length === 1 ? "row" : "rows"} marked.` : "No rows marked." }}</p>
     <div class="row">
-      <button @click="mark"><Icon name="wand" :size="14" />Mark automatically</button>
-      <button :disabled="!glyph.stretch.length" @click="clearMarks">Clear</button>
+      <Button @click="mark"><template #icon><Icon name="wand" :size="14" /></template>Mark automatically</Button>
+      <Button :disabled="!glyph.stretch.length" @click="clearMarks">Clear</Button>
     </div>
 
     <template v-if="imported">
       <h3>Imported shape</h3>
-      <button @click="revert"><Icon name="reset" :size="14" />Back to the imported character</button>
+      <Button @click="revert"><template #icon><Icon name="reset" :size="14" /></template>Back to the imported character</Button>
     </template>
   </div>
 </template>

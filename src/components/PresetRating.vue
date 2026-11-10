@@ -1,6 +1,7 @@
 <script setup>
   import { computed } from "vue"
   import { LIMITS } from "../lib/limits.js"
+  import Button from "./Button.vue"
   import Icon from "./Icon.vue"
 
   const STARS = [1, 2, 3, 4, 5]
@@ -24,8 +25,8 @@
 <template>
   <div class="rating">
     <div v-if="!own" class="votes">
-      <button type="button" class="vote upvote" :class="{ chosen: mine === 1 }" :aria-pressed="mine === 1" @click="emit('vote', 1)"><Icon name="arrowUp" :size="20" /><span>{{ mine === 1 ? "Upvoted" : "Upvote" }}</span></button>
-      <button type="button" class="vote downvote" :class="{ chosen: mine === -1 }" :aria-pressed="mine === -1" @click="emit('vote', -1)"><Icon name="arrowDown" :size="20" /><span>{{ mine === -1 ? "Downvoted" : "Downvote" }}</span></button>
+      <Button class="vote upvote" :aria-pressed="mine === 1" @click="emit('vote', 1)" :class="{ chosen: mine === 1 }"><template #icon><Icon name="arrowUp" :size="20" /></template><span>{{ mine === 1 ? "Upvoted" : "Upvote" }}</span></Button>
+      <Button class="vote downvote" :aria-pressed="mine === -1" @click="emit('vote', -1)" :class="{ chosen: mine === -1 }"><template #icon><Icon name="arrowDown" :size="20" /></template><span>{{ mine === -1 ? "Downvoted" : "Downvote" }}</span></Button>
     </div>
     <div v-if="rating !== null" class="result" :title="summary">
       <span class="stars" aria-hidden="true">

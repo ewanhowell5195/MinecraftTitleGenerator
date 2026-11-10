@@ -1,5 +1,6 @@
 <script setup>
   import { ref } from "vue"
+  import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
   import { SUBMISSION_LIMITS } from "../lib/submissions.js"
   import { postComment } from "../lib/submissionsApi.js"
@@ -62,7 +63,7 @@
     </ol>
     <form v-if="canComment" class="composer" @submit.prevent="send">
       <textarea v-model="text" rows="2" :maxlength="SUBMISSION_LIMITS.comment" placeholder="Write a comment" aria-label="Comment"></textarea>
-      <button type="submit" class="primary" :disabled="busy || !text.trim()">Comment</button>
+      <Button primary type="submit" :disabled="busy || !text.trim()">Comment</Button>
     </form>
     <p v-if="canComment && error" class="hint bad">{{ error }}</p>
   </div>

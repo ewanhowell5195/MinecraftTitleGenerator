@@ -2,6 +2,7 @@
   import { computed, onBeforeUnmount, onMounted, ref } from "vue"
   import { useRoute } from "vue-router"
   import AccountMenu from "../components/AccountMenu.vue"
+  import Button from "../components/Button.vue"
   import NotificationBell from "../components/NotificationBell.vue"
 
   const props = defineProps({ floating: Boolean })
@@ -33,7 +34,7 @@
       <RouterLink to="/submit/">Submit</RouterLink>
     </nav>
     <div class="bar-end">
-      <RouterLink class="button primary bar-button" to="/app/">Open the generator</RouterLink>
+      <Button primary class="bar-button" to="/app/">Open the generator</Button>
       <div class="bar-account"><AccountMenu /></div>
       <div class="bar-notifications"><NotificationBell /></div>
     </div>

@@ -9,6 +9,7 @@
   import { pinnedTextures, setTexture, untouchedTileable } from "../../lib/settings.js"
   import { minecraftStatId, popular } from "../../lib/stats.js"
   import { readFile, saveImage, thumbnail, thumbnailHeight, tilePreview } from "../../lib/ui.js"
+  import Button from "../Button.vue"
   import GradientEditor from "../GradientEditor.vue"
   import Icon from "../Icon.vue"
   import Panel from "../Panel.vue"
@@ -258,11 +259,10 @@
         <img v-if="object.customTexture" :src="object.customTexture" alt="">
         <div v-else class="empty">No texture uploaded</div>
       </div>
-      <label class="button wide">
-        <Icon name="open" :size="16" />
+      <Button file wide accept="image/png" @change="readFile($event, pickCustom)"><template #icon><Icon name="open" :size="16" /></template>
         <span>{{ object.customTexture ? "Replace texture" : "Choose a PNG" }}</span>
-        <input type="file" accept="image/png" @change="readFile($event, pickCustom)">
-      </label>
+        
+      </Button>
       <template v-if="object.customTexture">
         <Segments label="Use as" :options="CUSTOM_MODES" v-model="object.customTextureMode" />
         <p class="hint" :class="{ bad: object.customTextureMode === 'standard' && !fitsFont }">{{ modeHint }}</p>
@@ -273,7 +273,7 @@
     <template v-if="object.textureSource === 'gradient'">
       <GradientEditor v-model="object.stops" :smooth="object.smooth" :angle="object.gradientAngle" :key="object.id" />
       <Toggle label="Smooth gradient" v-model="object.smooth" />
-      <button class="wide" @click="spread">Spread evenly</button>
+      <Button wide @click="spread">Spread evenly</Button>
       <Slider label="Angle" v-model="object.gradientAngle" :min="0" :max="360" />
     </template>
   </Panel>
