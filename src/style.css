@@ -89,6 +89,13 @@ input[type="number"] {
   width: 72px;
   min-height: var(--control);
   padding: 0 10px;
+  appearance: textfield;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
 }
 
 input[type="text"]:hover:not(:disabled),

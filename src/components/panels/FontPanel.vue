@@ -14,6 +14,7 @@
   import { fontThumbnail } from "../../lib/ui.js"
   import Button from "../Button.vue"
   import Icon from "../Icon.vue"
+  import NumberInput from "../NumberInput.vue"
   import Panel from "../Panel.vue"
   import Segments from "../Segments.vue"
   import Tile from "../Tile.vue"
@@ -168,11 +169,11 @@
         <div class="sizes">
           <label class="field">
             <span class="label">Height in pixels</span>
-            <input type="number" min="1" :value="object.customFont.height" :disabled="loading" @change="setHeight">
+            <NumberInput min="1" :value="object.customFont.height" :disabled="loading" @change="setHeight" />
           </label>
           <label v-if="squares" class="field">
             <span class="label">Square size</span>
-            <input type="number" min="1" :value="object.customFont.density ?? 1" :disabled="loading" @change="setDensity">
+            <NumberInput min="1" :value="object.customFont.density ?? 1" :disabled="loading" @change="setDensity" />
           </label>
         </div>
         <p v-if="squares" class="hint">Square size is how many pixels each square is. 4 gives chunky squares like Minecraft Ten. Fonts drawn on a pixel grid keep their own.</p>

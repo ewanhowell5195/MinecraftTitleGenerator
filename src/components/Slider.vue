@@ -102,13 +102,6 @@
     font-weight: 600;
     text-align: right;
     background: transparent;
-    -moz-appearance: textfield;
-  }
-
-  .value::-webkit-inner-spin-button,
-  .value::-webkit-outer-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
   }
 
   .range {

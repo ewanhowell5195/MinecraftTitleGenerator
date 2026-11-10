@@ -11,6 +11,7 @@
   import Dropdown from "../Dropdown.vue"
   import GradientEditor from "../GradientEditor.vue"
   import Icon from "../Icon.vue"
+  import NumberInput from "../NumberInput.vue"
   import Panel from "../Panel.vue"
   import RenderProgress from "../RenderProgress.vue"
   import RenderResult from "../RenderResult.vue"
@@ -102,18 +103,18 @@
       <div class="field">
         <span class="label">Size</span>
         <div class="input-row">
-          <input type="number" :value="framing.width" min="1" :max="max" title="Width" @input="setResolution('width', $event.target.value)" @change="$event.target.value = framing.width">
+          <NumberInput :value="framing.width" min="1" :max="max" title="Width" @input="setResolution('width', $event.target.value)" @change="$event.target.value = framing.width" />
           <span class="times">&times;</span>
-          <input type="number" :value="framing.height" min="1" :max="max" title="Height" @input="setResolution('height', $event.target.value)" @change="$event.target.value = framing.height">
+          <NumberInput :value="framing.height" min="1" :max="max" title="Height" @input="setResolution('height', $event.target.value)" @change="$event.target.value = framing.height" />
           <Button ghost :active="framing.linked" @click="framing.linked = !framing.linked" title="Link width and height"><template #icon><Icon name="link" :size="16" /></template></Button>
         </div>
       </div>
       <div class="field">
         <span class="label">Aspect ratio</span>
         <div class="input-row">
-          <input type="number" :value="framing.aspectWidth" min="1" :max="max" title="Aspect width" @input="setAspect('aspectWidth', $event.target.value)" @change="$event.target.value = framing.aspectWidth">
+          <NumberInput :value="framing.aspectWidth" min="1" :max="max" title="Aspect width" @input="setAspect('aspectWidth', $event.target.value)" @change="$event.target.value = framing.aspectWidth" />
           <span class="times">:</span>
-          <input type="number" :value="framing.aspectHeight" min="1" :max="max" title="Aspect height" @input="setAspect('aspectHeight', $event.target.value)" @change="$event.target.value = framing.aspectHeight">
+          <NumberInput :value="framing.aspectHeight" min="1" :max="max" title="Aspect height" @input="setAspect('aspectHeight', $event.target.value)" @change="$event.target.value = framing.aspectHeight" />
         </div>
       </div>
     </template>
@@ -175,7 +176,7 @@
     font-size: var(--font-lg);
   }
 
-  .input-row input[type="number"] {
+  .input-row .number-input {
     flex: 1;
     width: auto;
     min-width: 0;

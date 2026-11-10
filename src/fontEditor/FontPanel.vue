@@ -3,6 +3,7 @@
   import Button from "../components/Button.vue"
   import Dropdown from "../components/Dropdown.vue"
   import Icon from "../components/Icon.vue"
+  import NumberInput from "../components/NumberInput.vue"
   import { fullName, loadFontList } from "../lib/font.js"
   import { DEFAULT_BORDER, DEFAULT_DEPTH, DEFAULT_SPACE_WIDTH, autoStretch, lostPixels, resizeFont, setSquareSize, slug, squareSizeLoss, squaresOf } from "../lib/fontEditor.js"
   import { fontThumbnail } from "../lib/ui.js"
@@ -136,9 +137,9 @@
     <section class="flow">
       <h3>Size</h3>
       <div class="numbers">
-        <label class="field"><span class="label">Height</span><input type="number" min="1" :value="squaresOf(font, font.height)" @input="setSize('height', $event)" @change="setSize('height', $event)"></label>
-        <label class="field"><span class="label">Default width</span><input type="number" min="1" :value="squaresOf(font, font.width)" @input="setSize('width', $event)" @change="setSize('width', $event)"></label>
-        <label class="field"><span class="label">Square size</span><input type="number" min="1" :value="font.grid" @input="setSquare" @change="setSquare"></label>
+        <label class="field"><span class="label">Height</span><NumberInput min="1" :value="squaresOf(font, font.height)" @input="setSize('height', $event)" @change="setSize('height', $event)" /></label>
+        <label class="field"><span class="label">Default width</span><NumberInput min="1" :value="squaresOf(font, font.width)" @input="setSize('width', $event)" @change="setSize('width', $event)" /></label>
+        <label class="field"><span class="label">Square size</span><NumberInput min="1" :value="font.grid" @input="setSquare" @change="setSquare" /></label>
       </div>
       <p class="hint">Height and width count squares, and one click paints one square. Square size is how many pixels each square is. Each character is {{ finalSize }}.</p>
       <div v-if="warning" class="warning">
@@ -157,7 +158,7 @@
         <div v-for="item of SPACING" :key="item.key" class="field">
           <label class="label" :for="`font-${item.key}`">{{ item.label }}</label>
           <div class="resettable">
-            <input :id="`font-${item.key}`" type="number" :min="item.min" :value="font[item.key]" @input="setNumber(item.key, $event, item.min ?? -1000)" @change="setNumber(item.key, $event, item.min ?? -1000)">
+            <NumberInput :id="`font-${item.key}`" :min="item.min" :value="font[item.key]" @input="setNumber(item.key, $event, item.min ?? -1000)" @change="setNumber(item.key, $event, item.min ?? -1000)" />
             <Button tiny ghost v-if="font[item.key] !== item.fallback" :title="`Reset to ${item.fallback}`" :aria-label="`Reset ${item.label.toLowerCase()} to ${item.fallback}`" @click="setField(item.key, item.fallback, false)"><template #icon><Icon name="reset" :size="14" /></template></Button>
           </div>
         </div>
@@ -173,7 +174,7 @@
         </label>
         <div v-if="flag.key === 'terminatorSpace' && font.terminatorSpace" class="field nested">
           <label class="label" for="font-terminatorSpaceWidth">Terminator space width</label>
-          <input id="font-terminatorSpaceWidth" type="number" min="0" :value="font.defineSpace ? '' : font.terminatorSpaceWidth ?? ''" :placeholder="font.defineSpace ? '' : String(font.spaceWidth)" :disabled="font.defineSpace" @input="setTerminatorWidth" @change="setTerminatorWidth">
+          <NumberInput id="font-terminatorSpaceWidth" min="0" :value="font.defineSpace ? '' : font.terminatorSpaceWidth ?? ''" :placeholder="font.defineSpace ? '' : String(font.spaceWidth)" :disabled="font.defineSpace" @input="setTerminatorWidth" @change="setTerminatorWidth" />
           <small class="hint">{{ font.defineSpace ? "Your font draws its own space character, which is always used beside the terminators." : `In pixels. Leave empty to use the normal space width of ${font.spaceWidth}.` }}</small>
         </div>
       </div>
@@ -223,7 +224,7 @@
     gap: 14px;
   }
 
-  .numbers input[type="number"] {
+  .numbers .number-input {
     width: 100%;
   }
 
@@ -231,14 +232,14 @@
     position: relative;
   }
 
-  .resettable input[type="number"] {
-    padding-right: 36px;
+  .resettable :deep(input) {
+    padding-right: 52px;
   }
 
   .resettable .icon-only {
     position: absolute;
     top: 50%;
-    right: 4px;
+    right: 22px;
     margin-top: -14px;
   }
 

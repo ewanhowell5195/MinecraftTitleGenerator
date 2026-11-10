@@ -3,6 +3,7 @@
   import Button from "../../components/Button.vue"
   import ColourPicker from "../../components/ColourPicker.vue"
   import Dropdown from "../../components/Dropdown.vue"
+  import NumberInput from "../../components/NumberInput.vue"
   import Segments from "../../components/Segments.vue"
   import { fullName, sheetOwner } from "../../lib/font.js"
   import { popular } from "../../lib/stats.js"
@@ -212,9 +213,9 @@
     <div class="field">
       <span class="label">Shape</span>
       <div class="shape">
-        <label><span class="hint">Depth</span><input type="number" min="1" :max="STRIP_LIMITS.depth" :value="details.depth" @input="number('depth', $event.target.value)"></label>
-        <label><span class="hint">Baseline</span><input type="number" :min="details.depth" :value="details.baseline" @input="number('baseline', $event.target.value)"></label>
-        <label><span class="hint">Height</span><input type="number" min="1" :max="STRIP_LIMITS.height" :value="details.height" @input="number('height', $event.target.value)"></label>
+        <label><span class="hint">Depth</span><NumberInput min="1" :max="STRIP_LIMITS.depth" :value="details.depth" @input="number('depth', $event.target.value)" /></label>
+        <label><span class="hint">Baseline</span><NumberInput :min="details.depth" :value="details.baseline" @input="number('baseline', $event.target.value)" /></label>
+        <label><span class="hint">Height</span><NumberInput min="1" :max="STRIP_LIMITS.height" :value="details.height" @input="number('height', $event.target.value)" /></label>
       </div>
       <p class="hint">The depth is how many rows each edge takes. The height is how many rows the front has above the baseline. The baseline counts the rows from the bottom of the strip up to the baseline, including the bottom edge. Minecraft Ten's strips are 22, 30 and 40.</p>
       <span v-for="key of ['depth', 'baseline', 'height']" v-show="problems[key]" :key="key" class="hint bad">{{ problems[key] }}</span>

@@ -8,6 +8,7 @@
   import { parsedSheet, stripProblems } from "../lib/fontEditor.js"
   import { titleCase } from "../lib/names.js"
   import { centredOffset, stripFolder, stripUse } from "../lib/strips.js"
+  import NumberInput from "../components/NumberInput.vue"
   import RenderView from "./RenderView.vue"
   import { stripThumbnail, thumbnailScene } from "./stripThumbs.js"
   import { downloadFlatTexture, font, update } from "./store.js"
@@ -205,7 +206,7 @@
         <div class="input-row offset" @click.stop>
           <template v-if="canFit(set.id)">
             <span title="0 centres your letters on the strips, higher moves them up, lower moves them down">Offset</span>
-            <input type="number" :value="chosenOffset(set.id)" :min="fitting[set.id][0]" :max="fitting[set.id].at(-1)" :title="`Your letters fit from ${fitting[set.id][0]} to ${fitting[set.id].at(-1)}`" :aria-label="`Offset for ${titleCase(set.id)}`" @input="setOffset(set.id, $event)" @change="setOffset(set.id, $event)">
+            <NumberInput :value="chosenOffset(set.id)" :min="fitting[set.id][0]" :max="fitting[set.id].at(-1)" :title="`Your letters fit from ${fitting[set.id][0]} to ${fitting[set.id].at(-1)}`" :aria-label="`Offset for ${titleCase(set.id)}`" @input="setOffset(set.id, $event)" @change="setOffset(set.id, $event)" />
           </template>
           <Button v-if="used(set.id)" @click.stop="toggle(set.id)">Stop using</Button>
           <Button :primary="fits(set.id)" v-else :disabled="!fits(set.id)" @click.stop="toggle(set.id)">Use</Button>

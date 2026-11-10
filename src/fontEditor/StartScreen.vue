@@ -2,6 +2,7 @@
   import { computed, onMounted, ref, shallowRef } from "vue"
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
+  import NumberInput from "../components/NumberInput.vue"
   import Tile from "../components/Tile.vue"
   import { fullName, loadFontList } from "../lib/font.js"
   import { createFont } from "../lib/fontEditor.js"
@@ -85,9 +86,9 @@
       <section class="choice">
         <h2>Blank font</h2>
         <div class="numbers">
-          <label class="field"><span class="label">Height</span><input type="number" min="1" v-model.number="height"></label>
-          <label class="field"><span class="label">Default width</span><input type="number" min="1" v-model.number="width"></label>
-          <label class="field"><span class="label">Square size</span><input type="number" min="1" v-model.number="grid"></label>
+          <label class="field"><span class="label">Height</span><NumberInput min="1" v-model.number="height" /></label>
+          <label class="field"><span class="label">Default width</span><NumberInput min="1" v-model.number="width" /></label>
+          <label class="field"><span class="label">Square size</span><NumberInput min="1" v-model.number="grid" /></label>
         </div>
         <p class="hint">Height and width count squares, and one click paints one square. Square size is how many pixels each square is. Each character is {{ final }}.</p>
         <Button primary wide :disabled="!valid" @click="startBlank"><template #icon><Icon name="plus" /></template>Start drawing</Button>
@@ -101,8 +102,8 @@
         <h2 class="second">Import a font file</h2>
         <p class="hint">Turns a .ttf, .otf, .woff or .woff2, or a Minecraft ascii.png, into pixels at this height, ready for you to edit. Square size is how many pixels each square is, for font files that aren't already drawn on a pixel grid. Each character can go back to its imported shape.</p>
         <div class="numbers import">
-          <label class="field"><span class="label">Height in pixels</span><input type="number" min="1" v-model.number="importHeight"></label>
-          <label class="field"><span class="label">Square size</span><input type="number" min="1" v-model.number="importDensity"></label>
+          <label class="field"><span class="label">Height in pixels</span><NumberInput min="1" v-model.number="importHeight" /></label>
+          <label class="field"><span class="label">Square size</span><NumberInput min="1" v-model.number="importDensity" /></label>
           <label class="checkbox"><input type="checkbox" v-model="lowercase"><span>Use lowercase letters</span></label>
         </div>
         <Button file wide accept=".ttf,.otf,.woff,.woff2,.png,font/ttf,font/otf,font/woff,font/woff2,image/png" @change="importFile"><template #icon><Icon name="open" /></template>Choose font file</Button>
@@ -190,7 +191,7 @@
     align-items: end;
   }
 
-  .numbers input[type="number"] {
+  .numbers .number-input {
     width: 100%;
   }
 

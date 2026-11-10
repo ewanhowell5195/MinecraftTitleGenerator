@@ -2,6 +2,7 @@
   import { computed } from "vue"
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
+  import NumberInput from "../components/NumberInput.vue"
   import { autoStretch, changeGlyph, characterName, setGlyph, squaresOf, widthOf } from "../lib/fontEditor.js"
   import { font, glyph, reshapeSelected, selected, update, updateGlyph } from "./store.js"
 
@@ -48,7 +49,7 @@
     <div class="field">
       <span class="label">Width</span>
       <div class="input-row">
-        <input type="number" min="1" :value="squaresOf(font, width)" aria-label="Character width" @input="setNumber('width', $event, 1)" @change="setNumber('width', $event, 1)">
+        <NumberInput min="1" :value="squaresOf(font, width)" aria-label="Character width" @input="setNumber('width', $event, 1)" @change="setNumber('width', $event, 1)" />
         <Button v-if="overridden" :title="`Go back to the default width of ${squaresOf(font, font.width)}`" @click="resetWidth">Use default</Button>
         <span v-else class="hint">Default width</span>
       </div>
@@ -56,11 +57,11 @@
     <div class="pair">
       <label class="field">
         <span class="label">Rows above topline</span>
-        <input type="number" min="0" :value="squaresOf(font, glyph.above)" @input="setNumber('above', $event, 0)" @change="setNumber('above', $event, 0)">
+        <NumberInput min="0" :value="squaresOf(font, glyph.above)" @input="setNumber('above', $event, 0)" @change="setNumber('above', $event, 0)" />
       </label>
       <label class="field">
         <span class="label">Rows below baseline</span>
-        <input type="number" min="0" :value="squaresOf(font, glyph.below)" @input="setNumber('below', $event, 0)" @change="setNumber('below', $event, 0)">
+        <NumberInput min="0" :value="squaresOf(font, glyph.below)" @input="setNumber('below', $event, 0)" @change="setNumber('below', $event, 0)" />
       </label>
     </div>
     <p class="hint">Height is set for the whole font. For tall or hanging characters, add rows here instead.</p>
@@ -87,7 +88,7 @@
     gap: 10px;
   }
 
-  .pair input[type="number"] {
+  .pair .number-input {
     width: 100%;
   }
 </style>

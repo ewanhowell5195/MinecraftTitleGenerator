@@ -7,6 +7,7 @@
   import Button from "./Button.vue"
   import ColourPicker from "./ColourPicker.vue"
   import Icon from "./Icon.vue"
+  import NumberInput from "./NumberInput.vue"
 
   const REMOVE_DISTANCE = 28
   const ENDS = { 0: ["Top", "Bottom"], 90: ["Right", "Left"], 180: ["Bottom", "Top"], 270: ["Left", "Right"], 360: ["Top", "Bottom"] }
@@ -156,7 +157,7 @@
         <span v-if="stops.length > 1" class="grip" @pointerdown="press($event, index)" title="Drag to reorder"><Icon name="grip" :size="14" /></span>
         <ColourPicker class="grow" v-model="stops[index].colour" />
         <label class="location" title="Location">
-          <input type="number" v-model.number="stops[index].position" min="0" max="100" step="1" @focus="typing = true" @blur="finishTyping">
+          <NumberInput v-model.number="stops[index].position" min="0" max="100" step="1" @focus="typing = true" @blur="finishTyping" />
           <span>%</span>
         </label>
         <Button tiny ghost :disabled="!removable" @click="remove(index)" title="Remove colour"><template #icon><Icon name="trash" :size="14" /></template></Button>
@@ -286,9 +287,8 @@
     user-select: none;
   }
 
-  .location input[type="number"] {
+  .location .number-input {
     align-self: stretch;
-    width: 60px;
-    padding: 0 8px;
+    width: 64px;
   }
 </style>
