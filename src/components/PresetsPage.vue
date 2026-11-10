@@ -101,7 +101,8 @@
     try {
       const page = await listCommunity({ sort: sort.value, search: tooShort.value ? "" : search.value, offset })
       if (current !== request) return
-      results.value = offset ? results.value.concat(page.presets) : page.presets
+      const listed = new Set(offset ? results.value.map(preset => preset.id) : [])
+      results.value = (offset ? results.value : []).concat(page.presets.filter(preset => !listed.has(preset.id)))
       more.value = page.more
       next = page.next
       if (selectedCommunity.value) selectedCommunity.value = results.value.find(preset => preset.id === selectedCommunity.value.id) ?? selectedCommunity.value
