@@ -9,6 +9,7 @@
   --accent-deep: #467f2e;
   --accent-text: #0d1a07;
   --gutter: 16px;
+  --footer-gap: clamp(56px, 8vw, 96px);
   /* the account menu's tokens, same values as src/style.css */
   --card: #202227;
   --card-hover: #272a30;
@@ -376,7 +377,7 @@ section + section {
 }
 
 .footer {
-  margin-top: clamp(56px, 8vw, 96px);
+  margin-top: var(--footer-gap);
   padding: 48px 0 32px;
   font-size: 15px;
   background: var(--surface);
