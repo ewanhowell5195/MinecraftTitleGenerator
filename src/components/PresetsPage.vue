@@ -15,6 +15,7 @@
   import DeletePresetDialog from "./DeletePresetDialog.vue"
   import Dropdown from "./Dropdown.vue"
   import Icon from "./Icon.vue"
+  import UserName from "./UserName.vue"
   import PresetDetail from "./PresetDetail.vue"
   import Segments from "./Segments.vue"
   import SharePresetDialog from "./SharePresetDialog.vue"
@@ -379,7 +380,7 @@
               <div class="details">
                 <strong class="ellipsis" :title="preset.name">{{ preset.name }}</strong>
                 <span v-if="isMine(preset) && !preset.author" class="yours">Shared by you</span>
-                <button v-else-if="preset.author" type="button" class="author link-button" :class="{ yours: isMine(preset) }" :title="`Show presets by ${preset.author} on ${providerLabel(preset.authorProvider)}`" @click.stop="filterByUser(preset.author, preset.authorProvider)"><Icon :name="preset.authorProvider" :size="13" /><span class="ellipsis">{{ preset.author }}</span></button>
+                <button v-else-if="preset.author" type="button" class="author link-button" :class="{ yours: isMine(preset) }" :title="`Show presets by ${preset.author} on ${providerLabel(preset.authorProvider)}`" @click.stop="filterByUser(preset.author, preset.authorProvider)"><UserName :name="preset.author" :provider="preset.authorProvider" :size="13" /></button>
               </div>
             </div>
           </div>

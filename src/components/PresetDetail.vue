@@ -4,6 +4,7 @@
   import { presetLink } from "../lib/presetsPage.js"
   import { providerLabel } from "../lib/providers.js"
   import Icon from "./Icon.vue"
+  import UserName from "./UserName.vue"
   import PresetRating from "./PresetRating.vue"
   import TitlePicture from "./TitlePicture.vue"
 
@@ -88,7 +89,7 @@
       </div>
       <template v-if="figures">
         <PresetRating :rating="figures.rating" :votes="figures.votes" :mine="preset.vote" :own="mine || local" @vote="emit('vote', $event)" />
-        <p class="facts"><span>{{ uses }}</span><span>Shared {{ sharedOn }}</span><span v-if="figures.author" class="author">By <button type="button" class="link-button" :title="`Show presets by ${figures.author} on ${providerLabel(figures.authorProvider)}`" @click="emit('user', figures.author, figures.authorProvider)"><Icon :name="figures.authorProvider" :size="14" /><strong>{{ figures.author }}</strong></button></span></p>
+        <p class="facts"><span>{{ uses }}</span><span>Shared {{ sharedOn }}</span><span v-if="figures.author" class="author">By <button type="button" class="link-button" :title="`Show presets by ${figures.author} on ${providerLabel(figures.authorProvider)}`" @click="emit('user', figures.author, figures.authorProvider)"><strong><UserName :name="figures.author" :provider="figures.authorProvider" /></strong></button></span></p>
       </template>
       <div class="actions">
         <button class="primary" @click="emit('open')">Open in editor</button>
