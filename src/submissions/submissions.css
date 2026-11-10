@@ -192,45 +192,13 @@ textarea:focus {
   border: 1px solid var(--line-strong);
 }
 
-.notes,
-.notifications .body {
+.notes {
   margin: 0;
   padding: 10px 12px;
   font-size: var(--font-md);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   background: var(--surface);
-}
-
-.notifications {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.notifications li {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-  padding: 12px;
-  background: var(--card);
-  border-left: 3px solid transparent;
-}
-
-.notifications .headline {
-  margin: 0;
-}
-
-.notifications .headline .hint {
-  margin-left: 6px;
-}
-
-.notifications .body {
-  align-self: stretch;
 }
 
 @media (max-width: 760px) {
@@ -286,4 +254,33 @@ textarea:focus {
 .actions > .primary,
 .actions > .primary + :last-child {
   grid-column: 1 / -1;
+}
+
+.sheet-tabs {
+  border-bottom: 1px solid var(--line);
+}
+
+.sheet-tabs .tab-bar {
+  justify-content: flex-start;
+  gap: 24px;
+  box-shadow: none;
+}
+
+.sheet-tabs .tab-bar-button {
+  flex: none;
+  padding: 10px 2px;
+  font-size: var(--font-base);
+  font-weight: 600;
+  color: var(--faint);
+}
+
+.sheet-tabs .tab-bar-button:hover,
+.sheet-tabs .tab-bar-button.active {
+  color: var(--text);
+}
+
+.sheet-tabs .tab-bar-active {
+  bottom: 0;
+  border-top: none;
+  border-bottom: 2px solid var(--accent);
 }

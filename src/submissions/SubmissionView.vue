@@ -1,7 +1,7 @@
 <script setup>
   import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
+  import FluidTabs from "fluid-tabs-vue"
   import Icon from "../components/Icon.vue"
-  import Segments from "../components/Segments.vue"
   import UserName from "../components/UserName.vue"
   import { account } from "../lib/community.js"
   import { SUBMISSION_KINDS } from "../lib/submissionKinds/index.js"
@@ -17,7 +17,7 @@
   import SubmissionForm from "./SubmissionForm.vue"
 
   const PROCESSING_POLL = 5000
-  const SHEET_TABS = [{ value: "characters", label: "Characters" }, { value: "files", label: "Files" }]
+  const TABS = [{ id: "comments", label: "Comments" }, { id: "characters", label: "Characters" }, { id: "files", label: "Files" }]
 
   const props = defineProps({
     id: { type: Number, required: true },
@@ -33,11 +33,12 @@
   const busy = ref(false)
 
   const processing = ref(null)
-  const sheetTab = ref("characters")
+  const tab = ref("comments")
   const textureKey = ref("")
   let pollTimer = null
 
   const client = computed(() => CLIENT_KINDS[item.value?.kind])
+  const tabs = computed(() => item.value?.kind === "font" ? TABS : TABS.filter(entry => entry.id !== "characters"))
   const gridTexture = computed(() => {
     const extra = (item.value?.details.extras ?? []).find(entry => entry.key === textureKey.value)
     return extra ? { kind: extra.kind, url: submissionExtraUrl(item.value, extra.key) } : null
@@ -168,12 +169,11 @@
         </div>
       </div>
       <section class="section">
-        <Segments v-if="item.kind === 'font'" v-model="sheetTab" :options="SHEET_TABS" class="sheet-tabs" />
-        <h2 v-else>Files</h2>
-        <SubmissionFiles v-show="sheetTab === 'files' || item.kind !== 'font'" :item="item" />
-        <CharacterGrid v-if="item.kind === 'font'" v-show="sheetTab === 'characters'" :url="submissionFileUrl(item)" :texture="gridTexture" />
+        <FluidTabs v-model="tab" :tabs="tabs" tab-style="nav" class="sheet-tabs" />
+        <CommentThread v-show="tab === 'comments'" :id="item.id" :comments="comments" :can-comment="item.mine || reviewer" @update="comments = $event" />
+        <CharacterGrid v-if="item.kind === 'font'" v-show="tab === 'characters'" :url="submissionFileUrl(item)" :texture="gridTexture" />
+        <SubmissionFiles v-show="tab === 'files'" :item="item" />
       </section>
-      <CommentThread :id="item.id" :comments="comments" :can-comment="item.mine || reviewer" @update="comments = $event" />
     </template>
   </template>
 </template>

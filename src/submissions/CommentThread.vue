@@ -1,5 +1,6 @@
 <script setup>
   import { ref } from "vue"
+  import Icon from "../components/Icon.vue"
   import { SUBMISSION_LIMITS } from "../lib/submissions.js"
   import { postComment } from "../lib/submissionsApi.js"
 
@@ -36,51 +37,184 @@
 </script>
 
 <template>
-  <section v-if="!comments || comments.length || canComment" class="section">
-    <h2>Comments</h2>
+  <div class="comments">
     <p v-if="!comments" class="hint bad">The comments couldn't be loaded from GitHub right now.</p>
-    <ul v-else-if="comments.length" class="notifications">
+    <p v-else-if="!comments.length && !canComment" class="hint">No comments yet.</p>
+    <ol v-else-if="comments.length" class="thread">
       <template v-for="item of comments" :key="item.id">
         <li v-if="item.kind === 'edit'" class="event">
-          <p class="headline">
-            <strong>{{ item.author || "Deleted account" }}</strong> changed the submission
-            <span class="hint">{{ when(item.createdAt) }}</span>
-          </p>
+          <span class="marker"><Icon name="pencil" :size="14" /></span>
+          <p><strong>{{ item.author || "A deleted account" }}</strong> changed the submission <time>{{ when(item.createdAt) }}</time></p>
         </li>
-        <li v-else>
-          <p class="headline">
-            <strong>{{ item.author || "Deleted account" }}</strong>
-            <span class="role">{{ ROLES[item.role] }}</span>
-            <span class="hint">{{ when(item.createdAt) }}</span>
-          </p>
-          <p class="body">{{ item.body }}</p>
-          <a v-if="item.url" class="hint" :href="item.url" target="_blank" rel="noopener">View on GitHub</a>
+        <li v-else class="comment" :class="item.role">
+          <span class="marker">{{ (item.author || "?")[0].toUpperCase() }}</span>
+          <article>
+            <header>
+              <strong class="ellipsis">{{ item.author || "A deleted account" }}</strong>
+              <span class="role">{{ ROLES[item.role] }}</span>
+              <time>{{ when(item.createdAt) }}</time>
+              <a v-if="item.url" class="github" :href="item.url" target="_blank" rel="noopener" title="View on GitHub" aria-label="View on GitHub"><Icon name="github" :size="16" /></a>
+            </header>
+            <p>{{ item.body }}</p>
+          </article>
         </li>
       </template>
-    </ul>
-    <form v-if="canComment" class="flow" @submit.prevent="send">
-      <textarea v-model="text" rows="3" :maxlength="SUBMISSION_LIMITS.comment" placeholder="Write a comment" aria-label="Comment"></textarea>
-      <div class="buttons">
-        <button type="submit" class="primary" :disabled="busy || !text.trim()">Comment</button>
-      </div>
-      <p v-if="error" class="hint bad">{{ error }}</p>
+    </ol>
+    <form v-if="canComment" class="composer" @submit.prevent="send">
+      <textarea v-model="text" rows="2" :maxlength="SUBMISSION_LIMITS.comment" placeholder="Write a comment" aria-label="Comment"></textarea>
+      <button type="submit" class="primary" :disabled="busy || !text.trim()">Comment</button>
     </form>
-  </section>
+    <p v-if="canComment && error" class="hint bad">{{ error }}</p>
+  </div>
 </template>
 
 <style scoped>
-  .event {
-    padding: 8px 12px;
-    background: none;
-    border-left-color: var(--line-strong);
+  .comments {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .thread {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .thread li:not(:last-child)::before {
+    content: "";
+    position: absolute;
+    top: 32px;
+    bottom: -12px;
+    left: 15px;
+    width: 2px;
+    background: var(--line);
+  }
+
+  .thread li {
+    position: relative;
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr);
+    align-items: start;
+    gap: 12px;
+  }
+
+  .marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    font-weight: 700;
+    color: var(--muted);
+    background: var(--card);
+    border: 2px solid var(--bg);
+  }
+
+  .reviewer .marker {
+    color: var(--accent);
+    background: linear-gradient(var(--accent-soft) 0 0), var(--card);
+  }
+
+  article {
+    padding: 12px 16px 14px;
+    background: var(--card);
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    margin-bottom: 6px;
   }
 
   .role {
-    margin-left: 6px;
+    flex: none;
     padding: 1px 6px;
     font-size: var(--font-xs);
     font-weight: 600;
     color: var(--muted);
     background: var(--surface);
+  }
+
+  .reviewer .role {
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  time {
+    flex: none;
+    font-size: var(--font-sm);
+    color: var(--faint);
+  }
+
+  .github {
+    display: flex;
+    margin-left: auto;
+    color: var(--faint);
+  }
+
+  .github:hover {
+    color: var(--text);
+  }
+
+  article p {
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .event {
+    align-items: center;
+  }
+
+  .event .marker {
+    color: var(--faint);
+    background: var(--surface);
+  }
+
+  .event p {
+    margin: 0;
+    font-size: var(--font-md);
+    color: var(--faint);
+  }
+
+  .event strong {
+    color: var(--muted);
+  }
+
+  .event time {
+    margin-left: 6px;
+  }
+
+  .composer {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    padding-right: 8px;
+    background: var(--card);
+    border: 1px solid transparent;
+  }
+
+  .composer:focus-within {
+    border-color: var(--accent);
+  }
+
+  .composer textarea,
+  .composer textarea:focus {
+    flex: 1;
+    min-height: 64px;
+    background: none;
+    border: none;
+  }
+
+  .composer button {
+    flex: none;
+    margin-bottom: 8px;
   }
 </style>
