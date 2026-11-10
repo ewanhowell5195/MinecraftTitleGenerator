@@ -143,7 +143,7 @@
     <span v-if="problems.id" class="hint bad">{{ problems.id }}</span>
     <span v-else class="hint">From the font's JSON. Change it in the font editor's Font tab.</span>
   </div>
-  <div class="field">
+  <div class="field wide">
     <span class="label">Textures, overlays and strips for this font</span>
     <p class="hint">Optional. Paint textures and overlays over the font's <a v-if="blankTexture" :href="blankTexture" :download="`${id || 'font'}-template.png`">blank texture</a><template v-else>blank texture, from the Textures tab of the font editor</template>, at its size or a whole number of times bigger.<template v-if="stripHeights"> Strips can be {{ either(stripHeights) }} pixels tall.</template> Up to {{ SUBMISSION_LIMITS.extraFiles }} files.</p>
     <div v-for="item of extras" :key="item.key" class="extra">

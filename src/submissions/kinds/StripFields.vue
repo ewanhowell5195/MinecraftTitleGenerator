@@ -84,6 +84,16 @@
     change({ fonts: on ? picked.value.concat(id) : picked.value.filter(item => item !== id) })
   }
 
+  function pickFitting() {
+    change({ fonts: picked.value.concat(fits.value.filter(item => item.offset !== null && !picked.value.includes(item.id)).map(item => item.id)) })
+  }
+
+  function fitNote(item) {
+    if (item.offset === null) return "Won't fit"
+    if (!item.offset) return "Fits"
+    return `Fits, ${Math.abs(item.offset)} ${Math.abs(item.offset) === 1 ? "row" : "rows"} ${item.offset > 0 ? "higher" : "lower"}`
+  }
+
   function label(target) {
     const { kind, id } = stripTarget(target)
     return kind === "set" ? `${setName(id)} strip type` : fullName(owners.value.find(item => item.id === id), props.fonts)
@@ -207,21 +217,24 @@
       <p class="hint">The depth is how many rows each edge takes. The height is how many rows the front has above the baseline. The baseline counts the rows from the bottom of the strip up to the baseline, including the bottom edge. Minecraft Ten's strips are 22, 30 and 40.</p>
       <span v-for="key of ['depth', 'baseline', 'height']" v-show="problems[key]" :key="key" class="hint bad">{{ problems[key] }}</span>
     </div>
-    <div class="field">
-      <span class="label">Fonts</span>
+    <div class="field wide">
+      <div class="fonts-head">
+        <span class="label">Fonts ({{ picked.length }} picked)</span>
+        <button type="button" class="link-button" @click="pickFitting">Pick all that fit</button>
+      </div>
       <ul class="fonts">
         <li v-for="item of fits" :key="item.id">
-          <label class="check" :class="{ off: item.offset === null && !picked.includes(item.id) }">
+          <label class="font" :class="{ on: picked.includes(item.id), off: item.offset === null && !picked.includes(item.id) }" :title="item.offset === null ? `Won't fit: ${item.problems.join(', and ')}.` : null">
             <input type="checkbox" :checked="picked.includes(item.id)" :disabled="item.offset === null && !picked.includes(item.id)" @change="toggleFont(item.id, $event.target.checked)">
-            <span>
-              <span>{{ item.name }}</span>
-              <span v-if="item.offset === null" class="hint">Won't fit: {{ item.problems.join(", and ") }}.</span>
-              <span v-else-if="item.offset" class="hint">Fits, {{ Math.abs(item.offset) }} {{ Math.abs(item.offset) === 1 ? "row" : "rows" }} {{ item.offset > 0 ? "higher" : "lower" }} than centred.</span>
-              <span v-else class="hint">Fits.</span>
+            <img :src="fontThumbnail(fonts, item.id)" alt="" loading="lazy">
+            <span class="font-text">
+              <span class="ellipsis">{{ item.name }}</span>
+              <span class="note">{{ fitNote(item) }}</span>
             </span>
           </label>
         </li>
       </ul>
+      <p class="hint">Rows higher or lower are how far the strip sits from the middle of that font's letters.</p>
       <span v-if="problems.fonts && (tried || picked.length)" class="hint bad">{{ problems.fonts }}</span>
     </div>
   </template>
@@ -236,7 +249,7 @@
     <span v-if="problems.border" class="hint bad">{{ problems.border }}</span>
   </div>
   <p v-if="required" class="hint">{{ required }}</p>
-  <div v-if="suggestions.length" class="field">
+  <div v-if="suggestions.length" class="field wide">
     <span class="label">Its height fits</span>
     <div class="suggestions">
       <button v-for="item of suggestions" :key="item" type="button" :class="{ primary: item === target }" @click="emit('update:target', item)">{{ label(item) }}</button>
@@ -257,24 +270,72 @@
     user-select: none;
   }
 
-  .fonts {
+  .fonts-head {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .fonts {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 6px;
+    max-height: 320px;
     margin: 0;
     padding: 0;
+    overflow-y: auto;
     list-style: none;
   }
 
-  .fonts .check > span {
+  .font {
     display: flex;
-    flex-direction: column;
-    gap: 2px;
+    align-items: center;
+    gap: 10px;
+    height: 100%;
+    padding: 8px 10px;
+    background: var(--card);
+    border: 1px solid transparent;
+    cursor: pointer;
+    user-select: none;
   }
 
-  .fonts .check.off {
-    cursor: default;
-    opacity: 0.7;
+  .font:not(.off, .on):hover {
+    background: var(--card-hover);
+  }
+
+  .font.on {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+  }
+
+  .font.off {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  .font input {
+    display: none;
+  }
+
+  .font img {
+    flex: none;
+    width: 44px;
+    height: 20px;
+    object-fit: contain;
+    image-rendering: pixelated;
+  }
+
+  .font-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    font-size: var(--font-md);
+  }
+
+  .note {
+    font-size: var(--font-xs);
+    color: var(--faint);
   }
 
   .suggestions {

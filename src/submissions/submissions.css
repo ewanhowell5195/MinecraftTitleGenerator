@@ -35,21 +35,11 @@ a.button {
   margin-top: 12px;
 }
 
-.submission-form,
 .submission-view {
   display: grid;
-  grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 320px);
   align-items: start;
   gap: 28px;
-}
-
-.submission-view {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 320px);
-}
-
-.submission-form .preview {
-  position: sticky;
-  top: 76px;
 }
 
 textarea {
@@ -214,13 +204,8 @@ textarea:focus {
 }
 
 @media (max-width: 760px) {
-  .submission-form,
   .submission-view {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .submission-form .preview {
-    order: -1;
   }
 
   .preview {

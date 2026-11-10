@@ -1,6 +1,7 @@
 <script setup>
   import { computed, onBeforeUnmount, ref, watch } from "vue"
   import Icon from "../components/Icon.vue"
+  import NavTabs from "../components/NavTabs.vue"
   import Segments from "../components/Segments.vue"
   import { account, signIn, signInProviders } from "../lib/community.js"
   import { providerLabel } from "../lib/providers.js"
@@ -18,9 +19,15 @@
 
   const emit = defineEmits(["done", "cancel"])
 
-  const KINDS = Object.values(SUBMISSION_KINDS).filter(type => type.available).map(type => ({ value: type.id, label: type.label }))
-  const TEXTURE_KINDS = KINDS.filter(item => item.value !== "font")
-  const GROUPS = [{ value: "texture", label: "Texture" }].concat(KINDS.some(item => item.value === "font") ? { value: "font", label: "Font" } : [])
+  const ABOUT = {
+    texture: "Paint over a font's template to fill its letters.",
+    overlay: "A see-through layer drawn over any texture.",
+    strip: "Runs down the letters from top to bottom, repeating along the line.",
+    tileable: "A seamless pattern repeated across the letters."
+  }
+  const KINDS = Object.values(SUBMISSION_KINDS).filter(type => type.available).map(type => ({ value: type.id, label: type.label, about: ABOUT[type.id] }))
+  const TEXTURE_KINDS = KINDS.filter(item => !["font", "overlay"].includes(item.value)).concat(KINDS.filter(item => item.value === "overlay"))
+  const GROUPS = [{ id: "texture", label: "Texture" }].concat(KINDS.some(item => item.value === "font") ? { id: "font", label: "Font" } : [])
   const { type: prefillKind, font: prefillTarget, name: prefillName, credit: prefillCredit, from: prefillFrom, ...prefillDetails } = props.prefill
   const startKind = props.initial?.kind ?? prefillKind
   const kind = ref(SUBMISSION_KINDS[startKind]?.available ? startKind : "texture")
@@ -37,6 +44,7 @@
   const extraProblem = ref(null)
   const tried = ref(false)
   const sending = ref(false)
+  const dragging = ref(false)
   const error = ref("")
   const context = submissionContext(props.fonts, path => fetch(path))
   let checks = 0
@@ -60,7 +68,7 @@
     const visible = key => tried.value || key === "name" && name.value || key === "credit" && credit.value || key === "notes"
     return Object.fromEntries(Object.entries(problems.value).filter(([key]) => visible(key)))
   })
-  const blocked = computed(() => !account.value || sending.value)
+  const blocked = computed(() => !account.value || sending.value || Object.keys(problems.value).length > 0 || !!fileProblem.value)
 
   watch(kind, (next, before) => {
     if (next !== "font") textureKind = next
@@ -108,6 +116,12 @@
     if (file) use(file)
   }
 
+  function drop(event) {
+    dragging.value = false
+    const file = event.dataTransfer.files[0]
+    if (file) use(file)
+  }
+
   function takeEditorFont() {
     const saved = sessionStorage.getItem(EDITOR_SUBMISSION)
     sessionStorage.removeItem(EDITOR_SUBMISSION)
@@ -141,62 +155,205 @@
 </script>
 
 <template>
+  <div v-if="!account" class="sign-in banner">
+    <p>Sign in to send a {{ type.noun }}. Your submission is linked to your account so you can follow its review.</p>
+    <div class="buttons">
+      <button v-for="id of signInProviders" :key="id" type="button" @click="signIn(id)"><Icon :name="id" :size="16" />Sign in with {{ providerLabel(id) }}</button>
+    </div>
+  </div>
   <form class="submission-form" @submit.prevent="send">
-    <div class="fields flow">
-      <Segments v-if="GROUPS.length > 1" v-model="group" :options="GROUPS" label="Type" />
-      <Segments v-if="group === 'texture'" v-model="kind" :options="TEXTURE_KINDS" label="Texture type" />
-      <component :is="parts.Fields" v-model:target="target" v-model:details="details" v-model:files="extras" :fonts="fonts" :kind="kind" :file="chosen" :initial="initial" :name="name" :problems="problems" :tried="tried" @problem="extraProblem = $event" />
-      <div class="field">
-        <span class="label">{{ type.label }}</span>
-        <div class="upload-preview">
-          <img v-if="fileUrl && isImage && CLIENT_KINDS[kind].image" :src="fileUrl" alt="">
-          <div v-else-if="chosen" class="empty">{{ chosen.name }}</div>
-          <div v-else-if="sameChoice" class="empty">The {{ type.noun }} you sent</div>
-          <div v-else class="empty">No {{ type.noun }} chosen</div>
-        </div>
-        <label class="button wide">
-          <Icon name="open" :size="16" />
-          <span>{{ fileUrl ? `Replace ${type.noun}` : isImage ? "Choose a PNG" : "Choose a JSON file" }}</span>
-          <input type="file" :accept="isImage ? 'image/png' : '.json,application/json'" @change="pick">
-        </label>
-        <p v-if="fileProblem && (tried || chosen)" class="hint bad">{{ fileProblem }}</p>
-      </div>
+    <NavTabs v-if="GROUPS.length > 1" v-model="group" :tabs="GROUPS" />
+    <div class="columns">
       <label class="field">
-        <span class="label">Name</span>
-        <input type="text" v-model="name" :maxlength="SUBMISSION_LIMITS.name" spellcheck="false">
+        <span class="label">Name <span class="required" aria-hidden="true">*</span></span>
+        <input type="text" v-model="name" :maxlength="SUBMISSION_LIMITS.name" spellcheck="false" required>
         <span v-if="shown.name" class="hint bad">{{ shown.name }}</span>
+        <span v-else class="hint">Shown as the {{ type.noun }}'s name in the generator.</span>
       </label>
       <label class="field">
-        <span class="label">Credit</span>
-        <input type="text" v-model="credit" :maxlength="SUBMISSION_LIMITS.credit" spellcheck="false">
+        <span class="label">Credit <span v-if="kind !== 'font'" class="required" aria-hidden="true">*</span></span>
+        <input type="text" v-model="credit" :maxlength="SUBMISSION_LIMITS.credit" spellcheck="false" :required="kind !== 'font'">
         <span v-if="shown.credit" class="hint bad">{{ shown.credit }}</span>
         <span v-else class="hint">Shown as the {{ type.noun }}'s author. List everyone who made it.</span>
       </label>
-      <label class="field">
-        <span class="label">Notes for the reviewer</span>
-        <textarea v-model="notes" :maxlength="SUBMISSION_LIMITS.notes" rows="3" placeholder="Optional"></textarea>
-        <span v-if="shown.notes" class="hint bad">{{ shown.notes }}</span>
+    </div>
+    <div v-if="group === 'texture'" class="field">
+      <Segments v-model="kind" :options="TEXTURE_KINDS" label="Kind of texture" />
+      <p class="hint">{{ ABOUT[kind] }}</p>
+    </div>
+    <div class="stage-area" :class="{ dragging }" @dragover.prevent="dragging = true" @dragleave.self="dragging = false" @drop.prevent="drop">
+      <template v-if="fileUrl || chosen">
+        <component :is="parts.Preview" :fonts="fonts" :kind="kind" :target="target" :details="details" :files="extras" :initial="initial" :url="fileUrl" :text="previewText || name || 'Minecraft'" />
+        <div class="stage-bar">
+          <input type="text" v-model="previewText" :placeholder="name || 'Minecraft'" spellcheck="false" aria-label="Preview text">
+          <label class="button">
+            <Icon name="open" :size="16" />
+            <span>Replace file</span>
+            <input type="file" :accept="isImage ? 'image/png' : '.json,application/json'" @change="pick">
+          </label>
+        </div>
+      </template>
+      <label v-else class="drop">
+        <Icon name="upload" :size="32" />
+        <strong>{{ isImage ? "Drop your PNG here" : "Drop your font's JSON file here" }} <span class="required" aria-hidden="true">*</span></strong>
+        <span class="button">Choose a file</span>
+        <input type="file" :accept="isImage ? 'image/png' : '.json,application/json'" @change="pick">
       </label>
+    </div>
+    <p v-if="fileProblem && (tried || chosen)" class="hint bad">{{ fileProblem }}</p>
+    <div class="kind-fields">
+      <component :is="parts.Fields" v-model:target="target" v-model:details="details" v-model:files="extras" :fonts="fonts" :kind="kind" :file="chosen" :initial="initial" :name="name" :problems="problems" :tried="tried" @problem="extraProblem = $event" />
+    </div>
+    <label class="field">
+      <span class="label">Notes for the reviewer</span>
+      <textarea v-model="notes" :maxlength="SUBMISSION_LIMITS.notes" rows="3" placeholder="Optional"></textarea>
+      <span v-if="shown.notes" class="hint bad">{{ shown.notes }}</span>
+    </label>
+    <div class="finish">
       <label v-if="!initial" class="check">
         <input type="checkbox" v-model="agree">
-        <span>I agree to the <a href="/terms/" target="_blank" rel="noopener">Terms of Service</a></span>
+        <span>I agree to the <a href="/terms/" target="_blank" rel="noopener">Terms of Service</a> <span class="required" aria-hidden="true">*</span></span>
       </label>
-      <span v-if="shown.agree" class="hint bad">{{ shown.agree }}</span>
-      <p v-if="error" class="hint bad">{{ error }}</p>
-      <div v-if="!account" class="sign-in">
-        <p class="hint">Sign in to send a {{ type.noun }}. Your submission is linked to your account so you can follow its review.</p>
-        <div class="buttons">
-          <button v-for="id of signInProviders" :key="id" type="button" @click="signIn(id)"><Icon :name="id" :size="16" />Sign in with {{ providerLabel(id) }}</button>
-        </div>
-      </div>
+      <p v-if="shown.agree || error" class="hint bad">{{ error || shown.agree }}</p>
       <div class="buttons">
         <button v-if="initial" type="button" @click="emit('cancel')">Cancel</button>
         <button class="primary" type="submit" :disabled="blocked">{{ sending ? "Sending..." : initial ? "Save changes" : "Send for review" }}</button>
       </div>
     </div>
-    <div class="preview flow">
-      <component :is="parts.Preview" :fonts="fonts" :kind="kind" :target="target" :details="details" :files="extras" :initial="initial" :url="fileUrl" :text="previewText || name || 'Minecraft'" />
-      <input type="text" v-model="previewText" :placeholder="name || 'Minecraft'" spellcheck="false" aria-label="Preview text">
-    </div>
   </form>
 </template>
+
+<style scoped>
+  .banner {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 24px;
+    padding: 16px 20px;
+  }
+
+  .banner p {
+    margin: 0;
+    color: var(--muted);
+  }
+
+  .submission-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .stage-area {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    outline: 2px dashed transparent;
+    outline-offset: 4px;
+  }
+
+  .stage-area.dragging {
+    outline-color: var(--accent);
+  }
+
+  .stage-area :deep(.render) {
+    height: 340px;
+    aspect-ratio: auto;
+  }
+
+  .stage-bar {
+    display: flex;
+    gap: 8px;
+  }
+
+  .stage-bar input {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .drop {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    height: 340px;
+    color: var(--faint);
+    background: var(--checker);
+    border: 2px dashed var(--line-strong);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .drop:hover,
+  .dragging .drop {
+    border-color: var(--accent);
+  }
+
+  .drop strong {
+    font-size: var(--font-lg);
+    color: var(--text);
+  }
+
+  .columns {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 32px;
+  }
+
+  .kind-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-flow: row dense;
+    align-items: start;
+    gap: 20px 32px;
+  }
+
+  .kind-fields > :deep(.wide),
+  .kind-fields > :deep(.check),
+  .kind-fields > :deep(.hint) {
+    grid-column: 1 / -1;
+  }
+
+  .kind-fields > :deep(.hint) {
+    margin: 0;
+  }
+
+  .required {
+    color: var(--danger);
+  }
+
+  .field .hint {
+    margin: 0;
+  }
+
+  .finish {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+  }
+
+  .finish .hint {
+    margin: 0;
+  }
+
+  .finish .buttons {
+    margin-left: auto;
+  }
+
+  @media (max-width: 760px) {
+    .columns,
+    .kind-fields {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 16px;
+    }
+
+    .stage-area :deep(.render),
+    .drop {
+      height: 220px;
+    }
+  }
+</style>
