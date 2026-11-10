@@ -259,6 +259,11 @@ function savedWithCode(code) {
   return presets.value.find(preset => titleBody(preset.code) === titleBody(code))
 }
 
+function showingCode(code) {
+  const current = encodeTitle(titleData())
+  return !current.skipped && titleBody(current.code) === titleBody(code)
+}
+
 function automaticName() {
   return capitalWords(titleText()).slice(0, NAME_LIMIT)
 }
@@ -330,7 +335,7 @@ export function savePreset(name = "", { keepOpen = false } = {}) {
 }
 
 export function loadPreset(preset) {
-  if (!isDefaultTitle() && !confirm(`Replace your current title with ${preset.name}?`)) return false
+  if (!isDefaultTitle() && !showingCode(preset.code) && !confirm(`Replace your current title with ${preset.name}?`)) return false
   try {
     openTitleData(decodeTitle(preset.code))
   } catch (err) {
