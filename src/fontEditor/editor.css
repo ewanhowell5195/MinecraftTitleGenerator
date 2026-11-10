@@ -25,11 +25,3 @@ body,
   cursor: pointer;
   user-select: none;
 }
-
-.checkbox input {
-  width: 16px;
-  height: 16px;
-  margin: 0;
-  accent-color: var(--accent);
-  cursor: pointer;
-}

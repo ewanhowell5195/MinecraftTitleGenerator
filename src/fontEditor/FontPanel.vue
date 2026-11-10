@@ -270,15 +270,6 @@
     user-select: none;
   }
 
-  .check input {
-    flex: none;
-    width: 16px;
-    height: 16px;
-    margin: 1px 0 0;
-    accent-color: var(--accent);
-    cursor: pointer;
-  }
-
   .check-text {
     display: flex;
     flex-direction: column;

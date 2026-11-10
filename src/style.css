@@ -449,9 +449,7 @@ button,
 }
 
 .check input {
-  flex: none;
-  margin: 2px 0 0;
-  accent-color: var(--accent);
+  margin-top: 1px;
 }
 
 .check a {
