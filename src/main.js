@@ -1,7 +1,6 @@
 import { createApp } from "vue"
 import Root from "./Root.vue"
 import { followLinks, router } from "./router.js"
-// the libraries' own stylesheets have to load before the site's, which override them at equal specificity
 import "fluid-tabs-vue"
 import "fluid-marquee-vue"
 import "./style.css"
