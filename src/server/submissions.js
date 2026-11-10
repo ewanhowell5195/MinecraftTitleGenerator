@@ -1,9 +1,11 @@
 import { flattenFonts } from "../lib/font.js"
 import { titleCase } from "../lib/names.js"
+import { providerLabel } from "../lib/providers.js"
 import { SUBMISSION_KINDS, checkSubmission, submissionContext } from "../lib/submissionKinds/index.js"
 import { publishedTitle } from "../lib/submissionKinds/published.js"
 import { EXTRA_FILE, SUBMISSION_LIMITS, assetId, sizedProblem } from "../lib/submissions.js"
-import { USER_ROW, forgetUnusedUser, isAdmin, saveUser, signedInUser } from "./accounts.js"
+import { USER_ROW, forgetEmail, forgetUnusedUser, isAdmin, rememberUser, saveUser, signedInUser } from "./accounts.js"
+import { emailNotifications, emailReviewers } from "./email.js"
 import { GitHubError, base64, github, repository, verifiedWebhook } from "./github.js"
 import { Refusal, guarded, jsonBody, reply } from "./http.js"
 import { SERVER_KINDS } from "./submissionKinds/index.js"
@@ -248,9 +250,14 @@ function gitHubActor(person) {
   return person?.id ? { provider: "github", providerId: String(person.id) } : null
 }
 
-function notify(env, row, kind, { author = "", body = "", url = "", owner = true, admins = false, actor = null }) {
+function notify(env, row, kind, { author = "", body = "", url = "", owner = true, admins = false, actor = null, unlessUnread = false }) {
   const audience = [owner && "users.id = submissions.user_id", admins && "users.admin = 1"].filter(Boolean).join(" OR ")
-  return env.DB.prepare(`INSERT INTO notifications (user_id, submission_id, kind, author, body, url, created_at) SELECT users.id, submissions.id, ?, ?, ?, ?, ? FROM submissions JOIN users ON ${audience} WHERE submissions.id = ? AND NOT (users.provider = ? AND users.provider_id = ?)`).bind(kind, author, clipped(body, NOTE_LENGTH), url, Date.now(), row.id, actor?.provider ?? "", actor?.providerId ?? "")
+  const unread = unlessUnread ? ` AND NOT EXISTS (SELECT 1 FROM notifications AS earlier WHERE earlier.user_id = users.id AND earlier.submission_id = submissions.id AND earlier.kind = '${kind}' AND earlier.seen = 0)` : ""
+  return env.DB.prepare(`INSERT INTO notifications (user_id, submission_id, kind, author, body, url, created_at) SELECT users.id, submissions.id, ?, ?, ?, ?, ? FROM submissions JOIN users ON ${audience} WHERE submissions.id = ? AND NOT (users.provider = ? AND users.provider_id = ?) AND (users.email IS NULL OR users.email NOT IN (SELECT email FROM users AS actor WHERE actor.provider = ? AND actor.provider_id = ? AND actor.email IS NOT NULL))${unread}`).bind(kind, author, clipped(body, NOTE_LENGTH), url, Date.now(), row.id, actor?.provider ?? "", actor?.providerId ?? "", actor?.provider ?? "", actor?.providerId ?? "")
+}
+
+function emailing(context, afterwards = null) {
+  context.waitUntil(emailNotifications(context.env).catch(err => console.error(err)).then(() => afterwards?.run()))
 }
 
 function siteComment(text) {
@@ -318,14 +325,15 @@ function pullLink(env, row) {
 async function closeSubmission(context, row, merged, { author = "", body = "", url = "", actor = null }) {
   const { env } = context
   const status = merged ? "published" : "rejected"
-  const { meta } = await env.DB.prepare("UPDATE submissions SET status = ?, updated_at = ? WHERE id = ? AND status = 'open'").bind(status, Date.now(), row.id).run()
-  if (!meta.changes) return
+  const closed = await env.DB.prepare("UPDATE submissions SET status = ?, updated_at = ? WHERE id = ? AND status = 'open' RETURNING user_id AS userId").bind(status, Date.now(), row.id).first()
+  if (!closed) return
   const link = merged ? publishedTitle({ ...row, details: JSON.parse(row.details) }, await publishedFonts(context)) : pullLink(env, row)
   await env.DB.batch([
     env.DB.prepare("INSERT INTO notifications (user_id, submission_name, kind, author, body, url, link, created_at) SELECT users.id, submissions.name, ?, ?, ?, ?, ?, ? FROM submissions JOIN users ON users.id = submissions.user_id WHERE submissions.id = ? AND NOT (users.provider = ? AND users.provider_id = ?)").bind(status, author, clipped(body, NOTE_LENGTH), url, link, Date.now(), row.id, actor?.provider ?? "", actor?.providerId ?? ""),
     env.DB.prepare("DELETE FROM notifications WHERE submission_id = ?").bind(row.id),
     env.DB.prepare("DELETE FROM submissions WHERE id = ?").bind(row.id)
   ])
+  emailing(context, forgetEmail(env, closed.userId))
   await deleteBranch(env, row.id)
 }
 
@@ -339,6 +347,8 @@ async function reviewerOf(context) {
 export const createSubmission = guarded(async context => {
   const { env } = context
   const user = await requireUser(context)
+  if (user.email === undefined) throw new Refusal(403, "Sign in again so you can be emailed about your submission.")
+  if (!user.email) throw new Refusal(403, `Add an email address to your ${providerLabel(user.provider)} account, then sign in again. You'll be emailed about your submission there.`)
   const { clean, fonts, bytes, files } = await readForm(context)
   const sent = await env.DB.prepare(`SELECT COUNT(*) AS count FROM submissions WHERE user_id = ${USER_ROW} AND created_at >= ?`).bind(user.provider, user.providerId, startOfDay()).first()
   if ((sent?.count ?? 0) >= SUBMISSION_LIMITS.perDay) throw new Refusal(429, `You can send up to ${SUBMISSION_LIMITS.perDay} submissions a day.`)
@@ -348,7 +358,8 @@ export const createSubmission = guarded(async context => {
   const placeholder = assetId(clean.name, new Set())
   const [, inserted] = await env.DB.batch([
     saveUser(env, user),
-    env.DB.prepare(`INSERT INTO submissions (user_id, kind, target, asset, name, credit, notes, details, file, created_at, updated_at) VALUES (${USER_ROW}, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`).bind(user.provider, user.providerId, clean.kind, clean.target, placeholder, clean.name, clean.credit, clean.notes, details, file, now, now)
+    env.DB.prepare(`INSERT INTO submissions (user_id, kind, target, asset, name, credit, notes, details, file, created_at, updated_at) VALUES (${USER_ROW}, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`).bind(user.provider, user.providerId, clean.kind, clean.target, placeholder, clean.name, clean.credit, clean.notes, details, file, now, now),
+    rememberUser(env, user)
   ])
   const row = { id: inserted.results[0].id, ...clean, asset: placeholder, details, file, pull: null, ownerName: user.name, ownerProvider: user.provider }
   try {
@@ -359,6 +370,7 @@ export const createSubmission = guarded(async context => {
     throw err
   }
   await notify(env, row, "submitted", { author: user.name, owner: false, admins: true, actor: user }).run()
+  emailing(context)
   return reply(201, { id: row.id, pull: row.pull })
 })
 
@@ -373,16 +385,17 @@ export const editSubmission = guarded(async context => {
     await github(env, `issues/${changed.pull}/comments`, { method: "POST", body: { body: onGitHubText(user.name, { kind: "edit", role: "submitter" }) } })
   })
   await env.DB.batch([
-    env.DB.prepare("DELETE FROM notifications WHERE submission_id = ? AND kind = 'edited' AND seen = 0").bind(changed.id),
-    notify(env, changed, "edited", { author: user.name, owner: false, admins: true, actor: user })
+    env.DB.prepare("UPDATE notifications SET author = ?, created_at = ? WHERE submission_id = ? AND kind = 'edited' AND seen = 0").bind(user.name, Date.now(), changed.id),
+    notify(env, changed, "edited", { author: user.name, owner: false, admins: true, actor: user, unlessUnread: true })
   ])
+  emailing(context)
   return reply(200, { submission: shown(env, changed, { id: row.owner }) })
 })
 
 export const withdrawSubmission = guarded(async context => {
   const { env } = context
   const { user, row } = await ownSubmission(context)
-  await env.DB.prepare("UPDATE submissions SET status = 'withdrawn', updated_at = ? WHERE id = ? AND status = 'open'").bind(Date.now(), row.id).run()
+  const withdrawn = await env.DB.prepare("UPDATE submissions SET status = 'withdrawn', updated_at = ? WHERE id = ? AND status = 'open' RETURNING user_id AS userId").bind(Date.now(), row.id).first()
   try {
     await onGitHub(async () => {
       if (row.pull) {
@@ -397,6 +410,7 @@ export const withdrawSubmission = guarded(async context => {
   await env.DB.batch([
     env.DB.prepare("DELETE FROM notifications WHERE submission_id = ?").bind(row.id),
     env.DB.prepare("DELETE FROM submissions WHERE id = ?").bind(row.id),
+    forgetEmail(env, withdrawn?.userId ?? null),
     forgetUnusedUser(env, user)
   ])
   return reply(200, { id: row.id })
@@ -470,6 +484,7 @@ export const addComment = guarded(async context => {
   if (!row.pull) throw new Refusal(409, "This submission isn't on GitHub yet, so it can't take comments.")
   await onGitHub(() => postComment(env, row, user, role, text))
   await env.DB.batch([saveUser(env, user), notify(env, row, "comment", { author: user.name, body: text, admins: true, actor: user })])
+  emailing(context)
   return reply(201, { comments: await threadOf(env, row) })
 })
 
@@ -570,21 +585,30 @@ async function pullClosed(context, pull, sender) {
   await closeSubmission(context, row, pull.merged, { author: sender?.login ?? "", url: pull.html_url, actor: gitHubActor(sender) })
 }
 
-async function fromGitHub(env, number, kind, entry) {
-  if (entry.user?.type === "Bot" || !REVIEWERS.has(entry.author_association)) return
-  const row = await pulledSubmission(env, number)
-  if (!row) return
+function reviewersHear(context, kind, title, entry) {
+  if (entry.user?.type === "Bot") return
+  const event = { kind, title, author: entry.user.login, body: entry.body ?? "", link: entry.html_url }
+  context.waitUntil(emailReviewers(context.env, event, entry.user.id).catch(err => console.error(err)))
+}
+
+async function fromGitHub(context, number, kind, entry) {
+  if (entry.user?.type === "Bot" || !REVIEWERS.has(entry.author_association)) return false
+  const row = await pulledSubmission(context.env, number)
+  if (!row) return false
   const fields = { author: entry.user.login, body: entry.body ?? "", url: entry.html_url }
-  await notify(env, row, kind, { ...fields, admins: true, actor: gitHubActor(entry.user) }).run()
+  await notify(context.env, row, kind, { ...fields, admins: true, actor: gitHubActor(entry.user) }).run()
+  emailing(context)
+  return true
 }
 
-async function commented(env, number, comment) {
-  await fromGitHub(env, number, "comment", comment)
+async function commented(context, item, comment) {
+  if (!await fromGitHub(context, item.number, "comment", comment)) reviewersHear(context, "comment", item.title, comment)
 }
 
-async function reviewed(env, number, review) {
+async function reviewed(context, pull, review) {
   const changes = review.state === "changes_requested"
-  if (review.body || changes) await fromGitHub(env, number, changes ? "changes" : "comment", review)
+  if (!review.body && !changes) return
+  if (!await fromGitHub(context, pull.number, changes ? "changes" : "comment", review)) reviewersHear(context, changes ? "changes" : "review", pull.title, review)
 }
 
 async function rebuildAfterPush(context, payload) {
@@ -612,9 +636,11 @@ export const receiveWebhook = guarded(async context => {
   const event = request.headers.get("X-GitHub-Event")
   if (payload.repository?.full_name?.toLowerCase() !== repository(env).toLowerCase()) return reply(200, { ignored: true })
   if (event === "pull_request" && payload.action === "closed") await pullClosed(context, payload.pull_request, payload.sender)
-  else if (event === "issue_comment" && payload.action === "created" && payload.issue.pull_request) await commented(env, payload.issue.number, payload.comment)
-  else if (event === "pull_request_review_comment" && payload.action === "created") await commented(env, payload.pull_request.number, payload.comment)
-  else if (event === "pull_request_review" && payload.action === "submitted") await reviewed(env, payload.pull_request.number, payload.review)
+  else if (event === "pull_request" && payload.action === "opened") reviewersHear(context, "pull", payload.pull_request.title, payload.pull_request)
+  else if (event === "issues" && payload.action === "opened") reviewersHear(context, "issue", payload.issue.title, payload.issue)
+  else if (event === "issue_comment" && payload.action === "created") await commented(context, payload.issue, payload.comment)
+  else if (event === "pull_request_review_comment" && payload.action === "created") await commented(context, payload.pull_request, payload.comment)
+  else if (event === "pull_request_review" && payload.action === "submitted") await reviewed(context, payload.pull_request, payload.review)
   else if (event === "push" && payload.ref === `refs/heads/${BASE}`) context.waitUntil(rebuildAfterPush(context, payload).catch(err => console.error(err)))
   return reply(200, { ok: true })
 })

@@ -19,17 +19,20 @@ const ENDPOINTS = {
     authorize: "https://discord.com/oauth2/authorize",
     token: "https://discord.com/api/oauth2/token",
     profile: "https://discord.com/api/v10/users/@me",
-    scope: "identify",
-    person: user => ({ id: user.id, name: user.username, avatar: user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64` : `https://cdn.discordapp.com/embed/avatars/${(BigInt(user.id) >> 22n) % 6n}.png` })
+    scope: "identify email",
+    person: user => ({ id: user.id, name: user.username, avatar: user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64` : `https://cdn.discordapp.com/embed/avatars/${(BigInt(user.id) >> 22n) % 6n}.png`, email: user.email })
   },
   github: {
     authorize: "https://github.com/login/oauth/authorize",
     token: "https://github.com/login/oauth/access_token",
     profile: "https://api.github.com/user",
-    scope: "",
+    emails: "https://api.github.com/user/emails",
+    scope: "user:email",
     person: user => ({ id: String(user.id), name: user.login, avatar: `https://avatars.githubusercontent.com/u/${user.id}?s=64` })
   }
 }
+
+const KEEPS_EMAIL = "(users.admin = 1 OR EXISTS (SELECT 1 FROM submissions WHERE submissions.user_id = users.id))"
 
 function setting(env, name) {
   if (!env[name]) throw new Error(`${name} is not set`)
@@ -117,8 +120,10 @@ async function providerJson(provider, url, options) {
 async function fetchPerson(provider, code) {
   const form = new URLSearchParams({ grant_type: "authorization_code", code, redirect_uri: callbackUrl(provider), client_id: provider.clientId, client_secret: provider.secret })
   const { access_token: token } = await providerJson(provider, provider.token, { method: "POST", body: form })
-  const person = provider.person(await providerJson(provider, provider.profile, { headers: { Authorization: `Bearer ${token}` } }))
-  return { id: person.id, name: Array.from(person.name).slice(0, LIMITS.name).join(""), avatar: person.avatar }
+  const auth = { headers: { Authorization: `Bearer ${token}` } }
+  const person = provider.person(await providerJson(provider, provider.profile, auth))
+  const email = provider.emails ? (await providerJson(provider, provider.emails, auth)).find(entry => entry.primary)?.email : person.email
+  return { id: person.id, name: Array.from(person.name).slice(0, LIMITS.name).join(""), avatar: person.avatar, email: email ?? "" }
 }
 
 function shownUser(user) {
@@ -129,7 +134,15 @@ export const USER_ROW = "(SELECT id FROM users WHERE provider = ? AND provider_i
 
 export async function signedInUser({ request, env }) {
   const session = await verified(env, "session", cookieValue(request, SESSION_COOKIE))
-  return session && { id: session.id, name: session.name, provider: session.provider, avatar: session.avatar ?? null, providerId: session.id.slice(session.provider.length + 1) }
+  return session && { id: session.id, name: session.name, provider: session.provider, avatar: session.avatar ?? null, email: session.email, providerId: session.id.slice(session.provider.length + 1) }
+}
+
+export function rememberUser(env, user) {
+  return env.DB.prepare(`UPDATE users SET name = ?, email = CASE WHEN ${KEEPS_EMAIL} THEN NULLIF(?, '') END WHERE provider = ? AND provider_id = ?`).bind(user.name, user.email ?? "", user.provider, user.providerId)
+}
+
+export function forgetEmail(env, userId) {
+  return env.DB.prepare(`UPDATE users SET email = NULL WHERE id = ? AND NOT ${KEEPS_EMAIL}`).bind(userId)
 }
 
 export function saveUser(env, user) {
@@ -176,8 +189,8 @@ export const finishSignIn = showingRefusals(async ({ request, env, params }) => 
   const handoff = await verified(env, "handoff", url.searchParams.get("handoff"))
   if (!handoff || handoff.nonce !== cookieValue(request, STATE_COOKIE)) throw new Refusal(400, "This sign-in has expired. Close this window and try again.")
   const id = `${provider.id}:${handoff.id}`
-  const session = await signed(env, "session", SESSION_SECONDS, { id, name: handoff.name, provider: provider.id, avatar: handoff.avatar })
-  await env.DB.prepare("UPDATE users SET name = ? WHERE provider = ? AND provider_id = ? AND name != ?").bind(handoff.name, provider.id, handoff.id, handoff.name).run()
+  const session = await signed(env, "session", SESSION_SECONDS, { id, name: handoff.name, provider: provider.id, avatar: handoff.avatar, email: handoff.email })
+  await rememberUser(env, { name: handoff.name, email: handoff.email, provider: provider.id, providerId: handoff.id }).run()
   const response = page(200, "You're signed in", "You can close this window.", leaveScript(`new BroadcastChannel("${ACCOUNT_CHANNEL}").postMessage("changed");`))
   response.headers.append("Set-Cookie", cookie(SESSION_COOKIE, session, SESSION_SECONDS, SESSION_PATH))
   response.headers.append("Set-Cookie", cookie(STATE_COOKIE, "", 0, STATE_PATH))

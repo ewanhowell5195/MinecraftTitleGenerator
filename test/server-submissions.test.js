@@ -62,13 +62,14 @@ let gh
 let waiting
 let profile
 let db
+let emails
 
 function context(url, { method = "GET", body, cookie, params = {}, headers = {} } = {}) {
   const request = new Request(`https://mctitlegenerator.com${url}`, { method, body, headers: { ...(cookie && { Cookie: cookie }), ...headers } })
   return { request, env, params, waitUntil: promise => waiting.push(promise) }
 }
 
-async function signIn(provider = "discord", person = { id: "1234", username: "someone" }) {
+async function signIn(provider = "discord", person = { id: "1234", username: "someone", email: "someone@example.com", verified: true }) {
   profile = person
   const started = await startSignIn(context(`/api/account/login/${provider}?return=${encodeURIComponent("https://mctitlegenerator.com")}`, { params: { provider } }))
   const state = new URL(started.headers.get("Location")).searchParams.get("state")
@@ -125,11 +126,16 @@ beforeEach(() => {
   const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048, privateKeyEncoding: { type: "pkcs1", format: "pem" }, publicKeyEncoding: { type: "spki", format: "pem" } })
   gh = fakeGitHub(publicKey, { repo: REPO, api: API, files: [TEXTURES] })
   waiting = []
-  env = { DB: d1(sqlite), ASSETS: { fetch: url => assets(String(url)) }, SESSION_SECRET: "session-secret", DISCORD_CLIENT_ID: "discord-id", DISCORD_CLIENT_SECRET: "discord-secret", GITHUB_CLIENT_ID: "github-id", GITHUB_CLIENT_SECRET: "github-secret", GITHUB_APP_ID: "123", GITHUB_APP_KEY: privateKey, GITHUB_WEBHOOK_SECRET: "hook-secret", GITHUB_REPOSITORY: REPO, GITHUB_API: API }
+  emails = []
+  env = { DB: d1(sqlite), ASSETS: { fetch: url => assets(String(url)) }, SESSION_SECRET: "session-secret", DISCORD_CLIENT_ID: "discord-id", DISCORD_CLIENT_SECRET: "discord-secret", GITHUB_CLIENT_ID: "github-id", GITHUB_CLIENT_SECRET: "github-secret", GITHUB_APP_ID: "123", GITHUB_APP_KEY: privateKey, GITHUB_WEBHOOK_SECRET: "hook-secret", GITHUB_REPOSITORY: REPO, GITHUB_API: API, RESEND_API_KEY: "resend-key" }
   globalThis.fetch = async (url, options) => {
     const text = String(url)
     if (text.startsWith(API)) return gh.handle(text, options)
-    return new Response(JSON.stringify(options?.method === "POST" ? { access_token: "token" } : profile), { status: 200, headers: { "Content-Type": "application/json" } })
+    if (text === "https://api.resend.com/emails") {
+      emails.push(JSON.parse(options.body))
+      return new Response("{}")
+    }
+    return new Response(JSON.stringify(options?.method === "POST" ? { access_token: "token" } : String(url).endsWith("/user/emails") ? profile.emails ?? [{ email: `${profile.login}@example.com`, primary: true, verified: true }] : profile), { status: 200, headers: { "Content-Type": "application/json" } })
   }
 })
 
@@ -544,4 +550,107 @@ describe("reviewing on the site", () => {
     assert.equal((await listed(cookie)).status, 403)
     assert.deepEqual((await (await listed(reviewer)).json()).submissions.map(item => item.name), ["Gold Bricks", "Iron Bricks"])
   })
+})
+
+describe("emailing notifications", () => {
+  async function admin() {
+    db.prepare("INSERT INTO users (provider, provider_id, name, created_at, admin) VALUES ('github', '77', 'ewan', 0, 1)").run()
+    return signIn("github", { id: 77, login: "ewan" })
+  }
+
+  async function comment(cookie, id, body) {
+    await addComment(context(`/api/submissions/${id}/comments`, { method: "POST", body: JSON.stringify({ body }), cookie, params: { id: String(id) } }))
+    await Promise.all(waiting)
+  }
+
+  function stored() {
+    return db.prepare("SELECT name, email FROM users ORDER BY id").all().map(row => [row.name, row.email])
+  }
+
+  function inbox() {
+    return emails.splice(0).map(email => [email.to, email.subject])
+  }
+
+  test("only keeps the email of people with submissions and reviewers", async () => {
+    await admin()
+    const cookie = await signIn()
+    db.prepare("INSERT INTO users (provider, provider_id, name, created_at) VALUES ('discord', '5', 'presets', 0)").run()
+    await signIn("discord", { id: "5", username: "presets", email: "presets@example.com", verified: true })
+    assert.deepEqual(stored(), [["ewan", "ewan@example.com"], ["presets", null]])
+    const { id } = await send(cookie)
+    await Promise.all(waiting)
+    assert.deepEqual(stored(), [["ewan", "ewan@example.com"], ["presets", null], ["someone", "someone@example.com"]])
+    await withdrawSubmission(context(`/api/submissions/${id}`, { method: "DELETE", cookie, params: { id: String(id) } }))
+    assert.deepEqual(stored(), [["ewan", "ewan@example.com"], ["presets", null]])
+  })
+
+  test("refuses submissions until there is an email to send to", async () => {
+    const noEmail = await signIn("discord", { id: "6", username: "phone", email: null })
+    assert.match((await send(noEmail)).error, /Add an email address to your Discord account/)
+    const unverified = await signIn("github", { id: 7, login: "fresh", emails: [{ email: "fresh@example.com", primary: true, verified: false }] })
+    assert.equal((await send(unverified)).status, 201)
+  })
+
+  test("emails reviewers and the submitter everything they are notified about", async () => {
+    const reviewer = await admin()
+    const cookie = await signIn()
+    const { id } = await send(cookie)
+    await Promise.all(waiting)
+    assert.deepEqual(inbox(), [["ewan@example.com", "someone sent Gold Bricks"]])
+    await comment(cookie, id, "is this ok?")
+    await comment(reviewer, id, "change the <b>")
+    const [toReviewer, toSubmitter] = emails.slice()
+    assert.deepEqual(inbox(), [["ewan@example.com", "New comment on Gold Bricks"], ["someone@example.com", "New comment on Gold Bricks"]])
+    assert.equal(toReviewer.text, `New comment on Gold Bricks.\n\nis this ok?\n\nReply: https://mctitlegenerator.com/submissions/${id}`)
+    assert.match(toSubmitter.html, /change the &#60;b&#62;/)
+    await review(reviewer, id)
+    assert.deepEqual(inbox(), [["someone@example.com", "Gold Bricks was published"]])
+    assert.deepEqual(stored(), [["ewan", "ewan@example.com"], ["someone", null]])
+  })
+
+  test("emails one change until the reviewer has seen it", async () => {
+    const reviewer = await admin()
+    const cookie = await signIn()
+    const { id } = await send(cookie)
+    await edit(cookie, id, { name: "Shiny Gold" })
+    await edit(cookie, id, { name: "Shinier Gold" })
+    await Promise.all(waiting)
+    assert.deepEqual(inbox().map(([, subject]) => subject), ["someone sent Gold Bricks", "someone changed Shiny Gold"])
+    await markNotificationsSeen(context("/api/notifications", { method: "POST", cookie: reviewer }))
+    await edit(cookie, id, { name: "Shiniest Gold" })
+    await Promise.all(waiting)
+    assert.deepEqual(inbox().map(([, subject]) => subject), ["someone changed Shiniest Gold"])
+  })
+
+  test("emails reviewers about issues, pull requests and comments on GitHub, skipping bots and themselves", async () => {
+    await admin()
+    const person = { login: "mate", id: 5, type: "User" }
+    await hook("issues", { action: "opened", issue: { number: 40, title: "Fonts are blurry", body: "On every title", html_url: "https://github.com/i/40", user: person } })
+    await hook("pull_request", { action: "opened", pull_request: { number: 41, title: "Add a font", body: "", html_url: "https://github.com/p/41", user: person } })
+    await hook("issue_comment", { action: "created", issue: { number: 40, title: "Fonts are blurry" }, comment: { body: "Same here", author_association: "NONE", html_url: "https://github.com/c/1", user: person } })
+    await hook("pull_request_review", { action: "submitted", pull_request: { number: 41, title: "Add a font" }, review: { state: "changes_requested", body: "", html_url: "https://github.com/r/1", user: { login: "ewan", id: 77, type: "User" }, author_association: "OWNER" } })
+    await hook("issue_comment", { action: "created", issue: { number: 40, title: "Fonts are blurry" }, comment: { body: "Deployed", author_association: "NONE", html_url: "https://github.com/c/2", user: { login: "cloudflare-workers-and-pages[bot]", id: 3, type: "Bot" } } })
+    await hook("issues", { action: "opened", issue: { number: 42, title: "Mine", body: "", html_url: "https://github.com/i/42", user: { login: "ewan", id: 77, type: "User" } } })
+    assert.deepEqual(inbox(), [["ewan@example.com", "New issue: Fonts are blurry"], ["ewan@example.com", "New pull request: Add a font"], ["ewan@example.com", "New comment on Fonts are blurry"]])
+  })
+
+  test("comments on a submission's pull request are emailed once, and not to the commenter's other accounts", async () => {
+    await admin()
+    await signIn("discord", { id: "88", username: "ewan", email: "ewan@example.com" })
+    db.prepare("UPDATE users SET admin = 1 WHERE provider = 'discord' AND provider_id = '88'").run()
+    await signIn("discord", { id: "88", username: "ewan", email: "ewan@example.com" })
+    const cookie = await signIn()
+    await send(cookie)
+    await Promise.all(waiting)
+    inbox()
+    await hook("issue_comment", { action: "created", issue: { number: 1, title: "Gold Bricks" }, comment: { body: "Nice", author_association: "OWNER", html_url: "https://github.com/c/3", user: { login: "ewan", id: 77, type: "User" } } })
+    assert.deepEqual(inbox(), [["someone@example.com", "New comment on Gold Bricks"]])
+    await hook("issue_comment", { action: "created", issue: { number: 1, title: "Gold Bricks" }, comment: { body: "Cool", author_association: "NONE", html_url: "https://github.com/c/4", user: { login: "random", id: 6, type: "User" } } })
+    assert.deepEqual(inbox(), [["ewan@example.com", "New comment on Gold Bricks"]])
+  })
+
+  async function review(cookie, id) {
+    await reviewSubmission(context(`/api/submissions/${id}/review`, { method: "POST", body: JSON.stringify({ action: "merge" }), cookie, params: { id: String(id) } }))
+    await Promise.all(waiting)
+  }
 })

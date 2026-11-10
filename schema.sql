@@ -6,6 +6,7 @@ CREATE TABLE users (
   created_at INTEGER NOT NULL,
   unlimited_shares INTEGER NOT NULL DEFAULT 0,
   admin INTEGER NOT NULL DEFAULT 0,
+  email TEXT,
   UNIQUE (provider, provider_id)
 );
 
@@ -104,6 +105,7 @@ CREATE TABLE notifications (
   url TEXT NOT NULL DEFAULT '',
   link TEXT NOT NULL DEFAULT '',
   seen INTEGER NOT NULL DEFAULT 0,
+  emailed INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL
 );
 

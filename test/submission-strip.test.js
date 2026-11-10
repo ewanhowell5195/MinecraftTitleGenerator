@@ -210,7 +210,7 @@ function context(url, { method = "GET", body, cookie, params = {}, headers = {} 
 }
 
 async function signIn() {
-  profile = { id: "1234", username: "someone" }
+  profile = { id: "1234", username: "someone", email: "someone@example.com", verified: true }
   const started = await startSignIn(context(`/api/account/login/discord?return=${encodeURIComponent("https://mctitlegenerator.com")}`, { params: { provider: "discord" } }))
   const state = new URL(started.headers.get("Location")).searchParams.get("state")
   const stateCookie = started.headers.getSetCookie().find(line => line.startsWith("signin_state=")).split(";")[0]
@@ -261,11 +261,11 @@ beforeEach(() => {
   const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048, privateKeyEncoding: { type: "pkcs1", format: "pem" }, publicKeyEncoding: { type: "spki", format: "pem" } })
   gh = fakeGitHub(publicKey, { repo: REPO, api: API, files: SEEDED })
   waiting = []
-  env = { DB: d1(sqlite), ASSETS: { fetch: url => files(String(url)) }, SESSION_SECRET: "session-secret", DISCORD_CLIENT_ID: "discord-id", DISCORD_CLIENT_SECRET: "discord-secret", GITHUB_CLIENT_ID: "github-id", GITHUB_CLIENT_SECRET: "github-secret", GITHUB_APP_ID: "123", GITHUB_APP_KEY: privateKey, GITHUB_WEBHOOK_SECRET: "hook-secret", GITHUB_REPOSITORY: REPO, GITHUB_API: API }
+  env = { DB: d1(sqlite), ASSETS: { fetch: url => files(String(url)) }, SESSION_SECRET: "session-secret", DISCORD_CLIENT_ID: "discord-id", DISCORD_CLIENT_SECRET: "discord-secret", GITHUB_CLIENT_ID: "github-id", GITHUB_CLIENT_SECRET: "github-secret", GITHUB_APP_ID: "123", GITHUB_APP_KEY: privateKey, GITHUB_WEBHOOK_SECRET: "hook-secret", GITHUB_REPOSITORY: REPO, GITHUB_API: API, RESEND_API_KEY: "resend-key" }
   globalThis.fetch = async (url, options) => {
     const text = String(url)
     if (text.startsWith(API)) return gh.handle(text, options)
-    return new Response(JSON.stringify(options?.method === "POST" ? { access_token: "token" } : profile), { status: 200, headers: { "Content-Type": "application/json" } })
+    return new Response(JSON.stringify(options?.method === "POST" ? { access_token: "token" } : String(url).endsWith("/user/emails") ? profile.emails ?? [{ email: `${profile.login}@example.com`, primary: true, verified: true }] : profile), { status: 200, headers: { "Content-Type": "application/json" } })
   }
 })
 

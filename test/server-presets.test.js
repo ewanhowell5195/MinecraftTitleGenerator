@@ -916,7 +916,7 @@ describe("accounts", () => {
     calls = []
     globalThis.fetch = async (url, options) => {
       calls.push({ url, options })
-      const body = options?.method === "POST" ? token : profile
+      const body = options?.method === "POST" ? token : String(url).endsWith("/user/emails") ? [] : profile
       return new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json" } })
     }
   }
@@ -973,7 +973,7 @@ describe("accounts", () => {
     const target = new URL(response.headers.get("Location"))
     assert.equal(target.origin + target.pathname, "https://discord.com/oauth2/authorize")
     assert.equal(target.searchParams.get("client_id"), "discord-id")
-    assert.equal(target.searchParams.get("scope"), "identify")
+    assert.equal(target.searchParams.get("scope"), "identify email")
     assert.equal(target.searchParams.get("redirect_uri"), "https://mctitlegenerator.com/api/account/login/discord/callback")
     assert.match(response.headers.get("Set-Cookie"), /^signin_state=[0-9a-f]{64};.*HttpOnly; Secure; SameSite=Lax/)
   })
