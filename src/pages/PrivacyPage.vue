@@ -87,6 +87,7 @@
       <li><strong><a href="https://www.blockbench.net/" target="_blank" rel="noopener">Blockbench</a></strong> runs the plugin.</li>
       <li><strong><a href="https://github.com/" target="_blank" rel="noopener">GitHub</a></strong> hosts submissions as public pull requests, as described above.</li>
       <li><strong><a href="https://resend.com/" target="_blank" rel="noopener">Resend</a></strong> sends notification emails, so it receives your email address and each notification.</li>
+      <li><strong><a href="https://fonts.google.com/" target="_blank" rel="noopener">Google Fonts</a></strong> provides the fonts the title generator's pages use. Your browser downloads them from Google's servers, so Google receives your IP address.</li>
       <li><strong><a href="https://www.mojang.com/" target="_blank" rel="noopener">Mojang</a></strong>: when you use a Minecraft block texture, your browser downloads the game's files directly from Mojang's servers.</li>
     </ul>
     <p>These services have their own privacy policies, and any data they collect is not governed by this policy. Links to other websites are not covered by this policy either.</p>
