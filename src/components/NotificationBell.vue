@@ -137,7 +137,7 @@
     flex-direction: column;
     width: min(360px, calc(100vw - 16px));
     max-height: min(480px, calc(100vh - 80px));
-    font-family: system-ui, "Segoe UI", sans-serif;
+    font-family: var(--font-ui);
     font-size: var(--font-base);
     line-height: 1.4;
     color: var(--text);

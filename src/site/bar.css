@@ -9,7 +9,7 @@
   gap: 28px;
   height: 64px;
   padding: 0 max(16px, calc((100% - 1120px) / 2));
-  font-family: system-ui, "Segoe UI", sans-serif;
+  font-family: var(--font-ui);
   line-height: 1.15;
   border-bottom: 1px solid transparent;
   transition: background-color 0.4s, border-color 0.4s;

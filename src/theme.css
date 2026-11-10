@@ -29,6 +29,8 @@
   --drag-shadow: 0 8px 20px #0000008c;
   --knob-shadow: 0 1px 3px #0008;
   --mono: ui-monospace, monospace;
+  --font-ui: "Gabarito", system-ui, "Segoe UI", sans-serif;
+  --font-head: "Chakra Petch", system-ui, "Segoe UI", sans-serif;
   --font-xxs: 10px;
   --font-xs: 11px;
   --font-sm: 12px;

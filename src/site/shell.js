@@ -31,7 +31,10 @@ export function shellHtml(html, page) {
     `<link rel="canonical" href="${url}">`,
     "<link rel=\"icon\" href=\"/favicon.ico\" sizes=\"32x32\">",
     "<link rel=\"icon\" href=\"/favicon.svg\" type=\"image/svg+xml\">",
-    "<link rel=\"apple-touch-icon\" href=\"/apple-touch-icon.png\">"
+    "<link rel=\"apple-touch-icon\" href=\"/apple-touch-icon.png\">",
+    "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">",
+    "<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>",
+    "<link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Gabarito:wght@400..900&display=swap\">"
   ], shareTags(page, url), page.head ?? [])
   return html
     .replace("<html lang=\"en\">", `<html lang="en" data-styles="${page.styles}">`)

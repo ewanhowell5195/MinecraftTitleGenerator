@@ -7,7 +7,7 @@
 
 body {
   margin: 0;
-  font-family: system-ui, "Segoe UI", sans-serif;
+  font-family: var(--font-ui);
   font-size: var(--font-base);
   line-height: 1.4;
   background: var(--bg);

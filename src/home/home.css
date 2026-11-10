@@ -29,7 +29,7 @@ html {
 body {
   margin: 0;
   overflow-x: hidden;
-  font: 17px/1.55 system-ui, "Segoe UI", sans-serif;
+  font: 17px/1.55 var(--font-ui);
   color: var(--muted);
   background: var(--background);
 }
@@ -58,6 +58,7 @@ dd {
 }
 
 h2 {
+  font-family: var(--font-head);
   font-size: clamp(28px, 4.2vw, 44px);
   font-weight: 700;
   line-height: 1.1;
@@ -77,8 +78,9 @@ h2 + p {
 }
 
 .page-title {
+  font-family: var(--font-head);
   font-size: clamp(36px, 5.4vw, 60px);
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.05;
   letter-spacing: -0.02em;
   color: var(--text);
@@ -353,6 +355,7 @@ section + section {
 
 .footer-links h2 {
   margin-bottom: 12px;
+  font-family: var(--font-ui);
   font-size: 13px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
