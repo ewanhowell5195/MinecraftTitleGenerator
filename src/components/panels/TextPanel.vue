@@ -127,7 +127,7 @@
           <Icon :name="word.spaceBefore ? 'space' : 'link'" :size="14" />
         </button>
         <label :ref="el => (chips[word.id] = el)" class="chip" :class="{ chosen: chosen(word), dragged: dragged === word.id, hidden: word.hidden }" :data-value="word.text || placeholder">
-          <span v-if="line.length > 1" class="grip" @pointerdown="press($event, word)" v-tooltip="'Drag to reorder'">
+          <span v-if="line.length > 1" class="grip" @pointerdown="press($event, word)">
             <Icon name="grip" :size="14" />
           </span>
           <input :ref="el => (fields[word.id] = el)" type="text" size="1" :value="word.text" spellcheck="false" autocomplete="off" :placeholder="placeholder" :aria-label="line.length > 1 ? `Word ${index + 1}` : 'Text'" @input="typed($event, word)" @focus="focus(word)" @keydown.backspace="backspace($event, word)">

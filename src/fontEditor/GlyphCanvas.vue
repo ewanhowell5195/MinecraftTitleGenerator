@@ -503,7 +503,7 @@
         <Button ghost v-tooltip="{ text: 'Flip upside down', tooltipClass: 'slow' }" aria-label="Flip upside down" @click="flipY"><template #icon><Icon name="flipY" :size="18" /></template></Button>
       </span>
       <span class="group">
-        <Button ghost v-tooltip="{ text: 'Remove every pixel from this character', tooltipClass: 'slow' }" @click="clearGlyph">Clear</Button>
+        <Button ghost @click="clearGlyph">Clear</Button>
       </span>
       <div class="spacer"></div>
       <Button ghost class="zoom" :disabled="!zoomed" v-tooltip="{ text: 'Fit to view (0). Zoom with the mouse wheel or a pinch, and move around by dragging outside the character, with the middle mouse button, Space and drag, or two fingers', tooltipClass: 'slow' }" aria-label="Fit to view" @click="fit"><template #icon><Icon name="fit" :size="16" /></template>{{ zoomPercent }}%</Button>

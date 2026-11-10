@@ -154,7 +154,7 @@
     </div>
     <div ref="box" class="stop-rows">
       <div v-for="index of order" :key="index" :ref="el => (rows[index] = el)" class="stop-row input-row" :class="{ dragged: dragged === index }" @focusin="selected = index">
-        <span v-if="stops.length > 1" class="grip" @pointerdown="press($event, index)" v-tooltip="'Drag to reorder'"><Icon name="grip" :size="14" /></span>
+        <span v-if="stops.length > 1" class="grip" @pointerdown="press($event, index)"><Icon name="grip" :size="14" /></span>
         <ColourPicker class="grow" v-model="stops[index].colour" />
         <label class="location" v-tooltip="'Location'">
           <NumberInput v-model.number="stops[index].position" aria-label="Location" min="0" max="100" step="1" @focus="typing = true" @blur="finishTyping" />

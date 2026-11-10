@@ -186,7 +186,7 @@
     <p class="hint" v-if="object[modeKey] === 'default'">The overlays this texture comes with. Editing switches to Custom.</p>
     <div ref="box" class="layers" v-if="layers.length">
       <div :ref="el => (rows[index] = el)" class="layer card" v-for="(item, index) of layers" :key="index" tabindex="0" @click="selected = index" @keydown.enter="selected = index" :class="{ selected: selected === index, dragged: dragged === index }">
-        <span class="grip" @pointerdown="press($event, index)" v-tooltip="'Drag to reorder'"><Icon name="grip" :size="14" /></span>
+        <span class="grip" @pointerdown="press($event, index)"><Icon name="grip" :size="14" /></span>
         <img :src="item.source === 'file' ? item.file : thumbnail(font, item.overlay)" alt="">
         <span class="grow ellipsis">{{ layerName(item) }}</span>
         <Button ghost @click.stop="duplicateLayer(index)" v-tooltip="'Duplicate overlay'" aria-label="Duplicate overlay"><template #icon><Icon name="copy" :size="14" /></template></Button>
@@ -197,7 +197,7 @@
 
     <div class="row" v-if="layer">
       <h3 class="grow">Editing "{{ layerName(layer) }}"</h3>
-      <Button ghost v-if="layerModified" @click="resetLayer" v-tooltip="'Reset this overlay'">Reset</Button>
+      <Button ghost v-if="layerModified" @click="resetLayer">Reset</Button>
     </div>
     <Segments v-if="!edge" :options="KINDS" :model-value="kind" @update:model-value="pickKind" />
     <div class="grid scroll" v-if="kind !== 'file'">

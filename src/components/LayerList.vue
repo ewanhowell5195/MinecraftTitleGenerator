@@ -199,7 +199,7 @@
 
 <template>
   <nav class="layers">
-    <button class="rail-button" v-tooltip="'Open a saved preset'" @click="openPresetsPage()">
+    <button class="rail-button" @click="openPresetsPage()">
       <Icon name="bookmark" :size="20" />
       <span>Presets</span>
     </button>

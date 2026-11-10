@@ -76,7 +76,7 @@
 <template>
   <aside class="detail">
     <header>
-      <Button ghost v-tooltip="'Close this preset'" aria-label="Close this preset" @click="emit('close')"><template #icon><Icon name="close" :size="18" /></template></Button>
+      <Button ghost aria-label="Close this preset" @click="emit('close')"><template #icon><Icon name="close" :size="18" /></template></Button>
     </header>
     <div class="content">
       <TitlePicture :code="preset.code" :fingerprint="local ? null : preset.fingerprint" large />

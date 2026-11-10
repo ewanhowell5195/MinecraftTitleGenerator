@@ -82,7 +82,7 @@
         <p v-else-if="empty" class="message">{{ EMPTY }}</p>
       </div>
       <LiveTitle v-if="live" class="view" :lines="lines" :fonts="[entry]" :message="EMPTY" @settled="settled" />
-      <Button class="mode-switch" v-if="!wide" v-tooltip="mode === '2d' ? 'Show the 3D preview' : 'Show the flat preview'" @click="mode = mode === '2d' ? '3d' : '2d'">{{ mode === "2d" ? "3D" : "2D" }}</Button>
+      <Button class="mode-switch" v-if="!wide" @click="mode = mode === '2d' ? '3d' : '2d'">{{ mode === "2d" ? "3D" : "2D" }}</Button>
     </div>
   </section>
 </template>
