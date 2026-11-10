@@ -19,6 +19,8 @@
   const MAX_ZOOM_CELL = 160
   const PAN_KEEP = 48
   const KEY_ZOOM = 1.25
+  const TOPLINE_COLOUR = "#2f7cf6"
+  const BASELINE_COLOUR = "#2dbb4f"
   const STRETCH_COLOUR = "#f59e0b"
   const GUIDE_FONT = "Arial, sans-serif"
   const ARROWS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }
@@ -45,6 +47,8 @@
   let blockingMenu = false
   let over = false
   let backdrop = "#000"
+  let gutterColour = "#000"
+  let hoverColour = "#fff"
 
   const brushes = computed(() => Array.from({ length: font.value.grid }, (_, index) => font.value.grid - index).filter(size => font.value.grid % size === 0))
   const brush = computed(() => brushes.value.includes(chosenBrush.value) ? chosenBrush.value : font.value.grid)
@@ -96,7 +100,7 @@
     const letter = /^[\p{L}\p{N}]+$/u.test(text)
     ctx.translate(centre, baseline - below * (letter ? tall : even))
     ctx.scale(letter ? width / textWidth : even, letter ? tall : even)
-    ctx.fillStyle = "#2f7cf659"
+    ctx.fillStyle = `${TOPLINE_COLOUR}59`
     ctx.fillText(text, (measured.actualBoundingBoxLeft - measured.actualBoundingBoxRight) / 2, 0)
     ctx.restore()
   }
@@ -144,11 +148,11 @@
       ctx.stroke()
     }
     ctx.lineWidth = 2
-    ctx.strokeStyle = "#2f7cf6"
+    ctx.strokeStyle = TOPLINE_COLOUR
     ctx.beginPath()
     line(ctx, left, topline, right, topline)
     ctx.stroke()
-    ctx.strokeStyle = "#2dbb4f"
+    ctx.strokeStyle = BASELINE_COLOUR
     ctx.beginPath()
     line(ctx, left, baseline, right, baseline)
     ctx.stroke()
@@ -156,7 +160,7 @@
       ctx.fillStyle = backdrop
       ctx.fillRect(gutter - GUTTER_GAP, top, GUTTER_GAP, bottom - top)
     }
-    ctx.fillStyle = "#2b2e35"
+    ctx.fillStyle = gutterColour
     ctx.fillRect(gutter, top, GUTTER, bottom - top)
     ctx.fillStyle = STRETCH_COLOUR
     for (const y of current.stretch) {
@@ -166,7 +170,7 @@
     if (hover.value) {
       const { column, row, across, down } = hover.value
       const x = hover.value.gutter ? gutter : xAt(column)
-      ctx.strokeStyle = "#6cc04a"
+      ctx.strokeStyle = hoverColour
       ctx.lineWidth = 2
       ctx.strokeRect(x, yAt(row), hover.value.gutter ? GUTTER : xAt(column + across) - x, yAt(row + down) - yAt(row))
     }
@@ -456,7 +460,10 @@
   }
 
   onMounted(() => {
-    backdrop = getComputedStyle(holder.value).getPropertyValue("--bg").trim() || backdrop
+    const theme = getComputedStyle(holder.value)
+    backdrop = theme.getPropertyValue("--bg").trim() || backdrop
+    gutterColour = theme.getPropertyValue("--line").trim() || gutterColour
+    hoverColour = theme.getPropertyValue("--accent").trim() || hoverColour
     observer = new ResizeObserver(measure)
     observer.observe(holder.value)
     measure()
@@ -511,7 +518,7 @@
     <div ref="holder" class="holder">
       <canvas ref="canvas" class="board" :class="{ grab: spaceHeld || outside, grabbing: panning }" @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="up" @pointerenter="enter" @pointerleave="leave" @mousedown="noAutoscroll" @wheel="wheel" @contextmenu.prevent></canvas>
     </div>
-    <p class="legend"><span class="key blue"></span>Topline <span class="key green"></span>Baseline <span class="key mark"></span>Stretch zone</p>
+    <p class="legend" :style="{ '--topline': TOPLINE_COLOUR, '--baseline': BASELINE_COLOUR, '--stretch': STRETCH_COLOUR }"><span class="key blue"></span>Topline <span class="key green"></span>Baseline <span class="key mark"></span>Stretch zone</p>
   </section>
 </template>
 
@@ -617,17 +624,17 @@
   }
 
   .key.blue {
-    background: #2f7cf6;
+    background: var(--topline);
   }
 
   .key.green {
-    background: #2dbb4f;
+    background: var(--baseline);
   }
 
   .key.mark {
     width: 10px;
     height: 10px;
-    background: #f59e0b;
+    background: var(--stretch);
   }
 
   @media (max-width: 1000px) {

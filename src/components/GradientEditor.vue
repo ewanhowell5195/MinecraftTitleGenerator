@@ -175,7 +175,7 @@
   .bar {
     height: 32px;
     margin: 0 7px;
-    box-shadow: inset 0 0 0 1px #ffffff1a;
+    box-shadow: inset 0 0 0 1px var(--swatch-line);
   }
 
   .track {

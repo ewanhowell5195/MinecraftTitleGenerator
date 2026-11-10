@@ -2,12 +2,6 @@ a {
   color: var(--accent);
 }
 
-a.button {
-  line-height: normal;
-  white-space: nowrap;
-  text-decoration: none;
-}
-
 .page {
   display: flex;
   flex-direction: column;
@@ -45,29 +39,13 @@ a.button {
 textarea {
   width: 100%;
   padding: 10px 12px;
-  font-family: inherit;
-  font-size: var(--font-base);
-  color: var(--text);
-  background: var(--card);
-  border: 1px solid transparent;
   resize: vertical;
-}
-
-textarea:focus {
-  outline: none;
-  border-color: var(--accent);
-  background: var(--field);
 }
 
 .buttons {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-}
-
-.button.primary {
-  color: var(--accent-text);
-  background: var(--accent);
 }
 
 .sign-in {

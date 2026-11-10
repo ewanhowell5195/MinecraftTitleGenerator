@@ -70,7 +70,8 @@ p.hint {
 }
 
 input[type="text"],
-input[type="number"] {
+input[type="number"],
+textarea {
   font-family: inherit;
   font-size: var(--font-base);
   color: var(--text);
@@ -99,12 +100,14 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 input[type="text"]:hover:not(:disabled),
-input[type="number"]:hover:not(:disabled) {
+input[type="number"]:hover:not(:disabled),
+textarea:hover:not(:disabled) {
   background: var(--card-hover);
 }
 
 input[type="text"]:focus,
-input[type="number"]:focus {
+input[type="number"]:focus,
+textarea:focus {
   outline: none;
   border-color: var(--accent);
   background: var(--field);
@@ -115,7 +118,8 @@ input:disabled {
   cursor: not-allowed;
 }
 
-input::placeholder {
+input::placeholder,
+textarea::placeholder {
   color: var(--faint);
 }
 
@@ -247,7 +251,7 @@ button:where(:not(.button, .field-button)):disabled:hover {
   position: absolute;
   inset: 0;
   background: var(--line-strong);
-  transition: background 0.18s;
+  transition: background var(--duration);
 }
 
 .toggle-switch span::after {
@@ -258,7 +262,7 @@ button:where(:not(.button, .field-button)):disabled:hover {
   width: 18px;
   height: 18px;
   background: var(--knob);
-  transition: transform 0.18s;
+  transition: transform var(--duration);
 }
 
 .toggle-switch input:checked + span {

@@ -14,6 +14,7 @@
   --accent-deep: #467f2e;
   --accent-text: #0d1a07;
   --accent-soft: #6cc04a24;
+  --accent-hover: #8bd96a;
   --danger: #ff8f85;
   --danger-soft: #2c1513;
   --danger-line: #5e2a25;
@@ -21,6 +22,8 @@
   --danger-fill: #c9372c;
   --knob: #fff;
   --tile-overlay: #000a;
+  --tile-overlay-hover: #000d;
+  --swatch-line: #ffffff33;
   --checker: #1a1b1f conic-gradient(#25272c 25%, transparent 0 50%, #25272c 0 75%, transparent 0) 0 0 / 16px 16px;
   --shadow: 0 8px 24px #0009;
   --drag-shadow: 0 8px 20px #0000008c;

@@ -147,7 +147,7 @@
     flex: none;
     width: 26px;
     height: 26px;
-    border: 1px solid #ffffff33;
+    border: 1px solid var(--swatch-line);
   }
 
   .chip.big {

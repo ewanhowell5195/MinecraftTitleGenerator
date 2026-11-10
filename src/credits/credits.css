@@ -63,7 +63,7 @@
 }
 
 .with:hover {
-  color: #8bd96a;
+  color: var(--accent-hover);
   text-decoration: underline;
 }
 

@@ -54,7 +54,7 @@
   text-decoration: none;
   color: var(--muted);
   user-select: none;
-  transition: color 0.15s;
+  transition: color var(--duration);
 }
 
 .bar-links a:hover,

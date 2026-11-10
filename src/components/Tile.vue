@@ -120,7 +120,7 @@
   }
 
   .save:hover {
-    background: #000d;
+    background: var(--tile-overlay-hover);
     filter: none;
   }
 
