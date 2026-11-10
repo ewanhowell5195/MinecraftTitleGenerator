@@ -1,6 +1,7 @@
 <script setup>
   import { computed, nextTick, ref } from "vue"
   import { account } from "../lib/community.js"
+  import { dateTime } from "../lib/dates.js"
   import { useWindowEvents } from "../lib/events.js"
   import { clearNotifications, markNotificationsSeen, notifications, submissionPage } from "../lib/submissionsApi.js"
   import Icon from "./Icon.vue"
@@ -25,10 +26,6 @@
 
   const unread = computed(() => account.value?.unread ?? 0)
   const shown = computed(() => !!account.value?.notifications)
-
-  function when(time) {
-    return new Date(time).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
-  }
 
   function place() {
     const rect = button.value.getBoundingClientRect()
@@ -103,7 +100,7 @@
             <a :href="item.link || submissionPage(item.submission)">
               <span class="line"><strong>{{ item.author || "Someone" }}</strong> {{ ACTIONS[item.kind] }} <span class="name">{{ item.submissionName }}</span></span>
               <span v-if="item.body" class="body">{{ item.body }}</span>
-              <span class="when">{{ when(item.createdAt) }}</span>
+              <span class="when">{{ dateTime(item.createdAt) }}</span>
             </a>
           </li>
         </ul>

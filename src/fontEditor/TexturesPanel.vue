@@ -1,5 +1,6 @@
 <script setup>
   import { computed, onBeforeUnmount, onMounted, ref, shallowRef, toRaw, watch } from "vue"
+  import Badge from "../components/Badge.vue"
   import Button from "../components/Button.vue"
   import Field from "../components/Field.vue"
   import Icon from "../components/Icon.vue"
@@ -205,7 +206,7 @@
       <div v-for="set of sets" :key="set.id" class="set card card-row" :class="{ selected: chosenSet === set.id }" tabindex="0" @click="choose(set.id)" @keydown.enter.self="choose(set.id)">
         <div class="set-text">
           <span class="set-name">{{ titleCase(set.id) }}</span>
-          <span v-if="problems[set.id]" class="status" :class="statusOf(set.id).kind">{{ statusOf(set.id).label }}</span>
+          <Badge v-if="problems[set.id]" :tone="statusOf(set.id).kind">{{ statusOf(set.id).label }}</Badge>
           <small v-if="problems[set.id]?.length">{{ problems[set.id].join(", ") }}</small>
           <small v-else>{{ Object.keys(set.textures).length }} textures</small>
         </div>
@@ -275,22 +276,6 @@
 
   .offset input {
     width: 64px;
-  }
-
-  .status {
-    padding: 1px 6px;
-    font-size: var(--font-xs);
-    font-weight: 600;
-  }
-
-  .status.good {
-    color: var(--accent-text);
-    background: var(--accent);
-  }
-
-  .status.bad {
-    color: #1d0a08;
-    background: var(--danger);
   }
 
   .view {

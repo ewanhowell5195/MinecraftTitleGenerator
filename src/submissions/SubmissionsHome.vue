@@ -2,10 +2,10 @@
   import { computed, ref, watch } from "vue"
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
-  import { account, signIn, signInProviders } from "../lib/community.js"
-  import { providerLabel } from "../lib/providers.js"
-  import { mySubmissions, reviewQueue } from "../lib/submissionsApi.js"
   import Notice from "../components/Notice.vue"
+  import SignInButtons from "../components/SignInButtons.vue"
+  import { account } from "../lib/community.js"
+  import { mySubmissions, reviewQueue } from "../lib/submissionsApi.js"
   import SubmissionList from "./SubmissionList.vue"
 
   const props = defineProps({
@@ -45,9 +45,7 @@
   </section>
   <template v-if="!account">
     <p class="hint">Sign in to see your submissions.</p>
-    <div v-if="signInProviders.length" class="buttons">
-      <Button v-for="id of signInProviders" :key="id" @click="signIn(id)"><template #icon><Icon :name="id" :size="16" /></template>Sign in with {{ providerLabel(id) }}</Button>
-    </div>
+    <SignInButtons />
   </template>
   <Notice v-else-if="error">{{ error }}</Notice>
   <p v-else-if="empty" class="hint">Nothing is waiting for review. <a href="/submit/">Send a submission</a>.</p>

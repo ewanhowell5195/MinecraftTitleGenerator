@@ -4,7 +4,8 @@
   import Icon from "../components/Icon.vue"
   import Notice from "../components/Notice.vue"
   import RenderDialog from "../components/RenderDialog.vue"
-  import { account, deleteAccount, signIn, signInProviders } from "../lib/community.js"
+  import SignInButtons from "../components/SignInButtons.vue"
+  import { account, deleteAccount } from "../lib/community.js"
   import { providerLabel } from "../lib/providers.js"
 
   const choosing = ref(false)
@@ -43,9 +44,7 @@
     <p v-else-if="account">Signed in as {{ account.name }} with {{ providerLabel(account.provider) }}.</p>
     <p v-else>Sign in to manage your account.</p>
   </section>
-  <div v-if="!account && !deleted && signInProviders.length" class="buttons">
-    <Button v-for="id of signInProviders" :key="id" @click="signIn(id)"><template #icon><Icon :name="id" :size="16" /></template>Sign in with {{ providerLabel(id) }}</Button>
-  </div>
+  <SignInButtons v-if="!account && !deleted" />
   <section v-if="account" class="section">
     <h2>Delete your account</h2>
     <p class="hint">Deleting your account always deletes the presets saved to it, your votes, and your notifications. To keep a copy of your presets, download them from the <a href="/app/presets">presets page</a> first.</p>

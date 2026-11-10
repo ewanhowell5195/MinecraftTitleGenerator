@@ -8,16 +8,16 @@
   import { addPreset, deleteSharedPreset, loadPreset, presets, presetsError, presetsLoaded, presetsLoading, removePreset, renamePreset, renameSharedPreset, unmarkShared, unsharePreset } from "../lib/presets.js"
   import { parseSearch, searchWithUser } from "../lib/presetSearch.js"
   import { closePresetsPage, leavePresetsForEditor, openLinkInEditor, presetsPage, showOwnPreset, showPreset, takeLanding } from "../lib/presetsPage.js"
-  import { providerLabel } from "../lib/providers.js"
   import { openSharedLink } from "../lib/share.js"
   import AccountMenu from "./AccountMenu.vue"
+  import AuthorLink from "./AuthorLink.vue"
+  import Badge from "./Badge.vue"
   import Button from "./Button.vue"
   import Notice from "./Notice.vue"
   import NotificationBell from "./NotificationBell.vue"
   import DeletePresetDialog from "./DeletePresetDialog.vue"
   import Dropdown from "./Dropdown.vue"
   import Icon from "./Icon.vue"
-  import UserName from "./UserName.vue"
   import PresetDetail from "./PresetDetail.vue"
   import Segments from "./Segments.vue"
   import SharePresetDialog from "./SharePresetDialog.vue"
@@ -383,8 +383,8 @@
               <TitlePicture :code="preset.code" :fingerprint="preset.fingerprint" @open="selectCommunity(preset)" />
               <div class="details">
                 <strong class="ellipsis" v-tooltip="preset.name">{{ preset.name }}</strong>
-                <span v-if="isMine(preset) && !preset.author" class="yours">Shared by you</span>
-                <button v-else-if="preset.author" type="button" class="author link-button" :class="{ yours: isMine(preset) }" v-tooltip="{ text: `Show presets by ${preset.author} on ${providerLabel(preset.authorProvider)}`, tooltipClass: 'slow' }" @click.stop="filterByUser(preset.author, preset.authorProvider)"><UserName :name="preset.author" :provider="preset.authorProvider" :size="13" /></button>
+                <Badge v-if="isMine(preset) && !preset.author" tone="accent">Shared by you</Badge>
+                <AuthorLink v-else-if="preset.author" class="author" :class="{ yours: isMine(preset) }" :name="preset.author" :provider="preset.authorProvider" :size="13" @click.stop="filterByUser(preset.author, preset.authorProvider)" />
               </div>
             </div>
           </div>
@@ -396,7 +396,7 @@
                   <TitlePicture :code="preset.code" @open="selectedLocalCode = preset.code" />
                   <div class="details">
                     <strong class="ellipsis" v-tooltip="preset.name">{{ preset.name }}</strong>
-                    <span v-if="preset.inBrowser" class="browser" v-tooltip="'Your account is full, so this is only saved in this browser'">This browser only</span>
+                    <Badge v-if="preset.inBrowser" v-tooltip="'Your account is full, so this is only saved in this browser'">This browser only</Badge>
                     <span v-if="stats[preset.shared]" class="stats">
                       <span v-tooltip="'Uses'"><Icon name="download" :size="13" />{{ stats[preset.shared].downloads }}</span>
                       <span v-if="stats[preset.shared].rating !== null"><Icon name="star" :size="13" />{{ stats[preset.shared].rating.toFixed(1) }}</span>
@@ -548,16 +548,6 @@
     justify-content: space-between;
     gap: 8px;
     min-width: 0;
-  }
-
-  .yours {
-    flex: none;
-    color: var(--accent);
-  }
-
-  .browser {
-    flex: none;
-    color: var(--muted);
   }
 
   .stats {

@@ -1,6 +1,7 @@
 <script setup>
   import { computed, onMounted, ref } from "vue"
   import { listVersions } from "../lib/minecraft.js"
+  import Badge from "./Badge.vue"
   import Notice from "./Notice.vue"
   import RenderDialog from "./RenderDialog.vue"
   import Segments from "./Segments.vue"
@@ -52,7 +53,7 @@
       <div v-else class="list">
         <button v-for="version of shown" :key="version.id" class="version card card-row" :class="{ selected: version.id === current }" @click="emit('pick', version.id)">
           <span class="id">{{ version.id }}</span>
-          <span v-if="version.id === latest.release || version.id === latest.snapshot" class="latest">Latest</span>
+          <Badge v-if="version.id === latest.release || version.id === latest.snapshot" class="latest">Latest</Badge>
           <span class="date">{{ date(version) }}</span>
         </button>
       </div>
@@ -82,13 +83,6 @@
     width: 100%;
     font-size: var(--font-md);
     font-weight: 500;
-  }
-
-  .latest {
-    padding: 0 6px;
-    font-size: var(--font-sm);
-    color: var(--muted);
-    border: 1px solid var(--line-strong);
   }
 
   .date {

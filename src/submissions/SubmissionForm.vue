@@ -5,8 +5,8 @@
   import Icon from "../components/Icon.vue"
   import NavTabs from "../components/NavTabs.vue"
   import Segments from "../components/Segments.vue"
-  import { account, signIn, signInProviders } from "../lib/community.js"
-  import { providerLabel } from "../lib/providers.js"
+  import SignInButtons from "../components/SignInButtons.vue"
+  import { account } from "../lib/community.js"
   import { SUBMISSION_KINDS, checkSubmission, submissionContext } from "../lib/submissionKinds/index.js"
   import { EDITOR_SUBMISSION, SUBMISSION_LIMITS } from "../lib/submissions.js"
   import { editSubmission, sendSubmission, submissionFileUrl } from "../lib/submissionsApi.js"
@@ -160,9 +160,7 @@
 <template>
   <div v-if="!account" class="sign-in banner">
     <p>Sign in to send a {{ type.noun }}. Your submission is linked to your account so you can follow its review.</p>
-    <div class="buttons">
-      <Button v-for="id of signInProviders" :key="id" @click="signIn(id)"><template #icon><Icon :name="id" :size="16" /></template>Sign in with {{ providerLabel(id) }}</Button>
-    </div>
+    <SignInButtons />
   </div>
   <form class="submission-form" @submit.prevent="send">
     <NavTabs v-if="GROUPS.length > 1" v-model="group" :tabs="GROUPS" />

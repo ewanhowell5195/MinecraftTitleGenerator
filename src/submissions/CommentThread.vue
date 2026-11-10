@@ -1,8 +1,10 @@
 <script setup>
   import { ref } from "vue"
+  import Badge from "../components/Badge.vue"
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
   import Notice from "../components/Notice.vue"
+  import { dateTime } from "../lib/dates.js"
   import { SUBMISSION_LIMITS } from "../lib/submissions.js"
   import { postComment } from "../lib/submissionsApi.js"
 
@@ -19,10 +21,6 @@
   const text = ref("")
   const busy = ref(false)
   const error = ref("")
-
-  function when(time) {
-    return new Date(time).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
-  }
 
   async function send() {
     busy.value = true
@@ -46,15 +44,15 @@
       <template v-for="item of comments" :key="item.id">
         <li v-if="item.kind === 'edit'" class="event">
           <span class="marker"><Icon name="pencil" :size="14" /></span>
-          <p><strong>{{ item.author || "A deleted account" }}</strong> changed the submission <time>{{ when(item.createdAt) }}</time></p>
+          <p><strong>{{ item.author || "A deleted account" }}</strong> changed the submission <time>{{ dateTime(item.createdAt) }}</time></p>
         </li>
         <li v-else class="comment" :class="item.role">
           <span class="marker">{{ (item.author || "?")[0].toUpperCase() }}</span>
           <article>
             <header>
               <strong class="ellipsis">{{ item.author || "A deleted account" }}</strong>
-              <span class="role">{{ ROLES[item.role] }}</span>
-              <time>{{ when(item.createdAt) }}</time>
+              <Badge :tone="item.role === 'reviewer' ? 'accent' : 'neutral'">{{ ROLES[item.role] }}</Badge>
+              <time>{{ dateTime(item.createdAt) }}</time>
               <a v-if="item.url" class="github" :href="item.url" target="_blank" rel="noopener" v-tooltip="'View on GitHub'" aria-label="View on GitHub"><Icon name="github" :size="16" /></a>
             </header>
             <p>{{ item.body }}</p>
@@ -133,20 +131,6 @@
     gap: 8px;
     min-width: 0;
     margin-bottom: 6px;
-  }
-
-  .role {
-    flex: none;
-    padding: 1px 6px;
-    font-size: var(--font-xs);
-    font-weight: 600;
-    color: var(--muted);
-    background: var(--surface);
-  }
-
-  .reviewer .role {
-    color: var(--accent);
-    background: var(--accent-soft);
   }
 
   time {

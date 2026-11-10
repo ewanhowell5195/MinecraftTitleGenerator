@@ -2,10 +2,10 @@
   import { computed, onBeforeUnmount, ref, watch } from "vue"
   import { NAME_LIMIT } from "../lib/presets.js"
   import { presetLink } from "../lib/presetsPage.js"
-  import { providerLabel } from "../lib/providers.js"
+  import AuthorLink from "./AuthorLink.vue"
+  import Badge from "./Badge.vue"
   import Button from "./Button.vue"
   import Icon from "./Icon.vue"
-  import UserName from "./UserName.vue"
   import PresetRating from "./PresetRating.vue"
   import TitlePicture from "./TitlePicture.vue"
 
@@ -84,13 +84,13 @@
         <input v-if="renaming" v-selected class="name-field" type="text" :value="preset.name" :maxlength="NAME_LIMIT" :aria-label="`Name of ${preset.name}`" spellcheck="false" @blur="finishRenaming" @keydown.enter="$event.target.blur()" @keydown.esc.stop="renaming = false">
         <h2 v-else class="ellipsis" v-tooltip="preset.name">{{ preset.name }}</h2>
         <Button ghost v-if="(local || owned) && !renaming" v-tooltip="`Rename ${preset.name}`" :aria-label="`Rename ${preset.name}`" @click="renaming = true"><template #icon><Icon name="pencil" :size="14" /></template></Button>
-        <span v-if="local && preset.inBrowser" class="browser" v-tooltip="'Your account is full, so this is only saved in this browser'">This browser only</span>
-        <span v-if="local && preset.shared" class="yours">Shared publicly</span>
-        <span v-else-if="mine" class="yours">Shared by you</span>
+        <Badge v-if="local && preset.inBrowser" class="tag" v-tooltip="'Your account is full, so this is only saved in this browser'">This browser only</Badge>
+        <Badge v-if="local && preset.shared" class="tag" tone="accent">Shared publicly</Badge>
+        <Badge v-else-if="mine" class="tag" tone="accent">Shared by you</Badge>
       </div>
       <template v-if="figures">
         <PresetRating :rating="figures.rating" :votes="figures.votes" :mine="preset.vote" :own="mine || local" @vote="emit('vote', $event)" />
-        <p class="facts"><span>{{ uses }}</span><span>Shared {{ sharedOn }}</span><span v-if="figures.author" class="author">By <button type="button" class="link-button" v-tooltip="{ text: `Show presets by ${figures.author} on ${providerLabel(figures.authorProvider)}`, tooltipClass: 'slow' }" @click="emit('user', figures.author, figures.authorProvider)"><strong><UserName :name="figures.author" :provider="figures.authorProvider" /></strong></button></span></p>
+        <p class="facts"><span>{{ uses }}</span><span>Shared {{ sharedOn }}</span><span v-if="figures.author" class="author">By <AuthorLink class="strong" :name="figures.author" :provider="figures.authorProvider" @click="emit('user', figures.author, figures.authorProvider)" /></span></p>
       </template>
       <div class="actions">
         <Button primary @click="emit('open')">Open in editor</Button>
@@ -157,23 +157,15 @@
     font-size: var(--font-md);
   }
 
-  .yours,
-  .browser {
-    flex: none;
+  .tag {
     margin-left: auto;
-    padding-left: 8px;
-    font-size: var(--font-md);
   }
 
-  .yours {
-    color: var(--accent);
+  .strong {
+    font-weight: 700;
   }
 
-  .browser {
-    color: var(--muted);
-  }
-
-  .browser + .yours {
+  .tag + .tag {
     margin-left: 0;
   }
 
