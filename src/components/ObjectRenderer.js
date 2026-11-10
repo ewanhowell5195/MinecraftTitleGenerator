@@ -374,7 +374,7 @@ export default {
     }
 
     function rebuild() {
-      if (!font.value || !painted.value) return
+      if (!font.value || painted.value?.font !== font.value.id) return
       const { words: list, word, lineDepth, ...options } = inputs.value
       const source = shaped.value?.id === font.value.id ? shaped.value : font.value
       const inputsKey = JSON.stringify(inputs.value)
