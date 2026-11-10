@@ -35,7 +35,7 @@ export async function openSubmissionLink() {
   const id = url.searchParams.get(SUBMISSION_PARAM)
   if (!id) return
   url.searchParams.delete(SUBMISSION_PARAM)
-  history.replaceState(null, "", url)
+  history.replaceState(history.state, "", url)
   try {
     const item = await submission(id)
     const line = await CLIENT_KINDS[item.kind].line(item, await embedded(submissionFileUrl(item)), item.name)

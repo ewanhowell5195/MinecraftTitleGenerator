@@ -5,6 +5,7 @@ import { jsonText } from "../lib/jsonText.js"
 import { EDITOR_SUBMISSION } from "../lib/submissions.js"
 import { download, downloadBlob } from "../lib/ui.js"
 import { pngUrl } from "../lib/virtualFiles.js"
+import { navigate } from "../lib/navigation.js"
 
 const STORAGE_KEY = "minecraft-title-font-editor"
 const HISTORY_LIMIT = 200
@@ -196,5 +197,5 @@ export function downloadJson() {
 export function submitFont() {
   flushSave()
   sessionStorage.setItem(EDITOR_SUBMISSION, JSON.stringify(jsonFile()))
-  location.assign("/submit/?type=font&from=editor")
+  navigate("/submit/?type=font&from=editor")
 }

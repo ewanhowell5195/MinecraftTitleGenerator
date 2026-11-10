@@ -4,6 +4,7 @@ import assert from "node:assert/strict"
 globalThis.location = { pathname: "/app/", origin: "https://example.test" }
 
 const { openLinkInEditor, presetLink, presetsPage, readPresetPath, showOwnPreset, showPreset } = await import("../src/lib/presetsPage.js")
+const { setNavigator } = await import("../src/lib/navigation.js")
 
 function setAddress(address) {
   const { pathname, search } = new URL(address, "https://example.test")
@@ -11,15 +12,15 @@ function setAddress(address) {
 }
 
 const pushed = []
-globalThis.history = {
-  pushState(state, title, address) {
+setNavigator({
+  push(address) {
     pushed.push(address)
     setAddress(address)
   },
-  replaceState(state, title, address) {
+  replace(address) {
     setAddress(address)
   }
-}
+})
 
 describe("preset addresses", () => {
   for (const [path, expected] of [

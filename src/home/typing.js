@@ -41,15 +41,16 @@ const NEXT_TIME = 0.25
 const CENTRE_SPEED = 9
 const FIT = 0.94
 
-export async function startTyping(holder) {
+export async function startTyping(holder, signal) {
   const canvas = holder.querySelector("canvas")
   const gl = canvas.getContext("webgl", { alpha: true, antialias: false, depth: false, premultipliedAlpha: true, powerPreference: "low-power" })
   if (!gl) throw new Error("the typing title needs WebGL")
-  const meta = await fetch("/home/typing.json").then(response => {
+  const meta = await fetch("/home/typing.json", { signal }).then(response => {
     if (!response.ok) throw new Error(`failed to load the typing title: ${response.status}`)
     return response.json()
   })
-  const loaded = await Promise.all(meta.phrases.map(phrase => Promise.all([fetch(`/home/typing/${phrase.name}.bin`).then(response => response.arrayBuffer()), image(`/home/typing/${phrase.name}.png`)])))
+  const loaded = await Promise.all(meta.phrases.map(phrase => Promise.all([fetch(`/home/typing/${phrase.name}.bin`, { signal }).then(response => response.arrayBuffer()), image(`/home/typing/${phrase.name}.png`)])))
+  if (signal.aborted) return
 
   const sceneProgram = program(gl, VERTEX, FRAGMENT)
   const postProgram = program(gl, FXAA_VERTEX, FXAA_FRAGMENT)
@@ -218,11 +219,21 @@ export async function startTyping(holder) {
     holder.classList.add("running")
   }
 
-  new ResizeObserver(resize).observe(canvas)
-  new IntersectionObserver(([entry]) => {
+  const resizing = new ResizeObserver(resize)
+  resizing.observe(canvas)
+  const showing = new IntersectionObserver(([entry]) => {
     visible = entry.isIntersecting
     if (visible) last = 0
     if (visible && !frame) frame = requestAnimationFrame(tick)
-  }).observe(canvas)
+  })
+  showing.observe(canvas)
+  signal.addEventListener("abort", () => {
+    resizing.disconnect()
+    showing.disconnect()
+    cancelAnimationFrame(frame)
+    frame = 0
+    visible = false
+    gl.getExtension("WEBGL_lose_context")?.loseContext()
+  })
   resize()
 }

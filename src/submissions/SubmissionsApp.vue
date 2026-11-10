@@ -1,5 +1,6 @@
 <script setup>
   import { onMounted, ref } from "vue"
+  import { useRoute } from "vue-router"
   import { refreshAccount } from "../lib/community.js"
   import { loadFontList } from "../lib/font.js"
   import { loadStats } from "../lib/stats.js"
@@ -8,12 +9,11 @@
   import SubmissionView from "./SubmissionView.vue"
   import SubmitPage from "./SubmitPage.vue"
 
-  const PAGE = /^\/submissions\/(\d+)(\/edit)?\/?$/
-  const LIST = /^\/submissions\/?$/
-
-  const [, viewed = null, editing = null] = location.pathname.match(PAGE) ?? []
-  const managing = location.pathname.startsWith("/account")
-  const listing = LIST.test(location.pathname)
+  const route = useRoute()
+  const viewed = route.params.id ?? null
+  const editing = route.path.replace(/\/$/, "").endsWith("/edit")
+  const managing = route.meta.name === "account"
+  const listing = route.meta.name === "submissions" && !viewed
   const fonts = ref(null)
   const error = ref("")
 

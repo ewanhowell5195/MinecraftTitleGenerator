@@ -2,6 +2,7 @@
   import { computed, onMounted, ref } from "vue"
   import { account, refreshAccount, signIn, signInProviders, signOut } from "../lib/community.js"
   import { providerLabel } from "../lib/providers.js"
+  import { router } from "../router.js"
   import Icon from "./Icon.vue"
   import MenuButton from "./MenuButton.vue"
 
@@ -10,7 +11,7 @@
   onMounted(() => refreshAccount())
 
   const hasSubmissions = computed(() => !!(account.value?.admin || account.value?.submissions || account.value?.unread))
-  const items = computed(() => account.value ? [{ heading: true, label: `Signed in as ${account.value.name}` }].concat(hasSubmissions.value ? { label: "Submissions", icon: "upload", action: () => location.assign("/submissions/") } : [], { label: "Manage account", icon: "user", action: () => location.assign("/account/") }, { label: "Sign out", icon: "signOut", action: signOut }) : signInProviders.value.map(id => ({ label: `Sign in with ${providerLabel(id)}`, icon: id, action: () => signIn(id) })))
+  const items = computed(() => account.value ? [{ heading: true, label: `Signed in as ${account.value.name}` }].concat(hasSubmissions.value ? { label: "Submissions", icon: "upload", action: () => router.push("/submissions/") } : [], { label: "Manage account", icon: "user", action: () => router.push("/account/") }, { label: "Sign out", icon: "signOut", action: signOut }) : signInProviders.value.map(id => ({ label: `Sign in with ${providerLabel(id)}`, icon: id, action: () => signIn(id) })))
 </script>
 
 <template>

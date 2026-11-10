@@ -1,69 +1,8 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Minecraft Title Generator</title>
-    <meta name="description" content="Make your own Minecraft style 3D titles in your browser, then render them as images.">
-    <meta name="color-scheme" content="dark">
-    <meta name="theme-color" content="#111214">
-    <link rel="canonical" href="https://mctitlegenerator.com/">
-    <link rel="icon" href="/favicon.ico" sizes="32x32">
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://mctitlegenerator.com/">
-    <meta property="og:title" content="Minecraft Title Generator">
-    <meta property="og:description" content="Make your own Minecraft style 3D titles in your browser, then render them as images.">
-    <meta property="og:image" content="https://mctitlegenerator.com/home/og.jpg">
-    <meta name="twitter:card" content="summary_large_image">
-    <link rel="preload" href="/home/logo.bin" as="fetch" crossorigin>
-    <link rel="stylesheet" href="/src/home/home.css">
-    <script>
-      if (!matchMedia("(prefers-reduced-motion: reduce)").matches && document.createElement("canvas").getContext("webgl")) document.documentElement.classList.add("live")
-    </script>
-    <script type="module" src="/src/home/main.js"></script>
-  </head>
+  <head></head>
   <body>
-    <header class="bar"></header>
-
-    <main>
-      <section class="hero">
-        <div class="glow warm" aria-hidden="true"></div>
-        <div class="glow cool" aria-hidden="true"></div>
-        <canvas aria-hidden="true"></canvas>
-        <h1 class="stage"><img class="poster" src="/home/logo.webp" alt="Minecraft Title Generator" width="1800" height="524"></h1>
-        <p class="lead">Make your own Minecraft style 3D titles, right in your browser!</p>
-        <div class="actions">
-          <a class="button" href="/app/">Open the generator</a>
-          <a class="button blue" href="https://ewanhowell.com/plugins/minecraft-title-generator" target="_blank" rel="noopener">Get the Blockbench plugin</a>
-          <a class="button dark" href="/font-editor/">Make a font</a>
-        </div>
-      </section>
-
-      <section class="textures">
-        <div class="wrap">
-          <h2>Over 100 textures to start from</h2>
-          <p>Most of them were made by the community. You can also make your own gradient, or tile any block texture from any version of Minecraft.</p>
-        </div>
-        <div class="strips" aria-hidden="true"></div>
-      </section>
-
-      <section class="band">
-        <div class="wrap">
-          <div class="band-text">
-            <h2>Make your own title!</h2>
-            <dl class="stats">
-              <div><dt>Titles made</dt><dd data-stat="total"></dd></div>
-              <div><dt>This week</dt><dd data-stat="week"></dd></div>
-            </dl>
-            <a class="button dark" href="/app/">Open the generator</a>
-          </div>
-          <div class="band-title" aria-hidden="true"><img src="/home/typing/your-title.webp" alt="" width="1125" height="200" loading="lazy"><canvas></canvas></div>
-        </div>
-      </section>
-    </main>
-
-    <footer class="footer"></footer>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
   </body>
 </html>

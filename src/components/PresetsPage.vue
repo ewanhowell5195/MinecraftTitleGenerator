@@ -21,6 +21,7 @@
   import SharePresetDialog from "./SharePresetDialog.vue"
   import SubmissionUsage from "./SubmissionUsage.vue"
   import TitlePicture from "./TitlePicture.vue"
+  import { router } from "../router.js"
 
   const TABS = [{ value: "community", label: "Community" }, { value: "mine", label: "My presets" }]
   const SORTS = [{ value: "week", label: "Popular this week" }, { value: "popular", label: "Popular all time" }, { value: "top", label: "Top rated" }, { value: "new", label: "Newest" }, { value: "needs", label: "Needs votes" }]
@@ -343,7 +344,7 @@
   })
 
   onBeforeUnmount(() => {
-    document.title = EDITOR_TITLE
+    if (router.currentRoute.value.meta.name === "app") document.title = EDITOR_TITLE
     clearTimeout(searching)
     observer.disconnect()
   })

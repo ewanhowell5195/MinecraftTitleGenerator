@@ -54,14 +54,15 @@ function landing(progress) {
   return 0.05 * Math.sin(Math.PI * (progress - LANDED) / (1 - LANDED))
 }
 
-export async function startHero(canvas, stage) {
+export async function startHero(canvas, stage, signal) {
   const gl = canvas.getContext("webgl", { alpha: true, antialias: false, depth: false, premultipliedAlpha: true, powerPreference: "low-power" })
   if (!gl) throw new Error("hero needs WebGL")
   const [meta, buffer, sheet] = await Promise.all([
-    fetch("/home/logo.json").then(response => response.json()),
-    fetch("/home/logo.bin").then(response => response.arrayBuffer()),
+    fetch("/home/logo.json", { signal }).then(response => response.json()),
+    fetch("/home/logo.bin", { signal }).then(response => response.arrayBuffer()),
     image("/home/logo.png")
   ])
+  if (signal.aborted) return
 
   const sceneProgram = program(gl, SCENE_VERTEX, SCENE_FRAGMENT)
   const postProgram = program(gl, FXAA_VERTEX, FXAA_FRAGMENT)
@@ -295,11 +296,21 @@ export async function startHero(canvas, stage) {
     if (!frame && visible) frame = requestAnimationFrame(tick)
   }
 
-  new ResizeObserver(resize).observe(canvas)
-  new IntersectionObserver(([entry]) => {
+  const resizing = new ResizeObserver(resize)
+  resizing.observe(canvas)
+  const showing = new IntersectionObserver(([entry]) => {
     visible = entry.isIntersecting
     run()
-  }).observe(canvas)
+  })
+  showing.observe(canvas)
+  signal.addEventListener("abort", () => {
+    resizing.disconnect()
+    showing.disconnect()
+    cancelAnimationFrame(frame)
+    frame = 0
+    visible = false
+    gl.getExtension("WEBGL_lose_context")?.loseContext()
+  })
   addEventListener("pointermove", event => {
     if (event.pointerType === "touch" || !started || performance.now() - started < (introEnd + INPUT_DELAY) * 1000) return
     const box = stage.getBoundingClientRect()
@@ -309,13 +320,13 @@ export async function startHero(canvas, stage) {
     pointer.clientY = event.clientY
     pointer.moved = true
     pointer.active = true
-  }, { passive: true })
+  }, { passive: true, signal })
   document.documentElement.addEventListener("mouseleave", () => {
     pointer.active = false
     pointer.lastX = undefined
     pointer.lastY = undefined
     underPointer = -1
-  })
+  }, { signal })
   resize()
   run()
 }

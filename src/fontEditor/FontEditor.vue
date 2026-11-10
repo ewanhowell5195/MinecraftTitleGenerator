@@ -131,14 +131,6 @@
   </div>
 </template>
 
-<style>
-  html,
-  body,
-  #app {
-    height: 100%;
-  }
-</style>
-
 <style scoped>
   .editor-page {
     display: flex;

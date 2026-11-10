@@ -3,11 +3,23 @@ import fs from "node:fs"
 import path from "node:path"
 import { defineConfig } from "vite"
 import { mockSubmissions } from "./dev/mockSubmissions.js"
+import { PAGES } from "./src/pages.js"
 import { creditsHtml } from "./src/server/credits.js"
 import { escaped } from "./src/server/http.js"
 import { linkedCode, linkedTitleDetails, presetDetails, shareTags } from "./src/server/presets.js"
+import { shellHtml, shellPage } from "./src/site/shell.js"
 
 const LIVE = "https://mctitlegenerator.com"
+const CREDITS = "virtual:credits"
+const STYLE_SCOPES = {
+  "src/style.css": "tool",
+  "src/fontEditor/editor.css": "editor",
+  "src/submissions/submissions.css": "submissions",
+  "src/home/home.css": "site",
+  "src/legal/legal.css": "site",
+  "src/credits/credits.css": "site",
+  "src/site/bar.css": "bar"
+}
 const PRESET_PAGE = /^\/app\/presets(?:\/(\d+))?\/?$/
 const APP_PAGE = /^\/app\/(index\.html)?$/
 const SUBMISSION_PAGE = /^\/submissions\/\d+(\/edit)?\/?$/
@@ -71,36 +83,50 @@ const submissionPages = {
   name: "submission-pages",
   configureServer(server) {
     server.middlewares.use((request, response, next) => {
-      if (SUBMISSION_PAGE.test(new URL(request.url, "http://localhost").pathname)) request.url = "/submit/"
+      if (SUBMISSION_PAGE.test(new URL(request.url, "http://localhost").pathname)) request.url = "/submissions/"
       next()
     })
   }
 }
 
-const creditsPage = {
-  name: "credits-page",
+const creditsModule = {
+  name: "credits-module",
+  resolveId(id) {
+    if (id === CREDITS) return `\0${CREDITS}`
+  },
+  load(id) {
+    if (id === `\0${CREDITS}`) return `export default ${JSON.stringify(creditsHtml(import.meta.dirname))}`
+  }
+}
+
+const shellPages = {
+  name: "shell-pages",
   transformIndexHtml: {
     order: "pre",
     handler(html, context) {
-      if (context.path !== "/credits/index.html") return html
-      return html.replace("<main class=\"credits\"></main>", () => `<main class="credits">${creditsHtml(import.meta.dirname)}</main>`)
+      const page = shellPage(context.path.replace(/^\//, ""))
+      return page ? shellHtml(html, page) : html
     }
   }
 }
 
-function sitePart(name) {
-  return fs.readFileSync(path.join(import.meta.dirname, "src/site", name), "utf8").trim()
+function scopedSelector(selector, prefix) {
+  if (/^(:root|html)(?![\w-])/.test(selector)) return selector.replace(/^(:root|html)/, prefix)
+  return `${prefix} ${selector}`
 }
 
-const siteParts = {
-  name: "site-parts",
-  transformIndexHtml: {
-    order: "pre",
-    handler(html, context) {
-      const page = context.path.replace(/index\.html$/, "")
-      return html
-        .replace(/<header class="bar([^"]*)"><\/header>/, (_, classes) => sitePart("header.html").replace("%CLASSES%", classes).replace(`href="${page}"`, `href="${page}" aria-current="page"`))
-        .replace("<footer class=\"footer\"></footer>", () => sitePart("footer.html").replace("%YEAR%", new Date().getFullYear()))
+function scopedStyles() {
+  return {
+    postcssPlugin: "scoped-styles",
+    Once(root) {
+      const file = path.relative(import.meta.dirname, root.source?.input.file ?? "").split(path.sep).join("/")
+      const scope = STYLE_SCOPES[file]
+      if (!scope) return
+      const prefix = `:where(:root[data-styles~="${scope}"])`
+      root.walkRules(rule => {
+        if (rule.parent.type === "atrule" && rule.parent.name.endsWith("keyframes")) return
+        rule.selectors = rule.selectors.map(selector => scopedSelector(selector, prefix))
+      })
     }
   }
 }
@@ -113,7 +139,8 @@ function allowCookiesOverHttp(proxy) {
 }
 
 export default defineConfig({
-  plugins: [vue(), mockSubmissions(), submissionPages, folderSlashes, presetPages, creditsPage, siteParts],
-  build: { rolldownOptions: { input: ["index.html", "app/index.html", "font-editor/index.html", "credits/index.html", "submit/index.html", "submissions/index.html", "account/index.html", "terms/index.html", "privacy/index.html"] } },
+  plugins: [vue(), mockSubmissions(), submissionPages, folderSlashes, presetPages, creditsModule, shellPages],
+  css: { postcss: { plugins: [scopedStyles()] } },
+  build: { rolldownOptions: { input: PAGES.map(page => page.file) } },
   server: { host: "127.0.0.1", port: 9123, strictPort: true, proxy: { "/api": { target: LIVE, changeOrigin: true, configure: allowCookiesOverHttp } } }
 })

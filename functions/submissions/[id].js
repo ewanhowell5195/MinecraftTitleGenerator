@@ -1,3 +1,3 @@
 export function onRequestGet({ request, env }) {
-  return env.ASSETS.fetch(new URL("/submit/", request.url))
+  return env.ASSETS.fetch(new URL("/submissions/", request.url))
 }

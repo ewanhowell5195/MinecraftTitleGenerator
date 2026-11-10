@@ -23,6 +23,7 @@
     "opentype.js": "^2.0.0",
     "three": "^0.187.0",
     "vue": "^3.5.44",
+    "vue-router": "^5.4.0",
     "woff2-encoder": "^2.0.0"
   },
   "devDependencies": {

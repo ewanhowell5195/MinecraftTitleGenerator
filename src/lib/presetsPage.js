@@ -1,4 +1,5 @@
 import { reactive } from "vue"
+import { navigate, onNavigated } from "./navigation.js"
 import { TITLE_PARAM } from "./scene.js"
 
 const PATH = "/app/presets"
@@ -19,22 +20,28 @@ export function presetLink(id) {
   return `${location.origin}${PATH}/${id}`
 }
 
-export function syncPresetsPage() {
-  const { open, id } = readPresetPath(location.pathname)
-  const code = open && id === null ? new URLSearchParams(location.search).get(TITLE_PARAM) : null
+function syncTo(url) {
+  const { open, id } = readPresetPath(url.pathname)
+  const code = open && id === null ? url.searchParams.get(TITLE_PARAM) : null
   Object.assign(presetsPage, { open, id, code })
+}
+
+export function syncPresetsPage() {
+  syncTo(new URL(location.href))
+}
+
+function go(path, replace) {
+  syncTo(new URL(path, location.origin))
+  navigate(path, { replace })
 }
 
 export function openPresetsPage() {
   returnTo = `${location.pathname}${location.search}${location.hash}`
-  history.pushState(null, "", PATH)
-  syncPresetsPage()
+  go(PATH, false)
 }
 
 function showAddress(path, replace = presetsPage.id !== null || presetsPage.code !== null) {
-  if (replace) history.replaceState(null, "", path)
-  else history.pushState(null, "", path)
-  syncPresetsPage()
+  go(path, replace)
 }
 
 export function showPreset(id, { replace } = {}) {
@@ -46,14 +53,12 @@ export function showOwnPreset(code) {
 }
 
 export function openLinkInEditor(code) {
-  history.replaceState(null, "", `${EDITOR}?${TITLE_PARAM}=${code}`)
-  syncPresetsPage()
+  go(`${EDITOR}?${TITLE_PARAM}=${code}`, true)
   returnTo = EDITOR
 }
 
 export function closePresetsPage(to = returnTo) {
-  history.pushState(null, "", to)
-  syncPresetsPage()
+  go(to, false)
   returnTo = EDITOR
 }
 
@@ -67,5 +72,9 @@ export function takeLanding() {
   return landed
 }
 
-syncPresetsPage()
-let landing = presetsPage.open
+let landing = false
+
+onNavigated((to, from) => {
+  syncPresetsPage()
+  if (to.meta.name === "app" && from.meta.name !== "app") landing = presetsPage.open
+})

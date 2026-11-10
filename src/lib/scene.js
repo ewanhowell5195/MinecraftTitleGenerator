@@ -58,7 +58,7 @@ let saving = null
 export function clearSharedLink() {
   const url = new URL(location.href)
   url.searchParams.delete(TITLE_PARAM)
-  history.replaceState(null, "", url)
+  history.replaceState(history.state, "", url)
 }
 
 export function leaveSharedLink() {

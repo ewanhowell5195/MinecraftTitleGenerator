@@ -15,6 +15,7 @@
   import ReviewPanel from "./ReviewPanel.vue"
   import SubmissionFiles from "./SubmissionFiles.vue"
   import SubmissionForm from "./SubmissionForm.vue"
+  import { router } from "../router.js"
 
   const PROCESSING_POLL = 5000
   const TABS = [{ id: "comments", label: "Comments" }, { id: "characters", label: "Characters" }, { id: "files", label: "Files" }]
@@ -54,7 +55,7 @@
       item.value = thread.submission
       comments.value = thread.comments
       reviewer.value = thread.reviewer
-      if (props.editing && !changeable.value) location.replace(page)
+      if (props.editing && !changeable.value) router.replace(page)
     } catch (err) {
       error.value = err.message
     }
@@ -81,7 +82,7 @@
   }
 
   function reviewed() {
-    location.assign("/submissions/")
+    router.push("/submissions/")
   }
 
   async function withdraw() {
@@ -89,7 +90,7 @@
     busy.value = true
     try {
       await withdrawSubmission(props.id)
-      location.assign("/submissions/")
+      router.push("/submissions/")
     } catch (err) {
       error.value = err.message
       busy.value = false
@@ -97,12 +98,12 @@
   }
 
   function saved() {
-    location.replace(page)
+    router.replace(page)
   }
 
   function cancel() {
-    if (document.referrer === new URL(page, location.origin).href) history.back()
-    else location.assign(page)
+    if (history.state?.back?.replace(/\/$/, "") === page.replace(/\/$/, "")) router.back()
+    else router.push(page)
   }
 
   onMounted(async () => {

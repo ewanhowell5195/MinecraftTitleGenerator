@@ -34,7 +34,7 @@
   import { redo, undo } from "./lib/history.js"
   import { keepMatched } from "./lib/match.js"
   import { notice } from "./lib/notices.js"
-  import { presetsPage, syncPresetsPage } from "./lib/presetsPage.js"
+  import { presetsPage } from "./lib/presetsPage.js"
   import { active, addObject, currentWord, library, saveError, scene, selection, shapingWord, wordTabs, words } from "./lib/scene.js"
   import { openSharedLink } from "./lib/share.js"
   import { openSubmissionLink } from "./lib/submissionLink.js"
@@ -80,7 +80,7 @@
     drawer.value.scrollTop = 0
   })
 
-  useWindowEvents(() => true, { keydown: shortcut, popstate: syncPresetsPage })
+  useWindowEvents(() => true, { keydown: shortcut })
 
   onMounted(async () => {
     loadStats().catch(console.error)
