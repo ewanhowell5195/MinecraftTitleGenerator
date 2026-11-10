@@ -173,7 +173,7 @@ button,
 }
 
 .card:focus-visible,
-.toggle-switch:focus-within span {
+.toggle-switch:has(input:focus-visible) span {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -256,6 +256,11 @@ button,
 
 .toggle-switch input:checked + span::after {
   transform: translateX(16px);
+}
+
+.toggle-switch:has(input:disabled) {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .tab-bar .tab-bar-button {
