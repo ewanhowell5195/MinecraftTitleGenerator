@@ -1,6 +1,7 @@
 <script setup>
   import { computed, onBeforeUnmount, ref, watch } from "vue"
   import Button from "../components/Button.vue"
+  import Field from "../components/Field.vue"
   import Icon from "../components/Icon.vue"
   import NavTabs from "../components/NavTabs.vue"
   import Segments from "../components/Segments.vue"
@@ -166,23 +167,14 @@
   <form class="submission-form" @submit.prevent="send">
     <NavTabs v-if="GROUPS.length > 1" v-model="group" :tabs="GROUPS" />
     <div class="columns">
-      <label class="field">
-        <span class="label">Name <span class="required" aria-hidden="true">*</span></span>
+      <Field label="Name" required :error="shown.name" :hint="`Shown as the ${type.noun}'s name in the generator.`">
         <input type="text" v-model="name" :maxlength="SUBMISSION_LIMITS.name" spellcheck="false" required>
-        <span v-if="shown.name" class="hint bad">{{ shown.name }}</span>
-        <span v-else class="hint">Shown as the {{ type.noun }}'s name in the generator.</span>
-      </label>
-      <label class="field">
-        <span class="label">Credit <span v-if="kind !== 'font'" class="required" aria-hidden="true">*</span></span>
+      </Field>
+      <Field label="Credit" :required="kind !== 'font'" :error="shown.credit" :hint="`Shown as the ${type.noun}'s author. List everyone who made it.`">
         <input type="text" v-model="credit" :maxlength="SUBMISSION_LIMITS.credit" spellcheck="false" :required="kind !== 'font'">
-        <span v-if="shown.credit" class="hint bad">{{ shown.credit }}</span>
-        <span v-else class="hint">Shown as the {{ type.noun }}'s author. List everyone who made it.</span>
-      </label>
+      </Field>
     </div>
-    <div v-if="group === 'texture'" class="field">
-      <Segments v-model="kind" :options="TEXTURE_KINDS" label="Kind of texture" />
-      <p class="hint">{{ ABOUT[kind] }}</p>
-    </div>
+    <Segments v-if="group === 'texture'" v-model="kind" :options="TEXTURE_KINDS" label="Kind of texture" :hint="ABOUT[kind]" />
     <div class="stage-area" :class="{ dragging }" @dragover.prevent="dragging = true" @dragleave.self="dragging = false" @drop.prevent="drop">
       <template v-if="fileUrl || chosen">
         <component :is="parts.Preview" v-bind="kind === 'strip' ? { font: previewFont, 'onUpdate:font': id => previewFont = id } : {}" :fonts="fonts" :kind="kind" :target="target" :details="details" :files="extras" :initial="initial" :url="fileUrl" :text="previewText || name || 'Minecraft'" />
@@ -190,7 +182,6 @@
           <input type="text" v-model="previewText" :placeholder="name || 'Minecraft'" spellcheck="false" aria-label="Preview text">
           <Button file :accept="isImage ? 'image/png' : '.json,application/json'" @change="pick"><template #icon><Icon name="open" :size="16" /></template>
             <span>Replace file</span>
-            
           </Button>
         </div>
       </template>
@@ -205,11 +196,9 @@
     <div class="kind-fields">
       <component :is="parts.Fields" v-bind="kind === 'strip' ? { onPreview: id => previewFont = id } : {}" v-model:target="target" v-model:details="details" v-model:files="extras" :fonts="fonts" :kind="kind" :file="chosen" :initial="initial" :name="name" :problems="problems" :tried="tried" @problem="extraProblem = $event" />
     </div>
-    <label class="field">
-      <span class="label">Notes for the reviewer</span>
+    <Field label="Notes for the reviewer" :error="shown.notes">
       <textarea v-model="notes" :maxlength="SUBMISSION_LIMITS.notes" rows="3" placeholder="Optional"></textarea>
-      <span v-if="shown.notes" class="hint bad">{{ shown.notes }}</span>
-    </label>
+    </Field>
     <div class="finish">
       <label v-if="!initial" class="check">
         <input type="checkbox" v-model="agree">

@@ -1,6 +1,7 @@
 <script setup>
   import { computed } from "vue"
   import Button from "../components/Button.vue"
+  import Field from "../components/Field.vue"
   import Icon from "../components/Icon.vue"
   import NumberInput from "../components/NumberInput.vue"
   import { autoStretch, changeGlyph, characterName, setGlyph, squaresOf, widthOf } from "../lib/fontEditor.js"
@@ -46,23 +47,20 @@
 <template>
   <div class="flow">
     <h3>{{ characterName(selected) }}</h3>
-    <div class="field">
-      <span class="label">Width</span>
+    <Field group label="Width">
       <div class="input-row">
         <NumberInput min="1" :value="squaresOf(font, width)" aria-label="Character width" @input="setNumber('width', $event, 1)" @change="setNumber('width', $event, 1)" />
         <Button v-if="overridden" v-tooltip="`Go back to the default width of ${squaresOf(font, font.width)}`" @click="resetWidth">Use default</Button>
         <span v-else class="hint">Default width</span>
       </div>
-    </div>
+    </Field>
     <div class="pair">
-      <label class="field">
-        <span class="label">Rows above topline</span>
+      <Field label="Rows above topline">
         <NumberInput min="0" :value="squaresOf(font, glyph.above)" @input="setNumber('above', $event, 0)" @change="setNumber('above', $event, 0)" />
-      </label>
-      <label class="field">
-        <span class="label">Rows below baseline</span>
+      </Field>
+      <Field label="Rows below baseline">
         <NumberInput min="0" :value="squaresOf(font, glyph.below)" @input="setNumber('below', $event, 0)" @change="setNumber('below', $event, 0)" />
-      </label>
+      </Field>
     </div>
     <p class="hint">Height is set for the whole font. For tall or hanging characters, add rows here instead.</p>
 

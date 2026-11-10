@@ -13,6 +13,7 @@
   import { popular } from "../../lib/stats.js"
   import { fontThumbnail } from "../../lib/ui.js"
   import Button from "../Button.vue"
+  import Field from "../Field.vue"
   import Icon from "../Icon.vue"
   import NumberInput from "../NumberInput.vue"
   import Panel from "../Panel.vue"
@@ -172,14 +173,12 @@
           <p class="hint">{{ object.customFont.mesh ? "Smooth edges that follow the font's own curves." : "Pixel cubes, like the other fonts." }}</p>
         </template>
         <div class="sizes">
-          <label class="field">
-            <span class="label">Height in pixels</span>
+          <Field label="Height in pixels">
             <NumberInput min="1" :value="object.customFont.height" :disabled="loading" @change="setHeight" />
-          </label>
-          <label v-if="squares" class="field">
-            <span class="label">Square size</span>
+          </Field>
+          <Field v-if="squares" label="Square size">
             <NumberInput min="1" :value="object.customFont.density ?? 1" :disabled="loading" @change="setDensity" />
-          </label>
+          </Field>
         </div>
         <p v-if="squares" class="hint">Square size is how many pixels each square is. 4 gives chunky squares like Minecraft Ten. Fonts drawn on a pixel grid keep their own.</p>
         <Toggle label="Use lowercase letters" hint="Titles use one case. Off uses the capital letters" :model-value="object.customFont.lowercase" @update:model-value="changeImport('lowercase', $event)" />

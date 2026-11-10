@@ -5,6 +5,7 @@
   import { openPresetsPage, showPreset } from "../lib/presetsPage.js"
   import { sharingProblem } from "../lib/titleFacts.js"
   import Button from "./Button.vue"
+  import Field from "./Field.vue"
   import RenderDialog from "./RenderDialog.vue"
   import ReplaceSelect from "./ReplaceSelect.vue"
   import ShareAccount from "./ShareAccount.vue"
@@ -100,10 +101,9 @@
   <RenderDialog v-else :title="shareOnly ? 'Share publicly' : 'Save preset'" close-title="Cancel" :wide="!namingShared && !shareOnly" dismissable @close="emit('close')">
     <form class="dialog-body" @submit.prevent="submit">
       <ReplaceSelect v-if="!namingShared && !shareOnly" v-model="target" :code="namingCode" label="Save as" />
-      <label class="field">
-        <span class="label">Name</span>
+      <Field label="Name">
         <input ref="field" type="text" v-model="name" :maxlength="NAME_LIMIT" :placeholder="target?.name ?? suggested" spellcheck="false">
-      </label>
+      </Field>
       <template v-if="!namingShared && !target?.online">
         <p class="hint">Share your title so other people can find it in the community presets and use it for themselves.</p>
         <ShareAccount />

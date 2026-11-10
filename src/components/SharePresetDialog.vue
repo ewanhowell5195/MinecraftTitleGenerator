@@ -4,6 +4,7 @@
   import { NAME_LIMIT, confirmReplacing, confirmSharing, replaceWith, sharePreset } from "../lib/presets.js"
   import { sharingProblem } from "../lib/titleFacts.js"
   import Button from "./Button.vue"
+  import Field from "./Field.vue"
   import RenderDialog from "./RenderDialog.vue"
   import ReplaceSelect from "./ReplaceSelect.vue"
   import ShareAccount from "./ShareAccount.vue"
@@ -42,10 +43,9 @@
   <RenderDialog title="Share publicly" close-title="Cancel" wide dismissable @close="emit('close')">
     <form class="dialog-body" @submit.prevent="send">
       <ReplaceSelect v-model="target" :code="preset.code" label="Share as" />
-      <label class="field">
-        <span class="label">Name</span>
+      <Field label="Name">
         <input type="text" v-model="name" :maxlength="NAME_LIMIT" spellcheck="false">
-      </label>
+      </Field>
       <ShareAccount v-if="!target" />
       <label class="check">
         <input type="checkbox" v-model="agreed">

@@ -3,6 +3,7 @@
   import Button from "../../components/Button.vue"
   import ColourPicker from "../../components/ColourPicker.vue"
   import Dropdown from "../../components/Dropdown.vue"
+  import Field from "../../components/Field.vue"
   import NumberInput from "../../components/NumberInput.vue"
   import Segments from "../../components/Segments.vue"
   import { fullName, sheetOwner } from "../../lib/font.js"
@@ -189,37 +190,24 @@
 </script>
 
 <template>
-  <div class="field">
-    <Segments v-model="mode" :options="MODES" label="Strip for" />
-    <p class="hint">A strip is read from top to bottom: the top edge of the letters, their front, then the bottom edge. It repeats along the line, so it can be any width.</p>
-  </div>
-  <div v-if="mode === 'set'" class="field">
-    <Dropdown v-model="set" :options="setOptions" label="Strip type" />
-    <p v-if="users.length" class="hint">Shared by {{ users.join(", ") }}.</p>
-    <span v-if="tried && problems.target" class="hint bad">{{ problems.target }}</span>
-  </div>
-  <div v-else-if="mode === 'font'" class="field">
-    <Dropdown v-model="font" :options="fontOptions" label="Font" searchable />
-    <p class="hint">Only this font gets the strip.</p>
-    <span v-if="tried && problems.target" class="hint bad">{{ problems.target }}</span>
-  </div>
+  <Segments v-model="mode" :options="MODES" label="Strip for" hint="A strip is read from top to bottom: the top edge of the letters, their front, then the bottom edge. It repeats along the line, so it can be any width." />
+  <Field group v-if="mode === 'set'" label="Strip type" :error="tried ? problems.target : ''" :hint="users.length ? `Shared by ${users.join(', ')}.` : ''">
+    <Dropdown v-model="set" :options="setOptions" />
+  </Field>
+  <Field group v-else-if="mode === 'font'" label="Font" :error="tried ? problems.target : ''" hint="Only this font gets the strip.">
+    <Dropdown v-model="font" :options="fontOptions" searchable />
+  </Field>
   <template v-else>
-    <label class="field">
-      <span class="label">Strip type name</span>
+    <Field label="Strip type name" :error="tried || details.set ? problems.set : ''" :hint="newId ? `Saved as ${newId}.` : ''">
       <input type="text" :value="details.set ?? ''" :maxlength="SUBMISSION_LIMITS.name" spellcheck="false" @input="change({ set: $event.target.value })">
-      <span v-if="problems.set && (tried || details.set)" class="hint bad">{{ problems.set }}</span>
-      <span v-else-if="newId" class="hint">Saved as {{ newId }}.</span>
-    </label>
-    <div class="field">
-      <span class="label">Shape</span>
+    </Field>
+    <Field group label="Shape" :error="['depth', 'baseline', 'height'].map(key => problems[key]).find(Boolean)" hint="The depth is how many rows each edge takes. The height is how many rows the front has above the baseline. The baseline counts the rows from the bottom of the strip up to the baseline, including the bottom edge. Minecraft Ten's strips are 22, 30 and 40.">
       <div class="shape">
         <label><span class="hint">Depth</span><NumberInput min="1" :max="STRIP_LIMITS.depth" :value="details.depth" @input="number('depth', $event.target.value)" /></label>
         <label><span class="hint">Baseline</span><NumberInput :min="details.depth" :value="details.baseline" @input="number('baseline', $event.target.value)" /></label>
         <label><span class="hint">Height</span><NumberInput min="1" :max="STRIP_LIMITS.height" :value="details.height" @input="number('height', $event.target.value)" /></label>
       </div>
-      <p class="hint">The depth is how many rows each edge takes. The height is how many rows the front has above the baseline. The baseline counts the rows from the bottom of the strip up to the baseline, including the bottom edge. Minecraft Ten's strips are 22, 30 and 40.</p>
-      <span v-for="key of ['depth', 'baseline', 'height']" v-show="problems[key]" :key="key" class="hint bad">{{ problems[key] }}</span>
-    </div>
+    </Field>
     <div class="field wide">
       <div class="fonts-head">
         <span class="label">Fonts ({{ picked.length }} picked)</span>
@@ -246,18 +234,16 @@
     <span>Stretch the front between each font's baseline and top, instead of lining it up row by row</span>
   </label>
   <span v-if="problems.stretch" class="hint bad">{{ problems.stretch }}</span>
-  <div class="field">
-    <span class="label">Border colour</span>
+  <Field group label="Border colour">
     <ColourPicker v-model="border" />
     <span v-if="problems.border" class="hint bad">{{ problems.border }}</span>
-  </div>
+  </Field>
   <p v-if="required" class="hint">{{ required }}</p>
-  <div v-if="suggestions.length" class="field wide">
-    <span class="label">Its height fits</span>
+  <Field group v-if="suggestions.length" class="wide" label="Its height fits">
     <div class="suggestions">
       <Button :primary="item === target" v-for="item of suggestions" :key="item" @click="emit('update:target', item)">{{ label(item) }}</Button>
     </div>
-  </div>
+  </Field>
 </template>
 
 <style scoped>

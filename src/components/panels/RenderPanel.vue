@@ -9,6 +9,7 @@
   import Button from "../Button.vue"
   import ColourPicker from "../ColourPicker.vue"
   import Dropdown from "../Dropdown.vue"
+  import Field from "../Field.vue"
   import GradientEditor from "../GradientEditor.vue"
   import Icon from "../Icon.vue"
   import NumberInput from "../NumberInput.vue"
@@ -100,23 +101,21 @@
   <Panel title="Framing" :modified="framingModified()" @reset="resetFraming">
     <Segments :options="FRAMINGS" v-model="framing.tab" />
     <template v-if="framing.tab === 'custom'">
-      <div class="field">
-        <span class="label">Size</span>
+      <Field group label="Size">
         <div class="input-row">
           <NumberInput :value="framing.width" min="1" :max="max" v-tooltip="'Width'" aria-label="Width" @input="setResolution('width', $event.target.value)" @change="$event.target.value = framing.width" />
           <span class="times">&times;</span>
           <NumberInput :value="framing.height" min="1" :max="max" v-tooltip="'Height'" aria-label="Height" @input="setResolution('height', $event.target.value)" @change="$event.target.value = framing.height" />
           <Button ghost :active="framing.linked" @click="framing.linked = !framing.linked" v-tooltip="'Link width and height'" aria-label="Link width and height"><template #icon><Icon name="link" :size="16" /></template></Button>
         </div>
-      </div>
-      <div class="field">
-        <span class="label">Aspect ratio</span>
+      </Field>
+      <Field group label="Aspect ratio">
         <div class="input-row">
           <NumberInput :value="framing.aspectWidth" min="1" :max="max" v-tooltip="'Aspect width'" aria-label="Aspect width" @input="setAspect('aspectWidth', $event.target.value)" @change="$event.target.value = framing.aspectWidth" />
           <span class="times">:</span>
           <NumberInput :value="framing.aspectHeight" min="1" :max="max" v-tooltip="'Aspect height'" aria-label="Aspect height" @input="setAspect('aspectHeight', $event.target.value)" @change="$event.target.value = framing.aspectHeight" />
         </div>
-      </div>
+      </Field>
     </template>
     <Dropdown v-if="framing.tab === 'minecraft'" label="Texture mode" :options="MINECRAFT_MODES" v-model="framing.mode" />
     <template v-else>

@@ -2,6 +2,7 @@
   import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue"
   import Button from "../components/Button.vue"
   import ContextMenu from "../components/ContextMenu.vue"
+  import Field from "../components/Field.vue"
   import Icon from "../components/Icon.vue"
   import RenderDialog from "../components/RenderDialog.vue"
   import Tile from "../components/Tile.vue"
@@ -127,10 +128,9 @@
     <ContextMenu :items="context?.items" :at="context?.at" @close="context = null" />
     <RenderDialog v-if="adding" title="Add characters" close-title="Cancel" dismissable @close="adding = false">
       <form class="add-form" @submit.prevent="confirmAdding">
-        <label class="field">
-          <span class="label">Characters</span>
+        <Field label="Characters">
           <input ref="field" v-model="typed" type="text" placeholder="eg ä ö ü" aria-label="Characters to add">
-        </label>
+        </Field>
         <p class="hint">{{ !typed.trim() ? "Type one or more characters. Capitals are added as lowercase." : newCharacters.length ? `Adds ${newCharacters.join(" ")}` : "Those are all in the font already." }}</p>
         <div class="buttons">
           <div class="spacer"></div>

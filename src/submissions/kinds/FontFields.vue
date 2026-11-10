@@ -3,6 +3,7 @@
   import Button from "../../components/Button.vue"
   import ColourPicker from "../../components/ColourPicker.vue"
   import Dropdown from "../../components/Dropdown.vue"
+  import Field from "../../components/Field.vue"
   import Icon from "../../components/Icon.vue"
   import Segments from "../../components/Segments.vue"
   import { flatTexture } from "../../lib/fontEditor.js"
@@ -127,25 +128,17 @@
 </script>
 
 <template>
-  <div class="field">
-    <span class="label">Add it as</span>
+  <Field group label="Add it as">
     <Segments v-model="mode" :options="MODES" />
-    <p class="hint">Make the font in the <a href="/font-editor/" target="_blank">font editor</a> and send the JSON it downloads. A variant is another version of a font that is already here, listed under it with its own textures, eg the same letters for another alphabet. Anything else is a new font<template v-if="newExamples.length">, like {{ joined(newExamples) }}</template>.</p>
-  </div>
-  <template v-if="variant">
-    <div class="field">
-      <Dropdown v-if="parents.length" v-model="parent" :options="parents" label="Variant of" searchable />
-      <span v-if="tried && problems.target" class="hint bad">{{ problems.target }}</span>
-    </div>
-  </template>
-  <div v-if="fontId !== null" class="field">
-    <span class="label">Font ID</span>
+    <template #hint>Make the font in the <a href="/font-editor/" target="_blank">font editor</a> and send the JSON it downloads. A variant is another version of a font that is already here, listed under it with its own textures, eg the same letters for another alphabet. Anything else is a new font<template v-if="newExamples.length">, like {{ joined(newExamples) }}</template>.</template>
+  </Field>
+  <Field group v-if="variant" :label="parents.length ? 'Variant of' : ''" :error="tried ? problems.target : ''">
+    <Dropdown v-if="parents.length" v-model="parent" :options="parents" searchable />
+  </Field>
+  <Field group v-if="fontId !== null" label="Font ID" :error="problems.id" hint="From the font's JSON. Change it in the font editor's Font tab.">
     <code class="font-id">{{ fontId || "None" }}</code>
-    <span v-if="problems.id" class="hint bad">{{ problems.id }}</span>
-    <span v-else class="hint">From the font's JSON. Change it in the font editor's Font tab.</span>
-  </div>
-  <div class="field wide">
-    <span class="label">Textures, overlays and strips for this font</span>
+  </Field>
+  <Field group class="wide" label="Textures, overlays and strips for this font">
     <p class="hint">Optional. Paint textures and overlays over the font's <a v-if="blankTexture" :href="blankTexture" :download="`${id || 'font'}-template.png`">blank texture</a><template v-else>blank texture, from the Textures tab of the font editor</template>, at its size or a whole number of times bigger.<template v-if="stripHeights"> Strips can be {{ either(stripHeights) }} pixels tall.</template> Up to {{ SUBMISSION_LIMITS.extraFiles }} files.</p>
     <div v-for="item of extras" :key="item.key" class="extra">
       <label class="extra-image" v-tooltip="`Choose the ${KIND_LABELS[item.kind].toLowerCase()}'s PNG`">
@@ -171,7 +164,7 @@
     <div v-if="extras.length < SUBMISSION_LIMITS.extraFiles" class="buttons">
       <Button v-for="kind of EXTRA_KINDS" :key="kind" @click="add(kind)"><template #icon><Icon name="plus" :size="14" /></template>{{ KIND_LABELS[kind] }}</Button>
     </div>
-  </div>
+  </Field>
 </template>
 
 <style scoped>

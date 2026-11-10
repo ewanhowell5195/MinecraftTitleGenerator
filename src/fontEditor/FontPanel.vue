@@ -2,6 +2,7 @@
   import { computed, onMounted, ref, shallowRef } from "vue"
   import Button from "../components/Button.vue"
   import Dropdown from "../components/Dropdown.vue"
+  import Field from "../components/Field.vue"
   import Icon from "../components/Icon.vue"
   import NumberInput from "../components/NumberInput.vue"
   import { fullName, loadFontList } from "../lib/font.js"
@@ -123,23 +124,20 @@
     <section class="flow">
       <h3>About</h3>
       <div class="about">
-        <component :is="item.choice ? 'div' : 'label'" v-for="item of ABOUT" :key="item.key" class="field" :class="{ full: item.full }">
-          <span class="label-row"><span class="label">{{ item.label }}</span><span class="tag" :class="{ required: item.required }">{{ item.required ? "Required" : "Optional" }}</span></span>
+        <Field v-for="item of ABOUT" :key="item.key" :label="item.label" :required="item.required" :hint="item.hint" :error="clashes[item.key]" :group="item.choice" :class="{ full: item.full }">
           <Dropdown v-if="item.choice" searchable :options="basedOnOptions" :model-value="font[item.key]" @update:model-value="setField(item.key, $event, false)" />
           <input v-else-if="item.slug" type="text" :class="{ clashing: clashes[item.key] }" :value="font[item.key]" :placeholder="item.key === 'id' ? previewId : item.placeholder" spellcheck="false" @change="setField(item.key, slug($event.target.value), false)">
           <input v-else type="text" :class="{ clashing: clashes[item.key] }" :value="font[item.key]" @input="setText(item.key, $event)">
-          <small v-if="clashes[item.key]" class="hint bad">{{ clashes[item.key] }}</small>
-          <small class="hint">{{ item.hint }}</small>
-        </component>
+        </Field>
       </div>
     </section>
 
     <section class="flow">
       <h3>Size</h3>
       <div class="numbers">
-        <label class="field"><span class="label">Height</span><NumberInput min="1" :value="squaresOf(font, font.height)" @input="setSize('height', $event)" @change="setSize('height', $event)" /></label>
-        <label class="field"><span class="label">Default width</span><NumberInput min="1" :value="squaresOf(font, font.width)" @input="setSize('width', $event)" @change="setSize('width', $event)" /></label>
-        <label class="field"><span class="label">Square size</span><NumberInput min="1" :value="font.grid" @input="setSquare" @change="setSquare" /></label>
+        <Field label="Height"><NumberInput min="1" :value="squaresOf(font, font.height)" @input="setSize('height', $event)" @change="setSize('height', $event)" /></Field>
+        <Field label="Default width"><NumberInput min="1" :value="squaresOf(font, font.width)" @input="setSize('width', $event)" @change="setSize('width', $event)" /></Field>
+        <Field label="Square size"><NumberInput min="1" :value="font.grid" @input="setSquare" @change="setSquare" /></Field>
       </div>
       <p class="hint">Height and width count squares, and one click paints one square. Square size is how many pixels each square is. Each character is {{ finalSize }}.</p>
       <div v-if="warning" class="warning">
@@ -155,13 +153,12 @@
       <h3>Spacing and shape</h3>
       <p class="hint">These are in pixels, not squares.</p>
       <div class="numbers">
-        <div v-for="item of SPACING" :key="item.key" class="field">
-          <label class="label" :for="`font-${item.key}`">{{ item.label }}</label>
+        <Field v-for="item of SPACING" :key="item.key" group :label="item.label" :label-for="`font-${item.key}`">
           <div class="resettable">
             <NumberInput :id="`font-${item.key}`" :min="item.min" :value="font[item.key]" @input="setNumber(item.key, $event, item.min ?? -1000)" @change="setNumber(item.key, $event, item.min ?? -1000)" />
             <Button ghost v-if="font[item.key] !== item.fallback" v-tooltip="`Reset to ${item.fallback}`" :aria-label="`Reset ${item.label.toLowerCase()} to ${item.fallback}`" @click="setField(item.key, item.fallback, false)"><template #icon><Icon name="reset" :size="14" /></template></Button>
           </div>
-        </div>
+        </Field>
       </div>
     </section>
 
@@ -172,11 +169,9 @@
           <input type="checkbox" :checked="font[flag.key]" @change="setField(flag.key, $event.target.checked, false)">
           <span class="check-text"><span class="check-label">{{ flag.label }}</span><small class="hint">{{ flag.hint }}</small></span>
         </label>
-        <div v-if="flag.key === 'terminatorSpace' && font.terminatorSpace" class="field nested">
-          <label class="label" for="font-terminatorSpaceWidth">Terminator space width</label>
-          <NumberInput id="font-terminatorSpaceWidth" min="0" :value="font.defineSpace ? '' : font.terminatorSpaceWidth ?? ''" :placeholder="font.defineSpace ? '' : String(font.spaceWidth)" :disabled="font.defineSpace" @input="setTerminatorWidth" @change="setTerminatorWidth" />
-          <small class="hint">{{ font.defineSpace ? "Your font draws its own space character, which is always used beside the terminators." : `In pixels. Leave empty to use the normal space width of ${font.spaceWidth}.` }}</small>
-        </div>
+        <Field v-if="flag.key === 'terminatorSpace' && font.terminatorSpace" class="nested" label="Terminator space width" :hint="font.defineSpace ? 'Your font draws its own space character, which is always used beside the terminators.' : `In pixels. Leave empty to use the normal space width of ${font.spaceWidth}.`">
+          <NumberInput min="0" :value="font.defineSpace ? '' : font.terminatorSpaceWidth ?? ''" :placeholder="font.defineSpace ? '' : String(font.spaceWidth)" :disabled="font.defineSpace" @input="setTerminatorWidth" @change="setTerminatorWidth" />
+        </Field>
       </div>
     </section>
 
@@ -197,21 +192,6 @@
 
   .full {
     grid-column: 1 / -1;
-  }
-
-  .label-row {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-  }
-
-  .tag {
-    font-size: var(--font-xs);
-    color: var(--faint);
-  }
-
-  .tag.required {
-    color: var(--accent);
   }
 
   input.clashing {

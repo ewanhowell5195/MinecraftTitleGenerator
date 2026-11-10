@@ -2,6 +2,7 @@
   import { computed, watch } from "vue"
   import ColourPicker from "../../components/ColourPicker.vue"
   import Dropdown from "../../components/Dropdown.vue"
+  import Field from "../../components/Field.vue"
   import { fontFolder, fullName } from "../../lib/font.js"
   import { popular } from "../../lib/stats.js"
   import { fontOwners } from "../../lib/submissionKinds/fontAsset.js"
@@ -54,14 +55,11 @@
 </script>
 
 <template>
-  <div class="field">
-    <Dropdown v-model="font" :options="options" label="Font" searchable />
-    <p class="hint">Paint over the font's <a v-if="template" :href="template" :download="`${target}-template.png`">template</a>. It can be the same size or a whole number of times bigger, up to {{ SUBMISSION_LIMITS.side }} pixels on each side.</p>
-    <span v-if="tried && problems.target" class="hint bad">{{ problems.target }}</span>
-  </div>
-  <div v-if="kind === 'texture'" class="field">
-    <span class="label">Border colour</span>
+  <Field group label="Font" :error="tried ? problems.target : ''">
+    <Dropdown v-model="font" :options="options" searchable />
+    <template #hint>Paint over the font's <a v-if="template" :href="template" :download="`${target}-template.png`">template</a>. It can be the same size or a whole number of times bigger, up to {{ SUBMISSION_LIMITS.side }} pixels on each side.</template>
+  </Field>
+  <Field group v-if="kind === 'texture'" label="Border colour" :error="problems.border">
     <ColourPicker v-model="border" />
-    <span v-if="problems.border" class="hint bad">{{ problems.border }}</span>
-  </div>
+  </Field>
 </template>

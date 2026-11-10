@@ -13,6 +13,7 @@
   import Button from "../Button.vue"
   import ColourPicker from "../ColourPicker.vue"
   import Dropdown from "../Dropdown.vue"
+  import Field from "../Field.vue"
   import Icon from "../Icon.vue"
   import Panel from "../Panel.vue"
   import Segments from "../Segments.vue"
@@ -218,13 +219,12 @@
     <template v-if="layer">
       <Slider v-for="item of settings" :key="item.key" :label="item.label" :model-value="generatedSetting(layer, item)" @update:model-value="set(item.key, $event)" :min="item.min" :max="item.max" />
       <Dropdown label="Blend mode" :options="BLEND_OPTIONS" :model-value="layer.blend" @update:model-value="set('blend', $event)" />
-      <div class="field">
-        <span class="label">Colour</span>
+      <Field group label="Colour">
         <div class="row">
           <ColourPicker class="grow" :model-value="layer.colour" @update:model-value="set('colour', $event)" />
           <Dropdown class="grow" :options="BLEND_OPTIONS" :model-value="layer.colourBlend" @update:model-value="set('colourBlend', $event)" v-tooltip="'Colour blend mode'" />
         </div>
-      </div>
+      </Field>
       <Slider label="Opacity" :model-value="layer.opacity" @update:model-value="set('opacity', $event)" :min="0" :max="100" />
     </template>
   </Panel>

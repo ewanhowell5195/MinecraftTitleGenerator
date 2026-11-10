@@ -1,6 +1,7 @@
 <script setup>
   import { computed, onMounted, ref, watch } from "vue"
   import Dropdown from "../../components/Dropdown.vue"
+  import Field from "../../components/Field.vue"
   import Segments from "../../components/Segments.vue"
   import { TILEABLES_LIST, TILEABLE_SIDES, seeThrough, tileableName } from "../../lib/submissionKinds/tileable.js"
   import { pngProblem } from "../../lib/submissions.js"
@@ -74,15 +75,8 @@
 </script>
 
 <template>
-  <div class="field">
-    <span class="label">Add it as</span>
-    <Segments v-model="mode" :options="MODES" />
-    <p class="hint">Tileables are repeated across the letters, so their edges have to join up without a seam. They can be {{ sizes.slice(0, -1).join(", ") }} or {{ sizes.at(-1) }}, with no see-through pixels.</p>
-  </div>
-  <div v-if="variant" class="field">
-    <Dropdown v-if="parents.length" v-model="parent" :options="parents" label="Variant of" searchable />
-    <p class="hint">Variants are listed under the tileable they belong to, like a different colour of it. A variant has to be the same size as that tileable.</p>
-    <span v-if="loadError" class="hint bad">{{ loadError }}</span>
-    <span v-else-if="tried && problems.target" class="hint bad">{{ problems.target }}</span>
-  </div>
+  <Segments label="Add it as" v-model="mode" :options="MODES" :hint="`Tileables are repeated across the letters, so their edges have to join up without a seam. They can be ${sizes.slice(0, -1).join(', ')} or ${sizes.at(-1)}, with no see-through pixels.`" />
+  <Field group v-if="variant" :label="parents.length ? 'Variant of' : ''" :error="loadError || (tried ? problems.target : '')" hint="Variants are listed under the tileable they belong to, like a different colour of it. A variant has to be the same size as that tileable.">
+    <Dropdown v-if="parents.length" v-model="parent" :options="parents" searchable />
+  </Field>
 </template>

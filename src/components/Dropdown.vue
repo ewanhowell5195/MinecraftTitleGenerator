@@ -1,11 +1,13 @@
 <script setup>
   import { computed, nextTick, ref } from "vue"
   import { useWindowEvents } from "../lib/events.js"
+  import Field from "./Field.vue"
   import Icon from "./Icon.vue"
 
   const props = defineProps({
     options: { type: Array, required: true },
     label: { type: String, default: "" },
+    hint: { type: String, default: "" },
     searchable: { type: Boolean, default: false },
     disabled: { type: Boolean, default: false }
   })
@@ -95,8 +97,7 @@
 </script>
 
 <template>
-  <div class="dropdown field">
-    <span v-if="label" class="label">{{ label }}</span>
+  <Field group class="dropdown" :label="label" :hint="hint">
     <button ref="trigger" type="button" class="trigger field-button" :class="{ open }" :aria-expanded="open" :disabled="disabled" @click="open ? close() : show()" @keydown="key">
       <img v-if="selected.image" class="image" :src="selected.image" alt="">
       <span class="text">
@@ -120,7 +121,7 @@
         </ul>
       </div>
     </Teleport>
-  </div>
+  </Field>
 </template>
 
 <style scoped>

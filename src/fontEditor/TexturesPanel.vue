@@ -1,6 +1,7 @@
 <script setup>
   import { computed, onBeforeUnmount, onMounted, ref, shallowRef, toRaw, watch } from "vue"
   import Button from "../components/Button.vue"
+  import Field from "../components/Field.vue"
   import Icon from "../components/Icon.vue"
   import LiveTitle from "../components/LiveTitle.vue"
   import { image, stripRange } from "../lib/assets.js"
@@ -221,7 +222,7 @@
     <section v-if="chosen" class="flow">
       <h3>Try {{ titleCase(chosen.id) }}</h3>
       <p class="hint">{{ used(chosen.id) ? "Your font uses these strips." : "Your font doesn't use these strips yet, so this is only a test." }}</p>
-      <label class="field"><span class="label">Text</span><input v-model="text" type="text" aria-label="Test text"></label>
+      <Field label="Text"><input v-model="text" type="text" aria-label="Test text"></Field>
       <LiveTitle class="view" :lines="lines" :fonts="[entry]" message="Nothing to show yet. Draw the characters in your text." @settled="settled" />
       <TileGrid :min="120">
         <Tile v-for="item of textures" :key="item.id" :label="item.name" :image="thumbs[item.id]" :selected="chosenTexture === item.id" :faded="!fits(chosen.id)" @pick="chosenTexture = item.id" />
