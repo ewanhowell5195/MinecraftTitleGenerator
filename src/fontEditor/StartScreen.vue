@@ -6,6 +6,7 @@
   import Icon from "../components/Icon.vue"
   import Notice from "../components/Notice.vue"
   import NumberInput from "../components/NumberInput.vue"
+  import SiteFooter from "../site/SiteFooter.vue"
   import Tile from "../components/Tile.vue"
   import TileGrid from "../components/TileGrid.vue"
   import { fullName, loadFontList } from "../lib/font.js"
@@ -79,55 +80,64 @@
 
 <template>
   <div class="start">
-    <div class="intro">
-      <h1>Make a font</h1>
-      <p>Draw every character yourself, or start from something that already exists. Your font stays in this browser until you download it.</p>
-      <Notice v-if="error" class="error">{{ error }}</Notice>
-      <p v-if="busy" class="busy">{{ busy }}</p>
+    <div class="content">
+      <div class="intro">
+        <h1>Make a font</h1>
+        <p>Draw every character yourself, or start from something that already exists. Your font stays in this browser until you download it.</p>
+        <Notice v-if="error" class="error">{{ error }}</Notice>
+        <p v-if="busy" class="busy">{{ busy }}</p>
+      </div>
+
+      <div class="choices">
+        <section class="choice">
+          <h2>Blank font</h2>
+          <div class="numbers">
+            <Field label="Height"><NumberInput min="1" v-model.number="height" /></Field>
+            <Field label="Default width"><NumberInput min="1" v-model.number="width" /></Field>
+            <Field label="Square size"><NumberInput min="1" v-model.number="grid" /></Field>
+          </div>
+          <p class="hint">Height and width count squares, and one click paints one square. Square size is how many pixels each square is. Each character is {{ final }}.</p>
+          <Button primary wide :disabled="!valid" @click="startBlank"><template #icon><Icon name="plus" /></template>Start drawing</Button>
+        </section>
+
+        <section class="choice">
+          <h2>Open a saved font</h2>
+          <p class="hint">Choose a JSON from this editor, a font.png, or both. Whatever's missing is worked out or left at its default.</p>
+          <Button file wide multiple accept=".png,.json,image/png,application/json" @change="upload"><template #icon><Icon name="open" /></template>Choose files</Button>
+
+          <h2 class="second">Import a font file</h2>
+          <p class="hint">Turns a .ttf, .otf, .woff or .woff2, or a Minecraft ascii.png, into pixels at this height, ready for you to edit. Square size is how many pixels each square is, for font files that aren't already drawn on a pixel grid. Each character can go back to its imported shape.</p>
+          <div class="numbers import">
+            <Field label="Height in pixels"><NumberInput min="1" v-model.number="importHeight" /></Field>
+            <Field label="Square size"><NumberInput min="1" v-model.number="importDensity" /></Field>
+            <Checkbox v-model="lowercase" label="Use lowercase letters" />
+          </div>
+          <Button file wide accept=".ttf,.otf,.woff,.woff2,.png,font/ttf,font/otf,font/woff,font/woff2,image/png" @change="importFile"><template #icon><Icon name="open" /></template>Choose font file</Button>
+        </section>
+
+        <section class="choice wide-choice">
+          <h2>Start from a font</h2>
+          <p class="hint">Copies its characters and settings into a new font of your own.</p>
+          <TileGrid :min="170">
+            <Tile v-for="entry of startable" :key="entry.id" :label="fullName(entry, fonts)" :image="fontThumbnail(fonts, entry.id)" :author="fontCredit(entry, fonts)" @pick="startFrom(entry)" />
+          </TileGrid>
+        </section>
+      </div>
     </div>
-
-    <div class="choices">
-      <section class="choice">
-        <h2>Blank font</h2>
-        <div class="numbers">
-          <Field label="Height"><NumberInput min="1" v-model.number="height" /></Field>
-          <Field label="Default width"><NumberInput min="1" v-model.number="width" /></Field>
-          <Field label="Square size"><NumberInput min="1" v-model.number="grid" /></Field>
-        </div>
-        <p class="hint">Height and width count squares, and one click paints one square. Square size is how many pixels each square is. Each character is {{ final }}.</p>
-        <Button primary wide :disabled="!valid" @click="startBlank"><template #icon><Icon name="plus" /></template>Start drawing</Button>
-      </section>
-
-      <section class="choice">
-        <h2>Open a saved font</h2>
-        <p class="hint">Choose a JSON from this editor, a font.png, or both. Whatever's missing is worked out or left at its default.</p>
-        <Button file wide multiple accept=".png,.json,image/png,application/json" @change="upload"><template #icon><Icon name="open" /></template>Choose files</Button>
-
-        <h2 class="second">Import a font file</h2>
-        <p class="hint">Turns a .ttf, .otf, .woff or .woff2, or a Minecraft ascii.png, into pixels at this height, ready for you to edit. Square size is how many pixels each square is, for font files that aren't already drawn on a pixel grid. Each character can go back to its imported shape.</p>
-        <div class="numbers import">
-          <Field label="Height in pixels"><NumberInput min="1" v-model.number="importHeight" /></Field>
-          <Field label="Square size"><NumberInput min="1" v-model.number="importDensity" /></Field>
-          <Checkbox v-model="lowercase" label="Use lowercase letters" />
-        </div>
-        <Button file wide accept=".ttf,.otf,.woff,.woff2,.png,font/ttf,font/otf,font/woff,font/woff2,image/png" @change="importFile"><template #icon><Icon name="open" /></template>Choose font file</Button>
-      </section>
-
-      <section class="choice wide-choice">
-        <h2>Start from a font</h2>
-        <p class="hint">Copies its characters and settings into a new font of your own.</p>
-        <TileGrid :min="170">
-          <Tile v-for="entry of startable" :key="entry.id" :label="fullName(entry, fonts)" :image="fontThumbnail(fonts, entry.id)" :author="fontCredit(entry, fonts)" @pick="startFrom(entry)" />
-        </TileGrid>
-      </section>
-    </div>
+    <SiteFooter />
   </div>
 </template>
 
 <style scoped>
   .start {
     flex: 1;
+    display: flex;
+    flex-direction: column;
     overflow-y: auto;
+  }
+
+  .content {
+    flex: 1 0 auto;
     padding: 28px 16px 40px;
   }
 
