@@ -6,7 +6,8 @@
   const props = defineProps({
     options: { type: Array, required: true },
     label: { type: String, default: "" },
-    searchable: { type: Boolean, default: false }
+    searchable: { type: Boolean, default: false },
+    disabled: { type: Boolean, default: false }
   })
 
   const value = defineModel({ default: null })
@@ -96,7 +97,7 @@
 <template>
   <div class="dropdown field">
     <span v-if="label" class="label">{{ label }}</span>
-    <button ref="trigger" type="button" class="trigger field-button" :class="{ open }" :aria-expanded="open" @click="open ? close() : show()" @keydown="key">
+    <button ref="trigger" type="button" class="trigger field-button" :class="{ open }" :aria-expanded="open" :disabled="disabled" @click="open ? close() : show()" @keydown="key">
       <img v-if="selected.image" class="image" :src="selected.image" alt="">
       <span class="text">
         <span class="name ellipsis">{{ selected.label }}</span>

@@ -4,6 +4,10 @@
   import { trackPointer, useWindowEvents } from "../lib/events.js"
   import { clamp } from "../lib/maths.js"
 
+  defineProps({
+    disabled: { type: Boolean, default: false }
+  })
+
   const colour = defineModel({ type: String, required: true })
 
   const open = ref(false)
@@ -109,7 +113,7 @@
 
 <template>
   <div class="field-colour">
-    <button ref="swatch" class="colour field-button" :class="{ active: open }" @click="toggle" :title="colour">
+    <button ref="swatch" class="colour field-button" :class="{ active: open }" :disabled="disabled" @click="toggle" :title="colour">
       <span class="chip" :style="{ background: colour }"></span>
       <span class="hex">{{ colour }}</span>
     </button>
