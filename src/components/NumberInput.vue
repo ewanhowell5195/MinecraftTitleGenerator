@@ -32,8 +32,8 @@
     return value === undefined || value === null || value === "" ? fallback : Number(value)
   }
 
-  function correct() {
-    const field = input.value
+  function correct(event) {
+    const field = event.target
     if (field.value === "" && !field.validity.badInput) return
     let next = Number.isNaN(field.valueAsNumber) ? Number(model.value ?? attrs.value) : field.valueAsNumber
     if (Number.isNaN(next)) return
