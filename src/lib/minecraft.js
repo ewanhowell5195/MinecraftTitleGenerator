@@ -3,6 +3,7 @@ import { reactive } from "vue"
 import { image } from "./assets.js"
 import { blockTints, grassColormapPixel } from "./blockTints.js"
 import { surface } from "./canvas.js"
+import { agreeToEula } from "./eula.js"
 import { titleCase } from "./names.js"
 import { platform } from "./platform.js"
 
@@ -86,6 +87,7 @@ async function colormapReader(version) {
 }
 
 async function readBlockTextures(version) {
+  await agreeToEula()
   const paths = (await assets.list({ version })).map(file => file.path)
   const found = blockTexturePaths(paths)
   Object.assign(jar, { version, done: 0, total: 0 })

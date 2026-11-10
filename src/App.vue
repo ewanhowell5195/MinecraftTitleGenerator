@@ -3,6 +3,7 @@
   import Button from "./components/Button.vue"
   import FluidTabs from "fluid-tabs-vue"
   import AccountMenu from "./components/AccountMenu.vue"
+  import EulaDialog from "./components/EulaDialog.vue"
   import Notice from "./components/Notice.vue"
   import NotificationBell from "./components/NotificationBell.vue"
   import Icon from "./components/Icon.vue"
@@ -29,6 +30,7 @@
   import TexturePanel from "./components/panels/TexturePanel.vue"
   import TransformPanel from "./components/panels/TransformPanel.vue"
   import { loadTileables } from "./lib/assets.js"
+  import { eula } from "./lib/eula.js"
   import { useWindowEvents } from "./lib/events.js"
   import { fileError, saveTitle } from "./lib/file.js"
   import { loadFontList } from "./lib/font.js"
@@ -165,6 +167,7 @@
     </main>
 
     <PresetsPage v-if="presetsPage.open" />
+    <EulaDialog v-if="eula.asking" />
 
     <template v-if="ready">
       <ObjectRenderer v-for="object of scene.objects" :key="object.id" :object="object" :fonts="library.fonts" :tileables="library.tileables" />

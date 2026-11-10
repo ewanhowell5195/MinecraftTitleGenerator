@@ -3,6 +3,7 @@ import { fontTextures, image, preload, shapeFont, sheetFor, stripRange, tileable
 import { arcAssets, arcLayout } from "../lib/arc.js"
 import { buildOutline, buildText } from "../lib/build.js"
 import { customFontEntry } from "../lib/customFonts.js"
+import { EulaDeclined } from "../lib/eula.js"
 import { framing } from "../lib/framing.js"
 import { hasMarks, loadFont, sheetFolder } from "../lib/font.js"
 import { stripRows } from "../lib/strips.js"
@@ -297,7 +298,7 @@ export default {
         paintedKey = key
       } catch (err) {
         paintedKey = null
-        if (token === paintRequest) error.value = err.message
+        if (token === paintRequest && !(err instanceof EulaDeclined)) error.value = err.message
       }
     }
 

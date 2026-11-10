@@ -6,6 +6,7 @@
   import { titleCase } from "../../lib/names.js"
   import { usePanel } from "../../lib/panel.js"
   import { library } from "../../lib/scene.js"
+  import { EulaDeclined, eulaDeclined } from "../../lib/eula.js"
   import { pinnedTextures, setTexture, untouchedTileable } from "../../lib/settings.js"
   import { minecraftStatId, popular } from "../../lib/stats.js"
   import { readFile, saveImage, thumbnail, thumbnailHeight, tilePreview } from "../../lib/ui.js"
@@ -135,7 +136,7 @@
   function chooseSource(source) {
     search.value = ""
     if (source !== "tileable") retint(null)
-    const fresh = source === "tileable" && untouchedTileable(object.value)
+    const fresh = source === "tileable" && untouchedTileable(object.value) && !eulaDeclined()
     setTexture(object.value, { textureSource: source })
     if (fresh) chooseTileables("minecraft")
   }
@@ -187,7 +188,13 @@
     if (!tiled.value) return
     if (target.textureSource === "tileable" && target.tileableSource !== "minecraft" && !library.tileables[target.tileable]) return
     const request = ++sizeRequest
-    const img = await (target.textureSource === "custom" ? image(target.customTexture) : target.tileableSource === "minecraft" ? blockTextureImage(target.minecraftVersion, target.minecraftTexture) : image(tileableUrl(library.tileables, target.tileable, target.tileableVariant)))
+    let img
+    try {
+      img = await (target.textureSource === "custom" ? image(target.customTexture) : target.tileableSource === "minecraft" ? blockTextureImage(target.minecraftVersion, target.minecraftTexture) : image(tileableUrl(library.tileables, target.tileable, target.tileableVariant)))
+    } catch (err) {
+      if (err instanceof EulaDeclined) return
+      throw err
+    }
     if (request === sizeRequest) tileSize.value = { width: img.width, height: img.height }
   }, { immediate: true })
 
