@@ -10,6 +10,8 @@
   import { titleCase } from "../lib/names.js"
   import { centredOffset, stripFolder, stripUse } from "../lib/strips.js"
   import NumberInput from "../components/NumberInput.vue"
+  import Tile from "../components/Tile.vue"
+  import TileGrid from "../components/TileGrid.vue"
   import { editorLine, useServedFont } from "./editorLine.js"
   import { stripThumbnail, thumbnailScene } from "./stripThumbs.js"
   import { downloadFlatTexture, font, update } from "./store.js"
@@ -198,7 +200,7 @@
       <h3>Shared strips</h3>
       <p class="hint">Strip textures that several fonts share. A set works with your font when its letters and depth fit the strips.</p>
       <p v-if="loadError" class="hint bad">Couldn't load the strip sets: {{ loadError }}</p>
-      <div v-for="set of sets" :key="set.id" class="set" :class="{ chosen: chosenSet === set.id }" @click="choose(set.id)">
+      <div v-for="set of sets" :key="set.id" class="set card card-row" :class="{ selected: chosenSet === set.id }" tabindex="0" @click="choose(set.id)" @keydown.enter.self="choose(set.id)">
         <div class="set-text">
           <span class="set-name">{{ titleCase(set.id) }}</span>
           <span v-if="problems[set.id]" class="status" :class="statusOf(set.id).kind">{{ statusOf(set.id).label }}</span>
@@ -221,20 +223,14 @@
       <p class="hint">{{ used(chosen.id) ? "Your font uses these strips." : "Your font doesn't use these strips yet, so this is only a test." }}</p>
       <label class="field"><span class="label">Text</span><input v-model="text" type="text" aria-label="Test text"></label>
       <LiveTitle class="view" :lines="lines" :fonts="[entry]" message="Nothing to show yet. Draw the characters in your text." @settled="settled" />
-      <div class="textures">
-        <button v-for="item of textures" :key="item.id" class="texture" :class="{ active: chosenTexture === item.id, unfit: !fits(chosen.id) }" v-tooltip="item.name" @click="chosenTexture = item.id">
-          <span class="swatch"><img v-if="thumbs[item.id]" :src="thumbs[item.id]" alt=""></span>
-          <span class="texture-name ellipsis">{{ item.name }}</span>
-        </button>
-      </div>
+      <TileGrid :min="120">
+        <Tile v-for="item of textures" :key="item.id" :label="item.name" :image="thumbs[item.id]" :selected="chosenTexture === item.id" :faded="!fits(chosen.id)" @pick="chosenTexture = item.id" />
+      </TileGrid>
       <template v-if="variants.length">
         <h3>Variants</h3>
-        <div class="textures">
-          <button v-for="item of variants" :key="item.image" class="texture" :class="{ active: chosenVariant === item.id, unfit: !fits(chosen.id) }" v-tooltip="item.name" @click="chosenVariant = item.id">
-            <span class="swatch"><img v-if="thumbs[item.image]" :src="thumbs[item.image]" alt=""></span>
-            <span class="texture-name ellipsis">{{ item.name }}</span>
-          </button>
-        </div>
+        <TileGrid :min="120">
+          <Tile v-for="item of variants" :key="item.image" :label="item.name" :image="thumbs[item.image]" :selected="chosenVariant === item.id" :faded="!fits(chosen.id)" @pick="chosenVariant = item.id" />
+        </TileGrid>
       </template>
     </section>
   </div>
@@ -246,23 +242,7 @@
   }
 
   .set {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    background: var(--card);
-    border: 1px solid transparent;
-    cursor: pointer;
     user-select: none;
-  }
-
-  .set:hover {
-    background: var(--card-hover);
-  }
-
-  .set.chosen {
-    background: var(--accent-soft);
-    border-color: var(--accent);
   }
 
   .set-text {
@@ -316,57 +296,6 @@
     aspect-ratio: auto;
   }
 
-  .textures {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 6px;
-  }
-
-  .texture {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 4px;
-    padding: 4px;
-    background: var(--card);
-    border: 1px solid transparent;
-    box-shadow: none;
-  }
-
-  .texture:hover {
-    background: var(--card-hover);
-    filter: none;
-  }
-
-  .texture.active {
-    background: var(--accent-soft);
-    border-color: var(--accent);
-  }
-
-  .texture.unfit {
-    opacity: 0.45;
-  }
-
-  .swatch {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 56px;
-  }
-
-  .swatch img {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    image-rendering: pixelated;
-  }
-
-  .texture-name {
-    font-size: var(--font-xs);
-    color: var(--muted);
-  }
-
   @media (max-width: 520px) {
     .set {
       flex-wrap: wrap;
@@ -379,10 +308,6 @@
 
     .view {
       height: 180px;
-    }
-
-    .textures {
-      grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
     }
   }
 </style>

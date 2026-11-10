@@ -16,6 +16,7 @@
   import Segments from "../Segments.vue"
   import Slider from "../Slider.vue"
   import Tile from "../Tile.vue"
+  import TileGrid from "../TileGrid.vue"
   import Toggle from "../Toggle.vue"
   import VersionDialog from "../VersionDialog.vue"
 
@@ -205,15 +206,15 @@
 
       <template v-if="object.textureSource === 'premade'">
         <input v-if="searchable(textures)" type="text" v-model="search" placeholder="Search textures">
-        <div class="grid scroll">
+        <TileGrid class="scroll">
           <Tile v-for="[id, data] of shownTextures" :key="id" :label="label(id, data)" :unit="thumbnailHeight(font)" :image="thumbnail(font, id)" :author="credit(data, font?.id, library.fonts)" :badge="variantBadge(data)" :selected="object.texture === id" :menu="textureMenu(id, data)" @pick="setTexture(object, { texture: id, textureVariant: null })" />
-        </div>
+        </TileGrid>
         <template v-if="textureVariants.length">
           <h3>Variants</h3>
-          <div class="grid scroll variants" :style="{ '--rows': rows(textureVariants) }">
+          <TileGrid class="scroll variants" :style="{ '--rows': rows(textureVariants) }">
             <Tile :label="list.textures[object.texture].name ?? titleCase(object.texture)" :unit="thumbnailHeight(font)" :image="thumbnail(font, object.texture)" :selected="!object.textureVariant" :menu="textureMenu(object.texture, list.textures[object.texture])" @pick="setTexture(object, { textureVariant: null })" />
             <Tile v-for="[id, data] of textureVariants" :key="id" :label="data.name ?? titleCase(id)" :unit="thumbnailHeight(font)" :image="thumbnail(font, id)" :author="credit(data, font?.id, library.fonts, list.textures[object.texture])" :selected="object.textureVariant === id" :menu="textureMenu(id, { ...list.textures[object.texture], ...data })" @pick="setTexture(object, { textureVariant: id })" />
-          </div>
+          </TileGrid>
         </template>
       </template>
 
@@ -232,24 +233,24 @@
         <p v-else-if="blocks && !blockEntries.length" class="hint">This version has no block textures without transparency.</p>
         <template v-if="blockEntries.length">
           <input v-if="searchable(blockEntries)" type="text" v-model="search" placeholder="Search textures">
-          <div class="grid scroll">
+          <TileGrid class="scroll">
             <Tile v-for="[id, data] of shownBlocks" :key="id" :label="data.name" :pattern="{ backgroundImage: `url(${data.url})` }" :author="data.author" :selected="object.minecraftTexture === id" :menu="blockMenu(id, data)" @pick="pickBlock(id)" />
-          </div>
+          </TileGrid>
         </template>
         <VersionDialog v-if="choosingVersion" :current="object.minecraftVersion" @pick="chooseVersion" @close="choosingVersion = false" />
       </template>
 
       <template v-if="object.textureSource === 'tileable' && !usingMinecraft">
         <input v-if="searchable(tileables)" type="text" v-model="search" placeholder="Search textures">
-        <div class="grid scroll">
+        <TileGrid class="scroll">
           <Tile v-for="[id, data] of shownTileables" :key="id" :label="label(id, data)" :pattern="tilePreview(library.tileables, id)" :author="data.author" :badge="variantBadge(data)" :selected="object.tileable === id" :menu="tileableMenu(id)" @pick="object.tileable = id; object.tileableVariant = null" />
-        </div>
+        </TileGrid>
         <template v-if="tileableVariants.length">
           <h3>Variants</h3>
-          <div class="grid scroll variants" :style="{ '--rows': rows(tileableVariants) }">
+          <TileGrid class="scroll variants" :style="{ '--rows': rows(tileableVariants) }">
             <Tile :label="library.tileables[object.tileable].name" :pattern="tilePreview(library.tileables, object.tileable)" :selected="!object.tileableVariant" :menu="tileableMenu(object.tileable)" @pick="object.tileableVariant = null" />
             <Tile v-for="[id, data] of tileableVariants" :key="id" :label="data.name" :pattern="tilePreview(library.tileables, object.tileable, id)" :author="data.author ?? library.tileables[object.tileable].author" :selected="object.tileableVariant === id" :menu="tileableMenu(object.tileable, id)" @pick="object.tileableVariant = id" />
-          </div>
+          </TileGrid>
         </template>
       </template>
     </div>

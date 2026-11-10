@@ -4,6 +4,8 @@
   import ContextMenu from "../components/ContextMenu.vue"
   import Icon from "../components/Icon.vue"
   import RenderDialog from "../components/RenderDialog.vue"
+  import Tile from "../components/Tile.vue"
+  import TileGrid from "../components/TileGrid.vue"
   import { vLongPress } from "../lib/events.js"
   import { CREEPER, SPACE_CHAR, addCharacters, characterName, glyphOf, isBlank, isOptional, removeCharacter, setGlyph } from "../lib/fontEditor.js"
   import GlyphThumb from "./GlyphThumb.vue"
@@ -62,13 +64,13 @@
   }
 
   function perRow() {
-    const tiles = Array.from(list.value?.children ?? [])
+    const tiles = Array.from(list.value?.$el.children ?? [])
     const count = tiles.filter(tile => tile.offsetTop === tiles[0]?.offsetTop).length
     return count === tiles.length ? 0 : Math.max(1, count)
   }
 
   function reveal() {
-    list.value?.children[characters.value.indexOf(selected.value)]?.scrollIntoView({ block: "nearest", inline: "nearest" })
+    list.value?.$el.children[characters.value.indexOf(selected.value)]?.scrollIntoView({ block: "nearest", inline: "nearest" })
   }
 
   async function key(event) {
@@ -116,13 +118,12 @@
       <h3>Characters</h3>
       <span class="hint">{{ blanks ? `${blanks} still blank` : "All drawn" }}</span>
     </header>
-    <div ref="list" class="list">
-      <button v-for="char of characters" :key="char" class="character" :class="{ selected: selected === char, blank: isBlank(glyphOf(font, char)) }" v-tooltip="characterName(char) === shownLabel(char) ? null : characterName(char)" @click="selected = char" v-long-press @contextmenu.prevent="menu($event, char)">
-        <span class="picture"><GlyphThumb :font="font" :glyph="glyphOf(font, char)" /></span>
-        <span class="char ellipsis">{{ shownLabel(char) }}</span>
-      </button>
-      <button class="character add" v-tooltip="'Add a character'" aria-label="Add a character" @click="addMenu"><Icon name="plus" :size="20" /></button>
-    </div>
+    <TileGrid ref="list" class="list" small :min="52">
+      <Tile v-for="char of characters" :key="char" small :label="shownLabel(char)" aspect="auto" :selected="selected === char" :tooltip="characterName(char) === shownLabel(char) ? null : characterName(char)" @pick="selected = char" v-long-press @contextmenu.prevent="menu($event, char)">
+        <template #picture><GlyphThumb :font="font" :glyph="glyphOf(font, char)" /></template>
+      </Tile>
+      <button class="add" v-tooltip="'Add a character'" aria-label="Add a character" @click="addMenu"><Icon name="plus" :size="20" /></button>
+    </TileGrid>
     <ContextMenu :items="context?.items" :at="context?.at" @close="context = null" />
     <RenderDialog v-if="adding" title="Add characters" close-title="Cancel" dismissable @close="adding = false">
       <form class="add-form" @submit.prevent="confirmAdding">
@@ -158,38 +159,13 @@
 
   .list {
     flex: 1;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
     align-content: start;
-    gap: 4px;
     overflow-y: auto;
     padding: 0 12px 12px;
   }
 
-  .character {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    height: 66px;
-    padding: 5px 2px 3px;
-    background: var(--card);
-    border: 1px solid transparent;
-    box-shadow: none;
-  }
-
-  .character:hover {
-    background: var(--card-hover);
-    filter: none;
-  }
-
-  .character.selected {
-    background: var(--accent-soft);
-    border-color: var(--accent);
-  }
-
   .add {
-    align-items: center;
-    justify-content: center;
+    padding: 0;
     color: var(--muted);
     background: transparent;
     border: 2px dashed var(--line-strong);
@@ -216,33 +192,12 @@
     gap: 8px;
   }
 
-  .picture {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    min-height: 0;
-  }
-
-  .char {
-    width: 100%;
-    font-size: var(--font-xs);
-    font-weight: 500;
-    line-height: 1.2;
-    color: var(--muted);
-  }
-
-  .selected .char {
-    color: var(--text);
-  }
-
   @media (max-width: 1000px) {
     header {
       padding: 10px 16px 6px;
     }
 
-    .list {
+    .characters .list {
       grid-template-columns: none;
       grid-auto-flow: column;
       grid-auto-columns: 52px;

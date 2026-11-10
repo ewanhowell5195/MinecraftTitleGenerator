@@ -4,6 +4,7 @@
   import Icon from "../components/Icon.vue"
   import NumberInput from "../components/NumberInput.vue"
   import Tile from "../components/Tile.vue"
+  import TileGrid from "../components/TileGrid.vue"
   import { fullName, loadFontList } from "../lib/font.js"
   import { createFont } from "../lib/fontEditor.js"
   import { fontCredit } from "../lib/credits.js"
@@ -112,9 +113,9 @@
       <section class="choice wide-choice">
         <h2>Start from a font</h2>
         <p class="hint">Copies its characters and settings into a new font of your own.</p>
-        <div class="grid fonts">
+        <TileGrid :min="170">
           <Tile v-for="entry of startable" :key="entry.id" :label="fullName(entry, fonts)" :image="fontThumbnail(fonts, entry.id)" :author="fontCredit(entry, fonts)" @pick="startFrom(entry)" />
-        </div>
+        </TileGrid>
       </section>
     </div>
   </div>
@@ -199,20 +200,12 @@
     padding-bottom: 10px;
   }
 
-  .fonts {
-    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  }
-
   @media (max-width: 800px) {
     .choices {
       grid-template-columns: minmax(0, 1fr);
     }
 
     .numbers {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .fonts {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }

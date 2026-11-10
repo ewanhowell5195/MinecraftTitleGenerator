@@ -18,6 +18,7 @@
   import Segments from "../Segments.vue"
   import Slider from "../Slider.vue"
   import Tile from "../Tile.vue"
+  import TileGrid from "../TileGrid.vue"
   import Toggle from "../Toggle.vue"
 
   const MODES = [{ value: "default", label: "Default" }, { value: "custom", label: "Custom" }]
@@ -185,7 +186,7 @@
     <p class="hint" v-if="edge">Paints the top and bottom faces around each letter.</p>
     <p class="hint" v-if="object[modeKey] === 'default'">The overlays this texture comes with. Editing switches to Custom.</p>
     <div ref="box" class="layers" v-if="layers.length">
-      <div :ref="el => (rows[index] = el)" class="layer card" v-for="(item, index) of layers" :key="index" tabindex="0" @click="selected = index" @keydown.enter="selected = index" :class="{ selected: selected === index, dragged: dragged === index }">
+      <div :ref="el => (rows[index] = el)" class="layer card card-row small" v-for="(item, index) of layers" :key="index" tabindex="0" @click="selected = index" @keydown.enter="selected = index" :class="{ selected: selected === index, dragged: dragged === index }">
         <span class="grip" @pointerdown="press($event, index)"><Icon name="grip" :size="14" /></span>
         <img :src="item.source === 'file' ? item.file : thumbnail(font, item.overlay)" alt="">
         <span class="grow ellipsis">{{ layerName(item) }}</span>
@@ -200,9 +201,9 @@
       <Button ghost v-if="layerModified" @click="resetLayer">Reset</Button>
     </div>
     <Segments v-if="!edge" :options="KINDS" :model-value="kind" @update:model-value="pickKind" />
-    <div class="grid scroll" v-if="kind !== 'file'">
+    <TileGrid class="scroll" v-if="kind !== 'file'">
       <Tile v-for="[id, data] of shown" :key="id" :label="data.name ?? titleCase(id)" :unit="thumbnailHeight(font)" :image="thumbnail(font, id)" :author="credit(data, font?.id, library.fonts)" :selected="layer?.overlay === id" :menu="overlayMenu(id, data)" :save="data.generated ? null : 'Download this overlay'" @pick="pickOverlay(id)" @save="saveSheet(font, 'overlays', id)" />
-    </div>
+    </TileGrid>
     <template v-else>
       <div class="upload-preview">
         <img v-if="layer?.file" :src="layer.file" alt="">
@@ -237,10 +238,6 @@
   }
 
   .layer {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px;
     font-size: var(--font-md);
     font-weight: 600;
     color: var(--muted);

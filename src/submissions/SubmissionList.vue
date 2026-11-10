@@ -1,5 +1,7 @@
 <script setup>
   import { reactive } from "vue"
+  import Tile from "../components/Tile.vue"
+  import TileGrid from "../components/TileGrid.vue"
   import UserName from "../components/UserName.vue"
   import { THUMBNAIL_KINDS, thumbnailPath } from "../lib/submissionKinds/published.js"
   import { submissionFileUrl, submissionPage } from "../lib/submissionsApi.js"
@@ -21,19 +23,51 @@
 </script>
 
 <template>
-  <ul class="submission-list">
-    <li v-for="item of items" :key="item.id">
-      <a :href="submissionPage(item.id)">
-        <span class="thumb">
-          <img v-if="imageOf(item)" :src="imageOf(item)" alt="" loading="lazy" @error="missing.add(item.id)">
-          <span v-else class="pending">No thumbnail yet</span>
-        </span>
-        <span class="body">
-          <span class="name ellipsis">{{ item.name }}</span>
-          <span class="where ellipsis">{{ CLIENT_KINDS[item.kind].summary(item, fonts) }}</span>
-        </span>
-        <span v-if="showSender" class="sender">Submitted by <UserName v-if="item.ownerName" :name="item.ownerName" :provider="item.ownerProvider" :size="13" /><template v-else>a deleted account</template></span>
-      </a>
-    </li>
-  </ul>
+  <TileGrid :min="240">
+    <Tile v-for="item of items" :key="item.id" :label="item.name" :href="submissionPage(item.id)">
+      <template #picture>
+        <img v-if="imageOf(item)" class="shot" :src="imageOf(item)" alt="" loading="lazy" @error="missing.add(item.id)">
+        <span v-else class="pending">No thumbnail yet</span>
+      </template>
+      <span class="where">{{ CLIENT_KINDS[item.kind].summary(item, fonts) }}</span>
+      <span v-if="showSender" class="sender">Submitted by <UserName v-if="item.ownerName" :name="item.ownerName" :provider="item.ownerProvider" :size="13" /><template v-else>a deleted account</template></span>
+    </Tile>
+  </TileGrid>
 </template>
+
+<style scoped>
+  .shot {
+    width: 100%;
+    height: 100%;
+  }
+
+  .pending {
+    font-size: var(--font-sm);
+    color: var(--faint);
+  }
+
+  .where {
+    margin-top: -4px;
+    font-weight: 500;
+    color: var(--faint);
+  }
+
+  .sender {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    align-self: stretch;
+    min-width: 0;
+    margin-top: auto;
+    padding-top: 8px;
+    font-weight: 500;
+    white-space: nowrap;
+    color: var(--faint);
+    border-top: 1px solid var(--line);
+  }
+
+  .sender .user-name {
+    color: var(--muted);
+  }
+</style>

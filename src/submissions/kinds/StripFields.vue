@@ -227,7 +227,7 @@
       </div>
       <ul class="fonts">
         <li v-for="item of fits" :key="item.id">
-          <label class="font" :class="{ on: picked.includes(item.id), off: item.offset === null && !picked.includes(item.id) }" v-tooltip="item.offset === null ? `Won't fit: ${item.problems.join(', and ')}.` : null">
+          <label class="font card card-row" :class="{ selected: picked.includes(item.id), faded: item.offset === null && !picked.includes(item.id) }" v-tooltip="item.offset === null ? `Won't fit: ${item.problems.join(', and ')}.` : null">
             <input type="checkbox" :checked="picked.includes(item.id)" :disabled="item.offset === null && !picked.includes(item.id)" @change="toggleFont(item.id, $event.target.checked)">
             <img :src="fontThumbnail(fonts, item.id)" alt="" loading="lazy">
             <span class="font-text">
@@ -292,29 +292,16 @@
   }
 
   .font {
-    display: flex;
-    align-items: center;
-    gap: 10px;
     height: 100%;
-    padding: 8px 10px;
-    background: var(--card);
-    border: 1px solid transparent;
-    cursor: pointer;
     user-select: none;
   }
 
-  .font:not(.off, .on):hover {
-    background: var(--card-hover);
-  }
-
-  .font.on {
-    background: var(--accent-soft);
-    border-color: var(--accent);
-  }
-
-  .font.off {
+  .font.faded {
     cursor: not-allowed;
-    opacity: 0.45;
+  }
+
+  .font.faded:hover {
+    background: var(--card);
   }
 
   .font input {

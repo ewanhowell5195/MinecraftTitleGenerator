@@ -19,6 +19,7 @@
   import RenderDialog from "../RenderDialog.vue"
   import Segments from "../Segments.vue"
   import Tile from "../Tile.vue"
+  import TileGrid from "../TileGrid.vue"
   import Toggle from "../Toggle.vue"
 
   const TABS = [{ value: "published", label: "All fonts" }, { value: "custom", label: "Custom" }]
@@ -184,15 +185,15 @@
         <Toggle label="Use lowercase letters" hint="Titles use one case. Off uses the capital letters" :model-value="object.customFont.lowercase" @update:model-value="changeImport('lowercase', $event)" />
       </template>
     </template>
-    <div v-else class="grid">
-      <Tile v-for="data of baseFonts" :key="data.id" keyboard :label="data.name" :image="fontThumbnail(library.fonts, data.id)" :author="fontCredit(data, library.fonts)" :badge="variantBadges[data.id]" :selected="baseId === data.id" @pick="object.font = data.id" />
-    </div>
+    <TileGrid v-else>
+      <Tile v-for="data of baseFonts" :key="data.id" :label="data.name" :image="fontThumbnail(library.fonts, data.id)" :author="fontCredit(data, library.fonts)" :badge="variantBadges[data.id]" :selected="baseId === data.id" @pick="object.font = data.id" />
+    </TileGrid>
     <template v-if="tab === 'published' && variants.length">
       <h3>Variants</h3>
-      <div class="grid">
-        <Tile keyboard label="Default" :image="fontThumbnail(library.fonts, baseId)" :selected="object.font === baseId" @pick="object.font = baseId" />
-        <Tile v-for="data of variants" :key="data.id" keyboard :label="data.name" :image="fontThumbnail(library.fonts, data.id)" :author="fontCredit(data, library.fonts)" :selected="object.font === data.id" @pick="object.font = data.id" />
-      </div>
+      <TileGrid>
+        <Tile label="Default" :image="fontThumbnail(library.fonts, baseId)" :selected="object.font === baseId" @pick="object.font = baseId" />
+        <Tile v-for="data of variants" :key="data.id" :label="data.name" :image="fontThumbnail(library.fonts, data.id)" :author="fontCredit(data, library.fonts)" :selected="object.font === data.id" @pick="object.font = data.id" />
+      </TileGrid>
     </template>
   </Panel>
   <Panel v-if="hasCreeper" title="Creeper face" :modified="creeper.modified.value" @reset="creeper.reset">

@@ -49,7 +49,7 @@
       <p v-else-if="!versions.length" class="message">Loading versions</p>
       <p v-else-if="!shown.length" class="message">No versions match</p>
       <div v-else class="list">
-        <button v-for="version of shown" :key="version.id" class="version" :class="{ selected: version.id === current }" @click="emit('pick', version.id)">
+        <button v-for="version of shown" :key="version.id" class="version card card-row" :class="{ selected: version.id === current }" @click="emit('pick', version.id)">
           <span class="id">{{ version.id }}</span>
           <span v-if="version.id === latest.release || version.id === latest.snapshot" class="latest">Latest</span>
           <span class="date">{{ date(version) }}</span>
@@ -79,17 +79,8 @@
     flex: none;
     justify-content: flex-start;
     width: 100%;
-    padding: 8px 10px;
     font-size: var(--font-md);
     font-weight: 500;
-    text-align: left;
-    border: 1px solid transparent;
-    box-shadow: none;
-  }
-
-  .version.selected {
-    background: var(--accent-soft);
-    border-color: var(--accent);
   }
 
   .latest {

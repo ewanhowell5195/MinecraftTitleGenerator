@@ -113,11 +113,11 @@
   background: var(--surface);
   position: relative;
   user-select: none;
-  transition: background-color 0.12s;
+  transition: background-color var(--duration);
 }
 
 .piece:hover {
-  background: #1f2126;
+  background: var(--card);
 }
 
 .piece:has(.name:focus-visible) {
@@ -145,12 +145,12 @@
   border: 0;
   cursor: pointer;
   user-select: none;
-  transition: background-color 0.12s, color 0.12s;
+  transition: background-color var(--duration), color var(--duration);
 }
 
 .more button:hover {
   color: var(--muted);
-  background: #1f2126;
+  background: var(--card);
 }
 
 .more .count {

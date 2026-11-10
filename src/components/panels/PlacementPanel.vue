@@ -4,6 +4,8 @@
   import { selection, words } from "../../lib/scene.js"
   import Panel from "../Panel.vue"
   import Slider from "../Slider.vue"
+  import Tile from "../Tile.vue"
+  import TileGrid from "../TileGrid.vue"
 
   const LAYERS = {
     top: ["top"],
@@ -26,14 +28,15 @@
 
 <template>
   <Panel title="Placement" :modified="modified" @reset="reset">
-    <div class="types">
-      <div class="type card" v-for="(data, id) of TYPES" :key="id" tabindex="0" @click="pick(id)" @keydown.enter="pick(id)" :class="{ selected: object.type === id }">
-        <div class="preview">
-          <img v-for="layer of LAYERS[id]" :key="layer" :src="`placement/${id}-${layer}.png`" :class="{ dim: layer !== id }" alt="">
-        </div>
-        <span class="name">{{ data.name }}</span>
-      </div>
-    </div>
+    <TileGrid :columns="1">
+      <Tile v-for="(data, id) of TYPES" :key="id" :label="data.name" aspect="auto" :selected="object.type === id" @pick="pick(id)">
+        <template #picture>
+          <span class="preview">
+            <img v-for="layer of LAYERS[id]" :key="layer" :src="`placement/${id}-${layer}.png`" :class="{ dim: layer !== id }" alt="">
+          </span>
+        </template>
+      </Tile>
+    </TileGrid>
     <h3>Rows</h3>
     <p class="hint">Stack more lines of the same placement by giving each its own row.</p>
     <Slider label="Row" v-model="object.row" :min="object.type === 'top' ? -3 : 0" :max="3" />
@@ -42,32 +45,9 @@
 </template>
 
 <style scoped>
-  .types {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .type {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding: 8px 8px 10px;
-  }
-
-  .name {
-    font-size: var(--font-md);
-    font-weight: 600;
-    text-align: center;
-    color: var(--muted);
-  }
-
-  .selected .name {
-    color: var(--text);
-  }
-
   .preview {
     display: grid;
+    width: 100%;
   }
 
   .preview img {

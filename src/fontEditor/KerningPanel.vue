@@ -5,6 +5,8 @@
   import { collisionAmount, pairRank, suggestKerning } from "../lib/kerning.js"
   import { normalise } from "../lib/layout.js"
   import Slider from "../components/Slider.vue"
+  import Tile from "../components/Tile.vue"
+  import TileGrid from "../components/TileGrid.vue"
   import PairView from "./PairView.vue"
   import { previewFont } from "./textCanvas.js"
   import { font, update } from "./store.js"
@@ -125,12 +127,11 @@
           <Button :disabled="!suggestions.length" @click="addAll">Add all {{ suggestions.length }}</Button>
         </div>
         <p v-if="!suggestions.length" class="hint">No suggestions here.</p>
-        <div v-else class="pairs list">
-          <button v-for="{ pair, amount } of suggestions" :key="pair" class="pair suggestion" v-tooltip="`Add, ${amount} closer`" @click="setKerning({ [pair]: amount })">
-            <span class="picture"><PairView :parsed="parsed" :pair="pair" :amount="amount" /></span>
-            <span class="name">{{ pairLabel(pair) }}</span>
-          </button>
-        </div>
+        <TileGrid v-else class="list" :min="140">
+          <Tile v-for="{ pair, amount } of suggestions" :key="pair" :label="pairLabel(pair)" :tooltip="`Add, ${amount} closer`" @pick="setKerning({ [pair]: amount })">
+            <template #picture><span class="pair-picture"><PairView :parsed="parsed" :pair="pair" :amount="amount" /></span></template>
+          </Tile>
+        </TileGrid>
       </section>
     </div>
   </div>
@@ -167,21 +168,13 @@
     align-content: start;
   }
 
-  .pairs {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 6px;
-  }
-
-  .pair {
+  .pair-picture {
     display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 6px;
-    padding: 6px;
-    background: var(--card);
-    border: 1px solid transparent;
-    box-shadow: none;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    background: var(--checker);
   }
 
   .picture {
@@ -229,23 +222,6 @@
   .pair-name {
     font-size: var(--font-md);
     font-weight: 600;
-  }
-
-  .suggestion {
-    cursor: pointer;
-    user-select: none;
-  }
-
-  .suggestion:hover {
-    background: var(--card-hover);
-    border-color: var(--accent);
-    filter: none;
-  }
-
-  .name {
-    font-size: var(--font-sm);
-    text-align: center;
-    color: var(--muted);
   }
 
   .toolbar {

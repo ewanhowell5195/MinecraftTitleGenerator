@@ -1,5 +1,7 @@
 <script setup>
   import { computed, shallowRef, watch } from "vue"
+  import Tile from "../../components/Tile.vue"
+  import TileGrid from "../../components/TileGrid.vue"
   import { pixelsOf } from "../../lib/canvas.js"
   import { loadImage, sheetLayout } from "../../lib/font.js"
   import { characterName, exportJson, flatTexture, parsedSheet } from "../../lib/fontEditor.js"
@@ -114,39 +116,19 @@
     <p v-else-if="!drawn" class="hint">Loading the characters...</p>
     <template v-else>
       <p class="hint">{{ drawn.cells.length }} drawn<template v-if="drawn.blank.length">, {{ drawn.blank.length }} left blank</template>.</p>
-      <ul class="characters">
-        <li v-for="tile of tiles" :key="tile.char">
-          <div class="glyph" :style="{ height: `${TILE_HEIGHT}px` }"><img :src="tile.image" :alt="tile.char" :style="tile.style"></div>
-          <span class="name">{{ characterName(tile.char) }}</span>
-        </li>
-        <li v-for="char of drawn.blank" :key="char" class="blank">
-          <div class="glyph" :style="{ height: `${TILE_HEIGHT}px` }">Blank</div>
-          <span class="name">{{ characterName(char) }}</span>
-        </li>
-      </ul>
+      <TileGrid :min="96">
+        <Tile v-for="tile of tiles" :key="tile.char" still :label="characterName(tile.char)" aspect="auto">
+          <template #picture><span class="glyph" :style="{ height: `${TILE_HEIGHT}px` }"><img :src="tile.image" :alt="tile.char" :style="tile.style"></span></template>
+        </Tile>
+        <Tile v-for="char of drawn.blank" :key="char" still :label="characterName(char)" aspect="auto">
+          <template #picture><span class="glyph blank" :style="{ height: `${TILE_HEIGHT}px` }">Blank</span></template>
+        </Tile>
+      </TileGrid>
     </template>
   </div>
 </template>
 
 <style scoped>
-  .characters {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-    gap: 8px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  li {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 8px 8px;
-    background: var(--card);
-  }
-
   .glyph {
     position: relative;
     display: flex;
@@ -156,18 +138,13 @@
 
   .glyph img {
     position: absolute;
+    max-width: none;
+    max-height: none;
     image-rendering: pixelated;
   }
 
-  .blank .glyph {
+  .glyph.blank {
     align-items: center;
-    font-size: var(--font-sm);
     color: var(--danger);
-  }
-
-  .name {
-    font-size: var(--font-sm);
-    text-align: center;
-    color: var(--muted);
   }
 </style>
