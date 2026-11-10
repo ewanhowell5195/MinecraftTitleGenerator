@@ -501,6 +501,7 @@
     min-height: 0;
     padding: 0 20px 24px;
     overflow-y: auto;
+    container-type: inline-size;
   }
 
   .message {
@@ -528,7 +529,7 @@
   }
 
   .grid {
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, clamp(320px, 21vw, 420px)), 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, clamp(320px, 30cqi, 420px)), 1fr));
     gap: 12px;
   }
 
