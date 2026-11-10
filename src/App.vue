@@ -175,7 +175,7 @@
 <style scoped>
   .app {
     display: grid;
-    grid-template-columns: 76px 464px minmax(0, 1fr);
+    grid-template-columns: 77px 464px minmax(0, 1fr);
     grid-template-rows: 60px auto auto minmax(0, 1fr);
     grid-template-areas: "bar bar bar" "layers actions stage" "layers tabs stage" "layers drawer stage";
     height: 100vh;
