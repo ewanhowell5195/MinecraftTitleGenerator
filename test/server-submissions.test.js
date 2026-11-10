@@ -425,6 +425,8 @@ describe("reviewing on the site", () => {
     assert.deepEqual(events.map(item => [item.author, item.role]), [["someone", "submitter"], ["someone", "submitter"], ["someone", "submitter"]])
     assert.equal(gh.comments.at(-1).body, "` someone ` (submitter) changed the submission on the site.")
     assert.equal((await (await accountDetails(context("/api/account", { cookie: reviewer }))).json()).user.admin, true)
+    assert.equal((await (await accountDetails(context("/api/account", { cookie: reviewer }))).json()).user.waiting, 1)
+    assert.equal((await (await accountDetails(context("/api/account", { cookie }))).json()).user.waiting, 0)
     assert.equal((await thread(id, reviewer)).reviewer, true)
     assert.equal((await thread(id, cookie)).reviewer, false)
   })

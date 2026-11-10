@@ -197,14 +197,15 @@ export const finishSignIn = showingRefusals(async ({ request, env, params }) => 
   return response
 })
 
-async function submissionCounts(env, user) {
-  const row = await env.DB.prepare(`SELECT (SELECT COUNT(*) FROM notifications WHERE seen = 0 AND user_id = ${USER_ROW}) AS unread, (SELECT COUNT(*) FROM notifications WHERE user_id = ${USER_ROW}) AS notifications, (SELECT COUNT(*) FROM submissions WHERE user_id = ${USER_ROW}) AS submissions`).bind(user.provider, user.providerId, user.provider, user.providerId, user.provider, user.providerId).first()
-  return { unread: row?.unread ?? 0, notifications: row?.notifications ?? 0, submissions: row?.submissions ?? 0 }
+async function submissionCounts(env, user, admin) {
+  const row = await env.DB.prepare(`SELECT (SELECT COUNT(*) FROM notifications WHERE seen = 0 AND user_id = ${USER_ROW}) AS unread, (SELECT COUNT(*) FROM notifications WHERE user_id = ${USER_ROW}) AS notifications, (SELECT COUNT(*) FROM submissions WHERE user_id = ${USER_ROW}) AS submissions, (SELECT COUNT(*) FROM submissions WHERE status = 'open' AND ?) AS waiting`).bind(user.provider, user.providerId, user.provider, user.providerId, user.provider, user.providerId, admin ? 1 : 0).first()
+  return { unread: row?.unread ?? 0, notifications: row?.notifications ?? 0, submissions: row?.submissions ?? 0, waiting: row?.waiting ?? 0 }
 }
 
 export const accountDetails = guarded(async context => {
   const user = await signedInUser(context)
-  return reply(200, { user: user && { ...shownUser(user), ...await submissionCounts(context.env, user), admin: await isAdmin(context.env, user) }, providers: PROVIDERS.map(({ id }) => id).filter(id => context.env[`${id.toUpperCase()}_CLIENT_ID`]) })
+  const admin = !!user && await isAdmin(context.env, user)
+  return reply(200, { user: user && { ...shownUser(user), ...await submissionCounts(context.env, user, admin), admin }, providers: PROVIDERS.map(({ id }) => id).filter(id => context.env[`${id.toUpperCase()}_CLIENT_ID`]) })
 })
 
 export function clearedSession() {

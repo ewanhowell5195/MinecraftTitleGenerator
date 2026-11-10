@@ -10,7 +10,7 @@
   const avatar = computed(() => account.value?.avatar && account.value.avatar !== broken.value ? account.value.avatar : null)
   onMounted(() => refreshAccount())
 
-  const hasSubmissions = computed(() => !!(account.value?.admin || account.value?.submissions || account.value?.unread))
+  const hasSubmissions = computed(() => !!(account.value?.submissions || account.value?.waiting))
   const items = computed(() => account.value ? [{ heading: true, label: `Signed in as ${account.value.name}` }].concat(hasSubmissions.value ? { label: "Submissions", icon: "upload", action: () => router.push("/submissions/") } : [], { label: "Manage account", icon: "user", action: () => router.push("/account/") }, { label: "Sign out", icon: "signOut", action: signOut }) : signInProviders.value.map(id => ({ label: `Sign in with ${providerLabel(id)}`, icon: id, action: () => signIn(id) })))
 </script>
 
