@@ -31,6 +31,10 @@ a.button {
   text-decoration: none;
 }
 
+.intro .notes {
+  margin-top: 12px;
+}
+
 .submission-form,
 .submission-view {
   display: grid;
@@ -166,6 +170,14 @@ textarea:focus {
   color: var(--muted);
 }
 
+.submission-view > .details {
+  align-self: stretch;
+}
+
+.submission-view > .details > .actions:first-of-type {
+  margin-top: auto;
+}
+
 .details dl {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -194,11 +206,11 @@ textarea:focus {
 
 .notes {
   margin: 0;
-  padding: 10px 12px;
-  font-size: var(--font-md);
+  padding: 2px 0 2px 14px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  background: var(--surface);
+  color: var(--text);
+  border-left: 3px solid var(--line-strong);
 }
 
 @media (max-width: 760px) {

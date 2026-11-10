@@ -126,6 +126,7 @@
       <a class="hint" href="/submissions/">Submissions</a>
       <h1>{{ item.name }}</h1>
       <p>{{ client.summary(item, fonts) }}, made by {{ item.credit }}.</p>
+      <blockquote v-if="item.notes" class="notes">{{ item.notes }}</blockquote>
     </section>
     <SubmissionForm v-if="editing" :fonts="fonts" :initial="item" @done="saved" @cancel="cancel" />
     <section v-else-if="processing?.state === 'processing'" class="processing">
@@ -155,7 +156,6 @@
             <dd v-if="item.ownerName"><UserName :name="item.ownerName" :provider="item.ownerProvider" /></dd>
             <dd v-else>A deleted account</dd>
           </dl>
-          <p v-if="item.notes" class="notes">{{ item.notes }}</p>
           <div class="actions">
             <a class="button primary" :href="`/app/?${SUBMISSION_PARAM}=${item.id}`">Open in generator</a>
             <a v-if="previewLink" class="button" :href="previewLink" target="_blank" rel="noopener" title="The generator built from this submission's branch, with it added"><Icon name="eye" :size="16" />Open preview</a>
