@@ -1,6 +1,6 @@
 <template>
   <main class="legal wrap">
-    <h1>Terms of Service</h1>
+    <h1 class="page-title">Terms of Service</h1>
     <p class="updated">Last updated: 9 November 2026</p>
     <p>By using the Minecraft Title Generator, you agree that you have read and agree to these terms. If you do not agree to them, do not use the title generator.</p>
     <p>The <a href="/privacy/">Privacy Policy</a> explains what data the title generator stores and how it is used.</p>

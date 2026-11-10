@@ -1,6 +1,6 @@
 <template>
   <main class="legal wrap">
-    <h1>Privacy Policy</h1>
+    <h1 class="page-title">Privacy Policy</h1>
     <p class="updated">Last updated: 10 November 2026</p>
     <p>By using the Minecraft Title Generator, you agree that you have read and agree to this policy.</p>
     <p>This policy describes what data the title generator stores, why, how long it is kept, and how to remove it.</p>

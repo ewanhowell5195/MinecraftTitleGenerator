@@ -15,7 +15,7 @@
   <main class="missing wrap">
     <p v-if="failed" class="code">404</p>
     <img v-else class="sign" :src="pictureUrl({ code })" alt="404" width="935" height="381" @error="failed = true">
-    <h1>Page not found</h1>
+    <h1 class="page-title">Page not found</h1>
     <p>There's nothing at <code>{{ route.path }}</code>. The link may be wrong, or the page may have moved.</p>
     <Button primary big to="/">Go to the home page</Button>
   </main>
@@ -48,10 +48,6 @@
 
   h1 {
     margin-top: 20px;
-    font-size: clamp(36px, 5.4vw, 56px);
-    font-weight: 800;
-    line-height: 1.05;
-    color: var(--text);
   }
 
   h1 + p {

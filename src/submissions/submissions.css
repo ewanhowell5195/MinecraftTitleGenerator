@@ -6,7 +6,7 @@ a {
   display: flex;
   flex-direction: column;
   gap: 28px;
-  max-width: 1080px;
+  max-width: 1152px;
   margin: 0 auto;
   padding: 92px 16px 64px;
 }

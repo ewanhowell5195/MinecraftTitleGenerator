@@ -2,14 +2,6 @@
   padding-top: clamp(104px, 14vh, 140px);
 }
 
-.intro h1 {
-  font-size: clamp(36px, 5.4vw, 60px);
-  font-weight: 800;
-  line-height: 1.05;
-  letter-spacing: -0.02em;
-  color: var(--text);
-}
-
 .intro p {
   max-width: 62ch;
   margin-top: 14px;

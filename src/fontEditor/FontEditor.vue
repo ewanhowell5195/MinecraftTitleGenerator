@@ -1,9 +1,9 @@
 <script setup>
   import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
   import Button from "../components/Button.vue"
-  import FluidTabs from "fluid-tabs-vue"
   import AccountMenu from "../components/AccountMenu.vue"
   import Notice from "../components/Notice.vue"
+  import NavTabs from "../components/NavTabs.vue"
   import NotificationBell from "../components/NotificationBell.vue"
   import Icon from "../components/Icon.vue"
   import MenuStrip from "../components/MenuStrip.vue"
@@ -84,12 +84,10 @@
       <template v-if="font">
         <MenuStrip :menus="menus" />
         <span class="name ellipsis">{{ font.name }}</span>
-        <FluidTabs class="main-tabs" v-model="tab" :tabs="TABS" tab-style="nav">
-          <template #label="{ tab: item }"><span>{{ item.label }}</span></template>
-        </FluidTabs>
+        <NavTabs class="main-tabs" v-model="tab" :tabs="TABS" />
       </template>
       <div class="spacer"></div>
-      <Button v-if="font" v-tooltip="'Send this font to be added to the title generator'" @click="submitFont"><template #icon><Icon name="upload" :size="14" /></template>Submit</Button>
+      <Button v-if="font" v-tooltip="'Send this font to be added to the title generator'" @click="submitFont"><template #icon><Icon name="upload" :size="16" /></template>Submit</Button>
       <AccountMenu />
       <NotificationBell />
     </header>
@@ -209,31 +207,17 @@
     margin-left: 8px;
   }
 
+  .main-tabs.nav-tabs {
+    border-bottom: 0;
+  }
+
   .main-tabs :deep(.tab-bar) {
     height: 100%;
     margin: 0;
-    box-shadow: none;
   }
 
-  .main-tabs :deep(.tab-bar-button) {
-    padding: 0 14px;
-    font-size: var(--font-md);
-    font-weight: 600;
-    color: var(--faint);
-  }
-
-  .main-tabs :deep(.tab-bar-button:hover) {
-    color: var(--text);
-  }
-
-  .main-tabs :deep(.tab-bar-button.active) {
-    color: var(--accent);
-  }
-
-  .main-tabs :deep(.tab-bar-active) {
-    bottom: 0;
-    border-top: none;
-    border-bottom: 2px solid var(--accent);
+  .main-tabs.nav-tabs :deep(.tab-bar-button) {
+    padding: 0 2px;
   }
 
   .page {
@@ -290,7 +274,7 @@
       width: 100%;
     }
 
-    .main-tabs :deep(.tab-bar-button) {
+    .main-tabs.nav-tabs :deep(.tab-bar-button) {
       flex: 1;
       padding: 0 6px;
     }
