@@ -124,6 +124,14 @@
     grid-template-columns: auto 1fr auto;
   }
 
+  .stretch :deep(.value) {
+    width: 48px;
+  }
+
+  .stretch :deep(.value input) {
+    text-align: left;
+  }
+
   .views {
     position: relative;
     display: grid;
