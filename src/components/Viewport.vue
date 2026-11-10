@@ -3,13 +3,13 @@
   import Button from "./Button.vue"
   import * as THREE from "three"
   import { TransformControls } from "three/addons/controls/TransformControls.js"
-  import { FXAA_FRAGMENT, FXAA_VERTEX } from "../lib/fxaa.js"
   import { frameBounds, framePixels, frameRect, framing } from "../lib/framing.js"
   import { holdHistory } from "../lib/history.js"
   import { clamp, round } from "../lib/maths.js"
   import { renderTitle, screenBounds } from "../lib/render.js"
   import { current, currentWord, scene as title, select, setScale, shapingWord } from "../lib/scene.js"
   import { TRANSFORM_LIMITS } from "../lib/settings.js"
+  import { createSmoothing } from "../lib/smoothing.js"
   import { UNTURNED, UNZOOMED, createEntry, destroyEntry, elevationOf, frameCamera, gizmoPose, lineBounds, movedBy, orbitCamera, panMatrix, pannedBy, pickEntry, rotatedTo, sortEntries, titleFraming, turnedBy, updateEntry, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } from "../lib/stage.js"
   import { vectorTitle } from "../lib/vector.js"
   import { SHAPE_SECTIONS, view, viewport, viewportChanges } from "../lib/view.js"
@@ -41,7 +41,7 @@
   const basePosition = new THREE.Vector3()
   const baseQuaternion = new THREE.Quaternion()
   const pivot = new THREE.Vector3()
-  let renderer, scene, overlay, camera, perspective, orthographic, frame, observer, selection, controls, proxy, sceneTarget, smoothing, smoothingCamera
+  let renderer, scene, overlay, camera, perspective, orthographic, frame, observer, selection, controls, proxy, smoothing
   let frameSize = { width: 1, height: 1 }
   let fitted = null
   let dirty = true
@@ -61,10 +61,7 @@
     dirty = false
     sortEntries(Array.from(entries.values()), camera)
     track()
-    renderer.setRenderTarget(sceneTarget)
-    renderer.render(scene, camera)
-    renderer.setRenderTarget(null)
-    renderer.render(smoothing, smoothingCamera)
+    smoothing.draw(scene, camera)
     if (controls.object) {
       renderer.autoClear = false
       renderer.clearDepth()
@@ -316,33 +313,13 @@
     if (!orbiting.value) turn.value = UNTURNED
   }
 
-  function createSmoothing() {
-    sceneTarget = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter })
-    const geometry = new THREE.BufferGeometry()
-    geometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array([-1, -1, 3, -1, -1, 3]), 2))
-    geometry.boundingSphere = new THREE.Sphere()
-    const material = new THREE.RawShaderMaterial({ vertexShader: FXAA_VERTEX, fragmentShader: FXAA_FRAGMENT, defines: { LINEAR_INPUT: "" }, uniforms: { scene: { value: sceneTarget.texture }, pixel: { value: new THREE.Vector2() } }, blending: THREE.NoBlending, depthTest: false, depthWrite: false })
-    const pass = new THREE.Mesh(geometry, material)
-    pass.frustumCulled = false
-    smoothing = new THREE.Scene()
-    smoothing.add(pass)
-    smoothingCamera = new THREE.Camera()
-  }
-
-  function resizeSmoothing() {
-    const { x, y } = renderer.getDrawingBufferSize(new THREE.Vector2())
-    sceneTarget.setSize(x, y)
-    smoothing.children[0].material.uniforms.pixel.value.set(1 / x, 1 / y)
-  }
-
   onMounted(() => {
     const width = host.value.clientWidth || 1
     const height = host.value.clientHeight || 1
     renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.setSize(width, height)
-    createSmoothing()
-    resizeSmoothing()
+    smoothing = createSmoothing(renderer)
     host.value.append(renderer.domElement)
     scene = new THREE.Scene()
     frameSize = { width, height }
@@ -379,7 +356,7 @@
       const h = host.value.clientHeight
       if (!w || !h) return
       renderer.setSize(w, h)
-      resizeSmoothing()
+      smoothing.resize()
       frameSize = { width: w, height: h }
       fitCamera()
     })
@@ -427,9 +404,7 @@
     entries.clear()
     for (const edge of selection.children) edge.geometry.dispose()
     selection.children[0].material.dispose()
-    sceneTarget.dispose()
-    smoothing.children[0].geometry.dispose()
-    smoothing.children[0].material.dispose()
+    smoothing.dispose()
     renderer.dispose()
     renderer.domElement.remove()
   })

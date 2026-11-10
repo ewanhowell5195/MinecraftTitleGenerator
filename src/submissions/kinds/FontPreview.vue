@@ -1,10 +1,10 @@
 <script setup>
   import { computed, ref, shallowRef, watch } from "vue"
   import Dropdown from "../../components/Dropdown.vue"
+  import LiveTitle from "../../components/LiveTitle.vue"
   import { overlayLayer } from "../../lib/settings.js"
   import { embedded } from "../../lib/submissionLink.js"
   import { submissionExtraUrl } from "../../lib/submissionsApi.js"
-  import TitleRender from "../TitleRender.vue"
   import { CLIENT_KINDS } from "./index.js"
 
   const props = defineProps({
@@ -58,7 +58,7 @@
 
 <template>
   <div class="font-preview">
-    <TitleRender :fonts="fonts" :line="line" :message="problem || (url ? 'Type some text to preview it' : 'Choose a font JSON file to preview it')" />
+    <LiveTitle :fonts="fonts" :lines="line ? [line] : []" :message="problem || (url ? 'Type some text to preview it' : 'Choose a font JSON file to preview it')" />
     <Dropdown v-if="extras.length" v-model="chosen" class="texture-pick" :options="options" label="Texture" />
   </div>
 </template>

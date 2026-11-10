@@ -2,6 +2,7 @@
   import { computed, onBeforeUnmount, onMounted, ref, shallowRef, toRaw, watch } from "vue"
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
+  import LiveTitle from "../components/LiveTitle.vue"
   import { image, stripRange } from "../lib/assets.js"
   import { loadFontList, stripsOf } from "../lib/font.js"
   import { loadStats, usage } from "../lib/stats.js"
@@ -9,7 +10,7 @@
   import { titleCase } from "../lib/names.js"
   import { centredOffset, stripFolder, stripUse } from "../lib/strips.js"
   import NumberInput from "../components/NumberInput.vue"
-  import RenderView from "./RenderView.vue"
+  import { editorLine, useServedFont } from "./editorLine.js"
   import { stripThumbnail, thumbnailScene } from "./stripThumbs.js"
   import { downloadFlatTexture, font, update } from "./store.js"
 
@@ -42,7 +43,8 @@
     if (!entry?.variants) return []
     return [{ id: null, image: chosenTexture.value, name: entry.name ?? titleCase(chosenTexture.value) }].concat(Object.entries(entry.variants).map(([id, variant]) => ({ id, image: id, name: variant.name ?? titleCase(id) })))
   })
-  const request = computed(() => chosenSet.value ? { font: toRaw(font.value), text: text.value, slot: "textures", strip: stripItem(chosenSet.value, chosenOffset(chosenSet.value)), texture: chosenTexture.value, variant: chosenVariant.value } : null)
+  const { entry, settled } = useServedFont("textures", () => chosenSet.value ? { font: font.value, strip: stripItem(chosenSet.value, chosenOffset(chosenSet.value)) } : null)
+  const lines = computed(() => entry.value && text.value.trim() ? [editorLine(entry.value, text.value, { texture: chosenTexture.value, variant: chosenVariant.value })] : [])
 
   function used(id) {
     return uses.value.some(use => use.id === id)
@@ -218,7 +220,7 @@
       <h3>Try {{ titleCase(chosen.id) }}</h3>
       <p class="hint">{{ used(chosen.id) ? "Your font uses these strips." : "Your font doesn't use these strips yet, so this is only a test." }}</p>
       <label class="field"><span class="label">Text</span><input v-model="text" type="text" aria-label="Test text"></label>
-      <RenderView class="view" :request="request" empty="Nothing to show yet. Draw the characters in your text." />
+      <LiveTitle class="view" :lines="lines" :fonts="[entry]" message="Nothing to show yet. Draw the characters in your text." @settled="settled" />
       <div class="textures">
         <button v-for="item of textures" :key="item.id" class="texture" :class="{ active: chosenTexture === item.id, unfit: !fits(chosen.id) }" :title="item.name" @click="chosenTexture = item.id">
           <span class="swatch"><img v-if="thumbs[item.id]" :src="thumbs[item.id]" alt=""></span>
@@ -311,6 +313,7 @@
 
   .view {
     height: 260px;
+    aspect-ratio: auto;
   }
 
   .textures {

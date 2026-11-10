@@ -1,8 +1,8 @@
 <script setup>
   import { ref, watch } from "vue"
+  import LiveTitle from "../../components/LiveTitle.vue"
   import { defaultBorder, defaultDepth, defaultSpacing } from "../../lib/settings.js"
   import { embedded } from "../../lib/submissionLink.js"
-  import TitleRender from "../TitleRender.vue"
   import { CLIENT_KINDS } from "./index.js"
 
   const props = defineProps({
@@ -37,5 +37,5 @@
 </script>
 
 <template>
-  <TitleRender :fonts="fonts" :line="line" :message="problem || (url ? 'Type some text to preview it' : 'Choose a PNG to preview it')" />
+  <LiveTitle :fonts="fonts" :lines="line ? [line] : []" :message="problem || (url ? 'Type some text to preview it' : 'Choose a PNG to preview it')" />
 </template>

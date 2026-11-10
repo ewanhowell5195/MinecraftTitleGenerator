@@ -1,10 +1,10 @@
 <script setup>
   import { computed, ref, watch } from "vue"
   import Dropdown from "../../components/Dropdown.vue"
+  import LiveTitle from "../../components/LiveTitle.vue"
   import { fullName } from "../../lib/font.js"
   import { embedded } from "../../lib/submissionLink.js"
   import { fontThumbnail } from "../../lib/ui.js"
-  import TitleRender from "../TitleRender.vue"
   import { previewFonts, stripLine } from "./strip.js"
 
   const props = defineProps({
@@ -43,5 +43,5 @@
 
 <template>
   <Dropdown v-if="options.length > 1" v-model="chosen" :options="options" label="Preview font" searchable />
-  <TitleRender :fonts="fonts" :line="line" :message="problem || (!font ? 'Pick a font to preview it on' : url ? 'Type some text to preview it' : 'Choose a PNG to preview it')" />
+  <LiveTitle :fonts="fonts" :lines="line ? [line] : []" :message="problem || (!font ? 'Pick a font to preview it on' : url ? 'Type some text to preview it' : 'Choose a PNG to preview it')" />
 </template>

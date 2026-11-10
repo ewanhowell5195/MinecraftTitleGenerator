@@ -2,11 +2,11 @@
   import { computed, ref, watch } from "vue"
   import Dropdown from "../../components/Dropdown.vue"
   import { fullName } from "../../lib/font.js"
+  import LiveTitle from "../../components/LiveTitle.vue"
   import { defaultBorder, defaultDepth, defaultSpacing } from "../../lib/settings.js"
   import { popular } from "../../lib/stats.js"
   import { embedded } from "../../lib/submissionLink.js"
   import { fontThumbnail } from "../../lib/ui.js"
-  import TitleRender from "../TitleRender.vue"
   import { TILEABLE_PREVIEW_FONT, tileable } from "./tileable.js"
 
   const props = defineProps({
@@ -50,5 +50,5 @@
 
 <template>
   <Dropdown v-if="options.length" v-model="font" :options="options" label="Preview font" searchable />
-  <TitleRender :fonts="fonts" :line="line" :message="problem || (url ? 'Type some text to preview it' : 'Choose a PNG to preview it')" />
+  <LiveTitle :fonts="fonts" :lines="line ? [line] : []" :message="problem || (url ? 'Type some text to preview it' : 'Choose a PNG to preview it')" />
 </template>

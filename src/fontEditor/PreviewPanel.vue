@@ -1,13 +1,13 @@
 <script setup>
-  import { computed, onBeforeUnmount, onMounted, ref, toRaw, watch } from "vue"
+  import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
   import Button from "../components/Button.vue"
+  import LiveTitle from "../components/LiveTitle.vue"
   import Slider from "../components/Slider.vue"
-  import RenderView from "./RenderView.vue"
+  import { editorLine, useServedFont } from "./editorLine.js"
   import { previewFont, drawText } from "./textCanvas.js"
   import { font, previewMode as mode, previewStretch as stretch, previewTerminators as terminators, previewText as text } from "./store.js"
 
   const SPLIT_WIDTH = 640
-  const DRAW_DELAY = 40
   const EMPTY = "Nothing to show yet. Draw the characters in your preview text."
 
   const canvas = ref(null)
@@ -16,9 +16,11 @@
   const empty = ref(false)
   const error = ref("")
   const wide = ref(true)
-  const request = computed(() => wide.value || mode.value === "3d" ? { font: toRaw(font.value), text: text.value, terminators: terminators.value, stretch: 1 + stretch.value / 100 } : null)
+  const live = computed(() => wide.value || mode.value === "3d")
+  const { entry, settled } = useServedFont("preview", () => live.value ? { font: font.value } : null)
+  const lines = computed(() => entry.value && text.value.trim() ? [editorLine(entry.value, text.value, { terminators: terminators.value, stretch: 1 + stretch.value / 100 })] : [])
   let observer = null
-  let timer = null
+  let frame = 0
 
   function measure() {
     wide.value = views.value.clientWidth >= SPLIT_WIDTH
@@ -36,8 +38,11 @@
   }
 
   function schedule() {
-    clearTimeout(timer)
-    timer = setTimeout(draw, DRAW_DELAY)
+    if (frame) return
+    frame = requestAnimationFrame(() => {
+      frame = 0
+      draw()
+    })
   }
 
   onMounted(() => {
@@ -49,7 +54,7 @@
 
   onBeforeUnmount(() => {
     observer.disconnect()
-    clearTimeout(timer)
+    cancelAnimationFrame(frame)
   })
 
   watch([font, text, terminators, mode, stretch], schedule)
@@ -76,7 +81,7 @@
         <p v-if="error" class="message bad">{{ error }}</p>
         <p v-else-if="empty" class="message">{{ EMPTY }}</p>
       </div>
-      <RenderView v-show="request" class="view" :request="request" :empty="EMPTY" />
+      <LiveTitle v-if="live" class="view" :lines="lines" :fonts="[entry]" :message="EMPTY" @settled="settled" />
       <Button class="mode-switch" v-if="!wide" :title="mode === '2d' ? 'Show the 3D preview' : 'Show the flat preview'" @click="mode = mode === '2d' ? '3d' : '2d'">{{ mode === "2d" ? "3D" : "2D" }}</Button>
     </div>
   </section>
@@ -149,6 +154,7 @@
     justify-content: center;
     min-width: 0;
     height: 110px;
+    aspect-ratio: auto;
     overflow: hidden;
     background: var(--checker);
   }
