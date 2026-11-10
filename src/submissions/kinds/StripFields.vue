@@ -1,6 +1,7 @@
 <script setup>
   import { computed, ref, watch } from "vue"
   import Button from "../../components/Button.vue"
+  import Checkbox from "../../components/Checkbox.vue"
   import ColourPicker from "../../components/ColourPicker.vue"
   import Dropdown from "../../components/Dropdown.vue"
   import Field from "../../components/Field.vue"
@@ -229,10 +230,7 @@
       <span v-if="problems.fonts && (tried || picked.length)" class="hint bad">{{ problems.fonts }}</span>
     </div>
   </template>
-  <label v-if="mode !== 'font'" class="check">
-    <input type="checkbox" v-model="stretch">
-    <span>Stretch the front between each font's baseline and top, instead of lining it up row by row</span>
-  </label>
+  <Checkbox v-if="mode !== 'font'" v-model="stretch" label="Stretch the front between each font's baseline and top, instead of lining it up row by row" />
   <span v-if="problems.stretch" class="hint bad">{{ problems.stretch }}</span>
   <Field group label="Border colour">
     <ColourPicker v-model="border" />

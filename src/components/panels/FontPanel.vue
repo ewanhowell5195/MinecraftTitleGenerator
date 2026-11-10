@@ -168,8 +168,7 @@
       <p v-else class="hint">A JSON from the font editor, a Minecraft ascii.png, or a .ttf, .otf, .woff or .woff2 font.</p>
       <template v-if="imported && usingCustom">
         <template v-if="object.customFont.kind === 'outline'">
-          <Segments label="Build from" :options="BUILDS" :model-value="!!object.customFont.mesh" @update:model-value="changeImport('mesh', $event)" />
-          <p class="hint">{{ object.customFont.mesh ? "Smooth edges that follow the font's own curves." : "Pixel cubes, like the other fonts." }}</p>
+          <Segments label="Build from" :options="BUILDS" :model-value="!!object.customFont.mesh" :hint="object.customFont.mesh ? `Smooth edges that follow the font's own curves.` : 'Pixel cubes, like the other fonts.'" @update:model-value="changeImport('mesh', $event)" />
         </template>
         <div class="sizes">
           <Field label="Height in pixels">

@@ -1,6 +1,7 @@
 <script setup>
   import { computed, onMounted, ref, shallowRef } from "vue"
   import Button from "../components/Button.vue"
+  import Checkbox from "../components/Checkbox.vue"
   import Dropdown from "../components/Dropdown.vue"
   import Field from "../components/Field.vue"
   import Icon from "../components/Icon.vue"
@@ -166,10 +167,7 @@
     <section class="flow">
       <h3>Options</h3>
       <div v-for="flag of FLAGS" :key="flag.key" class="option">
-        <label class="check">
-          <input type="checkbox" :checked="font[flag.key]" @change="setField(flag.key, $event.target.checked, false)">
-          <span class="check-text"><span class="check-label">{{ flag.label }}</span><small class="hint">{{ flag.hint }}</small></span>
-        </label>
+        <Checkbox :label="flag.label" :hint="flag.hint" :model-value="font[flag.key]" @update:model-value="setField(flag.key, $event, false)" />
         <Field v-if="flag.key === 'terminatorSpace' && font.terminatorSpace" class="nested" label="Terminator space width" :hint="font.defineSpace ? 'Your font draws its own space character, which is always used beside the terminators.' : `In pixels. Leave empty to use the normal space width of ${font.spaceWidth}.`">
           <NumberInput min="0" :value="font.defineSpace ? '' : font.terminatorSpaceWidth ?? ''" :placeholder="font.defineSpace ? '' : String(font.spaceWidth)" :disabled="font.defineSpace" @input="setTerminatorWidth" @change="setTerminatorWidth" />
         </Field>
@@ -227,25 +225,6 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-  }
-
-  .check {
-    display: flex;
-    gap: 10px;
-    cursor: pointer;
-    user-select: none;
-  }
-
-  .check-text {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-  }
-
-  .check-label {
-    font-size: var(--font-md);
-    font-weight: 600;
   }
 
   .nested {

@@ -15,13 +15,3 @@ body,
   border-top: 1px solid var(--line);
 }
 
-.checkbox {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: var(--font-md);
-  color: var(--muted);
-  white-space: nowrap;
-  cursor: pointer;
-  user-select: none;
-}

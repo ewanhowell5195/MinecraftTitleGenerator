@@ -5,6 +5,7 @@
   import { openPresetsPage, showPreset } from "../lib/presetsPage.js"
   import { sharingProblem } from "../lib/titleFacts.js"
   import Button from "./Button.vue"
+  import Checkbox from "./Checkbox.vue"
   import Field from "./Field.vue"
   import Notice from "./Notice.vue"
   import RenderDialog from "./RenderDialog.vue"
@@ -109,10 +110,7 @@
         <p class="hint">Share your title so other people can find it in the community presets and use it for themselves.</p>
         <ShareAccount />
       </template>
-      <label v-if="!namingShared || target?.online" class="check">
-        <input type="checkbox" v-model="agreed">
-        <span>I agree to the <a href="/terms/" target="_blank" rel="noopener">Terms of Service</a></span>
-      </label>
+      <Checkbox v-if="!namingShared || target?.online" v-model="agreed">I agree to the <a href="/terms/" target="_blank" rel="noopener">Terms of Service</a></Checkbox>
       <Notice v-if="error || problem">{{ error || problem }}</Notice>
       <div class="dialog-actions">
         <SubmissionUsage v-if="!namingShared && !target?.online" class="usage" />

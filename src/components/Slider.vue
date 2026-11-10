@@ -11,7 +11,8 @@
     steps: { type: Array, default: null },
     log: { type: Boolean, default: false },
     inline: { type: Boolean, default: false },
-    disabled: { type: Boolean, default: false }
+    disabled: { type: Boolean, default: false },
+    hint: { type: String, default: "" }
   })
 
   const SPAN = 1000
@@ -67,6 +68,7 @@
       <NumberInput bare class="value" v-model.number="value" :min="min" :max="max" :step="step" :aria-label="label" :disabled="disabled" />
       <input ref="range" class="range" type="range" v-model.number="position" :min="log ? 0 : min" :max="log ? SPAN : max" :step="log ? 1 : step" :style="fill" :aria-label="label" :disabled="disabled">
     </template>
+    <span v-if="hint" class="hint">{{ hint }}</span>
   </div>
 </template>
 
@@ -74,7 +76,7 @@
   .slider {
     display: grid;
     grid-template-columns: 1fr auto;
-    grid-template-areas: "label value" "range range";
+    grid-template-areas: "label value" "range range" "hint hint";
     align-items: center;
     row-gap: 2px;
   }
@@ -87,6 +89,12 @@
 
   .label {
     grid-area: label;
+  }
+
+  .hint {
+    grid-area: hint;
+    margin-top: 4px;
+    line-height: 1.4;
   }
 
   .inline .label {

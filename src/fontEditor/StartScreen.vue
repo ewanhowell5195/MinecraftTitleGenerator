@@ -1,6 +1,7 @@
 <script setup>
   import { computed, onMounted, ref, shallowRef } from "vue"
   import Button from "../components/Button.vue"
+  import Checkbox from "../components/Checkbox.vue"
   import Field from "../components/Field.vue"
   import Icon from "../components/Icon.vue"
   import Notice from "../components/Notice.vue"
@@ -107,7 +108,7 @@
         <div class="numbers import">
           <Field label="Height in pixels"><NumberInput min="1" v-model.number="importHeight" /></Field>
           <Field label="Square size"><NumberInput min="1" v-model.number="importDensity" /></Field>
-          <label class="checkbox"><input type="checkbox" v-model="lowercase"><span>Use lowercase letters</span></label>
+          <Checkbox v-model="lowercase" label="Use lowercase letters" />
         </div>
         <Button file wide accept=".ttf,.otf,.woff,.woff2,.png,font/ttf,font/otf,font/woff,font/woff2,image/png" @change="importFile"><template #icon><Icon name="open" /></template>Choose font file</Button>
       </section>
@@ -196,7 +197,8 @@
   }
 
   .numbers .checkbox {
-    padding-bottom: 10px;
+    align-self: end;
+    padding-bottom: 9px;
   }
 
   @media (max-width: 800px) {

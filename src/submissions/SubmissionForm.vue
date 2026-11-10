@@ -1,6 +1,7 @@
 <script setup>
   import { computed, onBeforeUnmount, ref, watch } from "vue"
   import Button from "../components/Button.vue"
+  import Checkbox from "../components/Checkbox.vue"
   import Field from "../components/Field.vue"
   import Icon from "../components/Icon.vue"
   import NavTabs from "../components/NavTabs.vue"
@@ -198,10 +199,7 @@
       <textarea v-model="notes" :maxlength="SUBMISSION_LIMITS.notes" rows="3" placeholder="Optional"></textarea>
     </Field>
     <div class="finish">
-      <label v-if="!initial" class="check">
-        <input type="checkbox" v-model="agree">
-        <span>I agree to the <a href="/terms/" target="_blank" rel="noopener">Terms of Service</a> <span class="required" aria-hidden="true">*</span></span>
-      </label>
+      <Checkbox v-if="!initial" v-model="agree">I agree to the <a href="/terms/" target="_blank" rel="noopener">Terms of Service</a> <span class="required" aria-hidden="true">*</span></Checkbox>
       <p v-if="shown.agree || error" class="hint bad">{{ error || shown.agree }}</p>
       <div class="buttons">
         <Button v-if="initial" @click="emit('cancel')">Cancel</Button>
@@ -298,7 +296,7 @@
   }
 
   .kind-fields > :deep(.wide),
-  .kind-fields > :deep(.check),
+  .kind-fields > :deep(.checkbox),
   .kind-fields > :deep(.hint) {
     grid-column: 1 / -1;
   }

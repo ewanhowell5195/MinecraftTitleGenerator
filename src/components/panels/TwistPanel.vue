@@ -18,8 +18,7 @@
       <p class="hint">{{ twist.hint }}</p>
       <Slider :label="twist.label" v-model="object[twist.amount]" :min="-180" :max="180" />
       <template v-if="object[twist.amount]">
-        <Slider :label="`${twist.label} centre`" v-model="object[twist.centre]" :min="0" :max="100" />
-        <p class="hint">0 is the left end and 100 is the right end.</p>
+        <Slider :label="`${twist.label} centre`" v-model="object[twist.centre]" :min="0" :max="100" hint="0 is the left end and 100 is the right end." />
         <Toggle :label="twist.sameLabel" v-model="object[twist.same]" />
       </template>
     </template>

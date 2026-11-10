@@ -476,20 +476,3 @@ button:where(:not(.button, .field-button)):disabled:hover {
   }
 }
 
-.check {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  font-size: var(--font-md);
-  color: var(--muted);
-  cursor: pointer;
-  user-select: none;
-}
-
-.check input {
-  margin-top: 1px;
-}
-
-.check a {
-  color: var(--accent);
-}

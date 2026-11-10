@@ -4,6 +4,7 @@
   import { NAME_LIMIT, confirmReplacing, confirmSharing, replaceWith, sharePreset } from "../lib/presets.js"
   import { sharingProblem } from "../lib/titleFacts.js"
   import Button from "./Button.vue"
+  import Checkbox from "./Checkbox.vue"
   import Field from "./Field.vue"
   import Notice from "./Notice.vue"
   import RenderDialog from "./RenderDialog.vue"
@@ -48,10 +49,7 @@
         <input type="text" v-model="name" :maxlength="NAME_LIMIT" spellcheck="false">
       </Field>
       <ShareAccount v-if="!target" />
-      <label class="check">
-        <input type="checkbox" v-model="agreed">
-        <span>I agree to the <a href="/terms/" target="_blank" rel="noopener">Terms of Service</a></span>
-      </label>
+      <Checkbox v-model="agreed">I agree to the <a href="/terms/" target="_blank" rel="noopener">Terms of Service</a></Checkbox>
       <Notice v-if="error || problem">{{ error || problem }}</Notice>
       <div class="dialog-actions">
         <SubmissionUsage v-if="!target" class="grow" />
