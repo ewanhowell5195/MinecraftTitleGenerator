@@ -267,32 +267,3 @@ textarea:focus {
 .actions > .primary + :last-child {
   grid-column: 1 / -1;
 }
-
-.sheet-tabs {
-  border-bottom: 1px solid var(--line);
-}
-
-.sheet-tabs .tab-bar {
-  justify-content: flex-start;
-  gap: 24px;
-  box-shadow: none;
-}
-
-.sheet-tabs .tab-bar-button {
-  flex: none;
-  padding: 10px 2px;
-  font-size: var(--font-base);
-  font-weight: 600;
-  color: var(--faint);
-}
-
-.sheet-tabs .tab-bar-button:hover,
-.sheet-tabs .tab-bar-button.active {
-  color: var(--text);
-}
-
-.sheet-tabs .tab-bar-active {
-  bottom: 0;
-  border-top: none;
-  border-bottom: 2px solid var(--accent);
-}

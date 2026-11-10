@@ -1,7 +1,7 @@
 <script setup>
   import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
-  import FluidTabs from "fluid-tabs-vue"
   import Icon from "../components/Icon.vue"
+  import NavTabs from "../components/NavTabs.vue"
   import UserName from "../components/UserName.vue"
   import { account } from "../lib/community.js"
   import { SUBMISSION_KINDS } from "../lib/submissionKinds/index.js"
@@ -170,7 +170,7 @@
         </div>
       </div>
       <section class="section">
-        <FluidTabs v-model="tab" :tabs="tabs" tab-style="nav" class="sheet-tabs" />
+        <NavTabs v-model="tab" :tabs="tabs" />
         <CommentThread v-show="tab === 'comments'" :id="item.id" :comments="comments" :can-comment="item.mine || reviewer" @update="comments = $event" />
         <CharacterGrid v-if="item.kind === 'font'" v-show="tab === 'characters'" :url="submissionFileUrl(item)" :texture="gridTexture" />
         <SubmissionFiles v-show="tab === 'files'" :item="item" />
