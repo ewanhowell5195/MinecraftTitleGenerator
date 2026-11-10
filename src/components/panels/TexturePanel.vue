@@ -289,12 +289,12 @@
 <style scoped>
   .pick {
     /* 42px is the Panel.vue header: 28px tall plus its 14px margin */
-    height: max(520px, calc(100cqh - 42px - 2 * var(--group-padding)));
+    height: max(520px, calc(100cqh - 42px - 2 * var(--group-padding) - var(--disclaimer-height, 0px)));
     container-type: inline-size;
   }
 
   .pick.peek {
-    height: max(420px, calc(100cqh - 42px - 2 * var(--group-padding) - 120px));
+    height: max(420px, calc(100cqh - 42px - 2 * var(--group-padding) - 120px - var(--disclaimer-height, 0px)));
   }
 
   .scroll {

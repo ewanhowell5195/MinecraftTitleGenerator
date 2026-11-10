@@ -154,6 +154,7 @@
         </template>
         <TransformPanel v-else :word="shapingWord" />
       </template>
+      <p class="disclaimer"><span>Not an official Minecraft product.</span> <span>Not approved by or associated with Mojang or Microsoft.</span></p>
     </aside>
 
     <main class="stage">
@@ -265,12 +266,34 @@
 
   .drawer {
     --group-padding: 20px;
+    --disclaimer-height: 67px;
     grid-area: drawer;
+    display: flex;
+    flex-direction: column;
     min-height: 0;
     container-type: size;
     overflow-y: auto;
     background: var(--surface);
     border-right: 1px solid var(--line);
+  }
+
+  .drawer > * {
+    flex: none;
+  }
+
+  .disclaimer {
+    min-height: var(--disclaimer-height);
+    margin: auto 0 0;
+    padding: 16px var(--group-padding);
+    font-size: var(--font-sm);
+    line-height: 17px;
+    color: var(--faint);
+    border-top: 1px solid var(--line);
+  }
+
+  .disclaimer span {
+    display: block;
+    text-wrap: balance;
   }
 
   .intro {
