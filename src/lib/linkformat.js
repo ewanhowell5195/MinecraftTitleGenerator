@@ -2,6 +2,7 @@ import { deflateSync, inflateSync } from "three/addons/libs/fflate.module.js"
 import { hexOf, rgbOf } from "./colour.js"
 import { DEFAULT_ORDER } from "./order.js"
 import { LINE, OVERLAY_KINDS, isCustomFont } from "./settings.js"
+import { CUSTOM_SHAPE, FALLBACK_SHAPE } from "./shapes.js"
 
 const LAYERS = Object.keys(OVERLAY_KINDS)
 // older titles keep the twist anchors on the line
@@ -355,7 +356,8 @@ const KEYS = [
   ["twistDoorCentre", NUMBER],
   ["arcCentre", NUMBER],
   ["wordArcCentre", NUMBER],
-  ["shape", ID]
+  ["shape", ID],
+  ["shapeVersion", ID]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))
@@ -422,7 +424,7 @@ function fromBase64Url(text) {
 }
 
 function countUploads(entry) {
-  const own = LAYERS.flatMap(key => entry[key] ?? []).filter(layer => layer.source === "file" && layer.file).length + (entry.textureSource === "custom" ? 1 : 0) + (isCustomFont(entry.font) ? 1 : 0)
+  const own = LAYERS.flatMap(key => entry[key] ?? []).filter(layer => layer.source === "file" && layer.file).length + (entry.textureSource === "custom" ? 1 : 0) + (isCustomFont(entry.font) || entry.shape === CUSTOM_SHAPE ? 1 : 0)
   return (entry.words ?? []).reduce((total, word) => total + countUploads(word), own)
 }
 
@@ -432,6 +434,7 @@ function withoutUploads(entry) {
   const stripped = Object.fromEntries(Object.entries(entry).filter(([key]) => !UPLOAD_KEYS.includes(key)))
   if (entry.textureSource === "custom") delete stripped.textureSource
   if (isCustomFont(entry.font)) delete stripped.font
+  if (entry.shape === CUSTOM_SHAPE) stripped.shape = FALLBACK_SHAPE
   for (const key of LAYERS) {
     if (entry[key]) stripped[key] = entry[key].filter(layer => layer.source !== "file").map(({ file, ...layer }) => layer)
   }

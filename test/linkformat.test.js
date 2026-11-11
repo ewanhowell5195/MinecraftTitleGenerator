@@ -309,8 +309,14 @@ describe("names in links", () => {
     assert.equal(writeLines([{ font: "minecraft-legends" }]).length, 3 + 1 + 12)
   })
 
+  test("a custom shape becomes the blank plate in a link", () => {
+    const { code, skipped } = encodeTitle({ version: 1, lines: [{ shape: "custom", customFont: { kind: "silhouette", fileName: "shape.png", data: "data:image/png;base64,AAAA" } }] })
+    assert.equal(skipped, 1)
+    assert.deepEqual(decodeTitle(code).lines, [{ shape: "minecraft-ten-blank" }])
+  })
+
   test("shapes are stored by their id", () => {
-    for (const id of ["cube", "minecraft-ten-blank", "dungeons-skull"]) assert.equal(roundTrip([{ shape: id }])[0].shape, id)
+    for (const id of ["cube", "minecraft-ten-blank", "dungeons-skull", "minecraft.block.oak_log", "minecraft.item.diamond_sword"]) assert.equal(roundTrip([{ shape: id }])[0].shape, id)
   })
 
   test("a name with other characters still round trips", () => {

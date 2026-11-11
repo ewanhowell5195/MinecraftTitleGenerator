@@ -1,6 +1,7 @@
 import { computed, reactive, ref, shallowReactive, watch } from "vue"
 import { round } from "./maths.js"
 import { LINE, applyType, createObject, isModified, snapshot } from "./settings.js"
+import { shapeName } from "./shapes.js"
 import { createTitle } from "./title.js"
 import { view } from "./view.js"
 
@@ -125,7 +126,7 @@ export function bakeMatch(object) {
 
 export function wordText(word) {
   if (word.shape === null) return word.text.trim()
-  return library.shapes.find(shape => shape.id === word.shape)?.name ?? word.shape
+  return shapeName(library.shapes, word.shape)
 }
 
 export function lineText(object) {

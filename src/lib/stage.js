@@ -3,6 +3,7 @@ import { clamp, round } from "./maths.js"
 import { view } from "./view.js"
 
 const DIRECTION = new THREE.Vector3(0, -0.51007, 0.86013).normalize()
+const FAR_EYE = 1e6
 const TILT = radians(7.285)
 const TITLE_REACH = 144
 const ZOOM_LIMITS = [0.25, 32]
@@ -64,10 +65,47 @@ function fill(entry, built) {
   if (entry.solid) entry.group.add(entry.solid)
 }
 
+function cullUnseen(target, { positions, uvs, facing }) {
+  const inverse = new THREE.Matrix4()
+  const eye = new THREE.Vector3()
+  const forward = new THREE.Vector3()
+  let shown = null
+  target.userData.cull = camera => {
+    inverse.copy(target.matrixWorld).invert()
+    camera.getWorldPosition(eye)
+    if (camera.isOrthographicCamera) eye.addScaledVector(camera.getWorldDirection(forward), -FAR_EYE)
+    eye.applyMatrix4(inverse)
+    const seen = facing.map(({ normal, point }) => normal[0] * (eye.x - point[0]) + normal[1] * (eye.y - point[1]) + normal[2] * (eye.z - point[2]) > 0)
+    const key = seen.join()
+    if (key === shown) return
+    shown = key
+    const kept = facing.filter((face, index) => seen[index])
+    const total = kept.reduce((sum, face) => sum + face.count, 0)
+    const visible = new Float32Array(total * 3)
+    const mapped = new Float32Array(total * 2)
+    let at = 0
+    for (const { start, count } of kept) {
+      visible.set(positions.subarray(start * 3, (start + count) * 3), at * 3)
+      mapped.set(uvs.subarray(start * 2, (start + count) * 2), at * 2)
+      at += count
+    }
+    target.geometry.setAttribute("position", new THREE.BufferAttribute(visible, 3))
+    target.geometry.setAttribute("uv", new THREE.BufferAttribute(mapped, 2))
+    target.geometry.boundingBox = null
+    target.geometry.boundingSphere = null
+  }
+}
+
+export function cullsOutlines(scene) {
+  scene.onBeforeRender = (renderer, target, camera) => target.traverseVisible(object => object.userData.cull?.(camera))
+}
+
 function attachShell(entry, part, buffers, material) {
   discard(entry, part)
   entry[part] = buffers?.triangles ? mesh(buffers, material) : null
-  if (entry[part]) entry.group.add(entry[part])
+  if (!entry[part]) return
+  if (buffers.facing) cullUnseen(entry[part], buffers)
+  entry.group.add(entry[part])
 }
 
 export function lineBounds(built) {

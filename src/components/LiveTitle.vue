@@ -1,6 +1,7 @@
 <script setup>
   import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, toRaw, watch } from "vue"
   import * as THREE from "three"
+  import ModelRenderer from "./ModelRenderer.js"
   import ObjectRenderer from "./ObjectRenderer.js"
   import { readTitleObjects } from "../lib/file.js"
   import { createTitleItems } from "../lib/items.js"
@@ -8,7 +9,7 @@
   import { keepTexture } from "../lib/scene.js"
   import { FILE_VERSION } from "../lib/settings.js"
   import { createSmoothing } from "../lib/smoothing.js"
-  import { createEntry, destroyEntry, frameCamera, sortEntries, titleFraming, updateEntry } from "../lib/stage.js"
+  import { createEntry, cullsOutlines, destroyEntry, frameCamera, sortEntries, titleFraming, updateEntry } from "../lib/stage.js"
   import { createTitle } from "../lib/title.js"
   import { DEFAULT_FOV } from "../lib/view.js"
 
@@ -66,6 +67,11 @@
       return
     }
     readError.value = ""
+    let at = 0
+    for (const line of lines) {
+      if (line.customModel && !line.words) fresh[at].customModel = line.customModel
+      at += line.words?.length ?? 1
+    }
     if (fresh.length !== objects.length || fresh.some((object, index) => object.group !== objects[index].group)) {
       objects.splice(0, objects.length, ...fresh)
       return
@@ -138,6 +144,7 @@
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     smoothing = createSmoothing(renderer)
     scene = new THREE.Scene()
+    cullsOutlines(scene)
     camera = new THREE.PerspectiveCamera(title.view.fov, 1, 1, 5000)
     stage.value.append(renderer.domElement)
     observer = new ResizeObserver(resize)
@@ -164,7 +171,10 @@
 <template>
   <div class="render">
     <div ref="stage" class="stage" :class="{ hidden: !shown || error }"></div>
-    <ObjectRenderer v-for="object of title.objects" :key="object.id" :object="object" :fonts="fonts" :tileables="tileables" :title="title" />
+    <template v-for="object of title.objects" :key="object.id">
+      <ModelRenderer v-if="object.customModel" :object="object" :shapes="[]" :title="title" />
+      <ObjectRenderer v-else :object="object" :fonts="fonts" :tileables="tileables" :title="title" />
+    </template>
     <p v-if="error" class="message bad">{{ error }}</p>
     <p v-else-if="!shown" class="message empty-state">{{ busy ? "Rendering..." : message }}</p>
   </div>

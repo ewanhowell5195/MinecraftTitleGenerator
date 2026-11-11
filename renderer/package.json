@@ -4,6 +4,7 @@
   "type": "module",
   "exports": "./index.js",
   "dependencies": {
+    "block-model-renderer": "^2.20.0",
     "gl": "^8.1.6",
     "headless-three": "^1.9.0",
     "skia-canvas": "^3.0.8",

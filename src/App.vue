@@ -36,7 +36,7 @@
   import { useWindowEvents } from "./lib/events.js"
   import { fileError, saveTitle } from "./lib/file.js"
   import { loadFontList } from "./lib/font.js"
-  import { isModelShape, loadShapeList } from "./lib/shapes.js"
+  import { isMinecraftShape, isModelShape, loadShapeList } from "./lib/shapes.js"
   import { titleItems } from "./lib/items.js"
   import { redo, undo } from "./lib/history.js"
   import { keepMatched } from "./lib/match.js"
@@ -50,8 +50,10 @@
 
   const SECTION_TABS = Object.entries(SECTIONS).map(([id, { name, icon }]) => ({ id, label: name, icon }))
   const TEXT_SECTIONS = new Set(["text", "font"])
+  const GAME_TEXTURED = new Set(["texture", "overlays"])
   const SHAPE_TABS = [{ value: "line", label: "Whole line" }, { value: "word", label: "Current word" }]
-  const LINE_SECTIONS = new Set(["text", "font"])
+  const LINE_SECTIONS = new Set(["text", "font", "placement"])
+  const SHAPE_SECTIONS = new Set(["shape", "placement"])
 
   if (!SECTIONS[view.section]) view.section = "text"
 
@@ -72,11 +74,16 @@
   const status = computed(() => error.value ?? fileError.value ?? saveError.value ?? active.value.error)
   const editing = computed(() => !view.render && scene.objects.length > 0)
   const shapeLine = computed(() => currentWord.value?.shape != null)
-  const tabs = computed(() => SECTION_TABS.filter(tab => shapeLine.value ? !TEXT_SECTIONS.has(tab.id) : tab.id !== "shape"))
+  const minecraftLine = computed(() => isMinecraftShape(currentWord.value?.shape))
+  const tabs = computed(() => SECTION_TABS.filter(tab => shapeLine.value ? !TEXT_SECTIONS.has(tab.id) && !(minecraftLine.value && GAME_TEXTURED.has(tab.id)) : !SHAPE_SECTIONS.has(tab.id)))
 
   watch(shapeLine, value => {
     if (value && TEXT_SECTIONS.has(view.section)) view.section = "shape"
-    else if (!value && view.section === "shape") view.section = "text"
+    else if (!value && SHAPE_SECTIONS.has(view.section)) view.section = "text"
+  }, { immediate: true })
+
+  watch(minecraftLine, value => {
+    if (value && GAME_TEXTURED.has(view.section)) view.section = "shape"
   }, { immediate: true })
 
   function shortcut(event) {
@@ -153,10 +160,8 @@
         <FontPanel />
         <SpacingPanel />
       </template>
-      <template v-else-if="view.section === 'shape'">
-        <ShapePanel />
-        <PlacementPanel />
-      </template>
+      <ShapePanel v-else-if="view.section === 'shape'" />
+      <PlacementPanel v-else-if="view.section === 'placement'" />
       <TexturePanel v-else-if="view.section === 'texture'" />
       <ColourPanel v-else-if="view.section === 'colour'" />
       <template v-else-if="view.section === 'overlays'">
@@ -346,9 +351,9 @@
 
   .status {
     position: absolute;
-    left: 16px;
-    right: 16px;
-    top: 16px;
+    left: 12px;
+    right: 12px;
+    top: 12px;
     z-index: 3;
   }
 

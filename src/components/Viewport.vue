@@ -10,7 +10,7 @@
   import { current, currentWord, scene as title, select, setScale, shapingWord } from "../lib/scene.js"
   import { TRANSFORM_LIMITS } from "../lib/settings.js"
   import { createSmoothing } from "../lib/smoothing.js"
-  import { UNTURNED, UNZOOMED, createEntry, destroyEntry, elevationOf, frameCamera, gizmoPose, lineBounds, movedBy, orbitCamera, panMatrix, pannedBy, pickEntry, rotatedTo, sortEntries, titleFraming, turnedBy, updateEntry, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } from "../lib/stage.js"
+  import { UNTURNED, UNZOOMED, createEntry, cullsOutlines, destroyEntry, elevationOf, frameCamera, gizmoPose, lineBounds, movedBy, orbitCamera, panMatrix, pannedBy, pickEntry, rotatedTo, sortEntries, titleFraming, turnedBy, updateEntry, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } from "../lib/stage.js"
   import { vectorTitle } from "../lib/vector.js"
   import { FORM_SECTIONS, view, viewport, viewportChanges } from "../lib/view.js"
   import Icon from "./Icon.vue"
@@ -322,6 +322,7 @@
     smoothing = createSmoothing(renderer)
     host.value.append(renderer.domElement)
     scene = new THREE.Scene()
+    cullsOutlines(scene)
     frameSize = { width, height }
     perspective = new THREE.PerspectiveCamera(view.fov || 40, width / height, 1, 5000)
     orthographic = new THREE.OrthographicCamera()

@@ -2,6 +2,7 @@ import * as THREE from "three"
 
 export const platform = {
   minecraftAsset: null,
+  minecraftModels: null,
   fetch: (...args) => fetch(...args),
   createCanvas: () => document.createElement("canvas"),
   createWebGLRenderer: () => new THREE.WebGLRenderer({ antialias: false, alpha: true }),

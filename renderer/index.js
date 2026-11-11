@@ -9,6 +9,6 @@ module.registerHooks({
   }
 })
 
-export const { answerMinecraftAssets, renderTitle, serveRenders } = await import("./render.js")
+export const { answerMinecraftAssets, answerMinecraftFolders, renderTitle, serveRenders } = await import("./render.js")
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) serveRenders()

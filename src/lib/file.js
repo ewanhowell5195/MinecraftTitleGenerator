@@ -2,6 +2,7 @@ import { ref } from "vue"
 import { matchSolved } from "./match.js"
 import { keptObject, runtime, scene, titleFileName, validSelection } from "./scene.js"
 import { CUSTOM_FONT_KINDS, FILE_VERSION, LAYER, LINE, OVERLAY_KINDS, createObject, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, isCustomFont, snapshot, typeDefaults } from "./settings.js"
+import { CUSTOM_SHAPE, isMinecraftShape } from "./shapes.js"
 import { submitStats } from "./stats.js"
 import { downloadBlob } from "./ui.js"
 
@@ -9,12 +10,14 @@ const FORMAT = "minecraft-title"
 export const EXTENSION = "mctitle"
 
 const UNUSED = [
-  [object => object.shape !== null, ["text", "spaceBefore", "terminators", "creeperFace", "font", "customFont", "spacing", "kerning"]],
+  [object => object.shape !== null, ["text", "spaceBefore", "terminators", "creeperFace", "font", "spacing", "kerning"]],
+  [object => object.shape !== null && object.shape !== CUSTOM_SHAPE, ["customFont"]],
+  [object => !isMinecraftShape(object.shape), ["shapeVersion"]],
   [object => object.textureSource !== "premade", ["texture", "textureVariant"]],
   [object => object.textureSource !== "tileable", ["tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion"]],
   [object => object.textureSource !== "tileable" && !(object.textureSource === "custom" && object.customTextureMode === "tileable"), ["tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "tileablePerCharacter"]],
   [object => object.textureSource !== "custom", ["customTexture", "customTextureMode"]],
-  [object => !isCustomFont(object.font), ["customFont"]],
+  [object => !isCustomFont(object.font) && object.shape !== CUSTOM_SHAPE, ["customFont"]],
   [object => object.tileableSource !== "minecraft", ["minecraftTexture", "minecraftVersion"]],
   [object => object.tileableSource === "minecraft", ["tileable", "tileableVariant"]],
   [object => object.textureSource !== "gradient", ["stops", "smooth", "gradientAngle"]],

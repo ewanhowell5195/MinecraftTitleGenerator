@@ -1,6 +1,6 @@
 import { reactive } from "vue"
 import * as THREE from "three"
-import { cornersOf, createEntry, destroyEntry, frameCamera, updateEntry } from "./stage.js"
+import { cornersOf, createEntry, cullsOutlines, destroyEntry, frameCamera, updateEntry } from "./stage.js"
 
 const SIZE = 128
 const FOV = 8
@@ -17,6 +17,7 @@ function setup() {
   renderer.setPixelRatio(1)
   renderer.setSize(SIZE, SIZE, false)
   scene = new THREE.Scene()
+  cullsOutlines(scene)
   camera = new THREE.PerspectiveCamera(FOV, 1, 1, 5000)
 }
 
@@ -30,6 +31,8 @@ export function renderPreview(id, item) {
   }
   for (const [key, other] of entries) other.group.visible = key === id
   updateEntry(entry, item)
+  if (entry.outline) entry.outline.renderOrder = 0
+  if (entry.solid) entry.solid.renderOrder = 1
   const bounds = new THREE.Box3().setFromObject(entry.group)
   if (bounds.isEmpty()) {
     previews[id] = null

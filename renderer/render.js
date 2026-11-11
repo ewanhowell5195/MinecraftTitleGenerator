@@ -37,19 +37,30 @@ export function answerMinecraftAssets(answer) {
   })
 }
 
-function askParentForAsset({ id, version }) {
-  return new Promise((fulfil, reject) => {
-    const asset = nextAsset++
-    askedAssets.set(asset, { fulfil, reject })
-    process.send({ asset, id, version })
+export function answerMinecraftFolders(answer) {
+  usePlatform({
+    minecraftModels: answer && (async version => {
+      const folder = await answer(version)
+      if (!folder) throw new Error(`Minecraft ${version} isn't available to draw shapes from`)
+      const lib = await import("block-model-renderer")
+      return { lib, assets: await lib.prepareAssets([folder], { cache: true }) }
+    })
   })
 }
 
-function parentAnsweredAsset({ asset, bytes, error }) {
+function askParent(request) {
+  return new Promise((fulfil, reject) => {
+    const asset = nextAsset++
+    askedAssets.set(asset, { fulfil, reject })
+    process.send({ asset, ...request })
+  })
+}
+
+function parentAnsweredAsset({ asset, error, ...answer }) {
   const { fulfil, reject } = askedAssets.get(asset)
   askedAssets.delete(asset)
   if (error) reject(new Error(error))
-  else fulfil(bytes)
+  else fulfil(answer)
 }
 
 async function renderRequested(code, { check, ...options }) {
@@ -60,7 +71,8 @@ async function renderRequested(code, { check, ...options }) {
 }
 
 export function serveRenders() {
-  answerMinecraftAssets(askParentForAsset)
+  answerMinecraftAssets(({ id, version }) => askParent({ id, version }).then(answer => answer.bytes))
+  answerMinecraftFolders(version => askParent({ folder: version }).then(answer => answer.folder))
   process.on("message", async message => {
     if ("asset" in message) return parentAnsweredAsset(message)
     try {

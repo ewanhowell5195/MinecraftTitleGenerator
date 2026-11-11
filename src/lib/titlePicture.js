@@ -11,8 +11,8 @@ import { keepMatched } from "./match.js"
 import { platform } from "./platform.js"
 import { renderTitle, titleShot } from "./render.js"
 import { OVERLAY_KINDS, activeOverlays } from "./settings.js"
-import { loadShapeList, shapeOf } from "./shapes.js"
-import { createEntry, destroyEntry, frameCamera, sortEntries, titleFraming, updateEntry } from "./stage.js"
+import { isMinecraftShape, isModelShape, loadShapeList, shapeOf } from "./shapes.js"
+import { createEntry, cullsOutlines, destroyEntry, frameCamera, sortEntries, titleFraming, updateEntry } from "./stage.js"
 import { createTitle } from "./title.js"
 import { DEFAULT_FOV } from "./view.js"
 
@@ -53,6 +53,7 @@ async function textureListOf(object, fonts, shapes) {
 }
 
 async function refuseUnknownNames(object, fonts, tileables, shapes) {
+  if (isMinecraftShape(object.shape)) return
   const { font, list } = await textureListOf(object, fonts, shapes)
   if (object.textureSource === "premade" && object.texture !== null) refuseUnknownVariant(`${font.id} texture`, list.textures[object.texture], object.texture, object.textureVariant)
   if (object.textureSource === "tileable" && object.tileableSource !== "minecraft") refuseUnknownVariant("tileable", tileables[object.tileable], object.tileable, object.tileableVariant)
@@ -97,6 +98,7 @@ function scales(title) {
 
 async function shoot(items, width) {
   const scene = new THREE.Scene()
+  cullsOutlines(scene)
   const entries = items.map(item => {
     const entry = createEntry()
     scene.add(entry.group)
@@ -143,7 +145,7 @@ async function pictureOf(title, fonts, tileables, width, shapes) {
     keepMatched(title)
     return createTitleItems(title)
   })
-  const apps = title.objects.map(object => object.shape !== null && shapeOf(shapes, object.shape).kind === "model" ? NOTHING_RENDERED.createApp(ModelRenderer, { object, title, shapes }) : NOTHING_RENDERED.createApp(ObjectRenderer, { object, title, fonts, tileables, shapes }))
+  const apps = title.objects.map(object => isModelShape(shapes, object.shape) ? NOTHING_RENDERED.createApp(ModelRenderer, { object, title, shapes }) : NOTHING_RENDERED.createApp(ObjectRenderer, { object, title, fonts, tileables, shapes }))
   for (const app of apps) app.mount({})
   try {
     let before

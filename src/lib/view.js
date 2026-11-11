@@ -6,6 +6,7 @@ export const SECTIONS = {
   text: { name: "Text", icon: "text" },
   font: { name: "Font", icon: "font" },
   shape: { name: "Shape", icon: "star" },
+  placement: { name: "Placement", icon: "rows" },
   texture: { name: "Texture", icon: "texture" },
   colour: { name: "Colour", icon: "palette" },
   overlays: { name: "Overlays", icon: "layers" },

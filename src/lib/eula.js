@@ -4,7 +4,7 @@ const STORAGE = "minecraft-title-eula"
 
 export const EULA_URL = "https://www.minecraft.net/en-us/eula"
 
-export const eula = reactive({ asking: false })
+export const eula = reactive({ asking: false, reason: null })
 
 export class EulaDeclined extends Error {
   constructor() {
@@ -23,13 +23,13 @@ export function eulaDeclined() {
   return localStorage.getItem(STORAGE) === "declined"
 }
 
-export function agreeToEula() {
+export function agreeToEula(reason = "tileables") {
   if (accepted()) return Promise.resolve()
   if (!waiting) {
     let settle
     const promise = new Promise((resolve, reject) => settle = { resolve, reject })
     waiting = { promise, ...settle }
-    eula.asking = true
+    Object.assign(eula, { asking: true, reason })
   }
   return waiting.promise
 }

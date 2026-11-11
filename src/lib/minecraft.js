@@ -13,6 +13,7 @@ const GRASS_COLORMAP = "assets/minecraft/textures/colormap/grass.png"
 
 const assets = new MinecraftAssets()
 const loaded = new Map()
+const games = new Map()
 
 export const jar = reactive({ version: null, done: 0, total: 0 })
 
@@ -86,16 +87,34 @@ async function colormapReader(version) {
   }
 }
 
-async function readBlockTextures(version) {
-  await agreeToEula()
+async function downloadGame(version, reason) {
+  await agreeToEula(reason)
   const paths = (await assets.list({ version })).map(file => file.path)
-  const found = blockTexturePaths(paths)
   Object.assign(jar, { version, done: 0, total: 0 })
   try {
     await assets.loadJar({ version, onProgress: (done, total) => Object.assign(jar, { version, done, total: total ?? 0 }) })
   } finally {
     jar.version = null
   }
+  return paths
+}
+
+export function gamePaths(version, reason = "tileables") {
+  if (!games.has(version)) {
+    const paths = downloadGame(version, reason)
+    games.set(version, paths)
+    paths.catch(() => games.delete(version))
+  }
+  return games.get(version)
+}
+
+export function readGameFile(version, path) {
+  return assets.read(path, { version })
+}
+
+async function readBlockTextures(version) {
+  const paths = await gamePaths(version)
+  const found = blockTexturePaths(paths)
   let colormap = null
   const tints = await blockTints(new Set(paths), async file => JSON.parse(new TextDecoder().decode(await assets.read(file, { version }))), async (temperature, downfall) => (colormap ??= await colormapReader(version))(temperature, downfall))
   return new Map(await Promise.all(Array.from(found, async ([id, path]) => [id, await readTexture(await assets.read(path, { version }), tints.get(id) ?? null)])))

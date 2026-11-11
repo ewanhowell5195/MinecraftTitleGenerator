@@ -74,7 +74,7 @@
     return popular(entries, ([id]) => statId(id), ([id, data]) => label(id, data), list.value ? pinnedTextures(list.value).map(statId) : [])
   })
   const tileables = computed(() => popular(Object.entries(library.tileables), ([id]) => `tileable.${id}`, ([id, data]) => label(id, data)))
-  const blockEntries = computed(() => popular(Array.from(blocks.value ?? []).filter(([id, { opaque }]) => opaque || id === object.value.minecraftTexture).map(([id, { preview }]) => [id, { name: blockName(id), author: "Mojang", url: preview }]), ([id]) => minecraftStatId(id), ([, data]) => data.name))
+  const blockEntries = computed(() => popular(Array.from(blocks.value ?? []).filter(([id, { opaque }]) => opaque || id === object.value.minecraftTexture).map(([id, { preview }]) => [id, { name: blockName(id), url: preview }]), ([id]) => minecraftStatId(id), ([, data]) => data.name))
   const jarProgress = computed(() => jar.total ? jar.done / jar.total : 0)
   const textureVariants = computed(() => Object.entries(list.value?.textures[object.value.texture]?.variants ?? {}))
   const tileableVariants = computed(() => Object.entries(library.tileables[object.value.tileable]?.variants ?? {}))
