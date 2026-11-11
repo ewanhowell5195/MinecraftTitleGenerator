@@ -46,11 +46,11 @@
   }
 
   watch(split, apply, { flush: "post" })
-  watch([viewportChanges, () => view.resolution, () => view.antialias], schedule)
+  watch([viewportChanges, () => view.resolution], schedule)
   onMounted(schedule)
   onBeforeUnmount(() => {
     cancelAnimationFrame(frame)
-    apply(null)
+    if (viewport.canvas) apply(null)
   })
 </script>
 

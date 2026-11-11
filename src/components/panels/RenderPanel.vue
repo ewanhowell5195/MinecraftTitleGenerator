@@ -1,7 +1,8 @@
 <script setup>
   import { computed, ref, shallowRef } from "vue"
   import { canvasLimit } from "../../lib/canvas.js"
-  import { FRAMINGS, MINECRAFT_MODES, framing, framingModified, outlineModified, paddingScale, renderFramed, renderVector, resetFraming, resetOutline, resolutionLimit, setAspect, setResolution, textureSize, textureSizes } from "../../lib/framing.js"
+  import { FRAMINGS, MINECRAFT_MODES, framing, framingModified, outlineModified, paddingScale, renderFramed, renderVector, resetFraming, resetOutline, setAspect, setResolution, textureSize, textureSizes } from "../../lib/framing.js"
+  import { painted } from "../../lib/platform.js"
   import { scene, titleFileName } from "../../lib/scene.js"
   import { submitStats } from "../../lib/stats.js"
   import { downloadBlob } from "../../lib/ui.js"
@@ -23,13 +24,13 @@
 
   const PRESETS = [{ value: 1024, label: "1K" }, { value: 2048, label: "2K" }, { value: 4096, label: "4K" }, { value: 8192, label: "8K" }]
 
-  const custom = ref(!PRESETS.some(({ value }) => value === view.resolution && value <= resolutionLimit()))
+  const custom = ref(!PRESETS.some(({ value }) => value === view.resolution && value <= canvasLimit()))
   const progress = ref(null)
   const failed = ref("")
   const result = shallowRef(null)
 
   const max = canvasLimit()
-  const presets = computed(() => PRESETS.filter(({ value }) => value <= resolutionLimit()).map(preset => ({ ...preset, title: `Around ${preset.value} pixels` })).concat([{ value: "custom", label: "Custom", title: "Custom size" }]))
+  const presets = computed(() => PRESETS.filter(({ value }) => value <= canvasLimit()).map(preset => ({ ...preset, title: `Around ${preset.value} pixels` })).concat([{ value: "custom", label: "Custom", title: "Custom size" }]))
   const sizes = computed(() => textureSizes().map(size => ({ value: size, label: String(size), title: `${size} pixel texture` })))
   const padding = computed({
     get: () => Math.round(framing.padding * paddingScale()),
@@ -48,10 +49,6 @@
     if (!custom.value) view.resolution = size
   }
 
-  function nextFrame() {
-    return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
-  }
-
   let rendering = null
 
   async function render() {
@@ -60,7 +57,7 @@
     progress.value = 0
     failed.value = ""
     try {
-      await nextFrame()
+      await painted()
       result.value = await renderFramed({ signal: rendering.signal, progress: value => progress.value = value })
       if (!result.value) failed.value = "Nothing in frame."
     } catch (err) {
@@ -108,7 +105,7 @@
           <NumberInput :value="framing.width" min="1" :max="max" v-tooltip="'Width'" aria-label="Width" @input="setResolution('width', $event.target.value)" @change="$event.target.value = framing.width" />
           <span class="times">&times;</span>
           <NumberInput :value="framing.height" min="1" :max="max" v-tooltip="'Height'" aria-label="Height" @input="setResolution('height', $event.target.value)" @change="$event.target.value = framing.height" />
-          <Button ghost :active="framing.linked" @click="framing.linked = !framing.linked" v-tooltip="'Link width and height'" aria-label="Link width and height"><template #icon><Icon name="link" :size="16" /></template></Button>
+          <Button ghost :active="framing.linked" icon="link" title="Link width and height" :aria-pressed="framing.linked" @click="framing.linked = !framing.linked" />
         </div>
       </Field>
       <Field group label="Aspect ratio">
@@ -148,7 +145,7 @@
     </template>
     <template v-else>
       <Segments label="Resolution" :options="presets" :model-value="custom ? 'custom' : view.resolution" @update:model-value="pick" />
-      <Slider v-if="custom" label="Size" v-model="view.resolution" :min="128" :max="resolutionLimit()" log />
+      <Slider v-if="custom" label="Size" v-model="view.resolution" :min="128" :max="canvasLimit()" log />
       <p class="hint">The longer side of the title, in pixels. The final size may differ slightly.</p>
     </template>
     <Toggle label="Antialiasing" hint="Smoother edges, renders take longer" v-model="view.antialias" />

@@ -1,13 +1,11 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import * as THREE from "three"
-import { aspectOf, fitTitle, fromAspect, minecraftLayout, outputSize, screenBounds } from "../src/lib/render.js"
+import { usePlatform } from "../src/lib/platform.js"
+import { aspectOf, compose, drawnTitle, fitTitle, fromAspect, minecraftLayout, outputSize, screenBounds } from "../src/lib/render.js"
+import { close } from "./helpers/assert.js"
 
 const SIZES = [256, 512, 1024, 2048]
-
-function close(actual, expected, tolerance = 1e-6) {
-  assert.ok(Math.abs(actual - expected) <= tolerance, `${actual} is not within ${tolerance} of ${expected}`)
-}
 
 function closeBounds(actual, expected) {
   assert.ok(actual, "expected bounds, got null")
@@ -25,6 +23,11 @@ function sceneOf(...objects) {
   for (const object of objects) scene.add(object)
   scene.updateMatrixWorld(true)
   return scene
+}
+
+function fakeCanvas() {
+  const canvas = { width: 0, height: 0, drawn: [], getContext: () => ({ drawImage: (...args) => canvas.drawn.push(args) }) }
+  return canvas
 }
 
 function flatCamera() {
@@ -168,6 +171,38 @@ describe("fitTitle", () => {
         assert.ok(y >= target.top - 1e-9 && y + height * scale <= target.top + target.height + 1e-9, `${mode} ${width}x${height} vertically`)
       }
     }
+  })
+})
+
+describe("drawnTitle", () => {
+  test("rounds the fitted spot and size to whole pixels", () => {
+    assert.deepEqual(drawnTitle({ width: 100, height: 50, left: 10, top: 5 }, 200, 51), { scale: 0.5, x: 10, y: 17, width: 100, height: 26 })
+  })
+
+  test("leaves a title that already sits on whole pixels alone", () => {
+    assert.deepEqual(drawnTitle(minecraftLayout("1.20", 1024), 1024, 100), { scale: 1, x: 0, y: 38, width: 1024, height: 100 })
+  })
+
+  test("the drawn title never leaves the layout", () => {
+    for (const mode of ["1.20", "1.19", "mojang"]) {
+      for (const size of SIZES) {
+        const target = minecraftLayout(mode, size)
+        for (const [width, height] of [[1, 1], [4000, 11], [11, 4000], [641, 361], [1023, 175], [333, 57]]) {
+          const drawn = drawnTitle(target, width, height)
+          assert.ok(drawn.x >= 0 && drawn.x + drawn.width <= target.padded[0], `${mode} ${size} ${width}x${height} horizontally`)
+          assert.ok(drawn.y >= 0 && drawn.y + drawn.height <= target.padded[1], `${mode} ${size} ${width}x${height} vertically`)
+        }
+      }
+    }
+  })
+})
+
+describe("compose", () => {
+  test("draws the minecraft title on whole pixels at its own size", () => {
+    usePlatform({ createCanvas: fakeCanvas })
+    const image = { width: 1024, height: 101 }
+    const [[padded]] = compose(image, { tab: "minecraft", mode: "1.20", textureSize: 1024 }, null).drawn
+    assert.deepEqual(padded.drawn, [[image, 0, 38, 1024, 101]])
   })
 })
 

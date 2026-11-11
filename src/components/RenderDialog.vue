@@ -2,7 +2,6 @@
   import { onBeforeUnmount, ref } from "vue"
   import { useWindowEvents } from "../lib/events.js"
   import Button from "./Button.vue"
-  import Icon from "./Icon.vue"
 
   defineProps({
     title: { type: String, required: true },
@@ -22,10 +21,19 @@
 
   const backdrop = ref(null)
 
+  function paintAsShown(canvas, source) {
+    const { clientWidth: width, clientHeight: height } = source
+    canvas.width = Math.min(source.width, Math.ceil(width * devicePixelRatio))
+    canvas.height = Math.min(source.height, Math.ceil(height * devicePixelRatio))
+    canvas.style.width = `${width}px`
+    canvas.style.height = `${height}px`
+    canvas.getContext("2d")?.drawImage(source, 0, 0, canvas.width, canvas.height)
+  }
+
   function fadeOut(element) {
     const copy = element.cloneNode(true)
     const canvases = element.querySelectorAll("canvas")
-    copy.querySelectorAll("canvas").forEach((canvas, index) => canvas.getContext("2d")?.drawImage(canvases[index], 0, 0))
+    copy.querySelectorAll("canvas").forEach((canvas, index) => paintAsShown(canvas, canvases[index]))
     copy.classList.add("leaving")
     copy.removeAttribute("role")
     copy.querySelector("[role=dialog]")?.removeAttribute("role")
@@ -45,7 +53,7 @@
         <header class="row">
           <h2>{{ title }}</h2>
           <div class="spacer"></div>
-          <Button ghost @click="emit('close')" :aria-label="closeTitle"><template #icon><Icon name="close" :size="16" /></template></Button>
+          <Button ghost icon="close" :aria-label="closeTitle" @click="emit('close')" />
         </header>
         <slot></slot>
       </div>

@@ -1,12 +1,12 @@
 import * as THREE from "three"
 import { clamp, round } from "./maths.js"
-import { view } from "./view.js"
 
 const DIRECTION = new THREE.Vector3(0, -0.51007, 0.86013).normalize()
 const FAR_EYE = 1e6
 const TILT = radians(7.285)
 const TITLE_REACH = 144
 const ZOOM_LIMITS = [0.25, 32]
+const boxes = new WeakMap()
 
 function radians(degrees) {
   return degrees * Math.PI / 180
@@ -66,6 +66,8 @@ function fill(entry, built) {
 }
 
 function cullUnseen(target, { positions, uvs, facing }) {
+  target.geometry.computeBoundingBox()
+  target.geometry.computeBoundingSphere()
   const inverse = new THREE.Matrix4()
   const eye = new THREE.Vector3()
   const forward = new THREE.Vector3()
@@ -91,13 +93,11 @@ function cullUnseen(target, { positions, uvs, facing }) {
     }
     target.geometry.setAttribute("position", new THREE.BufferAttribute(visible, 3))
     target.geometry.setAttribute("uv", new THREE.BufferAttribute(mapped, 2))
-    target.geometry.boundingBox = null
-    target.geometry.boundingSphere = null
   }
 }
 
-export function cullsOutlines(scene) {
-  scene.onBeforeRender = (renderer, target, camera) => target.traverseVisible(object => object.userData.cull?.(camera))
+export function cullOutlines(scene, camera) {
+  scene.traverseVisible(object => object.userData.cull?.(camera))
 }
 
 function attachShell(entry, part, buffers, material) {
@@ -133,8 +133,13 @@ export function placementMatrix(value, bounds) {
   return around(new THREE.Matrix4().makeTranslation(translate.x, translate.y, translate.z), centre, rotation).multiply(scale).multiply(base)
 }
 
+function boxOf(buffers) {
+  if (!boxes.has(buffers)) boxes.set(buffers, new THREE.Box3().setFromArray(buffers.positions))
+  return boxes.get(buffers)
+}
+
 function wordParts(value, built) {
-  const bounds = new THREE.Box3().setFromArray(built.body.positions)
+  const bounds = boxOf(built.body)
   const centre = bounds.getCenter(new THREE.Vector3())
   const anchor = anchorOf(value, bounds, centre)
   const scale = around(new THREE.Matrix4(), anchor, new THREE.Matrix4().makeScale(...value.word.scale))
@@ -213,11 +218,11 @@ export function rotatedTo(value, quaternion) {
 }
 
 function localBounds(item, grow) {
-  const body = new THREE.Box3().setFromArray(item.built.body.positions)
+  const body = boxOf(item.built.body)
   const bounds = body.clone()
   const shell = item.halo?.triangles ? item.halo : item.outline
   if (shell?.triangles) {
-    const outline = new THREE.Box3().setFromArray(shell.positions)
+    const outline = boxOf(shell).clone()
     const scale = new THREE.Vector3(...shell.scale)
     const factor = new THREE.Vector3(...grow)
     outline.min.divide(scale)
@@ -237,7 +242,7 @@ function restBounds(item) {
   return bounds.applyMatrix4(placementMatrix({ ...item.transform, scale: [1, 1, 1], rotate: [0, 0, 0], translate: [0, 0, 0], matchOffset: 0 }, lineBounds(item.built)))
 }
 
-export function titleFraming(items, fixedDistance = view.fixedDistance) {
+export function titleFraming(items, fixedDistance = false) {
   const box = new THREE.Box3()
   const anchor = new THREE.Box3()
   const solid = items.filter(item => item.built?.body.triangles && item.transform)
@@ -263,7 +268,7 @@ function place(entry, value) {
   entry.group.updateMatrixWorld(true)
 }
 
-export function createEntry() {
+function createEntry() {
   return {
     group: new THREE.Group(),
     outline: null,
@@ -282,7 +287,7 @@ export function createEntry() {
   }
 }
 
-export function updateEntry(entry, item) {
+function updateEntry(entry, item) {
   entry.line = item.paintLine
   if (entry.built !== item.built) {
     fill(entry, item.built)
@@ -307,12 +312,49 @@ export function updateEntry(entry, item) {
   entry.group.visible = !item.hidden
 }
 
-export function destroyEntry(entry) {
+function destroyEntry(entry) {
   clear(entry)
   entry.body.dispose()
   entry.border.dispose()
   entry.rim.dispose()
   entry.clip.dispose()
+}
+
+export function createStage() {
+  const scene = new THREE.Scene()
+  const entries = new Map()
+  scene.onBeforeRender = (renderer, target, camera) => cullOutlines(target, camera)
+  function update(id, item) {
+    if (!entries.has(id)) {
+      const entry = createEntry()
+      scene.add(entry.group)
+      entries.set(id, entry)
+    }
+    const entry = entries.get(id)
+    updateEntry(entry, item)
+    return entry
+  }
+  function drop(id) {
+    const entry = entries.get(id)
+    if (!entry) return
+    destroyEntry(entry)
+    scene.remove(entry.group)
+    entries.delete(id)
+  }
+  function sync(items) {
+    const seen = new Set(items.map(item => item.id))
+    for (const item of items) update(item.id, item)
+    for (const id of Array.from(entries.keys())) {
+      if (!seen.has(id)) drop(id)
+    }
+  }
+  function sort(camera) {
+    sortEntries(Array.from(entries.values()), camera)
+  }
+  function dispose() {
+    for (const id of Array.from(entries.keys())) drop(id)
+  }
+  return { scene, entries, update, drop, sync, sort, dispose }
 }
 
 export function cornersOf(box) {
@@ -419,7 +461,7 @@ export function panMatrix({ scale, x, y }) {
 }
 
 export function pickEntry(entries, raycaster) {
-  const hits = Array.from(entries).flatMap(([id, entry]) => [entry.outline, entry.solid].filter(Boolean).flatMap(mesh => raycaster.intersectObject(mesh, false).slice(0, 1).map(hit => ({ id, solid: mesh === entry.solid, order: mesh.renderOrder, distance: hit.distance }))))
+  const hits = Array.from(entries).filter(([, entry]) => entry.group.visible).flatMap(([id, entry]) => [entry.outline, entry.solid].filter(Boolean).flatMap(mesh => raycaster.intersectObject(mesh, false).slice(0, 1).map(hit => ({ id, solid: mesh === entry.solid, order: mesh.renderOrder, distance: hit.distance }))))
   let top = null
   let nearest = Infinity
   for (const hit of hits.sort((a, b) => a.order - b.order)) {

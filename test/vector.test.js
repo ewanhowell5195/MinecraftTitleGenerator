@@ -3,6 +3,7 @@ import assert from "node:assert/strict"
 import * as THREE from "three"
 import { composeVector, vectorTitle } from "../src/lib/vector.js"
 import { mergedByFill, unionOf } from "../src/lib/vectorPaths.js"
+import { close } from "./helpers/assert.js"
 
 const RED = [255, 0, 0]
 const GREEN = [0, 255, 0]
@@ -11,10 +12,6 @@ const YELLOW = [255, 255, 0]
 
 function clampUnit(value) {
   return Math.min(1, Math.max(0, value))
-}
-
-function close(actual, expected, tolerance = 1e-6) {
-  assert.ok(Math.abs(actual - expected) <= tolerance, `${actual} is not within ${tolerance} of ${expected}`)
 }
 
 function textureOf(width, height, pixel) {

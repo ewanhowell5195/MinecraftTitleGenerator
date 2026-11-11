@@ -99,7 +99,9 @@ function useLinearTable(THREE) {
     ctx.drawImage(image, 0, 0, image.width, image.height)
     const pixels = ctx.getImageData(0, 0, image.width, image.height)
     const { data } = pixels
-    for (let at = 0; at < data.length; at++) data[at] = table[data[at]]
+    for (let at = 0; at < data.length; at++) {
+      if (at % 4 !== 3) data[at] = table[data[at]]
+    }
     ctx.putImageData(pixels, 0, 0)
     return canvas
   }

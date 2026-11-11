@@ -23,3 +23,7 @@ export const platform = {
 export function usePlatform(overrides) {
   Object.assign(platform, overrides)
 }
+
+export function painted() {
+  return new Promise(fulfil => platform.frame(() => platform.frame(fulfil)))
+}

@@ -1,20 +1,17 @@
-import { afterEach, describe, test } from "node:test"
+import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import * as THREE from "three"
+import { close } from "./helpers/assert.js"
+import { quietStorage } from "./helpers/browser.js"
 
-globalThis.localStorage = { getItem: () => null, setItem: () => {} }
+quietStorage()
 globalThis.devicePixelRatio = 1
 
 const { UNTURNED, UNZOOMED, cornersOf, elevationOf, frameCamera, gizmoPose, lineBounds, movedBy, orbitCamera, panMatrix, pannedBy, pickEntry, placementMatrix, rotatedTo, sortEntries, titleFraming, turnedBy, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } = await import("../src/lib/stage.js")
-const { view } = await import("../src/lib/view.js")
 
 const BOUNDS = new THREE.Box3(new THREE.Vector3(0, 0, 0), new THREE.Vector3(10, 4, 2))
 const WIDE = new THREE.Box3(new THREE.Vector3(-30, 0, 0), new THREE.Vector3(30, 20, 10))
 const DIRECTION = new THREE.Vector3(0, -0.51007, 0.86013).normalize()
-
-function close(actual, expected, tolerance = 1e-6) {
-  assert.ok(Math.abs(actual - expected) <= tolerance, `${actual} is not within ${tolerance} of ${expected}`)
-}
 
 function closeList(actual, expected, tolerance = 1e-6) {
   const list = actual.toArray ? actual.toArray() : actual
@@ -315,10 +312,6 @@ describe("cornersOf", () => {
 })
 
 describe("titleFraming", () => {
-  afterEach(() => {
-    view.fixedDistance = false
-  })
-
   const flat = builtOf([0, 0, 0], [3, 4, 0])
 
   test("is null with nothing built", () => {
@@ -392,11 +385,32 @@ describe("titleFraming", () => {
     assert.equal(Math.min(...corners.map(corner => corner.x)), -5)
   })
 
+  test("fitting the same title again scans each set of vertices once", () => {
+    let scans = 0
+    function counted(buffers) {
+      const positions = buffers.positions
+      return {
+        ...buffers,
+        get positions() {
+          scans++
+          return positions
+        }
+      }
+    }
+    const built = builtOf([0, 0, 0], [10, 10, 10])
+    const item = { type: "top", built: { ...built, body: counted(built.body) }, outline: counted(shellOf([-2, -1, -1], [22, 11, 11], [2, 1, 1])), transform: transform({ outlineGrow: [2, 1, 3] }) }
+    const first = titleFraming([item])
+    const second = titleFraming([item])
+    assert.equal(scans, 2)
+    assert.deepEqual(second.anchor, first.anchor)
+    assert.deepEqual(second.corners, first.corners)
+  })
+
   test("reach is only set for a fixed distance", () => {
     const items = [{ type: "top", built: flat, transform: transform() }]
     assert.equal(titleFraming(items).reach, null)
-    view.fixedDistance = true
-    assert.equal(titleFraming(items).reach, 144)
+    assert.equal(titleFraming(items, false).reach, null)
+    assert.equal(titleFraming(items, true).reach, 144)
   })
 })
 
@@ -569,11 +583,14 @@ describe("frameCamera", () => {
   })
 
   test("a frame stops the view going past one output pixel per device pixel", () => {
-    globalThis.devicePixelRatio = 2
     const frame = { rect: title => title, bounds: title => title, pixels: () => 0.5 }
     const camera = new THREE.OrthographicCamera()
-    frameCamera(camera, { anchor: line, corners: cornersOf(line), size: 20, fov: 43, width: 800, height: 600, frame })
-    globalThis.devicePixelRatio = 1
+    globalThis.devicePixelRatio = 2
+    try {
+      frameCamera(camera, { anchor: line, corners: cornersOf(line), size: 20, fov: 43, width: 800, height: 600, frame })
+    } finally {
+      globalThis.devicePixelRatio = 1
+    }
     close(camera.top - camera.bottom, 2400)
   })
 })
@@ -805,6 +822,7 @@ describe("titleFraming with an empty top line", () => {
 })
 
 describe("pickEntry", () => {
+  const SHOWN = { visible: true }
   const raycaster = new THREE.Raycaster()
   const camera = new THREE.OrthographicCamera(-100, 100, 100, -100, 1, 1000)
   camera.position.set(0, 0, 500)
@@ -825,7 +843,7 @@ describe("pickEntry", () => {
   }
 
   test("finds the word under the point, and nothing off the text", () => {
-    const entries = new Map([[1, { solid: block(-30, 0, 40, 1) }], [2, { solid: block(30, 0, 40, 2) }]])
+    const entries = new Map([[1, { group: SHOWN, solid: block(-30, 0, 40, 1) }], [2, { group: SHOWN, solid: block(30, 0, 40, 2) }]])
     assert.equal(pickEntry(entries, at(-30)), 1)
     assert.equal(pickEntry(entries, at(30)), 2)
     assert.equal(pickEntry(entries, at(0)), null)
@@ -833,28 +851,34 @@ describe("pickEntry", () => {
   })
 
   test("the nearest solid wins whatever order they are in", () => {
-    const entries = new Map([[1, { solid: block(0, 50, 40, 1) }], [2, { solid: block(0, 0, 40, 2) }]])
+    const entries = new Map([[1, { group: SHOWN, solid: block(0, 50, 40, 1) }], [2, { group: SHOWN, solid: block(0, 0, 40, 2) }]])
     assert.equal(pickEntry(entries, at(0)), 1)
     assert.equal(pickEntry(new Map(Array.from(entries).toReversed()), at(0)), 1)
   })
 
   test("the outline counts as part of the text", () => {
-    const entries = new Map([[1, { solid: block(0, 0, 40, 2), outline: block(0, 0, 60, 1, THREE.BackSide) }]])
+    const entries = new Map([[1, { group: SHOWN, solid: block(0, 0, 40, 2), outline: block(0, 0, 60, 1, THREE.BackSide) }]])
     assert.equal(pickEntry(entries, at(25)), 1)
   })
 
   test("an outline drawn over a further solid is what you see", () => {
-    const entries = new Map([[1, { solid: block(0, 0, 40, 1) }], [2, { outline: block(0, 50, 60, 2, THREE.BackSide) }]])
+    const entries = new Map([[1, { group: SHOWN, solid: block(0, 0, 40, 1) }], [2, { group: SHOWN, outline: block(0, 50, 60, 2, THREE.BackSide) }]])
     assert.equal(pickEntry(entries, at(0)), 2)
   })
 
   test("an outline behind a nearer solid is hidden", () => {
-    const entries = new Map([[1, { solid: block(0, 50, 40, 1) }], [2, { outline: block(0, 0, 60, 2, THREE.BackSide) }]])
+    const entries = new Map([[1, { group: SHOWN, solid: block(0, 50, 40, 1) }], [2, { group: SHOWN, outline: block(0, 0, 60, 2, THREE.BackSide) }]])
     assert.equal(pickEntry(entries, at(0)), 1)
     assert.equal(pickEntry(entries, at(25)), 2)
   })
 
+  test("a hidden word is not picked, and does not block the one behind it", () => {
+    const entries = new Map([[1, { group: { visible: false }, solid: block(0, 50, 40, 1) }], [2, { group: SHOWN, solid: block(0, 0, 40, 2) }]])
+    assert.equal(pickEntry(entries, at(0)), 2)
+    assert.equal(pickEntry(new Map([[1, { group: { visible: false }, solid: block(0, 0, 40, 1) }]]), at(0)), null)
+  })
+
   test("is nothing with nothing built", () => {
-    assert.equal(pickEntry(new Map([[1, { solid: null, outline: null }]]), at(0)), null)
+    assert.equal(pickEntry(new Map([[1, { group: SHOWN, solid: null, outline: null }]]), at(0)), null)
   })
 })

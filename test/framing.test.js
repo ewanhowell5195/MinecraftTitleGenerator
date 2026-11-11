@@ -1,5 +1,7 @@
 import { beforeEach, describe, test } from "node:test"
 import assert from "node:assert/strict"
+import { close } from "./helpers/assert.js"
+import { quietStorage } from "./helpers/browser.js"
 
 const LIMIT = 8192
 
@@ -8,18 +10,14 @@ function fakeElement() {
   return canvas
 }
 
-globalThis.localStorage = { getItem: () => null, setItem: () => {} }
+quietStorage()
 globalThis.document = { createElement: fakeElement }
 
-const { frameBounds, framePixels, frameRect, frameSplit, framing, paddingScale, renderVector, resolutionLimit, setAspect, setResolution, textureSize, textureSizes } = await import("../src/lib/framing.js")
+const { frameBounds, framePixels, frameRect, frameSplit, framing, paddingScale, renderVector, setAspect, setResolution, textureSize, textureSizes } = await import("../src/lib/framing.js")
 const { outputSize } = await import("../src/lib/render.js")
 const { view, viewport } = await import("../src/lib/view.js")
 
 const TITLE = { left: 100, top: 50, width: 400, height: 100 }
-
-function close(actual, expected, tolerance = 1e-6) {
-  assert.ok(Math.abs(actual - expected) <= tolerance, `${actual} is not within ${tolerance} of ${expected}`)
-}
 
 function closeRect(actual, expected) {
   for (const key of ["left", "top", "width", "height"]) close(actual[key], expected[key])
@@ -34,12 +32,6 @@ beforeEach(() => {
   view.resolution = 1024
   viewport.vector = undefined
   viewport.titleRect = undefined
-})
-
-describe("resolutionLimit", () => {
-  test("is the largest canvas size the browser can draw to", () => {
-    assert.equal(resolutionLimit(), LIMIT)
-  })
 })
 
 describe("paddingScale", () => {
@@ -157,6 +149,13 @@ describe("frameRect", () => {
   test("minecraft 1.20 places the output around the fitted title", () => {
     framing.tab = "minecraft"
     closeRect(frameRect(TITLE), { left: 100 - 160 / 1.76, top: 50, width: 1024 / 1.76, height: 256 / 1.76 })
+  })
+
+  test("minecraft keeps the title on whole texture pixels", () => {
+    framing.tab = "minecraft"
+    const title = { ...TITLE, height: 45 }
+    const rect = frameRect(title)
+    close((title.top - rect.top) * framePixels(title, rect), 30)
   })
 
   test("minecraft uses the fallback texture size", () => {
@@ -393,6 +392,15 @@ describe("renderVector", () => {
     viewport.titleRect = () => ({ left: 0, top: 0, width: 512, height: 64 })
     renderVector()
     assert.deepEqual(asked, [1024])
+  })
+
+  test("asks for no more than the texture holds when the fit is not exact", () => {
+    const asked = captured()
+    framing.tab = "minecraft"
+    framing.mode = "mojang"
+    viewport.titleRect = () => ({ left: 0, top: 0, width: 306, height: 20 })
+    renderVector()
+    assert.deepEqual(asked, [2032])
   })
 
   test("falls back to the render resolution before a title is measured", () => {

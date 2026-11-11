@@ -1,8 +1,9 @@
 import * as THREE from "three"
-import { canvasOf } from "./canvas.js"
+import { canvasOf, linearGradient } from "./canvas.js"
 import { gradientLine, gradientStops } from "./material.js"
 import { clamp } from "./maths.js"
 import { platform } from "./platform.js"
+import { cullOutlines } from "./stage.js"
 
 const LIMIT = 6
 const TILE = 4096
@@ -10,6 +11,8 @@ export const SAMPLES = 4
 // wider than LIMIT so clean sees whole regions, and divisible by SAMPLES to keep tiles on the output pixel grid
 const MARGIN = 8
 const STRIDE = TILE - MARGIN * 2
+const WHOLE = { size: value => Math.max(1, Math.round(value)), drawn: Math.round, offset: Math.floor }
+export const EXACT = { size: value => value, drawn: value => value, offset: value => value }
 const region = new Int32Array(32)
 const around = new Int32Array(4)
 let hidden = null
@@ -43,6 +46,7 @@ export function screenBounds(scene, camera) {
   let maxY = -Infinity
   const matrix = new THREE.Matrix4()
   const vertex = new THREE.Vector3()
+  cullOutlines(scene, camera)
   scene.traverseVisible(object => {
     const position = object.isMesh && object.geometry.attributes.position
     if (!position) return
@@ -278,11 +282,16 @@ export function fitTitle(layout, width, height) {
   return { scale, x: layout.left + (layout.width - width * scale) / 2, y: layout.top + (layout.height - height * scale) / 2 }
 }
 
+export function drawnTitle(layout, width, height) {
+  const { scale, x, y } = fitTitle(layout, width, height)
+  return { scale, x: Math.round(x), y: Math.round(y), width: Math.round(width * scale), height: Math.round(height * scale) }
+}
+
 function minecraft(image, mode, base, size) {
   const layout = minecraftLayout(mode, size)
-  const { scale, x, y } = fitTitle(layout, image.width, image.height)
+  const { x, y, width: drawWidth, height: drawHeight } = drawnTitle(layout, image.width, image.height)
   const padded = canvasOf(Math.round(layout.padded[0]), Math.round(layout.padded[1]))
-  padded.ctx.drawImage(image, x, y, image.width * scale, image.height * scale)
+  padded.ctx.drawImage(image, x, y, drawWidth, drawHeight)
   const result = canvasOf(...layout.output)
   if (mode === "1.19") {
     result.ctx.imageSmoothingEnabled = false
@@ -298,23 +307,23 @@ function minecraft(image, mode, base, size) {
   return result.canvas
 }
 
-export function outputSize(image, settings, padding) {
+export function outputSize(image, settings, padding, snap = WHOLE) {
   const side = Math.max(image.width, image.height)
   if (settings.tab === "square") return [side, side]
   if (settings.tab === "custom") return [settings.width, settings.height]
   const scale = (side - padding * 2) / side
-  return [Math.max(1, Math.round(image.width * scale)) + padding * 2, Math.max(1, Math.round(image.height * scale)) + padding * 2]
+  return [snap.size(image.width * scale) + padding * 2, snap.size(image.height * scale) + padding * 2]
 }
 
-export function placement(image, settings) {
+export function placement(image, settings, snap = WHOLE) {
   const shortest = settings.tab === "custom" ? Math.min(settings.width, settings.height) : Math.max(image.width, image.height)
   const padding = clamp(settings.padding, 0, Math.floor((shortest - 1) / 2))
-  const [width, height] = outputSize(image, settings, padding)
+  const [width, height] = outputSize(image, settings, padding, snap)
   const ratio = Math.min((width - padding * 2) / image.width, (height - padding * 2) / image.height)
-  const drawWidth = Math.round(image.width * ratio)
-  const drawHeight = Math.round(image.height * ratio)
+  const drawWidth = snap.drawn(image.width * ratio)
+  const drawHeight = snap.drawn(image.height * ratio)
   const background = settings.backgroundEnabled ? { line: gradientLine(0, 0, width, height, settings.backgroundAngle), stops: gradientStops(settings.backgroundStops, settings.backgroundSmooth) } : null
-  return { width, height, ratio, x: Math.floor((width - drawWidth) / 2), y: Math.floor((height - drawHeight) / 2), drawWidth, drawHeight, background }
+  return { width, height, ratio, x: snap.offset((width - drawWidth) / 2), y: snap.offset((height - drawHeight) / 2), drawWidth, drawHeight, background }
 }
 
 export function compose(image, settings, base) {
@@ -323,9 +332,7 @@ export function compose(image, settings, base) {
   const result = canvasOf(width, height)
   if (background) {
     const [from, to] = background.line
-    const gradient = result.ctx.createLinearGradient(...from, ...to)
-    for (const stop of background.stops) gradient.addColorStop(stop.position, stop.colour)
-    result.ctx.fillStyle = gradient
+    result.ctx.fillStyle = linearGradient(result.ctx, ...from, ...to, background.stops)
     result.ctx.fillRect(0, 0, width, height)
   }
   result.ctx.drawImage(image, x, y, drawWidth, drawHeight)

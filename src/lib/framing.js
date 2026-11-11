@@ -2,7 +2,7 @@ import { reactive } from "vue"
 import { image } from "./assets.js"
 import { canvasLimit } from "./canvas.js"
 import { clamp } from "./maths.js"
-import { aspectOf, compose, fitTitle, fromAspect, minecraftLayout } from "./render.js"
+import { EXACT, aspectOf, compose, drawnTitle, fromAspect, minecraftLayout, placement } from "./render.js"
 import { composeVector } from "./vector.js"
 import { view, viewport } from "./view.js"
 
@@ -58,12 +58,8 @@ export function resetOutline() {
   for (const key of OUTLINE) framing[key] = DEFAULTS[key]
 }
 
-export function resolutionLimit() {
-  return canvasLimit()
-}
-
 function renderResolution() {
-  return clamp(Math.round(Number(view.resolution)) || 128, 128, resolutionLimit())
+  return clamp(Math.round(Number(view.resolution)) || 128, 128, canvasLimit())
 }
 
 export function paddingScale() {
@@ -75,7 +71,7 @@ function paddingPixels() {
 }
 
 export function textureSizes() {
-  return TEXTURE_SIZES.filter(size => minecraftLayout(framing.mode, size).width <= resolutionLimit())
+  return TEXTURE_SIZES.filter(size => minecraftLayout(framing.mode, size).width <= canvasLimit())
 }
 
 export function textureSize() {
@@ -87,8 +83,8 @@ function captureResolution() {
   if (framing.tab !== "minecraft") return renderResolution()
   const title = viewport.titleRect()
   if (!title) return renderResolution()
-  const { scale } = fitTitle(minecraftLayout(framing.mode, textureSize()), title.width, title.height)
-  return Math.min(Math.ceil(Math.max(title.width, title.height) * scale), resolutionLimit())
+  const { width, height } = drawnTitle(minecraftLayout(framing.mode, textureSize()), title.width, title.height)
+  return Math.min(Math.max(width, height), canvasLimit())
 }
 
 function outputSettings() {
@@ -102,16 +98,14 @@ export function renderVector() {
 
 export async function renderFramed(task) {
   const shot = await viewport.capture(captureResolution(), view.antialias, task)
-  return shot && compose(shot, outputSettings(), await image("render/legacy-title.png"))
-}
-
-function around(title, width, height) {
-  return { left: title.left + title.width / 2 - width / 2, top: title.top + title.height / 2 - height / 2, width, height }
+  if (!shot) return shot
+  const settings = outputSettings()
+  return compose(shot, settings, settings.tab === "minecraft" && settings.mode === "1.19" ? await image("render/legacy-title.png") : null)
 }
 
 function minecraftPlacement(title) {
   const layout = minecraftLayout(framing.mode, textureSize())
-  const { scale, x, y } = fitTitle(layout, title.width, title.height)
+  const { scale, x, y } = drawnTitle(layout, title.width, title.height)
   return { layout, scale, frame: { left: title.left - x / scale, top: title.top - y / scale, width: layout.output[0] / scale, height: layout.output[1] / scale } }
 }
 
@@ -140,15 +134,10 @@ export function frameBounds(title) {
 export function frameRect(title) {
   if (framing.tab === "minecraft") return minecraftPlacement(title).frame
   const longest = Math.max(title.width, title.height)
-  const shortest = framing.tab === "custom" ? Math.min(framing.width, framing.height) : renderResolution()
-  const padding = clamp(paddingPixels(), 0, Math.floor((shortest - 1) / 2))
-  if (framing.tab === "custom") {
-    const ratio = Math.min((framing.width - padding * 2) / title.width, (framing.height - padding * 2) / title.height)
-    return around(title, framing.width / ratio, framing.height / ratio)
-  }
-  const inset = padding * longest / (renderResolution() - padding * 2)
-  if (framing.tab === "square") return around(title, longest + inset * 2, longest + inset * 2)
-  return around(title, title.width + inset * 2, title.height + inset * 2)
+  const resolution = renderResolution()
+  const { width, height, x, y, ratio } = placement({ width: title.width / longest * resolution, height: title.height / longest * resolution }, outputSettings(), EXACT)
+  const pixels = resolution / longest * ratio
+  return { left: title.left - x / pixels, top: title.top - y / pixels, width: width / pixels, height: height / pixels }
 }
 
 function fit() {

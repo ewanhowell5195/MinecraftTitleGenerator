@@ -6,34 +6,36 @@
   import { readTitleObjects } from "../lib/file.js"
   import { createTitleItems } from "../lib/items.js"
   import { keepMatched } from "../lib/match.js"
+  import { platform } from "../lib/platform.js"
   import { keepTexture } from "../lib/scene.js"
   import { FILE_VERSION } from "../lib/settings.js"
+  import { loadKey } from "../lib/shapes.js"
   import { createSmoothing } from "../lib/smoothing.js"
-  import { createEntry, cullsOutlines, destroyEntry, frameCamera, sortEntries, titleFraming, updateEntry } from "../lib/stage.js"
-  import { createTitle } from "../lib/title.js"
-  import { DEFAULT_FOV } from "../lib/view.js"
+  import { createStage, frameCamera, titleFraming } from "../lib/stage.js"
+  import { OFFSCREEN_VIEW, createTitle, firstError } from "../lib/title.js"
+
+  const NO_TILEABLES = {}
 
   const props = defineProps({
     lines: { type: Array, default: () => [] },
     fonts: { type: Array, required: true },
-    tileables: { type: Object, default: () => ({}) },
     message: { type: String, default: "" }
   })
 
   const emit = defineEmits(["settled"])
 
-  const title = createTitle(reactive([]), { render: false, fov: DEFAULT_FOV, fixedDistance: false, previews: false })
+  const title = createTitle(reactive([]), OFFSCREEN_VIEW)
   const items = createTitleItems(title)
   const stage = ref(null)
   const readError = ref("")
-  const entries = new Map()
-  let renderer, scene, camera, smoothing, observer
+  const world = createStage()
+  let renderer, camera, smoothing, observer
   let size = { width: 1, height: 1 }
   let frame = 0
   let fitted = null
   let waiting = false
 
-  const error = computed(() => readError.value || title.objects.map(object => title.runtime[object.id]?.error).find(Boolean) || "")
+  const error = computed(() => readError.value || firstError(title) || "")
   const busy = computed(() => !items.value.every(item => item.settled))
   const shown = computed(() => items.value.some(item => item.built?.body.triangles))
 
@@ -79,7 +81,7 @@
     const ids = new Map(fresh.map((object, index) => [object.id, objects[index].id]))
     for (const [index, object] of fresh.entries()) {
       const target = objects[index]
-      if (target.font !== object.font) keepTexture.add(target)
+      if (loadKey(target) !== loadKey(object)) keepTexture.add(target)
       for (const [key, value] of Object.entries(toRaw(object))) {
         const next = key === "matchWidth" && value !== null ? ids.get(value) : value
         if (key !== "id" && !same(toRaw(target[key]), next)) target[key] = next
@@ -101,28 +103,12 @@
       }
     }
     if (!fitted) return
-    sortEntries(Array.from(entries.values()), camera)
-    smoothing.draw(scene, camera)
+    world.sort(camera)
+    smoothing.draw(world.scene, camera)
   }
 
   function sync() {
-    const seen = new Set()
-    for (const item of items.value) {
-      seen.add(item.id)
-      let entry = entries.get(item.id)
-      if (!entry) {
-        entry = createEntry()
-        scene.add(entry.group)
-        entries.set(item.id, entry)
-      }
-      updateEntry(entry, item)
-    }
-    for (const [id, entry] of entries) {
-      if (seen.has(id)) continue
-      destroyEntry(entry)
-      scene.remove(entry.group)
-      entries.delete(id)
-    }
+    world.sync(items.value)
     invalidate()
   }
 
@@ -130,9 +116,9 @@
     const { clientWidth: width, clientHeight: height } = stage.value
     if (!width || !height) return
     size = { width, height }
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.setSize(width, height)
     smoothing.resize()
-    camera.aspect = width / height
     fitted = null
     invalidate()
   }
@@ -140,11 +126,8 @@
   load(props.lines)
 
   onMounted(() => {
-    renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true })
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    renderer = platform.createWebGLRenderer()
     smoothing = createSmoothing(renderer)
-    scene = new THREE.Scene()
-    cullsOutlines(scene)
     camera = new THREE.PerspectiveCamera(title.view.fov, 1, 1, 5000)
     stage.value.append(renderer.domElement)
     observer = new ResizeObserver(resize)
@@ -156,10 +139,10 @@
   onBeforeUnmount(() => {
     cancelAnimationFrame(frame)
     observer.disconnect()
-    for (const entry of entries.values()) destroyEntry(entry)
-    entries.clear()
+    world.dispose()
     smoothing.dispose()
     renderer.dispose()
+    renderer.forceContextLoss()
     renderer = null
   })
 
@@ -173,7 +156,7 @@
     <div ref="stage" class="stage" :class="{ hidden: !shown || error }"></div>
     <template v-for="object of title.objects" :key="object.id">
       <ModelRenderer v-if="object.customModel" :object="object" :shapes="[]" :title="title" />
-      <ObjectRenderer v-else :object="object" :fonts="fonts" :tileables="tileables" :title="title" />
+      <ObjectRenderer v-else :object="object" :fonts="fonts" :tileables="NO_TILEABLES" :title="title" />
     </template>
     <p v-if="error" class="message bad">{{ error }}</p>
     <p v-else-if="!shown" class="message empty-state">{{ busy ? "Rendering..." : message }}</p>

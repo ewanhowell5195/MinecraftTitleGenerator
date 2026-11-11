@@ -3,7 +3,7 @@ import * as THREE from "three"
 import { packed } from "./colour.js"
 import { clamp } from "./maths.js"
 import { SAMPLES, placement, titleShot } from "./render.js"
-import { near, jump, mixed, within, brightness, simplifyStops, colourTotals, analyse, contains, maskOf, BASE } from "./vectorTexture.js"
+import { near, jump, mixed, within, brightness, simplifyStops, colourAlong, colourTotals, analyse, contains, maskOf, BASE } from "./vectorTexture.js"
 import { area, signedArea, sameWinding, sharedEdges, number, writePath, loopsInHundredths, stitched, addInOrder, addTo, boxOfPolygons, boxesOverlap, shapesOverlap, shapeOfPolygons, mergedByFill, unionOf, coverOf, addToCover, visibleLoops } from "./vectorPaths.js"
 
 const EPSILON = 1e-4
@@ -464,11 +464,7 @@ function lineOf(gradient) {
 }
 
 function colourOn(points, t) {
-  const after = points.findIndex(point => point.t >= t)
-  if (after <= 0) return points[after < 0 ? points.length - 1 : 0].colour
-  const from = points[after - 1]
-  const to = points[after]
-  return mixed(from.colour, to.colour, to.t > from.t ? (t - from.t) / (to.t - from.t) : 1)
+  return colourAlong(points, points.findIndex(point => point.t >= t), t)
 }
 
 function agree(first, second) {
@@ -651,14 +647,21 @@ function stripsAlong(segments, width) {
   })
 }
 
+function toPaths(polygons) {
+  return polygons.map(polygon => polygon.map(([x, y]) => ({ x, y })))
+}
+
+function fromPaths(paths) {
+  return paths.map(path => path.map(({ x, y }) => [x, y]))
+}
+
 function seamsOf(list, bleed, output) {
   const strokes = list.length > 1 ? Array.from(sharedEdges(list)).sort((a, b) => output.brightness(a[0]) - output.brightness(b[0])) : []
   if (!strokes.length) return []
-  const toPaths = polygons => polygons.map(polygon => polygon.map(([x, y]) => ({ x, y })))
   const areas = list.map(([, polygons]) => toPaths(aroundStrokes(polygons, strokes, bleed))).filter(paths => paths.length)
   return strokes.map(([fill, segments]) => {
     const strips = toPaths(stripsAlong(segments, bleed))
-    return [fill, areas.flatMap(area => intersectD(strips, area, FillRule.NonZero, SEAM_PRECISION)).map(path => sameWinding(path.map(point => [point.x, point.y])))]
+    return [fill, fromPaths(areas.flatMap(area => intersectD(strips, area, FillRule.NonZero, SEAM_PRECISION))).map(sameWinding)]
   }).filter(([, polygons]) => polygons.length)
 }
 
@@ -670,19 +673,11 @@ function entriesOf({ base, layers, joins, covers }, { bleed, output, totals }) {
 
 function filledArea(polygons) {
   if (polygons.every(polygon => signedArea(polygon) > 0)) return polygons
-  return unionD(polygons.map(polygon => polygon.map(([x, y]) => ({ x, y }))), FillRule.NonZero, SEAM_PRECISION).map(path => path.map(point => [point.x, point.y]))
+  return fromPaths(unionD(toPaths(polygons), FillRule.NonZero, SEAM_PRECISION))
 }
 
 function pathMarkup(fill, loops) {
   return loops.length ? `<path fill="${fill}" d="${writePath(loops)}"/>` : ""
-}
-
-function toPaths64(loops) {
-  return loops.map(loop => loop.map(([x, y]) => ({ x, y })))
-}
-
-function fromPaths64(paths) {
-  return paths.map(path => path.map(({ x, y }) => [x, y]))
 }
 
 function sinkToSameFill(shapes) {
@@ -690,19 +685,19 @@ function sinkToSameFill(shapes) {
     if (!shape.shown.length) continue
     const target = shapes.findIndex(other => other.fill === shape.fill && other.shown.length)
     if (target >= later) continue
-    const area = toPaths64(shape.loops)
+    const area = toPaths(shape.loops)
     const box = boxOfPolygons(shape.loops)
     const cut = []
     for (const other of shapes.slice(target + 1, later)) {
       if (!other.shown.length || other.fill === shape.fill || !boxesOverlap(boxOfPolygons(other.shown), box)) continue
-      cut.push({ other, shown: fromPaths64(difference(toPaths64(other.shown), area, FillRule.NonZero)), loops: fromPaths64(difference(toPaths64(other.loops), area, FillRule.NonZero)) })
+      cut.push({ other, shown: fromPaths(difference(toPaths(other.shown), area, FillRule.NonZero)), loops: fromPaths(difference(toPaths(other.loops), area, FillRule.NonZero)) })
     }
-    const joined = fromPaths64(union(toPaths64(shapes[target].shown), toPaths64(shape.shown), FillRule.NonZero))
+    const joined = fromPaths(union(toPaths(shapes[target].shown), toPaths(shape.shown), FillRule.NonZero))
     const before = pathMarkup(shape.fill, shapes[target].shown).length + pathMarkup(shape.fill, shape.shown).length + cut.reduce((sum, { other }) => sum + pathMarkup(other.fill, other.shown).length, 0)
     const after = pathMarkup(shape.fill, joined).length + cut.reduce((sum, { other, shown }) => sum + pathMarkup(other.fill, shown).length, 0)
     if (after >= before) continue
     shapes[target].shown = joined
-    shapes[target].loops = fromPaths64(union(toPaths64(shapes[target].loops), area, FillRule.NonZero))
+    shapes[target].loops = fromPaths(union(toPaths(shapes[target].loops), area, FillRule.NonZero))
     shape.shown = []
     for (const { other, shown, loops } of cut) {
       other.shown = shown

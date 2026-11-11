@@ -116,6 +116,13 @@ export function mixed(a, b, amount) {
   return [0, 8, 16].reduce((colour, shift) => colour | Math.round((a >> shift & 255) + ((b >> shift & 255) - (a >> shift & 255)) * amount) << shift, 0)
 }
 
+export function colourAlong(stops, after, t) {
+  if (after <= 0) return stops[after < 0 ? stops.length - 1 : 0].colour
+  const from = stops[after - 1]
+  const to = stops[after]
+  return mixed(from.colour, to.colour, to.t > from.t ? (t - from.t) / (to.t - from.t) : 1)
+}
+
 function majority(counts) {
   let best = 0
   let most = -1
@@ -471,13 +478,7 @@ function paintedModel(source, rect, list, colours, width, overlaid) {
   const { axis, length, start } = line
   const placed = source.stops.map(stop => ({ t: start + stop.position * length, colour: stop.colour }))
   const edges = placed.flatMap((stop, index) => index && stop.t === placed[index - 1].t && stop.colour !== placed[index - 1].colour ? [stop.t] : [])
-  function paintedAt(t) {
-    const after = placed.findIndex(stop => stop.t > t)
-    if (after <= 0) return placed[after < 0 ? placed.length - 1 : 0].colour
-    const from = placed[after - 1]
-    const to = placed[after]
-    return mixed(from.colour, to.colour, to.t > from.t ? (t - from.t) / (to.t - from.t) : 1)
-  }
+  const paintedAt = t => colourAlong(placed, placed.findIndex(stop => stop.t > t), t)
   const tOf = index => alongAxis(index, width, axis)
   const onEdge = t => edges.some(edge => Math.abs(t - edge) <= PAINTED_EDGE_REACH)
   function modelOfColours(colourFor, modelStops) {

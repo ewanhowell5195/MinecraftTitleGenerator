@@ -6,14 +6,14 @@
   import { frameBounds, framePixels, frameRect, framing } from "../lib/framing.js"
   import { holdHistory } from "../lib/history.js"
   import { round } from "../lib/maths.js"
+  import { platform } from "../lib/platform.js"
   import { renderTitle, screenBounds } from "../lib/render.js"
   import { current, currentWord, scene as title, select, setScale, shapingWord } from "../lib/scene.js"
   import { TRANSFORM_LIMITS } from "../lib/settings.js"
   import { createSmoothing } from "../lib/smoothing.js"
-  import { UNTURNED, UNZOOMED, createEntry, cullsOutlines, destroyEntry, elevationOf, frameCamera, gizmoPose, lineBounds, movedBy, orbitCamera, panMatrix, pannedBy, pickEntry, rotatedTo, sortEntries, titleFraming, turnedBy, updateEntry, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } from "../lib/stage.js"
+  import { UNTURNED, UNZOOMED, createStage, elevationOf, frameCamera, gizmoPose, lineBounds, movedBy, orbitCamera, panMatrix, pannedBy, pickEntry, rotatedTo, titleFraming, turnedBy, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } from "../lib/stage.js"
   import { vectorTitle } from "../lib/vector.js"
   import { FORM_SECTIONS, view, viewport, viewportChanges } from "../lib/view.js"
-  import Icon from "./Icon.vue"
 
   const TOOLS = [[null, "pointer", "No gizmo"], ["translate", "move", "Move"], ["rotate", "rotate", "Rotate"], ["scale", "scale", "Scale"]]
   const SELECTION_LAYER = 1
@@ -29,7 +29,8 @@
   })
 
   const host = ref(null)
-  const entries = new Map()
+  const stage = createStage()
+  const { scene, entries } = stage
   const pointers = new Map()
   const pan = shallowRef(UNZOOMED)
   const turn = shallowRef(UNTURNED)
@@ -41,9 +42,10 @@
   const basePosition = new THREE.Vector3()
   const baseQuaternion = new THREE.Quaternion()
   const pivot = new THREE.Vector3()
-  let renderer, scene, overlay, camera, perspective, orthographic, frame, observer, selection, controls, proxy, smoothing
+  let renderer, overlay, camera, perspective, orthographic, frame, observer, selection, controls, proxy, smoothing
   let frameSize = { width: 1, height: 1 }
   let fitted = null
+  let framed = false
   let dirty = true
   let grabbed = null
   let pressed = null
@@ -59,7 +61,7 @@
     if (fitted === null || !dirty) return
     pose()
     dirty = false
-    sortEntries(Array.from(entries.values()), camera)
+    stage.sort(camera)
     track()
     smoothing.draw(scene, camera)
     if (controls.object) {
@@ -149,23 +151,7 @@
   function sync() {
     invalidate()
     viewportChanges.value++
-    const seen = new Set()
-    for (const item of props.items) {
-      seen.add(item.id)
-      let entry = entries.get(item.id)
-      if (!entry) {
-        entry = createEntry()
-        scene.add(entry.group)
-        entries.set(item.id, entry)
-      }
-      updateEntry(entry, item)
-    }
-    for (const [id, entry] of entries) {
-      if (seen.has(id)) continue
-      destroyEntry(entry)
-      scene.remove(entry.group)
-      entries.delete(id)
-    }
+    stage.sync(props.items)
   }
 
   function track() {
@@ -213,7 +199,7 @@
   }
 
   function refit() {
-    if (moved.value || controls.dragging || fitted === props.items || !entries.size || !props.items.every(item => item.settled)) return
+    if (moved.value && fitted !== null || controls.dragging || fitted === props.items || !entries.size || !props.items.every(item => item.settled)) return
     fitted = props.items
     fitCamera()
   }
@@ -221,9 +207,10 @@
   function fitCamera() {
     invalidate()
     viewportChanges.value++
-    const title = titleFraming(props.items)
+    const title = titleFraming(props.items, view.fixedDistance)
     if (!title) return
     frameCamera(camera, { ...title, fov: view.fov, ...frameSize, maxScale: view.render ? Infinity : MAX_SCALE, frame: view.render ? { rect: frameRect, bounds: frameBounds, pixels: framePixels } : null })
+    framed = true
     baseProjection.copy(camera.projectionMatrix)
     basePosition.copy(camera.position)
     baseQuaternion.copy(camera.quaternion)
@@ -251,7 +238,7 @@
   }
 
   function zoom(event) {
-    if (!navigable.value) return
+    if (!navigable.value || !framed) return
     event.preventDefault()
     const { x, y } = zoomFocus()
     const lines = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? LINE_HEIGHT : 1
@@ -259,7 +246,7 @@
   }
 
   function grabView(event) {
-    if (!navigable.value || controls.dragging || event.button === 0 && controls.axis) return
+    if (!navigable.value || !framed || controls.dragging || event.button === 0 && controls.axis) return
     pointers.set(event.pointerId, { ...clipPoint(event), button: event.button })
     renderer.domElement.setPointerCapture(event.pointerId)
     panning.value = true
@@ -316,13 +303,11 @@
   onMounted(() => {
     const width = host.value.clientWidth || 1
     const height = host.value.clientHeight || 1
-    renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true })
+    renderer = platform.createWebGLRenderer()
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.setSize(width, height)
     smoothing = createSmoothing(renderer)
     host.value.append(renderer.domElement)
-    scene = new THREE.Scene()
-    cullsOutlines(scene)
     frameSize = { width, height }
     perspective = new THREE.PerspectiveCamera(view.fov || 40, width / height, 1, 5000)
     orthographic = new THREE.OrthographicCamera()
@@ -356,6 +341,7 @@
       const w = host.value.clientWidth
       const h = host.value.clientHeight
       if (!w || !h) return
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
       renderer.setSize(w, h)
       smoothing.resize()
       frameSize = { width: w, height: h }
@@ -381,13 +367,13 @@
 
   async function capture(resolution, antialias, task) {
     refit()
-    sortEntries(Array.from(entries.values()), camera)
+    stage.sort(camera)
     return await renderTitle(renderer.getSize(new THREE.Vector2()), scene, camera, resolution, antialias, task)
   }
 
   function vector(resolution) {
     refit()
-    sortEntries(Array.from(entries.values()), camera)
+    stage.sort(camera)
     return vectorTitle(scene, camera, renderer.getSize(new THREE.Vector2()), resolution)
   }
 
@@ -397,16 +383,17 @@
     viewport.titleRect = null
     viewport.canvas = null
     viewport.redraw = null
+    viewport.mirror = null
     cancelAnimationFrame(frame)
     observer.disconnect()
     if (grabbed) holdHistory(false)
     controls.dispose()
-    for (const entry of entries.values()) destroyEntry(entry)
-    entries.clear()
+    stage.dispose()
     for (const edge of selection.children) edge.geometry.dispose()
     selection.children[0].material.dispose()
     smoothing.dispose()
     renderer.dispose()
+    renderer.forceContextLoss()
     renderer.domElement.remove()
   })
 
@@ -427,7 +414,7 @@
     applyView()
   }, { flush: "sync" })
 
-  watch(() => view.render && [framing, view.resolution, view.antialias], fitCamera, { deep: true })
+  watch(() => view.render && [framing, view.resolution], fitCamera, { deep: true })
 
   watch(() => props.items, sync)
   watch(() => props.selected.join(), invalidate)
@@ -437,11 +424,11 @@
   <div ref="host" class="viewport" :class="{ navigable, panning }">
     <div v-if="navigable" class="toolbar">
       <div v-if="view.section === 'transform'" class="tools">
-        <Button ghost :active="view.gizmo === mode" v-for="[mode, icon, title] of TOOLS" :key="icon" v-tooltip="{ text: title, tooltipClass: 'slow' }" :aria-label="title" :aria-pressed="view.gizmo === mode" @click="view.gizmo = mode"><template #icon><Icon :name="icon" :size="16" /></template></Button>
+        <Button ghost :active="view.gizmo === mode" v-for="[mode, icon, title] of TOOLS" :key="icon" v-tooltip="{ text: title, tooltipClass: 'slow' }" :aria-label="title" :aria-pressed="view.gizmo === mode" :icon="icon" @click="view.gizmo = mode" />
       </div>
       <div class="tools">
-        <Button ghost :active="orbiting" v-tooltip="{ text: 'Orbit the camera', tooltipClass: 'slow' }" aria-label="Orbit the camera" :aria-pressed="orbiting" @click="toggleOrbit"><template #icon><Icon name="orbit" :size="16" /></template></Button>
-        <Button ghost v-if="moved" v-tooltip="{ text: 'Reset the view', tooltipClass: 'slow' }" aria-label="Reset the view" @click="resetView"><template #icon><Icon name="reset" :size="16" /></template></Button>
+        <Button ghost :active="orbiting" v-tooltip="{ text: 'Orbit the camera', tooltipClass: 'slow' }" aria-label="Orbit the camera" :aria-pressed="orbiting" icon="orbit" @click="toggleOrbit" />
+        <Button ghost v-if="moved" v-tooltip="{ text: 'Reset the view', tooltipClass: 'slow' }" aria-label="Reset the view" icon="reset" @click="resetView" />
       </div>
     </div>
   </div>

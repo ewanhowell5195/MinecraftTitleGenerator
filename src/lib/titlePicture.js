@@ -8,13 +8,12 @@ import { loadFontList, sheetFolder, stripsOf } from "./font.js"
 import { createTitleItems } from "./items.js"
 import { decodeTitle, unknownSetting } from "./linkformat.js"
 import { keepMatched } from "./match.js"
-import { platform } from "./platform.js"
+import { painted } from "./platform.js"
 import { renderTitle, titleShot } from "./render.js"
-import { OVERLAY_KINDS, activeOverlays } from "./settings.js"
+import { LAYERS, activeOverlays } from "./settings.js"
 import { isMinecraftShape, isModelShape, loadShapeList, shapeOf } from "./shapes.js"
-import { createEntry, cullsOutlines, destroyEntry, frameCamera, sortEntries, titleFraming, updateEntry } from "./stage.js"
-import { createTitle } from "./title.js"
-import { DEFAULT_FOV } from "./view.js"
+import { createStage, frameCamera, titleFraming } from "./stage.js"
+import { OFFSCREEN_VIEW, createTitle, firstError } from "./title.js"
 
 const STAGE_WIDTH = 1000
 const STAGE_HEIGHT = 500
@@ -23,7 +22,6 @@ const PICTURE_WIDTH = 935
 // that view is 2:1 (aspect-ratio on .picture in TitlePicture.vue), so this is half its width minus the same padding
 const PICTURE_HEIGHT = 443
 const TIME_LIMIT = 180000
-const VIEW = { render: false, fov: DEFAULT_FOV, fixedDistance: false, previews: false }
 const NOTHING_RENDERED = createRenderer({ insert() {}, remove() {}, createElement: () => ({}), createText: () => ({}), createComment: () => ({}), setText() {}, setElementText() {}, parentNode: () => null, nextSibling: () => null, patchProp() {} })
 
 let library = null
@@ -57,20 +55,15 @@ async function refuseUnknownNames(object, fonts, tileables, shapes) {
   const { font, list } = await textureListOf(object, fonts, shapes)
   if (object.textureSource === "premade" && object.texture !== null) refuseUnknownVariant(`${font.id} texture`, list.textures[object.texture], object.texture, object.textureVariant)
   if (object.textureSource === "tileable" && object.tileableSource !== "minecraft") refuseUnknownVariant("tileable", tileables[object.tileable], object.tileable, object.tileableVariant)
-  for (const kind of Object.keys(OVERLAY_KINDS)) {
+  for (const kind of LAYERS) {
     for (const layer of activeOverlays(list, object, kind)) {
       if (layer.source !== "file" && !list[kind][layer.overlay]) throw new Error(`there is no ${font.id} overlay called ${layer.overlay}`)
     }
   }
 }
 
-function errorsOf(title) {
-  return title.objects.map(object => title.runtime[object.id]?.error)
-}
-
 function settled(title, items) {
   return new Promise((fulfil, reject) => {
-    const errors = () => errorsOf(title)
     const limit = setTimeout(() => finish(reject, new Error("the title took too long to load")), TIME_LIMIT)
     let stop = null
     function finish(settle, value) {
@@ -79,17 +72,13 @@ function settled(title, items) {
       settle(value)
     }
     function check() {
-      const failed = errors().find(Boolean)
+      const failed = firstError(title)
       if (failed) finish(reject, new Error(failed))
       else if (items.value.every(item => item.settled)) finish(fulfil)
     }
-    stop = watch([items, errors], check)
+    stop = watch([items, () => firstError(title)], check)
     check()
   })
-}
-
-function painted() {
-  return new Promise(fulfil => platform.frame(() => platform.frame(fulfil)))
 }
 
 function scales(title) {
@@ -97,27 +86,22 @@ function scales(title) {
 }
 
 async function shoot(items, width) {
-  const scene = new THREE.Scene()
-  cullsOutlines(scene)
-  const entries = items.map(item => {
-    const entry = createEntry()
-    scene.add(entry.group)
-    updateEntry(entry, item)
-    return entry
-  })
+  const stage = createStage()
+  const { scene } = stage
+  stage.sync(items)
   try {
-    const framed = titleFraming(items, VIEW.fixedDistance)
+    const framed = titleFraming(items, OFFSCREEN_VIEW.fixedDistance)
     if (!framed) return null
-    const camera = new THREE.PerspectiveCamera(VIEW.fov, STAGE_WIDTH / STAGE_HEIGHT, 1, 5000)
-    frameCamera(camera, { ...framed, fov: VIEW.fov, width: STAGE_WIDTH, height: STAGE_HEIGHT })
-    sortEntries(entries, camera)
+    const camera = new THREE.PerspectiveCamera(OFFSCREEN_VIEW.fov, STAGE_WIDTH / STAGE_HEIGHT, 1, 5000)
+    frameCamera(camera, { ...framed, fov: OFFSCREEN_VIEW.fov, width: STAGE_WIDTH, height: STAGE_HEIGHT })
+    stage.sort(camera)
     const shot = titleShot(scene, camera, new THREE.Vector2(STAGE_WIDTH, STAGE_HEIGHT), 1)
     if (!shot) return null
     const { width: wide, height: tall } = shot
     const fit = Math.min(width / wide, Math.floor(width * PICTURE_HEIGHT / PICTURE_WIDTH) / tall)
     return await renderTitle(new THREE.Vector2(STAGE_WIDTH, STAGE_HEIGHT), scene, camera, Math.round(Math.max(wide, tall) * fit), true, { signal: new AbortController().signal, progress: () => {} })
   } finally {
-    for (const entry of entries) destroyEntry(entry)
+    stage.dispose()
   }
 }
 
@@ -131,12 +115,8 @@ export async function titleCanvas(code, width = PICTURE_WIDTH) {
   return pictureOf(title, fonts, tileables, width, shapes)
 }
 
-export function linesCanvas(decoded, fonts, tileables, width = PICTURE_WIDTH, shapes = []) {
-  return pictureOf(titleOf(decoded), fonts, tileables, width, shapes)
-}
-
 function titleOf(decoded) {
-  return createTitle(reactive(readTitleObjects(decoded)), VIEW)
+  return createTitle(reactive(readTitleObjects(decoded)), OFFSCREEN_VIEW)
 }
 
 async function pictureOf(title, fonts, tileables, width, shapes) {
@@ -154,7 +134,7 @@ async function pictureOf(title, fonts, tileables, width, shapes) {
       await settled(title, items)
       await painted()
     } while (scales(title) !== before)
-    const failed = errorsOf(title).find(Boolean)
+    const failed = firstError(title)
     if (failed) throw new Error(failed)
     return await shoot(items.value, width)
   } finally {
