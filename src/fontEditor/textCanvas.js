@@ -1,10 +1,18 @@
 import { stretched } from "../lib/arc.js"
 import { lineLayout } from "../lib/layout.js"
-import { DEFAULT_SPACE_WIDTH, parsedSheet } from "../lib/fontEditor.js"
+import { parsedSheet } from "../lib/fontEditor.js"
+
+const METRICS = ["spaceWidth", "terminatorSpace", "terminatorSpaceWidth", "forcedTerminators", "border", "characterSpacing"]
+let unkerned = null
+
+export function unkernedFont(font) {
+  const { glyphs, capHeight } = parsedSheet(font)
+  if (unkerned?.glyphs !== glyphs || METRICS.some(key => unkerned[key] !== font[key])) unkerned = { glyphs, capHeight, ...Object.fromEntries(METRICS.map(key => [key, font[key]])) }
+  return unkerned
+}
 
 export function previewFont(font) {
-  const { glyphs, capHeight } = parsedSheet(font)
-  return { glyphs, capHeight, kerning: font.kerning, spaceWidth: font.spaceWidth ?? DEFAULT_SPACE_WIDTH, terminatorSpace: font.terminatorSpace, terminatorSpaceWidth: font.terminatorSpaceWidth, forcedTerminators: font.forcedTerminators, border: font.border, characterSpacing: font.characterSpacing }
+  return { ...unkernedFont(font), kerning: font.kerning }
 }
 
 export function drawText(canvas, parsed, text, { maxWidth, maxHeight, maxScale = 8, terminators = false, raw = false, stretch = 1 }) {

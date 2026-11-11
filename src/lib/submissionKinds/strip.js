@@ -1,7 +1,7 @@
 import { fullName } from "../font.js"
 import { HEX_COLOUR, SUBMISSION_LIMITS, pngProblem, pngSize, textProblem } from "../submissions.js"
 import { submissionFont } from "./fontAsset.js"
-import { STRIP_LIMITS, fitOffset, fitProblems, fontMeasure, fontRows, heightList, setIdOf, setIds, setName, setRows, setUsers, stripHeights, stripOwners, stripSet, stripTarget } from "./stripFit.js"
+import { STRIP_LIMITS, fitOffset, fitProblems, fontMeasure, heightList, setIdOf, setIds, setName, setUsers, sharedHeights, stripOwners, stripSet, stripTarget, targetRows } from "./stripFit.js"
 
 function storedSize(size) {
   return size && Number.isInteger(size.width) && Number.isInteger(size.height) ? { width: size.width, height: size.height } : null
@@ -15,10 +15,10 @@ function sentence(font, fonts, problems) {
   return `${fullName(font, fonts)} won't fit: ${problems.join(", and ")}.`
 }
 
-async function forFont(id, ctx) {
+function forFont(id, ctx) {
   const font = submissionFont(ctx.fonts, id)
   if (!font) return { problems: { target: "Pick the font the strip is for." }, target: `font:${id}` }
-  return { problems: {}, target: `font:${font.id}`, rows: async () => [fontRows(await fontMeasure(ctx, font))], what: fullName(font, ctx.fonts) }
+  return { problems: {}, target: `font:${font.id}`, what: fullName(font, ctx.fonts) }
 }
 
 async function forSet(id, details, ctx) {
@@ -37,11 +37,7 @@ async function forSet(id, details, ctx) {
       if (found.length) problems.stretch ??= `Every strip in the ${setName(id)} strip type stretches, and ${fullName(font, ctx.fonts)} only fits them stretched, so this one has to stretch too.`
     }
   }
-  async function rows() {
-    if (set.height) return [setRows(set, null, 0)]
-    return Promise.all(users.map(async ({ font, offset }) => setRows(set, await fontMeasure(ctx, font), offset)))
-  }
-  return { problems, clean, target: `set:${id}`, rows, what: `the ${setName(id)} strip type` }
+  return { problems, clean, target: `set:${id}`, what: `the ${setName(id)} strip type` }
 }
 
 async function forNew(details, ctx) {
@@ -75,8 +71,7 @@ async function forNew(details, ctx) {
     clean.fonts = chosen.map(font => font.id)
     if (Object.keys(offsets).length) clean.offsets = offsets
   }
-  const rows = async () => [clean.baseline + clean.depth + clean.height]
-  return { problems, clean, target: "new", rows: shaped ? rows : null, what: "this strip type" }
+  return { problems, clean, target: "new", what: "this strip type" }
 }
 
 export const strip = {
@@ -98,9 +93,9 @@ export const strip = {
     const result = chosen.kind === "new" ? await forNew(details, ctx) : chosen.kind === "set" ? await forSet(chosen.id, details, ctx) : await forFont(chosen.id, ctx)
     Object.assign(problems, result.problems)
     Object.assign(clean, result.clean)
-    if (size && result.rows) {
-      const lists = (await result.rows()).map(stripHeights)
-      const heights = lists[0]?.filter(height => lists.every(list => list.includes(height))) ?? []
+    const rows = size && await targetRows(ctx, result.target, result.clean ?? {})
+    if (rows) {
+      const heights = sharedHeights(rows)
       if (!heights.includes(size.height)) problems.file = heights.length ? `Strips for ${result.what} have to be ${heightList(heights)} pixels tall, and this one is ${size.height}.` : `The fonts using ${result.what} don't agree on a strip height, so it can't take new strips.`
     }
     return { problems, target: result.target, details: clean }

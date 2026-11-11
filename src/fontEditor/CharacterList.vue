@@ -8,7 +8,7 @@
   import Tile from "../components/Tile.vue"
   import TileGrid from "../components/TileGrid.vue"
   import { vLongPress } from "../lib/events.js"
-  import { CREEPER, SPACE_CHAR, addCharacters, characterName, glyphOf, isBlank, isOptional, removeCharacter, setGlyph } from "../lib/fontEditor.js"
+  import { CREEPER, SPACE_CHAR, addCharacters, characterLabel, characterName, glyphOf, isBlank, isOptional, removeCharacter, setGlyph } from "../lib/fontEditor.js"
   import GlyphThumb from "./GlyphThumb.vue"
   import { arrowsMove, characters, clipboard, copyGlyph, font, pasteGlyph, selected, typing, update } from "./store.js"
 
@@ -21,13 +21,19 @@
   const typed = ref("")
   const field = ref(null)
 
-  const newCharacters = computed(() => addCharacters(font.value, typed.value.replace(/ /g, "")).added)
+  const typedCharacters = computed(() => addCharacters(font.value, typed.value.replace(/ /g, "")))
+  const newCharacters = computed(() => typedCharacters.value.added)
+  const refusedNote = computed(() => {
+    const codes = typedCharacters.value.refused.map(char => `U+${char.codePointAt(0).toString(16).toUpperCase().padStart(4, "0")}`)
+    return codes.length ? `${codes.join(", ")} can't be added, as combining marks and invisible characters have nothing to draw.` : ""
+  })
+  const addingHint = computed(() => {
+    if (!typed.value.trim()) return "Type one or more characters. Capitals are added as lowercase."
+    if (newCharacters.value.length) return `Adds ${newCharacters.value.join(" ")}${refusedNote.value ? `. ${refusedNote.value}` : ""}`
+    return refusedNote.value || "Those are all in the font already."
+  })
 
   const blanks = computed(() => characters.value.filter(char => isBlank(glyphOf(font.value, char))).length)
-
-  function shownLabel(char) {
-    return { [CREEPER]: "Creeper", "\u{1F629}": "\u2018", "'": "\u2019", [SPACE_CHAR]: "Space" }[char] ?? char
-  }
 
   function menu(event, char) {
     selected.value = char
@@ -120,7 +126,7 @@
       <span class="hint">{{ blanks ? `${blanks} still blank` : "All drawn" }}</span>
     </header>
     <TileGrid ref="list" class="list" small :min="52">
-      <Tile v-for="char of characters" :key="char" small :label="shownLabel(char)" aspect="auto" :selected="selected === char" :tooltip="characterName(char) === shownLabel(char) ? null : characterName(char)" @pick="selected = char" v-long-press @contextmenu.prevent="menu($event, char)">
+      <Tile v-for="char of characters" :key="char" small :label="characterLabel(char)" aspect="auto" :selected="selected === char" :tooltip="characterName(char) === characterLabel(char) ? null : characterName(char)" @pick="selected = char" v-long-press @contextmenu.prevent="menu($event, char)">
         <template #picture><GlyphThumb :font="font" :glyph="glyphOf(font, char)" /></template>
       </Tile>
       <button class="add" v-tooltip="'Add a character'" aria-label="Add a character" @click="addMenu"><Icon name="plus" :size="20" /></button>
@@ -131,7 +137,7 @@
         <Field label="Characters">
           <input ref="field" v-model="typed" type="text" placeholder="eg ä ö ü" aria-label="Characters to add">
         </Field>
-        <p class="hint">{{ !typed.trim() ? "Type one or more characters. Capitals are added as lowercase." : newCharacters.length ? `Adds ${newCharacters.join(" ")}` : "Those are all in the font already." }}</p>
+        <p class="hint">{{ addingHint }}</p>
         <div class="dialog-actions">
           <Button @click="adding = false">Cancel</Button>
           <Button primary type="submit" :disabled="!newCharacters.length">Add</Button>

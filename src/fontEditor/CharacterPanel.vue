@@ -4,26 +4,20 @@
   import Field from "../components/Field.vue"
   import Icon from "../components/Icon.vue"
   import NumberInput from "../components/NumberInput.vue"
-  import { autoStretch, changeGlyph, characterName, setGlyph, squaresOf, widthOf } from "../lib/fontEditor.js"
+  import { autoStretch, changeGlyph, characterName, inkCount, setGlyph, squaresOf, widthOf } from "../lib/fontEditor.js"
+  import { typedNumber } from "./fields.js"
   import { font, glyph, reshapeSelected, selected, update, updateGlyph } from "./store.js"
 
   const width = computed(() => widthOf(font.value, glyph.value))
   const overridden = computed(() => glyph.value.width !== null && glyph.value.width !== font.value.width)
   const imported = computed(() => font.value.imported?.[selected.value] ?? null)
 
-  function ink(target) {
-    return target.rows.join("").split("1").length - 1
-  }
-
   function setNumber(key, event, minimum) {
-    const final = event.type === "change"
-    const pixels = event.target.valueAsNumber * font.value.grid
-    if (!Number.isInteger(pixels) || pixels < minimum) {
-      if (final) event.target.value = squaresOf(font.value, key === "width" ? width.value : glyph.value[key])
-      return
-    }
+    const squares = typedNumber(event, squaresOf(font.value, key === "width" ? width.value : glyph.value[key]), value => Number.isInteger(value * font.value.grid) && value * font.value.grid >= minimum)
+    if (squares === null) return
+    const pixels = squares * font.value.grid
     const next = changeGlyph(font.value, selected.value, { [key]: pixels })
-    if (!final && ink(next.glyphs[selected.value]) < ink(glyph.value)) return
+    if (event.type !== "change" && inkCount(next.glyphs[selected.value]) < inkCount(glyph.value)) return
     reshapeSelected({ [key]: pixels }, `${selected.value}.${key}`)
   }
 
@@ -65,7 +59,7 @@
     <p class="hint">Height is set for the whole font. For tall or hanging characters, add rows here instead.</p>
 
     <h3>Stretch zones</h3>
-    <p class="hint">Marked rows are the ones that stretch when text is arced, so choose straight parts that won't look odd taller. {{ glyph.stretch.length ? `${glyph.stretch.length} ${glyph.stretch.length === 1 ? "row" : "rows"} marked.` : "No rows marked." }}</p>
+    <p class="hint">Marked rows are the ones that stretch when text is arced, so choose straight parts that won't look odd taller. {{ glyph.stretch.length ? `${glyph.stretch.length} ${glyph.stretch.length === 1 ? "row" : "rows"} marked.` : "No rows marked, so they're marked automatically when you submit the font." }}</p>
     <div class="row">
       <Button @click="mark"><template #icon><Icon name="wand" :size="14" /></template>Mark automatically</Button>
       <Button :disabled="!glyph.stretch.length" @click="clearMarks">Clear</Button>

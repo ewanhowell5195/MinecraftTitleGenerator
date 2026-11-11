@@ -1,27 +1,26 @@
 import assert from "node:assert/strict"
-import { createHash, generateKeyPairSync } from "node:crypto"
+import { createHash } from "node:crypto"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { DatabaseSync } from "node:sqlite"
 import { afterEach, beforeEach, describe, test } from "node:test"
 import { PNG } from "pngjs"
 import { publishedFonts, readMask } from "../generator/fonts.js"
 import { prepare } from "../generator/submissionKinds/font.js"
 import { flattenFonts, fullOrder, parseMask, sheetLayout, solidMask, splitCells } from "../src/lib/font.js"
-import { buildSheet, exportJson, fontFromPublished } from "../src/lib/fontEditor.js"
+import { autoStretch, buildSheet, exportJson, fontFromPublished, parsedSheet } from "../src/lib/fontEditor.js"
 import { jsonText } from "../src/lib/jsonText.js"
 import { titleCase } from "../src/lib/names.js"
 import { font as kind } from "../src/lib/submissionKinds/font.js"
-import { fontJsonFields } from "../src/lib/submissionKinds/fontBuild.js"
+import { fontJsonFields, ownFont } from "../src/lib/submissionKinds/fontBuild.js"
 import { decodePng } from "../src/lib/submissionKinds/png.js"
-import { submissionContext } from "../src/lib/submissionKinds/index.js"
 import { font as client } from "../src/submissions/kinds/font.js"
 import { defaultBorder, defaultDepth } from "../src/lib/settings.js"
-import { fakeGitHub } from "./fakeGitHub.js"
+import { pngOf } from "./helpers/png.js"
+import { context, sendForm, serverEnv, signIn } from "./helpers/server.js"
+import { publicContext } from "./helpers/site.js"
 
-const { finishSignIn, receiveSignIn, startSignIn } = await import("../src/server/accounts.js")
-const { createSubmission, editSubmission } = await import("../src/server/submissions.js")
+const { editSubmission } = await import("../src/server/submissions.js")
 
 const LIST = "public/font/fonts.json"
 const published = publishedFonts()
@@ -42,9 +41,7 @@ function pngBytes({ width, height, data }) {
 }
 
 function plainPng(width, height) {
-  const png = new PNG({ width, height })
-  png.data.fill(200)
-  return new Uint8Array(PNG.sync.write(png))
+  return new Uint8Array(pngOf(width, height))
 }
 
 function jsonOf(font, id = "test-font") {
@@ -55,7 +52,7 @@ function withFields(bytes, fields) {
   return new TextEncoder().encode(JSON.stringify({ ...JSON.parse(new TextDecoder().decode(bytes)), ...fields }))
 }
 
-const ctx = submissionContext(fonts, async file => fs.existsSync(`public${file}`) ? new Response(fs.readFileSync(`public${file}`)) : new Response("missing", { status: 404 }))
+const ctx = publicContext(fonts)
 
 function check(input) {
   return kind.check({ target: "", details: {}, bytes: null, files: {}, ...input }, ctx)
@@ -114,6 +111,25 @@ describe("checking a font", () => {
     assert.match((await check({ bytes: new TextEncoder().encode("nope") })).problems.file, /isn't a font editor JSON file/)
   })
 
+  test("a font sheet that is too big is refused before it is decoded", async () => {
+    const header = Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13]), Buffer.from("IHDR"), Buffer.alloc(8)])
+    header.writeUInt32BE(5000, 16)
+    header.writeUInt32BE(5000, 20)
+    const editor = { ...JSON.parse(new TextDecoder().decode(f8thful)).editor, texture: `data:image/png;base64,${header.toString("base64")}` }
+    assert.match((await check({ bytes: withFields(f8thful, { editor }) })).problems.file, /is 5000x5000, which is too big for a font/)
+    assert.match((await check({ bytes: withFields(f8thful, { editor: { ...editor, texture: "data:image/png;base64,AAAA" } }) })).problems.file, /can't be read: it isn't a PNG/)
+  })
+
+  test("characters with no stretch zones are marked the way the editor marks them", () => {
+    const copy = copyOf("minecraft-gui")
+    const cleared = ["a", "m", "1", "&"]
+    const font = { ...copy, glyphs: Object.fromEntries(Object.entries(copy.glyphs).map(([char, glyph]) => [char, cleared.includes(char) ? { ...glyph, stretch: [] } : glyph])) }
+    const marked = parsedSheet(autoStretch(font, cleared), 0).glyphs
+    const built = ownFont(font)
+    for (const cell of built.cells) assert.deepEqual(cell.stretch, marked[cell.char].stretch, cell.char)
+    assert.ok(built.cells.find(cell => cell.char === "a").stretch.length > 0)
+  })
+
   test("variants have to be of a font that isn't a variant itself", async () => {
     assert.match((await check({ target: "minecraft-ten-v2", bytes: f8thful })).problems.target, /Pick the font/)
   })
@@ -150,8 +166,11 @@ describe("checking a font", () => {
   })
 })
 
+const roots = []
+
 function tempRoot() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "font-submission-"))
+  roots.push(root)
   const skip = file => !file.split(/[\\/]/).includes("thumbnails")
   fs.cpSync(LIST, path.join(root, LIST))
   fs.cpSync("public/font/minecraft-ten", path.join(root, "public/font/minecraft-ten"), { recursive: true, filter: skip })
@@ -189,6 +208,10 @@ function assertPublishable(root, id) {
 }
 
 describe("the workflow step", () => {
+  afterEach(() => {
+    for (const root of roots.splice(0)) fs.rmSync(root, { recursive: true })
+  })
+
   test("turns a held font and its bundle into the font's files and fonts.json entry", async () => {
     const root = tempRoot()
     addEntry(root, { id: "test-font", name: "Testing", author: "Someone" })
@@ -235,62 +258,9 @@ describe("the workflow step", () => {
   })
 })
 
-const REPO = "owner/repo"
-const API = "https://github.test"
-const realFetch = globalThis.fetch
-
-function d1(sqlite) {
-  function statement(sql, values = []) {
-    return {
-      bind: (...next) => statement(sql, next),
-      all: async () => ({ results: sqlite.prepare(sql).all(...values) }),
-      first: async () => sqlite.prepare(sql).get(...values) ?? null,
-      run: async () => ({ meta: { changes: Number(sqlite.prepare(sql).run(...values).changes) } }),
-      execute() {
-        return /RETURNING/.test(sql) ? { results: sqlite.prepare(sql).all(...values) } : { results: [], meta: { changes: Number(sqlite.prepare(sql).run(...values).changes) } }
-      }
-    }
-  }
-  return {
-    prepare: sql => statement(sql),
-    batch: async statements => {
-      sqlite.exec("BEGIN")
-      try {
-        const results = statements.map(item => item.execute())
-        sqlite.exec("COMMIT")
-        return results
-      } catch (err) {
-        sqlite.exec("ROLLBACK")
-        throw err
-      }
-    }
-  }
-}
-
-function assets(url) {
-  const file = path.join("public", decodeURIComponent(new URL(url).pathname))
-  return fs.existsSync(file) && fs.statSync(file).isFile() ? new Response(fs.readFileSync(file)) : new Response("missing", { status: 404 })
-}
-
 let env
 let gh
-let profile
-
-function context(url, { method = "GET", body, cookie, params = {}, headers = {} } = {}) {
-  const request = new Request(`https://mctitlegenerator.com${url}`, { method, body, headers: { ...(cookie && { Cookie: cookie }), ...headers } })
-  return { request, env, params, waitUntil: () => {} }
-}
-
-async function signIn(provider = "discord", person = { id: "1234", username: "someone", email: "someone@example.com", verified: true }) {
-  profile = person
-  const started = await startSignIn(context(`/api/account/login/${provider}?return=${encodeURIComponent("https://mctitlegenerator.com")}`, { params: { provider } }))
-  const state = new URL(started.headers.get("Location")).searchParams.get("state")
-  const stateCookie = started.headers.getSetCookie().find(line => line.startsWith("signin_state=")).split(";")[0]
-  const back = await receiveSignIn(context(`/api/account/login/${provider}/callback?${new URLSearchParams({ code: "abc", state })}`, { params: { provider } }))
-  const { pathname, search } = new URL(back.headers.get("Location"))
-  const done = await finishSignIn(context(`${pathname}${search}`, { cookie: stateCookie, params: { provider } }))
-  return done.headers.getSetCookie().find(line => line.startsWith("session=")).split(";")[0]
-}
+let restore
 
 function form({ target = "", details = { id: "test-font" }, name = "Test Font", file = f8thful, extras = {} } = {}) {
   const data = new FormData()
@@ -300,10 +270,7 @@ function form({ target = "", details = { id: "test-font" }, name = "Test Font", 
   return data
 }
 
-async function send(cookie, fields) {
-  const response = await createSubmission(context("/api/submissions", { method: "POST", body: form(fields), cookie }))
-  return { status: response.status, ...await response.json() }
-}
+const send = (cookie, fields) => sendForm(cookie, form(fields))
 
 function branchFile(id, file) {
   const sha = gh.filesAt(`submission/${id}`).get(file)
@@ -316,21 +283,10 @@ function sha1(bytes) {
 
 describe("sending a font", () => {
   beforeEach(() => {
-    const sqlite = new DatabaseSync(":memory:")
-    sqlite.exec(fs.readFileSync("schema.sql", "utf8"))
-    const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048, privateKeyEncoding: { type: "pkcs1", format: "pem" }, publicKeyEncoding: { type: "spki", format: "pem" } })
-    gh = fakeGitHub(publicKey, { repo: REPO, api: API, files: [LIST] })
-    env = { DB: d1(sqlite), ASSETS: { fetch: url => assets(String(url)) }, SESSION_SECRET: "session-secret", DISCORD_CLIENT_ID: "discord-id", DISCORD_CLIENT_SECRET: "discord-secret", GITHUB_CLIENT_ID: "github-id", GITHUB_CLIENT_SECRET: "github-secret", GITHUB_APP_ID: "123", GITHUB_APP_KEY: privateKey, GITHUB_WEBHOOK_SECRET: "hook-secret", GITHUB_REPOSITORY: REPO, GITHUB_API: API, RESEND_API_KEY: "resend-key" }
-    globalThis.fetch = async (url, options) => {
-      const text = String(url)
-      if (text.startsWith(API)) return gh.handle(text, options)
-      return new Response(JSON.stringify(options?.method === "POST" ? { access_token: "token" } : String(url).endsWith("/user/emails") ? profile.emails ?? [{ email: `${profile.login}@example.com`, primary: true, verified: true }] : profile), { status: 200, headers: { "Content-Type": "application/json" } })
-    }
+    ({ env, gh, restore } = serverEnv({ files: [LIST] }))
   })
 
-  afterEach(() => {
-    globalThis.fetch = realFetch
-  })
+  afterEach(() => restore())
 
   test("holds only the font editor's fields from the JSON, at every level", async () => {
     const cookie = await signIn()

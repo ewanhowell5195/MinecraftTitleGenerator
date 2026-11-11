@@ -3,14 +3,15 @@ import { collisionAmount, suggestKerning } from "../kerning.js"
 import { jsonText } from "../jsonText.js"
 import { DEFAULT_ORDER } from "../order.js"
 import { defaultBorder, defaultDepth } from "../settings.js"
-import { centredOffset, stripUse } from "../strips.js"
+import { stripUse } from "../strips.js"
 import { GENERATED_EDGE_OVERLAYS, withGenerated } from "../generated.js"
 import { EXTRA_FILE, HEX_COLOUR, SUBMISSION_LIMITS, assetId, pngProblem, pngSize, sizedProblem, textProblem, textureDensity } from "../submissions.js"
-import { slug } from "../fontEditor.js"
+import { fontId } from "../fontEditor.js"
 import { FONT_LIMITS, drawnCells, ownFont, submittedFont } from "./fontBuild.js"
+import { heightList, stripFit, stripHeights, stripSet } from "./stripFit.js"
 
-export const FONT_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/
-export const FONT_ID_LENGTH = 40
+const FONT_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/
+const FONT_ID_LENGTH = 40
 const RESERVED = ["textures", "overlays", "thumbnails"]
 const RESERVED_PREFIXES = ["custom-", "editor-preview-"]
 const LATIN = Array.from("abcdefghijklmnopqrstuvwxyz")
@@ -36,23 +37,22 @@ function idProblem(id, fonts) {
   return null
 }
 
-export function fontIdProblem(id, fonts) {
+function fontIdProblem(id, fonts) {
   const problem = idProblem(id, fonts)
   return problem && `${problem} Change it in the font editor's Font tab.`
 }
 
 export function submittedFontId(bytes) {
   try {
-    const { fields } = submittedFont(bytes)
-    return fields.id || slug(fields.name ?? "")
+    return fontId(submittedFont(bytes).fields)
   } catch {
     return null
   }
 }
 
-export function kerningStep(pairs) {
+function kerningStep(pairs, square) {
   const amounts = Object.values(pairs)
-  return [8, 6, 4, 2].find(step => amounts.filter(amount => amount % step === 0).length >= amounts.length * 0.9) ?? 1
+  return [square, 8, 6, 4, 2].find(step => amounts.filter(amount => amount % step === 0).length >= amounts.length * 0.9) ?? 1
 }
 
 function listed(items) {
@@ -60,13 +60,13 @@ function listed(items) {
   return items.length > shown.length ? `${shown.join(", ")} and ${items.length - shown.length} more` : shown.join(", ")
 }
 
-function kerningProblem(entry, sheet) {
+function kerningProblem(entry, sheet, square) {
   if (!entry.kerning) return null
   const pairs = kerningPairs(entry.kerning, "the font")
   const border = defaultBorder("top", entry)
   const { list, capHeight } = parseMask(sheet.data, sheet.width, sheet.height, entry.order ?? DEFAULT_ORDER, border)
   const glyphs = Object.fromEntries(list.map(glyph => [glyph.char, glyph]))
-  const unit = kerningStep(pairs)
+  const unit = kerningStep(pairs, square)
   const suggested = new Map(suggestKerning(glyphs, { capHeight, unit, border }).map(item => [item.pair, item.amount]))
   const past = []
   const loose = []
@@ -87,28 +87,21 @@ function kerningProblem(entry, sheet) {
 const LETTERS = { subject: "Its letters", goes: "go", reaches: "reach", is: "are", fix: "Change the offset in the Textures tab" }
 
 export async function stripProblem(entry, cells, capHeight, ctx, words = LETTERS) {
-  const range = { top: Math.max(capHeight, ...cells.map(cell => cell.top)), bottom: Math.min(0, ...cells.map(cell => cell.bottom)) }
-  const depth = defaultDepth(entry)
+  const measure = { range: { top: Math.max(capHeight, ...cells.map(cell => cell.top)), bottom: Math.min(0, ...cells.map(cell => cell.bottom)) }, capHeight, depth: defaultDepth(entry) }
   for (const use of (entry.strips ?? []).map(stripUse)) {
     let set
     try {
-      set = await ctx.json(`/strips/${use.id}/textures.json`)
+      set = await stripSet(ctx, use.id)
     } catch {
       return `It uses the ${use.id} strips, and there are no strips called that.`
     }
-    const offset = centredOffset(set.height, capHeight) + use.offset
-    const baseline = set.baseline ?? set.depth
-    const names = Object.entries(set.textures).flatMap(([name, data]) => [[name, !!data.stretch]].concat(Object.keys(data.variants ?? {}).map(variant => [variant, !!data.stretch])))
+    const heights = set.height ? [] : await Promise.all(set.names.map(async name => pngSize(await ctx.bytes(`/strips/${use.id}/textures/${name}.png`)).height))
+    const { problems } = stripFit(set, measure, use.offset, { stretched: set.stretched, heights })
     const what = `the ${use.id} strips`
-    if (depth > set.depth) return `Its depth of ${depth} is deeper than ${what}, which go up to ${set.depth}. Lower the depth, or stop using ${what}.`
-    if (-range.bottom > baseline - set.depth + offset) return `${words.subject} ${words.goes} further below the baseline than ${what} cover. ${words.fix}, or stop using ${what}.`
-    if (set.height && range.top + offset > set.height && !names.every(([, stretch]) => stretch)) return `${words.subject} ${words.reaches} higher than ${what} cover. ${words.fix}, or stop using ${what}.`
-    if (set.height) continue
-    for (const [name] of names) {
-      const size = pngSize(await ctx.bytes(`/strips/${use.id}/textures/${name}.png`))
-      const resolution = size.height / (baseline + range.top + offset + set.depth)
-      if (!Number.isInteger(Math.log2(resolution))) return `${words.subject} ${words.is} the wrong height for ${what}. ${words.fix}, or stop using ${what}.`
-    }
+    if (problems.includes("depth")) return `Its depth of ${measure.depth} is deeper than ${what}, which go up to ${set.depth}. Lower the depth, or stop using ${what}.`
+    if (problems.includes("below")) return `${words.subject} ${words.goes} further below the baseline than ${what} cover. ${words.fix}, or stop using ${what}.`
+    if (problems.includes("above")) return `${words.subject} ${words.reaches} higher than ${what} cover. ${words.fix}, or stop using ${what}.`
+    if (problems.includes("height")) return `${words.subject} ${words.is} the wrong height for ${what}. ${words.fix}, or stop using ${what}.`
   }
   return null
 }
@@ -143,7 +136,7 @@ async function ownFontProblem(font, parent, ctx) {
   if (problem) return problem
   const entry = own.entry
   if (entry.basedOn && !ctx.fonts.some(item => item.id === entry.basedOn)) return `It says it's based on ${entry.basedOn}, which isn't one of the fonts here. Change Based on in the font editor's Font tab.`
-  return await stripProblem(entry, own.cells, own.capHeight, ctx) ?? kerningProblem(entry, own.sheet)
+  return await stripProblem(entry, own.cells, own.capHeight, ctx) ?? kerningProblem(entry, own.sheet, font.grid * font.density)
 }
 
 async function readFile(bytes, parent, ctx) {
@@ -164,21 +157,13 @@ function storedTemplate(template) {
   return valid ? { width: template.width, height: template.height, rows: template.rows } : null
 }
 
-export function stripHeightsFor(rows) {
-  let low = rows
-  while (low % 2 === 0) low /= 2
-  const heights = []
-  for (let height = low; height <= SUBMISSION_LIMITS.side; height *= 2) heights.push(height)
-  return heights
-}
-
 function extraFileProblem(bytes, kind, template) {
   const problem = pngProblem(bytes, kind)
   if (problem || !template) return { problem }
   const size = pngSize(bytes)
   if (kind === "strip") {
-    const heights = stripHeightsFor(template.rows)
-    return { problem: heights.includes(size.height) ? null : `Strips for this font have to be ${heights.slice(0, -1).join(", ")} or ${heights.at(-1)} pixels tall, and this one is ${size.height}.` }
+    const heights = stripHeights(template.rows)
+    return { problem: heights.includes(size.height) ? null : `Strips for this font have to be ${heightList(heights)} pixels tall, and this one is ${size.height}.` }
   }
   const density = textureDensity(size, template)
   return density ? { density } : { problem: `The ${kind} has to be the font's template size, ${template.width}x${template.height}, or a whole number of times bigger, and this one is ${size.width}x${size.height}.` }

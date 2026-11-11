@@ -2,7 +2,13 @@ import opentype from "opentype.js"
 import { DEFAULT_SPACE_WIDTH, REQUIRED_CHARACTERS, fontFromShapes } from "./fontEditor.js"
 import { capUnits, flatten, glyphFor, gridShift, pixelGrid, rasterise } from "./fontOutline.js"
 
+export function englishName(source, key) {
+  const names = source.names.unicode ?? source.names.macintosh ?? source.names.windows
+  return names?.[key]?.en?.trim() ?? ""
+}
+
 export async function parseFontFile(buffer) {
+  if (buffer.byteLength < 4) throw new Error("that file is empty or too short to be a font")
   const start = String.fromCharCode(...new Uint8Array(buffer, 0, 4))
   if (start === "ttcf") throw new Error("font collections (.ttc) can't be imported, use a single .ttf or .otf")
   if (start !== "wOF2") return opentype.parse(buffer)
@@ -52,5 +58,5 @@ export function fontFromOutlines(source, options = {}) {
   }))
   const space = source.charToGlyph(" ")
   const spaceWidth = space && space.index !== 0 ? Math.round(space.advanceWidth * scale) * square : Math.round(capHeight / 4) || DEFAULT_SPACE_WIDTH
-  return fontFromShapes(shapes, { name: (source.getEnglishName("fullName") ?? "Imported Font").trim(), author: (source.getEnglishName("designer") ?? "").trim(), capHeight, grid: block, spaceWidth, missing: REQUIRED_CHARACTERS.filter((_, index) => !glyphs[index]) })
+  return fontFromShapes(shapes, { name: englishName(source, "fullName") || "Imported Font", author: englishName(source, "designer"), capHeight, grid: block, spaceWidth })
 }

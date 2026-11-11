@@ -7,10 +7,11 @@
   import Field from "../../components/Field.vue"
   import NumberInput from "../../components/NumberInput.vue"
   import Segments from "../../components/Segments.vue"
+  import { fetched } from "../../lib/api.js"
   import { fullName, sheetOwner } from "../../lib/font.js"
   import { popular } from "../../lib/stats.js"
   import { submissionContext } from "../../lib/submissionKinds/index.js"
-  import { STRIP_LIMITS, fitOffset, fitProblems, fontMeasure, fontRows, heightList, setIdOf, setIds, setName, setRows, setUsers, stripHeights, stripOwners, stripSet, stripTarget } from "../../lib/submissionKinds/stripFit.js"
+  import { STRIP_LIMITS, fitOffset, fitProblems, fontMeasure, heightList, setIdOf, setIds, setName, setUsers, sharedHeights, stripOwners, stripTarget, targetRows } from "../../lib/submissionKinds/stripFit.js"
   import { SUBMISSION_LIMITS, pngProblem, pngSize } from "../../lib/submissions.js"
   import { fontThumbnail } from "../../lib/ui.js"
 
@@ -19,6 +20,8 @@
   const NEW_SHAPE = { depth: 22, baseline: 30, height: 40 }
   const MODES = [{ value: "set", label: "Strip type" }, { value: "font", label: "Font" }, { value: "new", label: "New strip type" }]
 
+  defineOptions({ inheritAttrs: false })
+
   const props = defineProps({
     fonts: { type: Array, required: true },
     kind: { type: String, required: true },
@@ -26,12 +29,13 @@
     details: { type: Object, required: true },
     file: { type: Object, default: null },
     problems: { type: Object, required: true },
-    tried: { type: Boolean, default: false }
+    tried: { type: Boolean, default: false },
+    context: { type: Object, default: null }
   })
 
   const emit = defineEmits(["update:target", "update:details", "problem", "preview"])
 
-  const ctx = submissionContext(props.fonts, path => fetch(path))
+  const ctx = props.context ?? submissionContext(props.fonts, path => fetched(path, path))
   const owners = computed(() => stripOwners(props.fonts))
   const sets = computed(() => setIds(props.fonts))
   const chosen = computed(() => stripTarget(props.target))
@@ -104,27 +108,9 @@
     return kind === "set" ? `${setName(id)} strip type` : fullName(owners.value.find(item => item.id === id), props.fonts)
   }
 
-  async function rowsOf(target) {
-    const { kind, id } = stripTarget(target)
-    if (kind === "font") {
-      const entry = owners.value.find(item => item.id === id)
-      return entry ? [fontRows(await fontMeasure(ctx, entry))] : null
-    }
-    if (kind === "set") {
-      if (!sets.value.includes(id)) return null
-      const shape = await stripSet(ctx, id)
-      if (shape.height) return [setRows(shape, null, 0)]
-      return Promise.all(setUsers(props.fonts, id).map(async use => setRows(shape, await fontMeasure(ctx, use.font), use.offset)))
-    }
-    const { depth, baseline, height } = props.details
-    return [depth, baseline, height].every(Number.isInteger) ? [depth + baseline + height] : null
-  }
-
   async function heightsOf(target) {
-    const rows = await rowsOf(target)
-    if (!rows) return null
-    const lists = rows.map(stripHeights)
-    return lists[0].filter(height => lists.every(list => list.includes(height)))
+    const rows = await targetRows(ctx, target, props.details)
+    return rows && sharedHeights(rows)
   }
 
   async function findFits() {

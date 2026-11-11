@@ -8,27 +8,29 @@
   import { image, stripRange } from "../lib/assets.js"
   import { loadFontList, stripsOf } from "../lib/font.js"
   import { loadStats, usage } from "../lib/stats.js"
-  import { parsedSheet, stripProblems } from "../lib/fontEditor.js"
+  import { parsedSheet } from "../lib/fontEditor.js"
   import { titleCase } from "../lib/names.js"
-  import { centredOffset, stripFolder, stripUse } from "../lib/strips.js"
+  import { centredOffset, stripFolder, stripTag, stripUse } from "../lib/strips.js"
+  import { nearestOffset, setShape, stripFit } from "../lib/submissionKinds/stripFit.js"
   import Notice from "../components/Notice.vue"
   import NumberInput from "../components/NumberInput.vue"
   import Tile from "../components/Tile.vue"
   import TileGrid from "../components/TileGrid.vue"
   import { editorLine, useServedFont } from "./editorLine.js"
+  import { typedNumber } from "./fields.js"
   import { stripThumbnail, thumbnailScene } from "./stripThumbs.js"
-  import { downloadFlatTexture, font, update } from "./store.js"
+  import { downloadFlatTexture, font, previewText as text, update } from "./store.js"
 
   const CHECK_DELAY = 300
 
   const sets = shallowRef([])
+  const failed = shallowRef([])
   const problems = ref({})
-  const fitting = ref({})
+  const fitting = shallowRef({})
   const loadError = ref("")
   const chosenSet = ref(null)
   const chosenTexture = ref(null)
   const chosenVariant = ref(null)
-  const text = ref("minecraft")
   const thumbs = ref({})
   const trialOffsets = ref({})
   const setUsers = shallowRef(new Map())
@@ -43,6 +45,7 @@
     return items.sort((a, b) => b.uses - a.uses || a.name.localeCompare(b.name))
   })
   const uses = computed(() => font.value.strips.map(stripUse))
+  const missing = computed(() => failed.value.filter(item => used(item.id)))
   const variants = computed(() => {
     const entry = chosen.value?.textures[chosenTexture.value]
     if (!entry?.variants) return []
@@ -61,21 +64,28 @@
     return nearestFitting(id, wanted) ?? wanted
   }
 
-  function offsetOf(id) {
-    return centredOffset(sets.value.find(set => set.id === id)?.height, font.value.height * font.value.density) + chosenOffset(id)
-  }
-
   function stripItem(id, offset) {
     return offset ? { id, offset } : id
   }
 
   function nearestFitting(id, wanted) {
-    return (fitting.value[id] ?? []).reduce((best, offset) => best === null || Math.abs(offset - wanted) < Math.abs(best - wanted) ? offset : best, null)
+    return fitting.value[id] ? nearestOffset(fitting.value[id], wanted) : null
+  }
+
+  function bounds(id) {
+    const { range, offsets } = fitting.value[id]
+    const { low, high } = offsets ? { low: offsets[0], high: offsets.at(-1) } : range
+    return { low, high: Number.isFinite(high) ? high : null }
+  }
+
+  function boundsNote(id) {
+    const { low, high } = bounds(id)
+    return high === null ? `Your letters fit from ${low} up` : `Your letters fit from ${low} to ${high}`
   }
 
   function setOffset(id, event) {
-    const typed = event.target.value === "" ? 0 : event.target.valueAsNumber
-    if (!Number.isInteger(typed)) return
+    const typed = typedNumber(event, chosenOffset(id), Number.isInteger)
+    if (typed === null) return
     const value = nearestFitting(id, typed)
     if (value === null || (event.type === "input" && value !== typed)) return
     event.target.value = value
@@ -96,7 +106,7 @@
       return
     }
     const drawn = {}
-    const tag = { stripSet: set.id, stripDepth: set.depth, stripBaseline: set.baseline ?? set.depth, stripOffset: chosenOffset(set.id), stripHeight: set.height ?? null }
+    const tag = stripTag(set, chosenOffset(set.id))
     for (const [id, data] of Object.entries(set.textures)) {
       for (const [name, variant] of [[id, {}]].concat(Object.entries(data.variants ?? {}))) {
         const strip = await image(`${stripFolder(set.id)}/textures/${name}.png`)
@@ -112,7 +122,7 @@
   }
 
   function canFit(id) {
-    return fitting.value[id]?.length > 0
+    return nearestFitting(id, 0) !== null
   }
 
   function statusOf(id) {
@@ -124,24 +134,30 @@
     const response = await fetch(`${folder}/textures.json`)
     if (!response.ok) throw new Error(`there are no strips called ${id}`)
     const set = await response.json()
-    const first = Object.keys(set.textures)[0]
-    const strip = await image(`${folder}/textures/${first}.png`)
-    return { ...set, id, stripHeight: strip.height }
+    const shape = setShape(id, set)
+    const heights = shape.height ? [] : await Promise.all(shape.names.map(async name => (await image(`${folder}/textures/${name}.png`)).height))
+    return { ...set, id, shape, heights }
+  }
+
+  function fitOf(set, measure, offset) {
+    return stripFit(set.shape, measure, offset, { stretched: set.shape.stretched, heights: set.heights })
+  }
+
+  function problemText(code, set, { range, depth, capHeight }, offset) {
+    const shift = centredOffset(set.height, capHeight) + offset
+    if (code === "depth") return `its depth of ${depth} is over the strips' maximum of ${set.depth}`
+    if (code === "below") return `its letters go ${-range.bottom} below the baseline, and the strips only cover ${set.baseline - set.depth + shift}`
+    if (code === "above") return `its letters reach ${range.top + shift} above the strips' baseline, and the strips only go up to ${set.height}`
+    return `its letters are ${range.top} tall above the baseline${shift ? ` with an offset of ${shift}` : ""}, which doesn't line up with the strips`
   }
 
   function check() {
     const { list: cells, capHeight } = parsedSheet(toRaw(font.value), 0)
-    const range = stripRange({ cells, capHeight })
-    fitting.value = Object.fromEntries(sets.value.map(set => [set.id, fittingOffsets(range, set)]))
-    problems.value = Object.fromEntries(sets.value.map(set => [set.id, stripProblems(range, font.value.depth, set, set.stripHeight, offsetOf(set.id))]))
+    const measure = { range: stripRange({ cells, capHeight }), capHeight, depth: font.value.depth }
+    fitting.value = Object.fromEntries(sets.value.map(set => [set.id, fitOf(set, measure, 0)]))
+    problems.value = Object.fromEntries(sets.value.map(set => [set.id, fitOf(set, measure, chosenOffset(set.id)).problems.map(code => problemText(code, set.shape, measure, chosenOffset(set.id)))]))
     if (!chosenSet.value && sets.value.length) choose((sets.value.find(set => fits(set.id)) ?? sets.value[0]).id)
     drawThumbs()
-  }
-
-  function fittingOffsets(range, set) {
-    const centred = centredOffset(set.height, font.value.height * font.value.density)
-    const reach = set.stripHeight + range.top - range.bottom
-    return Array.from({ length: reach * 2 + 1 }, (_, index) => index - reach).filter(offset => !stripProblems(range, font.value.depth, set, set.stripHeight, centred + offset).length)
   }
 
   function scheduleCheck() {
@@ -174,8 +190,12 @@
         }
       }
       setUsers.value = users
-      const ids = Array.from(new Set(fonts.flatMap(entry => entry.strips ?? []).concat(font.value.strips).map(item => stripUse(item).id))).sort()
-      sets.value = await Promise.all(ids.map(loadSet))
+      const published = Array.from(new Set(fonts.flatMap(entry => entry.strips ?? []).map(item => stripUse(item).id)))
+      const own = uses.value.map(use => use.id).filter(id => !published.includes(id))
+      const [shared, extra] = await Promise.all([Promise.all(published.map(loadSet)), Promise.all(own.map(id => loadSet(id).catch(err => ({ id, error: err.message }))))])
+      const loaded = shared.concat(extra).sort((a, b) => a.id < b.id ? -1 : 1)
+      sets.value = loaded.filter(set => !set.error)
+      failed.value = loaded.filter(set => set.error)
       check()
     } catch (err) {
       loadError.value = err.message
@@ -213,11 +233,19 @@
         <div class="input-row offset" @click.stop>
           <template v-if="canFit(set.id)">
             <span v-tooltip="'0 centres your letters on the strips, higher moves them up, lower moves them down'">Offset</span>
-            <NumberInput :value="chosenOffset(set.id)" :min="fitting[set.id][0]" :max="fitting[set.id].at(-1)" v-tooltip="`Your letters fit from ${fitting[set.id][0]} to ${fitting[set.id].at(-1)}`" :aria-label="`Offset for ${titleCase(set.id)}`" @input="setOffset(set.id, $event)" @change="setOffset(set.id, $event)" />
+            <NumberInput :value="chosenOffset(set.id)" :min="bounds(set.id).low" :max="bounds(set.id).high" v-tooltip="boundsNote(set.id)" :aria-label="`Offset for ${titleCase(set.id)}`" @input="setOffset(set.id, $event)" @change="setOffset(set.id, $event)" />
           </template>
           <Button v-if="used(set.id)" @click.stop="toggle(set.id)">Stop using</Button>
           <Button :primary="fits(set.id)" v-else :disabled="!fits(set.id)" @click.stop="toggle(set.id)">Use</Button>
         </div>
+      </div>
+      <div v-for="item of missing" :key="item.id" class="card card-row">
+        <div class="set-text">
+          <span class="set-name">{{ titleCase(item.id) }}</span>
+          <Badge tone="bad">Missing</Badge>
+          <small>Your font uses these strips, and they couldn't be loaded: {{ item.error }}</small>
+        </div>
+        <Button @click="toggle(item.id)">Stop using</Button>
       </div>
     </section>
 
@@ -272,10 +300,6 @@
     font-size: var(--font-sm);
     color: var(--muted);
     cursor: default;
-  }
-
-  .offset input {
-    width: 64px;
   }
 
   .view {

@@ -8,34 +8,41 @@
   import Slider from "../components/Slider.vue"
   import Tile from "../components/Tile.vue"
   import TileGrid from "../components/TileGrid.vue"
+  import { CREEPER, characterLabel } from "../lib/fontEditor.js"
   import PairView from "./PairView.vue"
-  import { previewFont } from "./textCanvas.js"
+  import { unkernedFont } from "./textCanvas.js"
   import { font, update } from "./store.js"
 
   const FILTERS = [{ id: "all", label: "Everything", ranks: [0, 1, 2, 3, 4] }, { id: "letters", label: "Letters", ranks: [0] }, { id: "numbers", label: "Numbers", ranks: [1, 2] }, { id: "symbols", label: "Symbols", ranks: [3, 4] }]
-  const LABELS = { "\u{1F633}": "A", "\u{1F629}": "\u2018", "'": "\u2019" }
 
   const custom = ref("")
   const filter = ref("all")
   const customError = ref("")
   const search = ref("")
 
-  const parsed = computed(() => previewFont(toRaw(font.value)))
+  const parsed = computed(() => unkernedFont(toRaw(font.value)))
   const unit = computed(() => font.value.grid * font.value.density)
+  const limits = computed(() => {
+    const { glyphs, border } = parsed.value
+    const found = new Map()
+    return pair => found.has(pair) ? found.get(pair) : found.set(pair, collisionAmount(glyphs, pair, border)).get(pair)
+  })
   const query = computed(() => {
     const text = search.value.replace(/\s/g, "")
     return new Set(Array.from(normalise(text)).concat(Array.from(text)))
   })
-  const allPairs = computed(() => Object.entries(font.value.kerning).map(([pair, amount]) => ({ pair, amount, max: maxFor(pair) })).sort((a, b) => pairRank(a.pair) - pairRank(b.pair) || a.pair.localeCompare(b.pair)))
+  const allPairs = computed(() => Object.entries(font.value.kerning).map(pairRow).sort((a, b) => pairRank(a.pair) - pairRank(b.pair) || a.pair.localeCompare(b.pair)))
   const pairs = computed(() => allPairs.value.filter(({ pair }) => matches(pair)))
+
+  function pairRow([pair, amount]) {
+    const limit = limits.value(pair)
+    return { pair, amount, max: limit ?? 0, past: limit !== null && amount > limit }
+  }
 
   function matches(pair) {
     return !query.value.size || Array.from(pair).concat(Array.from(pairLabel(pair))).some(char => query.value.has(char))
   }
 
-  function maxFor(pair) {
-    return collisionAmount(parsed.value.glyphs, pair, parsed.value.border) ?? 0
-  }
   const everySuggestion = computed(() => suggestKerning(parsed.value.glyphs, { capHeight: parsed.value.capHeight, unit: unit.value, border: parsed.value.border }))
   const suggestedAmounts = computed(() => new Map(everySuggestion.value.map(({ pair, amount }) => [pair, amount])))
   const allSuggestions = computed(() => everySuggestion.value.filter(({ pair }) => !(pair in font.value.kerning)))
@@ -45,7 +52,7 @@
   })
 
   function pairLabel(pair) {
-    return Array.from(pair, char => LABELS[char] ?? char).join("")
+    return Array.from(pair, char => char === CREEPER ? "A" : characterLabel(char)).join("")
   }
 
   function setKerning(changes, key = null) {
@@ -104,7 +111,7 @@
         <p v-if="!allPairs.length" class="hint">None yet. Add some from the suggestions, or type your own.</p>
         <p v-else-if="!pairs.length" class="hint">None of your pairs match this search.</p>
         <div v-else class="rows list">
-          <div v-for="{ pair, amount, max } of pairs" :key="pair" class="pair-row">
+          <div v-for="{ pair, amount, max, past } of pairs" :key="pair" class="pair-row">
             <div class="picture big"><PairView :parsed="parsed" :pair="pair" :amount="amount" :width="200" :height="88" :max-scale="6" /></div>
             <div class="tools">
               <div class="head">
@@ -114,6 +121,7 @@
                 <Button ghost v-tooltip="`Remove ${pairLabel(pair)}`" :aria-label="`Remove ${pairLabel(pair)}`" @click="remove(pair)"><template #icon><Icon name="close" :size="16" /></template></Button>
               </div>
               <Slider label="Closer by" :min="0" :max="max" :model-value="amount" @update:model-value="setAmount(pair, $event, max)" />
+              <span v-if="past" class="hint bad">Pushes these characters into each other, so the font can't be submitted. Use {{ max }} or less.</span>
             </div>
           </div>
         </div>

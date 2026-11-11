@@ -2,8 +2,9 @@
   import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
-  import { NOTHING_OUTSIDE, blockAt, fillCells, lineCells, paint, rectangleCells, rowOfY, setGlyph, setStretch, widthOf, yOfRow } from "../lib/fontEditor.js"
-  import { arrowsMove, beginStroke, cancelStroke, font, glyph, moveSelected, selected, strokeTo, typing, updateGlyph } from "./store.js"
+  import { CREEPER, NOTHING_OUTSIDE, SPACE_CHAR, blockAt, characterLabel, fillCells, lineCells, paint, rectangleCells, rowOfY, setGlyph, setStretch, widthOf, yOfRow } from "../lib/fontEditor.js"
+  import { clamp } from "../lib/maths.js"
+  import { arrowsMove, beginStroke, cancelStroke, endStroke, font, glyph, moveSelected, selected, strokeTo, typing, updateGlyph } from "./store.js"
 
   const TOOLS = [
     { id: "pencil", icon: "pencil", label: "Pencil", key: "b", hint: "Shift-click draws a line from the last point, holding Shift while drawing keeps it horizontal or vertical" },
@@ -25,7 +26,7 @@
   const GUIDE_FONT = "Arial, sans-serif"
   const ARROWS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }
   const KEY_ZOOMS = { "+": KEY_ZOOM, "=": KEY_ZOOM, "-": 1 / KEY_ZOOM }
-  const GUIDES = { "\u{1F633}": "", "\u{1F629}": "\u2018", "'": "\u2019" }
+  const UNGUIDED = [CREEPER, SPACE_CHAR]
 
   const tool = ref("pencil")
   const holder = ref(null)
@@ -68,10 +69,6 @@
     return { left: xAt(0), top: yAt(0), right, bottom: yAt(rows.value), gutter: Math.min(right + GUTTER_GAP, available.value.width - GUTTER) }
   })
 
-  function clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value))
-  }
-
   function xAt(column) {
     return Math.round(view.value.x + column * view.value.cell)
   }
@@ -86,7 +83,10 @@
   }
 
   function drawGuide(ctx, centre, baseline, capHeight, width) {
-    const text = GUIDES[selected.value] ?? selected.value.toUpperCase()
+    if (UNGUIDED.includes(selected.value)) return
+    const label = characterLabel(selected.value)
+    const upper = label.toUpperCase()
+    const text = Array.from(upper).length === 1 ? upper : label
     if (!text.trim()) return
     ctx.save()
     ctx.font = `bold 100px ${GUIDE_FONT}`
@@ -110,10 +110,9 @@
     if (!element) return
     const { width, height } = available.value
     const ratio = devicePixelRatio || 1
-    element.width = Math.round(width * ratio)
-    element.height = Math.round(height * ratio)
     const ctx = element.getContext("2d")
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
+    ctx.clearRect(0, 0, width, height)
     const current = glyph.value
     const currentFont = font.value
     const { left, top, right, bottom, gutter } = board.value
@@ -227,9 +226,18 @@
   }
 
   function applyStretch(row) {
-    const next = setStretch(drawFont.value, stroke.base, clampRow(row), stroke.value)
+    const at = clampRow(row)
+    if (stroke.row === at) return
+    stroke.row = at
+    const next = setStretch(drawFont.value, stroke.base, at, stroke.value)
     stroke.base = next
     strokeTo(setGlyph(font.value, selected.value, next))
+  }
+
+  function sameSquare(a, b) {
+    const [first] = blockAt(drawFont.value, stroke.base, a.x, a.row)
+    const [second] = blockAt(drawFont.value, stroke.base, b.x, b.row)
+    return first.x === second.x && first.row === second.row
   }
 
   function diagonal(from, to) {
@@ -243,17 +251,22 @@
     const base = stroke.base
     if (stroke.shape === "rectangle") {
       const end = shift ? diagonal(stroke.from, point) : point
+      const drawn = stroke.end && sameSquare(stroke.end, end)
+      stroke.end = end
+      if (drawn) return
       const cells = rectangleCells(drawFont.value, base, stroke.from, end)
       strokeTo(setGlyph(font.value, selected.value, paint(base, cells, stroke.value)))
-      stroke.end = end
       return
     }
-    if (shift && !stroke.constrain) Object.assign(stroke, { constrain: true, origin: stroke.from, axis: null })
+    if (shift && !stroke.constrain) Object.assign(stroke, { constrain: true, origin: stroke.last ?? stroke.from, axis: null })
     if (!shift) stroke.constrain = false
     const target = stroke.constrain ? constrained(point) : point
-    const cells = lineCells(drawFont.value, stroke.latest, stroke.last ?? target, target)
-    stroke.latest = paint(stroke.latest, cells, stroke.value)
+    const from = stroke.last ?? target
+    const drawn = stroke.drawn && sameSquare(from, target)
     stroke.last = target
+    if (drawn) return
+    stroke.drawn = true
+    stroke.latest = paint(stroke.latest, lineCells(drawFont.value, stroke.latest, from, target), stroke.value)
     strokeTo(setGlyph(font.value, selected.value, stroke.latest))
   }
 
@@ -361,8 +374,8 @@
     }
     const block = blockAt(drawFont.value, glyph.value, at.gutter ? 0 : clampX(at.x), clampRow(at.row))
     const row = Math.min(...block.map(item => item.row))
-    if (at.gutter) hover.value = { gutter: true, column: 0, row, across: 1, down: Math.max(...block.map(item => item.row)) - row + 1 }
-    else hover.value = { gutter: false, column: Math.min(...block.map(item => item.x)), row, across: brush.value, down: brush.value }
+    const next = at.gutter ? { gutter: true, column: 0, row, across: 1, down: Math.max(...block.map(item => item.row)) - row + 1 } : { gutter: false, column: Math.min(...block.map(item => item.x)), row, across: brush.value, down: brush.value }
+    if (!hover.value || Object.keys(next).some(key => hover.value[key] !== next[key])) hover.value = next
   }
 
   function up(event) {
@@ -379,6 +392,7 @@
       pendingFill = null
     }
     if (stroke?.kind === "paint" && stroke.shape !== "rectangle") anchor = stroke.end ?? stroke.last
+    if (stroke) endStroke()
     stroke = null
     if (blockingMenu) setTimeout(unblockMenu)
   }
@@ -441,8 +455,13 @@
 
   function measure() {
     if (!holder.value) return
-    available.value = { width: holder.value.clientWidth, height: holder.value.clientHeight }
+    const { clientWidth: width, clientHeight: height } = holder.value
+    const ratio = devicePixelRatio || 1
+    available.value = { width, height }
+    canvas.value.width = Math.round(width * ratio)
+    canvas.value.height = Math.round(height * ratio)
     if (zoomed.value) zoomed.value = clampView(zoomed.value)
+    draw()
   }
 
   function clearGlyph() {
@@ -473,10 +492,10 @@
     addEventListener("keydown", spaceChanged)
     addEventListener("keyup", spaceChanged)
     addEventListener("blur", release)
-    draw()
   })
 
   onBeforeUnmount(() => {
+    endStroke()
     observer.disconnect()
     removeEventListener("keydown", key)
     removeEventListener("keydown", shiftChanged)

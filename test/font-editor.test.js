@@ -6,11 +6,12 @@ import { compress } from "woff2-encoder"
 import { publishedFonts, readMask } from "../generator/fonts.js"
 import { parseMask, splitCells } from "../src/lib/font.js"
 import { DEFAULT_ORDER } from "../src/lib/order.js"
-import { CREEPER, REQUIRED_CHARACTERS, SPACE_CHAR, addCharacters, autoStretch, blankGlyph, blockAt, buildSheet, changeGlyph, charactersOf, createFont, exportJson, fillCells, fitGlyph, fontFromFiles, fontFromPublished, glyphOf, isBlank, isOptional, lineCells, lostPixels, moveGlyph, paint, parseFontJson, rectangleCells, removeCharacter, reshapeGlyph, resizeFont, rowOfY, setGlyph, setSquareSize, setStretch, sheetOrder, slug, squareSizeLoss, squaresOf, stripProblems, trimGlyph, widthOf, yOfRow } from "../src/lib/fontEditor.js"
+import { CREEPER, REQUIRED_CHARACTERS, SPACE_CHAR, addCharacters, autoStretch, blankGlyph, blockAt, buildSheet, changeGlyph, charactersOf, createFont, exportJson, fillCells, fitGlyph, fontFromFiles, fontFromPublished, glyphOf, isBlank, isOptional, lineCells, lostPixels, moveGlyph, paint, parseFontJson, rectangleCells, removeCharacter, reshapeGlyph, resizeFont, rowOfY, setGlyph, setSquareSize, setStretch, sheetOrder, slug, squareSizeLoss, squaresOf, trimGlyph, widthOf, yOfRow } from "../src/lib/fontEditor.js"
 import { fontFromAscii } from "../src/lib/asciiImport.js"
 import { fontFromOutlines, parseFontFile } from "../src/lib/fontImport.js"
 import { gridShift, rasterise } from "../src/lib/fontOutline.js"
 import { jsonText } from "../src/lib/jsonText.js"
+import { nearestOffset, stripFit } from "../src/lib/submissionKinds/stripFit.js"
 
 function drawn(font, char, cells) {
   return setGlyph(font, char, paint(glyphOf(font, char), cells, true))
@@ -40,6 +41,20 @@ describe("characters", () => {
     const { font, added } = addCharacters(createFont(), "Бб a ")
     assert.deepEqual(added, ["б", " "])
     assert.deepEqual(charactersOf(font).slice(-2), ["б", " "])
+  })
+
+  test("typed text is combined before it is split", () => {
+    const { added, refused } = addCharacters(createFont(), String.fromCodePoint(0x65, 0x301))
+    assert.deepEqual([added, refused], [[String.fromCodePoint(0xe9)], []])
+  })
+
+  test("combining marks and invisible characters are refused and named", () => {
+    const heart = addCharacters(createFont(), String.fromCodePoint(0x2764, 0xfe0f))
+    assert.deepEqual([heart.added, heart.refused], [[String.fromCodePoint(0x2764)], [String.fromCodePoint(0xfe0f)]])
+    const joined = addCharacters(createFont(), String.fromCodePoint(0x1f468, 0x200d, 0x1f469, 0x200d))
+    assert.deepEqual([joined.added, joined.refused], [[String.fromCodePoint(0x1f468), String.fromCodePoint(0x1f469)], [String.fromCodePoint(0x200d)]])
+    const lone = addCharacters(createFont(), String.fromCodePoint(0x301))
+    assert.deepEqual([lone.added, lone.refused, lone.font.extras], [[], [String.fromCodePoint(0x301)], []])
   })
 
   test("removing an optional character drops its drawing and kerning", () => {
@@ -413,6 +428,35 @@ describe("saving and reopening", () => {
     assert.deepEqual([restored.creeper, restored.defineSpace, restored.extras], [true, true, ["б"]])
   })
 
+  test("canvases with room around the drawing come back as they were", () => {
+    for (const density of [1, 3]) {
+      let font = createFont({ height: 10, width: 24, grid: 2, density })
+      font = drawn(font, "i", [8, 9, 10, 11].map(x => ({ x, row: 5 })))
+      font = strokeCell(changeGlyph(font, "g", { width: 30, above: 3, below: 4 }), "g", 12, -2)
+      font = changeGlyph(font, "b", { above: 2, below: 1 })
+      font = strokeCell(changeGlyph(font, "l", { above: 2 }), "l", 0, 4)
+      font = setGlyph(font, "l", { ...font.glyphs.l, stretch: [4, 11] })
+      font = strokeCell(changeGlyph(font, "t", { width: 1 }), "t", 0, 0)
+      const restored = roundTrip(font, ["sheet", "json"])
+      for (const char of Object.keys(font.glyphs)) assert.deepEqual(restored.glyphs[char], font.glyphs[char], `${char} at density ${density}`)
+      assert.equal(restored.glyphs.i.rows[5], "000000001111000000000000")
+      assert.deepEqual(Object.keys(exportJson(font, "t").editor.canvas), ["b", "g", "i", "l"])
+      assert.deepEqual(sheetOf(restored).list.map(comparable), sheetOf(font).list.map(comparable))
+    }
+  })
+
+  test("characters that fill their canvas save no canvas", () => {
+    const font = strokeCell(strokeCell(createFont({ height: 8, width: 2, grid: 1 }), "a", 0, 0), "a", 1, 7)
+    assert.equal(exportJson(font, "t").editor.canvas, undefined)
+  })
+
+  test("a saved canvas that can't hold its character fails loudly", () => {
+    const font = drawn(createFont({ height: 8, width: 6, grid: 1 }), "a", [{ x: 1, row: 3 }, { x: 4, row: 3 }])
+    const json = parseFontJson(jsonText(exportJson(font, "t")))
+    assert.throws(() => fontFromFiles({ sheet: buildSheet(font), json: { ...json, editor: { ...json.editor, canvas: { a: { width: 3, left: 0, above: 0, below: 0 } } } } }), /canvas for a doesn't fit/)
+    assert.throws(() => fontFromFiles({ sheet: buildSheet(font), json: { ...json, editor: { ...json.editor, canvas: { a: { width: null, left: 1.5, above: 0, below: 0 } } } } }), /canvas for a doesn't fit/)
+  })
+
   test("only the JSON keeps settings with empty characters", () => {
     const restored = roundTrip(original, ["json"])
     assert.equal(restored.name, "My Own Font")
@@ -521,11 +565,9 @@ describe("importing a font file", () => {
     assert.ok(!font.creeper && !font.glyphs[CREEPER])
   })
 
-  test("characters the file doesn't have start blank and are listed", async () => {
+  test("characters the file doesn't have start blank", async () => {
     const font = fontFromOutlines(await testFont(), { height: 21 })
     assert.ok(isBlank(glyphOf(font, "z")))
-    assert.ok(font.missing.includes("z"))
-    assert.ok(!font.missing.includes("a"))
   })
 
   test("keeps the imported shapes to go back to, including space", async () => {
@@ -538,7 +580,6 @@ describe("importing a font file", () => {
   test("a file with none of the characters still opens, blank at half the height wide", async () => {
     const font = fontFromOutlines(await testFont(""), { height: 21 })
     assert.equal(font.width, 11)
-    assert.deepEqual(font.missing, REQUIRED_CHARACTERS)
     assert.ok(REQUIRED_CHARACTERS.every(char => isBlank(glyphOf(font, char))))
   })
 
@@ -601,6 +642,17 @@ describe("importing a font file", () => {
     const buffer = new TextEncoder().encode("ttcf0000").buffer
     await assert.rejects(parseFontFile(buffer), /collections/)
   })
+
+  test("an empty file is refused with a clear message", async () => {
+    await assert.rejects(parseFontFile(new ArrayBuffer(0)), /empty or too short/)
+  })
+
+  test("a font with no usable names is called Imported Font", async () => {
+    const source = await testFont()
+    source.names = {}
+    const font = fontFromOutlines(source, { height: 21 })
+    assert.deepEqual([font.name, font.author], ["Imported Font", ""])
+  })
 })
 
 describe("automatic stretch zones", () => {
@@ -637,26 +689,49 @@ describe("helpers", () => {
   })
 
   test("strip problems", () => {
-    const set = { depth: 22, baseline: 30 }
-    assert.deepEqual(stripProblems({ top: 40, bottom: -8 }, 22, set, 92), [])
-    assert.deepEqual(stripProblems({ top: 40, bottom: 0 }, 16, set, 46), [])
-    assert.equal(stripProblems({ top: 44, bottom: 0 }, 22, set, 92).length, 1)
-    assert.equal(stripProblems({ top: 40, bottom: -12 }, 22, set, 92).length, 1)
-    assert.equal(stripProblems({ top: 40, bottom: 0 }, 30, set, 92).length, 1)
+    const set = { depth: 22, baseline: 30, height: null }
+    const problems = (range, depth, height) => stripFit(set, { range, capHeight: 40, depth }, 0, { heights: [height] }).problems
+    assert.deepEqual(problems({ top: 40, bottom: -8 }, 22, 92), [])
+    assert.deepEqual(problems({ top: 40, bottom: 0 }, 16, 46), [])
+    assert.deepEqual(problems({ top: 44, bottom: 0 }, 22, 92), ["height"])
+    assert.deepEqual(problems({ top: 40, bottom: -12 }, 22, 92), ["below"])
+    assert.deepEqual(problems({ top: 40, bottom: 0 }, 30, 92), ["depth"])
   })
 
   test("strips with a height fit any font that stays inside them", () => {
     const set = { depth: 22, baseline: 30, height: 40 }
-    for (const offset of [0, 4, 8]) assert.deepEqual(stripProblems({ top: 32, bottom: 0 }, 22, set, 92, offset), [])
-    assert.equal(stripProblems({ top: 32, bottom: 0 }, 22, set, 92, 9).length, 1)
-    assert.equal(stripProblems({ top: 44, bottom: 0 }, 22, set, 92).length, 1)
+    const short = { range: { top: 32, bottom: 0 }, capHeight: 32, depth: 22 }
+    const tall = { range: { top: 44, bottom: 0 }, capHeight: 40, depth: 22 }
+    for (const offset of [-4, 0, 4]) assert.deepEqual(stripFit(set, short, offset).problems, [])
+    assert.deepEqual(stripFit(set, short, 5).problems, ["above"])
+    assert.deepEqual(stripFit(set, short, 0).range, { low: -12, high: 4 })
+    assert.deepEqual(stripFit(set, tall, 0).problems, ["above"])
+    assert.deepEqual(stripFit(set, tall, 0).range, { low: -8, high: -4 })
+  })
+
+  test("strips that all stretch fit a font taller than them", () => {
+    const set = { depth: 22, baseline: 30, height: 40 }
+    const tall = { range: { top: 44, bottom: 0 }, capHeight: 40, depth: 22 }
+    assert.deepEqual(stripFit(set, tall, 0, { stretched: true }), { problems: [], range: { low: -8, high: Infinity }, offsets: null })
+    assert.equal(nearestOffset(stripFit(set, tall, 0, { stretched: true }), -20), -8)
   })
 
   test("an offset lets a shorter font fit the strips", () => {
-    const set = { depth: 22, baseline: 30 }
-    assert.equal(stripProblems({ top: 32, bottom: 0 }, 22, set, 92).length, 1)
-    assert.deepEqual(stripProblems({ top: 32, bottom: 0 }, 22, set, 92, 8), [])
-    assert.deepEqual(stripProblems({ top: 32, bottom: -16 }, 22, set, 92, 8), [])
+    const set = { depth: 22, baseline: 30, height: null }
+    const short = { range: { top: 32, bottom: 0 }, capHeight: 32, depth: 22 }
+    assert.deepEqual(stripFit(set, short, 0, { heights: [92] }).problems, ["height"])
+    assert.deepEqual(stripFit(set, short, 8, { heights: [92] }).problems, [])
+    assert.deepEqual(stripFit(set, { ...short, range: { top: 32, bottom: -16 } }, 8, { heights: [92] }).problems, [])
+  })
+
+  test("strips without a height only fit the offsets that suit every image", () => {
+    const set = { depth: 22, baseline: 30, height: null }
+    const short = { range: { top: 32, bottom: 0 }, capHeight: 32, depth: 22 }
+    const fit = stripFit(set, short, 0, { heights: [92, 184] })
+    assert.deepEqual(fit.offsets.slice(0, 2), [8, 100])
+    assert.equal(nearestOffset(fit, 0), 8)
+    assert.deepEqual(stripFit(set, short, 0, { heights: [92, 100] }).offsets, [])
+    assert.equal(nearestOffset(stripFit(set, { ...short, depth: 30 }, 0, { heights: [92] }), 0), null)
   })
 })
 
@@ -686,7 +761,7 @@ describe("ascii.png import", () => {
     assert.equal(font.glyphs.a.width, null)
     assert.equal(font.glyphs.a.rows[0].length, 12)
     assert.equal(font.glyphs.a.rows.length, 42)
-    assert.ok(font.missing.includes("b"))
+    assert.ok(isBlank(glyphOf(font, "b")))
   })
 
   test("lowercase letters can be used instead, and descenders go below the baseline", () => {

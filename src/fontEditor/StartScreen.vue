@@ -29,6 +29,7 @@
   const final = computed(() => `${height.value * grid.value} pixels tall and ${width.value * grid.value} wide`)
   const startable = computed(() => fonts.value.filter(entry => !entry.inherits))
   const valid = computed(() => [height.value, width.value, grid.value].every(value => Number.isInteger(value) && value >= 1))
+  const importable = computed(() => [importHeight.value, importDensity.value].every(value => Number.isInteger(value) && value >= 1))
 
   onMounted(async () => {
     try {
@@ -112,7 +113,7 @@
             <Field label="Square size"><NumberInput min="1" v-model.number="importDensity" /></Field>
             <Checkbox v-model="lowercase" label="Use lowercase letters" />
           </div>
-          <Button file wide accept=".ttf,.otf,.woff,.woff2,.png,font/ttf,font/otf,font/woff,font/woff2,image/png" @change="importFile"><template #icon><Icon name="open" /></template>Choose font file</Button>
+          <Button file wide :disabled="!importable" accept=".ttf,.otf,.woff,.woff2,.png,font/ttf,font/otf,font/woff,font/woff2,image/png" @change="importFile"><template #icon><Icon name="open" /></template>Choose font file</Button>
         </section>
 
         <section class="choice wide-choice">

@@ -1,11 +1,10 @@
 import { afterEach, beforeEach, describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { createHmac, generateKeyPairSync } from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
-import { DatabaseSync } from "node:sqlite"
 import { PNG } from "pngjs"
 import { readMask } from "../generator/fonts.js"
+import { prepare as prepareAsset } from "../generator/submissionKinds/fontAsset.js"
 import { prepare } from "../generator/submissionKinds/strip.js"
 import { stripRange } from "../src/lib/assets.js"
 import { flattenFonts, stripsOf } from "../src/lib/font.js"
@@ -13,38 +12,26 @@ import { jsonText } from "../src/lib/jsonText.js"
 import { titleCase } from "../src/lib/names.js"
 import { defaultDepth } from "../src/lib/settings.js"
 import { centredOffset, stripUse } from "../src/lib/strips.js"
-import { submissionContext } from "../src/lib/submissionKinds/index.js"
 import { strip as checker } from "../src/lib/submissionKinds/strip.js"
 import { fitOffset, fitProblems, fontMeasure, heightList, offsetRange, remapStrip, setEntry, stripHeights, stripTarget } from "../src/lib/submissionKinds/stripFit.js"
 import { decodePng } from "../src/lib/submissionKinds/png.js"
 import { strip as writer } from "../src/server/submissionKinds/strip.js"
-import { fakeGitHub } from "./fakeGitHub.js"
+import { pngOf } from "./helpers/png.js"
+import { details, editForm, hook, sendForm, serverEnv, signIn } from "./helpers/server.js"
+import { publicContext } from "./helpers/site.js"
 
-const { finishSignIn, receiveSignIn, startSignIn } = await import("../src/server/accounts.js")
-const { createSubmission, editSubmission, receiveWebhook, submissionDetails } = await import("../src/server/submissions.js")
-
-const REPO = "owner/repo"
-const API = "https://github.test"
 const FONTS = "public/font/fonts.json"
 const SET = "public/strips/minecraft-ten/textures.json"
 const SEEDED = [FONTS, SET].concat(fs.readdirSync("public/font", { recursive: true }).filter(file => file.endsWith("textures.json")).map(file => `public/font/${file.replaceAll("\\", "/")}`))
 const NEW_SHAPE = { depth: 16, baseline: 24, height: 40 }
-const realFetch = globalThis.fetch
 const published = flattenFonts(JSON.parse(fs.readFileSync(FONTS, "utf8")))
 
 function png(width, height) {
-  const image = new PNG({ width, height })
-  for (let i = 0; i < image.data.length; i += 4) image.data.set([(i / 4) % 256, 100, 50, 255], i)
-  return PNG.sync.write(image)
-}
-
-function files(url) {
-  const file = path.join("public", decodeURIComponent(new URL(url, "https://site.test").pathname))
-  return fs.existsSync(file) && fs.statSync(file).isFile() ? new Response(fs.readFileSync(file)) : new Response("missing", { status: 404 })
+  return pngOf(width, height, (x, y) => [(y * width + x) % 256, 100, 50, 255])
 }
 
 function siteContext() {
-  return submissionContext(published.map(font => ({ ...font, name: font.name ?? titleCase(font.id) })), path => Promise.resolve(files(path)))
+  return publicContext(published.map(font => ({ ...font, name: font.name ?? titleCase(font.id) })))
 }
 
 async function checked(target, details, image) {
@@ -171,54 +158,8 @@ describe("checking a strip", () => {
   })
 })
 
-let env
 let gh
-let waiting
-let profile
-
-function d1(sqlite) {
-  function statement(sql, values = []) {
-    return {
-      bind: (...next) => statement(sql, next),
-      all: async () => ({ results: sqlite.prepare(sql).all(...values) }),
-      first: async () => sqlite.prepare(sql).get(...values) ?? null,
-      run: async () => ({ meta: { changes: Number(sqlite.prepare(sql).run(...values).changes) } }),
-      execute() {
-        return /RETURNING/.test(sql) ? { results: sqlite.prepare(sql).all(...values) } : { results: [], meta: { changes: Number(sqlite.prepare(sql).run(...values).changes) } }
-      }
-    }
-  }
-  return {
-    prepare: sql => statement(sql),
-    batch: async statements => {
-      sqlite.exec("BEGIN")
-      try {
-        const results = statements.map(item => item.execute())
-        sqlite.exec("COMMIT")
-        return results
-      } catch (err) {
-        sqlite.exec("ROLLBACK")
-        throw err
-      }
-    }
-  }
-}
-
-function context(url, { method = "GET", body, cookie, params = {}, headers = {} } = {}) {
-  const request = new Request(`https://mctitlegenerator.com${url}`, { method, body, headers: { ...(cookie && { Cookie: cookie }), ...headers } })
-  return { request, env, params, waitUntil: promise => waiting.push(promise) }
-}
-
-async function signIn() {
-  profile = { id: "1234", username: "someone", email: "someone@example.com", verified: true }
-  const started = await startSignIn(context(`/api/account/login/discord?return=${encodeURIComponent("https://mctitlegenerator.com")}`, { params: { provider: "discord" } }))
-  const state = new URL(started.headers.get("Location")).searchParams.get("state")
-  const stateCookie = started.headers.getSetCookie().find(line => line.startsWith("signin_state=")).split(";")[0]
-  const back = await receiveSignIn(context(`/api/account/login/discord/callback?${new URLSearchParams({ code: "abc", state })}`, { params: { provider: "discord" } }))
-  const { pathname, search } = new URL(back.headers.get("Location"))
-  const done = await finishSignIn(context(`${pathname}${search}`, { cookie: stateCookie, params: { provider: "discord" } }))
-  return done.headers.getSetCookie().find(line => line.startsWith("session=")).split(";")[0]
-}
+let restore
 
 function form({ target = "set:minecraft-ten", details = {}, ...fields } = {}, image = png(1, 92)) {
   const data = new FormData()
@@ -228,19 +169,8 @@ function form({ target = "set:minecraft-ten", details = {}, ...fields } = {}, im
   return data
 }
 
-async function send(cookie, fields, image) {
-  const response = await createSubmission(context("/api/submissions", { method: "POST", body: form(fields, image), cookie }))
-  return { status: response.status, ...await response.json() }
-}
-
-async function edit(cookie, id, fields, image = null) {
-  const response = await editSubmission(context(`/api/submissions/${id}`, { method: "PATCH", body: form(fields, image), cookie, params: { id: String(id) } }))
-  return { status: response.status, ...await response.json() }
-}
-
-async function details(id) {
-  return (await (await submissionDetails(context(`/api/submissions/${id}`, { params: { id: String(id) } }))).json()).submission
-}
+const send = (cookie, fields, image) => sendForm(cookie, form(fields, image))
+const edit = (cookie, id, fields, image = null) => editForm(cookie, id, form(fields, image))
 
 function branchFile(id, file) {
   const sha = gh.filesAt(`submission/${id}`).get(file)
@@ -256,22 +186,10 @@ function onMain(file) {
 }
 
 beforeEach(() => {
-  const sqlite = new DatabaseSync(":memory:")
-  sqlite.exec(fs.readFileSync("schema.sql", "utf8"))
-  const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048, privateKeyEncoding: { type: "pkcs1", format: "pem" }, publicKeyEncoding: { type: "spki", format: "pem" } })
-  gh = fakeGitHub(publicKey, { repo: REPO, api: API, files: SEEDED })
-  waiting = []
-  env = { DB: d1(sqlite), ASSETS: { fetch: url => files(String(url)) }, SESSION_SECRET: "session-secret", DISCORD_CLIENT_ID: "discord-id", DISCORD_CLIENT_SECRET: "discord-secret", GITHUB_CLIENT_ID: "github-id", GITHUB_CLIENT_SECRET: "github-secret", GITHUB_APP_ID: "123", GITHUB_APP_KEY: privateKey, GITHUB_WEBHOOK_SECRET: "hook-secret", GITHUB_REPOSITORY: REPO, GITHUB_API: API, RESEND_API_KEY: "resend-key" }
-  globalThis.fetch = async (url, options) => {
-    const text = String(url)
-    if (text.startsWith(API)) return gh.handle(text, options)
-    return new Response(JSON.stringify(options?.method === "POST" ? { access_token: "token" } : String(url).endsWith("/user/emails") ? profile.emails ?? [{ email: `${profile.login}@example.com`, primary: true, verified: true }] : profile), { status: 200, headers: { "Content-Type": "application/json" } })
-  }
+  ({ gh, restore } = serverEnv({ files: SEEDED }))
 })
 
-afterEach(() => {
-  globalThis.fetch = realFetch
-})
+afterEach(() => restore())
 
 describe("sending a strip", () => {
   test("to a strip type adds it to the strip type's list and folder", async () => {
@@ -361,9 +279,7 @@ describe("sending a strip", () => {
     const changed = new Map(gh.filesAt("main"))
     changed.set(SET, gh.blob(Buffer.from(`${JSON.stringify({ ...set, textures: { ...set.textures, pale_dawn: { type: "strip", author: "Earlier" } } })}\n`)))
     gh.refs.set("heads/main", gh.commit(changed, [gh.main()], "someone else's strip"))
-    const body = JSON.stringify({ repository: { full_name: REPO }, ref: "refs/heads/main", commits: [{ added: [], modified: [SET], removed: [] }] })
-    await receiveWebhook(context("/api/github", { method: "POST", body, headers: { "X-GitHub-Event": "push", "X-Hub-Signature-256": `sha256=${createHmac("sha256", "hook-secret").update(body).digest("hex")}` } }))
-    await Promise.all(waiting)
+    await hook("push", { ref: "refs/heads/main", commits: [{ added: [], modified: [SET], removed: [] }] })
     assert.equal(branchJson(id, SET).textures.pale_dawn.author, "Earlier")
     assert.ok(branchJson(id, SET).textures.pale_dawn_2)
   })
@@ -387,24 +303,26 @@ describe("the strip writer", () => {
 })
 
 describe("the workflow step", () => {
-  function run(changed, show = () => []) {
+  function run(changed) {
     const calls = []
-    prepare({ root: path.resolve("."), base: "base", changed, git: (...args) => args[0] === "ls-tree" ? ["file"] : show(args), node: (...args) => calls.push(args[1]) })
+    prepare({ root: path.resolve("."), changed, node: (...args) => calls.push(args[1]) })
     return calls
   }
 
-  test("makes thumbnails for every font using a changed strip type", () => {
-    const users = published.filter(font => stripsOf(font, published).some(item => stripUse(item).id === "minecraft-ten")).map(font => font.id)
+  test("makes thumbnails for every font and PNG shape using a changed strip type", () => {
+    const shapes = JSON.parse(fs.readFileSync("public/shapes/shapes.json", "utf8")).filter(shape => shape.kind === "png")
+    const users = published.concat(shapes).filter(font => stripsOf(font, published).some(item => stripUse(item).id === "minecraft-ten")).map(font => font.id)
     assert.ok(users.includes("minecraft-ten-v2"))
+    assert.ok(users.includes("minecraft-ten-blank"))
     assert.deepEqual(run([SET, "public/strips/minecraft-ten/textures/pale_dawn.png"]), users)
   })
 
-  test("makes thumbnails for a font that gained its own strip, and not for other texture changes", () => {
+  test("leaves a font's own textures to the font asset step", () => {
     const file = "public/font/minecraft-five/textures.json"
-    const list = onMain(file)
-    const without = Object.fromEntries(Object.entries(list.textures).filter(([, entry]) => entry.type !== "strip"))
-    assert.deepEqual(run([file], () => JSON.stringify({ ...list, textures: without }).split("\n")), ["minecraft-five"])
-    assert.deepEqual(run([file], () => JSON.stringify(list).split("\n")), [])
+    const calls = []
+    prepareAsset({ root: path.resolve("."), changed: [file], node: (...args) => calls.push(args[1]) })
+    assert.deepEqual(calls, ["minecraft-five"])
+    assert.deepEqual(run([file]), [])
     assert.deepEqual(run(["README.md"]), [])
   })
 })

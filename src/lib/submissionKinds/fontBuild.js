@@ -1,18 +1,15 @@
 import { SHEET_MAX_WIDTH, groupedKerning, parseMask, sheetLayout } from "../font.js"
-import { exportJson, fontFromFiles, parseFontJson, buildSheet, sheetOrder } from "../fontEditor.js"
-import { DEFAULT_ORDER } from "../order.js"
+import { autoStretch, charactersOf, exportJson, fontFromFiles, glyphOf, parseFontJson, parsedSheet } from "../fontEditor.js"
+import { DEFAULT_ORDER, TERMINATOR_CLOSE, TERMINATOR_OPEN } from "../order.js"
 import { defaultBorder, defaultDepth } from "../settings.js"
-import { marksFor, sheetMeasures } from "../stretchMarks.js"
+import { drawSheet } from "../sheet.js"
+import { pngSize } from "../submissions.js"
 import { decodePng } from "./png.js"
 
 export const FONT_LIMITS = { capHeight: [8, 128], characters: 400, letters: 20 }
 export const HOLDING_FOLDER = "submissions/fonts"
 
-const GLYPH = [0, 0, 0]
-const GRID = [255, 0, 0]
-const BASELINE = [0, 255, 0]
-const TOPLINE = [0, 0, 255]
-const NOT_PREVIEWED = new Set([" ", "┫", "┣", "'"])
+const NOT_PREVIEWED = new Set([" ", TERMINATOR_OPEN, TERMINATOR_CLOSE, "'"])
 const read = new WeakMap()
 
 const TEXT_FIELDS = ["id", "name", "author", "description", "basedOn", "order"]
@@ -63,13 +60,15 @@ function readFont(bytes) {
     throw new Error(`This isn't a font editor JSON file: ${err.message}.`)
   }
   const png = sheetBytes(json.editor?.texture)
+  const size = pngSize(png)
+  if (!size) throw new Error("The font sheet inside this JSON can't be read: it isn't a PNG.")
+  if (size.width > SHEET_MAX_WIDTH * 2 || size.height > 4096) throw new Error(`The font sheet inside this JSON is ${size.width}x${size.height}, which is too big for a font.`)
   let sheet
   try {
     sheet = decodePng(png)
   } catch (err) {
     throw new Error(`The font sheet inside this JSON can't be read: ${err.message}.`)
   }
-  if (sheet.width > SHEET_MAX_WIDTH * 2 || sheet.height > 4096) throw new Error(`The font sheet inside this JSON is ${sheet.width}x${sheet.height}, which is too big for a font.`)
   try {
     return { fields, json, font: fontFromFiles({ sheet, json }) }
   } catch (err) {
@@ -90,73 +89,14 @@ export function submittedFont(bytes) {
   return result
 }
 
-function withMarks(cells, capHeight) {
-  const measures = { capHeight, ...sheetMeasures(cells) }
-  return cells.map(cell => cell.stretch ? cell : { ...cell, stretch: marksFor(cell, measures) })
+function withMarks(font) {
+  const unmarked = charactersOf(font).filter(char => !glyphOf(font, char).stretch.length)
+  return unmarked.length ? autoStretch(font, unmarked) : font
 }
 
 export function drawnCells(font) {
-  const sheet = buildSheet(font)
-  const { list, capHeight } = parseMask(sheet.data, sheet.width, sheet.height, sheetOrder(font), 0)
+  const { list, capHeight } = parsedSheet(font, 0)
   return { cells: list.filter(cell => cell.width), blank: list.filter(cell => !cell.width).map(cell => cell.char), capHeight }
-}
-
-function setPixel(data, width, x, y, colour) {
-  const at = (y * width + x) * 4
-  data[at] = colour[0]
-  data[at + 1] = colour[1]
-  data[at + 2] = colour[2]
-  data[at + 3] = 255
-}
-
-export function sheetRows(cells, capHeight, { maxWidth = SHEET_MAX_WIDTH, flatWidth = Infinity, keepRows = false } = {}) {
-  const rows = []
-  for (const cell of cells) {
-    const row = rows.at(-1)
-    const wraps = !row || (keepRows ? row.at !== cell.row : row.width + cell.advance + 1 > maxWidth || row.flat + 2 + cell.width > flatWidth)
-    if (wraps) rows.push({ cells: [cell], width: 1 + cell.advance + 1, flat: cell.width, at: cell.row })
-    else {
-      row.cells.push(cell)
-      row.width += cell.advance + 1
-      row.flat += 2 + cell.width
-    }
-  }
-  for (const row of rows) {
-    const marks = row.cells.flatMap(cell => cell.stretch ?? [])
-    row.top = Math.max(capHeight, ...row.cells.map(cell => cell.top), ...marks.map(y => y + 1))
-    row.bottom = Math.min(0, ...row.cells.map(cell => cell.bottom), ...marks)
-  }
-  return rows
-}
-
-export function drawSheet(cells, capHeight, { width: fixed = null, ...limits } = {}) {
-  const rows = sheetRows(cells, capHeight, limits)
-  const width = fixed ?? Math.max(...rows.map(row => row.width))
-  if (rows.some(row => row.width > width)) throw new Error(`a character is too wide for a sheet ${width} pixels wide`)
-  const height = rows.reduce((sum, row) => sum + row.top - row.bottom + 1, 1)
-  const data = new Uint8ClampedArray(width * height * 4).fill(255)
-  let y = 0
-  for (const row of rows) {
-    for (let x = 0; x < width; x++) setPixel(data, width, x, y, GRID)
-    const top = y + 1
-    const bottom = top + row.top - row.bottom - 1
-    const baseline = top + row.top - 1
-    const topline = baseline - capHeight + 1
-    for (let line = top; line <= bottom; line++) setPixel(data, width, 0, line, line === baseline && line !== bottom ? BASELINE : line === topline && line !== top ? TOPLINE : GRID)
-    let x = 1
-    for (const cell of row.cells) {
-      for (let r = 0; r < cell.height; r++) {
-        for (let c = 0; c < cell.width; c++) if (cell.mask[r * cell.width + c]) setPixel(data, width, x + cell.originX + c, baseline - cell.bottom - r, GLYPH)
-      }
-      x += cell.advance
-      for (let line = top; line <= bottom; line++) setPixel(data, width, x, line, GRID)
-      for (const mark of cell.stretch ?? []) setPixel(data, width, x, baseline - mark, BASELINE)
-      x++
-    }
-    y = bottom + 1
-  }
-  for (let x = 0; x < width; x++) setPixel(data, width, x, height - 1, GRID)
-  return { width, height, data }
 }
 
 function previewOf(chars) {
@@ -180,7 +120,7 @@ export function exported(font) {
 }
 
 export function ownFont(font, parentId = null) {
-  const { cells, blank, capHeight } = drawnCells(font)
+  const { cells, blank, capHeight } = drawnCells(withMarks(font))
   const drawn = cells.map(cell => cell.char)
   const { order, kerning, ...settings } = exported(font)
   if (settings.basedOn === parentId) delete settings.basedOn
@@ -190,13 +130,12 @@ export function ownFont(font, parentId = null) {
   const preview = previewFor(drawn)
   if (preview) entry.preview = preview
   if (Object.keys(pairs).length) entry.kerning = groupedKerning(pairs)
-  const marked = withMarks(cells, capHeight)
-  const sheet = drawSheet(marked, capHeight, { keepRows: true })
+  const sheet = drawSheet(cells, capHeight, { keepRows: true })
   const published = parseMask(sheet.data, sheet.width, sheet.height, drawn.join(""), defaultBorder("top", entry)).list
-  return { cells: marked, blank, capHeight, entry, sheet, published, template: fontTemplate(published, capHeight, defaultDepth(entry)) }
+  return { cells, blank, capHeight, entry, sheet, published, template: fontTemplate(published, capHeight, defaultDepth(entry)) }
 }
 
-export function fontTemplate(cells, capHeight, depth) {
+function fontTemplate(cells, capHeight, depth) {
   let width = 0
   let height = 0
   for (const [glyph, at] of sheetLayout(cells, capHeight, depth)) {

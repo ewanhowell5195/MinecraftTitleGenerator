@@ -1,9 +1,11 @@
 import { stripRange } from "../assets.js"
 import { fontFolder, fullOrder, parseMask, sheetOwner } from "../font.js"
+import { clamp } from "../maths.js"
 import { titleCase } from "../names.js"
 import { defaultBorder, defaultDepth } from "../settings.js"
-import { centredOffset, stripRows, stripUse, stripY } from "../strips.js"
+import { centredOffset, stripRows, stripTag, stripUse, stripY } from "../strips.js"
 import { SUBMISSION_LIMITS } from "../submissions.js"
+import { submissionFont } from "./fontAsset.js"
 import { decodePng } from "./png.js"
 
 export const STRIP_LIMITS = { depth: 64, height: 256, below: 64 }
@@ -42,12 +44,13 @@ export function fontMeasure(ctx, font) {
   })
 }
 
+export function setShape(id, list) {
+  const textures = Object.entries(list.textures ?? {})
+  return { id, depth: list.depth, baseline: list.baseline ?? list.depth, height: list.height ?? null, stretched: textures.length > 0 && textures.every(([, entry]) => entry.stretch), names: textures.flatMap(([name, entry]) => [name].concat(Object.keys(entry.variants ?? {}))) }
+}
+
 export function stripSet(ctx, id) {
-  return ctx.memo(`strip-set:${id}`, async () => {
-    const list = await ctx.json(`/strips/${id}/textures.json`)
-    const textures = Object.values(list.textures ?? {})
-    return { id, depth: list.depth, baseline: list.baseline ?? list.depth, height: list.height ?? null, stretched: textures.length > 0 && textures.every(entry => entry.stretch) }
-  })
+  return ctx.memo(`strip-set:${id}`, async () => setShape(id, await ctx.json(`/strips/${id}/textures.json`)))
 }
 
 export function fontRows(measure) {
@@ -66,34 +69,68 @@ export function stripHeights(rows) {
   return heights
 }
 
+export function sharedHeights(rows) {
+  const lists = rows.map(stripHeights)
+  return lists[0]?.filter(height => lists.every(list => list.includes(height))) ?? []
+}
+
 export function heightList(heights) {
   return heights.length > 1 ? `${heights.slice(0, -1).join(", ")} or ${heights.at(-1)}` : String(heights[0])
 }
 
-export function offsetRange(set, measure, stretched) {
+export async function targetRows(ctx, target, details) {
+  const { kind, id } = stripTarget(target)
+  if (kind === "new") return [details.depth, details.baseline, details.height].every(Number.isInteger) ? [details.baseline + details.depth + details.height] : null
+  if (kind === "font") {
+    const font = submissionFont(ctx.fonts, id)
+    return font ? [fontRows(await fontMeasure(ctx, font))] : null
+  }
+  if (!setIds(ctx.fonts).includes(id)) return null
+  const set = await stripSet(ctx, id)
+  if (set.height) return [setRows(set, null, 0)]
+  return Promise.all(setUsers(ctx.fonts, id).map(async ({ font, offset }) => setRows(set, await fontMeasure(ctx, font), offset)))
+}
+
+export function stripFit(set, measure, offset, { stretched = false, heights = [] } = {}) {
   const centred = centredOffset(set.height, measure.capHeight)
+  const base = set.baseline + set.depth + measure.range.top
   const low = -measure.range.bottom - (set.baseline - set.depth) - centred
   const high = set.height && !stretched ? set.height - measure.range.top - centred : Infinity
-  return measure.depth <= set.depth && low <= high ? { low, high } : null
+  const problems = []
+  if (measure.depth > set.depth) problems.push("depth")
+  if (offset < low) problems.push("below")
+  if (offset > high) problems.push("above")
+  if (!set.height && heights.some(height => !Number.isInteger(Math.log2(height / (base + offset))))) problems.push("height")
+  const range = measure.depth <= set.depth && low <= high ? { low, high } : null
+  return { problems, range, offsets: range && !set.height && heights.length ? sharedHeights(heights).map(rows => rows - base).filter(value => value >= low) : null }
+}
+
+export function nearestOffset({ range, offsets }, wanted) {
+  if (!range) return null
+  if (!offsets) return clamp(wanted, range.low, range.high)
+  return offsets.reduce((best, value) => best === null || Math.abs(value - wanted) < Math.abs(best - wanted) ? value : best, null)
+}
+
+export function offsetRange(set, measure, stretched) {
+  return stripFit(set, measure, 0, { stretched }).range
 }
 
 export function fitOffset(set, measure, stretched) {
-  const range = offsetRange(set, measure, stretched)
-  return range ? Math.min(Math.max(0, range.low), range.high) : null
+  return nearestOffset(stripFit(set, measure, 0, { stretched }), 0)
 }
 
 export function fitProblems(set, measure, offset, stretched) {
   const shift = centredOffset(set.height, measure.capHeight) + offset
-  const below = set.baseline - set.depth + shift
-  const problems = []
-  if (measure.depth > set.depth) problems.push(`it's ${measure.depth} deep and the strips only cover ${set.depth}`)
-  if (-measure.range.bottom > below) problems.push(`its letters go ${-measure.range.bottom} below the baseline and the strips only cover ${Math.max(0, below)}`)
-  if (set.height && !stretched && measure.range.top + shift > set.height) problems.push(`its letters reach ${measure.range.top + shift} above the baseline and the strips only go up to ${set.height}`)
-  return problems
+  const words = {
+    depth: `it's ${measure.depth} deep and the strips only cover ${set.depth}`,
+    below: `its letters go ${-measure.range.bottom} below the baseline and the strips only cover ${Math.max(0, set.baseline - set.depth + shift)}`,
+    above: `its letters reach ${measure.range.top + shift} above the baseline and the strips only go up to ${set.height}`
+  }
+  return stripFit(set, measure, offset, { stretched }).problems.map(code => words[code])
 }
 
 export function setEntry(set, offset, stretch) {
-  return { stripSet: set.id, stripDepth: set.depth, stripBaseline: set.baseline, stripOffset: offset, stripHeight: set.height, ...(stretch && { stretch: true }) }
+  return { ...stripTag(set, offset), ...(stretch && { stretch: true }) }
 }
 
 export function remapStrip(image, entry, measure) {

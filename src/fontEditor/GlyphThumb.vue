@@ -39,7 +39,7 @@
   }
 
   onMounted(draw)
-  watch(() => [props.font.height, props.font.width, props.glyph], draw)
+  watch([() => props.font.height, () => props.font.width, () => props.glyph], draw)
 </script>
 
 <template>

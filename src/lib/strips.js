@@ -14,8 +14,12 @@ export function stripOffset(entry, capHeight) {
   return centredOffset(entry.stripHeight, capHeight) + (entry.stripOffset ?? 0)
 }
 
+export function stripTag(set, offset = set.offset ?? 0) {
+  return { stripSet: set.id, stripDepth: set.depth, stripBaseline: set.baseline ?? set.depth, stripOffset: offset, stripHeight: set.height ?? null }
+}
+
 function shared(data, set) {
-  const tag = { folder: stripFolder(set.id), stripSet: set.id, stripDepth: set.depth, stripBaseline: set.baseline ?? set.depth, stripOffset: set.offset ?? 0, stripHeight: set.height ?? null }
+  const tag = { folder: stripFolder(set.id), ...stripTag(set) }
   const entry = { ...data, ...tag }
   if (data.variants) entry.variants = Object.fromEntries(Object.entries(data.variants).map(([id, variant]) => [id, { ...variant, ...tag }]))
   return entry

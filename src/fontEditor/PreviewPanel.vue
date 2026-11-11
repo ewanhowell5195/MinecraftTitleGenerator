@@ -71,7 +71,7 @@
       <div class="stretch" v-tooltip="'Makes the preview up to twice as tall, using only the marked stretch zones'">
         <Slider inline label="Stretch" :min="0" :max="100" v-model="stretch" />
       </div>
-      <Checkbox class="terminators" label="Terminators" :model-value="terminators || font.forcedTerminators" :disabled="font.forcedTerminators" v-tooltip="font.forcedTerminators ? 'This font always uses terminators' : 'Add the ┫ ┣ line terminators'" @update:model-value="terminators = $event" />
+      <Checkbox label="Terminators" :model-value="terminators || font.forcedTerminators" :disabled="font.forcedTerminators" v-tooltip="font.forcedTerminators ? 'This font always uses terminators' : 'Add the ┫ ┣ line terminators'" @update:model-value="terminators = $event" />
     </div>
     <div ref="views" class="views" :class="{ split: wide }">
       <div v-show="wide || mode === '2d'" ref="holder" class="view">

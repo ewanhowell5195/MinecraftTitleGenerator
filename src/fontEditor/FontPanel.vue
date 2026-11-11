@@ -1,5 +1,5 @@
 <script setup>
-  import { computed, onMounted, ref, shallowRef } from "vue"
+  import { computed, onMounted, ref, shallowRef, watch } from "vue"
   import Button from "../components/Button.vue"
   import Checkbox from "../components/Checkbox.vue"
   import Dropdown from "../components/Dropdown.vue"
@@ -8,8 +8,9 @@
   import Notice from "../components/Notice.vue"
   import NumberInput from "../components/NumberInput.vue"
   import { fullName, loadFontList } from "../lib/font.js"
-  import { DEFAULT_BORDER, DEFAULT_DEPTH, DEFAULT_SPACE_WIDTH, autoStretch, lostPixels, resizeFont, setSquareSize, slug, squareSizeLoss, squaresOf } from "../lib/fontEditor.js"
+  import { DEFAULT_BORDER, DEFAULT_DEPTH, DEFAULT_ID, DEFAULT_SPACE_WIDTH, autoStretch, fontId, lostPixels, resizeFont, setSquareSize, slug, squareSizeLoss, squaresOf } from "../lib/fontEditor.js"
   import { fontThumbnail } from "../lib/ui.js"
+  import { typedNumber } from "./fields.js"
   import { font, update } from "./store.js"
 
   const ABOUT = [
@@ -39,16 +40,16 @@
   const published = shallowRef([])
 
   const basedOnOptions = computed(() => {
-    const own = font.value.id || slug(font.value.name)
+    const own = fontId(font.value)
     const fonts = published.value.filter(entry => entry.id !== own).map(entry => ({ value: entry.id, label: fullName(entry, published.value), image: fontThumbnail(published.value, entry.id) })).sort((a, b) => a.label.localeCompare(b.label))
     const current = font.value.basedOn && !fonts.some(option => option.value === font.value.basedOn) ? [{ value: font.value.basedOn, label: font.value.basedOn, hint: "Not a published font" }] : []
     return [{ value: "", label: "None" }].concat(current, fonts)
   })
-  const previewId = computed(() => font.value.id || slug(font.value.name) || "my-font")
+  const previewId = computed(() => fontId(font.value) || DEFAULT_ID)
   const finalSize = computed(() => `${font.value.height * font.value.density} pixels tall and ${font.value.width * font.value.density} wide`)
   const clashes = computed(() => {
     const name = font.value.name.trim().toLowerCase()
-    const id = font.value.id || slug(font.value.name)
+    const id = fontId(font.value)
     const sameName = published.value.find(entry => fullName(entry, published.value).toLowerCase() === name)
     const sameId = published.value.find(entry => entry.id === id)
     return {
@@ -72,9 +73,8 @@
   }
 
   function setNumber(key, event, minimum) {
-    const value = event.target.valueAsNumber
-    if (Number.isInteger(value) && value >= minimum) setField(key, value)
-    else if (event.type === "change") event.target.value = font.value[key]
+    const value = typedNumber(event, font.value[key], typed => Number.isInteger(typed) && typed >= minimum)
+    if (value !== null) setField(key, value)
   }
 
   function setTerminatorWidth(event) {
@@ -90,24 +90,17 @@
   }
 
   function setSize(key, event) {
-    const value = event.target.valueAsNumber
-    const pixels = value * font.value.grid
     const shown = squaresOf(font.value, font.value[key])
-    if (!Number.isInteger(pixels) || pixels < 1) {
-      if (event.type === "change") event.target.value = shown
-      return
-    }
+    const value = typedNumber(event, shown, typed => Number.isInteger(typed * font.value.grid) && typed * font.value.grid >= 1)
+    if (value === null) return
+    const pixels = value * font.value.grid
     if (pixels === font.value[key]) return
     applyOrWarn(event, shown, lostPixels(font.value, { [key]: pixels }), `Changing ${key === "height" ? "the height" : "the default width"} to ${value}`, () => update(resizeFont(font.value, { [key]: pixels }), `font.${key}`))
   }
 
   function setSquare(event) {
-    const value = event.target.valueAsNumber
-    if (!Number.isInteger(value) || value < 1) {
-      if (event.type === "change") event.target.value = font.value.grid
-      return
-    }
-    if (value === font.value.grid) return
+    const value = typedNumber(event, font.value.grid, typed => Number.isInteger(typed) && typed >= 1)
+    if (value === null || value === font.value.grid) return
     applyOrWarn(event, font.value.grid, squareSizeLoss(font.value, value), `Changing the square size to ${value}`, () => update(setSquareSize(font.value, value), "font.grid"))
   }
 
@@ -119,6 +112,10 @@
   function markAll() {
     update(autoStretch(font.value))
   }
+
+  watch(font, () => {
+    warning.value = null
+  })
 </script>
 
 <template>
@@ -128,7 +125,7 @@
       <div class="about">
         <Field v-for="item of ABOUT" :key="item.key" :label="item.label" :required="item.required" :hint="item.hint" :error="clashes[item.key]" :group="item.choice" :class="{ full: item.full }">
           <Dropdown v-if="item.choice" searchable :options="basedOnOptions" :model-value="font[item.key]" @update:model-value="setField(item.key, $event, false)" />
-          <input v-else-if="item.slug" type="text" :class="{ clashing: clashes[item.key] }" :value="font[item.key]" :placeholder="item.key === 'id' ? previewId : item.placeholder" spellcheck="false" @change="setField(item.key, slug($event.target.value), false)">
+          <input v-else-if="item.slug" type="text" :class="{ clashing: clashes[item.key] }" :value="font[item.key]" :placeholder="previewId" spellcheck="false" @change="setField(item.key, slug($event.target.value), false)">
           <input v-else type="text" :class="{ clashing: clashes[item.key] }" :value="font[item.key]" @input="setText(item.key, $event)">
         </Field>
       </div>
@@ -175,7 +172,7 @@
 
     <section class="flow">
       <h3>Stretch zones</h3>
-      <p class="hint">Marks the stretch zones of every character automatically, replacing the ones marked now. Each character can still be changed on the Characters tab.</p>
+      <p class="hint">Marks the stretch zones of every character automatically, replacing the ones marked now. Each character can still be changed on the Characters tab. Characters left with no marks are marked the same way when you submit the font.</p>
       <Button class="start" @click="markAll"><template #icon><Icon name="wand" :size="14" /></template>Mark every character</Button>
     </section>
   </div>

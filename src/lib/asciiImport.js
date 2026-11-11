@@ -1,11 +1,12 @@
 import { REQUIRED_CHARACTERS, fontFromShapes } from "./fontEditor.js"
+import { OPENING_QUOTE } from "./order.js"
 
 const CELLS = 16
 const POUND_CELL = 156
 
 function cellOf(char, lowercase) {
   if (char === "£") return POUND_CELL
-  const source = char === "\u{1F629}" ? "'" : lowercase ? char : char.toUpperCase()
+  const source = char === OPENING_QUOTE ? "'" : lowercase ? char : char.toUpperCase()
   const code = source.codePointAt(0)
   return code > 32 && code < 127 ? code : null
 }
@@ -47,5 +48,5 @@ export function fontFromAscii(image, { height = 40, lowercase = false } = {}) {
   const ascent = cellHeight / 8 * 7
   const grid = Math.max(1, Math.round(height / ascent))
   const shapes = new Map(REQUIRED_CHARACTERS.map(char => [char, cellShape(image, cellOf(char, lowercase), { cellWidth, cellHeight, ascent, grid })]))
-  return fontFromShapes(shapes, { name: "Minecraft Font", capHeight: ascent * grid, grid, spaceWidth: cellHeight / 2 * grid, missing: REQUIRED_CHARACTERS.filter(char => !shapes.get(char)) })
+  return fontFromShapes(shapes, { name: "Minecraft Font", capHeight: ascent * grid, grid, spaceWidth: cellHeight / 2 * grid })
 }

@@ -1,31 +1,44 @@
 import { flatPixels } from "./flatSheet.js"
-import { SHEET_MAX_WIDTH, groupedKerning, kerningPairs, parseMask, scanMask } from "./font.js"
+import { groupedKerning, kerningPairs, parseMask, scanMask } from "./font.js"
 import { titleCase } from "./names.js"
-import { DEFAULT_ORDER } from "./order.js"
+import { mostCommon } from "./maths.js"
+import { CREEPER, DEFAULT_ORDER, OPENING_QUOTE, TERMINATOR_CLOSE, TERMINATOR_OPEN } from "./order.js"
 import { defaultBorder, defaultDepth } from "./settings.js"
+import { drawSheet } from "./sheet.js"
 import { marksFor, sheetMeasures } from "./stretchMarks.js"
 
+export { CREEPER }
+
 export const SPACE_CHAR = " "
-export const CREEPER = "\u{1F633}"
 export const DEFAULT_SPACE_WIDTH = 8
 export const DEFAULT_DEPTH = 22
 export const DEFAULT_BORDER = 2
 export const REQUIRED_CHARACTERS = Array.from(DEFAULT_ORDER).filter(char => char !== CREEPER)
 
-const GLYPH_PIXEL = [0, 0, 0]
-const GRID_PIXEL = [255, 0, 0]
-const BASELINE_PIXEL = [0, 255, 0]
-const TOPLINE_PIXEL = [0, 0, 255]
+export const DEFAULT_ID = "my-font"
+
 const GRID_SIZES = [8, 6, 5, 4, 3, 2]
-const NAMES = { [CREEPER]: "Creeper A", "\u{1F629}": "Opening quote", "'": "Closing quote", "┫": "Left line terminator", "┣": "Right line terminator", [SPACE_CHAR]: "Space" }
+const SHEETS_KEPT = 8
+const NAMES = { [CREEPER]: "Creeper A", [OPENING_QUOTE]: "Opening quote", "'": "Closing quote", [TERMINATOR_OPEN]: "Left line terminator", [TERMINATOR_CLOSE]: "Right line terminator", [SPACE_CHAR]: "Space" }
+const LABELS = { [CREEPER]: "Creeper", [OPENING_QUOTE]: String.fromCodePoint(0x2018), "'": String.fromCodePoint(0x2019), [SPACE_CHAR]: "Space" }
+const NOTHING_TO_DRAW = /^[\p{M}\p{Cf}]$/u
 const META_KEYS = ["author", "description", "basedOn", "spaceWidth", "depth", "border", "characterSpacing", "terminatorSpace", "terminatorSpaceWidth", "forcedTerminators", "autoBorder", "flat", "overlay", "strips", "kerning"]
+const sheets = new Map()
 
 export function characterName(char) {
   return NAMES[char] ?? char
 }
 
+export function characterLabel(char) {
+  return LABELS[char] ?? char
+}
+
 export function slug(text) {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+}
+
+export function fontId(font) {
+  return font.id || slug(font.name ?? "")
 }
 
 export function createFont({ height = 40, width = 24, grid = 4, density = 1 } = {}) {
@@ -47,15 +60,20 @@ function extrasOf(chars) {
 export function addCharacters(font, text) {
   let next = font
   const added = []
-  for (const char of Array.from(text.toLowerCase())) {
-    if (charactersOf(next).includes(char)) continue
+  const refused = []
+  for (const char of Array.from(text.toLowerCase().normalize("NFC"))) {
+    if (charactersOf(next).includes(char) || refused.includes(char)) continue
+    if (NOTHING_TO_DRAW.test(char)) {
+      refused.push(char)
+      continue
+    }
     if (char === CREEPER) next = { ...next, creeper: true }
     else if (char === SPACE_CHAR) next = { ...next, defineSpace: true }
     else if (char.trim()) next = { ...next, extras: next.extras.concat(char) }
     else continue
     added.push(char)
   }
-  return { font: next, added }
+  return { font: next, added, refused }
 }
 
 export function removeCharacter(font, char) {
@@ -136,7 +154,8 @@ function reshape(glyph, from, to) {
 
 export function resizeFont(font, { height = font.height, width = font.width }) {
   const next = { ...font, height, width }
-  return { ...next, glyphs: mapGlyphs(font.glyphs, glyph => reshape(glyph, shapeOf(font, glyph), shapeOf(next, glyph))) }
+  const reshaped = glyphs => glyphs && mapGlyphs(glyphs, glyph => reshape(glyph, shapeOf(font, glyph), shapeOf(next, glyph)))
+  return { ...next, glyphs: reshaped(font.glyphs), imported: reshaped(font.imported) }
 }
 
 export function squaresOf(font, pixels) {
@@ -212,19 +231,26 @@ function inkExtent(font, glyph) {
   return { top, bottom }
 }
 
-export function trimGlyph(font, char) {
-  const glyph = glyphOf(font, char)
-  if (isBlank(glyph)) return font
-  const inked = glyph.rows.filter(row => row.includes("1"))
-  const left = Math.min(...inked.map(row => row.indexOf("1")))
-  const right = Math.max(...inked.map(row => row.lastIndexOf("1"))) + 1
+function inkLeft(glyph) {
+  return Math.min(...glyph.rows.filter(row => row.includes("1")).map(row => row.indexOf("1")))
+}
+
+function trimmed(font, glyph) {
+  if (isBlank(glyph)) return glyph
+  const left = inkLeft(glyph)
+  const right = Math.max(...glyph.rows.map(row => row.lastIndexOf("1"))) + 1
   const { top, bottom } = inkExtent(font, glyph)
   const above = Math.min(glyph.above, Math.max(0, top - font.height))
   const below = Math.min(glyph.below, Math.max(0, -bottom))
   const width = right - left
   const rows = glyph.rows.slice(glyph.above - above, glyph.rows.length - glyph.below + below).map(row => row.slice(left, right))
   const stretch = glyph.stretch.filter(inRows({ height: font.height, above, below }))
-  return setGlyph(font, char, { ...glyph, width: width === font.width ? null : width, above, below, rows, stretch })
+  return { ...glyph, width: width === font.width ? null : width, above, below, rows, stretch }
+}
+
+export function trimGlyph(font, char) {
+  const glyph = glyphOf(font, char)
+  return isBlank(glyph) ? font : setGlyph(font, char, trimmed(font, glyph))
 }
 
 export function fitGlyph(from, glyph, to) {
@@ -248,8 +274,12 @@ export function squareSizeLoss(font, grid) {
   }, 0)
 }
 
-function inkCount(glyph) {
+export function inkCount(glyph) {
   return glyph.rows.join("").split("1").length - 1
+}
+
+export function sameGlyph(a, b) {
+  return a.width === b.width && a.above === b.above && a.below === b.below && a.rows.join() === b.rows.join() && a.stretch.join() === b.stretch.join()
 }
 
 export function lostPixels(font, change) {
@@ -360,68 +390,38 @@ export function setStretch(font, glyph, row, value) {
   return { ...glyph, stretch: stretch.sort((a, b) => a - b) }
 }
 
-function setPixel(data, width, x, y, colour) {
-  const at = (y * width + x) * 4
-  data[at] = colour[0]
-  data[at + 1] = colour[1]
-  data[at + 2] = colour[2]
-  data[at + 3] = 255
+function sheetCell(font, glyph) {
+  const d = font.density
+  const trim = trimmed(font, glyph)
+  const width = widthOf(font, trim) * d
+  const stretch = trim.stretch.flatMap(y => Array.from({ length: d }, (_, index) => y * d + index))
+  const { top, bottom } = inkExtent(font, trim)
+  if (top === null) return { advance: width, width: 0, height: 0, mask: new Uint8Array(0), originX: 0, top: 0, bottom: 0, stretch }
+  const mask = new Uint8Array(width * (top - bottom) * d)
+  for (let y = bottom; y < top; y++) {
+    const text = trim.rows[rowOfY(font, trim, y)]
+    for (let column = 0; column < text.length; column++) {
+      if (text[column] !== "1") continue
+      for (let j = 0; j < d; j++) mask.fill(1, ((y - bottom) * d + j) * width + column * d, ((y - bottom) * d + j) * width + (column + 1) * d)
+    }
+  }
+  return { advance: width, width, height: (top - bottom) * d, mask, originX: 0, top: top * d, bottom: bottom * d, stretch }
+}
+
+function builtSheet(font) {
+  const key = `${font.height},${font.width},${font.density},${font.creeper},${font.defineSpace},${font.extras.join("")}`
+  let built = sheets.get(font.glyphs)
+  if (built?.key !== key) {
+    const capHeight = font.height * font.density
+    built = { key, sheet: { ...drawSheet(charactersOf(font).map(char => sheetCell(font, glyphOf(font, char))), capHeight), capHeight }, parsed: new Map() }
+    sheets.set(font.glyphs, built)
+    if (sheets.size > SHEETS_KEPT) sheets.delete(sheets.keys().next().value)
+  }
+  return built
 }
 
 export function buildSheet(font) {
-  const d = font.density
-  const capHeight = font.height * d
-  const cells = charactersOf(font).map(char => {
-    const glyph = glyphOf(trimGlyph(font, char), char)
-    return { glyph, width: widthOf(font, glyph) * d, ...inkExtent(font, glyph) }
-  })
-  const rows = []
-  for (const cell of cells) {
-    const row = rows.at(-1)
-    if (!row || row.width + cell.width + 1 > SHEET_MAX_WIDTH) rows.push({ cells: [cell], width: 1 + cell.width + 1 })
-    else {
-      row.cells.push(cell)
-      row.width += cell.width + 1
-    }
-  }
-  for (const row of rows) {
-    const marks = row.cells.flatMap(cell => cell.glyph.stretch)
-    row.top = Math.max(font.height, ...row.cells.map(cell => cell.top ?? 0), ...marks.map(y => y + 1)) * d
-    row.bottom = Math.min(0, ...row.cells.map(cell => cell.bottom ?? 0), ...marks) * d
-  }
-  const width = Math.max(...rows.map(row => row.width))
-  const height = rows.reduce((sum, row) => sum + row.top - row.bottom + 1, 1)
-  const data = new Uint8ClampedArray(width * height * 4).fill(255)
-  let y = 0
-  for (const row of rows) {
-    for (let x = 0; x < width; x++) setPixel(data, width, x, y, GRID_PIXEL)
-    const top = y + 1
-    const bottom = top + row.top - row.bottom - 1
-    const baseline = top + row.top - 1
-    const topline = baseline - capHeight + 1
-    for (let line = top; line <= bottom; line++) setPixel(data, width, 0, line, line === baseline && line !== bottom ? BASELINE_PIXEL : line === topline && line !== top ? TOPLINE_PIXEL : GRID_PIXEL)
-    let x = 1
-    for (const { glyph, width: cellWidth } of row.cells) {
-      for (const [rowIndex, text] of glyph.rows.entries()) {
-        const art = yOfRow(font, glyph, rowIndex)
-        for (let column = 0; column < text.length; column++) {
-          if (text[column] !== "1") continue
-          for (let j = 0; j < d; j++) {
-            for (let i = 0; i < d; i++) setPixel(data, width, x + column * d + i, baseline - art * d - j, GLYPH_PIXEL)
-          }
-        }
-      }
-      x += cellWidth
-      for (let line = top; line <= bottom; line++) setPixel(data, width, x, line, GRID_PIXEL)
-      for (const art of glyph.stretch) {
-        for (let j = 0; j < d; j++) setPixel(data, width, x, baseline - art * d - j, BASELINE_PIXEL)
-      }
-      x++
-    }
-    y = bottom + 1
-  }
-  for (let x = 0; x < width; x++) setPixel(data, width, x, height - 1, GRID_PIXEL)
-  return { width, height, data, capHeight }
+  return builtSheet(font).sheet
 }
 
 export function sheetOrder(font) {
@@ -435,8 +435,9 @@ export function flatTexture(value, fill = null) {
 }
 
 export function parsedSheet(font, gap = font.border) {
-  const sheet = buildSheet(font)
-  return { sheet, ...parseMask(sheet.data, sheet.width, sheet.height, sheetOrder(font), gap) }
+  const { sheet, parsed } = builtSheet(font)
+  if (!parsed.has(gap)) parsed.set(gap, { sheet, ...parseMask(sheet.data, sheet.width, sheet.height, sheetOrder(font), gap) })
+  return parsed.get(gap)
 }
 
 function exactDivide(value, density, what) {
@@ -444,10 +445,8 @@ function exactDivide(value, density, what) {
   return value / density
 }
 
-function mostCommon(values, fallback) {
-  const tally = new Map()
-  for (const value of values) tally.set(value, (tally.get(value) ?? 0) + 1)
-  return Array.from(tally).sort((a, b) => b[1] - a[1] || b[0] - a[0])[0]?.[0] ?? fallback
+function usualWidth(widths, fallback) {
+  return mostCommon(widths.toSorted((a, b) => b - a)) ?? fallback
 }
 
 function detectGrid(glyphs) {
@@ -473,7 +472,7 @@ function cellsFromSheet({ data, width, height }, order, density) {
 }
 
 function applyCells(font, list, height, density) {
-  const width = mostCommon(list.map(cell => cell.advance / density), font.width)
+  const width = usualWidth(list.map(cell => cell.advance / density), font.width)
   const glyphs = Object.fromEntries(list.map(cell => [cell.char, glyphFromCell(cell, height, width, density)]))
   return { ...font, height, width, density, glyphs, creeper: CREEPER in glyphs, extras: extrasOf(list.map(cell => cell.char)), defineSpace: !!glyphs[SPACE_CHAR] && !isBlank(glyphs[SPACE_CHAR]) || font.defineSpace }
 }
@@ -503,6 +502,28 @@ function resizeDefaultWidth(font, width) {
   return { ...font, width, glyphs }
 }
 
+function canvasOf(font, glyph) {
+  const trim = trimmed(font, glyph)
+  const saved = isBlank(glyph) ? { above: 0, below: 0, stretch: [] } : trim
+  const marked = saved.stretch.length === glyph.stretch.length
+  if (widthOf(font, trim) === widthOf(font, glyph) && saved.above === glyph.above && saved.below === glyph.below && marked) return null
+  return { width: glyph.width, left: isBlank(glyph) ? 0 : inkLeft(glyph), above: glyph.above, below: glyph.below, ...(!marked && { stretch: glyph.stretch }) }
+}
+
+function onCanvas(font, char, glyph, canvas) {
+  const width = canvas.width ?? font.width
+  const marks = canvas.stretch ?? glyph.stretch
+  const fits = [width, canvas.left, canvas.above, canvas.below].concat(marks).every(Number.isInteger) && canvas.left >= 0 && canvas.left + widthOf(font, glyph) <= width && canvas.above >= glyph.above && canvas.below >= glyph.below
+  if (!fits) throw new Error(`that JSON file's canvas for ${characterName(char)} doesn't fit the character on the sheet`)
+  const blank = "0".repeat(width)
+  const rows = Array.from({ length: canvas.above - glyph.above }, () => blank).concat(glyph.rows.map(row => `${"0".repeat(canvas.left)}${row}`.padEnd(width, "0")), Array.from({ length: canvas.below - glyph.below }, () => blank))
+  return { ...glyph, width: width === font.width ? null : width, above: canvas.above, below: canvas.below, stretch: marks, rows }
+}
+
+function withCanvases(font, canvases) {
+  return { ...font, glyphs: Object.fromEntries(Object.entries(font.glyphs).map(([char, glyph]) => [char, canvases[char] ? onCanvas(font, char, glyph, canvases[char]) : glyph])) }
+}
+
 export function fontFromFiles({ sheet = null, json = null }) {
   if (!sheet && !json) throw new Error("choose a font.png, a font JSON file, or both")
   const editor = json?.editor ?? {}
@@ -519,6 +540,7 @@ export function fontFromFiles({ sheet = null, json = null }) {
   const { list, height: sheetHeight } = cellsFromSheet(sheet, json?.order ?? null, density)
   font = applyCells(font, list, sheetHeight, density)
   if (editor.width) font = resizeDefaultWidth(font, editor.width)
+  if (editor.canvas) font = withCanvases(font, editor.canvas)
   return editor.grid ? font : { ...font, grid: detectGrid(font.glyphs) }
 }
 
@@ -536,15 +558,15 @@ function glyphFromShape(shape, height, fallbackWidth) {
   return { width: shape.width, above, below, stretch: [], rows: rowsOf(shape.width, above + height + below, ink) }
 }
 
-export function fontFromShapes(shapes, { name, author = "", capHeight, grid = null, spaceWidth, missing = [] }) {
-  const fallback = mostCommon(Array.from(shapes.values()).filter(Boolean).map(shape => shape.width), Math.max(1, Math.round(capHeight / 2)))
+export function fontFromShapes(shapes, { name, author = "", capHeight, grid = null, spaceWidth }) {
+  const fallback = usualWidth(Array.from(shapes.values()).filter(Boolean).map(shape => shape.width), Math.max(1, Math.round(capHeight / 2)))
   const glyphs = Object.fromEntries(Array.from(shapes, ([char, shape]) => {
     const glyph = glyphFromShape(shape, capHeight, fallback)
     return [char, glyph.width === fallback ? { ...glyph, width: null } : glyph]
   }))
   const font = { ...createFont({ height: capHeight, width: fallback, grid: grid ?? detectGrid(glyphs) }), name, id: slug(name), author, spaceWidth, glyphs }
   const marked = autoStretch(font)
-  return { ...marked, imported: { ...marked.glyphs, [SPACE_CHAR]: glyphFromShape(null, capHeight, fallback) }, missing }
+  return { ...marked, imported: { ...marked.glyphs, [SPACE_CHAR]: glyphFromShape(null, capHeight, fallback) } }
 }
 
 export function autoStretch(font, characters = charactersOf(font)) {
@@ -559,7 +581,7 @@ export function autoStretch(font, characters = charactersOf(font)) {
 }
 
 export function exportJson(font, texture) {
-  const entry = { id: font.id || slug(font.name) || "my-font", name: font.name }
+  const entry = { id: fontId(font) || DEFAULT_ID, name: font.name }
   const order = sheetOrder(font)
   if (font.author) entry.author = font.author
   if (font.description) entry.description = font.description
@@ -574,21 +596,10 @@ export function exportJson(font, texture) {
   if (font.terminatorSpace && !font.defineSpace && (font.terminatorSpaceWidth ?? font.spaceWidth) !== font.spaceWidth) entry.terminatorSpaceWidth = font.terminatorSpaceWidth
   const kerning = Object.fromEntries(Object.entries(font.kerning).filter(([, amount]) => amount))
   if (Object.keys(kerning).length) entry.kerning = groupedKerning(kerning)
-  entry.editor = { height: font.height, width: font.width, grid: font.grid, density: font.density, texture }
+  const canvas = Object.fromEntries(Array.from(order).flatMap(char => {
+    const saved = font.glyphs[char] && canvasOf(font, font.glyphs[char])
+    return saved ? [[char, saved]] : []
+  }))
+  entry.editor = { height: font.height, width: font.width, grid: font.grid, density: font.density, ...(Object.keys(canvas).length && { canvas }), texture }
   return entry
-}
-
-export function stripProblems(range, depth, set, imageHeight, offset = 0) {
-  const problems = []
-  const baseline = set.baseline ?? set.depth
-  const below = baseline - set.depth + offset
-  if (depth > set.depth) problems.push(`its depth of ${depth} is over the strips' maximum of ${set.depth}`)
-  if (-range.bottom > below) problems.push(`its letters go ${-range.bottom} below the baseline, and the strips only cover ${below}`)
-  if (set.height) {
-    if (range.top + offset > set.height) problems.push(`its letters reach ${range.top + offset} above the strips' baseline, and the strips only go up to ${set.height}`)
-    return problems
-  }
-  const resolution = imageHeight / (baseline + range.top + set.depth + offset)
-  if (!Number.isInteger(Math.log2(resolution))) problems.push(`its letters are ${range.top} tall above the baseline${offset ? ` with an offset of ${offset}` : ""}, which doesn't line up with the strips`)
-  return problems
 }

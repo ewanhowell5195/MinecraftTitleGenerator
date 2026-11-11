@@ -1,6 +1,6 @@
 import { computed, ref, shallowRef, watch } from "vue"
 import { DEFAULT_ORDER } from "../lib/order.js"
-import { buildSheet, charactersOf, exportJson, fitGlyph, flatTexture, glyphOf, moveGlyph, reshapeGlyph, setGlyph, slug } from "../lib/fontEditor.js"
+import { buildSheet, charactersOf, exportJson, fitGlyph, flatTexture, glyphOf, moveGlyph, reshapeGlyph, sameGlyph, setGlyph } from "../lib/fontEditor.js"
 import { jsonText } from "../lib/jsonText.js"
 import { EDITOR_SUBMISSION } from "../lib/submissions.js"
 import { download, downloadBlob } from "../lib/ui.js"
@@ -45,7 +45,7 @@ export function update(next, key = null) {
 }
 
 export function beginStroke() {
-  strokeStart = { font: font.value, redo: redoStack.value }
+  strokeStart = { font: font.value, redo: redoStack.value, char: selected.value }
   remember()
   group = null
 }
@@ -55,6 +55,12 @@ export function cancelStroke() {
   font.value = strokeStart.font
   undoStack.value = undoStack.value.slice(0, -1)
   redoStack.value = strokeStart.redo
+  strokeStart = null
+}
+
+export function endStroke() {
+  if (!strokeStart) return
+  if (sameGlyph(glyphOf(strokeStart.font, strokeStart.char), glyphOf(font.value, strokeStart.char))) cancelStroke()
   strokeStart = null
 }
 
@@ -70,7 +76,7 @@ export function strokeTo(next) {
 
 export function updateGlyph(next, key = null, outside = null) {
   const before = glyph.value
-  update(setGlyph(font.value, selected.value, next), key)
+  if (!sameGlyph(before, next)) update(setGlyph(font.value, selected.value, next), key)
   if (outside) offCanvas.set(glyph.value, outside)
   else carryOutside(before, glyph.value)
 }
@@ -100,7 +106,7 @@ export function pasteGlyph(char) {
 }
 
 export function undo() {
-  if (!canUndo.value) return
+  if (strokeStart || !canUndo.value) return
   redoStack.value = redoStack.value.concat([font.value])
   font.value = undoStack.value[undoStack.value.length - 1]
   undoStack.value = undoStack.value.slice(0, -1)
@@ -109,7 +115,7 @@ export function undo() {
 }
 
 export function redo() {
-  if (!canRedo.value) return
+  if (strokeStart || !canRedo.value) return
   undoStack.value = undoStack.value.concat([font.value])
   font.value = redoStack.value[redoStack.value.length - 1]
   redoStack.value = redoStack.value.slice(0, -1)
@@ -126,6 +132,7 @@ export function openFont(next) {
   undoStack.value = []
   redoStack.value = []
   group = null
+  strokeStart = null
   selected.value = charactersOf(next).find(char => /[a-z]/.test(char)) ?? charactersOf(next)[0]
 }
 
@@ -134,6 +141,7 @@ export function closeFont() {
   undoStack.value = []
   redoStack.value = []
   group = null
+  strokeStart = null
   localStorage.removeItem(STORAGE_KEY)
   saveError.value = ""
   arrowsMove.value = "drawing"
@@ -186,7 +194,8 @@ export function downloadTexture() {
 }
 
 function jsonFile() {
-  return { name: `${font.value.id || slug(font.value.name) || "font"}.json`, text: jsonText(exportJson(font.value, pngUrl(buildSheet(font.value)))) + "\n" }
+  const entry = exportJson(font.value, pngUrl(buildSheet(font.value)))
+  return { name: `${entry.id}.json`, text: jsonText(entry) + "\n" }
 }
 
 export function downloadJson() {

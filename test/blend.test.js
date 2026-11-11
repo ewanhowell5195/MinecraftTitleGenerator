@@ -1,11 +1,9 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { blend } from "../generator/blend.js"
+import { blend } from "../src/lib/blend.js"
+import { closeAll } from "./helpers/assert.js"
 
-function near(actual, expected, tolerance = 1e-9) {
-  assert.equal(actual.length, expected.length)
-  for (const [index, value] of actual.entries()) assert.ok(Math.abs(value - expected[index]) <= tolerance, `[${actual}] is not within ${tolerance} of [${expected}]`)
-}
+const near = (actual, expected, tolerance = 1e-9) => closeAll(actual, expected, tolerance)
 
 function lum([r, g, b]) {
   return 0.3 * r + 0.59 * g + 0.11 * b
