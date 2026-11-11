@@ -6,7 +6,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test",
+    "test": "node --test \"test/*.test.js\" renderer/parity.test.js",
     "mark": "node generator/mark.js",
     "convert": "node generator/convert.js",
     "template": "node generator/template.js",
