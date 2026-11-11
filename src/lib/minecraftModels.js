@@ -7,7 +7,6 @@ const LIBRARY = "https://cdn.jsdelivr.net/npm/block-model-renderer@3/dist/block-
 const FOLDERS = { block: "assets/minecraft/blockstates/", item: "assets/minecraft/items/" }
 const ITEM_MODELS = "assets/minecraft/models/item/"
 const THUMBNAIL = 96
-const RELEASE = /^\d+\.\d+(?:\.\d+)*/
 
 const decoder = new TextDecoder()
 let library = null
@@ -32,17 +31,13 @@ function childNames(paths, dir) {
   return Array.from(names)
 }
 
-export function gameRelease(version) {
-  return version.match(RELEASE)?.[0]
-}
-
 async function prepare(version) {
   const [lib, paths] = await Promise.all([renderer(), gamePaths(version, "shapes")])
   const handler = {
     read: path => readGameFile(version, path),
     list: dir => childNames(paths, dir.endsWith("/") ? dir : `${dir}/`)
   }
-  return { lib, paths, assets: await lib.prepareAssets([handler], { cache: true, version: gameRelease(version) }) }
+  return { lib, paths, assets: await lib.prepareAssets([handler], { cache: true, version }) }
 }
 
 function gameModels(version) {

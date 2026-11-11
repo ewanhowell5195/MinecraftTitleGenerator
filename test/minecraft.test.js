@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { after, describe, test } from "node:test"
 import { blockName, blockTexturePaths, isOpaque, pngSize, usableVersions } from "../src/lib/minecraft.js"
-import { dropThumbnail, gameRelease, keepVersions, modelItems, modelThumbnail } from "../src/lib/minecraftModels.js"
+import { dropThumbnail, keepVersions, modelItems, modelThumbnail } from "../src/lib/minecraftModels.js"
 import { firstTile } from "../src/lib/paint.js"
 import { usePlatform } from "../src/lib/platform.js"
 
@@ -94,28 +94,6 @@ describe("usableVersions", () => {
   test("keeps the versions from when the block folders first appeared", () => {
     const versions = [{ id: "26.3", releaseTime: "2026-09-01T00:00:00+00:00" }, { id: "1.5", releaseTime: "2013-03-13T00:00:00+00:00" }, { id: "1.4.7", releaseTime: "2012-12-28T00:00:00+00:00" }, { id: "b1.8.1", releaseTime: "2011-09-19T00:00:00+00:00" }]
     assert.deepEqual(usableVersions(versions).map(version => version.id), ["26.3", "1.5"])
-  })
-})
-
-describe("gameRelease", () => {
-  test("a release is itself", () => {
-    assert.equal(gameRelease("1.8.9"), "1.8.9")
-    assert.equal(gameRelease("1.21"), "1.21")
-    assert.equal(gameRelease("26.3"), "26.3")
-  })
-
-  test("snapshots and pre-releases of a release count as that release", () => {
-    assert.equal(gameRelease("26.3-snapshot-5"), "26.3")
-    assert.equal(gameRelease("1.16.2-pre1"), "1.16.2")
-    assert.equal(gameRelease("1.21.4-rc3"), "1.21.4")
-    assert.equal(gameRelease("1.14 Pre-Release 1"), "1.14")
-  })
-
-  test("versions named some other way have no release", () => {
-    assert.equal(gameRelease("24w14a"), undefined)
-    assert.equal(gameRelease("13w02a"), undefined)
-    assert.equal(gameRelease("1.RV-Pre1"), undefined)
-    assert.equal(gameRelease("3D Shareware v1.34"), undefined)
   })
 })
 

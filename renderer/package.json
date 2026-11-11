@@ -4,7 +4,7 @@
   "type": "module",
   "exports": "./index.js",
   "dependencies": {
-    "block-model-renderer": "^3.1.0",
+    "block-model-renderer": "^3.1.1",
     "gl": "^8.1.6",
     "headless-three": "^1.10.0",
     "sharp": "^0.35.5",
