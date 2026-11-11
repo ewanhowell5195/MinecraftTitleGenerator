@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { createHmac } from "node:crypto"
 import fs from "node:fs"
 import { PNG } from "pngjs"
 import { pngOf } from "./helpers/png.js"
@@ -738,32 +737,7 @@ describe("emailing notifications", () => {
     assert.match((await send(noEmail)).error, /Add an email address to your Discord account/)
     const unverified = await signIn("github", { id: 7, login: "fresh", emails: [{ email: "fresh@example.com", primary: true, verified: false }] })
     assert.equal((await send(unverified)).status, 201)
-  })
-
-  test("never stores or sends to an email the provider hasn't verified", async () => {
-    const reviewer = await admin()
-    for (const [provider, person] of [["discord", { id: "6", username: "phone", email: "ewan@example.com", verified: false }], ["github", { id: 7, login: "fresh", emails: [{ email: "ewan@example.com", primary: true, verified: false }] }]]) {
-      const cookie = await signIn(provider, person)
-      const { status, id } = await send(cookie, { name: `From ${provider}` })
-      assert.equal(status, 201)
-      await Promise.all(waiting)
-      assert.deepEqual(inbox(), [["ewan@example.com", `${person.username ?? person.login} sent From ${provider}`]])
-      await comment(reviewer, id, "Looks good")
-      assert.deepEqual(inbox(), [])
-      assert.equal((await (await listNotifications(context("/api/notifications", { cookie }))).json()).notifications.length, 1)
-    }
-    assert.deepEqual(stored(), [["ewan", "ewan@example.com"], ["phone", null], ["fresh", null]])
-  })
-
-  test("asks a session from before emails were checked to sign in again", async () => {
-    const cookie = await signIn()
-    const { emailVerified, ...session } = JSON.parse(decodeURIComponent(cookie.slice("session=".length, cookie.lastIndexOf("."))))
-    const old = encodeURIComponent(JSON.stringify(session))
-    const signature = createHmac("sha256", "session-secret").update(old).digest("hex")
-    const { status, error } = await send(`session=${old}.${signature}`)
-    assert.equal(emailVerified, true)
-    assert.equal(status, 403)
-    assert.match(error, /Sign in again/)
+    assert.deepEqual(stored(), [["fresh", "fresh@example.com"]])
   })
 
   test("sends an email Resend refused with the next ones", async () => {

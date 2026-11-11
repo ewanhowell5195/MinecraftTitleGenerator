@@ -417,7 +417,7 @@ async function openedSubmission(context, user, { clean, fonts, bytes, files }) {
 export const createSubmission = guarded(async context => {
   const { env } = context
   const user = await requireUser(context, SIGN_IN, activeUser)
-  if (user.email === undefined || user.emailVerified === undefined) throw new Refusal(403, "Sign in again so you can be emailed about your submission.")
+  if (user.email === undefined) throw new Refusal(403, "Sign in again so you can be emailed about your submission.")
   if (!user.email) throw new Refusal(403, `Add an email address to your ${providerLabel(user.provider)} account, then sign in again. You'll be emailed about your submission there.`)
   const form = await readForm(context)
   const slot = await takeSlot(env, { table: "account_submissions", column: "account_hash", owner: await accountKey(env, "submissions", user) }, SUBMISSION_LIMITS.perDay)
