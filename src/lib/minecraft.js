@@ -10,7 +10,6 @@ import { platform } from "./platform.js"
 const BLOCK_TEXTURE = /^(?:assets\/minecraft\/)?textures\/blocks?\/([^/]+)\.png$/
 const FIRST_BLOCK_FOLDER = Date.parse("2013-01-10T00:00:00+00:00")
 const GRASS_COLORMAP = "assets/minecraft/textures/colormap/grass.png"
-const RANGE_REFUSED = /^Ranged request refused/
 
 const assets = new MinecraftAssets()
 const loaded = new Map()
@@ -88,22 +87,12 @@ async function colormapReader(version) {
   }
 }
 
-// Chrome's HTTP cache can answer a ranged request for the jar with another range it already holds, and asking again gets the right one
-async function ranged(read) {
-  try {
-    return await read()
-  } catch (err) {
-    if (!RANGE_REFUSED.test(err.message)) throw err
-    return read()
-  }
-}
-
 async function downloadGame(version, reason) {
   await agreeToEula(reason)
-  const paths = (await ranged(() => assets.list({ version }))).map(file => file.path)
+  const paths = (await assets.list({ version })).map(file => file.path)
   Object.assign(jar, { version, done: 0, total: 0 })
   try {
-    await ranged(() => assets.loadJar({ version, onProgress: (done, total) => Object.assign(jar, { version, done, total: total ?? 0 }) }))
+    await assets.loadJar({ version, onProgress: (done, total) => Object.assign(jar, { version, done, total: total ?? 0 }) })
   } finally {
     jar.version = null
   }
