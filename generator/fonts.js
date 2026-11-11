@@ -1,45 +1,45 @@
 import path from "node:path"
-import { flattenFonts, fullOrder, parseMask, sheetOwner, stripsOf } from "../src/lib/font.js"
+import { flattenFonts, fontFolder, fullOrder, parseMask, sheetOwner, stripsOf } from "../src/lib/font.js"
 import { defaultBorder } from "../src/lib/settings.js"
 import { mergeStrips, stripFolder, stripUse } from "../src/lib/strips.js"
 import { readJson, readPng } from "./common.js"
 
-export const PUBLIC = path.join(import.meta.dirname, "../public")
-const out = path.join(PUBLIC, "font")
+export const ROOT = path.join(import.meta.dirname, "..")
 
-export function readStripSet(item) {
+export function publicDir(root = ROOT) {
+  return path.join(root, "public")
+}
+
+export function readStripSet(item, root = ROOT) {
   const { id, offset } = stripUse(item)
-  const folder = path.join(PUBLIC, stripFolder(id))
+  const folder = path.join(publicDir(root), stripFolder(id))
   return { ...readJson(path.join(folder, "textures.json")), id, offset, folder }
 }
 
-export function fontTextureList(entry, list) {
-  return mergeStrips(readJson(path.join(fontDir(sheetOwner(entry, list)), "textures.json")), stripsOf(entry, list).map(readStripSet))
+export function fontTextureList(entry, list, root = ROOT) {
+  return mergeStrips(readJson(path.join(fontDir(sheetOwner(entry, list), root), "textures.json")), stripsOf(entry, list).map(item => readStripSet(item, root)))
 }
 
-export function fontDir(font) {
-  if (font.dir) return font.dir
-  return font.variant ? path.join(out, font.variant, font.id) : path.join(out, font.id)
+export function fontDir(font, root = ROOT) {
+  return path.join(publicDir(root), fontFolder(font))
 }
 
-export function publishedFonts() {
-  return flattenFonts(readJson(path.join(out, "fonts.json")))
+export function publishedFonts(root = ROOT) {
+  return flattenFonts(readJson(path.join(publicDir(root), "font/fonts.json")))
 }
 
-export function publishedShapes() {
-  return readJson(path.join(PUBLIC, "shapes/shapes.json")).filter(shape => shape.kind === "png").map(shape => ({ ...shape, dir: path.join(PUBLIC, "shapes", shape.id), preview: shape.order }))
+export function publishedShapes(root = ROOT) {
+  return readJson(path.join(publicDir(root), "shapes/shapes.json")).filter(shape => shape.kind === "png").map(shape => ({ ...shape, folder: `shapes/${shape.id}`, preview: shape.order }))
 }
 
-export function readMask(entry, list) {
-  const folder = fontDir(entry)
+export function publishedModels(root = ROOT) {
+  return readJson(path.join(publicDir(root), "shapes/shapes.json")).filter(shape => shape.kind === "model").map(shape => shape.id)
+}
+
+export function readMask(entry, list, root = ROOT) {
+  const folder = fontDir(entry, root)
   const file = path.join(folder, "font.png")
   const png = readPng(file)
   const { list: cells, capHeight } = parseMask(png.data, png.width, png.height, fullOrder(entry, list), defaultBorder("top", entry))
   return { folder, file, png, cells, capHeight }
 }
-
-export const EMPTY = [255, 255, 255]
-export const GLYPH = [0, 0, 0]
-export const GRID = [255, 0, 0]
-export const BASELINE = [0, 255, 0]
-export const TOPLINE = [0, 0, 255]

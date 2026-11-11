@@ -1,24 +1,14 @@
 import fs from "node:fs"
 import path from "node:path"
-import { PNG } from "pngjs"
 import { flattenFonts } from "../../src/lib/font.js"
 import { titleCase } from "../../src/lib/names.js"
 import { defaultDepth } from "../../src/lib/settings.js"
 import { font as fontKind } from "../../src/lib/submissionKinds/font.js"
 import { HOLDING_FOLDER, finalEntry, holdingPath, ownFont, submittedFont } from "../../src/lib/submissionKinds/fontBuild.js"
 import { submissionContext } from "../../src/lib/submissionKinds/index.js"
-import { readJson, readPng, writeJson, writePng } from "../common.js"
+import { pngOf, readJson, readPng, writeJson, writePng } from "../common.js"
 import { flatSheet, writeStarterTextures } from "../flat.js"
-
-function toPng({ width, height, data }) {
-  const png = new PNG({ width, height })
-  png.data.set(data)
-  return png
-}
-
-function folderOf(publicDir, entry) {
-  return path.join(publicDir, "font", ...(entry.variant ? [entry.variant, entry.id] : [entry.id]))
-}
+import { fontDir, publicDir } from "../fonts.js"
 
 function rawEntry(list, id) {
   for (const entry of list) {
@@ -29,10 +19,10 @@ function rawEntry(list, id) {
   throw new Error(`fonts.json has no entry for the submitted font ${id}`)
 }
 
-async function checked(publicDir, others, skeleton, bytes) {
+async function checked(root, others, skeleton, bytes) {
   const fonts = others.map(entry => ({ ...entry, name: entry.name ?? titleCase(entry.id) }))
   const ctx = submissionContext(fonts, async file => {
-    const full = path.join(publicDir, file)
+    const full = path.join(publicDir(root), file)
     if (!fs.existsSync(full)) return new Response("missing", { status: 404 })
     return new Response(fs.readFileSync(full))
   })
@@ -41,9 +31,9 @@ async function checked(publicDir, others, skeleton, bytes) {
   if (problem) throw new Error(`the submitted font ${skeleton.id} can't be added: ${problem}`)
 }
 
-function writeOwn(publicDir, entry, built) {
-  const folder = folderOf(publicDir, entry)
-  writePng(path.join(folder, "font.png"), toPng(built.sheet))
+function writeOwn(root, entry, built) {
+  const folder = fontDir(entry, root)
+  writePng(path.join(folder, "font.png"), pngOf(built.sheet))
   writePng(path.join(folder, "textures", "flat.png"), flatSheet(built.published, built.capHeight, defaultDepth(entry)).sheet)
   writeStarterTextures(folder)
   checkBundle(folder, built.template)
@@ -64,8 +54,7 @@ function checkBundle(folder, template) {
 }
 
 export async function convertFont(root, id) {
-  const publicDir = path.join(root, "public")
-  const listFile = path.join(publicDir, "font", "fonts.json")
+  const listFile = path.join(publicDir(root), "font", "fonts.json")
   const holding = path.join(root, holdingPath(id))
   const list = readJson(listFile)
   const bytes = new Uint8Array(fs.readFileSync(holding))
@@ -73,13 +62,13 @@ export async function convertFont(root, id) {
   const skeleton = flat.find(entry => entry.id === id)
   if (!skeleton) throw new Error(`fonts.json has no entry for the submitted font ${id}`)
   const others = flat.filter(entry => entry.id !== id)
-  await checked(publicDir, others, skeleton, bytes)
+  await checked(root, others, skeleton, bytes)
   const { font } = submittedFont(bytes)
   const { entry: raw, holder } = rawEntry(list, id)
   const built = ownFont(font, skeleton.variant)
   const entry = finalEntry(raw, built.entry)
   holder[holder.indexOf(raw)] = entry
-  writeOwn(publicDir, { ...entry, variant: skeleton.variant }, built)
+  writeOwn(root, { ...entry, variant: skeleton.variant }, built)
   writeJson(listFile, list)
   fs.rmSync(holding)
   const folder = path.join(root, HOLDING_FOLDER)

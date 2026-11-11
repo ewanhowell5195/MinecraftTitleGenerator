@@ -8,28 +8,24 @@ import { sheetLayout, solidMask, splitCells } from "../src/lib/font.js"
 import { GENERATED_EDGE_OVERLAYS, edgeAlpha, generatedAlpha, withGenerated } from "../src/lib/generated.js"
 import { layout } from "../src/lib/layout.js"
 import { defaultBorder, defaultDepth, overlayLayer } from "../src/lib/settings.js"
-import { stripRows, stripY } from "../src/lib/strips.js"
-import { blend } from "./blend.js"
-import { cli, inParallel, readPng, rgb, rgba, writePng } from "./common.js"
-import { PUBLIC, fontDir, fontTextureList, publishedFonts, publishedShapes, readMask } from "./fonts.js"
+import { MARGIN, drawLayer, drawRing, drawStrip, over, sceneFrame, stripSource } from "../src/lib/thumbnails.js"
+import { cli, inParallel, readPng, rgba, writePng } from "./common.js"
+import { ROOT, fontDir, fontTextureList, publicDir, publishedFonts, publishedModels, publishedShapes, readMask } from "./fonts.js"
+import { modelThumbnails } from "./submissionKinds/shape.js"
 
-const MARGIN = 2
 const BACKGROUND_ALPHA = 0.3
 const AUTO_BORDER_ALPHA = 77
-
-const { first: only } = cli("thumbnails.js [font]", { optional: true })
-const list = publishedFonts().concat(publishedShapes())
 
 function opaque(colour) {
   return rgbOf(colour).concat(255)
 }
 
-function loadGlyphs(entry) {
+function loadGlyphs(entry, list, root) {
   if (entry.inherits) {
-    const parent = loadGlyphs(list.find(item => item.id === entry.variant))
+    const parent = loadGlyphs(list.find(item => item.id === entry.variant), list, root)
     return { ...parent, glyphs: { ...parent.glyphs, ...parent.alternates[entry.id] } }
   }
-  const { folder, cells, capHeight } = readMask(entry, list)
+  const { folder, cells, capHeight } = readMask(entry, list, root)
   return { ...splitCells(entry, list, cells), cells, capHeight, folder, depth: defaultDepth(entry) }
 }
 
@@ -37,52 +33,6 @@ function surface(width, height) {
   const png = new PNG({ width, height })
   png.data.fill(0)
   return png
-}
-
-function over(png, x, y, [r, g, b, a]) {
-  if (!a || x < 0 || y < 0 || x >= png.width || y >= png.height) return
-  const i = (y * png.width + x) * 4
-  const da = png.data[i + 3] / 255
-  const sa = a / 255
-  const oa = sa + da * (1 - sa)
-  png.data[i] = Math.round((r * sa + png.data[i] * da * (1 - sa)) / oa)
-  png.data[i + 1] = Math.round((g * sa + png.data[i + 1] * da * (1 - sa)) / oa)
-  png.data[i + 2] = Math.round((b * sa + png.data[i + 2] * da * (1 - sa)) / oa)
-  png.data[i + 3] = Math.round(oa * 255)
-}
-
-function drawRing(png, { placed }, masks, { density: d, border }) {
-  for (const { glyph, x, y } of placed) {
-    const mask = masks.get(glyph)
-    for (let r = 0; r < glyph.height; r++) {
-      for (let c = 0; c < glyph.width; c++) {
-        if (!mask[(glyph.height - 1 - r) * glyph.width + c]) continue
-        for (let dy = -MARGIN; dy <= MARGIN; dy++) {
-          for (let dx = -MARGIN; dx <= MARGIN; dx++) {
-            for (let j = 0; j < d; j++) {
-              for (let i = 0; i < d; i++) over(png, (x + c + dx) * d + i, (y + r + dy) * d + j, border)
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-function drawStrip(png, { placed }, { density: d, strip }) {
-  const { image, density, top, tiling, shape } = strip
-  for (const { glyph, x, y, lineX } of placed) {
-    const origin = tiling === "character" ? 0 : lineX
-    for (let py = 0; py < glyph.height * d; py++) {
-      for (let px = 0; px < glyph.width * d; px++) {
-        if (!glyph.mask[(glyph.height - 1 - Math.floor(py / d)) * glyph.width + Math.floor(px / d)]) continue
-        const row = top - 1 - stripY(shape, glyph.top - 1 - Math.floor(py / d))
-        const sxp = Math.floor((origin * d + px) * density / d) % image.width
-        const syp = Math.floor((row * d + py % d) * density / d)
-        over(png, x * d + px, y * d + py, rgba(image.data, (syp * image.width + sxp) * 4))
-      }
-    }
-  }
 }
 
 function drawFaces(png, { placed, layouts }, sheet, masks, { density: d, width }) {
@@ -110,30 +60,14 @@ function drawGenerated(png, { placed, capHeight }, { density: d, generated }) {
   }
 }
 
-function drawLayer(png, { placed, layouts, capHeight }, { kind, image, layer }, { density: d, width }) {
-  const tint = rgbOf(layer.colour)
-  const scale = image ? image.width / width : 1
-  for (const { glyph, x, y } of placed) {
-    const alpha = kind ? generatedAlpha({ ...glyph, placedX: x }, kind, layer, capHeight, d) : null
+function layerSource({ layouts, capHeight }, { kind, image, layer }, { density: d, width }) {
+  if (!image) return { alphaOf: ({ glyph, x }) => generatedAlpha({ ...glyph, placedX: x }, kind, layer, capHeight, d) }
+  const scale = image.width / width
+  function at({ glyph }) {
     const { x: sx, top: sy } = layouts.get(glyph)
-    for (let py = 0; py < glyph.height * d; py++) {
-      for (let px = 0; px < glyph.width * d; px++) {
-        let source = [255, 255, 255]
-        let coverage = alpha?.[py * glyph.width * d + px] ?? 0
-        if (image) {
-          const k = (Math.floor((sy * d + py) * scale / d) * image.width + Math.floor((sx * d + px) * scale / d)) * 4
-          source = rgb(image.data, k)
-          coverage = image.data[k + 3] / 255
-        }
-        const strength = coverage * layer.opacity / 100
-        const i = ((y * d + py) * png.width + x * d + px) * 4
-        if (!strength || !png.data[i + 3]) continue
-        const base = rgb(png.data, i)
-        const mixed = blend(layer.blend, base, blend(layer.colourBlend, source, tint))
-        for (let c = 0; c < 3; c++) png.data[i + c] = Math.round(base[c] + (mixed[c] - base[c]) * strength)
-      }
-    }
+    return (px, py) => (Math.floor((sy * d + py) * scale / d) * image.width + Math.floor((sx * d + px) * scale / d)) * 4
   }
+  return { texel: { data: image.data, at } }
 }
 
 function render(scene, sheet, options) {
@@ -143,12 +77,12 @@ function render(scene, sheet, options) {
     const { x, top } = scene.layouts.get(glyph)
     return [glyph, solidMask(sheet.data, sheet.width, sheet.width / options.width, x, top, glyph.width, glyph.height)]
   }))
-  if (options.ring) drawRing(png, scene, masks, options)
-  if (options.strip) drawStrip(png, scene, options)
+  if (options.ring) drawRing(png, scene.placed, options.density, options.border, glyph => masks.get(glyph))
+  if (options.strip) drawStrip(png, scene.placed, options.density, options.strip)
   else drawFaces(png, scene, sheet, masks, options)
   if (options.fontOverlay) drawFaces(png, scene, options.fontOverlay, masks, options)
   if (options.generated) drawGenerated(png, scene, options)
-  for (const layer of options.layers ?? []) drawLayer(png, scene, layer, options)
+  for (const layer of options.layers ?? []) drawLayer(png, scene.placed, options.density, layer.layer, layerSource(scene, layer, options))
   return png
 }
 
@@ -191,27 +125,20 @@ function frameFill(png, colour) {
   }
 }
 
-function sceneFor(entry) {
-  const { glyphs, cells, capHeight, folder, depth } = loadGlyphs(entry)
+function sceneFor(entry, list, root) {
+  const { glyphs, cells, capHeight, folder, depth } = loadGlyphs(entry, list, root)
   const font = { ...entry, glyphs, kerning: { ...list.find(item => item.id === entry.variant)?.kerning, ...entry.kerning } }
   const placed = layout(font, entry.preview ?? "abc", { spacing: entry.characterSpacing ?? 0 })
   if (!placed.length) throw new Error(`${entry.id}: the preview text has no glyphs in this font`)
-  const minX = Math.min(...placed.map(item => item.x))
-  const maxX = Math.max(...placed.map(item => item.x + item.glyph.width))
-  const top = Math.max(...placed.map(item => item.glyph.top))
-  const bottom = Math.min(...placed.map(item => item.glyph.bottom))
   const ring = defaultBorder("top", entry) > 0
-  const margin = ring || entry.autoBorder ? MARGIN : 0
-  const frame = { width: maxX - minX + margin * 2, height: top - bottom + margin * 2 }
   return {
+    ...sceneFrame(placed, ring || entry.autoBorder ? MARGIN : 0),
     folder,
     layouts: sheetLayout(cells, capHeight, depth),
     depth,
-    frame,
     capHeight,
     ring,
-    stripRange: stripRange({ cells, capHeight }),
-    placed: placed.map(item => ({ glyph: item.glyph, x: item.x - minX + margin, y: top - item.glyph.top + margin, lineX: item.x - placed[0].x }))
+    stripRange: stripRange({ cells, capHeight })
   }
 }
 
@@ -226,10 +153,8 @@ function textureThumbnail({ entry, scene, meta, sheet, width, densityOf }, name,
   const image = sheet("textures", name, merged.folder)
   let png
   if (merged.type === "strip") {
-    const tiling = merged.tiling ?? "line"
-    if (tiling !== "line" && tiling !== "character") throw new Error(`${name} has tiling "${tiling}", strips tile by "line" or "character"`)
-    const shape = stripRows(merged, scene.stripRange, scene.depth, scene.capHeight)
-    const strip = { image, density: image.height / shape.rows, top: shape.depth + shape.top, tiling, shape }
+    const strip = stripSource(merged, image, scene.stripRange, scene.depth, scene.capHeight)
+    if (strip.tiling !== "line" && strip.tiling !== "character") throw new Error(`${name} has tiling "${strip.tiling}", strips tile by "line" or "character"`)
     png = render(scene, null, { density: Math.max(1, Math.ceil(strip.density)), border, width, ring: scene.ring, strip, layers, fontOverlay: entry.overlay ? sheet(".", "overlay") : null })
   } else {
     png = render(scene, image, { density: densityOf(image), border, width, ring: scene.ring, ownShape: true, layers })
@@ -262,18 +187,29 @@ function edgeThumbnail(scene, generated, background, d) {
   return png
 }
 
-function thumbnails(entry) {
+export function thumbnailList(root = ROOT) {
+  return publishedFonts(root).concat(publishedShapes(root))
+}
+
+export function thumbnailEntry(list, id) {
+  const found = list.filter(item => item.id === id)
+  if (!found.length) throw new Error(`no font or shape with id ${id}`)
+  if (found.length > 1) throw new Error(`${found.length} fonts or shapes have the id ${id}, so thumbnails can't tell which one to draw`)
+  return found[0]
+}
+
+export function drawThumbnails(entry, list, root = ROOT) {
   const loaded = new Map()
   const load = file => loaded.get(file) ?? loaded.set(file, readPng(file)).get(file)
-  const scene = sceneFor(entry)
-  const sheet = (kind, id, folder) => load(path.join(folder ? path.join(PUBLIC, folder) : scene.folder, kind, `${id}.png`))
-  const meta = fontTextureList(entry, list)
+  const scene = sceneFor(entry, list, root)
+  const sheet = (kind, id, folder) => load(path.join(folder ? path.join(publicDir(root), folder) : scene.folder, kind, `${id}.png`))
+  const meta = fontTextureList(entry, list, root)
   const flat = sheet("textures", "flat")
   const width = flat.width / (meta.textures.flat?.density ?? 1)
   const densityOf = image => Math.round(image.width / width)
   meta.overlays = withGenerated(meta.overlays)
   const context = { entry, scene, meta, sheet, width, densityOf }
-  const target = path.join(fontDir(entry), "thumbnails")
+  const target = path.join(fontDir(entry, root), "thumbnails")
   const kept = new Set()
   let changed = 0
 
@@ -303,7 +239,7 @@ function thumbnails(entry) {
     if (!kept.has(file)) fs.rmSync(file)
   }
 
-  console.log(`${entry.id.padEnd(30)} ${String(kept.size).padStart(3)} thumbnails, ${String(changed).padStart(3)} changed, ${scene.frame.width}x${scene.frame.height} units`)
+  return { count: kept.size, changed, frame: scene.frame }
 }
 
 function child(id) {
@@ -312,16 +248,24 @@ function child(id) {
   })
 }
 
-async function allFonts() {
+async function allFonts(list) {
   const outputs = []
   await inParallel(list, async (entry, index) => outputs[index] = await child(entry.id))
   process.stdout.write(outputs.join(""))
 }
 
-if (only) {
-  const entry = list.find(font => font.id === only)
-  if (!entry) throw new Error(`no font with id ${only}`)
-  thumbnails(entry)
-} else {
-  await allFonts()
+if (import.meta.main) {
+  const { first: only } = cli("thumbnails.js [font]", { optional: true })
+  const list = thumbnailList()
+  const models = publishedModels()
+  if (only && models.includes(only) && !list.some(item => item.id === only)) {
+    modelThumbnails(ROOT, only)
+    console.log(`${only.padEnd(30)} model thumbnails drawn`)
+  } else if (only) {
+    const { count, changed, frame } = drawThumbnails(thumbnailEntry(list, only), list)
+    console.log(`${only.padEnd(30)} ${String(count).padStart(3)} thumbnails, ${String(changed).padStart(3)} changed, ${frame.width}x${frame.height} units`)
+  } else {
+    await allFonts(list)
+    for (const id of models) modelThumbnails(ROOT, id)
+  }
 }

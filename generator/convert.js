@@ -3,16 +3,16 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import opentype from "opentype.js"
-import { PNG } from "pngjs"
 import decompress from "woff2-encoder/decompress"
-import { SHEET_MAX_WIDTH, parseMask } from "../src/lib/font.js"
+import { parseMask } from "../src/lib/font.js"
+import { englishName } from "../src/lib/fontImport.js"
 import { capUnits, glyphFor, gridShift, pixelGrid, rasterise } from "../src/lib/fontOutline.js"
 import { jsonText } from "../src/lib/jsonText.js"
 import { DEFAULT_ORDER } from "../src/lib/order.js"
 import { defaultBorder, defaultDepth } from "../src/lib/settings.js"
-import { cli, fillPng, setPixel, writePng } from "./common.js"
+import { drawSheet } from "../src/lib/sheet.js"
+import { cli, pngOf, writePng } from "./common.js"
 import { flatSheet, writeStarterTextures } from "./flat.js"
-import { BASELINE, EMPTY, GLYPH, GRID, TOPLINE } from "./fonts.js"
 import { markSheet } from "./marks.js"
 
 async function fontData(source) {
@@ -25,7 +25,7 @@ async function readFont(source, name) {
   if (data.toString("latin1", 0, 4) !== "ttcf") return opentype.parse(data.buffer.slice(data.byteOffset, data.byteOffset + data.length))
   const fonts = Array.from({ length: data.readUInt32BE(8) }, (_, index) => opentype.parse(collectionFont(data, data.readUInt32BE(12 + index * 4))))
   const wanted = name?.toLowerCase()
-  return fonts.find(item => [item.getEnglishName("fullName"), item.getEnglishName("fontFamily")].some(candidate => candidate?.trim().toLowerCase() === wanted)) ?? fonts[0]
+  return fonts.find(item => [englishName(item, "fullName"), englishName(item, "fontFamily")].some(candidate => candidate.toLowerCase() === wanted)) ?? fonts[0]
 }
 
 function collectionFont(data, offset) {
@@ -95,52 +95,11 @@ async function installedFont(name) {
   return found.file
 }
 
-function sheetRows(cells, capHeight) {
-  const rows = []
-  for (const cell of cells) {
-    const row = rows.at(-1)
-    if (!row || row.width + cell.width + 1 > SHEET_MAX_WIDTH) rows.push({ cells: [cell], width: 1 + cell.width + 1 })
-    else {
-      row.cells.push(cell)
-      row.width += cell.width + 1
-    }
-  }
-  for (const row of rows) {
-    row.top = Math.max(capHeight, ...row.cells.map(cell => cell.shape?.top ?? 0))
-    row.bottom = Math.min(0, ...row.cells.map(cell => cell.shape?.bottom ?? 0))
-  }
-  return rows
-}
-
-function drawSheet(cells, capHeight) {
-  const rows = sheetRows(cells, capHeight)
-  const width = Math.max(...rows.map(row => row.width))
-  const height = rows.reduce((sum, row) => sum + row.top - row.bottom + 1, 1)
-  const png = new PNG({ width, height })
-  fillPng(png, EMPTY)
-  let y = 0
-  for (const row of rows) {
-    for (let x = 0; x < width; x++) setPixel(png, x, y, GRID)
-    const top = y + 1
-    const bottom = top + row.top - row.bottom - 1
-    const baseline = top + row.top - 1
-    const topline = baseline - capHeight + 1
-    for (let line = top; line <= bottom; line++) setPixel(png, 0, line, line === baseline && line !== bottom ? BASELINE : line === topline && line !== top ? TOPLINE : GRID)
-    let x = 1
-    for (const { shape, width: cellWidth } of row.cells) {
-      if (shape) {
-        for (let gy = 0; gy < shape.height; gy++) {
-          for (let gx = 0; gx < shape.width; gx++) if (shape.mask[gy * shape.width + gx]) setPixel(png, x + gx, baseline - (shape.top - 1) + gy, GLYPH)
-        }
-      }
-      x += cellWidth
-      for (let line = top; line <= bottom; line++) setPixel(png, x, line, GRID)
-      x++
-    }
-    y = bottom + 1
-  }
-  for (let x = 0; x < width; x++) setPixel(png, x, height - 1, GRID)
-  return png
+function sheetCell(shape, blankWidth) {
+  if (!shape) return { advance: blankWidth, width: 0, height: 0, mask: new Uint8Array(0), originX: 0, top: 0, bottom: 0 }
+  const mask = new Uint8Array(shape.mask.length)
+  for (let row = 0; row < shape.height; row++) mask.set(shape.mask.subarray(row * shape.width, (row + 1) * shape.width), (shape.height - 1 - row) * shape.width)
+  return { advance: shape.width, width: shape.width, height: shape.height, mask, originX: 0, top: shape.top, bottom: shape.bottom }
 }
 
 const { first: query, has, option } = cli("convert.js <font file or installed font name> [--height <cap height>] [--id <id>] [--out <folder>] [--chars <characters>] [--lowercase]")
@@ -148,7 +107,7 @@ const lowercase = has("--lowercase")
 const order = option("--chars") ?? DEFAULT_ORDER
 const file = fs.existsSync(query) ? query : await installedFont(query)
 const font = await readFont(file, fs.existsSync(query) ? null : query)
-const fullName = (font.getEnglishName("fullName") ?? path.basename(file, path.extname(file))).trim()
+const fullName = englishName(font, "fullName") || path.basename(file, path.extname(file)).trim()
 const id = option("--id") ?? fullName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
 const folder = option("--out") ?? path.resolve(id)
 
@@ -163,15 +122,13 @@ const scale = grid ? blockSize / grid : target / units
 const capHeight = Math.round(units * scale)
 if (!Number.isFinite(scale) || capHeight < 1) throw new Error("could not work out a cap height, pass --height")
 
-const cells = glyphs.map(glyph => {
-  const shape = glyph ? rasterise(glyph, scale, gridShift(glyph, grid, scale)) : null
-  return { shape, width: shape?.width ?? Math.round(capHeight / 2) }
-})
-const png = drawSheet(cells, capHeight)
+const cells = glyphs.map(glyph => sheetCell(glyph ? rasterise(glyph, scale, gridShift(glyph, grid, scale)) : null, Math.round(capHeight / 2)))
+const png = pngOf(drawSheet(cells, capHeight))
 
 const space = font.charToGlyph(" ")
+const designer = englishName(font, "designer")
 const entry = { id, name: fullName }
-if (font.getEnglishName("designer")) entry.author = font.getEnglishName("designer")
+if (designer) entry.author = designer
 entry.spaceWidth = space && space.index !== 0 ? Math.round(space.advanceWidth * scale) : Math.round(capHeight / 4)
 if (order !== DEFAULT_ORDER) entry.order = order
 

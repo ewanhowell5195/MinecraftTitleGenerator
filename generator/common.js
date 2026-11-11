@@ -26,18 +26,10 @@ export function pixelHash(png) {
   return createHash("sha256").update(png.data).digest("hex")
 }
 
-export function setPixel(png, x, y, colour) {
-  const i = (y * png.width + x) * 4
-  png.data[i] = colour[0]
-  png.data[i + 1] = colour[1]
-  png.data[i + 2] = colour[2]
-  png.data[i + 3] = colour[3] ?? 255
-}
-
-export function fillPng(png, colour) {
-  for (let y = 0; y < png.height; y++) {
-    for (let x = 0; x < png.width; x++) setPixel(png, x, y, colour)
-  }
+export function pngOf({ width, height, data }) {
+  const png = new PNG({ width, height })
+  png.data.set(data)
+  return png
 }
 
 export function cli(usage, { optional = false } = {}) {
@@ -59,8 +51,4 @@ export async function inParallel(items, run) {
 
 export function rgba(data, i) {
   return [data[i], data[i + 1], data[i + 2], data[i + 3]]
-}
-
-export function rgb(data, i) {
-  return [data[i], data[i + 1], data[i + 2]]
 }

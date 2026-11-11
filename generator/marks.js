@@ -1,7 +1,6 @@
 import { scanMask } from "../src/lib/font.js"
+import { BASELINE, GRID, setPixel } from "../src/lib/sheet.js"
 import { marksFor, sheetMeasures } from "../src/lib/stretchMarks.js"
-import { setPixel } from "./common.js"
-import { BASELINE, GRID } from "./fonts.js"
 
 export function markSheet(png, cells, capHeight, { check = false, force = false } = {}) {
   const { stroke, block } = sheetMeasures(cells)
