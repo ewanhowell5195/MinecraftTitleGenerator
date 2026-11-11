@@ -11,14 +11,14 @@ import { defaultBorder, defaultDepth, overlayLayer } from "../src/lib/settings.j
 import { stripRows, stripY } from "../src/lib/strips.js"
 import { blend } from "./blend.js"
 import { cli, inParallel, readPng, rgb, rgba, writePng } from "./common.js"
-import { PUBLIC, fontDir, fontTextureList, publishedFonts, readMask } from "./fonts.js"
+import { PUBLIC, fontDir, fontTextureList, publishedFonts, publishedShapes, readMask } from "./fonts.js"
 
 const MARGIN = 2
 const BACKGROUND_ALPHA = 0.3
 const AUTO_BORDER_ALPHA = 77
 
 const { first: only } = cli("thumbnails.js [font]", { optional: true })
-const list = publishedFonts()
+const list = publishedFonts().concat(publishedShapes())
 
 function opaque(colour) {
   return rgbOf(colour).concat(255)

@@ -56,6 +56,15 @@ export async function fontTextures(folder, strips = []) {
   return mergeStrips(own, sets)
 }
 
+export async function modelTextures(folder) {
+  const data = await fetchJson(`${folder}/textures.json`)
+  return { ...data, overlays: data.overlays ?? {}, edgeOverlays: {} }
+}
+
+export function modelOf(folder) {
+  return fetchJson(`${folder}/model.json`)
+}
+
 export async function stripTextures(id) {
   return mergeStrips({ textures: {}, overlays: {} }, [await stripSet(id)])
 }

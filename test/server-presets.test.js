@@ -114,6 +114,13 @@ describe("titleFacts", () => {
   test("counts characters, not bytes", () => {
     assert.equal(titleFacts([{ text: "é😀" }]).characters, 2)
   })
+
+  test("counts shapes apart from the text", () => {
+    const facts = titleFacts([{ text: "a" }, { shape: "heart" }, { shape: "cube", hidden: true }])
+    assert.equal(facts.text, "a")
+    assert.equal(facts.words, 1)
+    assert.equal(facts.shapes, 1)
+  })
 })
 
 describe("checkTitle", () => {
@@ -156,6 +163,14 @@ describe("checkTitle", () => {
 
   test("refuses a title with no text", () => {
     assert.match(refusal(code([{ text: "   " }])), /no text/)
+  })
+
+  test("accepts a title made only of shapes", () => {
+    assert.equal(refusal(code([{ shape: "heart" }])), null)
+  })
+
+  test("refuses a shape inside a line of words", () => {
+    assert.match(refusal(code([{ words: [{ text: "a" }, { shape: "heart" }] }])), /shape inside a line of words/)
   })
 
   test("refuses settings the app does not know, even inside words and layers", () => {

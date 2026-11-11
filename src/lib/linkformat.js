@@ -354,7 +354,8 @@ const KEYS = [
   ["twistRibbonCentre", NUMBER],
   ["twistDoorCentre", NUMBER],
   ["arcCentre", NUMBER],
-  ["wordArcCentre", NUMBER]
+  ["wordArcCentre", NUMBER],
+  ["shape", ID]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))

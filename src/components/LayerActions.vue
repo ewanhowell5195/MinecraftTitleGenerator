@@ -12,7 +12,7 @@
 
 <template>
   <div class="actions">
-    <Icon class="kind" :name="grouped ? 'layers' : 'text'" :size="16" />
+    <Icon class="kind" :name="grouped ? 'layers' : line[0].shape === null ? 'text' : 'star'" :size="16" />
     <div class="summary">
       <span class="name ellipsis">{{ lineText(line[0]) || "(empty)" }}</span>
       <span class="type ellipsis">{{ grouped ? `${line.length} words, ` : "" }}{{ TYPES[line[0].type].name }}</span>

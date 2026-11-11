@@ -1,7 +1,8 @@
 import { createRenderer, effectScope, reactive, watch } from "vue"
 import * as THREE from "three"
+import ModelRenderer from "../components/ModelRenderer.js"
 import ObjectRenderer from "../components/ObjectRenderer.js"
-import { fontTextures, loadTileables } from "./assets.js"
+import { fontTextures, loadTileables, modelTextures } from "./assets.js"
 import { readTitleObjects } from "./file.js"
 import { loadFontList, sheetFolder, stripsOf } from "./font.js"
 import { createTitleItems } from "./items.js"
@@ -10,6 +11,7 @@ import { keepMatched } from "./match.js"
 import { platform } from "./platform.js"
 import { renderTitle, titleShot } from "./render.js"
 import { OVERLAY_KINDS, activeOverlays } from "./settings.js"
+import { loadShapeList, shapeOf } from "./shapes.js"
 import { createEntry, destroyEntry, frameCamera, sortEntries, titleFraming, updateEntry } from "./stage.js"
 import { createTitle } from "./title.js"
 import { DEFAULT_FOV } from "./view.js"
@@ -27,7 +29,7 @@ const NOTHING_RENDERED = createRenderer({ insert() {}, remove() {}, createElemen
 let library = null
 
 function loadLibrary() {
-  library ??= Promise.all([loadFontList(), loadTileables()]).catch(err => {
+  library ??= Promise.all([loadFontList(), loadTileables(), loadShapeList()]).catch(err => {
     library = null
     throw err
   })
@@ -39,10 +41,19 @@ function refuseUnknownVariant(label, entry, id, variant) {
   if (variant && !entry.variants?.[variant]) throw new Error(`the ${label} ${id} has no variant called ${variant}`)
 }
 
-async function refuseUnknownNames(object, fonts, tileables) {
+async function textureListOf(object, fonts, shapes) {
+  if (object.shape !== null) {
+    const shape = shapeOf(shapes, object.shape)
+    if (shape.kind === "model" && object.textureSource !== "premade") throw new Error(`the shape ${shape.id} only takes its own textures`)
+    return { font: shape, list: await (shape.kind === "model" ? modelTextures(shape.folder) : fontTextures(shape.folder, shape.strips ?? [])) }
+  }
   const font = fonts.find(entry => entry.id === object.font)
   if (!font) throw new Error(`there is no font called ${object.font}`)
-  const list = await fontTextures(sheetFolder(font, fonts), stripsOf(font, fonts))
+  return { font, list: await fontTextures(sheetFolder(font, fonts), stripsOf(font, fonts)) }
+}
+
+async function refuseUnknownNames(object, fonts, tileables, shapes) {
+  const { font, list } = await textureListOf(object, fonts, shapes)
   if (object.textureSource === "premade" && object.texture !== null) refuseUnknownVariant(`${font.id} texture`, list.textures[object.texture], object.texture, object.textureVariant)
   if (object.textureSource === "tileable" && object.tileableSource !== "minecraft") refuseUnknownVariant("tileable", tileables[object.tileable], object.tileable, object.tileableVariant)
   for (const kind of Object.keys(OVERLAY_KINDS)) {
@@ -109,30 +120,30 @@ async function shoot(items, width) {
 }
 
 export async function titleCanvas(code, width = PICTURE_WIDTH) {
-  const [fonts, tileables] = await loadLibrary()
+  const [fonts, tileables, shapes] = await loadLibrary()
   const decoded = decodeTitle(code)
   const unknown = unknownSetting(decoded.lines)
   if (unknown) throw new Error(`the title has a setting this version does not know: ${unknown}`)
   const title = titleOf(decoded)
-  await Promise.all(title.objects.map(object => refuseUnknownNames(object, fonts, tileables)))
-  return pictureOf(title, fonts, tileables, width)
+  await Promise.all(title.objects.map(object => refuseUnknownNames(object, fonts, tileables, shapes)))
+  return pictureOf(title, fonts, tileables, width, shapes)
 }
 
-export function linesCanvas(decoded, fonts, tileables, width = PICTURE_WIDTH) {
-  return pictureOf(titleOf(decoded), fonts, tileables, width)
+export function linesCanvas(decoded, fonts, tileables, width = PICTURE_WIDTH, shapes = []) {
+  return pictureOf(titleOf(decoded), fonts, tileables, width, shapes)
 }
 
 function titleOf(decoded) {
   return createTitle(reactive(readTitleObjects(decoded)), VIEW)
 }
 
-async function pictureOf(title, fonts, tileables, width) {
+async function pictureOf(title, fonts, tileables, width, shapes) {
   const scope = effectScope(true)
   const items = scope.run(() => {
     keepMatched(title)
     return createTitleItems(title)
   })
-  const apps = title.objects.map(object => NOTHING_RENDERED.createApp(ObjectRenderer, { object, title, fonts, tileables }))
+  const apps = title.objects.map(object => object.shape !== null && shapeOf(shapes, object.shape).kind === "model" ? NOTHING_RENDERED.createApp(ModelRenderer, { object, title, shapes }) : NOTHING_RENDERED.createApp(ObjectRenderer, { object, title, fonts, tileables, shapes }))
   for (const app of apps) app.mount({})
   try {
     let before

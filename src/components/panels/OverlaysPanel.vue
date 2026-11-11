@@ -43,7 +43,8 @@
   const layers = computed(() => activeOverlays(list.value, object.value, listKey))
   const layer = computed(() => layers.value[selected.value] ?? null)
   const generated = computed(() => layer.value?.source === "premade" ? available.value[layer.value.overlay]?.generated ?? null : null)
-  const kind = computed(() => !layer.value ? pending.value : layer.value.source === "file" ? "file" : generated.value ? "generated" : "texture")
+  const kinds = computed(() => font.value?.model ? KINDS.filter(item => item.value !== "generated") : KINDS)
+  const kind = computed(() => !layer.value ? kinds.value.find(item => item.value === pending.value)?.value ?? kinds.value[0].value : layer.value.source === "file" ? "file" : generated.value ? "generated" : "texture")
   const shown = computed(() => overlays.value.filter(ofKind(kind.value)))
   const settings = computed(() => GENERATED_SETTINGS[generated.value] ?? [])
   const baseline = computed(() => layer.value ? { ...overlayLayer(layer.value.overlay, layer.value.source === "file" ? null : available.value[layer.value.overlay]), source: layer.value.source, file: layer.value.file } : null)
@@ -182,7 +183,7 @@
 </script>
 
 <template>
-  <Panel :title="edge ? 'Edge overlays' : 'Face overlays'" :modified="modified" @reset="reset">
+  <Panel :title="edge ? 'Edge overlays' : font?.model ? 'Overlays' : 'Face overlays'" :modified="modified" @reset="reset">
     <Toggle v-if="!edge && object.textureSource !== 'premade' && font?.overlay" label="Hide the font's own overlay" v-model="object.disableFontOverlay" />
     <Segments :options="MODES" :model-value="object[modeKey]" @update:model-value="pickMode" />
     <p class="hint" v-if="edge">Paints the top and bottom faces around each letter.</p>
@@ -202,7 +203,7 @@
       <h3 class="grow">Editing "{{ layerName(layer) }}"</h3>
       <Button ghost v-if="layerModified" @click="resetLayer">Reset</Button>
     </div>
-    <Segments v-if="!edge" :options="KINDS" :model-value="kind" @update:model-value="pickKind" />
+    <Segments v-if="!edge" :options="kinds" :model-value="kind" @update:model-value="pickKind" />
     <TileGrid class="scroll" v-if="kind !== 'file'">
       <Tile v-for="[id, data] of shown" :key="id" :label="data.name ?? titleCase(id)" :unit="thumbnailHeight(font)" :image="thumbnail(font, id)" :author="credit(data, font?.id, library.fonts)" :selected="layer?.overlay === id" :menu="overlayMenu(id, data)" :save="data.generated ? null : 'Download this overlay'" @pick="pickOverlay(id)" @save="saveSheet(font, 'overlays', id)" />
     </TileGrid>

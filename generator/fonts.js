@@ -18,11 +18,16 @@ export function fontTextureList(entry, list) {
 }
 
 export function fontDir(font) {
+  if (font.dir) return font.dir
   return font.variant ? path.join(out, font.variant, font.id) : path.join(out, font.id)
 }
 
 export function publishedFonts() {
   return flattenFonts(readJson(path.join(out, "fonts.json")))
+}
+
+export function publishedShapes() {
+  return readJson(path.join(PUBLIC, "shapes/shapes.json")).filter(shape => shape.kind === "png").map(shape => ({ ...shape, dir: path.join(PUBLIC, "shapes", shape.id), preview: shape.order }))
 }
 
 export function readMask(entry, list) {

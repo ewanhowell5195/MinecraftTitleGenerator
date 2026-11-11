@@ -46,7 +46,10 @@
     return [{ label: "Download tileable", icon: "download", action: () => saveImage(tileableUrl(library.tileables, id, variant), `${variant ?? id}.png`) }]
   }
   const tiling = usePanel("tiling")
-  const sources = computed(() => font.value?.mesh ? SOURCES.filter(source => source.value !== "custom") : SOURCES)
+  const sources = computed(() => {
+    if (font.value?.model) return SOURCES.filter(source => source.value === "premade")
+    return font.value?.mesh ? SOURCES.filter(source => source.value !== "custom") : SOURCES
+  })
   const search = ref("")
   const tileSize = ref({ width: 16, height: 16 })
   const blocks = shallowRef(null)
@@ -212,7 +215,7 @@
 <template>
   <Panel title="Source" :modified="modified" @reset="reset">
     <div class="flow" :class="{ pick: object.textureSource === 'premade' || object.textureSource === 'tileable', peek: object.textureSource === 'tileable' }">
-      <Segments :options="sources" :model-value="object.textureSource" @update:model-value="chooseSource" />
+      <Segments v-if="sources.length > 1" :options="sources" :model-value="object.textureSource" @update:model-value="chooseSource" />
 
       <template v-if="object.textureSource === 'premade'">
         <input v-if="searchable(textures)" type="text" v-model="search" placeholder="Search textures">

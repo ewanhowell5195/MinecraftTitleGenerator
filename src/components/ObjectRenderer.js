@@ -4,6 +4,7 @@ import { arcAssets, arcLayout } from "../lib/arc.js"
 import { buildOutline, buildText } from "../lib/build.js"
 import { customFontEntry } from "../lib/customFonts.js"
 import { EulaDeclined } from "../lib/eula.js"
+import { shapeOf } from "../lib/shapes.js"
 import { framing } from "../lib/framing.js"
 import { hasMarks, loadFont, sheetFolder } from "../lib/font.js"
 import { stripRows } from "../lib/strips.js"
@@ -12,7 +13,8 @@ import { blockTextureImage } from "../lib/minecraft.js"
 import { R, paintBase, paintKey, paintSheet } from "../lib/paint.js"
 import { platform } from "../lib/platform.js"
 import { quietly } from "../lib/history.js"
-import { DEFAULT_CAP_HEIGHT, DEFAULT_HEIGHT, rowStart } from "../lib/rows.js"
+import { placementOf } from "../lib/placement.js"
+import { DEFAULT_CAP_HEIGHT, DEFAULT_HEIGHT } from "../lib/rows.js"
 import { editorTitle, keepTexture, loadedFont, words } from "../lib/scene.js"
 import { activeOverlays, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, effectiveScale, isCustomFont, setTexture, textureEntry } from "../lib/settings.js"
 
@@ -28,6 +30,7 @@ export default {
   props: {
     object: { type: Object, required: true },
     fonts: { type: Array, required: true },
+    shapes: { type: Array, default: () => [] },
     tileables: { type: Object, required: true },
     title: { type: Object, default: () => editorTitle }
   },
@@ -117,13 +120,6 @@ export default {
     const ownDepth = computed(() => object.wordDepth ?? object.depth)
     const depth = computed(() => typeDepth(ownDepth.value))
 
-    function depthCentre(front, scale) {
-      const reference = typeDepth(defaultDepth(font.value))
-      if (object.depthAnchor === "back") return front - scale * (reference - depth.value / 2)
-      if (object.depthAnchor === "middle") return front - scale * reference / 2
-      return front - scale * depth.value / 2
-    }
-
     const marked = computed(() => hasMarks(font.value))
     const stretching = computed(() => object.scaleMarked && marked.value)
     const meshScale = computed(() => {
@@ -138,8 +134,8 @@ export default {
 
     function wordShape(other) {
       return {
-        text: other.text,
-        creeper: other.creeperFace,
+        text: other.shape === null ? other.text : font.value?.order ?? "",
+        creeper: other.shape === null && other.creeperFace,
         space: other.spaceBefore,
         arc: { mode: other.wordArcMode, top: other.wordArcTop / 100, bottom: other.wordArcBottom / 100, move: other.wordArcMove / 100, centre: other.wordArcCentre / 100, marked: other.wordArcMarked },
         stretch: other.wordScaleMarked && marked.value ? other.wordScaleY : 1
@@ -188,17 +184,7 @@ export default {
       edgeSmooth: object.edgeSmooth
     }))
 
-    const transform = computed(() => {
-      const height = font.value?.height ?? DEFAULT_HEIGHT
-      const start = rowStart(object, props.title)
-      const arc = heights[object.id]?.arc ?? { top: 0, bottom: 0 }
-      const scale = meshScale.value
-      const word = { scale: wordScale.value, userScale: [object.wordScaleX, object.wordScaleY, object.wordScaleZ], rotate: [object.wordRotationX, object.wordRotationY, object.wordRotationZ], translate: [object.wordTranslateX, object.wordTranslateY, object.wordTranslateZ] }
-      const user = { rotate: [object.rotationX, object.rotationY, object.rotationZ], translate: [object.translateX, object.translateY, object.translateZ], matchOffset: object.matchOffset, outlineGrow: outlineGrow.value, userScale: [object.scaleX, object.scaleY, object.scaleZ], word }
-      if (object.type === "bottom") return { ...user, scale, type: [0.78042, 1.67665, 0.77035], offset: [0, -(0.77035 * (height * 2 + 18.9862) + start + 1.67665 * arc.top), depthCentre(7.6764, 0.77035)], rotation: 90, anchor: { y: "top", z: "front" } }
-      if (object.type === "small") return { ...user, scale, type: [0.39732, 0.43021, 0.33472], offset: [0, -(start + 3.6943 + (font.value?.capHeight ?? DEFAULT_CAP_HEIGHT) * 0.43021 + 0.43021 * arc.top), depthCentre(3.0762, 0.33472)], rotation: -0.4, anchor: { y: "top", z: "middle" } }
-      return { ...user, scale, type: [1, 1, 1], offset: [0, start + arc.bottom, depthCentre(11, 1)], rotation: 0, anchor: { y: "bottom", z: "back" } }
-    })
+    const transform = computed(() => placementOf(object, props.title, { height: font.value?.height ?? DEFAULT_HEIGHT, capHeight: font.value?.capHeight ?? DEFAULT_CAP_HEIGHT, depth: depth.value, reference: typeDepth(defaultDepth(font.value)), scale: meshScale.value, wordScale: wordScale.value, outlineGrow: outlineGrow.value }))
 
     function outlineScale() {
       const type = object.type === "bottom" ? transform.value.type : [1, 1, 1]
@@ -421,12 +407,13 @@ export default {
 
     async function pick(id) {
       const token = ++fontRequest
-      const custom = isCustomFont(id) && object.customFont ? await customFontEntry(object.customFont) : null
+      const shape = object.shape === null ? null : shapeOf(props.shapes, object.shape)
+      const custom = !shape && isCustomFont(id) && object.customFont ? await customFontEntry(object.customFont) : null
       if (token !== fontRequest) return
-      const fonts = custom ? props.fonts.concat(custom) : props.fonts
-      const data = custom ?? props.fonts.find(entry => entry.id === id) ?? props.fonts[0]
+      const fonts = shape ? [] : custom ? props.fonts.concat(custom) : props.fonts
+      const data = shape ?? custom ?? props.fonts.find(entry => entry.id === id) ?? props.fonts[0]
       if (!data) throw new Error("no fonts available")
-      if (object.font !== data.id) quietly(() => (object.font = data.id))
+      if (!shape && object.font !== data.id) quietly(() => (object.font = data.id))
       preload(sheetFolder(data, fonts))
       const loaded = await loadFont(data, fonts)
       const [layout, textures] = await Promise.all([sheetFor(loaded), fontTextures(loaded.sheetFolder, loaded.strips)])
@@ -455,11 +442,11 @@ export default {
 
     watch(look, repaint)
     watch([inputs, painted], schedule)
-    watch(() => object.font, id => {
+    watch(() => object.shape ?? object.font, id => {
       if (font.value?.id !== id) pick(id).catch(err => (error.value = err.message))
     }, { immediate: true })
-    watch([font, list, built, error, transform, outline, halo, preview, previewOutline, painted, () => object.font], () => {
-      runtime[object.id] = { font: font.value, list: list.value, built: built.value, error: error.value, transform: transform.value, outline: outline.value, halo: halo.value, preview: preview.value && { built: preview.value, outline: previewOutline.value }, settled: painted.value?.font === object.font || !!error.value }
+    watch([font, list, built, error, transform, outline, halo, preview, previewOutline, painted, () => object.shape ?? object.font], () => {
+      runtime[object.id] = { font: font.value, list: list.value, built: built.value, error: error.value, transform: transform.value, outline: outline.value, halo: halo.value, preview: preview.value && { built: preview.value, outline: previewOutline.value }, settled: painted.value?.font === (object.shape ?? object.font) || !!error.value }
     }, { immediate: true })
 
     watch(font, value => {

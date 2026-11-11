@@ -1,0 +1,30 @@
+[
+  {
+    "id": "minecraft-ten-blank",
+    "name": "Minecraft Ten (Blank)",
+    "author": "Ewan Howell",
+    "kind": "png",
+    "order": "x",
+    "strips": [
+      "minecraft-ten"
+    ]
+  },
+  {
+    "id": "dungeons-skull",
+    "author": "Ewan Howell",
+    "kind": "model",
+    "height": 48
+  },
+  {
+    "id": "cube",
+    "author": "Ewan Howell",
+    "kind": "model",
+    "height": 36
+  },
+  {
+    "id": "heart",
+    "author": "Ewan Howell",
+    "kind": "model",
+    "height": 32
+  }
+]

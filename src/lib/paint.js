@@ -285,7 +285,7 @@ function drawOverlay(sheet, layer, source, capHeight) {
   return overlay
 }
 
-function colourOverlay(mask, layer) {
+export function colourOverlay(mask, layer) {
   const { width, height } = mask.canvas
   const overlay = surface(width, height)
   overlay.ctx.drawImage(mask.canvas, 0, 0)
@@ -364,7 +364,7 @@ function readLater(target) {
   return () => pixels ??= target.ctx.getImageData(0, 0, target.canvas.width, target.canvas.height)
 }
 
-function adjusted(source, look, options) {
+export function adjusted(source, look, options) {
   const out = surface(source.width, source.height, options)
   out.ctx.filter = `hue-rotate(${look.hue}deg) saturate(${look.saturation}%) brightness(${look.brightness}%) contrast(${look.contrast}%)`
   out.ctx.drawImage(source, 0, 0)
@@ -403,7 +403,7 @@ function overlayLabels(sheet, layers, capHeight, width, height) {
   return ctx.canvas
 }
 
-function borderOf(look, assets) {
+export function borderOf(look, assets) {
   return remember(adjustedColours, JSON.stringify(look.customBorder ? look.borderColour : [assets.border, adjustmentsOf(look)]), () => {
     const pixel = surface(1, 1, { willReadFrequently: true })
     pixel.ctx.fillStyle = look.customBorder ? look.borderColour : assets.border

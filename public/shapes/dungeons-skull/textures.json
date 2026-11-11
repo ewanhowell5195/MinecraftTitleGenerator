@@ -1,0 +1,26 @@
+{
+  "textures": {
+    "flat": {
+      "author": "Ewan Howell",
+      "border": "#000000"
+    },
+    "dungeons": {
+      "author": "Ewan Howell",
+      "border": "#27061c"
+    },
+    "netherite_skull": {
+      "author": "Patrow1",
+      "border": "#111111"
+    }
+  },
+  "overlays": {
+    "highlights_bottom": {
+      "name": "Highlights (Bottom)",
+      "author": "Ewan Howell"
+    },
+    "highlights_top": {
+      "name": "Highlights (Top)",
+      "author": "Ewan Howell"
+    }
+  }
+}

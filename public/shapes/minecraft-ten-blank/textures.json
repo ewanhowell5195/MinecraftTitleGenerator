@@ -1,0 +1,192 @@
+{
+  "textures": {
+    "flat": {
+      "author": "Ewan Howell",
+      "border": "#000000"
+    },
+    "cracked": {
+      "author": "Ewan Howell",
+      "variants": {
+        "cracked_left": {
+          "density": 3,
+          "border": "#000000"
+        },
+        "cracked_right": {
+          "density": 3,
+          "border": "#000000"
+        },
+        "cracked_old": {
+          "density": 4,
+          "border": "#000000"
+        },
+        "cracked_old_pixelated": {
+          "border": "#000000",
+          "density": 1
+        }
+      },
+      "density": 3,
+      "border": "#000000"
+    },
+    "atmosphere": {
+      "author": "Ewan Howell",
+      "border": "#36005d"
+    },
+    "bevelled_gold": {
+      "author": "Ewan Howell",
+      "density": 4,
+      "border": "#3f0f0f"
+    },
+    "bubbles": {
+      "author": "Ewan Howell",
+      "border": "#1d0e46"
+    },
+    "neon": {
+      "author": "Ewan Howell",
+      "border": "#18041a"
+    },
+    "neon_glow": {
+      "author": "Ewan Howell",
+      "border": "#18041a"
+    },
+    "sunset": {
+      "author": "Ewan Howell",
+      "border": "#150b2d"
+    },
+    "creeper": {
+      "category": "Entities",
+      "author": "B1tseK & Ewan Howell",
+      "variants": {
+        "bee_entity": {
+          "name": "Bee (Entity)",
+          "border": "#000000"
+        },
+        "bogged": {
+          "border": "#000000"
+        },
+        "creaking": {
+          "border": "#000000"
+        },
+        "drowned": {
+          "border": "#000000"
+        },
+        "enderman_entity": {
+          "name": "Enderman (Entity)",
+          "border": "#000000"
+        },
+        "fox": {
+          "border": "#000000"
+        },
+        "snow_fox": {
+          "name": "Fox (Snow)",
+          "border": "#000000"
+        },
+        "cold_frog": {
+          "name": "Frog (Cold)",
+          "border": "#000000"
+        },
+        "temperate_frog": {
+          "name": "Frog (Temperate)",
+          "border": "#000000"
+        },
+        "warm_frog": {
+          "name": "Frog (Warm)",
+          "border": "#000000"
+        },
+        "glow_squid_entity": {
+          "name": "Glow Squid (Entity)",
+          "border": "#000000"
+        },
+        "husk": {
+          "border": "#000000"
+        },
+        "iron_golem": {
+          "border": "#000000"
+        },
+        "magma_cube": {
+          "border": "#000000"
+        },
+        "skeleton": {
+          "border": "#000000"
+        },
+        "slime": {
+          "border": "#000000"
+        },
+        "villager": {
+          "border": "#000000"
+        },
+        "vindicator": {
+          "border": "#000000"
+        },
+        "witch": {
+          "border": "#000000"
+        },
+        "zombie": {
+          "border": "#000000"
+        },
+        "zombie_villager": {
+          "border": "#000000"
+        }
+      },
+      "border": "#000000"
+    },
+    "fired": {
+      "author": "Ewan Howell",
+      "border": "#021935",
+      "overlays": [
+        {
+          "overlay": "outline_fade_inverted",
+          "opacity": 80
+        }
+      ],
+      "edgeOverlays": [
+        {
+          "overlay": "edge_outline_fade",
+          "opacity": 46
+        }
+      ]
+    },
+    "coconut": {
+      "author": "B1tseK",
+      "border": "#2e170c"
+    },
+    "lagoona": {
+      "author": "B1tseK & Ewan Howell",
+      "border": "#0a2b6b"
+    },
+    "furnace": {
+      "author": "B1tseK",
+      "border": "#191919"
+    }
+  },
+  "overlays": {
+    "highlights_bottom": {
+      "name": "Highlights (Bottom)",
+      "author": "Ewan Howell"
+    },
+    "highlights_top": {
+      "name": "Highlights (Top)",
+      "author": "Ewan Howell"
+    },
+    "glass": {
+      "author": "B1tseK"
+    },
+    "glass_old": {
+      "name": "Glass (Old)",
+      "author": "B1tseK"
+    },
+    "highlights_right": {
+      "name": "Highlights (Right)",
+      "author": "B1tseK"
+    },
+    "highlights_left": {
+      "name": "Highlights (Left)",
+      "author": "B1tseK"
+    },
+    "glass_tempered": {
+      "name": "Glass (Tempered)",
+      "author": "B1tseK"
+    }
+  },
+  "primary": "cracked",
+  "secondary": "gradient"
+}

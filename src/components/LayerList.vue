@@ -7,7 +7,7 @@
   import { dropPreview, previews, renderPreview } from "../lib/previews.js"
   import { useReorderDrag } from "../lib/reorder.js"
   import { TYPES } from "../lib/settings.js"
-  import { addObject, duplicateLine, lineHidden, lineText, removeLine, removeObject, runtime, scene, select, selectGroup, toggleLine } from "../lib/scene.js"
+  import { addObject, addShape, duplicateLine, lineHidden, lineText, removeLine, removeObject, runtime, scene, select, selectGroup, toggleLine, wordText } from "../lib/scene.js"
   import { view } from "../lib/view.js"
   import ContextMenu from "./ContextMenu.vue"
   import Icon from "./Icon.vue"
@@ -65,7 +65,7 @@
   }
 
   function label(object) {
-    return object.text.trim() || "(empty)"
+    return wordText(object) || "(empty)"
   }
 
   function pick(object) {
@@ -166,6 +166,11 @@
     view.render = false
   }
 
+  function addShapeLine() {
+    addShape()
+    view.render = false
+  }
+
   const context = ref(null)
 
   function shift(row, by) {
@@ -217,7 +222,10 @@
         </div>
       </div>
       <button class="add" @click="add" v-tooltip="{ text: 'Add text', prefer: 'right', tooltipClass: 'rail-tip rail-add' }" aria-label="Add text">
-        <Icon name="plus" :size="18" />
+        <Icon name="letter" :size="18" />
+      </button>
+      <button class="add" @click="addShapeLine" v-tooltip="{ text: 'Add shape', prefer: 'right', tooltipClass: 'rail-tip rail-add' }" aria-label="Add shape">
+        <Icon name="star" :size="18" />
       </button>
     </div>
     <div class="divider"></div>

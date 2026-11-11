@@ -230,6 +230,7 @@ const FOLDER = "font"
 const META = ["author", "description", "strips", "height", "depth", "border", "characterSpacing", "spaceWidth", "terminatorSpace", "terminatorSpaceWidth", "forcedTerminators", "autoBorder", "flat", "overlay", "mesh", "outlines"]
 
 export function fontFolder(data) {
+  if (data.folder) return data.folder
   return data.variant ? `${FOLDER}/${data.variant}/${data.id}` : `${FOLDER}/${data.id}`
 }
 

@@ -59,6 +59,9 @@ const PANELS = {
     font: DEFAULT_FONT,
     customFont: null
   }),
+  shape: () => ({
+    shape: null
+  }),
   placement: () => ({
     type: "top",
     row: 0,

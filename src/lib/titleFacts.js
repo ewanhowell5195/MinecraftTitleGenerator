@@ -2,8 +2,12 @@ import { decodeTitle } from "./linkformat.js"
 import { typeDefaults } from "./settings.js"
 import { blockedWordProblem } from "./wording.js"
 
-function wordsOf(line) {
+function allWordsOf(line) {
   return line.words ? line.words.map(word => ({ ...line, ...word })) : [line]
+}
+
+function wordsOf(line) {
+  return allWordsOf(line).filter(word => !word.shape)
 }
 
 function textOf(word, fallback) {
@@ -18,7 +22,8 @@ export function titleFacts(lines) {
     text: texts.filter(Boolean).join(" "),
     all: everything.join(" "),
     words: everything.length,
-    characters: everything.reduce((total, text) => total + Array.from(text).length, 0)
+    characters: everything.reduce((total, text) => total + Array.from(text).length, 0),
+    shapes: lines.flatMap(allWordsOf).filter(word => word.shape && !word.hidden).length
   }
 }
 

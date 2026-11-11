@@ -1,0 +1,123 @@
+{
+  "textures": {
+    "flat": {
+      "author": "Ewan Howell",
+      "border": "#000000"
+    },
+    "red": {
+      "author": "Ewan Howell",
+      "variants": {
+        "yellow": {
+          "border": "#000000"
+        },
+        "poisoned": {
+          "author": "B1tseK",
+          "border": "#000000"
+        },
+        "withered": {
+          "author": "B1tseK",
+          "border": "#000000"
+        },
+        "frozen": {
+          "author": "B1tseK",
+          "border": "#000000"
+        },
+        "heartless": {
+          "author": "B1tseK",
+          "border": "#000000"
+        },
+        "vehicle": {
+          "author": "B1tseK",
+          "border": "#000000"
+        }
+      },
+      "border": "#000000"
+    },
+    "hardcore": {
+      "author": "Ewan Howell",
+      "variants": {
+        "yellow_hardcore": {
+          "author": "B1tseK",
+          "border": "#000000"
+        },
+        "poisoned_hardcore": {
+          "author": "B1tseK",
+          "border": "#000000"
+        },
+        "withered_hardcore": {
+          "author": "B1tseK",
+          "border": "#000000"
+        },
+        "frozen_hardcore": {
+          "author": "B1tseK",
+          "border": "#000000"
+        },
+        "heartless_hardcore": {
+          "author": "B1tseK",
+          "border": "#000000"
+        },
+        "vehicle_hardcore": {
+          "author": "B1tseK",
+          "border": "#000000"
+        }
+      },
+      "border": "#000000"
+    },
+    "sea_heart": {
+      "author": "B1tseK",
+      "variants": {
+        "sea_heart_hardcore": {
+          "border": "#000000"
+        }
+      },
+      "border": "#000000"
+    },
+    "mineimator": {
+      "author": "Ewan Howell & B1tseK",
+      "variants": {
+        "mineimator_hardcore": {
+          "border": "#121833"
+        }
+      },
+      "border": "#121833"
+    },
+    "neon": {
+      "author": "Ewan Howell & B1tseK",
+      "variants": {
+        "neon_hardcore": {
+          "border": "#18041a"
+        }
+      },
+      "border": "#18041a"
+    },
+    "bedrock_button_unpressed": {
+      "author": "Klayv & B1tseK",
+      "variants": {
+        "bedrock_button_unpressed_hardcore": {
+          "border": "#1e1e1f"
+        },
+        "bedrock_button": {
+          "border": "#1e1e1f"
+        },
+        "bedrock_button_hardcore": {
+          "border": "#1e1e1f"
+        }
+      },
+      "border": "#1e1e1f"
+    }
+  },
+  "overlays": {
+    "highlights_bottom": {
+      "name": "Highlights (Bottom)",
+      "author": "Ewan Howell"
+    },
+    "highlights_top": {
+      "name": "Highlights (Top)",
+      "author": "Ewan Howell"
+    },
+    "hardcore_shadow": {
+      "name": "Shadow (Hardcore)",
+      "author": "B1tseK"
+    }
+  }
+}

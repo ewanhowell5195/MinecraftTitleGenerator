@@ -53,11 +53,12 @@ export function checkTitle(code) {
   if (title.version > FILE_VERSION) throw new Refusal(400, "This title was made by a newer version of the generator. Reload the page and try again.")
   const unknown = unknownSetting(title.lines)
   if (unknown) throw new Refusal(400, `This title has a setting that can't be shared: ${unknown}.`)
+  if (title.lines.some(line => line.words?.some(word => (word.shape ?? line.shape) != null))) throw new Refusal(400, "This title has a shape inside a line of words, which can't be shared.")
   if (title.lines.length > LIMITS.lines) throw new Refusal(400, `A shared title can have up to ${LIMITS.lines} lines.`)
   const facts = titleFacts(title.lines)
   if (facts.words > LIMITS.words) throw new Refusal(400, `A shared title can have up to ${LIMITS.words} words.`)
   if (facts.characters > LIMITS.characters) throw new Refusal(400, `A shared title can have up to ${LIMITS.characters} characters of text.`)
-  if (!facts.text) throw new Refusal(400, "This title has no text in it.")
+  if (!facts.text && !facts.shapes) throw new Refusal(400, "This title has no text or shapes in it.")
   return facts
 }
 

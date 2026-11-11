@@ -309,6 +309,10 @@ describe("names in links", () => {
     assert.equal(writeLines([{ font: "minecraft-legends" }]).length, 3 + 1 + 12)
   })
 
+  test("shapes are stored by their id", () => {
+    for (const id of ["cube", "minecraft-ten-blank", "dungeons-skull"]) assert.equal(roundTrip([{ shape: id }])[0].shape, id)
+  })
+
   test("a name with other characters still round trips", () => {
     assert.equal(roundTrip([{ texture: "Fancy Name" }])[0].texture, "Fancy Name")
   })

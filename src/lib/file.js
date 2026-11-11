@@ -9,6 +9,7 @@ const FORMAT = "minecraft-title"
 export const EXTENSION = "mctitle"
 
 const UNUSED = [
+  [object => object.shape !== null, ["text", "spaceBefore", "terminators", "creeperFace", "font", "customFont", "spacing", "kerning"]],
   [object => object.textureSource !== "premade", ["texture", "textureVariant"]],
   [object => object.textureSource !== "tileable", ["tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion"]],
   [object => object.textureSource !== "tileable" && !(object.textureSource === "custom" && object.customTextureMode === "tileable"), ["tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "tileablePerCharacter"]],
@@ -121,6 +122,7 @@ function expandLine({ words, ...line }, group) {
   if (!words) return [expand(line)]
   if (!Array.isArray(words) || !words.length) throw new Error("a line has no words in it")
   if (words.some(word => "matchWidth" in word)) throw new Error("a word sets matchWidth, which only a line can have")
+  if (words.some(word => (word.shape ?? line.shape) != null)) throw new Error("a shape is used as a word in a line")
   return words.map(word => expand({ ...line, ...word, group }))
 }
 

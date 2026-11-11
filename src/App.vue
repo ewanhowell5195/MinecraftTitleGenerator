@@ -28,24 +28,28 @@
   import SpacingPanel from "./components/panels/SpacingPanel.vue"
   import TextPanel from "./components/panels/TextPanel.vue"
   import TexturePanel from "./components/panels/TexturePanel.vue"
+  import ShapePanel from "./components/panels/ShapePanel.vue"
+  import ModelRenderer from "./components/ModelRenderer.js"
   import TransformPanel from "./components/panels/TransformPanel.vue"
   import { loadTileables } from "./lib/assets.js"
   import { eula } from "./lib/eula.js"
   import { useWindowEvents } from "./lib/events.js"
   import { fileError, saveTitle } from "./lib/file.js"
   import { loadFontList } from "./lib/font.js"
+  import { isModelShape, loadShapeList } from "./lib/shapes.js"
   import { titleItems } from "./lib/items.js"
   import { redo, undo } from "./lib/history.js"
   import { keepMatched } from "./lib/match.js"
   import { notice } from "./lib/notices.js"
   import { presetsPage } from "./lib/presetsPage.js"
-  import { active, addObject, currentWord, library, saveError, scene, selection, shapingWord, wordTabs, words } from "./lib/scene.js"
+  import { active, addObject, addShape, currentWord, library, saveError, scene, selection, shapingWord, wordTabs, words } from "./lib/scene.js"
   import { openSharedLink } from "./lib/share.js"
   import { openSubmissionLink } from "./lib/submissionLink.js"
   import { loadStats } from "./lib/stats.js"
-  import { SECTIONS, SHAPE_SECTIONS, view } from "./lib/view.js"
+  import { SECTIONS, FORM_SECTIONS, view } from "./lib/view.js"
 
   const SECTION_TABS = Object.entries(SECTIONS).map(([id, { name, icon }]) => ({ id, label: name, icon }))
+  const TEXT_SECTIONS = new Set(["text", "font"])
   const SHAPE_TABS = [{ value: "line", label: "Whole line" }, { value: "word", label: "Current word" }]
   const LINE_SECTIONS = new Set(["text", "font"])
 
@@ -61,12 +65,19 @@
 
   const selected = computed(() => {
     if (view.render) return []
-    if (SHAPE_SECTIONS.has(view.section)) return (shapingWord.value ? [currentWord.value] : words(currentWord.value)).map(object => object.id)
+    if (FORM_SECTIONS.has(view.section)) return (shapingWord.value ? [currentWord.value] : words(currentWord.value)).map(object => object.id)
     if (LINE_SECTIONS.has(view.section)) return words(currentWord.value).map(object => object.id)
     return selection.value.map(object => object.id)
   })
   const status = computed(() => error.value ?? fileError.value ?? saveError.value ?? active.value.error)
   const editing = computed(() => !view.render && scene.objects.length > 0)
+  const shapeLine = computed(() => currentWord.value?.shape != null)
+  const tabs = computed(() => SECTION_TABS.filter(tab => shapeLine.value ? !TEXT_SECTIONS.has(tab.id) : tab.id !== "shape"))
+
+  watch(shapeLine, value => {
+    if (value && TEXT_SECTIONS.has(view.section)) view.section = "shape"
+    else if (!value && view.section === "shape") view.section = "text"
+  }, { immediate: true })
 
   function shortcut(event) {
     if (!(event.ctrlKey || event.metaKey) || event.altKey || presetsPage.open) return
@@ -89,8 +100,9 @@
   onMounted(async () => {
     loadStats().catch(console.error)
     try {
-      const [fonts, tileables] = await Promise.all([loadFontList(), loadTileables(), openSharedLink(), openSubmissionLink()])
+      const [fonts, shapes, tileables] = await Promise.all([loadFontList(), loadShapeList(), loadTileables(), openSharedLink(), openSubmissionLink()])
       library.fonts = fonts
+      library.shapes = shapes
       library.tileables = tileables
       ready.value = true
     } catch (err) {
@@ -113,7 +125,7 @@
 
     <LayerActions v-if="editing" />
 
-    <FluidTabs v-if="editing" class="tabs" v-model="view.section" :tabs="SECTION_TABS" tab-style="nav">
+    <FluidTabs v-if="editing" class="tabs" v-model="view.section" :tabs="tabs" tab-style="nav">
       <template #label="{ tab }">
         <Icon :name="tab.icon" :size="20" />
         <span>{{ tab.label }}</span>
@@ -126,8 +138,11 @@
       </div>
       <RenderPanel v-if="view.render" />
       <Panel v-else-if="!editing">
-        <Button primary wide @click="addObject"><template #icon><Icon name="plus" :size="16" /></template>
+        <Button primary wide @click="addObject"><template #icon><Icon name="letter" :size="16" /></template>
           <span>Add text</span>
+        </Button>
+        <Button wide @click="addShape"><template #icon><Icon name="star" :size="16" /></template>
+          <span>Add shape</span>
         </Button>
       </Panel>
       <template v-else-if="view.section === 'text'">
@@ -138,21 +153,27 @@
         <FontPanel />
         <SpacingPanel />
       </template>
+      <template v-else-if="view.section === 'shape'">
+        <ShapePanel />
+        <PlacementPanel />
+      </template>
       <TexturePanel v-else-if="view.section === 'texture'" />
       <ColourPanel v-else-if="view.section === 'colour'" />
       <template v-else-if="view.section === 'overlays'">
         <OverlaysPanel />
-        <OverlaysPanel edge />
+        <OverlaysPanel v-if="!active.font?.model" edge />
       </template>
-      <template v-else-if="SHAPE_SECTIONS.has(view.section)">
-        <Panel v-if="wordTabs">
+      <template v-else-if="FORM_SECTIONS.has(view.section)">
+        <Panel v-if="wordTabs && !shapeLine">
           <Segments :options="SHAPE_TABS" v-model="view.shapeTab" />
           <p v-if="shapingWord" class="hint">Only changes "{{ currentWord.text.trim() }}", on top of the shape of the whole line.</p>
         </Panel>
-        <template v-if="view.section === 'shape'">
+        <template v-if="view.section === 'form'">
           <GeometryPanel :word="shapingWord" :key="shapingWord ? 'word-geometry' : 'line-geometry'" />
-          <ArcPanel :word="shapingWord" :key="shapingWord ? 'word-arc' : 'line-arc'" />
-          <TwistPanel v-if="!shapingWord" />
+          <template v-if="!shapeLine">
+            <ArcPanel :word="shapingWord" :key="shapingWord ? 'word-arc' : 'line-arc'" />
+            <TwistPanel v-if="!shapingWord" />
+          </template>
         </template>
         <TransformPanel v-else :word="shapingWord" />
       </template>
@@ -170,7 +191,10 @@
     <EulaDialog v-if="eula.asking" />
 
     <template v-if="ready">
-      <ObjectRenderer v-for="object of scene.objects" :key="object.id" :object="object" :fonts="library.fonts" :tileables="library.tileables" />
+      <template v-for="object of scene.objects" :key="object.id">
+        <ModelRenderer v-if="isModelShape(library.shapes, object.shape)" :object="object" :shapes="library.shapes" />
+        <ObjectRenderer v-else :object="object" :fonts="library.fonts" :shapes="library.shapes" :tileables="library.tileables" />
+      </template>
     </template>
   </div>
 </template>

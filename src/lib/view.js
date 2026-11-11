@@ -5,14 +5,15 @@ export const DEFAULT_FOV = 43
 export const SECTIONS = {
   text: { name: "Text", icon: "text" },
   font: { name: "Font", icon: "font" },
+  shape: { name: "Shape", icon: "star" },
   texture: { name: "Texture", icon: "texture" },
   colour: { name: "Colour", icon: "palette" },
   overlays: { name: "Overlays", icon: "layers" },
-  shape: { name: "Shape", icon: "cube" },
+  form: { name: "Form", icon: "cube" },
   transform: { name: "Transform", icon: "move" }
 }
 
-export const SHAPE_SECTIONS = new Set(["shape", "transform"])
+export const FORM_SECTIONS = new Set(["form", "transform"])
 
 const DEFAULTS = {
   section: "text",

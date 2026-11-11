@@ -44,6 +44,7 @@ const TOP_DEFAULTS = {
   scaleY: 1,
   linkScale: null,
   scaleZ: 1,
+  shape: null,
   scaleMarked: false,
   scaleOutline: false,
   rotationX: 0,

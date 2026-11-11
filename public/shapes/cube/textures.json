@@ -1,0 +1,166 @@
+{
+  "textures": {
+    "flat": {
+      "author": "Ewan Howell",
+      "border": "#000000"
+    },
+    "steve": {
+      "category": "Skins",
+      "author": "B1tseK",
+      "variants": {
+        "alex": {
+          "border": "#221a11"
+        },
+        "ari": {
+          "border": "#170904"
+        },
+        "creaking_mask": {
+          "border": "#0e0803"
+        },
+        "efe": {
+          "border": "#180f19"
+        },
+        "kai": {
+          "border": "#1f1710"
+        },
+        "makena": {
+          "border": "#090304"
+        },
+        "noor": {
+          "border": "#050302"
+        },
+        "pale_lamberjack": {
+          "border": "#0b110b"
+        },
+        "sunny": {
+          "border": "#0f0f0f"
+        },
+        "zuri": {
+          "border": "#000000"
+        }
+      },
+      "border": "#130904"
+    },
+    "smile": {
+      "category": "Emojis",
+      "author": "B1tseK",
+      "variants": {
+        "for_me": {
+          "border": "#2e2a26"
+        },
+        "grinning": {
+          "border": "#2e2a26"
+        },
+        "nauseated": {
+          "border": "#2e2a26"
+        },
+        "scream": {
+          "border": "#2e2a26"
+        },
+        "devil": {
+          "border": "#2e2a26"
+        },
+        "frown": {
+          "border": "#2e2a26"
+        },
+        "cool": {
+          "border": "#2e2a26"
+        },
+        "smile": {
+          "border": "#2e2a26"
+        },
+        "heart_eyes": {
+          "border": "#2e2a26"
+        }
+      },
+      "border": "#2e2a26"
+    },
+    "zombie": {
+      "category": "Entities",
+      "author": "Ewan Howell",
+      "variants": {
+        "blaze": {
+          "border": "#000000"
+        },
+        "bogged": {
+          "border": "#000000"
+        },
+        "breeze": {
+          "border": "#000000"
+        },
+        "cave_spider": {
+          "border": "#000000"
+        },
+        "creeper": {
+          "border": "#000000"
+        },
+        "drowned": {
+          "border": "#000000"
+        },
+        "drowned_baby": {
+          "border": "#277500"
+        },
+        "enderman": {
+          "border": "#000000"
+        },
+        "ghast": {
+          "border": "#000000"
+        },
+        "ghast_shooting": {
+          "border": "#000000"
+        },
+        "happy_ghast": {
+          "border": "#000000"
+        },
+        "ghastling": {
+          "border": "#000000"
+        },
+        "husk": {
+          "border": "#000000"
+        },
+        "husk_baby": {
+          "border": "#40382a"
+        },
+        "parched": {
+          "border": "#000000"
+        },
+        "skeleton": {
+          "border": "#000000"
+        },
+        "snow_golem": {
+          "border": "#000000"
+        },
+        "spider": {
+          "border": "#000000"
+        },
+        "stray": {
+          "border": "#000000"
+        },
+        "wither": {
+          "border": "#000000"
+        },
+        "wither_invulnerable": {
+          "border": "#000000"
+        },
+        "wither_skeleton": {
+          "border": "#000000"
+        },
+        "zombie_baby": {
+          "border": "#315223"
+        }
+      },
+      "border": "#000000"
+    }
+  },
+  "overlays": {
+    "borders": {
+      "author": "Ewan Howell"
+    },
+    "borders_thin": {
+      "name": "Borders (Thin)",
+      "author": "Ewan Howell"
+    }
+  },
+  "primary": "steve",
+  "secondary": "steve"
+}

@@ -12,7 +12,7 @@
   import { createSmoothing } from "../lib/smoothing.js"
   import { UNTURNED, UNZOOMED, createEntry, destroyEntry, elevationOf, frameCamera, gizmoPose, lineBounds, movedBy, orbitCamera, panMatrix, pannedBy, pickEntry, rotatedTo, sortEntries, titleFraming, turnedBy, updateEntry, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } from "../lib/stage.js"
   import { vectorTitle } from "../lib/vector.js"
-  import { SHAPE_SECTIONS, view, viewport, viewportChanges } from "../lib/view.js"
+  import { FORM_SECTIONS, view, viewport, viewportChanges } from "../lib/view.js"
   import Icon from "./Icon.vue"
 
   const TOOLS = [[null, "pointer", "No gizmo"], ["translate", "move", "Move"], ["rotate", "rotate", "Rotate"], ["scale", "scale", "Scale"]]
@@ -35,7 +35,7 @@
   const turn = shallowRef(UNTURNED)
   const orbiting = ref(false)
   const panning = ref(false)
-  const navigable = computed(() => !view.render && SHAPE_SECTIONS.has(view.section))
+  const navigable = computed(() => !view.render && FORM_SECTIONS.has(view.section))
   const moved = computed(() => pan.value !== UNZOOMED || turn.value !== UNTURNED)
   const baseProjection = new THREE.Matrix4()
   const basePosition = new THREE.Vector3()

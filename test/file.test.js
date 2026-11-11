@@ -567,6 +567,7 @@ describe("rejected files", () => {
     ["lines that are not a list", title("words"), "Couldn't open test.mctitle: it has no text in it"],
     ["a matchWidth past the end", title([{}, { matchWidth: 2 }]), "Couldn't open test.mctitle: a line matches the width of line 2, which doesn't exist"],
     ["a negative matchWidth", title([{ matchWidth: -1 }]), "Couldn't open test.mctitle: a line matches the width of line -1, which doesn't exist"],
+    ["a shape used as a word", title([{ words: [{ text: "a" }, { shape: "heart" }] }]), "Couldn't open test.mctitle: a shape is used as a word in a line"],
     ["a line matching itself", title([{}, { matchWidth: 1 }]), "Couldn't open test.mctitle: line 1 matches its own width"],
     ["two lines matching each other", title([{ matchWidth: 1 }, { matchWidth: 0 }]), "Couldn't open test.mctitle: line 0 matches its own width"],
     ["a longer loop", title([{ matchWidth: 1 }, { matchWidth: 2 }, { matchWidth: 0 }]), "Couldn't open test.mctitle: line 0 matches its own width"],

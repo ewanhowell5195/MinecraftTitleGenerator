@@ -27,7 +27,7 @@ export function validSelection(objects, selected, selectedGroup) {
 function load() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE))
-    if (Array.isArray(saved?.objects) && saved.objects.some(values => values.text.trim())) return { objects: saved.objects.map(values => keptObject(values, values.id)), selected: saved.selected, selectedGroup: saved.selectedGroup }
+    if (Array.isArray(saved?.objects) && saved.objects.some(values => values.shape || values.text.trim())) return { objects: saved.objects.map(values => keptObject(values, values.id)), selected: saved.selected, selectedGroup: saved.selectedGroup }
   } catch {}
   return { objects: [createObject()], selected: null, selectedGroup: null }
 }
@@ -45,7 +45,7 @@ export const editorTitle = {
 
 export const runtime = editorTitle.runtime
 
-export const library = shallowReactive({ fonts: [], tileables: {} })
+export const library = shallowReactive({ fonts: [], shapes: [], tileables: {} })
 
 export const saveError = ref(null)
 
@@ -123,15 +123,20 @@ export function bakeMatch(object) {
   words(object).forEach(bakeWord)
 }
 
+export function wordText(word) {
+  if (word.shape === null) return word.text.trim()
+  return library.shapes.find(shape => shape.id === word.shape)?.name ?? word.shape
+}
+
 export function lineText(object) {
-  return words(object).map((word, index) => (index && word.spaceBefore ? " " : "") + word.text.trim()).join("").trim()
+  return words(object).map((word, index) => (index && word.spaceBefore ? " " : "") + wordText(word)).join("").trim()
 }
 
 export function titleText() {
   let text = ""
   let group = null
   for (const word of scene.objects) {
-    if (word.hidden) continue
+    if (word.hidden || word.shape !== null) continue
     text += (word.group !== null && word.group === group && !word.spaceBefore ? "" : " ") + word.text.trim()
     group = word.group
   }
@@ -219,15 +224,22 @@ export function selectGroup(group) {
   scene.selectedGroup = group
 }
 
-export function addObject() {
-  const object = createObject({ text: "text" })
+function addNew(object, section) {
   if (scene.objects.length === 1 && scene.objects[0].type === "top") {
     object.type = "bottom"
     applyType(object, "bottom")
   }
   scene.objects.push(object)
   select(object)
-  view.section = "text"
+  view.section = section
+}
+
+export function addObject() {
+  addNew(createObject({ text: "text" }), "text")
+}
+
+export function addShape() {
+  addNew(createObject({ shape: library.shapes[0].id }), "shape")
 }
 
 function nextGroup() {

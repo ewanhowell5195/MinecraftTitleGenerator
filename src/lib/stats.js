@@ -34,7 +34,7 @@ function statIds() {
   const ids = new Set()
   const minecraft = new Map()
   for (const object of scene.objects) {
-    if (object.hidden || !object.text.trim() || isCustomFont(object.font)) continue
+    if (object.hidden || object.shape !== null || !object.text.trim() || isCustomFont(object.font)) continue
     ids.add(object.font)
     if (object.textureSource === "premade") ids.add(`${object.font}.${object.texture}`)
     if (object.textureSource === "tileable" && object.tileableSource === "minecraft") minecraft.set(object.minecraftTexture, object.minecraftVersion)
