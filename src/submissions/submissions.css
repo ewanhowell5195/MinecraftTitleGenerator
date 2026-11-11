@@ -148,6 +148,7 @@ textarea {
 }
 
 .actions > .primary,
-.actions > .primary + :last-child {
+.actions > .primary + :last-child,
+.actions > :only-child {
   grid-column: 1 / -1;
 }
