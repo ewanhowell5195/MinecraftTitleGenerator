@@ -1,6 +1,6 @@
 <script setup>
   import { onBeforeUnmount, onMounted, ref } from "vue"
-  import { modelThumbnail } from "../lib/minecraftModels.js"
+  import { dropThumbnail, modelThumbnail } from "../lib/minecraftModels.js"
   import { titleCase } from "../lib/names.js"
   import Tile from "./Tile.vue"
 
@@ -16,17 +16,28 @@
   const tile = ref(null)
   const picture = ref(null)
   let observer = null
+  let wanted = false
+
+  function seen(entries) {
+    const visible = entries.at(-1).isIntersecting
+    if (visible === wanted) return
+    wanted = visible
+    if (!visible) return dropThumbnail(props.kind, props.id, props.version)
+    modelThumbnail(props.kind, props.id, props.version).then(url => {
+      picture.value = url
+      observer.disconnect()
+    }, () => {})
+  }
 
   onMounted(() => {
-    observer = new IntersectionObserver(entries => {
-      if (!entries.some(entry => entry.isIntersecting)) return
-      observer.disconnect()
-      modelThumbnail(props.kind, props.id, props.version).then(url => (picture.value = url), () => {})
-    })
+    observer = new IntersectionObserver(seen)
     observer.observe(tile.value.$el)
   })
 
-  onBeforeUnmount(() => observer?.disconnect())
+  onBeforeUnmount(() => {
+    observer?.disconnect()
+    if (wanted) dropThumbnail(props.kind, props.id, props.version)
+  })
 </script>
 
 <template>

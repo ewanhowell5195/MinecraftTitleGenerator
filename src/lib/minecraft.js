@@ -10,6 +10,7 @@ import { platform } from "./platform.js"
 const BLOCK_TEXTURE = /^(?:assets\/minecraft\/)?textures\/blocks?\/([^/]+)\.png$/
 const FIRST_BLOCK_FOLDER = Date.parse("2013-01-10T00:00:00+00:00")
 const GRASS_COLORMAP = "assets/minecraft/textures/colormap/grass.png"
+const RANGE_REFUSED = /^Ranged request refused/
 
 const assets = new MinecraftAssets()
 const loaded = new Map()
@@ -87,12 +88,22 @@ async function colormapReader(version) {
   }
 }
 
+// Chrome's HTTP cache can answer a ranged request for the jar with another range it already holds, and asking again gets the right one
+async function ranged(read) {
+  try {
+    return await read()
+  } catch (err) {
+    if (!RANGE_REFUSED.test(err.message)) throw err
+    return read()
+  }
+}
+
 async function downloadGame(version, reason) {
   await agreeToEula(reason)
-  const paths = (await assets.list({ version })).map(file => file.path)
+  const paths = (await ranged(() => assets.list({ version }))).map(file => file.path)
   Object.assign(jar, { version, done: 0, total: 0 })
   try {
-    await assets.loadJar({ version, onProgress: (done, total) => Object.assign(jar, { version, done, total: total ?? 0 }) })
+    await ranged(() => assets.loadJar({ version, onProgress: (done, total) => Object.assign(jar, { version, done, total: total ?? 0 }) }))
   } finally {
     jar.version = null
   }
@@ -118,6 +129,12 @@ async function readBlockTextures(version) {
   let colormap = null
   const tints = await blockTints(new Set(paths), async file => JSON.parse(new TextDecoder().decode(await assets.read(file, { version }))), async (temperature, downfall) => (colormap ??= await colormapReader(version))(temperature, downfall))
   return new Map(await Promise.all(Array.from(found, async ([id, path]) => [id, await readTexture(await assets.read(path, { version }), tints.get(id) ?? null)])))
+}
+
+export function keepTextures(versions) {
+  for (const version of Array.from(loaded.keys())) {
+    if (!versions.has(version)) loaded.delete(version)
+  }
 }
 
 export function blockTextures(version) {

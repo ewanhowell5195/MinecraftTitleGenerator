@@ -1,6 +1,6 @@
 import { sheetLayout } from "../font.js"
 import { jsonText } from "../jsonText.js"
-import { MINECRAFT_SCALE, MODEL_BASELINE, modelHeight } from "../shapes.js"
+import { MINECRAFT_SCALE, MODEL_BASELINE, elementCorners, modelHeight } from "../shapes.js"
 import { pngProblem, sizedProblem } from "../submissions.js"
 import { stripProblem } from "./font.js"
 import { decodePng } from "./png.js"
@@ -10,7 +10,7 @@ export const SHAPE_HOLDING_FOLDER = "submissions/shapes"
 export const SHAPE_STRIP_LIMITS = { sets: 8, offset: 64 }
 export const SILHOUETTE_LIMITS = { width: 128, height: 64, minHeight: 8 }
 export const MODEL_LIMITS = { elements: 1000, reach: 100 }
-export const CUSTOM_SHAPE_UNITS = { width: 256, height: 64 }
+const CUSTOM_SHAPE_UNITS = { width: 256, height: 64 }
 
 const SIDES = ["north", "south", "east", "west", "up", "down"]
 const AXES = ["x", "y", "z"]
@@ -106,14 +106,18 @@ export function cleanModel(bytes) {
   const used = new Set()
   const elements = json.elements.flatMap((element, index) => {
     if (!numbers(element?.from, 3) || !numbers(element?.to, 3)) throw new Error(`Element ${index + 1} doesn't have a valid from and to.`)
-    if (!inReach(element.from) || !inReach(element.to)) throw new Error(`Element ${index + 1} reaches further than ${MODEL_LIMITS.reach} from the centre.`)
+    const tooFar = `Element ${index + 1} reaches further than ${MODEL_LIMITS.reach} from the centre.`
+    if (!inReach(element.from) || !inReach(element.to)) throw new Error(tooFar)
     const faces = cleanFaces(element, index, textures, used)
     if (!Object.keys(faces).length) return []
-    return [{ element, faces, rotation: cleanRotation(element.rotation, index) }]
+    const rotation = cleanRotation(element.rotation, index)
+    const corners = elementCorners({ from: element.from, to: element.to, rotation })
+    if (!corners.every(inReach)) throw new Error(tooFar)
+    return [{ element, faces, rotation, corners }]
   })
   if (!elements.length) throw new Error("None of the model's elements have any faces.")
   if (used.size > 1) throw new Error(`A shape model can only use one texture, and its faces use ${used.size}: ${Array.from(used).join(", ")}.`)
-  const floor = Math.min(...elements.flatMap(({ element }) => [element.from[1], element.to[1]]))
+  const floor = Math.min(...elements.flatMap(({ corners }) => corners.map(point => point[1])))
   return { elements: elements.map(({ element, faces, rotation }) => ({ from: placedPoint(element.from, floor), to: placedPoint(element.to, floor), ...(rotation && { rotation: { ...rotation, origin: placedPoint(rotation.origin, floor) } }), faces })) }
 }
 
@@ -138,21 +142,33 @@ export function silhouetteBounds({ width, height, data }) {
   return right < 0 ? null : { left, top, width: right - left + 1, height: bottom - top + 1 }
 }
 
-export function silhouetteScale(image) {
+function solidBounds(image) {
   const bounds = silhouetteBounds(image)
   if (!bounds) throw new Error("the PNG has no solid pixels to make the shape from")
+  return bounds
+}
+
+function scaleFor(bounds) {
   return Math.max(1, Math.ceil(bounds.width / CUSTOM_SHAPE_UNITS.width), Math.ceil(bounds.height / CUSTOM_SHAPE_UNITS.height))
 }
 
-function sampled(image, scale) {
-  const bounds = silhouetteBounds(image)
-  if (!bounds) throw new Error("the PNG has no solid pixels to make the shape from")
+export function silhouetteScale(image) {
+  return scaleFor(solidBounds(image))
+}
+
+function sampled(image, scale, bounds = solidBounds(image)) {
   const width = Math.ceil(bounds.width / scale)
   const height = Math.ceil(bounds.height / scale)
   const lift = height * scale - bounds.height
   const source = (x, y) => ((bounds.top + y) * image.width + bounds.left + x) * 4
   const solid = (x, y) => image.data[source(x, y) + 3] >= 128
-  return { bounds, width, height, lift, source, solid }
+  const shape = { image, scale, bounds, width, height, lift, source, solid }
+  return { ...shape, mask: unitMask(shape) }
+}
+
+export function silhouetteSample(image) {
+  const bounds = solidBounds(image)
+  return sampled(image, scaleFor(bounds), bounds)
 }
 
 function blockPixels(row, column, scale, lift) {
@@ -163,7 +179,7 @@ function blockPixels(row, column, scale, lift) {
   return pixels
 }
 
-function unitMask({ bounds, width, height, lift, solid }, scale) {
+function unitMask({ scale, bounds, width, height, lift, solid }) {
   const mask = new Uint8Array(width * height)
   for (let row = 0; row < height; row++) {
     for (let column = 0; column < width; column++) {
@@ -175,15 +191,20 @@ function unitMask({ bounds, width, height, lift, solid }, scale) {
   return mask
 }
 
+export function sampleGlyph({ width, height, mask }) {
+  return { width, height, top: height, bottom: 0, mask }
+}
+
 export function silhouetteGlyph(image, scale = 1) {
-  const shape = sampled(image, scale)
-  return { width: shape.width, height: shape.height, top: shape.height, bottom: 0, mask: unitMask(shape, scale) }
+  return sampleGlyph(sampled(image, scale))
 }
 
 export function silhouettePixels(cells, capHeight, depth, image, scale = 1) {
-  const shape = sampled(image, scale)
-  const { bounds, lift, source, solid } = shape
-  const mask = unitMask(shape, scale)
+  return samplePixels(cells, capHeight, depth, sampled(image, scale))
+}
+
+export function samplePixels(cells, capHeight, depth, shape) {
+  const { image, scale, bounds, lift, source, solid, mask } = shape
   const layout = sheetLayout(cells, capHeight, depth)
   let units = 0
   let rows = 0
@@ -228,7 +249,13 @@ export function silhouettePixels(cells, capHeight, depth, image, scale = 1) {
 function silhouetteProblem(bytes) {
   const problem = pngProblem(bytes, "shape")
   if (problem) return { problem }
-  const bounds = silhouetteBounds(decodePng(bytes))
+  let image
+  try {
+    image = decodePng(bytes)
+  } catch (err) {
+    return { problem: `This PNG can't be read: ${err.message}.` }
+  }
+  const bounds = silhouetteBounds(image)
   if (!bounds) return { problem: "The PNG has no solid pixels to make the shape from." }
   const { width, height, minHeight } = SILHOUETTE_LIMITS
   if (bounds.width > width || bounds.height > height) return { problem: `The shape can be up to ${width} pixels wide and ${height} tall, and this one is ${bounds.width}x${bounds.height}.` }

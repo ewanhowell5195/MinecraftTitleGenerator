@@ -36,8 +36,9 @@ export function quadsOf(group) {
     const at = number => index ? index.getX(number) : number
     const groups = mesh.geometry.groups.length ? mesh.geometry.groups : [{ start: 0, count, materialIndex: 0 }]
     for (const { start, count: size, materialIndex } of groups) {
-      const map = textureOf(Array.isArray(mesh.material) ? mesh.material[materialIndex] : mesh.material)
-      if (!map) continue
+      const material = Array.isArray(mesh.material) ? mesh.material[materialIndex] : mesh.material
+      const map = textureOf(material)
+      if (!map || material.side === THREE.BackSide) continue
       if (!sources.has(map)) sources.set(map, { key: `texture${sources.size}`, image: map.image, flip: map.flipY })
       const source = sources.get(map)
       for (let triangle = start; triangle + 6 <= start + size; triangle += 6) {

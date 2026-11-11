@@ -1,3 +1,4 @@
+import { round } from "./maths.js"
 import { titleCase } from "./names.js"
 import { platform } from "./platform.js"
 
@@ -10,8 +11,31 @@ export const MINECRAFT_SCALE = 2.5
 export const MODEL_BASELINE = 2
 const MINECRAFT = "minecraft."
 
+function multiplied(a, b) {
+  return a.map(row => [0, 1, 2].map(column => row.reduce((sum, value, index) => sum + value * b[index][column], 0)))
+}
+
+function rotationMatrix({ x = 0, y = 0, z = 0, rescale = false }) {
+  const [cx, sx, cy, sy, cz, sz] = [x, y, z].flatMap(angle => [Math.cos(angle * Math.PI / 180), Math.sin(angle * Math.PI / 180)])
+  const matrix = multiplied([[cz, -sz, 0], [sz, cz, 0], [0, 0, 1]], multiplied([[cy, 0, sy], [0, 1, 0], [-sy, 0, cy]], [[1, 0, 0], [0, cx, -sx], [0, sx, cx]]))
+  if (!rescale) return matrix
+  const scale = [0, 1, 2].map(column => 1 / Math.max(...matrix.map(row => Math.abs(row[column]))))
+  return matrix.map(row => row.map((value, column) => value * scale[column]))
+}
+
+export function rotated(point, rotation) {
+  if (!rotation) return point
+  const matrix = rotationMatrix(rotation)
+  const offset = point.map((value, axis) => value - rotation.origin[axis])
+  return matrix.map((row, axis) => row.reduce((sum, value, index) => sum + value * offset[index], 0) + rotation.origin[axis])
+}
+
+export function elementCorners({ from, to, rotation }) {
+  return Array.from({ length: 8 }, (_, corner) => rotated([0, 1, 2].map(axis => corner >> axis & 1 ? to[axis] : from[axis]), rotation))
+}
+
 export function modelHeight(model) {
-  return Math.ceil(Math.max(...model.elements.flatMap(element => [element.from[1], element.to[1]])))
+  return Math.ceil(round(Math.max(...model.elements.flatMap(element => elementCorners(element).map(point => point[1]))), 3)) + MODEL_BASELINE
 }
 
 export async function loadShapeList() {
@@ -24,6 +48,12 @@ export function shapeOf(shapes, id) {
   const shape = shapes.find(entry => entry.id === id)
   if (!shape) throw new Error(`there is no shape called ${id}`)
   return shape
+}
+
+export function loadKey(object) {
+  if (object.shape == null) return object.font
+  if (object.shape === CUSTOM_SHAPE) return [CUSTOM_SHAPE, object.customFont?.data, JSON.stringify(object.customFont?.strips)].join()
+  return [object.shape, object.shapeVersion].join()
 }
 
 export function isMinecraftShape(id) {

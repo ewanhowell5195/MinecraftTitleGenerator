@@ -1,7 +1,9 @@
 import assert from "node:assert/strict"
-import { describe, test } from "node:test"
+import { after, describe, test } from "node:test"
 import { blockName, blockTexturePaths, isOpaque, pngSize, usableVersions } from "../src/lib/minecraft.js"
+import { dropThumbnail, keepVersions, modelThumbnail } from "../src/lib/minecraftModels.js"
 import { firstTile } from "../src/lib/paint.js"
+import { usePlatform } from "../src/lib/platform.js"
 
 describe("blockTexturePaths", () => {
   test("finds the modern block folder", () => {
@@ -92,5 +94,71 @@ describe("usableVersions", () => {
   test("keeps the versions from when the block folders first appeared", () => {
     const versions = [{ id: "26.3", releaseTime: "2026-09-01T00:00:00+00:00" }, { id: "1.5", releaseTime: "2013-03-13T00:00:00+00:00" }, { id: "1.4.7", releaseTime: "2012-12-28T00:00:00+00:00" }, { id: "b1.8.1", releaseTime: "2011-09-19T00:00:00+00:00" }]
     assert.deepEqual(usableVersions(versions).map(version => version.id), ["26.3", "1.5"])
+  })
+})
+
+describe("modelThumbnail", () => {
+  let drawn = []
+  let release = null
+
+  function useModels() {
+    drawn = []
+    const held = new Promise(resolve => (release = resolve))
+    async function render({ id }) {
+      await held
+      drawn.push(id)
+      return { toDataURL: () => `picture of ${id}` }
+    }
+    usePlatform({ minecraftModels: () => Promise.resolve({ lib: { renderBlock: render, renderItem: render }, assets: {}, paths: [] }) })
+  }
+
+  after(() => usePlatform({ minecraftModels: null }))
+
+  test("draws the newest request first once the one in hand is done", async () => {
+    useModels()
+    const asked = ["a", "b", "c", "d"].map(id => modelThumbnail("block", id, "newest"))
+    release()
+    assert.deepEqual(await Promise.all(asked), ["picture of a", "picture of b", "picture of c", "picture of d"])
+    assert.deepEqual(drawn, ["a", "d", "c", "b"])
+  })
+
+  test("a dropped request is never drawn, and can be asked for again", async () => {
+    useModels()
+    const first = modelThumbnail("block", "a", "dropped")
+    modelThumbnail("block", "b", "dropped")
+    const last = modelThumbnail("item", "c", "dropped")
+    dropThumbnail("block", "b", "dropped")
+    release()
+    await Promise.all([first, last])
+    assert.deepEqual(drawn, ["a", "c"])
+    assert.equal(await modelThumbnail("block", "b", "dropped"), "picture of b")
+  })
+
+  test("a request two tiles wait for survives one of them leaving", async () => {
+    useModels()
+    const first = modelThumbnail("block", "a", "shared")
+    const twice = [modelThumbnail("block", "b", "shared"), modelThumbnail("block", "b", "shared")]
+    dropThumbnail("block", "b", "shared")
+    release()
+    assert.deepEqual(await Promise.all([first].concat(twice)), ["picture of a", "picture of b", "picture of b"])
+  })
+
+  test("a picture that is already drawn is handed back without drawing again", async () => {
+    useModels()
+    release()
+    await modelThumbnail("block", "a", "kept")
+    dropThumbnail("block", "a", "kept")
+    await modelThumbnail("block", "a", "kept")
+    assert.deepEqual(drawn, ["a"])
+  })
+
+  test("forgets the thumbnails of versions that are no longer in use", async () => {
+    useModels()
+    release()
+    await Promise.all([modelThumbnail("block", "a", "left"), modelThumbnail("block", "a", "kept")])
+    keepVersions(new Set(["kept"]))
+    drawn = []
+    await Promise.all([modelThumbnail("block", "a", "left"), modelThumbnail("block", "a", "kept")])
+    assert.deepEqual(drawn, ["a"])
   })
 })

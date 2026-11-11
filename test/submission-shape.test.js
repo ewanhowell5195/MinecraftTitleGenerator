@@ -2,25 +2,22 @@ import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import fs from "node:fs"
 import { PNG } from "pngjs"
+import { pngOf } from "./helpers/png.js"
+import { publicContext } from "./helpers/site.js"
 
-const { cleanModel, cleanModelFile, shapeImage, shapeModel, silhouetteGlyph, silhouettePixels, silhouetteScale } = await import("../src/lib/submissionKinds/shape.js")
-const { modelHeight } = await import("../src/lib/shapes.js")
+const { cleanModel, cleanModelFile, sampleGlyph, samplePixels, shapeImage, shapeModel, silhouetteGlyph, silhouettePixels, silhouetteSample, silhouetteScale } = await import("../src/lib/submissionKinds/shape.js")
+const { elementCorners, modelHeight } = await import("../src/lib/shapes.js")
 const { shapeImage: serverImage, shapeModel: serverModel } = await import("../src/server/submissionKinds/shape.js")
 const { frontView } = await import("../generator/submissionKinds/shape.js")
-const { submissionContext } = await import("../src/lib/submissionKinds/index.js")
 
-const context = submissionContext([], path => Promise.resolve(fs.existsSync(`public${path}`) ? new Response(fs.readFileSync(`public${path}`)) : new Response("missing", { status: 404 })))
+const context = publicContext()
 
 const LIST = "public/shapes/shapes.json"
 const encode = value => new TextEncoder().encode(JSON.stringify(value))
 const face = { uv: [0, 0, 16, 16], texture: "#0", cullface: "north", rotation: 90 }
 
 function silhouette(width, height, solid = () => true) {
-  const image = new PNG({ width, height })
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) image.data.set(solid(x, y) ? [200, 40, 40, 255] : [0, 0, 0, 0], (y * width + x) * 4)
-  }
-  return new Uint8Array(PNG.sync.write(image))
+  return new Uint8Array(pngOf(width, height, (x, y) => solid(x, y) ? [200, 40, 40, 255] : [0, 0, 0, 0]))
 }
 
 function reader(path) {
@@ -48,9 +45,29 @@ describe("cleanModel", () => {
   test("turns both kinds of element rotation into one", () => {
     const single = { angle: 22.5, axis: "z", origin: [8, 8, 8], rescale: true }
     const euler = { x: 30, y: -45, origin: [8, 8, 8] }
-    const [first, second] = cleanModel(encode({ elements: [{ from: [0, 0, 0], to: [1, 1, 1], rotation: single, faces: { north: plain } }, { from: [0, 0, 0], to: [1, 1, 1], rotation: euler, faces: { north: plain } }] })).elements
-    assert.deepEqual(first.rotation, { origin: [20, 22, 20], x: 0, y: 0, z: 22.5, rescale: true })
-    assert.deepEqual(second.rotation, { origin: [20, 22, 20], x: 30, y: -45, z: 0 })
+    const floor = { from: [0, -8, 0], to: [1, -7, 1], faces: { north: plain } }
+    const [first, second] = cleanModel(encode({ elements: [{ from: [0, 0, 0], to: [1, 1, 1], rotation: single, faces: { north: plain } }, { from: [0, 0, 0], to: [1, 1, 1], rotation: euler, faces: { north: plain } }, floor] })).elements
+    assert.deepEqual(first.rotation, { origin: [20, 42, 20], x: 0, y: 0, z: 22.5, rescale: true })
+    assert.deepEqual(second.rotation, { origin: [20, 42, 20], x: 30, y: -45, z: 0 })
+  })
+
+  test("a turned element stands on the baseline by its lowest corner", () => {
+    const turned = { from: [0, 0, 0], to: [16, 16, 16], rotation: { angle: 45, axis: "z", origin: [8, 8, 8] }, faces: { north: plain } }
+    const model = cleanModel(encode({ elements: [turned] }))
+    const lowest = Math.min(...model.elements.flatMap(element => elementCorners(element).map(point => point[1])))
+    assert.ok(Math.abs(lowest - 2) < 0.002, `${lowest} is not on the baseline`)
+    assert.equal(modelHeight(model), Math.ceil(2 + 16 * Math.SQRT2 * 2.5) + 2)
+  })
+
+  test("a quarter turn measures the same height as the element standing straight", () => {
+    const element = { from: [0, 0, 0], to: [16, 8, 16], faces: { north: plain } }
+    const straight = modelHeight(cleanModel(encode({ elements: [{ ...element, to: [8, 16, 16] }] })))
+    assert.equal(modelHeight(cleanModel(encode({ elements: [{ ...element, rotation: { angle: 90, axis: "z", origin: [8, 4, 8] } }] }))), straight)
+  })
+
+  test("refuses an element its rotation swings out of reach", () => {
+    const far = { from: [90, 0, 0], to: [100, 1, 1], rotation: { angle: 45, axis: "y", origin: [-100, 0, 0] }, faces: { north: plain } }
+    assert.throws(() => cleanModel(encode({ elements: [far] })), /Element 1 reaches further than 100 from the centre/)
   })
 
   test("drops rotations that don't turn anything", () => {
@@ -91,7 +108,7 @@ describe("cleanModel", () => {
   test("the stored file is the converted model", () => {
     const stored = JSON.parse(new TextDecoder().decode(cleanModelFile(encode({ credit: "x", elements: [{ from: [0, 2, 0], to: [4, 34.5, 4], faces: { north: plain } }] }))))
     assert.deepEqual(Object.keys(stored), ["elements"])
-    assert.equal(modelHeight(stored), 84)
+    assert.equal(modelHeight(stored), 86)
   })
 })
 
@@ -101,7 +118,7 @@ describe("shape checks", () => {
     assert.match((await shapeModel.check({ details: {}, bytes: model, files: {} })).problems.texture, /Choose the model's texture/)
     const checked = await shapeModel.check({ details: {}, bytes: model, files: { texture: silhouette(16, 16) } })
     assert.equal(checked.problems.texture, null)
-    assert.deepEqual(checked.details, { height: 42, elements: 1 })
+    assert.deepEqual(checked.details, { height: 44, elements: 1 })
   })
 
   test("a silhouette is measured by its solid pixels", async () => {
@@ -212,15 +229,38 @@ describe("big custom shapes", () => {
   test("leave shapes that fit at one pixel per unit", () => {
     assert.equal(silhouetteScale(PNG.sync.read(Buffer.from(silhouette(200, 60)))), 1)
   })
+
+  test("one sample of the PNG gives the same glyph and texture as measuring it each time", () => {
+    const image = PNG.sync.read(Buffer.from(silhouette(600, 150, (x, y) => (x + y) % 7 !== 0 && x > 3)))
+    const sample = silhouetteSample(image)
+    const scale = silhouetteScale(image)
+    assert.equal(sample.scale, 3)
+    assert.equal(scale, 3)
+    const glyph = sampleGlyph(sample)
+    assert.deepEqual(glyph, silhouetteGlyph(image, scale))
+    const cells = [{ ...glyph, char: "x", row: 0, column: 0 }]
+    assert.deepEqual(samplePixels(cells, glyph.height, 22, sample), silhouettePixels(cells, glyph.height, 22, image, scale))
+  })
 })
 
 describe("frontView", () => {
+  test("fills a hole the shape closes in with the ring colour", () => {
+    const texture = new PNG({ width: 16, height: 16 })
+    for (let y = 0; y < 16; y++) {
+      for (let x = 0; x < 16; x++) texture.data.set(x >= 4 && x < 12 && y >= 4 && y < 12 ? [0, 0, 0, 0] : [255, 255, 255, 255], (y * 16 + x) * 4)
+    }
+    const view = frontView({ elements: [{ from: [0, 0, 0], to: [48, 48, 1], faces: { north: { uv: [0, 0, 16, 16] } } }] }, texture, [10, 20, 30])
+    const middle = (Math.floor(view.height / 2) * view.width + Math.floor(view.width / 2)) * 4
+    assert.deepEqual(Array.from(view.data.subarray(middle, middle + 4)), [10, 20, 30, 255])
+    assert.deepEqual(Array.from(view.data.subarray(0, 4)), [10, 20, 30, 255])
+  })
+
   test("draws the north faces with a ring around them", () => {
     const texture = new PNG({ width: 16, height: 16 })
     texture.data.fill(255)
     const view = frontView({ elements: [{ from: [0, 0, 0], to: [8, 16, 1], faces: { north: { uv: [0, 0, 16, 16] } } }] }, texture)
-    assert.equal(view.width, 8 * 6 + 12)
+    assert.equal(view.width, 8 + 4)
     assert.deepEqual(Array.from(view.data.subarray(0, 4)), [0, 0, 0, 255])
-    assert.deepEqual(Array.from(view.data.subarray((20 * view.width + 20) * 4, (20 * view.width + 20) * 4 + 4)), [255, 255, 255, 255])
+    assert.deepEqual(Array.from(view.data.subarray((8 * view.width + 6) * 4, (8 * view.width + 6) * 4 + 4)), [255, 255, 255, 255])
   })
 })

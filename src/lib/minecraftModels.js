@@ -1,5 +1,5 @@
 import * as THREE from "three"
-import { gamePaths, readGameFile } from "./minecraft.js"
+import { gamePaths, keepTextures, readGameFile } from "./minecraft.js"
 import { platform } from "./platform.js"
 import { quadsOf } from "./modelQuads.js"
 
@@ -8,9 +8,10 @@ const FOLDERS = { block: "assets/minecraft/blockstates/", item: "assets/minecraf
 const THUMBNAIL = 96
 
 let library = null
-let queue = Promise.resolve()
+let drawing = false
 const prepared = new Map()
 const thumbnails = new Map()
+const pending = []
 
 function renderer() {
   library ??= import(/* @vite-ignore */ LIBRARY).then(lib => {
@@ -55,24 +56,55 @@ export async function modelList(version) {
   return { block: idsIn(paths, FOLDERS.block), item: idsIn(paths, FOLDERS.item) }
 }
 
-function queued(task) {
-  const result = queue.then(task)
-  queue = result.catch(() => {})
-  return result
+async function drawThumbnail({ kind, id, version }) {
+  const { lib, assets } = await gameModels(version)
+  const canvas = await (kind === "block" ? lib.renderBlock : lib.renderItem)({ id, assets, width: THUMBNAIL, height: THUMBNAIL })
+  return canvas.toDataURL("image/png")
+}
+
+async function drawPending() {
+  if (drawing) return
+  drawing = true
+  while (pending.length) {
+    const request = pending.pop()
+    await drawThumbnail(request).then(request.fulfil, request.reject)
+  }
+  drawing = false
+}
+
+function thumbnailKey(kind, id, version) {
+  return `${version}/${kind}/${id}`
 }
 
 export function modelThumbnail(kind, id, version) {
-  const key = `${version}/${kind}/${id}`
+  const key = thumbnailKey(kind, id, version)
+  const waiting = pending.find(request => request.key === key)
+  if (waiting) waiting.wanted++
   if (!thumbnails.has(key)) {
-    const url = queued(async () => {
-      const { lib, assets } = await gameModels(version)
-      const canvas = await (kind === "block" ? lib.renderBlock : lib.renderItem)({ id, assets, width: THUMBNAIL, height: THUMBNAIL })
-      return canvas.toDataURL("image/png")
-    })
+    const url = new Promise((fulfil, reject) => pending.push({ key, kind, id, version, wanted: 1, fulfil, reject }))
     thumbnails.set(key, url)
     url.catch(() => thumbnails.delete(key))
+    drawPending()
   }
   return thumbnails.get(key)
+}
+
+export function dropThumbnail(kind, id, version) {
+  const key = thumbnailKey(kind, id, version)
+  const at = pending.findIndex(request => request.key === key)
+  if (at === -1 || --pending[at].wanted) return
+  pending.splice(at, 1)
+  thumbnails.delete(key)
+}
+
+export function keepVersions(versions) {
+  keepTextures(versions)
+  for (const version of Array.from(prepared.keys())) {
+    if (!versions.has(version)) prepared.delete(version)
+  }
+  for (const key of Array.from(thumbnails.keys())) {
+    if (!versions.has(key.slice(0, key.indexOf("/"))) && !pending.some(request => request.key === key)) thumbnails.delete(key)
+  }
 }
 
 async function modelGroup(kind, id, version) {
@@ -86,5 +118,7 @@ async function modelGroup(kind, id, version) {
 }
 
 export async function minecraftQuads(kind, id, version) {
-  return quadsOf(await modelGroup(kind, id, version))
+  const model = quadsOf(await modelGroup(kind, id, version))
+  if (!model.quads.length) throw new Error(`Minecraft's ${kind} ${id} has nothing to draw`)
+  return model
 }

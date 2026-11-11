@@ -3,6 +3,7 @@ import { pixelsOf } from "./canvas.js"
 import { loadImage } from "./font.js"
 import { GENERATED_EDGE_OVERLAYS, withGenerated } from "./generated.js"
 import { CUSTOM_FONT, defaultBorder, defaultDepth } from "./settings.js"
+import { SILHOUETTE_TEXT } from "./shapes.js"
 import { stripRows } from "./strips.js"
 import { pngUrl, serveFile } from "./virtualFiles.js"
 
@@ -26,7 +27,7 @@ export function customFontId({ kind, data, height, lowercase, mesh, density, str
   return CUSTOM_FONT + hash(JSON.stringify([kind, data, height, lowercase].concat(mesh ? ["mesh"] : [], squareSize({ kind, mesh, density }) > 1 ? [squareSize({ kind, mesh, density })] : [], strips?.length ? [strips] : [])))
 }
 
-export function squareSize({ kind, mesh, density }) {
+function squareSize({ kind, mesh, density }) {
   return kind === "outline" && !mesh ? density ?? 1 : 1
 }
 
@@ -56,10 +57,10 @@ async function editorFont({ kind, data, height, lowercase, mesh, density }) {
     return { font: fontFromFiles({ sheet: await pixels(json.editor.texture), json }) }
   }
   if (kind === "silhouette") {
-    const [{ fontFromShapes }, { silhouetteGlyph, silhouetteScale }] = await Promise.all([import("./fontEditor.js"), import("./submissionKinds/shape.js")])
-    const image = await pixels(data)
-    const glyph = silhouetteGlyph(image, silhouetteScale(image))
-    return { font: fontFromShapes(new Map([["x", glyph]]), { name: "Shape", capHeight: glyph.height, grid: 1, spaceWidth: Math.round(glyph.height / 2) }) }
+    const [{ fontFromShapes }, { sampleGlyph, silhouetteSample }] = await Promise.all([import("./fontEditor.js"), import("./submissionKinds/shape.js")])
+    const sample = silhouetteSample(await pixels(data))
+    const glyph = sampleGlyph(sample)
+    return { font: fontFromShapes(new Map([[SILHOUETTE_TEXT, glyph]]), { name: "Shape", capHeight: glyph.height, grid: 1, spaceWidth: Math.round(glyph.height / 2) }), sample }
   }
   if (kind === "ascii") {
     const { fontFromAscii } = await import("./asciiImport.js")
@@ -98,18 +99,15 @@ async function drawThumbnails(font, folder, strips, mesh) {
   return drawn
 }
 
-async function silhouetteTexture(font, entry, data) {
-  const [{ parsedSheet }, { silhouettePixels, silhouetteScale }] = await Promise.all([import("./fontEditor.js"), import("./submissionKinds/shape.js")])
+async function silhouetteTexture(font, entry, sample) {
+  const [{ parsedSheet }, { samplePixels }] = await Promise.all([import("./fontEditor.js"), import("./submissionKinds/shape.js")])
   const { list, capHeight } = parsedSheet(font, defaultBorder("top", entry))
-  const image = await loadImage(data)
-  const pixels = { width: image.width, height: image.height, data: pixelsOf(image) }
-  const scale = silhouetteScale(pixels)
-  return { ...silhouettePixels(list, capHeight, defaultDepth(entry), pixels, scale), scale }
+  return { ...samplePixels(list, capHeight, defaultDepth(entry), sample), scale: sample.scale }
 }
 
 async function build(id, source) {
   const { buildSheet, exportJson, flatTexture } = await import("./fontEditor.js")
-  const { font, outlines, mesh } = await editorFont(source)
+  const { font, outlines, mesh, sample } = await editorFont(source)
   const { editor, ...entry } = { ...exportJson(font, ""), id, name: font.name || "Custom font", ...(source.strips?.length && { strips: source.strips }) }
   if (outlines) entry.outlines = outlines
   if (mesh) {
@@ -119,8 +117,8 @@ async function build(id, source) {
   const folder = `font/${id}`
   serveFile(`${folder}/font.png`, pngUrl(buildSheet(font)))
   serveFile(`${folder}/textures/flat.png`, pngUrl(flatTexture(font, mesh ? "all" : outlines ? "strips" : null)))
-  const own = source.kind === "silhouette" ? "image" : "flat"
-  const painted = own === "image" ? await silhouetteTexture(font, entry, source.data) : null
+  const own = sample ? "image" : "flat"
+  const painted = sample ? await silhouetteTexture(font, entry, sample) : null
   if (painted) serveFile(`${folder}/textures/image.png`, pngUrl(painted))
   serveFile(`${folder}/textures.json`, { primary: own, secondary: own, textures: { ...(painted && { image: { border: "#000000", ...(painted.scale > 1 && { density: painted.scale }) } }), flat: { border: "#000000" } }, overlays: {} })
   thumbnails.set(id, { ...await drawThumbnails(font, folder, entry.strips, entry.mesh), ...(own === "image" && { image: source.data }) })
