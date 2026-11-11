@@ -36,7 +36,7 @@
   const turn = shallowRef(UNTURNED)
   const orbiting = ref(false)
   const panning = ref(false)
-  const navigable = computed(() => !view.render && FORM_SECTIONS.has(view.section))
+  const navigable = computed(() => !view.render)
   const moved = computed(() => pan.value !== UNZOOMED || turn.value !== UNTURNED)
   const baseProjection = new THREE.Matrix4()
   const basePosition = new THREE.Vector3()
@@ -247,17 +247,19 @@
 
   function grabView(event) {
     if (!navigable.value || !framed || controls.dragging || event.button === 0 && controls.axis) return
-    pointers.set(event.pointerId, { ...clipPoint(event), button: event.button })
+    pointers.set(event.pointerId, { ...clipPoint(event), button: event.button, press: [event.clientX, event.clientY], dragged: false })
     renderer.domElement.setPointerCapture(event.pointerId)
-    panning.value = true
   }
 
   function moveView(event) {
     const last = pointers.get(event.pointerId)
     if (!last) return
-    const point = { ...clipPoint(event), button: last.button }
+    const point = { ...clipPoint(event), button: last.button, press: last.press, dragged: true }
     const other = Array.from(pointers).find(([id]) => id !== event.pointerId)?.[1]
+    if (!last.dragged && !other && Math.hypot(event.clientX - last.press[0], event.clientY - last.press[1]) <= CLICK_DISTANCE) return
     pointers.set(event.pointerId, point)
+    panning.value = true
+    if (!last.dragged) return
     if (!other) {
       if (orbiting.value && last.button === 0) turn.value = turnedBy(turn.value, (point.x - last.x) * Math.PI * frameSize.width / frameSize.height, (last.y - point.y) * Math.PI, elevationOf(basePosition, pivot))
       else pan.value = pannedBy(pan.value, point.x - last.x, point.y - last.y)
@@ -278,7 +280,7 @@
   }
 
   function pickText(event) {
-    if (navigable.value || view.render || !pressed || Math.hypot(event.clientX - pressed.x, event.clientY - pressed.y) > CLICK_DISTANCE) return
+    if (FORM_SECTIONS.has(view.section) || view.render || !pressed || Math.hypot(event.clientX - pressed.x, event.clientY - pressed.y) > CLICK_DISTANCE) return
     const raycaster = new THREE.Raycaster()
     raycaster.setFromCamera(clipPoint(event), camera)
     const id = pickEntry(entries, raycaster)
