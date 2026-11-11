@@ -3,6 +3,14 @@ button,
   user-select: none;
 }
 
+.popover {
+  position: fixed;
+  z-index: 100;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow);
+}
+
 button:where(:not(.button, .field-button)) {
   display: inline-flex;
   align-items: center;
