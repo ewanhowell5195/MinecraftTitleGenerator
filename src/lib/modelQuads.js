@@ -22,6 +22,13 @@ function loopOf(first, second) {
   return facing.dot(outward) > 0 ? [loop[0], loop[3], loop[2], loop[1]] : loop
 }
 
+function flatUnder(node) {
+  for (let at = node; at; at = at.parent) {
+    if (at.userData.flat) return true
+  }
+  return false
+}
+
 function textureOf(material) {
   return material.uniforms?.map?.value ?? material.map ?? null
 }
@@ -35,6 +42,7 @@ export function quadsOf(group) {
     const count = index ? index.count : attributes.position.count
     const at = number => index ? index.getX(number) : number
     const groups = mesh.geometry.groups.length ? mesh.geometry.groups : [{ start: 0, count, materialIndex: 0 }]
+    const flat = flatUnder(mesh)
     for (const { start, count: size, materialIndex } of groups) {
       const material = Array.isArray(mesh.material) ? mesh.material[materialIndex] : mesh.material
       const map = textureOf(material)
@@ -47,7 +55,7 @@ export function quadsOf(group) {
         const loop = loopOf(first, second)
         if (!loop) continue
         const { width, height } = source.image
-        quads.push({ points: loop.map(item => item.point.toArray()), texels: loop.map(({ uv: [u, v] }) => [u * width, (source.flip ? 1 - v : v) * height]), source: source.key, tint: loop[0].tint })
+        quads.push({ points: loop.map(item => item.point.toArray()), texels: loop.map(({ uv: [u, v] }) => [u * width, (source.flip ? 1 - v : v) * height]), source: source.key, tint: loop[0].tint, flat })
       }
     }
   })

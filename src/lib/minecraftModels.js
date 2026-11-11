@@ -112,7 +112,12 @@ async function modelGroup(kind, id, version) {
   const refs = kind === "block" ? await lib.parseBlockstate(assets, id) : await lib.parseItemDefinition(assets, id, { display: "gui" })
   if (!refs.length) throw new Error(`Minecraft has no model for the ${kind} ${id}`)
   const group = new THREE.Group()
-  for (const ref of refs) group.add(await lib.loadModel(assets, await lib.resolveModelData(assets, ref), { lighting: "off" }))
+  for (const ref of refs) {
+    const data = await lib.resolveModelData(assets, ref)
+    const model = await lib.loadModel(assets, data, { lighting: "off" })
+    model.userData.flat = !!data.generated
+    group.add(model)
+  }
   group.updateMatrixWorld(true)
   return group
 }

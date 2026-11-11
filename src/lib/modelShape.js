@@ -4,6 +4,7 @@ import { swatchUvs } from "./build.js"
 import { MINECRAFT_SCALE, MODEL_BASELINE, rotated } from "./shapes.js"
 
 const SHADE = { north: 1, south: 1, up: 1, down: 0.6, east: 0.75, west: 0.75 }
+const NEAR = 1e-3
 
 function corners(side, [x1, y1, z1], [x2, y2, z2]) {
   if (side === "north") return [[x2, y2, z1], [x1, y2, z1], [x1, y1, z1], [x2, y1, z1]]
@@ -44,6 +45,27 @@ export function sideOf(quad) {
   const [ax, ay, az] = [Math.abs(x), Math.abs(y), Math.abs(z)]
   if (ay >= ax && ay >= az) return y > 0 ? "up" : "down"
   return ax > az ? "east" : "north"
+}
+
+function dot(a, b) {
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+}
+
+function facet(quad) {
+  const normal = normalOf(quad.points)
+  return { quad, normal: unit(normal), flat: quad.flat || Math.hypot(...normal) < NEAR, centre: [0, 1, 2].map(axis => quad.points.reduce((sum, point) => sum + point[axis], 0) / 4) }
+}
+
+function boxCorner(a, b) {
+  if (Math.abs(dot(a.normal, b.normal)) > 0.01) return false
+  const between = a.centre.map((value, axis) => b.centre[axis] - value)
+  if (dot(between, a.normal) > -NEAR || dot(between, b.normal) < NEAR) return false
+  return a.quad.points.filter(point => b.quad.points.some(other => point.every((value, axis) => Math.abs(value - other[axis]) < NEAR))).length === 2
+}
+
+export function wholeCubes(quads) {
+  const facets = quads.map(facet)
+  return facets.map(item => ({ ...item.quad, whole: !item.flat && facets.some(other => other !== item && !other.flat && boxCorner(item, other)) }))
 }
 
 export function placed(faces) {
@@ -133,6 +155,10 @@ export function solidRuns(faces, sources) {
     return x >= 0 && y >= 0 && x < source.width && y < source.height && pixels.get(key)[(y * source.width + x) * 4 + 3] >= 128
   }
   for (const face of faces) {
+    if (face.whole) {
+      runs.push({ face, corners: face.points })
+      continue
+    }
     const [t0, t1, , t3] = face.texels
     const [p0, p1, , p3] = face.points
     const e1 = [t1[0] - t0[0], t1[1] - t0[1]]

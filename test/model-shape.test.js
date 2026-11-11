@@ -4,7 +4,7 @@ import { quietStorage } from "./helpers/browser.js"
 
 quietStorage()
 
-const { bodyOf, faceOutline, footprint, minecraftPlaced, modelQuads, packing, placed, solidRuns } = await import("../src/lib/modelShape.js")
+const { bodyOf, faceOutline, footprint, minecraftPlaced, modelQuads, packing, placed, solidRuns, wholeCubes } = await import("../src/lib/modelShape.js")
 
 const SIZE = 16
 const SIDES = ["north", "south", "east", "west", "up", "down"]
@@ -89,6 +89,51 @@ describe("faceOutline", () => {
     assert.equal(outline.facing.length, SIZE)
     const xs = Array.from(outline.positions).filter((value, index) => index % 3 === 0)
     assert.deepEqual([Math.min(...xs), Math.max(...xs)].map(Math.abs).sort((a, b) => a - b), [1, 9])
+  })
+})
+
+describe("wholeCubes", () => {
+  const frame = texture((x, y) => x === 0 || y === 0 || x === 15 || y === 15)
+
+  function element(from, to, sides) {
+    return { from, to, faces: Object.fromEntries(sides.map(side => [side, { uv: [0, 0, 16, 16] }])) }
+  }
+
+  function wholes(...elements) {
+    return wholeCubes(modelQuads({ elements }, frame)).map(quad => quad.whole)
+  }
+
+  test("every face of a box is whole", () => {
+    assert.deepEqual(wholes(cube().elements[0]), [true, true, true, true, true, true])
+  })
+
+  test("a box with faces left out is whole where two of its faces meet", () => {
+    assert.deepEqual(wholes(element([0, 2, 0], [16, 18, 16], ["north", "up"])), [true, true])
+    assert.deepEqual(wholes(element([0, 2, 0], [16, 18, 16], ["north", "south"])), [false, false])
+  })
+
+  test("flat planes are not whole, alone or crossed", () => {
+    assert.deepEqual(wholes(element([0, 2, 8], [16, 18, 8], ["north", "south"])), [false, false])
+    assert.deepEqual(wholes(element([0, 2, 8], [16, 18, 8], ["north", "south"]), element([8, 2, 0], [8, 18, 16], ["east", "west"])), [false, false, false, false])
+  })
+
+  test("a plane standing on the edge of a box stays flat", () => {
+    assert.deepEqual(wholes(cube().elements[0], element([0, 18, 0], [16, 34, 0], ["north", "south"])), [true, true, true, true, true, true, false, false])
+  })
+
+  test("quads marked flat are never whole", () => {
+    const quads = modelQuads(cube(), frame).map(quad => ({ ...quad, flat: true }))
+    assert.ok(wholeCubes(quads).every(quad => !quad.whole))
+  })
+
+  test("a whole face is outlined all the way round, whatever its texels", () => {
+    const { faces } = placed(wholeCubes(modelQuads(cube(), frame)))
+    const runs = solidRuns(faces, { base: frame })
+    assert.equal(runs.length, 6)
+    const outline = faceOutline(runs, [1, 1, 1], [1, 1, 1], [0, 0])
+    const reach = [0, 1, 2].map(axis => Array.from(outline.positions).filter((value, index) => index % 3 === axis))
+    assert.deepEqual(reach.map(values => [Math.min(...values), Math.max(...values)]), [[-9, 9], [-1, 17], [-9, 9]])
+    assert.equal(footprint(runs).length, 2)
   })
 })
 

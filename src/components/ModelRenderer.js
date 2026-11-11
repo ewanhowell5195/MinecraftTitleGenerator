@@ -4,7 +4,7 @@ import { rowBottom } from "../lib/build.js"
 import { surface } from "../lib/canvas.js"
 import { quietly } from "../lib/history.js"
 import { adjusted, borderOf, colourOverlay, lookKey } from "../lib/paint.js"
-import { atlasOf, bodyOf, faceOutline, footprint, minecraftPlaced, modelQuads, packing, placed, solidAdjusted, solidRuns } from "../lib/modelShape.js"
+import { atlasOf, bodyOf, faceOutline, footprint, minecraftPlaced, modelQuads, packing, placed, solidAdjusted, solidRuns, wholeCubes } from "../lib/modelShape.js"
 import { usePlacement, usePublished } from "../lib/objectState.js"
 import { NO_ARC } from "../lib/rows.js"
 import { editorTitle, keepTexture, loadedFont } from "../lib/scene.js"
@@ -80,7 +80,7 @@ export default {
         copy.ctx.drawImage(picture, 0, 0)
         return [key, copy.canvas]
       }))
-      const quads = minecraftPlaced(data.quads, kind === "block" ? BLOCK_TURN : 0)
+      const quads = minecraftPlaced(wholeCubes(data.quads), kind === "block" ? BLOCK_TURN : 0)
       const top = Math.max(...quads.flatMap(quad => quad.points.map(point => point[1])))
       keepTexture.delete(object)
       loadedFont.set(object, id)
