@@ -52,7 +52,7 @@ function listed(names) {
 function pieceHtml(piece) {
   const based = piece.based ? `<span class="based">Based on ${escaped(piece.based)}</span>` : ""
   const others = piece.people.filter(person => person !== piece.person)
-  const shared = others.length ? `<button type="button" class="with" data-id="${escaped(piece.id)}" data-easy-tooltip="With ${escaped(listed(others))}" data-easy-tooltip-class="slow">Collaboration</button>` : ""
+  const shared = others.length ? `<button type="button" class="with link-button" data-id="${escaped(piece.id)}" data-easy-tooltip="With ${escaped(listed(others))}" data-easy-tooltip-class="slow">Collaboration</button>` : ""
   const href = `/app/?title=${encodeTitle({ version: FILE_VERSION, lines: [{ text: piece.name, ...piece.line }] }).code}`
   return `<li class="piece" data-id="${escaped(piece.id)}" data-stats="${escaped(piece.stats.join(" "))}"><div class="thumb"><img src="${escaped(piece.image)}" alt="" loading="lazy"></div><a class="name" href="${escaped(href)}">${escaped(piece.name)}</a><span class="where">${escaped(piece.where)}</span>${based}${shared}</li>`
 }

@@ -43,20 +43,12 @@
   position: relative;
   z-index: 1;
   align-self: flex-start;
-  padding: 0;
   margin-top: 4px;
-  font: inherit;
-  text-align: left;
   color: var(--accent);
-  background: none;
-  border: 0;
-  cursor: pointer;
-  user-select: none;
 }
 
 .with:hover {
   color: var(--accent-hover);
-  text-decoration: underline;
 }
 
 .people {
@@ -135,8 +127,6 @@
   color: var(--faint);
   background: var(--surface);
   border: 0;
-  cursor: pointer;
-  user-select: none;
   transition: background-color var(--duration), color var(--duration);
 }
 

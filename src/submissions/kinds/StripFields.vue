@@ -317,8 +317,4 @@
     flex-wrap: wrap;
     gap: 6px;
   }
-
-  .suggestions button {
-    user-select: none;
-  }
 </style>
