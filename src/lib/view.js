@@ -27,16 +27,15 @@ const DEFAULTS = {
   antialias: true
 }
 
-function read() {
+export function readStored(key) {
   try {
-    const saved = JSON.parse(localStorage.getItem("minecraft-title-view") ?? "{}")
-    return { ...DEFAULTS, ...Object.fromEntries(Object.entries(saved).filter(([key]) => key in DEFAULTS)) }
+    return JSON.parse(localStorage.getItem(key))
   } catch {
-    return { ...DEFAULTS }
+    return null
   }
 }
 
-export const view = reactive(read())
+export const view = reactive({ ...DEFAULTS, ...Object.fromEntries(Object.entries(readStored("minecraft-title-view") ?? {}).filter(([key]) => key in DEFAULTS)) })
 
 export const viewport = { capture: null }
 

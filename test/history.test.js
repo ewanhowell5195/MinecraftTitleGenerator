@@ -1,10 +1,11 @@
 import { beforeEach, describe, mock, test } from "node:test"
 import assert from "node:assert/strict"
 import { nextTick } from "vue"
+import { fakeTimeouts, forbidFetch, quietStorage } from "./helpers/browser.js"
 
-globalThis.localStorage = { getItem: () => null, setItem: () => {} }
-globalThis.fetch = () => assert.fail("fetch must not be called")
-mock.timers.enable({ apis: ["setTimeout"] })
+quietStorage()
+forbidFetch()
+fakeTimeouts()
 
 const { LAYER, createObject } = await import("../src/lib/settings.js")
 const { addObject, keepTexture, scene, select } = await import("../src/lib/scene.js")
@@ -169,6 +170,42 @@ describe("undo and redo", () => {
     select(object)
     await settle()
     assert.equal(history.undo.length, steps)
+  })
+
+  test("undo keeps the selection from just before the change it undoes", async () => {
+    addObject()
+    await settle()
+    const added = scene.objects[1]
+    select(object)
+    await change(object, { text: "first" })
+    select(added)
+    await change(added, { text: "second" })
+    undo()
+    assert.equal(added.text, "text")
+    assert.equal(scene.selected, added.id)
+    undo()
+    assert.equal(object.text, "start")
+    assert.equal(scene.selected, object.id)
+    redo()
+    redo()
+    assert.equal(added.text, "second")
+    assert.equal(scene.selected, added.id)
+  })
+
+  test("a selection made while a change is settling stays with that change", async () => {
+    addObject()
+    await settle()
+    const added = scene.objects[1]
+    select(object)
+    object.text = "edited"
+    await nextTick()
+    select(added)
+    await settle()
+    undo()
+    assert.equal(object.text, "start")
+    assert.equal(scene.selected, object.id)
+    redo()
+    assert.equal(scene.selected, added.id)
   })
 
   test("undoing a font change keeps the texture", async () => {

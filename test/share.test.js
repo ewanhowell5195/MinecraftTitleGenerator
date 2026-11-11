@@ -1,14 +1,8 @@
-import { beforeEach, describe, mock, test } from "node:test"
+import { beforeEach, describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { registerHooks } from "node:module"
+import { fakeTimeouts, quietStorage, viteEnv } from "./helpers/browser.js"
 
-function withViteEnv(url, context, nextLoad) {
-  const result = nextLoad(url, context)
-  if (!url.endsWith("/src/lib/stats.js")) return result
-  return { ...result, source: `import.meta.env = { DEV: false }\n${result.source}` }
-}
-
-registerHooks({ load: withViteEnv })
+viteEnv({ DEV: false })
 
 const posts = []
 
@@ -18,18 +12,16 @@ async function recordPost(url, options) {
 }
 
 globalThis.fetch = recordPost
-globalThis.localStorage = { getItem: () => null, setItem: () => {} }
+quietStorage()
 globalThis.location = { href: "https://example.test/app/", origin: "https://example.test", pathname: "/app/", search: "" }
-mock.timers.enable({ apis: ["setTimeout"] })
+fakeTimeouts()
 
-const { createObject } = await import("../src/lib/settings.js")
-const { scene, validSelection } = await import("../src/lib/scene.js")
-const { shareLink } = await import("../src/lib/share.js")
-
-function setTitle(...objects) {
-  scene.objects.splice(0, scene.objects.length, ...objects)
-  Object.assign(scene, validSelection(objects, null, null))
-}
+const { FILE_VERSION, createObject } = await import("../src/lib/settings.js")
+const { scene, sharedLink } = await import("../src/lib/scene.js")
+const { fileError } = await import("../src/lib/file.js")
+const { encodeTitle } = await import("../src/lib/linkformat.js")
+const { openSharedLink, shareLink } = await import("../src/lib/share.js")
+const { setTitle } = await import("./helpers/scene.js")
 
 describe("sharing a title", () => {
   beforeEach(() => {
@@ -95,5 +87,47 @@ describe("sharing a title", () => {
     location.href = "https://example.test/app/"
     assert.match(link, /^https:\/\/example\.test\/app\/\?other=1&title=[A-Za-z0-9_-]+$/)
     assert.doesNotMatch(link, /old/)
+  })
+})
+
+describe("opening a shared link", () => {
+  const replaced = []
+
+  function openCode(code) {
+    replaced.length = 0
+    globalThis.history = { state: null, replaceState: (state, title, url) => replaced.push(url.href) }
+    location.href = `https://example.test/app/?title=${code}`
+    location.search = `?title=${code}`
+    openSharedLink()
+    location.href = "https://example.test/app/"
+    location.search = ""
+  }
+
+  beforeEach(() => {
+    fileError.value = null
+    sharedLink.open = false
+    setTitle(createObject({ text: "before" }))
+  })
+
+  test("shows the title in the link", () => {
+    openCode(encodeTitle({ version: FILE_VERSION, lines: [{ text: "shared", hue: 40 }] }).code)
+    assert.equal(fileError.value, null)
+    assert.deepEqual(scene.objects.map(object => [object.text, object.hue]), [["shared", 40]])
+    assert.equal(sharedLink.open, true)
+    assert.deepEqual(replaced, [])
+  })
+
+  test("refuses a setting it can't read, names it and takes the title out of the address", () => {
+    openCode(encodeTitle({ version: FILE_VERSION, lines: [{ text: 5 }] }).code)
+    assert.equal(fileError.value, "Couldn't open this link: it has a setting that can't be read: text")
+    assert.deepEqual(scene.objects.map(object => object.text), ["before"])
+    assert.equal(sharedLink.open, false)
+    assert.deepEqual(replaced, ["https://example.test/app/"])
+  })
+
+  test("refuses a title the editor can't hold", () => {
+    openCode(encodeTitle({ version: FILE_VERSION, lines: [{ text: "a", matchWidth: 0 }] }).code)
+    assert.equal(fileError.value, "Couldn't open this link: line 0 matches its own width")
+    assert.deepEqual(scene.objects.map(object => object.text), ["before"])
   })
 })

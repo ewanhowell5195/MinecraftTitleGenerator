@@ -1,5 +1,5 @@
 import { fileError, openTitleData, titleData } from "./file.js"
-import { decodeTitle, encodeTitle } from "./linkformat.js"
+import { encodeTitle, openableTitle } from "./linkformat.js"
 import { presetsPage } from "./presetsPage.js"
 import { TITLE_PARAM, clearSharedLink, sharedLink } from "./scene.js"
 import { submitStats } from "./stats.js"
@@ -17,7 +17,7 @@ export function openSharedLink() {
   const code = new URLSearchParams(location.search).get(TITLE_PARAM)
   if (!code || presetsPage.open) return
   try {
-    openTitleData(decodeTitle(code))
+    openTitleData(openableTitle(code))
     sharedLink.open = true
   } catch (err) {
     fileError.value = `Couldn't open this link: ${err.message}`

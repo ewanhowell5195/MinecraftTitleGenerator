@@ -1,11 +1,14 @@
 import { computed, reactive, ref, shallowReactive, watch } from "vue"
+import { hoisted, lowered } from "./linkformat.js"
 import { round } from "./maths.js"
-import { LINE, applyType, createObject, isModified, snapshot } from "./settings.js"
+import { FILE_VERSION, LINE, applyType, createObject, isModified, snapshot } from "./settings.js"
 import { shapeName } from "./shapes.js"
 import { createTitle } from "./title.js"
-import { view } from "./view.js"
+import { joinWords, titleLines, titleValues, trimmed } from "./titleFacts.js"
+import { readStored, view } from "./view.js"
 
 const STORAGE = "minecraft-title-scene"
+const UNVERSIONED = 4
 const FILE_NAME_LIMIT = 64
 
 export const keepTexture = new WeakSet()
@@ -25,12 +28,50 @@ export function validSelection(objects, selected, selectedGroup) {
   }
 }
 
+export function titleObjects(values) {
+  const list = values.map(words => words.map(value => keptObject(value)))
+  const objects = list.flat()
+  for (const object of objects) {
+    if (object.matchWidth !== null) object.matchWidth = list[object.matchWidth][0].id
+  }
+  return objects
+}
+
+export function lines(objects = scene.objects) {
+  const list = []
+  for (const object of objects) {
+    const last = list[list.length - 1]
+    if (object.group !== null && last?.[0].group === object.group) last.push(object)
+    else list.push([object])
+  }
+  return list
+}
+
+function stored(objects, { selected, selectedGroup }, version, values) {
+  const list = lines(objects)
+  const group = list.findIndex(line => line[0].group !== null && line[0].group === selectedGroup)
+  return { version, lines: titleLines(list, values).map(hoisted), selected: objects.findIndex(object => object.id === selected), selectedGroup: group < 0 ? null : group }
+}
+
+function unversioned(saved) {
+  return stored(saved.objects.map(values => ({ ...values, group: values.group ?? null })), saved, UNVERSIONED, ({ id, group, ...values }) => values)
+}
+
+function fresh(error = null) {
+  return { objects: [createObject()], selected: null, selectedGroup: null, error }
+}
+
 function load() {
+  const saved = readStored(STORAGE)
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE))
-    if (Array.isArray(saved?.objects) && saved.objects.some(values => values.shape || values.text.trim())) return { objects: saved.objects.map(values => keptObject(values, values.id)), selected: saved.selected, selectedGroup: saved.selectedGroup }
-  } catch {}
-  return { objects: [createObject()], selected: null, selectedGroup: null }
+    const data = Array.isArray(saved?.objects) ? unversioned(saved) : saved
+    if (!data?.lines?.length) return fresh()
+    const objects = titleObjects(titleValues({ ...data, lines: data.lines.map(lowered) }))
+    if (!objects.some(object => object.shape !== null || object.text.trim())) return fresh()
+    return { objects, selected: objects[data.selected]?.id ?? null, selectedGroup: lines(objects)[data.selectedGroup]?.[0].group ?? null, error: null }
+  } catch (err) {
+    return fresh(err.message)
+  }
 }
 
 const initial = load()
@@ -48,7 +89,7 @@ export const runtime = editorTitle.runtime
 
 export const library = shallowReactive({ fonts: [], shapes: [], tileables: {} })
 
-export const saveError = ref(null)
+export const saveError = ref(initial.error && `Your last title couldn't be restored: ${initial.error}`)
 
 export const TITLE_PARAM = "title"
 
@@ -73,7 +114,7 @@ watch(scene, () => {
   saving = setTimeout(() => {
     if (sharedLink.open) return
     try {
-      localStorage.setItem(STORAGE, JSON.stringify({ objects: scene.objects, selected: scene.selected, selectedGroup: scene.selectedGroup }))
+      localStorage.setItem(STORAGE, JSON.stringify(stored(scene.objects, scene, FILE_VERSION, trimmed)))
       saveError.value = null
     } catch (err) {
       saveError.value = `Your title couldn't be saved, so changes will be lost if you reload: ${err.message}`
@@ -83,6 +124,10 @@ watch(scene, () => {
 
 export function words(object, title = editorTitle) {
   return object.group === null ? [object] : title.objects.filter(other => other.group === object.group)
+}
+
+export function gameVersions(browsing = null) {
+  return new Set(scene.objects.flatMap(object => [object.shapeVersion, object.minecraftVersion]).concat(browsing).filter(Boolean))
 }
 
 export function lineHidden(object) {
@@ -130,18 +175,11 @@ export function wordText(word) {
 }
 
 export function lineText(object) {
-  return words(object).map((word, index) => (index && word.spaceBefore ? " " : "") + wordText(word)).join("").trim()
+  return joinWords(words(object), wordText)
 }
 
 export function titleText() {
-  let text = ""
-  let group = null
-  for (const word of scene.objects) {
-    if (word.hidden || word.shape !== null) continue
-    text += (word.group !== null && word.group === group && !word.spaceBefore ? "" : " ") + word.text.trim()
-    group = word.group
-  }
-  return text.trim()
+  return lines().map(line => joinWords(line.filter(word => !word.hidden && word.shape === null), wordText)).filter(Boolean).join(" ")
 }
 
 export function titleFileName() {
@@ -281,7 +319,10 @@ function remove(list) {
     if (remaining) other.matchWidth = remaining.id
     else bakeWord(other)
   }
-  for (const id of ids) delete runtime[id]
+  for (const id of ids) {
+    delete runtime[id]
+    delete editorTitle.problems[id]
+  }
   if (first.group !== null) {
     const left = words(first)
     if (left.length === 1) left[0].group = null

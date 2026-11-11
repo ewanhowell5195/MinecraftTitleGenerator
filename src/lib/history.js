@@ -1,7 +1,8 @@
-import { effect, reactive } from "vue"
+import { effect, reactive, watch } from "vue"
 import { forgetImages } from "./assets.js"
 import { restore } from "./settings.js"
 import { keepTexture, keptObject, leaveSharedLink, scene, validSelection } from "./scene.js"
+import { loadKey } from "./shapes.js"
 
 const LIMIT = 200
 const SETTLE = 300
@@ -74,7 +75,7 @@ function apply(snapshot) {
   const list = objects.map(values => {
     const existing = scene.objects.find(object => object.id === values.id)
     if (!existing) return keptObject(values, values.id)
-    if (existing.font !== values.font) keepTexture.add(existing)
+    if (loadKey(existing) !== loadKey(values)) keepTexture.add(existing)
     restore(existing, values)
     return existing
   })
@@ -138,3 +139,7 @@ function noticeChange() {
 }
 
 const tracker = effect(() => touch(scene.objects), { scheduler: noticeChange })
+
+watch(() => [scene.selected, scene.selectedGroup], () => {
+  if (!restoring && !changed && !timer) present = take()
+}, { flush: "sync" })

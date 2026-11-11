@@ -1,5 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
+import { quietStorage } from "./helpers/browser.js"
 
 let response = null
 const requests = []
@@ -9,7 +10,7 @@ function stubFetch(url, options) {
   return Promise.resolve(response)
 }
 
-globalThis.localStorage = { getItem: () => null, setItem: () => {} }
+quietStorage()
 globalThis.fetch = stubFetch
 
 const { loadStats, popular } = await import("../src/lib/stats.js")

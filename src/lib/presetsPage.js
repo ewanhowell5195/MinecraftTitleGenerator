@@ -26,7 +26,7 @@ function syncTo(url) {
   Object.assign(presetsPage, { open, id, code })
 }
 
-export function syncPresetsPage() {
+function syncPresetsPage() {
   syncTo(new URL(location.href))
 }
 

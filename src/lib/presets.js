@@ -2,11 +2,12 @@ import { ref, watch } from "vue"
 import { account, changeSaved, deleteSaved, deleteShared, loadSaved, managedPresets, refreshUsage, renameShared, replaceShared, sharePublicly, unshareShared, uploadSaved } from "./community.js"
 import { fileError, isDefaultTitle, openTitleData, titleData } from "./file.js"
 import { LIMITS } from "./limits.js"
-import { decodeTitle, encodeTitle, titleBody } from "./linkformat.js"
+import { encodeTitle, openableTitle, titleBody } from "./linkformat.js"
 import { capitalWords } from "./names.js"
 import { showNotice } from "./notices.js"
 import { titleText } from "./scene.js"
 import { submitStats } from "./stats.js"
+import { readStored } from "./view.js"
 
 const STORAGE = "minecraft-title-presets"
 const FALLBACK_NAME = "Title"
@@ -26,12 +27,8 @@ let presetsOpened = null
 let queue = Promise.resolve()
 
 function read() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE))
-    return Array.isArray(saved) ? saved : []
-  } catch {
-    return []
-  }
+  const saved = readStored(STORAGE)
+  return Array.isArray(saved) ? saved : []
 }
 
 function queued(send) {
@@ -44,7 +41,7 @@ function store(list) {
   localStorage.setItem(STORAGE, JSON.stringify(list))
 }
 
-function change(code, transform, send) {
+function change(code, transform, send, undo) {
   const previous = presets.value
   const list = transform(previous)
   if (!account.value) {
@@ -59,14 +56,14 @@ function change(code, transform, send) {
   }
   queued(send).catch(err => {
     console.error(err)
-    presets.value = previous
+    presets.value = undo(presets.value)
     showNotice(err.message)
   })
 }
 
-function setList(transform) {
+function setList(transform, stored = transform) {
   presets.value = transform(presets.value)
-  store(transform(read()))
+  store(stored(read()))
 }
 
 function keepInBrowser(code) {
@@ -156,7 +153,7 @@ export function addPreset(name, code) {
   change(code, list => list.concat(preset), async () => {
     const kept = await uploadSaved([preset])
     if (kept.length) keepInBrowser(code)
-  })
+  }, list => list.filter(item => item.code !== code))
   return preset
 }
 
@@ -171,7 +168,7 @@ export function renamePreset(preset, name) {
       setList(named(preset.name))
       showNotice(err.message)
     })
-  } else change(preset.code, named(trimmed), () => changeSaved(preset.code, { name: trimmed }))
+  } else change(preset.code, named(trimmed), () => changeSaved(preset.code, { name: trimmed }), list => list.map(item => item.code === preset.code && item.name === trimmed ? { ...item, name: preset.name } : item))
   return { ...preset, name: trimmed }
 }
 
@@ -196,7 +193,9 @@ export function unmarkShared(id) {
 export async function unsharePreset(id) {
   const { name, code } = await unshareShared(id)
   const moved = { name, code, ...(!account.value && { unshared: id }) }
-  setList(list => list.some(item => item.shared === id) ? list.map(item => item.shared === id ? moved : item) : list.concat(moved))
+  const swapped = list => list.map(item => item.shared === id ? moved : item)
+  const kept = list => list.some(item => item.shared === id) ? swapped(list) : list.concat(moved)
+  setList(kept, account.value ? swapped : kept)
   return moved
 }
 
@@ -210,7 +209,7 @@ function changeCode(preset, code, name) {
     if (item.code !== preset.code) return item
     const { shared, ...rest } = item
     return { ...rest, code, name }
-  }), () => changeSaved(preset.code, { replacement: code, name }))
+  }), () => changeSaved(preset.code, { replacement: code, name }), list => list.map(item => item.code === code ? preset : item))
   return { ...preset, code, name }
 }
 
@@ -237,10 +236,12 @@ export async function saveOver(target, name) {
 }
 
 export function removePreset(preset) {
+  const index = presets.value.findIndex(item => item.code === preset.code)
+  const removed = presets.value.filter(item => item.code === preset.code)
   change(preset.code, list => list.filter(item => item.code !== preset.code), async () => {
     await deleteSaved(preset.code)
     queued(moveUpFromBrowser).catch(console.error)
-  })
+  }, list => list.slice(0, index).concat(removed, list.slice(index)))
   if (preset.unshared) deleteShared(preset.unshared).catch(console.error)
 }
 
@@ -337,7 +338,7 @@ export function savePreset(name = "", { keepOpen = false } = {}) {
 export function loadPreset(preset) {
   if (!isDefaultTitle() && !showingCode(preset.code) && !confirm(`Replace your current title with ${preset.name}?`)) return false
   try {
-    openTitleData(decodeTitle(preset.code))
+    openTitleData(openableTitle(preset.code))
   } catch (err) {
     fileError.value = `Couldn't open ${preset.name}: ${err.message}`
   }

@@ -1,40 +1,29 @@
 import { beforeEach, describe, mock, test } from "node:test"
 import assert from "node:assert/strict"
-import { registerHooks } from "node:module"
+import { fakeTimeouts, stubStorage, viteEnv } from "./helpers/browser.js"
 
-function withViteEnv(url, context, nextLoad) {
-  const result = nextLoad(url, context)
-  if (!url.endsWith("/src/lib/stats.js")) return result
-  return { ...result, source: `import.meta.env = { DEV: false }\n${result.source}` }
-}
+viteEnv({ DEV: false })
 
-registerHooks({ load: withViteEnv })
-
-const stored = new Map()
+const stored = stubStorage()
 const posts = []
 let answer = true
 
-globalThis.localStorage = { getItem: key => stored.get(key) ?? null, setItem: (key, value) => stored.set(key, value) }
 globalThis.fetch = async (url, options) => {
   posts.push(JSON.parse(options.body).ids)
   return { ok: true }
 }
 globalThis.confirm = () => answer
-mock.timers.enable({ apis: ["setTimeout"] })
+fakeTimeouts()
 
-const { createObject, LAYER } = await import("../src/lib/settings.js")
-const { scene, validSelection } = await import("../src/lib/scene.js")
+const { FILE_VERSION, createObject, LAYER } = await import("../src/lib/settings.js")
+const { scene } = await import("../src/lib/scene.js")
 const { fileError } = await import("../src/lib/file.js")
 const { notice } = await import("../src/lib/notices.js")
-const { decodeTitle } = await import("../src/lib/linkformat.js")
+const { decodeTitle, encodeTitle } = await import("../src/lib/linkformat.js")
 const { NAME_LIMIT, addPreset, loadPreset, markShared, namingPreset, namingShared, presets, removePreset, renamePreset, savePreset, startSavingPreset } = await import("../src/lib/presets.js")
+const { setTitle } = await import("./helpers/scene.js")
 
 const STORAGE = "minecraft-title-presets"
-
-function setTitle(...objects) {
-  scene.objects.splice(0, scene.objects.length, ...objects)
-  Object.assign(scene, validSelection(objects, null, null))
-}
 
 function savedList() {
   return JSON.parse(stored.get(STORAGE))
@@ -143,15 +132,13 @@ describe("presets", () => {
     assert.equal(stored.get(STORAGE), undefined)
   })
 
-  test("a full browser store reports the problem and keeps the list", async () => {
+  test("a full browser store reports the problem and keeps the list", async t => {
     addPreset("first", "a")
-    const setItem = localStorage.setItem
-    localStorage.setItem = () => {
+    t.mock.method(localStorage, "setItem", () => {
       throw new Error("the quota has been exceeded")
-    }
+    })
     setTitle(createObject({ text: "too much" }))
     await savePreset()
-    localStorage.setItem = setItem
     assert.equal(presets.value.length, 1)
     assert.match(fileError.value, /^Couldn't save this preset: the quota has been exceeded/)
   })
@@ -317,5 +304,12 @@ describe("presets", () => {
     assert.equal(loadPreset({ name: "broken", code: "1!!!" }), true)
     assert.equal(scene.objects[0].text, "current")
     assert.match(fileError.value, /^Couldn't open broken: /)
+  })
+
+  test("a preset with a setting that can't be read names it and leaves the title", () => {
+    setTitle(createObject({ text: "current" }))
+    assert.equal(loadPreset({ name: "odd", code: encodeTitle({ version: FILE_VERSION, lines: [{ text: 5 }] }).code }), true)
+    assert.equal(scene.objects[0].text, "current")
+    assert.equal(fileError.value, "Couldn't open odd: it has a setting that can't be read: text")
   })
 })

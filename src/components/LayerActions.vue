@@ -17,12 +17,9 @@
       <span class="name ellipsis">{{ lineText(line[0]) || "(empty)" }}</span>
       <span class="type ellipsis">{{ grouped ? `${line.length} words, ` : "" }}{{ TYPES[line[0].type].name }}</span>
     </div>
-    <Button ghost @click="toggleLine(line[0])" v-tooltip="hidden ? 'Show' : 'Hide'" :aria-label="hidden ? 'Show' : 'Hide'" :aria-pressed="hidden"><template #icon><Icon :name="hidden ? 'hidden' : 'eye'" :size="16" /></template>
-    </Button>
-    <Button ghost @click="duplicateLine(line[0])" v-tooltip="'Duplicate'" aria-label="Duplicate"><template #icon><Icon name="copy" :size="16" /></template>
-    </Button>
-    <Button ghost @click="removeLine(line[0])" v-tooltip="'Delete'" aria-label="Delete"><template #icon><Icon name="trash" :size="16" /></template>
-    </Button>
+    <Button ghost :icon="hidden ? 'hidden' : 'eye'" :title="hidden ? 'Show' : 'Hide'" :aria-pressed="hidden" @click="toggleLine(line[0])" />
+    <Button ghost icon="copy" title="Duplicate" @click="duplicateLine(line[0])" />
+    <Button ghost icon="trash" title="Delete" @click="removeLine(line[0])" />
   </div>
 </template>
 

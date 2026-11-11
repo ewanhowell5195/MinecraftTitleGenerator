@@ -1,14 +1,8 @@
-import { beforeEach, describe, mock, test } from "node:test"
+import { beforeEach, describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { registerHooks } from "node:module"
+import { fakeTimeouts, quietStorage, viteEnv } from "./helpers/browser.js"
 
-function withViteEnv(url, context, nextLoad) {
-  const result = nextLoad(url, context)
-  if (!url.endsWith("/src/lib/stats.js")) return result
-  return { ...result, source: `import.meta.env = { DEV: true }\n${result.source}` }
-}
-
-registerHooks({ load: withViteEnv })
+viteEnv({ DEV: true })
 
 let fetchCalls = 0
 
@@ -18,12 +12,13 @@ function countFetch() {
 }
 
 globalThis.fetch = countFetch
-globalThis.localStorage = { getItem: () => null, setItem: () => {} }
-mock.timers.enable({ apis: ["setTimeout"] })
+quietStorage()
+fakeTimeouts()
 
 const { LAYER, createObject, snapshot, typeDefaults } = await import("../src/lib/settings.js")
-const { keepTexture, runtime, scene, validSelection } = await import("../src/lib/scene.js")
+const { keepTexture, runtime, scene } = await import("../src/lib/scene.js")
 const { fileError, isDefaultTitle, openTitle, resetTitle, saveTitle } = await import("../src/lib/file.js")
+const { setTitle: setScene } = await import("./helpers/scene.js")
 
 const REAL_FILE = { format: "minecraft-title", version: 1, lines: [{ texture: "cracked" }, { type: "bottom", matchWidth: 0, scaleX: 0.7977, words: [{ text: "title", texture: "fired", hue: 359, customBorder: true, borderColour: "#230f00" }, { text: "generator", texture: "fired", hue: 180, customBorder: true, borderColour: "#001329", customEdge: true, edgeColour: "#11467d" }] }] }
 
@@ -53,11 +48,6 @@ function title(lines, extra = {}) {
 
 function make(type, values = {}) {
   return createObject({ ...typeDefaults(type), ...values })
-}
-
-function setScene(...objects) {
-  scene.objects.splice(0, scene.objects.length, ...objects)
-  Object.assign(scene, validSelection(objects, null, null))
 }
 
 async function save() {
@@ -206,9 +196,16 @@ describe("saving trims settings", () => {
     const twisted = { twistRibbon: 30, twistRibbonCentre: 0, twistRibbonMirror: true, twistDoor: 0, twistDoorCentre: 100, twistDoorSame: true }
     assert.deepEqual(await savedLines(make("top", twisted)), [{ twistRibbon: 30, twistRibbonCentre: 0, twistRibbonMirror: true }])
     assert.deepEqual(await savedLines(make("top", { ...twisted, twistRibbon: 0 })), [{}])
-    const values = { arcTop: 3, arcBottom: 2, arcMove: 5, arcMarked: false, arcGradient: true }
-    assert.deepEqual(await savedLines(make("top", values)), [{ arcTop: 3, arcBottom: 2, arcMarked: false, arcGradient: true }])
+    const values = { arcTop: 3, arcBottom: 2, arcMove: 5, arcMarked: false }
+    assert.deepEqual(await savedLines(make("top", values)), [{ arcTop: 3, arcBottom: 2, arcMarked: false }])
     assert.deepEqual(await savedLines(make("top", { ...values, arcMode: "move" })), [{ arcMode: "move", arcMove: 5 }])
+  })
+
+  test("a gradient that follows the curve is saved in either arc mode, and only for a gradient", async () => {
+    const stops = [{ colour: "#000000", position: 0 }, { colour: "#ffffff", position: 100 }]
+    assert.deepEqual(await savedLines(make("top", { textureSource: "gradient", stops, arcGradient: true })), [{ textureSource: "gradient", stops, arcGradient: true }])
+    assert.deepEqual(await savedLines(make("top", { textureSource: "gradient", stops, arcGradient: true, arcMode: "move", arcMove: 5 })), [{ arcMode: "move", arcMove: 5, arcGradient: true, textureSource: "gradient", stops }])
+    assert.deepEqual(await savedLines(make("top", { arcGradient: true })), [{}])
   })
 
   test("word arc settings follow the word arc mode", async () => {
@@ -334,6 +331,12 @@ describe("matchWidth indexes", () => {
     const [first, second] = await open([{ text: "first" }, { text: "second", matchWidth: 0 }])
     assert.equal(second.matchWidth, first.id)
     assert.equal(first.matchWidth, null)
+  })
+
+  test("opening a line that says it matches nothing leaves it unmatched", async () => {
+    const [first, second] = await open([{ text: "first", matchWidth: null }, { matchWidth: null, words: [{ text: "second" }] }])
+    assert.equal(first.matchWidth, null)
+    assert.equal(second.matchWidth, null)
   })
 
   test("opening points at the first word of a line", async () => {
@@ -574,6 +577,7 @@ describe("rejected files", () => {
     ["lines that are not a list", title("words"), "Couldn't open test.mctitle: it has no text in it"],
     ["a matchWidth past the end", title([{}, { matchWidth: 2 }]), "Couldn't open test.mctitle: a line matches the width of line 2, which doesn't exist"],
     ["a negative matchWidth", title([{ matchWidth: -1 }]), "Couldn't open test.mctitle: a line matches the width of line -1, which doesn't exist"],
+    ["a matchWidth between two lines", title([{}, { matchWidth: 0.5 }]), "Couldn't open test.mctitle: a line matches the width of line 0.5, which doesn't exist"],
     ["a shape used as a word", title([{ words: [{ text: "a" }, { shape: "heart" }] }]), "Couldn't open test.mctitle: a shape is used as a word in a line"],
     ["a line matching itself", title([{}, { matchWidth: 1 }]), "Couldn't open test.mctitle: line 1 matches its own width"],
     ["two lines matching each other", title([{ matchWidth: 1 }, { matchWidth: 0 }]), "Couldn't open test.mctitle: line 0 matches its own width"],
@@ -618,8 +622,8 @@ describe("saving then reopening", () => {
     const words = { group: 11, row: 1, depth: 30, matchWidth: first.id, scaleY: 1.4, arcMode: "move", arcMove: 12 }
     const a = make("bottom", { ...words, text: "update", texture: "fired", overlayMode: "custom", overlays: [{ ...LAYER, overlay: "dust", opacity: 50 }], wordScaleX: 1.2, wordDepth: 10 })
     const b = make("bottom", { ...words, text: "two", spaceBefore: false, texture: "gold", edgeOverlayMode: "custom", edgeOverlays: [{ ...LAYER, overlay: "rim", size: 2 }], wordArcMode: "move", wordArcMove: 4 })
-    const hidden = make("small", { text: "edition", hidden: true, textureSource: "gradient", stops: [{ colour: "#000000", position: 10 }, { colour: "#FFFFFF", position: 90 }], smooth: false, gradientAngle: 45, disableFontOverlay: true, scaleX: 1.25, clipHoles: true })
-    const last = make("top", { text: "end", textureSource: "tileable", tileable: "dirt", tileableVariant: "coarse", tileableScale: 4, tileableXOffset: 3, matchWidth: hidden.id, scaleX: 1.5, linkScale: 2, scaleY: 3, internalFaces: true, internalFade: 40, customInternal: true, internalColour: "#111111", sideFaces: true, fadeSides: false, customEdge: true, edgeColour: "#222222", fade: true, outerFade: 25, arcTop: 6, arcGradient: true })
+    const hidden = make("small", { text: "edition", hidden: true, textureSource: "gradient", stops: [{ colour: "#000000", position: 10 }, { colour: "#FFFFFF", position: 90 }], smooth: false, gradientAngle: 45, disableFontOverlay: true, scaleX: 1.25, clipHoles: true, arcMode: "move", arcMove: 7, arcGradient: true })
+    const last = make("top", { text: "end", textureSource: "tileable", tileable: "dirt", tileableVariant: "coarse", tileableScale: 4, tileableXOffset: 3, matchWidth: hidden.id, scaleX: 1.5, linkScale: 2, scaleY: 3, internalFaces: true, internalFade: 40, customInternal: true, internalColour: "#111111", sideFaces: true, fadeSides: false, customEdge: true, edgeColour: "#222222", fade: true, outerFade: 25, arcTop: 6 })
     return [first, a, b, hidden, last]
   }
 

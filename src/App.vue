@@ -66,7 +66,7 @@
   const menuBar = ref(null)
 
   const selected = computed(() => {
-    if (view.render) return []
+    if (view.render || !currentWord.value) return []
     if (FORM_SECTIONS.has(view.section)) return (shapingWord.value ? [currentWord.value] : words(currentWord.value)).map(object => object.id)
     if (LINE_SECTIONS.has(view.section)) return words(currentWord.value).map(object => object.id)
     return selection.value.map(object => object.id)
@@ -160,7 +160,7 @@
         <FontPanel />
         <SpacingPanel />
       </template>
-      <ShapePanel v-else-if="view.section === 'shape'" />
+      <ShapePanel v-else-if="view.section === 'shape'" :key="currentWord.id" />
       <PlacementPanel v-else-if="view.section === 'placement'" />
       <TexturePanel v-else-if="view.section === 'texture'" />
       <ColourPanel v-else-if="view.section === 'colour'" />

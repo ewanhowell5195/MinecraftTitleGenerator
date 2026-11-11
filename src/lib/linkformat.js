@@ -1,10 +1,9 @@
 import { deflateSync, inflateSync } from "three/addons/libs/fflate.module.js"
 import { hexOf, rgbOf } from "./colour.js"
 import { DEFAULT_ORDER } from "./order.js"
-import { LINE, OVERLAY_KINDS, isCustomFont } from "./settings.js"
+import { FILE_VERSION, LAYERS, LINE, isCustomFont, sameValue, typeDefaults, upgradeLine } from "./settings.js"
 import { CUSTOM_SHAPE, FALLBACK_SHAPE } from "./shapes.js"
 
-const LAYERS = Object.keys(OVERLAY_KINDS)
 // older titles keep the twist anchors on the line
 const LINE_ONLY = new Set(["words", "matchWidth", "twistRibbonAnchor", "twistDoorAnchor"])
 const PREFIXES = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
@@ -188,7 +187,7 @@ function choice(...options) {
 
 const BOOLEAN = { fits: value => typeof value === "boolean" }
 const TEXT = { fits: value => typeof value === "string", write: writeText, read: readText }
-const ID = { fits: value => typeof value === "string" && fitsSet(Array.from(value), ID_CHARACTERS), write: writeId, read: readId }
+const ID = { fits: value => typeof value === "string" && fitsSet(Array.from(value), ID_CHARACTERS), opens: value => typeof value === "string", write: writeId, read: readId }
 const NUMBER = { fits: Number.isFinite, write: writeNumber, read: readNumber }
 const COLOUR = { fits: isColour, write: writeColour, read: readColour }
 const OBJECTS = list(isObject, writeObject, readObject)
@@ -361,10 +360,17 @@ const KEYS = [
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))
+const DEFAULTS = typeDefaults("top")
 
 function fittingType(key, value) {
   const type = KEYS[IDS.get(key) - 1]?.[1]
   return type && (value === null ? type !== BOOLEAN : type.fits(value)) ? type : null
+}
+
+function opens(key, value) {
+  const type = KEYS[IDS.get(key) - 1]?.[1]
+  if (value === null) return type === NUMBER || !!type && DEFAULTS[key] === null
+  return !!type && (type.opens ?? type.fits)(value)
 }
 
 function writeEntry(out, key, value) {
@@ -391,11 +397,11 @@ function readEntry(reader) {
 
 const NESTED = new Set(["words"].concat(LAYERS))
 
-export function unknownSetting(items, names = new Map()) {
+export function unknownSetting(items, names = new Map(), accepts = fittingType) {
   for (const item of items) {
     for (const [key, value] of Object.entries(item)) {
-      if (!fittingType(names.get(key) ?? key, value)) return key
-      const nested = NESTED.has(key) && value ? unknownSetting(value, key === "words" ? new Map() : OVERLAY_KEYS) : null
+      if (!accepts(names.get(key) ?? key, value)) return key
+      const nested = NESTED.has(key) && value ? unknownSetting(value, key === "words" ? new Map() : OVERLAY_KEYS, accepts) : null
       if (nested) return nested
     }
   }
@@ -424,7 +430,7 @@ function fromBase64Url(text) {
 }
 
 function countUploads(entry) {
-  const own = LAYERS.flatMap(key => entry[key] ?? []).filter(layer => layer.source === "file" && layer.file).length + (entry.textureSource === "custom" ? 1 : 0) + (isCustomFont(entry.font) || entry.shape === CUSTOM_SHAPE ? 1 : 0)
+  const own = LAYERS.flatMap(key => entry[key] ?? []).filter(layer => layer.source === "file" && layer.file).length + (entry.textureSource === "custom" && (entry.customTexture || (entry.words ?? []).some(word => word.customTexture)) ? 1 : 0) + (isCustomFont(entry.font) || entry.shape === CUSTOM_SHAPE ? 1 : 0)
   return (entry.words ?? []).reduce((total, word) => total + countUploads(word), own)
 }
 
@@ -434,7 +440,11 @@ function withoutUploads(entry) {
   const stripped = Object.fromEntries(Object.entries(entry).filter(([key]) => !UPLOAD_KEYS.includes(key)))
   if (entry.textureSource === "custom") delete stripped.textureSource
   if (isCustomFont(entry.font)) delete stripped.font
-  if (entry.shape === CUSTOM_SHAPE) stripped.shape = FALLBACK_SHAPE
+  if (entry.shape === CUSTOM_SHAPE) {
+    stripped.shape = FALLBACK_SHAPE
+    delete stripped.texture
+    delete stripped.textureVariant
+  }
   for (const key of LAYERS) {
     if (entry[key]) stripped[key] = entry[key].filter(layer => layer.source !== "file").map(({ file, ...layer }) => layer)
   }
@@ -451,15 +461,15 @@ function lowercased(entry) {
   return entry.words ? { ...result, words: entry.words.map(lowercased) } : result
 }
 
-function hoisted(line) {
+export function hoisted(line) {
   if (!line.words?.length) return line
   const [first, ...rest] = line.words
-  const shared = Object.keys(first).filter(key => !lineKey(key) && rest.every(word => key in word && JSON.stringify(word[key]) === JSON.stringify(first[key])))
+  const shared = Object.keys(first).filter(key => !lineKey(key) && rest.every(word => key in word && sameValue(word[key], first[key])))
   if (!shared.length) return line
   return { ...line, ...Object.fromEntries(shared.map(key => [key, first[key]])), words: line.words.map(word => Object.fromEntries(Object.entries(word).filter(([key]) => !shared.includes(key)))) }
 }
 
-function lowered(line) {
+export function lowered(line) {
   if (!line.words) return line
   const shared = Object.entries(line).filter(([key]) => !lineKey(key))
   if (!shared.length) return line
@@ -474,10 +484,6 @@ export function encodeTitle({ version, lines }) {
   return { code: `${PREFIXES[version * 2 + (compressed ? 1 : 0)]}${toBase64Url(compressed ? packed : bytes)}`, skipped: lines.reduce((total, line) => total + countUploads(line), 0) }
 }
 
-export function titleBody(code) {
-  return code.slice(1)
-}
-
 export function decodeTitle(code) {
   try {
     const prefix = PREFIXES.indexOf(code[0])
@@ -487,4 +493,30 @@ export function decodeTitle(code) {
   } catch {
     throw new Error("it is incomplete or damaged")
   }
+}
+
+export function openableTitle(code) {
+  const title = decodeTitle(code)
+  const unknown = unknownSetting(title.lines, undefined, opens)
+  if (unknown) throw new Error(`it has a setting that can't be read: ${unknown}`)
+  return title
+}
+
+const bodies = new Map()
+
+function upgradedBody(code) {
+  const body = code.slice(1)
+  if (PREFIXES.indexOf(code[0]) >> 1 >= FILE_VERSION) return body
+  try {
+    const { version, lines } = decodeTitle(code)
+    const upgraded = lines.map(line => upgradeLine(line, version))
+    return sameValue(upgraded, lines) ? body : encodeTitle({ version: FILE_VERSION, lines: upgraded }).code.slice(1)
+  } catch {
+    return body
+  }
+}
+
+export function titleBody(code) {
+  if (!bodies.has(code)) bodies.set(code, upgradedBody(code))
+  return bodies.get(code)
 }

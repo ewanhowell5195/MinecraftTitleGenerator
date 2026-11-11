@@ -2,8 +2,8 @@ import assert from "node:assert/strict"
 import fs from "node:fs"
 import { describe, test } from "node:test"
 import { GENERATED_SETTINGS } from "../src/lib/generated.js"
-import { UPLOAD_KEYS, decodeTitle, encodeTitle, readLines, unknownSetting, writeLines } from "../src/lib/linkformat.js"
-import { LAYER, typeDefaults } from "../src/lib/settings.js"
+import { UPLOAD_KEYS, decodeTitle, encodeTitle, openableTitle, readLines, titleBody, unknownSetting, writeLines } from "../src/lib/linkformat.js"
+import { FILE_VERSION, LAYER, typeDefaults } from "../src/lib/settings.js"
 
 const fixtures = JSON.parse(fs.readFileSync(new URL("links.json", import.meta.url), "utf8"))
 
@@ -355,5 +355,87 @@ describe("uploads in links", () => {
     const { code, skipped } = encodeTitle({ version: 1, lines: [{ text: "a", font: "custom-abc", customFont: { kind: "ascii", data: "data:image/png;base64,AAAA" }, depth: 30 }] })
     assert.equal(skipped, 1)
     assert.deepEqual(decodeTitle(code).lines, [{ text: "a", depth: 30 }])
+  })
+})
+
+describe("opening a link", () => {
+  function codeOf(lines, version = FILE_VERSION) {
+    return encodeTitle({ version, lines }).code
+  }
+
+  test("gives back the title", () => {
+    const lines = [{ text: "hello", texture: "grass", hue: 120 }, { matchWidth: 0, words: [{ text: "a" }, { text: "b", spaceBefore: false }] }]
+    assert.deepEqual(openableTitle(codeOf(lines)), { version: FILE_VERSION, lines })
+  })
+
+  const unreadable = { "values stored by name": "unknownSetting", "every nullable setting as null": "text" }
+
+  for (const { name, code } of fixtures) {
+    test(unreadable[name] ? `${name} are refused` : `${name} still opens`, () => {
+      if (unreadable[name]) assert.throws(() => openableTitle(code), { message: `it has a setting that can't be read: ${unreadable[name]}` })
+      else assert.doesNotThrow(() => openableTitle(code))
+    })
+  }
+
+  const refused = {
+    "a number where text goes": [[{ text: 5 }], "text"],
+    "nothing where text goes": [[{ text: null }], "text"],
+    "nothing where a list goes": [[{ stops: null }], "stops"],
+    "a setting this version does not have": [[{ brandNew: 1 }], "brandNew"],
+    "text where a number goes": [[{ scaleX: "wide" }], "scaleX"],
+    "a number where an id goes": [[{ texture: 5 }], "texture"],
+    "an unknown choice": [[{ type: "sideways" }], "type"],
+    "stops that are not stops": [[{ stops: [1, 2] }], "stops"],
+    "a wrong value inside a word": [[{ words: [{ text: "a" }, { hue: "red" }] }], "hue"],
+    "a wrong value inside an overlay": [[{ overlays: [{ overlay: "shine", opacity: "half" }] }], "opacity"]
+  }
+
+  for (const [name, [lines, key]] of Object.entries(refused)) {
+    test(`refuses ${name} and names the setting`, () => {
+      assert.throws(() => openableTitle(codeOf(lines)), { message: `it has a setting that can't be read: ${key}` })
+    })
+  }
+
+  test("allows nothing where a setting starts as nothing, and where a number goes", () => {
+    const lines = [{ texture: null, textureVariant: null, matchWidth: null, linkScale: null, wordDepth: null, scaleX: null }]
+    assert.deepEqual(openableTitle(codeOf(lines)).lines, lines)
+  })
+
+  test("allows a name with other characters, which can't be shared", () => {
+    const lines = [{ textureSource: "tileable", tileableSource: "minecraft", minecraftTexture: "blockDiamond", minecraftVersion: "3D Shareware v1.34" }]
+    assert.deepEqual(openableTitle(codeOf(lines)).lines, lines)
+    assert.equal(unknownSetting(lines), "minecraftTexture")
+  })
+
+  test("a damaged link gives the damaged message", () => {
+    assert.throws(() => openableTitle("1!!!!"), { message: "it is incomplete or damaged" })
+  })
+})
+
+describe("comparing codes", () => {
+  function codeOf(lines, version) {
+    return encodeTitle({ version, lines }).code
+  }
+
+  test("the same title from an older version is the same when the upgrade changes nothing", () => {
+    const lines = [{ text: "hello", texture: "grass" }]
+    assert.equal(titleBody(codeOf(lines, 1)), titleBody(codeOf(lines, FILE_VERSION)))
+  })
+
+  test("the same settings from an older version are another title when they open differently", () => {
+    const lines = [{ text: "deep", depth: 30 }]
+    assert.equal(codeOf(lines, 4).slice(1), codeOf(lines, FILE_VERSION).slice(1))
+    assert.notEqual(titleBody(codeOf(lines, 4)), titleBody(codeOf(lines, FILE_VERSION)))
+    assert.equal(titleBody(codeOf(lines, 4)), titleBody(codeOf([{ text: "deep", depth: 30, depthAnchor: "front" }], FILE_VERSION)))
+  })
+
+  test("the same code always compares the same", () => {
+    const code = codeOf([{ text: "serif", font: "block-serif" }], 2)
+    assert.equal(titleBody(code), titleBody(code))
+  })
+
+  test("a code that can't be read is compared as it is", () => {
+    assert.equal(titleBody("A!!!!"), "!!!!")
+    assert.equal(titleBody("2same"), titleBody("3same"))
   })
 })

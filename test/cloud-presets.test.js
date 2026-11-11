@@ -1,25 +1,14 @@
-import { beforeEach, describe, mock, test } from "node:test"
+import { beforeEach, describe, test } from "node:test"
 import assert from "node:assert/strict"
+import { fakeReplies, fakeTimeouts, stubStorage } from "./helpers/browser.js"
 
-const stored = new Map()
-const requests = []
-let replies = {}
-
-globalThis.localStorage = { getItem: key => stored.get(key) ?? null, setItem: (key, value) => stored.set(key, value) }
+const stored = stubStorage()
 globalThis.confirm = () => true
 globalThis.BroadcastChannel = class {
   postMessage() {}
 }
-globalThis.fetch = async (url, options) => {
-  const method = options?.method ?? "GET"
-  const body = options?.body ? JSON.parse(options.body) : undefined
-  requests.push({ method, url, body })
-  const reply = replies[`${method} ${url}`]
-  if (!reply) return { ok: true, status: 200, json: async () => ({ kept: [] }) }
-  const value = typeof reply === "function" ? reply(body) : reply
-  return { ok: (value.status ?? 200) < 400, status: value.status ?? 200, json: async () => value.body }
-}
-mock.timers.enable({ apis: ["setTimeout"] })
+const { requests, replies, reset } = fakeReplies({ missing: () => ({ body: { kept: [] } }) })
+fakeTimeouts()
 
 const { account, refreshAccount, refreshUsage } = await import("../src/lib/community.js")
 const { notice } = await import("../src/lib/notices.js")
@@ -55,8 +44,7 @@ beforeEach(async () => {
   await settled()
   stored.clear()
   presets.value = []
-  requests.length = 0
-  replies = {}
+  reset()
   notice.value = ""
   presetsError.value = ""
 })
@@ -81,11 +69,14 @@ describe("signing in", () => {
       await new Promise(resolve => finish = resolve)
       return realFetch(...args)
     }
-    account.value = SOMEONE
-    assert.equal(presetsLoading.value, true)
-    assert.deepEqual(presets.value, [])
-    await settled()
-    globalThis.fetch = realFetch
+    try {
+      account.value = SOMEONE
+      assert.equal(presetsLoading.value, true)
+      assert.deepEqual(presets.value, [])
+      await settled()
+    } finally {
+      globalThis.fetch = realFetch
+    }
     finish()
     await settled()
     assert.equal(presetsLoading.value, false)
@@ -153,13 +144,12 @@ describe("signing in", () => {
     assert.deepEqual(local(), [])
   })
 
-  test("a failed upload keeps everything in this browser and says so", async () => {
+  test("a failed upload keeps everything in this browser and says so", async t => {
     const list = [{ name: "One", code: "code-1" }]
     setLocal(list)
     replies["POST /api/saved"] = { status: 500, body: { error: "Nope." } }
-    const logged = mock.method(console, "error", () => {})
+    t.mock.method(console, "error", () => {})
     await signIn()
-    logged.mock.restore()
     assert.deepEqual(local(), list)
     assert.match(presetsError.value, /Couldn't load your presets: Nope/)
     assert.equal(presetsLoading.value, false)
@@ -193,16 +183,47 @@ describe("signed in", () => {
     assert.deepEqual(local(), [])
   })
 
-  test("a failed change is put back and shows why", async () => {
+  test("a failed change is put back and shows why", async t => {
     await signIn([{ name: "One", code: "code-1" }])
     replies["DELETE /api/saved"] = { status: 500, body: { error: "It broke." } }
-    const logged = mock.method(console, "error", () => {})
+    t.mock.method(console, "error", () => {})
     removePreset(presets.value[0])
     assert.deepEqual(presets.value, [])
     await settled()
-    logged.mock.restore()
     assert.deepEqual(presets.value, [{ name: "One", code: "code-1" }])
     assert.equal(notice.value, "It broke.")
+  })
+
+  test("a failed save takes back only that preset, not what was saved after it", async t => {
+    await signIn([{ name: "Cloud", code: "cloud" }])
+    replies["POST /api/saved"] = body => body.presets[0].code === "code-a" ? { status: 500, body: { error: "It broke." } } : { body: { kept: [] } }
+    t.mock.method(console, "error", () => {})
+    addPreset("A", "code-a")
+    addPreset("B", "code-b")
+    assert.deepEqual(presets.value.map(preset => preset.name), ["Cloud", "A", "B"])
+    await settled()
+    assert.deepEqual(presets.value, [{ name: "Cloud", code: "cloud" }, { name: "B", code: "code-b" }])
+    assert.equal(notice.value, "It broke.")
+  })
+
+  test("a failed rename puts the name back and keeps a later change to another preset", async t => {
+    await signIn([{ name: "One", code: "code-1" }, { name: "Two", code: "code-2" }])
+    replies["PATCH /api/saved"] = body => body.code === "code-1" ? { status: 500, body: { error: "It broke." } } : { body: {} }
+    t.mock.method(console, "error", () => {})
+    renamePreset(presets.value[0], "First")
+    renamePreset(presets.value[1], "Second")
+    await settled()
+    assert.deepEqual(presets.value, [{ name: "One", code: "code-1" }, { name: "Second", code: "code-2" }])
+  })
+
+  test("a failed delete puts the preset back where it was and keeps a later save", async t => {
+    await signIn([{ name: "One", code: "code-1" }, { name: "Two", code: "code-2" }])
+    replies["DELETE /api/saved"] = { status: 500, body: { error: "It broke." } }
+    t.mock.method(console, "error", () => {})
+    removePreset(presets.value[0])
+    addPreset("Three", "code-3")
+    await settled()
+    assert.deepEqual(presets.value.map(preset => preset.name), ["One", "Two", "Three"])
   })
 
   test("a preset the account has no room for is saved in this browser and shows why", async () => {
@@ -261,25 +282,23 @@ describe("signed in", () => {
     assert.equal(notice.value, "")
   })
 
-  test("a failed move keeps the preset in this browser and the delete still stands", async () => {
+  test("a failed move keeps the preset in this browser and the delete still stands", async t => {
     await fullAccount()
     replies["POST /api/saved"] = { status: 500, body: { error: "Nope." } }
-    const logged = mock.method(console, "error", () => {})
+    t.mock.method(console, "error", () => {})
     removePreset(presets.value[0])
     await settled()
-    logged.mock.restore()
     assert.deepEqual(presets.value.map(preset => preset.code), ["waiting", "later"])
     assert.equal(presets.value[0].inBrowser, true)
     assert.equal(local().length, 2)
   })
 
-  test("a failed delete puts the preset back and moves nothing", async () => {
+  test("a failed delete puts the preset back and moves nothing", async t => {
     await fullAccount()
     replies["DELETE /api/saved"] = { status: 500, body: { error: "It broke." } }
-    const logged = mock.method(console, "error", () => {})
+    t.mock.method(console, "error", () => {})
     removePreset(presets.value[0])
     await settled()
-    logged.mock.restore()
     assert.equal(sentTo("POST").length, 0)
     assert.deepEqual(presets.value.map(preset => preset.code), ["cloud", "waiting", "later"])
   })
@@ -310,16 +329,15 @@ describe("signed in", () => {
     assert.equal(presets.value[0].inBrowser, true)
   })
 
-  test("browser-only presets aren't wiped when the account list failed to load", async () => {
+  test("browser-only presets aren't wiped when the account list failed to load", async t => {
     setLocal([{ name: "Earlier", code: "earlier" }])
     replies["GET /api/saved"] = { status: 500, body: { error: "Nope." } }
-    const logged = mock.method(console, "error", () => {})
+    t.mock.method(console, "error", () => {})
     account.value = SOMEONE
     await settled()
     replies["POST /api/saved"] = { body: { kept: ["code-1"] } }
     addPreset("New", "code-1")
     await settled()
-    logged.mock.restore()
     assert.deepEqual(local().map(preset => preset.code), ["earlier", "code-1"])
   })
 
@@ -400,7 +418,7 @@ describe("replacing a preset", () => {
     assert.deepEqual(sent(), [["PUT", "/api/presets/9", { code: "new", name: "Renamed" }]])
   })
 
-  test("renaming a shared preset renames it in Community, and a refusal puts the name back", async () => {
+  test("renaming a shared preset renames it in Community, and a refusal puts the name back", async t => {
     await managing([9], [SHARED])
     replies["PATCH /api/presets/9"] = { body: { preset: { id: 9, name: "Renamed" } } }
     renamePreset(presets.value[0], "Renamed")
@@ -408,10 +426,9 @@ describe("replacing a preset", () => {
     assert.equal(presets.value[0].name, "Renamed")
     assert.deepEqual(sent(), [["PATCH", "/api/presets/9", { name: "Renamed" }]])
     replies["PATCH /api/presets/9"] = { status: 400, body: { error: "Not allowed." } }
-    const logged = mock.method(console, "error", () => {})
+    t.mock.method(console, "error", () => {})
     renamePreset(presets.value[0], "Rude")
     await settled()
-    logged.mock.restore()
     assert.equal(presets.value[0].name, "Renamed")
     assert.equal(notice.value, "Not allowed.")
   })

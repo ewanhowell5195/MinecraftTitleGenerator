@@ -249,9 +249,11 @@ export function effectiveScale(object) {
 
 export const TRANSFORM_LIMITS = { scale: [0.05, 4], rotation: [-180, 180], translation: [-200, 200] }
 
-const TEXTURE_TABS = {
+export const TILING_KEYS = Object.keys(tiling())
+
+export const TEXTURE_TABS = {
   premade: ["texture", "textureVariant"],
-  tileable: ["tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "tileablePerCharacter"],
+  tileable: ["tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion"].concat(TILING_KEYS),
   gradient: ["stops", "smooth", "gradientAngle"],
   custom: ["customTexture", "customTextureMode"]
 }
@@ -290,10 +292,14 @@ export function resetPanel(object, name, context = {}) {
   for (const key of TYPE_KEYS[name] ?? []) object[key] = TYPES[object.type][key]
 }
 
+export function sameValue(a, b) {
+  return a === b || JSON.stringify(a) === JSON.stringify(b)
+}
+
 export function isModified(object, name, context = {}, keys = panelKeys(object, name)) {
   const probe = { type: object.type, textureSource: object.textureSource }
   resetPanel(probe, name, context)
-  return keys.some(key => JSON.stringify(probe[key]) !== JSON.stringify(object[key]))
+  return keys.some(key => !sameValue(probe[key], object[key]))
 }
 
 export function wordKey(key) {
@@ -326,6 +332,8 @@ export const OVERLAY_KINDS = {
   overlays: "overlayMode",
   edgeOverlays: "edgeOverlayMode"
 }
+
+export const LAYERS = Object.keys(OVERLAY_KINDS)
 
 export function textureEntry(list, object) {
   const entry = list.textures[object.texture]
@@ -409,4 +417,38 @@ export function restore(object, values) {
   for (const key of KEYS) {
     if (key in values) object[key] = structuredClone(values[key])
   }
+}
+
+function restartTilesPerCharacter(entry) {
+  return entry.textureSource === "tileable" ? { tileablePerCharacter: true, ...entry } : entry
+}
+
+function restartLineTiles(line) {
+  const restarted = restartTilesPerCharacter(line)
+  return Array.isArray(line.words) ? { ...restarted, words: line.words.map(restartTilesPerCharacter) } : restarted
+}
+
+function separateMatchScale(line) {
+  if (line.matchWidth === undefined || line.matchWidth === null) return line
+  const { scaleX, linkScale, ...upgraded } = line
+  if (scaleX !== undefined) upgraded.matchScale = scaleX
+  if (linkScale === undefined || linkScale === null) return upgraded
+  return { ...upgraded, matchScaleY: true, scaleY: linkScale }
+}
+
+function widenBlockSerif(line) {
+  if (line.font !== "block-serif") return line
+  return { ...line, spacing: (line.spacing ?? typeDefaults(line.type ?? "top").spacing) + 2 }
+}
+
+function anchorDepthAtFront(line) {
+  if ((line.type ?? "top") === "bottom" || "depthAnchor" in line) return line
+  const deepened = "depth" in line || "wordDepth" in line || Array.isArray(line.words) && line.words.some(word => "wordDepth" in word)
+  return deepened ? { ...line, depthAnchor: "front" } : line
+}
+
+const UPGRADES = [[2, restartLineTiles], [3, separateMatchScale], [4, widenBlockSerif], [5, anchorDepthAtFront]]
+
+export function upgradeLine(line, version) {
+  return UPGRADES.reduce((upgraded, [to, upgrade]) => version < to ? upgrade(upgraded) : upgraded, line)
 }
