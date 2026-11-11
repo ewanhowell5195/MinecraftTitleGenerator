@@ -1,12 +1,11 @@
-import { FXAA_FRAGMENT, FXAA_VERTEX } from "../lib/fxaa.js"
-import { MAX_BUFFER_SCALE, MAX_BUFFER_WIDTH, MIN_FRAME_TIME, VERTEX_BYTES, clamped, image, multiply, overshoot, program, restBounds, smoothTexture, turned, uniformsOf } from "./baked.js"
+import { MAX_LETTERS, checkLetters, clamped, context, frames, image, multiply, overshoot, renderer, restBounds, turned } from "./baked.js"
 
 const SCENE_VERTEX = `
 attribute vec3 position;
 attribute float letter;
 attribute vec2 uv;
 uniform mat4 matrix;
-uniform vec3 offsets[24];
+uniform vec3 offsets[${MAX_LETTERS}];
 varying vec2 texel;
 varying float height;
 void main() {
@@ -54,9 +53,8 @@ function landing(progress) {
   return 0.05 * Math.sin(Math.PI * (progress - LANDED) / (1 - LANDED))
 }
 
-export async function startHero(canvas, stage, signal) {
-  const gl = canvas.getContext("webgl", { alpha: true, antialias: false, depth: false, premultipliedAlpha: true, powerPreference: "low-power" })
-  if (!gl) throw new Error("hero needs WebGL")
+export async function startHero(canvas, stage, signal, lost) {
+  const gl = context(canvas, "hero", signal)
   const [meta, buffer, sheet] = await Promise.all([
     fetch("/home/logo.json", { signal }).then(response => response.json()),
     fetch("/home/logo.bin", { signal }).then(response => response.arrayBuffer()),
@@ -64,33 +62,9 @@ export async function startHero(canvas, stage, signal) {
   ])
   if (signal.aborted) return
 
-  const sceneProgram = program(gl, SCENE_VERTEX, SCENE_FRAGMENT)
-  const postProgram = program(gl, FXAA_VERTEX, FXAA_FRAGMENT)
-  const sceneUniforms = uniformsOf(gl, sceneProgram, ["matrix", "offsets", "atlas", "cutoff", "ceiling"])
-  const postUniforms = uniformsOf(gl, postProgram, ["scene", "pixel"])
-  const position = gl.getAttribLocation(sceneProgram, "position")
-  const letter = gl.getAttribLocation(sceneProgram, "letter")
-  const uv = gl.getAttribLocation(sceneProgram, "uv")
-  const corner = gl.getAttribLocation(postProgram, "position")
-  const logoBuffer = gl.createBuffer()
-  gl.bindBuffer(gl.ARRAY_BUFFER, logoBuffer)
-  gl.bufferData(gl.ARRAY_BUFFER, buffer, gl.STATIC_DRAW)
-  const screenBuffer = gl.createBuffer()
-  gl.bindBuffer(gl.ARRAY_BUFFER, screenBuffer)
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW)
-
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true)
-  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true)
-  const sheetTexture = gl.createTexture()
-  smoothTexture(gl, sheetTexture)
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, sheet)
-
-  const sceneTexture = gl.createTexture()
-  smoothTexture(gl, sceneTexture)
-  const sceneDepth = gl.createRenderbuffer()
-  const sceneBuffer = gl.createFramebuffer()
-  gl.clearColor(0, 0, 0, 0)
-
+  checkLetters("the logo", meta.glyphs)
+  const scene = renderer(gl, canvas, SCENE_VERTEX, SCENE_FRAGMENT, ["matrix", "offsets", "ceiling"])
+  const logo = scene.model(buffer, sheet)
   const base = multiply(meta.projection, meta.view)
   const vertices = new Int16Array(buffer)
   const screen = new Float32Array(vertices.length / 2)
@@ -107,15 +81,12 @@ export async function startHero(canvas, stage, signal) {
     for (let index = 0; index < item.count; index++) top = Math.max(top, vertices[(item.start + index) * 6 + 1] / 64)
     return top
   })
-  const offsets = new Float32Array(24 * 3)
+  const offsets = new Float32Array(MAX_LETTERS * 3)
   const introEnd = Math.max(...lowLetters.map(glyph => glyph.start)) + RISE_TIME
   let clip = new Float32Array(16)
   let current = new Float32Array(16)
-  let visible = true
-  let frame = 0
-  let frames = 0
+  let picks = 0
   let started = 0
-  let last = 0
   let sway = 0
   let underPointer = -1
   const pointer = { x: 0, y: 0, clientX: 0, clientY: 0, moved: false, active: false }
@@ -125,24 +96,13 @@ export async function startHero(canvas, stage, signal) {
   function resize() {
     const hero = canvas.getBoundingClientRect()
     const box = stage.getBoundingClientRect()
-    const scale = Math.min(devicePixelRatio, MAX_BUFFER_SCALE, MAX_BUFFER_WIDTH / hero.width)
-    canvas.width = Math.round(hero.width * scale)
-    canvas.height = Math.round(hero.height * scale)
+    scene.resize(hero.width, hero.height)
     const { all } = rest
     const sx = box.width / hero.width * 2 / (all.maxX - all.minX)
     const sy = sx * hero.width / hero.height / meta.aspect
     const targetX = (box.left + box.width / 2 - hero.left) / hero.width * 2 - 1
     const targetY = 1 - (box.top + box.height / 2 - hero.top) / hero.height * 2
     clip = new Float32Array([sx, 0, 0, 0, 0, sy, 0, 0, 0, 0, 1, 0, targetX - sx * (all.minX + all.maxX) / 2, targetY - sy * (all.minY + all.maxY) / 2, 0, 1])
-    gl.bindTexture(gl.TEXTURE_2D, sceneTexture)
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, canvas.width, canvas.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
-    gl.bindRenderbuffer(gl.RENDERBUFFER, sceneDepth)
-    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, canvas.width, canvas.height)
-    gl.bindFramebuffer(gl.FRAMEBUFFER, sceneBuffer)
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, sceneTexture, 0)
-    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, sceneDepth)
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
-    gl.viewport(0, 0, canvas.width, canvas.height)
   }
 
   function animate(elapsed, delta) {
@@ -178,47 +138,14 @@ export async function startHero(canvas, stage, signal) {
   function drawScene() {
     const model = turned(aim.y * TURN_X + Math.sin(sway * 0.37) * 0.012, aim.x * TURN_Y + Math.sin(sway * 0.5) * 0.024, rest.centre)
     current = multiply(clip, multiply(base, model))
-    gl.bindFramebuffer(gl.FRAMEBUFFER, sceneBuffer)
-    gl.useProgram(sceneProgram)
-    gl.bindBuffer(gl.ARRAY_BUFFER, logoBuffer)
-    gl.enableVertexAttribArray(position)
-    gl.enableVertexAttribArray(letter)
-    gl.enableVertexAttribArray(uv)
-    gl.vertexAttribPointer(position, 3, gl.SHORT, false, VERTEX_BYTES, 0)
-    gl.vertexAttribPointer(letter, 1, gl.SHORT, false, VERTEX_BYTES, 6)
-    gl.vertexAttribPointer(uv, 2, gl.UNSIGNED_SHORT, true, VERTEX_BYTES, 8)
-    gl.enable(gl.DEPTH_TEST)
-    gl.enable(gl.CULL_FACE)
-    gl.uniformMatrix4fv(sceneUniforms.matrix, false, current)
-    gl.uniform3fv(sceneUniforms.offsets, offsets)
-    gl.uniform1i(sceneUniforms.atlas, 0)
-    gl.bindTexture(gl.TEXTURE_2D, sheetTexture)
-    gl.depthMask(true)
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+    scene.begin(logo)
+    gl.uniformMatrix4fv(scene.uniforms.matrix, false, current)
+    gl.uniform3fv(scene.uniforms.offsets, offsets)
     for (const [index, item] of meta.items.entries()) {
-      gl.colorMask(!item.clip, !item.clip, !item.clip, !item.clip)
-      gl.cullFace(item.shell ? gl.FRONT : gl.BACK)
-      gl.depthMask(!item.shell)
-      gl.uniform1f(sceneUniforms.cutoff, item.alphaTest / 2)
-      gl.uniform1f(sceneUniforms.ceiling, ceilings[index])
-      gl.drawArrays(gl.TRIANGLES, item.start, item.count)
+      gl.uniform1f(scene.uniforms.ceiling, ceilings[index])
+      scene.drawItem(item)
     }
-  }
-
-  function drawPost() {
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
-    gl.useProgram(postProgram)
-    gl.disableVertexAttribArray(letter)
-    gl.disableVertexAttribArray(uv)
-    gl.bindBuffer(gl.ARRAY_BUFFER, screenBuffer)
-    gl.enableVertexAttribArray(corner)
-    gl.vertexAttribPointer(corner, 2, gl.FLOAT, false, 0, 0)
-    gl.disable(gl.DEPTH_TEST)
-    gl.disable(gl.CULL_FACE)
-    gl.bindTexture(gl.TEXTURE_2D, sceneTexture)
-    gl.uniform1i(postUniforms.scene, 0)
-    gl.uniform2f(postUniforms.pixel, 1 / canvas.width, 1 / canvas.height)
-    gl.drawArrays(gl.TRIANGLES, 0, 3)
+    scene.finish()
   }
 
   function projectAll() {
@@ -272,45 +199,19 @@ export async function startHero(canvas, stage, signal) {
     pointer.lastY = clientY
   }
 
-  function tick(now) {
-    frame = 0
-    if (!visible) return
-    frame = requestAnimationFrame(tick)
-    if (!started) started = last = now - MIN_FRAME_TIME
-    if (now - last < MIN_FRAME_TIME) return
+  function draw(now, delta) {
+    if (!started) started = now - delta * 1000
     const elapsed = (now - started) / 1000
-    const delta = Math.min(0.05, (now - last) / 1000)
-    last = now
     sway += delta
     animate(elapsed, delta)
     followPointer(delta)
     drawScene()
-    drawPost()
-    if (pointer.active && (pointer.moved || frames++ % PICK_EVERY === 0)) {
+    if (pointer.active && (pointer.moved || picks++ % PICK_EVERY === 0)) {
       pointer.moved = false
       pick()
     }
   }
 
-  function run() {
-    if (!frame && visible) frame = requestAnimationFrame(tick)
-  }
-
-  const resizing = new ResizeObserver(resize)
-  resizing.observe(canvas)
-  const showing = new IntersectionObserver(([entry]) => {
-    visible = entry.isIntersecting
-    run()
-  })
-  showing.observe(canvas)
-  signal.addEventListener("abort", () => {
-    resizing.disconnect()
-    showing.disconnect()
-    cancelAnimationFrame(frame)
-    frame = 0
-    visible = false
-    gl.getExtension("WEBGL_lose_context")?.loseContext()
-  })
   addEventListener("pointermove", event => {
     if (event.pointerType === "touch" || !started || performance.now() - started < (introEnd + INPUT_DELAY) * 1000) return
     const box = stage.getBoundingClientRect()
@@ -327,6 +228,5 @@ export async function startHero(canvas, stage, signal) {
     pointer.lastY = undefined
     underPointer = -1
   }, { signal })
-  resize()
-  run()
+  frames(canvas, signal, { resize, draw, lost })
 }

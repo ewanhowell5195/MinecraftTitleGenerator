@@ -1,13 +1,12 @@
-import { FXAA_FRAGMENT, FXAA_VERTEX } from "../lib/fxaa.js"
-import { MAX_BUFFER_SCALE, MAX_BUFFER_WIDTH, MIN_FRAME_TIME, VERTEX_BYTES, clamped, image, multiply, overshoot, program, restBounds, smoothTexture, uniformsOf } from "./baked.js"
+import { MAX_LETTERS, checkLetters, clamped, context, frames, image, multiply, overshoot, renderer, restBounds } from "./baked.js"
 
 const VERTEX = `
 attribute vec3 position;
 attribute float letter;
 attribute vec2 uv;
 uniform mat4 matrix;
-uniform vec4 poses[24];
-uniform vec3 centres[24];
+uniform vec4 poses[${MAX_LETTERS}];
+uniform vec3 centres[${MAX_LETTERS}];
 varying vec2 texel;
 void main() {
   int index = int(letter);
@@ -43,8 +42,7 @@ const FIT = 0.94
 
 export async function startTyping(holder, signal) {
   const canvas = holder.querySelector("canvas")
-  const gl = canvas.getContext("webgl", { alpha: true, antialias: false, depth: false, premultipliedAlpha: true, powerPreference: "low-power" })
-  if (!gl) throw new Error("the typing title needs WebGL")
+  const gl = context(canvas, "the typing title", signal)
   const meta = await fetch("/home/typing.json", { signal }).then(response => {
     if (!response.ok) throw new Error(`failed to load the typing title: ${response.status}`)
     return response.json()
@@ -52,31 +50,13 @@ export async function startTyping(holder, signal) {
   const loaded = await Promise.all(meta.phrases.map(phrase => Promise.all([fetch(`/home/typing/${phrase.name}.bin`, { signal }).then(response => response.arrayBuffer()), image(`/home/typing/${phrase.name}.png`)])))
   if (signal.aborted) return
 
-  const sceneProgram = program(gl, VERTEX, FRAGMENT)
-  const postProgram = program(gl, FXAA_VERTEX, FXAA_FRAGMENT)
-  const sceneUniforms = uniformsOf(gl, sceneProgram, ["matrix", "poses", "centres", "atlas", "cutoff"])
-  const postUniforms = uniformsOf(gl, postProgram, ["scene", "pixel"])
-  const position = gl.getAttribLocation(sceneProgram, "position")
-  const letter = gl.getAttribLocation(sceneProgram, "letter")
-  const uv = gl.getAttribLocation(sceneProgram, "uv")
-  const corner = gl.getAttribLocation(postProgram, "position")
-  const screenBuffer = gl.createBuffer()
-  gl.bindBuffer(gl.ARRAY_BUFFER, screenBuffer)
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW)
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true)
-  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true)
-
+  const scene = renderer(gl, canvas, VERTEX, FRAGMENT, ["matrix", "poses", "centres"])
   const base = multiply(meta.projection, meta.view)
   const phrases = meta.phrases.map((phrase, index) => {
+    checkLetters(`the ${phrase.name} phrase`, phrase.glyphs)
     const [buffer, sheet] = loaded[index]
-    const vertexBuffer = gl.createBuffer()
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
-    gl.bufferData(gl.ARRAY_BUFFER, buffer, gl.STATIC_DRAW)
-    const texture = gl.createTexture()
-    smoothTexture(gl, texture)
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, sheet)
     const rest = restBounds(new Int16Array(buffer), base)
-    const centres = new Float32Array(24 * 3)
+    const centres = new Float32Array(MAX_LETTERS * 3)
     const glyphs = phrase.glyphs.map((glyph, at) => {
       centres.set(glyph.centre, at * 3)
       return { ...glyph, in: 0, out: 0 }
@@ -96,21 +76,11 @@ export async function startTyping(holder, signal) {
     }
     const hold = time + HOLD_TIME
     for (let at = glyphs.length - 1; at >= 0; at--) glyphs[at].out = hold + (glyphs.length - 1 - at) * ERASE_GAP
-    return { ...phrase, vertexBuffer, texture, rest, centres, glyphs, length: hold + glyphs.length * ERASE_GAP + OUT_TIME + NEXT_TIME }
+    return { ...phrase, ...scene.model(buffer, sheet), rest, centres, glyphs, length: hold + glyphs.length * ERASE_GAP + OUT_TIME + NEXT_TIME }
   })
   const fit = phrases.find(phrase => phrase.name === meta.widest).rest.all
   const tallest = Math.max(...phrases.map(({ rest }) => rest.all.maxY - rest.all.minY))
-  const poses = new Float32Array(24 * 4)
-
-  const sceneTexture = gl.createTexture()
-  smoothTexture(gl, sceneTexture)
-  const sceneDepth = gl.createRenderbuffer()
-  const sceneBuffer = gl.createFramebuffer()
-  gl.clearColor(0, 0, 0, 0)
-
-  let visible = false
-  let frame = 0
-  let last = 0
+  const poses = new Float32Array(MAX_LETTERS * 4)
   let index = 0
   let time = 0
   let centreShift = -(phrases[0].glyphs[0].min + phrases[0].glyphs[0].max) / 2
@@ -118,24 +88,13 @@ export async function startTyping(holder, signal) {
   function resize() {
     const box = canvas.getBoundingClientRect()
     if (!box.width) return
-    const scale = Math.min(devicePixelRatio, MAX_BUFFER_SCALE, MAX_BUFFER_WIDTH / box.width)
-    canvas.width = Math.round(box.width * scale)
-    canvas.height = Math.round(box.height * scale)
+    scene.resize(box.width, box.height)
     const sx = Math.min(2 * FIT / (fit.maxX - fit.minX), 2 * FIT * box.height / box.width * meta.aspect / tallest)
     const sy = sx * box.width / box.height / meta.aspect
     for (const phrase of phrases) {
       const { minY, maxY } = phrase.rest.all
       phrase.clip = new Float32Array([sx, 0, 0, 0, 0, sy, 0, 0, 0, 0, 1, 0, -sx * (fit.minX + fit.maxX) / 2, -sy * (minY + maxY) / 2, 0, 1])
     }
-    gl.bindTexture(gl.TEXTURE_2D, sceneTexture)
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, canvas.width, canvas.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
-    gl.bindRenderbuffer(gl.RENDERBUFFER, sceneDepth)
-    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, canvas.width, canvas.height)
-    gl.bindFramebuffer(gl.FRAMEBUFFER, sceneBuffer)
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, sceneTexture, 0)
-    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, sceneDepth)
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
-    gl.viewport(0, 0, canvas.width, canvas.height)
   }
 
   function animate(delta) {
@@ -162,78 +121,18 @@ export async function startTyping(holder, signal) {
     centreShift += (target - centreShift) * (1 - Math.exp(-CENTRE_SPEED * delta))
   }
 
-  function draw() {
+  function draw(now, delta) {
+    animate(delta)
     const phrase = phrases[index]
     const shifted = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, centreShift, 0, 0, 1]
-    gl.bindFramebuffer(gl.FRAMEBUFFER, sceneBuffer)
-    gl.useProgram(sceneProgram)
-    gl.bindBuffer(gl.ARRAY_BUFFER, phrase.vertexBuffer)
-    gl.enableVertexAttribArray(position)
-    gl.enableVertexAttribArray(letter)
-    gl.enableVertexAttribArray(uv)
-    gl.vertexAttribPointer(position, 3, gl.SHORT, false, VERTEX_BYTES, 0)
-    gl.vertexAttribPointer(letter, 1, gl.SHORT, false, VERTEX_BYTES, 6)
-    gl.vertexAttribPointer(uv, 2, gl.UNSIGNED_SHORT, true, VERTEX_BYTES, 8)
-    gl.enable(gl.DEPTH_TEST)
-    gl.enable(gl.CULL_FACE)
-    gl.uniformMatrix4fv(sceneUniforms.matrix, false, multiply(phrase.clip, multiply(base, shifted)))
-    gl.uniform4fv(sceneUniforms.poses, poses)
-    gl.uniform3fv(sceneUniforms.centres, phrase.centres)
-    gl.uniform1i(sceneUniforms.atlas, 0)
-    gl.bindTexture(gl.TEXTURE_2D, phrase.texture)
-    gl.depthMask(true)
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-    for (const item of phrase.items) {
-      gl.colorMask(!item.clip, !item.clip, !item.clip, !item.clip)
-      gl.cullFace(item.shell ? gl.FRONT : gl.BACK)
-      gl.depthMask(!item.shell)
-      gl.uniform1f(sceneUniforms.cutoff, item.alphaTest / 2)
-      gl.drawArrays(gl.TRIANGLES, item.start, item.count)
-    }
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
-    gl.useProgram(postProgram)
-    gl.disableVertexAttribArray(letter)
-    gl.disableVertexAttribArray(uv)
-    gl.bindBuffer(gl.ARRAY_BUFFER, screenBuffer)
-    gl.enableVertexAttribArray(corner)
-    gl.vertexAttribPointer(corner, 2, gl.FLOAT, false, 0, 0)
-    gl.disable(gl.DEPTH_TEST)
-    gl.disable(gl.CULL_FACE)
-    gl.colorMask(true, true, true, true)
-    gl.bindTexture(gl.TEXTURE_2D, sceneTexture)
-    gl.uniform1i(postUniforms.scene, 0)
-    gl.uniform2f(postUniforms.pixel, 1 / canvas.width, 1 / canvas.height)
-    gl.drawArrays(gl.TRIANGLES, 0, 3)
-  }
-
-  function tick(now) {
-    frame = 0
-    if (!visible) return
-    frame = requestAnimationFrame(tick)
-    if (!last) last = now - MIN_FRAME_TIME
-    if (now - last < MIN_FRAME_TIME) return
-    const delta = Math.min(0.05, (now - last) / 1000)
-    last = now
-    animate(delta)
-    draw()
+    scene.begin(phrase)
+    gl.uniformMatrix4fv(scene.uniforms.matrix, false, multiply(phrase.clip, multiply(base, shifted)))
+    gl.uniform4fv(scene.uniforms.poses, poses)
+    gl.uniform3fv(scene.uniforms.centres, phrase.centres)
+    for (const item of phrase.items) scene.drawItem(item)
+    scene.finish()
     holder.classList.add("running")
   }
 
-  const resizing = new ResizeObserver(resize)
-  resizing.observe(canvas)
-  const showing = new IntersectionObserver(([entry]) => {
-    visible = entry.isIntersecting
-    if (visible) last = 0
-    if (visible && !frame) frame = requestAnimationFrame(tick)
-  })
-  showing.observe(canvas)
-  signal.addEventListener("abort", () => {
-    resizing.disconnect()
-    showing.disconnect()
-    cancelAnimationFrame(frame)
-    frame = 0
-    visible = false
-    gl.getExtension("WEBGL_lose_context")?.loseContext()
-  })
-  resize()
+  frames(canvas, signal, { resize, draw, lost: () => holder.classList.remove("running") })
 }

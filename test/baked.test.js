@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import fs from "node:fs"
 import { describe, test } from "node:test"
+import { MAX_LETTERS, checkLetters } from "../src/home/baked.js"
 
 const typing = JSON.parse(fs.readFileSync("public/home/typing.json", "utf8"))
 const MODELS = [{ name: "logo", ...JSON.parse(fs.readFileSync("public/home/logo.json", "utf8")) }].concat(typing.phrases.map(phrase => ({ ...phrase, name: `typing/${phrase.name}` })))
@@ -42,4 +43,16 @@ describe("baked holes", () => {
       }
     })
   }
+})
+
+describe("baked letters", () => {
+  for (const { name, glyphs } of MODELS) {
+    test(`${name} has no more letters than the shaders hold`, () => {
+      assert.doesNotThrow(() => checkLetters(name, glyphs))
+    })
+  }
+
+  test("a model with too many letters is refused", () => {
+    assert.throws(() => checkLetters("long", Array.from({ length: MAX_LETTERS + 1 })), new RegExp(`long has ${MAX_LETTERS + 1} letters`))
+  })
 })

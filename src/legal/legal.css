@@ -1,6 +1,5 @@
 .legal {
   max-width: 760px;
-  padding-top: clamp(104px, 14vh, 140px);
 }
 
 .legal h2 {

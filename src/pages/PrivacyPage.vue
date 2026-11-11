@@ -1,3 +1,7 @@
+<script setup>
+  import Contact from "../legal/Contact.vue"
+</script>
+
 <template>
   <main class="legal wrap">
     <h1 class="page-title">Privacy Policy</h1>
@@ -114,12 +118,6 @@
     <h2>Children's privacy</h2>
     <p>Discord and GitHub do not provide accounts to children under the age of 13, so signing in to the title generator is not for children under 13 either. Everything else can be used without an account. If you are a parent or guardian and you are aware that your child has given me personal data, please contact me so that I can remove it.</p>
 
-    <h2>Contact</h2>
-    <p>If you have any questions about this policy, you can contact me:</p>
-    <ul>
-      <li>On Discord: <a href="https://discord.ewanhowell.com/" target="_blank" rel="noopener">Ewan's Server</a></li>
-      <li>By email: <a href="mailto:contact@ewanhowell.com">contact@ewanhowell.com</a></li>
-      <li>On GitHub: <a href="https://github.com/ewanhowell5195/MinecraftTitleGenerator/issues" target="_blank" rel="noopener">Open an issue</a></li>
-    </ul>
+    <Contact about="this policy" />
   </main>
 </template>

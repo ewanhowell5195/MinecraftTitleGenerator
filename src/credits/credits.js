@@ -1,6 +1,6 @@
 import { navigate } from "../lib/navigation.js"
+import { WEEK_STATS, titleStats } from "../site/stats.js"
 
-const STATS = "https://api.wynem.com/minecrafttitlegenerator/stats"
 const ID_FILTER = "id:"
 
 function usage(element, counts) {
@@ -73,9 +73,7 @@ export function startCredits(root, signal) {
   }
 
   async function sortByUsage() {
-    const response = await fetch(STATS, { signal })
-    if (!response.ok) throw new Error(`failed to load the title stats: ${response.status}`)
-    const counts = new Map((await response.json()).map(entry => [entry.id, entry.count]))
+    const counts = new Map((await titleStats(WEEK_STATS, signal)).map(entry => [entry.id, entry.count]))
     for (const list of people.querySelectorAll(".pieces")) list.append(...byUsage(Array.from(list.querySelectorAll(".piece")), piece => usage(piece, counts)))
     const total = person => Array.from(person.querySelectorAll(".piece")).reduce((sum, piece) => sum + usage(piece, counts), 0)
     people.append(...byUsage(Array.from(people.querySelectorAll(".person")), total))

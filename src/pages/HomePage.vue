@@ -4,9 +4,17 @@
   import Button from "../components/Button.vue"
   import Strips from "../home/Strips.vue"
   import { startTyping } from "../home/typing.js"
+  import { TAGLINE } from "../pages.js"
+  import { ALL_STATS, WEEK_STATS, titleStats } from "../site/stats.js"
 
-  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches
-  const live = ref(!reduced && !!document.createElement("canvas").getContext("webgl"))
+  function hasWebGL() {
+    const gl = document.createElement("canvas").getContext("webgl")
+    gl?.getExtension("WEBGL_lose_context")?.loseContext()
+    return !!gl
+  }
+
+  const animated = !matchMedia("(prefers-reduced-motion: reduce)").matches && hasWebGL()
+  const live = ref(animated)
   const canvas = ref(null)
   const stage = ref(null)
   const stats = ref(null)
@@ -21,16 +29,18 @@
   }
 
   async function fetchCounts(path) {
-    const response = await fetch(`https://api.wynem.com/${path}`, { signal: leaving.signal })
-    if (!response.ok) throw new Error(`failed to load the title stats: ${response.status}`)
-    return (await response.json()).filter(entry => !entry.id.includes(".")).reduce((sum, entry) => sum + entry.count, 0)
+    return (await titleStats(path, leaving.signal)).filter(entry => !entry.id.includes(".")).reduce((sum, entry) => sum + entry.count, 0)
   }
 
   async function loadStats() {
-    const [all, recent] = await Promise.all([fetchCounts("blockbench/minecrafttitlegenerator/statsall"), fetchCounts("minecrafttitlegenerator/stats")])
+    const [all, recent] = await Promise.all([fetchCounts(ALL_STATS), fetchCounts(WEEK_STATS)])
     total.value = `${(Math.floor(all / 1e5) / 10).toFixed(1)} million`
     week.value = (Math.floor(recent / 100) * 100).toLocaleString("en-GB")
     loaded.value = true
+  }
+
+  function showPoster() {
+    live.value = false
   }
 
   onMounted(() => {
@@ -39,13 +49,13 @@
       if (!entry.isIntersecting) return
       watcher.disconnect()
       loadStats().catch(reported)
-      if (!reduced) startTyping(bandTitle.value, leaving.signal).catch(reported)
+      if (animated) startTyping(bandTitle.value, leaving.signal).catch(reported)
     }, { rootMargin: "400px" })
     watcher.observe(stats.value)
     leaving.signal.addEventListener("abort", () => watcher.disconnect())
-    if (live.value) {
-      startHero(canvas.value, stage.value, leaving.signal).catch(err => {
-        live.value = false
+    if (animated) {
+      startHero(canvas.value, stage.value, leaving.signal, showPoster).catch(err => {
+        showPoster()
         reported(err)
       })
     }
@@ -59,9 +69,9 @@
     <section class="hero">
       <div class="glow warm" aria-hidden="true"></div>
       <div class="glow cool" aria-hidden="true"></div>
-      <canvas ref="canvas" aria-hidden="true"></canvas>
+      <canvas v-if="live" ref="canvas" aria-hidden="true"></canvas>
       <h1 ref="stage" class="stage"><img class="poster" src="/home/logo.webp" alt="Minecraft Title Generator" width="1800" height="524"></h1>
-      <p class="lead">Make your own Minecraft style 3D titles, right in your browser!</p>
+      <p class="lead">{{ TAGLINE }}</p>
       <div class="actions">
         <Button primary big to="/app/">Open the generator</Button>
         <Button blue big href="https://ewanhowell.com/plugins/minecraft-title-generator" target="_blank" rel="noopener">Get the Blockbench plugin</Button>

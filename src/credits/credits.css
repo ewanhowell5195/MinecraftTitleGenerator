@@ -1,13 +1,3 @@
-.credits {
-  padding-top: clamp(104px, 14vh, 140px);
-}
-
-.intro p {
-  max-width: 62ch;
-  margin-top: 14px;
-  font-size: 19px;
-}
-
 .search {
   margin-top: 28px;
 }
@@ -194,10 +184,6 @@
 }
 
 @media (max-width: 600px) {
-  .intro p {
-    font-size: 17px;
-  }
-
   .pieces {
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 8px;

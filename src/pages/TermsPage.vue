@@ -1,3 +1,7 @@
+<script setup>
+  import Contact from "../legal/Contact.vue"
+</script>
+
 <template>
   <main class="legal wrap">
     <h1 class="page-title">Terms of Service</h1>
@@ -69,12 +73,6 @@
     <p>You use the title generator at your own risk. As far as the law allows, I am not liable for any loss or damage that comes from using it, or from being unable to use it.</p>
     <p>These terms are governed by the laws of the United Kingdom.</p>
 
-    <h2>Contact</h2>
-    <p>If you have any questions about these terms, you can contact me:</p>
-    <ul>
-      <li>On Discord: <a href="https://discord.ewanhowell.com/" target="_blank" rel="noopener">Ewan's Server</a></li>
-      <li>By email: <a href="mailto:contact@ewanhowell.com">contact@ewanhowell.com</a></li>
-      <li>On GitHub: <a href="https://github.com/ewanhowell5195/MinecraftTitleGenerator/issues" target="_blank" rel="noopener">Open an issue</a></li>
-    </ul>
+    <Contact about="these terms" />
   </main>
 </template>

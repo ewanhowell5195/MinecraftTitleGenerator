@@ -1,17 +1,6 @@
 import { escaped } from "../server/http.js"
+import { shareTags } from "../server/presets.js"
 import { PAGES, SITE } from "../pages.js"
-
-function shareTags(page, url) {
-  if (!page.share) return []
-  return [
-    "<meta property=\"og:type\" content=\"website\">",
-    `<meta property="og:url" content="${url}">`,
-    `<meta property="og:title" content="${escaped(page.title)}">`,
-    `<meta property="og:description" content="${escaped(page.description)}">`,
-    `<meta property="og:image" content="${SITE}/home/og.jpg">`,
-    "<meta name=\"twitter:card\" content=\"summary_large_image\">"
-  ]
-}
 
 export function shellPage(file) {
   return PAGES.find(page => page.file === file) ?? null
@@ -35,7 +24,7 @@ export function shellHtml(html, page) {
     "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">",
     "<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>",
     "<link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Gabarito:wght@400..900&display=swap\">"
-  ], shareTags(page, url), page.head ?? [])
+  ], page.share ? shareTags({ title: page.title, description: page.description, url, image: `${SITE}/home/og.jpg` }) : [], page.head ?? [])
   return html
     .replace("<html lang=\"en\">", `<html lang="en" data-styles="${page.styles}">`)
     .replace("<head></head>", `<head>\n    ${head.join("\n    ")}\n  </head>`)

@@ -1,4 +1,6 @@
 <script setup>
+  import { TAGLINE } from "../pages.js"
+
   const year = new Date().getFullYear()
 </script>
 
@@ -8,7 +10,7 @@
       <div class="footer-top">
         <div class="footer-brand">
           <RouterLink to="/"><img src="/home/logo.webp" alt="Minecraft Title Generator" width="1800" height="524" loading="lazy"></RouterLink>
-          <p>Make your own Minecraft style 3D titles, right in your browser!</p>
+          <p>{{ TAGLINE }}</p>
         </div>
         <nav class="footer-links" aria-label="Footer">
           <div>
@@ -39,7 +41,7 @@
         </nav>
       </div>
       <div class="footer-bottom">
-        <p>© 2023-<span class="year">{{ year }}</span> <a href="https://ewanhowell.com" target="_blank" rel="noopener">Ewan Howell</a>, with fonts and textures by <RouterLink to="/credits/">the community</RouterLink>.</p>
+        <p>© 2023-<span class="year">{{ year }}</span> <a href="https://ewanhowell.com" target="_blank" rel="noopener">Ewan Howell</a>, with fonts, textures and shapes by <RouterLink to="/credits/">the community</RouterLink>.</p>
         <p>Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.</p>
       </div>
     </div>
@@ -48,7 +50,7 @@
 
 <style scoped>
   .footer {
-    margin-top: var(--footer-gap, clamp(56px, 8vw, 96px));
+    margin-top: var(--footer-gap);
     padding: 48px 0 32px;
     font-family: var(--font-ui);
     font-size: 15px;
@@ -58,29 +60,10 @@
     border-top: 2px solid var(--line);
   }
 
-  .wrap {
-    width: min(1120px, 100% - 32px);
-    margin-inline: auto;
-  }
-
   h2,
   p,
   ul {
     margin: 0;
-  }
-
-  img {
-    display: block;
-    max-width: 100%;
-    height: auto;
-  }
-
-  a {
-    color: var(--accent);
-  }
-
-  a:hover {
-    color: var(--accent-hover);
   }
 
   .footer-top {

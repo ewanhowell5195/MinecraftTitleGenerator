@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router"
 import { navigated, setNavigator } from "./lib/navigation.js"
-import { PAGES, SITE } from "./pages.js"
+import { SITE } from "./pages.js"
+import { pageRoutes, routed } from "./site/routes.js"
 
 const COMPONENTS = {
   home: () => import("./pages/HomePage.vue"),
@@ -15,11 +16,9 @@ const COMPONENTS = {
   "not-found": () => import("./pages/NotFound.vue")
 }
 
-const routes = PAGES.flatMap(page => page.paths.map((path, index) => ({ path, name: index ? `${page.name}-${index}` : page.name, component: COMPONENTS[page.name], meta: page })))
-
 export const router = createRouter({
   history: createWebHistory(),
-  routes,
+  routes: pageRoutes(COMPONENTS),
   scrollBehavior(to, from, saved) {
     if (saved) return { ...saved, behavior: "instant" }
     if (to.hash) return { el: to.hash }
@@ -48,20 +47,11 @@ router.afterEach((to, from) => {
   else if (!page.hidden) robots?.remove()
 })
 
-function routed(anchor) {
-  if (anchor.target && anchor.target !== "_self" || anchor.hasAttribute("download")) return null
-  const url = new URL(anchor.href, location.href)
-  if (url.origin !== location.origin) return null
-  if (url.pathname === location.pathname && url.search === location.search && url.hash) return null
-  const target = router.resolve(`${url.pathname}${url.search}${url.hash}`)
-  return target.meta.name === "not-found" ? null : target
-}
-
 export function followLinks(root) {
   root.addEventListener("click", event => {
     if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     const anchor = event.target.closest("a[href]")
-    const target = anchor && routed(anchor)
+    const target = anchor && routed(anchor, location, path => router.resolve(path))
     if (!target) return
     event.preventDefault()
     router.push(target)
