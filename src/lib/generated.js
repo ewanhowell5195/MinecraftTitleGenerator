@@ -11,6 +11,7 @@ const angle = { key: "angle", label: "Angle", min: 0, max: 180, fallback: 45 }
 const wave = [{ key: "level", label: "Level", min: 0, max: 100, fallback: 45 }, { key: "amplitude", label: "Wave height", min: 0, max: 24, fallback: 7 }, { key: "length", label: "Wave length", min: 8, max: 160, fallback: 40 }, { key: "offset", label: "Offset", min: 0, max: 200, fallback: 0 }, { key: "randomness", label: "Randomness", min: 0, max: 100, fallback: 60 }, seed]
 
 export const PLACED_KINDS = new Set(["shine", "shine_random", "wave", "wave_inverted"])
+export const SMOOTH_KINDS = new Set(["wave", "wave_inverted"])
 
 export const GENERATED_SETTINGS = {
   top: [highlight],

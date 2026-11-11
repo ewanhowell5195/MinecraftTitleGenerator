@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { blend, cssGradient, gradientLine, gradientStops, movedStopPositions, stopColour } from "../src/lib/material.js"
+import { blend, cssGradient, detailFor, gradientLine, gradientStops, movedStopPositions, stopColour } from "../src/lib/material.js"
 import { rgbOf } from "../src/lib/colour.js"
 import { close } from "./helpers/assert.js"
 
@@ -216,5 +216,24 @@ describe("gradientLine", () => {
       near(Math.min(...shares), 0)
       near(Math.max(...shares), 1)
     }
+  })
+})
+
+describe("detailFor", () => {
+  test("doubles the texture until one more doubling would not fit", () => {
+    assert.equal(detailFor({ width: 150, height: 75 }, 4096), 4)
+    assert.equal(detailFor({ width: 128, height: 128 }, 4096), 8)
+    assert.equal(detailFor({ width: 129, height: 20 }, 4096), 4)
+  })
+
+  test("a texture that only fits as it is stays as it is", () => {
+    assert.equal(detailFor({ width: 600, height: 300 }, 4096), 1)
+    assert.equal(detailFor({ width: 1024, height: 10 }, 4096), 1)
+  })
+
+  test("a smaller limit is kept to, and a bigger one stops at 4096", () => {
+    assert.equal(detailFor({ width: 150, height: 75 }, 2048), 2)
+    assert.equal(detailFor({ width: 150, height: 75 }, 16384), 4)
+    assert.equal(detailFor({ width: 150, height: 75 }, 0), 1)
   })
 })

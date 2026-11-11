@@ -24,7 +24,7 @@
 
   const emit = defineEmits(["settled"])
 
-  const title = createTitle(reactive([]), OFFSCREEN_VIEW)
+  const title = createTitle(reactive([]), { ...OFFSCREEN_VIEW, eager: false })
   const items = createTitleItems(title)
   const stage = ref(null)
   const readError = ref("")

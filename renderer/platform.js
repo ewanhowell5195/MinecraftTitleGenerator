@@ -155,12 +155,16 @@ function webGLRenderer(THREE) {
 
 export async function useNode() {
   const { THREE } = await getTHREE({ Canvas, Image, ImageData })
+  const probe = createContext(1, 1)
+  const textureSize = probe.getParameter(probe.MAX_TEXTURE_SIZE)
+  probe.getExtension("STACKGL_destroy_context").destroy()
   globalThis.ImageData ??= ImageData
   globalThis.DOMMatrix ??= DOMMatrix
   usePlatform({
     fetch: fetchPublic,
     createCanvas: softwareCanvas,
     createWebGLRenderer: webGLRenderer(THREE),
+    maxTextureSize: () => textureSize,
     decodePng: bytes => loadImage(Buffer.from(bytes)),
     pngUrl,
     frame: callback => setTimeout(callback),

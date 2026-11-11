@@ -2,8 +2,10 @@ import { computed, onBeforeUnmount, shallowRef, watch } from "vue"
 import { fontTextures, image, preload, shapeFont, sheetFor, stripRange, tileableUrl } from "../lib/assets.js"
 import { arcAssets, arcLayout } from "../lib/arc.js"
 import { buildOutline, buildText } from "../lib/build.js"
+import { canvasLimit } from "../lib/canvas.js"
 import { customFontEntry, customFontId } from "../lib/customFonts.js"
 import { EulaDeclined } from "../lib/eula.js"
+import { SMOOTH_KINDS } from "../lib/generated.js"
 import { CUSTOM_SHAPE, SILHOUETTE_TEXT, shapeOf } from "../lib/shapes.js"
 import { hasMarks, loadFont, sheetFolder } from "../lib/font.js"
 import { stripRows } from "../lib/strips.js"
@@ -22,6 +24,7 @@ const BASE = ["font", "source", "textureSource", "texture", "textureVariant", "t
 const CUSTOM_SOURCES = { standard: "texture", tileable: "tile", strip: "strip" }
 
 const REST = 0.5
+const SHARPEN_DELAY = 250
 
 const LAYOUT = new Set(["spacing", "kerning", "arcMode", "arcTop", "arcBottom", "arcMove", "arcCentre", "arcMarked", "stretch", "terminators", "twist"])
 
@@ -46,6 +49,7 @@ export default {
     const fontError = shallowRef(null)
     const paintError = shallowRef(null)
     const buildError = shallowRef(null)
+    const sharp = shallowRef(true)
     const error = computed(() => fontError.value ?? paintError.value ?? buildError.value)
     let fontRequest = 0
     let paintRequest = 0
@@ -53,6 +57,7 @@ export default {
     let pending = false
     let frame = 0
     let rested = 0
+    let sharpening = 0
     let line = null
     let shown = null
     let paintedKey = null
@@ -318,8 +323,43 @@ export default {
       const baseKey = lookKey(BASE.map(name => look[name]))
       const base = kept && line.baseKey === baseKey ? line.base : paintBase(arced.sheet, look, remapped, source.capHeight)
       const own = { ...painted.value, ...paintSheet(arced.sheet, look, remapped, source.capHeight, base) }
-      line = { painted: painted.value, source, key, laid, arced, baseKey, base, own }
+      line = { painted: painted.value, source, key, laid, arced, baseKey, base, own, remapped }
       return line
+    }
+
+    function detailed(options) {
+      const { look, assets } = painted.value
+      const gradient = look.source === "gradient" || options.customEdge && options.edgeFill === "gradient" || options.internalFaces && options.customInternal && options.internalFill === "gradient" || options.sideFaces && options.customSide && options.sideFill === "gradient"
+      return gradient || assets.overlays.some(({ layer, source }) => SMOOTH_KINDS.has(source.generated) && layer.opacity > 0)
+    }
+
+    function sharpened(text, source) {
+      const { arced, remapped, own } = line
+      let detail = text.detail
+      while (detail > 1 && Math.max(arced.sheet.width, arced.sheet.height) * R * detail > canvasLimit()) detail /= 2
+      const base = paintBase(arced.sheet, own.look, remapped, source.capHeight, detail)
+      const plain = { image: text.texture, labels: text.labels, gradient: text.gradient, fades: text.fades, panels: text.panels }
+      return { ...text, ...text.refine({ ...own, ...paintSheet(arced.sheet, own.look, remapped, source.capHeight, base, detail) }), refine: null, plain }
+    }
+
+    function sharpen(text, source) {
+      clearTimeout(sharpening)
+      sharp.value = !text?.refine
+      if (sharp.value) return
+      if (view.eager) {
+        built.value = sharpened(text, source)
+        sharp.value = true
+        return
+      }
+      sharpening = setTimeout(() => {
+        if (built.value !== text) return
+        try {
+          built.value = sharpened(text, source)
+        } catch (err) {
+          buildError.value = err.message
+        }
+        sharp.value = true
+      }, SHARPEN_DELAY)
     }
 
     function measure(arc) {
@@ -362,18 +402,21 @@ export default {
           built.value = null
           preview.value = null
           buildError.value = null
+          sharpen(null)
           return
         }
-        built.value = buildText(source, { ...options, lineDepth, placed: arced.placed, line: arced.line, ends: arced.ends, sheet: arced.sheet, painted: own })
+        built.value = buildText(source, { ...options, lineDepth, placed: arced.placed, line: arced.line, ends: arced.ends, sheet: arced.sheet, painted: own, detailed: detailed(options), textureLimit: platform.maxTextureSize() })
         reach = twistedReach(built.value, arced.reach)
         const thumbnail = view.previews === false ? [] : thumbnailItems(source, arced.placed)
         preview.value = thumbnail.length ? previewFor(source, options, thumbnail, arced.sheet, own) : null
         buildError.value = null
+        sharpen(built.value, source)
       } catch (err) {
         builtFrom = null
         built.value = null
         preview.value = null
         buildError.value = err.message
+        sharpen(null)
       } finally {
         if (reach) measure(reach)
       }
@@ -456,10 +499,13 @@ export default {
     usePublished(object, props.title, {
       size,
       scaleY: () => meshScale.value[1],
-      entry: () => ({ font: font.value, list: list.value, built: built.value, error: error.value, transform: transform.value, outline: outline.value, halo: halo.value, preview: preview.value && { built: preview.value, outline: previewOutline.value }, settled: painted.value?.font === wanted.value || !!error.value })
+      entry: () => ({ font: font.value, list: list.value, built: built.value, error: error.value, transform: transform.value, outline: outline.value, halo: halo.value, preview: preview.value && { built: preview.value, outline: previewOutline.value }, settled: painted.value?.font === wanted.value || !!error.value, sharp: sharp.value })
     })
 
-    onBeforeUnmount(() => platform.cancelFrame(frame))
+    onBeforeUnmount(() => {
+      platform.cancelFrame(frame)
+      clearTimeout(sharpening)
+    })
 
     return () => null
   }

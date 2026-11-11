@@ -5,16 +5,23 @@ import { clamp } from "./maths.js"
 const PAD = 1
 const GAP = 2
 const SWATCH = 1
-const SCALE = 4
-const INSET = 0.5 / SCALE
+const UNIT = 4
+const INSET = 0.5 / UNIT
 const MAX_TEXTURE = 4096
-const MAX_WIDTH = MAX_TEXTURE / SCALE
+const MAX_WIDTH = MAX_TEXTURE / UNIT
 const CORNER_SAMPLE = 3
 const SIMILAR = 24
 const MIX_STEPS = 24
 
 export function faceDepth(depth) {
   return Math.max(1, Math.round(depth))
+}
+
+export function detailFor(units, limit) {
+  const size = Math.max(units.width, units.height) * UNIT
+  let detail = 1
+  while (size * detail * 2 <= Math.min(limit, MAX_TEXTURE)) detail *= 2
+  return detail
 }
 
 export function ordered(stops) {
@@ -263,7 +270,8 @@ function inside(value, start, size) {
 export function buildAtlas(faces, options) {
   const depth = faceDepth(options.depth)
   const half = depth / 2
-  const { sheet, painted } = options
+  const { sheet, painted, detail = 1 } = options
+  const SCALE = UNIT * detail
   const R = painted.scale
   let swatch = null
   const sideSum = [0, 0, 0, 0]
@@ -366,7 +374,7 @@ export function buildAtlas(faces, options) {
   }
 
   const units = { width: Math.max(1, packWidth), height: Math.max(1, packY) }
-  if (units.width > MAX_WIDTH || units.height > MAX_WIDTH) throw new Error(`texture would be ${units.width * SCALE}x${units.height * SCALE}, over the ${MAX_TEXTURE} limit`)
+  if (units.width > MAX_WIDTH || units.height > MAX_WIDTH) throw new Error(`texture would be ${units.width * UNIT}x${units.height * UNIT}, over the ${MAX_TEXTURE} limit`)
   const { canvas, ctx } = surface(units.width * SCALE, units.height * SCALE)
 
   function copyBlocks(target, source) {
@@ -486,7 +494,7 @@ export function buildAtlas(faces, options) {
   }
 
   function tile(rect, column = 0) {
-    fillPattern(ctx, painted.tiles, new DOMMatrix().translate((rect.x - column) * SCALE, rect.y * SCALE).scale(SCALE / R))
+    fillPattern(ctx, painted.tiles, new DOMMatrix().translate((rect.x - column) * SCALE, rect.y * SCALE).scale(SCALE / painted.tileScale))
     ctx.fillRect(rect.x * SCALE, rect.y * SCALE, rect.width * SCALE, rect.height * SCALE)
   }
 
@@ -503,9 +511,9 @@ export function buildAtlas(faces, options) {
       if (painted.tiles) {
         tile(face.rect)
         const totals = totalsOf(painted.tiles)
-        const whole = Math.floor(width * SCALE / totals.width)
-        const rest = width * SCALE % totals.width
-        for (let py = 0; py < height * SCALE; py++) {
+        const whole = Math.floor(width * painted.tileScale / totals.width)
+        const rest = width * painted.tileScale % totals.width
+        for (let py = 0; py < height * painted.tileScale; py++) {
           const start = (py % totals.height) * (totals.width + 1) * 4
           for (let channel = 0; channel < 4; channel++) sideSum[channel] += whole * totals.sums[start + totals.width * 4 + channel] + totals.sums[start + rest * 4 + channel]
         }

@@ -1,5 +1,5 @@
 <script setup>
-  import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue"
+  import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue"
   import Button from "./Button.vue"
   import * as THREE from "three"
   import { TransformControls } from "three/addons/controls/TransformControls.js"
@@ -365,7 +365,20 @@
     return { left: bounds.minX * width, top: bounds.minY * height, width: (bounds.maxX - bounds.minX) * width, height: (bounds.maxY - bounds.minY) * height }
   }
 
+  function whenSharp() {
+    if (props.items.every(item => item.sharp)) return Promise.resolve()
+    return new Promise(resolve => {
+      const stop = watch(() => props.items.every(item => item.sharp), ready => {
+        if (!ready) return
+        stop()
+        resolve()
+      })
+    })
+  }
+
   async function capture(resolution, antialias, task) {
+    await whenSharp()
+    await nextTick()
     refit()
     stage.sort(camera)
     return await renderTitle(renderer.getSize(new THREE.Vector2()), scene, camera, resolution, antialias, task)

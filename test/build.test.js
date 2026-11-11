@@ -576,3 +576,33 @@ describe("halo for a word with no border", () => {
     assert.equal(halo.uvs.length, halo.positions.length / 3 * 2)
   })
 })
+
+describe("detail", () => {
+  const ROW = [place(glyph("a", 4, 4), 0), place(glyph("b", 4, 4), 8)]
+  const TURN = { ribbon: { amount: 40, centre: 0.5, same: false }, door: { amount: 0, centre: 0.5, same: false } }
+
+  test("a plain text keeps its texture as it is", () => {
+    const word = text(ROW)
+    assert.equal(word.detail, 1)
+    assert.equal(word.refine, null)
+  })
+
+  test("a detailed text says how far its texture can grow, and can be drawn again that big", () => {
+    const word = text(ROW, { detailed: true, textureLimit: 4096 })
+    assert.ok(word.detail > 1)
+    assert.equal(word.detail, 2 ** Math.round(Math.log2(word.detail)))
+    const sharp = word.refine({ ...PAINTED, scale: word.detail })
+    assert.deepEqual(Object.keys(sharp).sort(), ["fades", "gradient", "labels", "panels", "texture"])
+  })
+
+  test("a limit too small to grow into leaves the texture alone", () => {
+    assert.equal(text(ROW, { detailed: true, textureLimit: 0 }).refine, null)
+  })
+
+  test("drawing it again lays the texture out the same after a twist", () => {
+    const flat = text(ROW, { detailed: true, textureLimit: 4096, internalFaces: true, sideFaces: true })
+    const turned = text(ROW, { detailed: true, textureLimit: 4096, internalFaces: true, sideFaces: true, twist: TURN })
+    assert.deepEqual(turned.refine({ ...PAINTED, scale: turned.detail }).panels, flat.refine({ ...PAINTED, scale: flat.detail }).panels)
+    assert.deepEqual(Array.from(turned.body.uvs), Array.from(flat.body.uvs))
+  })
+})

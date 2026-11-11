@@ -57,6 +57,7 @@ function fill(entry, built) {
   entry.texture.userData.gradient = built.gradient
   entry.texture.userData.fades = built.fades
   entry.texture.userData.panels = built.panels
+  entry.texture.userData.plain = built.plain ?? null
   entry.body.map = entry.texture
   entry.body.needsUpdate = true
   entry.border.map = entry.texture

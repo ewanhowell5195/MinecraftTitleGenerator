@@ -12,7 +12,7 @@ export function createTitleItems(title) {
   return computed(() => {
     const list = title.objects.filter(object => !words(object, title).every(word => word.hidden)).map(object => {
       const state = title.runtime[object.id]
-      return { id: object.id, line: object.group === null || isModified(object, "wordTransform") ? `word-${object.id}` : `line-${object.group}`, paintLine: paintLine(object), type: object.type, built: state?.built ?? null, outline: state?.outline ?? null, halo: state?.halo ?? null, haloColour: framing.outlineColour, transform: state?.transform ?? null, settled: state?.settled ?? false, clipHoles: object.clipHoles, holes: null, hidden: object.hidden }
+      return { id: object.id, line: object.group === null || isModified(object, "wordTransform") ? `word-${object.id}` : `line-${object.group}`, paintLine: paintLine(object), type: object.type, built: state?.built ?? null, outline: state?.outline ?? null, halo: state?.halo ?? null, haloColour: framing.outlineColour, transform: state?.transform ?? null, settled: state?.settled ?? false, sharp: state?.sharp ?? true, clipHoles: object.clipHoles, holes: null, hidden: object.hidden }
     })
     for (const members of Map.groupBy(list, item => item.line).values()) {
       const shown = members.filter(item => !item.hidden)

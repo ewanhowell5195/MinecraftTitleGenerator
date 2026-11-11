@@ -1,6 +1,6 @@
 import { boxFaces, boxesFor } from "./boxes.js"
 import { SPACE } from "./layout.js"
-import { buildAtlas } from "./material.js"
+import { buildAtlas, detailFor } from "./material.js"
 import { remember } from "./maths.js"
 import { baseChar } from "./order.js"
 
@@ -177,14 +177,21 @@ export function buildText(font, options) {
     glyph.rect.maxX += offset
   }
   const body = glyphs.flatMap(glyph => glyph.body)
-  const texture = buildAtlas(body, {
+  const atlas = {
     ...options,
     outline: border > 0,
     chars: glyphs.map(glyph => glyph.char),
     rects: glyphs.map(glyph => glyph.rect),
     spaces: glyphs.map(glyph => glyph.spaces),
     space: font.spaceWidth ?? SPACE
-  })
+  }
+  const texture = buildAtlas(body, atlas)
+  const detail = options.detailed ? detailFor(texture.units, options.textureLimit) : 1
+  const flat = detail > 1 ? body.map(face => ({ ...face, points: face.points.map(point => point.slice()) })) : null
+  function refine(painted) {
+    const sharp = buildAtlas(flat, { ...atlas, painted, detail })
+    return { texture: sharp.canvas, labels: sharp.labels, gradient: sharp.gradient, fades: sharp.fades, panels: sharp.panels }
+  }
   for (const [index, item] of placed.entries()) {
     if (item.glyph.lift) shift(glyphs[index], 1, item.glyph.lift)
   }
@@ -203,6 +210,8 @@ export function buildText(font, options) {
     gradient: texture.gradient,
     fades: texture.fades,
     panels: texture.panels,
+    detail,
+    refine: flat && refine,
     depth,
     border,
     boxes: glyphs.flatMap(glyph => glyph.boxes.map(box => [box.from, box.to])),

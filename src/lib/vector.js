@@ -57,8 +57,9 @@ function hexOf(colour) {
 
 function imageOf(texture, cache) {
   if (!cache.has(texture)) {
-    const { width, height } = texture.image
-    cache.set(texture, { data: texture.image.getContext("2d").getImageData(0, 0, width, height).data, width, height, labels: texture.userData.labels?.() ?? null, gradient: texture.userData.gradient ?? null, fades: texture.userData.fades ?? null, panels: texture.userData.panels ?? null, analyses: new Map() })
+    const { image, labels, gradient, fades, panels } = texture.userData.plain ?? { image: texture.image, ...texture.userData }
+    const { width, height } = image
+    cache.set(texture, { data: image.getContext("2d").getImageData(0, 0, width, height).data, width, height, labels: labels?.() ?? null, gradient: gradient ?? null, fades: fades ?? null, panels: panels ?? null, analyses: new Map() })
   }
   return cache.get(texture)
 }

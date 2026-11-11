@@ -1,6 +1,6 @@
 import { fadeStops, fillPattern, linearGradient, surface } from "./canvas.js"
 import { hexOf, packed } from "./colour.js"
-import { PLACED_KINDS, edgeAlpha, generatedAlpha } from "./generated.js"
+import { PLACED_KINDS, SMOOTH_KINDS, edgeAlpha, generatedAlpha } from "./generated.js"
 import { gradientLine, gradientStops } from "./material.js"
 import { clamp, remember } from "./maths.js"
 import { stripY } from "./strips.js"
@@ -11,7 +11,6 @@ const CACHED_OVERLAYS = 32
 const CACHED_TILES = 8
 const CACHED_URLS = 64
 const SOFT_LABEL = 16
-const WAVE_KINDS = new Set(["wave", "wave_inverted"])
 
 function fract(n) {
   return n - Math.floor(n)
@@ -25,12 +24,12 @@ function random(x, y, z) {
   return fract((x + y + res * 2) * (z + res))
 }
 
-function averageColour(image, rects) {
+function averageColour(image, rects, scale) {
   const sum = [0, 0, 0]
   let count = 0
   for (const [x, y, w, h] of rects) {
-    for (let row = y * R; row < (y + h) * R; row++) {
-      for (let column = x * R; column < (x + w) * R; column++) {
+    for (let row = y * scale; row < (y + h) * scale; row++) {
+      for (let column = x * scale; column < (x + w) * scale; column++) {
         const at = (row * image.width + column) * 4
         if (image.data[at + 3] < 128) continue
         sum[0] += image.data[at]
@@ -155,7 +154,7 @@ function adjustedTiles(look, image) {
   return remember(tileBlocks.get(image), key, () => adjusted(tileBlock(look, image), look).canvas, CACHED_TILES)
 }
 
-function paintTiles(ctx, entries, look, image, capHeight) {
+function paintTiles(ctx, entries, look, image, capHeight, detail) {
   const { tile, tw, th } = tiling(look, image)
   const randomised = look.tileableRandomRotations || look.tileableRandomMirroring
 
@@ -201,8 +200,8 @@ function paintTiles(ctx, entries, look, image, capHeight) {
   const faces = surface(ctx.canvas.width, ctx.canvas.height)
   faces.ctx.drawImage(ctx.canvas, 0, 0)
   for (const entry of entries) {
-    if (entry.upHeight) ctx.drawImage(faces.canvas, entry.x * R, entry.top * R, entry.width * R, 1, entry.x * R, entry.up * R, entry.width * R, entry.upHeight * R)
-    if (entry.downHeight) ctx.drawImage(faces.canvas, entry.x * R, (entry.top + entry.height) * R - 1, entry.width * R, 1, entry.x * R, entry.down * R, entry.width * R, entry.downHeight * R)
+    if (entry.upHeight) ctx.drawImage(faces.canvas, entry.x * R * detail, entry.top * R * detail, entry.width * R * detail, 1, entry.x * R, entry.up * R, entry.width * R, entry.upHeight * R)
+    if (entry.downHeight) ctx.drawImage(faces.canvas, entry.x * R * detail, (entry.top + entry.height) * R * detail - 1, entry.width * R * detail, 1, entry.x * R, entry.down * R, entry.width * R, entry.downHeight * R)
   }
 }
 
@@ -263,32 +262,39 @@ function paintStrip(ctx, entries, strip) {
   }
 }
 
-function putAlpha(ctx, alpha, width, height, x, y) {
-  const image = ctx.createImageData(width * R, height * R)
+function putAlpha(ctx, alpha, width, height, x, y, scale) {
+  const image = ctx.createImageData(width * scale, height * scale)
   image.data.fill(255)
   for (let index = 0; index < alpha.length; index++) image.data[index * 4 + 3] = Math.round(alpha[index] * 255)
-  ctx.putImageData(image, x * R, y * R)
+  ctx.putImageData(image, x * scale, y * scale)
 }
 
-function generate(ctx, entries, kind, layer, capHeight) {
+function generate(ctx, entries, kind, layer, capHeight, scale) {
   for (const { glyph, x, top } of entries) {
-    if (glyph.width && glyph.height) putAlpha(ctx, generatedAlpha(glyph, kind, layer, capHeight, R), glyph.width, glyph.height, x, top)
+    if (glyph.width && glyph.height) putAlpha(ctx, generatedAlpha(glyph, kind, layer, capHeight, scale), glyph.width, glyph.height, x, top, scale)
   }
 }
 
-function generateEdges(ctx, entries, kind, layer) {
+function generateEdges(ctx, entries, kind, layer, scale) {
   for (const entry of entries) {
     if (!entry.glyph.width || !entry.glyph.height) continue
     for (const [side, y, depth] of [["up", entry.up, entry.upHeight], ["down", entry.down, entry.downHeight]]) {
-      if (depth) putAlpha(ctx, edgeAlpha(entry.glyph, side, kind, layer, depth, R), entry.glyph.width, depth, entry.x, y)
+      if (depth) putAlpha(ctx, edgeAlpha(entry.glyph, side, kind, layer, depth, scale), entry.glyph.width, depth, entry.x, y, scale)
     }
   }
 }
 
-function drawOverlay(sheet, layer, source, capHeight) {
-  const overlay = surface(sheet.width * R, sheet.height * R)
-  if (source.edge) generateEdges(overlay.ctx, Object.values(sheet.glyphs), source.edge, layer)
-  else if (source.generated) generate(overlay.ctx, Object.values(sheet.glyphs), source.generated, layer, capHeight)
+function scaled(sheet, detail) {
+  const target = surface(sheet.width * R * detail, sheet.height * R * detail)
+  target.ctx.scale(detail, detail)
+  return target
+}
+
+function drawOverlay(sheet, layer, source, capHeight, detail) {
+  const overlay = scaled(sheet, detail)
+  const entries = Object.values(sheet.glyphs)
+  if (source.edge) generateEdges(overlay.ctx, entries, source.edge, layer, R * detail)
+  else if (source.generated) generate(overlay.ctx, entries, source.generated, layer, capHeight, R * detail)
   else overlay.ctx.drawImage(source, 0, 0)
   return overlay
 }
@@ -322,11 +328,12 @@ export function lookKey(value) {
   return JSON.stringify(value, (name, item) => typeof item === "string" && item.startsWith("data:") ? remember(urlIds, item, () => ++nextId, CACHED_URLS) : item)
 }
 
-function overlayLayer(sheet, layer, source, capHeight) {
+function overlayLayer(sheet, layer, source, capHeight, detail) {
+  if (detail > 1) return colourOverlay(drawOverlay(sheet, layer, source, capHeight, detail), layer)
   if (!overlays.has(sheet)) overlays.set(sheet, { shapes: new Map(), coloured: new Map() })
   const { shapes, coloured } = overlays.get(sheet)
   const shapeKey = JSON.stringify([source.edge ? `edge:${source.edge}` : source.generated ?? idOf(source), capHeight, Object.entries(layer).filter(([name]) => !["file", "blend", "opacity", "colour", "colourBlend"].includes(name))])
-  return remember(coloured, JSON.stringify([shapeKey, layer.colour, layer.colourBlend]), () => colourOverlay(remember(shapes, shapeKey, () => drawOverlay(sheet, layer, source, capHeight), CACHED_OVERLAYS), layer), CACHED_OVERLAYS)
+  return remember(coloured, JSON.stringify([shapeKey, layer.colour, layer.colourBlend]), () => colourOverlay(remember(shapes, shapeKey, () => drawOverlay(sheet, layer, source, capHeight, detail), CACHED_OVERLAYS), layer), CACHED_OVERLAYS)
 }
 
 export function paintKey(sheet, assets, look) {
@@ -336,15 +343,15 @@ export function paintKey(sheet, assets, look) {
   return JSON.stringify([sheet.width, sheet.height, sheet.tallest, worded ? sheet.wordWidth : null, Object.values(sheet.glyphs).map(entry => [entry.char, entry.x, entry.top, entry.up, entry.upHeight, entry.down, entry.downHeight, entry.width, entry.height, entry.glyph.bottom, entry.glyph.top, entry.glyph.arc, placed ? entry.glyph.placedX : null, lined ? entry.glyph.lineX : null, worded ? entry.glyph.wordX : null])])
 }
 
-export function paintBase(sheet, look, assets, capHeight) {
+export function paintBase(sheet, look, assets, capHeight, detail = 1) {
   const entries = Object.values(sheet.glyphs)
-  const base = surface(sheet.width * R, sheet.height * R)
+  const base = scaled(sheet, detail)
   if (look.source === "texture") {
     base.ctx.drawImage(assets.base, 0, 0)
   } else {
     if (look.source === "gradient") paintGradient(base.ctx, entries, look, capHeight, sheet)
     else if (look.source === "strip") paintStrip(base.ctx, entries, assets.strip)
-    else paintTiles(base.ctx, entries, look, assets.tile, capHeight)
+    else paintTiles(base.ctx, entries, look, assets.tile, capHeight, detail)
     if (look.source !== "strip") {
       base.ctx.fillStyle = `rgba(0, 0, 0, ${(100 - look.edgeBrightness) / 100})`
       fillRects(base.ctx, entries.flatMap(strips))
@@ -386,7 +393,7 @@ export function adjusted(source, look, options) {
   return out
 }
 
-function overlayLabels(sheet, layers, capHeight, width, height) {
+function overlayLabels(sheet, layers, capHeight, width, height, detail) {
   const { ctx } = surface(width, height, { willReadFrequently: true })
   const image = ctx.createImageData(width, height)
   for (let at = 3; at < image.data.length; at += 4) image.data[at] = 255
@@ -397,9 +404,9 @@ function overlayLabels(sheet, layers, capHeight, width, height) {
     if (!layer.opacity) continue
     const index = PLACED_KINDS.has(source.generated) ? soft++ : hard++
     if (index >= SOFT_LABEL * 1.5 || hard > SOFT_LABEL) continue
-    const threshold = WAVE_KINDS.has(source.generated) ? 128 : 1
+    const threshold = SMOOTH_KINDS.has(source.generated) ? 128 : 1
     reader.ctx.clearRect(0, 0, width, height)
-    reader.ctx.drawImage(overlayLayer(sheet, layer, source, capHeight).canvas, 0, 0)
+    reader.ctx.drawImage(overlayLayer(sheet, layer, source, capHeight, detail).canvas, 0, 0)
     const alpha = reader.ctx.getImageData(0, 0, width, height).data
     for (let at = 0; at < alpha.length; at += 4) {
       if (alpha[at + 3] >= threshold) image.data[at + (index >> 3)] |= 1 << (index & 7)
@@ -418,13 +425,15 @@ export function borderOf(look, assets) {
   }, CACHED_OVERLAYS)
 }
 
-export function paintSheet(sheet, look, assets, capHeight, base) {
-  const width = sheet.width * R
-  const height = sheet.height * R
+export function paintSheet(sheet, look, assets, capHeight, base, detail = 1) {
+  const scale = R * detail
+  const width = sheet.width * scale
+  const height = sheet.height * scale
   const entries = Object.values(sheet.glyphs)
   const swatch = [sheet.swatch.x, sheet.swatch.y, 1, 1]
 
   const work = adjusted(base.canvas, look)
+  work.ctx.scale(detail, detail)
 
   if (look.customEdge) {
     work.ctx.globalCompositeOperation = "source-atop"
@@ -446,10 +455,10 @@ export function paintSheet(sheet, look, assets, capHeight, base) {
 
   const overlayLayers = assets.overlays.concat(assets.edgeOverlays.map(({ layer, generated }) => ({ layer, source: { edge: generated } })))
   for (const { layer, source } of overlayLayers) {
-    const overlay = overlayLayer(sheet, layer, source, capHeight)
+    const overlay = overlayLayer(sheet, layer, source, capHeight, detail)
     work.ctx.globalCompositeOperation = layer.blend
     work.ctx.globalAlpha = layer.opacity / 100
-    work.ctx.drawImage(overlay.canvas, 0, 0)
+    work.ctx.drawImage(overlay.canvas, 0, 0, sheet.width * R, sheet.height * R)
     work.ctx.globalAlpha = 1
     work.ctx.globalCompositeOperation = "source-over"
   }
@@ -459,7 +468,7 @@ export function paintSheet(sheet, look, assets, capHeight, base) {
     fillRect(work.ctx, swatch)
   }
   const final = eager ? work.ctx.getImageData(0, 0, width, height) : null
-  const at = (swatch[1] * R * width + swatch[0] * R) * 4
+  const at = (swatch[1] * scale * width + swatch[0] * scale) * 4
   const rgb = final ? final.data.subarray(at, at + 3) : borderOf(look, assets)
   const [r, g, b] = rgb
   const border = `rgb(${r}, ${g}, ${b})`
@@ -467,7 +476,7 @@ export function paintSheet(sheet, look, assets, capHeight, base) {
   const finalPixels = final ? () => final : readLater(look.fade ? copyOf(work.canvas) : work)
   const facePixels = eager ? () => faces : layered ? readLater(faces) : finalPixels
   let average = null
-  const edgeAverage = () => average ??= averageColour(finalPixels(), entries.flatMap(strips))
+  const edgeAverage = () => average ??= averageColour(finalPixels(), entries.flatMap(strips), scale)
 
   const fade = look.fade ? clamp(look.outerFade / 100, 0, 1) : null
   if (look.fade) {
@@ -493,5 +502,5 @@ export function paintSheet(sheet, look, assets, capHeight, base) {
 
   const tiles = look.source === "tile" && look.tileableTileEdges ? adjustedTiles(look, assets.tile) : null
   const gradient = look.source === "gradient" ? { stops: paintedStops(look), ends: entry => gradientEnds(entry, look, capHeight, sheet) } : null
-  return { canvas: work.canvas, facePixels, border, edgeAverage, tiles, tilesAcrossLine: !look.tileablePerCharacter, gradient, fade, borderColour: packed(rgb, 0), labels: () => overlayLabels(sheet, overlayLayers, capHeight, width, height) }
+  return { canvas: work.canvas, facePixels, border, edgeAverage, tiles, tilesAcrossLine: !look.tileablePerCharacter, gradient, fade, borderColour: packed(rgb, 0), labels: () => overlayLabels(sheet, overlayLayers, capHeight, width, height, detail), scale, tileScale: R }
 }
