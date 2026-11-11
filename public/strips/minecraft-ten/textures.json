@@ -394,6 +394,11 @@
       "type": "strip",
       "author": "B1tseK",
       "border": "#000000"
+    },
+    "poplar_planks": {
+      "type": "strip",
+      "author": "TheAnnoying",
+      "border": "#221e1e"
     }
   }
 }
