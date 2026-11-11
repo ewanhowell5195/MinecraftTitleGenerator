@@ -7,6 +7,8 @@
     label: { type: String, required: true },
     min: { type: Number, required: true },
     max: { type: Number, required: true },
+    typedMin: { type: Number, default: undefined },
+    typedMax: { type: Number, default: undefined },
     step: { type: Number, default: 1 },
     steps: { type: Array, default: null },
     log: { type: Boolean, default: false },
@@ -65,7 +67,7 @@
       <input class="range" type="range" v-model.number="index" min="0" :max="steps.length - 1" step="1" :style="fill" :aria-label="label" :disabled="disabled">
     </template>
     <template v-else>
-      <NumberInput bare class="value" v-model.number="value" :min="min" :max="max" :step="step" :aria-label="label" :disabled="disabled" />
+      <NumberInput bare class="value" v-model.number="value" :min="typedMin === undefined ? min : typedMin" :max="typedMax === undefined ? max : typedMax" :step="step" :aria-label="label" :disabled="disabled" />
       <input ref="range" class="range" type="range" v-model.number="position" :min="log ? 0 : min" :max="log ? SPAN : max" :step="log ? 1 : step" :style="fill" :aria-label="label" :disabled="disabled">
     </template>
     <span v-if="hint" class="hint">{{ hint }}</span>

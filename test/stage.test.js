@@ -169,10 +169,10 @@ describe("movedBy", () => {
     closeList(offset, [1.23, 0, 0])
   })
 
-  test("stops at the limit and reports the short move", () => {
+  test("moves past the slider range", () => {
     const { translate, offset } = movedBy(transform({ translate: [199, -199, 0] }), point(5, -5, 0))
-    assert.deepEqual(translate, [200, -200, 0])
-    closeList(offset, [1, -1, 0])
+    assert.deepEqual(translate, [204, -204, 0])
+    closeList(offset, [5, -5, 0])
   })
 
   test("the gizmo lands where the returned offset says", () => {
@@ -222,9 +222,9 @@ describe("rotatedTo", () => {
     assert.ok(after.quaternion.angleTo(quaternion) < 1e-3)
   })
 
-  test("limits a translate that no longer fits after turning", () => {
+  test("keeps a translate past the slider range after turning", () => {
     const { translate } = rotatedTo(transform({ translate: [200, 200, 0] }), turning(0, 0, 45))
-    closeList(translate, [200, 0, 0], 0.011)
+    closeList(translate, [282.84, 0, 0], 0.011)
   })
 })
 
@@ -280,11 +280,11 @@ describe("wordMovedBy", () => {
     closeList(position.clone().sub(before), offset.toArray(), 0.05)
   })
 
-  test("stops at the limit and reports the real position", () => {
+  test("moves past the slider range and reports the real position", () => {
     const value = transform({ word: { scale: [1, 1, 1], rotate: [0, 0, 0], translate: [199.5, 0, 0] } })
     const { translate, position } = wordMovedBy(value, built, point(5, 0, 0))
-    assert.deepEqual(translate, [200, 0, 0])
-    closeList(position, [200, 10, 5])
+    assert.deepEqual(translate, [204.5, 0, 0])
+    closeList(position, [204.5, 10, 5])
   })
 })
 

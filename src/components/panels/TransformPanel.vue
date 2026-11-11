@@ -57,19 +57,19 @@
     </template>
   </Panel>
   <Panel v-for="[group, title] of AXIS_PANELS" :key="group" :title="title" :modified="modified[group]" @reset="resetTransform(object, group, word)">
-    <Slider v-for="(key, index) of TRANSFORM_GROUPS[group]" :key="key" inline :label="'XYZ'[index]" v-model="object[k(key)]" :min="TRANSFORM_LIMITS[group][0]" :max="TRANSFORM_LIMITS[group][1]" />
+    <Slider v-for="(key, index) of TRANSFORM_GROUPS[group]" :key="key" inline :label="'XYZ'[index]" v-model="object[k(key)]" :min="TRANSFORM_LIMITS[group][0]" :max="TRANSFORM_LIMITS[group][1]" v-bind="group === 'translation' ? { typedMin: null, typedMax: null } : {}" />
   </Panel>
   <Panel title="Scale" :modified="modified.scale" @reset="resetTransform(object, 'scale', word)">
     <div class="linked">
       <div class="sliders">
-        <Slider inline label="X" v-model="scaleX" :min="TRANSFORM_LIMITS.scale[0]" :max="TRANSFORM_LIMITS.scale[1]" :step="0.05" />
-        <Slider inline label="Y" v-model="scaleY" :min="TRANSFORM_LIMITS.scale[0]" :max="TRANSFORM_LIMITS.scale[1]" :step="0.05" />
+        <Slider inline label="X" v-model="scaleX" :min="TRANSFORM_LIMITS.scale[0]" :max="TRANSFORM_LIMITS.scale[1]" :typed-max="null" :step="0.05" />
+        <Slider inline label="Y" v-model="scaleY" :min="TRANSFORM_LIMITS.scale[0]" :max="TRANSFORM_LIMITS.scale[1]" :typed-max="null" :step="0.05" />
       </div>
       <span class="bracket" :class="{ active: linked }"></span>
       <Button ghost :active="linked" @click="toggleLink" v-tooltip="linked ? 'Unlink X and Y' : 'Link X and Y so the text keeps its shape'" :aria-label="linked ? 'Unlink X and Y' : 'Link X and Y'" :aria-pressed="linked"><template #icon><Icon name="link" :size="16" /></template></Button>
     </div>
     <div class="linked">
-      <Slider class="grow" inline label="Z" v-model="object[k('scaleZ')]" :min="TRANSFORM_LIMITS.scale[0]" :max="TRANSFORM_LIMITS.scale[1]" :step="0.05" />
+      <Slider class="grow" inline label="Z" v-model="object[k('scaleZ')]" :min="TRANSFORM_LIMITS.scale[0]" :max="TRANSFORM_LIMITS.scale[1]" :typed-max="null" :step="0.05" />
       <span class="spare"></span>
     </div>
     <Toggle v-if="marked" label="Only stretch the stretchable parts" v-model="object[k('scaleMarked')]" />

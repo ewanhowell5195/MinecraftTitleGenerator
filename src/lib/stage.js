@@ -1,6 +1,5 @@
 import * as THREE from "three"
 import { clamp, round } from "./maths.js"
-import { TRANSFORM_LIMITS } from "./settings.js"
 import { view } from "./view.js"
 
 const DIRECTION = new THREE.Vector3(0, -0.51007, 0.86013).normalize()
@@ -132,7 +131,7 @@ export function gizmoPose(value, bounds) {
 }
 
 function limited(translate) {
-  return translate.map(axis => clamp(round(axis, 2), ...TRANSFORM_LIMITS.translation))
+  return translate.map(axis => round(axis, 2))
 }
 
 export function movedBy(value, offset) {

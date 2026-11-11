@@ -5,7 +5,7 @@
   import { TransformControls } from "three/addons/controls/TransformControls.js"
   import { frameBounds, framePixels, frameRect, framing } from "../lib/framing.js"
   import { holdHistory } from "../lib/history.js"
-  import { clamp, round } from "../lib/maths.js"
+  import { round } from "../lib/maths.js"
   import { renderTitle, screenBounds } from "../lib/render.js"
   import { current, currentWord, scene as title, select, setScale, shapingWord } from "../lib/scene.js"
   import { TRANSFORM_LIMITS } from "../lib/settings.js"
@@ -122,7 +122,7 @@
   }
 
   function applyScale(object, keys) {
-    const scale = proxy.scale.toArray().map(axis => clamp(round(axis, 4), ...TRANSFORM_LIMITS.scale))
+    const scale = proxy.scale.toArray().map(axis => Math.max(round(axis, 4), TRANSFORM_LIMITS.scale[0]))
     proxy.scale.fromArray(scale)
     for (const [index, key] of keys.entries()) {
       if (controls.axis.includes("XYZ"[index])) setScale(object, key, scale[index])
