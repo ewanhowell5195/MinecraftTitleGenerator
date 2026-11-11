@@ -2,9 +2,9 @@ import { computed, onBeforeUnmount, shallowRef, watch } from "vue"
 import { fontTextures, image, preload, shapeFont, sheetFor, stripRange, tileableUrl } from "../lib/assets.js"
 import { arcAssets, arcLayout } from "../lib/arc.js"
 import { buildOutline, buildText } from "../lib/build.js"
-import { customFontEntry } from "../lib/customFonts.js"
+import { customFontEntry, customFontId } from "../lib/customFonts.js"
 import { EulaDeclined } from "../lib/eula.js"
-import { shapeOf } from "../lib/shapes.js"
+import { CUSTOM_SHAPE, SILHOUETTE_TEXT, shapeOf } from "../lib/shapes.js"
 import { framing } from "../lib/framing.js"
 import { hasMarks, loadFont, sheetFolder } from "../lib/font.js"
 import { stripRows } from "../lib/strips.js"
@@ -134,7 +134,7 @@ export default {
 
     function wordShape(other) {
       return {
-        text: other.shape === null ? other.text : font.value?.order ?? "",
+        text: other.shape === null ? other.text : other.shape === CUSTOM_SHAPE ? SILHOUETTE_TEXT : font.value?.order ?? "",
         creeper: other.shape === null && other.creeperFace,
         space: other.spaceBefore,
         arc: { mode: other.wordArcMode, top: other.wordArcTop / 100, bottom: other.wordArcBottom / 100, move: other.wordArcMove / 100, centre: other.wordArcCentre / 100, marked: other.wordArcMarked },
@@ -407,13 +407,15 @@ export default {
 
     async function pick(id) {
       const token = ++fontRequest
-      const shape = object.shape === null ? null : shapeOf(props.shapes, object.shape)
+      const customShape = object.shape === CUSTOM_SHAPE
+      if (customShape && !object.customFont) throw new Error("this custom shape has no PNG")
+      const shape = object.shape === null || customShape ? null : shapeOf(props.shapes, object.shape)
       const custom = !shape && isCustomFont(id) && object.customFont ? await customFontEntry(object.customFont) : null
       if (token !== fontRequest) return
       const fonts = shape ? [] : custom ? props.fonts.concat(custom) : props.fonts
       const data = shape ?? custom ?? props.fonts.find(entry => entry.id === id) ?? props.fonts[0]
       if (!data) throw new Error("no fonts available")
-      if (!shape && object.font !== data.id) quietly(() => (object.font = data.id))
+      if (!shape && !customShape && object.font !== data.id) quietly(() => (object.font = data.id))
       preload(sheetFolder(data, fonts))
       const loaded = await loadFont(data, fonts)
       const [layout, textures] = await Promise.all([sheetFor(loaded), fontTextures(loaded.sheetFolder, loaded.strips)])
@@ -442,11 +444,16 @@ export default {
 
     watch(look, repaint)
     watch([inputs, painted], schedule)
-    watch(() => object.shape ?? object.font, id => {
+    function wanted() {
+      if (object.shape !== CUSTOM_SHAPE) return object.shape ?? object.font
+      return object.customFont ? customFontId(object.customFont) : CUSTOM_SHAPE
+    }
+
+    watch(wanted, id => {
       if (font.value?.id !== id) pick(id).catch(err => (error.value = err.message))
     }, { immediate: true })
-    watch([font, list, built, error, transform, outline, halo, preview, previewOutline, painted, () => object.shape ?? object.font], () => {
-      runtime[object.id] = { font: font.value, list: list.value, built: built.value, error: error.value, transform: transform.value, outline: outline.value, halo: halo.value, preview: preview.value && { built: preview.value, outline: previewOutline.value }, settled: painted.value?.font === (object.shape ?? object.font) || !!error.value }
+    watch([font, list, built, error, transform, outline, halo, preview, previewOutline, painted, wanted], () => {
+      runtime[object.id] = { font: font.value, list: list.value, built: built.value, error: error.value, transform: transform.value, outline: outline.value, halo: halo.value, preview: preview.value && { built: preview.value, outline: previewOutline.value }, settled: painted.value?.font === wanted() || !!error.value }
     }, { immediate: true })
 
     watch(font, value => {

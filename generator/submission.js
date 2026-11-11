@@ -2,11 +2,12 @@ import { execFileSync } from "node:child_process"
 import path from "node:path"
 import * as font from "./submissionKinds/font.js"
 import * as fontAsset from "./submissionKinds/fontAsset.js"
+import * as shape from "./submissionKinds/shape.js"
 import * as strip from "./submissionKinds/strip.js"
 import * as tileable from "./submissionKinds/tileable.js"
 
 const ROOT = path.join(import.meta.dirname, "..")
-const STEPS = [font, fontAsset, strip, tileable]
+const STEPS = [font, fontAsset, strip, tileable, shape]
 
 function git(...args) {
   return execFileSync("git", args, { cwd: ROOT, encoding: "utf8" }).split("\n").filter(Boolean)

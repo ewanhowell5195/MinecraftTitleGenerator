@@ -17,7 +17,7 @@
 <template>
   <section class="intro">
     <h1>Submit to the title generator</h1>
-    <p>Made a font or a texture? Send it here, and once it's accepted it shows up in the generator for everyone.</p>
+    <p>Made a font, texture or shape? Send it here, and once it's accepted it shows up in the generator for everyone.</p>
   </section>
   <SubmissionForm :fonts="fonts" :prefill="prefill" @done="sent" />
 </template>

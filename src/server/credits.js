@@ -10,7 +10,7 @@ import { escaped } from "./http.js"
 
 const STRIPS = "strips."
 const PREVIEW_FONT = "minecraft-ten"
-const KINDS = { font: ["font", "fonts"], texture: ["texture", "textures"], overlay: ["overlay", "overlays"], tileable: ["tileable", "tileables"] }
+const KINDS = { font: ["font", "fonts"], texture: ["texture", "textures"], overlay: ["overlay", "overlays"], tileable: ["tileable", "tileables"], shape: ["shape", "shapes"] }
 const LIBRARIES = [
   { name: "three.js", url: "https://github.com/mrdoob/three.js", by: "mrdoob", licence: "MIT" },
   { name: "Vue", url: "https://github.com/vuejs/core", by: "Evan You", licence: "MIT" },
@@ -118,6 +118,21 @@ export function creditsHtml(root) {
     if (tileable.author !== "Mojang") add(tileable.author, { kind: "tileable", name: tileable.name ?? titleCase(id), image: `tileables/${tileable.path ?? "minecraft"}/${id}.png`, where: "Tileable texture", stats, id: `tileable.${id}`, line: { font: PREVIEW_FONT, textureSource: "tileable", tileableSource: "premade", tileable: id } })
     for (const [variantId, variant] of Object.entries(tileable.variants ?? {})) {
       if (variant.author !== "Mojang") add(variant.author, { kind: "tileable", name: variant.name ?? titleCase(variantId), image: `tileables/${variant.path ?? tileable.path ?? "minecraft"}/${variantId}.png`, where: "Tileable texture", stats: [], id: `tileable.${variantId}`, line: { font: PREVIEW_FONT, textureSource: "tileable", tileableSource: "premade", tileable: id, tileableVariant: variantId } })
+    }
+  }
+
+  for (const shape of readJson(path.join(folder, "shapes/shapes.json"))) {
+    const name = shape.name ?? titleCase(shape.id)
+    add(shape.author, { kind: "shape", name, image: `shapes/${shape.id}/thumbnails/flat.png`, where: "Shape", stats: [], id: `shape.${shape.id}`, line: { shape: shape.id } })
+    const list = readJson(path.join(folder, "shapes", shape.id, "textures.json"))
+    for (const [kind, group] of [["texture", list.textures], ["overlay", list.overlays ?? {}]]) {
+      for (const [id, entry] of Object.entries(group)) {
+        for (const [piece, data] of [[id, entry]].concat(Object.entries(entry.variants ?? {}))) {
+          if (data.author === "Mojang") continue
+          const line = kind === "texture" ? { shape: shape.id, texture: id, textureVariant: piece === id ? null : piece } : { shape: shape.id, overlayMode: "custom", overlays: [overlayLayer(id, entry)] }
+          add(data.author, { kind, name: data.name ?? titleCase(piece), image: `shapes/${shape.id}/thumbnails/${piece}.png`, where: `${name} ${kind}`, stats: [], id: `shape.${shape.id}.${piece}`, line })
+        }
+      }
     }
   }
 

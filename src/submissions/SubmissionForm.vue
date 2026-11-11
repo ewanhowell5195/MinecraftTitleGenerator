@@ -26,11 +26,15 @@
     texture: "Paint over a font's template to fill its letters.",
     overlay: "A see-through layer drawn over any texture.",
     strip: "Runs down the letters from top to bottom, repeating along the line.",
-    tileable: "A seamless pattern repeated across the letters."
+    tileable: "A seamless pattern repeated across the letters.",
+    shapeImage: "A PNG whose solid pixels make the shape and whose colours paint it. Pick the strips it uses, the same as a font.",
+    shapeModel: "A Java block model and the one PNG it uses as its texture."
   }
+  const SHAPE_IDS = ["shapeImage", "shapeModel"]
   const KINDS = Object.values(SUBMISSION_KINDS).filter(type => type.available).map(type => ({ value: type.id, label: type.label, about: ABOUT[type.id] }))
-  const TEXTURE_KINDS = KINDS.filter(item => !["font", "overlay"].includes(item.value)).concat(KINDS.filter(item => item.value === "overlay"))
-  const GROUPS = [{ id: "texture", label: "Texture" }].concat(KINDS.some(item => item.value === "font") ? { id: "font", label: "Font" } : [])
+  const TEXTURE_KINDS = KINDS.filter(item => !["font", "overlay"].concat(SHAPE_IDS).includes(item.value)).concat(KINDS.filter(item => item.value === "overlay"))
+  const SHAPE_KINDS = KINDS.filter(item => SHAPE_IDS.includes(item.value)).map(item => ({ ...item, label: item.value === "shapeImage" ? "PNG" : "Model" }))
+  const GROUPS = [{ id: "texture", label: "Texture" }].concat(KINDS.some(item => item.value === "font") ? { id: "font", label: "Font" } : [], SHAPE_KINDS.length ? { id: "shape", label: "Shape" } : [])
   const { type: prefillKind, font: prefillTarget, name: prefillName, credit: prefillCredit, from: prefillFrom, ...prefillDetails } = props.prefill
   const startKind = props.initial?.kind ?? prefillKind
   const kind = ref(SUBMISSION_KINDS[startKind]?.available ? startKind : "texture")
@@ -53,11 +57,17 @@
   const context = submissionContext(props.fonts, path => fetch(path))
   let checks = 0
 
-  let textureKind = kind.value === "font" ? "texture" : kind.value
+  let textureKind = kind.value === "font" || SHAPE_IDS.includes(kind.value) ? "texture" : kind.value
+  let shapeKind = SHAPE_IDS.includes(kind.value) ? kind.value : SHAPE_IDS[0]
+
+  function groupOf(id) {
+    if (id === "font") return "font"
+    return SHAPE_IDS.includes(id) ? "shape" : "texture"
+  }
 
   const group = computed({
-    get: () => kind.value === "font" ? "font" : "texture",
-    set: value => kind.value = value === "font" ? "font" : textureKind
+    get: () => groupOf(kind.value),
+    set: value => kind.value = value === "font" ? "font" : value === "shape" ? shapeKind : textureKind
   })
   const type = computed(() => SUBMISSION_KINDS[kind.value])
   const parts = computed(() => KIND_COMPONENTS[kind.value])
@@ -75,7 +85,8 @@
   const blocked = computed(() => !account.value || sending.value || Object.keys(problems.value).length > 0 || !!fileProblem.value)
 
   watch(kind, (next, before) => {
-    if (next !== "font") textureKind = next
+    if (groupOf(next) === "texture") textureKind = next
+    if (groupOf(next) === "shape") shapeKind = next
     if (KIND_COMPONENTS[next] !== KIND_COMPONENTS[before]) {
       details.value = {}
       target.value = ""
@@ -169,16 +180,17 @@
       <Field label="Name" required :error="shown.name" :hint="`Shown as the ${type.noun}'s name in the generator.`">
         <input type="text" v-model="name" :maxlength="SUBMISSION_LIMITS.name" spellcheck="false" required>
       </Field>
-      <Field label="Credit" :required="kind !== 'font'" :error="shown.credit" :hint="`Shown as the ${type.noun}'s author. List everyone who made it.`">
-        <input type="text" v-model="credit" :maxlength="SUBMISSION_LIMITS.credit" spellcheck="false" :required="kind !== 'font'">
+      <Field label="Credit" required :error="shown.credit" :hint="`Shown as the ${type.noun}'s author. List everyone who made it.`">
+        <input type="text" v-model="credit" :maxlength="SUBMISSION_LIMITS.credit" spellcheck="false" required>
       </Field>
     </div>
     <Segments v-if="group === 'texture'" v-model="kind" :options="TEXTURE_KINDS" label="Kind of texture" :hint="ABOUT[kind]" />
+    <Segments v-if="group === 'shape'" v-model="kind" :options="SHAPE_KINDS" label="Kind of shape" :hint="ABOUT[kind]" />
     <div class="stage-area" :class="{ dragging }" @dragover.prevent="dragging = true" @dragleave.self="dragging = false" @drop.prevent="drop">
       <template v-if="fileUrl || chosen">
         <component :is="parts.Preview" v-bind="kind === 'strip' ? { font: previewFont, 'onUpdate:font': id => previewFont = id } : {}" :fonts="fonts" :kind="kind" :target="target" :details="details" :files="extras" :initial="initial" :url="fileUrl" :text="previewText || name || 'Minecraft'" />
         <div class="stage-bar">
-          <input type="text" v-model="previewText" :placeholder="name || 'Minecraft'" spellcheck="false" aria-label="Preview text">
+          <input v-if="group !== 'shape'" type="text" v-model="previewText" :placeholder="name || 'Minecraft'" spellcheck="false" aria-label="Preview text">
           <Button file :accept="isImage ? 'image/png' : '.json,application/json'" @change="pick"><template #icon><Icon name="open" :size="16" /></template>
             <span>Replace file</span>
           </Button>
@@ -186,7 +198,7 @@
       </template>
       <label v-else class="drop">
         <Icon name="upload" :size="32" />
-        <strong>{{ isImage ? "Drop your PNG here" : "Drop your font's JSON file here" }} <span class="required" aria-hidden="true">*</span></strong>
+        <strong>{{ isImage ? "Drop your PNG here" : kind === "shapeModel" ? "Drop your model's JSON file here" : "Drop your font's JSON file here" }} <span class="required" aria-hidden="true">*</span></strong>
         <span class="button">Choose a file</span>
         <input type="file" :accept="isImage ? 'image/png' : '.json,application/json'" @change="pick">
       </label>
@@ -249,6 +261,7 @@
 
   .stage-bar {
     display: flex;
+    justify-content: flex-end;
     gap: 8px;
   }
 

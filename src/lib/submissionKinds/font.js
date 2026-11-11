@@ -84,7 +84,9 @@ function kerningProblem(entry, sheet) {
   return null
 }
 
-async function stripProblem(entry, cells, capHeight, ctx) {
+const LETTERS = { subject: "Its letters", goes: "go", reaches: "reach", is: "are", fix: "Change the offset in the Textures tab" }
+
+export async function stripProblem(entry, cells, capHeight, ctx, words = LETTERS) {
   const range = { top: Math.max(capHeight, ...cells.map(cell => cell.top)), bottom: Math.min(0, ...cells.map(cell => cell.bottom)) }
   const depth = defaultDepth(entry)
   for (const use of (entry.strips ?? []).map(stripUse)) {
@@ -99,13 +101,13 @@ async function stripProblem(entry, cells, capHeight, ctx) {
     const names = Object.entries(set.textures).flatMap(([name, data]) => [[name, !!data.stretch]].concat(Object.keys(data.variants ?? {}).map(variant => [variant, !!data.stretch])))
     const what = `the ${use.id} strips`
     if (depth > set.depth) return `Its depth of ${depth} is deeper than ${what}, which go up to ${set.depth}. Lower the depth, or stop using ${what}.`
-    if (-range.bottom > baseline - set.depth + offset) return `Its letters go further below the baseline than ${what} cover. Change the offset in the Textures tab, or stop using ${what}.`
-    if (set.height && range.top + offset > set.height && !names.every(([, stretch]) => stretch)) return `Its letters reach higher than ${what} cover. Change the offset in the Textures tab, or stop using ${what}.`
+    if (-range.bottom > baseline - set.depth + offset) return `${words.subject} ${words.goes} further below the baseline than ${what} cover. ${words.fix}, or stop using ${what}.`
+    if (set.height && range.top + offset > set.height && !names.every(([, stretch]) => stretch)) return `${words.subject} ${words.reaches} higher than ${what} cover. ${words.fix}, or stop using ${what}.`
     if (set.height) continue
     for (const [name] of names) {
       const size = pngSize(await ctx.bytes(`/strips/${use.id}/textures/${name}.png`))
       const resolution = size.height / (baseline + range.top + offset + set.depth)
-      if (!Number.isInteger(Math.log2(resolution))) return `Its letters are the wrong height for ${what}. Change the offset in the Textures tab, or stop using ${what}.`
+      if (!Number.isInteger(Math.log2(resolution))) return `${words.subject} ${words.is} the wrong height for ${what}. ${words.fix}, or stop using ${what}.`
     }
   }
   return null

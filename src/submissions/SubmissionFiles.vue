@@ -34,7 +34,8 @@
     problem.value = ""
     const item = props.item
     const own = CLIENT_KINDS[item.kind].image ? [{ key: "file", name: item.name, label: SUBMISSION_KINDS[item.kind].label, url: submissionFileUrl(item) }] : []
-    const extras = (item.details.extras ?? []).map(extra => ({ key: extra.key, name: extra.name || extra.key, label: EXTRA_LABELS[extra.kind], url: submissionExtraUrl(item, extra.key) })).filter(file => file.url)
+    const texture = item.kind === "shapeModel" ? [{ key: "texture", name: "Texture", label: "Texture", url: submissionExtraUrl(item, "texture") }] : []
+    const extras = texture.concat((item.details.extras ?? []).map(extra => ({ key: extra.key, name: extra.name || extra.key, label: EXTRA_LABELS[extra.kind], url: submissionExtraUrl(item, extra.key) }))).filter(file => file.url)
     files.value = own.concat(extras)
     if (item.kind !== "font") return
     try {

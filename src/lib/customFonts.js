@@ -2,7 +2,7 @@ import { fontTextures } from "./assets.js"
 import { pixelsOf } from "./canvas.js"
 import { loadImage } from "./font.js"
 import { GENERATED_EDGE_OVERLAYS, withGenerated } from "./generated.js"
-import { CUSTOM_FONT } from "./settings.js"
+import { CUSTOM_FONT, defaultBorder, defaultDepth } from "./settings.js"
 import { stripRows } from "./strips.js"
 import { pngUrl, serveFile } from "./virtualFiles.js"
 
@@ -22,8 +22,8 @@ function hash(text) {
   return (value >>> 0).toString(36)
 }
 
-export function customFontId({ kind, data, height, lowercase, mesh, density }) {
-  return CUSTOM_FONT + hash(JSON.stringify([kind, data, height, lowercase].concat(mesh ? ["mesh"] : [], squareSize({ kind, mesh, density }) > 1 ? [squareSize({ kind, mesh, density })] : [])))
+export function customFontId({ kind, data, height, lowercase, mesh, density, strips }) {
+  return CUSTOM_FONT + hash(JSON.stringify([kind, data, height, lowercase].concat(mesh ? ["mesh"] : [], squareSize({ kind, mesh, density }) > 1 ? [squareSize({ kind, mesh, density })] : [], strips?.length ? [strips] : [])))
 }
 
 export function squareSize({ kind, mesh, density }) {
@@ -54,6 +54,11 @@ async function editorFont({ kind, data, height, lowercase, mesh, density }) {
     const json = parseFontJson(await (await fetch(data)).text())
     if (!json.editor?.texture) throw new Error("this JSON has no font sheet in it. Download the JSON from the font editor")
     return { font: fontFromFiles({ sheet: await pixels(json.editor.texture), json }) }
+  }
+  if (kind === "silhouette") {
+    const [{ fontFromShapes }, { silhouetteGlyph }] = await Promise.all([import("./fontEditor.js"), import("./submissionKinds/shape.js")])
+    const glyph = silhouetteGlyph(await pixels(data))
+    return { font: fontFromShapes(new Map([["x", glyph]]), { name: "Shape", capHeight: glyph.height, grid: 1, spaceWidth: Math.round(glyph.height / 2) }) }
   }
   if (kind === "ascii") {
     const { fontFromAscii } = await import("./asciiImport.js")
@@ -92,10 +97,17 @@ async function drawThumbnails(font, folder, strips, mesh) {
   return drawn
 }
 
+async function silhouetteTexture(font, entry, data) {
+  const [{ parsedSheet }, { silhouettePixels }] = await Promise.all([import("./fontEditor.js"), import("./submissionKinds/shape.js")])
+  const { list, capHeight } = parsedSheet(font, defaultBorder("top", entry))
+  const image = await loadImage(data)
+  return silhouettePixels(list, capHeight, defaultDepth(entry), { width: image.width, height: image.height, data: pixelsOf(image) })
+}
+
 async function build(id, source) {
   const { buildSheet, exportJson, flatTexture } = await import("./fontEditor.js")
   const { font, outlines, mesh } = await editorFont(source)
-  const { editor, ...entry } = { ...exportJson(font, ""), id, name: font.name || "Custom font" }
+  const { editor, ...entry } = { ...exportJson(font, ""), id, name: font.name || "Custom font", ...(source.strips?.length && { strips: source.strips }) }
   if (outlines) entry.outlines = outlines
   if (mesh) {
     const tools = await import("./meshGlyphs.js")
@@ -104,7 +116,9 @@ async function build(id, source) {
   const folder = `font/${id}`
   serveFile(`${folder}/font.png`, pngUrl(buildSheet(font)))
   serveFile(`${folder}/textures/flat.png`, pngUrl(flatTexture(font, mesh ? "all" : outlines ? "strips" : null)))
-  serveFile(`${folder}/textures.json`, { primary: "flat", secondary: "flat", textures: { flat: { border: "#000000" } }, overlays: {} })
-  thumbnails.set(id, await drawThumbnails(font, folder, entry.strips, entry.mesh))
+  const own = source.kind === "silhouette" ? "image" : "flat"
+  if (own === "image") serveFile(`${folder}/textures/image.png`, pngUrl(await silhouetteTexture(font, entry, source.data)))
+  serveFile(`${folder}/textures.json`, { primary: own, secondary: own, textures: { ...(own === "image" && { image: { border: "#000000" } }), flat: { border: "#000000" } }, overlays: {} })
+  thumbnails.set(id, { ...await drawThumbnails(font, folder, entry.strips, entry.mesh), ...(own === "image" && { image: source.data }) })
   return entry
 }

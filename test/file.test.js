@@ -99,6 +99,13 @@ describe("the real title file", () => {
     assert.equal(scene.selectedGroup, null)
   })
 
+  test("a custom shape keeps its PNG, a premade one drops a leftover custom font", async () => {
+    const customFont = { kind: "silhouette", fileName: "shape.png", data: "data:image/png;base64,AAAA" }
+    const [custom, premade] = await savedLines(make("top", { shape: "custom", customFont }), make("top", { shape: "cube", customFont }))
+    assert.deepEqual(custom, { shape: "custom", customFont })
+    assert.deepEqual(premade, { shape: "cube" })
+  })
+
   test("saves back without the scale that gets solved", async () => {
     await openTitle(fileOf(REAL_FILE))
     const saved = await save()
