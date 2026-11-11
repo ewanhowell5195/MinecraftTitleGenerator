@@ -10,6 +10,7 @@ export const SHAPE_HOLDING_FOLDER = "submissions/shapes"
 export const SHAPE_STRIP_LIMITS = { sets: 8, offset: 64 }
 export const SILHOUETTE_LIMITS = { width: 128, height: 64, minHeight: 8 }
 export const MODEL_LIMITS = { elements: 1000, reach: 100 }
+export const CUSTOM_SHAPE_UNITS = { width: 256, height: 64 }
 
 const SIDES = ["north", "south", "east", "west", "up", "down"]
 const AXES = ["x", "y", "z"]
@@ -137,38 +138,87 @@ export function silhouetteBounds({ width, height, data }) {
   return right < 0 ? null : { left, top, width: right - left + 1, height: bottom - top + 1 }
 }
 
-export function silhouetteGlyph(image) {
+export function silhouetteScale(image) {
   const bounds = silhouetteBounds(image)
   if (!bounds) throw new Error("the PNG has no solid pixels to make the shape from")
-  const mask = new Uint8Array(bounds.width * bounds.height)
-  for (let y = 0; y < bounds.height; y++) {
-    for (let x = 0; x < bounds.width; x++) mask[y * bounds.width + x] = image.data[((bounds.top + y) * image.width + bounds.left + x) * 4 + 3] >= 128 ? 1 : 0
-  }
-  return { width: bounds.width, height: bounds.height, top: bounds.height, bottom: 0, mask }
+  return Math.max(1, Math.ceil(bounds.width / CUSTOM_SHAPE_UNITS.width), Math.ceil(bounds.height / CUSTOM_SHAPE_UNITS.height))
 }
 
-export function silhouettePixels(cells, capHeight, depth, image) {
+function sampled(image, scale) {
   const bounds = silhouetteBounds(image)
   if (!bounds) throw new Error("the PNG has no solid pixels to make the shape from")
-  const layout = sheetLayout(cells, capHeight, depth)
-  let width = 0
-  let height = 0
-  for (const [glyph, at] of layout) {
-    width = Math.max(width, at.x + glyph.width)
-    height = Math.max(height, at.down + depth)
-  }
-  const data = new Uint8ClampedArray(width * height * 4)
+  const width = Math.ceil(bounds.width / scale)
+  const height = Math.ceil(bounds.height / scale)
+  const lift = height * scale - bounds.height
   const source = (x, y) => ((bounds.top + y) * image.width + bounds.left + x) * 4
   const solid = (x, y) => image.data[source(x, y) + 3] >= 128
-  const copy = (x, y, toX, toY) => data.set(image.data.subarray(source(x, y), source(x, y) + 4), (toY * width + toX) * 4)
+  return { bounds, width, height, lift, source, solid }
+}
+
+function blockPixels(row, column, scale, lift) {
+  const pixels = []
+  for (let y = row * scale - lift; y < (row + 1) * scale - lift; y++) {
+    for (let x = column * scale; x < (column + 1) * scale; x++) pixels.push([x, y])
+  }
+  return pixels
+}
+
+function unitMask({ bounds, width, height, lift, solid }, scale) {
+  const mask = new Uint8Array(width * height)
+  for (let row = 0; row < height; row++) {
+    for (let column = 0; column < width; column++) {
+      const inside = blockPixels(row, column, scale, lift).filter(([x, y]) => x < bounds.width && y >= 0 && y < bounds.height)
+      const filled = inside.filter(([x, y]) => solid(x, y)).length
+      mask[row * width + column] = inside.length && filled * 2 >= inside.length ? 1 : 0
+    }
+  }
+  return mask
+}
+
+export function silhouetteGlyph(image, scale = 1) {
+  const shape = sampled(image, scale)
+  return { width: shape.width, height: shape.height, top: shape.height, bottom: 0, mask: unitMask(shape, scale) }
+}
+
+export function silhouettePixels(cells, capHeight, depth, image, scale = 1) {
+  const shape = sampled(image, scale)
+  const { bounds, lift, source, solid } = shape
+  const mask = unitMask(shape, scale)
+  const layout = sheetLayout(cells, capHeight, depth)
+  let units = 0
+  let rows = 0
   for (const [glyph, at] of layout) {
-    for (let x = 0; x < glyph.width; x++) {
-      const rows = Array.from({ length: glyph.height }, (row, y) => y).filter(y => solid(x, y))
-      if (!rows.length) continue
-      for (const y of rows) copy(x, y, at.x + x, at.top + y)
-      for (let row = 0; row < depth; row++) {
-        copy(x, rows[0], at.x + x, at.up + row)
-        copy(x, rows.at(-1), at.x + x, at.down + row)
+    units = Math.max(units, at.x + glyph.width)
+    rows = Math.max(rows, at.down + depth)
+  }
+  const width = units * scale
+  const height = rows * scale
+  const data = new Uint8ClampedArray(width * height * 4)
+  const copy = (x, y, toX, toY) => data.set(image.data.subarray(source(x, y), source(x, y) + 4), (toY * width + toX) * 4)
+  for (const [, at] of layout) {
+    for (let x = 0; x < bounds.width; x++) {
+      const filled = Array.from({ length: bounds.height }, (row, y) => y).filter(y => solid(x, y))
+      if (!filled.length) continue
+      for (const y of filled) copy(x, y, at.x * scale + x, at.top * scale + lift + y)
+      for (let row = 0; row < depth * scale; row++) {
+        copy(x, filled[0], at.x * scale + x, at.up * scale + row)
+        copy(x, filled.at(-1), at.x * scale + x, at.down * scale + row)
+      }
+    }
+    for (let row = 0; row < shape.height; row++) {
+      for (let column = 0; column < shape.width; column++) {
+        if (!mask[row * shape.width + column]) continue
+        const block = blockPixels(row, column, scale, lift)
+        const within = ([x, y]) => x < bounds.width && y >= 0 && y < bounds.height && solid(x, y)
+        const opaque = block.filter(within)
+        if (opaque.length === block.length) continue
+        for (const [x, y] of block) {
+          if (within([x, y])) continue
+          const [nx, ny] = opaque.reduce((best, pixel) => (pixel[0] - x) ** 2 + (pixel[1] - y) ** 2 < (best[0] - x) ** 2 + (best[1] - y) ** 2 ? pixel : best)
+          const at4 = ((at.top * scale + lift + y) * width + at.x * scale + x) * 4
+          data.set(image.data.subarray(source(nx, ny), source(nx, ny) + 3), at4)
+          data[at4 + 3] = 255
+        }
       }
     }
   }

@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 import fs from "node:fs"
 import { PNG } from "pngjs"
 
-const { cleanModel, cleanModelFile, shapeImage, shapeModel, silhouetteGlyph, silhouettePixels } = await import("../src/lib/submissionKinds/shape.js")
+const { cleanModel, cleanModelFile, shapeImage, shapeModel, silhouetteGlyph, silhouettePixels, silhouetteScale } = await import("../src/lib/submissionKinds/shape.js")
 const { modelHeight } = await import("../src/lib/shapes.js")
 const { shapeImage: serverImage, shapeModel: serverModel } = await import("../src/server/submissionKinds/shape.js")
 const { frontView } = await import("../generator/submissionKinds/shape.js")
@@ -178,6 +178,39 @@ describe("silhouettePixels", () => {
     assert.deepEqual(pixel(at.x, at.up), [10, 20, 30, 255])
     assert.deepEqual(pixel(at.x + 1, at.top + 2), [40, 50, 60, 200])
     assert.deepEqual(pixel(at.x + 1, at.down + 1), [40, 50, 60, 200])
+  })
+})
+
+describe("big custom shapes", () => {
+  test("shrink the shape but keep every pixel in the texture", async () => {
+    const { sheetLayout } = await import("../src/lib/font.js")
+    const image = PNG.sync.read(Buffer.from(silhouette(2048, 476)))
+    const scale = silhouetteScale(image)
+    assert.equal(scale, 8)
+    const glyph = silhouetteGlyph(image, scale)
+    assert.deepEqual([glyph.width, glyph.height], [256, 60])
+    const cells = [{ ...glyph, char: "x", row: 0, column: 0 }]
+    const painted = silhouettePixels(cells, 60, 22, image, scale)
+    const [, at] = Array.from(sheetLayout(cells, 60, 22))[0]
+    assert.equal(painted.width, (at.x + 256) * 8)
+    const lift = 60 * 8 - 476
+    assert.deepEqual(Array.from(painted.data.subarray(((at.top * 8 + lift) * painted.width + at.x * 8) * 4, ((at.top * 8 + lift) * painted.width + at.x * 8) * 4 + 4)), [200, 40, 40, 255])
+  })
+
+  test("fill the see-through pixels inside a solid block", async () => {
+    const { sheetLayout } = await import("../src/lib/font.js")
+    const image = PNG.sync.read(Buffer.from(silhouette(2, 2, (x, y) => !(x === 1 && y === 0))))
+    const glyph = silhouetteGlyph(image, 2)
+    assert.deepEqual(Array.from(glyph.mask), [1])
+    const cells = [{ ...glyph, char: "x", row: 0, column: 0 }]
+    const painted = silhouettePixels(cells, 1, 1, image, 2)
+    const [, at] = Array.from(sheetLayout(cells, 1, 1))[0]
+    const at4 = (at.top * 2 * painted.width + at.x * 2 + 1) * 4
+    assert.deepEqual(Array.from(painted.data.subarray(at4, at4 + 4)), [200, 40, 40, 255])
+  })
+
+  test("leave shapes that fit at one pixel per unit", () => {
+    assert.equal(silhouetteScale(PNG.sync.read(Buffer.from(silhouette(200, 60)))), 1)
   })
 })
 

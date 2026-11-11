@@ -56,8 +56,9 @@ async function editorFont({ kind, data, height, lowercase, mesh, density }) {
     return { font: fontFromFiles({ sheet: await pixels(json.editor.texture), json }) }
   }
   if (kind === "silhouette") {
-    const [{ fontFromShapes }, { silhouetteGlyph }] = await Promise.all([import("./fontEditor.js"), import("./submissionKinds/shape.js")])
-    const glyph = silhouetteGlyph(await pixels(data))
+    const [{ fontFromShapes }, { silhouetteGlyph, silhouetteScale }] = await Promise.all([import("./fontEditor.js"), import("./submissionKinds/shape.js")])
+    const image = await pixels(data)
+    const glyph = silhouetteGlyph(image, silhouetteScale(image))
     return { font: fontFromShapes(new Map([["x", glyph]]), { name: "Shape", capHeight: glyph.height, grid: 1, spaceWidth: Math.round(glyph.height / 2) }) }
   }
   if (kind === "ascii") {
@@ -98,10 +99,12 @@ async function drawThumbnails(font, folder, strips, mesh) {
 }
 
 async function silhouetteTexture(font, entry, data) {
-  const [{ parsedSheet }, { silhouettePixels }] = await Promise.all([import("./fontEditor.js"), import("./submissionKinds/shape.js")])
+  const [{ parsedSheet }, { silhouettePixels, silhouetteScale }] = await Promise.all([import("./fontEditor.js"), import("./submissionKinds/shape.js")])
   const { list, capHeight } = parsedSheet(font, defaultBorder("top", entry))
   const image = await loadImage(data)
-  return silhouettePixels(list, capHeight, defaultDepth(entry), { width: image.width, height: image.height, data: pixelsOf(image) })
+  const pixels = { width: image.width, height: image.height, data: pixelsOf(image) }
+  const scale = silhouetteScale(pixels)
+  return { ...silhouettePixels(list, capHeight, defaultDepth(entry), pixels, scale), scale }
 }
 
 async function build(id, source) {
@@ -117,8 +120,9 @@ async function build(id, source) {
   serveFile(`${folder}/font.png`, pngUrl(buildSheet(font)))
   serveFile(`${folder}/textures/flat.png`, pngUrl(flatTexture(font, mesh ? "all" : outlines ? "strips" : null)))
   const own = source.kind === "silhouette" ? "image" : "flat"
-  if (own === "image") serveFile(`${folder}/textures/image.png`, pngUrl(await silhouetteTexture(font, entry, source.data)))
-  serveFile(`${folder}/textures.json`, { primary: own, secondary: own, textures: { ...(own === "image" && { image: { border: "#000000" } }), flat: { border: "#000000" } }, overlays: {} })
+  const painted = own === "image" ? await silhouetteTexture(font, entry, source.data) : null
+  if (painted) serveFile(`${folder}/textures/image.png`, pngUrl(painted))
+  serveFile(`${folder}/textures.json`, { primary: own, secondary: own, textures: { ...(painted && { image: { border: "#000000", ...(painted.scale > 1 && { density: painted.scale }) } }), flat: { border: "#000000" } }, overlays: {} })
   thumbnails.set(id, { ...await drawThumbnails(font, folder, entry.strips, entry.mesh), ...(own === "image" && { image: source.data }) })
   return entry
 }
