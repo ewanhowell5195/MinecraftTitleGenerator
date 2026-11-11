@@ -33,7 +33,7 @@
 </script>
 
 <template>
-  <component :is="href ? 'a' : 'div'" class="tile card" :class="{ selected, faded, still, small }" :href="href" v-tooltip="author ? { text: `By ${author}`, tooltipClass: 'slow' } : tooltip" :tabindex="href || still ? null : 0" @click="still || emit('pick')" @keydown.enter="still || emit('pick')" @contextmenu="openMenu">
+  <component :is="href ? 'a' : 'div'" class="tile card" :class="{ selected, faded, still, small }" :href="href" v-tooltip="author ? { text: `By ${author}`, tooltipClass: 'slow' } : tooltip" :tabindex="href || still ? null : 0" @click="still || emit('pick')" @keydown.enter="still || emit('pick')" @contextmenu="openMenu" @dragstart.prevent>
     <div v-if="$slots.picture" class="thumb picture" :style="{ aspectRatio: aspect }"><slot name="picture"></slot></div>
     <div v-else-if="image" class="thumb picture" :style="{ aspectRatio: aspect }"><img :src="image" alt="" :style="unit ? { height: `${unit}px` } : null"></div>
     <div v-else class="thumb pattern" :style="[pattern, { aspectRatio: aspect }]"></div>
