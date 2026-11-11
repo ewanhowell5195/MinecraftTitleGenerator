@@ -34,6 +34,7 @@ const TOP_DEFAULTS = {
   twistDoor: 0,
   twistDoorCentre: 50,
   twistDoorSame: false,
+  twistDoorRoll: true,
   arcGradient: false,
   matchWidth: null,
   matchBottom: false,

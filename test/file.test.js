@@ -99,7 +99,7 @@ describe("the real title file", () => {
   test("saves back without the scale that gets solved", async () => {
     await openTitle(fileOf(REAL_FILE))
     const saved = await save()
-    assert.deepEqual(saved, { format: "minecraft-title", version: 5, lines: [{ texture: "cracked" }, { type: "bottom", matchWidth: 0, words: [{ text: "title", texture: "fired", hue: 359, customBorder: true, borderColour: "#230f00" }, { text: "generator", texture: "fired", hue: 180, customBorder: true, borderColour: "#001329", customEdge: true, edgeColour: "#11467d" }] }] })
+    assert.deepEqual(saved, { format: "minecraft-title", version: 6, lines: [{ texture: "cracked" }, { type: "bottom", matchWidth: 0, words: [{ text: "title", texture: "fired", hue: 359, customBorder: true, borderColour: "#230f00" }, { text: "generator", texture: "fired", hue: 180, customBorder: true, borderColour: "#001329", customEdge: true, edgeColour: "#11467d" }] }] })
   })
 
   test("opens the same after saving", async () => {
@@ -115,7 +115,7 @@ describe("the real title file", () => {
 describe("saving trims settings", () => {
   test("a brand new title saves an empty line", async () => {
     setScene(createObject())
-    assert.deepEqual(await save(), { format: "minecraft-title", version: 5, lines: [{}] })
+    assert.deepEqual(await save(), { format: "minecraft-title", version: 6, lines: [{}] })
   })
 
   test("an object at its type defaults saves only its type", async () => {
@@ -499,6 +499,16 @@ describe("opening", () => {
     assert.ok(scene.objects.every(object => !("twistRibbonAnchor" in object) && !("twistDoorAnchor" in object)))
   })
 
+  test("a door twist from before rolling keeps turning its characters in place", async () => {
+    await openTitle(fileOf(title([{ text: "a", twistDoor: 30 }, { text: "b", twistRibbon: 20 }, { text: "c", twistDoor: 30, twistDoorRoll: true }], { version: 5 })))
+    assert.deepEqual(scene.objects.map(object => object.twistDoorRoll), [false, true, true])
+  })
+
+  test("a door twist saved now rolls unless it says otherwise", async () => {
+    await openTitle(fileOf(title([{ text: "a", twistDoor: 30 }, { text: "b", twistDoor: 30, twistDoorRoll: false }], { version: 6 })))
+    assert.deepEqual(scene.objects.map(object => object.twistDoorRoll), [true, false])
+  })
+
   test("depth from version 5 uses each type's anchor", async () => {
     await openTitle(fileOf(title([{ text: "a", depth: 30 }, { type: "small", text: "b", depth: 30 }], { version: 5 })))
     assert.deepEqual(scene.objects.map(object => object.depthAnchor), ["back", "middle"])
@@ -571,7 +581,7 @@ describe("rejected files", () => {
     ["a JSON null", "null", "Couldn't open test.mctitle: this isn't a Minecraft title file"],
     ["another format", { format: "something-else", version: 1, lines: [{}] }, "Couldn't open test.mctitle: this isn't a Minecraft title file"],
     ["no format", { version: 1, lines: [{}] }, "Couldn't open test.mctitle: this isn't a Minecraft title file"],
-    ["a newer version", title([{}], { version: 6 }), "Couldn't open test.mctitle: it was saved by a newer version of the generator (format 6)"],
+    ["a newer version", title([{}], { version: 7 }), "Couldn't open test.mctitle: it was saved by a newer version of the generator (format 7)"],
     ["no lines key", { format: "minecraft-title", version: 1 }, "Couldn't open test.mctitle: it has no text in it"],
     ["empty lines", title([]), "Couldn't open test.mctitle: it has no text in it"],
     ["lines that are not a list", title("words"), "Couldn't open test.mctitle: it has no text in it"],

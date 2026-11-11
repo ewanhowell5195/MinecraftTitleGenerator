@@ -606,3 +606,61 @@ describe("detail", () => {
     assert.deepEqual(Array.from(turned.body.uvs), Array.from(flat.body.uvs))
   })
 })
+
+describe("door roll", () => {
+  const ROW = [place(glyph("a", 4, 4), 0), place(glyph("b", 4, 4), 8), place(glyph("c", 4, 4), 16)]
+  const STILL = { amount: 0, centre: 0.5, same: false }
+  const RADIUS = 8 / (Math.PI / 2)
+
+  function door(values) {
+    return text(ROW, { twist: { ribbon: STILL, door: { amount: 90, centre: 0.5, same: false, ...values } } })
+  }
+
+  function middles(built) {
+    const list = points(built.body.positions)
+    return [0, 1, 2].map(index => {
+      const own = list.slice(index * list.length / 3, (index + 1) * list.length / 3)
+      return [0, 1, 2].map(axis => own.reduce((sum, point) => sum + point[axis], 0) / own.length)
+    })
+  }
+
+  test("without it every character turns where it stands", () => {
+    assert.deepEqual(middles(door({ roll: false })).map(([x, , z]) => [Math.round(x), Math.round(z)]), [[-8, 0], [0, 0], [8, 0]])
+  })
+
+  test("with it the characters sit on one circle, as far apart along it as they were in line", () => {
+    const [left, middle, right] = middles(door({ roll: true }))
+    near(middle[0], 0)
+    near(middle[2], 0)
+    const depth = (left[2] + right[2]) / 2
+    near(left[2], right[2])
+    near(Math.abs(depth), RADIUS)
+    near(left[0], -RADIUS)
+    near(right[0], RADIUS)
+    for (const [x, , z] of [left, middle, right]) near(Math.hypot(x, z - depth), RADIUS)
+  })
+
+  test("it bends the same way the door turns the far edges", () => {
+    const flat = points(text(ROW).body.positions)
+    const plain = points(door({ amount: 30, roll: false }).body.positions)
+    const farEdge = plain.filter((point, index) => index >= flat.length * 2 / 3 && flat[index][0] > 8)
+    assert.ok(farEdge.reduce((sum, point) => sum + point[2], 0) > 0)
+    assert.ok(middles(door({ amount: 30, roll: true }))[2][2] > 0)
+    assert.ok(middles(door({ amount: -30, roll: true }))[2][2] < 0)
+  })
+
+  test("a character keeps its own shape and height", () => {
+    const rolled = points(door({ roll: true }).body.positions)
+    const plain = points(door({ roll: false }).body.positions)
+    const [from, to] = middles(door({ roll: false }))[2].map((value, axis) => [value, middles(door({ roll: true }))[2][axis]]).reduce(([a, b], [x, y]) => [a.concat(x), b.concat(y)], [[], []])
+    for (let index = plain.length * 2 / 3; index < plain.length; index++) {
+      for (const axis of [0, 1, 2]) near(rolled[index][axis] - to[axis], plain[index][axis] - from[axis])
+    }
+  })
+
+  test("no door turn means nothing to roll", () => {
+    const still = text(ROW, { twist: { ribbon: { amount: 30, centre: 0.5, same: false }, door: { ...STILL, roll: true } } })
+    const plain = text(ROW, { twist: { ribbon: { amount: 30, centre: 0.5, same: false }, door: STILL } })
+    assert.deepEqual(Array.from(still.body.positions), Array.from(plain.body.positions))
+  })
+})

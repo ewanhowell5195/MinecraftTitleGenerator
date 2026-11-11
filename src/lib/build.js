@@ -97,24 +97,33 @@ function twistReach({ centre, same }, x, first, last) {
   return same ? Math.abs(fromCentre) : fromCentre
 }
 
+function rolled(door, x, angle, first, last) {
+  if (!door.roll || !angle) return { moveX: 0, moveZ: 0 }
+  const pivot = first + (last - first) * door.centre
+  const radius = (x - pivot) / angle
+  return { moveX: pivot + radius * Math.sin(angle) - x, moveZ: radius * (Math.cos(angle) - 1) }
+}
+
 function twistTurn({ ribbon, door }, rect, line, first, last) {
   const x = (rect.minX + rect.maxX) / 2
+  const angle = -door.amount * twistReach(door, x, first, last) * Math.PI / 180
   return {
     ribbon: ribbon.amount * twistReach(ribbon, x, first, last) * Math.PI / 180,
-    door: -door.amount * twistReach(door, x, first, last) * Math.PI / 180,
+    door: angle,
     x,
-    y: (line.minY + line.maxY) / 2
+    y: (line.minY + line.maxY) / 2,
+    ...rolled(door, x, angle, first, last)
   }
 }
 
-function turned([x, y, z], { ribbon, door, x: pivotX, y: pivotY }, [sx, sy, sz] = [1, 1, 1]) {
+function turned([x, y, z], { ribbon, door, x: pivotX, y: pivotY, moveX, moveZ }, [sx, sy, sz] = [1, 1, 1]) {
   const across = x / sx - pivotX
   const up = y / sy - pivotY
   const depth = z / sz * Math.cos(door) - across * Math.sin(door)
   return [
-    (pivotX + across * Math.cos(door) + z / sz * Math.sin(door)) * sx,
+    (pivotX + moveX + across * Math.cos(door) + z / sz * Math.sin(door)) * sx,
     (pivotY + up * Math.cos(ribbon) - depth * Math.sin(ribbon)) * sy,
-    (up * Math.sin(ribbon) + depth * Math.cos(ribbon)) * sz
+    (moveZ + up * Math.sin(ribbon) + depth * Math.cos(ribbon)) * sz
   ]
 }
 

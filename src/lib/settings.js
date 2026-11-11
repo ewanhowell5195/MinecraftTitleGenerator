@@ -1,6 +1,6 @@
 import { reactive } from "vue"
 
-export const FILE_VERSION = 5
+export const FILE_VERSION = 6
 export const DEFAULT_FONT = "minecraft-ten"
 
 export const TYPES = {
@@ -94,7 +94,8 @@ const PANELS = {
     twistRibbonMirror: false,
     twistDoor: 0,
     twistDoorCentre: 50,
-    twistDoorSame: false
+    twistDoorSame: false,
+    twistDoorRoll: true
   }),
   transform: () => ({
     matchWidth: null,
@@ -216,7 +217,7 @@ const PANELS = {
   })
 }
 
-export const LINE = new Set(["font", "customFont", "terminators", "type", "row", "rowSpacing", "depth", "depthAnchor", "border", "clipHoles", "layerWords", "spacing", "kerning", "arcMode", "arcTop", "arcBottom", "arcMove", "arcCentre", "arcMarked", "twistRibbon", "twistRibbonCentre", "twistRibbonMirror", "twistDoor", "twistDoorCentre", "twistDoorSame"].concat(Object.keys(PANELS.transform())))
+export const LINE = new Set(["font", "customFont", "terminators", "type", "row", "rowSpacing", "depth", "depthAnchor", "border", "clipHoles", "layerWords", "spacing", "kerning", "arcMode", "arcTop", "arcBottom", "arcMove", "arcCentre", "arcMarked", "twistRibbon", "twistRibbonCentre", "twistRibbonMirror", "twistDoor", "twistDoorCentre", "twistDoorSame", "twistDoorRoll"].concat(Object.keys(PANELS.transform())))
 
 function defaults() {
   return Object.assign({ hidden: false, group: null }, ...Object.values(PANELS).map(panel => panel()))
@@ -447,7 +448,11 @@ function anchorDepthAtFront(line) {
   return deepened ? { ...line, depthAnchor: "front" } : line
 }
 
-const UPGRADES = [[2, restartLineTiles], [3, separateMatchScale], [4, widenBlockSerif], [5, anchorDepthAtFront]]
+function turnDoorsInPlace(line) {
+  return line.twistDoor && !("twistDoorRoll" in line) ? { ...line, twistDoorRoll: false } : line
+}
+
+const UPGRADES = [[2, restartLineTiles], [3, separateMatchScale], [4, widenBlockSerif], [5, anchorDepthAtFront], [6, turnDoorsInPlace]]
 
 export function upgradeLine(line, version) {
   return UPGRADES.reduce((upgraded, [to, upgrade]) => version < to ? upgrade(upgraded) : upgraded, line)

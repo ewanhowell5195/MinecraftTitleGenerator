@@ -356,7 +356,8 @@ const KEYS = [
   ["arcCentre", NUMBER],
   ["wordArcCentre", NUMBER],
   ["shape", ID],
-  ["shapeVersion", ID]
+  ["shapeVersion", ID],
+  ["twistDoorRoll", BOOLEAN]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))
