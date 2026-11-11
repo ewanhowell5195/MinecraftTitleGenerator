@@ -1,4 +1,5 @@
 <script setup>
+  import { onBeforeUnmount, ref } from "vue"
   import { useWindowEvents } from "../lib/events.js"
   import Button from "./Button.vue"
   import Icon from "./Icon.vue"
@@ -18,11 +19,28 @@
   }
 
   useWindowEvents(() => true, { keydown: key })
+
+  const backdrop = ref(null)
+
+  function fadeOut(element) {
+    const copy = element.cloneNode(true)
+    const canvases = element.querySelectorAll("canvas")
+    copy.querySelectorAll("canvas").forEach((canvas, index) => canvas.getContext("2d")?.drawImage(canvases[index], 0, 0))
+    copy.classList.add("leaving")
+    copy.removeAttribute("role")
+    copy.querySelector("[role=dialog]")?.removeAttribute("role")
+    document.body.append(copy)
+    copy.querySelector(".dialog").addEventListener("animationend", () => copy.remove(), { once: true })
+  }
+
+  onBeforeUnmount(() => {
+    if (backdrop.value && !matchMedia("(prefers-reduced-motion: reduce)").matches) fadeOut(backdrop.value)
+  })
 </script>
 
 <template>
   <Teleport to="body">
-    <div class="backdrop" :class="{ large, wide }" @pointerdown.self="dismissable && emit('close')">
+    <div ref="backdrop" class="backdrop" :class="{ large, wide }" @pointerdown.self="dismissable && emit('close')">
       <div class="dialog" role="dialog" :aria-label="title">
         <header class="row">
           <h2>{{ title }}</h2>
@@ -45,6 +63,7 @@
     justify-content: center;
     padding: 24px;
     background: #000b;
+    animation: backdrop-in var(--duration) ease-out;
   }
 
   .dialog {
@@ -52,6 +71,36 @@
     background: var(--surface);
     border: 1px solid var(--line-strong);
     box-shadow: var(--shadow);
+    animation: dialog-in var(--duration) ease-out;
+  }
+
+  .backdrop.leaving {
+    pointer-events: none;
+    animation: backdrop-in var(--duration) ease-in reverse forwards;
+  }
+
+  .leaving .dialog {
+    animation: dialog-in var(--duration) ease-in reverse forwards;
+  }
+
+  @keyframes backdrop-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes dialog-in {
+    from {
+      opacity: 0;
+      scale: 0.96;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .backdrop,
+    .dialog {
+      animation: none;
+    }
   }
 
   .wide .dialog {
