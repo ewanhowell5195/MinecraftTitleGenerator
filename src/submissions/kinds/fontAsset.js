@@ -3,7 +3,7 @@ import { overlayLayer } from "../../lib/settings.js"
 
 function fontAsset(kind) {
   return {
-    image: true,
+    file: "PNG",
     line(item, file, text) {
       if (kind === "overlay") return { text, font: item.target, textureSource: "premade", texture: "flat", overlayMode: "custom", overlays: [{ ...overlayLayer(null), source: "file", file }] }
       return { text, font: item.target, textureSource: "custom", customTexture: file, customTextureMode: "standard", customBorder: true, borderColour: item.details.border }

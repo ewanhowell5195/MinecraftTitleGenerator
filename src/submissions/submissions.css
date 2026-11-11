@@ -110,10 +110,6 @@ textarea {
   .submission-view {
     grid-template-columns: minmax(0, 1fr);
   }
-
-  .preview {
-    position: static;
-  }
 }
 
 .processing {

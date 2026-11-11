@@ -1,4 +1,5 @@
 import { CLIENT_KINDS } from "../submissions/kinds/index.js"
+import { fetched } from "./api.js"
 import { fileError, openTitleData } from "./file.js"
 import { FILE_VERSION } from "./settings.js"
 import { submission, submissionFileUrl } from "./submissionsApi.js"
@@ -7,7 +8,7 @@ export const SUBMISSION_PARAM = "submission"
 
 const embeddedFiles = new Map()
 
-export function dataUrl(blob) {
+function dataUrl(blob) {
   return new Promise((fulfil, reject) => {
     const reader = new FileReader()
     reader.onload = () => fulfil(reader.result)
@@ -19,15 +20,16 @@ export function dataUrl(blob) {
 export function embedded(url) {
   if (url.startsWith("data:")) return Promise.resolve(url)
   if (!embeddedFiles.has(url)) {
-    embeddedFiles.set(url, fetch(url).then(response => {
-      if (!response.ok) throw new Error(`the file could not be loaded (${response.status})`)
-      return response.blob()
-    }).then(dataUrl).catch(err => {
+    embeddedFiles.set(url, fetched(url, "the file").then(response => response.blob()).then(dataUrl).catch(err => {
       embeddedFiles.delete(url)
       throw err
     }))
   }
   return embeddedFiles.get(url)
+}
+
+export function forgetEmbedded(url) {
+  embeddedFiles.delete(url)
 }
 
 export async function openSubmissionLink() {

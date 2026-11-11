@@ -1,5 +1,6 @@
 import { titleCase } from "../names.js"
 import { pngProblem, pngSize } from "../submissions.js"
+import { decodePng } from "./png.js"
 
 export const TILEABLES_LIST = "/tileables/tileables.json"
 export const TILEABLE_FOLDER = "community"
@@ -26,6 +27,14 @@ export function seeThrough(rgba) {
   return false
 }
 
+function solidProblem(bytes) {
+  try {
+    return seeThrough(decodePng(bytes).data) ? "Tileables can't have see-through pixels, and this one has some." : null
+  } catch (err) {
+    return `This PNG can't be read: ${err.message}.`
+  }
+}
+
 export const tileable = {
   id: "tileable",
   label: "Tileable",
@@ -47,6 +56,7 @@ export const tileable = {
         const own = await ctx.memo(`tileable:${parent}`, async () => pngSize(await ctx.bytes(tileableImage(list, parent))))
         if (own.width !== size.width || own.height !== size.height) problems.file = `A variant has to be the same size as ${tileableName(parent, list[parent])}, ${own.width}x${own.height}, and this one is ${size.width}x${size.height}.`
       }
+      if (!problems.file) problems.file = solidProblem(bytes)
       if (!problems.file) clean.size = size.width
     }
     return { problems, target: parent || target, details: clean }

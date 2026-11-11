@@ -12,6 +12,8 @@
 
   const DEFAULT_FONT = "minecraft-ten"
 
+  defineOptions({ inheritAttrs: false })
+
   const props = defineProps({
     fonts: { type: Array, required: true },
     kind: { type: String, required: true },

@@ -1,17 +1,10 @@
 <script setup>
-  import { computed, onMounted, ref, watch } from "vue"
-  import { usage } from "../lib/community.js"
-  import { NAME_LIMIT, confirmReplacing, confirmSharing, namingCode, namingShared, namingSharedId, saveOver, savePreset, sharePreset } from "../lib/presets.js"
+  import { confirmReplacing, confirmSharing, namingCode, namingShared, namingSharedId, saveOver, savePreset, sharePreset } from "../lib/presets.js"
   import { openPresetsPage, showPreset } from "../lib/presetsPage.js"
-  import { sharingProblem } from "../lib/titleFacts.js"
   import Button from "./Button.vue"
-  import Checkbox from "./Checkbox.vue"
-  import Field from "./Field.vue"
-  import Notice from "./Notice.vue"
   import RenderDialog from "./RenderDialog.vue"
-  import ReplaceSelect from "./ReplaceSelect.vue"
-  import ShareAccount from "./ShareAccount.vue"
-  import SubmissionUsage from "./SubmissionUsage.vue"
+  import ShareFields from "./ShareFields.vue"
+  import { useShareForm } from "./shareForm.js"
 
   const props = defineProps({
     suggested: { type: String, required: true },
@@ -20,75 +13,48 @@
 
   const emit = defineEmits(["close"])
 
-  const name = ref(props.suggested)
-  const field = ref(null)
-  const error = ref("")
-  const sending = ref(false)
-  const agreed = ref(false)
-  const target = ref(null)
-  const problem = computed(() => namingCode.value ? sharingProblem(namingCode.value, name.value.trim() || props.suggested) : null)
+  const { name, error, sending, agreed, target, problem, blocked, replaceLabel, attempt } = useShareForm(() => namingCode.value, () => props.suggested)
 
-  watch(target, next => name.value = next?.name ?? props.suggested)
-
-  async function save() {
-    if (!target.value) {
-      savePreset(name.value)
-      return
-    }
-    if (!confirmReplacing(target.value)) return
-    sending.value = true
-    error.value = ""
-    try {
-      const { online } = await saveOver(target.value, name.value)
-      emit("close")
-      if (online) {
-        openPresetsPage()
-        showPreset(online.id, { replace: true })
-      }
-    } catch (err) {
-      error.value = err.message
-    } finally {
-      sending.value = false
-    }
-  }
-
-  async function saveAndShare() {
-    if (!confirmSharing(name.value.trim() || props.suggested)) return
-    sending.value = true
-    error.value = ""
-    try {
-      const preset = target.value ? (await saveOver(target.value, name.value)).preset : savePreset(name.value, { keepOpen: true })
-      if (!preset) {
-        emit("close")
-        return
-      }
-      const { id } = await sharePreset(preset, preset.name)
-      emit("close")
-      openPresetsPage()
-      showPreset(id, { replace: true })
-    } catch (err) {
-      error.value = `Your preset was saved, but it could not be shared. ${err.message}`
-    } finally {
-      sending.value = false
-    }
-  }
-
-  function viewShared() {
+  function view(id) {
     emit("close")
     openPresetsPage()
-    showPreset(namingSharedId.value, { replace: true })
+    showPreset(id, { replace: true })
+  }
+
+  async function replace() {
+    const { online } = await saveOver(target.value, name.value)
+    if (online) view(online.id)
+    else emit("close")
+  }
+
+  function save() {
+    if (!target.value) savePreset(name.value)
+    else if (confirmReplacing(target.value)) attempt(replace)
+  }
+
+  async function shareSaved(preset) {
+    try {
+      return await sharePreset(preset, preset.name)
+    } catch (err) {
+      throw new Error(`Your preset was saved, but it could not be shared. ${err.message}`)
+    }
+  }
+
+  async function saveThenShare() {
+    const preset = target.value ? (await saveOver(target.value, name.value)).preset : savePreset(name.value, { keepOpen: true })
+    if (preset) view((await shareSaved(preset)).id)
+    else emit("close")
+  }
+
+  function saveAndShare() {
+    if (confirmSharing(name.value.trim() || props.suggested)) attempt(saveThenShare)
   }
 
   function submit() {
     if (!props.shareOnly || target.value?.online) save()
-    else if (namingShared.value) viewShared()
-    else saveAndShare()
+    else if (namingShared.value) view(namingSharedId.value)
+    else if (!blocked.value) saveAndShare()
   }
-
-  onMounted(() => {
-    field.value?.focus()
-    field.value?.select()
-  })
 </script>
 
 <template>
@@ -102,36 +68,10 @@
   </RenderDialog>
   <RenderDialog v-else :title="shareOnly ? 'Share publicly' : 'Save preset'" close-title="Cancel" :wide="!namingShared" dismissable @close="emit('close')">
     <form class="dialog-body" @submit.prevent="submit">
-      <ReplaceSelect v-if="!namingShared" v-model="target" :code="namingCode" :label="shareOnly ? 'Share as' : 'Save as'" />
-      <Field label="Name">
-        <input ref="field" type="text" v-model="name" :maxlength="NAME_LIMIT" :placeholder="target?.name ?? suggested" spellcheck="false">
-      </Field>
-      <template v-if="!namingShared && !target?.online">
-        <p class="hint">Share your title so other people can find it in the community presets and use it for themselves.</p>
-        <ShareAccount />
-      </template>
-      <Checkbox v-if="!namingShared || target?.online" v-model="agreed">I agree to the <a href="/terms/" target="_blank" rel="noopener">Terms of Service</a></Checkbox>
-      <Notice v-if="error || problem">{{ error || problem }}</Notice>
-      <div class="dialog-actions">
-        <SubmissionUsage v-if="!namingShared && !target?.online" class="usage" />
-        <div class="buttons">
-          <Button v-if="!shareOnly || target?.online" type="submit" :primary="namingShared || target?.online" :disabled="sending || target?.online && (!!problem || !agreed)">{{ target ? "Replace" : "Save" }}</Button>
-          <Button v-if="!namingShared && !target?.online" primary :disabled="sending || !!problem || !agreed || usage && usage.used >= usage.limit" @click="saveAndShare">{{ sending ? "Sharing" : target ? "Replace and share" : shareOnly ? "Share" : "Save and share" }}</Button>
-        </div>
-      </div>
+      <ShareFields v-model:name="name" v-model:target="target" v-model:agreed="agreed" :code="namingCode" :label="shareOnly ? 'Share as' : 'Save as'" :placeholder="target?.name ?? suggested" :shareable="!namingShared" :notice="error || problem" intro>
+        <Button v-if="!shareOnly || target?.online" type="submit" :primary="namingShared || target?.online" :disabled="sending || target?.online && blocked">{{ target ? replaceLabel : "Save" }}</Button>
+        <Button v-if="!namingShared && !target?.online" primary :disabled="blocked" @click="saveAndShare">{{ sending ? "Sharing" : target ? "Replace and share" : shareOnly ? "Share" : "Save and share" }}</Button>
+      </ShareFields>
     </form>
   </RenderDialog>
 </template>
-
-<style scoped>
-  .buttons {
-    display: flex;
-    flex: none;
-    gap: 8px;
-    margin-left: auto;
-  }
-
-  .usage {
-    flex: 1 1 200px;
-  }
-</style>

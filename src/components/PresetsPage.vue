@@ -4,7 +4,7 @@
   import { useWindowEvents } from "../lib/events.js"
   import { LIMITS } from "../lib/limits.js"
   import { titleBody } from "../lib/linkformat.js"
-  import { notice } from "../lib/notices.js"
+  import { notice, showNotice } from "../lib/notices.js"
   import { addPreset, deleteSharedPreset, loadPreset, presets, presetsError, presetsLoaded, presetsLoading, removePreset, renamePreset, renameSharedPreset, unmarkShared, unsharePreset } from "../lib/presets.js"
   import { parseSearch, searchWithUser } from "../lib/presetSearch.js"
   import { closePresetsPage, leavePresetsForEditor, openLinkInEditor, presetsPage, showOwnPreset, showPreset, takeLanding } from "../lib/presetsPage.js"
@@ -126,6 +126,11 @@
     if (presetsPage.id !== null || presetsPage.code !== null) showPreset(null)
   }
 
+  function selectLocal(preset) {
+    if (selectedLocalCode.value === preset.code) return clearSelection()
+    selectedLocalCode.value = preset.code
+  }
+
   async function followOwnLink(code) {
     await refreshAccount()
     await presetsLoaded()
@@ -204,23 +209,21 @@
 
   async function vote(preset, value) {
     if (preset.vote === value) return
-    error.value = ""
     try {
       Object.assign(preset, await voteOn(preset.id, value))
     } catch (err) {
-      error.value = err.message
+      showNotice(err.message)
     }
   }
 
   async function openRandom() {
-    error.value = ""
     try {
       const current = selectedCommunity.value?.id ?? null
       const preset = await randomCommunityPreset(current)
       if (preset) selectCommunity(results.value.find(item => item.id === preset.id) ?? preset)
-      else error.value = current === null ? "Nobody has shared a preset yet." : "There are no other presets to show yet."
+      else showNotice(current === null ? "Nobody has shared a preset yet." : "There are no other presets to show yet.")
     } catch (err) {
-      error.value = err.message
+      showNotice(err.message)
     }
   }
 
@@ -237,7 +240,6 @@
   async function confirmRemove(choice) {
     const preset = removing.value
     removing.value = null
-    error.value = ""
     try {
       if (choice === "local") removePreset(preset)
       else if (choice === "unshare") await unsharePreset(preset.shared)
@@ -246,19 +248,24 @@
       if (tab.value === "community") clearSelection()
       else if (choice !== "unshare") selectedLocalCode.value = null
     } catch (err) {
-      error.value = err.message
+      showNotice(err.message)
     }
   }
 
   async function renameCommunity(preset, name) {
     const trimmed = name.trim()
     if (!trimmed || trimmed === preset.name) return
-    error.value = ""
     try {
       preset.name = await renameSharedPreset(preset.id, trimmed)
     } catch (err) {
-      error.value = err.message
+      showNotice(err.message)
     }
+  }
+
+  function renameLocal(preset, name) {
+    const trimmed = name.trim()
+    if (!trimmed || trimmed === preset.name) return
+    renamePreset(preset, trimmed)
   }
 
   function removeCommunity(preset) {
@@ -393,8 +400,8 @@
             <section v-for="group of localGroups" :key="group.label" class="group">
               <h2>{{ group.label }}</h2>
               <div class="grid">
-                <div v-for="preset of group.presets" :key="preset.code" class="card" :class="{ selected: selectedLocalCode === preset.code }" @click="selectedLocalCode === preset.code ? clearSelection() : selectedLocalCode = preset.code">
-                  <TitlePicture :code="preset.code" @open="selectedLocalCode = preset.code" />
+                <div v-for="preset of group.presets" :key="preset.code" class="card" :class="{ selected: selectedLocalCode === preset.code }" @click="selectLocal(preset)">
+                  <TitlePicture :code="preset.code" @open="selectLocal(preset)" />
                   <div class="details">
                     <strong class="ellipsis" v-tooltip="preset.name">{{ preset.name }}</strong>
                     <Badge v-if="preset.inBrowser" v-tooltip="'Your account is full, so this is only saved in this browser'">This browser only</Badge>
@@ -412,7 +419,7 @@
         </div>
       </main>
       <PresetDetail v-if="selected && tab === 'community'" class="side" :preset="selected" :mine="isMine(selected)" :owned="managedPresets.includes(selected.id)" :saved="saved.has(titleBody(selected.code))" @close="clearSelection" @user="filterByUser" @open="open(selected)" @save="save(selected)" @vote="vote(selected, $event)" @rename="renameCommunity(selected, $event)" @remove="removeCommunity(selected)" />
-      <PresetDetail v-else-if="selected" class="side" :preset="selected" :stats="stats[selected.shared]" local @close="clearSelection" @user="filterByUser" @open="open(selected)" @rename="renamePreset(selected, $event)" @remove="remove(selected)" @share="sharing = selected" @view="viewInCommunity(selected.shared)" />
+      <PresetDetail v-else-if="selected" class="side" :preset="selected" :stats="stats[selected.shared]" local @close="clearSelection" @user="filterByUser" @open="open(selected)" @rename="renameLocal(selected, $event)" @remove="remove(selected)" @share="sharing = selected" @view="viewInCommunity(selected.shared)" />
     </div>
     <SharePresetDialog v-if="sharing" :preset="sharing" @close="sharing = null" @shared="shared" />
     <DeletePresetDialog v-if="removing" :preset="removing" :can-delete-shared="managedPresets.includes(removing.shared)" @close="removing = null" @delete="confirmRemove" />

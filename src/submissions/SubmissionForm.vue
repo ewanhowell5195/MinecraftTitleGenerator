@@ -7,10 +7,12 @@
   import NavTabs from "../components/NavTabs.vue"
   import Segments from "../components/Segments.vue"
   import SignInButtons from "../components/SignInButtons.vue"
+  import { fetched } from "../lib/api.js"
   import { account } from "../lib/community.js"
   import { SUBMISSION_KINDS, checkSubmission, submissionContext } from "../lib/submissionKinds/index.js"
   import { EDITOR_SUBMISSION, SUBMISSION_LIMITS } from "../lib/submissions.js"
   import { editSubmission, sendSubmission, submissionFileUrl } from "../lib/submissionsApi.js"
+  import { pickedFile, releaseFile } from "./files.js"
   import { KIND_COMPONENTS } from "./kinds/components.js"
   import { CLIENT_KINDS } from "./kinds/index.js"
 
@@ -54,8 +56,19 @@
   const sending = ref(false)
   const dragging = ref(false)
   const error = ref("")
-  const context = submissionContext(props.fonts, path => fetch(path))
+  const context = submissionContext(props.fonts, path => fetched(path, path))
   let checks = 0
+
+  function releaseDropped(kept, before) {
+    for (const file of before) {
+      if (!kept.includes(file)) releaseFile(file)
+    }
+  }
+
+  function release() {
+    chosen.value = null
+    extras.value = {}
+  }
 
   let textureKind = kind.value === "font" || SHAPE_IDS.includes(kind.value) ? "texture" : kind.value
   let shapeKind = SHAPE_IDS.includes(kind.value) ? kind.value : SHAPE_IDS[0]
@@ -82,17 +95,17 @@
     const visible = key => tried.value || key === "name" && name.value || key === "credit" && credit.value || key === "notes"
     return Object.fromEntries(Object.entries(problems.value).filter(([key]) => visible(key)))
   })
-  const blocked = computed(() => !account.value || sending.value || Object.keys(problems.value).length > 0 || !!fileProblem.value)
+  const blocked = computed(() => !account.value || sending.value)
 
   watch(kind, (next, before) => {
     if (groupOf(next) === "texture") textureKind = next
     if (groupOf(next) === "shape") shapeKind = next
-    if (KIND_COMPONENTS[next] !== KIND_COMPONENTS[before]) {
-      details.value = {}
-      target.value = ""
+    if (KIND_COMPONENTS[next].Fields !== KIND_COMPONENTS[before].Fields) {
+      const back = props.initial?.kind === next
+      details.value = back ? { ...props.initial.details } : {}
+      target.value = back ? props.initial.target : ""
     }
-    chosen.value = null
-    extras.value = {}
+    release()
     extraProblem.value = null
   })
 
@@ -100,11 +113,17 @@
     if (next && !credit.value) credit.value = next.name
   })
 
+  watch(() => Object.values(extras.value).concat(chosen.value ?? []), releaseDropped, { flush: "sync" })
+
   watch(() => [kind.value, target.value, JSON.stringify(details.value), chosen.value, extras.value, name.value, credit.value, notes.value, agree.value], async () => {
     const check = ++checks
     const files = Object.fromEntries(Object.entries(extras.value).map(([key, extra]) => [key, extra.bytes]))
-    const result = await checkSubmission({ kind: kind.value, target: target.value, details: details.value, bytes: chosen.value?.bytes ?? null, files, name: name.value, credit: credit.value, notes: notes.value, agree: agree.value }, context)
-    if (check === checks) problems.value = result.problems
+    try {
+      const result = await checkSubmission({ kind: kind.value, target: target.value, details: details.value, bytes: chosen.value?.bytes ?? null, files, name: name.value, credit: credit.value, notes: notes.value, agree: agree.value }, context)
+      if (check === checks) problems.value = result.problems
+    } catch (err) {
+      if (check === checks) problems.value = { check: `This couldn't be checked: ${err.message}` }
+    }
   }, { immediate: true })
 
   function fillFromFont(bytes) {
@@ -119,9 +138,8 @@
   }
 
   async function use(file) {
-    if (chosen.value) URL.revokeObjectURL(chosen.value.url)
     extraProblem.value = null
-    chosen.value = { blob: file, bytes: new Uint8Array(await file.arrayBuffer()), url: URL.createObjectURL(file), name: file.name }
+    chosen.value = await pickedFile(file)
     if (kind.value === "font") fillFromFont(chosen.value.bytes)
   }
 
@@ -164,9 +182,7 @@
     }
   }
 
-  onBeforeUnmount(() => {
-    if (chosen.value) URL.revokeObjectURL(chosen.value.url)
-  })
+  onBeforeUnmount(release)
 </script>
 
 <template>
@@ -198,21 +214,21 @@
       </template>
       <label v-else class="drop">
         <Icon name="upload" :size="32" />
-        <strong>{{ isImage ? "Drop your PNG here" : kind === "shapeModel" ? "Drop your model's JSON file here" : "Drop your font's JSON file here" }} <span class="required" aria-hidden="true">*</span></strong>
+        <strong>Drop your {{ CLIENT_KINDS[kind].file }} here <span class="required" aria-hidden="true">*</span></strong>
         <span class="button">Choose a file</span>
         <input type="file" :accept="isImage ? 'image/png' : '.json,application/json'" @change="pick">
       </label>
     </div>
     <p v-if="fileProblem && (tried || chosen)" class="hint bad">{{ fileProblem }}</p>
     <div class="kind-fields">
-      <component :is="parts.Fields" v-bind="kind === 'strip' ? { onPreview: id => previewFont = id } : {}" v-model:target="target" v-model:details="details" v-model:files="extras" :fonts="fonts" :kind="kind" :file="chosen" :initial="initial" :name="name" :problems="problems" :tried="tried" @problem="extraProblem = $event" />
+      <component :is="parts.Fields" v-bind="kind === 'strip' ? { onPreview: id => previewFont = id } : {}" v-model:target="target" v-model:details="details" v-model:files="extras" :fonts="fonts" :context="context" :kind="kind" :file="chosen" :initial="initial" :name="name" :problems="problems" :tried="tried" @problem="extraProblem = $event" />
     </div>
     <Field label="Notes for the reviewer" :error="shown.notes">
       <textarea v-model="notes" :maxlength="SUBMISSION_LIMITS.notes" rows="3" placeholder="Optional"></textarea>
     </Field>
     <div class="finish">
       <Checkbox v-if="!initial" v-model="agree">I agree to the <a href="/terms/" target="_blank" rel="noopener">Terms of Service</a> <span class="required" aria-hidden="true">*</span></Checkbox>
-      <p v-if="shown.agree || error" class="hint bad">{{ error || shown.agree }}</p>
+      <p v-if="shown.agree || problems.check || error" class="hint bad">{{ error || problems.check || shown.agree }}</p>
       <div class="buttons">
         <Button v-if="initial" @click="emit('cancel')">Cancel</Button>
         <Button primary type="submit" :disabled="blocked">{{ sending ? "Sending..." : initial ? "Save changes" : "Send for review" }}</Button>
@@ -320,10 +336,6 @@
 
   .required {
     color: var(--danger);
-  }
-
-  .field .hint {
-    margin: 0;
   }
 
   .finish {

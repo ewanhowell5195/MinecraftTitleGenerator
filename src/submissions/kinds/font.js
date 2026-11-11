@@ -7,12 +7,12 @@ function parentName(item, fonts) {
   return fonts.find(entry => entry.id === item.target)?.name ?? item.target
 }
 
-export function fontSource(item, file) {
+function fontSource(item, file) {
   return { kind: "json", fileName: `${item.details.id || "font"}.json`, data: file, height: IMPORT_HEIGHT, lowercase: false }
 }
 
 export const font = {
-  image: false,
+  file: "font's JSON file",
   line(item, file, text) {
     const source = fontSource(item, file)
     return { text, font: customFontId(source), customFont: source }

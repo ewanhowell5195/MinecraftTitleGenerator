@@ -1,5 +1,5 @@
 <script setup>
-  import { computed, onBeforeUnmount, ref, watch } from "vue"
+  import { computed, ref, watch } from "vue"
   import Button from "../../components/Button.vue"
   import ColourPicker from "../../components/ColourPicker.vue"
   import Dropdown from "../../components/Dropdown.vue"
@@ -8,17 +8,21 @@
   import Segments from "../../components/Segments.vue"
   import { flatTexture } from "../../lib/fontEditor.js"
   import { popular } from "../../lib/stats.js"
-  import { EXTRA_KINDS, fontParents, stripHeightsFor, submittedFontId } from "../../lib/submissionKinds/font.js"
+  import { EXTRA_KINDS, fontParents, submittedFontId } from "../../lib/submissionKinds/font.js"
+  import { stripHeights as heightsOf } from "../../lib/submissionKinds/stripFit.js"
   import { ownFont, submittedFont } from "../../lib/submissionKinds/fontBuild.js"
   import { SUBMISSION_LIMITS } from "../../lib/submissions.js"
   import { submissionExtraUrl } from "../../lib/submissionsApi.js"
   import { fontThumbnail } from "../../lib/ui.js"
   import { pngUrl } from "../../lib/virtualFiles.js"
+  import { pickedFile } from "../files.js"
 
   const DEFAULT_PARENT = "minecraft-ten"
   const NEW_EXAMPLES = ["f8thful", "block-serif", "minecraft-earth"]
   const MODES = [{ value: "new", label: "A new font" }, { value: "variant", label: "A variant" }]
   const KIND_LABELS = { texture: "Texture", overlay: "Overlay", strip: "Strip" }
+
+  defineOptions({ inheritAttrs: false })
 
   const props = defineProps({
     fonts: { type: Array, required: true },
@@ -76,7 +80,7 @@
   })
   const stripHeights = computed(() => {
     const rows = built.value?.template.rows ?? props.details.template?.rows
-    return rows ? stripHeightsFor(rows) : null
+    return rows ? heightsOf(rows) : null
   })
 
   function joined(list) {
@@ -102,7 +106,6 @@
 
   function remove(key) {
     const files = { ...props.files }
-    if (files[key]) URL.revokeObjectURL(files[key].url)
     delete files[key]
     emit("update:files", files)
     emit("update:details", { ...props.details, extras: extras.value.filter(item => item.key !== key) })
@@ -112,19 +115,13 @@
     const chosen = event.target.files[0]
     event.target.value = ""
     if (!chosen) return
-    const files = { ...props.files }
-    if (files[key]) URL.revokeObjectURL(files[key].url)
-    files[key] = { blob: chosen, bytes: new Uint8Array(await chosen.arrayBuffer()), url: URL.createObjectURL(chosen), name: chosen.name }
-    emit("update:files", files)
+    const file = await pickedFile(chosen)
+    emit("update:files", { ...props.files, [key]: file })
   }
 
   function imageOf(key) {
     return props.files[key]?.url ?? (props.initial ? submissionExtraUrl(props.initial, key) : null)
   }
-
-  onBeforeUnmount(() => {
-    for (const file of Object.values(props.files)) URL.revokeObjectURL(file.url)
-  })
 </script>
 
 <template>
@@ -138,29 +135,30 @@
   <Field group v-if="fontId !== null" label="Font ID" :error="problems.id" hint="From the font's JSON. Change it in the font editor's Font tab.">
     <code class="font-id">{{ fontId || "None" }}</code>
   </Field>
-  <Field group class="wide" label="Textures, overlays and strips for this font">
-    <p class="hint">Optional. Paint textures and overlays over the font's <a v-if="blankTexture" :href="blankTexture" :download="`${id || 'font'}-template.png`">blank texture</a><template v-else>blank texture, from the Textures tab of the font editor</template>, at its size or a whole number of times bigger.<template v-if="stripHeights"> Strips can be {{ either(stripHeights) }} pixels tall.</template> Up to {{ SUBMISSION_LIMITS.extraFiles }} files.</p>
+  <Field group class="wide" label="Textures, overlays and strips for this font" :error="problems.extras">
+    <p class="hint">Optional. Paint textures and overlays over the font's <a v-if="blankTexture" :href="blankTexture" :download="`${fontId || 'font'}-template.png`">blank texture</a><template v-else>blank texture, from the Textures tab of the font editor</template>, at its size or a whole number of times bigger.<template v-if="stripHeights"> Strips can be {{ either(stripHeights) }} pixels tall.</template> Up to {{ SUBMISSION_LIMITS.extraFiles }} files.</p>
     <div v-for="item of extras" :key="item.key" class="extra">
       <label class="extra-image" v-tooltip="`Choose the ${KIND_LABELS[item.kind].toLowerCase()}'s PNG`">
         <img v-if="imageOf(item.key)" :src="imageOf(item.key)" alt="">
         <span v-else class="hint">PNG</span>
         <input type="file" accept="image/png" @change="pick(item.key, $event)">
       </label>
-      <div class="extra-fields">
+      <Field group class="extra-fields" :error="tried || files[item.key] ? problems[`extra:${item.key}`] : ''">
         <div class="row">
           <span class="extra-kind">{{ KIND_LABELS[item.kind] }}</span>
-          <Button ghost :aria-label="`Remove ${item.name || KIND_LABELS[item.kind].toLowerCase()}`" @click="remove(item.key)"><template #icon><Icon name="trash" :size="16" /></template></Button>
+          <Button ghost icon="trash" :aria-label="`Remove ${item.name || KIND_LABELS[item.kind].toLowerCase()}`" @click="remove(item.key)" />
         </div>
-        <input type="text" :value="item.name" :maxlength="SUBMISSION_LIMITS.name" placeholder="Name" spellcheck="false" @input="update(item.key, { name: $event.target.value })">
+        <div class="row">
+          <input type="text" :value="item.name" :maxlength="SUBMISSION_LIMITS.name" placeholder="Name" spellcheck="false" aria-required="true" @input="update(item.key, { name: $event.target.value })">
+          <span class="required" aria-hidden="true">*</span>
+        </div>
         <input type="text" :value="item.credit ?? ''" :maxlength="SUBMISSION_LIMITS.credit" placeholder="Credit, if it isn't the font's" spellcheck="false" @input="update(item.key, { credit: $event.target.value })">
         <div v-if="item.kind !== 'overlay'" class="row">
           <span class="hint">Border</span>
           <ColourPicker :model-value="item.border ?? '#000000'" @update:model-value="update(item.key, { border: $event })" />
         </div>
-        <span v-if="problems[`extra:${item.key}`] && (tried || files[item.key])" class="hint bad">{{ problems[`extra:${item.key}`] }}</span>
-      </div>
+      </Field>
     </div>
-    <span v-if="problems.extras" class="hint bad">{{ problems.extras }}</span>
     <div v-if="extras.length < SUBMISSION_LIMITS.extraFiles" class="buttons">
       <Button v-for="kind of EXTRA_KINDS" :key="kind" @click="add(kind)"><template #icon><Icon name="plus" :size="14" /></template>{{ KIND_LABELS[kind] }}</Button>
     </div>
@@ -213,6 +211,10 @@
   .extra-kind {
     flex: 1;
     font-weight: 600;
+  }
+
+  .required {
+    color: var(--danger);
   }
 
   .buttons {

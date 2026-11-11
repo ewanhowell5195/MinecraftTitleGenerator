@@ -1,9 +1,9 @@
 <script setup>
   import Notice from "../components/Notice.vue"
   import { onBeforeUnmount, ref, watch } from "vue"
+  import { fetched } from "../lib/api.js"
   import { SUBMISSION_KINDS } from "../lib/submissionKinds/index.js"
   import { submissionExtraUrl, submissionFileUrl } from "../lib/submissionsApi.js"
-  import { CLIENT_KINDS } from "./kinds/index.js"
 
   const EXTRA_LABELS = { texture: "Texture", overlay: "Overlay", strip: "Strip" }
 
@@ -21,10 +21,10 @@
   }
 
   async function fontSheet() {
-    const json = await (await fetch(submissionFileUrl(props.item))).json()
+    const json = await (await fetched(submissionFileUrl(props.item), "the font")).json()
     const texture = json.editor?.texture
     if (typeof texture !== "string") return []
-    const url = URL.createObjectURL(await (await fetch(texture)).blob())
+    const url = URL.createObjectURL(await (await fetched(texture, "the font sheet")).blob())
     made.push(url)
     return [{ key: "sheet", name: "Font sheet", label: "Characters", url }]
   }
@@ -33,7 +33,7 @@
     forget()
     problem.value = ""
     const item = props.item
-    const own = CLIENT_KINDS[item.kind].image ? [{ key: "file", name: item.name, label: SUBMISSION_KINDS[item.kind].label, url: submissionFileUrl(item) }] : []
+    const own = SUBMISSION_KINDS[item.kind].accept === "image/png" ? [{ key: "file", name: item.name, label: SUBMISSION_KINDS[item.kind].label, url: submissionFileUrl(item) }] : []
     const texture = item.kind === "shapeModel" ? [{ key: "texture", name: "Texture", label: "Texture", url: submissionExtraUrl(item, "texture") }] : []
     const extras = texture.concat((item.details.extras ?? []).map(extra => ({ key: extra.key, name: extra.name || extra.key, label: EXTRA_LABELS[extra.kind], url: submissionExtraUrl(item, extra.key) }))).filter(file => file.url)
     files.value = own.concat(extras)

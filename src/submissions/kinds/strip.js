@@ -1,21 +1,19 @@
+import { fetched } from "../../lib/api.js"
 import { stripRange } from "../../lib/assets.js"
 import { pixelsOf } from "../../lib/canvas.js"
 import { fullName, loadFont, loadFontList, loadImage, sheetOwner, stripsOf } from "../../lib/font.js"
-import { platform } from "../../lib/platform.js"
-import { defaultBorder, defaultDepth, defaultSpacing } from "../../lib/settings.js"
+import { defaultDepth } from "../../lib/settings.js"
 import { stripFolder, stripUse } from "../../lib/strips.js"
 import { stripFonts } from "../../lib/submissionKinds/published.js"
 import { remapStrip, setEntry, setName, stripTarget } from "../../lib/submissionKinds/stripFit.js"
 import { pngUrl } from "../../lib/virtualFiles.js"
+import { fontDefaults } from "./preview.js"
 
 const sets = new Map()
 
 function loadSet(id) {
   if (!sets.has(id)) {
-    sets.set(id, platform.fetch(`${stripFolder(id)}/textures.json`).then(response => {
-      if (!response.ok) throw new Error(`the ${setName(id)} strip type could not be loaded (${response.status})`)
-      return response.json()
-    }).then(list => ({ id, depth: list.depth, baseline: list.baseline ?? list.depth, height: list.height ?? null })).catch(err => {
+    sets.set(id, fetched(`${stripFolder(id)}/textures.json`, `the ${setName(id)} strip type`).then(response => response.json()).then(list => ({ id, depth: list.depth, baseline: list.baseline ?? list.depth, height: list.height ?? null })).catch(err => {
       sets.delete(id)
       throw err
     }))
@@ -53,7 +51,7 @@ async function stripFile(item, file, font, fonts) {
 export async function stripLine(item, file, text, fontId, fonts) {
   const font = fonts.find(entry => entry.id === fontId)
   if (!font) throw new Error(`there is no font called ${fontId}`)
-  return { text, font: font.id, textureSource: "custom", customTexture: await stripFile(item, file, font, fonts), customTextureMode: "strip", customBorder: true, borderColour: item.details.border ?? "#000000", depth: defaultDepth(font), border: defaultBorder("top", font), spacing: defaultSpacing("top", font) }
+  return { text, font: font.id, textureSource: "custom", customTexture: await stripFile(item, file, font, fonts), customTextureMode: "strip", customBorder: true, borderColour: item.details.border ?? "#000000", ...fontDefaults(font) }
 }
 
 function targetName(item, fonts) {
@@ -64,7 +62,7 @@ function targetName(item, fonts) {
 }
 
 export const strip = {
-  image: true,
+  file: "PNG",
   async line(item, file, text) {
     const fonts = await loadFontList()
     const font = previewFonts(item, fonts)[0]

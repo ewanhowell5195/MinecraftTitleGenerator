@@ -1,4 +1,5 @@
 import { computed, ref } from "vue"
+import { apiCall, jsonOptions } from "./api.js"
 import { LIMITS } from "./limits.js"
 import { showNotice } from "./notices.js"
 import { ACCOUNT_CHANNEL, SIGN_IN_RETURN } from "./providers.js"
@@ -52,23 +53,12 @@ function persist() {
   }
 }
 
-async function called(url, options) {
-  const response = await fetch(url, options)
-  const body = await response.json().catch(() => null)
-  if (response.ok) return body
-  if (response.status === 401) refreshAccount(true)
-  const error = new Error(body?.error ?? `The community presets aren't available right now (${response.status}).`)
-  error.status = response.status
-  error.id = body?.id
-  throw error
+function called(url, options) {
+  return apiCall(url, options, "The community presets aren't available right now", () => refreshAccount(true))
 }
 
 function request(path, options) {
   return called(`${API}${path}`, options)
-}
-
-function jsonOptions(method, body) {
-  return { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body ?? {}) }
 }
 
 function posted(path, body) {
@@ -125,7 +115,9 @@ export async function listCommunity({ sort, search, offset }) {
 }
 
 export async function presetStats(ids) {
-  return (await request(`/stats?ids=${ids.join(",")}`)).stats
+  const chunks = Array.from({ length: Math.ceil(ids.length / LIMITS.savedPresets) }, (chunk, index) => ids.slice(index * LIMITS.savedPresets, (index + 1) * LIMITS.savedPresets))
+  const replies = await Promise.all(chunks.map(chunk => request(`/stats?ids=${chunk.join(",")}`)))
+  return Object.assign({}, ...replies.map(reply => reply.stats))
 }
 
 export async function communityPreset(id) {

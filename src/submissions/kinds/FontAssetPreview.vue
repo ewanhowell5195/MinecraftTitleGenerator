@@ -1,9 +1,10 @@
 <script setup>
-  import { ref, watch } from "vue"
   import LiveTitle from "../../components/LiveTitle.vue"
-  import { defaultBorder, defaultDepth, defaultSpacing } from "../../lib/settings.js"
   import { embedded } from "../../lib/submissionLink.js"
   import { CLIENT_KINDS } from "./index.js"
+  import { fontDefaults, usePreviewLine } from "./preview.js"
+
+  defineOptions({ inheritAttrs: false })
 
   const props = defineProps({
     fonts: { type: Array, required: true },
@@ -14,26 +15,14 @@
     text: { type: String, required: true }
   })
 
-  const line = ref(null)
-  const problem = ref("")
+  const { line, problem } = usePreviewLine(() => [props.kind, props.target, props.details.border, props.url, props.text], build)
 
-  watch(() => [props.kind, props.target, props.details.border, props.url, props.text], async () => {
+  async function build() {
     const entry = props.fonts.find(font => font.id === props.target)
-    if (!props.url || !entry || !props.text.trim()) {
-      line.value = null
-      return
-    }
-    const asked = props.url
-    try {
-      const file = await embedded(asked)
-      if (asked !== props.url) return
-      line.value = { ...CLIENT_KINDS[props.kind].line({ target: props.target, details: props.details }, file, props.text), depth: defaultDepth(entry), border: defaultBorder("top", entry), spacing: defaultSpacing("top", entry) }
-      problem.value = ""
-    } catch (err) {
-      line.value = null
-      problem.value = err.message
-    }
-  }, { immediate: true })
+    if (!props.url || !entry || !props.text.trim()) return null
+    const file = await embedded(props.url)
+    return { ...CLIENT_KINDS[props.kind].line({ target: props.target, details: props.details }, file, props.text), ...fontDefaults(entry) }
+  }
 </script>
 
 <template>

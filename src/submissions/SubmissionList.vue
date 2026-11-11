@@ -4,7 +4,7 @@
   import TileGrid from "../components/TileGrid.vue"
   import UserName from "../components/UserName.vue"
   import { THUMBNAIL_KINDS, thumbnailPath } from "../lib/submissionKinds/published.js"
-  import { submissionFileUrl, submissionPage } from "../lib/submissionsApi.js"
+  import { submissionExtraUrl, submissionFileUrl, submissionPage } from "../lib/submissionsApi.js"
   import { CLIENT_KINDS } from "./kinds/index.js"
 
   const props = defineProps({
@@ -16,9 +16,11 @@
   const missing = reactive(new Set())
 
   function imageOf(item) {
+    if (missing.has(item.id)) return null
+    if (item.kind === "shapeModel") return submissionExtraUrl(item, "texture")
     if (!THUMBNAIL_KINDS.includes(item.kind)) return submissionFileUrl(item)
     const path = thumbnailPath(item, props.fonts)
-    return item.filesUrl && path && !missing.has(item.id) ? `${item.filesUrl}${path}?v=${item.updatedAt}` : null
+    return item.filesUrl && path ? `${item.filesUrl}${path}?v=${item.updatedAt}` : null
   }
 </script>
 

@@ -3,10 +3,12 @@
   import Dropdown from "../../components/Dropdown.vue"
   import Field from "../../components/Field.vue"
   import Segments from "../../components/Segments.vue"
-  import { TILEABLES_LIST, TILEABLE_SIDES, seeThrough, tileableName } from "../../lib/submissionKinds/tileable.js"
-  import { pngProblem } from "../../lib/submissions.js"
+  import { fetched } from "../../lib/api.js"
+  import { TILEABLES_LIST, TILEABLE_SIDES, tileableName } from "../../lib/submissionKinds/tileable.js"
 
   const MODES = [{ value: "new", label: "A new tileable" }, { value: "variant", label: "A variant" }]
+
+  defineOptions({ inheritAttrs: false })
 
   const props = defineProps({
     fonts: { type: Array, required: true },
@@ -18,7 +20,7 @@
     tried: { type: Boolean, default: false }
   })
 
-  const emit = defineEmits(["update:target", "update:details", "problem"])
+  const emit = defineEmits(["update:target", "update:details"])
 
   const list = ref(null)
   const loadError = ref("")
@@ -44,9 +46,7 @@
 
   onMounted(async () => {
     try {
-      const response = await fetch(TILEABLES_LIST)
-      if (!response.ok) throw new Error(`the tileables could not be loaded (${response.status})`)
-      list.value = await response.json()
+      list.value = await (await fetched(TILEABLES_LIST, "the tileables")).json()
     } catch (err) {
       loadError.value = err.message
     }
@@ -56,22 +56,6 @@
     if (target) variant.value = true
   })
 
-  async function pixels(blob) {
-    const bitmap = await createImageBitmap(blob, { premultiplyAlpha: "none", colorSpaceConversion: "none" })
-    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
-    const ctx = canvas.getContext("2d")
-    ctx.drawImage(bitmap, 0, 0)
-    bitmap.close()
-    return ctx.getImageData(0, 0, canvas.width, canvas.height).data
-  }
-
-  watch(() => props.file, async file => {
-    emit("problem", null)
-    if (!file?.bytes || pngProblem(file.bytes, "tileable")) return
-    const clear = !seeThrough(await pixels(file.blob))
-    if (file !== props.file || clear) return
-    emit("problem", "Tileables can't have see-through pixels, and this one has some.")
-  })
 </script>
 
 <template>

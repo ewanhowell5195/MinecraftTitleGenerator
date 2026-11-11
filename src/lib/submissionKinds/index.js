@@ -10,8 +10,11 @@ export const SUBMISSION_KINDS = { texture, overlay, strip, tileable, font, shape
 export function submissionContext(fonts, load) {
   const cache = new Map()
   function memo(key, work) {
-    if (!cache.has(key)) cache.set(key, work())
-    return cache.get(key)
+    if (cache.has(key)) return cache.get(key)
+    const value = work()
+    if (value instanceof Promise) value.catch(() => cache.delete(key))
+    cache.set(key, value)
+    return value
   }
   return {
     fonts,

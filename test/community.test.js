@@ -1,18 +1,9 @@
 import { afterEach, beforeEach, describe, mock, test } from "node:test"
 import assert from "node:assert/strict"
+import { fakeReplies, stubStorage } from "./helpers/browser.js"
 
-const stored = new Map()
-const requests = []
-let replies = {}
-
-globalThis.localStorage = { getItem: key => stored.get(key) ?? null, setItem: (key, value) => stored.set(key, value) }
-globalThis.fetch = async (url, options) => {
-  const method = options?.method ?? "GET"
-  requests.push(`${method} ${url}`)
-  const reply = replies[`${method} ${url}`] ?? replies[method]
-  if (!reply) throw new Error(`no reply set for ${method} ${url}`)
-  return { ok: (reply.status ?? 200) < 400, status: reply.status ?? 200, json: async () => reply.body }
-}
+const stored = stubStorage()
+const { requests, replies, reset } = fakeReplies({ record: (method, url) => `${method} ${url}` })
 
 mock.timers.enable({ apis: ["Date"], now: Date.parse("2026-11-05T12:00:00Z") })
 
@@ -28,8 +19,7 @@ const POPULAR = { sort: "popular", search: "", offset: 0 }
 
 beforeEach(() => {
   stored.clear()
-  requests.length = 0
-  replies = {}
+  reset()
   mock.timers.setTime(Date.parse("2026-11-05T12:00:00Z"))
 })
 
@@ -113,17 +103,14 @@ describe("list pages", () => {
     assert.equal(pages.includes("popular|term 0|0"), false)
   })
 
-  test("carries on when the browser's storage is full", async () => {
+  test("carries on when the browser's storage is full", async t => {
     replies.GET = page([1])
     const { listCommunity } = await fresh()
-    const setItem = localStorage.setItem
-    const logged = mock.method(console, "error", () => {})
-    localStorage.setItem = () => {
+    t.mock.method(console, "error", () => {})
+    t.mock.method(localStorage, "setItem", () => {
       throw new Error("full")
-    }
+    })
     assert.equal((await listCommunity(POPULAR)).presets.length, 1)
-    localStorage.setItem = setItem
-    logged.mock.restore()
   })
 })
 
@@ -598,14 +585,13 @@ describe("accounts", () => {
     assert.ok(requests.includes("GET /api/account"))
   })
 
-  test("a failed check keeps the remembered account", async () => {
+  test("a failed check keeps the remembered account", async t => {
     signedIn()
     await (await fresh()).refreshAccount()
     replies["GET /api/account"] = { status: 500, body: null }
     const { account, refreshAccount } = await fresh()
-    const logged = mock.method(console, "error", () => {})
+    t.mock.method(console, "error", () => {})
     await refreshAccount()
-    logged.mock.restore()
     assert.equal(account.value.name, "Someone")
   })
 
@@ -783,14 +769,13 @@ describe("accounts", () => {
       assert.ok(requests.indexOf("POST /api/presets/claim") < requests.indexOf("GET /api/presets/usage"))
     })
 
-    test("a failed move keeps the token working while signed in", async () => {
+    test("a failed move keeps the token working while signed in", async t => {
       const module = await fresh()
       await sharedWithoutAccount(module)
       signedIn([])
       replies["POST /api/presets/claim"] = { status: 500, body: { error: "Nope." } }
-      const logged = mock.method(console, "error", () => {})
+      t.mock.method(console, "error", () => {})
       await module.refreshAccount()
-      logged.mock.restore()
       assert.deepEqual(module.managedPresets.value, [9])
       assert.deepEqual(module.ownPresets.value, [9])
     })

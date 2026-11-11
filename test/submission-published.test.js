@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 import { decodeTitle } from "../src/lib/linkformat.js"
+import { SUBMISSION_KINDS } from "../src/lib/submissionKinds/index.js"
 import { publishedTitle, thumbnailPath } from "../src/lib/submissionKinds/published.js"
 
 const fonts = [{ id: "minecraft-ten", strips: ["minecraft-ten"] }, { id: "block-serif", strips: ["block-serif"] }]
@@ -17,6 +18,12 @@ test("published links open each kind of submission in the generator under its na
   assert.deepEqual(lineOf({ kind: "strip", target: "set:block-serif", asset: "bands" }), { text: "shown name", font: "block-serif", textureSource: "premade", texture: "bands" })
   assert.equal(lineOf({ kind: "strip", target: "set:missing", asset: "bands" }).font, "minecraft-ten")
   assert.deepEqual(lineOf({ kind: "tileable", target: "cobblestone", asset: "mossy" }), { text: "shown name", font: "minecraft-ten", textureSource: "tileable", tileableSource: "premade", tileable: "cobblestone", tileableVariant: "mossy" })
+  assert.deepEqual(lineOf({ kind: "shapeImage", asset: "star" }), { shape: "star" })
+  assert.deepEqual(lineOf({ kind: "shapeModel", asset: "anvil" }), { shape: "anvil" })
+})
+
+test("every kind of submission has a published link", () => {
+  for (const kind of Object.keys(SUBMISSION_KINDS)) assert.ok(publishedTitle({ kind, name: "Shown Name", target: "", asset: "thing", details: {} }, fonts).startsWith("/app/?title="), kind)
 })
 
 test("thumbnails point at the image the workflow renders for each kind", () => {

@@ -1,11 +1,14 @@
 <script setup>
-  import { computed, ref, shallowRef, watch } from "vue"
+  import { computed } from "vue"
   import Dropdown from "../../components/Dropdown.vue"
   import LiveTitle from "../../components/LiveTitle.vue"
   import { overlayLayer } from "../../lib/settings.js"
   import { embedded } from "../../lib/submissionLink.js"
   import { submissionExtraUrl } from "../../lib/submissionsApi.js"
   import { CLIENT_KINDS } from "./index.js"
+  import { usePreviewLine } from "./preview.js"
+
+  defineOptions({ inheritAttrs: false })
 
   const props = defineProps({
     fonts: { type: Array, required: true },
@@ -19,8 +22,6 @@
   })
 
   const chosen = defineModel("texture", { type: String, default: "" })
-  const line = shallowRef(null)
-  const problem = ref("")
 
   const extras = computed(() => (props.details.extras ?? []).filter(extra => extraUrl(extra.key)))
   const options = computed(() => [{ value: "", label: "Flat" }].concat(extras.value.map(extra => ({ value: extra.key, label: extra.name || extra.key, hint: extra.kind }))))
@@ -35,25 +36,16 @@
     return { ...base, textureSource: "custom", customTexture: image, customTextureMode: extra.kind === "strip" ? "strip" : "standard", customBorder: true, borderColour: extra.border ?? "#000000" }
   }
 
-  watch(() => [props.kind, props.url, props.text, picked.value, picked.value && extraUrl(picked.value.key)], async () => {
-    if (!props.url || !props.text.trim()) {
-      line.value = null
-      return
-    }
-    const asked = props.url
+  const { line, problem } = usePreviewLine(() => [props.kind, props.url, props.text, picked.value, picked.value && extraUrl(picked.value.key)], build)
+
+  async function build() {
+    if (!props.url || !props.text.trim()) return null
     const extra = picked.value
-    try {
-      const file = await embedded(asked)
-      const image = extra ? await embedded(extraUrl(extra.key)) : null
-      if (asked !== props.url || extra !== picked.value) return
-      const base = CLIENT_KINDS[props.kind].line({ target: props.target, details: props.details }, file, props.text)
-      line.value = extra ? dressed(base, extra, image) : base
-      problem.value = ""
-    } catch (err) {
-      line.value = null
-      problem.value = err.message
-    }
-  }, { immediate: true })
+    const file = await embedded(props.url)
+    const image = extra ? await embedded(extraUrl(extra.key)) : null
+    const base = CLIENT_KINDS[props.kind].line({ target: props.target, details: props.details }, file, props.text)
+    return extra ? dressed(base, extra, image) : base
+  }
 </script>
 
 <template>

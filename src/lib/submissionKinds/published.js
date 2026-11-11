@@ -15,12 +15,13 @@ export function stripFonts(item, fonts) {
   return fonts.filter(font => chosen.includes(sheetOwner(font, fonts).id))
 }
 
-export function publishedLine(item, fonts, text) {
+function publishedLine(item, fonts, text) {
   if (item.kind === "font") return { text, font: item.asset }
   if (item.kind === "texture") return { text, font: item.target, textureSource: "premade", texture: item.asset }
   if (item.kind === "overlay") return { text, font: item.target, textureSource: "premade", texture: "flat", overlayMode: "custom", overlays: [overlayLayer(item.asset)] }
   if (item.kind === "strip") return { text, font: stripFonts(item, fonts)[0]?.id ?? PREVIEW_FONT, textureSource: "premade", texture: item.asset }
   if (item.kind === "tileable") return { text, font: PREVIEW_FONT, textureSource: "tileable", tileableSource: "premade", tileable: item.target || item.asset, tileableVariant: item.target ? item.asset : null }
+  if (item.kind === "shapeImage" || item.kind === "shapeModel") return { shape: item.asset }
   throw new Error(`${item.kind} submissions have no published line`)
 }
 

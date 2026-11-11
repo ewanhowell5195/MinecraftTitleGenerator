@@ -1,16 +1,11 @@
+import { apiCall, jsonOptions } from "./api.js"
 import { refreshAccount } from "./community.js"
 
 const API = "/api/submissions"
 const NOTIFICATIONS_API = "/api/notifications"
 
-async function called(url, options) {
-  const response = await fetch(url, options)
-  const body = await response.json().catch(() => null)
-  if (response.ok && body) return body
-  if (response.status === 401) refreshAccount(true)
-  const error = new Error(body?.error ?? `Submissions aren't available right now (${response.status}).`)
-  error.status = response.status
-  throw error
+function called(url, options) {
+  return apiCall(url, options, "Submissions aren't available right now", () => refreshAccount(true))
 }
 
 function form(fields, file, agree, extras = {}) {
@@ -40,10 +35,6 @@ export async function mySubmissions() {
   return (await called(API)).submissions
 }
 
-function json(method, body) {
-  return { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
-}
-
 export function submissionProcessing(id) {
   return called(`${API}/${id}/processing`)
 }
@@ -57,7 +48,7 @@ export async function submission(id) {
 }
 
 export async function postComment(id, body) {
-  return (await called(`${API}/${id}/comments`, json("POST", { body }))).comments
+  return (await called(`${API}/${id}/comments`, jsonOptions("POST", { body }))).comments
 }
 
 export async function reviewState(id) {
@@ -65,7 +56,7 @@ export async function reviewState(id) {
 }
 
 export function reviewSubmission(id, action, comment = "") {
-  return called(`${API}/${id}/review`, json("POST", { action, comment }))
+  return called(`${API}/${id}/review`, jsonOptions("POST", { action, comment }))
 }
 
 export async function reviewQueue() {
@@ -88,8 +79,8 @@ export async function notifications() {
   return (await called(NOTIFICATIONS_API)).notifications
 }
 
-export async function markNotificationsSeen() {
-  await called(NOTIFICATIONS_API, { method: "POST" })
+export async function markNotificationsSeen(submission = null) {
+  await called(submission === null ? NOTIFICATIONS_API : `${NOTIFICATIONS_API}?submission=${submission}`, { method: "POST" })
   refreshAccount(true)
 }
 

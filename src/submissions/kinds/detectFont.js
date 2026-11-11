@@ -1,3 +1,4 @@
+import { fetched } from "../../lib/api.js"
 import { fontFolder } from "../../lib/font.js"
 import { opaqueCells, templateScore, textureDensity } from "../../lib/submissions.js"
 
@@ -14,10 +15,7 @@ async function pixels(source) {
 
 function template(font) {
   if (!templates.has(font.id)) {
-    templates.set(font.id, fetch(`/${fontFolder(font)}/textures/flat.png`).then(response => {
-      if (!response.ok) throw new Error(`the ${font.id} template could not be loaded (${response.status})`)
-      return response.blob()
-    }).then(pixels).then(image => ({ width: image.width, height: image.height, cells: opaqueCells(image.data, image.width, image.height, 1, 128) })))
+    templates.set(font.id, fetched(`/${fontFolder(font)}/textures/flat.png`, `the ${font.id} template`).then(response => response.blob()).then(pixels).then(image => ({ width: image.width, height: image.height, cells: opaqueCells(image.data, image.width, image.height, 1, 128) })))
   }
   return templates.get(font.id)
 }

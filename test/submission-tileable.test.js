@@ -1,96 +1,32 @@
 import { afterEach, beforeEach, describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { createHmac, generateKeyPairSync } from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
-import { DatabaseSync } from "node:sqlite"
 import { PNG } from "pngjs"
-import { fakeGitHub } from "./fakeGitHub.js"
+import { pngOf } from "./helpers/png.js"
+import { details, editForm, hook, sendForm, serverEnv, signIn } from "./helpers/server.js"
+import { publicContext } from "./helpers/site.js"
 
-const { finishSignIn, receiveSignIn, startSignIn } = await import("../src/server/accounts.js")
-const { createSubmission, editSubmission, receiveWebhook, submissionDetails } = await import("../src/server/submissions.js")
 const { jsonText } = await import("../src/lib/jsonText.js")
-const { submissionContext } = await import("../src/lib/submissionKinds/index.js")
 const { TILEABLE_SIDES, seeThrough, tileable, tileableImage, tileableSizeProblem } = await import("../src/lib/submissionKinds/tileable.js")
 const { tileable: client } = await import("../src/submissions/kinds/tileable.js")
 
-const REPO = "owner/repo"
-const API = "https://github.test"
 const LIST = "public/tileables/tileables.json"
-const realFetch = globalThis.fetch
-
-function d1(sqlite) {
-  function statement(sql, values = []) {
-    return {
-      bind: (...next) => statement(sql, next),
-      all: async () => ({ results: sqlite.prepare(sql).all(...values) }),
-      first: async () => sqlite.prepare(sql).get(...values) ?? null,
-      run: async () => ({ meta: { changes: Number(sqlite.prepare(sql).run(...values).changes) } }),
-      execute() {
-        return /RETURNING/.test(sql) ? { results: sqlite.prepare(sql).all(...values) } : { results: [], meta: { changes: Number(sqlite.prepare(sql).run(...values).changes) } }
-      }
-    }
-  }
-  return {
-    prepare: sql => statement(sql),
-    batch: async statements => {
-      sqlite.exec("BEGIN")
-      try {
-        const results = statements.map(item => item.execute())
-        sqlite.exec("COMMIT")
-        return results
-      } catch (err) {
-        sqlite.exec("ROLLBACK")
-        throw err
-      }
-    }
-  }
-}
 
 function png(width, height = width, alpha = 255) {
-  const image = new PNG({ width, height })
-  for (let at = 0; at < image.data.length; at += 4) image.data.set([90, 140, 60, alpha], at)
-  return PNG.sync.write(image)
-}
-
-function assets(url) {
-  const file = path.join("public", decodeURIComponent(new URL(url).pathname))
-  return fs.existsSync(file) && fs.statSync(file).isFile() ? new Response(fs.readFileSync(file)) : new Response("missing", { status: 404 })
+  return pngOf(width, height, [90, 140, 60, alpha])
 }
 
 function published() {
   return JSON.parse(fs.readFileSync(LIST, "utf8"))
 }
 
-function siteContext() {
-  return submissionContext([], async site => assets(`https://site.test${site}`))
-}
-
 async function checked(target, bytes) {
-  return tileable.check({ target, details: { border: "#000000", size: 99 }, bytes: bytes && new Uint8Array(bytes) }, siteContext())
+  return tileable.check({ target, details: { border: "#000000", size: 99 }, bytes: bytes && new Uint8Array(bytes) }, publicContext())
 }
 
-let env
 let gh
-let waiting
-let profile
-
-function context(url, { method = "GET", body, cookie, params = {}, headers = {} } = {}) {
-  const request = new Request(`https://mctitlegenerator.com${url}`, { method, body, headers: { ...(cookie && { Cookie: cookie }), ...headers } })
-  return { request, env, params, waitUntil: promise => waiting.push(promise) }
-}
-
-async function signIn() {
-  profile = { id: "1234", username: "someone", email: "someone@example.com", verified: true }
-  const provider = "discord"
-  const started = await startSignIn(context(`/api/account/login/${provider}?return=${encodeURIComponent("https://mctitlegenerator.com")}`, { params: { provider } }))
-  const state = new URL(started.headers.get("Location")).searchParams.get("state")
-  const stateCookie = started.headers.getSetCookie().find(line => line.startsWith("signin_state=")).split(";")[0]
-  const back = await receiveSignIn(context(`/api/account/login/${provider}/callback?${new URLSearchParams({ code: "abc", state })}`, { params: { provider } }))
-  const { pathname, search } = new URL(back.headers.get("Location"))
-  const done = await finishSignIn(context(`${pathname}${search}`, { cookie: stateCookie, params: { provider } }))
-  return done.headers.getSetCookie().find(line => line.startsWith("session=")).split(";")[0]
-}
+let restore
 
 function form(fields = {}, image = png(16)) {
   const data = new FormData()
@@ -100,19 +36,8 @@ function form(fields = {}, image = png(16)) {
   return data
 }
 
-async function send(cookie, fields, image) {
-  const response = await createSubmission(context("/api/submissions", { method: "POST", body: form(fields, image), cookie }))
-  return { status: response.status, ...await response.json() }
-}
-
-async function edit(cookie, id, fields, image = null) {
-  const response = await editSubmission(context(`/api/submissions/${id}`, { method: "PATCH", body: form(fields, image), cookie, params: { id: String(id) } }))
-  return { status: response.status, ...await response.json() }
-}
-
-async function details(id) {
-  return (await (await submissionDetails(context(`/api/submissions/${id}`, { params: { id: String(id) } }))).json()).submission
-}
+const send = (cookie, fields, image) => sendForm(cookie, form(fields, image))
+const edit = (cookie, id, fields, image = null) => editForm(cookie, id, form(fields, image))
 
 function branchFiles(id) {
   return gh.filesAt(`submission/${id}`)
@@ -120,14 +45,6 @@ function branchFiles(id) {
 
 function branchText(id) {
   return Buffer.from(gh.blobs.get(branchFiles(id).get(LIST))).toString()
-}
-
-async function hook(event, payload) {
-  const body = JSON.stringify({ repository: { full_name: REPO }, ...payload })
-  const signature = `sha256=${createHmac("sha256", "hook-secret").update(body).digest("hex")}`
-  const response = await receiveWebhook(context("/api/github", { method: "POST", body, headers: { "X-GitHub-Event": event, "X-Hub-Signature-256": signature } }))
-  await Promise.all(waiting)
-  return response
 }
 
 describe("tileable checks", () => {
@@ -183,22 +100,10 @@ describe("published tileables", () => {
 
 describe("sending a tileable", () => {
   beforeEach(() => {
-    const sqlite = new DatabaseSync(":memory:")
-    sqlite.exec(fs.readFileSync("schema.sql", "utf8"))
-    const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048, privateKeyEncoding: { type: "pkcs1", format: "pem" }, publicKeyEncoding: { type: "spki", format: "pem" } })
-    gh = fakeGitHub(publicKey, { repo: REPO, api: API, files: [LIST] })
-    waiting = []
-    env = { DB: d1(sqlite), ASSETS: { fetch: url => assets(String(url)) }, SESSION_SECRET: "session-secret", DISCORD_CLIENT_ID: "discord-id", DISCORD_CLIENT_SECRET: "discord-secret", GITHUB_CLIENT_ID: "github-id", GITHUB_CLIENT_SECRET: "github-secret", GITHUB_APP_ID: "123", GITHUB_APP_KEY: privateKey, GITHUB_WEBHOOK_SECRET: "hook-secret", GITHUB_REPOSITORY: REPO, GITHUB_API: API, RESEND_API_KEY: "resend-key" }
-    globalThis.fetch = async (url, options) => {
-      const text = String(url)
-      if (text.startsWith(API)) return gh.handle(text, options)
-      return new Response(JSON.stringify(options?.method === "POST" ? { access_token: "token" } : String(url).endsWith("/user/emails") ? profile.emails ?? [{ email: `${profile.login}@example.com`, primary: true, verified: true }] : profile), { status: 200, headers: { "Content-Type": "application/json" } })
-    }
+    ({ gh, restore } = serverEnv({ files: [LIST] }))
   })
 
-  afterEach(() => {
-    globalThis.fetch = realFetch
-  })
+  afterEach(() => restore())
 
   test("opens a pull request with the PNG in the community folder and its tileables.json entry", async () => {
     const cookie = await signIn()

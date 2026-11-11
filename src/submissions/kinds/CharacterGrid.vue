@@ -3,6 +3,7 @@
   import Notice from "../../components/Notice.vue"
   import Tile from "../../components/Tile.vue"
   import TileGrid from "../../components/TileGrid.vue"
+  import { fetched } from "../../lib/api.js"
   import { pixelsOf } from "../../lib/canvas.js"
   import { loadImage, sheetLayout } from "../../lib/font.js"
   import { characterName, exportJson, flatTexture, parsedSheet } from "../../lib/fontEditor.js"
@@ -86,7 +87,7 @@
     drawn.value = null
     problem.value = ""
     try {
-      const font = submittedFont(new Uint8Array(await (await fetch(url)).arrayBuffer())).font
+      const font = submittedFont(new Uint8Array(await (await fetched(url, "the font")).arrayBuffer())).font
       if (url !== props.url) return
       const entry = exportJson(font, "")
       const depth = defaultDepth(entry)

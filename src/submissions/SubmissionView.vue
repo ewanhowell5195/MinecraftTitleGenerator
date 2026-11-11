@@ -80,7 +80,7 @@
 
   async function markSeen() {
     if (!account.value || !(item.value?.mine || reviewer.value)) return
-    if ((await notifications()).some(entry => entry.submission === props.id && !entry.seen)) await markNotificationsSeen()
+    if ((await notifications()).some(entry => entry.submission === props.id && !entry.seen)) await markNotificationsSeen(props.id)
   }
 
   function reviewed() {
@@ -143,7 +143,7 @@
       <div class="submission-view">
         <div class="preview flow">
           <component :is="KIND_COMPONENTS[item.kind].Preview" v-model:texture="textureKey" :fonts="fonts" :kind="item.kind" :target="item.target" :details="item.details" :initial="item" :url="submissionFileUrl(item)" :text="text || item.name" />
-          <input type="text" v-model="text" :placeholder="item.name" spellcheck="false" aria-label="Preview text">
+          <input v-if="SUBMISSION_KINDS[item.kind].noun !== 'shape'" type="text" v-model="text" :placeholder="item.name" spellcheck="false" aria-label="Preview text">
         </div>
         <div class="details flow">
           <dl>
@@ -160,7 +160,7 @@
             <dd v-else>A deleted account</dd>
           </dl>
           <div class="actions">
-            <Button primary :href="`/app/?${SUBMISSION_PARAM}=${item.id}`">Open in generator</Button>
+            <Button v-if="client.openable !== false" primary :href="`/app/?${SUBMISSION_PARAM}=${item.id}`">Open in generator</Button>
             <Button v-if="previewLink" :href="previewLink" target="_blank" rel="noopener" v-tooltip="'The generator built from this submission\'s branch, with it added'"><template #icon><Icon name="eye" :size="16" /></template>Open preview</Button>
             <Button v-if="item.pullUrl" :href="item.pullUrl" target="_blank" rel="noopener"><template #icon><Icon name="github" :size="16" /></template>Pull request</Button>
           </div>

@@ -44,7 +44,7 @@
 </script>
 
 <template>
-  <div ref="element" class="picture" :class="large ? 'large' : 'clickable'" :role="large ? null : 'button'" :tabindex="large ? null : 0" @click="open" @keydown.enter="open">
+  <div ref="element" class="picture" :class="large ? 'large' : 'clickable'" :role="large ? null : 'button'" :tabindex="large ? null : 0" @click="open" @keydown.enter="open" @keydown.space.prevent="open">
     <img v-if="seen && !failed" v-show="loaded" :src="pictureUrl({ code, fingerprint })" alt="" @load="loaded = true" @error="failed = true">
     <span v-if="failed" class="status empty-state">Can't show this title</span>
     <span v-else-if="(large || seen) && !loaded" class="status empty-state">Loading</span>

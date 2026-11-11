@@ -3,7 +3,7 @@ import { tileableName } from "../../lib/submissionKinds/tileable.js"
 export const TILEABLE_PREVIEW_FONT = "minecraft-ten"
 
 export const tileable = {
-  image: true,
+  file: "PNG",
   line(item, file, text) {
     return { text, font: TILEABLE_PREVIEW_FONT, textureSource: "custom", customTexture: file, customTextureMode: "tileable" }
   },

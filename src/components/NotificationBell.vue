@@ -44,16 +44,19 @@
   }
 
   async function toggle() {
-    open.value = !open.value
-    if (!open.value) return
+    if (open.value) return close()
+    open.value = true
     items.value = null
     place()
     await nextTick()
+    panel.value.focus()
     load()
   }
 
   function close() {
+    const inside = panel.value?.contains(document.activeElement)
     open.value = false
+    if (inside) button.value.focus()
   }
 
   async function clear() {
@@ -75,7 +78,9 @@
   }
 
   function key(event) {
-    if (event.key === "Escape") close()
+    if (event.key !== "Escape") return
+    event.preventDefault()
+    close()
   }
 
   useWindowEvents(() => open.value, { resize: close }, { pointerdown: outside, keydown: key })
@@ -85,17 +90,17 @@
   <div v-if="shown" class="notification-bell">
     <Button ref="button" ghost class="bell" :class="{ open }" v-tooltip="unread ? `${unread} unread notifications` : 'Notifications'" :aria-label="unread ? `Notifications, ${unread} unread` : 'Notifications'" :aria-expanded="open" @click="toggle"><template #icon><Icon name="bell" :size="20" /><span v-if="unread" class="dot"></span></template></Button>
     <Teleport to="body">
-      <div v-if="open" ref="panel" class="notification-panel popover" :style="position" role="dialog" aria-label="Notifications">
+      <div v-if="open" ref="panel" class="notification-panel popover" :style="position" role="dialog" aria-label="Notifications" tabindex="-1">
         <div class="panel-head">
           <strong>Notifications</strong>
           <button v-if="items?.length" type="button" class="clear link-button" :disabled="clearing" @click="clear">Clear all</button>
         </div>
         <Notice v-if="error" class="state-notice">{{ error }}</Notice>
-        <p v-else-if="!items" class="state empty-state">Loading...</p>
-        <p v-else-if="!items.length" class="state empty-state">No notifications yet.</p>
-        <ul v-else>
+        <p v-if="!items && !error" class="state empty-state">Loading...</p>
+        <p v-else-if="items && !items.length" class="state empty-state">No notifications yet.</p>
+        <ul v-else-if="items">
           <li v-for="item of items" :key="item.id" :class="{ fresh: !item.seen }">
-            <a :href="item.link || submissionPage(item.submission)">
+            <a :href="item.link || submissionPage(item.submission)" @click="close">
               <span class="line"><strong>{{ item.author || "Someone" }}</strong> {{ ACTIONS[item.kind] }} <span class="name">{{ item.submissionName }}</span></span>
               <span v-if="item.body" class="body">{{ item.body }}</span>
               <span class="when">{{ dateTime(item.createdAt) }}</span>
@@ -141,6 +146,7 @@
     font-size: var(--font-base);
     line-height: 1.4;
     color: var(--text);
+    outline: none;
   }
 
   .panel-head {
@@ -167,6 +173,7 @@
   }
 
   .state-notice {
+    flex: none;
     margin: 10px;
   }
 

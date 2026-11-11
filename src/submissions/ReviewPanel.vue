@@ -46,8 +46,8 @@
     try {
       emit("done", await reviewSubmission(props.item.id, action, reason.value))
     } catch (err) {
-      error.value = err.message
       await check()
+      error.value = err.message
     } finally {
       busy.value = false
     }
@@ -112,8 +112,7 @@
     flex: 1 1 100%;
   }
 
-  .review > .hint.bad {
+  .review > .notice {
     flex: 1 1 100%;
-    margin: 0;
   }
 </style>
