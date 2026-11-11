@@ -6,7 +6,7 @@ import { defaultBorder, defaultDepth } from "../settings.js"
 import { stripUse } from "../strips.js"
 import { GENERATED_EDGE_OVERLAYS, withGenerated } from "../generated.js"
 import { EXTRA_FILE, HEX_COLOUR, SUBMISSION_LIMITS, assetId, pngProblem, pngSize, sizedProblem, textProblem, textureDensity } from "../submissions.js"
-import { fontId } from "../fontEditor.js"
+import { REQUIRED_CHARACTERS, characterName, fontId } from "../fontEditor.js"
 import { FONT_LIMITS, drawnCells, ownFont, submittedFont } from "./fontBuild.js"
 import { heightList, stripFit, stripHeights, stripSet } from "./stripFit.js"
 
@@ -113,6 +113,11 @@ function sizeProblem(capHeight, count) {
   return null
 }
 
+function blankProblem(drawn) {
+  const blank = REQUIRED_CHARACTERS.filter(char => !drawn.includes(char))
+  return blank.length ? `A new font has to have every default character drawn. These are blank: ${listed(blank.map(characterName))}.` : null
+}
+
 function lettersProblem(drawn) {
   const blank = LATIN.filter(char => !drawn.includes(char))
   if (!blank.length) return null
@@ -132,7 +137,7 @@ async function ownFontProblem(font, parent, ctx) {
   if (!drawnCells(font).cells.length) return "None of the characters are drawn yet."
   const own = builtFont(font, parent?.id ?? null)
   const drawn = own.cells.map(cell => cell.char)
-  const problem = sizeProblem(own.capHeight, drawn.length) ?? lettersProblem(drawn)
+  const problem = sizeProblem(own.capHeight, drawn.length) ?? (parent ? lettersProblem(drawn) : blankProblem(drawn))
   if (problem) return problem
   const entry = own.entry
   if (entry.basedOn && !ctx.fonts.some(item => item.id === entry.basedOn)) return `It says it's based on ${entry.basedOn}, which isn't one of the fonts here. Change Based on in the font editor's Font tab.`

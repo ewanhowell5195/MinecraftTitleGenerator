@@ -60,6 +60,11 @@ function check(input) {
 
 const f8thful = jsonOf(copyOf("f8thful"))
 
+function without(chars) {
+  const font = copyOf("f8thful")
+  return jsonOf({ ...font, glyphs: { ...font.glyphs, ...Object.fromEntries(chars.map(char => [char, { ...font.glyphs[char], rows: font.glyphs[char].rows.map(row => "0".repeat(row.length)) }])) } })
+}
+
 describe("checking a font", () => {
   test("decodes the PNGs the repo uses, palette, grey and colour key ones included", () => {
     for (const file of ["public/font/minecraft-ten/font.png", "public/font/minecraft-ten/textures/haunted.png", "public/font/f8thful/textures/flat.png"]) {
@@ -85,10 +90,15 @@ describe("checking a font", () => {
     assert.equal((await check({ details: { id: "kept-from-before" } })).problems.id, null)
   })
 
-  test("letters left blank are named", async () => {
-    const font = copyOf("f8thful")
-    const { problems } = await check({ bytes: jsonOf({ ...font, glyphs: { ...font.glyphs, q: { ...font.glyphs.q, rows: font.glyphs.q.rows.map(row => "0".repeat(row.length)) } } }) })
-    assert.match(problems.file, /These are blank: q\./)
+  test("a new font needs every default character, and the blank ones are named", async () => {
+    assert.equal((await check({ bytes: without(["q"]) })).problems.file, "A new font has to have every default character drawn. These are blank: q.")
+    assert.equal((await check({ bytes: without(["7", "'", "$"]) })).problems.file, "A new font has to have every default character drawn. These are blank: 7, Closing quote, $.")
+    assert.match((await check({ bytes: without(Array.from("0123456789&#")) })).problems.file, /These are blank: 0, 1, 2, 3, 4, 5, 6, 7 and 4 more\./)
+  })
+
+  test("a variant only needs its letters", async () => {
+    assert.equal((await check({ target: "minecraft-ten", bytes: without(Array.from("0123456789&#$")) })).problems.file, null)
+    assert.match((await check({ target: "minecraft-ten", bytes: without(["q"]) })).problems.file, /Draw every letter from a to z, or at least 20 letters of another alphabet\. These are blank: q\./)
   })
 
   test("a font with nothing drawn says so", async () => {
