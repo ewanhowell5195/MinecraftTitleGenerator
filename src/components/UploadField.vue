@@ -1,6 +1,5 @@
 <script setup>
   import Button from "./Button.vue"
-  import Icon from "./Icon.vue"
 
   defineProps({
     accept: { type: String, required: true },
@@ -21,7 +20,7 @@
         <div v-else class="empty-state">{{ empty }}</div>
       </div>
     </slot>
-    <Button file wide :accept="accept" :disabled="disabled" @change="emit('change', $event)"><template #icon><Icon name="open" :size="16" /></template><span>{{ label }}</span></Button>
+    <Button file wide icon="open" :accept="accept" :disabled="disabled" @change="emit('change', $event)"><span>{{ label }}</span></Button>
   </div>
 </template>
 

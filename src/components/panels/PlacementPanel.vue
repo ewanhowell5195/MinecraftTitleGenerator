@@ -13,7 +13,7 @@
     small: ["top", "small"]
   }
 
-  const { object, font, list, modified, reset } = usePanel("placement")
+  const { object, font, list, modified } = usePanel("placement")
 
   function pick(type) {
     if (object.value.type === type) return
@@ -23,6 +23,12 @@
       if (type !== "top") word.row = Math.max(0, word.row)
       applyType(word, type, font.value)
     }
+  }
+
+  function reset() {
+    pick("top")
+    object.value.row = 0
+    object.value.rowSpacing = 0
   }
 </script>
 

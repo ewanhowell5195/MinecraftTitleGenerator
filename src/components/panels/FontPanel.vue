@@ -11,10 +11,9 @@
   import { library } from "../../lib/scene.js"
   import { DEFAULT_FONT, isCustomFont } from "../../lib/settings.js"
   import { popular } from "../../lib/stats.js"
-  import { fontThumbnail } from "../../lib/ui.js"
+  import { fontThumbnail, readDataUrl, takeFile } from "../../lib/ui.js"
   import Button from "../Button.vue"
   import Field from "../Field.vue"
-  import Icon from "../Icon.vue"
   import Notice from "../Notice.vue"
   import NumberInput from "../NumberInput.vue"
   import Panel from "../Panel.vue"
@@ -81,17 +80,14 @@
   }
 
   function upload(event) {
-    const file = event.target.files[0]
-    event.target.value = ""
+    const file = takeFile(event)
     if (!file) return
     const kind = customFontKind(file.name)
     if (!kind) {
       customError.value = "Choose a .json, .png, .ttf, .otf, .woff or .woff2 file."
       return
     }
-    const reader = new FileReader()
-    reader.onload = () => applyCustom({ kind, fileName: file.name, data: reader.result, height: IMPORT_HEIGHT, lowercase: false })
-    reader.readAsDataURL(file)
+    readDataUrl(file, data => applyCustom({ kind, fileName: file.name, data, height: IMPORT_HEIGHT, lowercase: false }))
   }
 
   function changeImport(key, value) {
@@ -99,16 +95,10 @@
     applyCustom({ ...object.value.customFont, [key]: value })
   }
 
-  function setHeight(event) {
+  function setSize(event, key, fallback) {
     const value = event.target.valueAsNumber
-    if (Number.isInteger(value) && value >= 1) changeImport("height", value)
-    else event.target.value = object.value.customFont.height
-  }
-
-  function setDensity(event) {
-    const value = event.target.valueAsNumber
-    if (Number.isInteger(value) && value >= 1) changeImport("density", value)
-    else event.target.value = object.value.customFont.density ?? 1
+    if (Number.isInteger(value) && value >= 1) changeImport(key, value)
+    else event.target.value = object.value.customFont[key] ?? fallback
   }
 
   watch(() => object.value.customFont, async source => {
@@ -128,7 +118,7 @@
     }
   }, { immediate: true })
 
-  watch(() => object.value.id, () => {
+  watch(() => [object.value.id, isCustomFont(object.value.font)], () => {
     tab.value = isCustomFont(object.value.font) ? "custom" : "published"
     customError.value = ""
   })
@@ -145,7 +135,7 @@
 <template>
   <Panel title="Font" :modified="modified" @reset="reset">
     <template #actions>
-      <Button ghost :disabled="!font" @click="info = true" v-tooltip="'Font info and characters'" aria-label="Font info and characters"><template #icon><Icon name="info" :size="16" /></template></Button>
+      <Button ghost icon="info" title="Font info and characters" :disabled="!font" @click="info = true" />
     </template>
     <RenderDialog v-if="info && font" :title="entry?.name || customName || 'Font'" close-title="Close" wide dismissable @close="info = false">
       <div class="dialog-body">
@@ -172,10 +162,10 @@
         </template>
         <div class="sizes">
           <Field label="Height in pixels">
-            <NumberInput min="1" :value="object.customFont.height" :disabled="loading" @change="setHeight" />
+            <NumberInput min="1" :value="object.customFont.height" :disabled="loading" @change="setSize($event, 'height')" />
           </Field>
           <Field v-if="squares" label="Square size">
-            <NumberInput min="1" :value="object.customFont.density ?? 1" :disabled="loading" @change="setDensity" />
+            <NumberInput min="1" :value="object.customFont.density ?? 1" :disabled="loading" @change="setSize($event, 'density', 1)" />
           </Field>
         </div>
         <p v-if="squares" class="hint">Square size is how many pixels each square is. 4 gives chunky squares like Minecraft Ten. Fonts drawn on a pixel grid keep their own.</p>
@@ -206,10 +196,6 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
-  }
-
-  .sizes input {
-    width: 100%;
   }
 
   .custom-font {

@@ -13,7 +13,6 @@
     steps: { type: Array, default: null },
     log: { type: Boolean, default: false },
     inline: { type: Boolean, default: false },
-    disabled: { type: Boolean, default: false },
     hint: { type: String, default: "" }
   })
 
@@ -53,6 +52,10 @@
     return { "--from": `${Math.min(origin, current)}%`, "--to": `${Math.max(origin, current)}%` }
   })
 
+  function entered(next) {
+    if (typeof next === "number") value.value = next
+  }
+
   function typed(event) {
     if (!Number.isNaN(event.target.valueAsNumber)) value.value = props.steps[nearest(event.target.valueAsNumber)]
     event.target.value = +value.value.toFixed(2)
@@ -63,12 +66,12 @@
   <div class="slider" :class="{ inline }">
     <span class="label">{{ label }}</span>
     <template v-if="steps">
-      <NumberInput bare class="value" :value="+value.toFixed(2)" :min="min" :max="max" step="any" :aria-label="label" :disabled="disabled" @change="typed" />
-      <input class="range" type="range" v-model.number="index" min="0" :max="steps.length - 1" step="1" :style="fill" :aria-label="label" :disabled="disabled">
+      <NumberInput bare class="value" :value="+value.toFixed(2)" :min="min" :max="max" step="any" :aria-label="label" @change="typed" />
+      <input class="range" type="range" v-model.number="index" min="0" :max="steps.length - 1" step="1" :style="fill" :aria-label="label">
     </template>
     <template v-else>
-      <NumberInput bare class="value" v-model.number="value" :min="typedMin === undefined ? min : typedMin" :max="typedMax === undefined ? max : typedMax" :step="step" :aria-label="label" :disabled="disabled" />
-      <input ref="range" class="range" type="range" v-model.number="position" :min="log ? 0 : min" :max="log ? SPAN : max" :step="log ? 1 : step" :style="fill" :aria-label="label" :disabled="disabled">
+      <NumberInput bare class="value" :model-value="value" @update:model-value="entered" :min="typedMin === undefined ? min : typedMin" :max="typedMax === undefined ? max : typedMax" :step="step" :aria-label="label" />
+      <input ref="range" class="range" type="range" v-model.number="position" :min="log ? 0 : min" :max="log ? SPAN : max" :step="log ? 1 : step" :style="fill" :aria-label="label">
     </template>
     <span v-if="hint" class="hint">{{ hint }}</span>
   </div>
@@ -172,6 +175,15 @@
   }
 
   .range:focus-visible::-webkit-slider-thumb {
+    box-shadow: 0 0 0 4px var(--accent-soft), 0 1px 4px #0008;
+  }
+
+  .range:hover::-moz-range-thumb,
+  .range:focus-visible::-moz-range-thumb {
+    background: #e6e8ec;
+  }
+
+  .range:focus-visible::-moz-range-thumb {
     box-shadow: 0 0 0 4px var(--accent-soft), 0 1px 4px #0008;
   }
 </style>

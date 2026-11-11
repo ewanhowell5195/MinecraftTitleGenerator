@@ -1,6 +1,7 @@
 <script setup>
   import { nextTick, ref, watch } from "vue"
   import { useWindowEvents } from "../lib/events.js"
+  import { usePopover } from "../lib/popover.js"
   import Icon from "./Icon.vue"
 
   const props = defineProps({
@@ -12,6 +13,7 @@
 
   const menu = ref(null)
   const position = ref({})
+  let origin = null
 
   async function place() {
     position.value = { left: `${props.at.x}px`, top: `${props.at.y}px` }
@@ -32,15 +34,7 @@
     emit("close")
   }
 
-  function outside(event) {
-    if (!menu.value.contains(event.target)) close()
-  }
-
   function key(event) {
-    if (event.key === "Escape") {
-      event.preventDefault()
-      close()
-    }
     if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return
     event.preventDefault()
     const buttons = Array.from(menu.value.querySelectorAll("button:not(:disabled)"))
@@ -48,9 +42,12 @@
     buttons[(index + (event.key === "ArrowDown" ? 1 : -1) + buttons.length) % buttons.length]?.focus()
   }
 
-  useWindowEvents(() => !!props.at, { resize: close, blur: close }, { keydown: key, pointerdown: outside, wheel: outside })
+  const { outside } = usePopover(() => !!props.at, { popover: () => menu.value, focus: () => origin, close })
 
-  watch(() => props.at, at => {
+  useWindowEvents(() => !!props.at, { blur: close }, { keydown: key, wheel: outside })
+
+  watch(() => props.at, (at, before) => {
+    if (at && !before) origin = document.activeElement
     if (at) place()
   }, { immediate: true })
 </script>
@@ -91,7 +88,6 @@
     font-weight: 500;
     color: var(--text);
     background: transparent;
-    box-shadow: none;
   }
 
   .heading {
@@ -109,7 +105,6 @@
   button:focus-visible {
     outline: none;
     background: var(--card-hover);
-    filter: none;
   }
 
   button:disabled:hover {

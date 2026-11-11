@@ -333,11 +333,6 @@ input[type="file"] {
   opacity: 0.45;
 }
 
-.card:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
 .card-row {
   display: flex;
   align-items: center;
@@ -382,6 +377,17 @@ input[type="file"] {
   overflow-y: auto;
   margin-right: -6px;
   padding-right: 6px;
+}
+
+.pick {
+  /* 42px is the Panel.vue header: 28px tall plus its 14px margin */
+  height: max(520px, calc(100cqh - 42px - 2 * var(--group-padding) - var(--disclaimer-height, 0px)));
+  container-type: inline-size;
+}
+
+:where(.pick) > .scroll {
+  flex: 0 1 auto;
+  align-content: start;
 }
 
 .popover {

@@ -1,9 +1,8 @@
 <script setup>
   import { computed, nextTick, ref } from "vue"
-  import { clamp } from "../../lib/maths.js"
-  import { usePanel } from "../../lib/panel.js"
-  import { useReorderDrag } from "../../lib/reorder.js"
+  import { followPointer, useReorderDrag } from "../../lib/reorder.js"
   import { addWord, insertWord, removeObject, runtime, scene, select, selection, words } from "../../lib/scene.js"
+  import { resetPanel } from "../../lib/settings.js"
   import { splitGradients } from "../../lib/wordGradients.js"
   import Button from "../Button.vue"
   import Icon from "../Icon.vue"
@@ -11,9 +10,16 @@
 
   const line = computed(() => words(selection.value[0]))
   const placeholder = computed(() => line.value.length > 1 ? "word" : "Type your title")
-  const { modified, reset } = usePanel("text")
+  const modified = computed(() => line.value.length > 1 && line.value.some((word, index) => word.hidden || index > 0 && !word.spaceBefore))
   const fields = {}
   let picked = null
+
+  function reset() {
+    for (const word of line.value) {
+      resetPanel(word, "text")
+      word.hidden = false
+    }
+  }
 
   function chosen(word) {
     return line.value.length > 1 && scene.selectedGroup === null && scene.selected === word.id
@@ -104,13 +110,7 @@
   }
 
   function follow(drag) {
-    const element = drag.element
-    element.style.transform = ""
-    const rect = element.getBoundingClientRect()
-    const area = box.value.getBoundingClientRect()
-    const x = clamp(drag.point[0] - drag.grab[0], area.left, area.right - rect.width)
-    const y = clamp(drag.point[1] - drag.grab[1], area.top, area.bottom - rect.height)
-    element.style.transform = `translate(${x - rect.left}px, ${y - rect.top}px)`
+    followPointer(drag.element, box.value, [drag.point[0] - drag.grab[0], drag.point[1] - drag.grab[1]])
   }
 
   function release(drag, active) {
@@ -131,15 +131,15 @@
             <Icon name="grip" :size="14" />
           </span>
           <input :ref="el => (fields[word.id] = el)" type="text" size="1" :value="word.text" spellcheck="false" autocomplete="off" :placeholder="placeholder" :aria-label="line.length > 1 ? `Word ${index + 1}` : 'Text'" @input="typed($event, word)" @focus="focus(word)" @keydown.backspace="backspace($event, word)">
-          <button v-if="line.length > 1" class="hide" tabindex="-1" @click.prevent="word.hidden = !word.hidden" v-tooltip="word.hidden ? 'Show this word' : 'Hide this word'" :aria-label="word.hidden ? 'Show this word' : 'Hide this word'" :aria-pressed="word.hidden">
+          <button v-if="line.length > 1" class="hide" @click.prevent="word.hidden = !word.hidden" v-tooltip="word.hidden ? 'Show this word' : 'Hide this word'" :aria-label="word.hidden ? 'Show this word' : 'Hide this word'" :aria-pressed="word.hidden">
             <Icon :name="word.hidden ? 'hidden' : 'eye'" :size="12" />
           </button>
-          <button v-if="line.length > 1" class="remove" tabindex="-1" @click.prevent="remove(word)" v-tooltip="'Remove this word'" aria-label="Remove this word">
+          <button v-if="line.length > 1" class="remove" @click.prevent="remove(word)" v-tooltip="'Remove this word'" aria-label="Remove this word">
             <Icon name="close" :size="12" />
           </button>
         </label>
       </template>
-      <Button ghost class="add" @mousedown="capture" @click="add" v-tooltip="'Add word'" aria-label="Add word"><template #icon><Icon name="plus" :size="16" /></template></Button>
+      <Button ghost class="add" icon="plus" title="Add word" @mousedown="capture" @click="add" />
     </div>
     <p class="hint">Each word gets its own texture. Highlight part of a word and press + to split it off.</p>
   </Panel>
@@ -247,11 +247,9 @@
     top: -7px;
     width: 18px;
     height: 18px;
-    min-height: 0;
     padding: 0;
     color: var(--text);
     background: var(--line-strong);
-    box-shadow: none;
     opacity: 0;
     pointer-events: none;
     transition: opacity var(--duration), background var(--duration);
@@ -277,13 +275,11 @@
   .hide:hover {
     color: var(--accent-text);
     background: var(--accent);
-    filter: none;
   }
 
   .remove:hover {
     color: #fff;
     background: var(--danger-fill);
-    filter: none;
   }
 
   .chip.hidden input {
@@ -294,17 +290,14 @@
     flex: none;
     width: 22px;
     height: 30px;
-    min-height: 0;
     padding: 0;
     color: var(--faint);
     background: transparent;
-    box-shadow: none;
   }
 
   .join:hover {
     color: var(--text);
     background: var(--card-hover);
-    filter: none;
   }
 
   .join.joined {

@@ -46,14 +46,14 @@
   <RenderDialog title="Minecraft version" close-title="Close" dismissable @close="emit('close')">
     <div class="body">
       <Segments :options="KINDS" v-model="kind" />
-      <input type="text" v-model="query" placeholder="Search versions" spellcheck="false">
+      <input type="text" v-model="query" placeholder="Search versions" aria-label="Search versions" spellcheck="false">
       <Notice v-if="error">{{ error }}</Notice>
       <p v-else-if="!versions.length" class="message empty-state">Loading versions</p>
       <p v-else-if="!shown.length" class="message empty-state">No versions match</p>
       <div v-else class="list">
         <button v-for="version of shown" :key="version.id" class="version card card-row" :class="{ selected: version.id === current }" @click="emit('pick', version.id)">
           <span class="id">{{ version.id }}</span>
-          <Badge v-if="version.id === latest.release || version.id === latest.snapshot" class="latest">Latest</Badge>
+          <Badge v-if="version.id === latest.release || version.id === latest.snapshot">Latest</Badge>
           <span class="date">{{ date(version) }}</span>
         </button>
       </div>

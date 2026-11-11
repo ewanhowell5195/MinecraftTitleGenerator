@@ -85,9 +85,21 @@ button:where(:not(.button, .field-button)):disabled:hover {
 
 .button:focus-visible,
 .field-button:focus-visible,
-.button:has(input:focus-visible) {
+label:has(> input[type="file"]:focus-visible) {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+label:where(:has(> input[type="file"])) {
+  position: relative;
+}
+
+label > input[type="file"] {
+  position: absolute;
+  display: block;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
 }
 
 .button.primary {

@@ -1,18 +1,16 @@
 <script setup>
   import { ref } from "vue"
   import ContextMenu from "./ContextMenu.vue"
-  import Icon from "./Icon.vue"
 
   const props = defineProps({
     label: { type: String, required: true },
-    selected: { type: Boolean, default: false },
+    selected: { type: Boolean, default: null },
     image: { type: String, default: null },
     unit: { type: Number, default: null },
     pattern: { type: Object, default: null },
     author: { type: String, default: null },
     tooltip: { type: String, default: null },
     badge: { type: Number, default: 0 },
-    save: { type: String, default: null },
     faded: { type: Boolean, default: false },
     still: { type: Boolean, default: false },
     small: { type: Boolean, default: false },
@@ -21,7 +19,7 @@
     menu: { type: Array, default: null }
   })
 
-  const emit = defineEmits(["pick", "save"])
+  const emit = defineEmits(["pick"])
 
   const at = ref(null)
 
@@ -30,10 +28,16 @@
     event.preventDefault()
     at.value = { x: event.clientX, y: event.clientY }
   }
+
+  function space(event) {
+    if (props.href || props.still) return
+    event.preventDefault()
+    emit("pick")
+  }
 </script>
 
 <template>
-  <component :is="href ? 'a' : 'div'" class="tile card" :class="{ selected, faded, still, small }" :href="href" v-tooltip="author ? { text: `By ${author}`, tooltipClass: 'slow' } : tooltip" :tabindex="href || still ? null : 0" @click="still || emit('pick')" @keydown.enter="still || emit('pick')" @contextmenu="openMenu" @dragstart.prevent>
+  <component :is="href ? 'a' : 'div'" class="tile card" :class="{ selected, faded, still, small }" :href="href" v-tooltip="author ? { text: `By ${author}`, tooltipClass: 'slow' } : tooltip" :tabindex="href || still ? null : 0" :role="href || still ? null : 'button'" :aria-pressed="href || still ? null : selected" @click="still || emit('pick')" @keydown.enter="still || emit('pick')" @keydown.space.self="space" @contextmenu="openMenu" @dragstart.prevent>
     <div v-if="$slots.picture" class="thumb picture" :style="{ aspectRatio: aspect }"><slot name="picture"></slot></div>
     <div v-else-if="image" class="thumb picture" :style="{ aspectRatio: aspect }"><img :src="image" alt="" :style="unit ? { height: `${unit}px` } : null"></div>
     <div v-else class="thumb pattern" :style="[pattern, { aspectRatio: aspect }]"></div>
@@ -45,7 +49,6 @@
       <rect x="7" y="3" width="14" height="14" />
       <text x="14" y="10.5" text-anchor="middle" dominant-baseline="central" fill="currentColor" stroke="none" font-size="10" font-weight="700">{{ badge > 9 ? "9+" : badge }}</text>
     </svg>
-    <button v-if="save" class="save" @click.stop="emit('save')" v-tooltip="save" :aria-label="save"><Icon name="download" :size="12" /></button>
     <ContextMenu v-if="at" :items="menu" :at="at" @close="at = null" />
   </component>
 </template>
@@ -103,35 +106,5 @@
 
   .badged {
     padding: 0 18px;
-  }
-
-  .save {
-    position: absolute;
-    top: 4px;
-    left: 4px;
-    display: none;
-    width: var(--control-tiny);
-    height: var(--control-tiny);
-    min-height: var(--control-tiny);
-    padding: 0;
-    color: var(--text);
-    background: var(--tile-overlay);
-    box-shadow: none;
-  }
-
-  .save:hover {
-    background: var(--tile-overlay-hover);
-    filter: none;
-  }
-
-  .tile:hover .save,
-  .tile:focus-within .save {
-    display: inline-flex;
-  }
-
-  @media (hover: none) {
-    .save {
-      display: inline-flex;
-    }
   }
 </style>

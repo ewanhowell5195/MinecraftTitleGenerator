@@ -1,5 +1,6 @@
 <script setup>
   import { computed, ref, useSlots } from "vue"
+  import Icon from "./Icon.vue"
 
   const props = defineProps({
     to: { type: [String, Object], default: null },
@@ -15,7 +16,10 @@
     ghost: { type: Boolean, default: false },
     active: { type: Boolean, default: false },
     big: { type: Boolean, default: false },
-    wide: { type: Boolean, default: false }
+    wide: { type: Boolean, default: false },
+    icon: { type: String, default: null },
+    iconSize: { type: Number, default: 16 },
+    title: { type: String, default: null }
   })
 
   const emit = defineEmits(["change"])
@@ -39,8 +43,8 @@
 </script>
 
 <template>
-  <RouterLink v-if="to && !disabled" ref="element" class="button" :class="classes" :to="to"><slot name="icon"></slot><slot></slot></RouterLink>
-  <a v-else-if="to || href" ref="element" class="button" :class="classes" :href="disabled ? null : href" :aria-disabled="disabled || null"><slot name="icon"></slot><slot></slot></a>
-  <label v-else-if="file" ref="element" class="button" :class="classes"><slot name="icon"></slot><slot></slot><input type="file" :accept="accept" :multiple="multiple" :disabled="disabled" @change="emit('change', $event)"></label>
-  <button v-else ref="element" class="button" :class="classes" :type="type" :disabled="disabled"><slot name="icon"></slot><slot></slot></button>
+  <RouterLink v-if="to && !disabled" ref="element" class="button" :class="classes" :to="to" v-tooltip="title" :aria-label="title"><slot name="icon"><Icon v-if="icon" :name="icon" :size="iconSize" /></slot><slot></slot></RouterLink>
+  <a v-else-if="to || href" ref="element" class="button" :class="classes" :href="disabled ? null : href" :aria-disabled="disabled || null" v-tooltip="title" :aria-label="title"><slot name="icon"><Icon v-if="icon" :name="icon" :size="iconSize" /></slot><slot></slot></a>
+  <label v-else-if="file" ref="element" class="button" :class="classes" v-tooltip="title"><slot name="icon"><Icon v-if="icon" :name="icon" :size="iconSize" /></slot><slot></slot><input type="file" :accept="accept" :multiple="multiple" :disabled="disabled" :aria-label="title" @change="emit('change', $event)"></label>
+  <button v-else ref="element" class="button" :class="classes" :type="type" :disabled="disabled" v-tooltip="title" :aria-label="title"><slot name="icon"><Icon v-if="icon" :name="icon" :size="iconSize" /></slot><slot></slot></button>
 </template>

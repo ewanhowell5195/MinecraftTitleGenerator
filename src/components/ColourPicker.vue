@@ -1,12 +1,9 @@
 <script setup>
   import { computed, nextTick, ref, watch } from "vue"
   import { hexOf, rgbOf } from "../lib/colour.js"
-  import { trackPointer, useWindowEvents } from "../lib/events.js"
+  import { trackPointer } from "../lib/events.js"
   import { clamp } from "../lib/maths.js"
-
-  defineProps({
-    disabled: { type: Boolean, default: false }
-  })
+  import { usePopover } from "../lib/popover.js"
 
   const colour = defineModel({ type: String, required: true })
 
@@ -17,6 +14,7 @@
   const position = ref({ left: 0, top: 0 })
   const hsv = ref(toHsv(colour.value))
   const text = ref(colour.value)
+  let stopDrag = null
 
   function toHsv(hex) {
     const [r, g, b] = rgbOf(hex).map(value => value / 255)
@@ -55,7 +53,7 @@
       commit()
     }
     move(event)
-    trackPointer(move)
+    stopDrag = trackPointer(move, () => (stopDrag = null))
   }
 
   function pickArea(event) {
@@ -77,12 +75,9 @@
     colour.value = value
   }
 
-  function outside(event) {
-    if (!popover.value.contains(event.target) && !swatch.value.contains(event.target)) open.value = false
-  }
-
-  function escape(event) {
-    if (event.key === "Escape") open.value = false
+  function close() {
+    open.value = false
+    stopDrag?.()
   }
 
   async function toggle() {
@@ -102,7 +97,7 @@
     hexInput.value.select()
   }
 
-  useWindowEvents(open, { keydown: escape }, { pointerdown: outside })
+  usePopover(open, { popover: () => popover.value, trigger: () => swatch.value, close })
 
   watch(colour, value => {
     if (value === toHex(hsv.value)) return
@@ -113,7 +108,7 @@
 
 <template>
   <div class="field-colour">
-    <button ref="swatch" class="colour field-button" :class="{ active: open }" :disabled="disabled" @click="toggle">
+    <button ref="swatch" class="colour field-button" :class="{ active: open }" @click="toggle">
       <span class="chip" :style="{ background: colour }"></span>
       <span class="hex">{{ colour }}</span>
     </button>
@@ -127,7 +122,7 @@
         </div>
         <div class="row">
           <span class="chip big" :style="{ background: colour }"></span>
-          <input ref="hexInput" type="text" v-model="text" @input="typed" spellcheck="false" maxlength="7">
+          <input ref="hexInput" type="text" v-model="text" @input="typed" aria-label="Hex colour" spellcheck="false" maxlength="7">
         </div>
       </div>
     </Teleport>

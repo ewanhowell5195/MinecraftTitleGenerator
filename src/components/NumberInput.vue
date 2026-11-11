@@ -34,7 +34,11 @@
 
   function correct(event) {
     const field = event.target
-    if (field.value === "" && !field.validity.badInput) return
+    if (field.value === "" && !field.validity.badInput) {
+      if (typeof model.value === "number") field.value = model.value
+      return
+    }
+    if (field.value === String(model.value ?? attrs.value)) return
     let next = Number.isNaN(field.valueAsNumber) ? Number(model.value ?? attrs.value) : field.valueAsNumber
     if (Number.isNaN(next)) return
     const min = limit("min", -Infinity)
@@ -120,12 +124,10 @@
     color: var(--faint);
     background: transparent;
     border: 0;
-    box-shadow: none;
   }
 
   .steps button:hover:not(:disabled) {
     color: var(--text);
     background: var(--card-hover);
-    filter: none;
   }
 </style>

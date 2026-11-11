@@ -5,6 +5,7 @@
   import { history, redo, undo } from "../lib/history.js"
   import { startSavingPreset } from "../lib/presets.js"
   import { scene } from "../lib/scene.js"
+  import { takeFile } from "../lib/ui.js"
   import MenuStrip from "./MenuStrip.vue"
 
   const picker = ref(null)
@@ -34,8 +35,7 @@
   }
 
   function picked(event) {
-    const file = event.target.files[0]
-    event.target.value = ""
+    const file = takeFile(event)
     if (file) request(file)
   }
 
@@ -78,7 +78,7 @@
 
 <template>
   <MenuStrip :menus="menus">
-    <input ref="picker" type="file" :accept="`.${EXTENSION},application/json`" @change="picked">
+    <input ref="picker" type="file" tabindex="-1" :accept="`.${EXTENSION},application/json`" @change="picked">
     <Teleport to="body">
       <div v-if="dragging" class="drop">Drop a .{{ EXTENSION }} file to open it</div>
     </Teleport>

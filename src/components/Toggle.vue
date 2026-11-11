@@ -1,8 +1,7 @@
 <script setup>
   defineProps({
     label: { type: String, required: true },
-    hint: { type: String, default: "" },
-    disabled: { type: Boolean, default: false }
+    hint: { type: String, default: "" }
   })
 
   defineEmits(["change"])
@@ -11,13 +10,13 @@
 </script>
 
 <template>
-  <label class="toggle" :class="{ disabled }">
+  <label class="toggle">
     <span class="text">
       <span class="label">{{ label }}</span>
       <span v-if="hint" class="hint">{{ hint }}</span>
     </span>
     <span class="toggle-switch">
-      <input type="checkbox" v-model="value" :disabled="disabled" @change="$emit('change')">
+      <input type="checkbox" v-model="value" @change="$emit('change')">
       <span></span>
     </span>
   </label>
@@ -30,10 +29,6 @@
     gap: 12px;
     min-height: var(--control);
     cursor: pointer;
-  }
-
-  .toggle.disabled {
-    cursor: not-allowed;
   }
 
   .text {

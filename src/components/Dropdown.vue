@@ -1,15 +1,13 @@
 <script setup>
   import { computed, nextTick, ref } from "vue"
-  import { useWindowEvents } from "../lib/events.js"
+  import { usePopover } from "../lib/popover.js"
   import Field from "./Field.vue"
   import Icon from "./Icon.vue"
 
   const props = defineProps({
     options: { type: Array, required: true },
     label: { type: String, default: "" },
-    hint: { type: String, default: "" },
-    searchable: { type: Boolean, default: false },
-    disabled: { type: Boolean, default: false }
+    searchable: { type: Boolean, default: false }
   })
 
   const value = defineModel({ default: null })
@@ -23,8 +21,8 @@
   const search = ref("")
   const position = ref({})
 
-  const selectedIndex = computed(() => Math.max(0, props.options.findIndex(option => option.value === value.value)))
-  const selected = computed(() => props.options[selectedIndex.value])
+  const selectedIndex = computed(() => props.options.findIndex(option => option.value === value.value))
+  const selected = computed(() => props.options[selectedIndex.value] ?? null)
   const shown = computed(() => {
     const term = search.value.trim().toLowerCase()
     return term ? props.options.filter(option => option.label.toLowerCase().includes(term)) : props.options
@@ -41,7 +39,7 @@
   async function show() {
     open.value = true
     search.value = ""
-    active.value = selectedIndex.value
+    active.value = Math.max(0, selectedIndex.value)
     await nextTick()
     place()
     list.value.children[active.value].scrollIntoView({ block: "nearest" })
@@ -72,37 +70,25 @@
     else if (event.key === "ArrowUp") move(-1)
     else if (event.key === "Enter" || event.key === " " && !props.searchable) {
       if (shown.value.length) choose(shown.value[active.value])
-    } else if (event.key === "Escape") {
-      event.stopPropagation()
-      close()
-      trigger.value.focus()
     } else if (event.key === "Tab") close()
     else return
     if (event.key !== "Tab") event.preventDefault()
-  }
-
-  function outside(event) {
-    if (!menu.value.contains(event.target) && !trigger.value.contains(event.target)) close()
   }
 
   function close() {
     open.value = false
   }
 
-  function scrolled(event) {
-    if (!menu.value.contains(event.target)) close()
-  }
-
-  useWindowEvents(open, { resize: close }, { pointerdown: outside, scroll: scrolled })
+  usePopover(open, { popover: () => menu.value, trigger: () => trigger.value, close })
 </script>
 
 <template>
-  <Field group class="dropdown" :label="label" :hint="hint">
-    <button ref="trigger" type="button" class="trigger field-button" :class="{ open }" :aria-expanded="open" :disabled="disabled" @click="open ? close() : show()" @keydown="key">
-      <img v-if="selected.image" class="image" :src="selected.image" alt="">
+  <Field group class="dropdown" :label="label">
+    <button ref="trigger" type="button" class="trigger field-button" :class="{ open }" :aria-label="label ? [label, selected?.label].filter(Boolean).join(': ') : null" :aria-expanded="open" @click="open ? close() : show()" @keydown="key">
+      <img v-if="selected?.image" class="image" :src="selected.image" alt="">
       <span class="text">
-        <span class="name ellipsis">{{ selected.label }}</span>
-        <span v-if="selected.hint" class="hint">{{ selected.hint }}</span>
+        <span class="name ellipsis">{{ selected?.label }}</span>
+        <span v-if="selected?.hint" class="hint">{{ selected.hint }}</span>
       </span>
       <Icon class="chevron" name="down" :size="14" />
     </button>

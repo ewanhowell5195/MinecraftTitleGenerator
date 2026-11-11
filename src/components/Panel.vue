@@ -19,7 +19,7 @@
       <Button ghost v-if="modified" @click="$emit('reset')">Reset</Button>
       <slot name="actions"></slot>
       <label v-if="enabled !== null" class="toggle-switch">
-        <input type="checkbox" v-model="enabled">
+        <input type="checkbox" v-model="enabled" :aria-label="title">
         <span></span>
       </label>
     </header>

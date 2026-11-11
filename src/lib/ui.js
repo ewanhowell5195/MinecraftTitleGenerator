@@ -18,13 +18,21 @@ export function downloadBlob(name, blob) {
   setTimeout(() => URL.revokeObjectURL(url), 10000)
 }
 
-export function readFile(event, apply) {
+export function takeFile(event) {
   const file = event.target.files[0]
   event.target.value = ""
-  if (!file) return
+  return file
+}
+
+export function readDataUrl(file, apply) {
   const reader = new FileReader()
   reader.onload = () => apply(reader.result)
   reader.readAsDataURL(file)
+}
+
+export function readFile(event, apply) {
+  const file = takeFile(event)
+  if (file) readDataUrl(file, apply)
 }
 
 export function fontThumbnail(fonts, id) {

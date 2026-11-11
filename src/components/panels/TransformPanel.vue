@@ -7,7 +7,6 @@
   import { active, bakeMatch, chooseMatch, current, currentWord, lineText, scene, selection, setScale, words } from "../../lib/scene.js"
   import Button from "../Button.vue"
   import Dropdown from "../Dropdown.vue"
-  import Icon from "../Icon.vue"
   import Panel from "../Panel.vue"
   import Segments from "../Segments.vue"
   import Slider from "../Slider.vue"
@@ -26,6 +25,10 @@
   const modified = computed(() => Object.fromEntries(Object.keys(TRANSFORM_GROUPS).map(group => [group, isModified(object.value, props.word ? "wordTransform" : "transform", {}, transformKeys(group, props.word))])))
   const own = computed(() => words(selection.value[0]))
   const references = computed(() => scene.objects.filter(other => !own.value.includes(other) && words(other)[0] === other && !own.value.some(word => leadsTo(other, word))))
+  const matched = computed(() => {
+    const target = scene.objects.find(other => other.id === object.value.matchWidth)
+    return target ? words(target)[0].id : object.value.matchWidth
+  })
   const matchOptions = computed(() => [{ value: null, label: "None" }].concat(references.value.map(other => ({ value: other.id, label: lineText(other) || "(empty)", hint: TYPES[other.type].name, image: previews[other.id] }))))
   const linked = computed(() => object.value[k("linkScale")] !== null)
   const marked = computed(() => hasMarks(active.value.font))
@@ -48,7 +51,7 @@
 
 <template>
   <Panel v-if="!word && (references.length || object.matchWidth !== null)" title="Match width to" :modified="modified.match" @reset="resetTransform(object, 'match')">
-    <Dropdown :options="matchOptions" :model-value="object.matchWidth" @update:model-value="chooseMatch(selection[0], $event)" />
+    <Dropdown :options="matchOptions" :model-value="matched" @update:model-value="chooseMatch(selection[0], $event)" />
     <template v-if="object.matchWidth !== null">
       <Segments :options="MATCH_MODES" v-model="object.matchBottom" />
       <Toggle label="Scale Y to match too" v-model="object.matchScaleY" />
@@ -66,7 +69,7 @@
         <Slider inline label="Y" v-model="scaleY" :min="TRANSFORM_LIMITS.scale[0]" :max="TRANSFORM_LIMITS.scale[1]" :typed-max="null" :step="0.05" />
       </div>
       <span class="bracket" :class="{ active: linked }"></span>
-      <Button ghost :active="linked" @click="toggleLink" v-tooltip="linked ? 'Unlink X and Y' : 'Link X and Y so the text keeps its shape'" :aria-label="linked ? 'Unlink X and Y' : 'Link X and Y'" :aria-pressed="linked"><template #icon><Icon name="link" :size="16" /></template></Button>
+      <Button ghost icon="link" :title="linked ? 'Unlink X and Y' : 'Link X and Y so the text keeps its shape'" :active="linked" @click="toggleLink" :aria-label="linked ? 'Unlink X and Y' : 'Link X and Y'" :aria-pressed="linked" />
     </div>
     <div class="linked">
       <Slider class="grow" inline label="Z" v-model="object[k('scaleZ')]" :min="TRANSFORM_LIMITS.scale[0]" :max="TRANSFORM_LIMITS.scale[1]" :typed-max="null" :step="0.05" />

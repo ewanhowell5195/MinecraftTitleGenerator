@@ -1,9 +1,9 @@
 <script setup>
   import { computed, onBeforeUnmount, ref, watch } from "vue"
   import { trackPointer } from "../lib/events.js"
-  import { blend, cssGradient, movedStopPositions } from "../lib/material.js"
+  import { cssGradient, movedStopPositions, stopColour } from "../lib/material.js"
   import { clamp } from "../lib/maths.js"
-  import { useReorderDrag } from "../lib/reorder.js"
+  import { useListReorder } from "../lib/reorder.js"
   import Button from "./Button.vue"
   import ColourPicker from "./ColourPicker.vue"
   import Icon from "./Icon.vue"
@@ -33,13 +33,7 @@
   const removable = computed(() => stops.value.length > props.min)
 
   function colourAt(position) {
-    const list = stops.value.map(stop => ({ colour: stop.colour, position: clamp(stop.position, 0, 100) })).sort((a, b) => a.position - b.position)
-    const after = list.findIndex(item => item.position >= position)
-    if (after === -1) return list[list.length - 1].colour
-    if (after === 0) return list[0].colour
-    const from = list[after - 1]
-    const to = list[after]
-    return blend(from.colour, to.colour, (position - from.position) / (to.position - from.position))
+    return stopColour(stops.value.map(stop => ({ colour: stop.colour, position: clamp(stop.position, 0, 100) })).sort((a, b) => a.position - b.position), position)
   }
 
   function positionAt(x) {
@@ -48,6 +42,7 @@
   }
 
   function begin(index, event) {
+    if (event.button !== 0) return
     selected.value = index
     drag = { index, top: track.value.getBoundingClientRect().bottom, stop: trackPointer(move, end) }
     removing.value = false
@@ -55,6 +50,7 @@
   }
 
   function add(event) {
+    if (event.button !== 0) return
     const position = positionAt(event.clientX)
     stops.value.push({ colour: colourAt(position), position })
     begin(stops.value.length - 1, event)
@@ -80,6 +76,10 @@
     stop.value.position = clamp(stop.value.position + by * (event.shiftKey ? 10 : 1), 0, 100)
   }
 
+  function locate(index, next) {
+    if (typeof next === "number") stops.value[index].position = next
+  }
+
   function sortedStops() {
     return Array.from(stops.value.keys()).sort((a, b) => stops.value[a].position - stops.value[b].position)
   }
@@ -91,38 +91,23 @@
 
   const box = ref(null)
   const rows = []
-  const { dragged, press } = useReorderDrag({ prevent: true, begin: beginSort, point: event => event.clientY, reorder, follow, release })
+  const { dragged, press } = useListReorder({ box, rows, ids: () => order.value, begin: beginSort, move: sortTo, release })
 
-  function beginSort(event, index) {
+  function beginSort(index) {
     selected.value = index
     const sorted = sortedStops()
-    return { id: index, grab: event.clientY - rows[index].getBoundingClientRect().top, sorted, from: sorted.indexOf(index), positions: sorted.map(item => stops.value[item].position) }
+    return { sorted, from: sorted.indexOf(index), positions: sorted.map(item => stops.value[item].position) }
   }
 
-  function reorder(sort) {
-    const to = order.value.filter(index => {
-      if (index === sort.id) return false
-      const rect = rows[index].getBoundingClientRect()
-      return rect.top + rect.height / 2 < sort.point
-    }).length
-    if (to === order.value.indexOf(sort.id)) return
+  function sortTo(sort, to) {
     const next = sort.sorted.slice()
     next.splice(to, 0, next.splice(sort.from, 1)[0])
     order.value = next
     movedStopPositions(sort.positions, sort.from, to).forEach((position, slot) => stops.value[next[slot]].position = position)
   }
 
-  function follow(sort) {
-    for (const index of order.value) rows[index].style.transform = ""
-    const row = rows[sort.id]
-    const rect = row.getBoundingClientRect()
-    const area = box.value.getBoundingClientRect()
-    row.style.transform = `translateY(${clamp(sort.point - sort.grab, area.top, area.bottom - rect.height) - rect.top}px)`
-  }
-
   function release(sort, active) {
     if (!active) return
-    for (const index of order.value) rows[index].style.transform = ""
     selected.value = order.value.indexOf(sort.id)
     stops.value.splice(0, stops.value.length, ...order.value.map(index => stops.value[index]))
     order.value = sortedStops()
@@ -157,10 +142,10 @@
         <span v-if="stops.length > 1" class="grip" @pointerdown="press($event, index)"><Icon name="grip" :size="14" /></span>
         <ColourPicker class="grow" v-model="stops[index].colour" />
         <label class="location" v-tooltip="'Location'">
-          <NumberInput v-model.number="stops[index].position" aria-label="Location" min="0" max="100" step="1" @focus="typing = true" @blur="finishTyping" />
+          <NumberInput :model-value="stops[index].position" @update:model-value="locate(index, $event)" aria-label="Location" min="0" max="100" step="1" @focus="typing = true" @blur="finishTyping" />
           <span>%</span>
         </label>
-        <Button ghost :disabled="!removable" @click="remove(index)" v-tooltip="'Remove colour'" aria-label="Remove colour"><template #icon><Icon name="trash" :size="16" /></template></Button>
+        <Button ghost icon="trash" title="Remove colour" :disabled="!removable" @click="remove(index)" />
       </div>
     </div>
   </div>
@@ -192,11 +177,9 @@
     width: 14px;
     height: 22px;
     margin-left: -7px;
-    min-height: 0;
     padding: 0;
     background: none;
     border: none;
-    box-shadow: none;
     cursor: ew-resize;
     touch-action: none;
   }

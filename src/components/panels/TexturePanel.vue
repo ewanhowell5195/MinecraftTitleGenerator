@@ -2,27 +2,26 @@
   import { computed, ref, shallowRef, watch } from "vue"
   import { image, tileableUrl } from "../../lib/assets.js"
   import { credit } from "../../lib/credits.js"
-  import { blockName, blockTextureImage, blockTextures, jar, latestRelease } from "../../lib/minecraft.js"
+  import { blockName, blockTextureImage, blockTextures, latestRelease } from "../../lib/minecraft.js"
+  import { keepVersions } from "../../lib/minecraftModels.js"
   import { titleCase } from "../../lib/names.js"
   import { usePanel } from "../../lib/panel.js"
-  import { library } from "../../lib/scene.js"
+  import { gameVersions, library } from "../../lib/scene.js"
   import { EulaDeclined, eulaDeclined } from "../../lib/eula.js"
   import { pinnedTextures, setTexture, untouchedTileable } from "../../lib/settings.js"
   import { minecraftStatId, popular } from "../../lib/stats.js"
   import { readFile, saveImage, thumbnail, thumbnailHeight, tilePreview } from "../../lib/ui.js"
   import Button from "../Button.vue"
   import GradientEditor from "../GradientEditor.vue"
-  import Icon from "../Icon.vue"
+  import MinecraftVersionField from "../MinecraftVersionField.vue"
   import Notice from "../Notice.vue"
   import Panel from "../Panel.vue"
   import Segments from "../Segments.vue"
   import Slider from "../Slider.vue"
   import Tile from "../Tile.vue"
-  import ProgressBar from "../ProgressBar.vue"
   import TileGrid from "../TileGrid.vue"
   import UploadField from "../UploadField.vue"
   import Toggle from "../Toggle.vue"
-  import VersionDialog from "../VersionDialog.vue"
 
   const SEARCH_ABOVE = 16
   const TILE_SCALES = [1 / 4, 1 / 3, 1 / 2, 1, 2, 3, 4, 5, 6, 7, 8]
@@ -54,7 +53,6 @@
   const tileSize = ref({ width: 16, height: 16 })
   const blocks = shallowRef(null)
   const blocksError = ref("")
-  const choosingVersion = ref(false)
   const flatSize = ref(null)
   const customSize = ref(null)
   let blocksRequest = 0
@@ -75,7 +73,6 @@
   })
   const tileables = computed(() => popular(Object.entries(library.tileables), ([id]) => `tileable.${id}`, ([id, data]) => label(id, data)))
   const blockEntries = computed(() => popular(Array.from(blocks.value ?? []).filter(([id, { opaque }]) => opaque || id === object.value.minecraftTexture).map(([id, { preview }]) => [id, { name: blockName(id), url: preview }]), ([id]) => minecraftStatId(id), ([, data]) => data.name))
-  const jarProgress = computed(() => jar.total ? jar.done / jar.total : 0)
   const textureVariants = computed(() => Object.entries(list.value?.textures[object.value.texture]?.variants ?? {}))
   const tileableVariants = computed(() => Object.entries(library.tileables[object.value.tileable]?.variants ?? {}))
 
@@ -158,16 +155,20 @@
     target.tileableSource = source
   }
 
+  function resetSource() {
+    retint(null)
+    reset()
+  }
+
   async function chooseVersion(version) {
     const target = object.value
-    choosingVersion.value = false
     blocksError.value = ""
     try {
       const textures = await blockTextures(version)
       const solid = Array.from(textures.keys()).filter(id => textures.get(id).opaque)
       if (!solid.length) throw new Error(`Minecraft ${version} has no block textures without transparency`)
-      if (!textures.has(target.minecraftTexture)) target.minecraftTexture = ["cobblestone", "stone"].find(id => solid.includes(id)) ?? solid[0]
       target.minecraftVersion = version
+      if (!textures.has(target.minecraftTexture)) pickBlock(["cobblestone", "stone"].find(id => solid.includes(id)) ?? solid[0])
     } catch (err) {
       blocksError.value = err.message
     }
@@ -180,7 +181,9 @@
     blocksError.value = ""
     try {
       const textures = await blockTextures(object.value.minecraftVersion)
-      if (request === blocksRequest) blocks.value = textures
+      if (request !== blocksRequest) return
+      blocks.value = textures
+      keepVersions(gameVersions())
     } catch (err) {
       if (request === blocksRequest) blocksError.value = `Could not load Minecraft ${object.value.minecraftVersion}: ${err.message}`
     }
@@ -213,12 +216,12 @@
 </script>
 
 <template>
-  <Panel title="Source" :modified="modified" @reset="reset">
+  <Panel title="Source" :modified="modified" @reset="resetSource">
     <div class="flow" :class="{ pick: object.textureSource === 'premade' || object.textureSource === 'tileable', peek: object.textureSource === 'tileable' }">
       <Segments v-if="sources.length > 1" :options="sources" :model-value="object.textureSource" @update:model-value="chooseSource" />
 
       <template v-if="object.textureSource === 'premade'">
-        <input v-if="searchable(textures)" type="text" v-model="search" placeholder="Search textures">
+        <input v-if="searchable(textures)" type="text" v-model="search" placeholder="Search textures" aria-label="Search textures">
         <TileGrid class="scroll">
           <Tile v-for="[id, data] of shownTextures" :key="id" :label="label(id, data)" :unit="thumbnailHeight(font)" :image="thumbnail(font, id)" :author="credit(data, font?.id, library.fonts)" :badge="variantBadge(data)" :selected="object.texture === id" :menu="textureMenu(id, data)" @pick="setTexture(object, { texture: id, textureVariant: null })" />
         </TileGrid>
@@ -234,27 +237,19 @@
       <Segments v-if="object.textureSource === 'tileable'" :options="TILEABLE_SOURCES" :model-value="object.tileableSource" @update:model-value="chooseTileables" />
 
       <template v-if="usingMinecraft">
-        <button type="button" class="version field-button" :class="{ active: choosingVersion }" v-tooltip="'Choose a Minecraft version'" @click="choosingVersion = true">
-          <span>Minecraft {{ object.minecraftVersion }}</span>
-          <Icon class="chevron" name="down" :size="14" />
-        </button>
-        <div v-if="jar.version" class="download">
-          <span>Downloading Minecraft {{ jar.version }}</span>
-          <ProgressBar :value="jarProgress" />
-        </div>
+        <MinecraftVersionField :version="object.minecraftVersion" @pick="chooseVersion" />
         <Notice v-if="blocksError">{{ blocksError }}</Notice>
         <p v-else-if="blocks && !blockEntries.length" class="hint">This version has no block textures without transparency.</p>
         <template v-if="blockEntries.length">
-          <input v-if="searchable(blockEntries)" type="text" v-model="search" placeholder="Search textures">
+          <input v-if="searchable(blockEntries)" type="text" v-model="search" placeholder="Search textures" aria-label="Search textures">
           <TileGrid class="scroll">
             <Tile v-for="[id, data] of shownBlocks" :key="id" :label="data.name" aspect="2 / 1" :pattern="{ backgroundImage: `url(${data.url})` }" :author="data.author" :selected="object.minecraftTexture === id" :menu="blockMenu(id, data)" @pick="pickBlock(id)" />
           </TileGrid>
         </template>
-        <VersionDialog v-if="choosingVersion" :current="object.minecraftVersion" @pick="chooseVersion" @close="choosingVersion = false" />
       </template>
 
       <template v-if="object.textureSource === 'tileable' && !usingMinecraft">
-        <input v-if="searchable(tileables)" type="text" v-model="search" placeholder="Search textures">
+        <input v-if="searchable(tileables)" type="text" v-model="search" placeholder="Search textures" aria-label="Search textures">
         <TileGrid class="scroll">
           <Tile v-for="[id, data] of shownTileables" :key="id" :label="label(id, data)" aspect="2 / 1" :pattern="tilePreview(library.tileables, id)" :author="data.author" :badge="variantBadge(data)" :selected="object.tileable === id" :menu="tileableMenu(id)" @pick="object.tileable = id; object.tileableVariant = null" />
         </TileGrid>
@@ -297,38 +292,8 @@
 </template>
 
 <style scoped>
-  .pick {
-    /* 42px is the Panel.vue header: 28px tall plus its 14px margin */
-    height: max(520px, calc(100cqh - 42px - 2 * var(--group-padding) - var(--disclaimer-height, 0px)));
-    container-type: inline-size;
-  }
-
   .pick.peek {
     height: max(420px, calc(100cqh - 42px - 2 * var(--group-padding) - 120px - var(--disclaimer-height, 0px)));
-  }
-
-  .scroll {
-    flex: 0 1 auto;
-    align-content: start;
-  }
-
-  .version {
-    flex: none;
-    padding: 0 10px;
-  }
-
-  .version .chevron {
-    margin-left: auto;
-    color: var(--faint);
-  }
-
-  .download {
-    display: flex;
-    flex: none;
-    flex-direction: column;
-    gap: 6px;
-    font-size: var(--font-sm);
-    color: var(--muted);
   }
 
   .variants {

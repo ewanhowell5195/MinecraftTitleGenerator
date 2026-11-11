@@ -1,5 +1,6 @@
 <script setup>
   import { ref } from "vue"
+  import { reopenGuard } from "../lib/popover.js"
   import ContextMenu from "./ContextMenu.vue"
 
   const props = defineProps({
@@ -9,7 +10,7 @@
   const open = ref(null)
   const at = ref(null)
 
-  let closed = null
+  const guard = reopenGuard()
 
   function place(element, name) {
     const rect = element.getBoundingClientRect()
@@ -18,7 +19,7 @@
   }
 
   function show(event, name) {
-    if (closed?.name === name && performance.now() - closed.time < 300) return
+    if (guard.recent(name)) return
     place(event.currentTarget, name)
   }
 
@@ -27,7 +28,7 @@
   }
 
   function close() {
-    closed = { name: open.value, time: performance.now() }
+    guard.note(open.value)
     open.value = null
     at.value = null
   }
@@ -35,7 +36,7 @@
 
 <template>
   <nav class="menus">
-    <button v-for="(items, name) of props.menus" :key="name" class="menu" :class="{ active: open === name }" @click="show($event, name)" @pointerenter="hover($event, name)">{{ name }}</button>
+    <button v-for="(items, name) of props.menus" :key="name" class="menu" :class="{ active: open === name }" aria-haspopup="menu" :aria-expanded="open === name" @click="show($event, name)" @pointerenter="hover($event, name)">{{ name }}</button>
     <ContextMenu :items="open ? props.menus[open] : []" :at="at" @close="close" />
     <slot></slot>
   </nav>
@@ -53,12 +54,10 @@
     padding: 0 10px;
     font-weight: 500;
     background: transparent;
-    box-shadow: none;
   }
 
   .menu:hover,
   .menu.active {
     background: var(--card-hover);
-    filter: none;
   }
 </style>

@@ -1,5 +1,5 @@
 import { computed } from "vue"
-import { isModified, resetPanel } from "./settings.js"
+import { isModified, resetPanel, wordKey } from "./settings.js"
 import { active, current, currentWord } from "./scene.js"
 
 const font = computed(() => active.value.font)
@@ -16,6 +16,7 @@ export function usePanel(name, word = false) {
     font,
     list,
     modified: computed(() => isModified(object.value, name, context())),
-    reset: () => resetPanel(object.value, name, context())
+    reset: () => resetPanel(object.value, name, context()),
+    k: key => word ? wordKey(key) : key
   }
 }

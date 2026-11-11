@@ -1,13 +1,12 @@
 <script setup>
   import { computed, onBeforeUnmount, ref, watch } from "vue"
   import { vLongPress } from "../lib/events.js"
-  import { clamp } from "../lib/maths.js"
   import { namingForShare, namingPreset } from "../lib/presets.js"
   import { openPresetsPage } from "../lib/presetsPage.js"
   import { dropPreview, previews, renderPreview } from "../lib/previews.js"
-  import { useReorderDrag } from "../lib/reorder.js"
+  import { clampedSpot, followPointer, useReorderDrag } from "../lib/reorder.js"
   import { TYPES } from "../lib/settings.js"
-  import { addObject, addShape, duplicateLine, lineHidden, lineText, removeLine, removeObject, runtime, scene, select, selectGroup, toggleLine, wordText } from "../lib/scene.js"
+  import { addObject, addShape, duplicateLine, lineHidden, lineText, lines, removeLine, removeObject, runtime, scene, select, selectGroup, toggleLine, wordText } from "../lib/scene.js"
   import { view } from "../lib/view.js"
   import ContextMenu from "./ContextMenu.vue"
   import Icon from "./Icon.vue"
@@ -49,15 +48,7 @@
     timer = setTimeout(flush, SETTLE)
   }, { immediate: true })
 
-  const rows = computed(() => {
-    const list = []
-    for (const object of scene.objects) {
-      const row = list[list.length - 1]
-      if (object.group !== null && row?.group === object.group) row.words.push(object)
-      else list.push({ key: object.group === null ? `object-${object.id}` : `group-${object.group}`, group: object.group, words: [object] })
-    }
-    return list
-  })
+  const rows = computed(() => lines().map(words => ({ key: words[0].group === null ? `object-${words[0].id}` : `group-${words[0].group}`, group: words[0].group, words })))
 
   function selected(object) {
     if (view.render) return false
@@ -102,18 +93,20 @@
     return drag.vertical ? element.offsetHeight : element.offsetWidth
   }
 
+  function area(drag) {
+    return drag.object ? drag.lifted.parentElement : list.value
+  }
+
+  function spot(drag) {
+    return drag.vertical ? [null, drag.point - drag.grab] : [drag.point - drag.grab, null]
+  }
+
   function target(drag) {
-    const element = drag.lifted
-    const box = (drag.object ? element.parentElement : list.value).getBoundingClientRect()
-    const [min, max] = drag.vertical ? [box.top, box.bottom - size(element, drag)] : [box.left, box.right - size(element, drag)]
-    return clamp(drag.point - drag.grab, min, max)
+    return clampedSpot(drag.lifted, area(drag), spot(drag))[drag.vertical ? 1 : 0]
   }
 
   function follow(drag) {
-    const element = drag.lifted
-    element.style.transform = ""
-    const offset = target(drag) - edge(element, drag)
-    element.style.transform = drag.vertical ? `translateY(${offset}px)` : `translateX(${offset}px)`
+    followPointer(drag.lifted, area(drag), spot(drag))
   }
 
   function slot(elements, from, drag) {
@@ -211,10 +204,10 @@
     <div class="divider"></div>
     <div ref="list" class="list" :class="{ dragging: dragged !== null }" @dragstart.prevent>
       <div v-for="row of rows" :key="row.key" :data-row="row.key" :class="row.group === null ? 'single' : { group: true, selected: !view.render && scene.selectedGroup === row.group, hidden: lineHidden(row.words[0]), dragged: dragged === row.key }">
-        <div v-if="row.group !== null" class="head" tabindex="0" @pointerdown="press($event, row, null)" @click="pickGroup(row.group)" v-long-press @contextmenu.prevent="menu($event, row, null)" @keydown.enter="pickGroup(row.group)" v-tooltip="{ text: `${lineText(row.words[0]) || '(empty)'} (${TYPES[row.words[0].type].name})`, prefer: 'right', tooltipClass: 'rail-tip rail-head' }">
+        <div v-if="row.group !== null" class="head" tabindex="0" role="button" :aria-label="`${lineText(row.words[0]) || '(empty)'} line`" :aria-pressed="!view.render && scene.selectedGroup === row.group" @pointerdown="press($event, row, null)" @click="pickGroup(row.group)" v-long-press @contextmenu.prevent="menu($event, row, null)" @keydown.enter="pickGroup(row.group)" @keydown.space.prevent="pickGroup(row.group)" v-tooltip="{ text: `${lineText(row.words[0]) || '(empty)'} (${TYPES[row.words[0].type].name})`, prefer: 'right', tooltipClass: 'rail-tip rail-head' }">
           <Icon name="layers" :size="14" />
         </div>
-        <div class="layer" v-for="object of row.words" :key="object.id" tabindex="0" @pointerdown="press($event, row, row.group === null ? null : object)" @click="pick(object)" v-long-press @contextmenu.prevent="menu($event, row, row.group === null ? null : object)" @keydown.enter="pick(object)" :class="{ selected: selected(object), hidden: object.hidden, error: runtime[object.id]?.error, dragged: dragged === object.id || dragged === row.key && row.group === null }" v-tooltip="{ text: `${label(object)} (${TYPES[object.type].name})`, prefer: 'right', tooltipClass: row.group === null ? 'rail-tip thumb-tip' : 'rail-tip thumb-tip rail-word' }">
+        <div class="layer" v-for="object of row.words" :key="object.id" tabindex="0" role="button" :aria-pressed="selected(object)" @pointerdown="press($event, row, row.group === null ? null : object)" @click="pick(object)" v-long-press @contextmenu.prevent="menu($event, row, row.group === null ? null : object)" @keydown.enter="pick(object)" @keydown.space.prevent="pick(object)" :class="{ selected: selected(object), hidden: object.hidden, error: runtime[object.id]?.error, dragged: dragged === object.id || dragged === row.key && row.group === null }" v-tooltip="{ text: `${label(object)} (${TYPES[object.type].name})`, prefer: 'right', tooltipClass: row.group === null ? 'rail-tip thumb-tip' : 'rail-tip thumb-tip rail-word' }">
           <div class="thumb">
             <img v-if="previews[object.id]" :src="previews[object.id]" alt="">
           </div>
@@ -412,14 +405,12 @@
     color: var(--faint);
     background: transparent;
     border: 2px dashed var(--line-strong);
-    box-shadow: none;
   }
 
   .add:hover {
     color: var(--text);
     border-color: var(--accent);
     background: transparent;
-    filter: none;
   }
 
   .divider {
@@ -437,13 +428,11 @@
     font-size: var(--font-xs);
     color: var(--faint);
     background: transparent;
-    box-shadow: none;
   }
 
   .rail-button:hover {
     color: var(--text);
     background: var(--card);
-    filter: none;
   }
 
   .rail-button.selected {
