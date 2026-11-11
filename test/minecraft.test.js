@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { after, describe, test } from "node:test"
 import { blockName, blockTexturePaths, isOpaque, pngSize, usableVersions } from "../src/lib/minecraft.js"
-import { dropThumbnail, gameRelease, keepVersions, modelThumbnail } from "../src/lib/minecraftModels.js"
+import { dropThumbnail, gameRelease, keepVersions, modelItems, modelThumbnail } from "../src/lib/minecraftModels.js"
 import { firstTile } from "../src/lib/paint.js"
 import { usePlatform } from "../src/lib/platform.js"
 
@@ -116,6 +116,33 @@ describe("gameRelease", () => {
     assert.equal(gameRelease("13w02a"), undefined)
     assert.equal(gameRelease("1.RV-Pre1"), undefined)
     assert.equal(gameRelease("3D Shareware v1.34"), undefined)
+  })
+})
+
+describe("modelItems", () => {
+  test("lists the models that are items of their own", () => {
+    const models = { stick: { parent: "item/generated", textures: { layer0: "item/stick" } }, apple: { parent: "minecraft:item/generated", textures: { layer0: "item/apple" } }, stone: { parent: "block/stone" }, generated: { parent: "builtin/generated" } }
+    assert.deepEqual(modelItems(models), ["stick", "apple", "stone"])
+  })
+
+  test("leaves out the models another item switches to", () => {
+    const models = { bow: { parent: "item/generated", textures: { layer0: "item/bow" }, overrides: [{ predicate: { pulling: 1 }, model: "item/bow_pulling_0" }] }, bow_pulling_0: { parent: "item/bow", textures: { layer0: "item/bow_pulling_0" } } }
+    assert.deepEqual(modelItems(models), ["bow"])
+  })
+
+  test("an item that switches to itself is still listed", () => {
+    const models = { clock: { parent: "item/generated", textures: { layer0: "item/clock_00" }, overrides: [{ predicate: { time: 0 }, model: "item/clock" }, { predicate: { time: 0.1 }, model: "item/clock_01" }] }, clock_01: { parent: "item/generated", textures: { layer0: "item/clock_01" } } }
+    assert.deepEqual(modelItems(models), ["clock"])
+  })
+
+  test("leaves out the empty models other items are built from", () => {
+    const models = { generated: { parent: "builtin/generated" }, handheld: { parent: "item/generated" }, handheld_rod: { parent: "item/handheld" }, sword: { parent: "item/handheld", textures: { layer0: "item/sword" } }, fishing_rod: { parent: "item/handheld_rod", textures: { layer0: "item/fishing_rod" } }, template_bed: { parent: "builtin/entity" }, red_bed: { parent: "item/template_bed" } }
+    assert.deepEqual(modelItems(models), ["sword", "fishing_rod", "red_bed"])
+  })
+
+  test("keeps an item other items are built from when it draws something itself", () => {
+    const models = { generated: { parent: "builtin/generated" }, bundle: { parent: "item/generated", textures: { layer0: "item/bundle" } }, red_bundle: { parent: "item/bundle", textures: { layer0: "item/red_bundle" } }, chest: { parent: "builtin/entity" }, trapped_chest: { parent: "item/chest" }, copper_bulb: { parent: "block/copper_bulb" }, waxed_copper_bulb: { parent: "item/copper_bulb" } }
+    assert.deepEqual(modelItems(models), ["bundle", "red_bundle", "chest", "trapped_chest", "copper_bulb", "waxed_copper_bulb"])
   })
 })
 

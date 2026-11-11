@@ -5,9 +5,11 @@ import { quadsOf } from "./modelQuads.js"
 
 const LIBRARY = "https://cdn.jsdelivr.net/npm/block-model-renderer@3/dist/block-model-renderer.min.js"
 const FOLDERS = { block: "assets/minecraft/blockstates/", item: "assets/minecraft/items/" }
+const ITEM_MODELS = "assets/minecraft/models/item/"
 const THUMBNAIL = 96
 const RELEASE = /^\d+\.\d+(?:\.\d+)*/
 
+const decoder = new TextDecoder()
 let library = null
 let drawing = false
 const prepared = new Map()
@@ -56,9 +58,31 @@ function idsIn(paths, dir) {
   return paths.filter(path => path.startsWith(dir) && path.endsWith(".json") && !path.slice(dir.length).includes("/")).map(path => path.slice(dir.length, -5)).sort()
 }
 
+function itemModel(name) {
+  const path = name?.replace(/^minecraft:/, "") ?? ""
+  return path.startsWith("item/") ? path.slice(5) : null
+}
+
+export function modelItems(models) {
+  const ids = Object.keys(models)
+  const variants = new Set(ids.flatMap(id => (models[id].overrides ?? []).map(override => itemModel(override.model)).filter(name => name !== id)))
+  const parents = new Set(ids.filter(id => !variants.has(id)).map(id => itemModel(models[id].parent)))
+  function template(id) {
+    const { parent, textures } = models[id]
+    return id.startsWith("template_") || parents.has(id) && !Object.keys(textures ?? {}).length && (parent === "builtin/generated" || !!itemModel(parent))
+  }
+  return ids.filter(id => !variants.has(id) && !template(id))
+}
+
+async function itemsFromModels(version, paths) {
+  const read = idsIn(paths, ITEM_MODELS).map(async id => [id, JSON.parse(decoder.decode(await readGameFile(version, `${ITEM_MODELS}${id}.json`)))])
+  return modelItems(Object.fromEntries(await Promise.all(read)))
+}
+
 export async function modelList(version) {
   const { paths } = await gameModels(version)
-  return { block: idsIn(paths, FOLDERS.block), item: idsIn(paths, FOLDERS.item) }
+  const item = idsIn(paths, FOLDERS.item)
+  return { block: idsIn(paths, FOLDERS.block), item: item.length ? item : await itemsFromModels(version, paths) }
 }
 
 async function drawThumbnail({ kind, id, version }) {
