@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, mock, test } from "node:test"
 import assert from "node:assert/strict"
-import fs from "node:fs"
-import { DatabaseSync } from "node:sqlite"
+import { d1, database } from "./helpers/server.js"
 
 const { LIMITS } = await import("../src/lib/limits.js")
 const { checkTitle, claimPresets, countDownload, deletePreset, getPreset, listPresets, presetPageDetails, presetStats, renamePreset, replacePreset, submissionUsage, submitPreset, unsharePreset, votePreset } = await import("../src/server/presets.js")
@@ -10,37 +9,6 @@ const { accountDetails, finishSignIn, receiveSignIn, signOut, startSignIn } = aw
 const { addSaved, changeSaved, listSaved, removeSaved } = await import("../src/server/saved.js")
 const { encodeTitle } = await import("../src/lib/linkformat.js")
 const { FILE_VERSION } = await import("../src/lib/settings.js")
-
-function d1(sqlite) {
-  function statement(sql, values = []) {
-    return {
-      bind: (...next) => statement(sql, next),
-      all: async () => ({ results: sqlite.prepare(sql).all(...values) }),
-      first: async () => sqlite.prepare(sql).get(...values) ?? null,
-      run: async () => {
-        const { changes } = sqlite.prepare(sql).run(...values)
-        return { meta: { changes: Number(changes) } }
-      },
-      execute() {
-        return /RETURNING/.test(sql) ? { results: sqlite.prepare(sql).all(...values) } : { results: [], meta: { changes: Number(sqlite.prepare(sql).run(...values).changes) } }
-      }
-    }
-  }
-  return {
-    prepare: sql => statement(sql),
-    batch: async statements => {
-      sqlite.exec("BEGIN")
-      try {
-        const results = statements.map(item => item.execute())
-        sqlite.exec("COMMIT")
-        return results
-      } catch (err) {
-        sqlite.exec("ROLLBACK")
-        throw err
-      }
-    }
-  }
-}
 
 let db
 let env
@@ -88,10 +56,8 @@ async function share(text, extra = {}, ip = `${Math.random()}`) {
 }
 
 beforeEach(() => {
-  const sqlite = new DatabaseSync(":memory:")
-  sqlite.exec(fs.readFileSync("schema.sql", "utf8"))
-  db = sqlite
-  env = { DB: d1(sqlite), IP_SALT: "salt", SESSION_SECRET: "session-secret", DISCORD_CLIENT_ID: "discord-id", DISCORD_CLIENT_SECRET: "discord-secret", GITHUB_CLIENT_ID: "github-id", GITHUB_CLIENT_SECRET: "github-secret" }
+  db = database()
+  env = { DB: d1(db), IP_SALT: "salt", SESSION_SECRET: "session-secret", DISCORD_CLIENT_ID: "discord-id", DISCORD_CLIENT_SECRET: "discord-secret", GITHUB_CLIENT_ID: "github-id", GITHUB_CLIENT_SECRET: "github-secret" }
 })
 
 describe("titleFacts", () => {
@@ -170,7 +136,14 @@ describe("checkTitle", () => {
   })
 
   test("refuses a shape inside a line of words", () => {
-    assert.match(refusal(code([{ words: [{ text: "a" }, { shape: "heart" }] }])), /shape inside a line of words/)
+    assert.match(refusal(code([{ words: [{ text: "a" }, { shape: "heart" }] }])), /can't be shared: a shape is used as a word in a line/)
+  })
+
+  test("refuses titles the editor could not open", () => {
+    assert.match(refusal(code([{ text: "a" }, { words: [] }])), /can't be shared: a line has no words in it/)
+    assert.match(refusal(code([{ text: "a", matchWidth: 7 }])), /can't be shared: a line matches the width of line 7, which doesn't exist/)
+    assert.match(refusal(code([{ text: "a", matchWidth: 0 }])), /can't be shared: line 0 matches its own width/)
+    assert.match(refusal(code([{ text: "a" }, { words: [{ text: "b", matchWidth: 0 }] }])), /can't be shared: a word sets matchWidth/)
   })
 
   test("refuses settings the app does not know, even inside words and layers", () => {
@@ -243,12 +216,57 @@ describe("submitting", () => {
     assert.equal(huge.status, 413)
   })
 
+  test("refuses a request that says it is too big without reading it", async () => {
+    let read = false
+    const source = {
+      pull(controller) {
+        read = true
+        controller.close()
+      }
+    }
+    const body = new ReadableStream(source, { highWaterMark: 0 })
+    const request = new Request("https://example.test/api/presets", { method: "POST", headers: { "CF-Connecting-IP": "1", "Content-Length": String(LIMITS.body + 1) }, body, duplex: "half" })
+    assert.equal((await submitPreset({ request, env, params: {} })).status, 413)
+    assert.equal(read, false)
+  })
+
+  test("stops reading a body once it is over the limit", async () => {
+    let sent = 0
+    const source = {
+      pull(controller) {
+        sent++
+        controller.enqueue(new Uint8Array(LIMITS.body))
+      }
+    }
+    const body = new ReadableStream(source, { highWaterMark: 0 })
+    const request = new Request("https://example.test/api/presets", { method: "POST", headers: { "CF-Connecting-IP": "1" }, body, duplex: "half" })
+    assert.equal((await submitPreset({ request, env, params: {} })).status, 413)
+    assert.equal(sent, 2)
+  })
+
   test("allows 5 a day per IP", async () => {
     for (let index = 0; index < 5; index++) assert.equal((await post({ code: code([{ text: `a${index}` }]) }, "9.9.9.9")).status, 201)
     const refused = await post({ code: code([{ text: "a5" }]) }, "9.9.9.9")
     assert.equal(refused.status, 429)
     assert.match(refused.error, /up to 5 titles a day/)
     assert.equal((await post({ code: code([{ text: "a5" }]) }, "8.8.8.8")).status, 201)
+  })
+
+  test("shares sent at once can't go past the daily limit", async () => {
+    const sent = await Promise.all(Array.from({ length: 8 }, (_, index) => post({ code: code([{ text: `race ${index}` }]) }, "5.5.5.5")))
+    assert.deepEqual(sent.map(item => item.status).sort(), [201, 201, 201, 201, 201, 429, 429, 429])
+    assert.equal((await usageOf("5.5.5.5")).used, 5)
+  })
+
+  test("a share that fails gives its place in the daily limit back", async () => {
+    const batch = env.DB.batch
+    env.DB.batch = async () => {
+      throw new Error("the database is away")
+    }
+    await assert.rejects(post({ code: code([{ text: "lost" }]) }, "5.5.5.5"), /the database is away/)
+    env.DB.batch = batch
+    assert.equal((await usageOf("5.5.5.5")).used, 0)
+    assert.equal((await post({ code: code([{ text: "lost" }]) }, "5.5.5.5")).status, 201)
   })
 
   test("refused titles do not use up the daily limit", async () => {
@@ -481,6 +499,24 @@ describe("voting and rating", () => {
     assert.equal(votes, 1)
   })
 
+  test("counts one vote for every IPv6 address in the same /64", async () => {
+    const { id } = await share("a")
+    await vote(id, 1, "2001:db8:1:2::1")
+    assert.equal((await vote(id, 1, "2001:db8:1:2:ffff:ffff:ffff:ffff")).votes, 1)
+    assert.equal((await vote(id, 1, "2001:0DB8:0001:0002:0:0:0:9")).votes, 1)
+    assert.equal((await vote(id, 1, "2001:db8:1:3::1")).votes, 2)
+    assert.equal((await vote(id, 1, "2001:db8:1::2:0:0:1")).votes, 3)
+    assert.equal((await vote(id, 1, "2001:db8:1:0:9::")).votes, 3)
+    assert.equal((await vote(id, 1, "::1")).votes, 4)
+    assert.equal((await vote(id, 1, "::2")).votes, 4)
+  })
+
+  test("keeps IPv4 addresses apart", async () => {
+    const { id } = await share("a")
+    await vote(id, 1, "10.0.0.1")
+    assert.equal((await vote(id, 1, "10.0.0.2")).votes, 2)
+  })
+
   test("changing a vote replaces the old one", async () => {
     const { id } = await share("a")
     await voteAll(id, [1, 1, 1, 1])
@@ -531,6 +567,45 @@ describe("voting and rating", () => {
     assert.equal((await vote(999, 1, "a")).status, 404)
     assert.equal((await vote("abc", 1, "a")).status, 404)
   })
+})
+
+describe("requests from other websites", () => {
+  function from(origin, path, options) {
+    const made = context(path, options)
+    made.request = new Request(made.request, { headers: { "CF-Connecting-IP": "1.1.1.1", Origin: origin } })
+    return made
+  }
+
+  function voteFrom(origin, id) {
+    return votePreset(from(origin, `/api/presets/${id}/vote`, { method: "POST", body: { value: 1 }, params: { id: String(id) } }))
+  }
+
+  test("can't vote, count a download or share for the visitor", async () => {
+    const { id } = await share("a")
+    for (const origin of ["https://evil.test", "https://example.test.evil.test", "http://example.test", "null"]) {
+      const voted = await voteFrom(origin, id)
+      assert.equal(voted.status, 403)
+      assert.match((await voted.json()).error, /another website/)
+    }
+    assert.equal((await countDownload(from("https://evil.test", `/api/presets/${id}/download`, { method: "POST", params: { id: String(id) } }))).status, 403)
+    assert.equal((await submitPreset(from("https://evil.test", "/api/presets", { method: "POST", body: { code: code([{ text: "b" }]) } }))).status, 403)
+    assert.deepEqual(rowCounts(), { presets: 1, preset_votes: 0, preset_downloads: 0, preset_submissions: 1 })
+  })
+
+  test("the site itself and local development can write", async () => {
+    const { id } = await share("a")
+    for (const origin of ["https://example.test", "http://localhost:9123", "http://127.0.0.1:9123"]) assert.equal((await voteFrom(origin, id)).status, 200)
+    assert.equal((await vote(id, 1)).status, 200)
+  })
+
+  test("anyone can read", async () => {
+    await share("a")
+    assert.equal((await listPresets(from("https://evil.test", "/api/presets"))).status, 200)
+  })
+
+  function rowCounts() {
+    return Object.fromEntries(["presets", "preset_votes", "preset_downloads", "preset_submissions"].map(table => [table, db.prepare(`SELECT COUNT(*) AS count FROM ${table}`).get().count]))
+  }
 })
 
 describe("exact duplicates", () => {
@@ -1619,6 +1694,18 @@ describe("accounts", () => {
       await addSaved(withCookie("/api/saved", cookie, { method: "POST", body: { presets: [{ name: "Copy", code: code([{ text: "claimed" }]) }] } }))
       assert.deepEqual((await claim(cookie, [{ id: preset.id, token }])).moved, [preset.id])
       assert.deepEqual((await (await listSaved(withCookie("/api/saved", cookie, { method: "GET" }))).json()).presets, [{ name: "Claimed", code: code([{ text: "claimed" }]) }])
+    })
+
+    test("the saved copy a claim replaces keeps its id out of use", async () => {
+      const { preset, token } = await shared("claimed")
+      await unshareWith(token, preset.id)
+      const cookie = await signIn()
+      await addSaved(withCookie("/api/saved", cookie, { method: "POST", body: { presets: [{ name: "Copy", code: code([{ text: "claimed" }]) }] } }))
+      const copy = db.prepare("SELECT id FROM presets WHERE id != ?").get(preset.id).id
+      await claim(cookie, [{ id: preset.id, token }])
+      assert.deepEqual(db.prepare("SELECT id FROM deleted_presets").all().map(row => row.id), [copy])
+      const next = await shared("next")
+      assert.ok(next.preset.id > copy)
     })
 
     async function removeWith(token, id) {

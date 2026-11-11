@@ -1,16 +1,11 @@
 import { LIMITS } from "../lib/limits.js"
 import { decodeTitle } from "../lib/linkformat.js"
-import { USER_ROW, forgetUnusedUser, saveUser, signedInUser } from "./accounts.js"
+import { USER_ROW, activeUser, forgetUnusedUser, requireUser, saveUser } from "./accounts.js"
 import { INVALID, Refusal, guarded, jsonBody, reply, textField } from "./http.js"
-import { NEXT_ID } from "./presets.js"
+import { NEXT_ID, deletingPresets } from "./presets.js"
 
 const BATCH_BODY = LIMITS.savedBatch * (LIMITS.savedCode + 512)
-
-async function requireUser(context) {
-  const user = await signedInUser(context)
-  if (!user) throw new Refusal(401, "You've been signed out. Sign in again to use the presets on your account.")
-  return user
-}
+const SIGNED_OUT = "You've been signed out. Sign in again to use the presets on your account."
 
 function shown({ id, name, code, shared }) {
   return shared ? { name, code, shared: id } : { name, code }
@@ -37,14 +32,14 @@ function requireCode(body) {
 }
 
 export const listSaved = guarded(async context => {
-  const user = await requireUser(context)
+  const user = await requireUser(context, SIGNED_OUT)
   const { results } = await context.env.DB.prepare(`SELECT id, name, code, shared FROM presets WHERE user_id = ${USER_ROW} ORDER BY id`).bind(user.provider, user.providerId).all()
   return reply(200, { presets: results.map(shown) })
 })
 
 export const addSaved = guarded(async context => {
   const { request, env } = context
-  const user = await requireUser(context)
+  const user = await requireUser(context, SIGNED_OUT, activeUser)
   const { presets } = await jsonBody(request, BATCH_BODY)
   if (!Array.isArray(presets) || presets.length > LIMITS.savedBatch) throw new Refusal(400, INVALID)
   const { results } = await env.DB.prepare(`SELECT code, shared FROM presets WHERE user_id = ${USER_ROW}`).bind(user.provider, user.providerId).all()
@@ -69,7 +64,7 @@ export const addSaved = guarded(async context => {
 
 export const changeSaved = guarded(async context => {
   const { request, env } = context
-  const user = await requireUser(context)
+  const user = await requireUser(context, SIGNED_OUT)
   const body = await jsonBody(request, LIMITS.savedCode * 2 + 512)
   const code = requireCode(body)
   const sets = []
@@ -88,19 +83,15 @@ export const changeSaved = guarded(async context => {
     values.push(name)
   }
   if (!sets.length) throw new Refusal(400, INVALID)
-  await env.DB.prepare(`UPDATE presets SET ${sets.join(", ")} WHERE user_id = ${USER_ROW} AND code = ? AND shared = 0`).bind(...values, user.provider, user.providerId, code).run()
+  const { meta } = await env.DB.prepare(`UPDATE presets SET ${sets.join(", ")} WHERE user_id = ${USER_ROW} AND code = ? AND shared = 0`).bind(...values, user.provider, user.providerId, code).run()
+  if (!meta.changes) throw new Refusal(404, "This preset isn't on your account any more.")
   return reply(200, { changed: true })
 })
 
 export const removeSaved = guarded(async context => {
   const { request, env } = context
-  const user = await requireUser(context)
+  const user = await requireUser(context, SIGNED_OUT)
   const code = requireCode(await jsonBody(request, LIMITS.savedCode + 512))
-  const where = `user_id = ${USER_ROW} AND code = ? AND shared = 0`
-  await env.DB.batch([
-    env.DB.prepare(`INSERT INTO deleted_presets (id) SELECT id FROM presets WHERE ${where}`).bind(user.provider, user.providerId, code),
-    env.DB.prepare(`DELETE FROM presets WHERE ${where}`).bind(user.provider, user.providerId, code),
-    forgetUnusedUser(env, user)
-  ])
+  await env.DB.batch(deletingPresets(env, `user_id = ${USER_ROW} AND code = ? AND shared = 0`, user.provider, user.providerId, code).concat(forgetUnusedUser(env, user)))
   return reply(200, { deleted: true })
 })

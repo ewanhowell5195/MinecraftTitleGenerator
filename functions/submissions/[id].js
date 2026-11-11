@@ -1,3 +1,3 @@
-export function onRequestGet({ request, env }) {
-  return env.ASSETS.fetch(new URL("/submissions/", request.url))
-}
+import { submissionPage } from "../../src/server/submissions.js"
+
+export const onRequestGet = submissionPage

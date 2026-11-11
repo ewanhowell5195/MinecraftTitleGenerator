@@ -1,4 +1,5 @@
 import { unzlibSync } from "three/addons/libs/fflate.module.js"
+import { SUBMISSION_LIMITS } from "../submissions.js"
 
 const SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10]
 const CHANNELS = { 0: 1, 2: 3, 3: 1, 4: 2, 6: 4 }
@@ -48,6 +49,20 @@ function unfilter(raw, height, stride, step) {
   return out
 }
 
+function inflated(joined, size) {
+  const overflow = "the PNG has more pixels than its size allows"
+  let raw
+  try {
+    raw = unzlibSync(joined, { out: new Uint8Array(size + 1) })
+  } catch (err) {
+    if (err instanceof RangeError) throw new Error(overflow)
+    throw err
+  }
+  if (raw.length > size) throw new Error(overflow)
+  if (raw.length < size) throw new Error("the PNG's pixels are cut short")
+  return raw
+}
+
 export function decodePng(bytes) {
   if (bytes.length < 8 || SIGNATURE.some((value, index) => bytes[index] !== value)) throw new Error("it isn't a PNG")
   const list = chunks(bytes)
@@ -56,6 +71,7 @@ export function decodePng(bytes) {
   const view = new DataView(header.buffer, header.byteOffset, header.byteLength)
   const width = view.getUint32(0)
   const height = view.getUint32(4)
+  if (width > SUBMISSION_LIMITS.side || height > SUBMISSION_LIMITS.side) throw new Error(`the PNG is ${width}x${height}, and it can be up to ${SUBMISSION_LIMITS.side} pixels on each side`)
   const [depth, colour, , , interlace] = header.subarray(8, 13)
   const channels = CHANNELS[colour]
   if (!channels || ![1, 2, 4, 8, 16].includes(depth)) throw new Error(`the PNG uses colour type ${colour} at ${depth} bits, which can't be read`)
@@ -70,8 +86,7 @@ export function decodePng(bytes) {
   }
   const bits = depth * channels
   const stride = Math.ceil(width * bits / 8)
-  const raw = unzlibSync(joined)
-  if (raw.length < height * (stride + 1)) throw new Error("the PNG's pixels are cut short")
+  const raw = inflated(joined, height * (stride + 1))
   const rows = unfilter(raw, height, stride, Math.max(1, bits >> 3))
   const data = new Uint8ClampedArray(width * height * 4)
   const max = (1 << Math.min(depth, 8)) - 1

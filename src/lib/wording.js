@@ -2,7 +2,7 @@ import { RegExpMatcher, englishDataset, englishRecommendedTransformers } from "o
 
 const rude = new RegExpMatcher({ ...englishDataset.build(), ...englishRecommendedTransformers })
 
-export function hasBlockedWord(text) {
+function hasBlockedWord(text) {
   return rude.hasMatch(text)
 }
 

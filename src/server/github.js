@@ -1,7 +1,9 @@
+import { USER_AGENT, bodyBytes, setting } from "./http.js"
+
 const API = "https://api.github.com"
 const REPOSITORY = "ewanhowell5195/MinecraftTitleGenerator"
-const USER_AGENT = "MinecraftTitleGenerator"
 const TOKEN_MARGIN = 120000
+const WEBHOOK_BYTES = 5000000
 const RSA_ALGORITHM = [0x30, 0x0d, 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01, 0x05, 0x00]
 
 let cached = null
@@ -17,11 +19,6 @@ export function repository(env) {
   return env.GITHUB_REPOSITORY ?? REPOSITORY
 }
 
-function setting(env, name) {
-  if (!env[name]) throw new Error(`${name} is not set`)
-  return env[name]
-}
-
 function base64Url(bytes) {
   return btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")
 }
@@ -32,7 +29,7 @@ export function base64(bytes) {
   return btoa(text)
 }
 
-export function fromBase64(text) {
+function fromBase64(text) {
   return Uint8Array.from(atob(text.replace(/\s/g, "")), character => character.charCodeAt(0))
 }
 
@@ -87,7 +84,7 @@ export async function github(env, path, { raw = false, ...options } = {}) {
 }
 
 export async function verifiedWebhook(env, request) {
-  const body = await request.text()
+  const body = new TextDecoder().decode(await bodyBytes(request, WEBHOOK_BYTES))
   const signature = request.headers.get("X-Hub-Signature-256") ?? ""
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(setting(env, "GITHUB_WEBHOOK_SECRET")), { name: "HMAC", hash: "SHA-256" }, false, ["verify"])
   const hex = signature.startsWith("sha256=") ? signature.slice(7) : ""

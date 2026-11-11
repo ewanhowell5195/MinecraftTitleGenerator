@@ -1,6 +1,6 @@
 import { blockedWordProblem } from "./wording.js"
 
-export const SUBMISSION_LIMITS = { name: 40, credit: 60, notes: 500, fileBytes: 1900000, totalBytes: 12000000, extraFiles: 24, side: 4096, perDay: 10, listed: 100, notifications: 50, comment: 2000, comments: 200 }
+export const SUBMISSION_LIMITS = { name: 40, credit: 60, notes: 500, fileBytes: 1900000, totalBytes: 12000000, extraFiles: 24, side: 4096, perDay: 10, listed: 100, notifications: 50, comment: 2000, comments: 200, commentsPerDay: 50 }
 
 export const EXTRA_FILE = /^[a-z0-9-]{1,40}$/
 
@@ -12,11 +12,14 @@ function length(text) {
   return Array.from(text).length
 }
 
-export function textProblem(value, label, limit, { required = false, noun = "submission" } = {}) {
+const CONTROL = /[\u0000-\u001f\u007f\u2028\u2029]/
+
+export function textProblem(value, label, limit, { required = false, noun = "submission", lines = false } = {}) {
   if (typeof value !== "string") return `The ${label} has to be text.`
   const text = value.trim()
   if (required && !text) return `Give the ${noun} a ${label}.`
   if (length(text) > limit) return `The ${label} can be up to ${limit} characters.`
+  if (!lines && CONTROL.test(text)) return `The ${label} has to be a single line.`
   return blockedWordProblem(label, text)
 }
 
@@ -24,7 +27,7 @@ export function commonProblems(fields, noun) {
   const problems = {
     name: textProblem(fields.name, "name", SUBMISSION_LIMITS.name, { required: true, noun }),
     credit: textProblem(fields.credit, "credit", SUBMISSION_LIMITS.credit, { required: true, noun }),
-    notes: textProblem(fields.notes ?? "", "notes", SUBMISSION_LIMITS.notes, { noun }),
+    notes: textProblem(fields.notes ?? "", "notes", SUBMISSION_LIMITS.notes, { noun, lines: true }),
     agree: fields.agree === true ? null : "Agree to the submission terms to send it."
   }
   return Object.fromEntries(Object.entries(problems).filter(([, problem]) => problem))

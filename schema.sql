@@ -10,6 +10,13 @@ CREATE TABLE users (
   UNIQUE (provider, provider_id)
 );
 
+CREATE INDEX users_by_name ON users (lower(name));
+
+CREATE TABLE deleted_accounts (
+  account_hash TEXT PRIMARY KEY,
+  deleted_at INTEGER NOT NULL
+);
+
 CREATE TABLE presets (
   id INTEGER PRIMARY KEY,
   code TEXT NOT NULL,
@@ -55,6 +62,8 @@ CREATE TABLE preset_daily_downloads (
   PRIMARY KEY (day, preset_id)
 );
 
+CREATE INDEX preset_daily_downloads_by_preset ON preset_daily_downloads (preset_id);
+
 CREATE TABLE preset_submissions (
   ip_hash TEXT NOT NULL,
   day TEXT NOT NULL,
@@ -88,6 +97,10 @@ CREATE TABLE submissions (
   pull INTEGER,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE deleted_submissions (
+  id INTEGER PRIMARY KEY
 );
 
 CREATE INDEX submissions_by_user ON submissions (user_id, id DESC);

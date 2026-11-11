@@ -1,6 +1,6 @@
 import { LIMITS } from "../lib/limits.js"
 import { ACCOUNT_CHANNEL, PROVIDERS, SIGN_IN_RETURN } from "../lib/providers.js"
-import { Refusal, escaped, guarded, hex, randomToken, reply } from "./http.js"
+import { APP_ORIGINS, Refusal, USER_AGENT, escaped, guarded, hashed, hex, randomToken, reply, setting } from "./http.js"
 
 const SESSION_COOKIE = "session"
 const SESSION_PATH = "/api"
@@ -9,10 +9,8 @@ const STATE_COOKIE = "signin_state"
 const STATE_PATH = "/api/account/login"
 const STATE_SECONDS = 600
 const HANDOFF_SECONDS = 60
-const USER_AGENT = "MinecraftTitleGenerator"
 // must match the one redirect URL registered with each provider
 const CALLBACK_ORIGIN = "https://mctitlegenerator.com"
-const RETURN_ORIGINS = [/^https:\/\/mctitlegenerator\.com$/, /^https:\/\/([a-z0-9-]+\.)?minecrafttitlegenerator\.pages\.dev$/, /^https:\/\/dev\.ewanhowell\.com$/, /^http:\/\/(localhost|127\.0\.0\.1):\d+$/]
 
 const ENDPOINTS = {
   discord: {
@@ -20,7 +18,7 @@ const ENDPOINTS = {
     token: "https://discord.com/api/oauth2/token",
     profile: "https://discord.com/api/v10/users/@me",
     scope: "identify email",
-    person: user => ({ id: user.id, name: user.username, avatar: user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64` : `https://cdn.discordapp.com/embed/avatars/${(BigInt(user.id) >> 22n) % 6n}.png`, email: user.email })
+    person: user => ({ id: user.id, name: user.username, avatar: user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64` : `https://cdn.discordapp.com/embed/avatars/${(BigInt(user.id) >> 22n) % 6n}.png`, email: user.email, verified: user.verified })
   },
   github: {
     authorize: "https://github.com/login/oauth/authorize",
@@ -32,12 +30,7 @@ const ENDPOINTS = {
   }
 }
 
-const KEEPS_EMAIL = "(users.admin = 1 OR EXISTS (SELECT 1 FROM submissions WHERE submissions.user_id = users.id))"
-
-function setting(env, name) {
-  if (!env[name]) throw new Error(`${name} is not set`)
-  return env[name]
-}
+const KEEPS_EMAIL = "(users.admin = 1 OR EXISTS (SELECT 1 FROM submissions WHERE submissions.user_id = users.id) OR EXISTS (SELECT 1 FROM notifications WHERE notifications.user_id = users.id AND notifications.emailed = 0))"
 
 function providerOf(env, params) {
   const provider = PROVIDERS.find(({ id }) => id === params.provider)
@@ -53,7 +46,7 @@ function callbackUrl(provider) {
 function returnOrigin(request) {
   const url = new URL(request.url)
   const origin = url.searchParams.get("return") ?? url.origin
-  if (!RETURN_ORIGINS.some(allowed => allowed.test(origin))) throw new Refusal(400, "You can't sign in from this address.")
+  if (!APP_ORIGINS.some(allowed => allowed.test(origin))) throw new Refusal(400, "You can't sign in from this address.")
   return origin
 }
 
@@ -122,8 +115,8 @@ async function fetchPerson(provider, code) {
   const { access_token: token } = await providerJson(provider, provider.token, { method: "POST", body: form })
   const auth = { headers: { Authorization: `Bearer ${token}` } }
   const person = provider.person(await providerJson(provider, provider.profile, auth))
-  const email = provider.emails ? (await providerJson(provider, provider.emails, auth)).find(entry => entry.primary)?.email : person.email
-  return { id: person.id, name: Array.from(person.name).slice(0, LIMITS.name).join(""), avatar: person.avatar, email: email ?? "" }
+  const contact = provider.emails ? (await providerJson(provider, provider.emails, auth)).find(entry => entry.primary) : person
+  return { id: person.id, name: Array.from(person.name).slice(0, LIMITS.name).join(""), avatar: person.avatar, email: contact?.email ?? "", emailVerified: contact?.verified === true }
 }
 
 function shownUser(user) {
@@ -134,15 +127,48 @@ export const USER_ROW = "(SELECT id FROM users WHERE provider = ? AND provider_i
 
 export async function signedInUser({ request, env }) {
   const session = await verified(env, "session", cookieValue(request, SESSION_COOKIE))
-  return session && { id: session.id, name: session.name, provider: session.provider, avatar: session.avatar ?? null, email: session.email, providerId: session.id.slice(session.provider.length + 1) }
+  return session && { id: session.id, name: session.name, provider: session.provider, avatar: session.avatar ?? null, email: session.email, emailVerified: session.emailVerified, issued: session.issued ?? 0, providerId: session.id.slice(session.provider.length + 1) }
+}
+
+export function accountKey(env, purpose, user) {
+  return hashed(`${setting(env, "SESSION_SECRET")}:${purpose}:${user.id}`)
+}
+
+async function deletedSince(env, user) {
+  const row = await env.DB.prepare("SELECT deleted_at AS deletedAt FROM deleted_accounts WHERE account_hash = ?").bind(await accountKey(env, "deleted", user)).first()
+  return !!row && user.issued <= row.deletedAt
+}
+
+export async function activeUser(context) {
+  const user = await signedInUser(context)
+  if (user && await deletedSince(context.env, user)) throw new Refusal(401, "This account has been deleted. Sign in again to make a new one.", { "Set-Cookie": clearedSession() })
+  return user
+}
+
+export async function requireUser(context, message, find = signedInUser) {
+  const user = await find(context)
+  if (!user) throw new Refusal(401, message)
+  return user
+}
+
+export async function forgetSessions(env, user) {
+  const now = Date.now()
+  return [
+    env.DB.prepare("INSERT INTO deleted_accounts (account_hash, deleted_at) VALUES (?, ?) ON CONFLICT (account_hash) DO UPDATE SET deleted_at = excluded.deleted_at").bind(await accountKey(env, "deleted", user), now),
+    env.DB.prepare("DELETE FROM deleted_accounts WHERE deleted_at < ?").bind(now - SESSION_SECONDS * 1000)
+  ]
 }
 
 export function rememberUser(env, user) {
-  return env.DB.prepare(`UPDATE users SET name = ?, email = CASE WHEN ${KEEPS_EMAIL} THEN NULLIF(?, '') END WHERE provider = ? AND provider_id = ?`).bind(user.name, user.email ?? "", user.provider, user.providerId)
+  return env.DB.prepare(`UPDATE users SET name = ?, email = CASE WHEN ${KEEPS_EMAIL} THEN NULLIF(?, '') END WHERE provider = ? AND provider_id = ?`).bind(user.name, user.emailVerified ? user.email : "", user.provider, user.providerId)
 }
 
 export function forgetEmail(env, userId) {
   return env.DB.prepare(`UPDATE users SET email = NULL WHERE id = ? AND NOT ${KEEPS_EMAIL}`).bind(userId)
+}
+
+export function forgetSpareEmails(env) {
+  return env.DB.prepare(`UPDATE users SET email = NULL WHERE email IS NOT NULL AND NOT ${KEEPS_EMAIL}`)
 }
 
 export function saveUser(env, user) {
@@ -155,7 +181,7 @@ export async function isAdmin(env, user) {
 }
 
 export function forgetUnusedUser(env, user) {
-  return env.DB.prepare("DELETE FROM users WHERE provider = ? AND provider_id = ? AND admin = 0 AND NOT EXISTS (SELECT 1 FROM presets WHERE presets.user_id = users.id) AND NOT EXISTS (SELECT 1 FROM submissions WHERE submissions.user_id = users.id)").bind(user.provider, user.providerId)
+  return env.DB.prepare("DELETE FROM users WHERE provider = ? AND provider_id = ? AND admin = 0 AND NOT EXISTS (SELECT 1 FROM presets WHERE presets.user_id = users.id) AND NOT EXISTS (SELECT 1 FROM submissions WHERE submissions.user_id = users.id) AND NOT EXISTS (SELECT 1 FROM notifications WHERE notifications.user_id = users.id)").bind(user.provider, user.providerId)
 }
 
 export const startSignIn = showingRefusals(async ({ request, env, params }) => {
@@ -189,8 +215,8 @@ export const finishSignIn = showingRefusals(async ({ request, env, params }) => 
   const handoff = await verified(env, "handoff", url.searchParams.get("handoff"))
   if (!handoff || handoff.nonce !== cookieValue(request, STATE_COOKIE)) throw new Refusal(400, "This sign-in has expired. Close this window and try again.")
   const id = `${provider.id}:${handoff.id}`
-  const session = await signed(env, "session", SESSION_SECONDS, { id, name: handoff.name, provider: provider.id, avatar: handoff.avatar, email: handoff.email })
-  await rememberUser(env, { name: handoff.name, email: handoff.email, provider: provider.id, providerId: handoff.id }).run()
+  const session = await signed(env, "session", SESSION_SECONDS, { id, name: handoff.name, provider: provider.id, avatar: handoff.avatar, email: handoff.email, emailVerified: handoff.emailVerified, issued: Date.now() })
+  await rememberUser(env, { name: handoff.name, email: handoff.email, emailVerified: handoff.emailVerified, provider: provider.id, providerId: handoff.id }).run()
   const response = page(200, "You're signed in", "You can close this window.", leaveScript(`new BroadcastChannel("${ACCOUNT_CHANNEL}").postMessage("changed");`))
   response.headers.append("Set-Cookie", cookie(SESSION_COOKIE, session, SESSION_SECONDS, SESSION_PATH))
   response.headers.append("Set-Cookie", cookie(STATE_COOKIE, "", 0, STATE_PATH))
@@ -203,9 +229,11 @@ async function submissionCounts(env, user, admin) {
 }
 
 export const accountDetails = guarded(async context => {
+  const providers = PROVIDERS.map(({ id }) => id).filter(id => context.env[`${id.toUpperCase()}_CLIENT_ID`])
   const user = await signedInUser(context)
+  if (user && await deletedSince(context.env, user)) return reply(200, { user: null, providers }, { "Set-Cookie": clearedSession() })
   const admin = !!user && await isAdmin(context.env, user)
-  return reply(200, { user: user && { ...shownUser(user), ...await submissionCounts(context.env, user, admin), admin }, providers: PROVIDERS.map(({ id }) => id).filter(id => context.env[`${id.toUpperCase()}_CLIENT_ID`]) })
+  return reply(200, { user: user && { ...shownUser(user), ...await submissionCounts(context.env, user, admin), admin }, providers })
 })
 
 export function clearedSession() {

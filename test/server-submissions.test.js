@@ -1,86 +1,27 @@
 import { afterEach, beforeEach, describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { createHmac, generateKeyPairSync } from "node:crypto"
+import { createHmac } from "node:crypto"
 import fs from "node:fs"
-import path from "node:path"
-import { DatabaseSync } from "node:sqlite"
 import { PNG } from "pngjs"
-import { fakeGitHub } from "./fakeGitHub.js"
+import { pngOf } from "./helpers/png.js"
+import { REPO, context, details, editForm, hook, sendForm, serverEnv, signIn } from "./helpers/server.js"
 
-const { accountDetails, finishSignIn, receiveSignIn, startSignIn } = await import("../src/server/accounts.js")
-const { addComment, clearNotifications, createSubmission, editSubmission, listNotifications, listSubmissions, markNotificationsSeen, receiveWebhook, reviewState, reviewSubmission, submissionDetails, submissionFile, submissionProcessing, withdrawSubmission } = await import("../src/server/submissions.js")
+const { accountDetails } = await import("../src/server/accounts.js")
+const { addComment, clearNotifications, createSubmission, listNotifications, listSubmissions, markNotificationsSeen, reviewState, reviewSubmission, submissionDetails, submissionFile, submissionProcessing, withdrawSubmission } = await import("../src/server/submissions.js")
 const { jsonText } = await import("../src/lib/jsonText.js")
 const { decodeTitle } = await import("../src/lib/linkformat.js")
 
-const REPO = "owner/repo"
-const API = "https://github.test"
 const TEXTURES = "public/font/minecraft-ten/textures.json"
 const FLAT = PNG.sync.read(fs.readFileSync("public/font/minecraft-ten/textures/flat.png"))
-const realFetch = globalThis.fetch
 
-function d1(sqlite) {
-  function statement(sql, values = []) {
-    return {
-      bind: (...next) => statement(sql, next),
-      all: async () => ({ results: sqlite.prepare(sql).all(...values) }),
-      first: async () => sqlite.prepare(sql).get(...values) ?? null,
-      run: async () => ({ meta: { changes: Number(sqlite.prepare(sql).run(...values).changes) } }),
-      execute() {
-        return /RETURNING/.test(sql) ? { results: sqlite.prepare(sql).all(...values) } : { results: [], meta: { changes: Number(sqlite.prepare(sql).run(...values).changes) } }
-      }
-    }
-  }
-  return {
-    prepare: sql => statement(sql),
-    batch: async statements => {
-      sqlite.exec("BEGIN")
-      try {
-        const results = statements.map(item => item.execute())
-        sqlite.exec("COMMIT")
-        return results
-      } catch (err) {
-        sqlite.exec("ROLLBACK")
-        throw err
-      }
-    }
-  }
-}
-
-function png(width, height) {
-  const image = new PNG({ width, height })
-  image.data.fill(200)
-  return PNG.sync.write(image)
-}
-
-function assets(url) {
-  const file = path.join("public", decodeURIComponent(new URL(url).pathname))
-  return fs.existsSync(file) && fs.statSync(file).isFile() ? new Response(fs.readFileSync(file)) : new Response("missing", { status: 404 })
-}
-
-let env
 let gh
 let waiting
-let profile
 let db
 let emails
+let resend
+let restore
 
-function context(url, { method = "GET", body, cookie, params = {}, headers = {} } = {}) {
-  const request = new Request(`https://mctitlegenerator.com${url}`, { method, body, headers: { ...(cookie && { Cookie: cookie }), ...headers } })
-  return { request, env, params, waitUntil: promise => waiting.push(promise) }
-}
-
-async function signIn(provider = "discord", person = { id: "1234", username: "someone", email: "someone@example.com", verified: true }) {
-  profile = person
-  const started = await startSignIn(context(`/api/account/login/${provider}?return=${encodeURIComponent("https://mctitlegenerator.com")}`, { params: { provider } }))
-  const state = new URL(started.headers.get("Location")).searchParams.get("state")
-  const stateCookie = started.headers.getSetCookie().find(line => line.startsWith("signin_state=")).split(";")[0]
-  const back = await receiveSignIn(context(`/api/account/login/${provider}/callback?${new URLSearchParams({ code: "abc", state })}`, { params: { provider } }))
-  const { pathname, search } = new URL(back.headers.get("Location"))
-  const done = await finishSignIn(context(`${pathname}${search}`, { cookie: stateCookie, params: { provider } }))
-  return done.headers.getSetCookie().find(line => line.startsWith("session=")).split(";")[0]
-}
-
-function form(fields = {}, image = png(FLAT.width, FLAT.height)) {
+function form(fields = {}, image = pngOf(FLAT.width, FLAT.height)) {
   const data = new FormData()
   const { font = "minecraft-ten", border = "#3D1F0A", ...rest } = fields
   const values = { kind: "texture", target: font, name: "Gold Bricks", credit: "Someone", notes: "", agree: "true", details: JSON.stringify({ border }), ...rest }
@@ -89,30 +30,11 @@ function form(fields = {}, image = png(FLAT.width, FLAT.height)) {
   return data
 }
 
-async function send(cookie, fields, image) {
-  const response = await createSubmission(context("/api/submissions", { method: "POST", body: form(fields, image), cookie }))
-  return { status: response.status, ...await response.json() }
-}
-
-async function edit(cookie, id, fields, image = null) {
-  const response = await editSubmission(context(`/api/submissions/${id}`, { method: "PATCH", body: form(fields, image), cookie, params: { id: String(id) } }))
-  return { status: response.status, ...await response.json() }
-}
-
-async function details(id, cookie) {
-  return (await (await submissionDetails(context(`/api/submissions/${id}`, { cookie, params: { id: String(id) } }))).json()).submission
-}
+const send = (cookie, fields, image) => sendForm(cookie, form(fields, image))
+const edit = (cookie, id, fields, image = null) => editForm(cookie, id, form(fields, image))
 
 function branchList(id) {
   return JSON.parse(gh.filesAt(`submission/${id}`) && Buffer.from(gh.blobs.get(gh.filesAt(`submission/${id}`).get(TEXTURES))).toString())
-}
-
-async function hook(event, payload, secret = "hook-secret") {
-  const body = JSON.stringify({ repository: { full_name: REPO }, ...payload })
-  const signature = `sha256=${createHmac("sha256", secret).update(body).digest("hex")}`
-  const response = await receiveWebhook(context("/api/github", { method: "POST", body, headers: { "X-GitHub-Event": event, "X-Hub-Signature-256": signature } }))
-  await Promise.all(waiting)
-  return response
 }
 
 function closed(number, merged, id) {
@@ -120,28 +42,10 @@ function closed(number, merged, id) {
 }
 
 beforeEach(() => {
-  const sqlite = new DatabaseSync(":memory:")
-  sqlite.exec(fs.readFileSync("schema.sql", "utf8"))
-  db = sqlite
-  const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048, privateKeyEncoding: { type: "pkcs1", format: "pem" }, publicKeyEncoding: { type: "spki", format: "pem" } })
-  gh = fakeGitHub(publicKey, { repo: REPO, api: API, files: [TEXTURES] })
-  waiting = []
-  emails = []
-  env = { DB: d1(sqlite), ASSETS: { fetch: url => assets(String(url)) }, SESSION_SECRET: "session-secret", DISCORD_CLIENT_ID: "discord-id", DISCORD_CLIENT_SECRET: "discord-secret", GITHUB_CLIENT_ID: "github-id", GITHUB_CLIENT_SECRET: "github-secret", GITHUB_APP_ID: "123", GITHUB_APP_KEY: privateKey, GITHUB_WEBHOOK_SECRET: "hook-secret", GITHUB_REPOSITORY: REPO, GITHUB_API: API, RESEND_API_KEY: "resend-key" }
-  globalThis.fetch = async (url, options) => {
-    const text = String(url)
-    if (text.startsWith(API)) return gh.handle(text, options)
-    if (text === "https://api.resend.com/emails") {
-      emails.push(JSON.parse(options.body))
-      return new Response("{}")
-    }
-    return new Response(JSON.stringify(options?.method === "POST" ? { access_token: "token" } : String(url).endsWith("/user/emails") ? profile.emails ?? [{ email: `${profile.login}@example.com`, primary: true, verified: true }] : profile), { status: 200, headers: { "Content-Type": "application/json" } })
-  }
+  ({ gh, waiting, db, emails, resend, restore } = serverEnv({ files: [TEXTURES] }))
 })
 
-afterEach(() => {
-  globalThis.fetch = realFetch
-})
+afterEach(() => restore())
 
 describe("sending a submission", () => {
   test("needs an account", async () => {
@@ -179,7 +83,7 @@ describe("sending a submission", () => {
 
   test("records the density of bigger textures and names ids that would clash", async () => {
     const cookie = await signIn()
-    const { id } = await send(cookie, { name: "Flat" }, png(FLAT.width * 2, FLAT.height * 2))
+    const { id } = await send(cookie, { name: "Flat" }, pngOf(FLAT.width * 2, FLAT.height * 2))
     assert.deepEqual(branchList(id).textures.flat_2, { name: "Flat", author: "Someone", density: 2, border: "#3d1f0a" })
     const second = await send(cookie, { name: "Flat" })
     assert.ok(branchList(second.id).textures.flat_3)
@@ -188,7 +92,7 @@ describe("sending a submission", () => {
 
   test("puts overlays in the overlays section and folder, without a border", async () => {
     const cookie = await signIn()
-    const { id } = await send(cookie, { kind: "overlay", name: "Soft Shading", border: "" }, png(FLAT.width * 2, FLAT.height * 2))
+    const { id } = await send(cookie, { kind: "overlay", name: "Soft Shading", border: "" }, pngOf(FLAT.width * 2, FLAT.height * 2))
     const list = branchList(id)
     assert.deepEqual(list.overlays.soft_shading, { author: "Someone", density: 2 })
     assert.equal(list.textures.soft_shading, undefined)
@@ -209,8 +113,8 @@ describe("sending a submission", () => {
   test("is refused before GitHub hears about it when the image or fields are wrong", async () => {
     assert.match((await send(await signIn(), { kind: "nope" })).error, /Pick what you're submitting/)
     const cookie = await signIn()
-    assert.match((await send(cookie, {}, png(100, 100))).error, new RegExp(`template size, ${FLAT.width}x${FLAT.height}`))
-    assert.match((await send(cookie, {}, png(4560, 3552))).error, /up to 4096 pixels/)
+    assert.match((await send(cookie, {}, pngOf(100, 100))).error, new RegExp(`template size, ${FLAT.width}x${FLAT.height}`))
+    assert.match((await send(cookie, {}, pngOf(4560, 3552))).error, /up to 4096 pixels/)
     assert.match((await send(cookie, { name: "fuck" })).error, /isn't allowed/)
     assert.match((await send(cookie, { agree: "false" })).error, /Agree/)
     assert.match((await send(cookie, { font: "nope" })).error, /Pick the font/)
@@ -222,7 +126,7 @@ describe("sending a submission", () => {
     const fonts = JSON.parse(fs.readFileSync("public/font/fonts.json", "utf8"))
     const inherited = fonts.flatMap(font => (font.variants ?? []).filter(variant => variant.inherits).map(variant => ({ variant, owner: font })))[0]
     const flat = PNG.sync.read(fs.readFileSync(`public/font/${inherited.owner.id}/textures/flat.png`))
-    const { id } = await send(await signIn(), { font: inherited.variant.id }, png(flat.width, flat.height))
+    const { id } = await send(await signIn(), { font: inherited.variant.id }, pngOf(flat.width, flat.height))
     assert.equal((await details(id)).target, inherited.owner.id)
   })
 
@@ -230,6 +134,24 @@ describe("sending a submission", () => {
     const cookie = await signIn()
     for (let index = 0; index < 10; index++) assert.equal((await send(cookie, { name: `Texture ${index}` })).status, 201)
     assert.equal((await send(cookie, { name: "One more" })).status, 429)
+  })
+
+  test("is limited per day even when each one is withdrawn", async () => {
+    const cookie = await signIn()
+    for (let index = 0; index < 10; index++) {
+      const { status, id } = await send(cookie, { name: `Texture ${index}` })
+      assert.equal(status, 201)
+      assert.equal((await withdrawSubmission(context(`/api/submissions/${id}`, { method: "DELETE", cookie, params: { id: String(id) } }))).status, 200)
+    }
+    assert.equal((await send(cookie, { name: "One more" })).status, 429)
+    assert.equal(gh.pulls.size, 10)
+  })
+
+  test("sent at once can't go past the daily limit", async () => {
+    const cookie = await signIn()
+    const sent = await Promise.all(Array.from({ length: 12 }, (_, index) => send(cookie, { name: `Texture ${index}` })))
+    assert.equal(sent.filter(item => item.status === 201).length, 10)
+    assert.equal(sent.filter(item => item.status === 429).length, 2)
   })
 
   test("is undone when GitHub won't open the pull request", async () => {
@@ -240,6 +162,14 @@ describe("sending a submission", () => {
     assert.match(error, /GitHub isn't taking submissions/)
     assert.deepEqual(await (await listSubmissions(context("/api/submissions", { cookie }))).json(), { submissions: [] })
     assert.equal(gh.refs.has("heads/submission/1"), false)
+    assert.equal(db.prepare("SELECT count FROM account_submissions").get().count, 0)
+  })
+
+  test("is refused when it says it is bigger than a submission can be", async () => {
+    const cookie = await signIn()
+    const response = await createSubmission(context("/api/submissions", { method: "POST", body: form(), cookie, headers: { "Content-Length": "12020001" } }))
+    assert.equal(response.status, 413)
+    assert.equal(gh.calls.length, 0)
   })
 })
 
@@ -298,6 +228,95 @@ describe("a sent submission", () => {
     assert.deepEqual(await processing(), { state: "done" })
   })
 
+  describe("at the edge", () => {
+    let entries
+
+    beforeEach(() => {
+      entries = new Map()
+      globalThis.caches = { default: { match: async request => entries.get(request.url)?.clone(), put: async (request, response) => { entries.set(request.url, response) }, delete: async request => entries.delete(request.url) } }
+    })
+
+    afterEach(() => {
+      delete globalThis.caches
+    })
+
+    async function calls(work) {
+      const before = gh.calls.length
+      const result = await work()
+      await Promise.all(waiting)
+      return { result, made: gh.calls.length - before }
+    }
+
+    async function shownTo(id, cookie) {
+      return (await submissionDetails(context(`/api/submissions/${id}?${Math.random()}`, { cookie, params: { id: String(id) } }))).json()
+    }
+
+    test("keeps the thread for everyone, without anyone's own details", async () => {
+      db.prepare("INSERT INTO users (provider, provider_id, name, created_at, admin) VALUES ('github', '77', 'ewan', 0, 1)").run()
+      const reviewer = await signIn("github", { id: 77, login: "ewan" })
+      const cookie = await signIn()
+      const { id } = await send(cookie)
+      const first = await calls(() => shownTo(id, cookie))
+      assert.equal(first.made, 2)
+      assert.deepEqual([first.result.submission.mine, first.result.reviewer], [true, false])
+      const second = await calls(() => shownTo(id, reviewer))
+      assert.equal(second.made, 0)
+      assert.deepEqual([second.result.submission.mine, second.result.reviewer], [false, true])
+      const third = await calls(() => shownTo(id))
+      assert.equal(third.made, 0)
+      assert.deepEqual([third.result.submission.mine, third.result.reviewer, third.result.comments], [false, false, []])
+      assert.deepEqual(Array.from(entries.keys()), [`https://mctitlegenerator.com/api/submissions/${id}/thread?pull=1`])
+      assert.equal(await entries.get(`https://mctitlegenerator.com/api/submissions/${id}/thread?pull=1`).clone().text(), "[]")
+    })
+
+    test("shows a new comment or edit straight away", async () => {
+      const cookie = await signIn()
+      const { id } = await send(cookie)
+      await calls(() => shownTo(id))
+      await addComment(context(`/api/submissions/${id}/comments`, { method: "POST", body: JSON.stringify({ body: "hello" }), cookie, params: { id: String(id) } }))
+      assert.deepEqual((await shownTo(id)).comments.map(item => item.body), ["hello"])
+      await Promise.all(waiting)
+      await edit(cookie, id, { name: "Shiny Gold" })
+      assert.deepEqual((await shownTo(id)).comments.map(item => item.kind), ["comment", "edit"])
+    })
+
+    test("doesn't keep a thread GitHub couldn't give", async () => {
+      const cookie = await signIn()
+      const { id } = await send(cookie)
+      gh.failing.add("GET /repos/owner/repo/issues/1/comments?per_page=100&page=1")
+      assert.equal((await calls(() => shownTo(id))).result.comments, null)
+      assert.equal(entries.size, 0)
+    })
+
+    test("asks GitHub about processing once for everyone", async () => {
+      const cookie = await signIn()
+      const { id } = await send(cookie)
+      const processing = () => submissionProcessing(context(`/api/submissions/${id}/processing?${Math.random()}`, { params: { id: String(id) } }))
+      const first = await calls(processing)
+      assert.ok(first.made > 0)
+      assert.equal(first.result.headers.get("Cache-Control"), "no-store")
+      const second = await calls(processing)
+      assert.equal(second.made, 0)
+      assert.deepEqual(await second.result.json(), { state: "processing" })
+    })
+
+    test("reads each file from GitHub once, whatever the address says", async () => {
+      const cookie = await signIn()
+      const { id } = await send(cookie)
+      const { file } = await details(id)
+      const read = query => submissionFile(context(`/api/submissions/${id}/file${query}`, { params: { id: String(id) } }))
+      const first = await calls(() => read(""))
+      assert.equal(first.made, 1)
+      assert.equal(first.result.headers.get("Cache-Control"), "no-store")
+      const second = await calls(() => read(`?v=${file}`))
+      assert.equal(second.made, 0)
+      assert.equal(second.result.headers.get("Cache-Control"), "public, max-age=31536000, immutable")
+      assert.equal(second.result.headers.get("Content-Type"), "image/png")
+      assert.equal(PNG.sync.read(Buffer.from(await second.result.arrayBuffer())).width, FLAT.width)
+      assert.equal((await calls(() => read("?v=other&x=1"))).made, 0)
+    })
+  })
+
   test("can be withdrawn, which closes the pull request but keeps its branch, and the site forgets it", async () => {
     const cookie = await signIn()
     const { id } = await send(cookie)
@@ -324,6 +343,18 @@ describe("the GitHub webhook", () => {
     return (await (await accountDetails(context("/api/account", { cookie }))).json()).user.unread
   }
 
+  test("a new submission never takes the id of one that was withdrawn, so its kept branch is left alone", async () => {
+    const cookie = await signIn()
+    const first = await send(cookie)
+    const kept = gh.refs.get(`heads/submission/${first.id}`)
+    await withdrawSubmission(context(`/api/submissions/${first.id}`, { method: "DELETE", cookie, params: { id: String(first.id) } }))
+    const second = await send(cookie, { name: "Silver Bricks" })
+    assert.equal(second.status, 201)
+    assert.notEqual(second.id, first.id)
+    assert.equal(gh.refs.get(`heads/submission/${first.id}`), kept)
+    assert.ok(gh.refs.has(`heads/submission/${second.id}`))
+  })
+
   test("refuses unsigned deliveries", async () => {
     assert.equal((await hook("ping", {}, "wrong")).status, 401)
   })
@@ -348,6 +379,17 @@ describe("the GitHub webhook", () => {
     assert.equal(await details(id), undefined)
     const { notifications } = await (await listNotifications(context("/api/notifications", { cookie }))).json()
     assert.deepEqual([notifications[0].kind, notifications[0].link], ["rejected", `https://github.com/${REPO}/pull/1`])
+  })
+
+  test("a submitter with a notification left over can still withdraw their next submission", async () => {
+    const { cookie, id } = await sent()
+    await hook("pull_request", closed(1, true, id))
+    const next = await send(cookie, { name: "Silver Bricks" })
+    assert.equal((await withdrawSubmission(context(`/api/submissions/${next.id}`, { method: "DELETE", cookie, params: { id: String(next.id) } }))).status, 200)
+    assert.equal(await details(next.id), undefined)
+    assert.equal(db.prepare("SELECT COUNT(*) AS count FROM users").get().count, 1)
+    assert.equal((await clearNotifications(context("/api/notifications", { method: "DELETE", cookie }))).status, 200)
+    assert.equal(db.prepare("SELECT COUNT(*) AS count FROM users").get().count, 0)
   })
 
   test("passes on comments and reviews from collaborators only", async () => {
@@ -422,8 +464,8 @@ describe("reviewing on the site", () => {
     assert.deepEqual(await news(reviewer), [["edited", "someone", ""], ["edited", "someone", ""], ["submitted", "someone", ""]])
     assert.deepEqual(await news(cookie), [])
     const events = (await thread(id)).comments.filter(item => item.kind === "edit")
-    assert.deepEqual(events.map(item => [item.author, item.role]), [["someone", "submitter"], ["someone", "submitter"], ["someone", "submitter"]])
-    assert.equal(gh.comments.at(-1).body, "` someone ` (submitter) changed the submission on the site.")
+    assert.deepEqual(events.map(item => [item.author, item.role]), [["someone", "submitter"]])
+    assert.deepEqual(gh.comments.map(item => item.body), ["` someone ` (submitter) changed the submission on the site."])
     assert.equal((await (await accountDetails(context("/api/account", { cookie: reviewer }))).json()).user.admin, true)
     assert.equal((await (await accountDetails(context("/api/account", { cookie: reviewer }))).json()).user.waiting, 1)
     assert.equal((await (await accountDetails(context("/api/account", { cookie }))).json()).user.waiting, 0)
@@ -450,6 +492,18 @@ describe("reviewing on the site", () => {
     assert.equal((await comment(cookie, id, "x".repeat(2001))).status, 400)
   })
 
+  test("the submitter can only send so many comments a day, and reviewers are not limited", async () => {
+    const reviewer = await admin()
+    const cookie = await signIn()
+    const { id } = await send(cookie)
+    for (let sent = 0; sent < 2; sent++) assert.equal((await comment(cookie, id, `Note ${sent}`)).status, 201)
+    db.prepare("UPDATE account_submissions SET count = ? WHERE count = 2").run(50)
+    const refused = await comment(cookie, id, "One too many")
+    assert.equal(refused.status, 429)
+    assert.match(refused.error, /up to 50 comments a day/)
+    assert.equal((await comment(reviewer, id, "Still reviewing")).status, 201)
+  })
+
   test("comments from GitHub join the thread, and nobody is told about their own", async () => {
     const reviewer = await admin()
     const cookie = await signIn()
@@ -472,8 +526,38 @@ describe("reviewing on the site", () => {
     gh.reviews.push({ id: 900, number: 1, body: "please fix the e", state: "CHANGES_REQUESTED", user: { login: "ewan", type: "User" }, author_association: "OWNER", html_url: "https://github.com/r", submitted_at: new Date(Date.UTC(2027, 0, 1)).toISOString() })
     const { comments } = await thread(id, reviewer)
     assert.deepEqual(comments.map(item => [item.author, item.role, item.body]), [["someone", "submitter", "from the site"], ["mate", "reviewer", "from a collaborator"], ["ewan", "reviewer", "please fix the e"]])
-    gh.failing.add("GET /repos/owner/repo/issues/1/comments?per_page=100")
+    gh.failing.add("GET /repos/owner/repo/issues/1/comments?per_page=100&page=1")
     assert.equal((await thread(id)).comments, null)
+  })
+
+  test("the thread is read a page at a time, up to 200 entries", async () => {
+    const cookie = await signIn()
+    const { id } = await send(cookie)
+    const handle = gh.handle
+    gh.handle = async (url, options) => {
+      const page = /\/issues\/1\/comments\?per_page=100&page=(\d+)$/.exec(url)
+      if (!page) return handle(url, options)
+      const all = await (await handle(url, options)).json()
+      return new Response(JSON.stringify(all.slice((page[1] - 1) * 100, page[1] * 100)))
+    }
+    for (let index = 0; index < 150; index++) gh.comment(1, `note ${index}`, { user: { login: "mate", type: "User" }, association: "COLLABORATOR", app: false })
+    const first = (await thread(id)).comments
+    assert.equal(first.length, 150)
+    assert.equal(first.at(-1).body, "note 149")
+    for (let index = 150; index < 250; index++) gh.comment(1, `note ${index}`, { user: { login: "mate", type: "User" }, association: "COLLABORATOR", app: false })
+    assert.equal((await thread(id)).comments.length, 200)
+  })
+
+  test("edits in a row share one comment on the pull request, and a comment in between starts another", async () => {
+    const cookie = await signIn()
+    const { id } = await send(cookie)
+    await edit(cookie, id, { name: "Shiny Gold" })
+    await edit(cookie, id, { name: "Shinier Gold" })
+    await comment(cookie, id, "ready now")
+    await edit(cookie, id, { name: "Shiniest Gold" })
+    await edit(cookie, id, { name: "Gold" })
+    assert.deepEqual((await thread(id)).comments.map(item => item.kind), ["edit", "comment", "edit"])
+    assert.equal(gh.comments.length, 3)
   })
 
   test("admins can merge from the site once GitHub is ready, which publishes it and clears its notifications", async () => {
@@ -529,6 +613,57 @@ describe("reviewing on the site", () => {
     assert.deepEqual(await news(reviewer), [])
   })
 
+  function hookDuring(route, payload) {
+    const handle = gh.handle
+    gh.handle = async (url, options) => {
+      const response = await handle(url, options)
+      if (`${options?.method ?? "GET"} ${url}`.endsWith(route)) await hook("pull_request", payload)
+      return response
+    }
+  }
+
+  test("a decline on the site keeps its reason when GitHub's webhook gets there first", async () => {
+    const reviewer = await admin()
+    const cookie = await signIn()
+    const { id } = await send(cookie)
+    hookDuring("PATCH https://github.test/repos/owner/repo/pulls/1", closed(1, false, id))
+    assert.equal((await review(reviewer, id, "decline", "Too close to an existing one")).status, 200)
+    assert.deepEqual(await news(cookie), [["rejected", "ewan", "Too close to an existing one"]])
+    assert.equal(await details(id), undefined)
+  })
+
+  test("a merge on the site tells the submitter once when GitHub's webhook gets there first", async () => {
+    const reviewer = await admin()
+    const cookie = await signIn()
+    const { id } = await send(cookie)
+    hookDuring("PUT https://github.test/repos/owner/repo/pulls/1/merge", closed(1, true, id))
+    assert.equal((await review(reviewer, id, "merge")).outcome, "published")
+    assert.deepEqual(await news(cookie), [["published", "ewan", ""]])
+    assert.equal(gh.refs.has(`heads/submission/${id}`), false)
+  })
+
+  test("a review GitHub refuses leaves the submission open to review again", async () => {
+    const reviewer = await admin()
+    const cookie = await signIn()
+    const { id } = await send(cookie)
+    gh.failing.add("PATCH /repos/owner/repo/pulls/:n")
+    assert.equal((await review(reviewer, id, "decline")).status, 502)
+    assert.equal((await details(id)).status, "open")
+    assert.deepEqual(await news(cookie), [])
+    gh.failing.clear()
+    assert.equal((await review(reviewer, id, "decline")).status, 200)
+  })
+
+  test("two reviews at once only close it once", async () => {
+    const reviewer = await admin()
+    const cookie = await signIn()
+    const { id } = await send(cookie)
+    const outcomes = await Promise.all([review(reviewer, id, "decline", "No"), review(reviewer, id, "decline", "No")])
+    assert.equal(outcomes.filter(item => item.status === 200).length, 1)
+    assert.deepEqual(await news(cookie), [["rejected", "ewan", "No"]])
+    assert.equal(gh.comments.length, 1)
+  })
+
   test("clearing deletes only your own notifications", async () => {
     const reviewer = await admin()
     const cookie = await signIn()
@@ -541,6 +676,18 @@ describe("reviewing on the site", () => {
     assert.deepEqual(await news(cookie), [])
     assert.equal((await counts(cookie)).notifications, 0)
     assert.equal((await counts(reviewer)).notifications, 1)
+  })
+
+  test("opening one submission only marks its own notifications as seen", async () => {
+    const reviewer = await admin()
+    const cookie = await signIn()
+    const first = await send(cookie)
+    const second = await send(cookie, { name: "Silver Bricks" })
+    await comment(reviewer, first.id, "One")
+    await comment(reviewer, second.id, "Two")
+    await markNotificationsSeen(context(`/api/notifications?submission=${first.id}`, { method: "POST", cookie }))
+    const { notifications } = await (await listNotifications(context("/api/notifications", { cookie }))).json()
+    assert.deepEqual(notifications.map(item => [item.body, item.seen]), [["Two", false], ["One", true]])
   })
 
   test("only admins see every open submission", async () => {
@@ -593,6 +740,75 @@ describe("emailing notifications", () => {
     assert.equal((await send(unverified)).status, 201)
   })
 
+  test("never stores or sends to an email the provider hasn't verified", async () => {
+    const reviewer = await admin()
+    for (const [provider, person] of [["discord", { id: "6", username: "phone", email: "ewan@example.com", verified: false }], ["github", { id: 7, login: "fresh", emails: [{ email: "ewan@example.com", primary: true, verified: false }] }]]) {
+      const cookie = await signIn(provider, person)
+      const { status, id } = await send(cookie, { name: `From ${provider}` })
+      assert.equal(status, 201)
+      await Promise.all(waiting)
+      assert.deepEqual(inbox(), [["ewan@example.com", `${person.username ?? person.login} sent From ${provider}`]])
+      await comment(reviewer, id, "Looks good")
+      assert.deepEqual(inbox(), [])
+      assert.equal((await (await listNotifications(context("/api/notifications", { cookie }))).json()).notifications.length, 1)
+    }
+    assert.deepEqual(stored(), [["ewan", "ewan@example.com"], ["phone", null], ["fresh", null]])
+  })
+
+  test("asks a session from before emails were checked to sign in again", async () => {
+    const cookie = await signIn()
+    const { emailVerified, ...session } = JSON.parse(decodeURIComponent(cookie.slice("session=".length, cookie.lastIndexOf("."))))
+    const old = encodeURIComponent(JSON.stringify(session))
+    const signature = createHmac("sha256", "session-secret").update(old).digest("hex")
+    const { status, error } = await send(`session=${old}.${signature}`)
+    assert.equal(emailVerified, true)
+    assert.equal(status, 403)
+    assert.match(error, /Sign in again/)
+  })
+
+  test("sends an email Resend refused with the next ones", async () => {
+    const reviewer = await admin()
+    const cookie = await signIn()
+    resend.status = 500
+    const { id } = await send(cookie)
+    await Promise.all(waiting)
+    assert.deepEqual(inbox(), [])
+    resend.status = 200
+    await comment(reviewer, id, "Looks good")
+    assert.deepEqual(inbox().sort(), [["ewan@example.com", "someone sent Gold Bricks"], ["someone@example.com", "New comment on Gold Bricks"]])
+    await comment(reviewer, id, "Still good")
+    assert.deepEqual(inbox(), [["someone@example.com", "New comment on Gold Bricks"]])
+  })
+
+  test("keeps the address for a final email Resend refused, and forgets it once that email is sent", async () => {
+    const reviewer = await admin()
+    const cookie = await signIn()
+    const first = await send(cookie)
+    await Promise.all(waiting)
+    inbox()
+    resend.status = 500
+    await hook("pull_request", closed(1, true, first.id))
+    assert.deepEqual(inbox(), [])
+    assert.deepEqual(stored(), [["ewan", "ewan@example.com"], ["someone", "someone@example.com"]])
+    resend.status = 200
+    const other = await signIn("discord", { id: "9", username: "another", email: "another@example.com", verified: true })
+    const second = await send(other, { name: "Silver Bricks" })
+    await comment(reviewer, second.id, "Looks good")
+    assert.ok(inbox().some(([to, subject]) => to === "someone@example.com" && /Gold Bricks/.test(subject)))
+    assert.deepEqual(stored(), [["ewan", "ewan@example.com"], ["someone", null], ["another", "another@example.com"]])
+  })
+
+  test("gives up on an email Resend says can never be sent", async () => {
+    const reviewer = await admin()
+    const cookie = await signIn()
+    resend.status = 422
+    const { id } = await send(cookie)
+    await Promise.all(waiting)
+    resend.status = 200
+    await comment(reviewer, id, "Looks good")
+    assert.deepEqual(inbox(), [["someone@example.com", "New comment on Gold Bricks"]])
+  })
+
   test("emails reviewers and the submitter everything they are notified about", async () => {
     const reviewer = await admin()
     const cookie = await signIn()
@@ -638,9 +854,9 @@ describe("emailing notifications", () => {
 
   test("comments on a submission's pull request are emailed once, and not to the commenter's other accounts", async () => {
     await admin()
-    await signIn("discord", { id: "88", username: "ewan", email: "ewan@example.com" })
+    await signIn("discord", { id: "88", username: "ewan", email: "ewan@example.com", verified: true })
     db.prepare("UPDATE users SET admin = 1 WHERE provider = 'discord' AND provider_id = '88'").run()
-    await signIn("discord", { id: "88", username: "ewan", email: "ewan@example.com" })
+    await signIn("discord", { id: "88", username: "ewan", email: "ewan@example.com", verified: true })
     const cookie = await signIn()
     await send(cookie)
     await Promise.all(waiting)

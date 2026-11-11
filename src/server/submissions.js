@@ -4,20 +4,27 @@ import { providerLabel } from "../lib/providers.js"
 import { SUBMISSION_KINDS, checkSubmission, submissionContext } from "../lib/submissionKinds/index.js"
 import { publishedTitle } from "../lib/submissionKinds/published.js"
 import { EXTRA_FILE, SUBMISSION_LIMITS, assetId, sizedProblem } from "../lib/submissions.js"
-import { USER_ROW, forgetEmail, forgetUnusedUser, isAdmin, rememberUser, saveUser, signedInUser } from "./accounts.js"
+import { USER_ROW, accountKey, activeUser, forgetEmail, forgetSpareEmails, forgetUnusedUser, isAdmin, rememberUser, requireUser, saveUser, signedInUser } from "./accounts.js"
+import { returnSlot, takeSlot } from "./daily.js"
 import { emailNotifications, emailReviewers } from "./email.js"
 import { GitHubError, base64, github, repository, verifiedWebhook } from "./github.js"
-import { Refusal, guarded, jsonBody, reply } from "./http.js"
+import { Refusal, bodyBytes, cachedAtEdge, guarded, idParam, jsonBody, reply } from "./http.js"
 import { SERVER_KINDS } from "./submissionKinds/index.js"
 
 const BASE = "main"
 const MISSING = "This submission doesn't exist."
+const SIGN_IN = "Sign in to send submissions."
+const REVIEWED = "This submission has already been reviewed."
+const FRESH_SECONDS = 30
+const LASTING_SECONDS = 31536000
+const PER_PAGE = 100
 const UNAVAILABLE = "GitHub isn't taking submissions right now. Try again in a few minutes."
 const FORM_ALLOWANCE = 20000
 const EXTRA_PREFIX = "extra:"
 const ANONYMOUS = "Sent from the website."
 const SENDER = /^Sent from the website by .*$/m
 const NOTE_LENGTH = 1000
+const NEXT_ID = "MAX(COALESCE((SELECT MAX(id) FROM submissions), 0), COALESCE((SELECT MAX(id) FROM deleted_submissions), 0)) + 1"
 const REVIEWERS = new Set(["OWNER", "MEMBER", "COLLABORATOR"])
 const COMMENTERS = { submitter: "The submitter", reviewer: "A reviewer" }
 const ANONYMOUS_ROLES = { "The submitter": "submitter", "A reviewer": "reviewer" }
@@ -41,18 +48,6 @@ async function publishedFonts(context) {
   return flattenFonts(await (await asset(context, "/font/fonts.json")).json()).map(font => ({ ...font, name: font.name ?? titleCase(font.id) }))
 }
 
-async function requireUser(context) {
-  const user = await signedInUser(context)
-  if (!user) throw new Refusal(401, "Sign in to send submissions.")
-  return user
-}
-
-function submissionId(params) {
-  const id = Number(params.id)
-  if (!Number.isSafeInteger(id) || id < 1) throw new Refusal(404, MISSING)
-  return id
-}
-
 async function findSubmission(env, id) {
   const row = await env.DB.prepare(`SELECT ${SHOWN}, ${OWNER} FROM submissions WHERE id = ?`).bind(id).first()
   if (!row) throw new Refusal(404, MISSING)
@@ -60,8 +55,8 @@ async function findSubmission(env, id) {
 }
 
 async function ownSubmission(context) {
-  const user = await requireUser(context)
-  const row = await findSubmission(context.env, submissionId(context.params))
+  const user = await requireUser(context, SIGN_IN)
+  const row = await findSubmission(context.env, idParam(context.params, MISSING))
   if (row.owner !== user.id) throw new Refusal(404, MISSING)
   if (row.status !== "open") throw new Refusal(409, "This submission has already been reviewed, so it can't be changed.")
   return { user, row }
@@ -75,11 +70,6 @@ async function onGitHub(work) {
     console.error(err)
     throw new Refusal(502, UNAVAILABLE)
   }
-}
-
-function startOfDay() {
-  const now = new Date()
-  return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
 }
 
 function parsedDetails(text) {
@@ -109,8 +99,8 @@ async function extraFiles(form) {
 
 async function readForm(context, previous = null) {
   const { request } = context
-  if (Number(request.headers.get("Content-Length") ?? 0) > SUBMISSION_LIMITS.totalBytes + FORM_ALLOWANCE) throw new Refusal(413, "This submission is too big.")
-  const form = await request.formData().catch(() => null)
+  const body = await bodyBytes(request, SUBMISSION_LIMITS.totalBytes + FORM_ALLOWANCE, "This submission is too big.")
+  const form = await new Response(body, { headers: { "Content-Type": request.headers.get("Content-Type") ?? "" } }).formData().catch(() => null)
   if (!form) throw new Refusal(400, "This submission isn't valid.")
   const bytes = await uploaded(form.get("file"))
   const files = await extraFiles(form)
@@ -208,19 +198,22 @@ function scopesOf(row, details, fonts) {
   return SERVER_KINDS[row.kind].scopes?.({ row, details, fonts }) ?? [row.target]
 }
 
-async function takenIds(env, row, details, fonts) {
-  const mine = new Set(scopesOf(row, details, fonts))
-  const { results } = await env.DB.prepare("SELECT id, kind, target, asset, details FROM submissions WHERE status = 'open' AND id != ?").bind(row.id).all()
-  return results.filter(other => scopesOf(other, JSON.parse(other.details), fonts).some(scope => mine.has(scope))).map(other => other.asset)
+async function openSubmissions(env) {
+  return (await env.DB.prepare("SELECT id, kind, target, asset, details FROM submissions WHERE status = 'open'").all()).results
 }
 
-async function syncSubmission(context, row, fonts) {
+function takenIds(row, details, fonts, open) {
+  const mine = new Set(scopesOf(row, details, fonts))
+  return open.filter(other => other.id !== row.id && scopesOf(other, JSON.parse(other.details), fonts).some(scope => mine.has(scope))).map(other => other.asset)
+}
+
+async function syncSubmission(context, row, fonts, open = null) {
   const { env, request } = context
   const type = SERVER_KINDS[row.kind]
   const details = JSON.parse(row.details)
   const base = (await github(env, `git/ref/heads/${BASE}`)).object.sha
   const commit = await github(env, `git/commits/${base}`)
-  const written = await type.write({ row, details, fonts, read: reader(env, base), taken: await takenIds(env, row, details, fonts) })
+  const written = await type.write({ row, details, fonts, read: reader(env, base), taken: takenIds(row, details, fonts, open ?? await openSubmissions(env)) })
   const tree = await github(env, "git/trees", { method: "POST", body: { base_tree: commit.tree.sha, tree: written.files.map(({ path, content, sha }) => ({ path, mode: "100644", type: "blob", ...(sha ? { sha } : { content }) })) } })
   const described = type.describe({ row, details, fonts })
   const made = await github(env, "git/commits", { method: "POST", body: { message: `add ${phrase(row.name, SUBMISSION_KINDS[row.kind].noun, described.into)}`, tree: tree.sha, parents: [base] } })
@@ -275,9 +268,19 @@ function fromReviewer(entry) {
   return REVIEWERS.has(entry.author_association) && entry.user?.type !== "Bot"
 }
 
+async function listed(env, path) {
+  let entries = []
+  for (let page = 1; entries.length < SUBMISSION_LIMITS.comments; page++) {
+    const found = await github(env, `${path}?per_page=${PER_PAGE}&page=${page}`)
+    entries = entries.concat(found)
+    if (found.length < PER_PAGE) break
+  }
+  return entries.slice(0, SUBMISSION_LIMITS.comments)
+}
+
 async function commentsOf(env, row) {
   if (!row.pull) return []
-  const [comments, reviews] = await Promise.all([github(env, `issues/${row.pull}/comments?per_page=100`), github(env, `pulls/${row.pull}/reviews?per_page=100`)])
+  const [comments, reviews] = await Promise.all([listed(env, `issues/${row.pull}/comments`), listed(env, `pulls/${row.pull}/reviews`)])
   const written = comments.flatMap(entry => {
     const shownAs = fromApp(env, entry) ? siteComment(entry.body) : fromReviewer(entry) ? { kind: "comment", author: entry.user.login, role: "reviewer", body: entry.body ?? "" } : null
     return shownAs ? [{ id: entry.id, ...shownAs, url: entry.html_url, createdAt: Date.parse(entry.created_at) }] : []
@@ -296,6 +299,28 @@ async function threadOf(env, row) {
   }
 }
 
+function cacheKey(request, id, part) {
+  return new URL(`/api/submissions/${id}/${part}`, request.url).href
+}
+
+function freshKey(request, row, part) {
+  return `${cacheKey(request, row.id, part)}?pull=${row.pull}`
+}
+
+async function forgetFresh(request, row) {
+  await Promise.all(["thread", "processing"].map(part => globalThis.caches?.default.delete(new Request(freshKey(request, row, part)))))
+}
+
+async function threadReply(env, row) {
+  const comments = await threadOf(env, row)
+  return reply(comments ? 200 : 502, comments)
+}
+
+async function cachedThread(context, row) {
+  const response = await cachedAtEdge(context, () => threadReply(context.env, row), { seconds: FRESH_SECONDS, key: freshKey(context.request, row, "thread") })
+  return response.json()
+}
+
 function commentText(value) {
   const text = typeof value === "string" ? value.trim() : ""
   if (Array.from(text).length > SUBMISSION_LIMITS.comment) throw new Refusal(400, `Comments can be up to ${SUBMISSION_LIMITS.comment} characters.`)
@@ -311,8 +336,20 @@ function postComment(env, row, user, role, text) {
   return github(env, `issues/${row.pull}/comments`, { method: "POST", body: { body: onGitHubText(user.name, { role, body: text }) } })
 }
 
+async function noteEdit(env, row, user) {
+  const body = onGitHubText(user.name, { kind: "edit", role: "submitter" })
+  const last = (await listed(env, `issues/${row.pull}/comments`)).at(-1)
+  if (last && fromApp(env, last) && siteComment(last.body)?.kind === "edit") await github(env, `issues/comments/${last.id}`, { method: "PATCH", body: { body } })
+  else await github(env, `issues/${row.pull}/comments`, { method: "POST", body: { body } })
+}
+
+async function closePull(env, pull, comment) {
+  if (comment) await github(env, `issues/${pull}/comments`, { method: "POST", body: { body: comment } })
+  await github(env, `pulls/${pull}`, { method: "PATCH", body: { state: "closed" } })
+}
+
 async function anonymiseComments(env, pull, theirs) {
-  for (const entry of await github(env, `issues/${pull}/comments?per_page=100`)) {
+  for (const entry of await listed(env, `issues/${pull}/comments`)) {
     const comment = fromApp(env, entry) && siteComment(entry.body)
     if (comment?.author && theirs(comment)) await github(env, `issues/comments/${entry.id}`, { method: "PATCH", body: { body: onGitHubText(null, comment) } })
   }
@@ -322,43 +359,48 @@ function pullLink(env, row) {
   return `https://github.com/${repository(env)}/pull/${row.pull}`
 }
 
-async function closeSubmission(context, row, merged, { author = "", body = "", url = "", actor = null }) {
-  const { env } = context
+function claim(env, id, status) {
+  return env.DB.prepare("UPDATE submissions SET status = ?, updated_at = ? WHERE id = ? AND status = 'open' RETURNING user_id AS userId").bind(status, Date.now(), id).first()
+}
+
+function reopen(env, id) {
+  return env.DB.prepare("UPDATE submissions SET status = 'open' WHERE id = ?").bind(id).run()
+}
+
+function removing(env, id) {
+  return [env.DB.prepare("DELETE FROM notifications WHERE submission_id = ?").bind(id), env.DB.prepare("INSERT OR IGNORE INTO deleted_submissions (id) VALUES (?)").bind(id), env.DB.prepare("DELETE FROM submissions WHERE id = ?").bind(id)]
+}
+
+async function startClosing(context, row, merged) {
   const status = merged ? "published" : "rejected"
-  const closed = await env.DB.prepare("UPDATE submissions SET status = ?, updated_at = ? WHERE id = ? AND status = 'open' RETURNING user_id AS userId").bind(status, Date.now(), row.id).first()
-  if (!closed) return
-  const link = merged ? publishedTitle({ ...row, details: JSON.parse(row.details) }, await publishedFonts(context)) : pullLink(env, row)
-  await env.DB.batch([
-    env.DB.prepare("INSERT INTO notifications (user_id, submission_name, kind, author, body, url, link, created_at) SELECT users.id, submissions.name, ?, ?, ?, ?, ?, ? FROM submissions JOIN users ON users.id = submissions.user_id WHERE submissions.id = ? AND NOT (users.provider = ? AND users.provider_id = ?)").bind(status, author, clipped(body, NOTE_LENGTH), url, link, Date.now(), row.id, actor?.provider ?? "", actor?.providerId ?? ""),
-    env.DB.prepare("DELETE FROM notifications WHERE submission_id = ?").bind(row.id),
-    env.DB.prepare("DELETE FROM submissions WHERE id = ?").bind(row.id)
-  ])
-  emailing(context, forgetEmail(env, closed.userId))
+  const link = merged ? publishedTitle({ ...row, details: JSON.parse(row.details) }, await publishedFonts(context)) : pullLink(context.env, row)
+  const closed = await claim(context.env, row.id, status)
+  return closed && { status, link, userId: closed.userId }
+}
+
+async function finishClosing(context, row, { status, link, userId }, { author = "", body = "", url = "", actor = null }) {
+  const { env } = context
+  const told = env.DB.prepare("INSERT INTO notifications (user_id, submission_name, kind, author, body, url, link, created_at) SELECT users.id, submissions.name, ?, ?, ?, ?, ?, ? FROM submissions JOIN users ON users.id = submissions.user_id WHERE submissions.id = ? AND NOT (users.provider = ? AND users.provider_id = ?)").bind(status, author, clipped(body, NOTE_LENGTH), url, link, Date.now(), row.id, actor?.provider ?? "", actor?.providerId ?? "")
+  await env.DB.batch([told].concat(removing(env, row.id)))
+  emailing(context, forgetEmail(env, userId))
   await deleteBranch(env, row.id)
 }
 
 async function reviewerOf(context) {
-  const user = await signedInUser(context)
-  if (!user) throw new Refusal(401, "Sign in to review submissions.")
+  const user = await requireUser(context, "Sign in to review submissions.")
   if (!await isAdmin(context.env, user)) throw new Refusal(403, "Only reviewers can do that.")
   return user
 }
 
-export const createSubmission = guarded(async context => {
+async function openedSubmission(context, user, { clean, fonts, bytes, files }) {
   const { env } = context
-  const user = await requireUser(context)
-  if (user.email === undefined) throw new Refusal(403, "Sign in again so you can be emailed about your submission.")
-  if (!user.email) throw new Refusal(403, `Add an email address to your ${providerLabel(user.provider)} account, then sign in again. You'll be emailed about your submission there.`)
-  const { clean, fonts, bytes, files } = await readForm(context)
-  const sent = await env.DB.prepare(`SELECT COUNT(*) AS count FROM submissions WHERE user_id = ${USER_ROW} AND created_at >= ?`).bind(user.provider, user.providerId, startOfDay()).first()
-  if ((sent?.count ?? 0) >= SUBMISSION_LIMITS.perDay) throw new Refusal(429, `You can send up to ${SUBMISSION_LIMITS.perDay} submissions a day.`)
   const file = await onGitHub(() => uploadFile(env, bytes))
   const { details } = await onGitHub(() => withFiles(env, clean, files))
   const now = Date.now()
   const placeholder = assetId(clean.name, new Set())
   const [, inserted] = await env.DB.batch([
     saveUser(env, user),
-    env.DB.prepare(`INSERT INTO submissions (user_id, kind, target, asset, name, credit, notes, details, file, created_at, updated_at) VALUES (${USER_ROW}, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`).bind(user.provider, user.providerId, clean.kind, clean.target, placeholder, clean.name, clean.credit, clean.notes, details, file, now, now),
+    env.DB.prepare(`INSERT INTO submissions (id, user_id, kind, target, asset, name, credit, notes, details, file, created_at, updated_at) VALUES (${NEXT_ID}, ${USER_ROW}, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`).bind(user.provider, user.providerId, clean.kind, clean.target, placeholder, clean.name, clean.credit, clean.notes, details, file, now, now),
     rememberUser(env, user)
   ])
   const row = { id: inserted.results[0].id, ...clean, asset: placeholder, details, file, pull: null, ownerName: user.name, ownerProvider: user.provider }
@@ -369,6 +411,21 @@ export const createSubmission = guarded(async context => {
     if (!row.pull) await deleteBranch(env, row.id).catch(problem => console.error(problem))
     throw err
   }
+  return row
+}
+
+export const createSubmission = guarded(async context => {
+  const { env } = context
+  const user = await requireUser(context, SIGN_IN, activeUser)
+  if (user.email === undefined || user.emailVerified === undefined) throw new Refusal(403, "Sign in again so you can be emailed about your submission.")
+  if (!user.email) throw new Refusal(403, `Add an email address to your ${providerLabel(user.provider)} account, then sign in again. You'll be emailed about your submission there.`)
+  const form = await readForm(context)
+  const slot = await takeSlot(env, { table: "account_submissions", column: "account_hash", owner: await accountKey(env, "submissions", user) }, SUBMISSION_LIMITS.perDay)
+  if (!slot) throw new Refusal(429, `You can send up to ${SUBMISSION_LIMITS.perDay} submissions a day.`)
+  const row = await openedSubmission(context, user, form).catch(async err => {
+    await returnSlot(env, slot)
+    throw err
+  })
   await notify(env, row, "submitted", { author: user.name, owner: false, admins: true, actor: user }).run()
   emailing(context)
   return reply(201, { id: row.id, pull: row.pull })
@@ -382,8 +439,9 @@ export const editSubmission = guarded(async context => {
   const changed = { ...row, ...await onGitHub(() => withFiles(env, clean, files)), file }
   await onGitHub(async () => {
     await syncSubmission(context, changed, fonts)
-    await github(env, `issues/${changed.pull}/comments`, { method: "POST", body: { body: onGitHubText(user.name, { kind: "edit", role: "submitter" }) } })
+    await noteEdit(env, changed, user)
   })
+  await forgetFresh(context.request, changed)
   await env.DB.batch([
     env.DB.prepare("UPDATE notifications SET author = ?, created_at = ? WHERE submission_id = ? AND kind = 'edited' AND seen = 0").bind(user.name, Date.now(), changed.id),
     notify(env, changed, "edited", { author: user.name, owner: false, admins: true, actor: user, unlessUnread: true })
@@ -395,24 +453,14 @@ export const editSubmission = guarded(async context => {
 export const withdrawSubmission = guarded(async context => {
   const { env } = context
   const { user, row } = await ownSubmission(context)
-  const withdrawn = await env.DB.prepare("UPDATE submissions SET status = 'withdrawn', updated_at = ? WHERE id = ? AND status = 'open' RETURNING user_id AS userId").bind(Date.now(), row.id).first()
+  const withdrawn = await claim(env, row.id, "withdrawn")
   try {
-    await onGitHub(async () => {
-      if (row.pull) {
-        await github(env, `issues/${row.pull}/comments`, { method: "POST", body: { body: "Withdrawn by the person who sent it. Reopen this pull request to accept it anyway." } })
-        await github(env, `pulls/${row.pull}`, { method: "PATCH", body: { state: "closed" } })
-      }
-    })
+    if (row.pull) await onGitHub(() => closePull(env, row.pull, "Withdrawn by the person who sent it. Reopen this pull request to accept it anyway."))
   } catch (err) {
-    await env.DB.prepare("UPDATE submissions SET status = 'open' WHERE id = ?").bind(row.id).run()
+    await reopen(env, row.id)
     throw err
   }
-  await env.DB.batch([
-    env.DB.prepare("DELETE FROM notifications WHERE submission_id = ?").bind(row.id),
-    env.DB.prepare("DELETE FROM submissions WHERE id = ?").bind(row.id),
-    forgetEmail(env, withdrawn?.userId ?? null),
-    forgetUnusedUser(env, user)
-  ])
+  await env.DB.batch(removing(env, row.id).concat(forgetEmail(env, withdrawn?.userId ?? null), forgetUnusedUser(env, user)))
   return reply(200, { id: row.id })
 })
 
@@ -432,9 +480,7 @@ export async function releaseSubmissions(context, user, keep) {
       for (const row of results.filter(item => item.pull)) {
         await anonymisePull(env, row.pull)
         await anonymiseComments(env, row.pull, comment => comment.role === "submitter")
-        if (!withdrawing.includes(row)) continue
-        await github(env, `issues/${row.pull}/comments`, { method: "POST", body: { body: "Withdrawn because the person who sent it deleted their account. Reopen this pull request to accept it anyway." } })
-        await github(env, `pulls/${row.pull}`, { method: "PATCH", body: { state: "closed" } })
+        if (withdrawing.includes(row)) await closePull(env, row.pull, "Withdrawn because the person who sent it deleted their account. Reopen this pull request to accept it anyway.")
       }
       for (const row of reviewing) await anonymiseComments(env, row.pull, comment => comment.role === "reviewer" && comment.author === user.name)
     })
@@ -449,6 +495,7 @@ export async function releaseSubmissions(context, user, keep) {
     env.DB.prepare(`UPDATE notifications SET author = '' WHERE author = ? AND submission_id IN (${theirs})`).bind(user.name, user.provider, user.providerId)
   ].concat(keep ? mine(`UPDATE submissions SET user_id = NULL WHERE user_id = ${USER_ROW}`) : [
     mine(`DELETE FROM notifications WHERE submission_id IN (${theirs})`),
+    mine(`INSERT OR IGNORE INTO deleted_submissions (id) SELECT id FROM submissions WHERE user_id = ${USER_ROW}`),
     mine(`DELETE FROM submissions WHERE user_id = ${USER_ROW}`)
   ])
 }
@@ -460,29 +507,34 @@ export const listSubmissions = guarded(async context => {
     const { results } = await env.DB.prepare(`SELECT ${SHOWN}, ${OWNER} FROM submissions WHERE status = 'open' ORDER BY id LIMIT ?`).bind(SUBMISSION_LIMITS.listed).all()
     return reply(200, { submissions: results.map(row => shown(env, row, user)) })
   }
-  const user = await requireUser(context)
+  const user = await requireUser(context, SIGN_IN)
   const { results } = await env.DB.prepare(`SELECT ${SHOWN}, ${OWNER} FROM submissions WHERE user_id = ${USER_ROW} ORDER BY id DESC LIMIT ?`).bind(user.provider, user.providerId, SUBMISSION_LIMITS.listed).all()
   return reply(200, { submissions: results.map(row => shown(env, row, user)) })
 })
 
 export const submissionDetails = guarded(async context => {
   const { env } = context
-  const row = await findSubmission(env, submissionId(context.params))
+  const row = await findSubmission(env, idParam(context.params, MISSING))
   const user = await signedInUser(context)
-  return reply(200, { submission: shown(env, row, user), comments: await threadOf(env, row), reviewer: await isAdmin(env, user) })
+  return reply(200, { submission: shown(env, row, user), comments: await cachedThread(context, row), reviewer: await isAdmin(env, user) })
 })
 
 export const addComment = guarded(async context => {
   const { env, request } = context
-  const user = await signedInUser(context)
-  if (!user) throw new Refusal(401, "Sign in to comment.")
-  const row = await findSubmission(env, submissionId(context.params))
+  const user = await requireUser(context, "Sign in to comment.", activeUser)
+  const row = await findSubmission(env, idParam(context.params, MISSING))
   const role = row.owner === user.id ? "submitter" : "reviewer"
   if (role === "reviewer" && !await isAdmin(env, user)) throw new Refusal(403, "Only the person who sent this and reviewers can comment on it.")
   const text = commentText((await jsonBody(request)).body)
   if (!text) throw new Refusal(400, "Write a comment first.")
   if (!row.pull) throw new Refusal(409, "This submission isn't on GitHub yet, so it can't take comments.")
-  await onGitHub(() => postComment(env, row, user, role, text))
+  const slot = role === "submitter" ? await takeSlot(env, { table: "account_submissions", column: "account_hash", owner: await accountKey(env, "comments", user) }, SUBMISSION_LIMITS.commentsPerDay) : null
+  if (role === "submitter" && !slot) throw new Refusal(429, `You can send up to ${SUBMISSION_LIMITS.commentsPerDay} comments a day.`)
+  await onGitHub(() => postComment(env, row, user, role, text)).catch(async err => {
+    if (slot) await returnSlot(env, slot)
+    throw err
+  })
+  await forgetFresh(request, row)
   await env.DB.batch([saveUser(env, user), notify(env, row, "comment", { author: user.name, body: text, admins: true, actor: user })])
   emailing(context)
   return reply(201, { comments: await threadOf(env, row) })
@@ -498,80 +550,86 @@ async function processingOf(env, row) {
 }
 
 export const submissionProcessing = guarded(async context => {
-  const row = await findSubmission(context.env, submissionId(context.params))
-  return reply(200, await onGitHub(() => processingOf(context.env, row)))
+  const row = await findSubmission(context.env, idParam(context.params, MISSING))
+  return cachedAtEdge(context, async () => reply(200, await onGitHub(() => processingOf(context.env, row))), { seconds: FRESH_SECONDS, key: freshKey(context.request, row, "processing") })
 })
 
 export const reviewState = guarded(async context => {
   const { env } = context
   await reviewerOf(context)
-  const row = await findSubmission(env, submissionId(context.params))
+  const row = await findSubmission(env, idParam(context.params, MISSING))
   if (row.status !== "open" || !row.pull) return reply(200, { state: null })
   const pull = await onGitHub(() => github(env, `pulls/${row.pull}`))
   return reply(200, { state: pull.mergeable_state ?? "unknown" })
 })
 
+async function mergePull(env, pull) {
+  try {
+    await github(env, `pulls/${pull}/merge`, { method: "PUT", body: { merge_method: "squash" } })
+  } catch (err) {
+    if (err instanceof GitHubError && UNMERGEABLE.includes(err.status)) throw new Refusal(409, "GitHub can't merge this yet. Wait for its checks to finish, or open the pull request to see why.")
+    throw err
+  }
+}
+
 export const reviewSubmission = guarded(async context => {
   const { env, request } = context
   const user = await reviewerOf(context)
-  const row = await findSubmission(env, submissionId(context.params))
+  const row = await findSubmission(env, idParam(context.params, MISSING))
   const { action, comment } = await jsonBody(request)
   if (!["merge", "decline"].includes(action)) throw new Refusal(400, "Choose to merge or decline it.")
-  if (row.status !== "open" || !row.pull) throw new Refusal(409, "This submission has already been reviewed.")
-  const text = action === "decline" ? commentText(comment) : ""
-  if (action === "merge") {
-    await onGitHub(async () => {
-      try {
-        await github(env, `pulls/${row.pull}/merge`, { method: "PUT", body: { merge_method: "squash" } })
-      } catch (err) {
-        if (err instanceof GitHubError && UNMERGEABLE.includes(err.status)) throw new Refusal(409, "GitHub can't merge this yet. Wait for its checks to finish, or open the pull request to see why.")
-        throw err
-      }
-    })
-  } else {
-    await onGitHub(async () => {
-      if (text) await postComment(env, row, user, "reviewer", text)
-      await github(env, `pulls/${row.pull}`, { method: "PATCH", body: { state: "closed" } })
-    })
+  if (row.status !== "open" || !row.pull) throw new Refusal(409, REVIEWED)
+  const merged = action === "merge"
+  const text = merged ? "" : commentText(comment)
+  const closing = await startClosing(context, row, merged)
+  if (!closing) throw new Refusal(409, REVIEWED)
+  try {
+    await onGitHub(() => merged ? mergePull(env, row.pull) : closePull(env, row.pull, text && onGitHubText(user.name, { role: "reviewer", body: text })))
+  } catch (err) {
+    await reopen(env, row.id)
+    throw err
   }
-  await closeSubmission(context, row, action === "merge", { author: user.name, body: text, actor: user })
-  return reply(200, { outcome: action === "merge" ? "published" : "rejected" })
+  await finishClosing(context, row, closing, { author: user.name, body: text, actor: user })
+  return reply(200, { outcome: closing.status })
 })
 
-export const submissionFile = guarded(async context => {
+function blobReply(context, row, path, sha, type) {
   const { env, request } = context
-  const row = await findSubmission(env, submissionId(context.params))
-  const bytes = await onGitHub(() => github(env, `git/blobs/${row.file}`, { raw: true }))
-  const lasting = new URL(request.url).searchParams.get("v") === row.file
-  return new Response(bytes, { headers: { "Content-Type": SUBMISSION_KINDS[row.kind].accept, "Cache-Control": lasting ? "public, max-age=31536000, immutable" : "no-store" } })
+  const lasting = new URL(request.url).searchParams.get("v") === sha
+  return cachedAtEdge(context, async () => new Response(await onGitHub(() => github(env, `git/blobs/${sha}`, { raw: true })), { headers: { "Content-Type": type } }), { seconds: LASTING_SECONDS, key: `${cacheKey(request, row.id, path)}?v=${sha}`, browser: lasting ? `public, max-age=${LASTING_SECONDS}, immutable` : "no-store" })
+}
+
+export const submissionFile = guarded(async context => {
+  const row = await findSubmission(context.env, idParam(context.params, MISSING))
+  return blobReply(context, row, "file", row.file, SUBMISSION_KINDS[row.kind].accept)
 })
 
 export const submissionExtraFile = guarded(async context => {
-  const { env, request, params } = context
-  const row = await findSubmission(env, submissionId(params))
+  const { env, params } = context
+  const row = await findSubmission(env, idParam(params, MISSING))
   const sha = JSON.parse(row.details).files?.[params.key]
   if (typeof sha !== "string") throw new Refusal(404, "This file doesn't exist.")
-  const bytes = await onGitHub(() => github(env, `git/blobs/${sha}`, { raw: true }))
-  const lasting = new URL(request.url).searchParams.get("v") === sha
-  return new Response(bytes, { headers: { "Content-Type": "image/png", "Cache-Control": lasting ? "public, max-age=31536000, immutable" : "no-store" } })
+  return blobReply(context, row, `files/${params.key}`, sha, "image/png")
 })
 
 export const listNotifications = guarded(async context => {
-  const user = await requireUser(context)
+  const user = await requireUser(context, SIGN_IN)
   const { results } = await context.env.DB.prepare(`SELECT notifications.id, notifications.submission_id AS submission, COALESCE(submissions.name, notifications.submission_name) AS submissionName, notifications.kind, notifications.author, notifications.body, notifications.url, notifications.link, notifications.seen, notifications.created_at AS createdAt FROM notifications LEFT JOIN submissions ON submissions.id = notifications.submission_id WHERE notifications.user_id = ${USER_ROW} ORDER BY notifications.id DESC LIMIT ?`).bind(user.provider, user.providerId, SUBMISSION_LIMITS.notifications).all()
   return reply(200, { notifications: results.map(item => ({ ...item, seen: !!item.seen })) })
 })
 
 export const clearNotifications = guarded(async context => {
-  const user = await requireUser(context)
-  await context.env.DB.prepare(`DELETE FROM notifications WHERE user_id = ${USER_ROW}`).bind(user.provider, user.providerId).run()
+  const user = await requireUser(context, SIGN_IN)
+  await context.env.DB.batch([context.env.DB.prepare(`DELETE FROM notifications WHERE user_id = ${USER_ROW}`).bind(user.provider, user.providerId), forgetSpareEmails(context.env), forgetUnusedUser(context.env, user)])
   return reply(200, { notifications: [] })
 })
 
 export const markNotificationsSeen = guarded(async context => {
-  const user = await requireUser(context)
-  await context.env.DB.prepare(`UPDATE notifications SET seen = 1 WHERE seen = 0 AND user_id = ${USER_ROW}`).bind(user.provider, user.providerId).run()
-  return reply(200, { unread: 0 })
+  const user = await requireUser(context, SIGN_IN)
+  const submission = new URL(context.request.url).searchParams.get("submission")
+  if (submission === null) await context.env.DB.prepare(`UPDATE notifications SET seen = 1 WHERE seen = 0 AND user_id = ${USER_ROW}`).bind(user.provider, user.providerId).run()
+  else await context.env.DB.prepare(`UPDATE notifications SET seen = 1 WHERE seen = 0 AND user_id = ${USER_ROW} AND submission_id = ?`).bind(user.provider, user.providerId, idParam({ id: submission }, MISSING)).run()
+  return reply(200, { seen: true })
 })
 
 async function pulledSubmission(env, pull) {
@@ -582,7 +640,8 @@ async function pullClosed(context, pull, sender) {
   const { env } = context
   const row = await pulledSubmission(env, pull.number)
   if (!row || row.status !== "open" || pull.head.ref !== branchOf(row.id)) return
-  await closeSubmission(context, row, pull.merged, { author: sender?.login ?? "", url: pull.html_url, actor: gitHubActor(sender) })
+  const closing = await startClosing(context, row, pull.merged)
+  if (closing) await finishClosing(context, row, closing, { author: sender?.login ?? "", url: pull.html_url, actor: gitHubActor(sender) })
 }
 
 function reviewersHear(context, kind, title, entry) {
@@ -614,19 +673,24 @@ async function reviewed(context, pull, review) {
 async function rebuildAfterPush(context, payload) {
   const { env } = context
   const touched = new Set((payload.commits ?? []).flatMap(commit => [].concat(commit.added ?? [], commit.modified ?? [], commit.removed ?? [])))
-  const { results } = await env.DB.prepare(`SELECT ${SHOWN}, ${OWNER} FROM submissions WHERE status = 'open' AND pull IS NOT NULL ORDER BY id`).all()
-  if (!results.length) return
+  const { results: open } = await env.DB.prepare(`SELECT ${SHOWN}, ${OWNER} FROM submissions WHERE status = 'open' ORDER BY id`).all()
+  const pulled = open.filter(row => row.pull)
+  if (!pulled.length) return
   const fonts = await publishedFonts(context)
-  for (const row of results) {
+  for (const row of pulled) {
     try {
       const watched = SERVER_KINDS[row.kind].watches({ row, details: JSON.parse(row.details), fonts })
       if (!watched.some(path => touched.has(path))) continue
       if ((await github(env, `pulls/${row.pull}`)).state !== "open") continue
-      await syncSubmission(context, row, fonts)
+      await syncSubmission(context, row, fonts, open)
     } catch (err) {
       console.error(`submission ${row.id} could not be rebuilt`, err)
     }
   }
+}
+
+export function submissionPage({ request, env }) {
+  return env.ASSETS.fetch(new URL("/submissions/", request.url))
 }
 
 export const receiveWebhook = guarded(async context => {

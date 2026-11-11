@@ -5,7 +5,7 @@ import { assetId } from "../../lib/submissions.js"
 
 const LIST = `public${TILEABLES_LIST}`
 
-export function tileableIds(list) {
+function tileableIds(list) {
   return Object.entries(list).flatMap(([id, data]) => [id].concat(Object.keys(data.variants ?? {})))
 }
 

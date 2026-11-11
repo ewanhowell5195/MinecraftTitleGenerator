@@ -1,13 +1,12 @@
 import { flattenFonts, fontFolder } from "../../lib/font.js"
-import { GENERATED_EDGE_OVERLAYS, withGenerated } from "../../lib/generated.js"
 import { jsonText } from "../../lib/jsonText.js"
 import { titleCase } from "../../lib/names.js"
 import { fontParent } from "../../lib/submissionKinds/font.js"
 import { holdingPath } from "../../lib/submissionKinds/fontBuild.js"
 import { assetId } from "../../lib/submissions.js"
+import { usedIds } from "./fontAsset.js"
 
 const LIST = "public/font/fonts.json"
-const BUILT_IN = ["flat"].concat(Object.keys(withGenerated({})), Object.keys(GENERATED_EDGE_OVERLAYS))
 
 function parentOf(row, fonts) {
   if (!row.target) return null
@@ -25,8 +24,8 @@ function freeId(wanted, used) {
 function bundle(row, details, folder) {
   const extras = details.extras ?? []
   if (!extras.length) return []
-  const used = new Set(BUILT_IN)
   const list = { textures: { flat: { border: "#000000" } }, overlays: {} }
+  const used = new Set(usedIds(list))
   const files = []
   for (const item of extras) {
     const sha = details.files?.[item.key]

@@ -1,8 +1,10 @@
-import { escaped } from "./http.js"
+import { forgetSpareEmails } from "./accounts.js"
+import { escaped, setting } from "./http.js"
 
 const SITE = "https://mctitlegenerator.com"
 const FROM = "Minecraft Title Generator <notifications@mctitlegenerator.com>"
 const RESEND = "https://api.resend.com/emails"
+const UNSENDABLE = [400, 422]
 
 const FONT = "system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
 
@@ -65,38 +67,51 @@ function composed(to, message, { author, body, link, reason }) {
   }
 }
 
-export function notificationEmail(note) {
+function notificationEmail(note) {
   const author = note.author || "Someone"
   const message = MESSAGES[note.kind]({ author, name: note.name, body: note.body })
   return composed(note.email, message, { author, body: note.body, link: linkOf(note), reason: "of a submission on" })
 }
 
-export function gitHubEmail(to, event) {
+function gitHubEmail(to, event) {
   const body = Array.from(event.body ?? "").slice(0, GITHUB_BODY).join("").trim()
   const message = { ...GITHUB_MESSAGES[event.kind](event.title), detail: body ? null : `By ${event.author}.`, action: "Open it on GitHub" }
   return composed(to, message, { author: event.author, body, link: event.link, reason: "you review" })
 }
 
 async function send(env, message) {
-  if (!env.RESEND_API_KEY) throw new Error("RESEND_API_KEY is not set")
-  const response = await fetch(RESEND, { method: "POST", headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify(message) })
-  if (!response.ok) throw new Error(`Resend refused an email to a notification recipient (${response.status}): ${await response.text()}`)
+  const response = await fetch(RESEND, { method: "POST", headers: { Authorization: `Bearer ${setting(env, "RESEND_API_KEY")}`, "Content-Type": "application/json" }, body: JSON.stringify(message) })
+  if (!response.ok) throw Object.assign(new Error(`Resend refused an email to a notification recipient (${response.status}): ${await response.text()}`), { status: response.status })
 }
 
-async function sendAll(env, messages) {
-  const failures = (await Promise.allSettled(messages.map(message => send(env, message)))).filter(outcome => outcome.status === "rejected")
+function sendEach(env, messages) {
+  return Promise.allSettled(messages.map(message => send(env, message)))
+}
+
+function checkSent(outcomes) {
+  const failures = outcomes.filter(outcome => outcome.status === "rejected")
   if (failures.length) throw new AggregateError(failures.map(outcome => outcome.reason), `${failures.length} emails failed`)
 }
 
 export async function emailReviewers(env, event, actorId) {
   const { results } = await env.DB.prepare("SELECT DISTINCT email FROM users WHERE admin = 1 AND email IS NOT NULL AND email NOT IN (SELECT email FROM users WHERE provider = 'github' AND provider_id = ? AND email IS NOT NULL)").bind(String(actorId)).all()
-  await sendAll(env, results.map(row => gitHubEmail(row.email, event)))
+  checkSent(await sendEach(env, results.map(row => gitHubEmail(row.email, event))))
 }
 
 export async function emailNotifications(env) {
   const { results: claimed } = await env.DB.prepare("UPDATE notifications SET emailed = 1 WHERE emailed = 0 RETURNING id").all()
   if (!claimed.length) return
-  const { results } = await env.DB.prepare("SELECT users.email, notifications.submission_id AS submissionId, COALESCE(submissions.name, notifications.submission_name) AS name, notifications.kind, notifications.author, notifications.body, notifications.link FROM notifications JOIN users ON users.id = notifications.user_id LEFT JOIN submissions ON submissions.id = notifications.submission_id WHERE users.email IS NOT NULL AND notifications.id IN (SELECT value FROM json_each(?))").bind(JSON.stringify(claimed.map(row => row.id))).all()
-  const messages = new Map(results.map(note => [JSON.stringify([note.email, note.kind, note.submissionId, note.name, note.body]), notificationEmail(note)]))
-  await sendAll(env, Array.from(messages.values()))
+  const { results } = await env.DB.prepare("SELECT notifications.id, users.email, notifications.submission_id AS submissionId, COALESCE(submissions.name, notifications.submission_name) AS name, notifications.kind, notifications.author, notifications.body, notifications.link FROM notifications JOIN users ON users.id = notifications.user_id LEFT JOIN submissions ON submissions.id = notifications.submission_id WHERE users.email IS NOT NULL AND notifications.id IN (SELECT value FROM json_each(?))").bind(JSON.stringify(claimed.map(row => row.id))).all()
+  const groups = new Map()
+  for (const note of results) {
+    const key = JSON.stringify([note.email, note.kind, note.submissionId, note.name, note.body])
+    if (!groups.has(key)) groups.set(key, { message: notificationEmail(note), ids: [] })
+    groups.get(key).ids.push(note.id)
+  }
+  const sending = Array.from(groups.values())
+  const outcomes = await sendEach(env, sending.map(group => group.message))
+  const unsent = sending.filter((group, index) => outcomes[index].status === "rejected" && !UNSENDABLE.includes(outcomes[index].reason.status)).flatMap(group => group.ids)
+  if (unsent.length) await env.DB.prepare("UPDATE notifications SET emailed = 0 WHERE id IN (SELECT value FROM json_each(?))").bind(JSON.stringify(unsent)).run()
+  await forgetSpareEmails(env).run()
+  checkSent(outcomes)
 }

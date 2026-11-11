@@ -1,74 +1,28 @@
 import { afterEach, beforeEach, describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { createHmac, generateKeyPairSync } from "node:crypto"
 import fs from "node:fs"
-import path from "node:path"
-import { DatabaseSync } from "node:sqlite"
+import { setTimeout as wait } from "node:timers/promises"
 import { PNG } from "pngjs"
-import { fakeGitHub } from "./fakeGitHub.js"
+import { pngOf } from "./helpers/png.js"
+import { context, hook, sendForm, serverEnv, signIn as signInAs } from "./helpers/server.js"
 
-const { finishSignIn, receiveSignIn, startSignIn } = await import("../src/server/accounts.js")
+const { accountDetails } = await import("../src/server/accounts.js")
 const { deleteAccount } = await import("../src/server/accountDeletion.js")
-const { submitPreset, votePreset } = await import("../src/server/presets.js")
+const { claimPresets, submitPreset, votePreset } = await import("../src/server/presets.js")
 const { addSaved } = await import("../src/server/saved.js")
-const { addComment, createSubmission, receiveWebhook } = await import("../src/server/submissions.js")
+const { addComment, createSubmission } = await import("../src/server/submissions.js")
 const { encodeTitle } = await import("../src/lib/linkformat.js")
 const { FILE_VERSION } = await import("../src/lib/settings.js")
 
-const REPO = "owner/repo"
-const API = "https://github.test"
 const TEXTURES = "public/font/minecraft-ten/textures.json"
 const FLAT = PNG.sync.read(fs.readFileSync("public/font/minecraft-ten/textures/flat.png"))
-const realFetch = globalThis.fetch
-
-function d1(sqlite) {
-  function statement(sql, values = []) {
-    return {
-      bind: (...next) => statement(sql, next),
-      all: async () => ({ results: sqlite.prepare(sql).all(...values) }),
-      first: async () => sqlite.prepare(sql).get(...values) ?? null,
-      run: async () => ({ meta: { changes: Number(sqlite.prepare(sql).run(...values).changes) } }),
-      execute() {
-        return /RETURNING/.test(sql) ? { results: sqlite.prepare(sql).all(...values) } : { results: [], meta: { changes: Number(sqlite.prepare(sql).run(...values).changes) } }
-      }
-    }
-  }
-  return {
-    prepare: sql => statement(sql),
-    batch: async statements => {
-      sqlite.exec("BEGIN")
-      try {
-        const results = statements.map(item => item.execute())
-        sqlite.exec("COMMIT")
-        return results
-      } catch (err) {
-        sqlite.exec("ROLLBACK")
-        throw err
-      }
-    }
-  }
-}
 
 let db
-let env
 let gh
-let profile
+let restore
 
-function context(url, { method = "GET", body, cookie, params = {}, headers = {}, ip = "1.1.1.1" } = {}) {
-  const sent = typeof body === "string" || body instanceof FormData || body === undefined ? body : JSON.stringify(body)
-  const request = new Request(`https://mctitlegenerator.com${url}`, { method, body: sent, headers: { "CF-Connecting-IP": ip, ...(cookie && { Cookie: cookie }), ...headers } })
-  return { request, env, params, waitUntil: () => {} }
-}
-
-async function signIn(id, username) {
-  profile = { id, username, email: `${username}@example.com`, verified: true }
-  const started = await startSignIn(context(`/api/account/login/discord?return=${encodeURIComponent("https://mctitlegenerator.com")}`, { params: { provider: "discord" } }))
-  const state = new URL(started.headers.get("Location")).searchParams.get("state")
-  const stateCookie = started.headers.getSetCookie().find(line => line.startsWith("signin_state=")).split(";")[0]
-  const back = await receiveSignIn(context(`/api/account/login/discord/callback?${new URLSearchParams({ code: "abc", state })}`, { params: { provider: "discord" } }))
-  const { pathname, search } = new URL(back.headers.get("Location"))
-  const done = await finishSignIn(context(`${pathname}${search}`, { cookie: stateCookie, params: { provider: "discord" } }))
-  return done.headers.getSetCookie().find(line => line.startsWith("session=")).split(";")[0]
+function signIn(id, username) {
+  return signInAs("discord", { id, username, email: `${username}@example.com`, verified: true })
 }
 
 function code(text) {
@@ -84,22 +38,14 @@ async function vote(cookie, id, value) {
 }
 
 async function submit(cookie) {
-  const image = new PNG({ width: FLAT.width, height: FLAT.height })
-  image.data.fill(200)
   const data = new FormData()
   for (const [key, value] of Object.entries({ kind: "texture", target: "minecraft-ten", name: "Gold Bricks", credit: "Someone", notes: "", agree: "true", details: JSON.stringify({ border: "#000000" }) })) data.set(key, value)
-  data.set("file", new Blob([PNG.sync.write(image)], { type: "image/png" }), "texture.png")
-  return (await (await createSubmission(context("/api/submissions", { method: "POST", body: data, cookie }))).json()).id
+  data.set("file", new Blob([pngOf(FLAT.width, FLAT.height)], { type: "image/png" }), "texture.png")
+  return (await sendForm(cookie, data)).id
 }
 
 async function remove(cookie, mode) {
   return deleteAccount(context("/api/account/delete", { method: "POST", body: { mode }, cookie }))
-}
-
-async function hook(event, payload) {
-  const body = JSON.stringify({ repository: { full_name: REPO }, ...payload })
-  const signature = `sha256=${createHmac("sha256", "hook-secret").update(body).digest("hex")}`
-  return receiveWebhook(context("/api/github", { method: "POST", body, headers: { "X-GitHub-Event": event, "X-Hub-Signature-256": signature } }))
 }
 
 function count(sql, ...values) {
@@ -120,27 +66,10 @@ async function setUp() {
 }
 
 beforeEach(() => {
-  const sqlite = new DatabaseSync(":memory:")
-  sqlite.exec(fs.readFileSync("schema.sql", "utf8"))
-  db = sqlite
-  const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048, privateKeyEncoding: { type: "pkcs1", format: "pem" }, publicKeyEncoding: { type: "spki", format: "pem" } })
-  gh = fakeGitHub(publicKey, { repo: REPO, api: API, files: [TEXTURES] })
-  env = { DB: d1(sqlite), ASSETS: { fetch: url => assets(String(url)) }, IP_SALT: "salt", SESSION_SECRET: "session-secret", DISCORD_CLIENT_ID: "discord-id", DISCORD_CLIENT_SECRET: "discord-secret", GITHUB_APP_ID: "123", GITHUB_APP_KEY: privateKey, GITHUB_WEBHOOK_SECRET: "hook-secret", GITHUB_REPOSITORY: REPO, GITHUB_API: API, RESEND_API_KEY: "resend-key" }
-  globalThis.fetch = async (url, options) => {
-    const text = String(url)
-    if (text.startsWith(API)) return gh.handle(text, options)
-    return new Response(JSON.stringify(options?.method === "POST" ? { access_token: "token" } : String(url).endsWith("/user/emails") ? profile.emails ?? [{ email: `${profile.login}@example.com`, primary: true, verified: true }] : profile), { status: 200, headers: { "Content-Type": "application/json" } })
-  }
+  ({ db, gh, restore } = serverEnv({ files: [TEXTURES], env: { IP_SALT: "salt" }, ip: "1.1.1.1" }))
 })
 
-afterEach(() => {
-  globalThis.fetch = realFetch
-})
-
-function assets(url) {
-  const file = path.join("public", decodeURIComponent(new URL(url).pathname))
-  return fs.existsSync(file) && fs.statSync(file).isFile() ? new Response(fs.readFileSync(file)) : new Response("missing", { status: 404 })
-}
+afterEach(() => restore())
 
 describe("deleting an account", () => {
   test("needs a sign-in and a choice", async () => {
@@ -162,7 +91,7 @@ describe("deleting an account", () => {
     assert.equal(count("SELECT COUNT(*) AS total FROM notifications"), 0)
     assert.equal(count("SELECT COUNT(*) AS total FROM users WHERE name = 'leaving'"), 0)
     assert.equal(count("SELECT COUNT(*) AS total FROM users WHERE name = 'staying'"), 1)
-    assert.equal(count("SELECT COUNT(*) AS total FROM account_submissions"), 1)
+    assert.deepEqual(db.prepare("SELECT count FROM account_submissions ORDER BY rowid").all().map(row => row.count), [1, 1, 1])
     assert.equal(gh.pulls.get(1).state, "closed")
     assert.ok(gh.refs.has(`heads/submission/${submission}`))
     assert.doesNotMatch(gh.pulls.get(1).body, /leaving/)
@@ -185,5 +114,74 @@ describe("deleting an account", () => {
     const comment = { action: "created", issue: { number: 1, pull_request: {} }, comment: { body: "nice", author_association: "OWNER", html_url: "https://github.com/c", user: { login: "ewan", type: "User" } } }
     assert.equal((await hook("issue_comment", comment)).status, 200)
     assert.equal(count("SELECT COUNT(*) AS total FROM notifications WHERE kind = 'comment' AND author = 'ewan'"), 1)
+  })
+
+  test("keeps the day's submission count, so deleting the account doesn't give more", async () => {
+    const cookie = await signIn("1", "leaving")
+    await submit(cookie)
+    await remove(cookie, "remove")
+    await wait(5)
+    const again = await signIn("1", "leaving")
+    await submit(again)
+    assert.deepEqual(db.prepare("SELECT count FROM account_submissions").all().map(row => row.count), [2])
+  })
+})
+
+describe("sessions from before an account was deleted", () => {
+  async function refused(response) {
+    assert.equal(response.status, 401)
+    assert.match((await response.json()).error, /This account has been deleted/)
+    assert.match(response.headers.get("Set-Cookie"), /^session=; .*Max-Age=0/)
+  }
+
+  async function leave() {
+    const here = await signIn("1", "leaving")
+    const elsewhere = await signIn("1", "leaving")
+    await share(here, "mine")
+    assert.equal((await remove(here, "remove")).status, 200)
+    return elsewhere
+  }
+
+  test("can't share, save, claim, submit or comment, so the account stays deleted", async () => {
+    const elsewhere = await leave()
+    await refused(await submitPreset(context("/api/presets", { method: "POST", body: { code: code("again") }, cookie: elsewhere })))
+    await refused(await addSaved(context("/api/saved", { method: "POST", body: { presets: [{ name: "private", code: code("private") }] }, cookie: elsewhere })))
+    await refused(await claimPresets(context("/api/presets/claim", { method: "POST", body: { tokens: [] }, cookie: elsewhere })))
+    await refused(await createSubmission(context("/api/submissions", { method: "POST", body: new FormData(), cookie: elsewhere })))
+    await refused(await addComment(context("/api/submissions/1/comments", { method: "POST", body: { body: "hello" }, cookie: elsewhere, params: { id: "1" } })))
+    assert.equal(count("SELECT COUNT(*) AS total FROM users"), 0)
+    assert.equal(count("SELECT COUNT(*) AS total FROM presets"), 0)
+  })
+
+  test("count as signed out when the account is asked for", async () => {
+    const elsewhere = await leave()
+    const response = await accountDetails(context("/api/account", { cookie: elsewhere }))
+    assert.equal(response.status, 200)
+    assert.equal((await response.json()).user, null)
+    assert.match(response.headers.get("Set-Cookie"), /^session=; .*Max-Age=0/)
+  })
+
+  test("don't stop a new sign-in from making the account again", async () => {
+    await leave()
+    await wait(5)
+    const back = await signIn("1", "leaving")
+    assert.equal((await (await accountDetails(context("/api/account", { cookie: back }))).json()).user.name, "leaving")
+    assert.equal((await share(back, "again")).name, "Again")
+    assert.equal(count("SELECT COUNT(*) AS total FROM users"), 1)
+  })
+
+  test("leave other accounts alone", async () => {
+    const other = await signIn("2", "staying")
+    await leave()
+    assert.equal((await share(other, "theirs")).name, "Theirs")
+  })
+
+  test("are remembered by a hash, only for as long as a session lasts", async () => {
+    db.prepare("INSERT INTO deleted_accounts (account_hash, deleted_at) VALUES ('old', ?), ('recent', ?)").run(Date.now() - 91 * 86400000, Date.now() - 89 * 86400000)
+    await leave()
+    const rows = db.prepare("SELECT account_hash FROM deleted_accounts ORDER BY deleted_at").all().map(row => row.account_hash)
+    assert.equal(rows.length, 2)
+    assert.equal(rows[0], "recent")
+    assert.match(rows[1], /^[0-9a-f]{64}$/)
   })
 })
