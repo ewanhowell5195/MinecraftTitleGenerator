@@ -6,6 +6,7 @@ import { quadsOf } from "./modelQuads.js"
 const LIBRARY = "https://cdn.jsdelivr.net/npm/block-model-renderer@3/dist/block-model-renderer.min.js"
 const FOLDERS = { block: "assets/minecraft/blockstates/", item: "assets/minecraft/items/" }
 const THUMBNAIL = 96
+const RELEASE = /^\d+\.\d+(?:\.\d+)*/
 
 let library = null
 let drawing = false
@@ -29,13 +30,17 @@ function childNames(paths, dir) {
   return Array.from(names)
 }
 
+export function gameRelease(version) {
+  return version.match(RELEASE)?.[0]
+}
+
 async function prepare(version) {
   const [lib, paths] = await Promise.all([renderer(), gamePaths(version, "shapes")])
   const handler = {
     read: path => readGameFile(version, path),
     list: dir => childNames(paths, dir.endsWith("/") ? dir : `${dir}/`)
   }
-  return { lib, paths, assets: await lib.prepareAssets([handler], { cache: true }) }
+  return { lib, paths, assets: await lib.prepareAssets([handler], { cache: true, version: gameRelease(version) }) }
 }
 
 function gameModels(version) {

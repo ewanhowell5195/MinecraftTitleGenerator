@@ -1,4 +1,5 @@
 import { forgetImages } from "../src/lib/assets.js"
+import { gameRelease } from "../src/lib/minecraftModels.js"
 import { usePlatform } from "../src/lib/platform.js"
 import { titleCanvas } from "../src/lib/titlePicture.js"
 import { checkTitle } from "../src/server/presets.js"
@@ -43,7 +44,7 @@ export function answerMinecraftFolders(answer) {
       const folder = await answer(version)
       if (!folder) throw new Error(`Minecraft ${version} isn't available to draw shapes from`)
       const lib = await import("block-model-renderer")
-      return { lib, assets: await lib.prepareAssets([folder], { cache: true }) }
+      return { lib, assets: await lib.prepareAssets([folder], { cache: true, version: gameRelease(version) }) }
     })
   })
 }
