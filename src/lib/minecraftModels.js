@@ -3,7 +3,7 @@ import { gamePaths, keepTextures, readGameFile } from "./minecraft.js"
 import { platform } from "./platform.js"
 import { quadsOf } from "./modelQuads.js"
 
-const LIBRARY = "https://cdn.jsdelivr.net/npm/block-model-renderer@2/dist/block-model-renderer.min.js"
+const LIBRARY = "https://cdn.jsdelivr.net/npm/block-model-renderer@3/dist/block-model-renderer.min.js"
 const FOLDERS = { block: "assets/minecraft/blockstates/", item: "assets/minecraft/items/" }
 const THUMBNAIL = 96
 
@@ -112,7 +112,7 @@ async function modelGroup(kind, id, version) {
   const refs = kind === "block" ? await lib.parseBlockstate(assets, id) : await lib.parseItemDefinition(assets, id, { display: "gui" })
   if (!refs.length) throw new Error(`Minecraft has no model for the ${kind} ${id}`)
   const group = new THREE.Group()
-  for (const ref of refs) group.add(await lib.loadModel(null, assets, await lib.resolveModelData(assets, ref), { lighting: "off" }))
+  for (const ref of refs) group.add(await lib.loadModel(assets, await lib.resolveModelData(assets, ref), { lighting: "off" }))
   group.updateMatrixWorld(true)
   return group
 }

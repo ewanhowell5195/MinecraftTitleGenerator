@@ -4,10 +4,11 @@
   "type": "module",
   "exports": "./index.js",
   "dependencies": {
-    "block-model-renderer": "^2.20.0",
+    "block-model-renderer": "^3.1.0",
     "gl": "^8.1.6",
-    "headless-three": "^1.9.0",
-    "skia-canvas": "^3.0.8",
+    "headless-three": "^1.10.0",
+    "sharp": "^0.35.5",
+    "skia-canvas": "^4.0.0",
     "three": "0.162.0"
   },
   "devDependencies": {
