@@ -3,10 +3,11 @@
   import { useRoute } from "vue-router"
   import SiteFooter from "./site/SiteFooter.vue"
   import SiteHeader from "./site/SiteHeader.vue"
+  import { pageKey } from "./site/routes.js"
 
   const route = useRoute()
   const page = computed(() => route.meta)
-  const key = computed(() => page.value.stays ? page.value.name : route.fullPath.split("#")[0])
+  const key = computed(() => pageKey(route))
 </script>
 
 <template>

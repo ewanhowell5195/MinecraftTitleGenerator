@@ -1,8 +1,10 @@
-import { createRouter, createWebHistory } from "vue-router"
+import { nextTick } from "vue"
+import { START_LOCATION, createRouter, createWebHistory } from "vue-router"
 import { navigated, setNavigator } from "./lib/navigation.js"
 import { SITE } from "./pages.js"
-import { pageRoutes, routed } from "./site/routes.js"
+import { pageKey, pageRoutes, routed } from "./site/routes.js"
 
+const CAPTURE_WAIT = 200
 const COMPONENTS = {
   home: () => import("./pages/HomePage.vue"),
   app: () => import("./App.vue"),
@@ -27,17 +29,49 @@ export const router = createRouter({
   }
 })
 
+const fades = new WeakMap()
+
+function crossfade(to, from) {
+  if (from === START_LOCATION || pageKey(to) === pageKey(from)) return
+  if (!document.startViewTransition || matchMedia("(prefers-reduced-motion: reduce)").matches) return
+  return new Promise(resolve => {
+    const shown = new Promise(done => fades.set(to, done))
+    const transition = document.startViewTransition(() => {
+      clearTimeout(waiting)
+      resolve()
+      return shown
+    })
+    // the old page is only captured on the next frame, which never comes while the window isn't being drawn
+    const waiting = setTimeout(() => transition.skipTransition(), CAPTURE_WAIT)
+    // ready rejects whenever a transition is skipped, eg by the next navigation starting
+    transition.ready.catch(() => {})
+  })
+}
+
+function crossfaded(to, from, failure) {
+  const done = fades.get(to)
+  if (!done) return
+  fades.delete(to)
+  // Chrome abandons a transition when the page gets too short for its scroll position, which it can once the next page's styles are set in the hook below
+  if (!failure && to.path !== from.path) scrollTo({ top: 0, behavior: "instant" })
+  nextTick().then(() => setTimeout(done))
+}
+
 setNavigator(router)
-router.afterEach(navigated)
+router.beforeResolve(crossfade)
+router.afterEach(crossfaded)
+router.afterEach((to, from, failure) => {
+  if (!failure) navigated(to, from)
+})
 
 function setHead(selector, attribute, value) {
   const element = document.head.querySelector(selector)
   if (element) element.setAttribute(attribute, value)
 }
 
-router.afterEach((to, from) => {
+router.afterEach((to, from, failure) => {
   const page = to.meta
-  if (page.stays && page.name === from.meta.name) return
+  if (failure || page.stays && page.name === from.meta.name) return
   document.documentElement.dataset.styles = page.styles
   document.title = page.title
   setHead("meta[name=description]", "content", page.description)

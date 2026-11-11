@@ -48,3 +48,9 @@
   --bevel: 2px;
   --bevel-big: 4px;
 }
+
+::view-transition-group(root),
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--duration);
+}

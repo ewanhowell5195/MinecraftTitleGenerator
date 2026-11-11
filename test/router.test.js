@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import { describe, test } from "node:test"
 import { createMemoryHistory, createRouter } from "vue-router"
 import { PAGES } from "../src/pages.js"
-import { pageRoutes, routed } from "../src/site/routes.js"
+import { pageKey, pageRoutes, routed } from "../src/site/routes.js"
 
 const HERE = new URL("https://mctitlegenerator.com/credits/?search=oak")
 const router = createRouter({ history: createMemoryHistory(), routes: pageRoutes(Object.fromEntries(PAGES.map(page => [page.name, {}]))) })
@@ -25,6 +25,25 @@ describe("page routes", () => {
 
   test("the first path of a page is named after the page", () => {
     for (const page of PAGES) assert.equal(router.resolve({ name: page.name }).meta.name, page.name)
+  })
+})
+
+describe("pageKey", () => {
+  test("a page that stays keeps one key across its paths", () => {
+    assert.equal(pageKey(router.resolve("/app/")), pageKey(router.resolve("/app/presets/12")))
+    assert.equal(pageKey(router.resolve("/app/presets")), "app")
+  })
+
+  test("other pages get a key per path and query", () => {
+    assert.notEqual(pageKey(router.resolve("/submissions/")), pageKey(router.resolve("/submissions/7/")))
+    assert.notEqual(pageKey(router.resolve("/submissions/7/")), pageKey(router.resolve("/submissions/7/edit/")))
+    assert.notEqual(pageKey(router.resolve("/credits/")), pageKey(router.resolve("/credits/?search=oak")))
+    assert.notEqual(pageKey(router.resolve("/terms/")), pageKey(router.resolve("/privacy/")))
+  })
+
+  test("a hash does not change the key", () => {
+    assert.equal(pageKey(router.resolve("/terms/#presets")), pageKey(router.resolve("/terms/")))
+    assert.equal(pageKey(router.resolve("/credits/?search=oak#fonts")), pageKey(router.resolve("/credits/?search=oak")))
   })
 })
 

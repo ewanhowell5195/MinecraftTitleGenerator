@@ -4,6 +4,10 @@ export function pageRoutes(components) {
   return PAGES.flatMap(page => page.paths.map((path, index) => ({ path, name: index ? `${page.name}-${index}` : page.name, component: components[page.name], meta: page })))
 }
 
+export function pageKey(route) {
+  return route.meta.stays ? route.meta.name : route.fullPath.split("#")[0]
+}
+
 export function routed(anchor, here, resolve) {
   if (anchor.target && anchor.target !== "_self" || anchor.hasAttribute("download")) return null
   const url = new URL(anchor.href, here.href)
