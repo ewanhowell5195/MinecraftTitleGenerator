@@ -25,6 +25,11 @@ describe("mergeStrips", () => {
     assert.deepEqual(textures.shared, { author: "mine" })
   })
 
+  test("a strip is left out when one of its ids is already a texture or variant", () => {
+    const { textures } = mergeStrips({ textures: { entities: { variants: { shared: {} } }, kid: {} } }, [{ ...SET, textures: { ...SET.textures, lone: { variants: { kid: {} } } } }])
+    assert.deepEqual(Object.keys(textures), ["entities", "kid", "other"])
+  })
+
   test("the first listed strips win an id", () => {
     const second = { id: "second", depth: 22, textures: { shared: { author: "late" }, extra: { author: "d" } } }
     const { textures } = mergeStrips({ textures: {} }, [SET, second])

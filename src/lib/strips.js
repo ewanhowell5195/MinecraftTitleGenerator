@@ -32,8 +32,14 @@ function attach(id, local, sets) {
 
 export function mergeStrips(own, sets) {
   const textures = Object.fromEntries(Object.entries(own.textures).map(([id, entry]) => [id, entry.strip ? attach(id, entry, sets) : entry]))
+  const taken = new Set(Object.entries(textures).flatMap(([id, entry]) => [id].concat(Object.keys(entry.variants ?? {}))))
   for (const set of sets) {
-    for (const [id, data] of Object.entries(set.textures)) textures[id] ??= shared(data, set)
+    for (const [id, data] of Object.entries(set.textures)) {
+      const ids = [id].concat(Object.keys(data.variants ?? {}))
+      if (ids.some(name => taken.has(name))) continue
+      textures[id] = shared(data, set)
+      for (const name of ids) taken.add(name)
+    }
   }
   return { ...own, textures }
 }
