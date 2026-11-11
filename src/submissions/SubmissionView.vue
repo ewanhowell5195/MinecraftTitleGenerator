@@ -48,7 +48,7 @@
   })
   const previewLink = computed(() => item.value?.previewUrl && `${item.value.previewUrl}${publishedTitle(item.value, props.fonts)}`)
   const reviewing = computed(() => reviewer.value && item.value?.status === "open" && !!item.value.pullUrl)
-  const changeable = computed(() => item.value?.mine && item.value.status === "open")
+  const changeable = computed(() => (item.value?.mine || reviewer.value) && item.value?.status === "open")
   const page = submissionPage(props.id)
 
   async function load() {
@@ -166,7 +166,7 @@
           </div>
           <div v-if="changeable" class="actions">
             <Button :href="`${page}/edit`"><template #icon><Icon name="pencil" :size="16" /></template>Edit</Button>
-            <Button danger :disabled="busy" @click="withdraw"><template #icon><Icon name="trash" :size="16" /></template>Withdraw</Button>
+            <Button v-if="item.mine" danger :disabled="busy" @click="withdraw"><template #icon><Icon name="trash" :size="16" /></template>Withdraw</Button>
           </div>
           <Notice v-if="error">{{ error }}</Notice>
         </div>

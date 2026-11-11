@@ -54,12 +54,13 @@ async function findSubmission(env, id) {
   return row
 }
 
-async function ownSubmission(context) {
+async function ownSubmission(context, reviewers = false) {
   const user = await requireUser(context, SIGN_IN)
   const row = await findSubmission(context.env, idParam(context.params, MISSING))
-  if (row.owner !== user.id) throw new Refusal(404, MISSING)
+  const mine = row.owner === user.id
+  if (!mine && !(reviewers && await isAdmin(context.env, user))) throw new Refusal(404, MISSING)
   if (row.status !== "open") throw new Refusal(409, "This submission has already been reviewed, so it can't be changed.")
-  return { user, row }
+  return { user, row, role: mine ? "submitter" : "reviewer" }
 }
 
 async function onGitHub(work) {
@@ -243,10 +244,10 @@ function gitHubActor(person) {
   return person?.id ? { provider: "github", providerId: String(person.id) } : null
 }
 
-function notify(env, row, kind, { author = "", body = "", url = "", owner = true, admins = false, actor = null, unlessUnread = false }) {
+function notify(env, row, kind, { author = "", body = "", url = "", owner = true, admins = false, actor = null, unlessUnread = false, email = true }) {
   const audience = [owner && "users.id = submissions.user_id", admins && "users.admin = 1"].filter(Boolean).join(" OR ")
   const unread = unlessUnread ? ` AND NOT EXISTS (SELECT 1 FROM notifications AS earlier WHERE earlier.user_id = users.id AND earlier.submission_id = submissions.id AND earlier.kind = '${kind}' AND earlier.seen = 0)` : ""
-  return env.DB.prepare(`INSERT INTO notifications (user_id, submission_id, kind, author, body, url, created_at) SELECT users.id, submissions.id, ?, ?, ?, ?, ? FROM submissions JOIN users ON ${audience} WHERE submissions.id = ? AND NOT (users.provider = ? AND users.provider_id = ?) AND (users.email IS NULL OR users.email NOT IN (SELECT email FROM users AS actor WHERE actor.provider = ? AND actor.provider_id = ? AND actor.email IS NOT NULL))${unread}`).bind(kind, author, clipped(body, NOTE_LENGTH), url, Date.now(), row.id, actor?.provider ?? "", actor?.providerId ?? "", actor?.provider ?? "", actor?.providerId ?? "")
+  return env.DB.prepare(`INSERT INTO notifications (user_id, submission_id, kind, author, body, url, emailed, created_at) SELECT users.id, submissions.id, ?, ?, ?, ?, ?, ? FROM submissions JOIN users ON ${audience} WHERE submissions.id = ? AND NOT (users.provider = ? AND users.provider_id = ?) AND (users.email IS NULL OR users.email NOT IN (SELECT email FROM users AS actor WHERE actor.provider = ? AND actor.provider_id = ? AND actor.email IS NOT NULL))${unread}`).bind(kind, author, clipped(body, NOTE_LENGTH), url, email ? 0 : 1, Date.now(), row.id, actor?.provider ?? "", actor?.providerId ?? "", actor?.provider ?? "", actor?.providerId ?? "")
 }
 
 function emailing(context, afterwards = null) {
@@ -336,10 +337,11 @@ function postComment(env, row, user, role, text) {
   return github(env, `issues/${row.pull}/comments`, { method: "POST", body: { body: onGitHubText(user.name, { role, body: text }) } })
 }
 
-async function noteEdit(env, row, user) {
-  const body = onGitHubText(user.name, { kind: "edit", role: "submitter" })
+async function noteEdit(env, row, user, role) {
+  const body = onGitHubText(user.name, { kind: "edit", role })
   const last = (await listed(env, `issues/${row.pull}/comments`)).at(-1)
-  if (last && fromApp(env, last) && siteComment(last.body)?.kind === "edit") await github(env, `issues/comments/${last.id}`, { method: "PATCH", body: { body } })
+  const before = last && fromApp(env, last) ? siteComment(last.body) : null
+  if (before?.kind === "edit" && before.role === role && (role === "submitter" || before.author === user.name)) await github(env, `issues/comments/${last.id}`, { method: "PATCH", body: { body } })
   else await github(env, `issues/${row.pull}/comments`, { method: "POST", body: { body } })
 }
 
@@ -433,21 +435,22 @@ export const createSubmission = guarded(async context => {
 
 export const editSubmission = guarded(async context => {
   const { env } = context
-  const { user, row } = await ownSubmission(context)
+  const { user, row, role } = await ownSubmission(context, true)
   const { clean, fonts, bytes, files } = await readForm(context, row)
   const file = bytes ? await onGitHub(() => uploadFile(env, bytes)) : row.file
   const changed = { ...row, ...await onGitHub(() => withFiles(env, clean, files)), file }
   await onGitHub(async () => {
     await syncSubmission(context, changed, fonts)
-    await noteEdit(env, changed, user)
+    await noteEdit(env, changed, user, role)
   })
   await forgetFresh(context.request, changed)
+  const mine = role === "submitter"
   await env.DB.batch([
-    env.DB.prepare("UPDATE notifications SET author = ?, created_at = ? WHERE submission_id = ? AND kind = 'edited' AND seen = 0").bind(user.name, Date.now(), changed.id),
-    notify(env, changed, "edited", { author: user.name, owner: false, admins: true, actor: user, unlessUnread: true })
+    env.DB.prepare(`UPDATE notifications SET author = ?, created_at = ? WHERE submission_id = ? AND kind = 'edited' AND seen = 0 AND user_id ${mine ? "IS NOT" : "IS"} (SELECT user_id FROM submissions WHERE id = ?)`).bind(user.name, Date.now(), changed.id, changed.id),
+    notify(env, changed, "edited", { author: user.name, owner: !mine, admins: mine, actor: user, unlessUnread: true, email: mine })
   ])
-  emailing(context)
-  return reply(200, { submission: shown(env, changed, { id: row.owner }) })
+  if (mine) emailing(context)
+  return reply(200, { submission: shown(env, changed, user) })
 })
 
 export const withdrawSubmission = guarded(async context => {
