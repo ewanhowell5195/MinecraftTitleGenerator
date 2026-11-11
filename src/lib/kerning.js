@@ -1,10 +1,13 @@
-const SKIPPED = new Set([" ", "┫", "┣"])
-const LETTER = /^[a-z\u{1F633}]$/u
+import { mostCommon } from "./maths.js"
+import { CREEPER, TERMINATOR_CLOSE, TERMINATOR_OPEN } from "./order.js"
+
+const SKIPPED = new Set([" ", TERMINATOR_OPEN, TERMINATOR_CLOSE])
+const LETTER = /^[a-z]$/
 const DIGIT = /^[0-9]$/
 const MAIN_SYMBOL = /^[$£€()[\]{}/\\?]$/
 
 export function pairRank(pair) {
-  const kinds = Array.from(pair, char => LETTER.test(char) ? "letter" : DIGIT.test(char) ? "digit" : MAIN_SYMBOL.test(char) ? "main" : "symbol")
+  const kinds = Array.from(pair, char => char === CREEPER || LETTER.test(char) ? "letter" : DIGIT.test(char) ? "digit" : MAIN_SYMBOL.test(char) ? "main" : "symbol")
   if (kinds.includes("symbol")) return 4
   if (kinds.includes("main")) return 3
   if (kinds.every(kind => kind === "letter")) return 0
@@ -58,12 +61,6 @@ function sharedRows(before, after) {
   return count
 }
 
-function mostCommon(values) {
-  const tally = new Map()
-  for (const value of values) tally.set(value, (tally.get(value) ?? 0) + 1)
-  return Array.from(tally).sort((a, b) => b[1] - a[1] || a[0] - b[0])[0]?.[0] ?? 0
-}
-
 function overlapLimit(before, after, unit) {
   const right = Math.min(...before.right.values())
   const left = Math.min(...after.left.values())
@@ -84,7 +81,7 @@ export function suggestKerning(glyphs, { capHeight, unit, border }, existing = {
       if (Number.isFinite(gap)) gaps.push({ pair: first + second, before, after, gap, full: sharedRows(before, after) >= capHeight })
     }
   }
-  const usual = mostCommon(gaps.map(item => item.gap))
+  const usual = mostCommon(gaps.map(item => item.gap).sort((a, b) => a - b)) ?? 0
   return gaps.flatMap(({ pair, before, after, gap, full }) => {
     if (pair in existing) return []
     const room = gap - usual

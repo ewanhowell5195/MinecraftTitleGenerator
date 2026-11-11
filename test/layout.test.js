@@ -340,6 +340,13 @@ describe("lineLayout terminators", () => {
     const placed = layout({ ...font, terminatorSpace: true, terminatorSpaceWidth: 2 }, "a", { terminators: true })
     assert.deepEqual(xsOf(placed), [0, 6, 13])
   })
+
+  test("a drawn space beside a terminator belongs to that terminator's word", () => {
+    const drawn = withGlyphs({ ...font, terminatorSpace: true }, { " ": glyphOf(" ", { width: 3, advance: 3, originX: 0 }) })
+    const placed = lineLayout(drawn, [{ text: "a", space: false }, { text: "b", space: false }], { terminators: true }).filter(item => !item.glyph.fill)
+    assert.deepEqual(charsOf(placed), [OPEN, " ", "a", "b", " ", CLOSE])
+    assert.deepEqual(placed.map(item => item.word), [0, 0, 0, 1, 1, 1])
+  })
 })
 
 describe("lineLayout with a space glyph", () => {

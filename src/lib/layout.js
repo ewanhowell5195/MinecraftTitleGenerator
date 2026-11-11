@@ -1,10 +1,11 @@
-export const SPACE = 8
-const CREEPER = "\u{1F633}"
+import { CREEPER, OPENING_QUOTE, TERMINATOR_CLOSE, TERMINATOR_OPEN, baseChar } from "./order.js"
 
-const NOT_THUMBNAILS = new Set(["┫", "┣", " "])
+export const SPACE = 8
+
+const NOT_THUMBNAILS = new Set([TERMINATOR_OPEN, TERMINATOR_CLOSE, " "])
 
 export function normalise(text) {
-  return text.replace(/A/g, CREEPER).replace(/(\s|^)'/g, "$1\u{1F629}").replace(/(\s|^)"/g, "$1\u{1F629}\u{1F629}").replace(/"/g, "''").toLowerCase()
+  return text.replace(/A/g, CREEPER).replace(/(\s|^)'/g, `$1${OPENING_QUOTE}`).replace(/(\s|^)"/g, `$1${OPENING_QUOTE}${OPENING_QUOTE}`).replace(/"/g, "''").toLowerCase()
 }
 
 function filler(glyph, width) {
@@ -15,7 +16,7 @@ function filler(glyph, width) {
 }
 
 function thumbnailable({ glyph }) {
-  return !NOT_THUMBNAILS.has(glyph.char.split("\u0000")[0])
+  return !NOT_THUMBNAILS.has(baseChar(glyph.char))
 }
 
 export function thumbnailItem(placed) {
@@ -52,9 +53,11 @@ export function lineLayout(font, words, options) {
   const space = font.spaceWidth ?? SPACE
   const parts = words.map((item, word) => ({ space: item.space, chars: Array.from(wordText(font, item, options.raw), char => ({ char, word })) })).filter(part => part.chars.length)
   let chars = parts.flatMap((part, index) => index && part.space ? [{ char: " ", word: parts[index - 1].chars[0].word }].concat(part.chars) : part.chars)
-  if (chars.length && (options.terminators || font.forcedTerminators) && font.glyphs["┫"] && font.glyphs["┣"]) {
-    const gap = font.terminatorSpace ? [{ char: " ", width: font.terminatorSpaceWidth }] : []
-    chars = [{ char: "┫", word: chars[0].word }].concat(gap, chars, gap, [{ char: "┣", word: chars[chars.length - 1].word }])
+  if (chars.length && (options.terminators || font.forcedTerminators) && font.glyphs[TERMINATOR_OPEN] && font.glyphs[TERMINATOR_CLOSE]) {
+    const opening = chars[0].word
+    const closing = chars[chars.length - 1].word
+    const gap = word => font.terminatorSpace ? [{ char: " ", width: font.terminatorSpaceWidth, word }] : []
+    chars = [{ char: TERMINATOR_OPEN, word: opening }].concat(gap(opening), chars, gap(closing), [{ char: TERMINATOR_CLOSE, word: closing }])
   }
   const placed = []
   let pen = 0

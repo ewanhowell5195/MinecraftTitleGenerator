@@ -1,5 +1,6 @@
 import { watch } from "vue"
 import * as THREE from "three"
+import { hasMarks } from "./font.js"
 import { quietly } from "./history.js"
 import { round } from "./maths.js"
 import { editorTitle, words } from "./scene.js"
@@ -61,6 +62,9 @@ function solve(camera, target, reference, title) {
   const referenceCentre = referenceBox.getCenter(new THREE.Vector3()).applyMatrix4(placementMatrix(reference.state.transform, referenceBox)).project(camera)
   const below = targetCentre.y < referenceCentre.y
   const edgeY = below ? referenceBox.min.y : referenceBox.max.y
+  const referenceScale = [effectiveScale(reference.object)[0]].concat(reference.state.transform.scale.slice(1))
+  const [, targetY, targetZ] = target.state.transform.scale
+  const grows = target.object.matchScaleY && !(target.object.scaleMarked && hasMarks(target.state.font))
   const [left, right] = [-1, 1].map(direction => {
     const measured = bottom && (direction < 0 ? bottom.left : bottom.right)
     const edgeX = measured ? measured[0] : direction < 0 ? referenceBox.min.x : referenceBox.max.x
@@ -69,9 +73,9 @@ function solve(camera, target, reference, title) {
     const ends = reference.object.type === "bottom"
       ? [[measured ? measured[1] : referenceBox.min.y, referenceBox.max.z, -1, 1], [referenceBox.max.y, referenceBox.max.z, 1, 1]]
       : [[rowY, referenceBox.max.z, sideY, 1], [rowY, referenceBox.min.z, sideY, -1]]
-    const [near, far] = ends.map(([y, z, sideY, sideZ]) => outlinePoint(reference.state, reference.object, referenceBox, effectiveScale(reference.object), [edgeX, y, z], [direction, sideY, sideZ]).project(camera))
+    const [near, far] = ends.map(([y, z, sideY, sideZ]) => outlinePoint(reference.state, reference.object, referenceBox, referenceScale, [edgeX, y, z], [direction, sideY, sideZ]).project(camera))
     function offset(matchScale, shift) {
-      const scale = [matchScale, target.object.matchScaleY ? target.object.scaleY * matchScale : target.object.scaleY, target.object.scaleZ]
+      const scale = [matchScale, grows ? target.object.scaleY * matchScale : targetY, targetZ]
       const x = direction < 0 ? targetBox.min.x : targetBox.max.x
       const ends = [targetBox.min.y, targetBox.max.y].map((y, index) => outlinePoint(target.state, target.object, targetBox, scale, [x, y, targetBox.max.z], [direction, index ? 1 : -1, 1], shift).project(camera))
       return ends.reduce((sum, point) => sum + signedDistance(point, near, far), 0) * direction
@@ -129,15 +133,24 @@ function rested(object, title) {
   return { ...state, transform: { ...state.transform, rotate: [0, 0, 0], translate: [0, 0, 0], matchOffset: 0 } }
 }
 
-function ready(object, title) {
+function settled(object, title) {
   const state = title.runtime[object.id]
-  return !object.hidden && !!state?.built && !!state.transform && state.settled
+  return !!state?.built && !!state.transform && state.settled
+}
+
+function ready(object, title) {
+  return !object.hidden && settled(object, title)
+}
+
+function framed(object, title) {
+  return settled(object, title) && !words(object, title).every(word => word.hidden)
 }
 
 function update(title) {
-  const items = title.objects.filter(object => ready(object, title)).map(object => ({ object, state: rested(object, title) }))
+  const items = title.objects.filter(object => framed(object, title)).map(object => ({ object, state: rested(object, title) }))
   const linked = title.objects.filter(object => object.matchWidth !== null).sort((a, b) => depth(a, title) - depth(b, title))
   for (const object of title.objects) {
+    if (object.matchWidth === null) delete title.problems[object.id]
     if (object.matchWidth === null && (object.matchOffset || object.matchScale !== 1)) {
       quietly(() => {
         object.matchOffset = 0

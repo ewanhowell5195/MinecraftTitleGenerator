@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { clamp, round } from "../src/lib/maths.js"
+import { clamp, mostCommon, remember, round } from "../src/lib/maths.js"
 
 describe("clamp", () => {
   test("keeps a value inside the range", () => {
@@ -65,5 +65,45 @@ describe("round", () => {
 
   test("leaves a value that is already rounded unchanged", () => {
     assert.equal(round(round(1.23456789, 4), 4), 1.2346)
+  })
+})
+
+describe("mostCommon", () => {
+  test("is the value seen most often", () => {
+    assert.equal(mostCommon([3, 1, 3, 2, 3, 1]), 3)
+  })
+
+  test("a tie goes to the value seen first", () => {
+    assert.equal(mostCommon([4, 2, 2, 4]), 4)
+    assert.equal(mostCommon([2, 4, 4, 2]), 2)
+  })
+
+  test("is nothing for an empty list", () => {
+    assert.equal(mostCommon([]), undefined)
+  })
+})
+
+describe("remember", () => {
+  test("makes a value once and hands it back afterwards", () => {
+    const cache = new Map()
+    let made = 0
+    const make = () => ++made
+    assert.equal(remember(cache, "a", make, 4), 1)
+    assert.equal(remember(cache, "a", make, 4), 1)
+    assert.equal(made, 1)
+  })
+
+  test("drops the oldest entry once over the limit", () => {
+    const cache = new Map()
+    for (const key of ["a", "b", "c"]) remember(cache, key, () => key, 2)
+    assert.deepEqual(Array.from(cache.keys()), ["b", "c"])
+  })
+
+  test("keeps a value that is falsy", () => {
+    const cache = new Map()
+    let made = 0
+    remember(cache, "a", () => (made++, null), 2)
+    remember(cache, "a", () => (made++, null), 2)
+    assert.equal(made, 1)
   })
 })

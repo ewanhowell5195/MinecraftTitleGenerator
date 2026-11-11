@@ -1,5 +1,5 @@
 import { fadeStops, fillPattern, linearGradient, surface } from "./canvas.js"
-import { hexOf, rgbOf } from "./colour.js"
+import { hexOf, packed as packedColour, rgbOf } from "./colour.js"
 import { clamp } from "./maths.js"
 
 const PAD = 1
@@ -13,7 +13,11 @@ const CORNER_SAMPLE = 3
 const SIMILAR = 24
 const MIX_STEPS = 24
 
-function ordered(stops) {
+export function faceDepth(depth) {
+  return Math.max(1, Math.round(depth))
+}
+
+export function ordered(stops) {
   const list = stops.map(stop => ({ colour: stop.colour, position: clamp(stop.position / 100, 0, 1) }))
   list.sort((a, b) => a.position - b.position)
   return list
@@ -78,10 +82,14 @@ export function movedStopPositions(positions, from, to) {
   return moved
 }
 
+export function stopEdges(list) {
+  return [0].concat(list.slice(1).map(stop => stop.position), 1)
+}
+
 export function gradientStops(stops, smooth) {
   const list = ordered(stops)
   if (smooth) return smoothStops(list)
-  const edges = [0].concat(list.slice(1).map(stop => stop.position), 1)
+  const edges = stopEdges(list)
   return list.flatMap((stop, i) => [{ position: edges[i], colour: stop.colour }, { position: edges[i + 1], colour: stop.colour }])
 }
 
@@ -103,11 +111,19 @@ export function cssGradient(stops, smooth, direction) {
   return `linear-gradient(${direction}, ${gradientStops(stops, smooth).map(stop => `${stop.colour} ${stop.position * 100}%`).join(", ")})`
 }
 
-export function gradientLine(left, top, width, height, angle) {
+export function gradientDirection(angle) {
   const radians = angle * Math.PI / 180
-  const dx = -Math.sin(radians)
-  const dy = Math.cos(radians)
-  const reach = Math.abs(dx) * width / 2 + Math.abs(dy) * height / 2
+  return { dx: -Math.sin(radians), dy: Math.cos(radians) }
+}
+
+export function gradientReach({ dx, dy }, width, height) {
+  return Math.abs(dx) * width / 2 + Math.abs(dy) * height / 2
+}
+
+export function gradientLine(left, top, width, height, angle) {
+  const direction = gradientDirection(angle)
+  const { dx, dy } = direction
+  const reach = gradientReach(direction, width, height)
   const centre = [left + width / 2, top + height / 2]
   return [[centre[0] - dx * reach, centre[1] - dy * reach], [centre[0] + dx * reach, centre[1] + dy * reach]]
 }
@@ -126,7 +142,7 @@ function boundsOf(faces) {
   const points = faces.flatMap(face => face.points)
   const x = extent(points, 0)
   const y = extent(points, 1)
-  return { minX: x.min, maxX: x.max, minY: y.min, maxY: y.max, width: x.size, height: y.size }
+  return { minX: x.min, maxX: x.max, minY: y.min, maxY: y.max }
 }
 
 function shelf(items, maxWidth) {
@@ -245,7 +261,7 @@ function inside(value, start, size) {
 }
 
 export function buildAtlas(faces, options) {
-  const depth = Math.max(1, Math.round(options.depth))
+  const depth = faceDepth(options.depth)
   const half = depth / 2
   const { sheet, painted } = options
   const R = painted.scale
@@ -384,10 +400,7 @@ export function buildAtlas(faces, options) {
   }
 
   function addGradient({ x, y, width, height }, from, to, stops) {
-    gradientFaces.push({ left: x * SCALE, top: y * SCALE, right: (x + width) * SCALE, bottom: (y + height) * SCALE, from: from.map(value => value * SCALE), to: to.map(value => value * SCALE), stops: stops.map(({ position, colour }) => {
-      const [r, g, b] = rgbOf(colour)
-      return { position, colour: r | g << 8 | b << 16 }
-    }) })
+    gradientFaces.push({ left: x * SCALE, top: y * SCALE, right: (x + width) * SCALE, bottom: (y + height) * SCALE, from: from.map(value => value * SCALE), to: to.map(value => value * SCALE), stops: stops.map(({ position, colour }) => ({ position, colour: packedColour(rgbOf(colour), 0) })) })
   }
 
   function fillRects(fill, rects) {

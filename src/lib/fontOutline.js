@@ -1,8 +1,11 @@
+import { highest, lowest } from "./maths.js"
+import { CREEPER, OPENING_QUOTE } from "./order.js"
+
 const CURVE_STEPS = 16
 
 function sourceChars(char, lowercase) {
-  if (char === "\u{1F629}") return ["\u2018", "'"]
-  const letter = char === "\u{1F633}" ? "a" : char
+  if (char === OPENING_QUOTE) return ["\u2018", "'"]
+  const letter = char === CREEPER ? "a" : char
   if (/^[a-z]$/.test(letter)) return lowercase ? [letter, letter.toUpperCase()] : [letter.toUpperCase(), letter]
   return [char]
 }
@@ -53,7 +56,7 @@ export function pixelGrid(glyphs, cap) {
     const points = glyph.path.commands.filter(command => command.x !== undefined)
     if (!points.length) continue
     if (glyph.path.commands.some(command => command.type === "Q" || command.type === "C")) return null
-    const left = Math.min(...points.map(command => command.x))
+    const left = lowest(points.map(command => command.x))
     for (const command of points) values.push(command.x - left, command.y)
   }
   for (let count = 3; count <= 64; count++) {
@@ -67,13 +70,13 @@ export function gridShift(glyph, unit, scale) {
   if (unit) {
     const points = glyph.path.commands.filter(command => command.x !== undefined)
     if (!points.length) return 0
-    const left = Math.min(...points.map(command => command.x))
+    const left = lowest(points.map(command => command.x))
     return Math.round(left / unit) * unit - left
   }
   const xs = flatten(glyph).flat().map(point => point[0] * scale)
   if (!xs.length) return 0
-  const left = Math.min(...xs)
-  const width = Math.max(...xs) - left
+  const left = lowest(xs)
+  const width = highest(xs) - left
   return (Math.round(left) + (Math.round(width) - width) / 2 - left) / scale
 }
 
@@ -85,31 +88,37 @@ export function capUnits(font) {
   return font.unitsPerEm * 0.7
 }
 
-export function snapped(value) {
+function snapped(value) {
   return Math.round(value * 1e6) / 1e6
+}
+
+export function fillSpans(edges, y, scale = 1) {
+  const crossings = []
+  for (const [x0, y0, x1, y1] of edges) {
+    if (y0 <= y === y1 <= y) continue
+    crossings.push([snapped((x0 + (y - y0) / (y1 - y0) * (x1 - x0)) * scale), y1 > y0 ? 1 : -1])
+  }
+  crossings.sort((a, b) => a[0] - b[0])
+  const spans = []
+  let winding = 0
+  for (let i = 0; i < crossings.length - 1; i++) {
+    winding += crossings[i][1]
+    if (winding) spans.push([Math.ceil(crossings[i][0] - 0.5), Math.ceil(crossings[i + 1][0] - 0.5)])
+  }
+  return spans
 }
 
 export function rasterise(glyph, scale, shift) {
   const edges = flatten(glyph).flatMap(points => points.map((point, index) => [point, points[(index + 1) % points.length]])).map(([a, b]) => [(a[0] + shift) * scale, a[1] * scale, (b[0] + shift) * scale, b[1] * scale]).filter(([, y0, , y1]) => y0 !== y1)
   if (!edges.length) return null
   const ys = edges.flatMap(edge => [edge[1], edge[3]])
-  const minY = Math.floor(Math.min(...ys))
-  const maxY = Math.ceil(Math.max(...ys))
+  const minY = Math.floor(lowest(ys))
+  const maxY = Math.ceil(highest(ys))
   const rows = []
   for (let y = minY; y < maxY; y++) {
-    const centre = y + 0.5
-    const crossings = []
-    for (const [x0, y0, x1, y1] of edges) {
-      if (centre < Math.min(y0, y1) || centre >= Math.max(y0, y1)) continue
-      crossings.push([snapped(x0 + (centre - y0) / (y1 - y0) * (x1 - x0)), y1 > y0 ? 1 : -1])
-    }
-    crossings.sort((a, b) => a[0] - b[0])
     const filled = new Set()
-    let winding = 0
-    for (let i = 0; i < crossings.length - 1; i++) {
-      winding += crossings[i][1]
-      if (!winding) continue
-      for (let x = Math.ceil(crossings[i][0] - 0.5); x + 0.5 < crossings[i + 1][0]; x++) filled.add(x)
+    for (const [from, to] of fillSpans(edges, y + 0.5)) {
+      for (let x = from; x < to; x++) filled.add(x)
     }
     rows.push(filled)
   }

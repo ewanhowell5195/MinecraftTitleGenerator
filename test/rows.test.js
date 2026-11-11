@@ -1,13 +1,15 @@
-import { beforeEach, describe, mock, test } from "node:test"
+import { beforeEach, describe, test } from "node:test"
 import assert from "node:assert/strict"
+import { fakeTimeouts, forbidFetch, quietStorage } from "./helpers/browser.js"
 
-globalThis.localStorage = { getItem: () => null, setItem: () => {} }
-globalThis.fetch = () => assert.fail("fetch must not be called")
-mock.timers.enable({ apis: ["setTimeout"] })
+quietStorage()
+forbidFetch()
+fakeTimeouts()
 
 const { createObject } = await import("../src/lib/settings.js")
-const { scene } = await import("../src/lib/scene.js")
-const { heights, rowStart } = await import("../src/lib/rows.js")
+const { editorTitle, scene } = await import("../src/lib/scene.js")
+const { heights, lineArc, rowStart } = await import("../src/lib/rows.js")
+const { placementOf } = await import("../src/lib/placement.js")
 
 function setScene(...objects) {
   scene.objects.splice(0, scene.objects.length, ...objects)
@@ -187,5 +189,46 @@ describe("rowStart inputs", () => {
     heights[base.id] = { arc: { top: 3, bottom: 4 } }
     setScene(base, object)
     assert.equal(rowStart(object), 55)
+  })
+})
+
+describe("words of one line", () => {
+  test("share the furthest reach any of them measured", () => {
+    const first = createObject({ row: 0, group: 1 })
+    const second = createObject({ row: 0, group: 1 })
+    const other = createObject({ row: 0, group: 2 })
+    heights[first.id] = { arc: { top: 6, bottom: 1 } }
+    heights[second.id] = { arc: { top: 2, bottom: 5 } }
+    heights[other.id] = { arc: { top: 9, bottom: 9 } }
+    setScene(first, second, other)
+    assert.deepEqual(lineArc(first, editorTitle), { top: 6, bottom: 5 })
+    assert.deepEqual(lineArc(second, editorTitle), { top: 6, bottom: 5 })
+  })
+
+  test("sit on one baseline when a twist reaches further at the ends", () => {
+    const words = [3, 0, 3].map(bottom => {
+      const word = createObject({ row: 0, group: 1 })
+      heights[word.id] = { arc: { top: 0, bottom } }
+      return word
+    })
+    setScene(...words)
+    const placed = words.map(word => placementOf(word, editorTitle, { height: 44, capHeight: 40, depth: 20, reference: 20, scale: [1, 1, 1], wordScale: [1, 1, 1], outlineGrow: [1, 1, 1] }))
+    assert.deepEqual(placed.map(value => value.offset[1]), [3, 3, 3])
+  })
+
+  test("drop below the title by the same amount", () => {
+    const first = createObject({ row: -1, group: 1 })
+    const second = createObject({ row: -1, group: 1 })
+    heights[first.id] = { arc: { top: 4, bottom: 0 } }
+    heights[second.id] = { arc: { top: 0, bottom: 0 } }
+    setScene(first, second)
+    assert.equal(rowStart(first), -52)
+    assert.equal(rowStart(second), -52)
+  })
+
+  test("a word with no line uses its own reach", () => {
+    const object = createObject({ row: 0 })
+    heights[object.id] = { arc: { top: 2, bottom: 3 } }
+    assert.deepEqual(lineArc(object, editorTitle), { top: 2, bottom: 3 })
   })
 })

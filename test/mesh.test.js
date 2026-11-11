@@ -4,6 +4,7 @@ import opentype from "opentype.js"
 import { parsedSheet } from "../src/lib/fontEditor.js"
 import { fontFromOutlines, meshOutlines, parseFontFile } from "../src/lib/fontImport.js"
 import { generatedAlpha } from "../src/lib/generated.js"
+import { fillSpans } from "../src/lib/fontOutline.js"
 import { fineMasks, glyphMeshes, holeFill, meshFaces, outlineShell } from "../src/lib/meshGlyphs.js"
 
 function area(points) {
@@ -181,5 +182,29 @@ describe("mesh glyphs", () => {
     const xs = thin.shapes[0].outer.map(point => point[0])
     const solid = rings[0].map(point => point[0])
     assert.ok(Math.abs(Math.min(...solid) - Math.min(...xs) - 1) < 0.02)
+  })
+})
+
+describe("fillSpans", () => {
+  const square = [[1, 0, 1, 4], [1, 4, 5, 4], [5, 4, 5, 0], [5, 0, 1, 0]]
+
+  test("fills the pixels whose centres are inside the outline", () => {
+    assert.deepEqual(fillSpans(square, 0.5), [[1, 5]])
+    assert.deepEqual(fillSpans(square.map(([x0, y0, x1, y1]) => [x0 + 0.4, y0, x1 + 0.4, y1]), 0.5), [[1, 5]])
+    assert.deepEqual(fillSpans(square.map(([x0, y0, x1, y1]) => [x0 + 0.6, y0, x1 + 0.6, y1]), 0.5), [[2, 6]])
+  })
+
+  test("a row on the top edge is outside and one on the bottom edge is inside", () => {
+    assert.deepEqual(fillSpans(square, 4), [])
+    assert.deepEqual(fillSpans(square, 0), [[1, 5]])
+  })
+
+  test("spans come back in pixels of the scale asked for", () => {
+    assert.deepEqual(fillSpans(square, 0.5, 4), [[4, 20]])
+  })
+
+  test("a hole wound the other way is left empty", () => {
+    const hole = [[2, 1, 4, 1], [4, 1, 4, 3], [4, 3, 2, 3], [2, 3, 2, 1]]
+    assert.deepEqual(fillSpans(square.concat(hole), 1.5).filter(([from, to]) => to > from), [[1, 2], [4, 5]])
   })
 })

@@ -1,7 +1,8 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
+import { quietStorage } from "./helpers/browser.js"
 
-globalThis.localStorage = { getItem: () => null, setItem: () => {} }
+quietStorage()
 
 const { paintLine } = await import("../src/lib/items.js")
 const { decodeTitle, encodeTitle, unknownSetting } = await import("../src/lib/linkformat.js")

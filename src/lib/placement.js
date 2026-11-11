@@ -1,8 +1,8 @@
-import { rowStart } from "./rows.js"
+import { lineArc, rowStart } from "./rows.js"
 
 export function placementOf(object, title, { height, capHeight, depth, reference, scale, wordScale, outlineGrow }) {
   const start = rowStart(object, title)
-  const arc = title.heights[object.id]?.arc ?? { top: 0, bottom: 0 }
+  const arc = lineArc(object, title)
   const word = { scale: wordScale, userScale: [object.wordScaleX, object.wordScaleY, object.wordScaleZ], rotate: [object.wordRotationX, object.wordRotationY, object.wordRotationZ], translate: [object.wordTranslateX, object.wordTranslateY, object.wordTranslateZ] }
   const user = { rotate: [object.rotationX, object.rotationY, object.rotationZ], translate: [object.translateX, object.translateY, object.translateZ], matchOffset: object.matchOffset, outlineGrow, userScale: [object.scaleX, object.scaleY, object.scaleZ], word }
 

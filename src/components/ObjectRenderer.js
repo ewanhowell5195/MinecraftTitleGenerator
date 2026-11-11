@@ -5,20 +5,19 @@ import { buildOutline, buildText } from "../lib/build.js"
 import { customFontEntry, customFontId } from "../lib/customFonts.js"
 import { EulaDeclined } from "../lib/eula.js"
 import { CUSTOM_SHAPE, SILHOUETTE_TEXT, shapeOf } from "../lib/shapes.js"
-import { framing } from "../lib/framing.js"
 import { hasMarks, loadFont, sheetFolder } from "../lib/font.js"
 import { stripRows } from "../lib/strips.js"
 import { thumbnailItems } from "../lib/layout.js"
 import { blockTextureImage } from "../lib/minecraft.js"
-import { R, paintBase, paintKey, paintSheet } from "../lib/paint.js"
+import { setHeights, usePlacement, usePublished } from "../lib/objectState.js"
+import { R, lookKey, paintBase, paintKey, paintSheet } from "../lib/paint.js"
 import { platform } from "../lib/platform.js"
 import { quietly } from "../lib/history.js"
-import { placementOf } from "../lib/placement.js"
-import { DEFAULT_CAP_HEIGHT, DEFAULT_HEIGHT } from "../lib/rows.js"
+import { DEFAULT_CAP_HEIGHT, DEFAULT_HEIGHT, NO_ARC } from "../lib/rows.js"
 import { editorTitle, keepTexture, loadedFont, words } from "../lib/scene.js"
 import { activeOverlays, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, effectiveScale, isCustomFont, setTexture, textureEntry } from "../lib/settings.js"
 
-const BASE = ["font", "source", "texture", "textureVariant", "tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "customTexture", "stops", "smooth", "gradientAngle", "arcGradient", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "tileablePerCharacter", "disableFontOverlay", "edgeBrightness"]
+const BASE = ["font", "source", "textureSource", "texture", "textureVariant", "tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "customTexture", "stops", "smooth", "gradientAngle", "arcGradient", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "tileablePerCharacter", "disableFontOverlay", "edgeBrightness"]
 
 const CUSTOM_SOURCES = { standard: "texture", tileable: "tile", strip: "strip" }
 
@@ -36,7 +35,7 @@ export default {
   },
   setup(props) {
     const object = props.object
-    const { heights, runtime, view } = props.title
+    const { heights, view } = props.title
     const font = shallowRef(null)
     const sheet = shallowRef(null)
     const list = shallowRef(null)
@@ -44,7 +43,10 @@ export default {
     const shaped = shallowRef(null)
     const built = shallowRef(null)
     const preview = shallowRef(null)
-    const error = shallowRef(null)
+    const fontError = shallowRef(null)
+    const paintError = shallowRef(null)
+    const buildError = shallowRef(null)
+    const error = computed(() => fontError.value ?? paintError.value ?? buildError.value)
     let fontRequest = 0
     let paintRequest = 0
     let painting = false
@@ -71,6 +73,7 @@ export default {
     const look = computed(() => ({
       font: font.value?.id,
       source: source.value,
+      textureSource: object.textureSource,
       texture: object.texture,
       textureVariant: object.textureVariant,
       tileable: object.tileable,
@@ -127,8 +130,6 @@ export default {
       return [x, stretching.value ? 1 : y, z]
     })
     const wordScale = computed(() => [object.wordScaleX, object.wordScaleMarked && marked.value ? 1 : object.wordScaleY, object.wordScaleZ])
-    const totalScale = computed(() => meshScale.value.map((value, axis) => value * wordScale.value[axis]))
-    const outlineGrow = computed(() => meshScale.value.map((value, axis) => (object.scaleOutline ? 1 : value) * (object.wordScaleOutline ? 1 : wordScale.value[axis])))
 
     const members = computed(() => words(object, props.title))
 
@@ -184,25 +185,14 @@ export default {
       edgeSmooth: object.edgeSmooth
     }))
 
-    const transform = computed(() => placementOf(object, props.title, { height: font.value?.height ?? DEFAULT_HEIGHT, capHeight: font.value?.capHeight ?? DEFAULT_CAP_HEIGHT, depth: depth.value, reference: typeDepth(defaultDepth(font.value)), scale: meshScale.value, wordScale: wordScale.value, outlineGrow: outlineGrow.value }))
-
-    function outlineScale() {
-      const type = object.type === "bottom" ? transform.value.type : [1, 1, 1]
-      return type.map((value, axis) => value * outlineGrow.value[axis])
+    function size() {
+      return { height: font.value?.height ?? DEFAULT_HEIGHT, capHeight: font.value?.capHeight ?? DEFAULT_CAP_HEIGHT }
     }
 
-    function outlineFor(text) {
-      return text && buildOutline(text, outlineScale())
-    }
-
-    const outline = computed(() => outlineFor(built.value))
-    const previewOutline = computed(() => outlineFor(preview.value))
-    const halo = computed(() => {
-      if (!built.value || !view.render || !framing.outline) return null
-      const scale = outlineScale()
-      const { type } = transform.value
-      return buildOutline(built.value, scale, scale.map((value, axis) => framing.outlineWidth * value / (type[axis] * totalScale.value[axis])))
-    })
+    const { transform, outlineOf, haloOf } = usePlacement(object, props.title, { scale: meshScale, wordScale, measures: () => ({ ...size(), depth: depth.value, reference: typeDepth(defaultDepth(font.value)) }) })
+    const outline = outlineOf(built, buildOutline)
+    const previewOutline = outlineOf(preview, buildOutline)
+    const halo = haloOf(built, buildOutline)
 
     function sheetImage(path) {
       return image(`${font.value.sheetFolder}/${path}`)
@@ -237,7 +227,7 @@ export default {
         assets.tile = object.textureSource === "custom" ? image(object.customTexture) : object.tileableSource === "minecraft" ? blockTextureImage(object.minecraftVersion, object.minecraftTexture) : image(tileableUrl(props.tileables, object.tileable, object.tileableVariant))
         assets.densities.push(1 / object.tileableScale)
       }
-      if (value.source !== "texture" && font.value.overlay && !object.disableFontOverlay) {
+      if (value.source !== "texture" && font.value.overlay && (object.textureSource === "premade" || !object.disableFontOverlay)) {
         assets.fontOverlay = sheetImage("overlay.png")
         assets.densities.push(1)
       }
@@ -273,7 +263,7 @@ export default {
 
     async function paint() {
       const value = look.value
-      const key = JSON.stringify(value)
+      const key = lookKey(value)
       if (key === paintedKey) return
       const token = ++paintRequest
       try {
@@ -282,9 +272,10 @@ export default {
         shaped.value = assets.base && !font.value.mesh ? shapeFont(font.value, sheet.value, assets.base) : font.value
         painted.value = { font: value.font, scale: R, edge: 1 / Math.min(...assets.densities, 4), edgeOnly: value.source === "tile", look: value, assets }
         paintedKey = key
+        paintError.value = null
       } catch (err) {
         paintedKey = null
-        if (token === paintRequest && !(err instanceof EulaDeclined)) error.value = err.message
+        if (token === paintRequest && !(err instanceof EulaDeclined)) paintError.value = err.message
       }
     }
 
@@ -310,34 +301,30 @@ export default {
       const key = JSON.stringify([list, word, options.depth, options.arcMode, options.arcTop, options.arcBottom, options.arcMove, options.arcCentre, options.arcMarked, options.stretch, options.terminators, options.spacing, options.kerning])
       const same = line?.source === source && line.key === key
       if (same && line.painted === painted.value) return line
-      const laid = same ? line.arced : arcLayout(source, sheet.value, list, word, options)
+      const laid = same ? line.laid : arcLayout(source, sheet.value, list, word, options)
       if (!laid) {
-        line = { painted: painted.value, source, key, arced: laid }
+        line = { painted: painted.value, source, key, laid, arced: null }
         return line
       }
       const { look, assets } = painted.value
-      const sheetKey = paintKey(laid.sheet, assets, look)
-      const kept = same || line?.source === source && line.sheetKey === sheetKey
-      const arced = kept ? { ...laid, sheet: line.arced.sheet } : laid
+      const held = line?.source === source ? line.arced?.sheet : null
+      const kept = held && (held === laid.sheet || paintKey(held, assets, look) === paintKey(laid.sheet, assets, look))
+      const arced = kept ? { ...laid, sheet: held } : laid
       if (kept && line.painted === painted.value) {
-        line = { ...line, key, arced, sheetKey }
+        line = { ...line, key, laid, arced }
         return line
       }
       const remapped = arcAssets(assets, arced.sheet, sheet.value)
-      const baseKey = JSON.stringify(BASE.map(name => look[name]))
+      const baseKey = lookKey(BASE.map(name => look[name]))
       const base = kept && line.baseKey === baseKey ? line.base : paintBase(arced.sheet, look, remapped, source.capHeight)
       const own = { ...painted.value, ...paintSheet(arced.sheet, look, remapped, source.capHeight, base) }
-      line = { painted: painted.value, source, key, arced, sheetKey, baseKey, base, own }
+      line = { painted: painted.value, source, key, laid, arced, baseKey, base, own }
       return line
-    }
-
-    function setHeights(values) {
-      heights[object.id] = { ...heights[object.id], ...values }
     }
 
     function measure(arc) {
       const known = heights[object.id]?.arc
-      if (known?.top !== arc.top || known?.bottom !== arc.bottom) setHeights({ arc })
+      if (known?.top !== arc.top || known?.bottom !== arc.bottom) setHeights(object, props.title, { arc })
     }
 
     function twistedReach(text, reach) {
@@ -367,25 +354,28 @@ export default {
       const inputsKey = JSON.stringify(inputs.value)
       if (builtFrom?.painted === painted.value && builtFrom.source === source && builtFrom.inputsKey === inputsKey) return
       builtFrom = { painted: painted.value, source, inputsKey }
+      let reach = null
       try {
         const { arced, own } = lineFor(source, list, word, options)
-        measure(arced?.reach ?? { top: 0, bottom: 0 })
+        reach = arced?.reach ?? NO_ARC
         if (!arced) {
           built.value = null
           preview.value = null
-          error.value = null
+          buildError.value = null
           return
         }
         built.value = buildText(source, { ...options, lineDepth, placed: arced.placed, line: arced.line, ends: arced.ends, sheet: arced.sheet, painted: own })
-        measure(twistedReach(built.value, arced.reach))
+        reach = twistedReach(built.value, arced.reach)
         const thumbnail = view.previews === false ? [] : thumbnailItems(source, arced.placed)
         preview.value = thumbnail.length ? previewFor(source, options, thumbnail, arced.sheet, own) : null
-        error.value = null
+        buildError.value = null
       } catch (err) {
         builtFrom = null
         built.value = null
         preview.value = null
-        error.value = err.message
+        buildError.value = err.message
+      } finally {
+        if (reach) measure(reach)
       }
     }
 
@@ -439,36 +429,37 @@ export default {
       font.value = loaded
       sheet.value = layout
       list.value = textures
+      fontError.value = null
       await repaint()
     }
 
     watch(look, repaint)
     watch([inputs, painted], schedule)
-    function wanted() {
+    const wanted = computed(() => {
       if (object.shape !== CUSTOM_SHAPE) return object.shape ?? object.font
       return object.customFont ? customFontId(object.customFont) : CUSTOM_SHAPE
-    }
+    })
 
     watch(wanted, id => {
-      if (font.value?.id !== id) pick(id).catch(err => (error.value = err.message))
-    }, { immediate: true })
-    watch([font, list, built, error, transform, outline, halo, preview, previewOutline, painted, wanted], () => {
-      runtime[object.id] = { font: font.value, list: list.value, built: built.value, error: error.value, transform: transform.value, outline: outline.value, halo: halo.value, preview: preview.value && { built: preview.value, outline: previewOutline.value }, settled: painted.value?.font === wanted() || !!error.value }
-    }, { immediate: true })
-
-    watch(font, value => {
-      setHeights({ height: value?.height ?? DEFAULT_HEIGHT, capHeight: value?.capHeight ?? DEFAULT_CAP_HEIGHT })
-    }, { immediate: true })
-
-    watch(() => meshScale.value[1], value => {
-      setHeights({ scaleY: value })
+      if (font.value?.id === id) {
+        fontRequest++
+        fontError.value = null
+        return
+      }
+      const loading = pick(id)
+      const token = fontRequest
+      loading.catch(err => {
+        if (token === fontRequest) fontError.value = err.message
+      })
     }, { immediate: true })
 
-    onBeforeUnmount(() => {
-      platform.cancelFrame(frame)
-      delete runtime[object.id]
-      delete heights[object.id]
+    usePublished(object, props.title, {
+      size,
+      scaleY: () => meshScale.value[1],
+      entry: () => ({ font: font.value, list: list.value, built: built.value, error: error.value, transform: transform.value, outline: outline.value, halo: halo.value, preview: preview.value && { built: preview.value, outline: previewOutline.value }, settled: painted.value?.font === wanted.value || !!error.value })
     })
+
+    onBeforeUnmount(() => platform.cancelFrame(frame))
 
     return () => null
   }

@@ -2,10 +2,9 @@ import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import { blend, cssGradient, gradientLine, gradientStops, movedStopPositions, stopColour } from "../src/lib/material.js"
 import { rgbOf } from "../src/lib/colour.js"
+import { close } from "./helpers/assert.js"
 
-function near(actual, expected, tolerance = 1e-9) {
-  assert.ok(Math.abs(actual - expected) <= tolerance, `${actual} is not within ${tolerance} of ${expected}`)
-}
+const near = (actual, expected, tolerance = 1e-9) => close(actual, expected, tolerance)
 
 function nearPoint(actual, expected) {
   near(actual[0], expected[0])

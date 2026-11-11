@@ -1,4 +1,4 @@
-import { editorTitle } from "./scene.js"
+import { editorTitle, words } from "./scene.js"
 import { effectiveScale } from "./settings.js"
 
 const STACK = {
@@ -12,9 +12,17 @@ export const DEFAULT_CAP_HEIGHT = 40
 
 export const heights = editorTitle.heights
 
+export const NO_ARC = { top: 0, bottom: 0 }
+
+export function lineArc(object, title) {
+  const arcs = [object].concat(words(object, title)).map(word => title.heights[word.id]?.arc ?? NO_ARC)
+  return { top: Math.max(...arcs.map(arc => arc.top)), bottom: Math.max(...arcs.map(arc => arc.bottom)) }
+}
+
 function extent(object, title) {
   const stack = STACK[object.type]
-  const { height = DEFAULT_HEIGHT, capHeight = DEFAULT_CAP_HEIGHT, arc = { top: 0, bottom: 0 }, scaleY = effectiveScale(object)[1] } = title.heights[object.id] ?? {}
+  const { height = DEFAULT_HEIGHT, capHeight = DEFAULT_CAP_HEIGHT, scaleY = effectiveScale(object)[1] } = title.heights[object.id] ?? {}
+  const arc = lineArc(object, title)
   const pad = stack.pad ? 2 * object.border * (object.scaleOutline ? scaleY : 1) : 0
   return stack.scale * ((capHeight + arc.top + arc.bottom) * scaleY + height - capHeight + pad)
 }

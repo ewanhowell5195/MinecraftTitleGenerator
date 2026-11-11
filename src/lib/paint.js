@@ -2,12 +2,14 @@ import { fadeStops, fillPattern, linearGradient, surface } from "./canvas.js"
 import { hexOf, packed } from "./colour.js"
 import { PLACED_KINDS, edgeAlpha, generatedAlpha } from "./generated.js"
 import { gradientLine, gradientStops } from "./material.js"
-import { clamp } from "./maths.js"
+import { clamp, remember } from "./maths.js"
 import { stripY } from "./strips.js"
 
 export const R = 4
 
 const CACHED_OVERLAYS = 32
+const CACHED_TILES = 8
+const CACHED_URLS = 64
 const SOFT_LABEL = 16
 const WAVE_KINDS = new Set(["wave", "wave_inverted"])
 
@@ -91,7 +93,7 @@ function paintedStops(look) {
       row.ctx.fillRect(index, 0, 1, 1)
     }
     return adjusted(row.canvas, look, { willReadFrequently: true }).ctx.getImageData(0, 0, stops.length, 1).data
-  })
+  }, CACHED_OVERLAYS)
   return stops.map((stop, index) => ({ position: stop.position, colour: packed(data, index * 4) }))
 }
 
@@ -145,6 +147,12 @@ function tileBlock(look, image) {
     for (let tx = 0; tx < block.canvas.width; tx += tw) drawRandomTile(block.ctx, look, tile, tx, ty, tw, th, 7)
   }
   return block.canvas
+}
+
+function adjustedTiles(look, image) {
+  if (!tileBlocks.has(image)) tileBlocks.set(image, new Map())
+  const key = JSON.stringify([look.tileableScale, look.tileableXOffset, look.tileableYOffset, look.tileableRandomRotations, look.tileableRandomMirroring, adjustmentsOf(look)])
+  return remember(tileBlocks.get(image), key, () => adjusted(tileBlock(look, image), look).canvas, CACHED_TILES)
 }
 
 function paintTiles(ctx, entries, look, image, capHeight) {
@@ -221,7 +229,7 @@ function stretchedStrip(strip, low, high) {
       if (first < density) out.ctx.drawImage(image, 0, 0, image.width, density - first, 0, to + first, image.width, density - first)
     }
     return out.canvas
-  })
+  }, CACHED_OVERLAYS)
 }
 
 function paintStrip(ctx, entries, strip) {
@@ -300,7 +308,9 @@ export function colourOverlay(mask, layer) {
 const ids = new WeakMap()
 const overlays = new WeakMap()
 const stretchedStrips = new WeakMap()
+const tileBlocks = new WeakMap()
 const adjustedColours = new Map()
+const urlIds = new Map()
 let nextId = 0
 
 export function idOf(value) {
@@ -308,19 +318,15 @@ export function idOf(value) {
   return ids.get(value)
 }
 
-function remember(cache, key, make) {
-  if (cache.has(key)) return cache.get(key)
-  const value = make()
-  cache.set(key, value)
-  if (cache.size > CACHED_OVERLAYS) cache.delete(cache.keys().next().value)
-  return value
+export function lookKey(value) {
+  return JSON.stringify(value, (name, item) => typeof item === "string" && item.startsWith("data:") ? remember(urlIds, item, () => ++nextId, CACHED_URLS) : item)
 }
 
 function overlayLayer(sheet, layer, source, capHeight) {
   if (!overlays.has(sheet)) overlays.set(sheet, { shapes: new Map(), coloured: new Map() })
   const { shapes, coloured } = overlays.get(sheet)
   const shapeKey = JSON.stringify([source.edge ? `edge:${source.edge}` : source.generated ?? idOf(source), capHeight, Object.entries(layer).filter(([name]) => !["file", "blend", "opacity", "colour", "colourBlend"].includes(name))])
-  return remember(coloured, JSON.stringify([shapeKey, layer.colour, layer.colourBlend]), () => colourOverlay(remember(shapes, shapeKey, () => drawOverlay(sheet, layer, source, capHeight)), layer))
+  return remember(coloured, JSON.stringify([shapeKey, layer.colour, layer.colourBlend]), () => colourOverlay(remember(shapes, shapeKey, () => drawOverlay(sheet, layer, source, capHeight), CACHED_OVERLAYS), layer), CACHED_OVERLAYS)
 }
 
 export function paintKey(sheet, assets, look) {
@@ -409,10 +415,10 @@ export function borderOf(look, assets) {
     pixel.ctx.fillStyle = look.customBorder ? look.borderColour : assets.border
     pixel.ctx.fillRect(0, 0, 1, 1)
     return (look.customBorder ? pixel : adjusted(pixel.canvas, look, { willReadFrequently: true })).ctx.getImageData(0, 0, 1, 1).data
-  })
+  }, CACHED_OVERLAYS)
 }
 
-export function paintSheet(sheet, look, assets, capHeight, base = paintBase(sheet, look, assets, capHeight)) {
+export function paintSheet(sheet, look, assets, capHeight, base) {
   const width = sheet.width * R
   const height = sheet.height * R
   const entries = Object.values(sheet.glyphs)
@@ -454,7 +460,8 @@ export function paintSheet(sheet, look, assets, capHeight, base = paintBase(shee
   }
   const final = eager ? work.ctx.getImageData(0, 0, width, height) : null
   const at = (swatch[1] * R * width + swatch[0] * R) * 4
-  const [r, g, b] = final ? final.data.subarray(at, at + 3) : borderOf(look, assets)
+  const rgb = final ? final.data.subarray(at, at + 3) : borderOf(look, assets)
+  const [r, g, b] = rgb
   const border = `rgb(${r}, ${g}, ${b})`
 
   const finalPixels = final ? () => final : readLater(look.fade ? copyOf(work.canvas) : work)
@@ -484,7 +491,7 @@ export function paintSheet(sheet, look, assets, capHeight, base = paintBase(shee
     work.ctx.globalCompositeOperation = "source-over"
   }
 
-  const tiles = look.source === "tile" && look.tileableTileEdges ? adjusted(tileBlock(look, assets.tile), look).canvas : null
+  const tiles = look.source === "tile" && look.tileableTileEdges ? adjustedTiles(look, assets.tile) : null
   const gradient = look.source === "gradient" ? { stops: paintedStops(look), ends: entry => gradientEnds(entry, look, capHeight, sheet) } : null
-  return { canvas: work.canvas, facePixels, border, edgeAverage, tiles, tilesAcrossLine: !look.tileablePerCharacter, gradient, fade, borderColour: r | g << 8 | b << 16, labels: () => overlayLabels(sheet, overlayLayers, capHeight, width, height) }
+  return { canvas: work.canvas, facePixels, border, edgeAverage, tiles, tilesAcrossLine: !look.tileablePerCharacter, gradient, fade, borderColour: packed(rgb, 0), labels: () => overlayLabels(sheet, overlayLayers, capHeight, width, height) }
 }

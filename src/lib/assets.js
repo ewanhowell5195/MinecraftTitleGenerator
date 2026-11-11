@@ -10,14 +10,21 @@ const json = new Map()
 const images = new Map()
 const shapes = new WeakMap()
 
-function fetchJson(url) {
-  if (!json.has(url)) {
-    json.set(url, platform.fetch(url).then(response => {
-      if (!response.ok) throw new Error(`failed to load ${url}`)
-      return response.json()
-    }))
+function remembered(cache, url, load) {
+  if (!cache.has(url)) {
+    const loading = load()
+    loading.catch(() => cache.delete(url))
+    cache.set(url, loading)
   }
-  return json.get(url)
+  return cache.get(url)
+}
+
+function fetchJson(url) {
+  return remembered(json, url, async () => {
+    const response = await platform.fetch(url)
+    if (!response.ok) throw new Error(`failed to load ${url}`)
+    return response.json()
+  })
 }
 
 export function preload(folder) {
@@ -26,8 +33,7 @@ export function preload(folder) {
 }
 
 export function image(url) {
-  if (!images.has(url)) images.set(url, loadImage(url))
-  return images.get(url)
+  return remembered(images, url, () => loadImage(url))
 }
 
 export function forgetFolder(folder) {

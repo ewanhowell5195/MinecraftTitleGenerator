@@ -412,4 +412,12 @@ describe("special glyphs", () => {
     assert.deepEqual(heights(laid), [12, 8, 12])
     assert.deepEqual(laid.placed.map(item => item.word), [0, 0, 0])
   })
+
+  test("the drawn spaces beside the terminators are drawn with the end words", () => {
+    const font = fontOf({ a: glyphOf("a"), " ": glyphOf(" ", { width: 5 }), [OPEN]: glyphOf(OPEN), [CLOSE]: glyphOf(CLOSE) }, { terminatorSpace: true })
+    const list = [{ text: "a", space: false }, { text: "a", space: false }]
+    const charsOf = laid => laid.placed.filter(item => !item.glyph.fill).map(item => item.glyph.char.split("\u0000")[0])
+    assert.deepEqual(charsOf(words(list, 0, { terminators: true }, font)), [OPEN, " ", "a"])
+    assert.deepEqual(charsOf(words(list, 1, { terminators: true }, font)), ["a", " ", CLOSE])
+  })
 })

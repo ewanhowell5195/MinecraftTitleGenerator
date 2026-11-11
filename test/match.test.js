@@ -1,10 +1,11 @@
-import { before, beforeEach, describe, mock, test } from "node:test"
+import { after, before, beforeEach, describe, mock, test } from "node:test"
 import assert from "node:assert/strict"
 import { nextTick } from "vue"
+import { fakeTimeouts, forbidFetch, quietStorage } from "./helpers/browser.js"
 
-globalThis.localStorage = { getItem: () => null, setItem: () => {} }
-globalThis.fetch = () => assert.fail("fetch must not be called")
-mock.timers.enable({ apis: ["setTimeout"] })
+quietStorage()
+forbidFetch()
+fakeTimeouts()
 
 const { createObject } = await import("../src/lib/settings.js")
 const { view } = await import("../src/lib/view.js")
@@ -378,5 +379,61 @@ describe("problems and solving", () => {
     runtime[target.id] = state(40, 2, -60)
     await nextTick()
     assert.equal(target.matchScale, 2.5)
+  })
+})
+
+describe("rows scaled by their stretch marks", () => {
+  before(() => {
+    view.fov = 70
+  })
+
+  after(() => {
+    view.fov = 0
+  })
+
+  function state(halfWidth, height, offsetY, scale = [1, 1, 1]) {
+    return {
+      settled: true,
+      built: { border: 2, frame: null, line: { min: [-halfWidth, 0, -5], max: [halfWidth, height, 5] }, body: { triangles: 12, positions: new Float32Array([-halfWidth, 0, -5, halfWidth, height, 5]) } },
+      transform: { type: [1, 1, 1], offset: [0, offsetY, 0], rotation: 0, anchor: { y: "bottom", z: "back" }, scale, rotate: [0, 0, 0], translate: [0, 0, 0], outlineGrow: [1, 1, 1] }
+    }
+  }
+
+  async function solved(values, referenceState = state(100, 80, 0), targetState = state(40, 40, 100)) {
+    const [target, reference] = linked(2)
+    Object.assign(reference, values.reference)
+    Object.assign(target, values.target)
+    runtime[reference.id] = referenceState
+    runtime[target.id] = targetState
+    await nextTick()
+    assert.equal(target.id in problems, false)
+    return target.matchScale
+  }
+
+  test("a reference whose height is built into its letters solves like the same letters unscaled", async () => {
+    const plain = await solved({ reference: { scaleY: 1 } })
+    assert.notEqual(plain, 1)
+    assert.equal(await solved({ reference: { scaleY: 2, scaleMarked: true } }), plain)
+  })
+
+  test("a target whose height is built into its letters solves like the same letters unscaled", async () => {
+    const plain = await solved({ target: { scaleY: 1 } }, state(100, 40, 0), state(40, 80, 100))
+    assert.equal(await solved({ target: { scaleY: 2, scaleMarked: true } }, state(100, 40, 0), state(40, 80, 100)), plain)
+  })
+
+  test("a height the slider still scales is counted", async () => {
+    const plain = await solved({ reference: { scaleY: 1 } })
+    assert.notEqual(await solved({ reference: { scaleY: 2 } }, state(100, 80, 0, [1, 2, 1])), plain)
+  })
+
+  test("a target that grows taller with the match still does", async () => {
+    const fixed = await solved({ target: { matchScaleY: false } })
+    assert.notEqual(await solved({ target: { matchScaleY: true } }), fixed)
+  })
+
+  test("a target whose height is built in is not made taller by the match", async () => {
+    const marked = { ...state(40, 40, 100), font: { glyphs: { a: { stretch: [3] } } } }
+    const fixed = await solved({ target: { scaleMarked: true } }, undefined, marked)
+    assert.equal(await solved({ target: { scaleMarked: true, matchScaleY: true } }, undefined, marked), fixed)
   })
 })

@@ -1,3 +1,5 @@
+import { mostCommon } from "./maths.js"
+
 function segments(row) {
   const list = []
   let start = -1
@@ -20,12 +22,6 @@ function runWidths(all) {
     }
   }
   return list
-}
-
-function strokeWidth(all) {
-  const tally = new Map()
-  for (const width of all) tally.set(width, (tally.get(width) ?? 0) + 1)
-  return Array.from(tally).sort((a, b) => b[1] - a[1])[0][0]
 }
 
 function blockSize(all, stroke) {
@@ -237,6 +233,6 @@ export function marksFor(glyph, { capHeight, stroke, block }) {
 
 export function sheetMeasures(cells) {
   const widths = runWidths(cells)
-  const stroke = widths.length ? strokeWidth(widths) : 1
+  const stroke = mostCommon(widths) ?? 1
   return { stroke, block: blockSize(widths, stroke) }
 }

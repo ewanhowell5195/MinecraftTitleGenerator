@@ -171,7 +171,8 @@ export function solidMask(data, imageWidth, density, x, top, width, height) {
       let solid = 0
       for (let j = 0; j < density && !solid; j++) {
         for (let i = 0; i < density && !solid; i++) {
-          if (data[(((top + r) * density + j) * imageWidth + (x + c) * density + i) * 4 + 3] > 127) solid = 1
+          const column = Math.floor((x + c) * density + i)
+          if (column < imageWidth && data[(Math.floor((top + r) * density + j) * imageWidth + column) * 4 + 3] > 127) solid = 1
         }
       }
       mask[(height - 1 - r) * width + c] = solid

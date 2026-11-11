@@ -1,6 +1,8 @@
 import { boxFaces, boxesFor } from "./boxes.js"
 import { SPACE } from "./layout.js"
 import { buildAtlas } from "./material.js"
+import { remember } from "./maths.js"
+import { baseChar } from "./order.js"
 
 const EDGE_SHARE = 0.1
 
@@ -157,7 +159,7 @@ export function buildText(font, options) {
   for (const item of placed) {
     const glyph = item.glyph
     const boxes = boxesFor(glyph.mask, glyph.width, glyph.height, item.x, glyph.bottom)
-    const char = glyph.char.split("\u0000")[0]
+    const char = baseChar(glyph.char)
     const mesh = font.mesh?.glyphs[char]
     const reach = font.capHeight * EDGE_SHARE
     const shaped = mesh ? font.mesh.tools.meshFaces(mesh, glyph, font.glyphs[char], item.x, depth, reach) : null
@@ -249,11 +251,15 @@ export function buildOutline(built, scale, extra = [0, 0, 0]) {
   }
   const rects = built.twist ? [] : shell(built.frame ?? built.boxes.map(([from, to]) => [from[0], from[1], to[0], to[1]]))
   for (const { sources, turn } of built.twist ?? []) shell(sources, turn)
+  return { positions: new Float32Array(positions), uvs: swatchUvs(positions, built.swatch), triangles: positions.length / 9, scale, rects, z }
+}
+
+export function swatchUvs(positions, swatch) {
   const uvs = new Float32Array(positions.length / 3 * 2)
-  if (built.swatch) {
-    for (let i = 0; i < uvs.length; i += 2) uvs.set(built.swatch, i)
+  if (swatch) {
+    for (let i = 0; i < uvs.length; i += 2) uvs.set(swatch, i)
   }
-  return { positions: new Float32Array(positions), uvs, triangles: positions.length / 9, scale, rects, z }
+  return uvs
 }
 
 const CACHED_SHELLS = 16
@@ -278,26 +284,20 @@ function ringsKey(groups, ...values) {
 function meshOutline(built, scale, radius, z) {
   const groups = built.twist ? built.twist.map(({ turn, rings }) => ({ rings, turn: point => turned(point, turn, scale) })) : [{ rings: built.shapes }]
   const key = ringsKey(groups, scale, radius, z, built.swatch, built.twist?.map(({ turn }) => turn))
-  if (!shells.has(key)) {
-    shells.set(key, shellOutline(built, groups, scale, radius, z))
-    if (shells.size > CACHED_SHELLS) shells.delete(shells.keys().next().value)
-  }
-  return shells.get(key)
+  return remember(shells, key, () => shellOutline(built, groups, scale, radius, z), CACHED_SHELLS)
 }
 
 function shellOutline(built, groups, scale, radius, z) {
   const shell = radius[0] > 0 && radius[1] > 0 ? built.tools.outlineShell(groups, scale, radius, z) : { positions: [], sizes: [], shapes: [] }
-  const uvs = new Float32Array(shell.positions.length / 3 * 2)
-  if (built.swatch) {
-    for (let i = 0; i < uvs.length; i += 2) uvs.set(built.swatch, i)
-  }
-  return { positions: new Float32Array(shell.positions), uvs, triangles: shell.positions.length / 9, sizes: Uint8Array.from(shell.sizes), scale, rects: [], shapes: shell.shapes, tools: built.tools, z }
+  return { positions: new Float32Array(shell.positions), uvs: swatchUvs(shell.positions, built.swatch), triangles: shell.positions.length / 9, sizes: Uint8Array.from(shell.sizes), scale, rects: [], shapes: shell.shapes, tools: built.tools, z }
 }
 
-function meshHoles(outlines, tools) {
+export function buildHoles(outlines) {
+  if (!outlines.length) return null
   const last = holes.get(outlines[0])
   if (last?.outlines.length === outlines.length && last.outlines.every((outline, index) => outline === outlines[index])) return last.result
-  const result = filledHoles(outlines, tools)
+  const tools = outlines.find(outline => outline.tools)?.tools
+  const result = tools ? filledHoles(outlines, tools) : gridHoles(outlines)
   holes.set(outlines[0], { outlines, result })
   return result
 }
@@ -308,9 +308,7 @@ function filledHoles(outlines, tools) {
   return { positions: new Float32Array(positions), uvs: new Float32Array(positions.length / 3 * 2), triangles: positions.length / 9, sizes: new Uint8Array(positions.length / 9).fill(3), scale: outlines[0].scale }
 }
 
-export function buildHoles(outlines) {
-  const tools = outlines.find(outline => outline.tools)?.tools
-  if (tools) return meshHoles(outlines, tools)
+function gridHoles(outlines) {
   const rects = outlines.flatMap(outline => outline.rects)
   if (!rects.length) return null
   const { xs, ys, width, height, mask: solid } = rectGrid(rects)

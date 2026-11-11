@@ -1,8 +1,12 @@
 import { surface } from "./canvas.js"
 import { lineLayout } from "./layout.js"
+import { faceDepth } from "./material.js"
+import { remember } from "./maths.js"
+import { glyphKey } from "./order.js"
 import { R, idOf } from "./paint.js"
 
 const GAP = 2
+const CACHED_REMAPS = 32
 const remaps = new WeakMap()
 
 function strengths(placed, centre = 0.5) {
@@ -58,7 +62,7 @@ export function arcLayout(font, sheet, words, word, options) {
     const members = placed.flatMap((item, at) => item.word === index ? [at] : [])
     if (members.length) strengths(members.map(at => placed[at]), words[index].arc?.centre).forEach((amount, at) => (wordAmounts[members[at]] = amount))
   }
-  const depth = Math.max(1, Math.round(options.depth))
+  const depth = faceDepth(options.depth)
   const glyphs = {}
   const items = []
   const line = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity }
@@ -91,7 +95,7 @@ export function arcLayout(font, sheet, words, word, options) {
     const arcs = [curve(options.arcMode, options.arcTop, options.arcBottom, options.arcMarked !== false, amounts[index]), curve(arc.mode, arc.top, arc.bottom, arc.marked !== false, wordAmounts[index])]
     const lift = (moving ? Math.round(options.arcMove * amounts[index] * font.capHeight) : 0) + (arc.mode === "move" ? Math.round(arc.move * wordAmounts[index] * font.capHeight) : 0)
     const grow = Math.round(((options.stretch ?? 1) * (shape.stretch ?? 1) - 1) * font.capHeight)
-    const key = `${item.glyph.char}\u0000${index}`
+    const key = glyphKey(item.glyph.char, index)
     const glyph = { ...stretched(item.glyph, key, arcs, grow), placedX: item.x, lineX: item.x - placed[0].x, lift }
     const mesh = font.mesh?.glyphs[item.glyph.char]
     if (mesh) glyph.fine = font.mesh.tools.fineMasks(mesh, glyph, item.glyph)
@@ -168,10 +172,7 @@ function remap(arced, original, source, smooth) {
 
 function cached(arced, original, source, smooth) {
   if (!remaps.has(arced)) remaps.set(arced, new Map())
-  const cache = remaps.get(arced)
-  const key = `${smooth}:${idOf(source)}`
-  if (!cache.has(key)) cache.set(key, remap(arced, original, source, smooth))
-  return cache.get(key)
+  return remember(remaps.get(arced), `${smooth}:${idOf(source)}`, () => remap(arced, original, source, smooth), CACHED_REMAPS)
 }
 
 export function arcAssets(assets, arced, original) {

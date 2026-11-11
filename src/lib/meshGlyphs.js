@@ -1,20 +1,11 @@
 import { ClipType, EndType, FillRule, JoinType, PolyTreeD, booleanOpDWithPolyTree, inflatePathsD } from "@countertype/clipper2-ts"
 import { ShapeUtils, Vector2 } from "three"
-import { snapped } from "./fontOutline.js"
+import { fillSpans } from "./fontOutline.js"
+import { signedArea } from "./vectorPaths.js"
 
 const PRECISION = 4
 const ARC_TOLERANCE = 0.05
 const FAR = 1e6
-
-function signedArea(ring) {
-  let sum = 0
-  for (let i = 0; i < ring.length; i++) {
-    const [x0, y0] = ring[i]
-    const [x1, y1] = ring[(i + 1) % ring.length]
-    sum += x0 * y1 - x1 * y0
-  }
-  return sum / 2
-}
 
 function oriented(ring, clockwise) {
   return signedArea(ring) < 0 === clockwise ? ring : ring.slice().reverse()
@@ -160,21 +151,11 @@ function scanFill(rings, width, height, scale, bottom) {
   const columns = width * scale
   const rows = height * scale
   const mask = new Uint8Array(columns * rows)
-  const edges = rings.flatMap(ring => ring.map((point, index) => [point, ring[(index + 1) % ring.length]])).filter(([p, q]) => p[1] !== q[1])
+  const edges = rings.flatMap(ring => ring.map((point, index) => point.concat(ring[(index + 1) % ring.length])))
   for (let row = 0; row < rows; row++) {
-    const y = bottom + (row + 0.5) / scale
-    const crossings = []
-    for (const [p, q] of edges) {
-      if (p[1] <= y === q[1] <= y) continue
-      crossings.push([p[0] + (y - p[1]) / (q[1] - p[1]) * (q[0] - p[0]), q[1] > p[1] ? 1 : -1])
-    }
-    crossings.sort((a, b) => a[0] - b[0])
-    let winding = 0
-    for (let i = 0; i < crossings.length - 1; i++) {
-      winding += crossings[i][1]
-      if (!winding) continue
-      const from = Math.max(0, Math.ceil(snapped(crossings[i][0] * scale) - 0.5))
-      const to = Math.min(columns, Math.ceil(snapped(crossings[i + 1][0] * scale) - 0.5))
+    for (const [left, right] of fillSpans(edges, bottom + (row + 0.5) / scale, scale)) {
+      const from = Math.max(0, left)
+      const to = Math.min(columns, right)
       if (to > from) mask.fill(1, row * columns + from, row * columns + to)
     }
   }
