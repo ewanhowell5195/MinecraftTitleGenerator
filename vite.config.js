@@ -5,7 +5,8 @@ import { defineConfig } from "vite"
 import { PAGES } from "./src/pages.js"
 import { creditPeople, creditsHtml } from "./src/server/credits.js"
 import { escaped } from "./src/server/http.js"
-import { linkedCode, linkedTitleDetails, presetDetails, shareTags } from "./src/server/presets.js"
+import { shareTags, withoutShareTags } from "./src/server/head.js"
+import { linkedCode, linkedTitleDetails, presetDetails } from "./src/server/presets.js"
 import { shellHtml, shellPage } from "./src/site/shell.js"
 
 const LIVE = "https://mctitlegenerator.com"
@@ -38,7 +39,7 @@ async function pageDetails(url) {
 
 function withDetails(html, details) {
   const { title, description, url, canonical = url } = details
-  return html
+  return withoutShareTags(html)
     .replace(/<title>[^<]*<\/title>/, () => `<title>${escaped(title)}</title>`)
     .replace(/(<meta name="description" content=")[^"]*/, (_, start) => start + escaped(description))
     .replace(/(<link rel="canonical" href=")[^"]*/, (_, start) => start + escaped(canonical))

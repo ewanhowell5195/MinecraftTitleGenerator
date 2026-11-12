@@ -8,13 +8,13 @@ import { limitProblem, titleFacts, titleProblem } from "../lib/titleFacts.js"
 import { blockedWordProblem } from "../lib/wording.js"
 import { USER_ROW, activeUser, forgetUnusedUser, requireUser, saveUser, signedInUser } from "./accounts.js"
 import { nextDay, returnSlot, takeSlot, today } from "./daily.js"
-import { INVALID, Refusal, cachedAtEdge, escaped, guarded, hashed, idParam, jsonBody, randomToken, reply, setting, textField } from "./http.js"
+import { SITE_NAME, pageImage, pageWithDetails } from "./head.js"
+import { INVALID, Refusal, cachedAtEdge, guarded, hashed, idParam, jsonBody, randomToken, reply, setting, textField } from "./http.js"
 
 const SORTS = { week: "week DESC, downloads DESC, id DESC", popular: "downloads DESC, id DESC", top: "rating DESC, votes DESC, id DESC", new: "created_at DESC, id DESC", needs: "votes, id" }
 const MATCHES = "lower(name) LIKE ?1 ESCAPE '\\' OR lower(text) LIKE ?1 ESCAPE '\\'"
 const DAY = 86400000
 const WEEK_DAYS = 7
-const SITE_NAME = "Minecraft Title Generator"
 const FIRST_PAGES = Object.keys(SORTS).map(sort => `?sort=${sort}&offset=0`)
 const MISSING = "This preset doesn't exist."
 const STAT_COLUMNS = "downloads, votes, rating, created_at AS createdAt, (SELECT users.name FROM users WHERE users.id = presets.user_id) AS author, (SELECT users.provider FROM users WHERE users.id = presets.user_id) AS authorProvider"
@@ -193,24 +193,8 @@ export const getPreset = guarded(async context => {
 })
 
 export function presetPageDetails(name, id) {
-  if (name === null) return { title: `Presets | ${SITE_NAME}`, description: "Browse Minecraft style titles shared by other people, then open one in the generator and change it however you like.", path: "/app/presets" }
-  return { title: `${name} | ${SITE_NAME}`, description: `Open ${name} in the ${SITE_NAME}, then change it and render it as an image.`, path: `/app/presets/${id}` }
-}
-
-export function shareTags({ title, description, url, image }) {
-  const tags = [["og:type", "website"], ["og:site_name", SITE_NAME], ["og:url", url], ["og:title", title], ["og:description", description]].concat(image ? [["og:image", image]] : [])
-  const card = image ? '<meta name="twitter:card" content="summary_large_image">' : ""
-  return tags.map(([property, content]) => `<meta property="${property}" content="${escaped(content)}">`).join("") + card
-}
-
-function pageWithDetails(page, details) {
-  const { title, description, url, canonical = url } = details
-  return new HTMLRewriter()
-    .on("title", { element: element => element.setInnerContent(title) })
-    .on('meta[name="description"]', { element: element => element.setAttribute("content", description) })
-    .on('link[rel="canonical"]', { element: element => element.setAttribute("href", canonical) })
-    .on("head", { element: element => element.append(shareTags(details), { html: true }) })
-    .transform(page)
+  if (name === null) return { title: `Presets | ${SITE_NAME}`, description: "Browse Minecraft style titles other people have shared, and open any of them in the generator to make your own!", path: "/app/presets" }
+  return { title: `${name} | ${SITE_NAME}`, description: `Open this title in the ${SITE_NAME} to change it and make your own!`, path: `/app/presets/${id}` }
 }
 
 export function linkedCode(url) {
@@ -219,12 +203,14 @@ export function linkedCode(url) {
 }
 
 export function linkedTitleDetails(url, code, canonical) {
-  return { title: SITE_NAME, description: "Open this title in the generator, then change it and render it as an image.", url: url.href, canonical: `${url.origin}${canonical}`, image: pictureUrl({ code }, "png") }
+  return { title: SITE_NAME, description: `Open this title in the ${SITE_NAME} to change it and make your own!`, url: url.href, canonical: `${url.origin}${canonical}`, image: pictureUrl({ code }, "png") }
 }
 
 export function presetDetails(origin, preset, id) {
   const { title, description, path } = presetPageDetails(preset?.name ?? null, id)
-  return { title, description, url: `${origin}${path}`, image: preset?.fingerprint ? pictureUrl(preset, "png") : null }
+  if (preset?.fingerprint) return { title, description, url: `${origin}${path}`, image: pictureUrl(preset, "png") }
+  const { path: image, ...size } = pageImage("presets", "Presets")
+  return { title, description, url: `${origin}${path}`, ...size, image: `${origin}${image}` }
 }
 
 function linkedTitlePage(page, url, code, canonical) {

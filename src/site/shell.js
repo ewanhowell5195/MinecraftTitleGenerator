@@ -1,6 +1,11 @@
 import { escaped } from "../server/http.js"
-import { shareTags } from "../server/presets.js"
+import { SHARE_IMAGE, pageImage, shareTags } from "../server/head.js"
 import { PAGES, SITE } from "../pages.js"
+
+function imageOf(page) {
+  const { path, ...image } = page.image ? pageImage(page.name, page.image) : SHARE_IMAGE
+  return { ...image, image: `${SITE}${path}` }
+}
 
 export function shellPage(file) {
   return PAGES.find(page => page.file === file) ?? null
@@ -24,7 +29,7 @@ export function shellHtml(html, page) {
     "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">",
     "<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>",
     "<link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Gabarito:wght@400..900&display=swap\">"
-  ], page.share ? shareTags({ title: page.title, description: page.description, url, image: `${SITE}/home/og.jpg` }) : [], page.head ?? [])
+  ], page.hidden ? [] : shareTags({ title: page.title, description: page.description, url, ...imageOf(page) }), page.data ? `<script type="application/ld+json">${JSON.stringify(page.data).replace(/</g, "\\u003c")}</script>` : [], page.head ?? [])
   return html
     .replace("<html lang=\"en\">", `<html lang="en" data-styles="${page.styles}">`)
     .replace("<head></head>", `<head>\n    ${head.join("\n    ")}\n  </head>`)

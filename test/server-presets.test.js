@@ -868,14 +868,14 @@ describe("preset page details", () => {
   test("the presets page has its own title and address", () => {
     const { title, description, path } = presetPageDetails(null)
     assert.equal(title, "Presets | Minecraft Title Generator")
-    assert.match(description, /shared by other people/)
+    assert.match(description, /other people have shared/)
     assert.equal(path, "/app/presets")
   })
 
   test("a preset has its name in the title and its own address", () => {
     const { title, description, path } = presetPageDetails("Iron and Ember", 12)
     assert.equal(title, "Iron and Ember | Minecraft Title Generator")
-    assert.match(description, /Open Iron and Ember in the/)
+    assert.equal(description, "Open this title in the Minecraft Title Generator to change it and make your own!")
     assert.equal(path, "/app/presets/12")
   })
 })

@@ -32,10 +32,10 @@ describe("page shells", () => {
       assert.equal(count(head, /<meta name="robots" content="noindex">/g), page.hidden ? 1 : 0)
     })
 
-    test(`${page.file} has ${page.share ? "its" : "no"} share tags`, () => {
-      const properties = Array.from(head.matchAll(/<meta property="(og:[a-z_]+)"/g), match => match[1])
-      assert.deepEqual(properties, page.share ? ["og:type", "og:site_name", "og:url", "og:title", "og:description", "og:image"] : [])
-      assert.equal(count(head, /<meta name="twitter:card"/g), page.share ? 1 : 0)
+    test(`${page.file} has ${page.hidden ? "no" : "its"} share tags`, () => {
+      const properties = Array.from(head.matchAll(/<meta property="(og:[a-z_:]+)"/g), match => match[1])
+      assert.deepEqual(properties, page.hidden ? [] : ["og:type", "og:site_name", "og:locale", "og:url", "og:title", "og:description", "og:image", "og:image:width", "og:image:height", "og:image:alt"])
+      assert.equal(count(head, /<meta name="twitter:card" content="summary_large_image">/g), page.hidden ? 0 : 1)
     })
   }
 
@@ -46,6 +46,15 @@ describe("page shells", () => {
     assert.equal(unescaped(html.match(/<title>([^<]*)<\/title>/)[1]), page.title)
     assert.equal(unescaped(html.match(/<meta name="description" content="([^"]*)">/)[1]), page.description)
     assert.equal(unescaped(html.match(/<meta property="og:title" content="([^"]*)">/)[1]), page.title)
+  })
+
+  test("the homepage describes the site and the generator as structured data", () => {
+    const page = PAGES.find(item => item.name === "home")
+    const html = shellHtml(fs.readFileSync(page.file, "utf8"), page)
+    const data = JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/)[1])
+    assert.deepEqual(data["@graph"].map(item => item["@type"]), ["WebSite", "WebApplication"])
+    assert.equal(data["@graph"][1].url, `${SITE}/app/`)
+    assert.equal(PAGES.filter(item => item.data).length, 1)
   })
 
   test("a page is found by its file", () => {
