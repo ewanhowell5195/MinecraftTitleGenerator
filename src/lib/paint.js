@@ -1,6 +1,6 @@
 import { fadeStops, fillPattern, linearGradient, surface } from "./canvas.js"
 import { hexOf, packed } from "./colour.js"
-import { PLACED_KINDS, SMOOTH_KINDS, edgeAlpha, generatedAlpha } from "./generated.js"
+import { PLACED_KINDS, SMOOTH_KINDS, WRAPPED_KINDS, crackList, crackTriangle, crackWrap, edgeAlpha, generatedAlpha, wrapTriangles } from "./generated.js"
 import { gradientLine, gradientStops } from "./material.js"
 import { clamp, remember } from "./maths.js"
 import { stripY } from "./strips.js"
@@ -271,7 +271,7 @@ function putAlpha(ctx, alpha, width, height, x, y, scale) {
 
 function generate(ctx, entries, kind, layer, capHeight, scale) {
   for (const { glyph, x, top } of entries) {
-    if (glyph.width && glyph.height) putAlpha(ctx, generatedAlpha(glyph, kind, layer, capHeight, scale), glyph.width, glyph.height, x, top, scale)
+    if (glyph.width && glyph.height) putAlpha(ctx, generatedAlpha(glyph, kind, layer, capHeight, scale, scale > R), glyph.width, glyph.height, x, top, scale)
   }
 }
 
@@ -279,7 +279,7 @@ function generateEdges(ctx, entries, kind, layer, scale) {
   for (const entry of entries) {
     if (!entry.glyph.width || !entry.glyph.height) continue
     for (const [side, y, depth] of [["up", entry.up, entry.upHeight], ["down", entry.down, entry.downHeight]]) {
-      if (depth) putAlpha(ctx, edgeAlpha(entry.glyph, side, kind, layer, depth, scale), entry.glyph.width, depth, entry.x, y, scale)
+      if (depth) putAlpha(ctx, edgeAlpha(entry.glyph, side, kind, layer, depth, scale, scale > R), entry.glyph.width, depth, entry.x, y, scale)
     }
   }
 }
@@ -296,7 +296,41 @@ function drawOverlay(sheet, layer, source, capHeight, detail) {
   if (source.edge) generateEdges(overlay.ctx, entries, source.edge, layer, R * detail)
   else if (source.generated) generate(overlay.ctx, entries, source.generated, layer, capHeight, R * detail)
   else overlay.ctx.drawImage(source, 0, 0)
+  if (WRAPPED_KINDS.has(source.generated)) generateEdges(overlay.ctx, entries, source.generated, layer, R * detail)
   return overlay
+}
+
+function labelIndexes(layers) {
+  const indexes = new Map()
+  let hard = 0
+  let soft = SOFT_LABEL
+  for (const { layer, source } of layers) {
+    if (!layer.opacity) continue
+    const index = PLACED_KINDS.has(source.generated) ? soft++ : hard++
+    if (index < SOFT_LABEL * 1.5 && hard <= SOFT_LABEL) indexes.set(layer, index)
+  }
+  return indexes
+}
+
+function wrapsOf(layers, indexes) {
+  return layers.filter(({ layer, source }) => WRAPPED_KINDS.has(source.generated) && layer.opacity).map(({ layer }) => ({
+    blend: layer.blend,
+    opacity: layer.opacity / 100,
+    label: indexes.get(layer) ?? null,
+    alpha: (glyph, side, line, from, width, depth, scale) => crackWrap(glyph, layer, side, line, from, width, depth, scale, scale > R),
+    triangles: (glyph, side, line, from, width, depth) => wrapTriangles(glyph, layer, side, line, from, width, depth),
+    front: glyph => crackList(glyph, layer).map(crackTriangle),
+    face(glyph, side, line, from, width, depth, scale) {
+      const alpha = crackWrap(glyph, layer, side, line, from, width, depth, scale, scale > R)
+      if (!alpha) return null
+      const mask = surface(width * scale, depth * scale)
+      const image = mask.ctx.createImageData(width * scale, depth * scale)
+      image.data.fill(255)
+      for (let index = 0; index < alpha.length; index++) image.data[index * 4 + 3] = alpha[index] * 255
+      mask.ctx.putImageData(image, 0, 0)
+      return colourOverlay(mask, layer).canvas
+    }
+  }))
 }
 
 export function colourOverlay(mask, layer) {
@@ -398,12 +432,10 @@ function overlayLabels(sheet, layers, capHeight, width, height, detail) {
   const image = ctx.createImageData(width, height)
   for (let at = 3; at < image.data.length; at += 4) image.data[at] = 255
   const reader = surface(width, height, { willReadFrequently: true })
-  let hard = 0
-  let soft = SOFT_LABEL
+  const indexes = labelIndexes(layers)
   for (const { layer, source } of layers) {
-    if (!layer.opacity) continue
-    const index = PLACED_KINDS.has(source.generated) ? soft++ : hard++
-    if (index >= SOFT_LABEL * 1.5 || hard > SOFT_LABEL) continue
+    if (!indexes.has(layer)) continue
+    const index = indexes.get(layer)
     const threshold = SMOOTH_KINDS.has(source.generated) ? 128 : 1
     reader.ctx.clearRect(0, 0, width, height)
     reader.ctx.drawImage(overlayLayer(sheet, layer, source, capHeight, detail).canvas, 0, 0)
@@ -502,5 +534,5 @@ export function paintSheet(sheet, look, assets, capHeight, base, detail = 1) {
 
   const tiles = look.source === "tile" && look.tileableTileEdges ? adjustedTiles(look, assets.tile) : null
   const gradient = look.source === "gradient" ? { stops: paintedStops(look), ends: entry => gradientEnds(entry, look, capHeight, sheet) } : null
-  return { canvas: work.canvas, facePixels, border, edgeAverage, tiles, tilesAcrossLine: !look.tileablePerCharacter, gradient, fade, borderColour: packed(rgb, 0), labels: () => overlayLabels(sheet, overlayLayers, capHeight, width, height, detail), scale, tileScale: R }
+  return { canvas: work.canvas, facePixels, border, edgeAverage, tiles, tilesAcrossLine: !look.tileablePerCharacter, gradient, fade, borderColour: packed(rgb, 0), labels: () => overlayLabels(sheet, overlayLayers, capHeight, width, height, detail), wraps: wrapsOf(assets.overlays, labelIndexes(overlayLayers)), scale, tileScale: R }
 }

@@ -338,7 +338,7 @@ export default {
       let detail = text.detail
       while (detail > 1 && Math.max(arced.sheet.width, arced.sheet.height) * R * detail > canvasLimit()) detail /= 2
       const base = paintBase(arced.sheet, own.look, remapped, source.capHeight, detail)
-      const plain = { image: text.texture, labels: text.labels, gradient: text.gradient, fades: text.fades, panels: text.panels }
+      const plain = { image: text.texture, labels: text.labels, crackShapes: text.crackShapes, gradient: text.gradient, fades: text.fades, panels: text.panels }
       return { ...text, ...text.refine({ ...own, ...paintSheet(arced.sheet, own.look, remapped, source.capHeight, base, detail) }), refine: null, plain }
     }
 

@@ -592,7 +592,7 @@ describe("detail", () => {
     assert.ok(word.detail > 1)
     assert.equal(word.detail, 2 ** Math.round(Math.log2(word.detail)))
     const sharp = word.refine({ ...PAINTED, scale: word.detail })
-    assert.deepEqual(Object.keys(sharp).sort(), ["fades", "gradient", "labels", "panels", "texture"])
+    assert.deepEqual(Object.keys(sharp).sort(), ["crackShapes", "fades", "gradient", "labels", "panels", "texture"])
   })
 
   test("a limit too small to grow into leaves the texture alone", () => {

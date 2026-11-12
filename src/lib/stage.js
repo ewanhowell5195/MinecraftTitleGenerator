@@ -54,6 +54,7 @@ function fill(entry, built) {
   entry.texture.generateMipmaps = false
   entry.texture.colorSpace = THREE.SRGBColorSpace
   entry.texture.userData.labels = built.labels
+  entry.texture.userData.crackShapes = built.crackShapes
   entry.texture.userData.gradient = built.gradient
   entry.texture.userData.fades = built.fades
   entry.texture.userData.panels = built.panels

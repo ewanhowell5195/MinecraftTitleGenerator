@@ -5,7 +5,7 @@ import { PNG } from "pngjs"
 import { stripRange } from "../src/lib/assets.js"
 import { rgbOf } from "../src/lib/colour.js"
 import { sheetLayout, solidMask, splitCells } from "../src/lib/font.js"
-import { GENERATED_EDGE_OVERLAYS, edgeAlpha, generatedAlpha, withGenerated } from "../src/lib/generated.js"
+import { GENERATED_EDGE_OVERLAYS, SMOOTH_KINDS, edgeAlpha, generatedAlpha, withGenerated } from "../src/lib/generated.js"
 import { layout } from "../src/lib/layout.js"
 import { defaultBorder, defaultDepth, overlayLayer } from "../src/lib/settings.js"
 import { MARGIN, drawLayer, drawRing, drawStrip, over, sceneFrame, stripSource } from "../src/lib/thumbnails.js"
@@ -15,6 +15,7 @@ import { modelThumbnails } from "./submissionKinds/shape.js"
 
 const BACKGROUND_ALPHA = 0.3
 const AUTO_BORDER_ALPHA = 77
+const SUPERSAMPLE = 4
 
 function opaque(colour) {
   return rgbOf(colour).concat(255)
@@ -52,10 +53,18 @@ function drawFaces(png, { placed, layouts }, sheet, masks, { density: d, width }
 }
 
 function drawGenerated(png, { placed, capHeight }, { density: d, generated }) {
+  const fine = SMOOTH_KINDS.has(generated) ? SUPERSAMPLE : 1
   for (const { glyph, x, y } of placed) {
-    const alpha = generatedAlpha({ ...glyph, placedX: x }, generated, {}, capHeight, d)
+    const alpha = generatedAlpha({ ...glyph, placedX: x }, generated, {}, capHeight, d * fine, fine > 1)
+    const columns = glyph.width * d * fine
     for (let py = 0; py < glyph.height * d; py++) {
-      for (let px = 0; px < glyph.width * d; px++) over(png, x * d + px, y * d + py, [255, 255, 255, Math.round(alpha[py * glyph.width * d + px] * 255)])
+      for (let px = 0; px < glyph.width * d; px++) {
+        let sum = 0
+        for (let j = 0; j < fine; j++) {
+          for (let i = 0; i < fine; i++) sum += alpha[(py * fine + j) * columns + px * fine + i]
+        }
+        over(png, x * d + px, y * d + py, [255, 255, 255, Math.round(sum / (fine * fine) * 255)])
+      }
     }
   }
 }

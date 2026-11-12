@@ -57,9 +57,9 @@ function hexOf(colour) {
 
 function imageOf(texture, cache) {
   if (!cache.has(texture)) {
-    const { image, labels, gradient, fades, panels } = texture.userData.plain ?? { image: texture.image, ...texture.userData }
+    const { image, labels, crackShapes, gradient, fades, panels } = texture.userData.plain ?? { image: texture.image, ...texture.userData }
     const { width, height } = image
-    cache.set(texture, { data: image.getContext("2d").getImageData(0, 0, width, height).data, width, height, labels: labels?.() ?? null, gradient: gradient ?? null, fades: fades ?? null, panels: panels ?? null, analyses: new Map() })
+    cache.set(texture, { data: image.getContext("2d").getImageData(0, 0, width, height).data, width, height, labels: labels?.() ?? null, crackShapes: crackShapes?.() ?? null, gradient: gradient ?? null, fades: fades ?? null, panels: panels ?? null, analyses: new Map() })
   }
   return cache.get(texture)
 }
@@ -865,6 +865,10 @@ export function vectorTitle(scene, camera, size, resolution) {
 
   function paintPixels(face, layer, list, rect, groups, depth, stacked = true) {
     const toWorld = worldMap(face)
+    if (layer.cut) {
+      addInOrder(groups, fillFor(layer, gradientOf(face, rect, layer)), layer.cut.map(loop => loop.map(([x, y]) => project(toWorld(x, y)))))
+      return
+    }
     if (layer.bands) {
       const plane = bandPlane(face, layer.axis)
       const loops = face.analysis.shapeOf(list, layer.smooth).map(loop => loop.map(([x, y]) => toWorld(x, y)))

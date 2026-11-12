@@ -1,6 +1,8 @@
+import { FillRule, intersectD } from "@countertype/clipper2-ts"
 import { packed } from "./colour.js"
 import { clamp } from "./maths.js"
 
+const CUT_PRECISION = 3
 const TOLERANCE = 2
 const STOP_TOLERANCE = 1.5
 const HARD_EDGE = 24
@@ -359,17 +361,25 @@ function simplifyRun(run) {
   return furthestKept(run, STAIR, ([x, y], [ax, ay], [bx, by]) => Math.abs((bx - ax) * (ay - y) - (ax - x) * (by - ay)) / (Math.hypot(bx - ax, by - ay) || 1))
 }
 
-function monotone(run) {
+function monotoneRuns(run) {
+  const runs = []
+  let from = 0
   let stepX = 0
   let stepY = 0
   for (let index = 1; index < run.length; index++) {
     const dx = Math.sign(run[index][0] - run[index - 1][0])
     const dy = Math.sign(run[index][1] - run[index - 1][1])
-    if (dx && stepX && dx !== stepX || dy && stepY && dy !== stepY) return false
+    if (dx && stepX && dx !== stepX || dy && stepY && dy !== stepY) {
+      runs.push(run.slice(from, index))
+      from = index - 1
+      stepX = 0
+      stepY = 0
+    }
     stepX ||= dx
     stepY ||= dy
   }
-  return true
+  runs.push(run.slice(from))
+  return runs
 }
 
 function smoothStairs(loop) {
@@ -384,8 +394,10 @@ function smoothStairs(loop) {
   const result = []
   let run = []
   function finish() {
-    if (run.length >= STAIR_POINTS && monotone(run)) result.push(run[0], ...simplifyRun(run.slice(1).map((point, index) => [(point[0] + run[index][0]) / 2, (point[1] + run[index][1]) / 2])), run.at(-1))
-    else result.push(...run)
+    for (const [index, piece] of monotoneRuns(run).entries()) {
+      const points = piece.length >= STAIR_POINTS ? [piece[0]].concat(simplifyRun(piece.slice(1).map((point, at) => [(point[0] + piece[at][0]) / 2, (point[1] + piece[at][1]) / 2])), [piece.at(-1)]) : piece
+      result.push(...points.slice(index ? 1 : 0))
+    }
     run = []
   }
   for (let offset = 0; offset < size; offset++) {
@@ -399,6 +411,10 @@ function smoothStairs(loop) {
   }
   finish()
   return result
+}
+
+function asPaths(polygons) {
+  return polygons.map(polygon => polygon.map(([x, y]) => ({ x, y })))
 }
 
 export function colourTotals(image) {
@@ -683,9 +699,21 @@ export function analyse(image, rect, mask = null) {
     return fade ? fadedModel(fade, rect, region, colours, width) : null
   }
   const { base, layers: painted } = decompose(main[1], false, knownModel(main[1], false))
-  for (const [, region] of overlaid) {
+  function exactCut(label, region) {
+    const bits = image.crackShapes ? Array.from(image.crackShapes.keys()).filter(bit => label & 1 << bit) : []
+    if (!bits.length) return null
+    const box = [[rect.left, rect.top], [rect.right, rect.top], [rect.right, rect.bottom], [rect.left, rect.bottom]]
+    let cut = intersectD(asPaths([box]), asPaths(shapeOf(solid, false)), FillRule.EvenOdd, CUT_PRECISION)
+    for (const bit of bits) cut = intersectD(cut, asPaths(image.crackShapes.get(bit)), FillRule.NonZero, CUT_PRECISION)
+    if (bits.reduce((rest, bit) => rest & ~(1 << bit), label)) cut = intersectD(cut, asPaths(shapeOf(region, true)), FillRule.NonZero, CUT_PRECISION)
+    return cut.length ? cut.map(path => path.map(({ x, y }) => [x, y])) : null
+  }
+
+  for (const [label, region] of overlaid) {
     const part = decompose(region, true, knownModel(region, true))
-    painted.push({ ...part.base, pixels: part.base.matched, smooth: anySoft }, ...part.layers)
+    const cut = exactCut(label, region)
+    if (cut) painted.push({ ...part.base, pixels: region, smooth: false, cut })
+    else painted.push({ ...part.base, pixels: part.base.matched, smooth: anySoft }, ...part.layers)
   }
   const layers = joinedBands(painted)
   layers.sort((a, b) => a.stops || b.stops ? !!b.stops - !!a.stops : (totals.get(b.colour) ?? 0) - (totals.get(a.colour) ?? 0) || a.colour - b.colour)
@@ -746,7 +774,7 @@ export function analyse(image, rect, mask = null) {
     }
     return Array.from(grown)
   }
-  const stacked = layers.map((layer, index) => ({ ...layer, pixels: grownUnder(layer.pixels, index), edges: edgeUnder(layer.pixels, index), exact: shapeOf(layer.pixels, layer.smooth) }))
+  const stacked = layers.map((layer, index) => ({ ...layer, pixels: grownUnder(layer.pixels, index), edges: edgeUnder(layer.pixels, index), exact: layer.cut ?? shapeOf(layer.pixels, layer.smooth) }))
   function insetBase() {
     const depth = new Int32Array(width * height)
     let front = []

@@ -740,6 +740,25 @@ describe("vectorTitle gradients it was told about", () => {
     return pathsOf(titleOf(whole(texture)).markup).map(path => path.fill)
   }
 
+  test("a crack is drawn from its exact triangle, not traced from its pixels", () => {
+    const corners = [[10, 10], [50, 10], [30, 50]]
+    const inside = (x, y) => {
+      const side = (p, q) => (q[0] - p[0]) * (y - p[1]) - (q[1] - p[1]) * (x - p[0])
+      const sides = [side(corners[0], corners[1]), side(corners[1], corners[2]), side(corners[2], corners[0])]
+      return sides.every(value => value >= 0) || sides.every(value => value <= 0)
+    }
+    const data = new Uint8Array(64 * 64 * 4)
+    for (let y = 0; y < 64; y++) {
+      for (let x = 0; x < 64; x++) if (inside(x + 0.5, y + 0.5)) data[(y * 64 + x) * 4 + 2] = 1
+    }
+    const texture = textureOf(64, 64, (x, y) => inside(x + 0.5, y + 0.5) ? RED : BLUE)
+    texture.userData.labels = () => data
+    texture.userData.crackShapes = () => new Map([[16, [corners]]])
+    const red = pathsOf(titleOf(whole(texture)).markup).filter(path => path.fill === "#ff0000")
+    assert.equal(red.length, 1)
+    assert.deepEqual(red[0].polygons.map(polygon => polygon.length), [3])
+  })
+
   test("merges overlay pieces of one colour when nothing lands between them", () => {
     const left = x => x >= 4 && x < 10
     const right = x => x >= 40 && x < 46

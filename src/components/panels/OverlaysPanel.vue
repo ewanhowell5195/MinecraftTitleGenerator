@@ -196,7 +196,7 @@
     </template>
 
     <template v-if="layer">
-      <Slider v-for="item of settings" :key="item.key" :label="item.label" :model-value="generatedSetting(layer, item)" @update:model-value="set(item.key, $event)" :min="item.min" :max="item.max" />
+      <Slider v-for="item of settings" :key="item.key" :label="item.label" :model-value="generatedSetting(layer, item)" @update:model-value="set(item.key, $event)" :min="item.min" :max="item.max" :step="item.step ?? 1" />
       <Dropdown label="Blend mode" :options="BLEND_OPTIONS" :model-value="layer.blend" @update:model-value="set('blend', $event)" />
       <Field group label="Colour">
         <div class="row">

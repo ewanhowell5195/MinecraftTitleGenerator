@@ -396,7 +396,39 @@ export function buildAtlas(faces, options) {
   function labels() {
     const target = surface(canvas.width, canvas.height, { willReadFrequently: true })
     copyBlocks(target.ctx, painted.labels())
-    return target.ctx.getImageData(0, 0, canvas.width, canvas.height).data
+    const data = target.ctx.getImageData(0, 0, canvas.width, canvas.height).data
+    for (const { rect, glyph, side, line, from } of wrapped) {
+      for (const wrap of painted.wraps) {
+        const alpha = wrap.label === null ? null : wrap.alpha(glyph, side, line, from, rect.width, rect.height, SCALE)
+        if (!alpha) continue
+        const columns = rect.width * SCALE
+        for (const [index, value] of alpha.entries()) {
+          if (value >= 0.5) data[((rect.y * SCALE + Math.floor(index / columns)) * canvas.width + rect.x * SCALE + index % columns) * 4 + (wrap.label >> 3)] |= 1 << (wrap.label & 7)
+        }
+      }
+    }
+    return data
+  }
+
+  function crackShapes() {
+    const found = new Map()
+    function add(label, triangles, x, y) {
+      if (!found.has(label)) found.set(label, [])
+      for (const points of triangles) found.get(label).push(points.map(([px, py]) => [(x + px) * SCALE, (y + py) * SCALE]))
+    }
+    for (const wrap of painted.wraps) {
+      if (wrap.label === null) continue
+      for (const block of blocks) {
+        if (!block.entry) continue
+        const { glyph } = block.entry
+        const faceTop = block.y + depth
+        add(wrap.label, wrap.front(glyph), block.x, faceTop + block.bounds.maxY - block.own.maxY)
+        add(wrap.label, wrap.triangles(glyph, "up", 0, 0, glyph.width, depth), block.x, block.y)
+        add(wrap.label, wrap.triangles(glyph, "down", glyph.height, 0, glyph.width, depth), block.x, faceTop + block.bounds.height)
+      }
+      for (const { rect, glyph, side, line, from } of wrapped) add(wrap.label, wrap.triangles(glyph, side, line, from, rect.width, rect.height), rect.x, rect.y)
+    }
+    return found
   }
 
   const clear = painted.border.replace("rgb(", "rgba(").replace(")", ", 0)")
@@ -439,8 +471,25 @@ export function buildAtlas(faces, options) {
     }
     ctx.globalCompositeOperation = "source-atop"
     for (const [fill, rects] of fills) fillRects(fill, rects)
+    wrapFaces()
+    ctx.globalCompositeOperation = "source-atop"
     for (const { gradient, rects } of gradients.values()) fillRects(gradient, rects)
     ctx.globalCompositeOperation = "source-over"
+  }
+
+  const wrapped = []
+
+  function wrapFaces() {
+    for (const { rect, glyph, side, line, from } of wrapped) {
+      for (const wrap of painted.wraps) {
+        const drawn = wrap.face(glyph, side, line, from, rect.width, rect.height, SCALE)
+        if (!drawn) continue
+        ctx.globalCompositeOperation = wrap.blend
+        ctx.globalAlpha = wrap.opacity
+        ctx.drawImage(drawn, rect.x * SCALE, rect.y * SCALE)
+      }
+    }
+    ctx.globalAlpha = 1
   }
 
   const sideGradient = faceGradient(options.customSide, options.sideFill, options.sideStops, options.sideSmooth, options.sideDirection)
@@ -530,6 +579,7 @@ export function buildAtlas(faces, options) {
         }
       }
       shades.push([face.rect, sideFill(face, block, span), options.sideFade, x * SCALE, (x + width) * SCALE, true])
+      wrapped.push({ rect: face.rect, glyph: entry.glyph, side: west ? "left" : "right", line: Math.round(face.points[0][0] - block.own.minX), from: Math.round(block.own.maxY - span.max) })
       if (options.sideFade === null && sideGradient && sideGradient.direction !== "along") addGradient(face.rect, [0, y + span.max - shared.minY], [0, y + span.max - shared.maxY], sideGradient.stops)
       continue
     }
@@ -543,6 +593,7 @@ export function buildAtlas(faces, options) {
     if (painted.tiles) tile(face.rect, painted.tilesAcrossLine ? column - entry.x + entry.glyph.lineX : 0)
     else drawLine(cornerPixels(painted, column * R, edge, width * R, false, face.kind === "top" ? 1 : -1), face.rect)
     shades.push([face.rect, innerFill(face, block, span, level), options.internalFade, back, front, false])
+    wrapped.push({ rect: face.rect, glyph: entry.glyph, side: face.kind === "top" ? "up" : "down", line: Math.round(block.own.maxY - level), from: Math.round(span.min - block.own.minX) })
     if (options.internalFade === null && innerGradient && innerGradient.direction !== "up") {
       const start = x - Math.round(span.min - block.own.minX) - entry.glyph.wordX
       addGradient(face.rect, [start, 0], [start + sheet.wordWidth, 0], innerGradient.stops)
@@ -581,5 +632,5 @@ export function buildAtlas(faces, options) {
   const gradient = frontFaces.length || gradientFaces.length ? { faces: frontFaces.concat(gradientFaces) } : null
   const areaOf = (x, y, width, height) => ({ left: x * SCALE, top: y * SCALE, right: (x + width) * SCALE, bottom: (y + height) * SCALE })
   const panels = blocks.filter(block => block.entry).flatMap(({ x, y, width, bounds }) => [areaOf(x, y, width, depth), areaOf(x, y + depth, width, bounds.height), areaOf(x, y + depth + bounds.height, width, depth)])
-  return { canvas, units, swatch, side, labels, gradient, fades, panels }
+  return { canvas, units, swatch, side, labels, crackShapes, gradient, fades, panels }
 }

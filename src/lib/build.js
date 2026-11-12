@@ -199,7 +199,7 @@ export function buildText(font, options) {
   const flat = detail > 1 ? body.map(face => ({ ...face, points: face.points.map(point => point.slice()) })) : null
   function refine(painted) {
     const sharp = buildAtlas(flat, { ...atlas, painted, detail })
-    return { texture: sharp.canvas, labels: sharp.labels, gradient: sharp.gradient, fades: sharp.fades, panels: sharp.panels }
+    return { texture: sharp.canvas, labels: sharp.labels, crackShapes: sharp.crackShapes, gradient: sharp.gradient, fades: sharp.fades, panels: sharp.panels }
   }
   for (const [index, item] of placed.entries()) {
     if (item.glyph.lift) shift(glyphs[index], 1, item.glyph.lift)
@@ -216,6 +216,7 @@ export function buildText(font, options) {
     body: toBuffers(body, texture.units),
     texture: texture.canvas,
     labels: texture.labels,
+    crackShapes: texture.crackShapes,
     gradient: texture.gradient,
     fades: texture.fades,
     panels: texture.panels,
