@@ -20,7 +20,7 @@ export function shellHtml(html, page) {
     `<title>${escaped(page.title)}</title>`,
     `<meta name="description" content="${escaped(page.description)}">`,
     "<meta name=\"color-scheme\" content=\"dark\">",
-    "<meta name=\"theme-color\" content=\"#F1822C\">"
+    "<meta name=\"theme-color\" content=\"#111214\">"
   ].concat(page.hidden ? "<meta name=\"robots\" content=\"noindex\">" : [], [
     `<link rel="canonical" href="${url}">`,
     "<link rel=\"icon\" href=\"/favicon.ico\" sizes=\"32x32\">",
@@ -29,7 +29,7 @@ export function shellHtml(html, page) {
     "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">",
     "<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>",
     "<link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Gabarito:wght@400..900&display=swap\">"
-  ], page.hidden ? [] : shareTags({ title: page.title, description: page.description, url, ...imageOf(page) }), page.data ? `<script type="application/ld+json">${JSON.stringify(page.data).replace(/</g, "\\u003c")}</script>` : [], page.head ?? [])
+  ], page.hidden ? [] : shareTags({ title: page.title, description: page.description, url, ...imageOf(page), buttons: page.buttons }), page.data ? `<script type="application/ld+json">${JSON.stringify(page.data).replace(/</g, "\\u003c")}</script>` : [], page.head ?? [])
   return html
     .replace("<html lang=\"en\">", `<html lang="en" data-styles="${page.styles}">`)
     .replace("<head></head>", `<head>\n    ${head.join("\n    ")}\n  </head>`)

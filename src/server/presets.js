@@ -203,12 +203,12 @@ export function linkedCode(url) {
 }
 
 export function linkedTitleDetails(url, code, canonical) {
-  return { title: SITE_NAME, description: `Open this title in the ${SITE_NAME} to change it and make your own!`, url: url.href, canonical: `${url.origin}${canonical}`, image: pictureUrl({ code }, "png") }
+  return { title: SITE_NAME, description: `Open this title in the ${SITE_NAME} to change it and make your own!`, url: url.href, canonical: `${url.origin}${canonical}`, image: pictureUrl({ code }, "png"), spaced: true }
 }
 
 export function presetDetails(origin, preset, id) {
   const { title, description, path } = presetPageDetails(preset?.name ?? null, id)
-  if (preset?.fingerprint) return { title, description, url: `${origin}${path}`, image: pictureUrl(preset, "png") }
+  if (preset?.fingerprint) return { title, description, url: `${origin}${path}`, image: pictureUrl(preset, "png"), spaced: true }
   const { path: image, ...size } = pageImage("presets", "Presets")
   return { title, description, url: `${origin}${path}`, ...size, image: `${origin}${image}` }
 }
