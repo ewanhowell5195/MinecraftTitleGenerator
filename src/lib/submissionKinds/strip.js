@@ -1,6 +1,6 @@
 import { fullName } from "../font.js"
 import { HEX_COLOUR, SUBMISSION_LIMITS, pngProblem, pngSize, textProblem } from "../submissions.js"
-import { submissionFont } from "./fontAsset.js"
+import { submissionFont, texturesList } from "./fontAsset.js"
 import { STRIP_LIMITS, fitOffset, fitProblems, fontMeasure, heightList, setIdOf, setIds, setName, setUsers, sharedHeights, stripOwners, stripSet, stripTarget, targetRows } from "./stripFit.js"
 
 function storedSize(size) {
@@ -74,6 +74,14 @@ async function forNew(details, ctx) {
   return { problems, clean, target: "new", what: "this strip type" }
 }
 
+export async function stripParents(ctx, target) {
+  const { kind, id } = stripTarget(target)
+  if (kind === "set") return (await ctx.json(`/strips/${id}/textures.json`)).textures ?? {}
+  const font = kind === "font" ? submissionFont(ctx.fonts, id) : null
+  if (!font) return {}
+  return Object.fromEntries(Object.entries((await ctx.json(texturesList(font))).textures ?? {}).filter(([, data]) => data.type === "strip"))
+}
+
 export const strip = {
   id: "strip",
   label: "Strip",
@@ -93,6 +101,10 @@ export const strip = {
     const result = chosen.kind === "new" ? await forNew(details, ctx) : chosen.kind === "set" ? await forSet(chosen.id, details, ctx) : await forFont(chosen.id, ctx)
     Object.assign(problems, result.problems)
     Object.assign(clean, result.clean)
+    if (details.variantOf && chosen.kind !== "new" && !result.problems.target) {
+      if (typeof details.variantOf === "string" && Object.hasOwn(await stripParents(ctx, result.target), details.variantOf)) clean.variantOf = details.variantOf
+      else problems.variantOf = "Pick the strip this is a variant of."
+    }
     const rows = size && await targetRows(ctx, result.target, result.clean ?? {})
     if (rows) {
       const heights = sharedHeights(rows)

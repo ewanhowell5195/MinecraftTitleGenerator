@@ -1,4 +1,5 @@
 import { fontFolder, sheetOwner } from "../font.js"
+import { titleCase } from "../names.js"
 import { HEX_COLOUR, pngProblem, pngSize, textureDensity } from "../submissions.js"
 
 export function submissionFont(fonts, id) {
@@ -8,6 +9,14 @@ export function submissionFont(fonts, id) {
 
 export function fontOwners(fonts) {
   return fonts.filter(font => sheetOwner(font, fonts) === font)
+}
+
+export function texturesList(font) {
+  return `/${fontFolder(font)}/textures.json`
+}
+
+export function textureName(id, data) {
+  return data?.name ?? titleCase(id)
 }
 
 export function flatSize(ctx, font) {
@@ -24,7 +33,7 @@ export function templateProblem(bytes, flat, noun) {
   return textureDensity(size, flat) ? null : `The ${noun} has to be the font's template size, ${flat.width}x${flat.height}, or a whole number of times bigger, and this one is ${size.width}x${size.height}.`
 }
 
-function fontAsset(id, label, { border }) {
+function fontAsset(id, label, { border, variants = false }) {
   const noun = label.toLowerCase()
   return {
     id,
@@ -42,6 +51,11 @@ function fontAsset(id, label, { border }) {
         if (typeof details.border === "string" && HEX_COLOUR.test(details.border)) clean.border = details.border.toLowerCase()
         else problems.border = "The border colour has to be a hex colour like #000000."
       }
+      if (variants && details.variantOf) {
+        const parents = font ? (await ctx.json(texturesList(font))).textures ?? {} : {}
+        if (typeof details.variantOf === "string" && Object.hasOwn(parents, details.variantOf) && parents[details.variantOf].type !== "strip") clean.variantOf = details.variantOf
+        else problems.variantOf = "Pick the texture this is a variant of."
+      }
       if (bytes) {
         problems.file = pngProblem(bytes, noun)
         if (!problems.file && font) {
@@ -55,5 +69,5 @@ function fontAsset(id, label, { border }) {
   }
 }
 
-export const texture = fontAsset("texture", "Texture", { border: true })
+export const texture = fontAsset("texture", "Texture", { border: true, variants: true })
 export const overlay = fontAsset("overlay", "Overlay", { border: false })

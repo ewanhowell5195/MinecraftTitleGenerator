@@ -1,5 +1,6 @@
 import { fullName } from "../../lib/font.js"
 import { overlayLayer } from "../../lib/settings.js"
+import { textureName } from "../../lib/submissionKinds/fontAsset.js"
 
 function fontAsset(kind) {
   return {
@@ -10,12 +11,14 @@ function fontAsset(kind) {
     },
     summary(item, fonts) {
       const font = fonts.find(entry => entry.id === item.target)
-      return `${kind === "overlay" ? "An overlay" : "A texture"} for ${font ? fullName(font, fonts) : item.target}`
+      const what = kind === "overlay" ? "An overlay" : item.details.variantOf ? `A variant of the ${textureName(item.details.variantOf)} texture` : "A texture"
+      return `${what} for ${font ? fullName(font, fonts) : item.target}`
     },
     rows(item, fonts) {
       const font = fonts.find(entry => entry.id === item.target)
       return [
         { label: "Font", value: font ? fullName(font, fonts) : item.target },
+        ...(item.details.variantOf ? [{ label: "Variant of", value: textureName(item.details.variantOf) }] : []),
         { label: "Size", value: item.details.density > 1 ? `${item.details.density}x the template` : "Template size" },
         ...(kind === "texture" ? [{ label: "Border", value: item.details.border, colour: item.details.border }] : [])
       ]

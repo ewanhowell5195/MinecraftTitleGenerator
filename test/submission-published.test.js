@@ -14,9 +14,11 @@ function lineOf(item) {
 test("published links open each kind of submission in the generator under its name", () => {
   assert.deepEqual(lineOf({ kind: "font", asset: "ten-light" }), { text: "shown name", font: "ten-light" })
   assert.deepEqual(lineOf({ kind: "texture", target: "block-serif", asset: "gold" }), { text: "shown name", font: "block-serif", textureSource: "premade", texture: "gold" })
+  assert.deepEqual(lineOf({ kind: "texture", target: "block-serif", asset: "gold", details: { variantOf: "bricks" } }), { text: "shown name", font: "block-serif", textureSource: "premade", texture: "bricks", textureVariant: "gold" })
   assert.equal(lineOf({ kind: "overlay", target: "minecraft-ten", asset: "sparkle" }).overlays[0].overlay, "sparkle")
   assert.deepEqual(lineOf({ kind: "strip", target: "set:block-serif", asset: "bands" }), { text: "shown name", font: "block-serif", textureSource: "premade", texture: "bands" })
   assert.equal(lineOf({ kind: "strip", target: "set:missing", asset: "bands" }).font, "minecraft-ten")
+  assert.deepEqual(lineOf({ kind: "strip", target: "set:block-serif", asset: "bands", details: { variantOf: "stone" } }), { text: "shown name", font: "block-serif", textureSource: "premade", texture: "stone", textureVariant: "bands" })
   assert.deepEqual(lineOf({ kind: "tileable", target: "cobblestone", asset: "mossy" }), { text: "shown name", font: "minecraft-ten", textureSource: "tileable", tileableSource: "premade", tileable: "cobblestone", tileableVariant: "mossy" })
   assert.deepEqual(lineOf({ kind: "shapeImage", asset: "star" }), { shape: "star" })
   assert.deepEqual(lineOf({ kind: "shapeModel", asset: "anvil" }), { shape: "anvil" })

@@ -8,12 +8,14 @@
   import NumberInput from "../../components/NumberInput.vue"
   import Segments from "../../components/Segments.vue"
   import { fetched } from "../../lib/api.js"
-  import { fullName, sheetOwner } from "../../lib/font.js"
+  import { fontFolder, fullName, sheetOwner } from "../../lib/font.js"
   import { popular } from "../../lib/stats.js"
+  import { texturesList } from "../../lib/submissionKinds/fontAsset.js"
   import { submissionContext } from "../../lib/submissionKinds/index.js"
   import { STRIP_LIMITS, fitOffset, fitProblems, fontMeasure, heightList, setIdOf, setIds, setName, setUsers, sharedHeights, stripOwners, stripTarget, targetRows } from "../../lib/submissionKinds/stripFit.js"
   import { SUBMISSION_LIMITS, pngProblem, pngSize } from "../../lib/submissions.js"
   import { fontThumbnail } from "../../lib/ui.js"
+  import VariantOf from "./VariantOf.vue"
 
   const DEFAULT_FONT = "minecraft-ten"
   const DEFAULT_SET = "minecraft-ten"
@@ -42,6 +44,8 @@
   const fontOptions = computed(() => popular(owners.value, font => font.id, font => fullName(font, props.fonts), [DEFAULT_FONT]).map(font => ({ value: font.id, label: fullName(font, props.fonts), image: fontThumbnail(props.fonts, font.id) })))
   const setOptions = computed(() => sets.value.map(id => ({ value: id, label: setName(id) })))
   const users = computed(() => chosen.value.kind === "set" ? setUsers(props.fonts, chosen.value.id).map(use => fullName(use.font, props.fonts)) : [])
+  const shownOn = computed(() => chosen.value.kind === "set" ? setUsers(props.fonts, chosen.value.id)[0]?.font : owners.value.find(item => item.id === chosen.value.id))
+  const variantList = computed(() => chosen.value.kind === "set" ? `/strips/${chosen.value.id}/textures.json` : shownOn.value ? texturesList(shownOn.value) : null)
   const heights = ref(null)
   const fits = ref([])
   const suggestions = ref([])
@@ -216,6 +220,7 @@
       <span v-if="problems.fonts && (tried || picked.length)" class="hint bad">{{ problems.fonts }}</span>
     </div>
   </template>
+  <VariantOf v-if="mode !== 'new'" noun="strip" :details="details" :list="variantList" :folder="shownOn ? fontFolder(shownOn) : null" :problem="tried ? problems.variantOf ?? '' : ''" @update:details="emit('update:details', $event)" />
   <Checkbox v-if="mode !== 'font'" v-model="stretch" label="Stretch the front between each font's baseline and top, instead of lining it up row by row" />
   <span v-if="problems.stretch" class="hint bad">{{ problems.stretch }}</span>
   <Field group label="Border colour">

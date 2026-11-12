@@ -205,6 +205,31 @@ describe("sending a strip", () => {
     assert.deepEqual((await details(id)).details, { border: "#3d1f0a", stretch: true, size: { width: 16, height: 46 } })
   })
 
+  test("as a variant goes under its strip, saying so only where it stretches differently", async () => {
+    const cookie = await signIn()
+    const set = onMain(SET)
+    const { status, id } = await send(cookie, { details: { variantOf: "smooth" } }, png(16, 92))
+    assert.equal(status, 201)
+    assert.deepEqual(branchJson(id, SET).textures.smooth, { ...set.textures.smooth, variants: { ...set.textures.smooth.variants, pale_dawn: { stretch: false, authors: ["Someone"], border: "#3d1f0a" } } })
+    assert.equal(branchJson(id, SET).textures.pale_dawn, undefined)
+    assert.ok(gh.filesAt(`submission/${id}`).has("public/strips/minecraft-ten/textures/pale_dawn.png"))
+    assert.equal(gh.pulls.get(1).title, "Pale Dawn strip for the Minecraft Ten strip type as a variant of Smooth")
+    assert.equal((await details(id)).details.variantOf, "smooth")
+    const stretched = await send(cookie, { name: "Paler Dawn", details: { variantOf: "smooth", stretch: true } }, png(16, 46))
+    assert.deepEqual(branchJson(stretched.id, SET).textures.smooth.variants.paler_dawn, { authors: ["Someone"], border: "#3d1f0a" })
+    assert.match((await send(cookie, { name: "Lost", details: { variantOf: "smooth_inverted" } })).error, /Pick the strip this is a variant of/)
+  })
+
+  test("a font's own strip takes variants, and its other textures don't", async () => {
+    const cookie = await signIn()
+    const main = onMain("public/font/minecraft-five/textures.json")
+    const { id } = await send(cookie, { target: "font:minecraft-five", details: { variantOf: "edition" } }, png(1, 76))
+    assert.deepEqual(branchJson(id, "public/font/minecraft-five/textures.json").textures.edition, { ...main.textures.edition, variants: { ...main.textures.edition.variants, pale_dawn: { authors: ["Someone"], border: "#3d1f0a" } } })
+    assert.equal(gh.pulls.get(1).title, "Pale Dawn strip for Minecraft Five as a variant of Edition")
+    const plain = Object.keys(main.textures).find(name => main.textures[name].type !== "strip")
+    assert.match((await send(cookie, { target: "font:minecraft-five", name: "Lost", details: { variantOf: plain } }, png(1, 76))).error, /Pick the strip this is a variant of/)
+  })
+
   test("to a font adds it to the font's own textures", async () => {
     const cookie = await signIn()
     const { id } = await send(cookie, { target: "font:minecraft-five", name: "Edition" }, png(1, 76))

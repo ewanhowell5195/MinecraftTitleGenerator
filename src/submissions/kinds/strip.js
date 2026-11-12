@@ -4,6 +4,7 @@ import { pixelsOf } from "../../lib/canvas.js"
 import { fullName, loadFont, loadFontList, loadImage, sheetOwner, stripsOf } from "../../lib/font.js"
 import { defaultDepth } from "../../lib/settings.js"
 import { stripFolder, stripUse } from "../../lib/strips.js"
+import { textureName } from "../../lib/submissionKinds/fontAsset.js"
 import { stripFonts } from "../../lib/submissionKinds/published.js"
 import { remapStrip, setEntry, setName, stripTarget } from "../../lib/submissionKinds/stripFit.js"
 import { pngUrl } from "../../lib/virtualFiles.js"
@@ -70,7 +71,7 @@ export const strip = {
     return stripLine(item, file, text, font.id, fonts)
   },
   summary(item, fonts) {
-    return `A strip for ${targetName(item, fonts)}`
+    return `${item.details.variantOf ? `A variant of the ${textureName(item.details.variantOf)} strip` : "A strip"} for ${targetName(item, fonts)}`
   },
   rows(item, fonts) {
     const target = stripTarget(item.target)
@@ -82,6 +83,6 @@ export const strip = {
       { label: "Height", value: String(item.details.height) },
       { label: "Fonts", value: (item.details.fonts ?? []).map(id => named(fonts, id)).join(", ") }
     ] : [{ label: target.kind === "font" ? "Font" : "Strip type", value: target.kind === "font" ? named(fonts, target.id) : setName(target.id) }]
-    return shape.concat(size ? [{ label: "Size", value: `${size.width}x${size.height}` }] : [], target.kind === "font" ? [] : [{ label: "Stretches", value: stretch ? "Yes" : "No" }], [{ label: "Border", value: border, colour: border }])
+    return shape.concat(item.details.variantOf ? [{ label: "Variant of", value: textureName(item.details.variantOf) }] : [], size ? [{ label: "Size", value: `${size.width}x${size.height}` }] : [], target.kind === "font" ? [] : [{ label: "Stretches", value: stretch ? "Yes" : "No" }], [{ label: "Border", value: border, colour: border }])
   }
 }

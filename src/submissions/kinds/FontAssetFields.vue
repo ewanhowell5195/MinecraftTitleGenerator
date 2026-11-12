@@ -5,10 +5,11 @@
   import Field from "../../components/Field.vue"
   import { fontFolder, fullName } from "../../lib/font.js"
   import { popular } from "../../lib/stats.js"
-  import { fontOwners } from "../../lib/submissionKinds/fontAsset.js"
+  import { fontOwners, texturesList } from "../../lib/submissionKinds/fontAsset.js"
   import { SUBMISSION_LIMITS, pngProblem, pngSize } from "../../lib/submissions.js"
   import { fontThumbnail } from "../../lib/ui.js"
   import { detectFont } from "./detectFont.js"
+  import VariantOf from "./VariantOf.vue"
 
   const DEFAULT_FONT = "minecraft-ten"
 
@@ -64,4 +65,5 @@
   <Field group v-if="kind === 'texture'" label="Border colour" :error="problems.border">
     <ColourPicker v-model="border" />
   </Field>
+  <VariantOf v-if="kind === 'texture'" noun="texture" :details="details" :list="entry ? texturesList(entry) : null" :folder="entry ? fontFolder(entry) : null" :problem="tried ? problems.variantOf ?? '' : ''" @update:details="emit('update:details', $event)" />
 </template>

@@ -2,6 +2,7 @@ import { flattenFonts, fontFolder, fullName, sheetOwner } from "../../lib/font.j
 import { jsonText } from "../../lib/jsonText.js"
 import { titleCase } from "../../lib/names.js"
 import { mergeStrips, stripFolder, stripUse } from "../../lib/strips.js"
+import { textureName } from "../../lib/submissionKinds/fontAsset.js"
 import { setName, setUsers, stripTarget } from "../../lib/submissionKinds/stripFit.js"
 import { assetId } from "../../lib/submissions.js"
 import { texturesPath, usedIds } from "./fontAsset.js"
@@ -37,6 +38,20 @@ async function freeAsset(read, row, fonts, extra, taken) {
 
 function entryFor(row, details, asset) {
   return { type: "strip", ...(details.stretch && { stretch: true }), ...(row.name !== titleCase(asset) && { name: row.name }), authors: row.credit, border: details.border }
+}
+
+function added(textures, row, details, asset, where) {
+  const entry = entryFor(row, details, asset)
+  if (!details.variantOf) return { ...textures, [asset]: entry }
+  const parent = textures?.[details.variantOf]
+  if (parent?.type !== "strip") throw new Error(`submission ${row.id} is a variant of ${details.variantOf}, which isn't a published strip of ${where}`)
+  const { type, stretch, ...own } = entry
+  const variant = { ...(!!stretch !== !!parent.stretch && { stretch: !!stretch }), ...own }
+  return { ...textures, [details.variantOf]: { ...parent, variants: { ...parent.variants, [asset]: variant } } }
+}
+
+function variantWhere(details) {
+  return details.variantOf ? ` as a variant of ${textureName(details.variantOf)}` : ""
 }
 
 function withStrips(entry, use) {
@@ -93,14 +108,14 @@ export const strip = {
       const listPath = texturesPath(font)
       const list = await readJson(read, listPath)
       const asset = await freeAsset(read, row, [font], [], taken)
-      list.textures = { ...list.textures, [asset]: entryFor(row, details, asset) }
+      list.textures = added(list.textures, row, details, asset, font.id)
       return { asset, files: [{ path: listPath, content: `${jsonText(list)}\n` }, { path: `public/${fontFolder(font)}/textures/${asset}.png`, sha: row.file }] }
     }
     if (target.kind === "set") {
       const listPath = setPath(target.id)
       const set = await readJson(read, listPath)
       const asset = await freeAsset(read, row, usersOf(fonts, target.id), Object.keys(set.textures).flatMap(id => [id].concat(Object.keys(set.textures[id].variants ?? {}))), taken)
-      set.textures = { ...set.textures, [asset]: entryFor(row, details, asset) }
+      set.textures = added(set.textures, row, details, asset, `the ${target.id} strip type`)
       return { asset, files: [{ path: listPath, content: `${jsonText(set)}\n` }, { path: `public/${stripFolder(target.id)}/textures/${asset}.png`, sha: row.file }] }
     }
     checkRows(details)
@@ -119,9 +134,9 @@ export const strip = {
     const target = stripTarget(row.target)
     if (target.kind === "font") {
       const font = fontTarget(row, fonts)
-      return { where: `for ${fullName(font, fonts)}`, into: `to ${font.name}` }
+      return { where: `for ${fullName(font, fonts)}${variantWhere(details)}`, into: `to ${font.name}${variantWhere(details)}` }
     }
-    if (target.kind === "set") return { where: `for the ${setName(target.id)} strip type`, into: `to the ${setName(target.id)} strip type` }
+    if (target.kind === "set") return { where: `for the ${setName(target.id)} strip type${variantWhere(details)}`, into: `to the ${setName(target.id)} strip type${variantWhere(details)}` }
     return { where: `in a new ${setName(details.set)} strip type`, into: `in a new ${setName(details.set)} strip type` }
   },
   watches({ row, details, fonts }) {

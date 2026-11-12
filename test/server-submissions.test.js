@@ -91,6 +91,26 @@ describe("sending a submission", () => {
     assert.equal((await details(second.id)).asset, "flat_3")
   })
 
+  test("adds a texture variant under its texture, with its own density when the texture's isn't 1", async () => {
+    const cookie = await signIn()
+    const main = JSON.parse(fs.readFileSync(TEXTURES, "utf8"))
+    const variantOf = id => JSON.stringify({ border: "#3D1F0A", variantOf: id })
+    const { status, id } = await send(cookie, { name: "Cracked Gold", details: variantOf("cracked") })
+    assert.equal(status, 201)
+    const list = branchList(id)
+    assert.deepEqual(list.textures.cracked, { ...main.textures.cracked, variants: { ...main.textures.cracked.variants, cracked_gold: { authors: ["Someone"], density: 1, border: "#3d1f0a" } } })
+    assert.equal(list.textures.cracked_gold, undefined)
+    assert.ok(gh.filesAt(`submission/${id}`).has("public/font/minecraft-ten/textures/cracked_gold.png"))
+    assert.equal(gh.pulls.get(1).title, "Cracked Gold texture for Minecraft Ten as a variant of Cracked")
+    assert.equal(gh.commits.get(gh.refs.get(`heads/submission/${id}`)).message, "add Cracked Gold texture to Minecraft Ten as a variant of Cracked")
+    assert.equal((await details(id)).details.variantOf, "cracked")
+    const plain = await send(cookie, { name: "Neon Gold", details: variantOf("neon_glow") })
+    assert.deepEqual(branchList(plain.id).textures.neon_glow.variants.neon_gold, { authors: ["Someone"], border: "#3d1f0a" })
+    assert.match((await send(cookie, { name: "Lost", details: variantOf("cracked_left") })).error, /Pick the texture this is a variant of/)
+    const over = await send(cookie, { kind: "overlay", name: "Over", details: variantOf("cracked") }, pngOf(FLAT.width, FLAT.height))
+    assert.equal((await details(over.id)).details.variantOf, undefined)
+  })
+
   test("puts overlays in the overlays section and folder, without a border", async () => {
     const cookie = await signIn()
     const { id } = await send(cookie, { kind: "overlay", name: "Soft Shading", border: "" }, pngOf(FLAT.width * 2, FLAT.height * 2))

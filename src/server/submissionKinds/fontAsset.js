@@ -2,6 +2,7 @@ import { fontFolder, fullName } from "../../lib/font.js"
 import { GENERATED_EDGE_OVERLAYS, withGenerated } from "../../lib/generated.js"
 import { jsonText } from "../../lib/jsonText.js"
 import { titleCase } from "../../lib/names.js"
+import { textureName } from "../../lib/submissionKinds/fontAsset.js"
 import { assetId } from "../../lib/submissions.js"
 
 const SECTIONS = { texture: "textures", overlay: "overlays" }
@@ -21,6 +22,10 @@ function fontOf(row, fonts) {
   return font
 }
 
+function variantWhere(details) {
+  return details.variantOf ? ` as a variant of ${textureName(details.variantOf)}` : ""
+}
+
 function fontAsset(kind) {
   const section = SECTIONS[kind]
   return {
@@ -29,19 +34,23 @@ function fontAsset(kind) {
       const listPath = texturesPath(font)
       const list = JSON.parse(await read(listPath))
       const asset = assetId(row.name, new Set(usedIds(list).concat(taken)))
+      const parent = details.variantOf ? list.textures?.[details.variantOf] : null
+      if (details.variantOf && (!parent || parent.type === "strip")) throw new Error(`submission ${row.id} is a variant of ${details.variantOf}, which isn't a published texture of ${font.id}`)
+      const density = details.density ?? 1
       const entry = {
         ...(row.name !== titleCase(asset) && { name: row.name }),
         authors: row.credit,
-        ...(details.density > 1 && { density: details.density }),
+        ...((density > 1 || (parent?.density ?? 1) > 1) && { density }),
         ...(kind === "texture" && { border: details.border })
       }
-      list[section] = { ...list[section], [asset]: entry }
+      if (parent) list.textures = { ...list.textures, [details.variantOf]: { ...parent, variants: { ...parent.variants, [asset]: entry } } }
+      else list[section] = { ...list[section], [asset]: entry }
       const image = `public/${fontFolder(font)}/${section}/${asset}.png`
       return { asset, files: [{ path: listPath, content: `${jsonText(list)}\n` }, { path: image, sha: row.file }], preview: image }
     },
-    describe({ row, fonts }) {
+    describe({ row, details, fonts }) {
       const font = fontOf(row, fonts)
-      return { where: `for ${fullName(font, fonts)}`, into: `to ${font.name}` }
+      return { where: `for ${fullName(font, fonts)}${variantWhere(details)}`, into: `to ${font.name}${variantWhere(details)}` }
     },
     watches({ row, fonts }) {
       return [texturesPath(fontOf(row, fonts))]
