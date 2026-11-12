@@ -162,8 +162,19 @@
 }
 
 .piece .where,
-.piece .based {
+.piece .based,
+.piece .source {
   color: var(--faint);
+}
+
+.piece .source a {
+  position: relative;
+  z-index: 1;
+  color: var(--accent);
+}
+
+.piece .source a:hover {
+  color: var(--accent-hover);
 }
 
 .libraries {

@@ -50,12 +50,17 @@ function listed(names) {
   return names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : names[0]
 }
 
+export function sourceHtml({ source, licence }) {
+  return source ? `<span class="source">Adapted for the title generator from <a href="${escaped(source)}" target="_blank" rel="noopener">the original</a> (<a href="${escaped(licence)}" target="_blank" rel="noopener">licence</a>)</span>` : ""
+}
+
 function pieceHtml(piece) {
   const based = piece.based ? `<span class="based">Based on ${escaped(piece.based)}</span>` : ""
+  const source = sourceHtml(piece)
   const others = piece.people.filter(person => person !== piece.person)
   const shared = others.length ? `<button type="button" class="with link-button" data-id="${escaped(piece.id)}" data-easy-tooltip="With ${escaped(listed(others))}" data-easy-tooltip-class="slow">Collaboration</button>` : ""
   const href = `/app/?title=${encodeTitle({ version: FILE_VERSION, lines: [{ text: piece.name, ...piece.line }] }).code}`
-  return `<li class="piece" data-id="${escaped(piece.id)}" data-stats="${escaped(piece.stats.join(" "))}"><div class="thumb"><img src="${escaped(piece.image)}" alt="" loading="lazy"></div><a class="name" href="${escaped(href)}">${escaped(piece.name)}</a><span class="where">${escaped(piece.where)}</span>${based}${shared}</li>`
+  return `<li class="piece" data-id="${escaped(piece.id)}" data-stats="${escaped(piece.stats.join(" "))}"><div class="thumb"><img src="${escaped(piece.image)}" alt="" loading="lazy"></div><a class="name" href="${escaped(href)}">${escaped(piece.name)}</a><span class="where">${escaped(piece.where)}</span>${based}${source}${shared}</li>`
 }
 
 function peopleOf(root) {
@@ -71,11 +76,11 @@ function peopleOf(root) {
   const tileables = readJson(path.join(folder, "tileables/tileables.json"))
   const pieces = []
 
-  function add(author, piece) {
-    const people = authorList(author)
+  function add(data, piece) {
+    const people = authorList(data.authors)
     if (!people.length) return
     if (!fs.existsSync(path.join(folder, piece.image))) throw new Error(`the credits page needs ${piece.image}, which does not exist`)
-    for (const person of people) pieces.push({ ...piece, person, people })
+    for (const person of people) pieces.push({ ...piece, source: data.source ?? null, licence: data.licence ?? null, person, people })
   }
 
   function basedOnLabel(basedOn, owner) {
@@ -91,7 +96,7 @@ function peopleOf(root) {
 
   for (const font of fonts) {
     const based = font.basedOn ? fullName(fontOf(font.basedOn), fonts) : null
-    add(font.authors, { kind: "font", name: fullName(font, fonts), image: `${fontFolder(font)}/thumbnails/flat.png`, where: "Font", based, stats: [font.id], id: font.id, line: { font: font.id } })
+    add(font, { kind: "font", name: fullName(font, fonts), image: `${fontFolder(font)}/thumbnails/flat.png`, where: "Font", based, stats: [font.id], id: font.id, line: { font: font.id } })
   }
 
   function lineFor(kind, font, list, id, entry, variant = null) {
@@ -108,30 +113,30 @@ function peopleOf(root) {
       const where = strips ? `Strip ${kind}` : `${fullName(users[0], fonts)} ${kind}`
       for (const [id, entry] of Object.entries(list[group] ?? {})) {
         const stats = users.map(font => `${font.id}.${id}`)
-        add(entry.authors, { kind, name: entry.name ?? titleCase(id), image: `${thumbnails}/${id}.png`, where, based: basedOnLabel(entry.basedOn, owner), stats, id: `${owner}.${id}`, line: lineFor(kind, users[0].id, list, id, entry) })
-        for (const [variantId, variant] of Object.entries(entry.variants ?? {})) add(variant.authors, { kind, name: variant.name ?? titleCase(variantId), image: `${thumbnails}/${variantId}.png`, where, based: basedOnLabel(variant.basedOn, owner), stats: [], id: `${owner}.${variantId}`, line: lineFor(kind, users[0].id, list, id, entry, variantId) })
+        add(entry, { kind, name: entry.name ?? titleCase(id), image: `${thumbnails}/${id}.png`, where, based: basedOnLabel(entry.basedOn, owner), stats, id: `${owner}.${id}`, line: lineFor(kind, users[0].id, list, id, entry) })
+        for (const [variantId, variant] of Object.entries(entry.variants ?? {})) add(variant, { kind, name: variant.name ?? titleCase(variantId), image: `${thumbnails}/${variantId}.png`, where, based: basedOnLabel(variant.basedOn, owner), stats: [], id: `${owner}.${variantId}`, line: lineFor(kind, users[0].id, list, id, entry, variantId) })
       }
     }
   }
 
   for (const [id, tileable] of Object.entries(tileables)) {
     const stats = [`tileable.${id}`]
-    if (!byMojang(tileable.authors)) add(tileable.authors, { kind: "tileable", name: tileable.name ?? titleCase(id), image: `tileables/${tileable.path ?? "minecraft"}/${id}.png`, where: "Tileable texture", stats, id: `tileable.${id}`, line: { font: PREVIEW_FONT, textureSource: "tileable", tileableSource: "premade", tileable: id } })
+    if (!byMojang(tileable.authors)) add(tileable, { kind: "tileable", name: tileable.name ?? titleCase(id), image: `tileables/${tileable.path ?? "minecraft"}/${id}.png`, where: "Tileable texture", stats, id: `tileable.${id}`, line: { font: PREVIEW_FONT, textureSource: "tileable", tileableSource: "premade", tileable: id } })
     for (const [variantId, variant] of Object.entries(tileable.variants ?? {})) {
-      if (!byMojang(variant.authors)) add(variant.authors, { kind: "tileable", name: variant.name ?? titleCase(variantId), image: `tileables/${variant.path ?? tileable.path ?? "minecraft"}/${variantId}.png`, where: "Tileable texture", stats: [], id: `tileable.${variantId}`, line: { font: PREVIEW_FONT, textureSource: "tileable", tileableSource: "premade", tileable: id, tileableVariant: variantId } })
+      if (!byMojang(variant.authors)) add(variant, { kind: "tileable", name: variant.name ?? titleCase(variantId), image: `tileables/${variant.path ?? tileable.path ?? "minecraft"}/${variantId}.png`, where: "Tileable texture", stats: [], id: `tileable.${variantId}`, line: { font: PREVIEW_FONT, textureSource: "tileable", tileableSource: "premade", tileable: id, tileableVariant: variantId } })
     }
   }
 
   for (const shape of readJson(path.join(folder, "shapes/shapes.json"))) {
     const name = shape.name ?? titleCase(shape.id)
-    add(shape.authors, { kind: "shape", name, image: `shapes/${shape.id}/thumbnails/flat.png`, where: "Shape", stats: [], id: `shape.${shape.id}`, line: { shape: shape.id } })
+    add(shape, { kind: "shape", name, image: `shapes/${shape.id}/thumbnails/flat.png`, where: "Shape", stats: [], id: `shape.${shape.id}`, line: { shape: shape.id } })
     const list = readJson(path.join(folder, "shapes", shape.id, "textures.json"))
     for (const [kind, group] of [["texture", list.textures], ["overlay", list.overlays ?? {}]]) {
       for (const [id, entry] of Object.entries(group)) {
         for (const [piece, data] of [[id, entry]].concat(Object.entries(entry.variants ?? {}))) {
           if (byMojang(data.authors)) continue
           const line = kind === "texture" ? { shape: shape.id, texture: id, textureVariant: piece === id ? null : piece } : { shape: shape.id, overlayMode: "custom", overlays: [overlayLayer(id, entry)] }
-          add(data.authors, { kind, name: data.name ?? titleCase(piece), image: `shapes/${shape.id}/thumbnails/${piece}.png`, where: `${name} ${kind}`, stats: [], id: `shape.${shape.id}.${piece}`, line })
+          add(data, { kind, name: data.name ?? titleCase(piece), image: `shapes/${shape.id}/thumbnails/${piece}.png`, where: `${name} ${kind}`, stats: [], id: `shape.${shape.id}.${piece}`, line })
         }
       }
     }

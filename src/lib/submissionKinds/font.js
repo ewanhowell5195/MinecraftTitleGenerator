@@ -218,6 +218,7 @@ export const font = {
   label: "Font",
   noun: "font",
   available: true,
+  sourced: true,
   accept: "application/json",
   derived: ["id", "template"],
   fileKeys(details) {

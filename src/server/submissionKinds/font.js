@@ -4,7 +4,7 @@ import { jsonText } from "../../lib/jsonText.js"
 import { titleCase } from "../../lib/names.js"
 import { fontParent } from "../../lib/submissionKinds/font.js"
 import { holdingPath } from "../../lib/submissionKinds/fontBuild.js"
-import { assetId } from "../../lib/submissions.js"
+import { assetId, sourceOf } from "../../lib/submissions.js"
 import { usedIds } from "./fontAsset.js"
 
 const LIST = "public/font/fonts.json"
@@ -46,7 +46,7 @@ export const font = {
     const parent = parentOf(row, fonts)
     const list = JSON.parse(await read(LIST))
     const asset = freeId(details.id, new Set(flattenFonts(list).map(entry => entry.id).concat(taken)))
-    const entry = { id: asset, ...(row.name !== titleCase(asset) && { name: row.name }), authors: row.credit }
+    const entry = { id: asset, ...(row.name !== titleCase(asset) && { name: row.name }), authors: row.credit, ...sourceOf(details) }
     if (parent) {
       const owner = list.find(item => item.id === parent.id)
       if (!owner) throw new Error(`${LIST} on main has no ${parent.id}`)

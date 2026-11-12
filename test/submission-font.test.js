@@ -349,6 +349,25 @@ describe("sending a font", () => {
     assert.deepEqual(fontJsonFields({ strips: ["minecraft-ten", { id: "other", offset: 1, extra: true }, 5], name: 3 }), { strips: ["minecraft-ten", { id: "other", offset: 1 }] })
   })
 
+  test("a font based on someone else's work keeps its original and licence links in its entry and the pull request", async () => {
+    const cookie = await signIn()
+    const links = { source: " https://fontstruct.com/fontstructions/show/2275860 ", licence: "https://creativecommons.org/licenses/by-sa/3.0/" }
+    const { status, id } = await send(cookie, { details: { id: "test-font", ...links } })
+    assert.equal(status, 201)
+    assert.deepEqual(JSON.parse(branchFile(id, LIST).toString()).at(-1), { id: "test-font", authors: ["Someone"], source: "https://fontstruct.com/fontstructions/show/2275860", licence: "https://creativecommons.org/licenses/by-sa/3.0/" })
+    assert.match(gh.pulls.get(1).body, /- Source: <https:\/\/fontstruct\.com\/fontstructions\/show\/2275860>\n- Licence: <https:\/\/creativecommons\.org\/licenses\/by-sa\/3\.0\/>/)
+    const plain = await send(cookie, { name: "Plain Font" })
+    assert.deepEqual(Object.keys(JSON.parse(branchFile(plain.id, LIST).toString()).at(-1)), ["id", "name", "authors"])
+    assert.doesNotMatch(gh.pulls.get(2).body, /Source:/)
+  })
+
+  test("a font based on someone else's work needs both links, and both have to be web addresses", async () => {
+    const cookie = await signIn()
+    assert.match((await send(cookie, { details: { id: "test-font", source: "https://example.com" } })).error, /link to its licence/)
+    assert.match((await send(cookie, { details: { id: "test-font", source: "javascript:alert(1)", licence: "https://example.com" } })).error, /has to be a web address/)
+    assert.match((await send(cookie, { details: { id: "test-font", source: `https://example.com/${"a".repeat(300)}`, licence: "https://example.com" } })).error, /up to 300 characters/)
+  })
+
   test("holds the JSON and adds the font to the end of fonts.json, with its bundle in its folder", async () => {
     const cookie = await signIn()
     const extras = { gold: plainPng(566, 356), sparkle: plainPng(566 * 2, 356 * 2) }

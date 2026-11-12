@@ -43,7 +43,11 @@
   const startKind = props.initial?.kind ?? prefillKind
   const kind = ref(SUBMISSION_KINDS[startKind]?.available ? startKind : "texture")
   const target = ref(props.initial?.target ?? prefillTarget ?? "")
-  const details = ref(props.initial ? { ...props.initial.details } : prefillDetails)
+  const details = ref(ownDetails(props.initial ? props.initial.details : prefillDetails))
+  const sourced = ref(!!props.initial?.details.source)
+  const source = ref(props.initial?.details.source ?? "")
+  const licence = ref(props.initial?.details.licence ?? "")
+  const sentDetails = computed(() => sourced.value && type.value.sourced ? { ...details.value, source: source.value, licence: licence.value } : details.value)
   const name = ref(props.initial?.name ?? prefillName ?? "")
   const credit = ref(props.initial ? authorList(props.initial.credit) : prefillCredit ? authorList(prefillCredit) : account.value ? [account.value.name] : [])
   const notes = ref(props.initial?.notes ?? "")
@@ -61,6 +65,10 @@
   const error = ref("")
   const context = submissionContext(props.fonts, path => fetched(path, path))
   let checks = 0
+
+  function ownDetails({ source, licence, ...rest }) {
+    return { ...rest }
+  }
 
   function releaseDropped(kept, before) {
     for (const file of before) {
@@ -95,7 +103,7 @@
     return extraProblem.value ?? problems.value.file ?? null
   })
   const shown = computed(() => {
-    const visible = key => tried.value || key === "name" && name.value || key === "credit" && credit.value.length || key === "notes"
+    const visible = key => tried.value || key === "name" && name.value || key === "credit" && credit.value.length || key === "notes" || key === "source" && source.value || key === "licence" && licence.value
     return Object.fromEntries(Object.entries(problems.value).filter(([key]) => visible(key)))
   })
   const blocked = computed(() => !account.value || sending.value)
@@ -111,7 +119,7 @@
     if (groupOf(next) === "shape") shapeKind = next
     if (KIND_COMPONENTS[next].Fields !== KIND_COMPONENTS[before].Fields) {
       const back = props.initial?.kind === next
-      details.value = back ? { ...props.initial.details } : {}
+      details.value = back ? ownDetails(props.initial.details) : {}
       target.value = back ? props.initial.target : ""
     }
     release()
@@ -125,11 +133,11 @@
 
   watch(() => Object.values(extras.value).concat(chosen.value ?? []), releaseDropped, { flush: "sync" })
 
-  watch(() => [kind.value, target.value, JSON.stringify(details.value), chosen.value, extras.value, name.value, credit.value, notes.value, agree.value], async () => {
+  watch(() => [kind.value, target.value, JSON.stringify(sentDetails.value), chosen.value, extras.value, name.value, credit.value, notes.value, agree.value], async () => {
     const check = ++checks
     const files = Object.fromEntries(Object.entries(extras.value).map(([key, extra]) => [key, extra.bytes]))
     try {
-      const result = await checkSubmission({ kind: kind.value, target: target.value, details: details.value, bytes: chosen.value?.bytes ?? null, files, name: name.value, credit: credit.value, notes: notes.value, agree: agree.value }, context)
+      const result = await checkSubmission({ kind: kind.value, target: target.value, details: sentDetails.value, bytes: chosen.value?.bytes ?? null, files, name: name.value, credit: credit.value, notes: notes.value, agree: agree.value }, context)
       if (check === checks) problems.value = result.problems
     } catch (err) {
       if (check === checks) problems.value = { check: `This couldn't be checked: ${err.message}` }
@@ -182,7 +190,7 @@
     if (Object.keys(problems.value).length || fileProblem.value) return
     sending.value = true
     try {
-      const fields = { kind: kind.value, target: target.value, details: details.value, name: name.value, credit: credit.value, notes: notes.value }
+      const fields = { kind: kind.value, target: target.value, details: sentDetails.value, name: name.value, credit: credit.value, notes: notes.value }
       const sent = Object.fromEntries(Object.entries(extras.value).map(([key, extra]) => [key, extra.blob]))
       if (props.initial) emit("done", await editSubmission(props.initial.id, fields, chosen.value?.blob, sent))
       else emit("done", await sendSubmission(fields, chosen.value.blob, agree.value, sent))
@@ -235,6 +243,17 @@
     <div class="kind-fields">
       <component :is="parts.Fields" v-bind="linked.fields" v-model:target="target" v-model:details="details" v-model:files="extras" :fonts="fonts" :context="context" :kind="kind" :file="chosen" :initial="initial" :name="name" :problems="problems" :tried="tried" @problem="extraProblem = $event" />
     </div>
+    <div v-if="type.sourced" class="sourced">
+      <Checkbox v-model="sourced">This is based on someone else's work, and its licence allows it to be used here</Checkbox>
+      <div v-if="sourced" class="columns">
+        <Field label="The original" required :error="shown.source" hint="A link to the work this is based on, like its download page. Credit its author alongside yourself.">
+          <input type="text" v-model="source" inputmode="url" :maxlength="SUBMISSION_LIMITS.link" placeholder="https://" spellcheck="false">
+        </Field>
+        <Field label="Its licence" required :error="shown.licence" hint="A link to the licence it is shared under. A reviewer checks both before accepting it.">
+          <input type="text" v-model="licence" inputmode="url" :maxlength="SUBMISSION_LIMITS.link" placeholder="https://" spellcheck="false">
+        </Field>
+      </div>
+    </div>
     <Field v-if="!initial || initial.mine" label="Notes for the reviewer" :error="shown.notes">
       <textarea v-model="notes" :maxlength="SUBMISSION_LIMITS.notes" rows="3" placeholder="Optional"></textarea>
     </Field>
@@ -268,6 +287,12 @@
     display: flex;
     flex-direction: column;
     gap: 20px;
+  }
+
+  .sourced {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
   }
 
   .stage-area {

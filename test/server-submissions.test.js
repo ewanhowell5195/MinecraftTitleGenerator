@@ -72,6 +72,12 @@ describe("sending a submission", () => {
     assert.match(opened.body, /` someone ` \(discord\)/)
   })
 
+  test("only a font can be based on someone else's work", async () => {
+    const cookie = await signIn()
+    const links = { source: "https://example.com/texture", licence: "https://creativecommons.org/licenses/by-sa/3.0/" }
+    assert.equal((await send(cookie, { details: JSON.stringify({ border: "#000000", ...links }) })).error, "Only fonts can be based on someone else's work.")
+  })
+
   test("keeps the submitter's text out of mentions and markdown", async () => {
     const cookie = await signIn()
     const { id } = await send(cookie, { credit: ["@everyone `x`", "Friend"], notes: "@ewan ```\n# heading" })

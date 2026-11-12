@@ -164,6 +164,12 @@
             </template>
             <dt>Credit</dt>
             <dd>{{ authorText(item.credit) }}</dd>
+            <template v-if="item.details.source">
+              <dt>Source</dt>
+              <dd><a class="ellipsis link" :href="item.details.source" target="_blank" rel="noopener">{{ item.details.source }}</a></dd>
+              <dt>Licence</dt>
+              <dd><a class="ellipsis link" :href="item.details.licence" target="_blank" rel="noopener">{{ item.details.licence }}</a></dd>
+            </template>
             <dt>Submitted by</dt>
             <dd v-if="item.ownerName"><UserName :name="item.ownerName" :provider="item.ownerProvider" /></dd>
             <dd v-else>A deleted account</dd>

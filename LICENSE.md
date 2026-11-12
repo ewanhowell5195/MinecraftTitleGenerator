@@ -27,6 +27,12 @@ You keep ownership of anything you submit. By submitting a font, texture, tileab
 
 Submitting does not give anyone permission to take it and use it outside of the title generator and its generated titles.
 
+## Fonts shared under their own licence
+
+Some fonts in this project are based on other people's fonts, shared under their own licence, such as a Creative Commons licence. Each one links to its original and its licence on the [credits page](https://mctitlegenerator.com/credits/), and in its entry in `public/font/fonts.json`.
+
+These font files are covered by their own licence, not by this one. They have been adapted to work in the title generator.
+
 ## Official Minecraft assets
 
 © Mojang AB. All rights reserved.

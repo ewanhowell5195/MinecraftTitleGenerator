@@ -1,4 +1,4 @@
-import { cleanCommon, commonProblems } from "../submissions.js"
+import { cleanCommon, cleanSource, commonProblems, sourceProblems } from "../submissions.js"
 import { font } from "./font.js"
 import { overlay, texture } from "./fontAsset.js"
 import { strip } from "./strip.js"
@@ -28,7 +28,9 @@ export async function checkSubmission({ kind, target, details, bytes, files, ...
   const type = SUBMISSION_KINDS[kind]
   if (!type) return { problems: { kind: "Pick what you're submitting." }, clean: null }
   const common = commonProblems(fields, type.noun)
+  const sourced = type.sourced ? sourceProblems(details ?? {}) : details?.source === undefined && details?.licence === undefined ? {} : { source: `Only fonts can be based on someone else's work.` }
   const checked = await type.check({ target, details: details ?? {}, bytes, files: files ?? {} }, ctx)
-  const problems = Object.fromEntries(Object.entries({ ...common, ...checked.problems }).filter(([, problem]) => problem))
-  return { problems, clean: { kind, target: checked.target, details: checked.details, ...cleanCommon(fields) } }
+  const problems = Object.fromEntries(Object.entries({ ...common, ...sourced, ...checked.problems }).filter(([, problem]) => problem))
+  const cleanDetails = Object.values(sourced).some(Boolean) ? checked.details : { ...checked.details, ...cleanSource(details ?? {}) }
+  return { problems, clean: { kind, target: checked.target, details: cleanDetails, ...cleanCommon(fields) } }
 }

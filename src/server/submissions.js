@@ -178,12 +178,14 @@ function phrase(...parts) {
 
 function pullText(env, origin, row, described, preview, commit) {
   const { noun } = SUBMISSION_KINDS[row.kind]
+  const sourced = JSON.parse(row.details)
   const body = [
     `New ${phrase(noun, inline(row.name), described.where)}, credited to ${row.credit.map(inline).join(", ")}.`,
     row.ownerName ? `Sent from the website by ${inline(row.ownerName)} (${row.ownerProvider}).` : ANONYMOUS,
     `**[Preview it on the site](${origin}/submissions/${row.id})**`,
     preview ? `<img src="https://raw.githubusercontent.com/${repository(env)}/${commit}/${preview}" alt="" width="512">` : null,
-    row.notes ? `Notes from the submitter:\n\n${block(row.notes)}` : null
+    row.notes ? `Notes from the submitter:\n\n${block(row.notes)}` : null,
+    sourced.source ? `The submitter says this is based on someone else's work, and its licence allows it to be used here. Check both links before merging.\n\n- Source: <${sourced.source}>\n- Licence: <${sourced.licence}>` : null
   ]
   return { title: phrase(row.name, noun, described.where), body: body.filter(Boolean).join("\n\n") }
 }

@@ -1,7 +1,7 @@
 import { AUTHOR_LIMITS, authorList } from "./authors.js"
 import { blockedWordProblem } from "./wording.js"
 
-export const SUBMISSION_LIMITS = { name: 40, notes: 500, fileBytes: 1900000, totalBytes: 12000000, extraFiles: 24, side: 4096, perDay: 10, listed: 100, notifications: 50, comment: 2000, comments: 200, commentsPerDay: 50 }
+export const SUBMISSION_LIMITS = { name: 40, notes: 500, link: 300, fileBytes: 1900000, totalBytes: 12000000, extraFiles: 24, side: 4096, perDay: 10, listed: 100, notifications: 50, comment: 2000, comments: 200, commentsPerDay: 50 }
 
 export const EXTRA_FILE = /^[a-z0-9-]{1,40}$/
 
@@ -30,6 +30,30 @@ export function creditProblem(value, noun, required = true) {
   if (required && !names.length) return `Add who made the ${noun}.`
   if (names.length > AUTHOR_LIMITS.names) return `The credit can list up to ${AUTHOR_LIMITS.names} names.`
   return names.map(name => textProblem(name, "name in the credit", AUTHOR_LIMITS.name)).find(Boolean) ?? null
+}
+
+function linkProblem(value, label) {
+  if (typeof value !== "string" || !value.trim()) return `Add the ${label}.`
+  const text = value.trim()
+  if (length(text) > SUBMISSION_LIMITS.link) return `The ${label} can be up to ${SUBMISSION_LIMITS.link} characters.`
+  let url = null
+  try {
+    url = new URL(text)
+  } catch {}
+  return url && ["http:", "https:"].includes(url.protocol) && !CONTROL.test(text) ? null : `The ${label} has to be a web address, like https://example.com.`
+}
+
+export function sourceProblems(details) {
+  if (details.source === undefined && details.licence === undefined) return {}
+  return { source: linkProblem(details.source, "link to the original"), licence: linkProblem(details.licence, "link to its licence") }
+}
+
+export function cleanSource(details) {
+  return details.source === undefined && details.licence === undefined ? {} : { source: details.source.trim(), licence: details.licence.trim() }
+}
+
+export function sourceOf(details) {
+  return details.source ? { source: details.source, licence: details.licence } : {}
 }
 
 export function commonProblems(fields, noun) {
