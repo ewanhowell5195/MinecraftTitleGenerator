@@ -11,9 +11,9 @@ const askedAssets = new Map()
 let queue = Promise.resolve()
 let nextAsset = 0
 
-async function render(code, { width, format = "webp", quality = 1 }) {
+async function render(code, { width, format = "webp", quality = 1, fixedDistance = false }) {
   try {
-    const canvas = await titleCanvas(code, width)
+    const canvas = await titleCanvas(code, width, fixedDistance)
     return canvas && await canvas.toBuffer(format, { quality })
   } finally {
     forgetImages(() => false)
