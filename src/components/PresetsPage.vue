@@ -120,6 +120,11 @@
     showPreset(preset.id)
   }
 
+  function followed(event) {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) event.stopPropagation()
+    else event.preventDefault()
+  }
+
   function clearSelection() {
     selectedCommunity.value = null
     selectedLocalCode.value = null
@@ -390,7 +395,7 @@
             <div v-for="preset of results" :key="preset.id" class="card" :class="{ selected: selected?.id === preset.id }" @click="selectCommunity(preset)">
               <TitlePicture :code="preset.code" :fingerprint="preset.fingerprint" @open="selectCommunity(preset)" />
               <div class="details">
-                <strong class="ellipsis" v-tooltip="preset.name">{{ preset.name }}</strong>
+                <a class="name ellipsis" :href="`/app/presets/${preset.id}`" v-tooltip="preset.name" @click="followed">{{ preset.name }}</a>
                 <Badge v-if="isMine(preset) && !preset.author" tone="accent">Shared by you</Badge>
                 <AuthorLink v-else-if="preset.author" class="author" :class="{ yours: isMine(preset) }" :name="preset.author" :provider="preset.authorProvider" :size="13" @click.stop="filterByUser(preset.author, preset.authorProvider)" />
               </div>
@@ -538,6 +543,12 @@
   .grid {
     grid-template-columns: repeat(auto-fill, minmax(min(100%, clamp(320px, 30cqi, 420px)), 1fr));
     gap: 12px;
+  }
+
+  .name {
+    font-weight: 700;
+    color: inherit;
+    text-decoration: none;
   }
 
   .card {
