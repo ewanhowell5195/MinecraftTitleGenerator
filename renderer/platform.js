@@ -86,32 +86,18 @@ function pngUrl(bytes) {
   return `data:image/png;base64,${Buffer.from(bytes).toString("base64")}`
 }
 
-function useLinearTable(THREE) {
-  const { ImageUtils } = THREE
-  const decode = ImageUtils.sRGBToLinear
-  const table = Uint8ClampedArray.from({ length: 256 }, (_, value) => new THREE.Color(value / 255, 0, 0).convertSRGBToLinear().r * 255)
-  ImageUtils.sRGBToLinear = image => {
-    if (image.data) return decode.call(ImageUtils, image)
-    const canvas = softwareCanvas()
-    canvas.width = image.width
-    canvas.height = image.height
-    const ctx = canvas.getContext("2d")
-    ctx.drawImage(image, 0, 0, image.width, image.height)
-    const pixels = ctx.getImageData(0, 0, image.width, image.height)
-    const { data } = pixels
-    for (let at = 0; at < data.length; at++) {
-      if (at % 4 !== 3) data[at] = table[data[at]]
-    }
-    ctx.putImageData(pixels, 0, 0)
-    return canvas
-  }
+// WebGL 1 can only decode an sRGB texture to linear on the CPU at 8 bits, which leaves about ten values for the darkest tones and bands every fade to black, so colours stay in sRGB from texture to output
+function keepSRGB(THREE) {
+  THREE.ColorManagement.enabled = false
+  THREE.ImageUtils.sRGBToLinear = image => image
 }
 
 function webGLRenderer(THREE) {
-  useLinearTable(THREE)
+  keepSRGB(THREE)
   return () => {
     const gl = createContext(1, 1, { preserveDrawingBuffer: true })
     const renderer = new THREE.WebGLRenderer({ context: gl })
+    renderer.outputColorSpace = THREE.LinearSRGBColorSpace
     const domElement = softwareCanvas()
     const ctx = domElement.getContext("2d")
     const keptPrograms = new WeakSet()
