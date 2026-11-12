@@ -5,6 +5,7 @@
   import Dropdown from "../../components/Dropdown.vue"
   import Field from "../../components/Field.vue"
   import Icon from "../../components/Icon.vue"
+  import NameList from "../../components/NameList.vue"
   import Segments from "../../components/Segments.vue"
   import { flatTexture } from "../../lib/fontEditor.js"
   import { popular } from "../../lib/stats.js"
@@ -152,7 +153,7 @@
           <input type="text" :value="item.name" :maxlength="SUBMISSION_LIMITS.name" placeholder="Name" spellcheck="false" aria-required="true" @input="update(item.key, { name: $event.target.value })">
           <span class="required" aria-hidden="true">*</span>
         </div>
-        <input type="text" :value="item.credit ?? ''" :maxlength="SUBMISSION_LIMITS.credit" placeholder="Credit, if it isn't the font's" spellcheck="false" @input="update(item.key, { credit: $event.target.value })">
+        <NameList :model-value="item.credit ?? []" placeholder="Credit, if it isn't the font's" @update:model-value="update(item.key, { credit: $event })" />
         <div v-if="item.kind !== 'overlay'" class="row">
           <span class="hint">Border</span>
           <ColourPicker :model-value="item.border ?? '#000000'" @update:model-value="update(item.key, { border: $event })" />

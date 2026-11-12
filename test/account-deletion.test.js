@@ -39,7 +39,7 @@ async function vote(cookie, id, value) {
 
 async function submit(cookie) {
   const data = new FormData()
-  for (const [key, value] of Object.entries({ kind: "texture", target: "minecraft-ten", name: "Gold Bricks", credit: "Someone", notes: "", agree: "true", details: JSON.stringify({ border: "#000000" }) })) data.set(key, value)
+  for (const [key, value] of Object.entries({ kind: "texture", target: "minecraft-ten", name: "Gold Bricks", credit: JSON.stringify(["Someone"]), notes: "", agree: "true", details: JSON.stringify({ border: "#000000" }) })) data.set(key, value)
   data.set("file", new Blob([pngOf(FLAT.width, FLAT.height)], { type: "image/png" }), "texture.png")
   return (await sendForm(cookie, data)).id
 }

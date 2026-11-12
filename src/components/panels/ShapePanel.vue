@@ -72,7 +72,7 @@
     <div class="flow" :class="{ pick: source === 'minecraft' }">
       <Segments :options="SOURCES" v-model="source" />
       <TileGrid v-if="source === 'premade'">
-        <Tile v-for="shape of library.shapes" :key="shape.id" :label="shape.name" :image="`${shape.folder}/thumbnails/flat.png`" aspect="4 / 3" :author="shape.author" :selected="object.shape === shape.id" @pick="object.shape = shape.id" />
+        <Tile v-for="shape of library.shapes" :key="shape.id" :label="shape.name" :image="`${shape.folder}/thumbnails/flat.png`" aspect="4 / 3" :author="shape.authors" :selected="object.shape === shape.id" @pick="object.shape = shape.id" />
       </TileGrid>
       <template v-else-if="source === 'custom'">
         <UploadField accept="image/png" :label="object.shape === CUSTOM_SHAPE ? 'Replace PNG' : 'Choose a PNG'" empty="No PNG chosen" :image="object.shape === CUSTOM_SHAPE ? object.customFont?.data : null" @change="readFile($event, pickPng)" />

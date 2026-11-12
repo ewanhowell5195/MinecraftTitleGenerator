@@ -5,6 +5,7 @@
   import Dropdown from "../components/Dropdown.vue"
   import Field from "../components/Field.vue"
   import Icon from "../components/Icon.vue"
+  import NameList from "../components/NameList.vue"
   import Notice from "../components/Notice.vue"
   import NumberInput from "../components/NumberInput.vue"
   import { fullName, loadFontList } from "../lib/font.js"
@@ -16,8 +17,8 @@
   const ABOUT = [
     { key: "name", label: "Name", required: true, hint: "Shown in the font list and the credits." },
     { key: "id", label: "ID", required: true, slug: true, hint: "Lowercase letters, numbers and dashes. Made from the name until you change it." },
-    { key: "author", label: "Author", required: true, hint: "Who made the font, shown in the credits." },
-    { key: "basedOn", label: "Based on font", choice: true, hint: "The font yours was made from, so its author is credited too." },
+    { key: "authors", label: "Authors", required: true, names: true, hint: "Everyone who worked on the font, shown in the credits. If you're porting someone else's font with their permission, list both yourself and them." },
+    { key: "basedOn", label: "Based on font", choice: true, hint: "The font yours was made from, so its authors are credited too." },
     { key: "description", label: "Description", full: true, hint: "A short line shown under the font's name in the generator." }
   ]
 
@@ -123,8 +124,9 @@
     <section class="flow">
       <h3>About</h3>
       <div class="about">
-        <Field v-for="item of ABOUT" :key="item.key" :label="item.label" :required="item.required" :hint="item.hint" :error="clashes[item.key]" :group="item.choice" :class="{ full: item.full }">
+        <Field v-for="item of ABOUT" :key="item.key" :label="item.label" :required="item.required" :hint="item.hint" :error="clashes[item.key]" :group="item.choice || item.names" :class="{ full: item.full }">
           <Dropdown v-if="item.choice" searchable :options="basedOnOptions" :model-value="font[item.key]" @update:model-value="setField(item.key, $event, false)" />
+          <NameList v-else-if="item.names" :model-value="font[item.key]" @update:model-value="setField(item.key, $event, false)" />
           <input v-else-if="item.slug" type="text" :class="{ clashing: clashes[item.key] }" :value="font[item.key]" :placeholder="previewId" spellcheck="false" @change="setField(item.key, slug($event.target.value), false)">
           <input v-else type="text" :class="{ clashing: clashes[item.key] }" :value="font[item.key]" @input="setText(item.key, $event)">
         </Field>

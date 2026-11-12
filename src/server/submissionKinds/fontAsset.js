@@ -31,7 +31,7 @@ function fontAsset(kind) {
       const asset = assetId(row.name, new Set(usedIds(list).concat(taken)))
       const entry = {
         ...(row.name !== titleCase(asset) && { name: row.name }),
-        author: row.credit,
+        authors: row.credit,
         ...(details.density > 1 && { density: details.density }),
         ...(kind === "texture" && { border: details.border })
       }

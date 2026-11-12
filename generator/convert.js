@@ -4,6 +4,7 @@ import os from "node:os"
 import path from "node:path"
 import opentype from "opentype.js"
 import decompress from "woff2-encoder/decompress"
+import { authorList } from "../src/lib/authors.js"
 import { parseMask } from "../src/lib/font.js"
 import { englishName } from "../src/lib/fontImport.js"
 import { capUnits, glyphFor, gridShift, pixelGrid, rasterise } from "../src/lib/fontOutline.js"
@@ -128,7 +129,7 @@ const png = pngOf(drawSheet(cells, capHeight))
 const space = font.charToGlyph(" ")
 const designer = englishName(font, "designer")
 const entry = { id, name: fullName }
-if (designer) entry.author = designer
+if (designer) entry.authors = authorList(designer)
 entry.spaceWidth = space && space.index !== 0 ? Math.round(space.advanceWidth * scale) : Math.round(capHeight / 4)
 if (order !== DEFAULT_ORDER) entry.order = order
 

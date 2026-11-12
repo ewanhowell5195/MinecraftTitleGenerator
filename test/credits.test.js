@@ -7,9 +7,9 @@ import { mergeStrips } from "../src/lib/strips.js"
 
 const FONTS = [{ id: "base", name: "Base Font" }, { id: "port", name: "Port Font" }]
 const LISTS = {
-  "font/base/textures.json": { textures: { cracked: { author: "original", variants: { cracked_old: { author: "older" }, cracked_left: {} } }, chain: { basedOn: "cracked" }, sibling: { author: "porter", basedOn: "cracked" }, sameAsSibling: { basedOn: "sibling" }, away: { author: "porter", basedOn: "port.shape" } }, overlays: { glass: { author: "glazier" } } },
+  "font/base/textures.json": { textures: { cracked: { authors: "original", variants: { cracked_old: { authors: "older" }, cracked_left: {} } }, chain: { basedOn: "cracked" }, sibling: { authors: "porter", basedOn: "cracked" }, sameAsSibling: { basedOn: "sibling" }, away: { authors: "porter", basedOn: "port.shape" } }, overlays: { glass: { authors: "glazier" } } },
   "font/port/textures.json": { textures: {}, overlays: {} },
-  "strips/set/textures.json": { depth: 22, textures: { line: { author: "liner" }, copy: { basedOn: "line" }, redraw: { author: "porter", basedOn: "line" } } }
+  "strips/set/textures.json": { depth: 22, textures: { line: { authors: "liner" }, copy: { basedOn: "line" }, redraw: { authors: "porter", basedOn: "line" } } }
 }
 
 usePlatform({ fetch: async url => ({ ok: url in LISTS, json: async () => LISTS[url] }) })
@@ -22,16 +22,19 @@ async function settled(read) {
 
 describe("credit", () => {
   test("shows a plain author", () => {
-    assert.equal(credit({ author: "someone" }, "port", FONTS), "someone")
+    assert.equal(credit({ authors: "someone" }, "port", FONTS), "someone")
+    assert.equal(credit({ authors: ["someone"] }, "port", FONTS), "someone")
+    assert.equal(credit({ authors: ["one", "two"] }, "port", FONTS), "one & two")
+    assert.equal(credit({ authors: ["one", "two", "three"], basedOn: "base.oak_planks" }, "port", FONTS), "one, two, & three, based on Base Font: Oak Planks")
     assert.equal(credit({}, "port", FONTS), null)
   })
 
   test("names the font when the original is in another font", () => {
-    assert.equal(credit({ author: "porter", basedOn: "base.oak_planks" }, "port", FONTS), "porter, based on Base Font: Oak Planks")
+    assert.equal(credit({ authors: "porter", basedOn: "base.oak_planks" }, "port", FONTS), "porter, based on Base Font: Oak Planks")
   })
 
   test("leaves the font out when the original is in the same font", () => {
-    assert.equal(credit({ author: "porter", basedOn: "grass_side" }, "base", FONTS), "porter, based on Grass Side")
+    assert.equal(credit({ authors: "porter", basedOn: "grass_side" }, "base", FONTS), "porter, based on Grass Side")
   })
 
   test("based on with no author is just the original's author", async () => {
@@ -54,26 +57,26 @@ describe("credit", () => {
   })
 
   test("links can point at strips", async () => {
-    assert.equal(credit({ author: "porter", basedOn: "strips.set.line" }, "port", FONTS), "porter, based on Set Strips: Line")
+    assert.equal(credit({ authors: "porter", basedOn: "strips.set.line" }, "port", FONTS), "porter, based on Set Strips: Line")
     assert.equal(await settled(() => credit({ basedOn: "strips.set.line" }, "port", FONTS)), "liner")
     assert.equal(await settled(() => credit({ basedOn: "strips.set.redraw" }, "port", FONTS)), "porter, based on Set Strips: Line")
   })
 
   test("a shared strip's links are relative to its own strips, not the font showing it", async () => {
     const tag = { stripSet: "set", folder: "strips/set" }
-    assert.equal(credit({ author: "porter", basedOn: "line", ...tag }, "port", FONTS), "porter, based on Line")
+    assert.equal(credit({ authors: "porter", basedOn: "line", ...tag }, "port", FONTS), "porter, based on Line")
     assert.equal(await settled(() => credit({ basedOn: "line", ...tag }, "port", FONTS)), "liner")
-    assert.equal(credit({ author: "porter", basedOn: "base.cracked", ...tag }, "port", FONTS), "porter, based on Base Font: Cracked")
+    assert.equal(credit({ authors: "porter", basedOn: "base.cracked", ...tag }, "port", FONTS), "porter, based on Base Font: Cracked")
   })
 
   test("a variant uses its parent's credit unless it has its own", () => {
-    const parent = { author: "porter", basedOn: "base.cracked" }
+    const parent = { authors: "porter", basedOn: "base.cracked" }
     assert.equal(credit({}, "port", FONTS, parent), "porter, based on Base Font: Cracked")
-    assert.equal(credit({ author: "other" }, "port", FONTS, parent), "other")
+    assert.equal(credit({ authors: "other" }, "port", FONTS, parent), "other")
   })
 
   test("an unknown font or texture fails loudly", async () => {
-    assert.throws(() => credit({ author: "a", basedOn: "missing.cracked" }, "port", FONTS), /missing/)
+    assert.throws(() => credit({ authors: "a", basedOn: "missing.cracked" }, "port", FONTS), /missing/)
     assert.throws(() => credit({ basedOn: "missing.cracked" }, "port", FONTS), /missing/)
     await settled(() => credit({ basedOn: "base.cracked" }, "port", FONTS))
     assert.throws(() => credit({ basedOn: "base.nothing" }, "port", FONTS), /base\.nothing/)
@@ -81,7 +84,7 @@ describe("credit", () => {
 })
 
 describe("fontCredit", () => {
-  const fonts = [{ id: "base", name: "Base Font", author: "original" }, { id: "plain", name: "Plain" }, { id: "port", name: "Port Font", author: "porter", basedOn: "plain" }, { id: "copy", name: "Copy", basedOn: "base" }, { id: "copy2", name: "Copy 2", basedOn: "port" }]
+  const fonts = [{ id: "base", name: "Base Font", authors: "original" }, { id: "plain", name: "Plain" }, { id: "port", name: "Port Font", authors: "porter", basedOn: "plain" }, { id: "copy", name: "Copy", basedOn: "base" }, { id: "copy2", name: "Copy 2", basedOn: "port" }]
   const of = id => fontCredit(fonts.find(font => font.id === id), fonts)
 
   test("follows the same rules as textures", () => {
@@ -93,7 +96,7 @@ describe("fontCredit", () => {
   })
 
   test("a font based on a variant names the variant after its parent", () => {
-    const listed = fonts.concat([{ id: "cyrillic", name: "Cyrillic", variant: "base" }, { id: "redrawn", name: "Redrawn", author: "porter", basedOn: "cyrillic" }])
+    const listed = fonts.concat([{ id: "cyrillic", name: "Cyrillic", variant: "base" }, { id: "redrawn", name: "Redrawn", authors: "porter", basedOn: "cyrillic" }])
     assert.equal(fontCredit(listed.find(font => font.id === "redrawn"), listed), "porter, based on Base Font: Cyrillic")
   })
 
@@ -131,7 +134,7 @@ describe("published credits", () => {
   }
 
   function resolve(data, owner, seen) {
-    if (data.author || !data.basedOn) return data.author ?? null
+    if (data.authors || !data.basedOn) return data.authors ?? null
     const target = basedOnParts(data.basedOn, data.stripSet ? `strips.${data.stripSet}` : owner)
     const key = `${target.owner}.${target.id}`
     assert.ok(!seen.has(key), `${key} is in a loop`)

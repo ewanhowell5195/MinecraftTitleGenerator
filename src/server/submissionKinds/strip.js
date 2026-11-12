@@ -7,7 +7,7 @@ import { assetId } from "../../lib/submissions.js"
 import { texturesPath, usedIds } from "./fontAsset.js"
 
 const FONTS = "public/font/fonts.json"
-const LEADING = new Set(["id", "name", "author", "description", "basedOn", "inherits"])
+const LEADING = new Set(["id", "name", "authors", "description", "basedOn", "inherits"])
 
 function setPath(id) {
   return `public/${stripFolder(id)}/textures.json`
@@ -36,7 +36,7 @@ async function freeAsset(read, row, fonts, extra, taken) {
 }
 
 function entryFor(row, details, asset) {
-  return { type: "strip", ...(details.stretch && { stretch: true }), ...(row.name !== titleCase(asset) && { name: row.name }), author: row.credit, border: details.border }
+  return { type: "strip", ...(details.stretch && { stretch: true }), ...(row.name !== titleCase(asset) && { name: row.name }), authors: row.credit, border: details.border }
 }
 
 function withStrips(entry, use) {

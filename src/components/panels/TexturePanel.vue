@@ -243,7 +243,7 @@
         <template v-if="blockEntries.length">
           <input v-if="searchable(blockEntries)" type="text" v-model="search" placeholder="Search textures" aria-label="Search textures">
           <TileGrid class="scroll">
-            <Tile v-for="[id, data] of shownBlocks" :key="id" :label="data.name" aspect="2 / 1" :pattern="{ backgroundImage: `url(${data.url})` }" :author="data.author" :selected="object.minecraftTexture === id" :menu="blockMenu(id, data)" @pick="pickBlock(id)" />
+            <Tile v-for="[id, data] of shownBlocks" :key="id" :label="data.name" aspect="2 / 1" :pattern="{ backgroundImage: `url(${data.url})` }" :author="data.authors" :selected="object.minecraftTexture === id" :menu="blockMenu(id, data)" @pick="pickBlock(id)" />
           </TileGrid>
         </template>
       </template>
@@ -251,13 +251,13 @@
       <template v-if="object.textureSource === 'tileable' && !usingMinecraft">
         <input v-if="searchable(tileables)" type="text" v-model="search" placeholder="Search textures" aria-label="Search textures">
         <TileGrid class="scroll">
-          <Tile v-for="[id, data] of shownTileables" :key="id" :label="label(id, data)" aspect="2 / 1" :pattern="tilePreview(library.tileables, id)" :author="data.author" :badge="variantBadge(data)" :selected="object.tileable === id" :menu="tileableMenu(id)" @pick="object.tileable = id; object.tileableVariant = null" />
+          <Tile v-for="[id, data] of shownTileables" :key="id" :label="label(id, data)" aspect="2 / 1" :pattern="tilePreview(library.tileables, id)" :author="data.authors" :badge="variantBadge(data)" :selected="object.tileable === id" :menu="tileableMenu(id)" @pick="object.tileable = id; object.tileableVariant = null" />
         </TileGrid>
         <template v-if="tileableVariants.length">
           <h3>Variants</h3>
           <TileGrid class="scroll variants patterns" :style="{ '--rows': rows(tileableVariants) }">
             <Tile :label="library.tileables[object.tileable].name" aspect="2 / 1" :pattern="tilePreview(library.tileables, object.tileable)" :selected="!object.tileableVariant" :menu="tileableMenu(object.tileable)" @pick="object.tileableVariant = null" />
-            <Tile v-for="[id, data] of tileableVariants" :key="id" :label="data.name" aspect="2 / 1" :pattern="tilePreview(library.tileables, object.tileable, id)" :author="data.author ?? library.tileables[object.tileable].author" :selected="object.tileableVariant === id" :menu="tileableMenu(object.tileable, id)" @pick="object.tileableVariant = id" />
+            <Tile v-for="[id, data] of tileableVariants" :key="id" :label="data.name" aspect="2 / 1" :pattern="tilePreview(library.tileables, object.tileable, id)" :author="data.authors ?? library.tileables[object.tileable].authors" :selected="object.tileableVariant === id" :menu="tileableMenu(object.tileable, id)" @pick="object.tileableVariant = id" />
           </TileGrid>
         </template>
       </template>

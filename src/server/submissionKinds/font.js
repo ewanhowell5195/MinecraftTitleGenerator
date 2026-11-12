@@ -1,3 +1,4 @@
+import { authorList } from "../../lib/authors.js"
 import { flattenFonts, fontFolder } from "../../lib/font.js"
 import { jsonText } from "../../lib/jsonText.js"
 import { titleCase } from "../../lib/names.js"
@@ -32,7 +33,7 @@ function bundle(row, details, folder) {
     if (!sha) throw new Error(`submission ${row.id} has no file for its ${item.kind} ${item.key}`)
     const id = assetId(item.name, used)
     used.add(id)
-    const entry = { ...(item.kind === "strip" && { type: "strip" }), ...(item.name !== titleCase(id) && { name: item.name }), author: item.credit || row.credit, ...(item.density > 1 && { density: item.density }), ...(item.kind !== "overlay" && { border: item.border }) }
+    const entry = { ...(item.kind === "strip" && { type: "strip" }), ...(item.name !== titleCase(id) && { name: item.name }), authors: authorList(item.credit).length ? authorList(item.credit) : row.credit, ...(item.density > 1 && { density: item.density }), ...(item.kind !== "overlay" && { border: item.border }) }
     const section = item.kind === "overlay" ? "overlays" : "textures"
     list[section][id] = entry
     files.push({ path: `public/${folder}/${section}/${id}.png`, sha })
@@ -45,7 +46,7 @@ export const font = {
     const parent = parentOf(row, fonts)
     const list = JSON.parse(await read(LIST))
     const asset = freeId(details.id, new Set(flattenFonts(list).map(entry => entry.id).concat(taken)))
-    const entry = { id: asset, ...(row.name !== titleCase(asset) && { name: row.name }), author: row.credit }
+    const entry = { id: asset, ...(row.name !== titleCase(asset) && { name: row.name }), authors: row.credit }
     if (parent) {
       const owner = list.find(item => item.id === parent.id)
       if (!owner) throw new Error(`${LIST} on main has no ${parent.id}`)

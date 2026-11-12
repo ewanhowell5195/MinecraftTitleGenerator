@@ -30,7 +30,8 @@ let restore
 
 function form(fields = {}, image = png(16)) {
   const data = new FormData()
-  const values = { kind: "tileable", target: "", name: "Mossy Tiles", credit: "Someone", notes: "", agree: "true", details: "{}", ...fields }
+  const values = { kind: "tileable", target: "", name: "Mossy Tiles", credit: ["Someone"], notes: "", agree: "true", details: "{}", ...fields }
+  values.credit = JSON.stringify(values.credit)
   for (const [key, value] of Object.entries(values)) data.set(key, value)
   if (image) data.set("file", new Blob([image], { type: "image/png" }), "tileable.png")
   return data
@@ -113,7 +114,7 @@ describe("sending a tileable", () => {
     const branch = gh.refs.get(`heads/submission/${id}`)
     assert.deepEqual(gh.commits.get(branch).parents, [gh.main()])
     assert.equal(gh.commits.get(branch).message, "add Mossy Tiles tileable")
-    assert.equal(branchText(id), `${jsonText({ ...published(), mossy_tiles: { author: "Someone", path: "community" } })}\n`)
+    assert.equal(branchText(id), `${jsonText({ ...published(), mossy_tiles: { authors: ["Someone"], path: "community" } })}\n`)
     const image = branchFiles(id).get("public/tileables/community/mossy_tiles.png")
     assert.equal(PNG.sync.read(Buffer.from(gh.blobs.get(image))).width, 16)
     const opened = gh.pulls.get(1)
@@ -127,9 +128,9 @@ describe("sending a tileable", () => {
 
   test("adds a variant to its tileable, keeping the PNG in the community folder", async () => {
     const cookie = await signIn()
-    const { id } = await send(cookie, { target: "checkerboard", name: "Red Checkerboard", credit: "Someone & Friend", details: JSON.stringify({ size: 64, border: "#000000" }) }, png(8))
+    const { id } = await send(cookie, { target: "checkerboard", name: "Red Checkerboard", credit: ["Someone", "Friend"], details: JSON.stringify({ size: 64, border: "#000000" }) }, png(8))
     const main = published()
-    const expected = { ...main, checkerboard: { ...main.checkerboard, variants: { red_checkerboard: { author: "Someone & Friend", path: "community" } } } }
+    const expected = { ...main, checkerboard: { ...main.checkerboard, variants: { red_checkerboard: { authors: ["Someone", "Friend"], path: "community" } } } }
     assert.equal(branchText(id), `${jsonText(expected)}\n`)
     assert.ok(branchFiles(id).has("public/tileables/community/red_checkerboard.png"))
     assert.equal(gh.pulls.get(1).title, "Red Checkerboard tileable as a variant of Checkerboard")
@@ -142,7 +143,7 @@ describe("sending a tileable", () => {
   test("keeps ids clear of every tileable and variant", async () => {
     const cookie = await signIn()
     const top = await send(cookie, { name: "Checkerboard" }, png(8))
-    assert.deepEqual(JSON.parse(branchText(top.id)).checkerboard_2, { name: "Checkerboard", author: "Someone", path: "community" })
+    assert.deepEqual(JSON.parse(branchText(top.id)).checkerboard_2, { name: "Checkerboard", authors: ["Someone"], path: "community" })
     const variant = await send(cookie, { name: "Diagonal Down" })
     assert.ok(JSON.parse(branchText(variant.id)).diagonal_down_2)
     assert.ok(branchFiles(variant.id).has("public/tileables/community/diagonal_down_2.png"))
@@ -176,7 +177,7 @@ describe("sending a tileable", () => {
     assert.deepEqual([submission.asset, submission.details], ["moss", { size: 16 }])
     const list = JSON.parse(branchText(id))
     assert.equal(list.mossy_tiles, undefined)
-    assert.deepEqual(list.moss, { author: "Someone", path: "community" })
+    assert.deepEqual(list.moss, { authors: ["Someone"], path: "community" })
     assert.match((await edit(cookie, id, { target: "checkerboard" })).error, /Choose the tileable's file again/)
     const moved = await edit(cookie, id, { target: "diagonal_up", name: "Moss" }, png(16))
     assert.equal(moved.status, 200)
@@ -187,12 +188,12 @@ describe("sending a tileable", () => {
     const cookie = await signIn()
     const { id } = await send(cookie)
     const files = new Map(gh.filesAt("main"))
-    files.set(LIST, gh.blob(Buffer.from(`${jsonText({ ...published(), mossy_tiles: { author: "Earlier", path: "patterns" } })}\n`)))
+    files.set(LIST, gh.blob(Buffer.from(`${jsonText({ ...published(), mossy_tiles: { authors: ["Earlier"], path: "patterns" } })}\n`)))
     gh.refs.set("heads/main", gh.commit(files, [gh.main()], "someone else's tileable"))
     await hook("push", { ref: "refs/heads/main", commits: [{ added: [], modified: [LIST], removed: [] }] })
     assert.deepEqual(gh.commits.get(gh.refs.get(`heads/submission/${id}`)).parents, [gh.main()])
     const list = JSON.parse(branchText(id))
-    assert.equal(list.mossy_tiles.author, "Earlier")
-    assert.deepEqual(list.mossy_tiles_2, { name: "Mossy Tiles", author: "Someone", path: "community" })
+    assert.deepEqual(list.mossy_tiles.authors, ["Earlier"])
+    assert.deepEqual(list.mossy_tiles_2, { name: "Mossy Tiles", authors: ["Someone"], path: "community" })
   })
 })

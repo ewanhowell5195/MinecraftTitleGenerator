@@ -1,7 +1,7 @@
 {
   "textures": {
     "flat": {
-      "author": "ShrimpSnail & Ewan Howell",
+      "authors": ["ShrimpSnail", "Ewan Howell"],
       "border": "#000000"
     },
     "gradient": {
@@ -17,7 +17,7 @@
             { "overlay": "highlights_bottom", "blend": "source-over", "colour": "#fcff87", "opacity": 82 }
           ],
           "name": "Gradient (Early)",
-          "author": "blank3times",
+          "authors": ["blank3times"],
           "border": "#581018"
         }
       }

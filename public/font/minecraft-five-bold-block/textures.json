@@ -1,15 +1,15 @@
 {
   "textures": {
     "flat": {
-      "author": "Ewan Howell",
+      "authors": ["Ewan Howell"],
       "border": "#000000"
     },
     "live": {
-      "author": "Ewan Howell",
+      "authors": ["Ewan Howell"],
       "border": "#000000"
     },
     "bedrock_button": {
-      "author": "Klayv",
+      "authors": ["Klayv"],
       "border": "#181c1d",
       "variants": {
         "bedrock_button_unpressed": {
@@ -24,7 +24,7 @@
     },
     "oak_planks": {
       "category": "Planks",
-      "author": "B1tseK",
+      "authors": ["B1tseK"],
       "basedOn": "minecraft-five-bold.oak_planks",
       "border": "#322414",
       "variants": {
@@ -66,25 +66,25 @@
       "default": {
         "colour": "#000000"
       },
-      "author": "Ewan Howell"
+      "authors": ["Ewan Howell"]
     },
     "drop_shadow_left": {
       "default": {
         "colour": "#000000"
       },
       "name": "Drop Shadow (Left)",
-      "author": "Ewan Howell"
+      "authors": ["Ewan Howell"]
     },
     "drop_shadow_right": {
       "default": {
         "colour": "#000000"
       },
       "name": "Drop Shadow (Right)",
-      "author": "Ewan Howell"
+      "authors": ["Ewan Howell"]
     },
     "bedrock": {
       "name": "Bedrock Button",
-      "author": "Klayv"
+      "authors": ["Klayv"]
     }
   },
   "primary": "live",

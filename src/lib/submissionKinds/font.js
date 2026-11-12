@@ -1,11 +1,12 @@
 import { fullName, kerningPairs, parseMask } from "../font.js"
+import { authorList } from "../authors.js"
 import { collisionAmount, suggestKerning } from "../kerning.js"
 import { jsonText } from "../jsonText.js"
 import { DEFAULT_ORDER } from "../order.js"
 import { defaultBorder, defaultDepth } from "../settings.js"
 import { stripUse } from "../strips.js"
 import { GENERATED_EDGE_OVERLAYS, withGenerated } from "../generated.js"
-import { EXTRA_FILE, HEX_COLOUR, SUBMISSION_LIMITS, assetId, pngProblem, pngSize, sizedProblem, textProblem, textureDensity } from "../submissions.js"
+import { EXTRA_FILE, HEX_COLOUR, SUBMISSION_LIMITS, assetId, creditProblem, pngProblem, pngSize, sizedProblem, textProblem, textureDensity } from "../submissions.js"
 import { REQUIRED_CHARACTERS, characterName, fontId } from "../fontEditor.js"
 import { FONT_LIMITS, drawnCells, ownFont, submittedFont } from "./fontBuild.js"
 import { heightList, stripFit, stripHeights, stripSet } from "./stripFit.js"
@@ -192,8 +193,8 @@ function extrasOf(list, files, kept, template, problems) {
     keys.add(item.key)
     const key = `extra:${item.key}`
     const named = textProblem(item.name ?? "", "name", SUBMISSION_LIMITS.name, { required: true, noun: item.kind })
-    const credit = typeof item.credit === "string" ? item.credit.trim() : ""
-    const credited = credit ? textProblem(credit, "credit", SUBMISSION_LIMITS.credit, { noun: item.kind }) : null
+    const credit = authorList(item.credit)
+    const credited = creditProblem(credit, item.kind, false)
     const name = named ? "" : item.name.trim()
     const id = name ? assetId(name, new Set()) : ""
     const bordered = item.kind !== "overlay"
@@ -207,7 +208,7 @@ function extrasOf(list, files, kept, template, problems) {
     else if (!files[item.key] && typeof kept?.[item.key] !== "string") problems[key] = `Choose a PNG for ${name}.`
     else if (file.problem) problems[key] = file.problem
     if (id) ids.set(id, name)
-    clean.push({ key: item.key, kind: item.kind, name, ...(credit && { credit }), ...(border && { border }), ...(file.density > 1 && { density: file.density }) })
+    clean.push({ key: item.key, kind: item.kind, name, ...(credit.length && { credit }), ...(border && { border }), ...(file.density > 1 && { density: file.density }) })
   }
   return clean
 }

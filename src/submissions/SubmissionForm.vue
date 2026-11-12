@@ -4,10 +4,12 @@
   import Checkbox from "../components/Checkbox.vue"
   import Field from "../components/Field.vue"
   import Icon from "../components/Icon.vue"
+  import NameList from "../components/NameList.vue"
   import NavTabs from "../components/NavTabs.vue"
   import Segments from "../components/Segments.vue"
   import SignInButtons from "../components/SignInButtons.vue"
   import { fetched } from "../lib/api.js"
+  import { AUTHOR_LIMITS, authorList } from "../lib/authors.js"
   import { account } from "../lib/community.js"
   import { SUBMISSION_KINDS, checkSubmission, submissionContext } from "../lib/submissionKinds/index.js"
   import { EDITOR_SUBMISSION, SUBMISSION_LIMITS } from "../lib/submissions.js"
@@ -43,7 +45,7 @@
   const target = ref(props.initial?.target ?? prefillTarget ?? "")
   const details = ref(props.initial ? { ...props.initial.details } : prefillDetails)
   const name = ref(props.initial?.name ?? prefillName ?? "")
-  const credit = ref(props.initial?.credit ?? prefillCredit ?? account.value?.name ?? "")
+  const credit = ref(props.initial ? authorList(props.initial.credit) : prefillCredit ? authorList(prefillCredit) : account.value ? [account.value.name] : [])
   const notes = ref(props.initial?.notes ?? "")
   const agree = ref(!!props.initial)
   const chosen = ref(null)
@@ -92,7 +94,7 @@
     return extraProblem.value ?? problems.value.file ?? null
   })
   const shown = computed(() => {
-    const visible = key => tried.value || key === "name" && name.value || key === "credit" && credit.value || key === "notes"
+    const visible = key => tried.value || key === "name" && name.value || key === "credit" && credit.value.length || key === "notes"
     return Object.fromEntries(Object.entries(problems.value).filter(([key]) => visible(key)))
   })
   const blocked = computed(() => !account.value || sending.value)
@@ -110,7 +112,7 @@
   })
 
   watch(account, next => {
-    if (next && !credit.value) credit.value = next.name
+    if (next && !credit.value.length) credit.value = [next.name]
   })
 
   watch(() => Object.values(extras.value).concat(chosen.value ?? []), releaseDropped, { flush: "sync" })
@@ -134,7 +136,8 @@
       return
     }
     if (!name.value && typeof json.name === "string") name.value = json.name.slice(0, SUBMISSION_LIMITS.name)
-    if (typeof json.author === "string" && json.author && (!credit.value || credit.value === account.value?.name)) credit.value = json.author.slice(0, SUBMISSION_LIMITS.credit)
+    const authors = authorList(json.authors ?? json.author).slice(0, AUTHOR_LIMITS.names)
+    if (authors.length && (!credit.value.length || credit.value.join() === account.value?.name)) credit.value = authors
   }
 
   async function use(file) {
@@ -196,8 +199,8 @@
       <Field label="Name" required :error="shown.name" :hint="`Shown as the ${type.noun}'s name in the generator.`">
         <input type="text" v-model="name" :maxlength="SUBMISSION_LIMITS.name" spellcheck="false" required>
       </Field>
-      <Field label="Credit" required :error="shown.credit" :hint="`Shown as the ${type.noun}'s author. List everyone who made it.`">
-        <input type="text" v-model="credit" :maxlength="SUBMISSION_LIMITS.credit" spellcheck="false" required>
+      <Field group label="Credit" required :error="shown.credit" :hint="`Shown as the ${type.noun}'s authors. List everyone who worked on it. If you're porting someone else's work with their permission, list both yourself and them.`">
+        <NameList v-model="credit" />
       </Field>
     </div>
     <Segments v-if="group === 'texture'" v-model="kind" :options="TEXTURE_KINDS" label="Kind of texture" :hint="ABOUT[kind]" />

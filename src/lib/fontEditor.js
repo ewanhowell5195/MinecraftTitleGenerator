@@ -1,3 +1,4 @@
+import { authorList } from "./authors.js"
 import { flatPixels } from "./flatSheet.js"
 import { groupedKerning, kerningPairs, parseMask, scanMask } from "./font.js"
 import { titleCase } from "./names.js"
@@ -22,7 +23,7 @@ const SHEETS_KEPT = 8
 const NAMES = { [CREEPER]: "Creeper A", [OPENING_QUOTE]: "Opening quote", "'": "Closing quote", [TERMINATOR_OPEN]: "Left line terminator", [TERMINATOR_CLOSE]: "Right line terminator", [SPACE_CHAR]: "Space" }
 const LABELS = { [CREEPER]: "Creeper", [OPENING_QUOTE]: String.fromCodePoint(0x2018), "'": String.fromCodePoint(0x2019), [SPACE_CHAR]: "Space" }
 const NOTHING_TO_DRAW = /^[\p{M}\p{Cf}]$/u
-const META_KEYS = ["author", "description", "basedOn", "spaceWidth", "depth", "border", "characterSpacing", "terminatorSpace", "terminatorSpaceWidth", "forcedTerminators", "autoBorder", "flat", "overlay", "strips", "kerning"]
+const META_KEYS = ["authors", "description", "basedOn", "spaceWidth", "depth", "border", "characterSpacing", "terminatorSpace", "terminatorSpaceWidth", "forcedTerminators", "autoBorder", "flat", "overlay", "strips", "kerning"]
 const sheets = new Map()
 
 export function characterName(char) {
@@ -42,7 +43,7 @@ export function fontId(font) {
 }
 
 export function createFont({ height = 40, width = 24, grid = 4, density = 1 } = {}) {
-  return { name: "My Font", id: "", author: "", description: "", basedOn: "", height, width, grid, density, creeper: false, extras: [], defineSpace: false, spaceWidth: DEFAULT_SPACE_WIDTH, depth: DEFAULT_DEPTH, border: DEFAULT_BORDER, characterSpacing: 0, terminatorSpace: true, terminatorSpaceWidth: null, forcedTerminators: false, autoBorder: false, flat: false, overlay: false, strips: [], kerning: {}, glyphs: {}, imported: null }
+  return { name: "My Font", id: "", authors: [], description: "", basedOn: "", height, width, grid, density, creeper: false, extras: [], defineSpace: false, spaceWidth: DEFAULT_SPACE_WIDTH, depth: DEFAULT_DEPTH, border: DEFAULT_BORDER, characterSpacing: 0, terminatorSpace: true, terminatorSpaceWidth: null, forcedTerminators: false, autoBorder: false, flat: false, overlay: false, strips: [], kerning: {}, glyphs: {}, imported: null }
 }
 
 export function charactersOf(font) {
@@ -480,7 +481,7 @@ function applyCells(font, list, height, density) {
 function metaFrom(font, entry) {
   const next = { ...font, terminatorSpace: false }
   for (const key of META_KEYS) if (entry[key] !== undefined) next[key] = entry[key]
-  return next
+  return { ...next, authors: authorList(entry.authors ?? entry.author) }
 }
 
 export function parseFontJson(text) {
@@ -546,7 +547,7 @@ export function fontFromFiles({ sheet = null, json = null }) {
 
 export function fontFromPublished(entry, cells, capHeight) {
   const copy = metaFrom({ ...createFont({ height: capHeight }), name: `${entry.name} Copy` }, entry)
-  const font = applyCells({ ...copy, author: "", description: "", basedOn: entry.id, flat: !!entry.flat, overlay: false, strips: entry.strips ?? [] }, cells, capHeight, 1)
+  const font = applyCells({ ...copy, authors: [], description: "", basedOn: entry.id, flat: !!entry.flat, overlay: false, strips: entry.strips ?? [] }, cells, capHeight, 1)
   return { ...font, grid: detectGrid(font.glyphs) }
 }
 
@@ -558,13 +559,13 @@ function glyphFromShape(shape, height, fallbackWidth) {
   return { width: shape.width, above, below, stretch: [], rows: rowsOf(shape.width, above + height + below, ink) }
 }
 
-export function fontFromShapes(shapes, { name, author = "", capHeight, grid = null, spaceWidth }) {
+export function fontFromShapes(shapes, { name, authors = [], capHeight, grid = null, spaceWidth }) {
   const fallback = usualWidth(Array.from(shapes.values()).filter(Boolean).map(shape => shape.width), Math.max(1, Math.round(capHeight / 2)))
   const glyphs = Object.fromEntries(Array.from(shapes, ([char, shape]) => {
     const glyph = glyphFromShape(shape, capHeight, fallback)
     return [char, glyph.width === fallback ? { ...glyph, width: null } : glyph]
   }))
-  const font = { ...createFont({ height: capHeight, width: fallback, grid: grid ?? detectGrid(glyphs) }), name, id: slug(name), author, spaceWidth, glyphs }
+  const font = { ...createFont({ height: capHeight, width: fallback, grid: grid ?? detectGrid(glyphs) }), name, id: slug(name), authors: authorList(authors), spaceWidth, glyphs }
   const marked = autoStretch(font)
   return { ...marked, imported: { ...marked.glyphs, [SPACE_CHAR]: glyphFromShape(null, capHeight, fallback) } }
 }
@@ -583,7 +584,8 @@ export function autoStretch(font, characters = charactersOf(font)) {
 export function exportJson(font, texture) {
   const entry = { id: fontId(font) || DEFAULT_ID, name: font.name }
   const order = sheetOrder(font)
-  if (font.author) entry.author = font.author
+  const authors = authorList(font.authors)
+  if (authors.length) entry.authors = authors
   if (font.description) entry.description = font.description
   if (font.basedOn) entry.basedOn = font.basedOn
   if (font.strips.length) entry.strips = font.strips

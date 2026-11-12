@@ -5,6 +5,7 @@
   import NavTabs from "../components/NavTabs.vue"
   import Notice from "../components/Notice.vue"
   import UserName from "../components/UserName.vue"
+  import { authorText } from "../lib/authors.js"
   import { account } from "../lib/community.js"
   import { SUBMISSION_KINDS } from "../lib/submissionKinds/index.js"
   import { publishedTitle } from "../lib/submissionKinds/published.js"
@@ -128,7 +129,7 @@
     <section class="intro">
       <a class="hint" href="/submissions/">Submissions</a>
       <h1>{{ item.name }}</h1>
-      <p>{{ client.summary(item, fonts) }}, made by {{ item.credit }}.</p>
+      <p>{{ client.summary(item, fonts) }}, made by {{ authorText(item.credit) }}.</p>
       <blockquote v-if="item.notes" class="notes">{{ item.notes }}</blockquote>
     </section>
     <SubmissionForm v-if="editing" :fonts="fonts" :initial="item" @done="saved" @cancel="cancel" />
@@ -154,7 +155,7 @@
               <dd><span v-if="row.colour" class="swatch" :style="{ background: row.colour }"></span>{{ row.value }}</dd>
             </template>
             <dt>Credit</dt>
-            <dd>{{ item.credit }}</dd>
+            <dd>{{ authorText(item.credit) }}</dd>
             <dt>Submitted by</dt>
             <dd v-if="item.ownerName"><UserName :name="item.ownerName" :provider="item.ownerProvider" /></dd>
             <dd v-else>A deleted account</dd>

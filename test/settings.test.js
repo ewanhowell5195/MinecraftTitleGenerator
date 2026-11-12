@@ -643,11 +643,11 @@ describe("overlays", () => {
 
 describe("texture lookups", () => {
   test("textureEntry merges a variant over its texture", () => {
-    const list = { textures: { a: { author: "x", name: "A", variants: { b: { name: "B" } } } } }
+    const list = { textures: { a: { authors: "x", name: "A", variants: { b: { name: "B" } } } } }
     assert.equal(textureEntry(list, createObject({ texture: "a" })).name, "A")
     const merged = textureEntry(list, createObject({ texture: "a", textureVariant: "b" }))
     assert.equal(merged.name, "B")
-    assert.equal(merged.author, "x")
+    assert.equal(merged.authors, "x")
     assert.equal(textureEntry(list, createObject({ texture: "c" })), null)
   })
 

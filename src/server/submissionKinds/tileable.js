@@ -17,7 +17,7 @@ export const tileable = {
   async write({ row, read, taken }) {
     const list = JSON.parse(await read(LIST))
     const asset = assetId(row.name, new Set(tileableIds(list).concat(taken)))
-    const entry = { ...(row.name !== titleCase(asset) && { name: row.name }), author: row.credit }
+    const entry = { ...(row.name !== titleCase(asset) && { name: row.name }), authors: row.credit }
     if (row.target) {
       const parent = list[row.target]
       if (!parent) throw new Error(`submission ${row.id} is a variant of ${row.target}, which isn't a published tileable`)

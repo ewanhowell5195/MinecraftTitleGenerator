@@ -9,7 +9,7 @@ import { withGenerated } from "../src/lib/generated.js"
 import { defaultDepth } from "../src/lib/settings.js"
 import { centredOffset, mergeStrips, stripRows, stripUse, stripY } from "../src/lib/strips.js"
 
-const SET = { id: "set", depth: 22, baseline: 30, textures: { shared: { author: "a", variants: { kid: { author: "b" } } }, other: { author: "c" } } }
+const SET = { id: "set", depth: 22, baseline: 30, textures: { shared: { authors: "a", variants: { kid: { authors: "b" } } }, other: { authors: "c" } } }
 
 describe("mergeStrips", () => {
   test("adds shared strips after the font's own and tags where they came from", () => {
@@ -21,8 +21,8 @@ describe("mergeStrips", () => {
   })
 
   test("a font's own strip overrides a shared one", () => {
-    const { textures } = mergeStrips({ textures: { shared: { author: "mine" } } }, [SET])
-    assert.deepEqual(textures.shared, { author: "mine" })
+    const { textures } = mergeStrips({ textures: { shared: { authors: "mine" } } }, [SET])
+    assert.deepEqual(textures.shared, { authors: "mine" })
   })
 
   test("a strip is left out when one of its ids is already a texture or variant", () => {
@@ -31,15 +31,15 @@ describe("mergeStrips", () => {
   })
 
   test("the first listed strips win an id", () => {
-    const second = { id: "second", depth: 22, textures: { shared: { author: "late" }, extra: { author: "d" } } }
+    const second = { id: "second", depth: 22, textures: { shared: { authors: "late" }, extra: { authors: "d" } } }
     const { textures } = mergeStrips({ textures: {} }, [SET, second])
-    assert.equal(textures.shared.author, "a")
+    assert.equal(textures.shared.authors, "a")
     assert.equal(textures.extra.folder, "strips/second")
   })
 
   test("a font can attach its own variants to a shared strip", () => {
     const { textures } = mergeStrips({ textures: { shared: { strip: "set", variants: { mine: { type: "sheet" } } } } }, [SET])
-    assert.equal(textures.shared.author, "a")
+    assert.equal(textures.shared.authors, "a")
     assert.equal(textures.shared.folder, "strips/set")
     assert.equal(textures.shared.strip, undefined)
     assert.equal(textures.shared.variants.kid.folder, "strips/set")

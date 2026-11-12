@@ -1,4 +1,5 @@
 import { computed, ref, shallowRef, watch } from "vue"
+import { authorList } from "../lib/authors.js"
 import { DEFAULT_ORDER } from "../lib/order.js"
 import { buildSheet, charactersOf, exportJson, fitGlyph, flatTexture, glyphOf, moveGlyph, reshapeGlyph, sameGlyph, setGlyph } from "../lib/fontEditor.js"
 import { jsonText } from "../lib/jsonText.js"
@@ -166,7 +167,7 @@ export function restoreFont() {
   if (!text) return
   const saved = JSON.parse(text)
   if (saved.version !== 1) throw new Error(`the saved font is version ${saved.version}, which this editor can't read`)
-  font.value = { ...saved.font, creeper: saved.font.creeper ?? true, extras: saved.font.extras ?? [] }
+  font.value = { ...saved.font, authors: authorList(saved.font.authors ?? saved.font.author), creeper: saved.font.creeper ?? true, extras: saved.font.extras ?? [] }
   selected.value = saved.selected
   keepSelection()
 }

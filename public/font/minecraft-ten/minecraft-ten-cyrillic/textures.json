@@ -1,17 +1,17 @@
 {
   "textures": {
     "flat": {
-      "author": "xllifi",
+      "authors": ["xllifi"],
       "border": "#000000"
     },
     "cracked": {
-      "author": "xllifi",
+      "authors": ["xllifi"],
       "basedOn": "minecraft-ten.cracked",
       "density": 3,
       "border": "#000000",
       "variants": {
         "cracked_old": {
-          "author": "Yozhenka",
+          "authors": ["Yozhenka"],
           "basedOn": "minecraft-ten.cracked_old",
           "density": 4,
           "border": "#000000"
@@ -19,24 +19,24 @@
       }
     },
     "fired": {
-      "author": "B1tseK & Ewan Howell",
+      "authors": ["B1tseK", "Ewan Howell"],
       "basedOn": "minecraft-ten.fired",
       "border": "#021935"
     },
     "bevelled_gold": {
-      "author": "jackeyrolz",
+      "authors": ["jackeyrolz"],
       "basedOn": "minecraft-ten.bevelled_gold",
       "density": 4,
       "border": "#3f0f0f"
     },
     "pixel": {
-      "author": "Sawiq",
+      "authors": ["Sawiq"],
       "basedOn": "minecraft-ten.pixel",
       "border": "#000000"
     },
     "neon_glow": {
       "category": "Neon",
-      "author": "MCAlexisYT",
+      "authors": ["MCAlexisYT"],
       "basedOn": "minecraft-ten.neon_glow",
       "border": "#18041a",
       "variants": {
@@ -46,13 +46,13 @@
       }
     },
     "atmosphere": {
-      "author": "jackeyrolz",
+      "authors": ["jackeyrolz"],
       "basedOn": "strips.minecraft-ten.atmosphere",
       "border": "#36005d"
     },
     "pride": {
       "type": "strip",
-      "author": "Yozhenka",
+      "authors": ["Yozhenka"],
       "basedOn": "strips.minecraft-ten.pride",
       "border": "#000000",
       "variants": {
@@ -110,7 +110,7 @@
     "oak_planks": {
       "type": "strip",
       "category": "Planks",
-      "author": "B1tseK",
+      "authors": ["B1tseK"],
       "basedOn": "strips.minecraft-ten.oak_planks",
       "border": "#322414",
       "variants": {
@@ -151,14 +151,14 @@
       }
     },
     "bubbles": {
-      "author": "B1tseK",
+      "authors": ["B1tseK"],
       "basedOn": "minecraft-ten.bubbles",
       "border": "#1d0e46"
     },
     "flat_coloured": {
       "type": "strip",
       "name": "Flat (Coloured)",
-      "author": "Ewan Howell",
+      "authors": ["Ewan Howell"],
       "border": "#000000"
     },
     "lagoona": {

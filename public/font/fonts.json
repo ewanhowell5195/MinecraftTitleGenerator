@@ -17,7 +17,7 @@
         "kerning": {
           "8": ["&t"]
         },
-        "author": "Ewan Howell",
+        "authors": ["Ewan Howell"],
         "description": "Minecraft Ten Version 2 is a newer version of Minecraft Ten with some tweaks to some characters, most notably `&` and `?`.",
         "order": "cefn34&?-_",
         "preview": "e&?"
@@ -25,7 +25,7 @@
       {
         "id": "minecraft-ten-cyrillic",
         "name": "Cyrillic",
-        "author": "xllifi",
+        "authors": ["xllifi"],
         "terminatorSpace": true,
         "order": "😳0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣ёєіїабвгдежзийклмнопрстуфхцчшщъыьэюяґғқңүұәө₽",
         "preview": "абв"
@@ -33,7 +33,7 @@
       {
         "id": "minecraft-ten-simlish",
         "name": "Simlish",
-        "author": "Logan2020",
+        "authors": ["Logan2020"],
         "strips": ["minecraft-ten"],
         "spaceWidth": 16,
         "terminatorSpace": true,
@@ -51,14 +51,14 @@
   },
   {
     "id": "minecraft-five-bold",
-    "author": "Ewan Howell",
+    "authors": ["Ewan Howell"],
     "depth": 16,
     "terminatorSpace": true,
     "variants": [
       {
         "id": "minecraft-five-bold-cyrillic",
         "name": "Cyrillic",
-        "author": "xllifi",
+        "authors": ["xllifi"],
         "depth": 16,
         "terminatorSpace": true,
         "order": "😳0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣ёіїабвгдежзийклмнопрстуфхцчшщъыьэюяґғқңүұһәө₽",
@@ -68,7 +68,7 @@
   },
   {
     "id": "minecraft-five-bold-block",
-    "author": "Ewan Howell",
+    "authors": ["Ewan Howell"],
     "characterSpacing": -4,
     "order": "😳abcdefghijklmnopqrstuvwxyz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣ ",
     "depth": 16,
@@ -79,7 +79,7 @@
   },
   {
     "id": "minecraft-ten-outline",
-    "author": "Ewan Howell",
+    "authors": ["Ewan Howell"],
     "order": "😳abcdefghijklmnopqrstuvwxyz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣ ",
     "depth": 0,
     "border": 0,
@@ -88,12 +88,12 @@
   },
   {
     "id": "minecraft-dungeons",
-    "author": "ShrimpSnail & Ewan Howell",
+    "authors": ["ShrimpSnail", "Ewan Howell"],
     "strips": ["minecraft-ten"]
   },
   {
     "id": "minecraft-gui",
-    "author": "Ewan Howell",
+    "authors": ["Ewan Howell"],
     "characterSpacing": -4,
     "order": "😳abcdefghijklmnopqrstuvwxyz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣ ",
     "depth": 0,
@@ -105,27 +105,27 @@
   },
   {
     "id": "minecraft-seven",
-    "author": "Ewan Howell",
+    "authors": ["Ewan Howell"],
     "depth": 16,
     "terminatorSpace": true
   },
   {
     "id": "minecraft-five",
-    "author": "Ewan Howell",
+    "authors": ["Ewan Howell"],
     "depth": 16,
     "terminatorSpace": true
   },
   {
     "id": "minecraft-sga",
     "name": "Minecraft SGA",
-    "author": "Westbot",
+    "authors": ["Westbot"],
     "characterSpacing": 5,
     "order": "abcdefghijklmnopqrstuvwxyz",
     "preview": "abh"
   },
   {
     "id": "minecraft-ten-serif",
-    "author": "Ewan Howell",
+    "authors": ["Ewan Howell"],
     "basedOn": "minecraft-ten",
     "strips": ["minecraft-ten"],
     "spaceWidth": 14,
@@ -139,7 +139,7 @@
   },
   {
     "id": "minecraft-ten-rounded",
-    "author": "Ewan Howell",
+    "authors": ["Ewan Howell"],
     "basedOn": "minecraft-ten",
     "strips": ["minecraft-ten"],
     "terminatorSpace": true,
@@ -151,7 +151,7 @@
   },
   {
     "id": "block-serif",
-    "author": "Dragonslayr15001",
+    "authors": ["Dragonslayr15001"],
     "strips": ["minecraft-ten"],
     "spaceWidth": 14,
     "terminatorSpace": true,
@@ -163,13 +163,13 @@
   },
   {
     "id": "minecraft-legends",
-    "author": "Ewan Howell",
+    "authors": ["Ewan Howell"],
     "height": 34,
     "spaceWidth": 16
   },
   {
     "id": "geo-squares",
-    "author": "Ewan Howell",
+    "authors": ["Ewan Howell"],
     "strips": ["minecraft-ten"],
     "order": "abcdefghijklmnopqrstuvwxyz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣",
     "depth": 16,
@@ -182,7 +182,7 @@
   },
   {
     "id": "f8thful",
-    "author": "Ewan Howell",
+    "authors": ["Ewan Howell"],
     "description": "The font from the F8thful resource pack!",
     "order": "abcdefghijklmnopqrstuvwxyz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣",
     "terminatorSpace": true,
@@ -193,14 +193,14 @@
   },
   {
     "id": "minecraft-earth",
-    "author": "PopitTart",
+    "authors": ["PopitTart"],
     "depth": 30,
     "terminatorSpace": true,
     "terminatorSpaceWidth": 4
   },
   {
     "id": "minecraft-ten-light",
-    "author": "Ewan Howell",
+    "authors": ["Ewan Howell"],
     "basedOn": "minecraft-ten",
     "strips": ["minecraft-ten"],
     "terminatorSpace": true,

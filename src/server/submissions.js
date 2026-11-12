@@ -1,3 +1,4 @@
+import { authorList } from "../lib/authors.js"
 import { flattenFonts } from "../lib/font.js"
 import { titleCase } from "../lib/names.js"
 import { providerLabel } from "../lib/providers.js"
@@ -48,10 +49,30 @@ async function publishedFonts(context) {
   return flattenFonts(await (await asset(context, "/font/fonts.json")).json()).map(font => ({ ...font, name: font.name ?? titleCase(font.id) }))
 }
 
+function storedCredit(text) {
+  try {
+    const names = JSON.parse(text)
+    if (Array.isArray(names)) return authorList(names)
+  } catch {}
+  return authorList(text)
+}
+
+function withCredit(row) {
+  return row && { ...row, credit: storedCredit(row.credit) }
+}
+
+function sentCredit(text) {
+  try {
+    return JSON.parse(text ?? "")
+  } catch {
+    return null
+  }
+}
+
 async function findSubmission(env, id) {
   const row = await env.DB.prepare(`SELECT ${SHOWN}, ${OWNER} FROM submissions WHERE id = ?`).bind(id).first()
   if (!row) throw new Refusal(404, MISSING)
-  return row
+  return withCredit(row)
 }
 
 async function ownSubmission(context, reviewers = false) {
@@ -111,7 +132,7 @@ async function readForm(context, previous = null) {
   if (!type?.available) throw new Refusal(400, "Pick what you're submitting.")
   if (!bytes && !previous) throw new Refusal(400, sizedProblem(bytes, type.noun))
   const fonts = await publishedFonts(context)
-  const fields = { kind, target: form.get("target") ?? "", details: parsedDetails(form.get("details")), bytes, files, name: form.get("name"), credit: form.get("credit"), notes: form.get("notes") ?? "", agree: form.get("agree") === "true" }
+  const fields = { kind, target: form.get("target") ?? "", details: parsedDetails(form.get("details")), bytes, files, name: form.get("name"), credit: sentCredit(form.get("credit")), notes: form.get("notes") ?? "", agree: form.get("agree") === "true" }
   const { problems, clean } = await checkSubmission(fields, submissionContext(fonts, path => asset(context, path)))
   const problem = Object.values(problems)[0]
   if (problem) throw new Refusal(400, problem)
@@ -158,7 +179,7 @@ function phrase(...parts) {
 function pullText(env, origin, row, described, preview, commit) {
   const { noun } = SUBMISSION_KINDS[row.kind]
   const body = [
-    `New ${phrase(noun, inline(row.name), described.where)}, credited to ${inline(row.credit)}.`,
+    `New ${phrase(noun, inline(row.name), described.where)}, credited to ${row.credit.map(inline).join(", ")}.`,
     row.ownerName ? `Sent from the website by ${inline(row.ownerName)} (${row.ownerProvider}).` : ANONYMOUS,
     `**[Preview it on the site](${origin}/submissions/${row.id})**`,
     preview ? `<img src="https://raw.githubusercontent.com/${repository(env)}/${commit}/${preview}" alt="" width="512">` : null,
@@ -223,7 +244,7 @@ async function syncSubmission(context, row, fonts, open = null) {
   const text = pullText(env, new URL(request.url).origin, row, described, written.preview, made.sha)
   if (row.pull) await github(env, `pulls/${row.pull}`, { method: "PATCH", body: text })
   else row.pull = (await github(env, "pulls", { method: "POST", body: { ...text, head: branchOf(row.id), base: BASE, maintainer_can_modify: true } })).number
-  await env.DB.prepare("UPDATE submissions SET kind = ?, target = ?, asset = ?, name = ?, credit = ?, notes = ?, details = ?, file = ?, pull = ?, updated_at = ? WHERE id = ?").bind(row.kind, row.target, row.asset, row.name, row.credit, row.notes, row.details, row.file, row.pull, Date.now(), row.id).run()
+  await env.DB.prepare("UPDATE submissions SET kind = ?, target = ?, asset = ?, name = ?, credit = ?, notes = ?, details = ?, file = ?, pull = ?, updated_at = ? WHERE id = ?").bind(row.kind, row.target, row.asset, row.name, JSON.stringify(row.credit), row.notes, row.details, row.file, row.pull, Date.now(), row.id).run()
 }
 
 async function uploadFile(env, bytes) {
@@ -402,7 +423,7 @@ async function openedSubmission(context, user, { clean, fonts, bytes, files }) {
   const placeholder = assetId(clean.name, new Set())
   const [, inserted] = await env.DB.batch([
     saveUser(env, user),
-    env.DB.prepare(`INSERT INTO submissions (id, user_id, kind, target, asset, name, credit, notes, details, file, created_at, updated_at) VALUES (${NEXT_ID}, ${USER_ROW}, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`).bind(user.provider, user.providerId, clean.kind, clean.target, placeholder, clean.name, clean.credit, clean.notes, details, file, now, now),
+    env.DB.prepare(`INSERT INTO submissions (id, user_id, kind, target, asset, name, credit, notes, details, file, created_at, updated_at) VALUES (${NEXT_ID}, ${USER_ROW}, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`).bind(user.provider, user.providerId, clean.kind, clean.target, placeholder, clean.name, JSON.stringify(clean.credit), clean.notes, details, file, now, now),
     rememberUser(env, user)
   ])
   const row = { id: inserted.results[0].id, ...clean, asset: placeholder, details, file, pull: null, ownerName: user.name, ownerProvider: user.provider }
@@ -508,11 +529,11 @@ export const listSubmissions = guarded(async context => {
   if (new URL(request.url).searchParams.has("review")) {
     const user = await reviewerOf(context)
     const { results } = await env.DB.prepare(`SELECT ${SHOWN}, ${OWNER} FROM submissions WHERE status = 'open' ORDER BY id LIMIT ?`).bind(SUBMISSION_LIMITS.listed).all()
-    return reply(200, { submissions: results.map(row => shown(env, row, user)) })
+    return reply(200, { submissions: results.map(row => shown(env, withCredit(row), user)) })
   }
   const user = await requireUser(context, SIGN_IN)
   const { results } = await env.DB.prepare(`SELECT ${SHOWN}, ${OWNER} FROM submissions WHERE user_id = ${USER_ROW} ORDER BY id DESC LIMIT ?`).bind(user.provider, user.providerId, SUBMISSION_LIMITS.listed).all()
-  return reply(200, { submissions: results.map(row => shown(env, row, user)) })
+  return reply(200, { submissions: results.map(row => shown(env, withCredit(row), user)) })
 })
 
 export const submissionDetails = guarded(async context => {
@@ -636,7 +657,7 @@ export const markNotificationsSeen = guarded(async context => {
 })
 
 async function pulledSubmission(env, pull) {
-  return await env.DB.prepare(`SELECT ${SHOWN} FROM submissions WHERE pull = ?`).bind(pull).first()
+  return withCredit(await env.DB.prepare(`SELECT ${SHOWN} FROM submissions WHERE pull = ?`).bind(pull).first())
 }
 
 async function pullClosed(context, pull, sender) {
@@ -677,7 +698,7 @@ async function rebuildAfterPush(context, payload) {
   const { env } = context
   const touched = new Set((payload.commits ?? []).flatMap(commit => [].concat(commit.added ?? [], commit.modified ?? [], commit.removed ?? [])))
   const { results: open } = await env.DB.prepare(`SELECT ${SHOWN}, ${OWNER} FROM submissions WHERE status = 'open' ORDER BY id`).all()
-  const pulled = open.filter(row => row.pull)
+  const pulled = open.filter(row => row.pull).map(withCredit)
   if (!pulled.length) return
   const fonts = await publishedFonts(context)
   for (const row of pulled) {

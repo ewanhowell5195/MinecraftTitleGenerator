@@ -9,7 +9,7 @@
       "overlays": [
         { "overlay": "highlights_top", "blend": "screen", "colour": "#1ec877", "opacity": 70 }
       ],
-      "author": "Ewan Howell",
+      "authors": ["Ewan Howell"],
       "border": "#000000"
     },
     "smooth": {
@@ -18,7 +18,7 @@
       "overlays": [
         { "overlay": "highlights_bottom", "blend": "lighter", "colour": "#4a4a4a", "opacity": 47 }
       ],
-      "author": "Ewan Howell",
+      "authors": ["Ewan Howell"],
       "border": "#000000",
       "variants": {
         "smooth_inverted": {
@@ -46,7 +46,7 @@
     },
     "flat_coloured": {
       "type": "strip",
-      "author": "Ewan Howell",
+      "authors": ["Ewan Howell"],
       "border": "#000000"
     },
     "story_mode": {
@@ -57,7 +57,7 @@
       ],
       "name": "Story Mode (Season 2)",
       "category": "Story Mode",
-      "author": "Ewan Howell",
+      "authors": ["Ewan Howell"],
       "border": "#000000",
       "variants": {
         "story_mode1": {
@@ -75,7 +75,7 @@
         { "overlay": "highlights_bottom", "blend": "soft-light" }
       ],
       "name": "Mine-Imator Family",
-      "author": "ModelBench & ShrimpSnail",
+      "authors": ["ModelBench", "ShrimpSnail"],
       "border": "#121833"
     },
     "deep_dark": {
@@ -84,7 +84,7 @@
         { "overlay": "highlights_top", "blend": "source-over", "colour": "#40b2b7" }
       ],
       "name": "Deep Dark (Wild Update)",
-      "author": "Banjoei & ShrimpSnail",
+      "authors": ["Banjoei", "ShrimpSnail"],
       "border": "#000000"
     },
     "fruit": {
@@ -92,7 +92,7 @@
       "overlays": [
         { "overlay": "highlights_top", "opacity": 58 }
       ],
-      "author": "Ewan Howell & DamienBrittan",
+      "authors": ["Ewan Howell", "DamienBrittan"],
       "border": "#260b28"
     },
     "grass": {
@@ -100,14 +100,14 @@
       "overlays": [
         { "overlay": "outline", "colour": "#f6f6f5", "opacity": 46 }
       ],
-      "author": "ShrimpSnail, DamienBrittan, & blank3times",
+      "authors": ["ShrimpSnail", "DamienBrittan", "blank3times"],
       "border": "#2b040c",
       "variants": {
         "grass_side": {
           "overlays": [
             { "overlay": "outline", "colour": "#f9f9f8", "opacity": 45 }
           ],
-          "author": "Magminer & Ewan Howell",
+          "authors": ["Magminer", "Ewan Howell"],
           "border": "#2b040c"
         },
         "podzol": {
@@ -138,13 +138,13 @@
     },
     "minecon": {
       "type": "strip",
-      "author": "Ewan Howell",
+      "authors": ["Ewan Howell"],
       "border": "#2a2c30"
     },
     "oak_planks": {
       "type": "strip",
       "category": "Planks",
-      "author": "TheAnnoying",
+      "authors": ["TheAnnoying"],
       "border": "#322414",
       "variants": {
         "spruce_planks": {
@@ -178,7 +178,7 @@
           "border": "#072825"
         },
         "pale_oak_planks": {
-          "author": "0Szysza",
+          "authors": ["0Szysza"],
           "border": "#3d3838"
         }
       }
@@ -188,21 +188,21 @@
       "overlays": [
         { "overlay": "outline", "colour": "#ebebeb", "opacity": 86 }
       ],
-      "author": "Ewan Howell",
+      "authors": ["Ewan Howell"],
       "border": "#16100e"
     },
     "amethyst": {
       "type": "strip",
-      "author": "Bold_Muddy",
+      "authors": ["Bold_Muddy"],
       "border": "#000000"
     },
     "beach": {
       "type": "strip",
-      "author": "Ewan Howell",
+      "authors": ["Ewan Howell"],
       "border": "#45362a",
       "variants": {
         "sand": {
-          "author": "Magminer",
+          "authors": ["Magminer"],
           "border": "#45362a"
         }
       }
@@ -212,7 +212,7 @@
       "overlays": [
         { "overlay": "outline", "blend": "source-over" }
       ],
-      "author": "RyanCR",
+      "authors": ["RyanCR"],
       "border": "#000000",
       "variants": {
         "dock_clear": {
@@ -223,13 +223,13 @@
     },
     "dungeons_terracotta": {
       "type": "strip",
-      "author": "HARYA_",
+      "authors": ["HARYA_"],
       "border": "#000000"
     },
     "pride": {
       "type": "strip",
       "stretch": true,
-      "author": "Snuzzle",
+      "authors": ["Snuzzle"],
       "border": "#000000",
       "variants": {
         "aroace": {
@@ -248,7 +248,7 @@
           "border": "#000000"
         },
         "femboy": {
-          "author": "0Szysza",
+          "authors": ["0Szysza"],
           "border": "#000000"
         },
         "fluid": {
@@ -270,18 +270,18 @@
           "border": "#000000"
         },
         "transfeminine": {
-          "author": "0Szysza",
+          "authors": ["0Szysza"],
           "border": "#000000"
         },
         "transmasculine": {
-          "author": "0Szysza",
+          "authors": ["0Szysza"],
           "border": "#000000"
         }
       }
     },
     "bricks": {
       "type": "strip",
-      "author": "IAmMaker",
+      "authors": ["IAmMaker"],
       "border": "#3e0e14",
       "variants": {
         "bricks_minecraft": {
@@ -290,7 +290,7 @@
         },
         "bricks_bare_bones": {
           "name": "Bricks (Bare Bones)",
-          "author": "Klayv",
+          "authors": ["Klayv"],
           "border": "#190f0f"
         }
       }
@@ -304,23 +304,23 @@
         { "overlay": "highlights_top", "blend": "source-over", "colour": "#5a575a" },
         { "overlay": "highlights_bottom", "blend": "source-over", "colour": "#3b393b" }
       ],
-      "author": "Ewan Howell",
+      "authors": ["Ewan Howell"],
       "border": "#1f1a1d"
     },
     "blueprint": {
       "type": "strip",
       "tiling": "character",
-      "author": "WassMan",
+      "authors": ["WassMan"],
       "border": "#000000"
     },
     "creeper": {
       "type": "strip",
-      "author": "Andre_601",
+      "authors": ["Andre_601"],
       "border": "#000000"
     },
     "flames": {
       "type": "strip",
-      "author": "RyanCR",
+      "authors": ["RyanCR"],
       "border": "#000000",
       "variants": {
         "flames_soul": {
@@ -331,22 +331,22 @@
     },
     "sniffer": {
       "type": "strip",
-      "author": "SmarterCob",
+      "authors": ["SmarterCob"],
       "border": "#000000"
     },
     "atmosphere": {
       "type": "strip",
-      "author": "Zodiuss",
+      "authors": ["Zodiuss"],
       "border": "#36005d"
     },
     "gurgles": {
       "type": "strip",
-      "author": "B1tseK",
+      "authors": ["B1tseK"],
       "border": "#300b00"
     },
     "glow_squid": {
       "type": "strip",
-      "author": "B1tseK",
+      "authors": ["B1tseK"],
       "border": "#00302c",
       "variants": {
         "glow_squid_old": {
@@ -357,19 +357,19 @@
     },
     "cherry_blossom": {
       "type": "strip",
-      "author": "Klayv",
+      "authors": ["Klayv"],
       "border": "#441b39",
       "variants": {
         "cherry_blossom_small": {
           "name": "Cherry Blossom (Small)",
-          "author": "NotAGanesh",
+          "authors": ["NotAGanesh"],
           "border": "#3c0233"
         }
       }
     },
     "hay_bale": {
       "type": "strip",
-      "author": "Klayv",
+      "authors": ["Klayv"],
       "border": "#1c0d06"
     },
     "winter": {
@@ -377,22 +377,22 @@
       "overlays": [
         { "overlay": "highlights_bottom", "blend": "screen", "colour": "#fbfcff", "opacity": 55 }
       ],
-      "author": "Klayv",
+      "authors": ["Klayv"],
       "border": "#1d193d"
     },
     "terracotta": {
       "type": "strip",
-      "author": "Klayv",
+      "authors": ["Klayv"],
       "border": "#2a1c16"
     },
     "lagoona": {
       "type": "strip",
-      "author": "B1tseK & Ewan Howell",
+      "authors": ["B1tseK", "Ewan Howell"],
       "border": "#0a2b6b"
     },
     "enderman": {
       "type": "strip",
-      "author": "B1tseK",
+      "authors": ["B1tseK"],
       "border": "#000000"
     },
     "poplar_planks": {

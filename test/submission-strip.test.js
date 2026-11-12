@@ -163,7 +163,7 @@ let restore
 
 function form({ target = "set:minecraft-ten", details = {}, ...fields } = {}, image = png(1, 92)) {
   const data = new FormData()
-  const values = { kind: "strip", target, name: "Pale Dawn", credit: "Someone", notes: "", agree: "true", details: JSON.stringify({ border: "#3D1F0A", ...details }), ...fields }
+  const values = { kind: "strip", target, name: "Pale Dawn", credit: JSON.stringify(["Someone"]), notes: "", agree: "true", details: JSON.stringify({ border: "#3D1F0A", ...details }), ...fields }
   for (const [key, value] of Object.entries(values)) data.set(key, value)
   if (image) data.set("file", new Blob([image], { type: "image/png" }), "strip.png")
   return data
@@ -197,7 +197,7 @@ describe("sending a strip", () => {
     const { status, id } = await send(cookie, { details: { stretch: true } }, png(16, 46))
     assert.equal(status, 201)
     const set = onMain(SET)
-    assert.equal(branchFile(id, SET), `${jsonText({ ...set, textures: { ...set.textures, pale_dawn: { type: "strip", stretch: true, author: "Someone", border: "#3d1f0a" } } })}\n`)
+    assert.equal(branchFile(id, SET), `${jsonText({ ...set, textures: { ...set.textures, pale_dawn: { type: "strip", stretch: true, authors: ["Someone"], border: "#3d1f0a" } } })}\n`)
     assert.ok(gh.filesAt(`submission/${id}`).has("public/strips/minecraft-ten/textures/pale_dawn.png"))
     assert.equal(gh.pulls.get(1).title, "Pale Dawn strip for the Minecraft Ten strip type")
     assert.equal(gh.commits.get(gh.refs.get(`heads/submission/${id}`)).message, "add Pale Dawn strip to the Minecraft Ten strip type")
@@ -209,7 +209,7 @@ describe("sending a strip", () => {
     const cookie = await signIn()
     const { id } = await send(cookie, { target: "font:minecraft-five", name: "Edition" }, png(1, 76))
     const list = branchJson(id, "public/font/minecraft-five/textures.json")
-    assert.deepEqual(list.textures.edition_2, { type: "strip", name: "Edition", author: "Someone", border: "#3d1f0a" })
+    assert.deepEqual(list.textures.edition_2, { type: "strip", name: "Edition", authors: ["Someone"], border: "#3d1f0a" })
     assert.ok(gh.filesAt(`submission/${id}`).has("public/font/minecraft-five/textures/edition_2.png"))
     assert.equal(gh.pulls.get(1).title, "Edition strip for Minecraft Five")
   })
@@ -218,11 +218,11 @@ describe("sending a strip", () => {
     const cookie = await signIn()
     const { status, id } = await send(cookie, { target: "new", details: { set: "Soft Edge", ...NEW_SHAPE, fonts: ["minecraft-five", "geo-squares"] } }, png(2, 80))
     assert.equal(status, 201)
-    assert.deepEqual(branchJson(id, "public/strips/soft-edge/textures.json"), { ...NEW_SHAPE, textures: { pale_dawn: { type: "strip", author: "Someone", border: "#3d1f0a" } } })
+    assert.deepEqual(branchJson(id, "public/strips/soft-edge/textures.json"), { ...NEW_SHAPE, textures: { pale_dawn: { type: "strip", authors: ["Someone"], border: "#3d1f0a" } } })
     assert.ok(gh.filesAt(`submission/${id}`).has("public/strips/soft-edge/textures/pale_dawn.png"))
     const fonts = branchJson(id, FONTS)
     const five = fonts.find(font => font.id === "minecraft-five")
-    assert.deepEqual(Object.keys(five).slice(0, 3), ["id", "author", "strips"])
+    assert.deepEqual(Object.keys(five).slice(0, 3), ["id", "authors", "strips"])
     assert.deepEqual(five.strips, [{ id: "soft-edge", offset: -1 }])
     assert.deepEqual(fonts.find(font => font.id === "geo-squares").strips, ["minecraft-ten", "soft-edge"])
     const flat = flattenFonts(fonts)
@@ -277,10 +277,10 @@ describe("sending a strip", () => {
     const { id } = await send(cookie)
     const set = onMain(SET)
     const changed = new Map(gh.filesAt("main"))
-    changed.set(SET, gh.blob(Buffer.from(`${JSON.stringify({ ...set, textures: { ...set.textures, pale_dawn: { type: "strip", author: "Earlier" } } })}\n`)))
+    changed.set(SET, gh.blob(Buffer.from(`${JSON.stringify({ ...set, textures: { ...set.textures, pale_dawn: { type: "strip", authors: ["Earlier"] } } })}\n`)))
     gh.refs.set("heads/main", gh.commit(changed, [gh.main()], "someone else's strip"))
     await hook("push", { ref: "refs/heads/main", commits: [{ added: [], modified: [SET], removed: [] }] })
-    assert.equal(branchJson(id, SET).textures.pale_dawn.author, "Earlier")
+    assert.deepEqual(branchJson(id, SET).textures.pale_dawn.authors, ["Earlier"])
     assert.ok(branchJson(id, SET).textures.pale_dawn_2)
   })
 })

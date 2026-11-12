@@ -1,7 +1,7 @@
 {
   "textures": {
     "flat": {
-      "author": "Ewan Howell",
+      "authors": ["Ewan Howell"],
       "border": "#000000"
     },
     "edition": {
@@ -9,27 +9,27 @@
       "overlays": [
         { "overlay": "highlights_bottom", "blend": "source-over", "colour": "#fff9f7", "opacity": 61 }
       ],
-      "author": "Ewan Howell",
+      "authors": ["Ewan Howell"],
       "border": "#000000"
     },
     "gradient": {
-      "author": "Cubeoidal",
+      "authors": ["Cubeoidal"],
       "basedOn": "strips.minecraft-ten.gradient",
       "border": "#000000"
     },
     "flat_coloured": {
       "type": "strip",
-      "author": "Ewan Howell",
+      "authors": ["Ewan Howell"],
       "border": "#000000"
     },
     "bubbles": {
-      "author": "Cubeoidal",
+      "authors": ["Cubeoidal"],
       "basedOn": "minecraft-ten.bubbles",
       "border": "#1d0e46"
     },
     "mangrove": {
       "name": "Mangrove (Wild Update)",
-      "author": "Cubeoidal",
+      "authors": ["Cubeoidal"],
       "basedOn": "minecraft-ten.mangrove",
       "border": "#000000"
     },
@@ -72,11 +72,11 @@
       }
     },
     "dots": {
-      "author": "Ewan Howell",
+      "authors": ["Ewan Howell"],
       "border": "#000000"
     },
     "bevelled_gold": {
-      "author": "PopitTart",
+      "authors": ["PopitTart"],
       "basedOn": "minecraft-ten.bevelled_gold",
       "density": 4,
       "border": "#3f0f0f"
@@ -139,7 +139,7 @@
     },
     "neon_glow": {
       "category": "Neon",
-      "author": "MCAlexisYT",
+      "authors": ["MCAlexisYT"],
       "basedOn": "minecraft-ten.neon_glow",
       "border": "#18041a",
       "variants": {
@@ -157,7 +157,7 @@
       "overlays": [
         { "overlay": "outline", "blend": "source-over", "colour": "#f37eff", "opacity": 68 }
       ],
-      "author": "Ewan Howell",
+      "authors": ["Ewan Howell"],
       "border": "#000000",
       "variants": {
         "mob_vote_gold": {

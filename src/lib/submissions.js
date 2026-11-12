@@ -1,6 +1,7 @@
+import { AUTHOR_LIMITS, authorList } from "./authors.js"
 import { blockedWordProblem } from "./wording.js"
 
-export const SUBMISSION_LIMITS = { name: 40, credit: 60, notes: 500, fileBytes: 1900000, totalBytes: 12000000, extraFiles: 24, side: 4096, perDay: 10, listed: 100, notifications: 50, comment: 2000, comments: 200, commentsPerDay: 50 }
+export const SUBMISSION_LIMITS = { name: 40, notes: 500, fileBytes: 1900000, totalBytes: 12000000, extraFiles: 24, side: 4096, perDay: 10, listed: 100, notifications: 50, comment: 2000, comments: 200, commentsPerDay: 50 }
 
 export const EXTRA_FILE = /^[a-z0-9-]{1,40}$/
 
@@ -23,10 +24,18 @@ export function textProblem(value, label, limit, { required = false, noun = "sub
   return blockedWordProblem(label, text)
 }
 
+export function creditProblem(value, noun, required = true) {
+  if (!Array.isArray(value) || value.some(name => typeof name !== "string")) return "The credit has to be a list of names."
+  const names = authorList(value)
+  if (required && !names.length) return `Add who made the ${noun}.`
+  if (names.length > AUTHOR_LIMITS.names) return `The credit can list up to ${AUTHOR_LIMITS.names} names.`
+  return names.map(name => textProblem(name, "name in the credit", AUTHOR_LIMITS.name)).find(Boolean) ?? null
+}
+
 export function commonProblems(fields, noun) {
   const problems = {
     name: textProblem(fields.name, "name", SUBMISSION_LIMITS.name, { required: true, noun }),
-    credit: textProblem(fields.credit, "credit", SUBMISSION_LIMITS.credit, { required: true, noun }),
+    credit: creditProblem(fields.credit, noun),
     notes: textProblem(fields.notes ?? "", "notes", SUBMISSION_LIMITS.notes, { noun, lines: true }),
     agree: fields.agree === true ? null : "Agree to the submission terms to send it."
   }
@@ -34,7 +43,7 @@ export function commonProblems(fields, noun) {
 }
 
 export function cleanCommon(fields) {
-  return { name: fields.name.trim(), credit: fields.credit.trim(), notes: (fields.notes ?? "").replace(/\r\n?/g, "\n").trim() }
+  return { name: fields.name.trim(), credit: authorList(fields.credit), notes: (fields.notes ?? "").replace(/\r\n?/g, "\n").trim() }
 }
 
 export function pngSize(bytes) {

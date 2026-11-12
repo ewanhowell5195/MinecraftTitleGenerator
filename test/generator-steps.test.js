@@ -60,7 +60,7 @@ describe("the font asset step", () => {
 
   test("reads the fonts of the root it is given", () => {
     const root = tempRoot()
-    writeJson(root, "public/font/fonts.json", [{ id: "only-here", author: "Someone" }])
+    writeJson(root, "public/font/fonts.json", [{ id: "only-here", authors: ["Someone"] }])
     assert.deepEqual(asked(fontAssetStep, root, ["public/font/only-here/textures.json"]), [["generator/thumbnails.js", "only-here"]])
     assert.deepEqual(asked(fontAssetStep, root, ["public/font/minecraft-ten/textures.json"]), [])
   })
@@ -79,7 +79,7 @@ describe("the strip step", () => {
 describe("the shape step", () => {
   test("turns a held silhouette into the shape's files inside the root it is given", () => {
     const root = tempRoot()
-    writeJson(root, "public/shapes/shapes.json", [{ id: "generator-test-star", author: "Someone", kind: "png", order: "x" }])
+    writeJson(root, "public/shapes/shapes.json", [{ id: "generator-test-star", authors: ["Someone"], kind: "png", order: "x" }])
     writeImage(root, "submissions/shapes/generator-test-star.png", 12, 20)
     assert.deepEqual(asked(shapeStep, root, ["submissions/shapes/generator-test-star.png"]), [["generator/thumbnails.js", "generator-test-star"]])
     const folder = path.join(root, "public/shapes/generator-test-star")
@@ -115,7 +115,7 @@ describe("the shape step", () => {
     const root = tempRoot()
     const folder = "public/shapes/block"
     writeJson(root, `${folder}/model.json`, { elements: [{ from: [0, 0, 0], to: [8, 16, 1], faces: { north: { uv: [0, 0, 16, 16] } } }] })
-    writeJson(root, `${folder}/textures.json`, { textures: { default: { author: "Someone", border: "#000000" } }, overlays: {}, primary: "default", secondary: "default" })
+    writeJson(root, `${folder}/textures.json`, { textures: { default: { authors: ["Someone"], border: "#000000" } }, overlays: {}, primary: "default", secondary: "default" })
     writeImage(root, `${folder}/textures/default.png`, 16, 16)
     asked(shapeStep, root, [`${folder}/model.json`])
     assert.deepEqual(fs.readdirSync(path.join(root, folder, "thumbnails")).sort(), ["default.png", "flat.png"])

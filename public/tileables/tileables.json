@@ -1,18 +1,18 @@
 {
   "checkerboard": {
-    "author": "Ewan Howell",
+    "authors": ["Ewan Howell"],
     "path": "patterns"
   },
   "diagonal_up": {
     "category": "Diagonal",
-    "author": "Ewan Howell",
+    "authors": ["Ewan Howell"],
     "path": "patterns",
     "variants": {
       "diagonal_down": {}
     }
   },
   "twisted_wood": {
-    "author": "CCCode",
+    "authors": ["CCCode"],
     "path": "dokucraft"
   },
   "classic_cobblestone": {

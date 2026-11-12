@@ -10,7 +10,7 @@ const BORDER = "#000000"
 async function listed(row, read, taken) {
   const list = JSON.parse(await read(LIST))
   const asset = assetId(row.name, new Set(list.map(entry => entry.id).concat(taken)))
-  return { list, asset, entry: { id: asset, ...(row.name !== titleCase(asset) && { name: row.name }), author: row.credit } }
+  return { list, asset, entry: { id: asset, ...(row.name !== titleCase(asset) && { name: row.name }), authors: row.credit } }
 }
 
 function listFile(list) {
@@ -45,7 +45,7 @@ export const shapeModel = {
     if (!texture) throw new Error(`submission ${row.id} has no texture`)
     const { list, asset, entry } = await listed(row, read, taken)
     const folder = `public/shapes/${asset}`
-    const textures = { textures: { [SHAPE_TEXTURE]: { author: row.credit, border: BORDER } }, overlays: {}, primary: SHAPE_TEXTURE, secondary: SHAPE_TEXTURE }
+    const textures = { textures: { [SHAPE_TEXTURE]: { authors: row.credit, border: BORDER } }, overlays: {}, primary: SHAPE_TEXTURE, secondary: SHAPE_TEXTURE }
     const image = `${folder}/textures/${SHAPE_TEXTURE}.png`
     return {
       asset,

@@ -326,7 +326,7 @@ describe("saving and reopening", () => {
     return fontFromFiles({ sheet: parts.includes("sheet") ? sheet : null, json: parts.includes("json") ? json : null })
   }
 
-  let original = { ...createFont({ height: 10, width: 6, grid: 2, density: 4 }), creeper: true, name: "My Own Font", author: "someone", description: "words", depth: 16, border: 3, spaceWidth: 12, characterSpacing: 2, forcedTerminators: true, terminatorSpace: true, autoBorder: true, flat: true, overlay: true, strips: ["minecraft-ten"], kerning: { av: 4 }, basedOn: "minecraft-ten" }
+  let original = { ...createFont({ height: 10, width: 6, grid: 2, density: 4 }), creeper: true, name: "My Own Font", authors: ["someone", "Friend"], description: "words", depth: 16, border: 3, spaceWidth: 12, characterSpacing: 2, forcedTerminators: true, terminatorSpace: true, autoBorder: true, flat: true, overlay: true, strips: ["minecraft-ten"], kerning: { av: 4 }, basedOn: "minecraft-ten" }
   original = strokeCell(original, "a", 1, 2)
   original = changeGlyph(original, "g", { below: 2, width: 8 })
   original = strokeCell(original, "g", 7, -2)
@@ -392,7 +392,7 @@ describe("saving and reopening", () => {
 
   test("both files restore everything", () => {
     const restored = roundTrip(original, ["sheet", "json"])
-    for (const key of ["name", "author", "description", "height", "width", "grid", "density", "depth", "border", "spaceWidth", "characterSpacing", "forcedTerminators", "terminatorSpace", "autoBorder", "flat", "overlay", "basedOn"]) assert.deepEqual(restored[key], original[key], key)
+    for (const key of ["name", "authors", "description", "height", "width", "grid", "density", "depth", "border", "spaceWidth", "characterSpacing", "forcedTerminators", "terminatorSpace", "autoBorder", "flat", "overlay", "basedOn"]) assert.deepEqual(restored[key], original[key], key)
     assert.deepEqual(restored.strips, original.strips)
     assert.deepEqual(restored.kerning, original.kerning)
     assert.deepEqual(sheetOf(restored).list.map(comparable), sheetOf(original).list.map(comparable))
@@ -535,7 +535,7 @@ describe("starting from a published font", () => {
 
   test("the depth, border, flat setting and strips come across, the author and description do not", () => {
     const { font } = copyOf("minecraft-ten-outline")
-    assert.deepEqual([font.name, font.depth, font.border, font.flat, font.author, font.description, font.overlay], ["minecraft-ten-outline Copy", 0, 0, true, "", "", false])
+    assert.deepEqual([font.name, font.depth, font.border, font.flat, font.authors, font.description, font.overlay], ["minecraft-ten-outline Copy", 0, 0, true, [], "", false])
     assert.deepEqual(copyOf("minecraft-ten").font.strips, ["minecraft-ten"])
   })
 })
@@ -651,7 +651,7 @@ describe("importing a font file", () => {
     const source = await testFont()
     source.names = {}
     const font = fontFromOutlines(source, { height: 21 })
-    assert.deepEqual([font.name, font.author], ["Imported Font", ""])
+    assert.deepEqual([font.name, font.authors], ["Imported Font", []])
   })
 })
 

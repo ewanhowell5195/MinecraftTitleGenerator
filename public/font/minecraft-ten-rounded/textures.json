@@ -4,7 +4,7 @@
       "border": "#000000"
     },
     "cracked": {
-      "author": "loganroman",
+      "authors": ["loganroman"],
       "basedOn": "minecraft-ten.cracked",
       "density": 3,
       "border": "#000000"

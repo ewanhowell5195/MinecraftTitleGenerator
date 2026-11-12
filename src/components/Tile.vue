@@ -1,5 +1,6 @@
 <script setup>
   import { ref } from "vue"
+  import { authorText } from "../lib/authors.js"
   import ContextMenu from "./ContextMenu.vue"
 
   const props = defineProps({
@@ -8,7 +9,7 @@
     image: { type: String, default: null },
     unit: { type: Number, default: null },
     pattern: { type: Object, default: null },
-    author: { type: String, default: null },
+    author: { type: [String, Array], default: null },
     tooltip: { type: String, default: null },
     badge: { type: Number, default: 0 },
     faded: { type: Boolean, default: false },
@@ -37,7 +38,7 @@
 </script>
 
 <template>
-  <component :is="href ? 'a' : 'div'" class="tile card" :class="{ selected, faded, still, small }" :href="href" v-tooltip="author ? { text: `By ${author}`, tooltipClass: 'slow' } : tooltip" :tabindex="href || still ? null : 0" :role="href || still ? null : 'button'" :aria-pressed="href || still ? null : selected" @click="still || emit('pick')" @keydown.enter="still || emit('pick')" @keydown.space.self="space" @contextmenu="openMenu" @dragstart.prevent>
+  <component :is="href ? 'a' : 'div'" class="tile card" :class="{ selected, faded, still, small }" :href="href" v-tooltip="author ? { text: `By ${Array.isArray(author) ? authorText(author) : author}`, tooltipClass: 'slow' } : tooltip" :tabindex="href || still ? null : 0" :role="href || still ? null : 'button'" :aria-pressed="href || still ? null : selected" @click="still || emit('pick')" @keydown.enter="still || emit('pick')" @keydown.space.self="space" @contextmenu="openMenu" @dragstart.prevent>
     <div v-if="$slots.picture" class="thumb picture" :style="{ aspectRatio: aspect }"><slot name="picture"></slot></div>
     <div v-else-if="image" class="thumb picture" :style="{ aspectRatio: aspect }"><img :src="image" alt="" :style="unit ? { height: `${unit}px` } : null"></div>
     <div v-else class="thumb pattern" :style="[pattern, { aspectRatio: aspect }]"></div>

@@ -145,11 +145,11 @@ describe("checking a font", () => {
   })
 
   test("bundled textures, overlays and strips are checked against the font's template", async () => {
-    const extras = [{ key: "a", kind: "texture", name: "Gold", border: "#AABBCC" }, { key: "b", kind: "overlay", name: "Sparkle", border: "#000000" }, { key: "c", kind: "strip", name: "Stripes", border: "#000000", credit: "Someone Else" }]
+    const extras = [{ key: "a", kind: "texture", name: "Gold", border: "#AABBCC" }, { key: "b", kind: "overlay", name: "Sparkle", border: "#000000" }, { key: "c", kind: "strip", name: "Stripes", border: "#000000", credit: ["Someone Else", " someone  else ", "Friend"] }]
     const files = { a: plainPng(566 * 2, 356 * 2), b: plainPng(566, 356), c: plainPng(1, 92 * 4) }
     const { problems, details } = await check({ bytes: f8thful, details: { id: "x", extras, files: { forged: "abc" } }, files })
     assert.deepEqual(Object.values(problems).filter(Boolean), [])
-    assert.deepEqual(details.extras, [{ key: "a", kind: "texture", name: "Gold", border: "#aabbcc", density: 2 }, { key: "b", kind: "overlay", name: "Sparkle" }, { key: "c", kind: "strip", name: "Stripes", credit: "Someone Else", border: "#000000" }])
+    assert.deepEqual(details.extras, [{ key: "a", kind: "texture", name: "Gold", border: "#aabbcc", density: 2 }, { key: "b", kind: "overlay", name: "Sparkle" }, { key: "c", kind: "strip", name: "Stripes", credit: ["Someone Else", "Friend"], border: "#000000" }])
     assert.equal(details.files, undefined)
     assert.deepEqual(kind.fileKeys(details), ["a", "b", "c"])
     const wrong = await check({ bytes: f8thful, details: { id: "x", extras }, files: { a: plainPng(500, 356), b: plainPng(566, 356), c: plainPng(1, 90) } })
@@ -224,11 +224,11 @@ describe("the workflow step", () => {
 
   test("turns a held font and its bundle into the font's files and fonts.json entry", async () => {
     const root = tempRoot()
-    addEntry(root, { id: "test-font", name: "Testing", author: "Someone" })
+    addEntry(root, { id: "test-font", name: "Testing", authors: ["Someone"] })
     const held = hold(root, "test-font", f8thful)
     const folder = path.join(root, "public/font/test-font")
     fs.mkdirSync(path.join(folder, "textures"), { recursive: true })
-    fs.writeFileSync(path.join(folder, "textures.json"), `${jsonText({ textures: { flat: { border: "#000000" }, gold: { author: "Someone", density: 2, border: "#000000" } }, overlays: {} })}\n`)
+    fs.writeFileSync(path.join(folder, "textures.json"), `${jsonText({ textures: { flat: { border: "#000000" }, gold: { authors: ["Someone"], density: 2, border: "#000000" } }, overlays: {} })}\n`)
     fs.writeFileSync(path.join(folder, "textures/gold.png"), plainPng(566 * 2, 356 * 2))
     const ran = []
     await prepare({ root, changed: [LIST, held, "public/font/test-font/textures.json"], node: (...args) => ran.push(args) })
@@ -236,7 +236,7 @@ describe("the workflow step", () => {
     assert.ok(!fs.existsSync(path.join(root, held)))
     const { entry, flat } = assertPublishable(root, "test-font")
     const source = published.find(item => item.id === "f8thful")
-    assert.deepEqual(Object.keys(entry).slice(0, 4), ["id", "name", "author", "basedOn"])
+    assert.deepEqual(Object.keys(entry).slice(0, 4), ["id", "name", "authors", "basedOn"])
     assert.equal(entry.basedOn, "f8thful")
     assert.equal(entry.order, source.order)
     assert.deepEqual(entry.kerning, source.kerning)
@@ -246,18 +246,18 @@ describe("the workflow step", () => {
 
   test("refuses a bundled texture that doesn't fit the converted font", async () => {
     const root = tempRoot()
-    addEntry(root, { id: "test-font", author: "Someone" })
+    addEntry(root, { id: "test-font", authors: ["Someone"] })
     const held = hold(root, "test-font", f8thful)
     const folder = path.join(root, "public/font/test-font")
     fs.mkdirSync(path.join(folder, "textures"), { recursive: true })
-    fs.writeFileSync(path.join(folder, "textures.json"), `${jsonText({ textures: { flat: { border: "#000000" }, gold: { author: "Someone", border: "#000000" } }, overlays: {} })}\n`)
+    fs.writeFileSync(path.join(folder, "textures.json"), `${jsonText({ textures: { flat: { border: "#000000" }, gold: { authors: ["Someone"], border: "#000000" } }, overlays: {} })}\n`)
     fs.writeFileSync(path.join(folder, "textures/gold.png"), plainPng(500, 300))
     await assert.rejects(prepare({ root, changed: [held], node: () => {} }), /gold.png is 500x300/)
   })
 
   test("drops blank characters and starts a separate variant with a flat texture", async () => {
     const root = tempRoot()
-    addEntry(root, { id: "ten-greek", name: "Greek", author: "Someone" }, "minecraft-ten")
+    addEntry(root, { id: "ten-greek", name: "Greek", authors: ["Someone"] }, "minecraft-ten")
     const held = hold(root, "ten-greek", jsonOf(copyOf("minecraft-ten-cyrillic")))
     await prepare({ root, changed: [held], node: () => {} })
     const { entry, folder } = assertPublishable(root, "ten-greek")
@@ -274,7 +274,7 @@ let restore
 
 function form({ target = "", details = { id: "test-font" }, name = "Test Font", file = f8thful, extras = {} } = {}) {
   const data = new FormData()
-  for (const [key, value] of Object.entries({ kind: "font", target, name, credit: "Someone", notes: "", agree: "true", details: JSON.stringify(details) })) data.set(key, value)
+  for (const [key, value] of Object.entries({ kind: "font", target, name, credit: JSON.stringify(["Someone"]), notes: "", agree: "true", details: JSON.stringify(details) })) data.set(key, value)
   if (file) data.set("file", new Blob([file], { type: "application/json" }), "font.json")
   for (const [key, bytes] of Object.entries(extras)) data.set(`extra:${key}`, new Blob([bytes], { type: "image/png" }), `${key}.png`)
   return data
@@ -313,13 +313,13 @@ describe("sending a font", () => {
   test("holds the JSON and adds the font to the end of fonts.json, with its bundle in its folder", async () => {
     const cookie = await signIn()
     const extras = { gold: plainPng(566, 356), sparkle: plainPng(566 * 2, 356 * 2) }
-    const details = { id: "test-font", extras: [{ key: "gold", kind: "texture", name: "Gold Bricks", border: "#3d1f0a" }, { key: "sparkle", kind: "overlay", name: "Sparkle", credit: "Helper" }] }
+    const details = { id: "test-font", extras: [{ key: "gold", kind: "texture", name: "Gold Bricks", border: "#3d1f0a" }, { key: "sparkle", kind: "overlay", name: "Sparkle", credit: ["Helper", "Someone"] }] }
     const { status, id } = await send(cookie, { details, extras })
     assert.equal(status, 201)
     const list = JSON.parse(branchFile(id, LIST).toString())
-    assert.deepEqual(list.at(-1), { id: "test-font", author: "Someone" })
+    assert.deepEqual(list.at(-1), { id: "test-font", authors: ["Someone"] })
     assert.deepEqual(branchFile(id, "submissions/fonts/test-font.json"), Buffer.from(f8thful))
-    assert.deepEqual(JSON.parse(branchFile(id, "public/font/test-font/textures.json").toString()), { textures: { flat: { border: "#000000" }, gold_bricks: { author: "Someone", border: "#3d1f0a" } }, overlays: { sparkle: { author: "Helper", density: 2 } } })
+    assert.deepEqual(JSON.parse(branchFile(id, "public/font/test-font/textures.json").toString()), { textures: { flat: { border: "#000000" }, gold_bricks: { authors: ["Someone"], border: "#3d1f0a" } }, overlays: { sparkle: { authors: ["Helper", "Someone"], density: 2 } } })
     assert.equal(sha1(branchFile(id, "public/font/test-font/overlays/sparkle.png")), sha1(extras.sparkle))
     assert.ok(branchFile(id, "public/font/test-font/textures/gold_bricks.png"))
     assert.equal(gh.pulls.get(1).title, "Test Font font")
@@ -338,11 +338,11 @@ describe("sending a font", () => {
     const first = await send(cookie, { target: "minecraft-ten", name: "Alt", file: jsonOf(copyOf("minecraft-ten-cyrillic"), "ten-alt") })
     assert.equal(first.status, 201)
     const parent = JSON.parse(branchFile(first.id, LIST).toString()).find(item => item.id === "minecraft-ten")
-    assert.deepEqual(parent.variants.at(-1), { id: "ten-alt", name: "Alt", author: "Someone" })
+    assert.deepEqual(parent.variants.at(-1), { id: "ten-alt", name: "Alt", authors: ["Someone"] })
     assert.equal(gh.pulls.get(1).title, "Alt font for Minecraft Ten")
     const second = await send(cookie, { name: "Ten Alt", file: jsonOf(copyOf("f8thful"), "ten-alt") })
     assert.equal(second.status, 201)
-    assert.deepEqual(JSON.parse(branchFile(second.id, LIST).toString()).at(-1), { id: "ten-alt-2", name: "Ten Alt", author: "Someone" })
+    assert.deepEqual(JSON.parse(branchFile(second.id, LIST).toString()).at(-1), { id: "ten-alt-2", name: "Ten Alt", authors: ["Someone"] })
     assert.ok(branchFile(second.id, "submissions/fonts/ten-alt-2.json"))
   })
 

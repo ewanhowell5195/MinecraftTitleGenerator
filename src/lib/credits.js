@@ -1,5 +1,6 @@
 import { reactive } from "vue"
 import { fontTextures, stripTextures } from "./assets.js"
+import { authorText } from "./authors.js"
 import { fullName, sheetFolder, stripsOf } from "./font.js"
 import { titleCase } from "./names.js"
 
@@ -38,7 +39,7 @@ export function findEntry(list, id) {
     if (group?.[id]) return group[id]
     for (const parent of Object.values(group ?? {})) {
       const variant = parent.variants?.[id]
-      if (variant) return variant.author || variant.basedOn ? variant : parent
+      if (variant) return variant.authors || variant.basedOn ? variant : parent
     }
   }
   return null
@@ -55,9 +56,9 @@ function ownerOf(data, fallback) {
 }
 
 function follow(data, owner, viewed, fonts) {
-  if (!data.basedOn) return data.author ?? null
+  if (!data.basedOn) return authorText(data.authors) || null
   const target = basedOnParts(data.basedOn, ownerOf(data, owner))
-  if (data.author) return `${data.author}, based on ${basedOnName(target, viewed, fonts)}`
+  if (data.authors) return `${authorText(data.authors)}, based on ${basedOnName(target, viewed, fonts)}`
   const list = listOf(target.owner, fonts)
   if (!list) return null
   const entry = findEntry(list, target.id)
@@ -66,14 +67,14 @@ function follow(data, owner, viewed, fonts) {
 }
 
 export function fontCredit(data, fonts) {
-  if (!data.basedOn) return data.author ?? null
+  if (!data.basedOn) return authorText(data.authors) || null
   const target = fonts.find(font => font.id === data.basedOn)
   if (!target) throw new Error(`${data.id} is based on ${data.basedOn}, which is not in the font list`)
-  return data.author ? `${data.author}, based on ${fullName(target, fonts)}` : fontCredit(target, fonts)
+  return data.authors ? `${authorText(data.authors)}, based on ${fullName(target, fonts)}` : fontCredit(target, fonts)
 }
 
 export function credit(data, fontId, fonts, parent = null) {
-  const own = data.author || data.basedOn || !parent ? data : parent
+  const own = data.authors || data.basedOn || !parent ? data : parent
   const owner = ownerOf(own, fontId)
   return follow(own, owner, owner, fonts)
 }

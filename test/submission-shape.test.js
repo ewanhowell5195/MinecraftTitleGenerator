@@ -154,13 +154,13 @@ describe("shape checks", () => {
 })
 
 describe("publishing shapes", () => {
-  const row = { id: 7, name: "Fancy Star", credit: "Someone", file: "model-sha" }
+  const row = { id: 7, name: "Fancy Star", credit: ["Someone"], file: "model-sha" }
 
   test("a PNG shape is listed and its silhouette held for the generator", async () => {
     const written = await serverImage.write({ row: { ...row, file: "png-sha" }, details: { strips: ["minecraft-ten"] }, read: () => reader(LIST), taken: [] })
     assert.equal(written.asset, "fancy_star")
     const list = JSON.parse(written.files[0].content)
-    assert.deepEqual(list.at(-1), { id: "fancy_star", author: "Someone", kind: "png", order: "x", strips: ["minecraft-ten"] })
+    assert.deepEqual(list.at(-1), { id: "fancy_star", authors: ["Someone"], kind: "png", order: "x", strips: ["minecraft-ten"] })
     const plain = await serverImage.write({ row: { ...row, file: "png-sha" }, details: {}, read: () => reader(LIST), taken: [] })
     assert.equal(JSON.parse(plain.files[0].content).at(-1).strips, undefined)
     assert.deepEqual(written.files[1], { path: "submissions/shapes/fancy_star.png", sha: "png-sha" })
@@ -170,8 +170,8 @@ describe("publishing shapes", () => {
     const written = await serverModel.write({ row, details: { height: 35, files: { texture: "texture-sha" } }, read: () => reader(LIST), taken: [] })
     const paths = written.files.map(file => file.path)
     assert.deepEqual(paths, [LIST, "public/shapes/fancy_star/model.json", "public/shapes/fancy_star/textures/default.png", "public/shapes/fancy_star/textures.json"])
-    assert.deepEqual(JSON.parse(written.files[0].content).at(-1), { id: "fancy_star", author: "Someone", kind: "model", height: 35 })
-    assert.deepEqual(JSON.parse(written.files[3].content), { textures: { default: { author: "Someone", border: "#000000" } }, overlays: {}, primary: "default", secondary: "default" })
+    assert.deepEqual(JSON.parse(written.files[0].content).at(-1), { id: "fancy_star", authors: ["Someone"], kind: "model", height: 35 })
+    assert.deepEqual(JSON.parse(written.files[3].content), { textures: { default: { authors: ["Someone"], border: "#000000" } }, overlays: {}, primary: "default", secondary: "default" })
   })
 
   test("a taken id gets a new one", async () => {

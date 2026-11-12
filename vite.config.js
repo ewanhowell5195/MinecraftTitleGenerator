@@ -3,13 +3,14 @@ import fs from "node:fs"
 import path from "node:path"
 import { defineConfig } from "vite"
 import { PAGES } from "./src/pages.js"
-import { creditsHtml } from "./src/server/credits.js"
+import { creditPeople, creditsHtml } from "./src/server/credits.js"
 import { escaped } from "./src/server/http.js"
 import { linkedCode, linkedTitleDetails, presetDetails, shareTags } from "./src/server/presets.js"
 import { shellHtml, shellPage } from "./src/site/shell.js"
 
 const LIVE = "https://mctitlegenerator.com"
 const CREDITS = "virtual:credits"
+const PEOPLE = "virtual:people"
 const STYLE_SCOPES = {
   "src/style.css": "tool",
   "src/fontEditor/editor.css": "editor",
@@ -91,10 +92,11 @@ const submissionPages = {
 const creditsModule = {
   name: "credits-module",
   resolveId(id) {
-    if (id === CREDITS) return `\0${CREDITS}`
+    if (id === CREDITS || id === PEOPLE) return `\0${id}`
   },
   load(id) {
     if (id === `\0${CREDITS}`) return `export default ${JSON.stringify(creditsHtml(import.meta.dirname))}`
+    if (id === `\0${PEOPLE}`) return `export default ${JSON.stringify(creditPeople(import.meta.dirname))}`
   }
 }
 

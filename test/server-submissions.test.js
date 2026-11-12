@@ -23,7 +23,8 @@ let restore
 function form(fields = {}, image = pngOf(FLAT.width, FLAT.height)) {
   const data = new FormData()
   const { font = "minecraft-ten", border = "#3D1F0A", ...rest } = fields
-  const values = { kind: "texture", target: font, name: "Gold Bricks", credit: "Someone", notes: "", agree: "true", details: JSON.stringify({ border }), ...rest }
+  const values = { kind: "texture", target: font, name: "Gold Bricks", credit: ["Someone"], notes: "", agree: "true", details: JSON.stringify({ border }), ...rest }
+  values.credit = JSON.stringify(values.credit)
   for (const [key, value] of Object.entries(values)) data.set(key, value)
   if (image) data.set("file", new Blob([image], { type: "image/png" }), "texture.png")
   return data
@@ -61,7 +62,7 @@ describe("sending a submission", () => {
     assert.equal(gh.commits.get(branch).message, "add Gold Bricks texture to Minecraft Ten")
     const main = JSON.parse(fs.readFileSync(TEXTURES, "utf8"))
     const text = Buffer.from(gh.blobs.get(gh.filesAt(`submission/${id}`).get(TEXTURES))).toString()
-    assert.equal(text, `${jsonText({ ...main, textures: { ...main.textures, gold_bricks: { author: "Someone", border: "#3d1f0a" } } })}\n`)
+    assert.equal(text, `${jsonText({ ...main, textures: { ...main.textures, gold_bricks: { authors: ["Someone"], border: "#3d1f0a" } } })}\n`)
     assert.ok(gh.filesAt(`submission/${id}`).has("public/font/minecraft-ten/textures/gold_bricks.png"))
     const opened = gh.pulls.get(1)
     assert.equal(opened.head, `submission/${id}`)
@@ -73,17 +74,18 @@ describe("sending a submission", () => {
 
   test("keeps the submitter's text out of mentions and markdown", async () => {
     const cookie = await signIn()
-    const { id } = await send(cookie, { credit: "@everyone `x`", notes: "@ewan ```\n# heading" })
+    const { id } = await send(cookie, { credit: ["@everyone `x`", "Friend"], notes: "@ewan ```\n# heading" })
     const { body } = gh.pulls.get(1)
     assert.match(body, /`` @everyone `x` ``/)
     assert.match(body, /````text\n@ewan ```\n# heading\n````/)
-    assert.equal((await details(id)).credit, "@everyone `x`")
+    assert.deepEqual((await details(id)).credit, ["@everyone `x`", "Friend"])
+    assert.match(body, /credited to `` @everyone `x` ``, ` Friend `\./)
   })
 
   test("records the density of bigger textures and names ids that would clash", async () => {
     const cookie = await signIn()
     const { id } = await send(cookie, { name: "Flat" }, pngOf(FLAT.width * 2, FLAT.height * 2))
-    assert.deepEqual(branchList(id).textures.flat_2, { name: "Flat", author: "Someone", density: 2, border: "#3d1f0a" })
+    assert.deepEqual(branchList(id).textures.flat_2, { name: "Flat", authors: ["Someone"], density: 2, border: "#3d1f0a" })
     const second = await send(cookie, { name: "Flat" })
     assert.ok(branchList(second.id).textures.flat_3)
     assert.equal((await details(second.id)).asset, "flat_3")
@@ -93,7 +95,7 @@ describe("sending a submission", () => {
     const cookie = await signIn()
     const { id } = await send(cookie, { kind: "overlay", name: "Soft Shading", border: "" }, pngOf(FLAT.width * 2, FLAT.height * 2))
     const list = branchList(id)
-    assert.deepEqual(list.overlays.soft_shading, { author: "Someone", density: 2 })
+    assert.deepEqual(list.overlays.soft_shading, { authors: ["Someone"], density: 2 })
     assert.equal(list.textures.soft_shading, undefined)
     assert.ok(gh.filesAt(`submission/${id}`).has("public/font/minecraft-ten/overlays/soft_shading.png"))
     assert.equal(gh.pulls.get(1).title, "Soft Shading overlay for Minecraft Ten")
@@ -106,7 +108,7 @@ describe("sending a submission", () => {
     const overlay = await send(cookie, { kind: "overlay", name: "Outline" })
     assert.ok(branchList(overlay.id).overlays.outline_2)
     const texture = await send(cookie, { name: "Bevel" })
-    assert.deepEqual(branchList(texture.id).textures.bevel_2, { name: "Bevel", author: "Someone", border: "#3d1f0a" })
+    assert.deepEqual(branchList(texture.id).textures.bevel_2, { name: "Bevel", authors: ["Someone"], border: "#3d1f0a" })
   })
 
   test("is refused before GitHub hears about it when the image or fields are wrong", async () => {
@@ -198,7 +200,7 @@ describe("a sent submission", () => {
     assert.equal(submission.asset, "shiny_gold")
     const list = branchList(id)
     assert.equal(list.textures.gold_bricks, undefined)
-    assert.deepEqual(list.textures.shiny_gold, { author: "Someone", border: "#000000" })
+    assert.deepEqual(list.textures.shiny_gold, { authors: ["Someone"], border: "#000000" })
     assert.ok(gh.filesAt(`submission/${id}`).has("public/font/minecraft-ten/textures/shiny_gold.png"))
     assert.equal(gh.filesAt(`submission/${id}`).has("public/font/minecraft-ten/textures/gold_bricks.png"), false)
     assert.equal(gh.pulls.get(1).title, "Shiny Gold texture for Minecraft Ten")
@@ -406,13 +408,13 @@ describe("the GitHub webhook", () => {
     const { id } = await sent()
     const files = new Map(gh.filesAt("main"))
     const main = JSON.parse(fs.readFileSync(TEXTURES, "utf8"))
-    files.set(TEXTURES, gh.blob(Buffer.from(`${jsonText({ ...main, textures: { ...main.textures, gold_bricks: { author: "Earlier", border: "#000000" } } })}\n`)))
+    files.set(TEXTURES, gh.blob(Buffer.from(`${jsonText({ ...main, textures: { ...main.textures, gold_bricks: { authors: ["Earlier"], border: "#000000" } } })}\n`)))
     gh.refs.set("heads/main", gh.commit(files, [gh.main()], "someone else's texture"))
     await hook("push", { ref: "refs/heads/main", commits: [{ added: [], modified: [TEXTURES], removed: [] }] })
     assert.deepEqual(gh.commits.get(gh.refs.get(`heads/submission/${id}`)).parents, [gh.main()])
     const list = branchList(id)
-    assert.equal(list.textures.gold_bricks.author, "Earlier")
-    assert.deepEqual(list.textures.gold_bricks_2, { name: "Gold Bricks", author: "Someone", border: "#3d1f0a" })
+    assert.deepEqual(list.textures.gold_bricks.authors, ["Earlier"])
+    assert.deepEqual(list.textures.gold_bricks_2, { name: "Gold Bricks", authors: ["Someone"], border: "#3d1f0a" })
   })
 
   test("leaves submissions alone when main changes elsewhere", async () => {

@@ -1,19 +1,19 @@
 {
   "textures": {
     "flat": {
-      "author": "Ewan Howell",
+      "authors": ["Ewan Howell"],
       "border": "#000000"
     },
     "diamond": {
-      "author": "Ewan Howell",
+      "authors": ["Ewan Howell"],
       "border": "#000000"
     },
     "achievement": {
-      "author": "B1tseK",
+      "authors": ["B1tseK"],
       "border": "#000000"
     },
     "chambered": {
-      "author": "blank3times",
+      "authors": ["blank3times"],
       "border": "#020202",
       "variants": {
         "chambered_panel": {
@@ -23,47 +23,47 @@
     },
     "oled": {
       "name": "OLED",
-      "author": "Ewan Howell",
+      "authors": ["Ewan Howell"],
       "border": "#000000"
     },
     "map": {
-      "author": "B1tseK",
+      "authors": ["B1tseK"],
       "border": "#322519"
     },
     "shields": {
-      "author": "Doharbdjr",
+      "authors": ["Doharbdjr"],
       "border": "#86899e"
     },
     "lightness": {
-      "author": "Doharbdjr",
+      "authors": ["Doharbdjr"],
       "border": "#edffef"
     },
     "menu_button": {
-      "author": "B1tseK",
+      "authors": ["B1tseK"],
       "border": "#000000"
     },
     "hotbar": {
-      "author": "B1tseK",
+      "authors": ["B1tseK"],
       "border": "#000000"
     }
   },
   "overlays": {
     "highlights_bottom": {
       "name": "Bottom Highlight",
-      "author": "Ewan Howell"
+      "authors": ["Ewan Howell"]
     },
     "highlights_top": {
       "name": "Top Highlight",
-      "author": "Ewan Howell"
+      "authors": ["Ewan Howell"]
     },
     "shadow": {
       "default": {
         "colour": "#000000"
       },
-      "author": "Ewan Howell"
+      "authors": ["Ewan Howell"]
     },
     "outline": {
-      "author": "Ewan Howell"
+      "authors": ["Ewan Howell"]
     }
   },
   "primary": "diamond",

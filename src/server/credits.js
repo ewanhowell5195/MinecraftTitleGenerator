@@ -1,5 +1,6 @@
 import fs from "node:fs"
 import path from "node:path"
+import { authorList } from "../lib/authors.js"
 import { basedOnParts } from "../lib/credits.js"
 import { flattenFonts, fontFolder, fullName } from "../lib/font.js"
 import { encodeTitle } from "../lib/linkformat.js"
@@ -23,8 +24,8 @@ function readJson(file) {
   return JSON.parse(fs.readFileSync(file, "utf8"))
 }
 
-function peopleIn(author) {
-  return author.split(/\s*(?:,\s*&|,|&)\s*/).filter(Boolean)
+function byMojang(author) {
+  return authorList(author).includes("Mojang")
 }
 
 function nameIn(list, id) {
@@ -57,7 +58,7 @@ function pieceHtml(piece) {
   return `<li class="piece" data-id="${escaped(piece.id)}" data-stats="${escaped(piece.stats.join(" "))}"><div class="thumb"><img src="${escaped(piece.image)}" alt="" loading="lazy"></div><a class="name" href="${escaped(href)}">${escaped(piece.name)}</a><span class="where">${escaped(piece.where)}</span>${based}${shared}</li>`
 }
 
-export function creditsHtml(root) {
+function peopleOf(root) {
   const folder = path.join(root, "public")
   const fonts = flattenFonts(readJson(path.join(folder, "font/fonts.json"))).map(data => ({ ...data, name: data.name ?? titleCase(data.id) }))
   const fontOf = id => fonts.find(font => font.id === id)
@@ -71,9 +72,9 @@ export function creditsHtml(root) {
   const pieces = []
 
   function add(author, piece) {
-    if (!author) return
+    const people = authorList(author)
+    if (!people.length) return
     if (!fs.existsSync(path.join(folder, piece.image))) throw new Error(`the credits page needs ${piece.image}, which does not exist`)
-    const people = peopleIn(author)
     for (const person of people) pieces.push({ ...piece, person, people })
   }
 
@@ -90,7 +91,7 @@ export function creditsHtml(root) {
 
   for (const font of fonts) {
     const based = font.basedOn ? fullName(fontOf(font.basedOn), fonts) : null
-    add(font.author, { kind: "font", name: fullName(font, fonts), image: `${fontFolder(font)}/thumbnails/flat.png`, where: "Font", based, stats: [font.id], id: font.id, line: { font: font.id } })
+    add(font.authors, { kind: "font", name: fullName(font, fonts), image: `${fontFolder(font)}/thumbnails/flat.png`, where: "Font", based, stats: [font.id], id: font.id, line: { font: font.id } })
   }
 
   function lineFor(kind, font, list, id, entry, variant = null) {
@@ -107,38 +108,46 @@ export function creditsHtml(root) {
       const where = strips ? `Strip ${kind}` : `${fullName(users[0], fonts)} ${kind}`
       for (const [id, entry] of Object.entries(list[group] ?? {})) {
         const stats = users.map(font => `${font.id}.${id}`)
-        add(entry.author, { kind, name: entry.name ?? titleCase(id), image: `${thumbnails}/${id}.png`, where, based: basedOnLabel(entry.basedOn, owner), stats, id: `${owner}.${id}`, line: lineFor(kind, users[0].id, list, id, entry) })
-        for (const [variantId, variant] of Object.entries(entry.variants ?? {})) add(variant.author, { kind, name: variant.name ?? titleCase(variantId), image: `${thumbnails}/${variantId}.png`, where, based: basedOnLabel(variant.basedOn, owner), stats: [], id: `${owner}.${variantId}`, line: lineFor(kind, users[0].id, list, id, entry, variantId) })
+        add(entry.authors, { kind, name: entry.name ?? titleCase(id), image: `${thumbnails}/${id}.png`, where, based: basedOnLabel(entry.basedOn, owner), stats, id: `${owner}.${id}`, line: lineFor(kind, users[0].id, list, id, entry) })
+        for (const [variantId, variant] of Object.entries(entry.variants ?? {})) add(variant.authors, { kind, name: variant.name ?? titleCase(variantId), image: `${thumbnails}/${variantId}.png`, where, based: basedOnLabel(variant.basedOn, owner), stats: [], id: `${owner}.${variantId}`, line: lineFor(kind, users[0].id, list, id, entry, variantId) })
       }
     }
   }
 
   for (const [id, tileable] of Object.entries(tileables)) {
     const stats = [`tileable.${id}`]
-    if (tileable.author !== "Mojang") add(tileable.author, { kind: "tileable", name: tileable.name ?? titleCase(id), image: `tileables/${tileable.path ?? "minecraft"}/${id}.png`, where: "Tileable texture", stats, id: `tileable.${id}`, line: { font: PREVIEW_FONT, textureSource: "tileable", tileableSource: "premade", tileable: id } })
+    if (!byMojang(tileable.authors)) add(tileable.authors, { kind: "tileable", name: tileable.name ?? titleCase(id), image: `tileables/${tileable.path ?? "minecraft"}/${id}.png`, where: "Tileable texture", stats, id: `tileable.${id}`, line: { font: PREVIEW_FONT, textureSource: "tileable", tileableSource: "premade", tileable: id } })
     for (const [variantId, variant] of Object.entries(tileable.variants ?? {})) {
-      if (variant.author !== "Mojang") add(variant.author, { kind: "tileable", name: variant.name ?? titleCase(variantId), image: `tileables/${variant.path ?? tileable.path ?? "minecraft"}/${variantId}.png`, where: "Tileable texture", stats: [], id: `tileable.${variantId}`, line: { font: PREVIEW_FONT, textureSource: "tileable", tileableSource: "premade", tileable: id, tileableVariant: variantId } })
+      if (!byMojang(variant.authors)) add(variant.authors, { kind: "tileable", name: variant.name ?? titleCase(variantId), image: `tileables/${variant.path ?? tileable.path ?? "minecraft"}/${variantId}.png`, where: "Tileable texture", stats: [], id: `tileable.${variantId}`, line: { font: PREVIEW_FONT, textureSource: "tileable", tileableSource: "premade", tileable: id, tileableVariant: variantId } })
     }
   }
 
   for (const shape of readJson(path.join(folder, "shapes/shapes.json"))) {
     const name = shape.name ?? titleCase(shape.id)
-    add(shape.author, { kind: "shape", name, image: `shapes/${shape.id}/thumbnails/flat.png`, where: "Shape", stats: [], id: `shape.${shape.id}`, line: { shape: shape.id } })
+    add(shape.authors, { kind: "shape", name, image: `shapes/${shape.id}/thumbnails/flat.png`, where: "Shape", stats: [], id: `shape.${shape.id}`, line: { shape: shape.id } })
     const list = readJson(path.join(folder, "shapes", shape.id, "textures.json"))
     for (const [kind, group] of [["texture", list.textures], ["overlay", list.overlays ?? {}]]) {
       for (const [id, entry] of Object.entries(group)) {
         for (const [piece, data] of [[id, entry]].concat(Object.entries(entry.variants ?? {}))) {
-          if (data.author === "Mojang") continue
+          if (byMojang(data.authors)) continue
           const line = kind === "texture" ? { shape: shape.id, texture: id, textureVariant: piece === id ? null : piece } : { shape: shape.id, overlayMode: "custom", overlays: [overlayLayer(id, entry)] }
-          add(data.author, { kind, name: data.name ?? titleCase(piece), image: `shapes/${shape.id}/thumbnails/${piece}.png`, where: `${name} ${kind}`, stats: [], id: `shape.${shape.id}.${piece}`, line })
+          add(data.authors, { kind, name: data.name ?? titleCase(piece), image: `shapes/${shape.id}/thumbnails/${piece}.png`, where: `${name} ${kind}`, stats: [], id: `shape.${shape.id}.${piece}`, line })
         }
       }
     }
   }
 
-  const order = Object.keys(KINDS)
   const people = Map.groupBy(pieces, piece => piece.person)
-  const sorted = Array.from(people).sort(([a, first], [b, second]) => second.length - first.length || a.localeCompare(b))
+  return Array.from(people).sort(([a, first], [b, second]) => second.length - first.length || a.localeCompare(b))
+}
+
+export function creditPeople(root) {
+  return peopleOf(root).map(([person]) => person)
+}
+
+export function creditsHtml(root) {
+  const order = Object.keys(KINDS)
+  const sorted = peopleOf(root)
   const sections = sorted.map(([person, made]) => {
     const listed = made.toSorted((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind) || a.where.localeCompare(b.where) || a.name.localeCompare(b.name))
     return `<article class="person"><header><h2>${escaped(person)}</h2><p>${counted(made)}</p></header><ul class="pieces">${listed.map(piece => ({ ...piece, image: `/${piece.image}` })).map(pieceHtml).join("")}</ul></article>`

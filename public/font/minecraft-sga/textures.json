@@ -1,7 +1,7 @@
 {
   "textures": {
     "flat": {
-      "author": "Westbot"
+      "authors": ["Westbot"]
     },
     "smooth": {
       "type": "strip",

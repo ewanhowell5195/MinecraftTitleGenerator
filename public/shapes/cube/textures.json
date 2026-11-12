@@ -1,12 +1,12 @@
 {
   "textures": {
     "flat": {
-      "author": "Ewan Howell",
+      "authors": ["Ewan Howell"],
       "border": "#000000"
     },
     "steve": {
       "category": "Skins",
-      "author": "B1tseK",
+      "authors": ["B1tseK"],
       "variants": {
         "alex": {
           "border": "#221a11"
@@ -43,7 +43,7 @@
     },
     "smile": {
       "category": "Emojis",
-      "author": "B1tseK",
+      "authors": ["B1tseK"],
       "variants": {
         "for_me": {
           "border": "#2e2a26"
@@ -77,7 +77,7 @@
     },
     "zombie": {
       "category": "Entities",
-      "author": "Ewan Howell",
+      "authors": ["Ewan Howell"],
       "variants": {
         "blaze": {
           "border": "#000000"
@@ -154,11 +154,11 @@
   },
   "overlays": {
     "borders": {
-      "author": "Ewan Howell"
+      "authors": ["Ewan Howell"]
     },
     "borders_thin": {
       "name": "Borders (Thin)",
-      "author": "Ewan Howell"
+      "authors": ["Ewan Howell"]
     }
   },
   "primary": "steve",

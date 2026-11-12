@@ -58,5 +58,5 @@ export function fontFromOutlines(source, options = {}) {
   }))
   const space = source.charToGlyph(" ")
   const spaceWidth = space && space.index !== 0 ? Math.round(space.advanceWidth * scale) * square : Math.round(capHeight / 4) || DEFAULT_SPACE_WIDTH
-  return fontFromShapes(shapes, { name: englishName(source, "fullName") || "Imported Font", author: englishName(source, "designer"), capHeight, grid: block, spaceWidth })
+  return fontFromShapes(shapes, { name: englishName(source, "fullName") || "Imported Font", authors: englishName(source, "designer"), capHeight, grid: block, spaceWidth })
 }

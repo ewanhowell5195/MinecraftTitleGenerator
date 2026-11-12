@@ -10,7 +10,8 @@ function called(url, options) {
 
 function form(fields, file, agree, extras = {}) {
   const data = new FormData()
-  for (const key of ["kind", "target", "name", "credit", "notes"]) data.set(key, fields[key])
+  for (const key of ["kind", "target", "name", "notes"]) data.set(key, fields[key])
+  data.set("credit", JSON.stringify(fields.credit))
   data.set("details", JSON.stringify(fields.details))
   data.set("agree", String(agree))
   if (file) data.set("file", file, file.name || "submission")

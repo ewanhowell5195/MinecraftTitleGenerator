@@ -79,7 +79,7 @@ export async function loadTileables() {
   const data = structuredClone(await fetchJson("tileables/tileables.json"))
   for (const [id, tileable] of Object.entries(data)) {
     tileable.name ??= titleCase(id)
-    tileable.author ??= "Mojang"
+    tileable.authors ??= ["Mojang"]
     tileable.path ??= "minecraft"
     for (const [variantId, variant] of Object.entries(tileable.variants ?? {})) {
       variant.name ??= titleCase(variantId)

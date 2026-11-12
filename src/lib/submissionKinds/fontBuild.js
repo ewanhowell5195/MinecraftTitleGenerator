@@ -1,3 +1,4 @@
+import { authorList } from "../authors.js"
 import { SHEET_MAX_WIDTH, groupedKerning, parseMask, sheetLayout } from "../font.js"
 import { autoStretch, charactersOf, exportJson, fontFromFiles, glyphOf, parseFontJson, parsedSheet } from "../fontEditor.js"
 import { DEFAULT_ORDER, TERMINATOR_CLOSE, TERMINATOR_OPEN } from "../order.js"
@@ -12,7 +13,7 @@ export const HOLDING_FOLDER = "submissions/fonts"
 const NOT_PREVIEWED = new Set([" ", TERMINATOR_OPEN, TERMINATOR_CLOSE, "'"])
 const read = new WeakMap()
 
-const TEXT_FIELDS = ["id", "name", "author", "description", "basedOn", "order"]
+const TEXT_FIELDS = ["id", "name", "description", "basedOn", "order"]
 const NUMBER_FIELDS = ["spaceWidth", "depth", "border", "characterSpacing", "terminatorSpaceWidth"]
 const FLAG_FIELDS = ["terminatorSpace", "forcedTerminators", "autoBorder", "flat", "overlay"]
 const EDITOR_NUMBERS = ["height", "width", "grid", "density"]
@@ -38,6 +39,8 @@ function stripField(item) {
 export function fontJsonFields(entry) {
   if (!isRecord(entry)) return entry
   const clean = { ...picked(entry, TEXT_FIELDS, "string"), ...picked(entry, NUMBER_FIELDS, "number"), ...picked(entry, FLAG_FIELDS, "boolean") }
+  const authors = authorList(entry.authors ?? entry.author)
+  if (authors.length) clean.authors = authors
   if (Array.isArray(entry.strips)) clean.strips = entry.strips.map(stripField).filter(Boolean)
   if (isRecord(entry.kerning)) clean.kerning = Object.fromEntries(Object.entries(entry.kerning).filter(([amount, pairs]) => Number.isFinite(Number(amount)) && Array.isArray(pairs)).map(([amount, pairs]) => [amount, pairs.filter(pair => typeof pair === "string")]))
   if (isRecord(entry.editor)) clean.editor = { ...picked(entry.editor, EDITOR_NUMBERS, "number"), ...picked(entry.editor, ["texture"], "string") }
@@ -115,7 +118,7 @@ function ownKerning(font, drawn) {
 }
 
 export function exported(font) {
-  const { id, name, author, editor, ...entry } = exportJson(font, "")
+  const { id, name, authors, editor, ...entry } = exportJson(font, "")
   return entry
 }
 
@@ -148,6 +151,6 @@ function fontTemplate(cells, capHeight, depth) {
 }
 
 export function finalEntry(skeleton, derived) {
-  const { id, name, author, ...rest } = skeleton
-  return { id, ...(name !== undefined && { name }), author, ...rest, ...derived }
+  const { id, name, authors, ...rest } = skeleton
+  return { id, ...(name !== undefined && { name }), authors, ...rest, ...derived }
 }

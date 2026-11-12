@@ -1,11 +1,11 @@
 {
   "textures": {
     "flat": {
-      "author": "Ewan Howell",
+      "authors": ["Ewan Howell"],
       "border": "#000000"
     },
     "cracked": {
-      "author": "Ewan Howell",
+      "authors": ["Ewan Howell"],
       "variants": {
         "cracked_left": {
           "density": 3,
@@ -28,33 +28,33 @@
       "border": "#000000"
     },
     "atmosphere": {
-      "author": "Ewan Howell",
+      "authors": ["Ewan Howell"],
       "border": "#36005d"
     },
     "bevelled_gold": {
-      "author": "Ewan Howell",
+      "authors": ["Ewan Howell"],
       "density": 4,
       "border": "#3f0f0f"
     },
     "bubbles": {
-      "author": "Ewan Howell",
+      "authors": ["Ewan Howell"],
       "border": "#1d0e46"
     },
     "neon": {
-      "author": "Ewan Howell",
+      "authors": ["Ewan Howell"],
       "border": "#18041a"
     },
     "neon_glow": {
-      "author": "Ewan Howell",
+      "authors": ["Ewan Howell"],
       "border": "#18041a"
     },
     "sunset": {
-      "author": "Ewan Howell",
+      "authors": ["Ewan Howell"],
       "border": "#150b2d"
     },
     "creeper": {
       "category": "Entities",
-      "author": "B1tseK & Ewan Howell",
+      "authors": ["B1tseK", "Ewan Howell"],
       "variants": {
         "bee_entity": {
           "name": "Bee (Entity)",
@@ -130,7 +130,7 @@
       "border": "#000000"
     },
     "fired": {
-      "author": "Ewan Howell",
+      "authors": ["Ewan Howell"],
       "border": "#021935",
       "overlays": [
         {
@@ -146,45 +146,45 @@
       ]
     },
     "coconut": {
-      "author": "B1tseK",
+      "authors": ["B1tseK"],
       "border": "#2e170c"
     },
     "lagoona": {
-      "author": "B1tseK & Ewan Howell",
+      "authors": ["B1tseK", "Ewan Howell"],
       "border": "#0a2b6b"
     },
     "furnace": {
-      "author": "B1tseK",
+      "authors": ["B1tseK"],
       "border": "#191919"
     }
   },
   "overlays": {
     "highlights_bottom": {
       "name": "Highlights (Bottom)",
-      "author": "Ewan Howell"
+      "authors": ["Ewan Howell"]
     },
     "highlights_top": {
       "name": "Highlights (Top)",
-      "author": "Ewan Howell"
+      "authors": ["Ewan Howell"]
     },
     "glass": {
-      "author": "B1tseK"
+      "authors": ["B1tseK"]
     },
     "glass_old": {
       "name": "Glass (Old)",
-      "author": "B1tseK"
+      "authors": ["B1tseK"]
     },
     "highlights_right": {
       "name": "Highlights (Right)",
-      "author": "B1tseK"
+      "authors": ["B1tseK"]
     },
     "highlights_left": {
       "name": "Highlights (Left)",
-      "author": "B1tseK"
+      "authors": ["B1tseK"]
     },
     "glass_tempered": {
       "name": "Glass (Tempered)",
-      "author": "B1tseK"
+      "authors": ["B1tseK"]
     }
   },
   "primary": "cracked",
