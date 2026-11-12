@@ -12,9 +12,9 @@ import { previewFont } from "./textCanvas.js"
 const TEXT = "abc"
 const OVERLAYS = withGenerated({})
 
-export function thumbnailScene(font, mesh = null) {
+export function thumbnailScene(font, mesh = null, text = TEXT) {
   const parsed = previewFont(font)
-  const placed = layout(parsed, TEXT, { spacing: font.characterSpacing })
+  const placed = layout(parsed, text, { spacing: font.characterSpacing })
   if (!placed.length) return null
   const ring = defaultBorder("top", font) > 0
   const drawn = Object.values(parsed.glyphs).filter(glyph => glyph.width)

@@ -52,6 +52,7 @@
   const extras = ref({})
   const previewText = ref("")
   const previewFont = ref("")
+  const trial = ref(null)
   const problems = ref({})
   const extraProblem = ref(null)
   const tried = ref(false)
@@ -98,6 +99,11 @@
     return Object.fromEntries(Object.entries(problems.value).filter(([key]) => visible(key)))
   })
   const blocked = computed(() => !account.value || sending.value)
+  const linked = computed(() => {
+    if (kind.value === "strip") return { preview: { font: previewFont.value, "onUpdate:font": id => previewFont.value = id }, fields: { onPreview: id => previewFont.value = id } }
+    const shared = kind.value === "shapeImage" ? { trial: trial.value, "onUpdate:trial": value => trial.value = value } : {}
+    return { preview: shared, fields: shared }
+  })
   const problemInBar = computed(() => group.value === "shape" && !!(fileUrl.value || chosen.value))
 
   watch(kind, (next, before) => {
@@ -110,6 +116,7 @@
     }
     release()
     extraProblem.value = null
+    trial.value = null
   })
 
   watch(account, next => {
@@ -208,7 +215,7 @@
     <Segments v-if="group === 'shape'" v-model="kind" :options="SHAPE_KINDS" label="Kind of shape" :hint="ABOUT[kind]" />
     <div class="stage-area" :class="{ dragging }" @dragover.prevent="dragging = true" @dragleave.self="dragging = false" @drop.prevent="drop">
       <template v-if="fileUrl || chosen">
-        <component :is="parts.Preview" v-bind="kind === 'strip' ? { font: previewFont, 'onUpdate:font': id => previewFont = id } : {}" :fonts="fonts" :kind="kind" :target="target" :details="details" :files="extras" :initial="initial" :url="fileUrl" :text="previewText || name || 'Minecraft'" />
+        <component :is="parts.Preview" v-bind="linked.preview" :fonts="fonts" :kind="kind" :target="target" :details="details" :files="extras" :initial="initial" :url="fileUrl" :text="previewText || name || 'Minecraft'" />
         <div class="stage-bar">
           <input v-if="group !== 'shape'" type="text" v-model="previewText" :placeholder="name || 'Minecraft'" spellcheck="false" aria-label="Preview text">
           <p v-if="problemInBar && fileProblem && (tried || chosen)" class="hint bad">{{ fileProblem }}</p>
@@ -226,7 +233,7 @@
     </div>
     <p v-if="!problemInBar && fileProblem && (tried || chosen)" class="hint bad">{{ fileProblem }}</p>
     <div class="kind-fields">
-      <component :is="parts.Fields" v-bind="kind === 'strip' ? { onPreview: id => previewFont = id } : {}" v-model:target="target" v-model:details="details" v-model:files="extras" :fonts="fonts" :context="context" :kind="kind" :file="chosen" :initial="initial" :name="name" :problems="problems" :tried="tried" @problem="extraProblem = $event" />
+      <component :is="parts.Fields" v-bind="linked.fields" v-model:target="target" v-model:details="details" v-model:files="extras" :fonts="fonts" :context="context" :kind="kind" :file="chosen" :initial="initial" :name="name" :problems="problems" :tried="tried" @problem="extraProblem = $event" />
     </div>
     <Field v-if="!initial || initial.mine" label="Notes for the reviewer" :error="shown.notes">
       <textarea v-model="notes" :maxlength="SUBMISSION_LIMITS.notes" rows="3" placeholder="Optional"></textarea>
@@ -278,6 +285,16 @@
   .stage-area :deep(.render) {
     height: 340px;
     aspect-ratio: auto;
+  }
+
+  @media (min-height: 760px) {
+    .submission-form:has(.strips-head.open) .stage-area {
+      position: sticky;
+      top: 72px;
+      z-index: 2;
+      padding-bottom: 8px;
+      background: var(--bg);
+    }
   }
 
   .stage-bar {

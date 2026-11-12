@@ -72,6 +72,10 @@ async function editorFont({ kind, data, height, lowercase, mesh, density }) {
   return { font: fontFromOutlines(source, options), outlines: meshOutlines(source, options), mesh }
 }
 
+export async function silhouetteFont(data) {
+  return (await editorFont({ kind: "silhouette", data })).font
+}
+
 function plainStrip(rows, colour) {
   const canvas = document.createElement("canvas")
   canvas.width = 1
