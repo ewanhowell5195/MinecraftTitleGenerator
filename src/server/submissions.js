@@ -457,15 +457,15 @@ export const createSubmission = guarded(async context => {
 export const editSubmission = guarded(async context => {
   const { env } = context
   const { user, row, role } = await ownSubmission(context, true)
+  const mine = role === "submitter"
   const { clean, fonts, bytes, files } = await readForm(context, row)
   const file = bytes ? await onGitHub(() => uploadFile(env, bytes)) : row.file
-  const changed = { ...row, ...await onGitHub(() => withFiles(env, clean, files)), file }
+  const changed = { ...row, ...await onGitHub(() => withFiles(env, clean, files)), file, notes: mine ? clean.notes : row.notes }
   await onGitHub(async () => {
     await syncSubmission(context, changed, fonts)
     await noteEdit(env, changed, user, role)
   })
   await forgetFresh(context.request, changed)
-  const mine = role === "submitter"
   await env.DB.batch([
     env.DB.prepare(`UPDATE notifications SET author = ?, created_at = ? WHERE submission_id = ? AND kind = 'edited' AND seen = 0 AND user_id ${mine ? "IS NOT" : "IS"} (SELECT user_id FROM submissions WHERE id = ?)`).bind(user.name, Date.now(), changed.id, changed.id),
     notify(env, changed, "edited", { author: user.name, owner: !mine, admins: mine, actor: user, unlessUnread: true, email: mine })

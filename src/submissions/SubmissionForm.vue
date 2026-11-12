@@ -98,6 +98,7 @@
     return Object.fromEntries(Object.entries(problems.value).filter(([key]) => visible(key)))
   })
   const blocked = computed(() => !account.value || sending.value)
+  const problemInBar = computed(() => group.value === "shape" && !!(fileUrl.value || chosen.value))
 
   watch(kind, (next, before) => {
     if (groupOf(next) === "texture") textureKind = next
@@ -210,6 +211,7 @@
         <component :is="parts.Preview" v-bind="kind === 'strip' ? { font: previewFont, 'onUpdate:font': id => previewFont = id } : {}" :fonts="fonts" :kind="kind" :target="target" :details="details" :files="extras" :initial="initial" :url="fileUrl" :text="previewText || name || 'Minecraft'" />
         <div class="stage-bar">
           <input v-if="group !== 'shape'" type="text" v-model="previewText" :placeholder="name || 'Minecraft'" spellcheck="false" aria-label="Preview text">
+          <p v-if="problemInBar && fileProblem && (tried || chosen)" class="hint bad">{{ fileProblem }}</p>
           <Button file :accept="isImage ? 'image/png' : '.json,application/json'" @change="pick"><template #icon><Icon name="open" :size="16" /></template>
             <span>Replace file</span>
           </Button>
@@ -222,11 +224,11 @@
         <input type="file" :accept="isImage ? 'image/png' : '.json,application/json'" @change="pick">
       </label>
     </div>
-    <p v-if="fileProblem && (tried || chosen)" class="hint bad">{{ fileProblem }}</p>
+    <p v-if="!problemInBar && fileProblem && (tried || chosen)" class="hint bad">{{ fileProblem }}</p>
     <div class="kind-fields">
       <component :is="parts.Fields" v-bind="kind === 'strip' ? { onPreview: id => previewFont = id } : {}" v-model:target="target" v-model:details="details" v-model:files="extras" :fonts="fonts" :context="context" :kind="kind" :file="chosen" :initial="initial" :name="name" :problems="problems" :tried="tried" @problem="extraProblem = $event" />
     </div>
-    <Field label="Notes for the reviewer" :error="shown.notes">
+    <Field v-if="!initial || initial.mine" label="Notes for the reviewer" :error="shown.notes">
       <textarea v-model="notes" :maxlength="SUBMISSION_LIMITS.notes" rows="3" placeholder="Optional"></textarea>
     </Field>
     <div class="finish">
@@ -287,6 +289,12 @@
   .stage-bar input {
     flex: 1;
     min-width: 0;
+  }
+
+  .stage-bar .hint {
+    flex: 1;
+    align-self: center;
+    margin: 0;
   }
 
   .drop {

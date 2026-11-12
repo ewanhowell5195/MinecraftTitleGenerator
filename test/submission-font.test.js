@@ -174,6 +174,20 @@ describe("checking a font", () => {
     assert.match(line.font, /^custom-/)
     assert.equal(client.summary({ target: "minecraft-ten", details: {} }, fonts), "A font listed under Minecraft Ten")
   })
+
+  test("opens in the generator with up to one extra, which it wears", () => {
+    const texture = { key: "a", kind: "texture", name: "Gold", border: "#3d1f0a" }
+    const overlay = { key: "b", kind: "overlay", name: "Shine" }
+    const strip = { key: "c", kind: "strip", name: "Stone" }
+    const item = extras => ({ target: "", details: { id: "x", extras } })
+    assert.deepEqual([item(undefined), item([]), item([texture]), item([texture, overlay])].map(client.openable), [true, true, true, false])
+    assert.deepEqual([item(undefined), item([]), item([overlay])].map(client.extra), [null, null, overlay])
+    const line = client.line(item([texture]), "data:application/json;base64,e30=", "Hello")
+    assert.deepEqual(client.dressed(line, texture, "data:image/png;base64,AA"), { ...line, textureSource: "custom", customTexture: "data:image/png;base64,AA", customTextureMode: "standard", customBorder: true, borderColour: "#3d1f0a" })
+    assert.deepEqual(client.dressed(line, strip, "data:image/png;base64,AA"), { ...line, textureSource: "custom", customTexture: "data:image/png;base64,AA", customTextureMode: "strip", customBorder: true, borderColour: "#000000" })
+    const worn = client.dressed(line, overlay, "data:image/png;base64,AA")
+    assert.deepEqual([worn.overlayMode, worn.overlays.length, worn.overlays[0].source, worn.overlays[0].file, worn.textureSource], ["custom", 1, "file", "data:image/png;base64,AA", undefined])
+  })
 })
 
 const roots = []

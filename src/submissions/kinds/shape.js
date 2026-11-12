@@ -19,7 +19,9 @@ export const shapeImage = {
 
 export const shapeModel = {
   file: "model's JSON file",
-  openable: false,
+  openable() {
+    return false
+  },
   line(item, model, text, texture) {
     return { shape: CUSTOM_SHAPE, customModel: { model, texture } }
   },

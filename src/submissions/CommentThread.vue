@@ -155,7 +155,7 @@
     overflow-wrap: anywhere;
   }
 
-  .event {
+  .thread .event {
     align-items: center;
   }
 

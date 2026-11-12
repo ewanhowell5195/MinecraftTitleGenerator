@@ -2,7 +2,6 @@
   import { computed } from "vue"
   import Dropdown from "../../components/Dropdown.vue"
   import LiveTitle from "../../components/LiveTitle.vue"
-  import { overlayLayer } from "../../lib/settings.js"
   import { embedded } from "../../lib/submissionLink.js"
   import { submissionExtraUrl } from "../../lib/submissionsApi.js"
   import { CLIENT_KINDS } from "./index.js"
@@ -31,11 +30,6 @@
     return props.files[key]?.url ?? (props.initial ? submissionExtraUrl(props.initial, key) : null)
   }
 
-  function dressed(base, extra, image) {
-    if (extra.kind === "overlay") return { ...base, overlayMode: "custom", overlays: [{ ...overlayLayer(null), source: "file", file: image }] }
-    return { ...base, textureSource: "custom", customTexture: image, customTextureMode: extra.kind === "strip" ? "strip" : "standard", customBorder: true, borderColour: extra.border ?? "#000000" }
-  }
-
   const { line, problem } = usePreviewLine(() => [props.kind, props.url, props.text, picked.value, picked.value && extraUrl(picked.value.key)], build)
 
   async function build() {
@@ -43,8 +37,9 @@
     const extra = picked.value
     const file = await embedded(props.url)
     const image = extra ? await embedded(extraUrl(extra.key)) : null
-    const base = CLIENT_KINDS[props.kind].line({ target: props.target, details: props.details }, file, props.text)
-    return extra ? dressed(base, extra, image) : base
+    const type = CLIENT_KINDS[props.kind]
+    const base = type.line({ target: props.target, details: props.details }, file, props.text)
+    return extra ? type.dressed(base, extra, image) : base
   }
 </script>
 

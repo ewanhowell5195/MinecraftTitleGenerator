@@ -2,7 +2,7 @@ import { CLIENT_KINDS } from "../submissions/kinds/index.js"
 import { fetched } from "./api.js"
 import { fileError, openTitleData } from "./file.js"
 import { FILE_VERSION } from "./settings.js"
-import { submission, submissionFileUrl } from "./submissionsApi.js"
+import { submission, submissionExtraUrl, submissionFileUrl } from "./submissionsApi.js"
 
 export const SUBMISSION_PARAM = "submission"
 
@@ -40,8 +40,10 @@ export async function openSubmissionLink() {
   history.replaceState(history.state, "", url)
   try {
     const item = await submission(id)
-    const line = await CLIENT_KINDS[item.kind].line(item, await embedded(submissionFileUrl(item)), item.name)
-    openTitleData({ version: FILE_VERSION, lines: [line] })
+    const type = CLIENT_KINDS[item.kind]
+    const line = await type.line(item, await embedded(submissionFileUrl(item)), item.name)
+    const extra = type.extra?.(item)
+    openTitleData({ version: FILE_VERSION, lines: [extra ? type.dressed(line, extra, await embedded(submissionExtraUrl(item, extra.key))) : line] })
   } catch (err) {
     fileError.value = `Couldn't open this submission: ${err.message}`
   }

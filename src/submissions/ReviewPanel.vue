@@ -1,5 +1,5 @@
 <script setup>
-  import { onMounted, ref } from "vue"
+  import { computed, onMounted, ref } from "vue"
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
   import Notice from "../components/Notice.vue"
@@ -7,7 +7,8 @@
   import { reviewState, reviewSubmission } from "../lib/submissionsApi.js"
 
   const props = defineProps({
-    item: { type: Object, required: true }
+    item: { type: Object, required: true },
+    failedUrl: { type: String, default: "" }
   })
 
   const emit = defineEmits(["done"])
@@ -25,6 +26,8 @@
   const READY = new Set(["clean", "behind", "has_hooks"])
 
   const state = ref(null)
+  const failed = computed(() => !!props.failedUrl && !READY.has(state.value))
+  const status = computed(() => state.value ? STATES[state.value] ?? `GitHub says it's ${state.value}.` : "Checking the pull request...")
   const declining = ref(false)
   const reason = ref("")
   const busy = ref(false)
@@ -57,10 +60,10 @@
 </script>
 
 <template>
-  <section class="review" :class="{ ready: READY.has(state) }">
+  <section class="review" :class="{ ready: READY.has(state), failed }">
     <div class="summary">
       <h2>Review this submission</h2>
-      <p class="hint">{{ state ? STATES[state] ?? `GitHub says it's ${state}.` : "Checking the pull request..." }} <button type="button" class="link-button" @click="check">Check again</button></p>
+      <p class="hint"><template v-if="failed">Processing it failed on GitHub. <a :href="failedUrl" target="_blank" rel="noopener">See what went wrong</a>.</template><template v-else>{{ status }}</template> <button type="button" class="link-button" @click="check">Check again</button></p>
     </div>
     <div v-if="!declining" class="buttons">
       <Button primary :disabled="busy || !READY.has(state)" @click="act('merge')"><template #icon><Icon name="check" :size="16" /></template>Merge</Button>
@@ -90,6 +93,10 @@
 
   .review.ready {
     border-left-color: var(--accent);
+  }
+
+  .review.failed {
+    border-left-color: var(--danger-fill);
   }
 
   .summary {

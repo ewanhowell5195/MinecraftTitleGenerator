@@ -474,15 +474,16 @@ describe("reviewing on the site", () => {
     assert.equal((await thread(id, cookie)).reviewer, false)
   })
 
-  test("admins can change someone's submission, which tells the submitter on the site without an email", async () => {
+  test("admins can change someone's submission but not its notes, which tells the submitter on the site without an email", async () => {
     const reviewer = await admin()
     const cookie = await signIn()
-    const { id } = await send(cookie)
+    const { id } = await send(cookie, { notes: "made with love" })
     await Promise.all(waiting)
     emails.splice(0)
-    const { status, submission } = await edit(reviewer, id, { name: "Shiny Gold" })
+    const { status, submission } = await edit(reviewer, id, { name: "Shiny Gold", notes: "" })
     assert.equal(status, 200)
-    assert.deepEqual([submission.name, submission.mine], ["Shiny Gold", false])
+    assert.deepEqual([submission.name, submission.mine, submission.notes], ["Shiny Gold", false, "made with love"])
+    assert.match(gh.pulls.get(1).body, /made with love/)
     assert.equal(gh.pulls.get(1).title, "Shiny Gold texture for Minecraft Ten")
     assert.match(gh.pulls.get(1).body, /Sent from the website by ` someone ` \(discord\)/)
     await edit(reviewer, id, { name: "Shinier Gold" })

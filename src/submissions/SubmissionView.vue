@@ -2,6 +2,7 @@
   import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
+  import MessageDialog from "../components/MessageDialog.vue"
   import NavTabs from "../components/NavTabs.vue"
   import Notice from "../components/Notice.vue"
   import UserName from "../components/UserName.vue"
@@ -35,6 +36,7 @@
   const error = ref("")
   const text = ref("")
   const busy = ref(false)
+  const outcome = ref(null)
 
   const processing = ref(null)
   const tab = ref("comments")
@@ -48,6 +50,7 @@
     return extra ? { kind: extra.kind, url: submissionExtraUrl(item.value, extra.key) } : null
   })
   const previewLink = computed(() => item.value?.previewUrl && `${item.value.previewUrl}${publishedTitle(item.value, props.fonts)}`)
+  const openable = computed(() => client.value.openable?.(item.value) ?? true)
   const reviewing = computed(() => reviewer.value && item.value?.status === "open" && !!item.value.pullUrl)
   const changeable = computed(() => (item.value?.mine || reviewer.value) && item.value?.status === "open")
   const page = submissionPage(props.id)
@@ -84,7 +87,11 @@
     if ((await notifications()).some(entry => entry.submission === props.id && !entry.seen)) await markNotificationsSeen(props.id)
   }
 
-  function reviewed() {
+  function reviewed(result) {
+    outcome.value = result.outcome
+  }
+
+  function leave() {
     router.push("/submissions/")
   }
 
@@ -139,8 +146,9 @@
       <p class="hint">GitHub is building its files. This usually takes a minute or two, and this page updates when it's done.</p>
     </section>
     <template v-else>
-      <Notice v-if="processing?.state === 'failed'">Processing this submission failed on GitHub. <a :href="processing.url" target="_blank" rel="noopener">See what went wrong</a>.</Notice>
-      <ReviewPanel v-if="reviewing" :key="item.updatedAt" :item="item" @done="reviewed" />
+      <Notice v-if="processing?.state === 'failed' && !reviewing"><p>Processing this submission failed on GitHub. <a :href="processing.url" target="_blank" rel="noopener">See what went wrong</a>.</p></Notice>
+      <MessageDialog v-if="outcome" :title="outcome === 'published' ? 'Submission merged' : 'Submission declined'" @close="leave">{{ outcome === "published" ? `${item.name} was merged, and is now part of the generator.` : `${item.name} was declined.` }}</MessageDialog>
+      <ReviewPanel v-if="reviewing" :key="item.updatedAt" :item="item" :failed-url="processing?.state === 'failed' ? processing.url : ''" @done="reviewed" />
       <div class="submission-view">
         <div class="preview flow">
           <component :is="KIND_COMPONENTS[item.kind].Preview" v-model:texture="textureKey" :fonts="fonts" :kind="item.kind" :target="item.target" :details="item.details" :initial="item" :url="submissionFileUrl(item)" :text="text || item.name" />
@@ -161,8 +169,8 @@
             <dd v-else>A deleted account</dd>
           </dl>
           <div class="actions">
-            <Button v-if="client.openable !== false" primary :href="`/app/?${SUBMISSION_PARAM}=${item.id}`">Open in generator</Button>
-            <Button v-if="previewLink" :href="previewLink" target="_blank" rel="noopener" v-tooltip="'The generator built from this submission\'s branch, with it added'"><template #icon><Icon name="eye" :size="16" /></template>Open preview</Button>
+            <Button v-if="openable" primary :href="`/app/?${SUBMISSION_PARAM}=${item.id}`">Open in generator</Button>
+            <Button v-else-if="previewLink" primary :href="previewLink" target="_blank" rel="noopener" v-tooltip="'The generator built from this submission\'s branch, with it added'"><template #icon><Icon name="eye" :size="16" /></template>Open preview</Button>
             <Button v-if="item.pullUrl" :href="item.pullUrl" target="_blank" rel="noopener"><template #icon><Icon name="github" :size="16" /></template>Pull request</Button>
           </div>
           <div v-if="changeable" class="actions">
