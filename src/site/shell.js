@@ -20,7 +20,7 @@ export function shellHtml(html, page) {
     `<title>${escaped(page.title)}</title>`,
     `<meta name="description" content="${escaped(page.description)}">`,
     "<meta name=\"color-scheme\" content=\"dark\">",
-    "<meta name=\"theme-color\" content=\"#111214\">"
+    "<meta name=\"theme-color\" content=\"#F1822C\">"
   ].concat(page.hidden ? "<meta name=\"robots\" content=\"noindex\">" : [], [
     `<link rel="canonical" href="${url}">`,
     "<link rel=\"icon\" href=\"/favicon.ico\" sizes=\"32x32\">",
