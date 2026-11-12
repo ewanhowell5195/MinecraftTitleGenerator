@@ -180,6 +180,9 @@
         "pale_oak_planks": {
           "authors": ["0Szysza"],
           "border": "#3d3838"
+        },
+        "poplar_planks": {
+          "border": "#221e1e"
         }
       }
     },
@@ -394,11 +397,6 @@
       "type": "strip",
       "authors": ["B1tseK"],
       "border": "#000000"
-    },
-    "poplar_planks": {
-      "type": "strip",
-      "author": "TheAnnoying",
-      "border": "#221e1e"
     }
   }
 }
