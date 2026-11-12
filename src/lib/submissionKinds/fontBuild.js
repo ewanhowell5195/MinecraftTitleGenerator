@@ -1,11 +1,11 @@
 import { authorList } from "../authors.js"
 import { SHEET_MAX_WIDTH, groupedKerning, parseMask, sheetLayout } from "../font.js"
-import { autoStretch, charactersOf, exportJson, fontFromFiles, glyphOf, parseFontJson, parsedSheet } from "../fontEditor.js"
+import { autoStretch, charactersOf, exportJson, fontFromFiles, glyphOf, isBlank, parseFontJson, parsedSheet, savedJson } from "../fontEditor.js"
 import { DEFAULT_ORDER, TERMINATOR_CLOSE, TERMINATOR_OPEN } from "../order.js"
 import { defaultBorder, defaultDepth } from "../settings.js"
 import { drawSheet } from "../sheet.js"
 import { pngSize } from "../submissions.js"
-import { decodePng } from "./png.js"
+import { decodePng, encodePng } from "./png.js"
 
 export const FONT_LIMITS = { capHeight: [8, 128], characters: 400, letters: 20 }
 export const HOLDING_FOLDER = "submissions/fonts"
@@ -99,7 +99,7 @@ function withMarks(font) {
 
 export function drawnCells(font) {
   const { list, capHeight } = parsedSheet(font, 0)
-  return { cells: list.filter(cell => cell.width), blank: list.filter(cell => !cell.width).map(cell => cell.char), capHeight }
+  return { cells: list.filter(cell => cell.width), capHeight }
 }
 
 function previewOf(chars) {
@@ -122,8 +122,23 @@ export function exported(font) {
   return entry
 }
 
+function sheetUrl(sheet) {
+  const bytes = encodePng(sheet)
+  let text = ""
+  for (let at = 0; at < bytes.length; at += 0x8000) text += String.fromCharCode(...bytes.subarray(at, at + 0x8000))
+  return `data:image/png;base64,${btoa(text)}`
+}
+
+export function storedFont(bytes) {
+  const { fields, font } = submittedFont(bytes)
+  if (!Object.values(font.glyphs).some(isBlank)) return fields
+  const { order, editor: { canvas, ...editor } } = savedJson(font, sheetUrl)
+  const { order: before, ...kept } = fields
+  return { ...kept, ...(order !== undefined && { order }), editor }
+}
+
 export function ownFont(font, parentId = null) {
-  const { cells, blank, capHeight } = drawnCells(withMarks(font))
+  const { cells, capHeight } = drawnCells(withMarks(font))
   const drawn = cells.map(cell => cell.char)
   const { order, kerning, ...settings } = exported(font)
   if (settings.basedOn === parentId) delete settings.basedOn
@@ -135,7 +150,7 @@ export function ownFont(font, parentId = null) {
   if (Object.keys(pairs).length) entry.kerning = groupedKerning(pairs)
   const sheet = drawSheet(cells, capHeight, { keepRows: true })
   const published = parseMask(sheet.data, sheet.width, sheet.height, drawn.join(""), defaultBorder("top", entry)).list
-  return { cells, blank, capHeight, entry, sheet, published, template: fontTemplate(published, capHeight, defaultDepth(entry)) }
+  return { cells, capHeight, entry, sheet, published, template: fontTemplate(published, capHeight, defaultDepth(entry)) }
 }
 
 function fontTemplate(cells, capHeight, depth) {

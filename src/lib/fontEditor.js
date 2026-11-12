@@ -429,6 +429,20 @@ export function sheetOrder(font) {
   return charactersOf(font).join("")
 }
 
+export function savedCharacters(font) {
+  const all = charactersOf(font)
+  const drawn = all.filter(char => !isBlank(glyphOf(font, char)))
+  return drawn.length ? drawn : all
+}
+
+export function savedSheet(font) {
+  return drawSheet(savedCharacters(font).map(char => sheetCell(font, glyphOf(font, char))), font.height * font.density)
+}
+
+export function savedJson(font, encode) {
+  return exportJson(font, encode(savedSheet(font)), savedCharacters(font))
+}
+
 export function flatTexture(value, fill = null) {
   const entry = exportJson(value, "")
   const { list, capHeight } = parsedSheet(value, defaultBorder("top", entry))
@@ -581,9 +595,9 @@ export function autoStretch(font, characters = charactersOf(font)) {
   return next
 }
 
-export function exportJson(font, texture) {
+export function exportJson(font, texture, characters = charactersOf(font)) {
   const entry = { id: fontId(font) || DEFAULT_ID, name: font.name }
-  const order = sheetOrder(font)
+  const order = characters.join("")
   const authors = authorList(font.authors)
   if (authors.length) entry.authors = authors
   if (font.description) entry.description = font.description

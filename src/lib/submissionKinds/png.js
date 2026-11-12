@@ -1,4 +1,4 @@
-import { unzlibSync } from "three/addons/libs/fflate.module.js"
+import { unzlibSync, zlibSync } from "three/addons/libs/fflate.module.js"
 import { SUBMISSION_LIMITS } from "../submissions.js"
 
 const SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10]
@@ -123,4 +123,42 @@ export function decodePng(bytes) {
     }
   }
   return { width, height, data }
+}
+
+function crc(bytes) {
+  let value = 0xffffffff
+  for (const byte of bytes) {
+    value ^= byte
+    for (let bit = 0; bit < 8; bit++) value = value >>> 1 ^ (value & 1 ? 0xedb88320 : 0)
+  }
+  return (value ^ 0xffffffff) >>> 0
+}
+
+function chunk(type, data) {
+  const bytes = new Uint8Array(12 + data.length)
+  const view = new DataView(bytes.buffer)
+  view.setUint32(0, data.length)
+  bytes.set(Array.from(type, char => char.charCodeAt(0)), 4)
+  bytes.set(data, 8)
+  view.setUint32(8 + data.length, crc(bytes.subarray(4, 8 + data.length)))
+  return bytes
+}
+
+export function encodePng({ width, height, data }) {
+  const header = new Uint8Array(13)
+  const view = new DataView(header.buffer)
+  view.setUint32(0, width)
+  view.setUint32(4, height)
+  header.set([8, 6, 0, 0, 0], 8)
+  const stride = width * 4
+  const rows = new Uint8Array(height * (stride + 1))
+  for (let y = 0; y < height; y++) rows.set(data.subarray(y * stride, (y + 1) * stride), y * (stride + 1) + 1)
+  const parts = [Uint8Array.from(SIGNATURE), chunk("IHDR", header), chunk("IDAT", zlibSync(rows)), chunk("IEND", new Uint8Array(0))]
+  const bytes = new Uint8Array(parts.reduce((total, part) => total + part.length, 0))
+  let at = 0
+  for (const part of parts) {
+    bytes.set(part, at)
+    at += part.length
+  }
+  return bytes
 }

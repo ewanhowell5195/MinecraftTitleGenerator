@@ -6,7 +6,7 @@ import { compress } from "woff2-encoder"
 import { publishedFonts, readMask } from "../generator/fonts.js"
 import { parseMask, splitCells } from "../src/lib/font.js"
 import { DEFAULT_ORDER } from "../src/lib/order.js"
-import { CREEPER, REQUIRED_CHARACTERS, SPACE_CHAR, addCharacters, autoStretch, blankGlyph, blockAt, buildSheet, changeGlyph, charactersOf, createFont, exportJson, fillCells, fitGlyph, fontFromFiles, fontFromPublished, glyphOf, isBlank, isOptional, lineCells, lostPixels, moveGlyph, paint, parseFontJson, rectangleCells, removeCharacter, reshapeGlyph, resizeFont, rowOfY, setGlyph, setSquareSize, setStretch, sheetOrder, slug, squareSizeLoss, squaresOf, trimGlyph, widthOf, yOfRow } from "../src/lib/fontEditor.js"
+import { CREEPER, REQUIRED_CHARACTERS, SPACE_CHAR, addCharacters, autoStretch, blankGlyph, blockAt, buildSheet, changeGlyph, charactersOf, createFont, exportJson, fillCells, fitGlyph, fontFromFiles, fontFromPublished, glyphOf, isBlank, isOptional, lineCells, lostPixels, moveGlyph, paint, parseFontJson, rectangleCells, removeCharacter, reshapeGlyph, resizeFont, rowOfY, savedCharacters, savedJson, savedSheet, setGlyph, setSquareSize, setStretch, sheetOrder, slug, squareSizeLoss, squaresOf, trimGlyph, widthOf, yOfRow } from "../src/lib/fontEditor.js"
 import { fontFromAscii } from "../src/lib/asciiImport.js"
 import { fontFromOutlines, parseFontFile } from "../src/lib/fontImport.js"
 import { gridShift, rasterise } from "../src/lib/fontOutline.js"
@@ -380,6 +380,27 @@ describe("saving and reopening", () => {
   test("any change to the characters lists the order", () => {
     assert.equal(exportJson({ ...createFont(), creeper: true, defineSpace: true }, "t").order, `${DEFAULT_ORDER} `)
     assert.equal(exportJson(createFont(), "t").order, DEFAULT_ORDER.replace(CREEPER, ""))
+  })
+
+  test("a saved font leaves out the characters with nothing drawn, and reopening it brings the required ones back blank", () => {
+    let font = addCharacters(createFont({ height: 8, width: 4, grid: 1 }), "бж").font
+    font = strokeCell(strokeCell(strokeCell(font, "a", 1, 1), "7", 2, 3), "б", 1, 1)
+    font = changeGlyph(font, "q", { width: 9 })
+    const sheet = savedSheet(font)
+    const entry = savedJson(font, () => "t")
+    assert.deepEqual(savedCharacters(font), ["a", "7", "б"])
+    assert.equal(entry.order, "a7б")
+    assert.equal(entry.editor.canvas?.q, undefined)
+    assert.deepEqual(parseMask(sheet.data, sheet.width, sheet.height, entry.order, 0).list.map(cell => cell.char), ["a", "7", "б"])
+    const restored = fontFromFiles({ sheet, json: parseFontJson(jsonText(entry)) })
+    assert.deepEqual(charactersOf(restored), REQUIRED_CHARACTERS.concat("б"))
+    assert.deepEqual(charactersOf(restored).filter(char => !isBlank(glyphOf(restored, char))), ["a", "7", "б"])
+    assert.deepEqual(sheetOf(restored).list.filter(cell => cell.width).map(comparable), sheetOf(font).list.filter(cell => cell.width).map(comparable))
+  })
+
+  test("a font with nothing drawn is saved whole", () => {
+    assert.deepEqual(savedCharacters(createFont()), REQUIRED_CHARACTERS)
+    assert.equal(savedJson(createFont(), () => "t").order, REQUIRED_CHARACTERS.join(""))
   })
 
   test("added characters and a missing creeper survive saving", () => {

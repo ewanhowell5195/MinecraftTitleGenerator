@@ -92,7 +92,7 @@
       const entry = exportJson(font, "")
       const depth = defaultDepth(entry)
       const { list, capHeight } = parsedSheet(font, defaultBorder("top", entry))
-      drawn.value = { cells: list.filter(cell => cell.width), blank: list.filter(cell => !cell.width).map(cell => cell.char), positions: sheetLayout(list, capHeight, depth), depth, flat: flatTexture(font) }
+      drawn.value = { cells: list.filter(cell => cell.width), positions: sheetLayout(list, capHeight, depth), depth, flat: flatTexture(font) }
     } catch (err) {
       problem.value = err.message
     }
@@ -117,13 +117,10 @@
     <Notice v-if="problem">{{ problem }}</Notice>
     <p v-else-if="!drawn" class="hint">Loading the characters...</p>
     <template v-else>
-      <p class="hint">{{ drawn.cells.length }} drawn<template v-if="drawn.blank.length">, {{ drawn.blank.length }} left blank</template>.</p>
+      <p class="hint">{{ drawn.cells.length }} characters.</p>
       <TileGrid :min="96">
         <Tile v-for="tile of tiles" :key="tile.char" still :label="characterName(tile.char)" aspect="auto">
           <template #picture><span class="glyph" :style="{ height: `${TILE_HEIGHT}px` }"><img :src="tile.image" :alt="tile.char" :style="tile.style"></span></template>
-        </Tile>
-        <Tile v-for="char of drawn.blank" :key="char" still :label="characterName(char)" aspect="auto">
-          <template #picture><span class="glyph blank" :style="{ height: `${TILE_HEIGHT}px` }">Blank</span></template>
         </Tile>
       </TileGrid>
     </template>
@@ -143,10 +140,5 @@
     max-width: none;
     max-height: none;
     image-rendering: pixelated;
-  }
-
-  .glyph.blank {
-    align-items: center;
-    color: var(--danger);
   }
 </style>

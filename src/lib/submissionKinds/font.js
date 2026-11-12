@@ -8,7 +8,7 @@ import { stripUse } from "../strips.js"
 import { GENERATED_EDGE_OVERLAYS, withGenerated } from "../generated.js"
 import { EXTRA_FILE, HEX_COLOUR, SUBMISSION_LIMITS, assetId, creditProblem, pngProblem, pngSize, sizedProblem, textProblem, textureDensity } from "../submissions.js"
 import { REQUIRED_CHARACTERS, characterName, fontId } from "../fontEditor.js"
-import { FONT_LIMITS, drawnCells, ownFont, submittedFont } from "./fontBuild.js"
+import { FONT_LIMITS, drawnCells, ownFont, storedFont, submittedFont } from "./fontBuild.js"
 import { heightList, stripFit, stripHeights, stripSet } from "./stripFit.js"
 
 const FONT_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/
@@ -224,7 +224,7 @@ export const font = {
     return Array.isArray(details.extras) ? details.extras.map(item => item.key) : []
   },
   cleanFile(bytes) {
-    return new TextEncoder().encode(`${jsonText(submittedFont(bytes).fields)}\n`)
+    return new TextEncoder().encode(`${jsonText(storedFont(bytes))}\n`)
   },
   async check({ target, details, bytes, files = {} }, ctx) {
     const problems = {}

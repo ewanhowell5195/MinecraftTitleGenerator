@@ -1,7 +1,7 @@
 import { computed, ref, shallowRef, watch } from "vue"
 import { authorList } from "../lib/authors.js"
 import { DEFAULT_ORDER } from "../lib/order.js"
-import { buildSheet, charactersOf, exportJson, fitGlyph, flatTexture, glyphOf, moveGlyph, reshapeGlyph, sameGlyph, setGlyph } from "../lib/fontEditor.js"
+import { buildSheet, charactersOf, fitGlyph, flatTexture, glyphOf, moveGlyph, reshapeGlyph, sameGlyph, savedJson, setGlyph } from "../lib/fontEditor.js"
 import { jsonText } from "../lib/jsonText.js"
 import { EDITOR_SUBMISSION } from "../lib/submissions.js"
 import { download, downloadBlob } from "../lib/ui.js"
@@ -195,7 +195,7 @@ export function downloadTexture() {
 }
 
 function jsonFile() {
-  const entry = exportJson(font.value, pngUrl(buildSheet(font.value)))
+  const entry = savedJson(font.value, pngUrl)
   return { name: `${entry.id}.json`, text: jsonText(entry) + "\n" }
 }
 

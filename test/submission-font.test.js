@@ -12,8 +12,8 @@ import { autoStretch, buildSheet, exportJson, fontFromPublished, parsedSheet } f
 import { jsonText } from "../src/lib/jsonText.js"
 import { titleCase } from "../src/lib/names.js"
 import { font as kind } from "../src/lib/submissionKinds/font.js"
-import { fontJsonFields, ownFont } from "../src/lib/submissionKinds/fontBuild.js"
-import { decodePng } from "../src/lib/submissionKinds/png.js"
+import { drawnCells, fontJsonFields, ownFont, submittedFont } from "../src/lib/submissionKinds/fontBuild.js"
+import { decodePng, encodePng } from "../src/lib/submissionKinds/png.js"
 import { font as client } from "../src/submissions/kinds/font.js"
 import { defaultBorder, defaultDepth } from "../src/lib/settings.js"
 import { pngOf } from "./helpers/png.js"
@@ -94,6 +94,31 @@ describe("checking a font", () => {
     assert.equal((await check({ bytes: without(["q"]) })).problems.file, "A new font has to have every default character drawn. These are blank: q.")
     assert.equal((await check({ bytes: without(["7", "'", "$"]) })).problems.file, "A new font has to have every default character drawn. These are blank: 7, Closing quote, $.")
     assert.match((await check({ bytes: without(Array.from("0123456789&#")) })).problems.file, /These are blank: 0, 1, 2, 3, 4, 5, 6, 7 and 4 more\./)
+  })
+
+  test("the stored file leaves out blank characters and keeps the drawn ones as they were", () => {
+    const gone = Array.from("0123456789&#$")
+    const bytes = without(gone)
+    const before = submittedFont(bytes).font
+    const after = submittedFont(kind.cleanFile(bytes)).font
+    assert.deepEqual(gone.map(char => char in before.glyphs), gone.map(() => true))
+    assert.deepEqual(Object.keys(after.glyphs), drawnCells(before).cells.map(cell => cell.char))
+    assert.deepEqual(ownFont(after).cells.map(cell => [cell.char, cell.advance, cell.originX, cell.top, cell.bottom, Array.from(cell.mask), cell.stretch]), ownFont(before).cells.map(cell => [cell.char, cell.advance, cell.originX, cell.top, cell.bottom, Array.from(cell.mask), cell.stretch]))
+    assert.deepEqual(ownFont(after).entry, ownFont(before).entry)
+    const stored = JSON.parse(new TextDecoder().decode(kind.cleanFile(bytes)))
+    assert.equal(gone.some(char => stored.order.includes(char)), false)
+    assert.equal(stored.editor.canvas, undefined)
+  })
+
+  test("a file with no blank characters is stored with the sheet it came with", () => {
+    assert.equal(JSON.parse(new TextDecoder().decode(kind.cleanFile(f8thful))).editor.texture, JSON.parse(new TextDecoder().decode(f8thful)).editor.texture)
+  })
+
+  test("a sheet written as a PNG reads back the same", () => {
+    const sheet = buildSheet(copyOf("f8thful"))
+    const read = decodePng(encodePng(sheet))
+    assert.deepEqual([read.width, read.height], [sheet.width, sheet.height])
+    assert.ok(Buffer.from(read.data).equals(Buffer.from(sheet.data)))
   })
 
   test("a variant only needs its letters", async () => {
