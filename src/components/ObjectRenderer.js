@@ -488,7 +488,7 @@ export default {
       if (!keepTexture.has(object) && loadedFont.get(object) !== loaded.id) {
         quietly(() => {
           const values = { texture: defaultTexture(textures, object.type), textureVariant: null }
-          if (object.textureSource === "premade") setTexture(object, values)
+          if (object.textureSource === "premade") setTexture(object, values, { before: list.value, after: textures })
           else Object.assign(object, values)
           object.overlays = object.overlays.filter(layer => layer.source === "file" || textures.overlays[layer.overlay])
           object.spacing = defaultSpacing(object.type, loaded)

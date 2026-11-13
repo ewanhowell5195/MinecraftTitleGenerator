@@ -18,7 +18,7 @@
   function pick(type) {
     if (object.value.type === type) return
     for (const word of words(selection.value[0])) {
-      if (list.value && !word.textureVariant && word.texture === defaultTexture(list.value, word.type)) setTexture(word, { texture: defaultTexture(list.value, type) })
+      if (list.value && !word.textureVariant && word.texture === defaultTexture(list.value, word.type)) setTexture(word, { texture: defaultTexture(list.value, type) }, { before: list.value })
       word.type = type
       if (type !== "top") word.row = Math.max(0, word.row)
       applyType(word, type, font.value)

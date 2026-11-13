@@ -407,7 +407,8 @@ export function untouchedTileable(object) {
   return ["tileable", "tileableVariant", "tileableSource", "minecraftVersion"].every(key => object[key] === values[key])
 }
 
-export function setTexture(object, values) {
+export function setTexture(object, values, { before = null, after = before } = {}) {
+  const old = before && after ? LAYERS.map(kind => defaultOverlays(before, object, kind)) : null
   let changed = false
   for (const [key, value] of Object.entries(values)) {
     if (object[key] === value) continue
@@ -415,8 +416,9 @@ export function setTexture(object, values) {
     changed = true
   }
   if (!changed) return
-  object.overlayMode = "default"
-  object.edgeOverlayMode = "default"
+  for (const [index, kind] of LAYERS.entries()) {
+    if (!old || !sameValue(old[index], defaultOverlays(after, object, kind))) object[OVERLAY_KINDS[kind]] = "default"
+  }
 }
 
 export function defaultTexture(list, type) {

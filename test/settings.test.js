@@ -592,6 +592,18 @@ describe("setTexture", () => {
     assert.equal(object.overlayMode, "default")
   })
 
+  test("given the texture list, keeps custom overlays when the new texture has the same default overlays", () => {
+    const list = { overlays: { dust: {} }, edgeOverlays: { rim: {} }, textures: { a: { overlays: [{ overlay: "dust" }] }, b: { overlays: [{ overlay: "dust" }], edgeOverlays: [{ overlay: "rim" }] }, c: {} } }
+    const object = createObject({ texture: "a", overlayMode: "custom", edgeOverlayMode: "custom" })
+    setTexture(object, { texture: "b" }, { before: list })
+    assert.equal(object.overlayMode, "custom")
+    assert.equal(object.edgeOverlayMode, "default")
+    object.edgeOverlayMode = "custom"
+    setTexture(object, { texture: "c" }, { before: list })
+    assert.equal(object.overlayMode, "default")
+    assert.equal(object.edgeOverlayMode, "default")
+  })
+
   test("switching the source counts as a change", () => {
     const object = createObject({ edgeOverlayMode: "custom" })
     setTexture(object, { textureSource: "gradient" })
