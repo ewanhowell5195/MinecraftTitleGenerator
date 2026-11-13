@@ -15,9 +15,9 @@ const list = publishedFonts()
 const entry = list.find(font => font.id === id)
 if (!entry) throw new Error(`no font with id ${id}`)
 if (entry.inherits) throw new Error(`${id} keeps its characters in ${entry.variant}'s sheet, make the template for ${entry.variant} instead`)
-const { folder, cells, capHeight } = readMask(entry, list)
+const { folder, cells, capHeight, layers } = readMask(entry, list)
 const depth = defaultDepth(entry)
-const { sheet, layout, width, height } = flatSheet(cells, capHeight, depth, density)
+const { sheet, layout, width, height } = flatSheet(cells, capHeight, depth, density, layers)
 
 const target = has("--out") ? path.resolve(option("--out")) : path.join(folder, "textures", "flat.png")
 

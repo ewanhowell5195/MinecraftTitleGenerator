@@ -1,4 +1,6 @@
 import { pixelsOf } from "../lib/canvas.js"
+import { layerMask } from "../lib/flatSheet.js"
+import { parsedSheet } from "../lib/fontEditor.js"
 import { rgbOf } from "../lib/colour.js"
 import { generatedAlpha, withGenerated } from "../lib/generated.js"
 import { layout } from "../lib/layout.js"
@@ -12,9 +14,10 @@ import { previewFont } from "./textCanvas.js"
 const TEXT = "abc"
 const OVERLAYS = withGenerated({})
 
-export function thumbnailScene(font, mesh = null, text = TEXT) {
+export function thumbnailScene(font, mesh = null, text = TEXT, layer = null) {
   const parsed = previewFont(font)
-  const placed = layout(parsed, text, { spacing: font.characterSpacing })
+  const laid = layout(parsed, text, { spacing: font.characterSpacing })
+  const placed = layer === null ? laid : laid.map(item => ({ ...item, glyph: { ...item.glyph, mask: layerMask(item.glyph, layer) } }))
   if (!placed.length) return null
   const ring = defaultBorder("top", font) > 0
   const drawn = Object.values(parsed.glyphs).filter(glyph => glyph.width)
@@ -24,6 +27,7 @@ export function thumbnailScene(font, mesh = null, text = TEXT) {
     depth: defaultDepth(font),
     ring,
     mesh,
+    layers: mesh ? null : parsedSheet(font).layers ?? null,
     stripTop: Math.max(parsed.capHeight, ...drawn.map(glyph => glyph.top)),
     stripBottom: Math.min(0, ...drawn.map(glyph => glyph.bottom))
   }

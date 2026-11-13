@@ -1,9 +1,27 @@
+import { layerSlices } from "./flatSheet.js"
+
 export function stripFolder(id) {
   return `strips/${id}`
 }
 
 export function stripUse(item) {
-  return typeof item === "string" ? { id: item, offset: 0 } : { offset: 0, ...item }
+  return typeof item === "string" ? { id: item, offset: 0, layer: null } : { offset: 0, layer: null, ...item }
+}
+
+export function stripItem(id, offset = 0, layer = null) {
+  return offset || layer ? { id, ...(offset && { offset }), ...(layer && { layer }) } : id
+}
+
+export function layerSlice(layers, layer) {
+  const from = layers[layer + 1] ?? 0
+  return { from, size: layers[layer] - from }
+}
+
+export function stackedStrip(shape, layers, layer) {
+  const front = shape.rows - shape.depth * 2
+  const heights = layerSlices(layers, shape.depth).map(slice => slice.rows * 2 + front)
+  const depth = (heights[layer] - front) / 2
+  return { shape: { ...shape, depth, rows: heights[layer] }, offset: heights.slice(0, layer).reduce((sum, rows) => sum + rows, 0), total: heights.reduce((sum, rows) => sum + rows, 0) }
 }
 
 export function centredOffset(height, capHeight) {
@@ -15,7 +33,7 @@ export function stripOffset(entry, capHeight) {
 }
 
 export function stripTag(set, offset = set.offset ?? 0) {
-  return { stripSet: set.id, stripDepth: set.depth, stripBaseline: set.baseline ?? set.depth, stripOffset: offset, stripHeight: set.height ?? null }
+  return { stripSet: set.id, stripDepth: set.depth, stripBaseline: set.baseline ?? set.depth, stripOffset: offset, stripHeight: set.height ?? null, stripLayer: set.layer ? set.layer - 1 : null }
 }
 
 function shared(data, set) {

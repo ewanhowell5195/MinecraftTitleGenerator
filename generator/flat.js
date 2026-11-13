@@ -1,10 +1,10 @@
 import fs from "node:fs"
 import path from "node:path"
-import { flatPixels } from "../src/lib/flatSheet.js"
+import { flatLayers } from "../src/lib/flatSheet.js"
 import { pngOf, writeJson } from "./common.js"
 
-export function flatSheet(cells, capHeight, depth, density = 1) {
-  const { data, layout, width, height } = flatPixels(cells, capHeight, depth, density)
+export function flatSheet(cells, capHeight, depth, density = 1, layers = null) {
+  const { data, layout, width, height } = flatLayers(cells, capHeight, depth, layers, density)
   return { sheet: pngOf({ width: width * density, height: height * density, data }), layout, width, height }
 }
 

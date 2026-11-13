@@ -1,5 +1,5 @@
 import { LIMITS } from "./limits.js"
-import { CUSTOM_FONT_KINDS, FILE_VERSION, LAYER, LAYERS, LINE, sameValue, snapshot, typeDefaults, upgradeLine } from "./settings.js"
+import { CUSTOM_FONT_KINDS, FILE_VERSION, LAYER, LAYERS, LAYER_KEYS, LINE, sameValue, snapshot, typeDefaults, upgradeLine } from "./settings.js"
 
 export function lineWords({ words, ...line }) {
   return words ? words.map(word => ({ ...line, ...word })) : [line]
@@ -66,12 +66,16 @@ function trimLayer(layer) {
   return Object.fromEntries(Object.entries(layer).filter(([key, value]) => !sameValue(value, LAYER[key])))
 }
 
+function trimLayerSettings(settings, base) {
+  return settings.map(layer => Object.fromEntries(Object.entries(layer).filter(([key, value]) => !sameValue(value, base[key])).map(([key, value]) => [key, LAYERS.includes(key) ? value.map(trimLayer) : value])))
+}
+
 export function trimmed(object, unused = new Set()) {
   const base = { ...typeDefaults(object.type), type: "top" }
   const values = {}
   for (const [key, value] of Object.entries(snapshot(object))) {
     if (key === "group" || unused.has(key) || sameValue(value, base[key])) continue
-    values[key] = LAYERS.includes(key) ? value.map(trimLayer) : value
+    values[key] = LAYERS.includes(key) ? value.map(trimLayer) : key === "layerSettings" ? trimLayerSettings(value, base) : value
   }
   return values
 }
@@ -116,11 +120,22 @@ function twistCentres(values) {
 function expand(values) {
   if (values.customTexture && !values.customTexture.startsWith("data:image/")) throw new Error("it has a texture image that isn't embedded in it")
   if (values.customFont && (!CUSTOM_FONT_KINDS.includes(values.customFont.kind) || !values.customFont.data?.startsWith?.("data:"))) throw new Error("it has a custom font that isn't embedded in it")
-  const object = { ...typeDefaults(values.type ?? "top"), ...twistCentres(values) }
+  const base = typeDefaults(values.type ?? "top")
+  const object = { ...base, ...twistCentres(values) }
   for (const key of LAYERS) {
     if (values[key]) object[key] = values[key].map(expandLayer)
   }
+  if (Array.isArray(values.layerSettings)) object.layerSettings = values.layerSettings.map(layer => expandLayerSettings(layer, base))
   return object
+}
+
+function expandLayerSettings(layer, base) {
+  if (layer.customTexture && !layer.customTexture.startsWith("data:image/")) throw new Error("it has a texture image that isn't embedded in it")
+  const expanded = { ...Object.fromEntries(LAYER_KEYS.map(key => [key, base[key]])), ...layer }
+  for (const key of LAYERS) {
+    if (layer[key]) expanded[key] = layer[key].map(expandLayer)
+  }
+  return expanded
 }
 
 export function titleValues(data) {

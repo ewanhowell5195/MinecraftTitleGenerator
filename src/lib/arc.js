@@ -47,10 +47,14 @@ export function stretched(glyph, key, arcs, grow) {
   const last = sequence.findLastIndex(inside)
   const map = sequence.slice(first, last + 1).map(y => y - glyph.bottom)
   const mask = new Uint8Array(glyph.width * map.length)
-  for (const [row, source] of map.entries()) mask.set(glyph.mask.subarray(source * glyph.width, (source + 1) * glyph.width), row * glyph.width)
+  const depths = glyph.depths && new Uint8Array(mask.length)
+  for (const [row, source] of map.entries()) {
+    mask.set(glyph.mask.subarray(source * glyph.width, (source + 1) * glyph.width), row * glyph.width)
+    depths?.set(glyph.depths.subarray(source * glyph.width, (source + 1) * glyph.width), row * glyph.width)
+  }
   const own = span.flatMap((y, index) => inside(y) ? [index] : [])
   const bottom = low - drop - below + first
-  return { ...glyph, char: key, mask, height: map.length, bottom, top: bottom + map.length, stretch: null, arc: { top: raise + grown - below, bottom: drop + below, map, counts: own.map(index => counts[index]), stretchable: own.map(index => stretchable[index]) } }
+  return { ...glyph, char: key, mask, ...(depths ? { depths } : {}), height: map.length, bottom, top: bottom + map.length, stretch: null, arc: { top: raise + grown - below, bottom: drop + below, map, counts: own.map(index => counts[index]), stretchable: own.map(index => stretchable[index]) } }
 }
 
 export function arcLayout(font, sheet, words, word, options) {

@@ -6,7 +6,7 @@ import { compress } from "woff2-encoder"
 import { publishedFonts, readMask } from "../generator/fonts.js"
 import { parseMask, splitCells } from "../src/lib/font.js"
 import { DEFAULT_ORDER } from "../src/lib/order.js"
-import { CREEPER, MULTICASE_CHARACTERS, REQUIRED_CHARACTERS, SPACE_CHAR, addCharacters, autoStretch, blankGlyph, blockAt, buildSheet, changeGlyph, characterLabel, charactersOf, sameCharacter, setLetterCase, createFont, exportJson, fillCells, fitGlyph, fontFromFiles, fontFromPublished, glyphOf, isBlank, isOptional, lineCells, lostPixels, moveGlyph, paint, parseFontJson, rectangleCells, removeCharacter, reshapeGlyph, resizeFont, rowOfY, savedCharacters, savedJson, savedSheet, setGlyph, setSquareSize, setStretch, sheetOrder, slug, squareSizeLoss, squaresOf, trimGlyph, widthOf, yOfRow } from "../src/lib/fontEditor.js"
+import { CREEPER, MULTICASE_CHARACTERS, REQUIRED_CHARACTERS, SPACE_CHAR, addCharacters, autoStretch, blankGlyph, blockAt, buildSheet, changeGlyph, characterLabel, charactersOf, depthCode, depthOf, fontLayers, sameCharacter, setLetterCase, createFont, exportJson, fillCells, fitGlyph, fontFromFiles, fontFromPublished, glyphOf, isBlank, isOptional, lineCells, lostPixels, moveGlyph, paint, parseFontJson, rectangleCells, removeCharacter, reshapeGlyph, resizeFont, rowOfY, savedCharacters, savedJson, savedSheet, setGlyph, setSquareSize, setStretch, sheetOrder, slug, squareSizeLoss, squaresOf, trimGlyph, widthOf, yOfRow } from "../src/lib/fontEditor.js"
 import { fontFromAscii } from "../src/lib/asciiImport.js"
 import { fontFromOutlines, parseFontFile } from "../src/lib/fontImport.js"
 import { gridShift, lineUnits, rasterise } from "../src/lib/fontOutline.js"
@@ -64,6 +64,45 @@ describe("characters", () => {
     assert.ok(!charactersOf(font).includes("б") && !font.creeper && !font.glyphs["б"])
     assert.deepEqual(font.kerning, { av: 1 })
     assert.ok(isOptional(" ") && isOptional(CREEPER) && !isOptional("a"))
+  })
+})
+
+describe("depth", () => {
+  function drawn() {
+    let font = createFont({ height: 2, width: 3, grid: 1 })
+    const half = depthCode(font, 0.5)
+    font = half.font
+    const glyph = paint(paint(blankGlyph(font), [{ x: 0, row: 1 }, { x: 2, row: 1 }], true), [{ x: 1, row: 1 }], half.code)
+    return { font: setGlyph(font, "a", glyph), code: half.code }
+  }
+
+  test("a shallower pixel gets its own code, and the same depth reuses it", () => {
+    const { font, code } = drawn()
+    assert.notEqual(code, "1")
+    assert.equal(depthCode(font, 0.5).code, code)
+    assert.equal(depthCode(font, 0.5).font, font)
+    assert.equal(depthOf(font, code), 0.5)
+  })
+
+  test("moving and trimming a character keeps each pixel's depth", () => {
+    const { font, code } = drawn()
+    const moved = moveGlyph(font, glyphOf(font, "a"), 0, 1)
+    assert.equal(moved.glyph.rows[0], `1${code}1`)
+  })
+
+  test("the sheet stores depth as grey, and opening it brings the depths back", () => {
+    const { font, code } = drawn()
+    const { glyphs } = parseMask(buildSheet(font).data, buildSheet(font).width, buildSheet(font).height, sheetOrder(font), 0)
+    assert.deepEqual(Array.from(glyphs.a.depths), [0, 1, 0])
+    const reopened = fontFromFiles({ sheet: savedSheet(font) })
+    const char = Object.keys(reopened.glyphs).find(key => !isBlank(reopened.glyphs[key]))
+    assert.equal(reopened.glyphs[char].rows.find(row => row !== "000"), `1${code}1`)
+    assert.deepEqual(reopened.depths, [0.5])
+  })
+
+  test("a font drawn only at full depth has no layers", () => {
+    const font = setGlyph(createFont({ height: 2, width: 3, grid: 1 }), "a", paint(blankGlyph(createFont({ height: 2, width: 3, grid: 1 })), [{ x: 0, row: 0 }], true))
+    assert.equal(fontLayers(font), null)
   })
 })
 

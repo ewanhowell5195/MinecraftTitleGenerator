@@ -11,9 +11,9 @@ export function publicDir(root = ROOT) {
 }
 
 export function readStripSet(item, root = ROOT) {
-  const { id, offset } = stripUse(item)
+  const { id, offset, layer } = stripUse(item)
   const folder = path.join(publicDir(root), stripFolder(id))
-  return { ...readJson(path.join(folder, "textures.json")), id, offset, folder }
+  return { ...readJson(path.join(folder, "textures.json")), id, offset, layer, folder }
 }
 
 export function fontTextureList(entry, list, root = ROOT) {
@@ -40,6 +40,6 @@ export function readMask(entry, list, root = ROOT) {
   const folder = fontDir(entry, root)
   const file = path.join(folder, "font.png")
   const png = readPng(file)
-  const { list: cells, capHeight } = parseMask(png.data, png.width, png.height, fullOrder(entry, list), defaultBorder("top", entry))
-  return { folder, file, png, cells, capHeight }
+  const { list: cells, capHeight, layers } = parseMask(png.data, png.width, png.height, fullOrder(entry, list), defaultBorder("top", entry))
+  return { folder, file, png, cells, capHeight, layers }
 }

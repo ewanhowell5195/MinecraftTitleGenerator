@@ -204,6 +204,23 @@ describe("uploaded overlays", () => {
   })
 })
 
+describe("separate layers in links", () => {
+  const pixel = "data:image/png;base64,AAAA"
+
+  test("each layer's own settings come back as they were", () => {
+    const line = { font: "minecraft-wiki", separateLayers: true, layerSettings: [{ textureSource: "gradient", stops: [{ colour: "#ff0000", position: 0 }, { colour: "#0000ff", position: 100 }], overlays: [{ overlay: "outline", fade: 40 }] }] }
+    const { code } = encodeTitle({ version: FILE_VERSION, lines: [line] })
+    assert.deepEqual(decodeTitle(code).lines, [line])
+    assert.equal(openableTitle(code).lines.length, 1)
+  })
+
+  test("uploads inside a layer are left out and counted", () => {
+    const { code, skipped } = encodeTitle({ version: FILE_VERSION, lines: [{ separateLayers: true, layerSettings: [{ textureSource: "custom", customTexture: pixel, overlays: [{ source: "file", file: pixel }, { overlay: "outline" }] }] }] })
+    assert.equal(skipped, 2)
+    assert.deepEqual(decodeTitle(code).lines, [{ separateLayers: true, layerSettings: [{ overlays: [{ overlay: "outline" }] }] }])
+  })
+})
+
 describe("link codes", () => {
   const title = { version: 1, lines: [{ text: "hello", texture: "grass", hue: 120 }] }
 

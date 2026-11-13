@@ -1,7 +1,7 @@
 import { computed, ref, shallowRef, watch } from "vue"
 import { authorList } from "../lib/authors.js"
 import { DEFAULT_ORDER } from "../lib/order.js"
-import { buildSheet, charactersOf, fitGlyph, flatTexture, glyphOf, moveGlyph, reshapeGlyph, sameCharacter, sameGlyph, savedJson, setGlyph, setLetterCase } from "../lib/fontEditor.js"
+import { buildSheet, charactersOf, depthCode, fitGlyph, flatTexture, glyphOf, moveGlyph, reshapeGlyph, sameCharacter, sameGlyph, savedJson, setGlyph, setLetterCase } from "../lib/fontEditor.js"
 import { jsonText } from "../lib/jsonText.js"
 import { EDITOR_SUBMISSION } from "../lib/submissions.js"
 import { download, downloadBlob } from "../lib/ui.js"
@@ -20,6 +20,7 @@ export const clipboard = shallowRef(null)
 export const previewText = ref("Minecraft")
 export const previewTerminators = ref(false)
 export const previewStretch = ref(0)
+export const pencilDepth = ref(100)
 export const previewMode = ref("2d")
 
 const undoStack = shallowRef([])
@@ -67,6 +68,12 @@ export function endStroke() {
 
 export function typing(target) {
   return target instanceof HTMLElement && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))
+}
+
+export function inkCode() {
+  const { font: next, code } = depthCode(font.value, pencilDepth.value / 100)
+  if (next !== font.value) font.value = next
+  return code
 }
 
 export function strokeTo(next) {
@@ -155,6 +162,7 @@ export function closeFont() {
   previewText.value = "Minecraft"
   previewTerminators.value = false
   previewStretch.value = 0
+  pencilDepth.value = 100
   previewMode.value = "2d"
 }
 

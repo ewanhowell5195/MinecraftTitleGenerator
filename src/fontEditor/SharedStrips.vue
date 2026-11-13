@@ -2,6 +2,7 @@
   import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, toRaw, watch } from "vue"
   import Badge from "../components/Badge.vue"
   import Button from "../components/Button.vue"
+  import Dropdown from "../components/Dropdown.vue"
   import Field from "../components/Field.vue"
   import LiveTitle from "../components/LiveTitle.vue"
   import Notice from "../components/Notice.vue"
@@ -13,7 +14,7 @@
   import { parsedSheet } from "../lib/fontEditor.js"
   import { titleCase } from "../lib/names.js"
   import { loadStats, usage } from "../lib/stats.js"
-  import { centredOffset, stripFolder, stripTag, stripUse } from "../lib/strips.js"
+  import { centredOffset, stripFolder, stripItem, stripTag, stripUse } from "../lib/strips.js"
   import { nearestOffset, setShape, stripFit } from "../lib/submissionKinds/stripFit.js"
   import { editorLine, useServedFont } from "./editorLine.js"
   import { typedNumber } from "./fields.js"
@@ -65,6 +66,8 @@
     return items.sort((a, b) => b.uses - a.uses || a.name.localeCompare(b.name))
   })
   const uses = computed(() => props.strips.map(stripUse))
+  const layerCount = computed(() => props.subject === "font" ? parsedSheet(toRaw(props.font), 0).layers?.length ?? 1 : 1)
+  const layerOptions = computed(() => [{ value: null, label: "All layers" }].concat(Array.from({ length: layerCount.value }, (_, index) => ({ value: index + 1, label: `Layer ${index + 1}` }))))
   const missing = computed(() => failed.value.filter(item => used(item.id)))
   const full = computed(() => props.maxSets !== null && uses.value.length >= props.maxSets)
   const variants = computed(() => {
@@ -72,8 +75,8 @@
     if (!entry?.variants) return []
     return [{ id: null, image: chosenTexture.value, name: entry.name ?? titleCase(chosenTexture.value) }].concat(Object.entries(entry.variants).map(([id, variant]) => ({ id, image: id, name: variant.name ?? titleCase(id) })))
   })
-  const { entry, settled } = useServedFont(props.served, () => props.preview && chosenSet.value ? { font: props.font, strip: stripItem(chosenSet.value, chosenOffset(chosenSet.value)) } : null)
-  const lines = computed(() => entry.value && shown.value.trim() ? [editorLine(entry.value, shown.value, { texture: chosenTexture.value, variant: chosenVariant.value })] : [])
+  const { entry, settled } = useServedFont(props.served, () => props.preview && chosenSet.value ? { font: props.font, strip: stripItem(chosenSet.value, chosenOffset(chosenSet.value), layerOf(chosenSet.value)) } : null)
+  const lines = computed(() => entry.value && shown.value.trim() ? [editorLine(entry.value, shown.value, { texture: chosenTexture.value, variant: chosenVariant.value, layer: chosenSet.value && layerOf(chosenSet.value) ? layerOf(chosenSet.value) - 1 : null, layers: layerCount.value })] : [])
 
   function used(id) {
     return uses.value.some(use => use.id === id)
@@ -85,8 +88,13 @@
     return nearestFitting(id, wanted) ?? wanted
   }
 
-  function stripItem(id, offset) {
-    return offset ? { id, offset } : id
+  function layerOf(id) {
+    const layer = uses.value.find(use => use.id === id)?.layer ?? null
+    return layer && layer <= layerCount.value ? layer : null
+  }
+
+  function setLayer(id, layer) {
+    emit("update:strips", uses.value.map(use => stripItem(use.id, use.offset, use.id === id ? layer : use.layer)), `strips.${id}`)
   }
 
   function nearestFitting(id, wanted) {
@@ -111,7 +119,7 @@
     const value = nearestFitting(id, typed)
     if (value === null || (event.type === "input" && value !== typed) || Math.abs(value) > (props.maxOffset ?? Infinity)) return
     event.target.value = value
-    if (used(id)) emit("update:strips", uses.value.map(use => use.id === id ? stripItem(id, value) : stripItem(use.id, use.offset)), `strips.${id}`)
+    if (used(id)) emit("update:strips", uses.value.map(use => stripItem(use.id, use.id === id ? value : use.offset, use.layer)), `strips.${id}`)
     else {
       trialOffsets.value = { ...trialOffsets.value, [id]: value }
       scheduleCheck()
@@ -120,7 +128,7 @@
   }
 
   function announce() {
-    emit("select", chosenTexture.value ? { strip: stripItem(chosenSet.value, chosenOffset(chosenSet.value)), texture: chosenTexture.value, variant: chosenVariant.value } : null)
+    emit("select", chosenTexture.value ? { strip: stripItem(chosenSet.value, chosenOffset(chosenSet.value), layerOf(chosenSet.value)), texture: chosenTexture.value, variant: chosenVariant.value } : null)
   }
 
   function pickTexture(id) {
@@ -138,7 +146,8 @@
     const set = chosen.value
     if (!set) return
     const token = ++thumbsToken
-    const scene = thumbnailScene(toRaw(props.font), null, props.sample ?? undefined)
+    const layer = layerOf(set.id)
+    const scene = thumbnailScene(toRaw(props.font), null, props.sample ?? undefined, layer ? layer - 1 : null)
     if (!scene) {
       thumbs.value = {}
       return
@@ -254,6 +263,7 @@
   watch(() => [props.font, props.strips], scheduleCheck)
   watch(() => props.selected, follow)
   watch(chosenSet, drawThumbs)
+  watch(() => chosenSet.value && layerOf(chosenSet.value), drawThumbs)
 </script>
 
 <template>
@@ -273,6 +283,7 @@
           <span v-tooltip="`0 centres ${words.parts} on the strips, higher moves ${words.them} up, lower moves ${words.them} down`">Offset</span>
           <NumberInput :value="chosenOffset(set.id)" :min="bounds(set.id).low" :max="bounds(set.id).high" v-tooltip="boundsNote(set.id)" :aria-label="`Offset for ${titleCase(set.id)}`" @input="setOffset(set.id, $event)" @change="setOffset(set.id, $event)" />
         </template>
+        <Dropdown v-if="used(set.id) && layerCount > 1" class="layer" :options="layerOptions" :model-value="layerOf(set.id)" v-tooltip="'Which layers of the font get these strips'" :aria-label="`Layers for ${titleCase(set.id)}`" @update:model-value="setLayer(set.id, $event)" />
         <Button v-if="used(set.id)" @click.stop="toggle(set.id)">Stop using</Button>
         <Button :primary="fits(set.id)" v-else :disabled="!fits(set.id) || full" @click.stop="toggle(set.id)">Use</Button>
       </div>

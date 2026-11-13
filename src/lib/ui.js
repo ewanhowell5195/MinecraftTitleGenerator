@@ -40,8 +40,9 @@ export function fontThumbnail(fonts, id) {
   return `font/${entry?.variant ? `${entry.variant}/` : ""}${id}/thumbnails/flat.png`
 }
 
-export function thumbnail(font, id) {
-  return customThumbnail(font?.id, id) ?? `${font?.folder ?? "font"}/thumbnails/${id}.png`
+export function thumbnail(font, id, layer = null) {
+  const name = layer === null ? id : `layer-${layer + 1}/${id}`
+  return customThumbnail(font?.id, name) ?? `${font?.folder ?? "font"}/thumbnails/${name}.png`
 }
 
 export function thumbnailHeight(font) {

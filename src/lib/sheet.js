@@ -1,4 +1,4 @@
-import { SHEET_MAX_WIDTH } from "./font.js"
+import { SHEET_MAX_WIDTH, depthShade } from "./font.js"
 
 export const EMPTY = [255, 255, 255]
 export const GLYPH = [0, 0, 0]
@@ -34,7 +34,12 @@ export function sheetRows(cells, capHeight, { maxWidth = SHEET_MAX_WIDTH, flatWi
   return rows
 }
 
-export function drawSheet(cells, capHeight, { width: fixed = null, ...limits } = {}) {
+function depthColour(layers, layer) {
+  const shade = depthShade(layers[layer])
+  return [shade, shade, shade]
+}
+
+export function drawSheet(cells, capHeight, { width: fixed = null, layers = null, ...limits } = {}) {
   const rows = sheetRows(cells, capHeight, limits)
   const width = fixed ?? Math.max(...rows.map(row => row.width))
   if (rows.some(row => row.width > width)) throw new Error(`a character is too wide for a sheet ${width} pixels wide`)
@@ -51,7 +56,7 @@ export function drawSheet(cells, capHeight, { width: fixed = null, ...limits } =
     let x = 1
     for (const cell of row.cells) {
       for (let r = 0; r < cell.height; r++) {
-        for (let c = 0; c < cell.width; c++) if (cell.mask[r * cell.width + c]) setPixel(sheet, x + cell.originX + c, baseline - cell.bottom - r, GLYPH)
+        for (let c = 0; c < cell.width; c++) if (cell.mask[r * cell.width + c]) setPixel(sheet, x + cell.originX + c, baseline - cell.bottom - r, layers && cell.depths ? depthColour(layers, cell.depths[r * cell.width + c]) : GLYPH)
       }
       x += cell.advance
       for (let line = top; line <= bottom; line++) setPixel(sheet, x, line, GRID)

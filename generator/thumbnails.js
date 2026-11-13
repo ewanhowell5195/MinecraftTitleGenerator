@@ -4,10 +4,12 @@ import path from "node:path"
 import { PNG } from "pngjs"
 import { stripRange } from "../src/lib/assets.js"
 import { rgbOf } from "../src/lib/colour.js"
+import { expandBands, layerMask } from "../src/lib/flatSheet.js"
 import { sheetLayout, solidMask, splitCells } from "../src/lib/font.js"
 import { GENERATED_EDGE_OVERLAYS, SMOOTH_KINDS, edgeAlpha, generatedAlpha, withGenerated } from "../src/lib/generated.js"
 import { layout } from "../src/lib/layout.js"
 import { defaultBorder, defaultDepth, overlayLayer } from "../src/lib/settings.js"
+import { stackedStrip } from "../src/lib/strips.js"
 import { MARGIN, drawLayer, drawRing, drawStrip, over, sceneFrame, stripSource } from "../src/lib/thumbnails.js"
 import { cli, inParallel, readPng, rgba, writePng } from "./common.js"
 import { ROOT, fontDir, fontTextureList, publicDir, publishedFonts, publishedModels, publishedShapes, readMask } from "./fonts.js"
@@ -26,8 +28,8 @@ function loadGlyphs(entry, list, root) {
     const parent = loadGlyphs(list.find(item => item.id === entry.variant), list, root)
     return { ...parent, glyphs: { ...parent.glyphs, ...parent.alternates[entry.id] } }
   }
-  const { folder, cells, capHeight } = readMask(entry, list, root)
-  return { ...splitCells(entry, list, cells), cells, capHeight, folder, depth: defaultDepth(entry) }
+  const { folder, cells, capHeight, layers } = readMask(entry, list, root)
+  return { ...splitCells(entry, list, cells), cells, capHeight, folder, depth: defaultDepth(entry), layers, bands: layers?.length ?? 1 }
 }
 
 function surface(width, height) {
@@ -36,7 +38,11 @@ function surface(width, height) {
   return png
 }
 
-function drawFaces(png, { placed, layouts }, sheet, masks, { density: d, width }) {
+function bandRow(glyph, px, py, d, rows, bands) {
+  return (glyph.depths?.[(glyph.height - 1 - Math.floor(py / d)) * glyph.width + Math.floor(px / d)] ?? 0) * rows / bands
+}
+
+function drawFaces(png, { placed, layouts, bands }, sheet, masks, { density: d, width }) {
   const scale = sheet.width / width
   for (const { glyph, x, y } of placed) {
     const mask = masks.get(glyph)
@@ -45,7 +51,7 @@ function drawFaces(png, { placed, layouts }, sheet, masks, { density: d, width }
       for (let px = 0; px < glyph.width * d; px++) {
         if (!mask[(glyph.height - 1 - Math.floor(py / d)) * glyph.width + Math.floor(px / d)]) continue
         const sxp = Math.floor((sx * d + px) * scale / d)
-        const syp = Math.floor((sy * d + py) * scale / d)
+        const syp = Math.floor((sy * d + py) * scale / d + bandRow(glyph, px, py, d, sheet.height, bands))
         over(png, x * d + px, y * d + py, rgba(sheet.data, (syp * sheet.width + sxp) * 4))
       }
     }
@@ -69,12 +75,12 @@ function drawGenerated(png, { placed, capHeight }, { density: d, generated }) {
   }
 }
 
-function layerSource({ layouts, capHeight }, { kind, image, layer }, { density: d, width }) {
+function layerSource({ layouts, capHeight, bands }, { kind, image, layer }, { density: d, width }) {
   if (!image) return { alphaOf: ({ glyph, x }) => generatedAlpha({ ...glyph, placedX: x }, kind, layer, capHeight, d) }
   const scale = image.width / width
   function at({ glyph }) {
     const { x: sx, top: sy } = layouts.get(glyph)
-    return (px, py) => (Math.floor((sy * d + py) * scale / d) * image.width + Math.floor((sx * d + px) * scale / d)) * 4
+    return (px, py) => (Math.floor((sy * d + py) * scale / d + bandRow(glyph, px, py, d, image.height, bands)) * image.width + Math.floor((sx * d + px) * scale / d)) * 4
   }
   return { texel: { data: image.data, at } }
 }
@@ -84,15 +90,41 @@ function render(scene, sheet, options) {
   const masks = new Map(scene.placed.map(({ glyph }) => {
     if (!options.ownShape) return [glyph, glyph.mask]
     const { x, top } = scene.layouts.get(glyph)
-    return [glyph, solidMask(sheet.data, sheet.width, sheet.width / options.width, x, top, glyph.width, glyph.height)]
+    const bands = Array.from({ length: scene.bands }, (_, band) => solidMask(sheet.data, sheet.width, sheet.width / options.width, x, top + band * sheet.height / (sheet.width / options.width) / scene.bands, glyph.width, glyph.height))
+    if (scene.layer != null) return [glyph, bands[scene.layer]]
+    return [glyph, bands[0].map((solid, at) => bands.some(band => band[at]) ? 1 : 0)]
   }))
   if (options.ring) drawRing(png, scene.placed, options.density, options.border, glyph => masks.get(glyph))
-  if (options.strip) drawStrip(png, scene.placed, options.density, options.strip)
+  if (options.strip?.layers && scene.layer == null) {
+    for (const [layer, strip] of options.strip.layers.entries()) drawStrip(png, exposed(scene.placed, layer), options.density, strip)
+  } else if (options.strip) drawStrip(png, scene.placed, options.density, options.strip.layers?.[scene.layer] ?? options.strip)
   else drawFaces(png, scene, sheet, masks, options)
   if (options.fontOverlay) drawFaces(png, scene, options.fontOverlay, masks, options)
   if (options.generated) drawGenerated(png, scene, options)
   for (const layer of options.layers ?? []) drawLayer(png, scene.placed, options.density, layer.layer, layerSource(scene, layer, options))
   return png
+}
+
+function exposed(placed, layer) {
+  return placed.map(item => ({ ...item, glyph: { ...item.glyph, mask: item.glyph.mask.map((solid, at) => solid && (item.glyph.depths?.[at] ?? 0) === layer ? 1 : 0) } }))
+}
+
+function layerScene(scene, layer) {
+  const copies = new Map()
+  function copy(glyph) {
+    if (!copies.has(glyph)) copies.set(glyph, { ...glyph, mask: layerMask(glyph, layer), depths: new Uint8Array(glyph.mask.length).fill(layer) })
+    return copies.get(glyph)
+  }
+  return { ...scene, layer, placed: scene.placed.map(item => ({ ...item, glyph: copy(item.glyph) })), layouts: new Map(Array.from(scene.layouts, ([glyph, at]) => [copy(glyph), at])) }
+}
+
+function stripOf(scene, entry, image) {
+  const strip = stripSource(entry, image, scene.stripRange, scene.depth, scene.capHeight)
+  if (strip.tiling !== "line" && strip.tiling !== "character") throw new Error(`${entry.id ?? "a strip"} has tiling "${strip.tiling}", strips tile by "line" or "character"`)
+  if (!scene.layers || entry.stripSet) return strip
+  const shapes = scene.layers.map((_, layer) => stackedStrip(strip.shape, scene.layers, layer))
+  const density = image.height / shapes[0].total
+  return { ...strip, density, layers: shapes.map(({ shape, offset }) => ({ ...strip, shape, density, top: offset + shape.depth + shape.top })) }
 }
 
 function compose(base, top) {
@@ -127,6 +159,14 @@ function fade(png, amount) {
   return png
 }
 
+function expanded({ cells, capHeight, depth, layers }, png) {
+  if (!layers || layers.length < 2) return png
+  const { data, height } = expandBands(png.data, png.width, cells, capHeight, depth, layers)
+  const out = new PNG({ width: png.width, height })
+  out.data = Buffer.from(data.buffer)
+  return out
+}
+
 function frameFill(png, colour) {
   for (let i = 0; i < png.data.length; i += 4) {
     if (png.data[i + 3]) continue
@@ -135,7 +175,7 @@ function frameFill(png, colour) {
 }
 
 function sceneFor(entry, list, root) {
-  const { glyphs, cells, capHeight, folder, depth } = loadGlyphs(entry, list, root)
+  const { glyphs, cells, capHeight, folder, depth, layers, bands } = loadGlyphs(entry, list, root)
   const font = { ...entry, glyphs, kerning: { ...list.find(item => item.id === entry.variant)?.kerning, ...entry.kerning } }
   const placed = layout(font, entry.preview ?? "abc", { spacing: entry.characterSpacing ?? 0 })
   if (!placed.length) throw new Error(`${entry.id}: the preview text has no glyphs in this font`)
@@ -144,6 +184,9 @@ function sceneFor(entry, list, root) {
     ...sceneFrame(placed, ring || entry.autoBorder ? MARGIN : 0),
     folder,
     layouts: sheetLayout(cells, capHeight, depth),
+    cells,
+    layers,
+    bands,
     depth,
     capHeight,
     ring,
@@ -159,11 +202,10 @@ function textureThumbnail({ entry, scene, meta, sheet, width, densityOf }, name,
     if (!known) throw new Error(`${name}: default overlay "${layer.overlay}" is not one of this font's overlays`)
     return { kind: known.generated ?? null, image: known.generated ? null : sheet("overlays", layer.overlay), layer: { ...overlayLayer(layer.overlay, known), ...layer } }
   })
-  const image = sheet("textures", name, merged.folder)
+  const image = sheet("textures", name, merged.folder, merged.type === "strip")
   let png
   if (merged.type === "strip") {
-    const strip = stripSource(merged, image, scene.stripRange, scene.depth, scene.capHeight)
-    if (strip.tiling !== "line" && strip.tiling !== "character") throw new Error(`${name} has tiling "${strip.tiling}", strips tile by "line" or "character"`)
+    const strip = stripOf(scene, { ...merged, id: name }, image)
     png = render(scene, null, { density: Math.max(1, Math.ceil(strip.density)), border, width, ring: scene.ring, strip, layers, fontOverlay: entry.overlay ? sheet(".", "overlay") : null })
   } else {
     png = render(scene, image, { density: densityOf(image), border, width, ring: scene.ring, ownShape: true, layers })
@@ -209,9 +251,14 @@ export function thumbnailEntry(list, id) {
 
 export function drawThumbnails(entry, list, root = ROOT) {
   const loaded = new Map()
-  const load = file => loaded.get(file) ?? loaded.set(file, readPng(file)).get(file)
   const scene = sceneFor(entry, list, root)
-  const sheet = (kind, id, folder) => load(path.join(folder ? path.join(publicDir(root), folder) : scene.folder, kind, `${id}.png`))
+  const load = file => loaded.get(file) ?? loaded.set(file, readPng(file)).get(file)
+  const banded = new Map()
+  function sheet(kind, id, folder, strip = false) {
+    const file = path.join(folder ? path.join(publicDir(root), folder) : scene.folder, kind, `${id}.png`)
+    if (strip) return load(file)
+    return banded.get(file) ?? banded.set(file, expanded(scene, load(file))).get(file)
+  }
   const meta = fontTextureList(entry, list, root)
   const flat = sheet("textures", "flat")
   const width = flat.width / (meta.textures.flat?.density ?? 1)
@@ -226,6 +273,7 @@ export function drawThumbnails(entry, list, root = ROOT) {
     const file = path.join(target, `${name}.png`)
     const output = premultiply(png)
     kept.add(file)
+    fs.mkdirSync(path.dirname(file), { recursive: true })
     if (fs.existsSync(file)) {
       const existing = readPng(file)
       if (existing.width === output.width && existing.height === output.height && existing.data.equals(output.data)) return
@@ -235,17 +283,27 @@ export function drawThumbnails(entry, list, root = ROOT) {
   }
 
   const flatBorder = opaque(meta.textures.flat?.border ?? "#000000")
-  const background = fade(render(scene, flat, { density: densityOf(flat), border: flatBorder, width, ring: scene.ring }), BACKGROUND_ALPHA)
-  if (entry.autoBorder) frameFill(background, [flatBorder[0], flatBorder[1], flatBorder[2], AUTO_BORDER_ALPHA])
 
-  for (const [id, data] of Object.entries(meta.textures)) {
-    for (const [name, variant] of [[id, data]].concat(Object.entries(data.variants ?? {}))) write(name, textureThumbnail(context, name, data, variant))
+  function writeAll(shown, prefix, layer) {
+    const own = { ...context, scene: shown }
+    const background = fade(render(shown, flat, { density: densityOf(flat), border: flatBorder, width, ring: shown.ring }), BACKGROUND_ALPHA)
+    if (entry.autoBorder) frameFill(background, [flatBorder[0], flatBorder[1], flatBorder[2], AUTO_BORDER_ALPHA])
+    for (const [id, data] of Object.entries(meta.textures)) {
+      if (data.stripLayer != null && data.stripLayer !== layer) continue
+      for (const [name, variant] of [[id, data]].concat(Object.entries(data.variants ?? {}))) write(prefix + name, textureThumbnail(own, name, data, variant))
+    }
+    for (const [id, data] of Object.entries(meta.overlays)) write(prefix + id, compose(background, overlayThumbnail(own, id, data, flat)))
+    for (const [id, data] of Object.entries(GENERATED_EDGE_OVERLAYS)) write(prefix + id, edgeThumbnail(shown, data.generated, background, densityOf(flat)))
   }
-  for (const [id, data] of Object.entries(meta.overlays)) write(id, compose(background, overlayThumbnail(context, id, data, flat)))
-  for (const [id, data] of Object.entries(GENERATED_EDGE_OVERLAYS)) write(id, edgeThumbnail(scene, data.generated, background, densityOf(flat)))
 
-  for (const file of fs.readdirSync(target).map(name => path.join(target, name))) {
-    if (!kept.has(file)) fs.rmSync(file)
+  writeAll(scene, "", null)
+  for (let layer = 0; layer < (scene.layers?.length ?? 0); layer++) writeAll(layerScene(scene, layer), `layer-${layer + 1}/`, layer)
+
+  for (const file of fs.readdirSync(target, { recursive: true }).map(name => path.join(target, name))) {
+    if (fs.statSync(file).isFile() && !kept.has(file)) fs.rmSync(file)
+  }
+  for (const folder of fs.readdirSync(target).map(name => path.join(target, name))) {
+    if (fs.statSync(folder).isDirectory() && !fs.readdirSync(folder).length) fs.rmdirSync(folder)
   }
 
   return { count: kept.size, changed, frame: scene.frame }

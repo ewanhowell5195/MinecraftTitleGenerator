@@ -1,8 +1,8 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import { LIMITS } from "../src/lib/limits.js"
-import { FILE_VERSION } from "../src/lib/settings.js"
-import { joinWords, limitProblem, lineWords, titleFacts, titleProblem, titleValues } from "../src/lib/titleFacts.js"
+import { FILE_VERSION, createObject, layerValues } from "../src/lib/settings.js"
+import { joinWords, limitProblem, lineWords, titleFacts, titleProblem, titleValues, trimmed } from "../src/lib/titleFacts.js"
 
 describe("lineWords", () => {
   test("a line with no words is its own word", () => {
@@ -100,5 +100,25 @@ describe("titleValues", () => {
     assert.throws(() => titleValues({ version: FILE_VERSION, lines: [{ words: [] }] }), { message: "a line has no words in it" })
     assert.throws(() => titleValues({ version: FILE_VERSION + 1, lines: [{}] }), { message: `it was saved by a newer version of the generator (format ${FILE_VERSION + 1})` })
     assert.throws(() => titleValues({ version: FILE_VERSION, lines: [] }), { message: "it has no text in it" })
+  })
+})
+
+describe("separate layers in saved titles", () => {
+  test("a layer keeps only what differs from the defaults, and opens with the rest filled in", () => {
+    const object = createObject({ separateLayers: true })
+    object.layerSettings = [{ ...layerValues(object), textureSource: "gradient", hue: 40 }]
+    const saved = trimmed(object)
+    assert.deepEqual(saved.layerSettings, [{ textureSource: "gradient", hue: 40 }])
+    const [[opened]] = titleValues({ version: FILE_VERSION, lines: [saved] })
+    assert.equal(opened.layerSettings[0].textureSource, "gradient")
+    assert.equal(opened.layerSettings[0].hue, 40)
+    assert.equal(opened.layerSettings[0].saturation, 100)
+    assert.deepEqual(opened.layerSettings[0].overlays, [])
+  })
+
+  test("a title with layers kept together saves nothing extra", () => {
+    const saved = trimmed(createObject())
+    assert.equal("separateLayers" in saved, false)
+    assert.equal("layerSettings" in saved, false)
   })
 })

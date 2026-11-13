@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
-import { flatPixels, stripLimits } from "../src/lib/flatSheet.js"
+import { expandBands, flatLayers, flatPixels, layerSlices, stripLimits } from "../src/lib/flatSheet.js"
 
 function cellOf(rows, bottom) {
   const width = rows[0].length
@@ -31,5 +31,25 @@ describe("flat sheet strips", () => {
     const sheet = flatPixels([cellOf(rows, 0)], 6, 2)
     const [[, at]] = sheet.layout
     assert.equal(stripRow(sheet, at.up).slice(at.x, at.x + 6), "110011")
+  })
+})
+
+describe("layer bands", () => {
+  const cell = { ...cellOf(["11", "11"], 0), depths: Uint8Array.from([1, 1, 0, 0]) }
+  const layers = [1, 0.5]
+
+  test("each band's strips only hold its own slice of the depth", () => {
+    assert.deepEqual(layerSlices(layers, 4), [{ from: 2, rows: 2 }, { from: 0, rows: 2 }])
+    assert.equal(flatLayers([cell], 2, 4, layers, 1, true).height, 12)
+  })
+
+  test("expanding puts each slice at its depth and stretches its end rows over the rest", () => {
+    const sheet = flatLayers([cell], 2, 4, layers, 1, true)
+    const source = new Uint8ClampedArray(sheet.data.length)
+    for (let y = 0; y < sheet.height; y++) source.fill(y, y * 2 * 4, (y + 1) * 2 * 4)
+    const { data, height } = expandBands(source, 2, [cell], 2, 4, layers)
+    assert.equal(height, 20)
+    const column = Array.from({ length: height }, (_, y) => data[y * 2 * 4])
+    assert.deepEqual(column, [0, 0, 0, 1, 2, 3, 4, 5, 5, 5, 6, 7, 7, 7, 8, 9, 10, 10, 10, 11])
   })
 })

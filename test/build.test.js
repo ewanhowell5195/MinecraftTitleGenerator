@@ -25,7 +25,7 @@ describe("rowBottom", () => {
   })
 })
 
-globalThis.document = { createElement: () => ({ getContext: () => ({ fillRect() {} }) }) }
+globalThis.document = { createElement: () => ({ getContext: () => ({ fillRect() {}, drawImage() {} }) }) }
 
 const PAINTED = { scale: 1, canvas: {}, border: "rgb(0, 0, 0)", tiles: null, fade: null, edgeAverage: () => "#123456" }
 
@@ -343,6 +343,51 @@ describe("buildText", () => {
 
   test("throws when the atlas would pass the texture limit", () => {
     assert.throws(() => text([place(glyph("w", 2000, 1), 0)]), /over the 4096 limit/)
+  })
+})
+
+describe("depth layers", () => {
+  const LAYERED = { layers: [{ options: {} }, { options: {} }], painted: [PAINTED, PAINTED] }
+
+  function flatZs(body) {
+    const list = points(body.positions)
+    const zs = new Set()
+    for (let index = 0; index < list.length; index += 3) {
+      const corners = list.slice(index, index + 3)
+      if (corners.every(point => point[2] === corners[0][2])) zs.add(corners[0][2])
+    }
+    return Array.from(zs).sort((a, b) => a - b)
+  }
+
+  test("a shallower pixel is flush with the back and stops part of the way forward", () => {
+    const stepped = glyph("x", 3, 1, { depths: Uint8Array.from([0, 1, 0]) })
+    const built = text([place(stepped, 0)], LAYERED, { layers: [1, 0.5], capHeight: 1, glyphs: { x: stepped } })
+    assert.deepEqual(flatZs(built.body), [-2, 0, 2])
+    assert.deepEqual(extents(built.body.positions)[2], [-2, 2])
+    assert.deepEqual(built.layers, [0, 1])
+  })
+
+  test("the outline steps back with each layer instead of boxing the whole character", () => {
+    const stepped = glyph("x", 5, 1, { depths: Uint8Array.from([0, 1, 1, 1, 0]) })
+    const built = text([place(stepped, 0)], LAYERED, { layers: [1, 0.5], capHeight: 1, glyphs: { x: stepped } })
+    const outline = buildOutline(built, [1, 1, 1])
+    const corners = points(outline.positions)
+    const caps = []
+    for (let index = 0; index < corners.length; index += 3) {
+      const triangle = corners.slice(index, index + 3)
+      if (triangle.every(point => point[2] === triangle[0][2])) caps.push({ z: triangle[0][2], xs: triangle.map(point => point[0]) })
+    }
+    const covering = z => caps.some(cap => cap.z === z && Math.min(...cap.xs) <= 0 && Math.max(...cap.xs) >= 0)
+    assert.deepEqual(Array.from(new Set(caps.map(cap => cap.z))).sort((a, b) => a - b), [-3, 1, 3])
+    assert.equal(covering(3), false)
+    assert.equal(covering(1), true)
+  })
+
+  test("a character with no shallower pixels stays one piece, with no seam where a layer would start", () => {
+    const solid = glyph("x", 3, 1, { depths: new Uint8Array(3) })
+    const built = text([place(solid, 0)], LAYERED, { layers: [1, 0.5], capHeight: 1, glyphs: { x: solid } })
+    assert.deepEqual(flatZs(built.body), [-2, 2])
+    assert.deepEqual(built.layers, [0])
   })
 })
 

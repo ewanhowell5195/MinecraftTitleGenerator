@@ -359,7 +359,9 @@ const KEYS = [
   ["shape", ID],
   ["shapeVersion", ID],
   ["twistDoorRoll", BOOLEAN],
-  ["amount", NUMBER]
+  ["amount", NUMBER],
+  ["separateLayers", BOOLEAN],
+  ["layerSettings", OBJECTS]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))
@@ -398,13 +400,13 @@ function readEntry(reader) {
   return [key, flagged ? null : type.read(reader)]
 }
 
-const NESTED = new Set(["words"].concat(LAYERS))
+const NESTED = new Set(["words", "layerSettings"].concat(LAYERS))
 
 export function unknownSetting(items, names = new Map(), accepts = fittingType) {
   for (const item of items) {
     for (const [key, value] of Object.entries(item)) {
       if (!accepts(names.get(key) ?? key, value)) return key
-      const nested = NESTED.has(key) && value ? unknownSetting(value, key === "words" ? new Map() : OVERLAY_KEYS, accepts) : null
+      const nested = NESTED.has(key) && value ? unknownSetting(value, key === "words" || key === "layerSettings" ? new Map() : OVERLAY_KEYS, accepts) : null
       if (nested) return nested
     }
   }
@@ -432,9 +434,23 @@ function fromBase64Url(text) {
   return Uint8Array.from(atob(text.replaceAll("-", "+").replaceAll("_", "/")), character => character.charCodeAt(0))
 }
 
+function layerUploads(layer) {
+  return LAYERS.flatMap(key => layer[key] ?? []).filter(overlay => overlay.source === "file" && overlay.file).length + (layer.textureSource === "custom" && layer.customTexture ? 1 : 0)
+}
+
 function countUploads(entry) {
   const own = LAYERS.flatMap(key => entry[key] ?? []).filter(layer => layer.source === "file" && layer.file).length + (entry.textureSource === "custom" && (entry.customTexture || (entry.words ?? []).some(word => word.customTexture)) ? 1 : 0) + (isCustomFont(entry.font) || entry.shape === CUSTOM_SHAPE ? 1 : 0)
-  return (entry.words ?? []).reduce((total, word) => total + countUploads(word), own)
+  const layered = (entry.layerSettings ?? []).reduce((total, layer) => total + layerUploads(layer), own)
+  return (entry.words ?? []).reduce((total, word) => total + countUploads(word), layered)
+}
+
+function layerWithoutUploads(layer) {
+  const stripped = Object.fromEntries(Object.entries(layer).filter(([key]) => !UPLOAD_KEYS.includes(key)))
+  if (layer.textureSource === "custom") delete stripped.textureSource
+  for (const key of LAYERS) {
+    if (layer[key]) stripped[key] = layer[key].filter(overlay => overlay.source !== "file").map(({ file, ...overlay }) => overlay)
+  }
+  return stripped
 }
 
 export const UPLOAD_KEYS = ["customTexture", "customTextureMode", "customFont"]
@@ -451,6 +467,7 @@ function withoutUploads(entry) {
   for (const key of LAYERS) {
     if (entry[key]) stripped[key] = entry[key].filter(layer => layer.source !== "file").map(({ file, ...layer }) => layer)
   }
+  if (entry.layerSettings) stripped.layerSettings = entry.layerSettings.map(layerWithoutUploads)
   if (entry.words) stripped.words = entry.words.map(withoutUploads)
   return stripped
 }

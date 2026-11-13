@@ -5,6 +5,7 @@
   import TileGrid from "../../components/TileGrid.vue"
   import { fetched } from "../../lib/api.js"
   import { pixelsOf } from "../../lib/canvas.js"
+  import { layerSlices } from "../../lib/flatSheet.js"
   import { loadImage, sheetLayout } from "../../lib/font.js"
   import { characterName, exportJson, flatTexture, parsedSheet } from "../../lib/fontEditor.js"
   import { defaultBorder, defaultDepth } from "../../lib/settings.js"
@@ -91,8 +92,8 @@
       if (url !== props.url) return
       const entry = exportJson(font, "")
       const depth = defaultDepth(entry)
-      const { list, capHeight } = parsedSheet(font, defaultBorder("top", entry))
-      drawn.value = { letterCase: font.letterCase, cells: list.filter(cell => cell.width), positions: sheetLayout(list, capHeight, depth), depth, flat: flatTexture(font) }
+      const { list, capHeight, layers } = parsedSheet(font, defaultBorder("top", entry))
+      drawn.value = { letterCase: font.letterCase, cells: list.filter(cell => cell.width), positions: sheetLayout(list, capHeight, layers ? layerSlices(layers, depth)[0].rows : depth), depth, flat: flatTexture(font) }
     } catch (err) {
       problem.value = err.message
     }

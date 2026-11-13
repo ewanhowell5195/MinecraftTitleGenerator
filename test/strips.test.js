@@ -7,7 +7,7 @@ import { stripRange } from "../src/lib/assets.js"
 import { stripsOf } from "../src/lib/font.js"
 import { withGenerated } from "../src/lib/generated.js"
 import { defaultDepth } from "../src/lib/settings.js"
-import { centredOffset, mergeStrips, stripRows, stripUse, stripY } from "../src/lib/strips.js"
+import { centredOffset, layerSlice, mergeStrips, stackedStrip, stripItem, stripRows, stripUse, stripY } from "../src/lib/strips.js"
 
 const SET = { id: "set", depth: 22, baseline: 30, textures: { shared: { authors: "a", variants: { kid: { authors: "b" } } }, other: { authors: "c" } } }
 
@@ -64,8 +64,24 @@ describe("stripRows", () => {
   })
 
   test("a strip can be listed by id or as an object with an offset", () => {
-    assert.deepEqual(stripUse("set"), { id: "set", offset: 0 })
-    assert.deepEqual(stripUse({ id: "set", offset: 4 }), { id: "set", offset: 4 })
+    assert.deepEqual(stripUse("set"), { id: "set", offset: 0, layer: null })
+    assert.deepEqual(stripUse({ id: "set", offset: 4 }), { id: "set", offset: 4, layer: null })
+  })
+
+  test("a strip set can be tied to one layer of the font", () => {
+    assert.deepEqual(stripUse({ id: "set", layer: 2 }), { id: "set", offset: 0, layer: 2 })
+    assert.deepEqual([stripItem("set"), stripItem("set", 3), stripItem("set", 0, 2)], ["set", { id: "set", offset: 3 }, { id: "set", layer: 2 }])
+    const { textures } = mergeStrips({ textures: {} }, [{ id: "set", depth: 22, layer: 2, textures: { a: {} } }])
+    assert.equal(textures.a.stripLayer, 1)
+  })
+
+  test("a font's own strip on a layered font holds one strip per layer, each as deep as its slice", () => {
+    const shape = stripRows({}, range, 10)
+    const layers = [1, 0.8]
+    assert.deepEqual(stackedStrip(shape, layers, 0), { shape: { depth: 2, top: 40, bottom: -8, rows: 52 }, offset: 0, total: 116 })
+    assert.deepEqual(stackedStrip(shape, layers, 1), { shape: { depth: 8, top: 40, bottom: -8, rows: 64 }, offset: 52, total: 116 })
+    assert.deepEqual(layerSlice(layers, 0), { from: 0.8, size: 1 - 0.8 })
+    assert.deepEqual(layerSlice(layers, 1), { from: 0, size: 0.8 })
   })
 
   test("an offset lifts the font's baseline above the strip's", () => {

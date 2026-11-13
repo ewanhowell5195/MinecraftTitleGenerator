@@ -1,5 +1,5 @@
 import { authorList } from "./authors.js"
-import { flatPixels } from "./flatSheet.js"
+import { flatLayers, flatPixels } from "./flatSheet.js"
 import { groupedKerning, kerningPairs, parseMask, scanMask } from "./font.js"
 import { titleCase } from "./names.js"
 import { mostCommon } from "./maths.js"
@@ -152,9 +152,35 @@ export function sameCharacter(char, from, to) {
   return storedKey(real, to) ?? storedKey(other, to)
 }
 
+const DEPTH_CODES = "23456789abcdefghijklmnopqrstuvwxyz"
+const INK = /[^0]/
+
+function hasInk(text) {
+  return INK.test(text)
+}
+
+export function depthOf(font, code) {
+  return code === "1" ? 1 : font.depths?.[DEPTH_CODES.indexOf(code)] ?? 1
+}
+
+export function depthCode(font, depth) {
+  if (depth >= 1) return { font, code: "1" }
+  const depths = font.depths ?? []
+  const known = depths.findIndex(value => Math.abs(value - depth) < 1e-6)
+  if (known >= 0) return { font, code: DEPTH_CODES[known] }
+  if (depths.length >= DEPTH_CODES.length) throw new Error(`a font can only have ${DEPTH_CODES.length + 1} different depths`)
+  return { font: { ...font, depths: depths.concat(depth) }, code: DEPTH_CODES[depths.length] }
+}
+
+export function fontLayers(font, glyphs = Object.values(font.glyphs)) {
+  const codes = new Set(glyphs.flatMap(glyph => Array.from(glyph.rows.join("")).filter(code => code !== "0")))
+  const layers = Array.from(new Set(Array.from(codes, code => depthOf(font, code)))).sort((a, b) => b - a)
+  return layers.length > 1 ? layers : null
+}
+
 function rowsOf(width, count, cells) {
   const rows = Array.from({ length: count }, () => Array.from("0".repeat(width)))
-  for (const [x, row] of cells) rows[row][x] = "1"
+  for (const [x, row, code] of cells) rows[row][x] = code ?? "1"
   return rows.map(row => row.join(""))
 }
 
@@ -199,7 +225,7 @@ export function rowOfY(font, glyph, y) {
 }
 
 export function isBlank(glyph) {
-  return !glyph.rows.some(row => row.includes("1"))
+  return !glyph.rows.some(hasInk)
 }
 
 function shapeOf(font, glyph) {
@@ -208,7 +234,7 @@ function shapeOf(font, glyph) {
 
 function reshape(glyph, from, to) {
   const cut = from.width - to.width
-  const inked = (start, end) => glyph.rows.some(row => row.slice(start, end).includes("1"))
+  const inked = (start, end) => glyph.rows.some(row => hasInk(row.slice(start, end)))
   const start = cut > 0 && inked(to.width, from.width) && !inked(0, cut) ? cut : 0
   const rows = []
   for (let y = to.height + to.above - 1; y >= -to.below; y--) {
@@ -238,7 +264,7 @@ function rescaleGlyph(font, glyph, next) {
   const stretch = []
   for (let y = next.height + above - 1; y >= -below; y--) {
     const from = glyph.rows[rowOfY(font, glyph, source(y))] ?? ""
-    rows.push(Array.from({ length: width }, (_, x) => from[source(x)] === "1" ? "1" : "0").join(""))
+    rows.push(Array.from({ length: width }, (_, x) => from[source(x)] ?? "0").join(""))
     if (glyph.stretch.includes(source(y))) stretch.unshift(y)
   }
   return { ...glyph, width: glyph.width === null || width === next.width ? null : width, above, below, stretch, rows }
@@ -256,19 +282,19 @@ export function setSquareSize(font, grid) {
 export const NOTHING_OUTSIDE = { cells: [], stretch: [] }
 
 function inkCells(font, glyph) {
-  return glyph.rows.flatMap((text, row) => Array.from(text).flatMap((value, x) => value === "1" ? [[x, yOfRow(font, glyph, row)]] : []))
+  return glyph.rows.flatMap((text, row) => Array.from(text).flatMap((value, x) => value !== "0" ? [[x, yOfRow(font, glyph, row), value]] : []))
 }
 
 function placed(font, glyph, cells, stretch) {
   const width = widthOf(font, glyph)
   const inside = inRows({ height: font.height, above: glyph.above, below: glyph.below })
   const fits = ([x, y]) => x >= 0 && x < width && inside(y)
-  const rows = rowsOf(width, font.height + glyph.above + glyph.below, cells.filter(fits).map(([x, y]) => [x, rowOfY(font, glyph, y)]))
+  const rows = rowsOf(width, font.height + glyph.above + glyph.below, cells.filter(fits).map(([x, y, code]) => [x, rowOfY(font, glyph, y), code]))
   return { glyph: { ...glyph, rows, stretch: stretch.filter(inside) }, outside: { cells: cells.filter(cell => !fits(cell)), stretch: stretch.filter(y => !inside(y)) } }
 }
 
 export function moveGlyph(font, glyph, dx, dy, outside = NOTHING_OUTSIDE) {
-  const cells = inkCells(font, glyph).concat(outside.cells).map(([x, y]) => [x + dx, y + dy])
+  const cells = inkCells(font, glyph).concat(outside.cells).map(([x, y, code]) => [x + dx, y + dy, code])
   return placed(font, glyph, cells, glyph.stretch.concat(outside.stretch).map(y => y + dy))
 }
 
@@ -279,9 +305,9 @@ export function reshapeGlyph(font, char, { width, above, below }, outside = NOTH
   if (above !== undefined) changed.above = above
   if (below !== undefined) changed.below = below
   const cut = widthOf(font, glyph) - widthOf(font, changed)
-  const inked = (start, end) => glyph.rows.some(row => row.slice(start, end).includes("1"))
+  const inked = (start, end) => glyph.rows.some(row => hasInk(row.slice(start, end)))
   const start = cut > 0 && inked(widthOf(font, changed), widthOf(font, glyph)) && !inked(0, cut) ? cut : 0
-  const cells = inkCells(font, glyph).concat(outside.cells).map(([x, y]) => [x - start, y])
+  const cells = inkCells(font, glyph).concat(outside.cells).map(([x, y, code]) => [x - start, y, code])
   const result = placed(font, changed, cells, glyph.stretch.concat(outside.stretch))
   return { font: setGlyph(font, char, result.glyph), outside: result.outside }
 }
@@ -290,7 +316,7 @@ function inkExtent(font, glyph) {
   let top = null
   let bottom = null
   for (const [row, text] of glyph.rows.entries()) {
-    if (!text.includes("1")) continue
+    if (!hasInk(text)) continue
     const y = yOfRow(font, glyph, row)
     top ??= y + 1
     bottom = y
@@ -299,13 +325,17 @@ function inkExtent(font, glyph) {
 }
 
 function inkLeft(glyph) {
-  return Math.min(...glyph.rows.filter(row => row.includes("1")).map(row => row.indexOf("1")))
+  return Math.min(...glyph.rows.filter(hasInk).map(row => row.search(INK)))
+}
+
+function inkRight(row) {
+  return row.length - 1 - Array.from(row).reverse().findIndex(code => code !== "0")
 }
 
 function trimmed(font, glyph) {
   if (isBlank(glyph)) return glyph
   const left = inkLeft(glyph)
-  const right = Math.max(...glyph.rows.map(row => row.lastIndexOf("1"))) + 1
+  const right = Math.max(...glyph.rows.filter(hasInk).map(inkRight)) + 1
   const { top, bottom } = inkExtent(font, glyph)
   const above = Math.min(glyph.above, Math.max(0, top - font.height))
   const below = Math.min(glyph.below, Math.max(0, -bottom))
@@ -342,7 +372,7 @@ export function squareSizeLoss(font, grid) {
 }
 
 export function inkCount(glyph) {
-  return glyph.rows.join("").split("1").length - 1
+  return glyph.rows.join("").replaceAll("0", "").length
 }
 
 export function sameGlyph(a, b) {
@@ -368,7 +398,7 @@ export function paint(glyph, cells, value) {
   for (const { x, row } of cells) {
     if (row < 0 || row >= rows.length || x < 0 || x >= rows[row].length) continue
     if (!touched.has(row)) touched.set(row, Array.from(rows[row]))
-    touched.get(row)[x] = value ? "1" : "0"
+    touched.get(row)[x] = typeof value === "string" ? value : value ? "1" : "0"
   }
   for (const [row, chars] of touched) rows[row] = chars.join("")
   return { ...glyph, rows }
@@ -457,7 +487,7 @@ export function setStretch(font, glyph, row, value) {
   return { ...glyph, stretch: stretch.sort((a, b) => a - b) }
 }
 
-function sheetCell(font, glyph) {
+function sheetCell(font, glyph, layers = null) {
   const d = font.density
   const trim = trimmed(font, glyph)
   const width = widthOf(font, trim) * d
@@ -465,22 +495,34 @@ function sheetCell(font, glyph) {
   const { top, bottom } = inkExtent(font, trim)
   if (top === null) return { advance: width, width: 0, height: 0, mask: new Uint8Array(0), originX: 0, top: 0, bottom: 0, stretch }
   const mask = new Uint8Array(width * (top - bottom) * d)
+  const depths = layers ? new Uint8Array(mask.length) : null
   for (let y = bottom; y < top; y++) {
     const text = trim.rows[rowOfY(font, trim, y)]
     for (let column = 0; column < text.length; column++) {
-      if (text[column] !== "1") continue
-      for (let j = 0; j < d; j++) mask.fill(1, ((y - bottom) * d + j) * width + column * d, ((y - bottom) * d + j) * width + (column + 1) * d)
+      if (text[column] === "0") continue
+      const layer = layers ? layers.indexOf(depthOf(font, text[column])) : 0
+      for (let j = 0; j < d; j++) {
+        const from = ((y - bottom) * d + j) * width + column * d
+        mask.fill(1, from, from + d)
+        depths?.fill(layer, from, from + d)
+      }
     }
   }
-  return { advance: width, width, height: (top - bottom) * d, mask, originX: 0, top: top * d, bottom: bottom * d, stretch }
+  return { advance: width, width, height: (top - bottom) * d, mask, ...(depths ? { depths } : {}), originX: 0, top: top * d, bottom: bottom * d, stretch }
+}
+
+function drawnSheet(font, chars) {
+  const glyphs = chars.map(char => glyphOf(font, char))
+  const layers = fontLayers(font, glyphs)
+  return drawSheet(glyphs.map(glyph => sheetCell(font, glyph, layers)), font.height * font.density, { layers })
 }
 
 function builtSheet(font) {
-  const key = `${font.height},${font.width},${font.density},${font.letterCase},${font.creeper},${font.defineSpace},${font.extras.join("")}`
+  const key = `${font.height},${font.width},${font.density},${font.letterCase},${font.creeper},${font.defineSpace},${font.extras.join("")},${(font.depths ?? []).join()}`
   let built = sheets.get(font.glyphs)
   if (built?.key !== key) {
     const capHeight = font.height * font.density
-    built = { key, sheet: { ...drawSheet(charactersOf(font).map(char => sheetCell(font, glyphOf(font, char))), capHeight), capHeight }, parsed: new Map() }
+    built = { key, sheet: { ...drawnSheet(font, charactersOf(font)), capHeight }, parsed: new Map() }
     sheets.set(font.glyphs, built)
     if (sheets.size > SHEETS_KEPT) sheets.delete(sheets.keys().next().value)
   }
@@ -502,7 +544,7 @@ export function savedCharacters(font) {
 }
 
 export function savedSheet(font) {
-  return drawSheet(savedCharacters(font).map(char => sheetCell(font, glyphOf(font, char))), font.height * font.density)
+  return drawnSheet(font, savedCharacters(font))
 }
 
 export function savedJson(font, encode) {
@@ -511,8 +553,9 @@ export function savedJson(font, encode) {
 
 export function flatTexture(value, fill = null) {
   const entry = exportJson(value, "")
-  const { list, capHeight } = parsedSheet(value, defaultBorder("top", entry))
-  return flatPixels(fill === "all" ? list.map(cell => ({ ...cell, mask: new Uint8Array(cell.mask.length).fill(1) })) : list, capHeight, defaultDepth(entry), 1, !!fill)
+  const { list, capHeight, layers } = parsedSheet(value, defaultBorder("top", entry))
+  if (fill === "all") return flatPixels(list.map(cell => ({ ...cell, mask: new Uint8Array(cell.mask.length).fill(1) })), capHeight, defaultDepth(entry), 1, true)
+  return flatLayers(list, capHeight, defaultDepth(entry), layers, 1, !!fill)
 }
 
 export function parsedSheet(font, gap = font.border) {
@@ -531,16 +574,16 @@ function usualWidth(widths, fallback) {
 }
 
 function detectGrid(glyphs) {
-  const runs = Object.values(glyphs).flatMap(glyph => glyph.rows.flatMap(row => row.match(/1+/g) ?? []).map(run => run.length))
+  const runs = Object.values(glyphs).flatMap(glyph => glyph.rows.flatMap(row => row.match(/[^0]+/g) ?? []).map(run => run.length))
   if (!runs.length) return 1
   return GRID_SIZES.find(size => runs.filter(length => length % size === 0).length >= runs.length * 0.95) ?? 1
 }
 
-function glyphFromCell(cell, height, width, density) {
+function glyphFromCell(cell, height, width, density, codes) {
   const cellWidth = exactDivide(cell.advance, density, `the width of ${characterName(cell.char)}`)
   const above = Math.max(0, Math.ceil(cell.top / density) - height)
   const below = Math.max(0, -Math.floor(cell.bottom / density))
-  const ink = maskCells(cell).map(([c, r]) => [Math.floor((cell.originX + c) / density), above + height - 1 - Math.floor((cell.bottom + r) / density)])
+  const ink = maskCells(cell).map(([c, r]) => [Math.floor((cell.originX + c) / density), above + height - 1 - Math.floor((cell.bottom + r) / density), codes[cell.depths?.[r * cell.width + c] ?? 0]])
   return { width: cellWidth === width ? null : cellWidth, above, below, stretch: fontRows(cell.stretch ?? [], density), rows: rowsOf(cellWidth, above + height + below, ink) }
 }
 
@@ -548,13 +591,24 @@ function cellsFromSheet({ data, width, height }, order, density) {
   const count = scanMask(data, width, height).rows.reduce((total, row) => total + row.cells.length, 0)
   const defaults = Array.from(DEFAULT_ORDER)
   const listed = order ? Array.from(order) : count > defaults.length ? defaults.concat(SPACE_CHAR) : count < defaults.length ? REQUIRED_CHARACTERS : defaults
-  const { list, capHeight } = parseMask(data, width, height, listed.slice(0, count).join(""), 0)
-  return { list, height: exactDivide(capHeight, density, "the cap height") }
+  const { list, capHeight, layers } = parseMask(data, width, height, listed.slice(0, count).join(""), 0)
+  return { list, layers, height: exactDivide(capHeight, density, "the cap height") }
 }
 
-function applyCells(font, list, height, density) {
+function depthCodes(font, layers) {
+  let next = { ...font, depths: [] }
+  const codes = (layers ?? [1]).map(depth => {
+    const found = depthCode(next, depth)
+    next = found.font
+    return found.code
+  })
+  return { font: next, codes }
+}
+
+function applyCells(source, list, height, density, layers = null) {
+  const { font, codes } = depthCodes(source, layers)
   const width = usualWidth(list.map(cell => cell.advance / density), font.width)
-  const glyphs = Object.fromEntries(list.map(cell => [cell.char, glyphFromCell(cell, height, width, density)]))
+  const glyphs = Object.fromEntries(list.map(cell => [cell.char, glyphFromCell(cell, height, width, density, codes)]))
   return { ...font, height, width, density, glyphs, creeper: CREEPER in glyphs, extras: extrasOf(list.map(cell => cell.char)), defineSpace: !!glyphs[SPACE_CHAR] && !isBlank(glyphs[SPACE_CHAR]) || font.defineSpace }
 }
 
@@ -618,16 +672,16 @@ export function fontFromFiles({ sheet = null, json = null }) {
     font = { ...font, creeper: listed.includes(CREEPER), defineSpace: listed.includes(SPACE_CHAR), extras: extrasOf(listed) }
   }
   if (!sheet) return font
-  const { list, height: sheetHeight } = cellsFromSheet(sheet, json?.order ?? null, density)
-  font = applyCells(font, list, sheetHeight, density)
+  const { list, layers, height: sheetHeight } = cellsFromSheet(sheet, json?.order ?? null, density)
+  font = applyCells(font, list, sheetHeight, density, layers)
   if (editor.width) font = resizeDefaultWidth(font, editor.width)
   if (editor.canvas) font = withCanvases(font, editor.canvas)
   return editor.grid ? font : { ...font, grid: detectGrid(font.glyphs) }
 }
 
-export function fontFromPublished(entry, cells, capHeight) {
+export function fontFromPublished(entry, cells, capHeight, layers = null) {
   const copy = metaFrom({ ...createFont({ height: capHeight, letterCase: entry.multicase ? "both" : "upper" }), name: `${entry.name} Copy` }, entry)
-  const font = applyCells({ ...copy, authors: [], description: "", basedOn: entry.id, flat: !!entry.flat, overlay: false, strips: entry.strips ?? [] }, cells, capHeight, 1)
+  const font = applyCells({ ...copy, authors: [], description: "", basedOn: entry.id, flat: !!entry.flat, overlay: false, strips: entry.strips ?? [] }, cells, capHeight, 1, layers)
   return { ...font, grid: detectGrid(font.glyphs) }
 }
 

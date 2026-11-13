@@ -267,6 +267,61 @@ function inside(value, start, size) {
   return clamp(value, start, start + Math.max(1, size) - 1)
 }
 
+function lowered(area, by) {
+  return { ...area, top: area.top + by, bottom: area.bottom + by }
+}
+
+function loweredPoint([x, y], by) {
+  return [x, y + by]
+}
+
+export function stackAtlases(parts, detail = 1) {
+  const SCALE = UNIT * detail
+  const units = { width: Math.max(...parts.map(part => part.atlas.units.width)), height: parts.reduce((sum, part) => sum + part.atlas.units.height, 0) }
+  if (units.width > MAX_WIDTH || units.height > MAX_WIDTH) throw new Error(`texture would be ${units.width * UNIT}x${units.height * UNIT}, over the ${MAX_TEXTURE} limit`)
+  const { canvas, ctx } = surface(units.width * SCALE, units.height * SCALE)
+  let offset = 0
+  const placed = parts.map(part => {
+    const at = offset
+    offset += part.atlas.units.height
+    for (const face of part.faces) face.uvs = face.uvs.map(([u, v]) => [u, v + at])
+    ctx.drawImage(part.atlas.canvas, 0, at * SCALE)
+    return { ...part.atlas, at, by: at * SCALE }
+  })
+  const swatched = placed.find(part => part.swatch)
+  function labels() {
+    const data = new Uint8ClampedArray(canvas.width * canvas.height * 4)
+    for (const part of placed) {
+      const own = part.labels()
+      const rowLength = part.canvas.width * 4
+      for (let row = 0; row < part.canvas.height; row++) data.set(own.subarray(row * rowLength, (row + 1) * rowLength), ((part.by + row) * canvas.width) * 4)
+    }
+    return data
+  }
+  function crackShapes() {
+    const found = new Map()
+    for (const part of placed) {
+      for (const [label, triangles] of part.crackShapes()) {
+        if (!found.has(label)) found.set(label, [])
+        found.get(label).push(...triangles.map(points => points.map(point => loweredPoint(point, part.by))))
+      }
+    }
+    return found
+  }
+  const gradientFaces = placed.flatMap(part => (part.gradient?.faces ?? []).map(face => ({ ...lowered(face, part.by), from: loweredPoint(face.from, part.by), to: loweredPoint(face.to, part.by) })))
+  return {
+    canvas,
+    units,
+    swatch: swatched ? { x: swatched.swatch.x, y: swatched.swatch.y + swatched.at } : null,
+    side: placed.find(part => part.side)?.side ?? null,
+    labels,
+    crackShapes,
+    gradient: gradientFaces.length ? { faces: gradientFaces } : null,
+    fades: placed.flatMap(part => part.fades.map(fade => ({ ...lowered(fade, part.by), near: loweredPoint(fade.near, part.by), far: loweredPoint(fade.far, part.by) }))),
+    panels: placed.flatMap(part => part.panels.map(panel => lowered(panel, part.by)))
+  }
+}
+
 export function buildAtlas(faces, options) {
   const depth = faceDepth(options.depth)
   const half = depth / 2

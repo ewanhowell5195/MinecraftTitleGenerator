@@ -1,7 +1,7 @@
 import { boxFaces, boxesFor } from "./boxes.js"
-import { stripLimits } from "./flatSheet.js"
+import { layerMask, stripLimits } from "./flatSheet.js"
 import { SPACE } from "./layout.js"
-import { buildAtlas, detailFor } from "./material.js"
+import { buildAtlas, detailFor, stackAtlases } from "./material.js"
 import { remember } from "./maths.js"
 import { baseChar } from "./order.js"
 
@@ -18,11 +18,11 @@ function expand(bounds, faces) {
   }
 }
 
-function shift({ body, boxes, rings }, axis, offset) {
+function shift({ body, boxes, slabs, rings }, axis, offset) {
   for (const face of body) {
     for (const point of face.points) point[axis] += offset
   }
-  for (const box of boxes) {
+  for (const box of boxes.concat(slabs?.flat() ?? [])) {
     box.from[axis] += offset
     box.to[axis] += offset
   }
@@ -65,6 +65,24 @@ function stripFaces(body, glyph, original, capHeight) {
   const bottoms = levels.filter(({ face }) => face.kind === "bottom").map(({ level }) => level)
   const { topline, baseline } = stripLimits(tops, bottoms, capHeight)
   for (const { face, level } of levels) face.internal = face.kind === "top" ? level < topline : level > baseline
+}
+
+function sliceFaces(glyph, x, depth, layers) {
+  const present = Array.from(new Set(Array.from(glyph.depths).filter((value, at) => glyph.mask[at]))).sort((a, b) => a - b)
+  const faces = []
+  for (const [index, layer] of present.entries()) {
+    const next = present[index + 1]
+    const near = layers[layer] * depth - depth / 2
+    const far = (next === undefined ? 0 : layers[next]) * depth - depth / 2
+    const keep = glyph.mask.map((solid, at) => solid && glyph.depths[at] <= layer ? 1 : 0)
+    const exposed = glyph.mask.map((solid, at) => solid && glyph.depths[at] === layer ? 1 : 0)
+    const sides = boxesFor(keep, glyph.width, glyph.height, x, glyph.bottom).map(box => ({ ...box, faces: { ...box.faces, front: next === undefined, back: false } }))
+    const fronts = boxesFor(exposed, glyph.width, glyph.height, x, glyph.bottom).map(box => ({ ...box, faces: { back: true } }))
+    const slice = boxFaces(sides.concat(fronts), far, near)
+    for (const face of slice) face.layer = layer
+    faces.push(...slice)
+  }
+  return faces
 }
 
 function roundEdges(body, contours, glyph, original, x, reach) {
@@ -185,11 +203,15 @@ export function buildText(font, options) {
     const mesh = font.mesh?.glyphs[char]
     const reach = font.capHeight * EDGE_SHARE
     const shaped = mesh ? font.mesh.tools.meshFaces(mesh, glyph, font.glyphs[char], item.x, depth, reach) : null
-    const body = shaped ? shaped.faces : boxFaces(boxes, -depth / 2, depth / 2)
-    if (font.glyphs?.[char]) stripFaces(body, glyph, font.glyphs[char], font.capHeight)
+    const sliced = !shaped && glyph.depths && font.layers
+    const body = shaped ? shaped.faces : sliced ? sliceFaces(glyph, item.x, depth, font.layers) : boxFaces(boxes, -depth / 2, depth / 2)
+    if (sliced) {
+      for (const slice of Map.groupBy(body, face => face.layer).values()) stripFaces(slice, glyph, font.glyphs[char], font.capHeight)
+    } else if (font.glyphs?.[char]) stripFaces(body, glyph, font.glyphs[char], font.capHeight)
     if (!shaped && font.outlines?.[char]) roundEdges(body, font.outlines[char], glyph, font.glyphs[char], item.x, reach)
     for (const face of body) face.glyph = glyphs.length
-    glyphs.push({ body, boxes, rings: shaped?.rings ?? null, spaces: item.spaces, char: glyph.char, rect: { minX: item.x, maxX: item.x + glyph.width, minY: glyph.bottom, maxY: glyph.bottom + glyph.height } })
+    const slabs = sliced ? font.layers.map((_, layer) => boxesFor(layerMask(glyph, layer), glyph.width, glyph.height, item.x, glyph.bottom)) : null
+    glyphs.push({ body, boxes, slabs, rings: shaped?.rings ?? null, spaces: item.spaces, char: glyph.char, rect: { minX: item.x, maxX: item.x + glyph.width, minY: glyph.bottom, maxY: glyph.bottom + glyph.height } })
     expand(bounds, body)
   }
   const line = options.line ?? bounds
@@ -208,11 +230,16 @@ export function buildText(font, options) {
     spaces: glyphs.map(glyph => glyph.spaces),
     space: font.spaceWidth ?? SPACE
   }
-  const texture = buildAtlas(body, atlas)
+  function atlasFor(faces, painted, detail = 1) {
+    if (!options.layers) return buildAtlas(faces, { ...atlas, painted, detail })
+    const parts = Array.from(Map.groupBy(faces, face => face.layer ?? 0)).sort(([a], [b]) => a - b).map(([layer, group]) => ({ faces: group, atlas: buildAtlas(group, { ...atlas, ...options.layers[layer].options, painted: painted[layer], detail }) }))
+    return stackAtlases(parts, detail)
+  }
+  const texture = atlasFor(body, options.painted)
   const detail = options.detailed ? detailFor(texture.units, options.textureLimit) : 1
   const flat = detail > 1 ? body.map(face => ({ ...face, points: face.points.map(point => point.slice()) })) : null
   function refine(painted) {
-    const sharp = buildAtlas(flat, { ...atlas, painted, detail })
+    const sharp = atlasFor(flat, painted, detail)
     return { texture: sharp.canvas, labels: sharp.labels, crackShapes: sharp.crackShapes, gradient: sharp.gradient, fades: sharp.fades, panels: sharp.panels }
   }
   for (const [index, item] of placed.entries()) {
@@ -224,7 +251,7 @@ export function buildText(font, options) {
   const twist = options.twist ? glyphs.map(glyph => {
     const turn = twistTurn(options.twist, glyph.rect, line, first, last)
     for (const face of glyph.body) face.points = face.points.map(point => turned(point, turn))
-    return { turn, rings: font.mesh ? glyphRings(glyph) : null, sources: font.autoBorder ? frameRects(glyph.boxes) : glyph.boxes.map(box => [box.from[0], box.from[1], box.to[0], box.to[1]]) }
+    return { turn, rings: font.mesh ? glyphRings(glyph) : null, sources: font.autoBorder ? frameRects(glyph.boxes) : flatRects(glyph.boxes), slabs: font.autoBorder || !font.layers ? null : font.layers.map((_, layer) => flatRects(glyph.slabs?.[layer] ?? glyph.boxes)) }
   }) : null
   return {
     body: toBuffers(body, texture.units),
@@ -236,17 +263,20 @@ export function buildText(font, options) {
     panels: texture.panels,
     detail,
     refine: flat && refine,
+    layers: Array.from(new Set(body.map(face => face.layer ?? 0))).sort((a, b) => a - b),
     depth,
     border,
     boxes: glyphs.flatMap(glyph => glyph.boxes.map(box => [box.from, box.to])),
     bottom: rowBottom(glyphs.map(glyph => glyph.boxes)),
     line: { min: [line.minX + offset, line.minY, depth / 2 - (options.lineDepth ?? depth)], max: [line.maxX + offset, line.maxY, depth / 2] },
     frame: font.autoBorder ? frameRects(glyphs.flatMap(glyph => glyph.boxes)) : null,
+    slabs: font.layers && !font.autoBorder ? font.layers.map((_, layer) => glyphs.flatMap(glyph => flatRects(glyph.slabs?.[layer] ?? glyph.boxes))) : null,
+    layerDepths: font.layers ?? null,
     shapes: font.mesh ? glyphs.flatMap(glyphRings) : null,
     tools: font.mesh?.tools ?? null,
     twist,
     swatch: texture.swatch ? [(texture.swatch.x + 0.5) / texture.units.width, 1 - (texture.swatch.y + 0.5) / texture.units.height] : null,
-    averages: { side: texture.side, get edge() { return options.painted.edgeAverage() } }
+    averages: { side: texture.side, get edge() { return (options.layers ? options.painted[0] : options.painted).edgeAverage() } }
   }
 }
 
@@ -269,21 +299,32 @@ function union(rects) {
   return boxesFor(mask, width, height).map(box => ({ ...box, from: [xs[box.from[0]], ys[box.from[1]]], to: [xs[box.to[0]], ys[box.to[1]]] }))
 }
 
+function flatRects(boxes) {
+  return boxes.map(box => [box.from[0], box.from[1], box.to[0], box.to[1]])
+}
+
 export function buildOutline(built, scale, extra = [0, 0, 0]) {
   const [sx, sy, sz] = scale
   const [rx, ry, rz] = extra.map(value => built.border + value)
   const z = sz * built.depth / 2 + rz
   if (built.shapes) return meshOutline(built, scale, [rx, ry], z)
   const positions = []
-  function shell(sources, turn) {
-    const rects = sources.map(([x0, y0, x1, y1]) => [x0 * sx - rx, y0 * sy - ry, x1 * sx + rx, y1 * sy + ry])
-    for (const face of rx > 0 ? boxFaces(union(rects), -z, z) : []) {
-      for (const index of [0, 1, 2, 0, 2, 3]) positions.push(...(turn ? turned(face.points[index], turn, scale) : face.points[index]))
+  const grow = sources => sources.map(([x0, y0, x1, y1]) => [x0 * sx - rx, y0 * sy - ry, x1 * sx + rx, y1 * sy + ry])
+  const front = layer => sz * (built.layerDepths[layer] - 0.5) * built.depth + rz
+  function shell(sources, turn, slabs = null) {
+    const rects = grow(sources)
+    const last = (slabs?.length ?? 1) - 1
+    const pieces = slabs ? slabs.map((list, layer) => ({ rects: grow(list), low: layer === last ? -z : front(layer + 1), high: front(layer), capped: layer === last })) : [{ rects, low: -z, high: z, capped: true }]
+    for (const piece of rx > 0 ? pieces : []) {
+      const boxes = union(piece.rects).map(box => piece.capped ? box : { ...box, faces: { ...box.faces, front: false } })
+      for (const face of boxFaces(boxes, piece.low, piece.high)) {
+        for (const index of [0, 1, 2, 0, 2, 3]) positions.push(...(turn ? turned(face.points[index], turn, scale) : face.points[index]))
+      }
     }
     return rects
   }
-  const rects = built.twist ? [] : shell(built.frame ?? built.boxes.map(([from, to]) => [from[0], from[1], to[0], to[1]]))
-  for (const { sources, turn } of built.twist ?? []) shell(sources, turn)
+  const rects = built.twist ? [] : shell(built.frame ?? built.boxes.map(([from, to]) => [from[0], from[1], to[0], to[1]]), null, built.frame ? null : built.slabs)
+  for (const { sources, turn, slabs } of built.twist ?? []) shell(sources, turn, slabs)
   return { positions: new Float32Array(positions), uvs: swatchUvs(positions, built.swatch), triangles: positions.length / 9, scale, rects, z }
 }
 

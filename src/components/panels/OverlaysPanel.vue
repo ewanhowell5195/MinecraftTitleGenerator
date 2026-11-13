@@ -3,7 +3,7 @@
   import { credit } from "../../lib/credits.js"
   import { GENERATED_SETTINGS, generatedSetting } from "../../lib/generated.js"
   import { titleCase } from "../../lib/names.js"
-  import { usePanel } from "../../lib/panel.js"
+  import { shownLayer, usePanel } from "../../lib/panel.js"
   import { useListReorder } from "../../lib/reorder.js"
   import { library } from "../../lib/scene.js"
   import { BLEND_OPTIONS, OVERLAY_KINDS, activeOverlays, defaultOverlays, overlayLayer } from "../../lib/settings.js"
@@ -175,7 +175,7 @@
     <div ref="box" class="layers" v-if="layers.length">
       <div :ref="el => (rows[index] = el)" class="layer card card-row small" v-for="(item, index) of layers" :key="index" tabindex="0" role="button" :aria-pressed="selected === index" @click="selected = index" @keydown.enter="selected = index" @keydown.space.self.prevent="selected = index" :class="{ selected: selected === index, dragged: dragged === index }">
         <span class="grip" @pointerdown="press($event, index)"><Icon name="grip" :size="14" /></span>
-        <img :src="item.source === 'file' ? item.file : thumbnail(font, item.overlay)" alt="">
+        <img :src="item.source === 'file' ? item.file : thumbnail(font, item.overlay, shownLayer)" alt="">
         <span class="grow ellipsis">{{ layerName(item) }}</span>
         <Button ghost icon="copy" title="Duplicate overlay" @click.stop="duplicateLayer(index)" />
         <Button ghost icon="trash" title="Remove overlay" @click.stop="removeLayer(index)" />
@@ -189,7 +189,7 @@
     </div>
     <Segments v-if="!edge" :options="kinds" :model-value="kind" @update:model-value="pickKind" />
     <TileGrid class="scroll" v-if="kind !== 'file'">
-      <Tile v-for="[id, data] of shown" :key="id" :label="data.name ?? titleCase(id)" :unit="thumbnailHeight(font)" :image="thumbnail(font, id)" :author="credit(data, font?.id, library.fonts)" :selected="layer?.overlay === id" :menu="overlayMenu(id, data)" @pick="pickOverlay(id)" />
+      <Tile v-for="[id, data] of shown" :key="id" :label="data.name ?? titleCase(id)" :unit="thumbnailHeight(font)" :image="thumbnail(font, id, shownLayer)" :author="credit(data, font?.id, library.fonts)" :selected="layer?.overlay === id" :menu="overlayMenu(id, data)" @pick="pickOverlay(id)" />
     </TileGrid>
     <template v-else>
       <UploadField accept="image/png" :label="layer?.file ? 'Replace PNG' : 'Choose a PNG'" empty="No file selected" :image="layer?.file" @change="readFile($event, pickFile)" />

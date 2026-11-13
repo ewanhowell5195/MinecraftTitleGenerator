@@ -19,6 +19,7 @@ export const FORM_SECTIONS = new Set(["form", "transform"])
 const DEFAULTS = {
   section: "text",
   shapeTab: "line",
+  layer: 0,
   render: false,
   gizmo: null,
   fov: DEFAULT_FOV,

@@ -2,9 +2,11 @@
   import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
-  import { CREEPER, NOTHING_OUTSIDE, SPACE_CHAR, blockAt, characterLabel, fillCells, lineCells, paint, rectangleCells, rowOfY, setGlyph, setStretch, widthOf, yOfRow } from "../lib/fontEditor.js"
+  import { CREEPER, NOTHING_OUTSIDE, SPACE_CHAR, blockAt, characterLabel, depthOf, fillCells, lineCells, paint, rectangleCells, rowOfY, setGlyph, setStretch, widthOf, yOfRow } from "../lib/fontEditor.js"
+  import { depthShade } from "../lib/font.js"
   import { clamp } from "../lib/maths.js"
-  import { arrowsMove, beginStroke, cancelStroke, endStroke, font, glyph, moveSelected, selected, strokeTo, typing, updateGlyph } from "./store.js"
+  import Slider from "../components/Slider.vue"
+  import { arrowsMove, beginStroke, cancelStroke, endStroke, font, glyph, inkCode, moveSelected, pencilDepth, selected, strokeTo, typing, updateGlyph } from "./store.js"
 
   const TOOLS = [
     { id: "pencil", icon: "pencil", label: "Pencil", key: "b", hint: "Shift-click draws a line from the last point, holding Shift while drawing keeps it horizontal or vertical" },
@@ -77,6 +79,11 @@
     return Math.round(view.value.y + row * view.value.cell)
   }
 
+  function inkColour(code) {
+    const shade = depthShade(depthOf(font.value, code))
+    return `rgb(${shade}, ${shade}, ${shade})`
+  }
+
   function line(ctx, fromX, fromY, toX, toY) {
     ctx.moveTo(fromX, fromY)
     ctx.lineTo(toX, toY)
@@ -125,9 +132,12 @@
     if (current.above) ctx.fillRect(left, top, right - left, topline - top)
     if (current.below) ctx.fillRect(left, baseline, right - left, bottom - baseline)
     drawGuide(ctx, (left + right) / 2, baseline, baseline - topline, right - left, { above: baseline - top, below: bottom - baseline })
-    ctx.fillStyle = "#000"
     current.rows.forEach((text, row) => {
-      for (let x = 0; x < text.length; x++) if (text[x] === "1") ctx.fillRect(xAt(x), yAt(row), xAt(x + 1) - xAt(x), yAt(row + 1) - yAt(row))
+      for (let x = 0; x < text.length; x++) {
+        if (text[x] === "0") continue
+        ctx.fillStyle = inkColour(text[x])
+        ctx.fillRect(xAt(x), yAt(row), xAt(x + 1) - xAt(x), yAt(row + 1) - yAt(row))
+      }
     })
     ctx.lineWidth = 1
     if (view.value.cell >= 8) {
@@ -339,14 +349,15 @@
     }
     const point = { x: clampX(at.x), row: clampRow(at.row) }
     if (tool.value === "fill") {
-      const fill = () => updateGlyph(paint(glyph.value, fillCells(glyph.value, point.x, point.row), !erasing))
+      const code = erasing ? false : inkCode()
+      const fill = () => updateGlyph(paint(glyph.value, fillCells(glyph.value, point.x, point.row), code))
       if (event.pointerType === "touch") pendingFill = { pointerId: event.pointerId, fill }
       else fill()
       return
     }
     beginStroke()
     const shape = tool.value === "rectangle" ? "rectangle" : "pencil"
-    stroke = { kind: "paint", base: glyph.value, latest: glyph.value, value: !erasing, from: point, last: null, end: null, shape, constrain: shape === "pencil" && event.shiftKey, origin: point, axis: null }
+    stroke = { kind: "paint", base: glyph.value, latest: glyph.value, value: erasing ? false : inkCode(), from: point, last: null, end: null, shape, constrain: shape === "pencil" && event.shiftKey, origin: point, axis: null }
     if (stroke.constrain && anchor) {
       stroke.latest = paint(glyph.value, lineCells(drawFont.value, glyph.value, anchor, point), stroke.value)
       stroke.last = point
@@ -524,6 +535,9 @@
         <span class="group-label">Density</span>
         <Button ghost :active="brush === size" v-for="size of brushes" :key="size" v-tooltip="{ text: size === 1 ? 'Draw single pixels' : `Draw ${size} pixel blocks`, tooltipClass: 'slow' }" :aria-pressed="brush === size" @click="chosenBrush = size">{{ font.grid / size }}x</Button>
       </span>
+      <span class="group depth" v-tooltip="{ text: 'How far forward the pencil draws. Lower depths sit at the back of the letter', tooltipClass: 'slow' }">
+        <Slider inline label="Depth" :min="12.5" :max="100" :step="12.5" :typed-min="1" v-model="pencilDepth" />
+      </span>
       <span class="group">
         <span class="group-label">Flip</span>
         <Button ghost v-tooltip="{ text: 'Flip left to right', tooltipClass: 'slow' }" aria-label="Flip left to right" @click="flipX"><template #icon><Icon name="flipX" :size="16" /></template></Button>
@@ -565,6 +579,19 @@
     display: flex;
     align-items: center;
     gap: 4px;
+  }
+
+  .depth {
+    width: 220px;
+  }
+
+  .depth :deep(.slider.inline) {
+    flex: 1;
+    grid-template-columns: auto 1fr auto;
+  }
+
+  .depth :deep(.value) {
+    width: 56px;
   }
 
   .group + .group {

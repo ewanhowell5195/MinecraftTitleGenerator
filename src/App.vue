@@ -20,6 +20,7 @@
   import ArcPanel from "./components/panels/ArcPanel.vue"
   import TwistPanel from "./components/panels/TwistPanel.vue"
   import ColourPanel from "./components/panels/ColourPanel.vue"
+  import LayerPanel from "./components/panels/LayerPanel.vue"
   import FontPanel from "./components/panels/FontPanel.vue"
   import GeometryPanel from "./components/panels/GeometryPanel.vue"
   import OverlaysPanel from "./components/panels/OverlaysPanel.vue"
@@ -162,9 +163,16 @@
       </template>
       <ShapePanel v-else-if="view.section === 'shape'" :key="currentWord.id" />
       <PlacementPanel v-else-if="view.section === 'placement'" />
-      <TexturePanel v-else-if="view.section === 'texture'" />
-      <ColourPanel v-else-if="view.section === 'colour'" />
+      <template v-else-if="view.section === 'texture'">
+        <LayerPanel />
+        <TexturePanel />
+      </template>
+      <template v-else-if="view.section === 'colour'">
+        <LayerPanel />
+        <ColourPanel />
+      </template>
       <template v-else-if="view.section === 'overlays'">
+        <LayerPanel />
         <OverlaysPanel />
         <OverlaysPanel v-if="!active.font?.model" edge />
       </template>

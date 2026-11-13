@@ -1,9 +1,11 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import path from "node:path"
-import { flattenFonts, fullOrder, hasMarks, parseMask, scanMask, sheetFolder, sheetLayout, solidMask, splitCells } from "../src/lib/font.js"
+import { depthShade, flattenFonts, fullOrder, hasMarks, parseMask, scanMask, shadeLevels, sheetFolder, sheetLayout, solidMask, splitCells } from "../src/lib/font.js"
+import { drawSheet } from "../src/lib/sheet.js"
 import { DEFAULT_ORDER } from "../src/lib/order.js"
 import { defaultDepth } from "../src/lib/settings.js"
+import { bandLayouts, layerMask } from "../src/lib/flatSheet.js"
 import { readJson, readPng } from "../generator/common.js"
 import { publishedFonts, readMask } from "../generator/fonts.js"
 
@@ -198,6 +200,44 @@ describe("parseMask", () => {
   })
 })
 
+describe("depth greys", () => {
+  function stepped(depths) {
+    return { char: "a", width: 3, height: 1, bottom: 0, top: 1, originX: 0, advance: 3, mask: new Uint8Array(3).fill(1), depths: Uint8Array.from(depths), stretch: null }
+  }
+
+  test("a grey pixel is part of the glyph, at the depth its shade gives", () => {
+    const sheet = drawSheet([stepped([0, 1, 0])], 1, { layers: [1, 0.5] })
+    const { layers, glyphs } = parseMask(sheet.data, sheet.width, sheet.height, "a", 0)
+    assert.deepEqual(layers, [1, 0.5])
+    assert.deepEqual(Array.from(glyphs.a.mask), [1, 1, 1])
+    assert.deepEqual(Array.from(glyphs.a.depths), [0, 1, 0])
+  })
+
+  test("shades a browser nudged slightly still read as one depth", () => {
+    const sheet = drawSheet([stepped([1, 1, 1])], 1, { layers: [1, 0.8] })
+    let nudge = 0
+    for (let at = 0; at < sheet.data.length; at += 4) {
+      if (sheet.data[at] !== 51) continue
+      const shift = [-3, 2, 4][nudge++ % 3]
+      sheet.data.set([51 + shift, 51 - shift, 51 + shift], at)
+    }
+    const { layers, glyphs } = parseMask(sheet.data, sheet.width, sheet.height, "a", 0)
+    assert.equal(layers, null)
+    assert.equal(glyphs.a.depths, undefined)
+  })
+
+  test("depths come back as the simple numbers they were drawn with", () => {
+    const counts = new Uint32Array(256)
+    for (const depth of [1, 0.5, 0.125, 0.33]) counts[depthShade(depth)] = 1
+    assert.deepEqual(shadeLevels(counts).layers, [1, 0.5, 0.33, 0.125])
+  })
+
+  test("a sheet with only black glyphs has no layers", () => {
+    const sheet = drawSheet([stepped([0, 0, 0])], 1)
+    assert.equal(parseMask(sheet.data, sheet.width, sheet.height, "a", 0).layers, null)
+  })
+})
+
 describe("solidMask", () => {
   test("thresholds alpha above 127 and stores the bottom row first", () => {
     const { data, width } = alphaImage([[255, 0, 0], [0, 128, 127]])
@@ -379,12 +419,15 @@ describe("published fonts", () => {
 
   test("each flat sheet matches its layout and masks", () => {
     for (const entry of sheets) {
-      const { folder, cells, capHeight } = readMask(entry, fonts)
+      const { folder, cells, capHeight, layers } = readMask(entry, fonts)
       const depth = defaultDepth(entry)
       const density = readJson(path.join(folder, "textures.json")).textures.flat?.density ?? 1
       const flat = readPng(path.join(folder, "textures", "flat.png"))
-      for (const [glyph, at] of sheetLayout(cells, capHeight, depth)) {
-        assert.deepEqual(solidMask(flat.data, flat.width, density, at.x, at.top, glyph.width, glyph.height), glyph.mask, `${entry.id} ${glyph.char}`)
+      const bands = layers ? bandLayouts(cells, capHeight, depth, layers) : [{ layout: sheetLayout(cells, capHeight, depth), offset: 0 }]
+      for (const [layer, band] of bands.entries()) {
+        for (const [glyph, at] of band.layout) {
+          assert.deepEqual(solidMask(flat.data, flat.width, density, at.x, at.top + band.offset, glyph.width, glyph.height), layerMask(glyph, layer), `${entry.id} ${glyph.char} layer ${layer + 1}`)
+        }
       }
     }
   })

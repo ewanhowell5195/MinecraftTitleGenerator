@@ -12,8 +12,12 @@ export function normalise(text, multicase = false) {
 function filler(glyph, width) {
   const column = Math.floor(glyph.width / 2)
   const mask = new Uint8Array(width * glyph.height)
-  for (let row = 0; row < glyph.height; row++) mask.fill(glyph.mask[row * glyph.width + column], row * width, (row + 1) * width)
-  return { ...glyph, width, mask, fill: true }
+  const depths = glyph.depths && new Uint8Array(mask.length)
+  for (let row = 0; row < glyph.height; row++) {
+    mask.fill(glyph.mask[row * glyph.width + column], row * width, (row + 1) * width)
+    depths?.fill(glyph.depths[row * glyph.width + column], row * width, (row + 1) * width)
+  }
+  return { ...glyph, width, mask, ...(depths ? { depths } : {}), fill: true }
 }
 
 function thumbnailable({ glyph }) {

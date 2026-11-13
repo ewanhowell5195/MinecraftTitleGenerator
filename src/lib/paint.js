@@ -254,12 +254,23 @@ function paintStrip(ctx, entries, strip) {
         fillRect(ctx, [entry.x, y - count + 1, entry.width, count])
       }
     }
-    for (const [y, from, depth] of [[entry.up, 0, entry.upHeight], [entry.down, strip.depth + strip.top - strip.bottom, entry.downHeight]]) {
-      const stretch = depth / strip.depth
-      fillPattern(ctx, strip.image, new DOMMatrix().translate(origin * R, (y - from * stretch) * R).scale(R / strip.density, R / strip.density * stretch))
-      fillRect(ctx, [entry.x, y, entry.width, depth])
+    for (const [y, from, depth, behind] of [[entry.up, 0, entry.upHeight, strip.slice?.from], [entry.down, strip.depth + strip.top - strip.bottom, entry.downHeight, strip.slice && 1 - strip.slice.from - strip.slice.size]]) {
+      const start = strip.slice ? depth * behind : 0
+      const size = strip.slice ? depth * strip.slice.size : depth
+      const stretch = size / strip.depth
+      fillPattern(ctx, strip.image, new DOMMatrix().translate(origin * R, (y + start - from * stretch) * R).scale(R / strip.density, R / strip.density * stretch))
+      fillRect(ctx, [entry.x, y + start, entry.width, size])
+      if (!strip.slice) continue
+      stretchRow(ctx, strip, origin, from, [entry.x, y, entry.width, start])
+      stretchRow(ctx, strip, origin, from + strip.depth - 1, [entry.x, y + start + size, entry.width, depth - start - size])
     }
   }
+}
+
+function stretchRow(ctx, strip, origin, row, rect) {
+  if (rect[3] <= 0) return
+  fillPattern(ctx, strip.image, new DOMMatrix().translate(origin * R, (rect[1] - row * rect[3]) * R).scale(R / strip.density, R / strip.density * rect[3]))
+  fillRect(ctx, rect)
 }
 
 function putAlpha(ctx, alpha, width, height, x, y, scale) {

@@ -1,4 +1,4 @@
-import { reactive } from "vue"
+import { reactive, toRaw } from "vue"
 
 export const FILE_VERSION = 6
 export const DEFAULT_FONT = "minecraft-ten"
@@ -205,6 +205,10 @@ const PANELS = {
     sideSmooth: true,
     sideDirection: "up"
   }),
+  layers: () => ({
+    separateLayers: false,
+    layerSettings: []
+  }),
   faces: () => ({
     fade: false,
     outerFade: 50,
@@ -218,6 +222,37 @@ const PANELS = {
 }
 
 export const LINE = new Set(["font", "customFont", "terminators", "type", "row", "rowSpacing", "depth", "depthAnchor", "border", "clipHoles", "layerWords", "spacing", "kerning", "arcMode", "arcTop", "arcBottom", "arcMove", "arcCentre", "arcMarked", "twistRibbon", "twistRibbonCentre", "twistRibbonMirror", "twistDoor", "twistDoorCentre", "twistDoorSame", "twistDoorRoll"].concat(Object.keys(PANELS.transform())))
+
+export const LAYER_KEYS = Object.keys(PANELS.texture()).concat(Object.keys(PANELS.overlays()), Object.keys(PANELS.edgeOverlays()), Object.keys(PANELS.colour()), ["customEdge", "edgeColour", "edgeBrightness", "edgeFill", "edgeStops", "edgeSmooth"])
+
+export function layerValues(object) {
+  return Object.fromEntries(LAYER_KEYS.map(key => [key, structuredClone(toRaw(object[key]))]))
+}
+
+const LAYER_SET = new Set(LAYER_KEYS)
+
+export function layerView(object, layer) {
+  const settings = layer && object.separateLayers ? object.layerSettings[layer - 1] : null
+  if (!settings) return object
+  return new Proxy(object, {
+    get: (target, key) => LAYER_SET.has(key) ? target.layerSettings[layer - 1][key] : target[key],
+    set: (target, key, value) => {
+      if (LAYER_SET.has(key)) target.layerSettings[layer - 1][key] = value
+      else target[key] = value
+      return true
+    }
+  })
+}
+
+export function separateLayers(object, on, count) {
+  object.layerSettings = on ? Array.from({ length: count - 1 }, () => layerValues(object)) : []
+  object.separateLayers = on
+}
+
+export function layerTarget(object, layer) {
+  if (!layer || !object.separateLayers) return object
+  return { ...object, ...object.layerSettings[layer - 1] }
+}
 
 function defaults() {
   return Object.assign({ hidden: false, group: null }, ...Object.values(PANELS).map(panel => panel()))

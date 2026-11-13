@@ -92,14 +92,20 @@ async function drawThumbnails(font, folder, strips, mesh) {
   if (!scene) return {}
   const rows = stripRows({}, { top: scene.stripTop, bottom: scene.stripBottom }, scene.depth, scene.capHeight).rows
   const shaded = plainStrip(rows, OVERLAY_BASE)
-  const drawn = { flat: stripThumbnail(scene, {}, plainStrip(rows, "#ffffff")) }
-  if (mesh) drawn.preview = stripThumbnail(scene, {}, plainStrip(rows, "#ffffff"), PREVIEW_DETAIL)
-  for (const name of Object.keys(withGenerated({}))) drawn[name] = stripThumbnail(scene, { overlays: [{ overlay: name, blend: "source-over", colour: "#ffffff", colourBlend: "multiply", opacity: 100 }] }, shaded)
-  for (const name of Object.keys(GENERATED_EDGE_OVERLAYS)) drawn[name] = stripThumbnail(scene, {}, shaded)
   const list = await fontTextures(folder, strips)
-  await Promise.all(Object.entries(list.textures).filter(([, entry]) => entry.type === "strip").flatMap(([id, entry]) => [[id, entry]].concat(Object.entries(entry.variants ?? {}).map(([name, variant]) => [name, { ...entry, ...variant }]))).map(async ([name, entry]) => {
-    drawn[name] = stripThumbnail(scene, entry, await loadImage(`${entry.folder}/textures/${name}.png`))
-  }))
+  const drawn = {}
+  if (mesh) drawn.preview = stripThumbnail(scene, {}, plainStrip(rows, "#ffffff"), PREVIEW_DETAIL)
+  for (const layer of [null].concat(Array.from(scene.layers ?? [], (_, index) => index))) {
+    const shown = layer === null ? scene : thumbnailScene(font, mesh, undefined, layer)
+    const prefix = layer === null ? "" : `layer-${layer + 1}/`
+    drawn[`${prefix}flat`] = stripThumbnail(shown, {}, plainStrip(rows, "#ffffff"))
+    for (const name of Object.keys(withGenerated({}))) drawn[prefix + name] = stripThumbnail(shown, { overlays: [{ overlay: name, blend: "source-over", colour: "#ffffff", colourBlend: "multiply", opacity: 100 }] }, shaded)
+    for (const name of Object.keys(GENERATED_EDGE_OVERLAYS)) drawn[prefix + name] = stripThumbnail(shown, {}, shaded)
+    const textures = Object.entries(list.textures).filter(([, entry]) => entry.type === "strip" && (entry.stripLayer == null || entry.stripLayer === layer))
+    await Promise.all(textures.flatMap(([id, entry]) => [[id, entry]].concat(Object.entries(entry.variants ?? {}).map(([name, variant]) => [name, { ...entry, ...variant }]))).map(async ([name, entry]) => {
+      drawn[prefix + name] = stripThumbnail(shown, entry, await loadImage(`${entry.folder}/textures/${name}.png`))
+    }))
+  }
   return drawn
 }
 

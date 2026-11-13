@@ -129,6 +129,8 @@ const TOP_DEFAULTS = {
   sideStops: [{ colour: "#000000", position: 0 }, { colour: "#ffffff", position: 100 }],
   sideSmooth: true,
   sideDirection: "up",
+  separateLayers: false,
+  layerSettings: [],
   fade: false,
   outerFade: 0,
   customEdge: false,

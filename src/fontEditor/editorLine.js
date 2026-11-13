@@ -60,10 +60,11 @@ export function useServedFont(slot, source) {
   return { entry: computed(() => entry.value), settled: show }
 }
 
-export function editorLine(entry, text, { terminators = false, stretch = 1, texture = null, variant = null } = {}) {
+export function editorLine(entry, text, { terminators = false, stretch = 1, texture = null, variant = null, layer = null, layers = 1 } = {}) {
   const line = { text, font: entry.id, terminators, depth: defaultDepth(entry), border: defaultBorder("top", entry), spacing: defaultSpacing("top", entry) }
   if (stretch !== 1) Object.assign(line, { scaleY: stretch, scaleMarked: true })
-  if (texture) line.texture = texture
-  if (variant) line.textureVariant = variant
+  const own = { ...(texture && { texture }), ...(variant && { textureVariant: variant }) }
+  if (!layer) Object.assign(line, own)
+  if (layer !== null && layers > 1) Object.assign(line, { separateLayers: true, layerSettings: Array.from({ length: layers - 1 }, (_, index) => index + 1 === layer ? own : {}) })
   return line
 }

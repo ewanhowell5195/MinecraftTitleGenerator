@@ -16,12 +16,55 @@ const TOPLINE = 4
 
 const KINDS = [GLYPH, TOPLINE, BASELINE, -1, GRID, -1, -1, EMPTY]
 
+const NOISE = 8
+
+function greyOf(data, i) {
+  const r = data[i]
+  const g = data[i + 1]
+  const b = data[i + 2]
+  return Math.max(r, g, b) - Math.min(r, g, b) <= NOISE * 2 ? Math.round((r + g + b) / 3) : null
+}
+
 function classify(data, i) {
+  const grey = greyOf(data, i)
+  if (grey !== null) return grey >= 255 - NOISE ? EMPTY : GLYPH
   return KINDS[(data[i] > 127) << 2 | (data[i + 1] > 127) << 1 | (data[i + 2] > 127)]
+}
+
+export function shadeLevels(counts) {
+  const groups = []
+  for (let value = 0; value < counts.length; value++) {
+    if (!counts[value]) continue
+    const last = groups.at(-1)
+    if (last && value - last.end <= NOISE) last.end = value
+    else groups.push({ start: value, end: value })
+  }
+  const index = new Int16Array(counts.length).fill(-1)
+  const layers = groups.map((group, at) => {
+    let shade = group.start
+    for (let value = group.start; value <= group.end; value++) {
+      index[value] = at
+      if (counts[value] > counts[shade]) shade = value
+    }
+    return shadeDepth(shade)
+  })
+  return { layers, index }
+}
+
+export function depthShade(depth) {
+  return Math.round((1 - depth) * 255)
+}
+
+function shadeDepth(shade) {
+  const exact = 1 - shade / 255
+  const candidates = [Math.round(exact * 8) / 8, Math.round(exact * 100) / 100, Math.round(exact * 1000) / 1000]
+  return candidates.find(depth => depthShade(depth) === shade) ?? exact
 }
 
 function classifyAll(data, width, height) {
   const map = new Uint8Array(width * height)
+  const shades = new Uint8Array(width * height)
+  const counts = new Uint32Array(256)
   for (let i = 0; i < width * height; i++) {
     const kind = classify(data, i * 4)
     if (kind === -1) {
@@ -30,8 +73,11 @@ function classifyAll(data, width, height) {
       throw new Error(`unexpected colour at ${x},${y}: rgb(${data[i * 4]}, ${data[i * 4 + 1]}, ${data[i * 4 + 2]})`)
     }
     map[i] = kind
+    if (kind !== GLYPH) continue
+    shades[i] = greyOf(data, i * 4) ?? 0
+    counts[shades[i]]++
   }
-  return map
+  return { map, shades, ...shadeLevels(counts) }
 }
 
 function horizontalLines(map, width, height) {
@@ -73,7 +119,7 @@ function findRow(map, width, top, bottom, kind) {
 }
 
 export function scanMask(data, width, height) {
-  const map = classifyAll(data, width, height)
+  const { map, shades, layers, index } = classifyAll(data, width, height)
   const lines = horizontalLines(map, width, height)
   if (lines.length < 2) throw new Error("no horizontal grid lines found")
   const rows = []
@@ -107,7 +153,7 @@ export function scanMask(data, width, height) {
       cells
     })
   }
-  return { rows, isGlyph: (x, y) => map[y * width + x] === GLYPH, isStretch: (x, y) => map[y * width + x] === BASELINE }
+  return { rows, layers, isGlyph: (x, y) => map[y * width + x] === GLYPH, isStretch: (x, y) => map[y * width + x] === BASELINE, layerAt: (x, y) => index[shades[y * width + x]] }
 }
 
 export function hasMarks(font) {
@@ -116,7 +162,8 @@ export function hasMarks(font) {
 
 export function parseMask(data, width, height, order, gap) {
   const characters = Array.from(order)
-  const { rows, isGlyph, isStretch } = scanMask(data, width, height)
+  const { rows, layers, isGlyph, isStretch, layerAt } = scanMask(data, width, height)
+  const layered = layers.length > 1
   const list = []
   const capHeights = []
   let index = 0
@@ -134,9 +181,12 @@ export function parseMask(data, width, height, order, gap) {
       const w = box.maxX - box.minX + 1
       const h = box.maxY - box.minY + 1
       const mask = new Uint8Array(w * h)
+      const depths = layered ? new Uint8Array(w * h) : null
       for (let y = 0; y < h; y++) {
         for (let x = 0; x < w; x++) {
-          if (isGlyph(box.minX + x, box.maxY - y)) mask[y * w + x] = 1
+          if (!isGlyph(box.minX + x, box.maxY - y)) continue
+          mask[y * w + x] = 1
+          if (depths) depths[y * w + x] = layerAt(box.minX + x, box.maxY - y)
         }
       }
       const stretch = []
@@ -152,6 +202,7 @@ export function parseMask(data, width, height, order, gap) {
         width: w,
         height: h,
         mask,
+        ...(depths ? { depths } : {}),
         stretch: stretch.length ? stretch.sort((a, b) => a - b) : null,
         row: rowIndex,
         column
@@ -161,7 +212,7 @@ export function parseMask(data, width, height, order, gap) {
   if (index < characters.length) throw new Error(`mask has ${index} cells but the order lists ${characters.length} characters`)
   const capHeight = capHeights[0]
   if (capHeights.some(value => value !== capHeight)) throw new Error(`rows disagree on cap height: ${capHeights.join(", ")}`)
-  return { glyphs: Object.fromEntries(list.map(glyph => [glyph.char, glyph])), list, capHeight }
+  return { glyphs: Object.fromEntries(list.map(glyph => [glyph.char, glyph])), list, capHeight, layers: layered ? layers : null }
 }
 
 export function solidMask(data, imageWidth, density, x, top, width, height) {
@@ -323,9 +374,10 @@ async function readFont(data, list) {
   const folder = fontFolder(data)
   const image = await loadImage(`${folder}/font.png`)
   const pixels = pixelsOf(image)
-  const { list: cells, capHeight } = parseMask(pixels, image.width, image.height, fullOrder(data, list), defaultBorder("top", data))
+  const { list: cells, capHeight, layers } = parseMask(pixels, image.width, image.height, fullOrder(data, list), defaultBorder("top", data))
   const { glyphs, alternates } = splitCells(data, list, cells)
   return {
+    layers,
     height: capHeight + defaultBorder("top", data) * 2,
     ...meta(data),
     id: data.id,

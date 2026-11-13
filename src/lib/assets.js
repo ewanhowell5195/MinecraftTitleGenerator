@@ -1,4 +1,5 @@
-import { pixelsOf } from "./canvas.js"
+import { pixelsOf, surface } from "./canvas.js"
+import { expandBands } from "./flatSheet.js"
 import { loadImage, sheetLayout, solidMask } from "./font.js"
 import { GENERATED_EDGE_OVERLAYS, withGenerated } from "./generated.js"
 import { titleCase } from "./names.js"
@@ -53,8 +54,8 @@ function textureList(folder) {
 }
 
 function stripSet(item) {
-  const { id, offset } = stripUse(item)
-  return fetchJson(`${stripFolder(id)}/textures.json`).then(list => ({ ...list, id, offset }))
+  const { id, offset, layer } = stripUse(item)
+  return fetchJson(`${stripFolder(id)}/textures.json`).then(list => ({ ...list, id, offset, layer }))
 }
 
 export async function fontTextures(folder, strips = []) {
@@ -104,6 +105,40 @@ export function shapeFont(font, sheet, image) {
   const shaped = { ...font, glyphs }
   shapes.set(sheet, { font, image, shaped })
   return shaped
+}
+
+const bands = new WeakMap()
+
+export function bandOf(source, band, font) {
+  const count = font.layers?.length ?? 1
+  if (count < 2) return source
+  if (!bands.has(source)) {
+    const expanded = expandBands(pixelsOf(source), source.width, font.cells, font.capHeight, defaultDepth(font), font.layers)
+    const height = expanded.height / count
+    const size = source.width * height * 4
+    bands.set(source, Array.from({ length: count }, (_, index) => {
+      const { canvas, ctx } = surface(source.width, height)
+      const pixels = ctx.createImageData(source.width, height)
+      pixels.data.set(expanded.data.subarray(index * size, (index + 1) * size))
+      ctx.putImageData(pixels, 0, 0)
+      return canvas
+    }))
+  }
+  return bands.get(source)[band]
+}
+
+const stripBands = new WeakMap()
+
+export function stripBand(source, top, height) {
+  if (!stripBands.has(source)) stripBands.set(source, new Map())
+  const cropped = stripBands.get(source)
+  if (!cropped.has(top)) {
+    if (!Number.isInteger(top) || !Number.isInteger(height) || top + height > source.height) throw new Error(`a strip ${source.height}px tall has no layer band at ${top}px that is ${height}px tall`)
+    const { canvas, ctx } = surface(source.width, height)
+    ctx.drawImage(source, 0, top, source.width, height, 0, 0, source.width, height)
+    cropped.set(top, canvas)
+  }
+  return cropped.get(top)
 }
 
 export function stripRange(font) {
