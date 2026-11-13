@@ -1,7 +1,7 @@
 import { LIMITS } from "../lib/limits.js"
 import { decodeTitle } from "../lib/linkformat.js"
 import { USER_ROW, activeUser, forgetUnusedUser, requireUser, saveUser } from "./accounts.js"
-import { INVALID, Refusal, guarded, jsonBody, reply, textField } from "./http.js"
+import { INVALID, Refusal, guarded, jsonBody, reply, textField, unpublishedName } from "./http.js"
 import { NEXT_ID, deletingPresets } from "./presets.js"
 
 const BATCH_BODY = LIMITS.savedBatch * (LIMITS.savedCode + 512)
@@ -11,19 +11,20 @@ function shown({ id, name, code, shared }) {
   return shared ? { name, code, shared: id } : { name, code }
 }
 
-function savableCode(code) {
+async function savableCode(context, code) {
   if (typeof code !== "string" || !code || code.length > LIMITS.savedCode) return false
+  let title
   try {
-    decodeTitle(code)
-    return true
+    title = decodeTitle(code)
   } catch {
     return false
   }
+  return !await unpublishedName(context, title.lines)
 }
 
-function savable(preset) {
+async function savable(context, preset) {
   if (typeof preset?.name !== "string" || !preset.name.trim() || Array.from(preset.name.trim()).length > LIMITS.name) return false
-  return savableCode(preset.code)
+  return savableCode(context, preset.code)
 }
 
 function requireCode(body) {
@@ -48,7 +49,7 @@ export const addSaved = guarded(async context => {
   const statements = []
   const kept = []
   for (const preset of presets) {
-    const fits = savable(preset)
+    const fits = await savable(context, preset)
     if (fits && existing.has(preset.code)) continue
     if (!fits || hidden >= LIMITS.savedPresets) {
       kept.push(preset?.code)
@@ -70,7 +71,7 @@ export const changeSaved = guarded(async context => {
   const sets = []
   const values = []
   if (Object.hasOwn(body, "replacement")) {
-    if (!savableCode(body.replacement)) throw new Refusal(400, INVALID)
+    if (!await savableCode(context, body.replacement)) throw new Refusal(400, INVALID)
     const taken = await env.DB.prepare(`SELECT id FROM presets WHERE user_id = ${USER_ROW} AND code = ?`).bind(user.provider, user.providerId, body.replacement).first()
     if (taken) throw new Refusal(409, "You already have a preset with this title.")
     sets.push("code = ?")

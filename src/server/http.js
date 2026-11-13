@@ -1,5 +1,7 @@
 import { LIMITS } from "../lib/limits.js"
+import { usePlatform } from "../lib/platform.js"
 import { PREVIEW_NOTICE, isPreviewHost } from "../lib/previewSite.js"
+import { titleNameProblem } from "../lib/titleNames.js"
 
 export const USER_AGENT = "MinecraftTitleGenerator"
 export const APP_ORIGINS = [/^https:\/\/mctitlegenerator\.com$/, /^https:\/\/dev\.ewanhowell\.com$/, /^http:\/\/(localhost|127\.0\.0\.1):\d+$/]
@@ -41,6 +43,11 @@ export function guarded(handler, refused = err => reply(err.status, { error: err
       throw err
     }
   }
+}
+
+export async function unpublishedName({ request, env }, lines) {
+  usePlatform({ fetch: (url, init) => env.ASSETS.fetch(new URL(url, new URL("/", request.url)), init) })
+  return titleNameProblem(lines)
 }
 
 export function idParam(params, missing) {

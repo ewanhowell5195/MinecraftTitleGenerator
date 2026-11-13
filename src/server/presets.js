@@ -9,7 +9,7 @@ import { blockedWordProblem } from "../lib/wording.js"
 import { USER_ROW, activeUser, forgetUnusedUser, requireUser, saveUser, signedInUser } from "./accounts.js"
 import { nextDay, returnSlot, takeSlot, today } from "./daily.js"
 import { SITE_NAME, pageImage, pageWithDetails } from "./head.js"
-import { INVALID, Refusal, cachedAtEdge, guarded, hashed, idParam, jsonBody, randomToken, reply, setting, textField } from "./http.js"
+import { INVALID, Refusal, cachedAtEdge, guarded, hashed, idParam, jsonBody, randomToken, reply, setting, textField, unpublishedName } from "./http.js"
 
 const SORTS = { week: "week DESC, downloads DESC, id DESC", popular: "downloads DESC, id DESC", top: "rating DESC, votes DESC, id DESC", new: "created_at DESC, id DESC", needs: "votes, id" }
 const MATCHES = "lower(name) LIKE ?1 ESCAPE '\\' OR lower(text) LIKE ?1 ESCAPE '\\'"
@@ -260,8 +260,11 @@ function forgetHiddenCopy(env, user, code, id) {
   return deletingPresets(env, `user_id = ${USER_ROW} AND code = ? AND shared = 0 AND id != ?`, user.provider, user.providerId, code, id)
 }
 
-async function checkedSubmission(env, body) {
+async function checkedSubmission(context, body) {
+  const { env } = context
   const facts = checkTitle(body.code)
+  const unknown = await unpublishedName(context, decodeTitle(body.code).lines)
+  if (unknown) throw new Refusal(400, `This title can't be shared: ${unknown}.`)
   const name = textField(body, "name", "name", LIMITS.name) || capitalWords(facts.text)
   checkWords("title", facts.all)
   checkWords("name", name)
@@ -291,7 +294,7 @@ export const submitPreset = guarded(async context => {
   const user = await activeUser(context)
   if (body.account && !user) throw new Refusal(401, "You've been signed out. Sign in again to share this on your account.")
   if (user) checkWords("username", user.name)
-  const checked = await checkedSubmission(env, body)
+  const checked = await checkedSubmission(context, body)
   if (checked.existing) return alreadyShared(checked.existing)
   const ip = await hashedIp(context)
   const slot = await takeSlot(env, await submissionCounter(env, user, ip), await hasUnlimitedShares(env, user) ? null : LIMITS.perDay)
@@ -349,7 +352,7 @@ export const replacePreset = guarded(async context => {
   const { request, env } = context
   const { id, user } = await ownedPreset(context)
   const body = await jsonBody(request)
-  const { facts, name, fingerprint, existing } = await checkedSubmission(env, body)
+  const { facts, name, fingerprint, existing } = await checkedSubmission(context, body)
   if (existing && existing.id !== id) return alreadyShared(existing)
   const before = (user ? forgetHiddenCopy(env, user, body.code, id) : []).concat(existing ? [] : scoreResets(env, id))
   const results = await env.DB.batch(before.concat(env.DB.prepare(`UPDATE presets SET code = ?, fingerprint = ?, name = ?, text = ?${existing ? "" : SCORES_RESET} WHERE id = ? RETURNING ${COLUMNS}`).bind(body.code, fingerprint, name, facts.text, id)))

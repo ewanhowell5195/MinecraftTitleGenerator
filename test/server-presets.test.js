@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, mock, test } from "node:test"
 import assert from "node:assert/strict"
 import { d1, database } from "./helpers/server.js"
+import { assets } from "./helpers/site.js"
 
 const { LIMITS } = await import("../src/lib/limits.js")
 const { checkTitle, claimPresets, countDownload, deletePreset, getPreset, listPresets, presetPageDetails, presetStats, renamePreset, replacePreset, submissionUsage, submitPreset, unsharePreset, votePreset } = await import("../src/server/presets.js")
@@ -57,7 +58,7 @@ async function share(text, extra = {}, ip = `${Math.random()}`) {
 
 beforeEach(() => {
   db = database()
-  env = { DB: d1(db), IP_SALT: "salt", SESSION_SECRET: "session-secret", DISCORD_CLIENT_ID: "discord-id", DISCORD_CLIENT_SECRET: "discord-secret", GITHUB_CLIENT_ID: "github-id", GITHUB_CLIENT_SECRET: "github-secret" }
+  env = { DB: d1(db), ASSETS: { fetch: url => assets(String(url)) }, IP_SALT: "salt", SESSION_SECRET: "session-secret", DISCORD_CLIENT_ID: "discord-id", DISCORD_CLIENT_SECRET: "discord-secret", GITHUB_CLIENT_ID: "github-id", GITHUB_CLIENT_SECRET: "github-secret" }
 })
 
 describe("titleFacts", () => {
@@ -164,6 +165,22 @@ describe("checkTitle", () => {
 })
 
 describe("submitting", () => {
+  test("only takes fonts, textures, tileables and overlays the site has published", async () => {
+    const published = [{ text: "a", font: "minecraft-ten", texture: "cracked" }, { type: "bottom", text: "b", textureSource: "tileable", tileableSource: "premade", tileable: "checkerboard" }]
+    assert.equal((await post({ code: code(published) })).status, 201)
+    for (const [lines, wanted] of [
+      [[{ text: "c", font: "preview-only" }], /no font called preview-only/],
+      [[{ text: "d", texture: "preview-only" }], /no minecraft-ten texture called preview-only/],
+      [[{ text: "e", textureSource: "tileable", tileableSource: "premade", tileable: "preview-only" }], /no tileable called preview-only/],
+      [[{ text: "f", overlayMode: "custom", overlays: [{ overlay: "preview-only" }] }], /no minecraft-ten overlay called preview-only/],
+      [[{ text: "g", separateLayers: true, layerSettings: [{ texture: "preview-only" }] }], /no minecraft-ten texture called preview-only/]
+    ]) {
+      const refused = await post({ code: code(lines) })
+      assert.equal(refused.status, 400)
+      assert.match(refused.error, wanted)
+    }
+  })
+
   test("stores the preset with the text worked out on the server", async () => {
     const { status, preset } = await post({ code: code([{ text: "stone" }]), name: "My name", credit: "Ewan", text: "ignored" })
     assert.equal(status, 201)
@@ -1388,6 +1405,14 @@ describe("accounts", () => {
     assert.equal(users(), 0)
     await addSaved(withCookie("/api/saved", cookie, { method: "POST", body: { presets: [{ name: "good", code: code([{ text: "good" }]) }] } }))
     assert.equal(users(), 1)
+  })
+
+  test("saving keeps back titles that use something the site hasn't published", async () => {
+    const cookie = await signIn()
+    const unknown = { name: "unknown", code: code([{ text: "a", font: "preview-only" }]) }
+    const response = await addSaved(withCookie("/api/saved", cookie, { method: "POST", body: { presets: [unknown, { name: "known", code: code([{ text: "b" }]) }] } }))
+    assert.deepEqual((await response.json()).kept, [unknown.code])
+    assert.deepEqual(db.prepare("SELECT name FROM presets").all().map(row => row.name), ["known"])
   })
 
   test("a refused share makes no user", async () => {

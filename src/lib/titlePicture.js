@@ -2,18 +2,16 @@ import { createRenderer, effectScope, reactive, watch } from "vue"
 import * as THREE from "three"
 import ModelRenderer from "../components/ModelRenderer.js"
 import ObjectRenderer from "../components/ObjectRenderer.js"
-import { fontTextures, loadTileables, modelTextures } from "./assets.js"
 import { readTitleObjects } from "./file.js"
-import { loadFontList, sheetFolder, stripsOf } from "./font.js"
 import { createTitleItems } from "./items.js"
 import { decodeTitle, unknownSetting } from "./linkformat.js"
 import { keepMatched } from "./match.js"
 import { painted } from "./platform.js"
 import { renderTitle, titleShot } from "./render.js"
-import { LAYERS, activeOverlays } from "./settings.js"
-import { isMinecraftShape, isModelShape, loadShapeList, shapeOf } from "./shapes.js"
+import { isModelShape } from "./shapes.js"
 import { createStage, frameCamera, titleFraming } from "./stage.js"
 import { OFFSCREEN_VIEW, createTitle, firstError } from "./title.js"
+import { loadLibrary, titleNameProblem } from "./titleNames.js"
 
 const STAGE_WIDTH = 1000
 const STAGE_HEIGHT = 500
@@ -23,44 +21,6 @@ const PICTURE_WIDTH = 935
 const PICTURE_HEIGHT = 443
 const TIME_LIMIT = 180000
 const NOTHING_RENDERED = createRenderer({ insert() {}, remove() {}, createElement: () => ({}), createText: () => ({}), createComment: () => ({}), setText() {}, setElementText() {}, parentNode: () => null, nextSibling: () => null, patchProp() {} })
-
-let library = null
-
-function loadLibrary() {
-  library ??= Promise.all([loadFontList(), loadTileables(), loadShapeList()]).catch(err => {
-    library = null
-    throw err
-  })
-  return library
-}
-
-function refuseUnknownVariant(label, entry, id, variant) {
-  if (!entry) throw new Error(`there is no ${label} called ${id}`)
-  if (variant && !entry.variants?.[variant]) throw new Error(`the ${label} ${id} has no variant called ${variant}`)
-}
-
-async function textureListOf(object, fonts, shapes) {
-  if (object.shape !== null) {
-    const shape = shapeOf(shapes, object.shape)
-    if (shape.kind === "model" && object.textureSource !== "premade") throw new Error(`the shape ${shape.id} only takes its own textures`)
-    return { font: shape, list: await (shape.kind === "model" ? modelTextures(shape.folder) : fontTextures(shape.folder, shape.strips ?? [])) }
-  }
-  const font = fonts.find(entry => entry.id === object.font)
-  if (!font) throw new Error(`there is no font called ${object.font}`)
-  return { font, list: await fontTextures(sheetFolder(font, fonts), stripsOf(font, fonts)) }
-}
-
-async function refuseUnknownNames(object, fonts, tileables, shapes) {
-  if (isMinecraftShape(object.shape)) return
-  const { font, list } = await textureListOf(object, fonts, shapes)
-  if (object.textureSource === "premade" && object.texture !== null) refuseUnknownVariant(`${font.id} texture`, list.textures[object.texture], object.texture, object.textureVariant)
-  if (object.textureSource === "tileable" && object.tileableSource !== "minecraft") refuseUnknownVariant("tileable", tileables[object.tileable], object.tileable, object.tileableVariant)
-  for (const kind of LAYERS) {
-    for (const layer of activeOverlays(list, object, kind)) {
-      if (layer.source !== "file" && !list[kind][layer.overlay]) throw new Error(`there is no ${font.id} overlay called ${layer.overlay}`)
-    }
-  }
-}
 
 function settled(title, items) {
   return new Promise((fulfil, reject) => {
@@ -110,9 +70,9 @@ export async function titleCanvas(code, width = PICTURE_WIDTH, fixedDistance = f
   const decoded = decodeTitle(code)
   const unknown = unknownSetting(decoded.lines)
   if (unknown) throw new Error(`the title has a setting this version does not know: ${unknown}`)
-  const title = titleOf(decoded, fixedDistance)
-  await Promise.all(title.objects.map(object => refuseUnknownNames(object, fonts, tileables, shapes)))
-  return pictureOf(title, fonts, tileables, width, shapes)
+  const problem = await titleNameProblem(decoded.lines)
+  if (problem) throw new Error(problem)
+  return pictureOf(titleOf(decoded, fixedDistance), fonts, tileables, width, shapes)
 }
 
 function titleOf(decoded, fixedDistance) {
