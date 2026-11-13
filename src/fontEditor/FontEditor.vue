@@ -16,7 +16,7 @@
   import PreviewPanel from "./PreviewPanel.vue"
   import TexturesPanel from "./TexturesPanel.vue"
   import StartScreen from "./StartScreen.vue"
-  import { canRedo, canUndo, closeFont, downloadJson, downloadTexture, flushSave, font, redo, restoreFont, saveError, submitFont, typing, undo } from "./store.js"
+  import { canRedo, canUndo, closeFont, downloadJson, downloadTexture, flushSave, font, redo, editingSubmission, restoreFont, saveError, submitFont, takeSubmissionFont, typing, undo, updateSubmission } from "./store.js"
 
   const TABS = [{ id: "font", label: "Font" }, { id: "characters", label: "Characters" }, { id: "textures", label: "Textures" }, { id: "kerning", label: "Kerning" }]
 
@@ -51,6 +51,8 @@
   } catch (err) {
     loadError.value = `Your saved font couldn't be opened: ${err.message}`
   }
+
+  takeSubmissionFont().catch(err => loadError.value = `The submission's font couldn't be opened: ${err.message}`)
 
   function key(event) {
     const letter = event.key.toLowerCase()
@@ -87,7 +89,8 @@
         <NavTabs class="main-tabs" v-model="tab" :tabs="TABS" />
       </template>
       <div class="spacer"></div>
-      <Button v-if="font" primary v-tooltip="'Send this font to be added to the title generator'" @click="submitFont"><template #icon><Icon name="upload" :size="16" /></template>Submit</Button>
+      <Button v-if="font && editingSubmission" primary class="update" v-tooltip="'Go back to your submission with this font as its file'" @click="updateSubmission"><template #icon><Icon name="upload" :size="16" /></template>Update in submission</Button>
+      <Button v-else-if="font" primary v-tooltip="'Send this font to be added to the title generator'" @click="submitFont"><template #icon><Icon name="upload" :size="16" /></template>Submit</Button>
       <AccountMenu />
       <NotificationBell />
     </header>
@@ -132,6 +135,10 @@
 </template>
 
 <style scoped>
+  .update {
+    white-space: nowrap;
+  }
+
   .editor-page {
     display: flex;
     flex-direction: column;

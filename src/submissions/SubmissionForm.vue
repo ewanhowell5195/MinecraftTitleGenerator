@@ -12,7 +12,8 @@
   import { AUTHOR_LIMITS, authorList } from "../lib/authors.js"
   import { account } from "../lib/community.js"
   import { SUBMISSION_KINDS, checkSubmission, submissionContext } from "../lib/submissionKinds/index.js"
-  import { EDITOR_SUBMISSION, SUBMISSION_LIMITS } from "../lib/submissions.js"
+  import { navigate } from "../lib/navigation.js"
+  import { EDITOR_EDIT, EDITOR_SUBMISSION, SUBMISSION_LIMITS } from "../lib/submissions.js"
   import { editSubmission, sendSubmission, submissionFileUrl } from "../lib/submissionsApi.js"
   import { pickedFile, releaseFile } from "./files.js"
   import { KIND_COMPONENTS } from "./kinds/components.js"
@@ -176,13 +177,25 @@
 
   function takeEditorFont() {
     const saved = sessionStorage.getItem(EDITOR_SUBMISSION)
-    sessionStorage.removeItem(EDITOR_SUBMISSION)
     if (!saved) return
-    const { name: fileName, text } = JSON.parse(saved)
+    const { name: fileName, text, submission = null } = JSON.parse(saved)
+    if (submission !== (props.initial?.id ?? null)) return
+    sessionStorage.removeItem(EDITOR_SUBMISSION)
     use(new File([text], fileName, { type: "application/json" }))
   }
 
-  if (prefillFrom === "editor" && kind.value === "font" && !props.initial) takeEditorFont()
+  if (kind.value === "font" && (props.initial || prefillFrom === "editor")) takeEditorFont()
+
+  async function editFont() {
+    error.value = ""
+    try {
+      const bytes = chosen.value?.bytes ?? new Uint8Array(await (await fetched(fileUrl.value, "the font")).arrayBuffer())
+      sessionStorage.setItem(EDITOR_EDIT, JSON.stringify({ submission: props.initial.id, text: new TextDecoder().decode(bytes) }))
+      navigate("/font-editor/")
+    } catch (err) {
+      error.value = err.message
+    }
+  }
 
   async function send() {
     tried.value = true
@@ -227,6 +240,7 @@
         <div class="stage-bar">
           <input v-if="group !== 'shape'" type="text" v-model="previewText" :placeholder="name || 'Minecraft'" spellcheck="false" aria-label="Preview text">
           <p v-if="problemInBar && fileProblem && (tried || chosen)" class="hint bad">{{ fileProblem }}</p>
+          <Button v-if="initial && kind === 'font' && fileUrl" v-tooltip="'Open this font in the font editor. It replaces the font saved there'" @click="editFont"><template #icon><Icon name="pencil" :size="16" /></template>Edit font</Button>
           <Button file :accept="isImage ? 'image/png' : '.json,application/json'" @change="pick"><template #icon><Icon name="open" :size="16" /></template>
             <span>Replace file</span>
           </Button>

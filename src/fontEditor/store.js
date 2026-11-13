@@ -3,7 +3,8 @@ import { authorList } from "../lib/authors.js"
 import { DEFAULT_ORDER } from "../lib/order.js"
 import { buildSheet, charactersOf, depthCode, fitGlyph, flatTexture, glyphOf, moveGlyph, reshapeGlyph, sameCharacter, sameGlyph, savedJson, setGlyph, setLetterCase } from "../lib/fontEditor.js"
 import { jsonText } from "../lib/jsonText.js"
-import { EDITOR_SUBMISSION } from "../lib/submissions.js"
+import { EDITOR_EDIT, EDITOR_SUBMISSION } from "../lib/submissions.js"
+import { fontFromUploads } from "./loaders.js"
 import { download, downloadBlob } from "../lib/ui.js"
 import { pngUrl } from "../lib/virtualFiles.js"
 import { navigate } from "../lib/navigation.js"
@@ -22,6 +23,7 @@ export const previewTerminators = ref(false)
 export const previewStretch = ref(0)
 export const pencilDepth = ref(100)
 export const previewMode = ref("2d")
+export const editingSubmission = ref(null)
 
 const undoStack = shallowRef([])
 const redoStack = shallowRef([])
@@ -141,8 +143,9 @@ function keepSelection() {
   if (!characters.value.includes(selected.value)) selected.value = characters.value[0]
 }
 
-export function openFont(next) {
+export function openFont(next, submission = null) {
   font.value = next
+  editingSubmission.value = submission
   undoStack.value = []
   redoStack.value = []
   group = null
@@ -152,6 +155,7 @@ export function openFont(next) {
 
 export function closeFont() {
   font.value = null
+  editingSubmission.value = null
   undoStack.value = []
   redoStack.value = []
   group = null
@@ -169,7 +173,7 @@ export function closeFont() {
 function save() {
   if (!font.value) return
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, font: font.value, selected: selected.value }))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, font: font.value, selected: selected.value, ...(editingSubmission.value && { submission: editingSubmission.value }) }))
     saveError.value = ""
   } catch (err) {
     saveError.value = `This browser couldn't remember your font (${err.message}). Download it so you don't lose it.`
@@ -183,7 +187,16 @@ export function restoreFont() {
   if (saved.version !== 1) throw new Error(`the saved font is version ${saved.version}, which this editor can't read`)
   font.value = { ...saved.font, authors: authorList(saved.font.authors ?? saved.font.author), creeper: saved.font.creeper ?? true, extras: saved.font.extras ?? [], letterCase: saved.font.letterCase ?? "upper" }
   selected.value = saved.selected
+  editingSubmission.value = saved.submission ?? null
   keepSelection()
+}
+
+export async function takeSubmissionFont() {
+  const saved = sessionStorage.getItem(EDITOR_EDIT)
+  if (!saved) return
+  sessionStorage.removeItem(EDITOR_EDIT)
+  const { submission, text } = JSON.parse(saved)
+  openFont(await fontFromUploads([new File([text], "font.json", { type: "application/json" })]), submission)
 }
 
 watch([font, selected], () => {
@@ -216,6 +229,12 @@ function jsonFile() {
 export function downloadJson() {
   const { name, text } = jsonFile()
   downloadBlob(name, new Blob([text], { type: "application/json" }))
+}
+
+export function updateSubmission() {
+  flushSave()
+  sessionStorage.setItem(EDITOR_SUBMISSION, JSON.stringify({ ...jsonFile(), submission: editingSubmission.value }))
+  navigate(`/submissions/${editingSubmission.value}/edit`)
 }
 
 export function submitFont() {

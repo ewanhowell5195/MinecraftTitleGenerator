@@ -6,6 +6,7 @@ export const SUBMISSION_LIMITS = { name: 40, notes: 500, link: 300, fileBytes: 1
 export const EXTRA_FILE = /^[a-z0-9-]{1,40}$/
 
 export const EDITOR_SUBMISSION = "minecraft-title-editor-submission"
+export const EDITOR_EDIT = "minecraft-title-editor-edit"
 
 export const HEX_COLOUR = /^#[0-9a-f]{6}$/i
 
