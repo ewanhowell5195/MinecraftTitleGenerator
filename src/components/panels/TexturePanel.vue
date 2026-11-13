@@ -293,7 +293,7 @@
 
 <style scoped>
   .pick.peek {
-    height: max(420px, calc(100cqh - 42px - 2 * var(--group-padding) - 120px - var(--disclaimer-height, 0px)));
+    max-height: max(420px, calc(100cqh - 42px - 2 * var(--group-padding) - 120px - var(--disclaimer-height, 0px)));
   }
 
   .variants {
