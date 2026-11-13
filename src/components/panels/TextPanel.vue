@@ -29,13 +29,12 @@
     if (line.value.length > 1 && scene.selectedGroup === null && scene.selected !== word.id) select(word)
   }
 
+  function multicase(word) {
+    return !!runtime[word.id]?.font?.multicase
+  }
+
   function typed(event, word) {
-    const field = event.target
-    const { selectionStart, selectionEnd } = field
-    word.text = field.value.toLowerCase()
-    if (field.value === word.text) return
-    field.value = word.text
-    field.setSelectionRange(selectionStart, selectionEnd)
+    word.text = event.target.value
   }
 
   function capture() {
@@ -126,7 +125,7 @@
         <button v-if="index" class="join" :class="{ joined: !word.spaceBefore }" @click="word.spaceBefore = !word.spaceBefore" :aria-pressed="!word.spaceBefore" v-tooltip="word.spaceBefore ? 'Join words' : 'Add space'" :aria-label="word.spaceBefore ? 'Join words' : 'Add space'">
           <Icon :name="word.spaceBefore ? 'space' : 'link'" :size="14" />
         </button>
-        <label :ref="el => (chips[word.id] = el)" class="chip" :class="{ chosen: chosen(word), dragged: dragged === word.id, hidden: word.hidden }" :data-value="word.text || placeholder">
+        <label :ref="el => (chips[word.id] = el)" class="chip" :class="{ chosen: chosen(word), dragged: dragged === word.id, hidden: word.hidden, cased: multicase(word) }" :data-value="word.text || placeholder">
           <span v-if="line.length > 1" class="grip" @pointerdown="press($event, word)">
             <Icon name="grip" :size="14" />
           </span>
@@ -176,6 +175,11 @@
     font-size: var(--font-xl);
     font-weight: 600;
     text-transform: lowercase;
+  }
+
+  .chip.cased::after,
+  .chip.cased input {
+    text-transform: none;
   }
 
   .chip::after {

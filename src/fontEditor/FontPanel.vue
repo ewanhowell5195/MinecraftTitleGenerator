@@ -8,11 +8,12 @@
   import NameList from "../components/NameList.vue"
   import Notice from "../components/Notice.vue"
   import NumberInput from "../components/NumberInput.vue"
+  import Segments from "../components/Segments.vue"
   import { fullName, loadFontList } from "../lib/font.js"
-  import { DEFAULT_BORDER, DEFAULT_DEPTH, DEFAULT_ID, DEFAULT_SPACE_WIDTH, autoStretch, fontId, lostPixels, resizeFont, setSquareSize, slug, squareSizeLoss, squaresOf } from "../lib/fontEditor.js"
+  import { DEFAULT_BORDER, DEFAULT_DEPTH, DEFAULT_ID, DEFAULT_SPACE_WIDTH, LETTER_CASES, autoStretch, fontId, lostPixels, resizeFont, setSquareSize, slug, squareSizeLoss, squaresOf } from "../lib/fontEditor.js"
   import { fontThumbnail } from "../lib/ui.js"
   import { typedNumber } from "./fields.js"
-  import { font, update } from "./store.js"
+  import { changeLetterCase, font, update } from "./store.js"
 
   const ABOUT = [
     { key: "name", label: "Name", required: true, hint: "Shown in the font list and the credits." },
@@ -36,6 +37,12 @@
     { key: "flat", label: "Flat font", hint: "Update Text won't get its usual 30 extra depth." },
     { key: "overlay", label: "Forced overlay", hint: "Draws an overlay.png over the letters on every texture except premade sheets. This editor doesn't make that file: you add it to the font's folder yourself, on the same layout as the font's flat.png." }
   ]
+
+  const CASE_HINTS = {
+    both: "Titles keep the case they're typed in, so every letter needs a capital and a lowercase version.",
+    upper: "Titles use one case, drawn with capital letters.",
+    lower: "Titles use one case, drawn with lowercase letters."
+  }
 
   const warning = ref(null)
   const published = shallowRef([])
@@ -148,6 +155,12 @@
           <Button danger @click="confirmResize">Change anyway</Button>
         </div>
       </Notice>
+    </section>
+
+    <section class="flow">
+      <h3>Letter case</h3>
+      <Segments :options="LETTER_CASES" :model-value="font.letterCase" @update:model-value="changeLetterCase" />
+      <p class="hint">{{ CASE_HINTS[font.letterCase] }} Switching keeps the letters you hide, so switching back brings them back, but only the letters you can see are downloaded or submitted.</p>
     </section>
 
     <section class="flow">

@@ -6,7 +6,7 @@ import { compress } from "woff2-encoder"
 import { publishedFonts, readMask } from "../generator/fonts.js"
 import { parseMask, splitCells } from "../src/lib/font.js"
 import { DEFAULT_ORDER } from "../src/lib/order.js"
-import { CREEPER, REQUIRED_CHARACTERS, SPACE_CHAR, addCharacters, autoStretch, blankGlyph, blockAt, buildSheet, changeGlyph, charactersOf, createFont, exportJson, fillCells, fitGlyph, fontFromFiles, fontFromPublished, glyphOf, isBlank, isOptional, lineCells, lostPixels, moveGlyph, paint, parseFontJson, rectangleCells, removeCharacter, reshapeGlyph, resizeFont, rowOfY, savedCharacters, savedJson, savedSheet, setGlyph, setSquareSize, setStretch, sheetOrder, slug, squareSizeLoss, squaresOf, trimGlyph, widthOf, yOfRow } from "../src/lib/fontEditor.js"
+import { CREEPER, MULTICASE_CHARACTERS, REQUIRED_CHARACTERS, SPACE_CHAR, addCharacters, autoStretch, blankGlyph, blockAt, buildSheet, changeGlyph, characterLabel, charactersOf, sameCharacter, setLetterCase, createFont, exportJson, fillCells, fitGlyph, fontFromFiles, fontFromPublished, glyphOf, isBlank, isOptional, lineCells, lostPixels, moveGlyph, paint, parseFontJson, rectangleCells, removeCharacter, reshapeGlyph, resizeFont, rowOfY, savedCharacters, savedJson, savedSheet, setGlyph, setSquareSize, setStretch, sheetOrder, slug, squareSizeLoss, squaresOf, trimGlyph, widthOf, yOfRow } from "../src/lib/fontEditor.js"
 import { fontFromAscii } from "../src/lib/asciiImport.js"
 import { fontFromOutlines, parseFontFile } from "../src/lib/fontImport.js"
 import { gridShift, rasterise } from "../src/lib/fontOutline.js"
@@ -64,6 +64,72 @@ describe("characters", () => {
     assert.ok(!charactersOf(font).includes("б") && !font.creeper && !font.glyphs["б"])
     assert.deepEqual(font.kerning, { av: 1 })
     assert.ok(isOptional(" ") && isOptional(CREEPER) && !isOptional("a"))
+  })
+})
+
+describe("letter case", () => {
+  const both = { ...createFont(), letterCase: "both" }
+
+  test("a font with both cases lists each capital just before its lowercase letter", () => {
+    assert.equal(charactersOf(both).join(""), Array.from("abcdefghijklmnopqrstuvwxyz", char => char.toUpperCase() + char).join("") + DEFAULT_ORDER.replace(CREEPER, "").slice(26))
+    assert.deepEqual(MULTICASE_CHARACTERS, charactersOf(both))
+  })
+
+  test("added letters get both cases, and typing either case finds the same character", () => {
+    const { font, added } = addCharacters(both, "Éb3")
+    assert.deepEqual([added, font.extras], [["É", "é"], ["é"]])
+    assert.deepEqual(addCharacters(font, "é").added, [])
+    assert.deepEqual(addCharacters(createFont(), "É").added, ["é"])
+    assert.ok(!isOptional("B") && isOptional("É"))
+  })
+
+  test("removing a letter removes both cases and their kerning", () => {
+    let font = addCharacters({ ...both, kerning: { "Éa": 2, "éb": 1, ab: 3 } }, "é").font
+    font = strokeCell(strokeCell(font, "É", 0, 0), "é", 0, 0)
+    font = removeCharacter(font, "é")
+    assert.ok(!font.glyphs["É"] && !font.glyphs["é"] && !font.extras.length)
+    assert.deepEqual(font.kerning, { ab: 3 })
+  })
+
+  test("one case hides the other, and switching back brings it back", () => {
+    let font = strokeCell(strokeCell({ ...both, kerning: { AV: 2, av: 1 } }, "A", 0, 0), "a", 1, 0)
+    const upper = setLetterCase(font, "upper")
+    assert.equal(charactersOf(upper).join(""), DEFAULT_ORDER.replace(CREEPER, ""))
+    assert.deepEqual(upper.glyphs.a, font.glyphs.A)
+    assert.deepEqual(upper.kerning, { av: 2 })
+    const lower = setLetterCase(upper, "lower")
+    assert.deepEqual([lower.glyphs.a, lower.kerning], [font.glyphs.a, { av: 1 }])
+    const again = setLetterCase(lower, "both")
+    assert.deepEqual([again.glyphs.A, again.glyphs.a, again.kerning], [font.glyphs.A, font.glyphs.a, { AV: 2, av: 1 }])
+    assert.equal(characterLabel("a", "upper"), "A")
+    assert.deepEqual([sameCharacter("a", "upper", "both"), sameCharacter("A", "both", "upper"), sameCharacter("a", "both", "upper"), sameCharacter("A", "both", "lower")], ["A", "a", "a", "a"])
+  })
+
+  test("hidden letters are resized with the rest", () => {
+    const font = setLetterCase(strokeCell(both, "a", 0, 0), "upper")
+    const back = setLetterCase(setSquareSize(resizeFont(font, { height: 44 }), 2), "both")
+    assert.equal(back.glyphs.a.rows.length, 22)
+    assert.ok(!isBlank(back.glyphs.a))
+  })
+
+  test("saving marks a font with both cases, and reopening it keeps them", () => {
+    const font = strokeCell(strokeCell(both, "A", 0, 0), "a", 1, 0)
+    const json = exportJson(font, "")
+    assert.equal(json.multicase, true)
+    assert.ok(json.order.startsWith("AaBb"))
+    const sheet = buildSheet(font)
+    const opened = fontFromFiles({ sheet, json })
+    assert.equal(opened.letterCase, "both")
+    assert.deepEqual([opened.glyphs.A.rows, opened.glyphs.a.rows], [font.glyphs.A.rows, font.glyphs.a.rows])
+    assert.deepEqual(opened.extras, [])
+  })
+
+  test("a lowercase font says so in its JSON, and older fonts open as capitals", () => {
+    const lower = setLetterCase(both, "lower")
+    assert.equal(exportJson(lower, "").editor.letterCase, "lower")
+    assert.equal(fontFromFiles({ json: exportJson(lower, "") }).letterCase, "lower")
+    assert.equal(fontFromFiles({ json: { name: "Old" } }).letterCase, "upper")
+    assert.equal(exportJson(createFont(), "").multicase, undefined)
   })
 })
 
@@ -778,15 +844,15 @@ describe("ascii.png import", () => {
     const font = fontFromAscii(image, { height: 40 })
     assert.equal(font.grid, 6)
     assert.equal(font.height, 42)
-    assert.equal(font.width, 12)
-    assert.equal(font.glyphs.a.width, null)
-    assert.equal(font.glyphs.a.rows[0].length, 12)
-    assert.equal(font.glyphs.a.rows.length, 42)
-    assert.ok(isBlank(glyphOf(font, "b")))
+    assert.equal(font.glyphs.A.rows[0].length, 12)
+    assert.equal(font.glyphs.A.rows.length, 42)
+    assert.ok(isBlank(glyphOf(font, "b")) && isBlank(glyphOf(font, "B")))
   })
 
-  test("lowercase letters can be used instead, and descenders go below the baseline", () => {
-    const font = fontFromAscii(image, { height: 7, lowercase: true })
+  test("both cases come from their own cells, and descenders go below the baseline", () => {
+    const font = fontFromAscii(image, { height: 7 })
+    assert.equal(font.letterCase, "both")
+    assert.equal(font.glyphs.A.width, 2)
     assert.equal(font.glyphs.a.width, 1)
     assert.equal(font.glyphs.g.below, 1)
     assert.equal(font.glyphs.g.rows.length, 8)

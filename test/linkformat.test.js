@@ -73,7 +73,7 @@ describe("settings table", () => {
   })
 
   test("an overlay fade opens and can be shared", () => {
-    const { lines } = decodeTitle("EAQICEAKB71oSAQQGBQKB71rcAQAQwAzWAYAK")
+    const { lines } = decodeTitle("EAQICFQKB71oSAQQGBQKB71rcAQAQwAzWAYAK")
     assert.deepEqual(lines, [{ text: "shine", overlays: [{ overlay: "shine", source: "premade", opacity: 100, fade: 80 }] }])
     assert.equal(unknownSetting(lines), null)
   })
@@ -329,9 +329,9 @@ describe("text in links", () => {
     for (const text of ["", "a", "MINECRAFT", "update text here", "John doe's", "{ dungeons }", "java & bedrock", "minecrAft", "kalmax0328's", "\u{1F333}", "café", "\u{1F633}£€@"]) assert.equal(roundTrip([{ text }])[0].text, text)
   })
 
-  test("links store text in lowercase, like the text box", () => {
+  test("links keep text in the case it was typed, for fonts with both cases", () => {
     const lines = [{ text: "MINECRAFT" }, { words: [{ text: "Title" }, { text: "minecrAft" }] }]
-    assert.deepEqual(decodeTitle(encodeTitle({ version: 1, lines }).code).lines, [{ text: "minecraft" }, { words: [{ text: "title" }, { text: "minecraft" }] }])
+    assert.deepEqual(decodeTitle(encodeTitle({ version: 1, lines }).code).lines, lines)
   })
 
   test("letters and digits pack smaller than punctuation", () => {

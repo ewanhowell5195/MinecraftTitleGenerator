@@ -66,7 +66,7 @@
     <div class="bar">
       <label class="text">
         <span class="label">Preview</span>
-        <input v-model="text" type="text" placeholder="Type something" aria-label="Preview text">
+        <input v-model="text" type="text" :class="{ single: font.letterCase !== 'both' }" placeholder="Type something" aria-label="Preview text">
       </label>
       <div class="stretch" v-tooltip="'Makes the preview up to twice as tall, using only the marked stretch zones'">
         <Slider inline label="Stretch" :min="0" :max="100" v-model="stretch" />
@@ -111,6 +111,10 @@
   .bar .text {
     flex: 1;
     min-width: 0;
+  }
+
+  .text input.single {
+    text-transform: lowercase;
   }
 
   .stretch {

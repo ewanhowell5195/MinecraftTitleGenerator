@@ -68,7 +68,7 @@ describe("titleFacts", () => {
   })
 
   test("a line with no text uses the default text", () => {
-    assert.equal(titleFacts([{ texture: "cracked" }]).text, "minecraft")
+    assert.equal(titleFacts([{ texture: "cracked" }]).text, "Minecraft")
   })
 
   test("a hidden line stays out of the search text but is still checked", () => {

@@ -4,8 +4,9 @@ export const SPACE = 8
 
 const NOT_THUMBNAILS = new Set([TERMINATOR_OPEN, TERMINATOR_CLOSE, " "])
 
-export function normalise(text) {
-  return text.replace(/A/g, CREEPER).replace(/(\s|^)'/g, `$1${OPENING_QUOTE}`).replace(/(\s|^)"/g, `$1${OPENING_QUOTE}${OPENING_QUOTE}`).replace(/"/g, "''").toLowerCase()
+export function normalise(text, multicase = false) {
+  const quoted = text.replace(/(\s|^)'/g, `$1${OPENING_QUOTE}`).replace(/(\s|^)"/g, `$1${OPENING_QUOTE}${OPENING_QUOTE}`).replace(/"/g, "''")
+  return multicase ? quoted : quoted.replace(/A/g, CREEPER).toLowerCase()
 }
 
 function filler(glyph, width) {
@@ -39,13 +40,14 @@ export function layout(font, text, options) {
 
 function creeperText(font, item) {
   if (item.creeper === undefined) return item.text
+  if (font.multicase) return item.creeper && font.glyphs[CREEPER] ? item.text.replace(/A/g, CREEPER) : item.text
   return item.creeper && font.glyphs[CREEPER] ? item.text.replace(/a/gi, "A") : item.text.replace(/A/g, "a")
 }
 
 function wordText(font, item, raw) {
   if (raw) return item.text
   const text = creeperText(font, item)
-  return normalise(font.glyphs[" "] ? text : text.trim())
+  return normalise(font.glyphs[" "] ? text : text.trim(), font.multicase)
 }
 
 export function lineLayout(font, words, options) {

@@ -698,7 +698,7 @@ describe("resetTitle", () => {
     fileError.value = "old"
     resetTitle()
     assert.equal(scene.objects.length, 1)
-    assert.equal(scene.objects[0].text, "minecraft")
+    assert.equal(scene.objects[0].text, "Minecraft")
     assert.equal(scene.selected, scene.objects[0].id)
     assert.equal(scene.selectedGroup, null)
     assert.equal(fileError.value, null)

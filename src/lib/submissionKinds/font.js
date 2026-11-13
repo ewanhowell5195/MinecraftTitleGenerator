@@ -7,7 +7,7 @@ import { defaultBorder, defaultDepth } from "../settings.js"
 import { stripUse } from "../strips.js"
 import { GENERATED_EDGE_OVERLAYS, withGenerated } from "../generated.js"
 import { EXTRA_FILE, HEX_COLOUR, SUBMISSION_LIMITS, assetId, creditProblem, pngProblem, pngSize, sizedProblem, textProblem, textureDensity } from "../submissions.js"
-import { REQUIRED_CHARACTERS, characterName, fontId } from "../fontEditor.js"
+import { MULTICASE_CHARACTERS, REQUIRED_CHARACTERS, characterName, fontId, hasCase } from "../fontEditor.js"
 import { FONT_LIMITS, drawnCells, ownFont, storedFont, submittedFont } from "./fontBuild.js"
 import { heightList, stripFit, stripHeights, stripSet } from "./stripFit.js"
 
@@ -114,17 +114,24 @@ function sizeProblem(capHeight, count) {
   return null
 }
 
-function blankProblem(drawn) {
-  const blank = REQUIRED_CHARACTERS.filter(char => !drawn.includes(char))
-  return blank.length ? `A new font has to have every default character drawn. These are blank: ${listed(blank.map(characterName))}.` : null
+function blankProblem(drawn, letterCase) {
+  const blank = (letterCase === "both" ? MULTICASE_CHARACTERS : REQUIRED_CHARACTERS).filter(char => !drawn.includes(char))
+  return blank.length ? `A new font has to have every default character drawn. These are blank: ${listed(blank.map(char => characterName(char, letterCase)))}.` : null
 }
 
-function lettersProblem(drawn) {
-  const blank = LATIN.filter(char => !drawn.includes(char))
+function lettersProblem(drawn, letterCase) {
+  const latin = letterCase === "both" ? LATIN.map(char => char.toUpperCase()).concat(LATIN) : LATIN
+  const blank = latin.filter(char => !drawn.includes(char))
   if (!blank.length) return null
-  const others = drawn.filter(char => /^\p{L}$/u.test(char) && !LATIN.includes(char))
+  const others = drawn.filter(char => /^\p{L}$/u.test(char) && !latin.includes(char))
   if (others.length >= FONT_LIMITS.letters) return null
-  return `Draw every letter from a to z, or at least ${FONT_LIMITS.letters} letters of another alphabet. These are blank: ${listed(blank)}.`
+  return `Draw every letter from a to z, or at least ${FONT_LIMITS.letters} letters of another alphabet. These are blank: ${listed(blank.map(char => characterName(char, letterCase)))}.`
+}
+
+function caseProblem(drawn, letterCase) {
+  if (letterCase !== "both") return null
+  const blank = drawn.filter(hasCase).map(char => char === char.toUpperCase() ? char.toLowerCase() : char.toUpperCase()).filter(char => !drawn.includes(char))
+  return blank.length ? `A font with both cases needs a capital and a lowercase version of every letter. These are blank: ${listed(blank)}.` : null
 }
 
 function builtFont(font, parentId) {
@@ -138,7 +145,7 @@ async function ownFontProblem(font, parent, ctx) {
   if (!drawnCells(font).cells.length) return "None of the characters are drawn yet."
   const own = builtFont(font, parent?.id ?? null)
   const drawn = own.cells.map(cell => cell.char)
-  const problem = sizeProblem(own.capHeight, drawn.length) ?? (parent ? lettersProblem(drawn) : blankProblem(drawn))
+  const problem = sizeProblem(own.capHeight, drawn.length) ?? (parent ? lettersProblem(drawn, font.letterCase) : blankProblem(drawn, font.letterCase)) ?? caseProblem(drawn, font.letterCase)
   if (problem) return problem
   const entry = own.entry
   if (entry.basedOn && !ctx.fonts.some(item => item.id === entry.basedOn)) return `It says it's based on ${entry.basedOn}, which isn't one of the fonts here. Change Based on in the font editor's Font tab.`

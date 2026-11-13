@@ -5,7 +5,7 @@ import { LIMITS } from "./limits.js"
 import { encodeTitle, openableTitle, titleBody } from "./linkformat.js"
 import { capitalWords } from "./names.js"
 import { showNotice } from "./notices.js"
-import { titleText } from "./scene.js"
+import { casedTitle, titleText } from "./scene.js"
 import { submitStats } from "./stats.js"
 import { readStored } from "./view.js"
 
@@ -266,7 +266,7 @@ function showingCode(code) {
 }
 
 function automaticName() {
-  return capitalWords(titleText()).slice(0, NAME_LIMIT)
+  return (casedTitle() ? titleText() : capitalWords(titleText())).slice(0, NAME_LIMIT)
 }
 
 function presetCode() {

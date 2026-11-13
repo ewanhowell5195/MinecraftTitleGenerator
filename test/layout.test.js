@@ -167,6 +167,12 @@ describe("creeper face", () => {
   test("leaves the a alone when the font has no creeper face", () => {
     assert.deepEqual(charsOf(lineLayout(fontOf("ab"), [{ text: "ba", space: false, creeper: true }], {})), ["b", "a"])
   })
+
+  test("a font with both cases keeps the typed case and only gives a capital A the face", () => {
+    const cased = { ...fontOf("AaBb" + SMILE), multicase: true }
+    assert.deepEqual(charsOf(lineLayout(cased, [{ text: "BaAb", space: false, creeper: true }], {})), ["B", "a", SMILE, "b"])
+    assert.deepEqual(charsOf(lineLayout(cased, [{ text: "BaAb", space: false, creeper: false }], {})), ["B", "a", "A", "b"])
+  })
 })
 
 describe("layout kerning", () => {

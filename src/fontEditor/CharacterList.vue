@@ -17,6 +17,8 @@
   const context = ref(null)
   const list = ref(null)
   const section = ref(null)
+  const CASE_HINTS = { both: "Letters are added as both a capital and a lowercase version.", upper: "Letters are added as capitals.", lower: "Letters are added as lowercase." }
+
   const adding = ref(false)
   const typed = ref("")
   const field = ref(null)
@@ -28,8 +30,8 @@
     return codes.length ? `${codes.join(", ")} can't be added, as combining marks and invisible characters have nothing to draw.` : ""
   })
   const addingHint = computed(() => {
-    if (!typed.value.trim()) return "Type one or more characters. Capitals are added as lowercase."
-    if (newCharacters.value.length) return `Adds ${newCharacters.value.join(" ")}${refusedNote.value ? `. ${refusedNote.value}` : ""}`
+    if (!typed.value.trim()) return `Type one or more characters. ${CASE_HINTS[font.value.letterCase]}`
+    if (newCharacters.value.length) return `Adds ${newCharacters.value.map(char => characterLabel(char, font.value.letterCase)).join(" ")}${refusedNote.value ? `. ${refusedNote.value}` : ""}`
     return refusedNote.value || "Those are all in the font already."
   })
 
@@ -126,7 +128,7 @@
       <span class="hint">{{ blanks ? `${blanks} still blank` : "All drawn" }}</span>
     </header>
     <TileGrid ref="list" class="list" small :min="52">
-      <Tile v-for="char of characters" :key="char" small :label="characterLabel(char)" aspect="auto" :selected="selected === char" :tooltip="characterName(char) === characterLabel(char) ? null : characterName(char)" @pick="selected = char" v-long-press @contextmenu.prevent="menu($event, char)">
+      <Tile v-for="char of characters" :key="char" small :label="characterLabel(char, font.letterCase)" aspect="auto" :selected="selected === char" :tooltip="characterName(char, font.letterCase) === characterLabel(char, font.letterCase) ? null : characterName(char, font.letterCase)" @pick="selected = char" v-long-press @contextmenu.prevent="menu($event, char)">
         <template #picture><GlyphThumb :font="font" :glyph="glyphOf(font, char)" /></template>
       </Tile>
       <button class="add" v-tooltip="'Add a character'" aria-label="Add a character" @click="addMenu"><Icon name="plus" :size="20" /></button>

@@ -29,7 +29,7 @@
   })
   const query = computed(() => {
     const text = search.value.replace(/\s/g, "")
-    return new Set(Array.from(normalise(text)).concat(Array.from(text)))
+    return new Set(Array.from(normalise(text, parsed.value.multicase)).concat(Array.from(text)))
   })
   const allPairs = computed(() => Object.entries(font.value.kerning).map(pairRow).sort((a, b) => pairRank(a.pair) - pairRank(b.pair) || a.pair.localeCompare(b.pair)))
   const pairs = computed(() => allPairs.value.filter(({ pair }) => matches(pair)))
@@ -52,7 +52,7 @@
   })
 
   function pairLabel(pair) {
-    return Array.from(pair, char => char === CREEPER ? "A" : characterLabel(char)).join("")
+    return Array.from(pair, char => char === CREEPER ? "A" : characterLabel(char, font.value.letterCase)).join("")
   }
 
   function setKerning(changes, key = null) {
@@ -74,7 +74,7 @@
   }
 
   function addCustom() {
-    const chars = Array.from(normalise(custom.value))
+    const chars = Array.from(normalise(custom.value, parsed.value.multicase))
     if (chars.length !== 2) {
       customError.value = "Type exactly two characters."
       return

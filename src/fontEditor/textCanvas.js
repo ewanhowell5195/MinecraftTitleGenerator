@@ -7,7 +7,7 @@ let unkerned = null
 
 export function unkernedFont(font) {
   const { glyphs, capHeight } = parsedSheet(font)
-  if (unkerned?.glyphs !== glyphs || METRICS.some(key => unkerned[key] !== font[key])) unkerned = { glyphs, capHeight, ...Object.fromEntries(METRICS.map(key => [key, font[key]])) }
+  if (unkerned?.glyphs !== glyphs || METRICS.some(key => unkerned[key] !== font[key])) unkerned = { glyphs, capHeight, multicase: font.letterCase === "both", ...Object.fromEntries(METRICS.map(key => [key, font[key]])) }
   return unkerned
 }
 

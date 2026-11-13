@@ -1,13 +1,12 @@
-import { REQUIRED_CHARACTERS, fontFromShapes } from "./fontEditor.js"
+import { MULTICASE_CHARACTERS, fontFromShapes } from "./fontEditor.js"
 import { OPENING_QUOTE } from "./order.js"
 
 const CELLS = 16
 const POUND_CELL = 156
 
-function cellOf(char, lowercase) {
+function cellOf(char) {
   if (char === "£") return POUND_CELL
-  const source = char === OPENING_QUOTE ? "'" : lowercase ? char : char.toUpperCase()
-  const code = source.codePointAt(0)
+  const code = (char === OPENING_QUOTE ? "'" : char).codePointAt(0)
   return code > 32 && code < 127 ? code : null
 }
 
@@ -40,13 +39,13 @@ function cellShape(image, index, { cellWidth, cellHeight, ascent, grid }) {
   return { width, height, top: (ascent - first) * grid, bottom: (ascent - last - 1) * grid, mask }
 }
 
-export function fontFromAscii(image, { height = 40, lowercase = false } = {}) {
+export function fontFromAscii(image, { height = 40 } = {}) {
   if (image.width % CELLS || image.height % CELLS) throw new Error(`an ascii.png is a 16 by 16 grid of characters, and ${image.width} by ${image.height} doesn't divide into one`)
   const cellWidth = image.width / CELLS
   const cellHeight = image.height / CELLS
   if (cellHeight % 8) throw new Error(`each character in this ascii.png is ${cellHeight} pixels tall, and Minecraft needs a multiple of 8`)
   const ascent = cellHeight / 8 * 7
   const grid = Math.max(1, Math.round(height / ascent))
-  const shapes = new Map(REQUIRED_CHARACTERS.map(char => [char, cellShape(image, cellOf(char, lowercase), { cellWidth, cellHeight, ascent, grid })]))
+  const shapes = new Map(MULTICASE_CHARACTERS.map(char => [char, cellShape(image, cellOf(char), { cellWidth, cellHeight, ascent, grid })]))
   return fontFromShapes(shapes, { name: "Minecraft Font", capHeight: ascent * grid, grid, spaceWidth: cellHeight / 2 * grid })
 }

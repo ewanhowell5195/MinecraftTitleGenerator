@@ -182,6 +182,10 @@ export function titleText() {
   return lines().map(line => joinWords(line.filter(word => !word.hidden && word.shape === null), wordText)).filter(Boolean).join(" ")
 }
 
+export function casedTitle() {
+  return lines().some(line => line.some(word => !word.hidden && word.shape === null && runtime[word.id]?.font?.multicase))
+}
+
 export function titleFileName() {
   const name = titleText().toLowerCase().replace(/[\\/:*?"<>|\s]+/g, "_").replace(/^[_.]+|[_.]+$/g, "")
   return Array.from(name).slice(0, FILE_NAME_LIMIT).join("").replace(/[_.]+$/, "") || "title"

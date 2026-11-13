@@ -1,7 +1,7 @@
 import { computed, ref, shallowRef, watch } from "vue"
 import { authorList } from "../lib/authors.js"
 import { DEFAULT_ORDER } from "../lib/order.js"
-import { buildSheet, charactersOf, fitGlyph, flatTexture, glyphOf, moveGlyph, reshapeGlyph, sameGlyph, savedJson, setGlyph } from "../lib/fontEditor.js"
+import { buildSheet, charactersOf, fitGlyph, flatTexture, glyphOf, moveGlyph, reshapeGlyph, sameCharacter, sameGlyph, savedJson, setGlyph, setLetterCase } from "../lib/fontEditor.js"
 import { jsonText } from "../lib/jsonText.js"
 import { EDITOR_SUBMISSION } from "../lib/submissions.js"
 import { download, downloadBlob } from "../lib/ui.js"
@@ -17,7 +17,7 @@ export const selected = ref(Array.from(DEFAULT_ORDER)[1])
 export const arrowsMove = ref("drawing")
 export const saveError = ref("")
 export const clipboard = shallowRef(null)
-export const previewText = ref("minecraft")
+export const previewText = ref("Minecraft")
 export const previewTerminators = ref(false)
 export const previewStretch = ref(0)
 export const previewMode = ref("2d")
@@ -97,6 +97,12 @@ export function reshapeSelected(change, key = null) {
   offCanvas.set(glyph.value, outside)
 }
 
+export function changeLetterCase(letterCase) {
+  const from = font.value.letterCase
+  update(setLetterCase(font.value, letterCase))
+  selected.value = sameCharacter(selected.value, from, letterCase)
+}
+
 export function copyGlyph(char) {
   clipboard.value = { font: font.value, glyph: glyphOf(font.value, char) }
 }
@@ -134,7 +140,7 @@ export function openFont(next) {
   redoStack.value = []
   group = null
   strokeStart = null
-  selected.value = charactersOf(next).find(char => /[a-z]/.test(char)) ?? charactersOf(next)[0]
+  selected.value = charactersOf(next).find(char => /[a-z]/i.test(char)) ?? charactersOf(next)[0]
 }
 
 export function closeFont() {
@@ -146,7 +152,7 @@ export function closeFont() {
   localStorage.removeItem(STORAGE_KEY)
   saveError.value = ""
   arrowsMove.value = "drawing"
-  previewText.value = "minecraft"
+  previewText.value = "Minecraft"
   previewTerminators.value = false
   previewStretch.value = 0
   previewMode.value = "2d"
@@ -167,7 +173,7 @@ export function restoreFont() {
   if (!text) return
   const saved = JSON.parse(text)
   if (saved.version !== 1) throw new Error(`the saved font is version ${saved.version}, which this editor can't read`)
-  font.value = { ...saved.font, authors: authorList(saved.font.authors ?? saved.font.author), creeper: saved.font.creeper ?? true, extras: saved.font.extras ?? [] }
+  font.value = { ...saved.font, authors: authorList(saved.font.authors ?? saved.font.author), creeper: saved.font.creeper ?? true, extras: saved.font.extras ?? [], letterCase: saved.font.letterCase ?? "upper" }
   selected.value = saved.selected
   keepSelection()
 }

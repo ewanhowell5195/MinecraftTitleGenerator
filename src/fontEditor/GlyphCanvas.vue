@@ -82,11 +82,9 @@
     ctx.lineTo(toX, toY)
   }
 
-  function drawGuide(ctx, centre, baseline, capHeight, width) {
+  function drawGuide(ctx, centre, baseline, capHeight, width, room) {
     if (UNGUIDED.includes(selected.value)) return
-    const label = characterLabel(selected.value)
-    const upper = label.toUpperCase()
-    const text = Array.from(upper).length === 1 ? upper : label
+    const text = characterLabel(selected.value, font.value.letterCase)
     if (!text.trim()) return
     ctx.save()
     ctx.font = `bold 100px ${GUIDE_FONT}`
@@ -98,8 +96,11 @@
     const tall = Math.min(1, capHeight / (measured.actualBoundingBoxAscent + below))
     const even = Math.min(tall, width * 0.9 / textWidth)
     const letter = /^[\p{L}\p{N}]+$/u.test(text)
-    ctx.translate(centre, baseline - below * (letter ? tall : even))
-    ctx.scale(letter ? width / textWidth : even, letter ? tall : even)
+    const seated = Math.min(1, room.above / measured.actualBoundingBoxAscent, below ? room.below / below : 1)
+    const lower = letter && text !== text.toUpperCase() && seated >= tall
+    const upright = lower ? seated : letter ? tall : even
+    ctx.translate(centre, baseline - (lower ? 0 : below * upright))
+    ctx.scale(letter ? width / textWidth : even, upright)
     ctx.fillStyle = `${TOPLINE_COLOUR}59`
     ctx.fillText(text, (measured.actualBoundingBoxLeft - measured.actualBoundingBoxRight) / 2, 0)
     ctx.restore()
@@ -123,7 +124,7 @@
     ctx.fillStyle = "#dfe8f2"
     if (current.above) ctx.fillRect(left, top, right - left, topline - top)
     if (current.below) ctx.fillRect(left, baseline, right - left, bottom - baseline)
-    drawGuide(ctx, (left + right) / 2, baseline, baseline - topline, right - left)
+    drawGuide(ctx, (left + right) / 2, baseline, baseline - topline, right - left, { above: baseline - top, below: bottom - baseline })
     ctx.fillStyle = "#000"
     current.rows.forEach((text, row) => {
       for (let x = 0; x < text.length; x++) if (text[x] === "1") ctx.fillRect(xAt(x), yAt(row), xAt(x + 1) - xAt(x), yAt(row + 1) - yAt(row))

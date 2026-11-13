@@ -228,7 +228,7 @@ export function loadImage(src) {
 
 const FOLDER = "font"
 
-const META = ["authors", "description", "strips", "height", "depth", "border", "characterSpacing", "spaceWidth", "terminatorSpace", "terminatorSpaceWidth", "forcedTerminators", "autoBorder", "flat", "overlay", "mesh", "outlines"]
+const META = ["authors", "description", "multicase", "strips", "height", "depth", "border", "characterSpacing", "spaceWidth", "terminatorSpace", "terminatorSpaceWidth", "forcedTerminators", "autoBorder", "flat", "overlay", "mesh", "outlines"]
 
 export function fontFolder(data) {
   if (data.folder) return data.folder
@@ -241,6 +241,11 @@ export function sheetOwner(data, list) {
 
 export function sheetFolder(data, list) {
   return fontFolder(sheetOwner(data, list))
+}
+
+export function linkText(text, id, list) {
+  const font = list.find(entry => entry.id === id)
+  return font && sheetOwner(font, list).multicase ? text : text.toLowerCase()
 }
 
 export function stripsOf(data, list) {

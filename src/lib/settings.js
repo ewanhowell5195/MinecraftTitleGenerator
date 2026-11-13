@@ -46,7 +46,7 @@ function tiling() {
 
 const PANELS = {
   text: () => ({
-    text: "minecraft",
+    text: "Minecraft",
     spaceBefore: true
   }),
   terminators: () => ({

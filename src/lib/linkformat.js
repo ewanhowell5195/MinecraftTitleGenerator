@@ -8,7 +8,8 @@ import { CUSTOM_SHAPE, FALLBACK_SHAPE } from "./shapes.js"
 const LINE_ONLY = new Set(["words", "matchWidth", "twistRibbonAnchor", "twistDoorAnchor"])
 const PREFIXES = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
 const ID_CHARACTERS = Array.from("abcdefghijklmnopqrstuvwxyz0123456789-_.")
-const TEXT_SETS = ["abcdefghijklmnopqrstuvwxyz0123456789 '-", `${DEFAULT_ORDER} `].map(set => Array.from(set))
+const LETTERS = "abcdefghijklmnopqrstuvwxyz"
+const TEXT_SETS = [`${LETTERS}0123456789 '-`, `${LETTERS}${LETTERS.toUpperCase()}0123456789 '-`, `${DEFAULT_ORDER} ${LETTERS.toUpperCase()}`].map(set => Array.from(set))
 const TEXT_FORMATS = TEXT_SETS.length + 1
 
 const encoder = new TextEncoder()
@@ -458,11 +459,6 @@ function lineKey(key) {
   return LINE.has(key) || LINE_ONLY.has(key)
 }
 
-function lowercased(entry) {
-  const result = typeof entry.text === "string" ? { ...entry, text: entry.text.toLowerCase() } : entry
-  return entry.words ? { ...result, words: entry.words.map(lowercased) } : result
-}
-
 export function hoisted(line) {
   if (!line.words?.length) return line
   const [first, ...rest] = line.words
@@ -480,7 +476,7 @@ export function lowered(line) {
 
 export function encodeTitle({ version, lines }) {
   if (version * 2 + 1 >= PREFIXES.length) throw new Error(`links can't hold version ${version}`)
-  const bytes = writeLines(lines.map(line => hoisted(lowercased(withoutUploads(line)))))
+  const bytes = writeLines(lines.map(line => hoisted(withoutUploads(line))))
   const packed = deflateSync(bytes, { level: 9 })
   const compressed = packed.length < bytes.length
   return { code: `${PREFIXES[version * 2 + (compressed ? 1 : 0)]}${toBase64Url(compressed ? packed : bytes)}`, skipped: lines.reduce((total, line) => total + countUploads(line), 0) }

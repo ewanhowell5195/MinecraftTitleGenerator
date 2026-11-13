@@ -17,6 +17,7 @@ export const DEFAULT_BORDER = 2
 export const REQUIRED_CHARACTERS = Array.from(DEFAULT_ORDER).filter(char => char !== CREEPER)
 
 export const DEFAULT_ID = "my-font"
+export const LETTER_CASES = [{ value: "both", label: "Both cases" }, { value: "upper", label: "Uppercase" }, { value: "lower", label: "Lowercase" }]
 
 const GRID_SIZES = [8, 6, 5, 4, 3, 2]
 const SHEETS_KEPT = 8
@@ -26,12 +27,30 @@ const NOTHING_TO_DRAW = /^[\p{M}\p{Cf}]$/u
 const META_KEYS = ["authors", "description", "basedOn", "spaceWidth", "depth", "border", "characterSpacing", "terminatorSpace", "terminatorSpaceWidth", "forcedTerminators", "autoBorder", "flat", "overlay", "strips", "kerning"]
 const sheets = new Map()
 
-export function characterName(char) {
-  return NAMES[char] ?? char
+export function hasCase(char) {
+  const upper = char.toUpperCase()
+  const lower = char.toLowerCase()
+  return upper !== lower && Array.from(upper).length === 1 && Array.from(lower).length === 1 && upper.toLowerCase() === lower && lower.toUpperCase() === upper
 }
 
-export function characterLabel(char) {
-  return LABELS[char] ?? char
+function canonical(char) {
+  return hasCase(char) ? char.toLowerCase() : char
+}
+
+function isUpper(char) {
+  return hasCase(char) && char === char.toUpperCase()
+}
+
+function shownAs(char, letterCase) {
+  return letterCase === "upper" && hasCase(char) ? char.toUpperCase() : char
+}
+
+export function characterName(char, letterCase) {
+  return NAMES[char] ?? shownAs(char, letterCase)
+}
+
+export function characterLabel(char, letterCase) {
+  return LABELS[char] ?? shownAs(char, letterCase)
 }
 
 export function slug(text) {
@@ -42,28 +61,35 @@ export function fontId(font) {
   return font.id || slug(font.name ?? "")
 }
 
-export function createFont({ height = 40, width = 24, grid = 4, density = 1 } = {}) {
-  return { name: "My Font", id: "", authors: [], description: "", basedOn: "", height, width, grid, density, creeper: false, extras: [], defineSpace: false, spaceWidth: DEFAULT_SPACE_WIDTH, depth: DEFAULT_DEPTH, border: DEFAULT_BORDER, characterSpacing: 0, terminatorSpace: true, terminatorSpaceWidth: null, forcedTerminators: false, autoBorder: false, flat: false, overlay: false, strips: [], kerning: {}, glyphs: {}, imported: null }
+export function createFont({ height = 40, width = 24, grid = 4, density = 1, letterCase = "upper" } = {}) {
+  return { name: "My Font", id: "", authors: [], description: "", basedOn: "", height, width, grid, density, letterCase, creeper: false, extras: [], defineSpace: false, spaceWidth: DEFAULT_SPACE_WIDTH, depth: DEFAULT_DEPTH, border: DEFAULT_BORDER, characterSpacing: 0, terminatorSpace: true, terminatorSpaceWidth: null, forcedTerminators: false, autoBorder: false, flat: false, overlay: false, strips: [], kerning: {}, glyphs: {}, imported: null }
+}
+
+function withCases(font, list) {
+  return font.letterCase === "both" ? list.flatMap(char => hasCase(char) ? [char.toUpperCase(), char] : [char]) : list
 }
 
 export function charactersOf(font) {
-  return (font.creeper ? [CREEPER] : []).concat(REQUIRED_CHARACTERS, font.extras, font.defineSpace ? [SPACE_CHAR] : [])
+  return (font.creeper ? [CREEPER] : []).concat(withCases(font, REQUIRED_CHARACTERS), withCases(font, font.extras), font.defineSpace ? [SPACE_CHAR] : [])
 }
 
+export const MULTICASE_CHARACTERS = withCases({ letterCase: "both" }, REQUIRED_CHARACTERS)
+
 export function isOptional(char) {
-  return !REQUIRED_CHARACTERS.includes(char)
+  return !REQUIRED_CHARACTERS.includes(canonical(char))
 }
 
 function extrasOf(chars) {
-  return chars.filter(char => isOptional(char) && char !== CREEPER && char !== SPACE_CHAR)
+  return Array.from(new Set(chars.map(canonical).filter(char => isOptional(char) && char !== CREEPER && char !== SPACE_CHAR)))
 }
 
 export function addCharacters(font, text) {
   let next = font
   const added = []
   const refused = []
-  for (const char of Array.from(text.toLowerCase().normalize("NFC"))) {
-    if (charactersOf(next).includes(char) || refused.includes(char)) continue
+  for (const typed of Array.from(text.normalize("NFC"))) {
+    const char = canonical(typed)
+    if (charactersOf(next).map(canonical).includes(char) || refused.includes(char)) continue
     if (NOTHING_TO_DRAW.test(char)) {
       refused.push(char)
       continue
@@ -72,19 +98,58 @@ export function addCharacters(font, text) {
     else if (char === SPACE_CHAR) next = { ...next, defineSpace: true }
     else if (char.trim()) next = { ...next, extras: next.extras.concat(char) }
     else continue
-    added.push(char)
+    added.push(...withCases(next, [char]))
   }
   return { font: next, added, refused }
 }
 
 export function removeCharacter(font, char) {
-  const glyphs = { ...font.glyphs }
-  delete glyphs[char]
-  const kerning = Object.fromEntries(Object.entries(font.kerning).filter(([pair]) => !Array.from(pair).includes(char)))
-  const next = { ...font, glyphs, kerning, extras: font.extras.filter(item => item !== char) }
+  const base = canonical(char)
+  const forms = hasCase(base) ? [base, base.toUpperCase()] : [base]
+  const kept = map => Object.fromEntries(Object.entries(map ?? {}).filter(([key]) => !Array.from(key).some(item => forms.includes(item))))
+  const next = { ...font, glyphs: kept(font.glyphs), kerning: kept(font.kerning), extras: font.extras.filter(item => item !== base) }
+  if (font.hidden) next.hidden = { ...font.hidden, glyphs: kept(font.hidden.glyphs), kerning: kept(font.hidden.kerning) }
   if (char === CREEPER) next.creeper = false
   if (char === SPACE_CHAR) next.defineSpace = false
   return next
+}
+
+function trueKey(char, letterCase) {
+  return letterCase === "upper" && hasCase(char) ? char.toUpperCase() : char
+}
+
+function storedKey(char, letterCase) {
+  if (letterCase === "both" || !hasCase(char)) return char
+  if (letterCase === "upper") return isUpper(char) ? char.toLowerCase() : null
+  return isUpper(char) ? null : char
+}
+
+function keyed(key, change) {
+  const chars = Array.from(key).map(change)
+  return chars.includes(null) ? null : chars.join("")
+}
+
+export function setLetterCase(font, letterCase) {
+  if (letterCase === font.letterCase) return font
+  const next = { ...font, letterCase, hidden: {} }
+  for (const key of ["glyphs", "imported", "kerning"]) {
+    const all = Object.entries(font.hidden?.[key] ?? {}).concat(Object.entries(font[key] ?? {}).map(([stored, value]) => [keyed(stored, char => trueKey(char, font.letterCase)), value]))
+    const shown = {}
+    next.hidden[key] = {}
+    for (const [real, value] of all) {
+      const stored = keyed(real, char => storedKey(char, letterCase))
+      if (stored === null) next.hidden[key][real] = value
+      else shown[stored] = value
+    }
+    next[key] = font[key] || Object.keys(shown).length ? shown : font[key]
+  }
+  return next
+}
+
+export function sameCharacter(char, from, to) {
+  const real = trueKey(char, from)
+  const other = isUpper(real) ? real.toLowerCase() : real.toUpperCase()
+  return storedKey(real, to) ?? storedKey(other, to)
 }
 
 function rowsOf(width, count, cells) {
@@ -156,7 +221,7 @@ function reshape(glyph, from, to) {
 export function resizeFont(font, { height = font.height, width = font.width }) {
   const next = { ...font, height, width }
   const reshaped = glyphs => glyphs && mapGlyphs(glyphs, glyph => reshape(glyph, shapeOf(font, glyph), shapeOf(next, glyph)))
-  return { ...next, glyphs: reshaped(font.glyphs), imported: reshaped(font.imported) }
+  return { ...next, glyphs: reshaped(font.glyphs), imported: reshaped(font.imported), ...(font.hidden && { hidden: { ...font.hidden, glyphs: reshaped(font.hidden.glyphs), imported: reshaped(font.hidden.imported) } }) }
 }
 
 export function squaresOf(font, pixels) {
@@ -181,10 +246,11 @@ function rescaleGlyph(font, glyph, next) {
 
 export function setSquareSize(font, grid) {
   const scaled = value => Math.round(value * grid / font.grid)
-  const metrics = { spaceWidth: scaled(font.spaceWidth), characterSpacing: scaled(font.characterSpacing), terminatorSpaceWidth: font.terminatorSpaceWidth === null || font.terminatorSpaceWidth === undefined ? font.terminatorSpaceWidth : scaled(font.terminatorSpaceWidth), kerning: Object.fromEntries(Object.entries(font.kerning).map(([pair, amount]) => [pair, scaled(amount)])) }
+  const pairs = kerning => kerning && Object.fromEntries(Object.entries(kerning).map(([pair, amount]) => [pair, scaled(amount)]))
+  const metrics = { spaceWidth: scaled(font.spaceWidth), characterSpacing: scaled(font.characterSpacing), terminatorSpaceWidth: font.terminatorSpaceWidth === null || font.terminatorSpaceWidth === undefined ? font.terminatorSpaceWidth : scaled(font.terminatorSpaceWidth), kerning: pairs(font.kerning) }
   const next = { ...font, ...metrics, grid, height: scaled(font.height), width: scaled(font.width) }
   const rescale = glyphs => glyphs && mapGlyphs(glyphs, glyph => rescaleGlyph(font, glyph, next))
-  return { ...next, glyphs: rescale(font.glyphs), imported: rescale(font.imported) }
+  return { ...next, glyphs: rescale(font.glyphs), imported: rescale(font.imported), ...(font.hidden && { hidden: { glyphs: rescale(font.hidden.glyphs), imported: rescale(font.hidden.imported), kerning: pairs(font.hidden.kerning) } }) }
 }
 
 export const NOTHING_OUTSIDE = { cells: [], stretch: [] }
@@ -410,7 +476,7 @@ function sheetCell(font, glyph) {
 }
 
 function builtSheet(font) {
-  const key = `${font.height},${font.width},${font.density},${font.creeper},${font.defineSpace},${font.extras.join("")}`
+  const key = `${font.height},${font.width},${font.density},${font.letterCase},${font.creeper},${font.defineSpace},${font.extras.join("")}`
   let built = sheets.get(font.glyphs)
   if (built?.key !== key) {
     const capHeight = font.height * font.density
@@ -545,7 +611,7 @@ export function fontFromFiles({ sheet = null, json = null }) {
   const density = editor.density ?? 1
   const border = json?.border ?? DEFAULT_BORDER
   const height = editor.height ?? (json?.height ? json.height - border * 2 : 40)
-  let font = createFont({ height, width: editor.width ?? 24, grid: editor.grid ?? 4, density })
+  let font = createFont({ height, width: editor.width ?? 24, grid: editor.grid ?? 4, density, letterCase: json?.multicase ? "both" : editor.letterCase === "lower" ? "lower" : "upper" })
   if (json) font = metaFrom({ ...font, name: json.name ?? (json.id ? titleCase(json.id) : font.name), id: json.id ?? "" }, json)
   if (json?.order) {
     const listed = Array.from(json.order)
@@ -560,7 +626,7 @@ export function fontFromFiles({ sheet = null, json = null }) {
 }
 
 export function fontFromPublished(entry, cells, capHeight) {
-  const copy = metaFrom({ ...createFont({ height: capHeight }), name: `${entry.name} Copy` }, entry)
+  const copy = metaFrom({ ...createFont({ height: capHeight, letterCase: entry.multicase ? "both" : "upper" }), name: `${entry.name} Copy` }, entry)
   const font = applyCells({ ...copy, authors: [], description: "", basedOn: entry.id, flat: !!entry.flat, overlay: false, strips: entry.strips ?? [] }, cells, capHeight, 1)
   return { ...font, grid: detectGrid(font.glyphs) }
 }
@@ -573,13 +639,13 @@ function glyphFromShape(shape, height, fallbackWidth) {
   return { width: shape.width, above, below, stretch: [], rows: rowsOf(shape.width, above + height + below, ink) }
 }
 
-export function fontFromShapes(shapes, { name, authors = [], capHeight, grid = null, spaceWidth }) {
+export function fontFromShapes(shapes, { name, authors = [], capHeight, grid = null, spaceWidth, letterCase = "both" }) {
   const fallback = usualWidth(Array.from(shapes.values()).filter(Boolean).map(shape => shape.width), Math.max(1, Math.round(capHeight / 2)))
   const glyphs = Object.fromEntries(Array.from(shapes, ([char, shape]) => {
     const glyph = glyphFromShape(shape, capHeight, fallback)
     return [char, glyph.width === fallback ? { ...glyph, width: null } : glyph]
   }))
-  const font = { ...createFont({ height: capHeight, width: fallback, grid: grid ?? detectGrid(glyphs) }), name, id: slug(name), authors: authorList(authors), spaceWidth, glyphs }
+  const font = { ...createFont({ height: capHeight, width: fallback, grid: grid ?? detectGrid(glyphs), letterCase }), name, id: slug(name), authors: authorList(authors), spaceWidth, glyphs }
   const marked = autoStretch(font)
   return { ...marked, imported: { ...marked.glyphs, [SPACE_CHAR]: glyphFromShape(null, capHeight, fallback) } }
 }
@@ -604,6 +670,7 @@ export function exportJson(font, texture, characters = charactersOf(font)) {
   if (font.basedOn) entry.basedOn = font.basedOn
   if (font.strips.length) entry.strips = font.strips
   if (order !== DEFAULT_ORDER) entry.order = order
+  if (font.letterCase === "both") entry.multicase = true
   if (font.spaceWidth !== DEFAULT_SPACE_WIDTH) entry.spaceWidth = font.spaceWidth
   if (font.depth !== DEFAULT_DEPTH) entry.depth = font.depth
   if (font.border !== DEFAULT_BORDER) entry.border = font.border
@@ -616,6 +683,6 @@ export function exportJson(font, texture, characters = charactersOf(font)) {
     const saved = font.glyphs[char] && canvasOf(font, font.glyphs[char])
     return saved ? [[char, saved]] : []
   }))
-  entry.editor = { height: font.height, width: font.width, grid: font.grid, density: font.density, ...(Object.keys(canvas).length && { canvas }), texture }
+  entry.editor = { height: font.height, width: font.width, grid: font.grid, density: font.density, ...(font.letterCase === "lower" && { letterCase: "lower" }), ...(Object.keys(canvas).length && { canvas }), texture }
   return entry
 }

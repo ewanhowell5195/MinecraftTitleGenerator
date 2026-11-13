@@ -2,7 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { authorList } from "../lib/authors.js"
 import { basedOnParts } from "../lib/credits.js"
-import { flattenFonts, fontFolder, fullName } from "../lib/font.js"
+import { flattenFonts, fontFolder, fullName, linkText } from "../lib/font.js"
 import { encodeTitle } from "../lib/linkformat.js"
 import { titleCase } from "../lib/names.js"
 import { FILE_VERSION, overlayLayer } from "../lib/settings.js"
@@ -59,7 +59,7 @@ function pieceHtml(piece) {
   const source = sourceHtml(piece)
   const others = piece.people.filter(person => person !== piece.person)
   const shared = others.length ? `<button type="button" class="with link-button" data-id="${escaped(piece.id)}" data-easy-tooltip="With ${escaped(listed(others))}" data-easy-tooltip-class="slow">Collaboration</button>` : ""
-  const href = `/app/?title=${encodeTitle({ version: FILE_VERSION, lines: [{ text: piece.name, ...piece.line }] }).code}`
+  const href = `/app/?title=${encodeTitle({ version: FILE_VERSION, lines: [{ text: piece.text, ...piece.line }] }).code}`
   return `<li class="piece" data-id="${escaped(piece.id)}" data-stats="${escaped(piece.stats.join(" "))}"><div class="thumb"><img src="${escaped(piece.image)}" alt="" loading="lazy"></div><a class="name" href="${escaped(href)}">${escaped(piece.name)}</a><span class="where">${escaped(piece.where)}</span>${based}${source}${shared}</li>`
 }
 
@@ -80,7 +80,7 @@ function peopleOf(root) {
     const people = authorList(data.authors)
     if (!people.length) return
     if (!fs.existsSync(path.join(folder, piece.image))) throw new Error(`the credits page needs ${piece.image}, which does not exist`)
-    for (const person of people) pieces.push({ ...piece, source: data.source ?? null, licence: data.licence ?? null, person, people })
+    for (const person of people) pieces.push({ ...piece, text: linkText(piece.name, piece.line.font, fonts), source: data.source ?? null, licence: data.licence ?? null, person, people })
   }
 
   function basedOnLabel(basedOn, owner) {

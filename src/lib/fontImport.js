@@ -1,5 +1,5 @@
 import opentype from "opentype.js"
-import { DEFAULT_SPACE_WIDTH, REQUIRED_CHARACTERS, fontFromShapes } from "./fontEditor.js"
+import { DEFAULT_SPACE_WIDTH, MULTICASE_CHARACTERS, fontFromShapes } from "./fontEditor.js"
 import { capUnits, flatten, glyphFor, gridShift, pixelGrid, rasterise } from "./fontOutline.js"
 
 export function englishName(source, key) {
@@ -17,8 +17,8 @@ export async function parseFontFile(buffer) {
   return opentype.parse(font.buffer.slice(font.byteOffset, font.byteOffset + font.byteLength))
 }
 
-function scaled(source, { height = 40, lowercase = false, density = 1 }) {
-  const glyphs = REQUIRED_CHARACTERS.map(char => glyphFor(source, char, lowercase))
+function scaled(source, { height = 40, density = 1 }) {
+  const glyphs = MULTICASE_CHARACTERS.map(char => glyphFor(source, char))
   const units = capUnits(source)
   const unit = pixelGrid(glyphs.filter(Boolean), units)
   const block = unit ? Math.max(1, Math.round(height / (units / unit))) : density > 1 ? density : null
@@ -41,7 +41,7 @@ function enlarged(shape, square) {
 
 export function meshOutlines(source, options = {}) {
   const { glyphs, unit, scale, square } = scaled(source, options)
-  return Object.fromEntries(REQUIRED_CHARACTERS.flatMap((char, index) => {
+  return Object.fromEntries(MULTICASE_CHARACTERS.flatMap((char, index) => {
     const glyph = glyphs[index]
     const shift = glyph ? gridShift(glyph, unit, scale) : 0
     const shape = glyph && rasterise(glyph, scale, shift)
@@ -52,7 +52,7 @@ export function meshOutlines(source, options = {}) {
 
 export function fontFromOutlines(source, options = {}) {
   const { glyphs, unit, block, scale, square, capHeight } = scaled(source, options)
-  const shapes = new Map(REQUIRED_CHARACTERS.map((char, index) => {
+  const shapes = new Map(MULTICASE_CHARACTERS.map((char, index) => {
     const glyph = glyphs[index]
     return [char, glyph ? enlarged(rasterise(glyph, scale, gridShift(glyph, unit, scale)), square) : null]
   }))

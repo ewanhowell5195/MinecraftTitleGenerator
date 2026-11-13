@@ -87,7 +87,7 @@
       customError.value = "Choose a .json, .png, .ttf, .otf, .woff or .woff2 file."
       return
     }
-    readDataUrl(file, data => applyCustom({ kind, fileName: file.name, data, height: IMPORT_HEIGHT, lowercase: false }))
+    readDataUrl(file, data => applyCustom({ kind, fileName: file.name, data, height: IMPORT_HEIGHT }))
   }
 
   function changeImport(key, value) {
@@ -169,7 +169,6 @@
           </Field>
         </div>
         <p v-if="squares" class="hint">Square size is how many pixels each square is. 4 gives chunky squares like Minecraft Ten. Fonts drawn on a pixel grid keep their own.</p>
-        <Toggle label="Use lowercase letters" hint="Titles use one case. Off uses the capital letters" :model-value="object.customFont.lowercase" @update:model-value="changeImport('lowercase', $event)" />
       </template>
     </template>
     <TileGrid v-else>
@@ -184,7 +183,7 @@
     </template>
   </Panel>
   <Panel v-if="hasCreeper" title="Creeper face" :modified="creeper.modified.value" @reset="creeper.reset">
-    <Toggle label="Creeper face on A" hint="Every a gets the creeper face. Split a word off to set it for just part of the text" v-model="object.creeperFace" />
+    <Toggle label="Creeper face on A" :hint="`${font.multicase ? 'Every capital A' : 'Every a'} gets the creeper face. Split a word off to set it for just part of the text`" v-model="object.creeperFace" />
   </Panel>
   <Panel v-if="hasTerminators" title="Terminators" :modified="terminators.modified.value" @reset="terminators.reset">
     <Toggle label="Line terminators" hint="Adds the end pieces either side of the text" v-model="object.terminators" />

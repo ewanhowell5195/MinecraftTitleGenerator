@@ -1,7 +1,7 @@
 [
   {
     "name": "each setting on its own",
-    "code": "DLZFvRN1hHMX73Dt3UbZr_4xNxmZsZpukkkRJkiRJkiRRUlGUJElSSSI3lUj68743UaReRCRR6V2SRFGSKIkkdU63F59zznO-z_P8Hn7NBN5X7sVW8Sr0bJ8I_CYmPB2iIRLkQ_h1_ei_o-6PM-Vxb_mvpkB0IykSsTPza8QHKVSups2rXyTaRrzlK_yI3rpH1PdffN3jpMDjTmvMfkrCajwLMObuDbwDfz4ZsqIpFD1zAPwMEtauPyJdJIjPIlWkiRox6GsOLYuWdvFNtIg8ceQyjiU4hk7lLwzBuNtM8v30DMXvRODEZSNNLnMUN_SADnmr2PRsC3phDiZgGbJVTcIp9Hl6ZlnRmXOHC8ul5Qq67LVi2-HasgtTMO04bOm35IpZhwHLjeXWcgf38ACPUKZ1uSgRXQFJhagUVf5TLv6KHodiUSdKI8En",
+    "code": "DLZFvRN1hHMX73Dt3UbZrttlsMjZjM9sklSRKkiRJkiSJkoqiJEmSShK5qUTSn_e9iSL1IiKJSu-SJIqSREkkqXO6vficc57zfZ7n9_BrJvC5ci-2ilehZ_tI4Dcx4ekQDZEg78Ov60f_HXV_mCmPe8t_NQWiG0mRiJ2ZXyM-SKFyNW1e_SLRNuItX-FH9NY9or7_4useJwUed1pj9lMSVuNZgDF3b-Ad-PPJkBVNoeiZA-BnkLB2_RHpIkF8EqkiTdSIQV9zaFm0tItvokXkiSOXcSzBMXQqf2EIxt1mku-nZyh-JwInLhtpcpmjuKEHdMhbxaZnW9ALczABy5CtahJOoc_TM8uKzpw7XFguLVfQZa8V2w7Xll2YgmnHYUu_JVfMOgxYbiy3lju4hwd4hDKty0WJ6ApIKkSlqPKfcvFX9DgUizpRGgk-AQ",
     "lines": [
       { "text": "sample" },
       { "texture": "sample" },
@@ -122,14 +122,14 @@
   },
   {
     "name": "every setting, first values",
-    "code": "DZZBNKK1RGIX3e5x77uneQ_6SJEmStJIkJEmSJEmSJEmSJEmRhCT5S5IkSZJMGQrJwEiSMJQkSZKklSRJWH5mBs_7fGu9fbvdtg5PRP2Jv8Hr-5xRLsVcKxEZ7E9f2R4-2vjjTSPKiEEjKgi_cy4QVE40dusrOV1jRptYl_j1-4l96fRbu9pkeN6PutxpVtxOYM1mVYS4cPOGLvl8f_9f956FBYIwNRrIdAW_y59wZi7JafdZ5RJxRDSRTeQQTcSEjjwX66KHiCc6iRLiQvnfpl1aPxEzaXOK-aW6bR6RMGVXim3tikXEnrk-oovYV3lgQ7Zq87ZlhcSCXduIyhuxbe5WuhP3gjag2UwcSg_i2BZtSZ4WY6KYWJbGxaN4Es_2Yq_2ZjVELVFFDHiIOqKeaNADK6QSQ1Il0UJUEx8",
+    "code": "DZZBNKC1QFIXPvu677_beJSQhSZKklSQhSZIkSZIkSZIkSYokJMlfkiRJkmTKUEgGRpKEoSRJkiStJEnC8jMz-PY6396ns-tYR6RLMddKRAT701e2h482_nhziTgiisgmcogmYsKIc7Eueoh4opMoIS7ke-b6iC5iX3JgqzZvW1ZILNi1eaLrT_wNXt9nTSPKiEFdqiD8zrlAUDnR2K1TcrrKjCaxLvHr7ol9xel37GqS4Xk_6nKnWXE7gTWbVSPEhZs3dMnn-_v_uvcsLBCEqdFApiv43fyRM3NJTrPP1r9Nu7R-ImbS5vRWfqn25xEJU3YlbWuXFhFDNiK7EdvmbhV34l7QBlSbiUPFgzi2RVtSTosxUUwsK8bFo3gSz_Zir_ZmNUQtUUUMeIg6op5o0LdIUrVRUUm0ENXEBw",
     "lines": [
       { "type": "top", "words": [{ "text": "sample", "texture": "sample", "hue": 359, "saturation": 359, "brightness": 359, "contrast": 359, "colour": "#000000", "blend": "screen", "colourOpacity": 359, "customBorder": false, "borderColour": "#000000", "customEdge": false, "edgeColour": "#000000", "edgeBrightness": 359, "textureSource": "premade", "textureVariant": "sample", "tileable": "sample", "tileableVariant": "sample", "tileableScale": 359, "stops": [{ "colour": "#ffcf76", "position": 0 }, { "colour": "#da371e", "position": 100 }], "smooth": false, "gradientAngle": 359, "overlayMode": "default", "overlays": [{ "opacity": 50, "overlay": "outline", "blend": "screen", "seed": 12345 }], "edgeOverlayMode": "default", "edgeOverlays": [{ "opacity": 50, "overlay": "outline", "blend": "screen", "seed": 12345 }], "overlay": "outline", "source": "premade", "colourBlend": "multiply", "opacity": 50, "seed": 12345, "spaceBefore": false, "hidden": false, "fade": false, "outerFade": 359, "internalFaces": false, "fadeInternal": false, "internalFade": 359, "customInternal": false, "internalColour": "#000000", "internalBrightness": 359, "sideFaces": false, "fadeSides": false, "sideFade": 359, "customSide": false, "sideColour": "#000000", "sideBrightness": 359, "arcGradient": false, "wordDepth": 359, "wordBorder": 359, "wordArcMode": "stretch", "wordArcTop": 359, "wordArcBottom": 359, "wordArcMove": 359, "wordArcMarked": false, "wordScaleX": 359, "wordScaleY": 359, "wordLinkScale": 359, "wordScaleZ": 359, "wordScaleMarked": false, "wordScaleOutline": false, "wordRotationX": 359, "wordRotationY": 359, "wordRotationZ": 359, "wordTranslateX": 359, "wordTranslateY": 359, "wordTranslateZ": 359, "tileableXOffset": 359, "tileableYOffset": 359, "tileableRandomRotations": false, "tileableRandomMirroring": false, "tileableTileEdges": false, "disableFontOverlay": false, "amplitude": 359, "angle": 359, "gap": 359, "inset": 359, "length": 359, "level": 359, "offset": 359, "radius": 359, "randomness": 359, "size": 359, "spread": 359, "thickness": 359, "width": 359 }], "matchWidth": 359, "font": "minecraft-ten", "spacing": 359, "border": 359, "depth": 359, "scaleX": 359, "scaleY": 359, "linkScale": 359, "rotationX": 359, "rotationY": 359, "rotationZ": 359, "translateX": 359, "translateY": 359, "translateZ": 359, "row": 359, "rowSpacing": 359, "arcMode": "stretch", "arcTop": 359, "arcBottom": 359, "arcMove": 359, "arcMarked": false, "clipHoles": false, "terminators": false, "kerning": false, "scaleZ": 359, "scaleMarked": false, "scaleOutline": false }
     ]
   },
   {
     "name": "every setting, second values",
-    "code": "DfZFdKENhGMfPsxs0-baItChFvkK-kiJJkiQtaWHL0cbJNMcsSWshLbUIKcRc2YVaykrcrSQ1H7dLa6GGpCYpSfN_ri0Xv9_7P__nnPet89Kkosrgc0uSST3t85qlYfX99oGgSnZ74gP1-X8m-SoqFiSHPzUjJW5svTxkz3RplckVKLqAnaAeEO868iUmdCOJVsSiSmiNh7kkFMuiVZ4yixqd2agbl2MdImQrxGB62BNzViobJVGnl_7b4JzPqlZEry1CoDYvUnRMG9wkUZpQQy2CoFI-3zgHY315R1SYkIJ3S0AjyANZoA40gBGwzJsFWV7WDFADGXSAEJfKE3qgOYQcJ21y0dyJn9CEULBCj1yYJlC0IVwQzWKxgEse-GmBDmmLTqkVTzsUpkWun1hnRC-8vrLeWBGy8WIAVxzeWbe0S3scVllLrHawz8HB-mB9sr7om34oSv3IWqABNgU0AIaAnm-WizIwz6EXjII-8As",
+    "code": "DY5QVY9RiyOk6KygiwJ49Vf9Bk-jCGG5-G6CAHBBLALEFEFsBcRoQ9zACiXsgYhuIqAJiBSAuAWIvIH4AEjzByFgDpMqA-BSIf5ZxLeNsxt2MLkD2XMbnjAA",
     "lines": [
       { "type": "bottom", "words": [], "matchWidth": -180.25, "font": "minecraft-ten-v2", "spacing": -180.25, "border": -180.25, "depth": -180.25, "scaleX": -180.25, "scaleY": -180.25, "linkScale": -180.25, "rotationX": -180.25, "rotationY": -180.25, "rotationZ": -180.25, "translateX": -180.25, "translateY": -180.25, "translateZ": -180.25, "row": -180.25, "rowSpacing": -180.25, "arcMode": "move", "arcTop": -180.25, "arcBottom": -180.25, "arcMove": -180.25, "arcMarked": true, "clipHoles": true, "terminators": true, "kerning": true, "scaleZ": -180.25, "scaleMarked": true, "scaleOutline": true }
     ]
@@ -181,14 +181,14 @@
   },
   {
     "name": "values stored by name",
-    "code": "CAQYAKnVua25vd25TZXR0aW5nIXsiYSI6WzEsMl19AA0EhwwHBKwADRFN7QQfABJzY2FsZVgJIjEiABMMuewEDyJyZWQiABACjO_whwFbeyJjb2xvdXIiOiIjZmYwMDAwIiwicG9zaXRpb24iOjAsImV4dHJhIjoxfV0",
+    "code": "CAQYAOgYtrMmbpmYtPYaaLHsiYSI6WzEsMl19ABEEhwwJBKwAERFN7QUfABoE3vzPVAwiMSIAGQy57AQUInJlZCIAFQKM7_C0AVt7ImNvbG91ciI6IiNmZjAwMDAiLCJwb3NpdGlvbiI6MCwiZXh0cmEiOjF9XQ",
     "lines": [
       { "unknownSetting": { "a": [1, 2] }, "fade": 40, "text": 5, "scaleX": "1", "colour": "red", "stops": [{ "colour": "#ff0000", "position": 0, "extra": 1 }] }
     ]
   },
   {
     "name": "the generator logo",
-    "code": "CAgEEBwH-5a_QBhYBbAA4lOUHKgIDAhACpmT_MPAseCMPAAUCHB2_OHqHojDAFngAEykpMhFGfQQFALgjvWU",
+    "code": "CAgEEBwH-5a_QBhYBbAA4lOUHKgIDAhUCpmT_MPAseCMPAAUCJR2_OHqHojDAFngAEykpMhFGfQQFALgjvWU",
     "lines": [
       { "texture": "cracked" },
       { "type": "bottom", "matchWidth": 0, "scaleX": 0.7977, "words": [{ "texture": "fired", "customBorder": true, "text": "title", "hue": 359, "borderColour": "#230f00" }, { "texture": "fired", "customBorder": true, "text": "generator", "hue": 180, "borderColour": "#001329", "customEdge": true, "edgeColour": "#11467d" }] }

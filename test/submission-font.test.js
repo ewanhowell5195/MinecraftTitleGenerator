@@ -8,7 +8,7 @@ import { PNG } from "pngjs"
 import { publishedFonts, readMask } from "../generator/fonts.js"
 import { prepare } from "../generator/submissionKinds/font.js"
 import { flattenFonts, fullOrder, parseMask, sheetLayout, solidMask, splitCells } from "../src/lib/font.js"
-import { autoStretch, buildSheet, exportJson, fontFromPublished, parsedSheet } from "../src/lib/fontEditor.js"
+import { addCharacters, autoStretch, buildSheet, exportJson, fontFromPublished, parsedSheet, setGlyph, setLetterCase } from "../src/lib/fontEditor.js"
 import { jsonText } from "../src/lib/jsonText.js"
 import { titleCase } from "../src/lib/names.js"
 import { font as kind } from "../src/lib/submissionKinds/font.js"
@@ -91,7 +91,7 @@ describe("checking a font", () => {
   })
 
   test("a new font needs every default character, and the blank ones are named", async () => {
-    assert.equal((await check({ bytes: without(["q"]) })).problems.file, "A new font has to have every default character drawn. These are blank: q.")
+    assert.equal((await check({ bytes: without(["q"]) })).problems.file, "A new font has to have every default character drawn. These are blank: Q.")
     assert.equal((await check({ bytes: without(["7", "'", "$"]) })).problems.file, "A new font has to have every default character drawn. These are blank: 7, Closing quote, $.")
     assert.match((await check({ bytes: without(Array.from("0123456789&#")) })).problems.file, /These are blank: 0, 1, 2, 3, 4, 5, 6, 7 and 4 more\./)
   })
@@ -123,7 +123,17 @@ describe("checking a font", () => {
 
   test("a variant only needs its letters", async () => {
     assert.equal((await check({ target: "minecraft-ten", bytes: without(Array.from("0123456789&#$")) })).problems.file, null)
-    assert.match((await check({ target: "minecraft-ten", bytes: without(["q"]) })).problems.file, /Draw every letter from a to z, or at least 20 letters of another alphabet\. These are blank: q\./)
+    assert.match((await check({ target: "minecraft-ten", bytes: without(["q"]) })).problems.file, /Draw every letter from a to z, or at least 20 letters of another alphabet\. These are blank: Q\./)
+  })
+
+  test("a font with both cases needs a capital and a lowercase version of every letter", async () => {
+    const font = setLetterCase(copyOf("f8thful"), "both")
+    assert.equal((await check({ bytes: jsonOf(font) })).problems.file, `A new font has to have every default character drawn. These are blank: ${Array.from("abcdefgh").join(", ")} and 18 more.`)
+    const lower = Object.fromEntries(Array.from("abcdefghijklmnopqrstuvwxyz", char => [char, font.glyphs[char.toUpperCase()]]))
+    const both = addCharacters({ ...font, glyphs: { ...font.glyphs, ...lower } }, "é").font
+    assert.equal((await check({ bytes: jsonOf(both) })).problems.file, null)
+    const accented = setGlyph(both, "É", font.glyphs.E)
+    assert.equal((await check({ bytes: jsonOf(accented) })).problems.file, "A font with both cases needs a capital and a lowercase version of every letter. These are blank: é.")
   })
 
   test("a font with nothing drawn says so", async () => {

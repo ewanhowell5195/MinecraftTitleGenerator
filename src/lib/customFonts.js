@@ -23,8 +23,8 @@ function hash(text) {
   return (value >>> 0).toString(36)
 }
 
-export function customFontId({ kind, data, height, lowercase, mesh, density, strips }) {
-  return CUSTOM_FONT + hash(JSON.stringify([kind, data, height, lowercase].concat(mesh ? ["mesh"] : [], squareSize({ kind, mesh, density }) > 1 ? [squareSize({ kind, mesh, density })] : [], strips?.length ? [strips] : [])))
+export function customFontId({ kind, data, height, mesh, density, strips }) {
+  return CUSTOM_FONT + hash(JSON.stringify([kind, data, height].concat(mesh ? ["mesh"] : [], squareSize({ kind, mesh, density }) > 1 ? [squareSize({ kind, mesh, density })] : [], strips?.length ? [strips] : [])))
 }
 
 function squareSize({ kind, mesh, density }) {
@@ -49,7 +49,7 @@ async function pixels(url) {
   return { data: pixelsOf(image), width: image.width, height: image.height }
 }
 
-async function editorFont({ kind, data, height, lowercase, mesh, density }) {
+async function editorFont({ kind, data, height, mesh, density }) {
   if (kind === "json") {
     const { fontFromFiles, parseFontJson } = await import("./fontEditor.js")
     const json = parseFontJson(await (await fetch(data)).text())
@@ -60,15 +60,15 @@ async function editorFont({ kind, data, height, lowercase, mesh, density }) {
     const [{ fontFromShapes }, { sampleGlyph, silhouetteSample }] = await Promise.all([import("./fontEditor.js"), import("./submissionKinds/shape.js")])
     const sample = silhouetteSample(await pixels(data))
     const glyph = sampleGlyph(sample)
-    return { font: fontFromShapes(new Map([[SILHOUETTE_TEXT, glyph]]), { name: "Shape", capHeight: glyph.height, grid: 1, spaceWidth: Math.round(glyph.height / 2) }), sample }
+    return { font: fontFromShapes(new Map([[SILHOUETTE_TEXT, glyph]]), { name: "Shape", capHeight: glyph.height, grid: 1, spaceWidth: Math.round(glyph.height / 2), letterCase: "upper" }), sample }
   }
   if (kind === "ascii") {
     const { fontFromAscii } = await import("./asciiImport.js")
-    return { font: fontFromAscii(await pixels(data), { height, lowercase }) }
+    return { font: fontFromAscii(await pixels(data), { height }) }
   }
   const { fontFromOutlines, meshOutlines, parseFontFile } = await import("./fontImport.js")
   const source = await parseFontFile(await (await fetch(data)).arrayBuffer())
-  const options = { height, lowercase, density: squareSize({ kind, mesh, density }) }
+  const options = { height, density: squareSize({ kind, mesh, density }) }
   return { font: fontFromOutlines(source, options), outlines: meshOutlines(source, options), mesh }
 }
 

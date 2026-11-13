@@ -1,4 +1,4 @@
-import { fontFolder, sheetOwner, stripsOf } from "../font.js"
+import { fontFolder, linkText, sheetOwner, stripsOf } from "../font.js"
 import { encodeTitle } from "../linkformat.js"
 import { FILE_VERSION, overlayLayer } from "../settings.js"
 import { stripUse } from "../strips.js"
@@ -34,5 +34,6 @@ export function thumbnailPath(item, fonts) {
 }
 
 export function publishedTitle(item, fonts) {
-  return `/app/?title=${encodeTitle({ version: FILE_VERSION, lines: [publishedLine(item, fonts, item.name)] }).code}`
+  const line = publishedLine(item, fonts, item.name)
+  return `/app/?title=${encodeTitle({ version: FILE_VERSION, lines: [{ ...line, ...("text" in line && { text: linkText(line.text, line.font, fonts) }) }] }).code}`
 }

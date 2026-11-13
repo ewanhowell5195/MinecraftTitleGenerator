@@ -6,7 +6,7 @@ import { LAYER, activeOverlays, applyType, createObject, defaultBorder, defaultD
 const TOP_DEFAULTS = {
   hidden: false,
   group: null,
-  text: "minecraft",
+  text: "Minecraft",
   spaceBefore: true,
   terminators: false,
   font: "minecraft-ten",

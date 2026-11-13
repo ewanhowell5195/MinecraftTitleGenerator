@@ -9,7 +9,7 @@ function parentName(item, fonts) {
 }
 
 function fontSource(item, file) {
-  return { kind: "json", fileName: `${item.details.id || "font"}.json`, data: file, height: IMPORT_HEIGHT, lowercase: false }
+  return { kind: "json", fileName: `${item.details.id || "font"}.json`, data: file, height: IMPORT_HEIGHT }
 }
 
 export const font = {

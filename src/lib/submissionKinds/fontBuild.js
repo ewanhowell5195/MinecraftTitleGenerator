@@ -15,7 +15,7 @@ const read = new WeakMap()
 
 const TEXT_FIELDS = ["id", "name", "description", "basedOn", "order"]
 const NUMBER_FIELDS = ["spaceWidth", "depth", "border", "characterSpacing", "terminatorSpaceWidth"]
-const FLAG_FIELDS = ["terminatorSpace", "forcedTerminators", "autoBorder", "flat", "overlay"]
+const FLAG_FIELDS = ["multicase", "terminatorSpace", "forcedTerminators", "autoBorder", "flat", "overlay"]
 const EDITOR_NUMBERS = ["height", "width", "grid", "density"]
 
 export function holdingPath(id) {
@@ -43,7 +43,7 @@ export function fontJsonFields(entry) {
   if (authors.length) clean.authors = authors
   if (Array.isArray(entry.strips)) clean.strips = entry.strips.map(stripField).filter(Boolean)
   if (isRecord(entry.kerning)) clean.kerning = Object.fromEntries(Object.entries(entry.kerning).filter(([amount, pairs]) => Number.isFinite(Number(amount)) && Array.isArray(pairs)).map(([amount, pairs]) => [amount, pairs.filter(pair => typeof pair === "string")]))
-  if (isRecord(entry.editor)) clean.editor = { ...picked(entry.editor, EDITOR_NUMBERS, "number"), ...picked(entry.editor, ["texture"], "string") }
+  if (isRecord(entry.editor)) clean.editor = { ...picked(entry.editor, EDITOR_NUMBERS, "number"), ...picked(entry.editor, ["letterCase", "texture"], "string") }
   return clean
 }
 

@@ -896,7 +896,7 @@ describe("restoring the saved scene", () => {
 
   test("says why a stored scene could not be brought back", async () => {
     const module = await loadWith(JSON.stringify({ version: FILE_VERSION + 1, lines: [{ text: "newer" }] }), "newer")
-    assert.equal(module.scene.objects[0].text, "minecraft")
+    assert.equal(module.scene.objects[0].text, "Minecraft")
     assert.equal(module.saveError.value, `Your last title couldn't be restored: it was saved by a newer version of the generator (format ${FILE_VERSION + 1})`)
   })
 
@@ -950,13 +950,13 @@ describe("restoring the saved scene", () => {
   test("starts fresh when every word is blank", async () => {
     const module = await loadWith(JSON.stringify({ objects: [{ id: 7301, text: "  " }] }), "empty")
     assert.equal(module.scene.objects.length, 1)
-    assert.equal(module.scene.objects[0].text, "minecraft")
+    assert.equal(module.scene.objects[0].text, "Minecraft")
   })
 
   test("starts fresh from broken JSON", async () => {
     const module = await loadWith("{ nope", "broken")
     assert.equal(module.scene.objects.length, 1)
-    assert.equal(module.scene.objects[0].text, "minecraft")
+    assert.equal(module.scene.objects[0].text, "Minecraft")
   })
 
   test("starts fresh when nothing is saved", async () => {

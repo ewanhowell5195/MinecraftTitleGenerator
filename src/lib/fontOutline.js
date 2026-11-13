@@ -3,15 +3,15 @@ import { CREEPER, OPENING_QUOTE } from "./order.js"
 
 const CURVE_STEPS = 16
 
-function sourceChars(char, lowercase) {
+function sourceChars(char) {
   if (char === OPENING_QUOTE) return ["\u2018", "'"]
-  const letter = char === CREEPER ? "a" : char
-  if (/^[a-z]$/.test(letter)) return lowercase ? [letter, letter.toUpperCase()] : [letter.toUpperCase(), letter]
+  const letter = char === CREEPER ? "A" : char
+  if (/^[a-z]$/i.test(letter)) return [letter, letter === letter.toUpperCase() ? letter.toLowerCase() : letter.toUpperCase()]
   return [char]
 }
 
-export function glyphFor(font, char, lowercase) {
-  for (const candidate of sourceChars(char, lowercase)) {
+export function glyphFor(font, char) {
+  for (const candidate of sourceChars(char)) {
     const glyph = font.charToGlyph(candidate)
     if (glyph && glyph.index !== 0) return glyph
   }

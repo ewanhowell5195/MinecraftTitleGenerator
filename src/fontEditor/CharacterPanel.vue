@@ -40,7 +40,7 @@
 
 <template>
   <div class="flow">
-    <h3>{{ characterName(selected) }}</h3>
+    <h3>{{ characterName(selected, font.letterCase) }}</h3>
     <Field group label="Width">
       <div class="input-row">
         <NumberInput min="1" :value="squaresOf(font, width)" aria-label="Character width" @input="setNumber('width', $event, 1)" @change="setNumber('width', $event, 1)" />

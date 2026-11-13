@@ -1,16 +1,16 @@
 <script setup>
   import { computed, onMounted, ref, shallowRef } from "vue"
   import Button from "../components/Button.vue"
-  import Checkbox from "../components/Checkbox.vue"
   import Field from "../components/Field.vue"
   import Icon from "../components/Icon.vue"
   import Notice from "../components/Notice.vue"
   import NumberInput from "../components/NumberInput.vue"
+  import Segments from "../components/Segments.vue"
   import SiteFooter from "../site/SiteFooter.vue"
   import Tile from "../components/Tile.vue"
   import TileGrid from "../components/TileGrid.vue"
   import { fullName, loadFontList } from "../lib/font.js"
-  import { createFont } from "../lib/fontEditor.js"
+  import { LETTER_CASES, createFont, setLetterCase } from "../lib/fontEditor.js"
   import { fontCredit } from "../lib/credits.js"
   import { fontThumbnail } from "../lib/ui.js"
   import { fontFromList, fontFromUploads, imageOf } from "./loaders.js"
@@ -21,7 +21,7 @@
   const grid = ref(4)
   const importHeight = ref(40)
   const importDensity = ref(1)
-  const lowercase = ref(false)
+  const letterCase = ref("both")
   const fonts = shallowRef([])
   const error = ref("")
   const busy = ref("")
@@ -68,13 +68,12 @@
     const file = event.target.files[0]
     if (!file) return
     attempt(`Importing ${file.name}...`, async () => {
-      const options = { height: importHeight.value, lowercase: lowercase.value }
       if (/\.png$/i.test(file.name)) {
         const [{ fontFromAscii }, image] = await Promise.all([import("../lib/asciiImport.js"), imageOf(file)])
-        return fontFromAscii(image, options)
+        return setLetterCase(fontFromAscii(image, { height: importHeight.value }), letterCase.value)
       }
       const { fontFromOutlines, parseFontFile } = await import("../lib/fontImport.js")
-      return fontFromOutlines(await parseFontFile(await file.arrayBuffer()), { ...options, density: importDensity.value })
+      return setLetterCase(fontFromOutlines(await parseFontFile(await file.arrayBuffer()), { height: importHeight.value, density: importDensity.value }), letterCase.value)
     }).finally(() => event.target.value = "")
   }
 </script>
@@ -111,8 +110,8 @@
           <div class="numbers import">
             <Field label="Height in pixels"><NumberInput min="1" v-model.number="importHeight" /></Field>
             <Field label="Square size"><NumberInput min="1" v-model.number="importDensity" /></Field>
-            <Checkbox v-model="lowercase" label="Use lowercase letters" />
           </div>
+          <Segments label="Letter case" :options="LETTER_CASES" v-model="letterCase" />
           <Button file wide :disabled="!importable" accept=".ttf,.otf,.woff,.woff2,.png,font/ttf,font/otf,font/woff,font/woff2,image/png" @change="importFile"><template #icon><Icon name="open" /></template>Choose font file</Button>
         </section>
 
