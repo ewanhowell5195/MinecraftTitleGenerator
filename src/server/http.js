@@ -1,7 +1,8 @@
 import { LIMITS } from "../lib/limits.js"
+import { PREVIEW_NOTICE, isPreviewHost } from "../lib/previewSite.js"
 
 export const USER_AGENT = "MinecraftTitleGenerator"
-export const APP_ORIGINS = [/^https:\/\/mctitlegenerator\.com$/, /^https:\/\/([a-z0-9-]+\.)?minecrafttitlegenerator\.pages\.dev$/, /^https:\/\/dev\.ewanhowell\.com$/, /^http:\/\/(localhost|127\.0\.0\.1):\d+$/]
+export const APP_ORIGINS = [/^https:\/\/mctitlegenerator\.com$/, /^https:\/\/dev\.ewanhowell\.com$/, /^http:\/\/(localhost|127\.0\.0\.1):\d+$/]
 const READS = ["GET", "HEAD"]
 const EDGE_SECONDS = 1800
 
@@ -33,6 +34,7 @@ export function guarded(handler, refused = err => reply(err.status, { error: err
   return async context => {
     try {
       if (fromAnotherSite(context.request)) throw new Refusal(403, "This request came from another website, so it was refused.")
+      if (!READS.includes(context.request.method) && isPreviewHost(new URL(context.request.url).hostname)) throw new Refusal(403, `${PREVIEW_NOTICE} Use mctitlegenerator.com for that.`)
       return await handler(context)
     } catch (err) {
       if (err instanceof Refusal) return refused(err)

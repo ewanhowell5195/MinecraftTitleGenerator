@@ -592,6 +592,25 @@ describe("requests from other websites", () => {
     assert.deepEqual(rowCounts(), { presets: 1, preset_votes: 0, preset_downloads: 0, preset_submissions: 1 })
   })
 
+  test("a preview deployment can read the presets but not write to them", async () => {
+    const { id } = await share("a")
+    function onPreview(made) {
+      made.request = new Request(made.request.url.replace("https://example.test", "https://submission-3.minecrafttitlegenerator.pages.dev"), made.request)
+      return made
+    }
+    const voted = await votePreset(onPreview(context(`/api/presets/${id}/vote`, { method: "POST", body: { value: 1 }, params: { id: String(id) } })))
+    assert.equal(voted.status, 403)
+    assert.match((await voted.json()).error, /preview/)
+    assert.equal((await submitPreset(onPreview(context("/api/presets", { method: "POST", body: { code: code([{ text: "b" }]) } })))).status, 403)
+    assert.equal((await listPresets(onPreview(context("/api/presets")))).status, 200)
+    assert.deepEqual(rowCounts(), { presets: 1, preset_votes: 0, preset_downloads: 0, preset_submissions: 1 })
+  })
+
+  test("a preview page can't write to the live site", async () => {
+    const { id } = await share("a")
+    for (const origin of ["https://minecrafttitlegenerator.pages.dev", "https://submission-3.minecrafttitlegenerator.pages.dev"]) assert.equal((await voteFrom(origin, id)).status, 403)
+  })
+
   test("the site itself and local development can write", async () => {
     const { id } = await share("a")
     for (const origin of ["https://example.test", "http://localhost:9123", "http://127.0.0.1:9123"]) assert.equal((await voteFrom(origin, id)).status, 200)
@@ -1068,7 +1087,7 @@ describe("accounts", () => {
     assert.match(response.headers.get("Set-Cookie"), /^signin_state=[0-9a-f]{64};.*HttpOnly; Secure; SameSite=Lax/)
   })
 
-  for (const origin of ["https://mctitlegenerator.com", "https://minecrafttitlegenerator.pages.dev", "https://abc123.minecrafttitlegenerator.pages.dev", "https://dev.ewanhowell.com", "http://localhost:9123", "http://127.0.0.1:9123"]) {
+  for (const origin of ["https://mctitlegenerator.com", "https://dev.ewanhowell.com", "http://localhost:9123", "http://127.0.0.1:9123"]) {
     test(`signs in from ${origin} and hands back there`, async () => {
       stubProvider({ id: "1", username: "a" })
       const { state, cookie } = await begin("discord", origin)
@@ -1081,7 +1100,7 @@ describe("accounts", () => {
     })
   }
 
-  for (const origin of ["https://evil.test", "https://mctitlegenerator.com.evil.test", "https://evilminecrafttitlegenerator.pages.dev", "http://minecrafttitlegenerator.pages.dev", "http://dev.ewanhowell.com", "javascript:alert(1)"]) {
+  for (const origin of ["https://evil.test", "https://mctitlegenerator.com.evil.test", "https://minecrafttitlegenerator.pages.dev", "https://abc123.minecrafttitlegenerator.pages.dev", "https://evilminecrafttitlegenerator.pages.dev", "http://minecrafttitlegenerator.pages.dev", "http://dev.ewanhowell.com", "javascript:alert(1)"]) {
     test(`refuses to sign in for ${origin}`, async () => {
       const response = await startSignIn(context(`/api/account/login/discord?return=${encodeURIComponent(origin)}`, { params: { provider: "discord" } }))
       assert.equal(response.status, 400)

@@ -1,6 +1,7 @@
 <script setup>
   import { computed } from "vue"
   import { useRoute } from "vue-router"
+  import PreviewNotice from "./site/PreviewNotice.vue"
   import SiteFooter from "./site/SiteFooter.vue"
   import SiteHeader from "./site/SiteHeader.vue"
   import { pageKey } from "./site/routes.js"
@@ -14,4 +15,5 @@
   <SiteHeader v-if="page.header" :floating="page.header === 'floating'" />
   <RouterView :key="key" />
   <SiteFooter v-if="page.footer" />
+  <PreviewNotice />
 </template>
