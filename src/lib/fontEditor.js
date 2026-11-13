@@ -24,7 +24,7 @@ const SHEETS_KEPT = 8
 const NAMES = { [CREEPER]: "Creeper A", [OPENING_QUOTE]: "Opening quote", "'": "Closing quote", [TERMINATOR_OPEN]: "Left line terminator", [TERMINATOR_CLOSE]: "Right line terminator", [SPACE_CHAR]: "Space" }
 const LABELS = { [CREEPER]: "Creeper", [OPENING_QUOTE]: String.fromCodePoint(0x2018), "'": String.fromCodePoint(0x2019), [SPACE_CHAR]: "Space" }
 const NOTHING_TO_DRAW = /^[\p{M}\p{Cf}]$/u
-const META_KEYS = ["authors", "description", "basedOn", "spaceWidth", "depth", "border", "characterSpacing", "terminatorSpace", "terminatorSpaceWidth", "forcedTerminators", "autoBorder", "flat", "overlay", "strips", "kerning"]
+const META_KEYS = ["authors", "description", "basedOn", "spaceWidth", "depth", "border", "characterSpacing", "terminatorSpace", "terminatorSpaceWidth", "forcedTerminators", "autoBorder", "flat", "overlay", "allFaces", "strips", "kerning"]
 const sheets = new Map()
 
 export function hasCase(char) {
@@ -62,7 +62,7 @@ export function fontId(font) {
 }
 
 export function createFont({ height = 40, width = 24, grid = 4, density = 1, letterCase = "upper" } = {}) {
-  return { name: "My Font", id: "", authors: [], description: "", basedOn: "", height, width, grid, density, letterCase, creeper: false, extras: [], defineSpace: false, spaceWidth: DEFAULT_SPACE_WIDTH, depth: DEFAULT_DEPTH, border: DEFAULT_BORDER, characterSpacing: 0, terminatorSpace: true, terminatorSpaceWidth: null, forcedTerminators: false, autoBorder: false, flat: false, overlay: false, strips: [], kerning: {}, glyphs: {}, imported: null }
+  return { name: "My Font", id: "", authors: [], description: "", basedOn: "", height, width, grid, density, letterCase, creeper: false, extras: [], defineSpace: false, spaceWidth: DEFAULT_SPACE_WIDTH, depth: DEFAULT_DEPTH, border: DEFAULT_BORDER, characterSpacing: 0, terminatorSpace: true, terminatorSpaceWidth: null, forcedTerminators: false, autoBorder: false, flat: false, overlay: false, allFaces: false, strips: [], kerning: {}, glyphs: {}, imported: null }
 }
 
 function withCases(font, list) {
@@ -729,7 +729,7 @@ export function exportJson(font, texture, characters = charactersOf(font)) {
   if (font.depth !== DEFAULT_DEPTH) entry.depth = font.depth
   if (font.border !== DEFAULT_BORDER) entry.border = font.border
   if (font.characterSpacing) entry.characterSpacing = font.characterSpacing
-  for (const key of ["terminatorSpace", "forcedTerminators", "autoBorder", "flat", "overlay"]) if (font[key]) entry[key] = true
+  for (const key of ["terminatorSpace", "forcedTerminators", "autoBorder", "flat", "overlay", "allFaces"]) if (font[key]) entry[key] = true
   if (font.terminatorSpace && !font.defineSpace && (font.terminatorSpaceWidth ?? font.spaceWidth) !== font.spaceWidth) entry.terminatorSpaceWidth = font.terminatorSpaceWidth
   const kerning = Object.fromEntries(Object.entries(font.kerning).filter(([, amount]) => amount))
   if (Object.keys(kerning).length) entry.kerning = groupedKerning(kerning)

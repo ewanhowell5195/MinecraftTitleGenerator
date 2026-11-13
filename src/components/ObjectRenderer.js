@@ -17,11 +17,12 @@ import { platform } from "../lib/platform.js"
 import { quietly } from "../lib/history.js"
 import { DEFAULT_CAP_HEIGHT, DEFAULT_HEIGHT, NO_ARC } from "../lib/rows.js"
 import { editorTitle, keepTexture, loadedFont, words } from "../lib/scene.js"
-import { activeOverlays, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, effectiveScale, isCustomFont, layerTarget, setTexture, textureEntry } from "../lib/settings.js"
+import { activeOverlays, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, effectiveScale, fontFaces, isCustomFont, layerTarget, sameValue, setTexture, textureEntry } from "../lib/settings.js"
 
 const BASE = ["font", "source", "textureSource", "texture", "textureVariant", "tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "customTexture", "stops", "smooth", "gradientAngle", "arcGradient", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "tileablePerCharacter", "disableFontOverlay", "edgeBrightness"]
 
 const CUSTOM_SOURCES = { standard: "texture", tileable: "tile", strip: "strip" }
+const loadedFaces = new WeakMap()
 
 const REST = 0.5
 const SHARPEN_DELAY = 250
@@ -495,11 +496,14 @@ export default {
           object.border = defaultBorder(object.type, loaded)
           object.wordDepth = null
           object.wordBorder = null
+          const faces = fontFaces(object.type, loaded)
+          if (!sameValue(faces, loadedFaces.get(object) ?? fontFaces(object.type, null))) Object.assign(object, faces)
         })
       } else if (object.texture === null) quietly(() => (object.texture = defaultTexture(textures, object.type)))
       if (loaded.mesh && object.textureSource === "custom") quietly(() => setTexture(object, { textureSource: "premade" }))
       keepTexture.delete(object)
       loadedFont.set(object, loaded.id)
+      loadedFaces.set(object, fontFaces(object.type, loaded))
       font.value = loaded
       sheet.value = layout
       list.value = textures

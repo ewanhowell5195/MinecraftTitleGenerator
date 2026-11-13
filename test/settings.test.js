@@ -1,7 +1,7 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import { isReactive } from "vue"
-import { LAYER, activeOverlays, applyType, createObject, defaultBorder, defaultDepth, defaultOverlays, defaultSpacing, defaultTexture, effectiveScale, isModified, overlayLayer, pinnedTextures, resetPanel, resetTransform, restore, setTexture, snapshot, textureEntry, transformKeys, typeDefaults } from "../src/lib/settings.js"
+import { LAYER, activeOverlays, applyType, createObject, defaultBorder, defaultDepth, defaultOverlays, defaultSpacing, defaultTexture, effectiveScale, fontFaces, isModified, overlayLayer, pinnedTextures, resetPanel, resetTransform, restore, setTexture, snapshot, textureEntry, transformKeys, typeDefaults } from "../src/lib/settings.js"
 
 const TOP_DEFAULTS = {
   hidden: false,
@@ -301,6 +301,19 @@ describe("applyType", () => {
     applyType(object, "small", { border: 5, characterSpacing: 3 })
     assert.equal(object.border, 5)
     assert.equal(object.spacing, 5)
+  })
+
+  test("a font with all faces turns on the inner and side faces with no fade, and resetting keeps that", () => {
+    const font = { allFaces: true }
+    const object = createObject()
+    applyType(object, "top", font)
+    assert.deepEqual([object.internalFaces, object.fadeInternal, object.sideFaces, object.fadeSides], [true, false, true, false])
+    assert.deepEqual(fontFaces("top", font), { internalFaces: true, fadeInternal: false, internalFade: 0, sideFaces: true, fadeSides: false, sideFade: 0 })
+    assert.deepEqual(fontFaces("top", {}), { internalFaces: false, fadeInternal: true, internalFade: 0, sideFaces: false, fadeSides: true, sideFade: 0 })
+    object.internalFaces = false
+    resetPanel(object, "inner", { font })
+    assert.equal(object.internalFaces, true)
+    assert.equal(isModified(object, "sides", { font }), false)
   })
 
   test("sets clipHoles back on for top and bottom", () => {

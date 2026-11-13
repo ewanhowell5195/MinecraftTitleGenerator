@@ -35,6 +35,7 @@
     { key: "forcedTerminators", label: "Always use terminators", hint: "Every line gets the ┫ ┣ end pieces, and the option to turn them off is hidden." },
     { key: "autoBorder", label: "Automatic border frame", hint: "Draws a filled frame around the whole line, for outline style fonts." },
     { key: "flat", label: "Flat font", hint: "Update Text won't get its usual 30 extra depth." },
+    { key: "allFaces", label: "All faces", hint: "Inner and side faces are on by default, with no fade." },
     { key: "overlay", label: "Forced overlay", hint: "Draws an overlay.png over the letters on every texture except premade sheets. This editor doesn't make that file: you add it to the font's folder yourself, on the same layout as the font's flat.png." }
   ]
 

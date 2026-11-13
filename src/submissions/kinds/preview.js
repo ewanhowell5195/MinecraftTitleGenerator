@@ -1,8 +1,8 @@
 import { ref, shallowRef, watch } from "vue"
-import { defaultBorder, defaultDepth, defaultSpacing } from "../../lib/settings.js"
+import { defaultBorder, defaultDepth, defaultSpacing, fontFaces } from "../../lib/settings.js"
 
 export function fontDefaults(font) {
-  return { depth: defaultDepth(font), border: defaultBorder("top", font), spacing: defaultSpacing("top", font) }
+  return { depth: defaultDepth(font), border: defaultBorder("top", font), spacing: defaultSpacing("top", font), ...fontFaces("top", font) }
 }
 
 export function useLoaded(inputs, load, empty = null) {

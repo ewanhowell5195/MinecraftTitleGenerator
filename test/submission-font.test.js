@@ -401,6 +401,7 @@ describe("sending a font", () => {
     assert.doesNotMatch(held, /secret|extra|note|hidden|dropped/)
     assert.deepEqual(Object.keys(JSON.parse(held).editor), Object.keys(original.editor))
     assert.deepEqual(fontJsonFields({ strips: ["minecraft-ten", { id: "other", offset: 1, extra: true }, 5], name: 3 }), { strips: ["minecraft-ten", { id: "other", offset: 1 }] })
+    assert.deepEqual(fontJsonFields({ allFaces: true, flat: "yes" }), { allFaces: true })
   })
 
   test("a font based on someone else's work keeps its original and licence links in its entry and the pull request", async () => {

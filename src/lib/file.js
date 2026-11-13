@@ -1,7 +1,7 @@
 import { ref } from "vue"
 import { matchSolved } from "./match.js"
 import { lines, runtime, scene, titleFileName, titleObjects, validSelection } from "./scene.js"
-import { FILE_VERSION, TEXTURE_TABS, TILING_KEYS, createObject, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, isCustomFont, sameValue, typeDefaults } from "./settings.js"
+import { FILE_VERSION, TEXTURE_TABS, TILING_KEYS, createObject, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, fontFaces, isCustomFont, sameValue, typeDefaults } from "./settings.js"
 import { CUSTOM_SHAPE, isMinecraftShape } from "./shapes.js"
 import { submitStats } from "./stats.js"
 import { titleLines, titleValues, trimmed } from "./titleFacts.js"
@@ -84,7 +84,7 @@ export function isDefaultTitle() {
   const object = scene.objects[0]
   const { list, font } = runtime[object.id] ?? {}
   if (!list || !font) return false
-  const reference = { ...typeDefaults("top"), texture: defaultTexture(list, "top"), spacing: defaultSpacing("top", font), depth: defaultDepth(font), border: defaultBorder("top", font) }
+  const reference = { ...typeDefaults("top"), texture: defaultTexture(list, "top"), spacing: defaultSpacing("top", font), depth: defaultDepth(font), border: defaultBorder("top", font), ...fontFaces("top", font) }
   return sameValue(trim(object), trim(reference))
 }
 

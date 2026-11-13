@@ -16,7 +16,7 @@ const read = new WeakMap()
 
 const TEXT_FIELDS = ["id", "name", "description", "basedOn", "order"]
 const NUMBER_FIELDS = ["spaceWidth", "depth", "border", "characterSpacing", "terminatorSpaceWidth"]
-const FLAG_FIELDS = ["multicase", "terminatorSpace", "forcedTerminators", "autoBorder", "flat", "overlay"]
+const FLAG_FIELDS = ["multicase", "terminatorSpace", "forcedTerminators", "autoBorder", "flat", "overlay", "allFaces"]
 const EDITOR_NUMBERS = ["height", "width", "grid", "density"]
 
 export function holdingPath(id) {

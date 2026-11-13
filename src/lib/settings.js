@@ -303,6 +303,17 @@ const TYPE_KEYS = {
 }
 
 const TYPED_KEYS = Object.values(TYPE_KEYS).flat()
+const FACE_KEYS = TYPE_KEYS.inner.concat(TYPE_KEYS.sides)
+const ALL_FACES = { internalFaces: true, fadeInternal: false, sideFaces: true, fadeSides: false }
+
+function typed(type, font) {
+  return { ...TYPES[type], ...(font?.allFaces && ALL_FACES) }
+}
+
+export function fontFaces(type, font) {
+  const values = typed(type, font)
+  return Object.fromEntries(FACE_KEYS.map(key => [key, values[key]]))
+}
 
 function panelKeys(object, name) {
   if (name === "texture") return TEXTURE_TABS[object.textureSource]
@@ -325,7 +336,7 @@ export function resetPanel(object, name, context = {}) {
     object.overlayMode = "default"
     object.edgeOverlayMode = "default"
   }
-  for (const key of TYPE_KEYS[name] ?? []) object[key] = TYPES[object.type][key]
+  for (const key of TYPE_KEYS[name] ?? []) object[key] = typed(object.type, context.font)[key]
 }
 
 export function sameValue(a, b) {
@@ -439,7 +450,8 @@ export function typeDefaults(type) {
 
 export function applyType(object, type, font) {
   object.stops = stops(type)
-  for (const key of TYPED_KEYS) object[key] = TYPES[type][key]
+  const values = typed(type, font)
+  for (const key of TYPED_KEYS) object[key] = values[key]
   object.border = defaultBorder(type, font)
   object.spacing = defaultSpacing(type, font)
 }

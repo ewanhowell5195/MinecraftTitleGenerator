@@ -2,7 +2,7 @@ import { computed, shallowRef, toRaw, watch } from "vue"
 import { forgetFolder } from "../lib/assets.js"
 import { forgetFont } from "../lib/font.js"
 import { buildSheet, exportJson, flatTexture } from "../lib/fontEditor.js"
-import { defaultBorder, defaultDepth, defaultSpacing } from "../lib/settings.js"
+import { defaultBorder, defaultDepth, defaultSpacing, fontFaces } from "../lib/settings.js"
 import { forgetFiles, pngUrl, serveFile } from "../lib/virtualFiles.js"
 
 const served = new Map()
@@ -61,7 +61,7 @@ export function useServedFont(slot, source) {
 }
 
 export function editorLine(entry, text, { terminators = false, stretch = 1, texture = null, variant = null, layer = null, layers = 1 } = {}) {
-  const line = { text, font: entry.id, terminators, depth: defaultDepth(entry), border: defaultBorder("top", entry), spacing: defaultSpacing("top", entry) }
+  const line = { text, font: entry.id, terminators, depth: defaultDepth(entry), border: defaultBorder("top", entry), spacing: defaultSpacing("top", entry), ...fontFaces("top", entry) }
   if (stretch !== 1) Object.assign(line, { scaleY: stretch, scaleMarked: true })
   const own = { ...(texture && { texture }), ...(variant && { textureVariant: variant }) }
   if (!layer) Object.assign(line, own)
