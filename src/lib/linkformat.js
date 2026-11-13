@@ -192,6 +192,22 @@ const ID = { fits: value => typeof value === "string" && fitsSet(Array.from(valu
 const NUMBER = { fits: Number.isFinite, write: writeNumber, read: readNumber }
 const COLOUR = { fits: isColour, write: writeColour, read: readColour }
 const OBJECTS = list(isObject, writeObject, readObject)
+const STATE = {
+  fits: value => isObject(value) && Object.entries(value).every(entry => entry.every(part => ID.fits(part))),
+  write(out, value) {
+    const entries = Object.entries(value)
+    writeVarint(out, entries.length)
+    for (const [name, item] of entries) {
+      writeId(out, name)
+      writeId(out, item)
+    }
+  },
+  read(reader) {
+    const entries = []
+    for (let count = readVarint(reader); count > 0; count--) entries.push([readId(reader), readId(reader)])
+    return Object.fromEntries(entries)
+  }
+}
 const OVERLAY_KEYS = new Map([["fade", "overlayFade"]])
 const OVERLAY_NAMES = new Map(Array.from(OVERLAY_KEYS, ([name, key]) => [key, name]))
 const OVERLAYS = list(isObject, (out, value) => writeObject(out, renamed(value, OVERLAY_KEYS)), reader => renamed(readObject(reader), OVERLAY_NAMES))
@@ -361,7 +377,8 @@ const KEYS = [
   ["twistDoorRoll", BOOLEAN],
   ["amount", NUMBER],
   ["separateLayers", BOOLEAN],
-  ["layerSettings", OBJECTS]
+  ["layerSettings", OBJECTS],
+  ["blockState", STATE]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))

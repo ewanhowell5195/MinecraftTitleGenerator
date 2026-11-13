@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { after, describe, test } from "node:test"
 import { blockName, blockTexturePaths, isOpaque, pngSize, usableVersions } from "../src/lib/minecraft.js"
-import { dropThumbnail, keepVersions, modelItems, modelThumbnail } from "../src/lib/minecraftModels.js"
+import { dropThumbnail, fitState, keepVersions, modelItems, modelThumbnail, stateList } from "../src/lib/minecraftModels.js"
 import { firstTile } from "../src/lib/paint.js"
 import { usePlatform } from "../src/lib/platform.js"
 
@@ -187,5 +187,35 @@ describe("modelThumbnail", () => {
     drawn = []
     await Promise.all([modelThumbnail("block", "a", "left"), modelThumbnail("block", "a", "kept")])
     assert.deepEqual(drawn, ["a"])
+  })
+})
+
+describe("block states", () => {
+  const preferred = { properties: { half: ["bottom", "lower"], age: [7, 3, 2] }, blocks: [{ match: "*_stairs", defaults: { facing: "south" } }] }
+  const base = { properties: { facing: "north", half: "bottom", age: "0", north: "false" }, blocks: [{ match: "oak_fence", defaults: { waterlogged: false } }] }
+
+  test("lists every value the variants use, with the preferred defaults", () => {
+    const json = { variants: { "facing=east,half=bottom": {}, "facing=north,half=top": {}, "facing=south,half=top": {} } }
+    assert.deepEqual(stateList(json, [preferred, base], "oak_stairs"), [{ name: "facing", values: ["east", "north", "south"], value: "south" }, { name: "half", values: ["bottom", "top"], value: "bottom" }])
+  })
+
+  test("reads multipart conditions, fills in booleans and adds waterlogging", () => {
+    const json = { multipart: [{ apply: {} }, { when: { north: "true" }, apply: {} }, { when: { OR: [{ age: "1|3" }, { AND: [{ age: "2" }] }] }, apply: {} }] }
+    assert.deepEqual(stateList(json, [preferred, base], "oak_fence", true), [{ name: "north", values: ["false", "true"], value: "false" }, { name: "age", values: ["1", "2", "3"], value: "3" }, { name: "waterlogged", values: ["false", "true"], value: "false" }])
+  })
+
+  test("adds the game's default when the blockstate never names it", () => {
+    const json = { multipart: [{ when: { north: "low" }, apply: {} }, { when: { north: "tall" }, apply: {} }] }
+    assert.deepEqual(stateList(json, [{}, { blocks: [{ match: "*_wall", defaults: { north: "none" } }] }], "stone_wall"), [{ name: "north", values: ["low", "tall", "none"], value: "none" }])
+  })
+
+  test("leaves out properties with one value", () => {
+    assert.deepEqual(stateList({ variants: { "axis=y": {} } }, [], "stone"), [])
+  })
+
+  test("keeps the values the new block still has", () => {
+    const list = [{ name: "facing", values: ["north", "east"], value: "north" }, { name: "half", values: ["bottom", "top"], value: "bottom" }]
+    assert.deepEqual(fitState(list, { facing: "east", half: "upper", lit: "true" }), { facing: "east", half: "bottom" })
+    assert.deepEqual(fitState(list, null), { facing: "north", half: "bottom" })
   })
 })

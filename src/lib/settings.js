@@ -61,7 +61,8 @@ const PANELS = {
   }),
   shape: () => ({
     shape: null,
-    shapeVersion: null
+    shapeVersion: null,
+    blockState: null
   }),
   placement: () => ({
     type: "top",

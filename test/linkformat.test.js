@@ -96,6 +96,12 @@ describe("values", () => {
     assert.deepEqual(roundTrip([line]), [line])
   })
 
+  test("a block state", () => {
+    const line = { shape: "minecraft.block.oak_stairs", shapeVersion: "26.2", blockState: { facing: "east", half: "top", shape: "inner_left", waterlogged: "false" } }
+    assert.deepEqual(roundTrip([line]), [line])
+    assert.ok(isCompact("blockState", line.blockState))
+  })
+
   test("true and false", () => {
     assert.deepEqual(roundTrip([{ fade: true, smooth: false }]), [{ fade: true, smooth: false }])
   })

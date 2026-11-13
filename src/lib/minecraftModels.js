@@ -6,6 +6,7 @@ import { quadsOf } from "./modelQuads.js"
 const LIBRARY = "https://cdn.jsdelivr.net/npm/block-model-renderer@3/dist/block-model-renderer.min.js"
 const FOLDERS = { block: "assets/minecraft/blockstates/", item: "assets/minecraft/items/" }
 const ITEM_MODELS = "assets/minecraft/models/item/"
+const DEFAULT_STATES = ["assets/block-model-renderer/default_blockstates_preferred.json", "assets/block-model-renderer/default_blockstates.json"]
 const THUMBNAIL = 96
 
 const decoder = new TextDecoder()
@@ -13,6 +14,7 @@ let library = null
 let drawing = false
 const prepared = new Map()
 const thumbnails = new Map()
+const states = new Map()
 const pending = []
 
 function renderer() {
@@ -129,11 +131,90 @@ export function keepVersions(versions) {
   for (const key of Array.from(thumbnails.keys())) {
     if (!versions.has(key.slice(0, key.indexOf("/"))) && !pending.some(request => request.key === key)) thumbnails.delete(key)
   }
+  for (const key of Array.from(states.keys())) {
+    if (!versions.has(key.slice(0, key.indexOf("/")))) states.delete(key)
+  }
 }
 
-async function modelGroup(kind, id, version) {
+function addValues(found, name, value) {
+  if (!found.has(name)) found.set(name, [])
+  const values = found.get(name)
+  for (const part of String(value).split("|")) {
+    if (!values.includes(part)) values.push(part)
+  }
+}
+
+export function stateValues(json) {
+  const found = new Map()
+  for (const key of Object.keys(json.variants ?? {})) {
+    for (const pair of key.split(",")) {
+      const [name, value] = pair.split("=").map(part => part.trim())
+      if (name && value) addValues(found, name, value)
+    }
+  }
+  function walk(when) {
+    if (!when) return
+    const group = when.OR ?? when.AND
+    if (group) group.forEach(walk)
+    else for (const [name, value] of Object.entries(when)) addValues(found, name, value)
+  }
+  for (const part of json.multipart ?? []) walk(part.when)
+  return found
+}
+
+function ordered(values) {
+  if (values.every(value => value === "true" || value === "false")) return ["false", "true"]
+  if (values.every(value => /^\d+$/.test(value))) return values.toSorted((a, b) => a - b)
+  return values
+}
+
+function ruleDefaults(table, id) {
+  return table.blocks?.find(rule => rule.match?.split("|").some(pattern => new RegExp(`^${pattern.replaceAll("*", ".*")}$`).test(id)))?.defaults ?? {}
+}
+
+export function stateDefault(tables, id, name, values) {
+  const candidates = tables.map(table => ruleDefaults(table, id)[name]).concat(tables.map(table => table.properties?.[name])).flat()
+  return candidates.map(String).find(value => values.includes(value)) ?? values[0]
+}
+
+export function stateList(json, tables, id, waterloggable = false) {
+  const found = stateValues(json)
+  const game = ruleDefaults(tables.at(-1) ?? {}, id)
+  for (const name of found.keys()) {
+    if (game[name] != null) addValues(found, name, game[name])
+  }
+  if (waterloggable) addValues(found, "waterlogged", "false|true")
+  return Array.from(found, ([name, values]) => [name, ordered(values)]).filter(([, values]) => values.length > 1).map(([name, values]) => ({ name, values, value: stateDefault(tables, id, name, values) }))
+}
+
+async function readJson(lib, assets, path) {
+  const file = await lib.readFile(assets, path)
+  return file ? JSON.parse(decoder.decode(file)) : {}
+}
+
+async function readStates(id, version) {
   const { lib, assets } = await gameModels(version)
-  const refs = kind === "block" ? await lib.parseBlockstate(assets, id) : await lib.parseItemDefinition(assets, id, { display: "gui" })
+  const [json, ...tables] = await Promise.all([`${FOLDERS.block}${id}.json`].concat(DEFAULT_STATES).map(path => readJson(lib, assets, path)))
+  return stateList(json, tables, id, lib.isWaterloggable(id))
+}
+
+export function blockStates(id, version) {
+  const key = `${version}/${id}`
+  if (!states.has(key)) {
+    const loading = readStates(id, version)
+    states.set(key, loading)
+    loading.catch(() => states.delete(key))
+  }
+  return states.get(key)
+}
+
+export function fitState(list, previous) {
+  return Object.fromEntries(list.map(({ name, values, value }) => [name, values.includes(previous?.[name]) ? previous[name] : value]))
+}
+
+async function modelGroup(kind, id, version, properties) {
+  const { lib, assets } = await gameModels(version)
+  const refs = kind === "block" ? await lib.parseBlockstate(assets, id, properties ? { properties } : undefined) : await lib.parseItemDefinition(assets, id, { display: "gui" })
   if (!refs.length) throw new Error(`Minecraft has no model for the ${kind} ${id}`)
   const group = new THREE.Group()
   for (const ref of refs) {
@@ -146,8 +227,8 @@ async function modelGroup(kind, id, version) {
   return group
 }
 
-export async function minecraftQuads(kind, id, version) {
-  const model = quadsOf(await modelGroup(kind, id, version))
+export async function minecraftQuads(kind, id, version, properties = null) {
+  const model = quadsOf(await modelGroup(kind, id, version, properties))
   if (!model.quads.length) throw new Error(`Minecraft's ${kind} ${id} has nothing to draw`)
   return model
 }
