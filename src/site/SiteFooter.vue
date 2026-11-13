@@ -50,7 +50,7 @@
 
 <style scoped>
   .footer {
-    margin-top: var(--footer-gap);
+    margin-top: var(--footer-gap, 0);
     padding: 48px 0 32px;
     font-family: var(--font-ui);
     font-size: 15px;
@@ -58,6 +58,11 @@
     color: var(--muted);
     background: var(--surface);
     border-top: 2px solid var(--line);
+  }
+
+  .wrap {
+    width: min(1120px, 100% - var(--gutter, 16px) * 2);
+    margin-inline: auto;
   }
 
   h2,
@@ -77,12 +82,19 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
+    min-width: 0;
   }
 
   .footer-brand a {
     width: 380px;
     max-width: 100%;
     user-select: none;
+  }
+
+  .footer-brand img {
+    display: block;
+    width: 100%;
+    height: auto;
   }
 
   .footer-brand p {
@@ -133,6 +145,14 @@
     font-size: 14px;
     color: var(--faint);
     border-top: 1px solid var(--line);
+  }
+
+  .footer-bottom a {
+    color: var(--accent);
+  }
+
+  .footer-bottom a:hover {
+    color: var(--accent-hover);
   }
 
   @media (max-width: 600px) {

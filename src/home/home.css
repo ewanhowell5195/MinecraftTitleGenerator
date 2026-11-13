@@ -294,11 +294,12 @@ section + section {
 }
 
 .preset-author {
+  display: flex;
   padding: 2px 16px 14px;
   overflow: hidden;
   font-size: 14px;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: pre;
 }
 
 .placeholder .preset-picture {

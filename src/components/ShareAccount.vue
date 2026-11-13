@@ -34,10 +34,4 @@
     font-weight: 600;
     vertical-align: bottom;
   }
-
-  .buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
 </style>

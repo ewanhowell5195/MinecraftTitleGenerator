@@ -74,6 +74,7 @@
     width: max-content;
     min-width: 170px;
     padding: 4px;
+    line-height: 1.4;
   }
 
   button {
