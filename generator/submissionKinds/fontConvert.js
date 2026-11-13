@@ -33,15 +33,17 @@ async function checked(root, others, skeleton, bytes) {
 
 function writeOwn(root, entry, built) {
   const folder = fontDir(entry, root)
+  const flatFile = path.join(folder, "textures", "flat.png")
+  const submittedFlat = fs.existsSync(flatFile)
   writePng(path.join(folder, "font.png"), pngOf(built.sheet))
-  writePng(path.join(folder, "textures", "flat.png"), flatSheet(built.published, built.capHeight, defaultDepth(entry), 1, built.layers).sheet)
+  if (!submittedFlat) writePng(flatFile, flatSheet(built.published, built.capHeight, defaultDepth(entry), 1, built.layers).sheet)
   writeStarterTextures(folder)
-  checkBundle(folder, built.template)
+  checkBundle(folder, built.template, submittedFlat)
 }
 
-function checkBundle(folder, template) {
+function checkBundle(folder, template, submittedFlat) {
   const list = readJson(path.join(folder, "textures.json"))
-  const images = Object.entries(list.textures).filter(([id]) => id !== "flat").map(([id, data]) => ["textures", id, data]).concat(Object.entries(list.overlays ?? {}).map(([id, data]) => ["overlays", id, data]))
+  const images = Object.entries(list.textures).filter(([id]) => submittedFlat || id !== "flat").map(([id, data]) => ["textures", id, data]).concat(Object.entries(list.overlays ?? {}).map(([id, data]) => ["overlays", id, data]))
   for (const [section, id, data] of images) {
     const image = readPng(path.join(folder, section, `${id}.png`))
     if (data.type === "strip") {

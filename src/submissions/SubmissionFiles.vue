@@ -5,7 +5,7 @@
   import { SUBMISSION_KINDS } from "../lib/submissionKinds/index.js"
   import { submissionExtraUrl, submissionFileUrl } from "../lib/submissionsApi.js"
 
-  const EXTRA_LABELS = { texture: "Texture", overlay: "Overlay", strip: "Strip" }
+  const EXTRA_LABELS = { flat: "Flat texture", texture: "Texture", overlay: "Overlay", strip: "Strip" }
 
   const props = defineProps({
     item: { type: Object, required: true }

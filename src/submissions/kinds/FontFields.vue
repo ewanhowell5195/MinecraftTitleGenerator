@@ -21,7 +21,7 @@
   const DEFAULT_PARENT = "minecraft-ten"
   const NEW_EXAMPLES = ["f8thful", "block-serif", "minecraft-earth"]
   const MODES = [{ value: "new", label: "A new font" }, { value: "variant", label: "A variant" }]
-  const KIND_LABELS = { texture: "Texture", overlay: "Overlay", strip: "Strip" }
+  const KIND_LABELS = { flat: "Flat texture", texture: "Texture", overlay: "Overlay", strip: "Strip" }
 
   defineOptions({ inheritAttrs: false })
 
@@ -45,6 +45,7 @@
 
   const parents = computed(() => popular(fontParents(props.fonts), font => font.id, font => font.name, [DEFAULT_PARENT]).map(font => ({ value: font.id, label: font.name, image: fontThumbnail(props.fonts, font.id) })))
   const extras = computed(() => Array.isArray(props.details.extras) ? props.details.extras : [])
+  const addable = computed(() => EXTRA_KINDS.filter(kind => kind !== "flat" || !extras.value.some(item => item.kind === "flat")))
   const newExamples = computed(() => NEW_EXAMPLES.map(id => props.fonts.find(font => font.id === id && !font.variant)?.name).filter(Boolean))
 
   const mode = computed({
@@ -137,7 +138,7 @@
     <code class="font-id">{{ fontId || "None" }}</code>
   </Field>
   <Field group class="wide" label="Textures, overlays and strips for this font" :error="problems.extras">
-    <p class="hint">Optional. Paint textures and overlays over the font's <a v-if="blankTexture" :href="blankTexture" :download="`${fontId || 'font'}-template.png`">blank texture</a><template v-else>blank texture, from the Textures tab of the font editor</template>, at its size or a whole number of times bigger.<template v-if="stripHeights"> Strips can be {{ either(stripHeights) }} pixels tall.</template> Up to {{ SUBMISSION_LIMITS.extraFiles }} files.</p>
+    <p class="hint">Optional. A flat texture replaces the plain one the font gets otherwise. Paint flat textures, textures and overlays over the font's <a v-if="blankTexture" :href="blankTexture" :download="`${fontId || 'font'}-template.png`">blank texture</a><template v-else>blank texture, from the Textures tab of the font editor</template>, at its size or a whole number of times bigger.<template v-if="stripHeights"> Strips can be {{ either(stripHeights) }} pixels tall.</template> Up to {{ SUBMISSION_LIMITS.extraFiles }} files.</p>
     <div v-for="item of extras" :key="item.key" class="extra">
       <label class="extra-image" v-tooltip="`Choose the ${KIND_LABELS[item.kind].toLowerCase()}'s PNG`">
         <img v-if="imageOf(item.key)" :src="imageOf(item.key)" alt="">
@@ -149,7 +150,7 @@
           <span class="extra-kind">{{ KIND_LABELS[item.kind] }}</span>
           <Button ghost icon="trash" :aria-label="`Remove ${item.name || KIND_LABELS[item.kind].toLowerCase()}`" @click="remove(item.key)" />
         </div>
-        <div class="row">
+        <div v-if="item.kind !== 'flat'" class="row">
           <input type="text" :value="item.name" :maxlength="SUBMISSION_LIMITS.name" placeholder="Name" spellcheck="false" aria-required="true" @input="update(item.key, { name: $event.target.value })">
           <span class="required" aria-hidden="true">*</span>
         </div>
@@ -161,7 +162,7 @@
       </Field>
     </div>
     <div v-if="extras.length < SUBMISSION_LIMITS.extraFiles" class="buttons">
-      <Button v-for="kind of EXTRA_KINDS" :key="kind" @click="add(kind)"><template #icon><Icon name="plus" :size="14" /></template>{{ KIND_LABELS[kind] }}</Button>
+      <Button v-for="kind of addable" :key="kind" @click="add(kind)"><template #icon><Icon name="plus" :size="14" /></template>{{ KIND_LABELS[kind] }}</Button>
     </div>
   </Field>
 </template>

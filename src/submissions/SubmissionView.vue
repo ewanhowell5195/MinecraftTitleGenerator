@@ -46,7 +46,8 @@
   const client = computed(() => CLIENT_KINDS[item.value?.kind])
   const tabs = computed(() => item.value?.kind === "font" ? TABS : TABS.filter(entry => entry.id !== "characters"))
   const gridTexture = computed(() => {
-    const extra = (item.value?.details.extras ?? []).find(entry => entry.key === textureKey.value)
+    const extras = item.value?.details.extras ?? []
+    const extra = extras.find(entry => entry.key === textureKey.value) ?? (textureKey.value ? null : extras.find(entry => entry.kind === "flat"))
     return extra ? { kind: extra.kind, url: submissionExtraUrl(item.value, extra.key) } : null
   })
   const previewLink = computed(() => item.value?.previewUrl && `${item.value.previewUrl}${publishedTitle(item.value, props.fonts)}`)

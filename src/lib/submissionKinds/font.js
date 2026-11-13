@@ -16,7 +16,8 @@ const FONT_ID_LENGTH = 40
 const RESERVED = ["textures", "overlays", "thumbnails"]
 const RESERVED_PREFIXES = ["custom-", "editor-preview-"]
 const LATIN = Array.from("abcdefghijklmnopqrstuvwxyz")
-export const EXTRA_KINDS = ["texture", "overlay", "strip"]
+export const EXTRA_KINDS = ["flat", "texture", "overlay", "strip"]
+export const FLAT_NAME = "Flat"
 const RESERVED_ASSETS = new Set(["flat"].concat(Object.keys(withGenerated({})), Object.keys(GENERATED_EDGE_OVERLAYS)))
 const built = new WeakMap()
 
@@ -171,7 +172,8 @@ function storedTemplate(template) {
 }
 
 function extraFileProblem(bytes, kind, template) {
-  const problem = pngProblem(bytes, kind)
+  const noun = kind === "flat" ? "flat texture" : kind
+  const problem = pngProblem(bytes, noun)
   if (problem || !template) return { problem }
   const size = pngSize(bytes)
   if (kind === "strip") {
@@ -179,7 +181,7 @@ function extraFileProblem(bytes, kind, template) {
     return { problem: heights.includes(size.height) ? null : `Strips for this font have to be ${heightList(heights)} pixels tall, and this one is ${size.height}.` }
   }
   const density = textureDensity(size, template)
-  return density ? { density } : { problem: `The ${kind} has to be the font's template size, ${template.width}x${template.height}, or a whole number of times bigger, and this one is ${size.width}x${size.height}.` }
+  return density ? { density } : { problem: `The ${noun} has to be the font's template size, ${template.width}x${template.height}, or a whole number of times bigger, and this one is ${size.width}x${size.height}.` }
 }
 
 function extrasOf(list, files, kept, template, problems) {
@@ -199,15 +201,17 @@ function extrasOf(list, files, kept, template, problems) {
     }
     keys.add(item.key)
     const key = `extra:${item.key}`
-    const named = textProblem(item.name ?? "", "name", SUBMISSION_LIMITS.name, { required: true, noun: item.kind })
+    const flat = item.kind === "flat"
+    const named = flat ? null : textProblem(item.name ?? "", "name", SUBMISSION_LIMITS.name, { required: true, noun: item.kind })
     const credit = authorList(item.credit)
     const credited = creditProblem(credit, item.kind, false)
-    const name = named ? "" : item.name.trim()
-    const id = name ? assetId(name, new Set()) : ""
+    const name = flat ? FLAT_NAME : named ? "" : item.name.trim()
+    const id = flat ? "" : name ? assetId(name, new Set()) : ""
     const bordered = item.kind !== "overlay"
     const border = bordered && typeof item.border === "string" && HEX_COLOUR.test(item.border) ? item.border.toLowerCase() : null
     const file = files[item.key] ? extraFileProblem(files[item.key], item.kind, template) : { density: Number.isInteger(item.density) && item.density > 1 && item.density <= 64 ? item.density : undefined }
     if (named) problems[key] = named
+    else if (flat && clean.some(other => other.kind === "flat")) problems[key] = "A font can only have one flat texture."
     else if (RESERVED_ASSETS.has(id)) problems[key] = `${name} is the name of one of the font's built in textures or overlays. Give it another name.`
     else if (ids.has(id)) problems[key] = `${name} and ${ids.get(id)} would get the same id. Give each one its own name.`
     else if (credited) problems[key] = credited

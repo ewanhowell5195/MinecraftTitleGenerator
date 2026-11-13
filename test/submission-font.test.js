@@ -193,6 +193,17 @@ describe("checking a font", () => {
     assert.match(wrong.problems["extra:c"], /23, 46, 92, 184, .* or 2944 pixels tall, and this one is 90/)
   })
 
+  test("a font can bundle one flat texture of its own, checked against its template", async () => {
+    const flat = { key: "a", kind: "flat", border: "#AABBCC" }
+    const { problems, details } = await check({ bytes: f8thful, details: { id: "x", extras: [flat] }, files: { a: plainPng(566 * 2, 356 * 2) } })
+    assert.deepEqual(Object.values(problems).filter(Boolean), [])
+    assert.deepEqual(details.extras, [{ key: "a", kind: "flat", name: "Flat", border: "#aabbcc", density: 2 }])
+    const two = await check({ bytes: f8thful, details: { id: "x", extras: [flat, { ...flat, key: "b" }] }, files: { a: plainPng(566, 356), b: plainPng(566, 356) } })
+    assert.match(two.problems["extra:b"], /only have one flat texture/)
+    const wrong = await check({ bytes: f8thful, details: { id: "x", extras: [flat] }, files: { a: plainPng(500, 356) } })
+    assert.match(wrong.problems["extra:a"], /flat texture has to be the font's template size, 566x356/)
+  })
+
   test("a font with depths keeps them, and its template holds a band for each depth", () => {
     const plain = submittedFont(f8thful).font
     const { font: deep, code } = depthCode(plain, 0.5)
@@ -310,6 +321,22 @@ describe("the workflow step", () => {
     assert.ok(JSON.parse(fs.readFileSync(path.join(folder, "textures.json"), "utf8")).textures.gold)
   })
 
+  test("keeps a bundled flat texture instead of making one", async () => {
+    const root = tempRoot()
+    addEntry(root, { id: "test-font", authors: ["Someone"] })
+    const held = hold(root, "test-font", f8thful)
+    const folder = path.join(root, "public/font/test-font")
+    fs.mkdirSync(path.join(folder, "textures"), { recursive: true })
+    fs.writeFileSync(path.join(folder, "textures.json"), `${jsonText({ textures: { flat: { authors: ["Someone"], density: 2, border: "#123456" } }, overlays: {} })}\n`)
+    const painted = plainPng(566 * 2, 356 * 2)
+    fs.writeFileSync(path.join(folder, "textures/flat.png"), painted)
+    await prepare({ root, changed: [held], node: () => {} })
+    assert.equal(sha1(fs.readFileSync(path.join(folder, "textures/flat.png"))), sha1(painted))
+    fs.writeFileSync(path.join(folder, "textures/flat.png"), plainPng(500, 300))
+    hold(root, "test-font", f8thful)
+    await assert.rejects(prepare({ root, changed: [held], node: () => {} }), /flat.png is 500x300/)
+  })
+
   test("refuses a bundled texture that doesn't fit the converted font", async () => {
     const root = tempRoot()
     addEntry(root, { id: "test-font", authors: ["Someone"] })
@@ -409,6 +436,15 @@ describe("sending a font", () => {
     assert.ok(branchFile(id, "public/font/test-font/textures/gold_bricks.png"))
     assert.equal(gh.pulls.get(1).title, "Test Font font")
     assert.equal(gh.commits.get(gh.refs.get(`heads/submission/${id}`)).message, "add Test Font font")
+  })
+
+  test("puts a bundled flat texture in place of the generated one", async () => {
+    const cookie = await signIn()
+    const painted = plainPng(566, 356)
+    const { status, id } = await send(cookie, { details: { id: "test-font", extras: [{ key: "base", kind: "flat", border: "#123456" }] }, extras: { base: painted } })
+    assert.equal(status, 201)
+    assert.deepEqual(JSON.parse(branchFile(id, "public/font/test-font/textures.json").toString()), { textures: { flat: { authors: ["Someone"], border: "#123456" } }, overlays: {} })
+    assert.equal(sha1(branchFile(id, "public/font/test-font/textures/flat.png")), sha1(painted))
   })
 
   test("refuses a bundled file that wasn't sent", async () => {

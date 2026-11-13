@@ -31,6 +31,11 @@ function bundle(row, details, folder) {
   for (const item of extras) {
     const sha = details.files?.[item.key]
     if (!sha) throw new Error(`submission ${row.id} has no file for its ${item.kind} ${item.key}`)
+    if (item.kind === "flat") {
+      list.textures.flat = { authors: authorList(item.credit).length ? authorList(item.credit) : row.credit, ...(item.density > 1 && { density: item.density }), border: item.border }
+      files.push({ path: `public/${folder}/textures/flat.png`, sha })
+      continue
+    }
     const id = assetId(item.name, used)
     used.add(id)
     const entry = { ...(item.kind === "strip" && { type: "strip" }), ...(item.name !== titleCase(id) && { name: item.name }), authors: authorList(item.credit).length ? authorList(item.credit) : row.credit, ...(item.density > 1 && { density: item.density }), ...(item.kind !== "overlay" && { border: item.border }) }

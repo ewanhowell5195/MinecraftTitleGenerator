@@ -2,7 +2,7 @@ import { customFontId } from "../../lib/customFonts.js"
 import { overlayLayer } from "../../lib/settings.js"
 
 const IMPORT_HEIGHT = 40
-const KIND_NAMES = { texture: "Textures", overlay: "Overlays", strip: "Strips" }
+const KIND_NAMES = { flat: "Flat texture", texture: "Textures", overlay: "Overlays", strip: "Strips" }
 
 function parentName(item, fonts) {
   return fonts.find(entry => entry.id === item.target)?.name ?? item.target
