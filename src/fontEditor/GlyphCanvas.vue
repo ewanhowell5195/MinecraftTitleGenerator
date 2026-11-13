@@ -22,6 +22,7 @@
   const MAX_ZOOM_CELL = 160
   const PAN_KEEP = 48
   const KEY_ZOOM = 1.25
+  const TOOLTIP_GAP = 10
   const TOPLINE_COLOUR = "#2f7cf6"
   const BASELINE_COLOUR = "#2dbb4f"
   const STRETCH_COLOUR = "#f59e0b"
@@ -33,6 +34,17 @@
   const tool = ref("pencil")
   const holder = ref(null)
   const canvas = ref(null)
+  const tools = ref(null)
+  const toolGap = ref(TOOLTIP_GAP)
+
+  function measureGap(event) {
+    const trigger = event.target.closest("button, .depth")
+    if (trigger && tools.value) toolGap.value = tools.value.getBoundingClientRect().bottom - trigger.getBoundingClientRect().bottom + TOOLTIP_GAP
+  }
+
+  function toolTip(text) {
+    return { text, tooltipClass: "slow", prefer: "below", tooltipStyle: { "--easy-tooltip-distance": `${toolGap.value}px` } }
+  }
   const available = ref({ width: 300, height: 300 })
   const hover = ref(null)
   const chosenBrush = ref(null)
@@ -527,27 +539,27 @@
 
 <template>
   <section class="drawing">
-    <div class="tools">
+    <div ref="tools" class="tools" @pointerover="measureGap" @focusin="measureGap">
       <span class="group">
-        <Button ghost :active="tool === item.id" v-for="item of TOOLS" :key="item.id" v-tooltip="{ text: `${item.label} (${item.key.toUpperCase()})${item.hint ? `. ${item.hint}` : ''}`, tooltipClass: 'slow' }" :aria-label="item.label" :aria-pressed="tool === item.id" @click="tool = item.id"><template #icon><Icon :name="item.icon" :size="16" /></template></Button>
+        <Button ghost :active="tool === item.id" v-for="item of TOOLS" :key="item.id" v-tooltip="toolTip(`${item.label} (${item.key.toUpperCase()})${item.hint ? `. ${item.hint}` : ''}`)" :aria-label="item.label" :aria-pressed="tool === item.id" @click="tool = item.id"><template #icon><Icon :name="item.icon" :size="16" /></template></Button>
       </span>
       <span v-if="brushes.length > 1" class="group density">
         <span class="group-label">Density</span>
-        <Button ghost :active="brush === size" v-for="size of brushes" :key="size" v-tooltip="{ text: size === 1 ? 'Draw single pixels' : `Draw ${size} pixel blocks`, tooltipClass: 'slow' }" :aria-pressed="brush === size" @click="chosenBrush = size">{{ font.grid / size }}x</Button>
+        <Button ghost :active="brush === size" v-for="size of brushes" :key="size" v-tooltip="toolTip(size === 1 ? 'Draw single pixels' : `Draw ${size} pixel blocks`)" :aria-pressed="brush === size" @click="chosenBrush = size">{{ font.grid / size }}x</Button>
       </span>
-      <span class="group depth" v-tooltip="{ text: 'How far forward the pencil draws. Lower depths sit at the back of the letter', tooltipClass: 'slow' }">
+      <span class="group depth" v-tooltip="toolTip('How far forward the pencil draws. Lower depths sit at the back of the letter')">
         <Slider inline label="Depth" :min="12.5" :max="100" :step="12.5" :typed-min="1" v-model="pencilDepth" />
       </span>
       <span class="group">
         <span class="group-label">Flip</span>
-        <Button ghost v-tooltip="{ text: 'Flip left to right', tooltipClass: 'slow' }" aria-label="Flip left to right" @click="flipX"><template #icon><Icon name="flipX" :size="16" /></template></Button>
-        <Button ghost v-tooltip="{ text: 'Flip upside down', tooltipClass: 'slow' }" aria-label="Flip upside down" @click="flipY"><template #icon><Icon name="flipY" :size="16" /></template></Button>
+        <Button ghost v-tooltip="toolTip('Flip left to right')" aria-label="Flip left to right" @click="flipX"><template #icon><Icon name="flipX" :size="16" /></template></Button>
+        <Button ghost v-tooltip="toolTip('Flip upside down')" aria-label="Flip upside down" @click="flipY"><template #icon><Icon name="flipY" :size="16" /></template></Button>
       </span>
       <span class="group">
         <Button ghost @click="clearGlyph">Clear</Button>
       </span>
       <div class="spacer"></div>
-      <Button ghost class="zoom" :disabled="!zoomed" v-tooltip="{ text: 'Fit to view (0). Zoom with the mouse wheel or a pinch, and move around by dragging outside the character, with the middle mouse button, Space and drag, or two fingers', tooltipClass: 'slow' }" aria-label="Fit to view" @click="fit"><template #icon><Icon name="fit" :size="16" /></template>{{ zoomPercent }}%</Button>
+      <Button ghost class="zoom" :disabled="!zoomed" v-tooltip="toolTip('Fit to view (0). Zoom with the mouse wheel or a pinch, and move around by dragging outside the character, with the middle mouse button, Space and drag, or two fingers')" aria-label="Fit to view" @click="fit"><template #icon><Icon name="fit" :size="16" /></template>{{ zoomPercent }}%</Button>
     </div>
     <div ref="holder" class="holder">
       <canvas ref="canvas" class="board" :class="{ grab: spaceHeld || outside, grabbing: panning }" @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="up" @pointerenter="enter" @pointerleave="leave" @mousedown="noAutoscroll" @wheel="wheel" @contextmenu.prevent></canvas>
