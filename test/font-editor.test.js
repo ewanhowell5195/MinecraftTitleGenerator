@@ -9,7 +9,7 @@ import { DEFAULT_ORDER } from "../src/lib/order.js"
 import { CREEPER, MULTICASE_CHARACTERS, REQUIRED_CHARACTERS, SPACE_CHAR, addCharacters, autoStretch, blankGlyph, blockAt, buildSheet, changeGlyph, characterLabel, charactersOf, sameCharacter, setLetterCase, createFont, exportJson, fillCells, fitGlyph, fontFromFiles, fontFromPublished, glyphOf, isBlank, isOptional, lineCells, lostPixels, moveGlyph, paint, parseFontJson, rectangleCells, removeCharacter, reshapeGlyph, resizeFont, rowOfY, savedCharacters, savedJson, savedSheet, setGlyph, setSquareSize, setStretch, sheetOrder, slug, squareSizeLoss, squaresOf, trimGlyph, widthOf, yOfRow } from "../src/lib/fontEditor.js"
 import { fontFromAscii } from "../src/lib/asciiImport.js"
 import { fontFromOutlines, parseFontFile } from "../src/lib/fontImport.js"
-import { gridShift, rasterise } from "../src/lib/fontOutline.js"
+import { gridShift, lineUnits, rasterise } from "../src/lib/fontOutline.js"
 import { jsonText } from "../src/lib/jsonText.js"
 import { nearestOffset, stripFit } from "../src/lib/submissionKinds/stripFit.js"
 
@@ -682,6 +682,56 @@ describe("importing a font file", () => {
     assert.equal(font.grid, 4)
     assert.ok(!isBlank(glyphOf(font, "m")))
     assert.ok(glyphOf(font, "m").stretch.length > 0)
+  })
+
+  test("the cap height comes from the H, not a font's own cap height setting", async () => {
+    const notdef = new opentype.Glyph({ name: ".notdef", unicode: 0, advanceWidth: 500, path: new opentype.Path() })
+    const built = new opentype.Font({ familyName: "Test", styleName: "Regular", unitsPerEm: 1000, ascender: 800, descender: -200, glyphs: [notdef].concat(Array.from("ABH").map(char => square(1000, char, 700))) })
+    built.tables.os2 = { ...built.tables.os2, sCapHeight: 950 }
+    const font = fontFromOutlines(opentype.parse(built.toArrayBuffer()), { height: 21 })
+    assert.deepEqual(font.glyphs.A.rows, fontFromOutlines(await testFont(), { height: 21 }).glyphs.A.rows)
+  })
+
+  test("the topline and baseline come from the edges most capitals share, not drips or a stray letter", () => {
+    const notdef = new opentype.Glyph({ name: ".notdef", unicode: 0, advanceWidth: 500, path: new opentype.Path() })
+    function dripping(char, depth) {
+      const path = new opentype.Path()
+      for (const [x, y, w, h] of [[0, 0, 700, 700], [100, -depth, 100, depth]]) {
+        path.moveTo(x, y)
+        path.lineTo(x, y + h)
+        path.lineTo(x + w, y + h)
+        path.lineTo(x + w, y)
+        path.close()
+      }
+      return new opentype.Glyph({ name: char, unicode: char.codePointAt(0), advanceWidth: 800, path })
+    }
+    const tall = new opentype.Path()
+    tall.moveTo(0, 0)
+    tall.lineTo(0, 950)
+    tall.lineTo(700, 950)
+    tall.lineTo(700, 0)
+    tall.close()
+    const glyphs = [notdef].concat(Array.from("ABCDEFGH", (char, index) => dripping(char, 100 * (index % 3 + 1))), new opentype.Glyph({ name: "Q", unicode: 81, advanceWidth: 800, path: tall }))
+    const built = new opentype.Font({ familyName: "Test", styleName: "Regular", unitsPerEm: 1000, ascender: 800, descender: -300, glyphs })
+    built.tables.os2 = { ...built.tables.os2, sCapHeight: 950 }
+    assert.deepEqual(lineUnits(opentype.parse(built.toArrayBuffer())), { top: 700, base: 0 })
+  })
+
+  test("a font that sits above zero is moved down onto the baseline", async () => {
+    const notdef = new opentype.Glyph({ name: ".notdef", unicode: 0, advanceWidth: 500, path: new opentype.Path() })
+    const raised = Array.from("ABH", char => {
+      const path = new opentype.Path()
+      path.moveTo(0, 200)
+      path.lineTo(0, 900)
+      path.lineTo(700, 900)
+      path.lineTo(700, 200)
+      path.close()
+      return new opentype.Glyph({ name: char, unicode: char.codePointAt(0), advanceWidth: 800, path })
+    })
+    const built = new opentype.Font({ familyName: "Test", styleName: "Regular", unitsPerEm: 1000, ascender: 1000, descender: 0, glyphs: [notdef].concat(raised) })
+    const font = fontFromOutlines(opentype.parse(built.toArrayBuffer()), { height: 21 })
+    assert.equal(font.glyphs.A.below, 0)
+    assert.deepEqual(font.glyphs.A.rows, fontFromOutlines(await testFont(), { height: 21 }).glyphs.A.rows)
   })
 
   test("a woff2 file imports the same as the font it was made from", async () => {

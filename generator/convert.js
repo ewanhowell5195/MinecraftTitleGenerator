@@ -7,7 +7,7 @@ import decompress from "woff2-encoder/decompress"
 import { authorList } from "../src/lib/authors.js"
 import { parseMask } from "../src/lib/font.js"
 import { englishName } from "../src/lib/fontImport.js"
-import { capUnits, glyphFor, gridShift, pixelGrid, rasterise } from "../src/lib/fontOutline.js"
+import { glyphFor, gridShift, lineUnits, pixelGrid, rasterise } from "../src/lib/fontOutline.js"
 import { jsonText } from "../src/lib/jsonText.js"
 import { DEFAULT_ORDER } from "../src/lib/order.js"
 import { defaultBorder, defaultDepth } from "../src/lib/settings.js"
@@ -116,14 +116,15 @@ const characters = Array.from(order)
 const glyphs = characters.map(char => glyphFor(font, char, lowercase))
 const missing = characters.filter((char, index) => !glyphs[index])
 const target = Number(option("--height") ?? 40)
-const units = capUnits(font)
-const grid = pixelGrid(glyphs.filter(Boolean), units)
+const { top, base } = lineUnits(font)
+const units = top - base
+const grid = pixelGrid(glyphs.filter(Boolean), units, base)
 const blockSize = grid ? Math.max(1, Math.round(target / (units / grid))) : null
 const scale = grid ? blockSize / grid : target / units
 const capHeight = Math.round(units * scale)
 if (!Number.isFinite(scale) || capHeight < 1) throw new Error("could not work out a cap height, pass --height")
 
-const cells = glyphs.map(glyph => sheetCell(glyph ? rasterise(glyph, scale, gridShift(glyph, grid, scale)) : null, Math.round(capHeight / 2)))
+const cells = glyphs.map(glyph => sheetCell(glyph ? rasterise(glyph, scale, gridShift(glyph, grid, scale), base) : null, Math.round(capHeight / 2)))
 const png = pngOf(drawSheet(cells, capHeight))
 
 const space = font.charToGlyph(" ")
