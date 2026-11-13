@@ -21,6 +21,7 @@
 
   const SOURCES = [{ value: "premade", label: "Premade" }, { value: "minecraft", label: "Minecraft" }, { value: "custom", label: "Custom" }]
   const KINDS = [{ value: "block", label: "Blocks" }, { value: "item", label: "Items" }]
+  const STARTING_SHAPES = { block: "cobblestone", item: "diamond_sword" }
 
   const { object } = usePanel("shape")
   const minecraft = isMinecraftShape(object.value.shape)
@@ -76,6 +77,12 @@
     if (isMinecraftShape(object.value.shape)) setShape(object.value.shape, picked)
   }
 
+  function pickStarting() {
+    const ids = models.value?.[kind.value]
+    if (!ids?.length || ids.some(id => object.value.shape === minecraftShape(kind.value, id))) return
+    pick(ids.includes(STARTING_SHAPES[kind.value]) ? STARTING_SHAPES[kind.value] : ids[0])
+  }
+
   function setState(name, value) {
     object.value.blockState = { ...object.value.blockState, [name]: value }
   }
@@ -104,12 +111,15 @@
       if (request !== listRequest) return
       models.value = listed
       keepVersions(gameVersions(version.value))
+      pickStarting()
     } catch (err) {
       if (request !== listRequest) return
       if (err instanceof EulaDeclined) source.value = "premade"
       else failed.value = `Could not load the Minecraft models: ${err.message}`
     }
   }, { immediate: true })
+
+  watch(kind, pickStarting)
 </script>
 
 <template>
