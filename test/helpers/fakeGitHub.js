@@ -114,7 +114,7 @@ export function fakeGitHub(publicKey, { repo, api, files }) {
     if (method === "PUT" && (match = at.match(/^pulls\/(\d+)\/merge$/))) {
       const pull = pulls.get(Number(match[1]))
       if (pull.mergeable_state !== "clean") return json({ message: "Pull Request is not mergeable" }, 405)
-      Object.assign(pull, { state: "closed", merged: true, merge_method: body.merge_method })
+      Object.assign(pull, { state: "closed", merged: true, merge_method: body.merge_method, commit_message: body.commit_message })
       return json({ merged: true })
     }
     if ((match = at.match(/^pulls\/(\d+)$/))) {

@@ -435,7 +435,7 @@ describe("sending a font", () => {
     assert.equal(sha1(branchFile(id, "public/font/test-font/overlays/sparkle.png")), sha1(extras.sparkle))
     assert.ok(branchFile(id, "public/font/test-font/textures/gold_bricks.png"))
     assert.equal(gh.pulls.get(1).title, "Test Font font")
-    assert.equal(gh.commits.get(gh.refs.get(`heads/submission/${id}`)).message, "add Test Font font")
+    assert.equal(gh.commits.get(gh.refs.get(`heads/submission/${id}`)).message, "[CF-Pages-Skip] add Test Font font")
   })
 
   test("puts a bundled flat texture in place of the generated one", async () => {

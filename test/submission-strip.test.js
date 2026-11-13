@@ -200,7 +200,7 @@ describe("sending a strip", () => {
     assert.equal(branchFile(id, SET), `${jsonText({ ...set, textures: { ...set.textures, pale_dawn: { type: "strip", stretch: true, authors: ["Someone"], border: "#3d1f0a" } } })}\n`)
     assert.ok(gh.filesAt(`submission/${id}`).has("public/strips/minecraft-ten/textures/pale_dawn.png"))
     assert.equal(gh.pulls.get(1).title, "Pale Dawn strip for the Minecraft Ten strip type")
-    assert.equal(gh.commits.get(gh.refs.get(`heads/submission/${id}`)).message, "add Pale Dawn strip to the Minecraft Ten strip type")
+    assert.equal(gh.commits.get(gh.refs.get(`heads/submission/${id}`)).message, "[CF-Pages-Skip] add Pale Dawn strip to the Minecraft Ten strip type")
     assert.equal(branchFile(id, FONTS), fs.readFileSync(FONTS, "utf8"))
     assert.deepEqual((await details(id)).details, { border: "#3d1f0a", stretch: true, size: { width: 16, height: 46 } })
   })

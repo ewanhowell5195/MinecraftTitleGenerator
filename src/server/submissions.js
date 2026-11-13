@@ -36,6 +36,7 @@ const PREVIEW_HOST = "minecrafttitlegenerator.pages.dev"
 const WORKFLOW = "submission.yml"
 // the commit message .github/workflows/submission.yml makes after converting
 const WORKFLOW_COMMIT = "add thumbnails and compress textures"
+const PAGES_SKIP = "[CF-Pages-Skip]"
 const SHOWN = "id, kind, target, asset, name, credit, notes, details, file, status, pull, created_at AS createdAt, updated_at AS updatedAt"
 const OWNER = "(SELECT users.provider || ':' || users.provider_id FROM users WHERE users.id = submissions.user_id) AS owner, (SELECT users.name FROM users WHERE users.id = submissions.user_id) AS ownerName, (SELECT users.provider FROM users WHERE users.id = submissions.user_id) AS ownerProvider"
 
@@ -240,7 +241,7 @@ async function syncSubmission(context, row, fonts, open = null) {
   const written = await type.write({ row, details, fonts, read: reader(env, base), taken: takenIds(row, details, fonts, open ?? await openSubmissions(env)) })
   const tree = await github(env, "git/trees", { method: "POST", body: { base_tree: commit.tree.sha, tree: written.files.map(({ path, content, sha }) => ({ path, mode: "100644", type: "blob", ...(sha ? { sha } : { content }) })) } })
   const described = type.describe({ row, details, fonts })
-  const made = await github(env, "git/commits", { method: "POST", body: { message: `add ${phrase(row.name, SUBMISSION_KINDS[row.kind].noun, described.into)}`, tree: tree.sha, parents: [base] } })
+  const made = await github(env, "git/commits", { method: "POST", body: { message: `${PAGES_SKIP} add ${phrase(row.name, SUBMISSION_KINDS[row.kind].noun, described.into)}`, tree: tree.sha, parents: [base] } })
   await moveBranch(env, row.id, made.sha)
   row.asset = written.asset
   const text = pullText(env, new URL(request.url).origin, row, described, written.preview, made.sha)
@@ -591,7 +592,7 @@ export const reviewState = guarded(async context => {
 
 async function mergePull(env, pull) {
   try {
-    await github(env, `pulls/${pull}/merge`, { method: "PUT", body: { merge_method: "squash" } })
+    await github(env, `pulls/${pull}/merge`, { method: "PUT", body: { merge_method: "squash", commit_message: "" } })
   } catch (err) {
     if (err instanceof GitHubError && UNMERGEABLE.includes(err.status)) throw new Refusal(409, "GitHub can't merge this yet. Wait for its checks to finish, or open the pull request to see why.")
     throw err
