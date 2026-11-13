@@ -327,7 +327,24 @@ export function buildAtlas(faces, options) {
     return Array.from(runs.values())
   }
 
-  const packed = []
+  const extras = []
+  for (const block of blocks) {
+    for (const kind of ["top", "bottom"]) {
+      const outward = kind === "top" ? -1 : 1
+      const list = block.group.filter(face => face.kind === kind).map(face => ({ face, span: extent(face.points, 0), level: extent(face.points, 1)[kind === "top" ? "max" : "min"] })).sort((a, b) => (a.level - b.level) * outward)
+      const taken = []
+      for (const item of list) {
+        if (taken.some(other => other.level !== item.level && other.span.min < item.span.max && item.span.min < other.span.max)) {
+          item.face.extra = true
+          extras.push(item.face)
+        } else taken.push(item)
+      }
+    }
+  }
+  const strips = runsOf(extras)
+  if (strips.length) pack(strips.map(face => ({ face, width: extent(face.points, 0).size, height: depth })))
+
+  const packed = strips.slice()
   for (const kind of ["top", "bottom"]) {
     const members = options.internalFaces ? runsOf(faces.filter(face => face.internal && face.kind === kind)) : []
     if (members.length) pack(members.map(face => ({ face, width: extent(face.points, 0).size, height: depth })))
@@ -348,6 +365,7 @@ export function buildAtlas(faces, options) {
   for (const block of blocks) {
     const { bounds, own } = block
     for (const face of block.group) {
+      if (face.extra) continue
       const points = face.mesh ? face.points.map(point => [clamp(point[0], own.minX + INSET, own.maxX - INSET), clamp(point[1], own.minY + INSET, own.maxY - INSET), clamp(point[2], INSET - half, half - INSET)]) : face.points
       if (face.kind === "top") {
         face.uvs = points.map(point => [block.x + (point[0] - bounds.minX), block.y + (half + point[2])])
@@ -391,11 +409,25 @@ export function buildAtlas(faces, options) {
     }
   }
 
+  function copyStrips(target, source) {
+    for (const run of strips) {
+      const block = blockOf.get(run.glyph)
+      const entry = block.entry
+      if (!entry) continue
+      const column = entry.x + Math.round(extent(run.points, 0).min - block.own.minX)
+      const { x, y, width, height } = run.rect
+      const [from, rows] = run.kind === "top" ? [entry.up, entry.upHeight] : [entry.down, entry.downHeight]
+      target.drawImage(source, column * R, from * R, width * R, rows * R, x * SCALE, y * SCALE, width * SCALE, height * SCALE)
+    }
+  }
+
   copyBlocks(ctx, painted.canvas)
 
   function labels() {
     const target = surface(canvas.width, canvas.height, { willReadFrequently: true })
-    copyBlocks(target.ctx, painted.labels())
+    const source = painted.labels()
+    copyBlocks(target.ctx, source)
+    copyStrips(target.ctx, source)
     const data = target.ctx.getImageData(0, 0, canvas.width, canvas.height).data
     for (const { rect, glyph, side, line, from } of wrapped) {
       for (const wrap of painted.wraps) {
@@ -547,6 +579,7 @@ export function buildAtlas(faces, options) {
     ctx.fillRect(rect.x * SCALE, rect.y * SCALE, rect.width * SCALE, rect.height * SCALE)
   }
 
+  const stripStops = painted.fade === null && options.customEdge && options.edgeFill === "gradient" ? gradientStops(options.edgeStops, options.edgeSmooth) : null
   for (const face of packed) {
     const block = blockOf.get(face.glyph)
     const { entry } = block
@@ -588,12 +621,19 @@ export function buildAtlas(faces, options) {
     const front = face.kind === "top" ? (y + height) * SCALE : y * SCALE
     const back = face.kind === "top" ? y * SCALE : (y + height) * SCALE
     const level = extent(face.points, 1).min
+    const strip = { rect: face.rect, glyph: entry.glyph, side: face.kind === "top" ? "up" : "down", line: Math.round(block.own.maxY - level), from: Math.round(span.min - block.own.minX) }
+    if (face.faces[0].extra) {
+      wrapped.push(strip)
+      if (painted.fade !== null) addFade(x * SCALE, y * SCALE, (x + width) * SCALE, (y + height) * SCALE, [0, front], [0, back], painted.fade)
+      else if (stripStops) addGradient(face.rect, [x - strip.from - entry.glyph.wordX, 0], [x - strip.from - entry.glyph.wordX + sheet.wordWidth, 0], stripStops)
+      continue
+    }
     const row = inside(entry.top + Math.round(block.own.maxY - level) - (face.kind === "top" ? 0 : 1), entry.top, entry.height)
     const edge = face.kind === "top" ? row * R : (row + 1) * R - 1
     if (painted.tiles) tile(face.rect, painted.tilesAcrossLine ? column - entry.x + entry.glyph.lineX : 0)
     else drawLine(cornerPixels(painted, column * R, edge, width * R, false, face.kind === "top" ? 1 : -1), face.rect)
     shades.push([face.rect, innerFill(face, block, span, level), options.internalFade, back, front, false])
-    wrapped.push({ rect: face.rect, glyph: entry.glyph, side: face.kind === "top" ? "up" : "down", line: Math.round(block.own.maxY - level), from: Math.round(span.min - block.own.minX) })
+    wrapped.push(strip)
     if (options.internalFade === null && innerGradient && innerGradient.direction !== "up") {
       const start = x - Math.round(span.min - block.own.minX) - entry.glyph.wordX
       addGradient(face.rect, [start, 0], [start + sheet.wordWidth, 0], innerGradient.stops)
@@ -601,6 +641,7 @@ export function buildAtlas(faces, options) {
   }
 
   if (lines) ctx.putImageData(lines, 0, linesTop)
+  copyStrips(ctx, painted.canvas)
   shadeFaces(shades)
 
   if (swatch) {
@@ -616,7 +657,7 @@ export function buildAtlas(faces, options) {
     return { left: x * SCALE, top: (y + depth) * SCALE, right: (x + width) * SCALE, bottom: (y + depth + bounds.height) * SCALE, from: [(from[0] + shiftX) * SCALE, (from[1] + shiftY) * SCALE], to: [(to[0] + shiftX) * SCALE, (to[1] + shiftY) * SCALE] }
   }
 
-  const edgeStops = painted.fade === null && options.customEdge && options.edgeFill === "gradient" ? gradientStops(options.edgeStops, options.edgeSmooth) : null
+  const edgeStops = stripStops
   for (const { x, y, width, bounds, entry } of blocks) {
     if (!entry) continue
     const bottomStrip = y + depth + bounds.height

@@ -4,6 +4,25 @@ const FACE = [255, 255, 255]
 const UP = [176, 176, 176]
 const DOWN = [84, 84, 84]
 
+export function stripLimits(tops, bottoms, capHeight) {
+  return { topline: Math.min(capHeight, Math.max(...tops)), baseline: Math.max(0, Math.min(...bottoms)) }
+}
+
+function stripColumns(glyph, capHeight) {
+  const solid = (row, column) => row >= 0 && row < glyph.height && glyph.mask[row * glyph.width + column] === 1
+  const tops = []
+  const bottoms = []
+  for (let column = 0; column < glyph.width; column++) {
+    for (let row = 0; row < glyph.height; row++) {
+      if (!solid(row, column)) continue
+      if (!solid(row + 1, column)) tops.push([column, glyph.bottom + row + 1])
+      if (!solid(row - 1, column)) bottoms.push([column, glyph.bottom + row])
+    }
+  }
+  const { topline, baseline } = stripLimits(tops.map(([, level]) => level), bottoms.map(([, level]) => level), capHeight)
+  return { up: new Set(tops.filter(([, level]) => level >= topline).map(([column]) => column)), down: new Set(bottoms.filter(([, level]) => level <= baseline).map(([column]) => column)) }
+}
+
 export function flatPixels(cells, capHeight, depth, density = 1, wideStrips = false) {
   const layout = sheetLayout(cells, capHeight, depth)
   let width = 0
@@ -29,10 +48,11 @@ export function flatPixels(cells, capHeight, depth, density = 1, wideStrips = fa
     for (let r = 0; r < glyph.height; r++) {
       for (let c = 0; c < glyph.width; c++) if (solid(glyph.height - 1 - r, c)) paint(at.x + c, at.top + r, FACE)
     }
+    const columns = stripColumns(glyph, capHeight)
     for (let c = 0; c < glyph.width; c++) {
       for (let r = 0; r < depth; r++) {
-        if (wideStrips || solid(glyph.height - 1, c)) paint(at.x + c, at.up + r, UP)
-        if (wideStrips || solid(0, c)) paint(at.x + c, at.down + r, DOWN)
+        if (wideStrips || columns.up.has(c)) paint(at.x + c, at.up + r, UP)
+        if (wideStrips || columns.down.has(c)) paint(at.x + c, at.down + r, DOWN)
       }
     }
   }

@@ -346,6 +346,64 @@ describe("buildText", () => {
   })
 })
 
+describe("top and bottom textures", () => {
+  function shaped(char, rows, bottom = 0) {
+    const width = rows[0].length
+    const mask = Uint8Array.from(rows.slice().reverse().join(""), cell => Number(cell))
+    return { char, width, height: rows.length, bottom, mask }
+  }
+
+  function uvWidths(body, y) {
+    const list = points(body.positions)
+    const widths = []
+    for (let index = 0; index < list.length; index += 3) {
+      if (!list.slice(index, index + 3).every(point => point[1] === y)) continue
+      const us = [index, index + 1, index + 2].map(corner => body.uvs[corner * 2])
+      const vs = [index, index + 1, index + 2].map(corner => body.uvs[corner * 2 + 1])
+      widths.push({ u: [Math.min(...us), Math.max(...us)], v: [Math.min(...vs), Math.max(...vs)] })
+    }
+    return widths
+  }
+
+  function spread(list) {
+    return { u: [Math.min(...list.map(item => item.u[0])), Math.max(...list.map(item => item.u[1]))], v: [Math.min(...list.map(item => item.v[0])), Math.max(...list.map(item => item.v[1]))] }
+  }
+
+  function apart(a, b) {
+    return a.u[1] <= b.u[0] || b.u[1] <= a.u[0] || a.v[1] <= b.v[0] || b.v[1] <= a.v[0]
+  }
+
+  test("a top face at the topline gets the top texture in its own area when an accent sits over it", () => {
+    const rows = ["001100", "001100", "001100", "000000"].concat(new Array(10).fill("111111"))
+    const accented = shaped("e", rows)
+    const { body } = text([place(accented, 0)], {}, { capHeight: 10, glyphs: { e: accented } })
+    const under = spread(uvWidths(body, 10))
+    const accent = spread(uvWidths(body, 14))
+    assert.ok(apart(under, accent))
+    near((under.u[1] - under.u[0]) / (accent.u[1] - accent.u[0]), 3)
+  })
+
+  test("a bottom face at the baseline gets the bottom texture in its own area when a descender runs under it", () => {
+    const rows = new Array(10).fill("111111").concat(["000001", "000001", "111111"])
+    const hooked = shaped("g", rows, -3)
+    const { body } = text([place(hooked, 0)], {}, { capHeight: 10, glyphs: { g: hooked } })
+    const bowl = spread(uvWidths(body, 0))
+    const hook = spread(uvWidths(body, -3))
+    assert.ok(apart(bowl, hook))
+    near((bowl.u[1] - bowl.u[0]) / (hook.u[1] - hook.u[0]), 5 / 6)
+  })
+
+  test("a letter that stops short of the topline still gets the top texture on its highest faces", () => {
+    const rows = ["111111", "000000", "111111"].concat(new Array(3).fill("111111"))
+    const short = shaped("x", rows)
+    const { body } = text([place(short, 0)], {}, { capHeight: 10, glyphs: { x: short } })
+    const top = spread(uvWidths(body, 6))
+    const ledge = uvWidths(body, 4)
+    near((top.u[1] - top.u[0]) / (spread(uvWidths(body, 0)).u[1] - spread(uvWidths(body, 0)).u[0]), 1)
+    assert.ok(ledge.every(item => item.u[1] - item.u[0] < (top.u[1] - top.u[0]) / 2))
+  })
+})
+
 describe("the rear of the text", () => {
   function coordinates(body, zOf) {
     const list = points(body.positions)

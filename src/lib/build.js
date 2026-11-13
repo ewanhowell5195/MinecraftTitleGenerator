@@ -1,4 +1,5 @@
 import { boxFaces, boxesFor } from "./boxes.js"
+import { stripLimits } from "./flatSheet.js"
 import { SPACE } from "./layout.js"
 import { buildAtlas, detailFor } from "./material.js"
 import { remember } from "./maths.js"
@@ -52,6 +53,18 @@ function gentleAt(contours, x, y) {
 function sourceRow(glyph, original, row) {
   const map = glyph.arc?.map
   return original.bottom + (map ? map[Math.max(0, Math.min(map.length - 1, row))] : row)
+}
+
+function stripFaces(body, glyph, original, capHeight) {
+  const levels = body.filter(face => face.kind === "top" || face.kind === "bottom").map(face => {
+    const ys = face.points.map(point => point[1])
+    const level = face.kind === "top" ? sourceRow(glyph, original, Math.max(...ys) - glyph.bottom - 1) + 1 : sourceRow(glyph, original, Math.min(...ys) - glyph.bottom)
+    return { face, level }
+  })
+  const tops = levels.filter(({ face }) => face.kind === "top").map(({ level }) => level)
+  const bottoms = levels.filter(({ face }) => face.kind === "bottom").map(({ level }) => level)
+  const { topline, baseline } = stripLimits(tops, bottoms, capHeight)
+  for (const { face, level } of levels) face.internal = face.kind === "top" ? level < topline : level > baseline
 }
 
 function roundEdges(body, contours, glyph, original, x, reach) {
@@ -173,6 +186,7 @@ export function buildText(font, options) {
     const reach = font.capHeight * EDGE_SHARE
     const shaped = mesh ? font.mesh.tools.meshFaces(mesh, glyph, font.glyphs[char], item.x, depth, reach) : null
     const body = shaped ? shaped.faces : boxFaces(boxes, -depth / 2, depth / 2)
+    if (font.glyphs?.[char]) stripFaces(body, glyph, font.glyphs[char], font.capHeight)
     if (!shaped && font.outlines?.[char]) roundEdges(body, font.outlines[char], glyph, font.glyphs[char], item.x, reach)
     for (const face of body) face.glyph = glyphs.length
     glyphs.push({ body, boxes, rings: shaped?.rings ?? null, spaces: item.spaces, char: glyph.char, rect: { minX: item.x, maxX: item.x + glyph.width, minY: glyph.bottom, maxY: glyph.bottom + glyph.height } })
