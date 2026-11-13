@@ -34,7 +34,7 @@ async function checked(root, others, skeleton, bytes) {
 function writeOwn(root, entry, built) {
   const folder = fontDir(entry, root)
   writePng(path.join(folder, "font.png"), pngOf(built.sheet))
-  writePng(path.join(folder, "textures", "flat.png"), flatSheet(built.published, built.capHeight, defaultDepth(entry)).sheet)
+  writePng(path.join(folder, "textures", "flat.png"), flatSheet(built.published, built.capHeight, defaultDepth(entry), 1, built.layers).sheet)
   writeStarterTextures(folder)
   checkBundle(folder, built.template)
 }

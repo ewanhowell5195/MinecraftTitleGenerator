@@ -3,6 +3,7 @@ import { SHEET_MAX_WIDTH, groupedKerning, parseMask, sheetLayout } from "../font
 import { autoStretch, charactersOf, exportJson, fontFromFiles, glyphOf, isBlank, parseFontJson, parsedSheet, savedJson } from "../fontEditor.js"
 import { DEFAULT_ORDER, TERMINATOR_CLOSE, TERMINATOR_OPEN } from "../order.js"
 import { defaultBorder, defaultDepth } from "../settings.js"
+import { flatLayers, layerSlices } from "../flatSheet.js"
 import { drawSheet } from "../sheet.js"
 import { pngSize } from "../submissions.js"
 import { decodePng, encodePng } from "./png.js"
@@ -98,8 +99,8 @@ function withMarks(font) {
 }
 
 export function drawnCells(font) {
-  const { list, capHeight } = parsedSheet(font, 0)
-  return { cells: list.filter(cell => cell.width), capHeight }
+  const { list, capHeight, layers } = parsedSheet(font, 0)
+  return { cells: list.filter(cell => cell.width), capHeight, layers }
 }
 
 function previewOf(chars) {
@@ -138,7 +139,7 @@ export function storedFont(bytes) {
 }
 
 export function ownFont(font, parentId = null) {
-  const { cells, capHeight } = drawnCells(withMarks(font))
+  const { cells, capHeight, layers } = drawnCells(withMarks(font))
   const drawn = cells.map(cell => cell.char)
   const { order, kerning, ...settings } = exported(font)
   if (settings.basedOn === parentId) delete settings.basedOn
@@ -148,12 +149,12 @@ export function ownFont(font, parentId = null) {
   const preview = previewFor(drawn)
   if (preview) entry.preview = preview
   if (Object.keys(pairs).length) entry.kerning = groupedKerning(pairs)
-  const sheet = drawSheet(cells, capHeight, { keepRows: true })
-  const published = parseMask(sheet.data, sheet.width, sheet.height, drawn.join(""), defaultBorder("top", entry)).list
-  return { cells, capHeight, entry, sheet, published, template: fontTemplate(published, capHeight, defaultDepth(entry)) }
+  const sheet = drawSheet(cells, capHeight, { keepRows: true, layers })
+  const parsed = parseMask(sheet.data, sheet.width, sheet.height, drawn.join(""), defaultBorder("top", entry))
+  return { cells, capHeight, entry, sheet, published: parsed.list, layers: parsed.layers, template: fontTemplate(parsed.list, capHeight, defaultDepth(entry), parsed.layers) }
 }
 
-function fontTemplate(cells, capHeight, depth) {
+function fontTemplate(cells, capHeight, depth, layers = null) {
   let width = 0
   let height = 0
   for (const [glyph, at] of sheetLayout(cells, capHeight, depth)) {
@@ -162,7 +163,8 @@ function fontTemplate(cells, capHeight, depth) {
   }
   const top = Math.max(capHeight, ...cells.map(cell => cell.top))
   const bottom = Math.min(0, ...cells.map(cell => cell.bottom))
-  return { width, height, rows: depth * 2 + top - bottom }
+  if (!layers) return { width, height, rows: depth * 2 + top - bottom }
+  return { width, height: flatLayers(cells, capHeight, depth, layers).height, rows: layerSlices(layers, depth).reduce((sum, slice) => sum + slice.rows * 2 + top - bottom, 0) }
 }
 
 export function finalEntry(skeleton, derived) {

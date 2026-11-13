@@ -8,7 +8,8 @@ import { PNG } from "pngjs"
 import { publishedFonts, readMask } from "../generator/fonts.js"
 import { prepare } from "../generator/submissionKinds/font.js"
 import { flattenFonts, fullOrder, parseMask, sheetLayout, solidMask, splitCells } from "../src/lib/font.js"
-import { addCharacters, autoStretch, buildSheet, exportJson, fontFromPublished, parsedSheet, setGlyph, setLetterCase } from "../src/lib/fontEditor.js"
+import { addCharacters, autoStretch, buildSheet, depthCode, exportJson, fontFromPublished, parsedSheet, setGlyph, setLetterCase } from "../src/lib/fontEditor.js"
+import { flatLayers, layerSlices } from "../src/lib/flatSheet.js"
 import { jsonText } from "../src/lib/jsonText.js"
 import { titleCase } from "../src/lib/names.js"
 import { font as kind } from "../src/lib/submissionKinds/font.js"
@@ -190,6 +191,22 @@ describe("checking a font", () => {
     const wrong = await check({ bytes: f8thful, details: { id: "x", extras }, files: { a: plainPng(500, 356), b: plainPng(566, 356), c: plainPng(1, 90) } })
     assert.match(wrong.problems["extra:a"], /template size, 566x356/)
     assert.match(wrong.problems["extra:c"], /23, 46, 92, 184, .* or 2944 pixels tall, and this one is 90/)
+  })
+
+  test("a font with depths keeps them, and its template holds a band for each depth", () => {
+    const plain = submittedFont(f8thful).font
+    const { font: deep, code } = depthCode(plain, 0.5)
+    const char = Object.keys(deep.glyphs).find(key => deep.glyphs[key].rows.some(row => row.includes("1")))
+    const glyph = deep.glyphs[char]
+    const last = glyph.rows.findLastIndex(row => row.includes("1"))
+    const built = ownFont({ ...deep, glyphs: { ...deep.glyphs, [char]: { ...glyph, rows: glyph.rows.map((row, index) => index === last ? row.replaceAll("1", code) : row) } } })
+    const before = ownFont(plain)
+    assert.deepEqual(built.layers, [1, 0.5])
+    assert.ok(built.published.find(cell => cell.char === char).depths.includes(1))
+    assert.equal(built.template.width, before.template.width)
+    assert.equal(built.template.height, flatLayers(built.published, built.capHeight, defaultDepth(built.entry), built.layers).height)
+    const front = before.template.rows - defaultDepth(built.entry) * 2
+    assert.equal(built.template.rows, layerSlices(built.layers, defaultDepth(built.entry)).reduce((sum, slice) => sum + slice.rows * 2 + front, 0))
   })
 
   test("bundled files need names of their own and a PNG", async () => {
