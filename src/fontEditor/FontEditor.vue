@@ -87,7 +87,7 @@
         <NavTabs class="main-tabs" v-model="tab" :tabs="TABS" />
       </template>
       <div class="spacer"></div>
-      <Button v-if="font" v-tooltip="'Send this font to be added to the title generator'" @click="submitFont"><template #icon><Icon name="upload" :size="16" /></template>Submit</Button>
+      <Button v-if="font" primary v-tooltip="'Send this font to be added to the title generator'" @click="submitFont"><template #icon><Icon name="upload" :size="16" /></template>Submit</Button>
       <AccountMenu />
       <NotificationBell />
     </header>
