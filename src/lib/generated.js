@@ -264,9 +264,17 @@ function solidOf({ width, height, mask }) {
   return (column, row) => column >= 0 && row >= 0 && column < width && row < height && mask[(height - 1 - row) * width + column] === 1
 }
 
+function joinedSolid(glyph) {
+  const joined = joinedMask(glyph, 1)
+  if (!joined) return solidOf(glyph)
+  const solid = solidOf(joined)
+  return (column, row) => solid(column + 1, row + 1)
+}
+
 function crackEdges(glyph) {
   const { width, height } = glyph
   const solid = solidOf(glyph)
+  const filled = joinedSolid(glyph)
   const edges = []
   function runs(side, lines, length, open) {
     for (let line = 0; line <= lines; line++) {
@@ -280,10 +288,10 @@ function crackEdges(glyph) {
       }
     }
   }
-  runs("up", height, width, (line, column) => solid(column, line) && !solid(column, line - 1))
-  runs("down", height, width, (line, column) => solid(column, line - 1) && !solid(column, line))
-  runs("left", width, height, (line, row) => solid(line, row) && !solid(line - 1, row))
-  runs("right", width, height, (line, row) => solid(line - 1, row) && !solid(line, row))
+  runs("up", height, width, (line, column) => solid(column, line) && !filled(column, line - 1))
+  runs("down", height, width, (line, column) => solid(column, line - 1) && !filled(column, line))
+  runs("left", width, height, (line, row) => solid(line, row) && !filled(line - 1, row))
+  runs("right", width, height, (line, row) => solid(line - 1, row) && !filled(line, row))
   return edges
 }
 
@@ -519,6 +527,8 @@ export function generatedAlpha(glyph, kind, layer, capHeight, scale, soft = fals
 function edgeRuns(glyph, side) {
   const { width, height, mask } = glyph
   const row = side === "up" ? height - 1 : 0
+  const joined = joinedMask(glyph, 1)
+  const continues = column => !!joined && joined.mask[(row + 1) * joined.width + column + 1] === 1
   const list = []
   for (let start = 0; start < width;) {
     if (!mask[row * width + start]) {
@@ -527,7 +537,7 @@ function edgeRuns(glyph, side) {
     }
     let end = start
     while (end + 1 < width && mask[row * width + end + 1]) end++
-    list.push([start, end])
+    list.push([start, end, start === 0 && continues(-1), end === width - 1 && continues(width)])
     start = end + 1
   }
   return list
@@ -537,10 +547,10 @@ function rounded(glyph, side, radius, depth, scale) {
   const columns = glyph.width * scale
   const rows = depth * scale
   const out = new Float32Array(columns * rows)
-  for (const [start, end] of edgeRuns(glyph, side)) {
+  for (const [start, end, leftJoined, rightJoined] of edgeRuns(glyph, side)) {
     const size = Math.min(radius, (end - start + 1) / 2, depth) * scale
-    const left = start * scale + size
-    const right = (end + 1) * scale - size
+    const left = leftJoined ? -Infinity : start * scale + size
+    const right = rightJoined ? Infinity : (end + 1) * scale - size
     const top = rows - size
     for (let sd = Math.floor(top); sd < rows; sd++) {
       const sy = side === "up" ? rows - 1 - sd : sd
@@ -572,14 +582,14 @@ export function edgeAlpha(glyph, side, kind, layer, depth, scale, soft = false) 
   const { thickness } = settings
   const { width } = glyph
   const own = new Float32Array(width * depth)
-  for (const [start, end] of edgeRuns(glyph, side)) {
+  for (const [start, end, leftJoined, rightJoined] of edgeRuns(glyph, side)) {
     for (let d = 0; d < depth; d++) {
       const strength = kind === "edge_outline_fade" ? d / Math.max(1, depth - 1) : 1
       const y = side === "up" ? depth - 1 - d : d
       const far = d >= depth - thickness && kind !== "edge_front"
       const front = d < thickness && (kind === "edge_outline" || kind === "edge_front")
       for (let x = start; x <= end; x++) {
-        const atEnd = (x - start < thickness || end - x < thickness) && kind !== "edge_front"
+        const atEnd = (x - start < thickness && !leftJoined || end - x < thickness && !rightJoined) && kind !== "edge_front"
         if (far || front || atEnd) own[y * width + x] = strength
       }
     }

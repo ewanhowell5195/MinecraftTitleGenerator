@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
 import { boxesFor } from "../src/lib/boxes.js"
-import { generatedAlpha } from "../src/lib/generated.js"
+import { crackList, edgeAlpha, generatedAlpha } from "../src/lib/generated.js"
 import { clippedBoxes, joinNeighbours } from "../src/lib/joins.js"
 
 function glyph(rows, placedX) {
@@ -53,6 +53,24 @@ describe("joined characters", () => {
     const [left, right] = linked(glyph(["11"], 0), glyph(["11"], 3))
     assert.equal(left.clips, undefined)
     assert.deepEqual(spans(right), [[0, 3, 5]])
+  })
+
+  test("cracks don't start on a side that joins the next character", () => {
+    const square = Array.from({ length: 24 }, () => "1".repeat(24))
+    const sides = item => new Set(crackList(item, { amount: 100 }).map(crack => crack.side))
+    assert.ok(sides(glyph(square, 0)).has("right"))
+    const [left] = linked(glyph(square, 0), glyph(square, 22))
+    assert.ok(!sides(left).has("right"))
+    assert.ok(sides(left).size)
+  })
+
+  test("an edge outline stays open where the top face carries on into the next character", () => {
+    const middle = (alpha, x) => alpha[2 * 3 + x]
+    const alone = glyph(["111", "111"], 0)
+    const [left] = linked(glyph(["111", "111"], 0), glyph(["111", "111"], 3))
+    assert.equal(middle(edgeAlpha(alone, "up", "edge_outline", {}, 5, 1), 2), 1)
+    assert.equal(middle(edgeAlpha(left, "up", "edge_outline", {}, 5, 1), 2), 0)
+    assert.equal(middle(edgeAlpha(left, "up", "edge_outline", {}, 5, 1), 0), 1)
   })
 
   test("an outline runs round the joined shape, not down the seam", () => {
