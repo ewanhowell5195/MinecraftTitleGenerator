@@ -49,7 +49,7 @@ function sheetSize(layout, depth) {
 export function flatLayers(cells, capHeight, depth, layers, density = 1, wideStrips = false) {
   if (!layers || layers.length < 2) return flatPixels(cells, capHeight, depth, density, wideStrips)
   const slices = layerSlices(layers, depth)
-  const bands = layers.map((_, layer) => flatPixels(cells.map(glyph => ({ ...glyph, mask: layerMask(glyph, layer) })), capHeight, slices[layer].rows, density, wideStrips))
+  const bands = layers.map((_, layer) => flatPixels(cells.map(glyph => ({ ...glyph, mask: layerMask(glyph, layer) })), capHeight, slices[layer].rows, density, wideStrips, layers[layer]))
   const data = new Uint8ClampedArray(bands.reduce((sum, band) => sum + band.data.length, 0))
   let at = 0
   for (const band of bands) {
@@ -111,10 +111,11 @@ export function expandBands(source, width, cells, capHeight, depth, layers) {
   return { data: out, height: size.height * density * layers.length }
 }
 
-export function flatPixels(cells, capHeight, depth, density = 1, wideStrips = false) {
+export function flatPixels(cells, capHeight, depth, density = 1, wideStrips = false, shade = 1) {
   const layout = sheetLayout(cells, capHeight, depth)
   const { width, height } = sheetSize(layout, depth)
   const data = new Uint8ClampedArray(width * density * height * density * 4)
+  const [face, up, down] = [FACE, UP, DOWN].map(colour => colour.map(value => Math.round(value * shade)))
 
   function paint(x, y, colour) {
     for (let j = 0; j < density; j++) {
@@ -129,13 +130,13 @@ export function flatPixels(cells, capHeight, depth, density = 1, wideStrips = fa
   for (const [glyph, at] of layout) {
     const solid = (row, column) => glyph.mask[row * glyph.width + column] === 1
     for (let r = 0; r < glyph.height; r++) {
-      for (let c = 0; c < glyph.width; c++) if (solid(glyph.height - 1 - r, c)) paint(at.x + c, at.top + r, FACE)
+      for (let c = 0; c < glyph.width; c++) if (solid(glyph.height - 1 - r, c)) paint(at.x + c, at.top + r, face)
     }
     const columns = stripColumns(glyph, capHeight)
     for (let c = 0; c < glyph.width; c++) {
       for (let r = 0; r < depth; r++) {
-        if (wideStrips || columns.up.has(c)) paint(at.x + c, at.up + r, UP)
-        if (wideStrips || columns.down.has(c)) paint(at.x + c, at.down + r, DOWN)
+        if (wideStrips || columns.up.has(c)) paint(at.x + c, at.up + r, up)
+        if (wideStrips || columns.down.has(c)) paint(at.x + c, at.down + r, down)
       }
     }
   }

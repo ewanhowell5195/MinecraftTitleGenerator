@@ -43,6 +43,12 @@ describe("layer bands", () => {
     assert.equal(flatLayers([cell], 2, 4, layers, 1, true).height, 12)
   })
 
+  test("each band is darker the further back its layer sits", () => {
+    const sheet = flatLayers([cell], 2, 4, layers, 1, true)
+    const red = (x, y) => sheet.data[(y * sheet.width + x) * 4]
+    assert.deepEqual([red(0, 0), red(0, 2), red(0, 6), red(0, 8)], [176, 255, 88, 128])
+  })
+
   test("expanding puts each slice at its depth and stretches its end rows over the rest", () => {
     const sheet = flatLayers([cell], 2, 4, layers, 1, true)
     const source = new Uint8ClampedArray(sheet.data.length)
