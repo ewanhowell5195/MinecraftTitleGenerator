@@ -1,3 +1,4 @@
+import { joinedMask } from "./joins.js"
 import { clamp } from "./maths.js"
 
 const SIDES = { top: [0, 1], bottom: [0, -1], left: [-1, 0], right: [1, 0] }
@@ -489,6 +490,16 @@ function finePixels(glyph, fine, kind, settings, scale) {
   return upscale(pixels(detailed, kind, scaled), detailed.width, detailed.height, 1, true)
 }
 
+function joinedPixels(glyph, kind, settings) {
+  const pad = Math.ceil((settings.thickness ?? 0) + (settings.inset ?? 0) + (settings.size ?? 0)) + 1
+  const joined = joinedMask(glyph, pad)
+  if (!joined) return pixels(glyph, kind, settings)
+  const full = pixels(joined, kind, settings)
+  const out = new Float32Array(glyph.width * glyph.height)
+  for (let row = 0; row < glyph.height; row++) out.set(full.subarray((row + pad) * joined.width + pad, (row + pad) * joined.width + pad + glyph.width), row * glyph.width)
+  return out
+}
+
 export function generatedAlpha(glyph, kind, layer, capHeight, scale, soft = false) {
   const settings = { ...settingsOf(kind, layer), capHeight }
   const fine = glyph.fine?.(scale) ?? null
@@ -496,7 +507,7 @@ export function generatedAlpha(glyph, kind, layer, capHeight, scale, soft = fals
   if (kind === "wave" || kind === "wave_inverted") return waveFill(glyph, kind, settings, scale, fine)
   if (kind === "cracks") return crackFaces(glyph, layer, scale, fine, soft)
   if (fine && kind !== "corners") return finePixels(glyph, fine, kind, settings, scale)
-  const alpha = upscale(pixels(glyph, kind, settings), glyph.width, glyph.height, scale, true)
+  const alpha = upscale(joinedPixels(glyph, kind, settings), glyph.width, glyph.height, scale, true)
   if (fine) {
     const columns = glyph.width * scale
     const rows = glyph.height * scale

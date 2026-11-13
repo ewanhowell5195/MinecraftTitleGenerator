@@ -1,5 +1,6 @@
 import { surface } from "./canvas.js"
 import { lineLayout } from "./layout.js"
+import { joinNeighbours } from "./joins.js"
 import { faceDepth } from "./material.js"
 import { remember } from "./maths.js"
 import { glyphKey } from "./order.js"
@@ -79,6 +80,7 @@ export function arcLayout(font, sheet, words, word, options) {
   let x = 0
   let height = 0
   let previous = null
+  const chain = []
   function extend(item, glyph, lift = 0) {
     line.minX = Math.min(line.minX, item.x)
     line.maxX = Math.max(line.maxX, item.x + glyph.width)
@@ -107,6 +109,7 @@ export function arcLayout(font, sheet, words, word, options) {
       Object.defineProperty(glyph, "previous", { value: previous })
     }
     previous = glyph
+    chain.push(glyph)
     const mesh = font.mesh?.glyphs[item.glyph.char]
     if (mesh) glyph.fine = font.mesh.tools.fineMasks(mesh, glyph, item.glyph)
     tallest.top = Math.max(tallest.top, glyph.arc.top)
@@ -122,6 +125,7 @@ export function arcLayout(font, sheet, words, word, options) {
     x += glyph.width + GAP
     height = Math.max(height, down + depth + GAP)
   }
+  joinNeighbours(chain)
   for (const extent of [tallest, reach]) {
     for (const side of ["top", "bottom"]) if (extent[side] === -Infinity) extent[side] = 0
   }

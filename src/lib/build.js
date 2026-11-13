@@ -1,5 +1,6 @@
 import { boxFaces, boxesFor } from "./boxes.js"
 import { layerMask, stripLimits } from "./flatSheet.js"
+import { clippedBoxes } from "./joins.js"
 import { SPACE } from "./layout.js"
 import { buildAtlas, detailFor, stackAtlases } from "./material.js"
 import { remember } from "./maths.js"
@@ -76,8 +77,8 @@ function sliceFaces(glyph, x, depth, layers) {
     const far = (next === undefined ? 0 : layers[next]) * depth - depth / 2
     const keep = glyph.mask.map((solid, at) => solid && glyph.depths[at] <= layer ? 1 : 0)
     const exposed = glyph.mask.map((solid, at) => solid && glyph.depths[at] === layer ? 1 : 0)
-    const sides = boxesFor(keep, glyph.width, glyph.height, x, glyph.bottom).map(box => ({ ...box, faces: { ...box.faces, front: next === undefined, back: false } }))
-    const fronts = boxesFor(exposed, glyph.width, glyph.height, x, glyph.bottom).map(box => ({ ...box, faces: { back: true } }))
+    const sides = clippedBoxes(boxesFor(keep, glyph.width, glyph.height, x, glyph.bottom), glyph, x).map(box => ({ ...box, faces: { ...box.faces, front: next === undefined, back: false } }))
+    const fronts = clippedBoxes(boxesFor(exposed, glyph.width, glyph.height, x, glyph.bottom), glyph, x).map(box => ({ ...box, faces: { back: true } }))
     const slice = boxFaces(sides.concat(fronts), far, near)
     for (const face of slice) face.layer = layer
     faces.push(...slice)
@@ -198,7 +199,7 @@ export function buildText(font, options) {
   const glyphs = []
   for (const item of placed) {
     const glyph = item.glyph
-    const boxes = boxesFor(glyph.mask, glyph.width, glyph.height, item.x, glyph.bottom)
+    const boxes = clippedBoxes(boxesFor(glyph.mask, glyph.width, glyph.height, item.x, glyph.bottom), glyph, item.x)
     const char = baseChar(glyph.char)
     const mesh = font.mesh?.glyphs[char]
     const reach = font.capHeight * EDGE_SHARE
@@ -210,7 +211,7 @@ export function buildText(font, options) {
     } else if (font.glyphs?.[char]) stripFaces(body, glyph, font.glyphs[char], font.capHeight)
     if (!shaped && font.outlines?.[char]) roundEdges(body, font.outlines[char], glyph, font.glyphs[char], item.x, reach)
     for (const face of body) face.glyph = glyphs.length
-    const slabs = sliced ? font.layers.map((_, layer) => boxesFor(layerMask(glyph, layer), glyph.width, glyph.height, item.x, glyph.bottom)) : null
+    const slabs = sliced ? font.layers.map((_, layer) => clippedBoxes(boxesFor(layerMask(glyph, layer), glyph.width, glyph.height, item.x, glyph.bottom), glyph, item.x)) : null
     glyphs.push({ body, boxes, slabs, rings: shaped?.rings ?? null, spaces: item.spaces, char: glyph.char, rect: { minX: item.x, maxX: item.x + glyph.width, minY: glyph.bottom, maxY: glyph.bottom + glyph.height } })
     expand(bounds, body)
   }
