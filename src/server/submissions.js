@@ -37,6 +37,7 @@ const WORKFLOW = "submission.yml"
 // the commit message .github/workflows/submission.yml makes after converting
 const WORKFLOW_COMMIT = "add thumbnails and compress textures"
 const PAGES_SKIP = "[CF-Pages-Skip]"
+const EDITABLE = ["kind", "target", "name", "credit", "notes", "details", "file"]
 const SHOWN = "id, kind, target, asset, name, credit, notes, details, file, status, pull, created_at AS createdAt, updated_at AS updatedAt"
 const OWNER = "(SELECT users.provider || ':' || users.provider_id FROM users WHERE users.id = submissions.user_id) AS owner, (SELECT users.name FROM users WHERE users.id = submissions.user_id) AS ownerName, (SELECT users.provider FROM users WHERE users.id = submissions.user_id) AS ownerProvider"
 
@@ -457,6 +458,19 @@ export const createSubmission = guarded(async context => {
   return reply(201, { id: row.id, pull: row.pull })
 })
 
+function sorted(value) {
+  if (Array.isArray(value)) return value.map(sorted)
+  if (value === null || typeof value !== "object") return value
+  return Object.fromEntries(Object.keys(value).sort().map(key => [key, sorted(value[key])]))
+}
+
+function sameSubmission(before, after) {
+  return EDITABLE.every(key => {
+    const read = row => key === "details" ? JSON.parse(row.details) : row[key]
+    return JSON.stringify(sorted(read(before))) === JSON.stringify(sorted(read(after)))
+  })
+}
+
 export const editSubmission = guarded(async context => {
   const { env } = context
   const { user, row, role } = await ownSubmission(context, true)
@@ -464,6 +478,7 @@ export const editSubmission = guarded(async context => {
   const { clean, fonts, bytes, files } = await readForm(context, row)
   const file = bytes ? await onGitHub(() => uploadFile(env, bytes)) : row.file
   const changed = { ...row, ...await onGitHub(() => withFiles(env, clean, files)), file, notes: mine ? clean.notes : row.notes }
+  if (sameSubmission(row, changed)) return reply(200, { submission: shown(env, row, user) })
   await onGitHub(async () => {
     await syncSubmission(context, changed, fonts)
     await noteEdit(env, changed, user, role)

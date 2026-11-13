@@ -233,6 +233,26 @@ describe("a sent submission", () => {
     assert.equal(gh.pulls.size, 1)
   })
 
+  test("saving without changing anything leaves the branch, pull request and notifications alone", async () => {
+    const cookie = await signIn()
+    const { id } = await send(cookie)
+    const head = gh.refs.get(`heads/submission/${id}`)
+    const comments = gh.comments.length
+    const notes = () => db.prepare("SELECT COUNT(*) AS total FROM notifications").get().total
+    const before = notes()
+    const same = await edit(cookie, id, {})
+    assert.equal(same.status, 200)
+    assert.equal(same.submission.name, "Gold Bricks")
+    assert.equal(gh.refs.get(`heads/submission/${id}`), head)
+    assert.equal(gh.comments.length, comments)
+    assert.equal(notes(), before)
+    const again = await edit(cookie, id, {}, pngOf(FLAT.width, FLAT.height))
+    assert.equal(gh.refs.get(`heads/submission/${id}`), head)
+    assert.equal(again.status, 200)
+    await edit(cookie, id, { name: "Shiny Gold" })
+    assert.notEqual(gh.refs.get(`heads/submission/${id}`), head)
+  })
+
   test("needs the image again to move to another font", async () => {
     const cookie = await signIn()
     const { id } = await send(cookie)
