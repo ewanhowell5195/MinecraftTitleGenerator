@@ -265,8 +265,13 @@ describe("layout spaces", () => {
     assert.equal(placed[1].spaces, 2)
   })
 
-  test("spacing also applies to spaces", () => {
-    assert.deepEqual(xsOf(layout(fontOf("ab"), "a b", { spacing: 2 })), [1, 19])
+  test("a space adds its width on top of one spacing between the letters", () => {
+    assert.deepEqual(xsOf(layout(fontOf("ab"), "a b", { spacing: 4 })), [1, 19])
+    assert.deepEqual(xsOf(layout(fontOf("ab"), "a b", { spacing: -8 })), [1, 7])
+  })
+
+  test("a modelled space is spaced like any other character", () => {
+    assert.deepEqual(xsOf(layout(fontOf("ab "), "a b", { spacing: 4 })).at(-1), 21)
   })
 })
 

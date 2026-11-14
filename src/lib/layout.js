@@ -71,7 +71,7 @@ export function lineLayout(font, words, options) {
   let spaces = 0
   for (const { char, word, width } of chars) {
     if (char === " " && !font.glyphs[" "]) {
-      pen += (width ?? space) + spacing
+      pen += width ?? space
       last = null
       spaces++
       continue
