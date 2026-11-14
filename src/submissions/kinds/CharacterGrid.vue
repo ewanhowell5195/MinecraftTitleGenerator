@@ -5,7 +5,7 @@
   import TileGrid from "../../components/TileGrid.vue"
   import { fetched } from "../../lib/api.js"
   import { pixelsOf } from "../../lib/canvas.js"
-  import { layerSlices } from "../../lib/flatSheet.js"
+  import { bandLayouts } from "../../lib/flatSheet.js"
   import { loadImage, sheetLayout } from "../../lib/font.js"
   import { characterName, exportJson, flatTexture, parsedSheet } from "../../lib/fontEditor.js"
   import { defaultBorder, defaultDepth } from "../../lib/settings.js"
@@ -53,20 +53,24 @@
     return Math.max(1, Math.round(exact))
   }
 
-  function colourAt(cell, at, ox, oy, density) {
+  function colourAt(cell, { at, offset }, ox, oy, density) {
     const { flat, depth } = drawn.value
     const source = sheet.value
     const cx = Math.floor(ox / density)
     const cy = Math.floor(oy / density)
-    const base = pixel(flat, at.x + cx, at.top + cy)
+    const base = pixel(flat, at.x + cx, offset + at.top + cy)
     if (!source) return base
     if (source.kind === "strip") return pixel(source, ox % source.width, (depth + span.value.top - cell.top + cy) * density + oy % density)
-    const painted = pixel(source, at.x * density + ox, at.top * density + oy)
+    const painted = pixel(source, at.x * density + ox, (offset + at.top) * density + oy)
     return source.kind === "overlay" ? overlaid(base, painted) : painted
   }
 
+  function placeOf(cell, at) {
+    const band = drawn.value.bands[cell.depths?.[at] ?? 0]
+    return { at: band.layout.get(cell), offset: band.offset }
+  }
+
   function glyphImage(cell) {
-    const at = drawn.value.positions.get(cell)
     const density = sheet.value ? densityOf(sheet.value) : 1
     const width = cell.width * density
     const height = cell.height * density
@@ -77,7 +81,8 @@
     const image = ctx.createImageData(width, height)
     for (let oy = 0; oy < height; oy++) {
       for (let ox = 0; ox < width; ox++) {
-        if (cell.mask[(cell.height - 1 - Math.floor(oy / density)) * cell.width + Math.floor(ox / density)]) image.data.set(colourAt(cell, at, ox, oy, density), (oy * width + ox) * 4)
+        const at = (cell.height - 1 - Math.floor(oy / density)) * cell.width + Math.floor(ox / density)
+        if (cell.mask[at]) image.data.set(colourAt(cell, placeOf(cell, at), ox, oy, density), (oy * width + ox) * 4)
       }
     }
     ctx.putImageData(image, 0, 0)
@@ -93,7 +98,7 @@
       const entry = exportJson(font, "")
       const depth = defaultDepth(entry)
       const { list, capHeight, layers } = parsedSheet(font, defaultBorder("top", entry))
-      drawn.value = { letterCase: font.letterCase, cells: list.filter(cell => cell.width), positions: sheetLayout(list, capHeight, layers ? layerSlices(layers, depth)[0].rows : depth), depth, flat: flatTexture(font) }
+      drawn.value = { letterCase: font.letterCase, cells: list.filter(cell => cell.width), bands: layers ? bandLayouts(list, capHeight, depth, layers) : [{ layout: sheetLayout(list, capHeight, depth), offset: 0 }], depth, flat: flatTexture(font) }
     } catch (err) {
       problem.value = err.message
     }
