@@ -230,5 +230,10 @@
       "width": 40,
       "grid": 2
     }
+  },
+  {
+    "id": "mc-burokku-regular",
+    "name": "MC Burokku",
+    "authors": ["TheSamir_MC"]
   }
 ]
