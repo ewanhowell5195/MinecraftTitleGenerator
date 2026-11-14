@@ -92,7 +92,7 @@
 <style scoped>
   .drop {
     position: fixed;
-    inset: 12px;
+    inset: 0;
     z-index: 100;
     display: flex;
     align-items: center;
