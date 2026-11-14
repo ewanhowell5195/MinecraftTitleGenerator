@@ -9,6 +9,7 @@
   import SiteFooter from "../site/SiteFooter.vue"
   import Tile from "../components/Tile.vue"
   import TileGrid from "../components/TileGrid.vue"
+  import UploadField from "../components/UploadField.vue"
   import { fullName, loadFontList } from "../lib/font.js"
   import { LETTER_CASES, createFont, setLetterCase } from "../lib/fontEditor.js"
   import { fontCredit } from "../lib/credits.js"
@@ -103,7 +104,7 @@
         <section class="choice">
           <h2>Open a saved font</h2>
           <p class="hint">Choose a JSON from this editor, a font.png, or both. Whatever's missing is worked out or left at its default.</p>
-          <Button file wide multiple accept=".png,.json,image/png,application/json" @change="upload"><template #icon><Icon name="open" /></template>Choose files</Button>
+          <UploadField multiple accept=".png,.json,image/png,application/json" label="Choose files" empty="Drop a font JSON, a font.png, or both" @change="upload" />
 
           <h2 class="second">Import a font file</h2>
           <p class="hint">Turns a .ttf, .otf, .woff or .woff2, or a Minecraft ascii.png, into pixels at this height, ready for you to edit. Square size is how many pixels each square is, for font files that aren't already drawn on a pixel grid. Each character can go back to its imported shape.</p>
@@ -112,7 +113,7 @@
             <Field label="Square size"><NumberInput min="1" v-model.number="importDensity" /></Field>
           </div>
           <Segments label="Letter case" :options="LETTER_CASES" v-model="letterCase" />
-          <Button file wide :disabled="!importable" accept=".ttf,.otf,.woff,.woff2,.png,font/ttf,font/otf,font/woff,font/woff2,image/png" @change="importFile"><template #icon><Icon name="open" /></template>Choose font file</Button>
+          <UploadField :disabled="!importable" accept=".ttf,.otf,.woff,.woff2,.png,font/ttf,font/otf,font/woff,font/woff2,image/png" label="Choose font file" empty="Drop a font file or an ascii.png" @change="importFile" />
         </section>
 
         <section class="choice wide-choice">

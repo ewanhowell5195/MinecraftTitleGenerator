@@ -8,6 +8,7 @@
   import NavTabs from "../components/NavTabs.vue"
   import Segments from "../components/Segments.vue"
   import SignInButtons from "../components/SignInButtons.vue"
+  import UploadField from "../components/UploadField.vue"
   import { fetched } from "../lib/api.js"
   import { AUTHOR_LIMITS, authorList } from "../lib/authors.js"
   import { account } from "../lib/community.js"
@@ -288,7 +289,7 @@
     </div>
     <Segments v-if="group === 'texture'" v-model="kind" :options="TEXTURE_KINDS" label="Kind of texture" :hint="ABOUT[kind]" />
     <Segments v-if="group === 'shape'" v-model="kind" :options="SHAPE_KINDS" label="Kind of shape" :hint="ABOUT[kind]" />
-    <div class="stage-area" :class="{ dragging }" @dragover.prevent="dragging = true" @dragleave.self="dragging = false" @drop.prevent="drop">
+    <div class="stage-area" :class="{ dragging, loaded: fileUrl || chosen }" @dragover.prevent="dragging = true" @dragleave.self="dragging = false" @drop.prevent="drop">
       <template v-if="fileUrl || chosen">
         <component :is="parts.Preview" v-bind="linked.preview" :fonts="fonts" :kind="kind" :target="target" :details="details" :files="extras" :initial="initial" :url="fileUrl" :text="previewText || name || 'Minecraft'" />
         <div class="stage-bar">
@@ -300,12 +301,12 @@
           </Button>
         </div>
       </template>
-      <label v-else class="drop">
-        <Icon name="upload" :size="32" />
-        <strong>Drop your {{ CLIENT_KINDS[kind].file }} here <span class="required" aria-hidden="true">*</span></strong>
-        <span class="button">Choose a file</span>
-        <input type="file" :accept="isImage ? 'image/png' : '.json,application/json'" @change="pick">
-      </label>
+      <UploadField v-else class="drop" :accept="isImage ? 'image/png' : '.json,application/json'" label="Choose a file" @change="pick">
+        <template #preview>
+          <Icon name="upload" :size="32" />
+          <strong>Drop your {{ CLIENT_KINDS[kind].file }} here <span class="required" aria-hidden="true">*</span></strong>
+        </template>
+      </UploadField>
     </div>
     <p v-if="!problemInBar && fileProblem && (tried || chosen)" class="hint bad">{{ fileProblem }}</p>
     <div class="kind-fields">
@@ -368,12 +369,16 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    outline: 2px dashed transparent;
-    outline-offset: 4px;
   }
 
-  .stage-area.dragging:not(:has(> .drop)) {
-    outline-color: var(--accent);
+  .stage-area.loaded {
+    padding: 12px;
+    background: var(--field);
+    border: 2px dashed var(--line-strong);
+  }
+
+  .stage-area.loaded.dragging {
+    border-color: var(--accent);
   }
 
   .stage-area :deep(.render) {
@@ -409,22 +414,11 @@
   }
 
   .drop {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
     justify-content: center;
     gap: 12px;
     height: 340px;
     color: var(--faint);
     background: var(--checker);
-    border: 2px dashed var(--line-strong);
-    cursor: pointer;
-    user-select: none;
-  }
-
-  .drop:hover,
-  .dragging .drop {
-    border-color: var(--accent);
   }
 
   .drop strong {

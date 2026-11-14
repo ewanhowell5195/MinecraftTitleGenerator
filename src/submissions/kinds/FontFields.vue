@@ -8,7 +8,7 @@
   import NameList from "../../components/NameList.vue"
   import Segments from "../../components/Segments.vue"
   import Toggle from "../../components/Toggle.vue"
-  import { vFileDrop } from "../../lib/fileDrop.js"
+  import UploadField from "../../components/UploadField.vue"
   import { flatTexture } from "../../lib/fontEditor.js"
   import { popular } from "../../lib/stats.js"
   import { EXTRA_KINDS, fontParents, submittedFontId } from "../../lib/submissionKinds/font.js"
@@ -147,11 +147,7 @@
     <p class="hint">Optional. A flat texture replaces the plain one the font gets otherwise. Paint flat textures, textures and overlays over the font's <a v-if="blankTexture" :href="blankTexture" :download="`${fontId || 'font'}-template.png`">blank texture</a><template v-else>blank texture, from the Textures tab of the font editor</template>, at its size or a whole number of times bigger.<template v-if="stripHeights"> Strips can be {{ either(stripHeights) }} pixels tall.</template> Up to {{ SUBMISSION_LIMITS.extraFiles }} files.</p>
     <p class="hint">The primary texture is what top and small lines start with, and the secondary is what bottom lines start with. Without a secondary, bottom lines use the primary, and without a primary, every line starts flat. Set one texture as both to keep the bottom line on the primary.</p>
     <div v-for="item of extras" :key="item.key" class="extra">
-      <label v-file-drop class="extra-image" v-tooltip="`Choose the ${KIND_LABELS[item.kind].toLowerCase()}'s PNG`">
-        <img v-if="imageOf(item.key)" :src="imageOf(item.key)" alt="">
-        <span v-else class="hint">PNG</span>
-        <input type="file" accept="image/png" @change="pick(item.key, $event)">
-      </label>
+      <UploadField class="extra-image" accept="image/png" :label="imageOf(item.key) ? 'Replace' : 'Choose'" empty="PNG" :image="imageOf(item.key)" v-tooltip="`Choose the ${KIND_LABELS[item.kind].toLowerCase()}'s PNG`" @change="pick(item.key, $event)" />
       <Field group class="extra-fields" :error="tried || files[item.key] ? problems[`extra:${item.key}`] : ''">
         <div class="row">
           <span class="extra-kind">{{ KIND_LABELS[item.kind] }}</span>
@@ -195,26 +191,10 @@
   }
 
   .extra-image {
-    display: flex;
     flex: none;
-    align-items: center;
     justify-content: center;
-    width: 72px;
-    height: 72px;
+    width: 140px;
     background: var(--checker);
-    border: 2px dashed var(--line-strong);
-    cursor: pointer;
-    user-select: none;
-  }
-
-  .extra-image.file-over {
-    border-color: var(--accent);
-  }
-
-  .extra-image img {
-    max-width: 100%;
-    max-height: 100%;
-    image-rendering: pixelated;
   }
 
   .extra-fields {

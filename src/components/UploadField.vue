@@ -1,50 +1,53 @@
 <script setup>
   import { vFileDrop } from "../lib/fileDrop.js"
-  import Button from "./Button.vue"
+  import Icon from "./Icon.vue"
 
   defineProps({
     accept: { type: String, required: true },
     label: { type: String, required: true },
     empty: { type: String, default: "" },
     image: { type: String, default: null },
-    disabled: { type: Boolean, default: false }
+    disabled: { type: Boolean, default: false },
+    multiple: { type: Boolean, default: false }
   })
 
   const emit = defineEmits(["change"])
 </script>
 
 <template>
-  <div v-file-drop class="upload-field">
+  <label v-file-drop class="upload-field" :class="{ disabled }">
     <slot name="preview">
-      <div class="upload-preview">
-        <img v-if="image" :src="image" alt="">
-        <div v-else class="empty-state">{{ empty }}</div>
-      </div>
+      <img v-if="image" class="upload-image" :src="image" alt="">
+      <span v-else class="empty-state">{{ empty }}</span>
     </slot>
-    <Button file wide icon="open" :accept="accept" :disabled="disabled" @change="emit('change', $event)"><span>{{ label }}</span></Button>
-  </div>
+    <span class="button" :class="{ disabled }"><Icon name="open" :size="16" /><span>{{ label }}</span></span>
+    <input type="file" :accept="accept" :multiple="multiple" :disabled="disabled" @change="emit('change', $event)">
+  </label>
 </template>
 
 <style scoped>
   .upload-field {
-    display: contents;
-  }
-
-  .upload-preview {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    min-height: 88px;
-    padding: 8px;
+    gap: 10px;
+    padding: 12px;
     background: var(--field);
     border: 2px dashed var(--line-strong);
+    cursor: pointer;
+    user-select: none;
   }
 
-  .upload-field.file-over .upload-preview {
+  .upload-field:hover:not(.disabled),
+  .upload-field.file-over {
     border-color: var(--accent);
   }
 
-  .upload-preview img {
+  .upload-field.disabled {
+    cursor: not-allowed;
+  }
+
+  .upload-image {
     min-width: 48px;
     min-height: 48px;
     max-width: 100%;
