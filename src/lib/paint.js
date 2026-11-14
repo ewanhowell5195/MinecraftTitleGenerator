@@ -1,11 +1,11 @@
 import { fadeStops, fillPattern, linearGradient, surface } from "./canvas.js"
 import { hexOf, packed } from "./colour.js"
 import { PLACED_KINDS, SMOOTH_KINDS, WRAPPED_KINDS, crackList, crackTriangle, crackWrap, edgeAlpha, generatedAlpha, wrapTriangles } from "./generated.js"
-import { layerMask } from "./flatSheet.js"
+import { layerLeft, layerMask } from "./flatSheet.js"
 import { joinNeighbours } from "./joins.js"
 import { gradientLine, gradientStops } from "./material.js"
 import { clamp, remember } from "./maths.js"
-import { stripY } from "./strips.js"
+import { MISSING, stripHasRow, stripY } from "./strips.js"
 
 export const R = 4
 
@@ -240,7 +240,7 @@ function paintStrip(ctx, entries, strip) {
   const stretched = strip.scale && Number.isInteger(strip.density) && spans.length ? stretchedStrip(strip, Math.min(...spans), high) : null
   for (const [entry, list] of runs) {
     const { glyph, source } = entry
-    const origin = strip.tiling === "character" ? entry.x : entry.x - glyph.lineX
+    const origin = strip.tiling === "character" ? entry.x + layerLeft(glyph, strip.band) : entry.x - glyph.lineX + layerLeft(glyph.lineFirst ?? glyph, strip.band)
     for (const { row, from, height } of list) {
       if (stretched) {
         const y = entry.top + glyph.height - 1 - row
@@ -266,7 +266,25 @@ function paintStrip(ctx, entries, strip) {
       stretchRow(ctx, strip, origin, from, [entry.x, y, entry.width, start])
       stretchRow(ctx, strip, origin, from + strip.depth - 1, [entry.x, y + start + size, entry.width, depth - start - size])
     }
+    const missing = list.flatMap(({ row, from, height }) => Array.from({ length: height }, (_, step) => [row + step, source.glyph.bottom + from + step])).filter(([, at]) => !stripHasRow(strip, at))
+    if (!missing.length) continue
+    fillPattern(ctx, missingTexture(), new DOMMatrix())
+    fillRects(ctx, missing.map(([row]) => [entry.x, entry.top + glyph.height - 1 - row, entry.width, 1]))
   }
+}
+
+let checker = null
+
+function missingTexture() {
+  if (checker) return checker
+  const { canvas, ctx } = surface(R * 2, R * 2)
+  const [pink, black] = MISSING.map(([r, g, b]) => `rgb(${r}, ${g}, ${b})`)
+  ctx.fillStyle = black
+  ctx.fillRect(0, 0, R * 2, R * 2)
+  ctx.fillStyle = pink
+  ctx.fillRect(0, 0, R, R)
+  ctx.fillRect(R, R, R, R)
+  return checker = canvas
 }
 
 function stretchRow(ctx, strip, origin, row, rect) {
@@ -490,7 +508,7 @@ export function paintKey(sheet, assets, look) {
   const placed = assets.overlays.some(overlay => PLACED_KINDS.has(overlay.source.generated))
   const lined = assets.strip?.tiling === "line" || look.source === "tile" && !look.tileablePerCharacter
   const worded = look.wordedFaces || look.source === "gradient" && look.gradientAngle % 180 !== 0
-  return JSON.stringify([sheet.width, sheet.height, sheet.tallest, worded ? sheet.wordWidth : null, Object.values(sheet.glyphs).map(entry => [entry.char, entry.x, entry.top, entry.up, entry.upHeight, entry.down, entry.downHeight, entry.width, entry.height, entry.glyph.bottom, entry.glyph.top, entry.glyph.arc, placed ? entry.glyph.placedX : null, lined ? entry.glyph.lineX : null, worded ? entry.glyph.wordX : null])])
+  return JSON.stringify([sheet.width, sheet.height, sheet.tallest, worded ? sheet.wordWidth : null, Object.values(sheet.glyphs).map(entry => [entry.char, entry.x, entry.top, entry.up, entry.upHeight, entry.down, entry.downHeight, entry.width, entry.height, entry.glyph.bottom, entry.glyph.top, entry.glyph.arc, placed ? entry.glyph.placedX : null, lined ? [entry.glyph.lineX, entry.glyph.lineFirst?.char] : null, worded ? entry.glyph.wordX : null])])
 }
 
 export function paintBase(sheet, look, assets, capHeight, detail = 1) {

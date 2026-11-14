@@ -1,5 +1,7 @@
 import { stripRange } from "../assets.js"
+import { layerSlices } from "../flatSheet.js"
 import { fontFolder, fullOrder, parseMask, sheetOwner } from "../font.js"
+import { characterName } from "../fontEditor.js"
 import { clamp } from "../maths.js"
 import { titleCase } from "../names.js"
 import { defaultBorder, defaultDepth } from "../settings.js"
@@ -29,18 +31,22 @@ export function stripOwners(fonts) {
 }
 
 export function setUsers(fonts, id) {
-  return stripOwners(fonts).flatMap(font => (font.strips ?? []).map(stripUse).filter(use => use.id === id).map(use => ({ font, offset: use.offset })))
+  return stripOwners(fonts).flatMap(font => (font.strips ?? []).map(stripUse).filter(use => use.id === id).map(use => ({ font, offset: use.offset, layer: use.layer ? use.layer - 1 : null })))
 }
 
 export function setIds(fonts) {
   return Array.from(new Set(stripOwners(fonts).flatMap(font => (font.strips ?? []).map(item => stripUse(item).id))))
 }
 
-export function fontMeasure(ctx, font) {
-  return ctx.memo(`strip-measure:${font.id}`, async () => {
+export function layerDepth(depth, layers, layer) {
+  return layer === null || !layers ? depth : layerSlices(layers, depth)[layer].rows
+}
+
+export function fontMeasure(ctx, font, layer = null) {
+  return ctx.memo(`strip-measure:${font.id}:${layer}`, async () => {
     const image = await decodePng(await ctx.bytes(`/${fontFolder(font)}/font.png`))
-    const { list, capHeight } = parseMask(image.data, image.width, image.height, fullOrder(font, ctx.fonts), defaultBorder("top", font))
-    return { range: stripRange({ cells: list, capHeight }), capHeight, depth: defaultDepth(font) }
+    const { list, capHeight, layers } = parseMask(image.data, image.width, image.height, fullOrder(font, ctx.fonts), defaultBorder("top", font))
+    return { range: stripRange({ cells: list, capHeight }, layer), capHeight, depth: layerDepth(defaultDepth(font), layers, layer) }
   })
 }
 
@@ -88,7 +94,7 @@ export async function targetRows(ctx, target, details) {
   if (!setIds(ctx.fonts).includes(id)) return null
   const set = await stripSet(ctx, id)
   if (set.height) return [setRows(set, null, 0)]
-  return Promise.all(setUsers(ctx.fonts, id).map(async ({ font, offset }) => setRows(set, await fontMeasure(ctx, font), offset)))
+  return Promise.all(setUsers(ctx.fonts, id).map(async ({ font, offset, layer }) => setRows(set, await fontMeasure(ctx, font, layer), offset)))
 }
 
 export function stripFit(set, measure, offset, { stretched = false, heights = [] } = {}) {
@@ -121,10 +127,11 @@ export function fitOffset(set, measure, stretched) {
 
 export function fitProblems(set, measure, offset, stretched) {
   const shift = centredOffset(set.height, measure.capHeight) + offset
+  const [highest, lowest] = [measure.range.highest, measure.range.lowest].map(char => char && characterName(char, null))
   const words = {
     depth: `it's ${measure.depth} deep and the strips only cover ${set.depth}`,
-    below: `its letters go ${-measure.range.bottom} below the baseline and the strips only cover ${Math.max(0, set.baseline - set.depth + shift)}`,
-    above: `its letters reach ${measure.range.top + shift} above the baseline and the strips only go up to ${set.height}`
+    below: `${lowest ? `its "${lowest}" goes` : "its letters go"} ${-measure.range.bottom} below the baseline and the strips only cover ${Math.max(0, set.baseline - set.depth + shift)}`,
+    above: `${highest ? `its "${highest}" reaches` : "its letters reach"} ${measure.range.top + shift} above the baseline and the strips only go up to ${set.height}`
   }
   return stripFit(set, measure, offset, { stretched }).problems.map(code => words[code])
 }

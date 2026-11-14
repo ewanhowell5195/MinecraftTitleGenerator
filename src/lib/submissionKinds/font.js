@@ -1,3 +1,4 @@
+import { stripRange } from "../assets.js"
 import { fullName, kerningPairs, parseMask } from "../font.js"
 import { authorList } from "../authors.js"
 import { collisionAmount, suggestKerning } from "../kerning.js"
@@ -9,7 +10,7 @@ import { GENERATED_EDGE_OVERLAYS, withGenerated } from "../generated.js"
 import { EXTRA_FILE, HEX_COLOUR, SUBMISSION_LIMITS, assetId, creditProblem, pngProblem, pngSize, sizedProblem, textProblem, textureDensity } from "../submissions.js"
 import { MULTICASE_CHARACTERS, REQUIRED_CHARACTERS, characterName, fontId, hasCase } from "../fontEditor.js"
 import { FONT_LIMITS, drawnCells, ownFont, storedFont, submittedFont } from "./fontBuild.js"
-import { heightList, stripFit, stripHeights, stripSet } from "./stripFit.js"
+import { heightList, layerDepth, stripFit, stripHeights, stripSet } from "./stripFit.js"
 
 const FONT_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/
 const FONT_ID_LENGTH = 40
@@ -88,9 +89,10 @@ function kerningProblem(entry, sheet, square) {
 
 const LETTERS = { subject: "Its letters", goes: "go", reaches: "reach", is: "are", fix: "Change the offset in the Textures tab" }
 
-export async function stripProblem(entry, cells, capHeight, ctx, words = LETTERS) {
-  const measure = { range: { top: Math.max(capHeight, ...cells.map(cell => cell.top)), bottom: Math.min(0, ...cells.map(cell => cell.bottom)) }, capHeight, depth: defaultDepth(entry) }
+export async function stripProblem(entry, cells, capHeight, ctx, words = LETTERS, layers = null) {
   for (const use of (entry.strips ?? []).map(stripUse)) {
+    const layer = use.layer && layers ? use.layer - 1 : null
+    const measure = { range: stripRange({ cells, capHeight }, layer), capHeight, depth: layerDepth(defaultDepth(entry), layers, layer) }
     let set
     try {
       set = await stripSet(ctx, use.id)
@@ -101,8 +103,9 @@ export async function stripProblem(entry, cells, capHeight, ctx, words = LETTERS
     const { problems } = stripFit(set, measure, use.offset, { stretched: set.stretched, heights })
     const what = `the ${use.id} strips`
     if (problems.includes("depth")) return `Its depth of ${measure.depth} is deeper than ${what}, which go up to ${set.depth}. Lower the depth, or stop using ${what}.`
-    if (problems.includes("below")) return `${words.subject} ${words.goes} further below the baseline than ${what} cover. ${words.fix}, or stop using ${what}.`
-    if (problems.includes("above")) return `${words.subject} ${words.reaches} higher than ${what} cover. ${words.fix}, or stop using ${what}.`
+    const blamed = (char, verb) => char && words === LETTERS ? `"${characterName(char, entry.letterCase)}" ${verb}` : null
+    if (problems.includes("below")) return `${blamed(measure.range.lowest, "goes") ?? `${words.subject} ${words.goes}`} further below the baseline than ${what} cover. ${words.fix}, or stop using ${what}.`
+    if (problems.includes("above")) return `${blamed(measure.range.highest, "reaches") ?? `${words.subject} ${words.reaches}`} higher than ${what} cover. ${words.fix}, or stop using ${what}.`
     if (problems.includes("height")) return `${words.subject} ${words.is} the wrong height for ${what}. ${words.fix}, or stop using ${what}.`
   }
   return null
@@ -150,7 +153,7 @@ async function ownFontProblem(font, parent, ctx) {
   if (problem) return problem
   const entry = own.entry
   if (entry.basedOn && !ctx.fonts.some(item => item.id === entry.basedOn)) return `It says it's based on ${entry.basedOn}, which isn't one of the fonts here. Change Based on in the font editor's Font tab.`
-  return await stripProblem(entry, own.cells, own.capHeight, ctx) ?? kerningProblem(entry, own.sheet, font.grid * font.density)
+  return await stripProblem(entry, own.cells, own.capHeight, ctx, LETTERS, own.layers) ?? kerningProblem(entry, own.sheet, font.grid * font.density)
 }
 
 async function readFile(bytes, parent, ctx) {

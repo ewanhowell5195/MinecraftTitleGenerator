@@ -31,6 +31,17 @@ export function layerMask(glyph, layer) {
   return glyph.depths ? glyph.mask.map((solid, at) => solid && glyph.depths[at] <= layer ? 1 : 0) : glyph.mask
 }
 
+export function layerLeft(glyph, layer) {
+  if (layer === null || !glyph.depths) return 0
+  const mask = layerMask(glyph, layer)
+  for (let column = 0; column < glyph.width; column++) {
+    for (let row = 0; row < glyph.height; row++) {
+      if (mask[row * glyph.width + column]) return column
+    }
+  }
+  return 0
+}
+
 export function layerSlices(layers, depth) {
   return layers.map((value, layer) => {
     const low = Math.round((layers[layer + 1] ?? 0) * depth)

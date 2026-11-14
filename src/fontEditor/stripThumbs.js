@@ -5,7 +5,7 @@ import { fontScene, layerScene, opaque, render, sceneStrip } from "../lib/fontTh
 import { generatedAlpha, withGenerated } from "../lib/generated.js"
 import { clamp } from "../lib/maths.js"
 import { defaultBorder, defaultDepth, overlayLayer } from "../lib/settings.js"
-import { stripY } from "../lib/strips.js"
+import { MISSING, stripHasRow, stripY } from "../lib/strips.js"
 import { MARGIN, drawLayer, over } from "../lib/thumbnails.js"
 import { pngUrl } from "../lib/virtualFiles.js"
 
@@ -82,7 +82,12 @@ function meshPixels(scene, entry, image, detail) {
       const py = Math.floor((at - 3) / 4 / size.width)
       const across = (px + 0.5) / scale - x
       const down = clamp((py + 0.5) / scale - y, 0, glyph.height - 0.001)
-      const row = top - 1 - stripY(shape, glyph.top - 1 - Math.floor(down))
+      const glyphRow = glyph.top - 1 - Math.floor(down)
+      if (!stripHasRow(shape, glyphRow)) {
+        over(target, px, py, MISSING[(Math.floor(x + across) + Math.floor(y + down)) % 2].concat(solid[at]))
+        continue
+      }
+      const row = top - 1 - stripY(shape, glyphRow)
       const sx = ((Math.floor((origin + across) * density) % image.width) + image.width) % image.width
       const sy = clamp(Math.floor((row + down % 1) * density), 0, image.height - 1)
       const k = (sy * image.width + sx) * 4

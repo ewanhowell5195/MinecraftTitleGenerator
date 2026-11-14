@@ -141,9 +141,29 @@ export function stripBand(source, top, height) {
   return cropped.get(top)
 }
 
-export function stripRange(font) {
+function layerExtent(glyph, layer) {
+  let low = Infinity
+  let high = -Infinity
+  for (let row = 0; row < glyph.height; row++) {
+    for (let column = 0; column < glyph.width; column++) {
+      const at = row * glyph.width + column
+      if (!glyph.mask[at] || glyph.depths[at] > layer) continue
+      low = Math.min(low, row)
+      high = Math.max(high, row)
+    }
+  }
+  return high < low ? null : { char: glyph.char, bottom: glyph.bottom + low, top: glyph.bottom + high + 1 }
+}
+
+export function stripRange(font, layer = null) {
   const cells = font.cells.filter(glyph => glyph.width)
-  return { top: Math.max(font.capHeight, ...cells.map(glyph => glyph.top)), bottom: Math.min(0, ...cells.map(glyph => glyph.bottom)) }
+  const layered = layer !== null && cells.some(glyph => glyph.depths)
+  const extents = layered ? cells.map(glyph => glyph.depths ? layerExtent(glyph, layer) : glyph).filter(Boolean) : cells
+  const top = Math.max(...(layered ? [] : [font.capHeight]).concat(extents.map(extent => extent.top)))
+  const bottom = Math.min(...(layered ? [] : [0]).concat(extents.map(extent => extent.bottom)))
+  const highest = top > font.capHeight ? extents.find(extent => extent.top === top).char : null
+  const lowest = bottom < 0 ? extents.find(extent => extent.bottom === bottom).char : null
+  return { top, bottom, highest, lowest }
 }
 
 export async function sheetFor(font) {

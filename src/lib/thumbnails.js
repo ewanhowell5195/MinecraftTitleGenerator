@@ -1,7 +1,7 @@
 import { blend } from "./blend.js"
 import { rgbOf } from "./colour.js"
 import { keptAt } from "./joins.js"
-import { stripRows, stripY } from "./strips.js"
+import { MISSING, stripHasRow, stripRows, stripY } from "./strips.js"
 
 export const MARGIN = 2
 
@@ -54,13 +54,18 @@ export function drawRing(image, placed, d, border, maskOf = glyph => glyph.mask)
 }
 
 export function drawStrip(image, placed, d, { image: strip, density, top, tiling, shape }) {
-  for (const { glyph, x, y, lineX } of placed) {
-    const origin = tiling === "character" ? 0 : lineX
+  for (const { glyph, x, y, lineX, trim = 0 } of placed) {
+    const origin = tiling === "character" ? -trim : lineX - (placed[0].trim ?? 0)
     for (let py = 0; py < glyph.height * d; py++) {
       for (let px = 0; px < glyph.width * d; px++) {
         if (!glyph.mask[(glyph.height - 1 - Math.floor(py / d)) * glyph.width + Math.floor(px / d)] || !keptAt(glyph, glyph.height - 1 - Math.floor(py / d), (px + 0.5) / d)) continue
-        const row = top - 1 - stripY(shape, glyph.top - 1 - Math.floor(py / d))
-        const sx = Math.floor((origin * d + px) * density / d) % strip.width
+        const at = glyph.top - 1 - Math.floor(py / d)
+        if (!stripHasRow(shape, at)) {
+          over(image, x * d + px, y * d + py, MISSING[(x + Math.floor(px / d) + y + Math.floor(py / d)) % 2].concat(255))
+          continue
+        }
+        const row = top - 1 - stripY(shape, at)
+        const sx = (Math.floor((origin * d + px) * density / d) % strip.width + strip.width) % strip.width
         const sy = Math.floor((row * d + py % d) * density / d)
         const k = (sy * strip.width + sx) * 4
         over(image, x * d + px, y * d + py, [strip.data[k], strip.data[k + 1], strip.data[k + 2], strip.data[k + 3]])

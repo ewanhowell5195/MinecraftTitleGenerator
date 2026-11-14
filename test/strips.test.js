@@ -7,7 +7,7 @@ import { stripRange } from "../src/lib/assets.js"
 import { stripsOf } from "../src/lib/font.js"
 import { withGenerated } from "../src/lib/generated.js"
 import { defaultDepth } from "../src/lib/settings.js"
-import { centredOffset, layerSlice, mergeStrips, stackedStrip, stripItem, stripRows, stripUse, stripY } from "../src/lib/strips.js"
+import { bandEntry, centredOffset, layerSlice, mergeStrips, placedStrips, stripCovers, stripPlacements, stackedStrip, stripHasRow, stripItem, stripRows, stripUse, stripY } from "../src/lib/strips.js"
 
 const SET = { id: "set", depth: 22, baseline: 30, textures: { shared: { authors: "a", variants: { kid: { authors: "b" } } }, other: { authors: "c" } } }
 
@@ -28,6 +28,46 @@ describe("mergeStrips", () => {
   test("a strip is left out when one of its ids is already a texture or variant", () => {
     const { textures } = mergeStrips({ textures: { entities: { variants: { shared: {} } }, kid: {} } }, [{ ...SET, textures: { ...SET.textures, lone: { variants: { kid: {} } } } }])
     assert.deepEqual(Object.keys(textures), ["entities", "kid", "other"])
+  })
+
+  test("strips listed once per layer keep each layer's own offset", () => {
+    const { textures } = mergeStrips({ textures: {} }, [{ ...SET, layer: 1, offset: 2 }, { ...SET, layer: 2, offset: -3 }])
+    assert.equal(textures.shared.stripLayer, null)
+    assert.deepEqual([textures.shared.stripBands[0].stripOffset, textures.shared.stripBands[1].stripOffset], [2, -3])
+    assert.equal(bandEntry(textures.shared, 1).stripOffset, -3)
+    assert.equal(bandEntry(textures.shared, 1).stripLayer, 1)
+    assert.equal(textures.shared.variants.kid.stripBands[0].stripOffset, 2)
+    assert.ok(stripCovers(textures.shared, null, 2))
+    assert.ok(stripCovers(textures.shared, 0, 2))
+  })
+
+  test("using strips on every layer with one offset lists them once for all layers", () => {
+    const placed = new Map([[1, 4], [2, 4]])
+    assert.deepEqual(placedStrips(["other"], "set", placed, 2), ["other", { id: "set", offset: 4 }])
+    assert.deepEqual(stripPlacements([{ id: "set", offset: 4 }], "set", 2), placed)
+  })
+
+  test("different offsets per layer list the strips once per layer", () => {
+    const placed = new Map([[2, -3], [1, 2]])
+    const strips = placedStrips(["set", "other"], "set", placed, 2)
+    assert.deepEqual(strips, [{ id: "set", offset: 2, layer: 1 }, { id: "set", offset: -3, layer: 2 }, "other"])
+    assert.deepEqual(Array.from(stripPlacements(strips, "set", 2)).sort(), [[1, 2], [2, -3]])
+  })
+
+  test("strips that only fit each layer on its own stay listed per layer", () => {
+    assert.deepEqual(placedStrips([], "set", new Map([[1, 0], [2, 0]]), 2, false), [{ id: "set", layer: 1 }, { id: "set", layer: 2 }])
+  })
+
+  test("a single layer font lists strips without a layer", () => {
+    assert.deepEqual(placedStrips([], "set", new Map([[1, 3]]), 1, false), [{ id: "set", offset: 3 }])
+  })
+
+  test("strips on one layer only cover that layer", () => {
+    const { textures } = mergeStrips({ textures: {} }, [{ ...SET, layer: 2 }])
+    assert.equal(textures.shared.stripLayer, 1)
+    assert.equal(stripCovers(textures.shared, null, 2), false)
+    assert.equal(stripCovers(textures.shared, 0, 2), false)
+    assert.ok(stripCovers(textures.shared, 1, 2))
   })
 
   test("the first listed strips win an id", () => {
@@ -174,6 +214,12 @@ describe("published strips", () => {
         }
       }
     }
+  })
+
+  test("a strip only has the rows between its bottom and top", () => {
+    const shape = { top: 4, bottom: -1 }
+    assert.deepEqual([-2, -1, 3, 4].map(y => stripHasRow(shape, y)), [false, true, true, false])
+    assert.deepEqual([3, 5].map(y => stripHasRow({ top: 6, bottom: 0, scale: { from: 4, to: 6 } }, y)), [true, false])
   })
 
   test("every font's texture list loads", () => {

@@ -1,12 +1,12 @@
 import { stripRange } from "./assets.js"
 import { rgbOf } from "./colour.js"
-import { expandBands, layerMask } from "./flatSheet.js"
+import { expandBands, layerLeft, layerMask } from "./flatSheet.js"
 import { sheetLayout, solidMask } from "./font.js"
 import { GENERATED_EDGE_OVERLAYS, SMOOTH_KINDS, edgeAlpha, generatedAlpha, withGenerated } from "./generated.js"
 import { joinNeighbours, keptAt } from "./joins.js"
 import { layout } from "./layout.js"
 import { defaultBorder, overlayLayer } from "./settings.js"
-import { stackedStrip } from "./strips.js"
+import { bandEntry, stackedStrip, stripCovers } from "./strips.js"
 import { MARGIN, drawLayer, drawRing, drawStrip, over, sceneFrame, stripSource } from "./thumbnails.js"
 
 const BACKGROUND_ALPHA = 0.3
@@ -104,9 +104,9 @@ export function render(scene, sheet, options) {
     return [glyph, bands[0].map((solid, at) => bands.some(band => band[at]) ? 1 : 0)]
   }))
   if (options.ring) drawRing(image, scene.placed, options.density, options.border, glyph => masks.get(glyph))
-  if (options.strip?.layers && scene.layer == null) {
-    for (const [layer, strip] of options.strip.layers.entries()) drawStrip(image, exposed(scene.placed, layer), options.density, strip)
-  } else if (options.strip) drawStrip(image, scene.placed, options.density, options.strip.layers?.[scene.layer] ?? options.strip)
+  if (options.strip && scene.layers && scene.layer == null) {
+    for (const layer of scene.layers.keys()) drawStrip(image, exposed(scene.placed, layer), options.density, options.strip.layers?.[layer] ?? options.strip)
+  } else if (options.strip) drawStrip(image, scene.placed.map(item => ({ ...item, trim: layerLeft(item.glyph, scene.layer ?? null) })), options.density, options.strip.layers?.[scene.layer] ?? options.strip)
   else drawFaces(image, scene, sheet, masks, options)
   if (options.fontOverlay) drawFaces(image, scene, options.fontOverlay, masks, options)
   if (options.generated) drawGenerated(image, scene, options)
@@ -115,7 +115,7 @@ export function render(scene, sheet, options) {
 }
 
 function exposed(placed, layer) {
-  return placed.map(item => ({ ...item, glyph: { ...item.glyph, mask: item.glyph.mask.map((solid, at) => solid && (item.glyph.depths?.[at] ?? 0) === layer ? 1 : 0) } }))
+  return placed.map(item => ({ ...item, trim: layerLeft(item.glyph, layer), glyph: { ...item.glyph, mask: item.glyph.mask.map((solid, at) => solid && (item.glyph.depths?.[at] ?? 0) === layer ? 1 : 0) } }))
 }
 
 export function layerScene(scene, layer) {
@@ -130,7 +130,8 @@ export function layerScene(scene, layer) {
 }
 
 export function sceneStrip(scene, entry, image) {
-  const strip = stripSource(entry, image, scene.stripRange, scene.depth, scene.capHeight)
+  const range = entry.stripSet && entry.stripLayer != null ? stripRange({ cells: scene.cells, capHeight: scene.capHeight }, entry.stripLayer) : scene.stripRange
+  const strip = stripSource(entry, image, range, scene.depth, scene.capHeight)
   if (strip.tiling !== "line" && strip.tiling !== "character") throw new Error(`${entry.id ?? "a strip"} has tiling "${strip.tiling}", strips tile by "line" or "character"`)
   if (!scene.layers || entry.stripSet) return strip
   const shapes = scene.layers.map((_, layer) => stackedStrip(strip.shape, scene.layers, layer))
@@ -192,6 +193,12 @@ export function fontScene(entry, { glyphs, cells, capHeight, layers, kerning, de
   }
 }
 
+function bandedStrip(scene, entry, image) {
+  if (scene.layer != null) return sceneStrip(scene, bandEntry(entry, scene.layer), image)
+  const layers = scene.layers.map((_, band) => sceneStrip(scene, bandEntry(entry, band), image))
+  return { ...layers[0], layers }
+}
+
 async function textureThumbnail({ entry, scene, meta, sheet, width, densityOf }, name, data, variant) {
   const border = opaque(variant.border ?? data.border ?? "#000000")
   const merged = { ...data, ...variant }
@@ -203,7 +210,7 @@ async function textureThumbnail({ entry, scene, meta, sheet, width, densityOf },
   const image = await sheet("textures", name, merged.folder, merged.type === "strip")
   let png
   if (merged.type === "strip") {
-    const strip = sceneStrip(scene, { ...merged, id: name }, image)
+    const strip = merged.stripBands ? bandedStrip(scene, { ...merged, id: name }, image) : sceneStrip(scene, { ...merged, id: name }, image)
     png = render(scene, null, { density: Math.max(1, Math.ceil(strip.density)), border, width, ring: scene.ring, strip, layers: overlays, fontOverlay: entry.overlay ? await sheet(".", "overlay") : null })
   } else {
     png = render(scene, image, { density: densityOf(image), border, width, ring: scene.ring, ownShape: true, layers: overlays })
@@ -257,7 +264,7 @@ export async function fontThumbnails(entry, scene, textures, load) {
     const background = fade(render(shown, flat, { density: densityOf(flat), border: flatBorder, width, ring: shown.ring }), BACKGROUND_ALPHA)
     if (entry.autoBorder) frameFill(background, [flatBorder[0], flatBorder[1], flatBorder[2], AUTO_BORDER_ALPHA])
     for (const [id, data] of Object.entries(meta.textures)) {
-      if (data.stripLayer != null && data.stripLayer !== layer) continue
+      if (!stripCovers(data, layer, scene.layers?.length ?? 1)) continue
       for (const [name, variant] of [[id, data]].concat(Object.entries(data.variants ?? {}))) drawn.push([prefix + name, await textureThumbnail(own, name, data, variant)])
     }
     for (const [id, data] of Object.entries(meta.overlays)) drawn.push([prefix + id, compose(background, await overlayThumbnail(own, id, data, flat))])

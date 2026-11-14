@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
-import { expandBands, flatLayers, flatPixels, layerSlices, stripLimits } from "../src/lib/flatSheet.js"
+import { expandBands, flatLayers, flatPixels, layerLeft, layerSlices, stripLimits } from "../src/lib/flatSheet.js"
 
 function cellOf(rows, bottom) {
   const width = rows[0].length
@@ -37,6 +37,14 @@ describe("flat sheet strips", () => {
 describe("layer bands", () => {
   const cell = { ...cellOf(["11", "11"], 0), depths: Uint8Array.from([1, 1, 0, 0]) }
   const layers = [1, 0.5]
+
+  test("a layer starts at the first column it uses", () => {
+    const ringed = { ...cellOf(["1111", "1111"], 0), depths: Uint8Array.from([1, 0, 0, 1, 1, 1, 0, 1]) }
+    assert.equal(layerLeft(ringed, 0), 1)
+    assert.equal(layerLeft(ringed, 1), 0)
+    assert.equal(layerLeft(ringed, null), 0)
+    assert.equal(layerLeft(cellOf(["011"], 0), 0), 0)
+  })
 
   test("each band's strips only hold its own slice of the depth", () => {
     assert.deepEqual(layerSlices(layers, 4), [{ from: 2, rows: 2 }, { from: 0, rows: 2 }])

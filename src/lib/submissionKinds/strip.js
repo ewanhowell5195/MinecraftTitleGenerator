@@ -32,8 +32,8 @@ async function forSet(id, details, ctx) {
     else problems.stretch = `The ${setName(id)} strip type has no height, so its strips can't stretch.`
   }
   if (set.stretched && !clean.stretch) {
-    for (const { font, offset } of users) {
-      const found = fitProblems(set, await fontMeasure(ctx, font), offset, false)
+    for (const { font, offset, layer } of users) {
+      const found = fitProblems(set, await fontMeasure(ctx, font, layer), offset, false)
       if (found.length) problems.stretch ??= `Every strip in the ${setName(id)} strip type stretches, and ${fullName(font, ctx.fonts)} only fits them stretched, so this one has to stretch too.`
     }
   }

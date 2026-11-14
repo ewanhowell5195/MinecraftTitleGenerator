@@ -10,6 +10,7 @@
   import { EulaDeclined, eulaDeclined } from "../../lib/eula.js"
   import { pinnedTextures, setTexture, untouchedTileable } from "../../lib/settings.js"
   import { minecraftStatId, popular } from "../../lib/stats.js"
+  import { stripCovers } from "../../lib/strips.js"
   import { readFile, saveImage, thumbnail, thumbnailHeight, tilePreview } from "../../lib/ui.js"
   import Button from "../Button.vue"
   import GradientEditor from "../GradientEditor.vue"
@@ -68,7 +69,7 @@
     strip: "Read from top to bottom as the top edge, the front and the bottom edge, then repeated along the line."
   })[object.value.customTextureMode])
   const textures = computed(() => {
-    const entries = Object.entries(list.value?.textures ?? {}).filter(([, data]) => data.stripLayer == null || data.stripLayer === shownLayer.value)
+    const entries = Object.entries(list.value?.textures ?? {}).filter(([, data]) => stripCovers(data, shownLayer.value, font.value?.layers?.length ?? 1))
     const statId = id => `${font.value?.id}.${id}`
     return popular(entries, ([id]) => statId(id), ([id, data]) => label(id, data), list.value ? pinnedTextures(list.value).map(statId) : [])
   })

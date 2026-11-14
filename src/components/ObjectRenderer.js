@@ -8,7 +8,7 @@ import { EulaDeclined } from "../lib/eula.js"
 import { SMOOTH_KINDS } from "../lib/generated.js"
 import { CUSTOM_SHAPE, SILHOUETTE_TEXT, shapeOf } from "../lib/shapes.js"
 import { hasMarks, loadFont, sheetFolder } from "../lib/font.js"
-import { layerSlice, stackedStrip, stripRows } from "../lib/strips.js"
+import { bandEntry, layerSlice, stackedStrip, stripRows } from "../lib/strips.js"
 import { thumbnailItems } from "../lib/layout.js"
 import { blockTextureImage } from "../lib/minecraft.js"
 import { setHeights, usePlacement, usePublished } from "../lib/objectState.js"
@@ -224,11 +224,11 @@ export default {
       }
       if (value.source === "strip") {
         const custom = target.textureSource === "custom"
-        const entry = custom ? {} : textureEntry(list.value, target)
+        const entry = custom ? {} : bandEntry(textureEntry(list.value, target), band)
         const id = custom ? "custom" : target.textureVariant ?? target.texture
         const loaded = await image(custom ? target.customTexture : `${entry.folder ?? font.value.sheetFolder}/textures/${id}.png`)
         const layers = font.value.layers
-        const full = stripRows(entry, stripRange(font.value), defaultDepth(font.value), font.value.capHeight)
+        const full = stripRows(entry, stripRange(font.value, entry.stripSet ? entry.stripLayer ?? null : null), defaultDepth(font.value), font.value.capHeight)
         const stacked = layers && !custom && !entry.stripSet ? stackedStrip(full, layers, band) : null
         const { depth, top, bottom, rows, scale } = stacked?.shape ?? full
         const density = loaded.height / (stacked?.total ?? rows)
@@ -236,7 +236,7 @@ export default {
         const tiling = entry.tiling ?? "line"
         if (tiling !== "line" && tiling !== "character") throw new Error(`${id} has tiling "${tiling}", strips tile by "line" or "character"`)
         const slice = layers && (stacked || entry.stripLayer != null) ? layerSlice(layers, band) : null
-        assets.strip = { image: strip, density, top, bottom, depth, tiling, scale, slice }
+        assets.strip = { image: strip, density, top, bottom, depth, tiling, scale, slice, band: assets.band }
         if (entry.border) assets.border = entry.border
         assets.densities.push(Math.max(1, density))
       }
