@@ -76,7 +76,7 @@ describe("strip shapes", () => {
     assert.equal(fitOffset(set, measure, false), -1)
     assert.deepEqual(fitProblems(set, measure, -1, false), [])
     assert.equal(fitProblems(set, measure, 0, false).length, 1)
-    assert.equal(fitOffset({ ...set, depth: 8, baseline: 16 }, measure, false), null)
+    assert.equal(fitOffset({ ...set, depth: 8, baseline: 16 }, measure, false), -1)
     assert.equal(fitOffset({ ...set, height: 20 }, measure, false), null)
     assert.equal(fitOffset({ ...set, height: 20 }, measure, true), 5)
   })
@@ -129,7 +129,7 @@ describe("checking a strip", () => {
     assert.deepEqual(good.problems, {})
     assert.deepEqual(good.details, { border: "#000000", size: { width: 1, height: 80 }, set: "soft-edge", ...NEW_SHAPE, fonts: ["minecraft-five", "geo-squares"], offsets: { "minecraft-five": -1 } })
     const bad = await checked("new", { set: "Soft Edge", ...NEW_SHAPE, fonts: ["minecraft-earth"] }, png(1, 92))
-    assert.match(bad.problems.fonts, /Minecraft Earth won't fit: it's 30 pixels deep/)
+    assert.match(bad.problems.fonts, /Minecraft Earth won't fit: its "\$" goes 3 pixels too low and 11 pixels too high/)
     assert.match(bad.problems.file, /this strip type have to be 5, 10, 20, 40, 80/)
   })
 

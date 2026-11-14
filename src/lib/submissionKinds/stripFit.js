@@ -107,11 +107,10 @@ export function stripFit(set, measure, offset, { stretched = false, heights = []
   const low = -lowestRow(measure, stretched) - (set.baseline - set.depth) - centred
   const high = set.height && !stretched ? set.height - measure.range.top - centred : Infinity
   const problems = []
-  if (measure.depth > set.depth) problems.push("depth")
   if (offset < low) problems.push("below")
   if (offset > high) problems.push("above")
   if (!set.height && heights.some(height => !Number.isInteger(Math.log2(height / (base + offset))))) problems.push("height")
-  const range = measure.depth <= set.depth && low <= high ? { low, high } : null
+  const range = low <= high ? { low, high } : null
   return { problems, range, offsets: range && !set.height && heights.length ? sharedHeights(heights).map(rows => rows - base).filter(value => value >= low) : null }
 }
 
@@ -148,8 +147,7 @@ export function reachProblems(set, measure, offset, codes, { named = char => `"$
 
 export function fitProblems(set, measure, offset, stretched) {
   const { problems } = stripFit(set, measure, offset, { stretched })
-  const depth = problems.includes("depth") ? [`it's ${pixels(measure.depth)} deep and the strips only cover ${set.depth}`] : []
-  return depth.concat(reachProblems(set, measure, offset, problems, { named: char => `its "${characterName(char, null)}"`, stretched }))
+  return reachProblems(set, measure, offset, problems, { named: char => `its "${characterName(char, null)}"`, stretched })
 }
 
 export function setEntry(set, offset, stretch) {

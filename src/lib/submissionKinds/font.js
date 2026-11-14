@@ -102,7 +102,6 @@ export async function stripProblem(entry, cells, capHeight, ctx, words = LETTERS
     const heights = set.height ? [] : await Promise.all(set.names.map(async name => pngSize(await ctx.bytes(`/strips/${use.id}/textures/${name}.png`)).height))
     const { problems } = stripFit(set, measure, use.offset, { stretched: set.stretched, heights })
     const what = `the ${use.id} strips`
-    if (problems.includes("depth")) return `Its depth of ${measure.depth} pixels is deeper than ${what}, which go up to ${set.depth}. Lower the depth, or stop using ${what}.`
     const reach = reachProblems(set, measure, use.offset, problems, { named: char => words === LETTERS ? `"${characterName(char, entry.letterCase)}"` : null, plain: `${words.subject} ${words.goes}`, stretched: set.stretched })
     if (reach.length) return `${reach.join(", and ")} for ${what}. ${words.fix}, or stop using ${what}.`
     if (problems.includes("height")) return `${words.subject} ${words.is} the wrong height for ${what}. ${words.fix}, or stop using ${what}.`

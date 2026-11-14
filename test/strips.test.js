@@ -187,16 +187,16 @@ describe("published strips", () => {
 
   test("a font fits every strip it lists", () => {
     for (const font of users) {
-      const { cells, capHeight } = readMask(font, fonts)
-      const range = stripRange({ cells, capHeight })
+      const { cells, capHeight, layers } = readMask(font, fonts)
       for (const use of stripsOf(font, fonts).map(stripUse)) {
         const { id } = use
         const set = setOf(id)
+        const range = stripRange({ cells, capHeight }, use.layer && layers ? use.layer - 1 : null)
+        const stretched = set.heights.every(([, , stretch]) => stretch)
         const offset = centredOffset(set.height, capHeight) + use.offset
         const baseline = set.baseline ?? set.depth
-        assert.ok(defaultDepth(font) <= set.depth, `${font.id} is deeper than the ${id} strips`)
-        assert.ok(-range.bottom <= baseline - set.depth + offset, `${font.id} goes further below the baseline than the ${id} strips`)
-        if (set.height) assert.ok(range.top + offset <= set.height || set.heights.every(([, , stretch]) => stretch), `${font.id} reaches above the ${id} strips' topline`)
+        assert.ok(-(range.bottom - (stretched ? range.lines.base : 0)) <= baseline - set.depth + offset, `${font.id} goes further below the baseline than the ${id} strips`)
+        if (set.height) assert.ok(range.top + offset <= set.height || stretched, `${font.id} reaches above the ${id} strips' topline`)
         for (const [name, height, stretch] of set.heights) {
           const resolution = height / (baseline + (set.height ?? range.top + offset) + set.depth)
           assert.ok(Number.isInteger(Math.log2(resolution)), `${font.id} is the wrong height for ${id}.${name}: resolution ${resolution}`)

@@ -17,10 +17,12 @@ export function faceDepth(depth) {
   return Math.max(1, Math.round(depth))
 }
 
-export function detailFor(units, limit) {
+export function detailFor(units, limit, wanted = Infinity) {
   const size = Math.max(units.width, units.height) * UNIT
+  const most = Math.min(limit, MAX_TEXTURE)
+  if (size * wanted <= most) return wanted
   let detail = 1
-  while (size * detail * 2 <= Math.min(limit, MAX_TEXTURE)) detail *= 2
+  while (size * detail * 2 <= most) detail *= 2
   return detail
 }
 

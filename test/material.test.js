@@ -231,6 +231,11 @@ describe("detailFor", () => {
     assert.equal(detailFor({ width: 1024, height: 10 }, 4096), 1)
   })
 
+  test("a wanted detail is used when it fits, and the largest doubling when it doesn't", () => {
+    assert.equal(detailFor({ width: 64, height: 20 }, 4096, 11), 11)
+    assert.equal(detailFor({ width: 150, height: 75 }, 4096, 11), 4)
+  })
+
   test("a smaller limit is kept to, and a bigger one stops at 4096", () => {
     assert.equal(detailFor({ width: 150, height: 75 }, 2048), 2)
     assert.equal(detailFor({ width: 150, height: 75 }, 16384), 4)

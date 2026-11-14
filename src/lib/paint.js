@@ -13,6 +13,7 @@ const CACHED_OVERLAYS = 32
 const CACHED_TILES = 8
 const CACHED_URLS = 64
 const SOFT_LABEL = 16
+const MAX_STRIP_DETAIL = 64
 
 function fract(n) {
   return n - Math.floor(n)
@@ -256,15 +257,18 @@ function paintStrip(ctx, entries, strip) {
         fillRect(ctx, [entry.x, y - count + 1, entry.width, count])
       }
     }
-    for (const [y, from, depth, behind] of [[entry.up, 0, entry.upHeight, strip.slice?.from], [entry.down, strip.depth + strip.top - strip.bottom, entry.downHeight, strip.slice && 1 - strip.slice.from - strip.slice.size]]) {
+    for (const [y, from, depth, behind, up] of [[entry.up, 0, entry.upHeight, strip.slice?.from, true], [entry.down, strip.depth + strip.top - strip.bottom, entry.downHeight, strip.slice && 1 - strip.slice.from - strip.slice.size, false]]) {
       const start = strip.slice ? depth * behind : 0
       const size = strip.slice ? depth * strip.slice.size : depth
-      const stretch = size / strip.depth
-      fillPattern(ctx, strip.image, new DOMMatrix().translate(origin * R, (y + start - from * stretch) * R).scale(R / strip.density, R / strip.density * stretch))
+      const shallow = Math.round(size) < strip.depth
+      const stretch = shallow ? 1 : size / strip.depth
+      const first = shallow && up ? from + strip.depth - Math.round(size) : from
+      const last = shallow ? first + Math.round(size) - 1 : from + strip.depth - 1
+      fillPattern(ctx, strip.image, new DOMMatrix().translate(origin * R, (y + start - first * stretch) * R).scale(R / strip.density, R / strip.density * stretch))
       fillRect(ctx, [entry.x, y + start, entry.width, size])
       if (!strip.slice) continue
-      stretchRow(ctx, strip, origin, from, [entry.x, y, entry.width, start])
-      stretchRow(ctx, strip, origin, from + strip.depth - 1, [entry.x, y + start + size, entry.width, depth - start - size])
+      stretchRow(ctx, strip, origin, first, [entry.x, y, entry.width, start])
+      stretchRow(ctx, strip, origin, last, [entry.x, y + start + size, entry.width, depth - start - size])
     }
     const missing = list.flatMap(({ row, from, height }) => Array.from({ length: height }, (_, step) => [row + step, source.glyph.bottom + from + step])).filter(([, at]) => !stripHasRow(strip, at))
     if (!missing.length) continue
@@ -285,6 +289,17 @@ function missingTexture() {
   ctx.fillRect(0, 0, R, R)
   ctx.fillRect(R, R, R, R)
   return checker = canvas
+}
+
+export function stripDetail(strip, depth) {
+  const size = strip.slice ? depth * strip.slice.size : depth
+  if (Math.round(size) <= strip.depth) return 1
+  const rows = strip.depth * strip.density
+  for (let detail = 1; detail <= MAX_STRIP_DETAIL; detail++) {
+    const step = size * R * detail / rows
+    if (Math.abs(step - Math.round(step)) < 1e-9) return detail
+  }
+  return Infinity
 }
 
 function stretchRow(ctx, strip, origin, row, rect) {

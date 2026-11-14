@@ -234,9 +234,8 @@
   function problemTexts(codes, set, measure, offset) {
     const shift = centredOffset(set.height, measure.capHeight) + offset
     const named = char => props.subject === "font" ? `"${characterName(char, props.font.letterCase)}"` : null
-    const depth = codes.includes("depth") ? [`its depth of ${measure.depth} pixels is over the strips' maximum of ${set.depth}`] : []
     const height = codes.includes("height") ? [`${words.value.is} ${measure.range.top} pixels tall above the baseline${shift ? ` with an offset of ${shift}` : ""}, which doesn't line up with the strips`] : []
-    return depth.concat(reachProblems(set, measure, offset, codes, { named, plain: words.value.goes, stretched: set.stretched }), height)
+    return reachProblems(set, measure, offset, codes, { named, plain: words.value.goes, stretched: set.stretched }).concat(height)
   }
 
   function check() {

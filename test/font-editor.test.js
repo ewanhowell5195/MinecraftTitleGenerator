@@ -871,7 +871,7 @@ describe("helpers", () => {
     assert.deepEqual(problems({ top: 40, bottom: 0 }, 16, 46), [])
     assert.deepEqual(problems({ top: 44, bottom: 0 }, 22, 92), ["height"])
     assert.deepEqual(problems({ top: 40, bottom: -12 }, 22, 92), ["below"])
-    assert.deepEqual(problems({ top: 40, bottom: 0 }, 30, 92), ["depth"])
+    assert.deepEqual(problems({ top: 40, bottom: 0 }, 30, 92), [])
   })
 
   test("strips with a height fit any font that stays inside them", () => {
@@ -907,7 +907,7 @@ describe("helpers", () => {
     assert.deepEqual(fit.offsets.slice(0, 2), [8, 100])
     assert.equal(nearestOffset(fit, 0), 8)
     assert.deepEqual(stripFit(set, short, 0, { heights: [92, 100] }).offsets, [])
-    assert.equal(nearestOffset(stripFit(set, { ...short, depth: 30 }, 0, { heights: [92] }), 0), null)
+    assert.equal(nearestOffset(stripFit(set, { ...short, depth: 30 }, 0, { heights: [92] }), 0), 8)
   })
 })
 

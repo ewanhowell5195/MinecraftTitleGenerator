@@ -5,7 +5,7 @@ import { quietStorage } from "./helpers/browser.js"
 quietStorage()
 
 const { arcLayout } = await import("../src/lib/arc.js")
-const { lookKey, paintKey } = await import("../src/lib/paint.js")
+const { lookKey, paintKey, stripDetail } = await import("../src/lib/paint.js")
 
 const CAP = 8
 const PLAIN = { source: "texture", gradientAngle: 0, tileablePerCharacter: false, wordedFaces: false }
@@ -85,5 +85,23 @@ describe("lookKey", () => {
 
   test("other values are keyed as they are", () => {
     assert.equal(lookKey({ texture: "cracked", stops: [{ colour: "#ffffff", position: 0 }] }), JSON.stringify({ texture: "cracked", stops: [{ colour: "#ffffff", position: 0 }] }))
+  })
+})
+
+describe("strip depth", () => {
+  test("a strip as deep as the faces, or deeper, needs no extra detail", () => {
+    assert.equal(stripDetail({ depth: 22, density: 1 }, 22), 1)
+    assert.equal(stripDetail({ depth: 22, density: 1 }, 44), 1)
+    assert.equal(stripDetail({ depth: 22, density: 1, slice: { size: 0.25 } }, 32), 1)
+  })
+
+  test("a stretched strip asks for the lowest detail that gives every row the same height", () => {
+    assert.equal(stripDetail({ depth: 22, density: 1 }, 24), 11)
+    assert.equal(stripDetail({ depth: 16, density: 4 }, 24), 2)
+    assert.equal(stripDetail({ depth: 22, density: 1, slice: { size: 0.75 } }, 32), 11)
+  })
+
+  test("a stretch no detail evens out asks for the most there is", () => {
+    assert.equal(stripDetail({ depth: 22, density: 1 }, 24.0001), Infinity)
   })
 })

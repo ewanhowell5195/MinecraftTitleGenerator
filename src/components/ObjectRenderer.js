@@ -12,7 +12,7 @@ import { bandEntry, layerSlice, stackedStrip, stripRows } from "../lib/strips.js
 import { thumbnailItems } from "../lib/layout.js"
 import { blockTextureImage } from "../lib/minecraft.js"
 import { setHeights, usePlacement, usePublished } from "../lib/objectState.js"
-import { R, lookKey, paintBase, paintKey, paintSheet } from "../lib/paint.js"
+import { R, lookKey, paintBase, paintKey, paintSheet, stripDetail } from "../lib/paint.js"
 import { platform } from "../lib/platform.js"
 import { quietly } from "../lib/history.js"
 import { DEFAULT_CAP_HEIGHT, DEFAULT_HEIGHT, NO_ARC } from "../lib/rows.js"
@@ -358,17 +358,19 @@ export default {
       return painted.value.layers ? targets.value.map(target => ({ options: { customEdge: target.customEdge, edgeColour: target.edgeColour, edgeFill: target.edgeFill, edgeStops: plainStops(target.edgeStops), edgeSmooth: target.edgeSmooth } })) : null
     }
 
-    function detailed(options) {
-      return (painted.value.layers ?? [painted.value]).some(({ look, assets }) => {
+    function detailed(options, sheet) {
+      const depth = Object.values(sheet.glyphs)[0]?.upHeight ?? 0
+      return Math.max(0, ...(painted.value.layers ?? [painted.value]).map(({ look, assets }) => {
         const gradient = look.source === "gradient" || look.customEdge && look.edgeFill === "gradient" || options.internalFaces && options.customInternal && options.internalFill === "gradient" || options.sideFaces && options.customSide && options.sideFill === "gradient"
-        return gradient || assets.overlays.some(({ layer, source }) => SMOOTH_KINDS.has(source.generated) && layer.opacity > 0)
-      })
+        if (gradient || assets.overlays.some(({ layer, source }) => SMOOTH_KINDS.has(source.generated) && layer.opacity > 0)) return Infinity
+        return look.source === "strip" && depth ? stripDetail(assets.strip, depth) : 0
+      }))
     }
 
     function sharpened(text, source) {
       const { arced, parts } = line
       let detail = text.detail
-      while (detail > 1 && Math.max(arced.sheet.width, arced.sheet.height) * R * detail > canvasLimit()) detail /= 2
+      while (detail > 1 && Math.max(arced.sheet.width, arced.sheet.height) * R * detail > canvasLimit()) detail = Math.floor(detail / 2)
       const sharp = parts.map(({ own, remapped }) => ({ own: { ...own, ...paintSheet(arced.sheet, own.look, remapped, source.capHeight, paintBase(arced.sheet, own.look, remapped, source.capHeight, detail), detail) } }))
       const plain = { image: text.texture, labels: text.labels, crackShapes: text.crackShapes, gradient: text.gradient, fades: text.fades, panels: text.panels }
       return { ...text, ...text.refine(owned(sharp)), refine: null, plain }
@@ -437,7 +439,7 @@ export default {
           sharpen(null)
           return
         }
-        built.value = buildText(source, { ...options, lineDepth, placed: arced.placed, line: arced.line, ends: arced.ends, sheet: arced.sheet, painted: owned(parts), layers: layerOptions(), detailed: detailed(options), textureLimit: platform.maxTextureSize() })
+        built.value = buildText(source, { ...options, lineDepth, placed: arced.placed, line: arced.line, ends: arced.ends, sheet: arced.sheet, painted: owned(parts), layers: layerOptions(), detailed: detailed(options, arced.sheet), textureLimit: platform.maxTextureSize() })
         reach = twistedReach(built.value, arced.reach)
         const thumbnail = view.previews === false ? [] : thumbnailItems(source, arced.placed)
         preview.value = thumbnail.length ? previewFor(source, options, thumbnail, arced.sheet, parts) : null
