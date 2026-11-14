@@ -231,9 +231,9 @@ export function downloadJson() {
   downloadBlob(name, new Blob([text], { type: "application/json" }))
 }
 
-export function updateSubmission() {
+export function saveSubmission() {
   flushSave()
-  sessionStorage.setItem(EDITOR_SUBMISSION, JSON.stringify({ ...jsonFile(), submission: editingSubmission.value }))
+  sessionStorage.setItem(EDITOR_SUBMISSION, JSON.stringify({ ...jsonFile(), submission: editingSubmission.value, save: true }))
   navigate(`/submissions/${editingSubmission.value}/edit`)
 }
 

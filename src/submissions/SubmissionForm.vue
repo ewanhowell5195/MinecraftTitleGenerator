@@ -1,5 +1,5 @@
 <script setup>
-  import { computed, onBeforeUnmount, ref, watch } from "vue"
+  import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue"
   import Button from "../components/Button.vue"
   import Checkbox from "../components/Checkbox.vue"
   import Field from "../components/Field.vue"
@@ -68,6 +68,7 @@
   const revision = ref(props.initial?.updatedAt ?? null)
   const context = submissionContext(props.fonts, path => fetched(path, path))
   let checks = 0
+  let checking = null
 
   function ownDetails({ source, licence, ...rest }) {
     return { ...rest }
@@ -136,7 +137,7 @@
 
   watch(() => Object.values(extras.value).concat(chosen.value ?? []), releaseDropped, { flush: "sync" })
 
-  watch(() => [kind.value, target.value, JSON.stringify(sentDetails.value), chosen.value, extras.value, name.value, credit.value, notes.value, agree.value], async () => {
+  async function runCheck() {
     const check = ++checks
     const files = Object.fromEntries(Object.entries(extras.value).map(([key, extra]) => [key, extra.bytes]))
     try {
@@ -145,7 +146,20 @@
     } catch (err) {
       if (check === checks) problems.value = { check: `This couldn't be checked: ${err.message}` }
     }
+  }
+
+  watch(() => [kind.value, target.value, JSON.stringify(sentDetails.value), chosen.value, extras.value, name.value, credit.value, notes.value, agree.value], () => {
+    checking = runCheck()
   }, { immediate: true })
+
+  async function checked() {
+    await nextTick()
+    let current
+    do {
+      current = checking
+      await current
+    } while (current !== checking)
+  }
 
   function fillFromFont(bytes) {
     let json
@@ -178,16 +192,19 @@
     if (file) use(file)
   }
 
-  function takeEditorFont() {
+  async function takeEditorFont() {
     const saved = sessionStorage.getItem(EDITOR_SUBMISSION)
     if (!saved) return
-    const { name: fileName, text, submission = null } = JSON.parse(saved)
+    const { name: fileName, text, submission = null, save = false } = JSON.parse(saved)
     if (submission !== (props.initial?.id ?? null)) return
     sessionStorage.removeItem(EDITOR_SUBMISSION)
     const opened = JSON.parse(sessionStorage.getItem(EDITOR_REVISION) ?? "null")
     sessionStorage.removeItem(EDITOR_REVISION)
     if (props.initial && opened?.submission === props.initial.id) revision.value = opened.revision
-    use(new File([text], fileName, { type: "application/json" }))
+    await use(new File([text], fileName, { type: "application/json" }))
+    if (!save || !props.initial || blocked.value) return
+    await checked()
+    await send()
   }
 
   if (kind.value === "font" && (props.initial || prefillFrom === "editor")) takeEditorFont()
