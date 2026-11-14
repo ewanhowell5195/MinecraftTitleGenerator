@@ -10,6 +10,7 @@ const PITCH_LIMIT = radians(89)
 const ORBIT_FILL = 0.94
 const DOLLY_LIMITS = [0.05, 20]
 const boxes = new WeakMap()
+const points = new WeakMap()
 
 function radians(degrees) {
   return degrees * Math.PI / 180
@@ -139,7 +140,7 @@ export function placementMatrix(value, bounds) {
 }
 
 function boxOf(buffers) {
-  if (!boxes.has(buffers)) boxes.set(buffers, new THREE.Box3().setFromArray(buffers.positions))
+  if (!boxes.has(buffers)) boxes.set(buffers, new THREE.Box3().setFromPoints(pointsOf(buffers)))
   return boxes.get(buffers)
 }
 
@@ -237,9 +238,21 @@ function localBounds(item, grow) {
   return bounds
 }
 
-function placedCorners(item, transform) {
+function pointsOf(buffers) {
+  if (!points.has(buffers)) {
+    const unique = new Map()
+    const { positions } = buffers
+    for (let at = 0; at < positions.length; at += 3) unique.set(`${positions[at]},${positions[at + 1]},${positions[at + 2]}`, at)
+    points.set(buffers, Array.from(unique.values(), at => new THREE.Vector3(positions[at], positions[at + 1], positions[at + 2])))
+  }
+  return points.get(buffers)
+}
+
+function placedPoints(item, transform) {
   const matrix = objectMatrix(transform, item.built)
-  return cornersOf(localBounds(item, [1, 1, 1])).map(corner => corner.applyMatrix4(matrix))
+  const shell = item.halo?.triangles ? item.halo : item.outline
+  const outline = shell?.triangles ? pointsOf(shell).map(point => point.clone().divide(new THREE.Vector3(...shell.scale))) : []
+  return pointsOf(item.built.body).concat(outline).map(point => point.clone().applyMatrix4(matrix))
 }
 
 function restBounds(item) {
@@ -254,7 +267,7 @@ export function titleFraming(items, fixedDistance = false) {
   const anchored = solid.some(item => item.type === "top")
   let corners = []
   for (const item of solid) {
-    const placed = placedCorners(item, item.transform)
+    const placed = placedPoints(item, item.transform)
     for (const corner of placed) box.expandByPoint(corner)
     corners = corners.concat(placed)
     if (!anchored || item.type === "top") anchor.union(restBounds(item))

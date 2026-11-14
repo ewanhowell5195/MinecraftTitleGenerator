@@ -325,9 +325,15 @@ describe("titleFraming", () => {
     assert.equal(titleFraming([{ type: "top", built: flat, transform: transform() }]).size, 5)
   })
 
-  test("has eight corners per usable item", () => {
+  test("frames the geometry, not the empty corners of its box", () => {
+    const stepped = { line: flat.line, body: { triangles: 1, positions: new Float32Array([0, 0, 0, 10, 4, 0, 0, 0, 5, 10, 2, 5]) } }
+    const { corners } = titleFraming([{ type: "top", built: stepped, transform: transform() }])
+    assert.equal(corners.some(corner => corner.y > 3 && corner.z > 1), false)
+  })
+
+  test("frames every distinct vertex of each usable item", () => {
     const items = [{ type: "top", built: flat, transform: transform() }, { type: "bottom", built: null, transform: transform() }, { type: "bottom", built: flat, transform: transform() }]
-    assert.equal(titleFraming(items).corners.length, 16)
+    assert.equal(titleFraming(items).corners.length, 4)
   })
 
   test("corners and size follow the user transform", () => {
