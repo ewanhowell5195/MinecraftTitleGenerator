@@ -25,7 +25,7 @@
     prefill: { type: Object, default: () => ({}) }
   })
 
-  const emit = defineEmits(["done", "cancel"])
+  const emit = defineEmits(["done", "cancel", "saving"])
 
   const ABOUT = {
     texture: "Paint over a font's template to fill its letters.",
@@ -201,10 +201,12 @@
     const opened = JSON.parse(sessionStorage.getItem(EDITOR_REVISION) ?? "null")
     sessionStorage.removeItem(EDITOR_REVISION)
     if (props.initial && opened?.submission === props.initial.id) revision.value = opened.revision
+    const saving = save && !!props.initial
+    if (saving) emit("saving", true)
     await use(new File([text], fileName, { type: "application/json" }))
-    if (!save || !props.initial || blocked.value) return
-    await checked()
-    await send()
+    if (!saving) return
+    if (!blocked.value) await checked()
+    if (blocked.value || !await send()) emit("saving", false)
   }
 
   if (kind.value === "font" && (props.initial || prefillFrom === "editor")) takeEditorFont()
@@ -229,16 +231,18 @@
     tried.value = true
     error.value = ""
     conflict.value = false
-    if (Object.keys(problems.value).length || fileProblem.value) return
+    if (Object.keys(problems.value).length || fileProblem.value) return false
     sending.value = true
     try {
       const fields = { kind: kind.value, target: target.value, details: sentDetails.value, name: name.value, credit: credit.value, notes: notes.value }
       const sent = Object.fromEntries(Object.entries(extras.value).map(([key, extra]) => [key, extra.blob]))
       if (props.initial) emit("done", await editSubmission(props.initial.id, fields, chosen.value?.blob, sent, revision.value))
       else emit("done", await sendSubmission(fields, chosen.value.blob, agree.value, sent))
+      return true
     } catch (err) {
       error.value = err.message
       conflict.value = err.status === 409 && !!props.initial
+      return false
     } finally {
       sending.value = false
     }

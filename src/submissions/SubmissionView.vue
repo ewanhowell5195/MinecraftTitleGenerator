@@ -39,6 +39,7 @@
   const outcome = ref(null)
 
   const processing = ref(null)
+  const saving = ref(false)
   const known = ref(props.editing)
   const tab = ref("comments")
   const textureKey = ref("")
@@ -116,7 +117,12 @@
 
   function saved(submission) {
     item.value = submission
+    processing.value = { state: "processing" }
+    saving.value = false
+    known.value = true
     router.replace(page)
+    clearTimeout(pollTimer)
+    pollTimer = setTimeout(checkProcessing)
   }
 
   function cancel() {
@@ -144,13 +150,13 @@
       <p>{{ client.summary(item, fonts) }}, made by {{ authorText(item.credit) }}.</p>
       <blockquote v-if="item.notes" class="notes">{{ item.notes }}</blockquote>
     </section>
-    <SubmissionForm v-if="editing" :fonts="fonts" :initial="item" @done="saved" @cancel="cancel" />
-    <section v-else-if="processing?.state === 'processing'" class="processing">
+    <SubmissionForm v-if="editing" v-show="!saving" :fonts="fonts" :initial="item" @done="saved" @cancel="cancel" @saving="saving = $event" />
+    <section v-if="saving || !editing && processing?.state === 'processing'" class="processing">
       <span class="spinner" aria-hidden="true"></span>
       <h2>Processing submission</h2>
       <p class="hint">GitHub is building its files. This usually takes a minute or two, and this page updates when it's done.</p>
     </section>
-    <template v-else-if="known">
+    <template v-else-if="!editing && known">
       <Notice v-if="processing?.state === 'failed' && !reviewing"><p>Processing this submission failed on GitHub. <a :href="processing.url" target="_blank" rel="noopener">See what went wrong</a>.</p></Notice>
       <MessageDialog v-if="outcome" :title="outcome === 'published' ? 'Submission merged' : 'Submission declined'" @close="leave">{{ outcome === "published" ? `${item.name} was merged, and is now part of the generator.` : `${item.name} was declined.` }}</MessageDialog>
       <ReviewPanel v-if="reviewing" :key="item.updatedAt" :item="item" :failed-url="processing?.state === 'failed' ? processing.url : ''" @done="reviewed" />
