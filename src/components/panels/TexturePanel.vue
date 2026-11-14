@@ -5,7 +5,7 @@
   import { blockName, blockTextureImage, blockTextures, latestRelease } from "../../lib/minecraft.js"
   import { keepVersions } from "../../lib/minecraftModels.js"
   import { titleCase } from "../../lib/names.js"
-  import { shownLayer, usePanel } from "../../lib/panel.js"
+  import { layerShown, usePanel } from "../../lib/panel.js"
   import { gameVersions, library } from "../../lib/scene.js"
   import { EulaDeclined, eulaDeclined } from "../../lib/eula.js"
   import { pinnedTextures, setTexture, untouchedTileable } from "../../lib/settings.js"
@@ -32,6 +32,7 @@
   const WHITE = "#ffffff"
 
   const { object, font, list, modified, reset } = usePanel("texture")
+  const shownLayer = layerShown("texture")
 
   function textureMenu(id, data) {
     return [{ label: "Download texture", icon: "download", action: () => saveImage(`${data.folder ?? font.value.sheetFolder}/textures/${id}.png`, `${id}.png`) }]

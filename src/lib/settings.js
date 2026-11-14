@@ -208,7 +208,10 @@ const PANELS = {
     sideDirection: "up"
   }),
   layers: () => ({
-    separateLayers: false,
+    separateTexture: false,
+    separateColour: false,
+    separateOverlays: false,
+    separateFaces: false,
     layerSettings: []
   }),
   faces: () => ({
@@ -225,35 +228,56 @@ const PANELS = {
 
 export const LINE = new Set(["font", "customFont", "terminators", "type", "row", "rowSpacing", "depth", "depthAnchor", "border", "clipHoles", "layerWords", "spacing", "kerning", "arcMode", "arcTop", "arcBottom", "arcMove", "arcCentre", "arcMarked", "twistRibbon", "twistRibbonCentre", "twistRibbonMirror", "twistDoor", "twistDoorCentre", "twistDoorSame", "twistDoorRoll"].concat(Object.keys(PANELS.transform())))
 
-export const LAYER_KEYS = Object.keys(PANELS.texture()).concat(Object.keys(PANELS.overlays()), Object.keys(PANELS.edgeOverlays()), Object.keys(PANELS.colour()), ["customEdge", "edgeColour", "edgeBrightness", "edgeFill", "edgeStops", "edgeSmooth"])
+export const LAYER_GROUPS = {
+  texture: Object.keys(PANELS.texture()),
+  overlays: Object.keys(PANELS.overlays()).concat(Object.keys(PANELS.edgeOverlays())),
+  colour: Object.keys(PANELS.colour()),
+  faces: ["customEdge", "edgeColour", "edgeBrightness", "edgeFill", "edgeStops", "edgeSmooth"]
+}
+
+export const SEPARATE_KEYS = { texture: "separateTexture", overlays: "separateOverlays", colour: "separateColour", faces: "separateFaces" }
+
+export const LAYER_KEYS = Object.values(LAYER_GROUPS).flat()
 
 export function layerValues(object) {
   return Object.fromEntries(LAYER_KEYS.map(key => [key, structuredClone(toRaw(object[key]))]))
 }
 
-const LAYER_SET = new Set(LAYER_KEYS)
+export function isSeparate(object, group) {
+  return !!object?.[SEPARATE_KEYS[group]]
+}
 
-export function layerView(object, layer) {
-  const settings = layer && object.separateLayers ? object.layerSettings[layer - 1] : null
+function separatedKeys(object, group = null) {
+  const groups = group ? [group] : Object.keys(LAYER_GROUPS)
+  return new Set(groups.filter(name => isSeparate(object, name)).flatMap(name => LAYER_GROUPS[name]))
+}
+
+export function layerView(object, layer, group = null) {
+  const keys = separatedKeys(object, group)
+  const settings = layer && keys.size ? object.layerSettings[layer - 1] : null
   if (!settings) return object
   return new Proxy(object, {
-    get: (target, key) => LAYER_SET.has(key) ? target.layerSettings[layer - 1][key] : target[key],
+    get: (target, key) => keys.has(key) ? target.layerSettings[layer - 1][key] : target[key],
     set: (target, key, value) => {
-      if (LAYER_SET.has(key)) target.layerSettings[layer - 1][key] = value
+      if (keys.has(key)) target.layerSettings[layer - 1][key] = value
       else target[key] = value
       return true
     }
   })
 }
 
-export function separateLayers(object, on, count) {
-  object.layerSettings = on ? Array.from({ length: count - 1 }, () => layerValues(object)) : []
-  object.separateLayers = on
+export function separateLayers(object, group, on, count) {
+  const keys = LAYER_GROUPS[group]
+  if (on) object.layerSettings = Array.from({ length: count - 1 }, (_, index) => ({ ...object.layerSettings[index], ...Object.fromEntries(keys.map(key => [key, structuredClone(toRaw(object[key]))])) }))
+  else object.layerSettings = object.layerSettings.map(layer => Object.fromEntries(Object.entries(layer).filter(([key]) => !keys.includes(key))))
+  object[SEPARATE_KEYS[group]] = on
+  if (!Object.keys(LAYER_GROUPS).some(name => isSeparate(object, name))) object.layerSettings = []
 }
 
 export function layerTarget(object, layer) {
-  if (!layer || !object.separateLayers) return object
-  return { ...object, ...object.layerSettings[layer - 1] }
+  const own = layer ? object.layerSettings?.[layer - 1] : null
+  if (!own) return object
+  return { ...object, ...Object.fromEntries(Array.from(separatedKeys(object)).filter(key => key in own).map(key => [key, own[key]])) }
 }
 
 function defaults() {

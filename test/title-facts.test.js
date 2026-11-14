@@ -105,7 +105,7 @@ describe("titleValues", () => {
 
 describe("separate layers in saved titles", () => {
   test("a layer keeps only what differs from the defaults, and opens with the rest filled in", () => {
-    const object = createObject({ separateLayers: true })
+    const object = createObject({ separateTexture: true })
     object.layerSettings = [{ ...layerValues(object), textureSource: "gradient", hue: 40 }]
     const saved = trimmed(object)
     assert.deepEqual(saved.layerSettings, [{ textureSource: "gradient", hue: 40 }])
@@ -118,7 +118,7 @@ describe("separate layers in saved titles", () => {
 
   test("a title with layers kept together saves nothing extra", () => {
     const saved = trimmed(createObject())
-    assert.equal("separateLayers" in saved, false)
+    assert.equal("separateTexture" in saved, false)
     assert.equal("layerSettings" in saved, false)
   })
 })

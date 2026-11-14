@@ -377,12 +377,15 @@ const KEYS = [
   ["shapeVersion", ID],
   ["twistDoorRoll", BOOLEAN],
   ["amount", NUMBER],
-  ["separateLayers", BOOLEAN],
+  ["separateTexture", BOOLEAN],
   ["layerSettings", OBJECTS],
   ["blockState", STATE],
   ["itemComponents", COMPONENTS],
   ["sideWrap", BOOLEAN],
-  ["edgeWrap", BOOLEAN]
+  ["edgeWrap", BOOLEAN],
+  ["separateOverlays", BOOLEAN],
+  ["separateColour", BOOLEAN],
+  ["separateFaces", BOOLEAN]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))

@@ -65,6 +65,6 @@ export function editorLine(entry, text, { terminators = false, stretch = 1, text
   if (stretch !== 1) Object.assign(line, { scaleY: stretch, scaleMarked: true })
   const own = { ...(texture && { texture }), ...(variant && { textureVariant: variant }) }
   if (!layer) Object.assign(line, own)
-  if (layer !== null && layers > 1) Object.assign(line, { separateLayers: true, layerSettings: Array.from({ length: layers - 1 }, (_, index) => index + 1 === layer ? own : {}) })
+  if (layer !== null && layers > 1) Object.assign(line, { separateTexture: true, separateOverlays: true, separateColour: true, separateFaces: true, layerSettings: Array.from({ length: layers - 1 }, (_, index) => index + 1 === layer ? own : {}) })
   return line
 }

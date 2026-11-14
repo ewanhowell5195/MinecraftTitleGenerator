@@ -42,7 +42,7 @@
 </script>
 
 <template>
-  <LayerPanel />
+  <LayerPanel group="faces" />
   <Panel v-for="group of groups" :key="group.name" :title="group.title" :enabled="group.enabled ? group.object.value[group.enabled] : null" @update:enabled="group.object.value[group.enabled] = $event" :modified="group.modified.value" @reset="group.reset">
     <ColourToggle v-model:enabled="group.object.value[group.custom]" v-model:colour="group.object.value[group.colour]" @change="pickDefault(group)">
       <Segments :options="FILLS" :model-value="group.object.value[group.fill]" @update:model-value="pickFill(group, $event)" />

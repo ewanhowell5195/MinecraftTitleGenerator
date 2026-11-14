@@ -1,7 +1,7 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import { isReactive } from "vue"
-import { LAYER, activeOverlays, applyType, createObject, defaultBorder, defaultDepth, defaultOverlays, defaultSpacing, defaultTexture, effectiveScale, fontFaces, isModified, overlayLayer, pinnedTextures, resetPanel, resetTransform, restore, setTexture, snapshot, textureEntry, transformKeys, typeDefaults } from "../src/lib/settings.js"
+import { LAYER, activeOverlays, applyType, createObject, layerTarget, layerView, separateLayers, defaultBorder, defaultDepth, defaultOverlays, defaultSpacing, defaultTexture, effectiveScale, fontFaces, isModified, overlayLayer, pinnedTextures, resetPanel, resetTransform, restore, setTexture, snapshot, textureEntry, transformKeys, typeDefaults } from "../src/lib/settings.js"
 
 const TOP_DEFAULTS = {
   hidden: false,
@@ -131,7 +131,10 @@ const TOP_DEFAULTS = {
   sideStops: [{ colour: "#000000", position: 0 }, { colour: "#ffffff", position: 100 }],
   sideSmooth: true,
   sideDirection: "up",
-  separateLayers: false,
+  separateTexture: false,
+  separateColour: false,
+  separateOverlays: false,
+  separateFaces: false,
   layerSettings: [],
   fade: false,
   outerFade: 0,
@@ -737,5 +740,30 @@ describe("a new object", () => {
     assert.equal(object.fade, true)
     assert.equal(object.outerFade, 30)
     assert.equal(object.sideFade, 10)
+  })
+})
+
+describe("separate layers per tab", () => {
+  test("separating one tab leaves the others shared", () => {
+    const object = createObject({ hue: 10 })
+    separateLayers(object, "overlays", true, 2)
+    layerView(object, 1, "overlays").overlays = [{ overlay: "outline" }]
+    layerView(object, 1, "texture").hue = 50
+    assert.deepEqual(layerTarget(object, 1).overlays, [{ overlay: "outline" }])
+    assert.deepEqual(layerTarget(object, 0).overlays, [])
+    assert.equal(layerTarget(object, 1).hue, 50)
+    assert.equal(object.hue, 50)
+    assert.equal(object.separateTexture, false)
+  })
+
+  test("turning a tab back off drops its own values and keeps the others", () => {
+    const object = createObject()
+    separateLayers(object, "overlays", true, 2)
+    separateLayers(object, "texture", true, 2)
+    separateLayers(object, "overlays", false, 2)
+    assert.equal("overlays" in object.layerSettings[0], false)
+    assert.equal("textureSource" in object.layerSettings[0], true)
+    separateLayers(object, "texture", false, 2)
+    assert.deepEqual(object.layerSettings, [])
   })
 })

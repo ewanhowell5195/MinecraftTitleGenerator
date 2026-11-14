@@ -173,7 +173,7 @@ describe("submitting", () => {
       [[{ text: "d", texture: "preview-only" }], /no minecraft-ten texture called preview-only/],
       [[{ text: "e", textureSource: "tileable", tileableSource: "premade", tileable: "preview-only" }], /no tileable called preview-only/],
       [[{ text: "f", overlayMode: "custom", overlays: [{ overlay: "preview-only" }] }], /no minecraft-ten overlay called preview-only/],
-      [[{ text: "g", separateLayers: true, layerSettings: [{ texture: "preview-only" }] }], /no minecraft-ten texture called preview-only/]
+      [[{ text: "g", separateTexture: true, layerSettings: [{ texture: "preview-only" }] }], /no minecraft-ten texture called preview-only/]
     ]) {
       const refused = await post({ code: code(lines) })
       assert.equal(refused.status, 400)

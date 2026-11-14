@@ -164,15 +164,15 @@
       <ShapePanel v-else-if="view.section === 'shape'" :key="currentWord.id" />
       <PlacementPanel v-else-if="view.section === 'placement'" />
       <template v-else-if="view.section === 'texture'">
-        <LayerPanel />
+        <LayerPanel group="texture" />
         <TexturePanel />
       </template>
       <template v-else-if="view.section === 'colour'">
-        <LayerPanel />
+        <LayerPanel group="colour" />
         <ColourPanel />
       </template>
       <template v-else-if="view.section === 'overlays'">
-        <LayerPanel />
+        <LayerPanel group="overlays" />
         <OverlaysPanel />
         <OverlaysPanel v-if="!active.font?.model" edge />
       </template>
