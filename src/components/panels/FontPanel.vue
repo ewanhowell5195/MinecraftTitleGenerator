@@ -79,6 +79,11 @@
     }
   }
 
+  function clearCustom() {
+    customError.value = ""
+    Object.assign(object.value, { font: publishedFonts.get(object.value.id) ?? DEFAULT_FONT, customFont: null })
+  }
+
   function upload(event) {
     const file = takeFile(event)
     if (!file) return
@@ -146,7 +151,7 @@
     </RenderDialog>
     <Segments :options="TABS" :model-value="tab" @update:model-value="chooseTab" />
     <template v-if="tab === 'custom'">
-      <UploadField accept=".json,.png,.ttf,.otf,.woff,.woff2,application/json,image/png,font/ttf,font/otf,font/woff,font/woff2" :label="loading ? 'Loading...' : object.customFont ? 'Replace font' : 'Choose a font file'" empty="No font uploaded" :disabled="loading" @change="upload">
+      <UploadField accept=".json,.png,.ttf,.otf,.woff,.woff2,application/json,image/png,font/ttf,font/otf,font/woff,font/woff2" :label="loading ? 'Loading...' : object.customFont ? 'Replace font' : 'Choose a font file'" empty="No font uploaded" :disabled="loading" :clearable="!!object.customFont" @change="upload" @clear="clearCustom">
         <template v-if="object.customFont" #preview>
           <div class="custom-font">
             <div class="preview picture"><img v-if="customImage" :src="customImage" alt="" :style="customUnit ? { height: `${customUnit}px` } : null"></div>

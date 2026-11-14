@@ -93,6 +93,10 @@
     Object.assign(object.value, { shape: CUSTOM_SHAPE, customFont: { kind: "silhouette", fileName: "shape.png", data } })
   }
 
+  function clearPng() {
+    Object.assign(object.value, { shape: library.shapes[0].id, customFont: null })
+  }
+
   function chooseVersion(picked) {
     version.value = picked
     if (isMinecraftShape(object.value.shape)) setShape(object.value.shape, picked)
@@ -155,7 +159,7 @@
         <Tile v-for="shape of library.shapes" :key="shape.id" :label="shape.name" :image="`${shape.folder}/thumbnails/flat.png`" aspect="4 / 3" :author="shape.authors" :selected="object.shape === shape.id" @pick="object.shape = shape.id" />
       </TileGrid>
       <template v-else-if="source === 'custom'">
-        <UploadField accept="image/*" :label="object.shape === CUSTOM_SHAPE ? 'Replace image' : 'Choose an image'" empty="No image chosen" :image="object.shape === CUSTOM_SHAPE ? object.customFont?.data : null" @change="readImage($event, pickPng)" />
+        <UploadField accept="image/*" :label="object.shape === CUSTOM_SHAPE ? 'Replace image' : 'Choose an image'" empty="No image chosen" :image="object.shape === CUSTOM_SHAPE ? object.customFont?.data : null" :clearable="object.shape === CUSTOM_SHAPE" @change="readImage($event, pickPng)" @clear="clearPng" />
         <p class="hint">The solid pixels make the shape, pushed out like a letter, and the image paints its front.</p>
       </template>
       <template v-else>

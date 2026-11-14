@@ -1,5 +1,6 @@
 <script setup>
   import { vFileDrop } from "../lib/fileDrop.js"
+  import Button from "./Button.vue"
   import Icon from "./Icon.vue"
 
   defineProps({
@@ -8,10 +9,11 @@
     empty: { type: String, default: "" },
     image: { type: String, default: null },
     disabled: { type: Boolean, default: false },
-    multiple: { type: Boolean, default: false }
+    multiple: { type: Boolean, default: false },
+    clearable: { type: Boolean, default: false }
   })
 
-  const emit = defineEmits(["change"])
+  const emit = defineEmits(["change", "clear"])
 </script>
 
 <template>
@@ -21,6 +23,7 @@
       <span v-else class="empty-state">{{ empty }}</span>
     </slot>
     <span class="button" :class="{ disabled }"><Icon name="open" :size="16" /><span>{{ label }}</span></span>
+    <Button v-if="clearable" ghost class="upload-clear" icon="trash" title="Remove" :disabled="disabled" @click.prevent="emit('clear')" />
     <input type="file" :accept="accept" :multiple="multiple" :disabled="disabled" @change="emit('change', $event)">
   </label>
 </template>
@@ -45,6 +48,12 @@
 
   .upload-field.disabled {
     cursor: not-allowed;
+  }
+
+  .upload-clear {
+    position: absolute;
+    top: 4px;
+    right: 4px;
   }
 
   .upload-image {
