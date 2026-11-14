@@ -15,15 +15,15 @@
   import { titleCase } from "../lib/names.js"
   import { loadStats, usage } from "../lib/stats.js"
   import { centredOffset, placedStrips, stripFolder, stripItem, stripPlacements, stripTag, stripUse } from "../lib/strips.js"
-  import { layerDepth, nearestOffset, setShape, stripFit } from "../lib/submissionKinds/stripFit.js"
+  import { layerDepth, nearestOffset, reachProblems, setShape, stripFit } from "../lib/submissionKinds/stripFit.js"
   import { editorLine, useServedFont } from "./editorLine.js"
   import { typedNumber } from "./fields.js"
   import { stripThumbnail, thumbnailScene } from "./stripThumbs.js"
 
   const CHECK_DELAY = 300
   const WORDS = {
-    font: { yours: "your font", parts: "your letters", them: "them", fit: "Your letters fit", goes: "its letters go", reaches: "its letters reach", is: "its letters are", empty: "Nothing to show yet. Draw the characters in your text." },
-    shape: { yours: "your shape", parts: "your shape", them: "it", fit: "Your shape fits", goes: "it goes", reaches: "it reaches", is: "it is", empty: "Nothing to show yet." }
+    font: { yours: "your font", parts: "your letters", them: "them", fit: "Your letters fit", goes: "its letters go", is: "its letters are", empty: "Nothing to show yet. Draw the characters in your text." },
+    shape: { yours: "your shape", parts: "your shape", them: "it", fit: "Your shape fits", goes: "it goes", is: "it is", empty: "Nothing to show yet." }
   }
 
   const props = defineProps({
@@ -142,6 +142,12 @@
     return { low: Math.max(low, -limit), high: Number.isFinite(Math.min(high, limit)) ? Math.min(high, limit) : null }
   }
 
+  function adjustable(set) {
+    if (set.shape.stretched || !canFit(set.id)) return false
+    const { low, high } = bounds(set.id)
+    return low !== high
+  }
+
   function boundsNote(id) {
     if (!canFit(id)) return `No offset makes ${words.value.parts} fit these strips`
     const { low, high } = bounds(id)
@@ -188,7 +194,7 @@
       return
     }
     const drawn = {}
-    const tag = stripTag(set, chosenOffset(set.id))
+    const tag = { ...stripTag(set, chosenOffset(set.id)), stripLayer: layer ? layer - 1 : null }
     for (const [id, data] of Object.entries(set.textures)) {
       for (const [name, variant] of [[id, {}]].concat(Object.entries(data.variants ?? {}))) {
         const strip = await image(`${stripFolder(set.id)}/textures/${name}.png`)
@@ -225,22 +231,18 @@
     return stripFit(set.shape, measure, offset, { stretched: set.shape.stretched, heights: set.heights })
   }
 
-  function blamed(char, verb) {
-    return props.subject === "font" && char ? `"${characterName(char, props.font.letterCase)}" ${verb}` : null
-  }
-
-  function problemText(code, set, { range, depth, capHeight }, offset) {
-    const shift = centredOffset(set.height, capHeight) + offset
-    if (code === "depth") return `its depth of ${depth} is over the strips' maximum of ${set.depth}`
-    if (code === "below") return `${blamed(range.lowest, "goes") ?? words.value.goes} ${-range.bottom} below the baseline, and the strips only cover ${set.baseline - set.depth + shift}`
-    if (code === "above") return `${blamed(range.highest, "reaches") ?? words.value.reaches} ${range.top + shift} above the strips' baseline, and the strips only go up to ${set.height}`
-    return `${words.value.is} ${range.top} tall above the baseline${shift ? ` with an offset of ${shift}` : ""}, which doesn't line up with the strips`
+  function problemTexts(codes, set, measure, offset) {
+    const shift = centredOffset(set.height, measure.capHeight) + offset
+    const named = char => props.subject === "font" ? `"${characterName(char, props.font.letterCase)}"` : null
+    const depth = codes.includes("depth") ? [`its depth of ${measure.depth} pixels is over the strips' maximum of ${set.depth}`] : []
+    const height = codes.includes("height") ? [`${words.value.is} ${measure.range.top} pixels tall above the baseline${shift ? ` with an offset of ${shift}` : ""}, which doesn't line up with the strips`] : []
+    return depth.concat(reachProblems(set, measure, offset, codes, { named, plain: words.value.goes, stretched: set.stretched }), height)
   }
 
   function check() {
     const measure = measureOf(layerOf())
     fitting.value = Object.fromEntries(sets.value.map(set => [set.id, fitOf(set, measure, 0)]))
-    problems.value = Object.fromEntries(sets.value.map(set => [set.id, fitOf(set, measure, chosenOffset(set.id)).problems.map(code => problemText(code, set.shape, measure, chosenOffset(set.id)))]))
+    problems.value = Object.fromEntries(sets.value.map(set => [set.id, problemTexts(fitOf(set, measure, chosenOffset(set.id)).problems, set.shape, measure, chosenOffset(set.id))]))
     if (!chosenSet.value && sets.value.length) choose((sets.value.find(set => fits(set.id)) ?? sets.value[0]).id)
     drawThumbs()
   }
@@ -322,8 +324,10 @@
         <small v-if="layered && elsewhere(set.id).length">Also used on layer {{ elsewhere(set.id).join(" and ") }}</small>
       </div>
       <div class="input-row offset" @click.stop>
-        <span v-tooltip="`0 centres ${words.parts} on the strips, higher moves ${words.them} up, lower moves ${words.them} down`">Offset</span>
-        <NumberInput :value="chosenOffset(set.id)" :min="bounds(set.id).low" :max="bounds(set.id).high" :disabled="!canFit(set.id)" v-tooltip="boundsNote(set.id)" :aria-label="`Offset for ${titleCase(set.id)}`" @input="setOffset(set.id, $event)" @change="setOffset(set.id, $event)" />
+        <template v-if="adjustable(set)">
+          <span v-tooltip="`0 centres ${words.parts} on the strips, higher moves ${words.them} up, lower moves ${words.them} down`">Offset</span>
+          <NumberInput :value="chosenOffset(set.id)" :min="bounds(set.id).low" :max="bounds(set.id).high" v-tooltip="boundsNote(set.id)" :aria-label="`Offset for ${titleCase(set.id)}`" @input="setOffset(set.id, $event)" @change="setOffset(set.id, $event)" />
+        </template>
         <Button v-if="usedHere(set.id)" @click.stop="toggle(set.id)">Stop using</Button>
         <Button :primary="fits(set.id)" v-else :disabled="!fits(set.id) || full && !used(set.id)" @click.stop="toggle(set.id)">Use</Button>
       </div>

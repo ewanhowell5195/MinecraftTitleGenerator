@@ -142,9 +142,23 @@ describe("stripRows", () => {
   test("a stretching strip fits its face between the font's baseline and topline", () => {
     const { textures } = mergeStrips({ textures: {} }, [{ id: "set", depth: 22, baseline: 30, height: 40, offset: 6, textures: { a: { stretch: true } } }])
     const rows = stripRows(textures.a, { top: 22, bottom: -4 }, 22, 20)
-    assert.deepEqual(rows, { depth: 22, top: 40, bottom: -8, rows: 92, scale: { from: 20, to: 40 } })
+    assert.deepEqual(rows, { depth: 22, top: 40, bottom: -8, rows: 92, scale: { from: 20, to: 40, base: 0 } })
     assert.deepEqual([-4, -1, 0, 1, 10, 19, 20, 21].map(y => stripY(rows, y)), [-4, -1, 0, 2, 20, 38, 40, 41])
     assert.throws(() => stripRows({ stretch: true, stripSet: "set", stripDepth: 22, stripBaseline: 30 }, { top: 20, bottom: 0 }, 22, 20), /need a height/)
+  })
+
+  test("a stretching strip on a layer fits between that layer's own baseline and topline", () => {
+    const { textures } = mergeStrips({ textures: {} }, [{ id: "set", depth: 22, baseline: 30, height: 40, textures: { a: { stretch: true } } }])
+    const rows = stripRows(textures.a, { top: 22, bottom: -4, lines: { base: 2, top: 22 } }, 22, 24)
+    assert.deepEqual(rows.scale, { from: 20, to: 40, base: 2 })
+    assert.deepEqual([1, 2, 12, 21, 22].map(y => stripY(rows, y)), [-1, 0, 20, 38, 40])
+  })
+
+  test("a layer's baseline and topline come from its ordinary letters", () => {
+    const depths = Uint8Array.from([1, 1, 1, 1, 0, 1, 1, 1, 1])
+    const letter = { char: "a", width: 3, height: 3, bottom: 0, top: 3, mask: new Uint8Array(9).fill(1), depths }
+    const tall = { char: "$", width: 3, height: 5, bottom: 0, top: 5, mask: new Uint8Array(15).fill(1), depths: new Uint8Array(15) }
+    assert.deepEqual(stripRange({ cells: [letter, tall], capHeight: 3 }, 0), { top: 5, bottom: 0, highest: "$", lowest: "$", lines: { base: 1, top: 2 } })
   })
 
   test("a baseline left out falls back to the depth", () => {

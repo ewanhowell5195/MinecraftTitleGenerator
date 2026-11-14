@@ -10,7 +10,7 @@ import { GENERATED_EDGE_OVERLAYS, withGenerated } from "../generated.js"
 import { EXTRA_FILE, HEX_COLOUR, SUBMISSION_LIMITS, assetId, creditProblem, pngProblem, pngSize, sizedProblem, textProblem, textureDensity } from "../submissions.js"
 import { MULTICASE_CHARACTERS, REQUIRED_CHARACTERS, characterName, fontId, hasCase } from "../fontEditor.js"
 import { FONT_LIMITS, drawnCells, ownFont, storedFont, submittedFont } from "./fontBuild.js"
-import { heightList, layerDepth, stripFit, stripHeights, stripSet } from "./stripFit.js"
+import { heightList, layerDepth, reachProblems, stripFit, stripHeights, stripSet } from "./stripFit.js"
 
 const FONT_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/
 const FONT_ID_LENGTH = 40
@@ -87,7 +87,7 @@ function kerningProblem(entry, sheet, square) {
   return null
 }
 
-const LETTERS = { subject: "Its letters", goes: "go", reaches: "reach", is: "are", fix: "Change the offset in the Textures tab" }
+const LETTERS = { subject: "Its letters", goes: "go", is: "are", fix: "Change the offset in the Textures tab" }
 
 export async function stripProblem(entry, cells, capHeight, ctx, words = LETTERS, layers = null) {
   for (const use of (entry.strips ?? []).map(stripUse)) {
@@ -102,10 +102,9 @@ export async function stripProblem(entry, cells, capHeight, ctx, words = LETTERS
     const heights = set.height ? [] : await Promise.all(set.names.map(async name => pngSize(await ctx.bytes(`/strips/${use.id}/textures/${name}.png`)).height))
     const { problems } = stripFit(set, measure, use.offset, { stretched: set.stretched, heights })
     const what = `the ${use.id} strips`
-    if (problems.includes("depth")) return `Its depth of ${measure.depth} is deeper than ${what}, which go up to ${set.depth}. Lower the depth, or stop using ${what}.`
-    const blamed = (char, verb) => char && words === LETTERS ? `"${characterName(char, entry.letterCase)}" ${verb}` : null
-    if (problems.includes("below")) return `${blamed(measure.range.lowest, "goes") ?? `${words.subject} ${words.goes}`} further below the baseline than ${what} cover. ${words.fix}, or stop using ${what}.`
-    if (problems.includes("above")) return `${blamed(measure.range.highest, "reaches") ?? `${words.subject} ${words.reaches}`} higher than ${what} cover. ${words.fix}, or stop using ${what}.`
+    if (problems.includes("depth")) return `Its depth of ${measure.depth} pixels is deeper than ${what}, which go up to ${set.depth}. Lower the depth, or stop using ${what}.`
+    const reach = reachProblems(set, measure, use.offset, problems, { named: char => words === LETTERS ? `"${characterName(char, entry.letterCase)}"` : null, plain: `${words.subject} ${words.goes}`, stretched: set.stretched })
+    if (reach.length) return `${reach.join(", and ")} for ${what}. ${words.fix}, or stop using ${what}.`
     if (problems.includes("height")) return `${words.subject} ${words.is} the wrong height for ${what}. ${words.fix}, or stop using ${what}.`
   }
   return null

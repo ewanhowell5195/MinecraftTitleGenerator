@@ -17,7 +17,7 @@ const AXES = ["x", "y", "z"]
 const FACE_TURNS = [0, 90, 180, 270]
 const ALIAS_DEPTH = 16
 const STRIP_SET = /^[a-z0-9_-]{1,40}$/
-const SHAPE_WORDS = { subject: "The shape", goes: "goes", reaches: "reaches", is: "is", fix: "Change its offset" }
+const SHAPE_WORDS = { subject: "The shape", goes: "goes", is: "is", fix: "Change its offset" }
 
 export function shapeHoldingPath(id) {
   return `${SHAPE_HOLDING_FOLDER}/${id}.png`

@@ -111,7 +111,8 @@ export function stripRows(entry, range, fontDepth, capHeight = null) {
     const top = entry.stripHeight - offset
     const bottom = entry.stripDepth - entry.stripBaseline - offset
     const shape = { depth, top, bottom, rows: depth * 2 + top - bottom }
-    return entry.stretch ? { ...shape, scale: { from: capHeight, to: entry.stripHeight } } : shape
+    const lines = range?.lines ?? { base: 0, top: capHeight }
+    return entry.stretch ? { ...shape, scale: { from: lines.top - lines.base, to: entry.stripHeight, base: lines.base } } : shape
   }
   const bottom = entry.stripSet ? entry.stripDepth - entry.stripBaseline - stripOffset(entry, capHeight) : range.bottom
   return { depth, top: range.top, bottom, rows: depth * 2 + range.top - bottom }
@@ -125,7 +126,9 @@ export function stripHasRow(shape, y) {
 }
 
 export function stripY({ scale }, y) {
-  if (!scale || y < 0) return y
-  if (y >= scale.from) return y - scale.from + scale.to
-  return Math.floor(y * scale.to / scale.from)
+  if (!scale) return y
+  const at = y - (scale.base ?? 0)
+  if (at < 0) return at
+  if (at >= scale.from) return at - scale.from + scale.to
+  return Math.floor(at * scale.to / scale.from)
 }

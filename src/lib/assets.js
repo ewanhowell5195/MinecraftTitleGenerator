@@ -2,6 +2,7 @@ import { pixelsOf, surface } from "./canvas.js"
 import { expandBands } from "./flatSheet.js"
 import { loadImage, sheetLayout, solidMask } from "./font.js"
 import { GENERATED_EDGE_OVERLAYS, withGenerated } from "./generated.js"
+import { mostCommon } from "./maths.js"
 import { titleCase } from "./names.js"
 import { platform } from "./platform.js"
 import { defaultDepth } from "./settings.js"
@@ -155,15 +156,22 @@ function layerExtent(glyph, layer) {
   return high < low ? null : { char: glyph.char, bottom: glyph.bottom + low, top: glyph.bottom + high + 1 }
 }
 
+function layerLines(cells, capHeight, layer) {
+  const standard = cells.filter(glyph => glyph.depths && glyph.top === capHeight && glyph.bottom === 0).map(glyph => layerExtent(glyph, layer)).filter(Boolean)
+  if (!standard.length) return { base: 0, top: capHeight }
+  return { base: mostCommon(standard.map(extent => extent.bottom)), top: mostCommon(standard.map(extent => extent.top)) }
+}
+
 export function stripRange(font, layer = null) {
   const cells = font.cells.filter(glyph => glyph.width)
   const layered = layer !== null && cells.some(glyph => glyph.depths)
   const extents = layered ? cells.map(glyph => glyph.depths ? layerExtent(glyph, layer) : glyph).filter(Boolean) : cells
+  const lines = layered ? layerLines(cells, font.capHeight, layer) : { base: 0, top: font.capHeight }
   const top = Math.max(...(layered ? [] : [font.capHeight]).concat(extents.map(extent => extent.top)))
   const bottom = Math.min(...(layered ? [] : [0]).concat(extents.map(extent => extent.bottom)))
-  const highest = top > font.capHeight ? extents.find(extent => extent.top === top).char : null
-  const lowest = bottom < 0 ? extents.find(extent => extent.bottom === bottom).char : null
-  return { top, bottom, highest, lowest }
+  const highest = top > lines.top ? extents.find(extent => extent.top === top).char : null
+  const lowest = bottom < lines.base ? extents.find(extent => extent.bottom === bottom).char : null
+  return { top, bottom, highest, lowest, lines }
 }
 
 export async function sheetFor(font) {

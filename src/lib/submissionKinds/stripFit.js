@@ -97,10 +97,14 @@ export async function targetRows(ctx, target, details) {
   return Promise.all(setUsers(ctx.fonts, id).map(async ({ font, offset, layer }) => setRows(set, await fontMeasure(ctx, font, layer), offset)))
 }
 
+function lowestRow(measure, stretched) {
+  return measure.range.bottom - (stretched ? measure.range.lines?.base ?? 0 : 0)
+}
+
 export function stripFit(set, measure, offset, { stretched = false, heights = [] } = {}) {
   const centred = centredOffset(set.height, measure.capHeight)
   const base = set.baseline + set.depth + measure.range.top
-  const low = -measure.range.bottom - (set.baseline - set.depth) - centred
+  const low = -lowestRow(measure, stretched) - (set.baseline - set.depth) - centred
   const high = set.height && !stretched ? set.height - measure.range.top - centred : Infinity
   const problems = []
   if (measure.depth > set.depth) problems.push("depth")
@@ -125,15 +129,27 @@ export function fitOffset(set, measure, stretched) {
   return nearestOffset(stripFit(set, measure, 0, { stretched }), 0)
 }
 
-export function fitProblems(set, measure, offset, stretched) {
+function pixels(count) {
+  return `${count} pixel${count === 1 ? "" : "s"}`
+}
+
+export function reachProblems(set, measure, offset, codes, { named = char => `"${characterName(char, null)}"`, plain = "its letters go", stretched = false } = {}) {
   const shift = centredOffset(set.height, measure.capHeight) + offset
-  const [highest, lowest] = [measure.range.highest, measure.range.lowest].map(char => char && characterName(char, null))
-  const words = {
-    depth: `it's ${measure.depth} deep and the strips only cover ${set.depth}`,
-    below: `${lowest ? `its "${lowest}" goes` : "its letters go"} ${-measure.range.bottom} below the baseline and the strips only cover ${Math.max(0, set.baseline - set.depth + shift)}`,
-    above: `${highest ? `its "${highest}" reaches` : "its letters reach"} ${measure.range.top + shift} above the baseline and the strips only go up to ${set.height}`
+  const parts = []
+  if (codes.includes("below")) parts.push({ char: measure.range.lowest, text: `${pixels(-lowestRow(measure, stretched) - (set.baseline - set.depth + shift))} too low` })
+  if (codes.includes("above")) parts.push({ char: measure.range.highest, text: `${pixels(measure.range.top + shift - set.height)} too high` })
+  function lead(char) {
+    const name = char && named(char)
+    return name ? `${name} goes` : plain
   }
-  return stripFit(set, measure, offset, { stretched }).problems.map(code => words[code])
+  if (parts.length === 2 && parts[0].char === parts[1].char) return [`${lead(parts[0].char)} ${parts[0].text} and ${parts[1].text}`]
+  return parts.map(part => `${lead(part.char)} ${part.text}`)
+}
+
+export function fitProblems(set, measure, offset, stretched) {
+  const { problems } = stripFit(set, measure, offset, { stretched })
+  const depth = problems.includes("depth") ? [`it's ${pixels(measure.depth)} deep and the strips only cover ${set.depth}`] : []
+  return depth.concat(reachProblems(set, measure, offset, problems, { named: char => `its "${characterName(char, null)}"`, stretched }))
 }
 
 export function setEntry(set, offset, stretch) {
