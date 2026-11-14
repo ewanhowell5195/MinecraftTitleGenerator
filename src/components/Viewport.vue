@@ -2,8 +2,8 @@
   import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue"
   import Button from "./Button.vue"
   import * as THREE from "three"
-  import { TransformControls } from "three/addons/controls/TransformControls.js"
   import { frameBounds, framePixels, frameRect, framing } from "../lib/framing.js"
+  import { Gizmo } from "../lib/gizmo.js"
   import { holdHistory } from "../lib/history.js"
   import { round } from "../lib/maths.js"
   import { platform } from "../lib/platform.js"
@@ -66,6 +66,7 @@
     track()
     smoothing.draw(scene, camera)
     if (controls.object) {
+      controls.update()
       renderer.autoClear = false
       renderer.clearDepth()
       renderer.render(overlay, camera)
@@ -224,6 +225,7 @@
   }
 
   function applyView() {
+    controls.flat = !(orbiting.value && orbit.value)
     if (orbiting.value && orbit.value) {
       placeOrbit(camera, orbit.value, lens())
     } else {
@@ -233,7 +235,6 @@
       camera.projectionMatrix.multiplyMatrices(panMatrix(pan.value), baseProjection)
       camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert()
     }
-    controls.size = 1 / pan.value.scale
     invalidate()
   }
 
@@ -293,7 +294,7 @@
   }
 
   function pickText(event) {
-    if (FORM_SECTIONS.has(view.section) || view.render || !pressed || Math.hypot(event.clientX - pressed.x, event.clientY - pressed.y) > CLICK_DISTANCE) return
+    if (FORM_SECTIONS.has(view.section) || view.render || controls.axis || !pressed || Math.hypot(event.clientX - pressed.x, event.clientY - pressed.y) > CLICK_DISTANCE) return
     const raycaster = new THREE.Raycaster()
     raycaster.setFromCamera(clipPoint(event), camera)
     const id = pickEntry(entries, raycaster)
@@ -341,12 +342,11 @@
     overlay = new THREE.Scene()
     proxy = new THREE.Object3D()
     overlay.add(proxy)
-    controls = new TransformControls(camera, renderer.domElement)
-    controls.setSpace("local")
+    controls = new Gizmo(camera, renderer.domElement)
     controls.addEventListener("change", invalidate)
-    controls.addEventListener("mouseDown", grab)
-    controls.addEventListener("mouseUp", release)
-    controls.addEventListener("objectChange", drag)
+    controls.addEventListener("start", grab)
+    controls.addEventListener("end", release)
+    controls.addEventListener("drag", drag)
     overlay.add(controls.getHelper())
     renderer.domElement.addEventListener("wheel", zoom, { passive: false })
     renderer.domElement.addEventListener("pointerdown", grabView)
