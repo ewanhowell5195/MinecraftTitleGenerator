@@ -1,5 +1,5 @@
 import { computed, onBeforeUnmount, shallowRef, watch } from "vue"
-import { bandOf, fontTextures, image, preload, shapeFont, sheetFor, stripBand, stripRange, tileableUrl } from "../lib/assets.js"
+import { bandOf, fontTextures, image, preload, shapeFont, sheetFor, stripBand, stripLayout, tileableUrl } from "../lib/assets.js"
 import { arcAssets, arcLayout } from "../lib/arc.js"
 import { buildOutline, buildText } from "../lib/build.js"
 import { canvasLimit } from "../lib/canvas.js"
@@ -8,7 +8,7 @@ import { EulaDeclined } from "../lib/eula.js"
 import { SMOOTH_KINDS, withFinalShadows } from "../lib/generated.js"
 import { CUSTOM_SHAPE, SILHOUETTE_TEXT, shapeOf } from "../lib/shapes.js"
 import { hasMarks, loadFont, sheetFolder } from "../lib/font.js"
-import { bandEntry, layerSlice, stackedStrip, stripRows } from "../lib/strips.js"
+import { bandEntry, layerSlice } from "../lib/strips.js"
 import { thumbnailItems } from "../lib/layout.js"
 import { blockTextureImage } from "../lib/minecraft.js"
 import { setHeights, usePlacement, usePublished } from "../lib/objectState.js"
@@ -229,14 +229,13 @@ export default {
         const id = custom ? "custom" : target.textureVariant ?? target.texture
         const loaded = await image(custom ? target.customTexture : `${entry.folder ?? font.value.sheetFolder}/textures/${id}.png`)
         const layers = font.value.layers
-        const full = stripRows(entry, stripRange(font.value, entry.stripSet ? entry.stripLayer ?? null : null), defaultDepth(font.value), font.value.capHeight)
-        const stacked = layers && !custom && !entry.stripSet ? stackedStrip(full, layers, band, font.value.cells) : null
-        const { depth, top, bottom, rows, scale } = stacked?.shape ?? full
-        const density = loaded.height / (stacked?.total ?? rows)
-        const strip = stacked ? stripBand(loaded, stacked.offset * density, rows * density) : loaded
+        const layout = stripLayout(entry, font.value, defaultDepth(font.value), band)
+        const { depth, top, bottom, rows, scale } = layout.shape
+        const density = loaded.height / layout.total
+        const strip = layout.stacked ? stripBand(loaded, layout.offset * density, rows * density) : loaded
         const tiling = entry.tiling ?? "line"
         if (tiling !== "line" && tiling !== "character") throw new Error(`${id} has tiling "${tiling}", strips tile by "line" or "character"`)
-        const slice = layers && (stacked || entry.stripLayer != null) ? layerSlice(layers, band) : null
+        const slice = layers && (layout.stacked || entry.stripLayer != null) ? layerSlice(layers, band) : null
         assets.strip = { image: strip, density, top, bottom, depth, tiling, scale, slice, band: assets.band }
         if (entry.border) assets.border = entry.border
         assets.densities.push(Math.max(1, density))

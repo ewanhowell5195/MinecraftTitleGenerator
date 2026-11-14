@@ -66,7 +66,7 @@
   const modeHint = computed(() => ({
     standard: fitsFont.value ? "Painted onto the letters using the same layout as this font's flat texture." : "This image isn't the shape of this font's flat texture, so it won't line up with the letters.",
     tileable: "Repeated across the letters. The tiling settings are below.",
-    strip: "Read from top to bottom as the top edge, the front and the bottom edge, then repeated along the line."
+    strip: font.value?.layers?.length > 1 ? "Read from top to bottom as the top edge, the front and the bottom edge of each layer in turn, starting with layer 1, then repeated along the line." : "Read from top to bottom as the top edge, the front and the bottom edge, then repeated along the line."
   })[object.value.customTextureMode])
   const textures = computed(() => {
     const entries = Object.entries(list.value?.textures ?? {}).filter(([, data]) => stripCovers(data, shownLayer.value, font.value?.layers?.length ?? 1))

@@ -6,7 +6,7 @@ import { mostCommon } from "./maths.js"
 import { titleCase } from "./names.js"
 import { platform } from "./platform.js"
 import { defaultDepth } from "./settings.js"
-import { mergeStrips, stripFolder, stripUse } from "./strips.js"
+import { mergeStrips, stackedStrip, stripFolder, stripRows, stripUse } from "./strips.js"
 
 const json = new Map()
 const images = new Map()
@@ -172,6 +172,12 @@ export function stripRange(font, layer = null) {
   const highest = top > lines.top ? extents.find(extent => extent.top === top).char : null
   const lowest = bottom < lines.base ? extents.find(extent => extent.bottom === bottom).char : null
   return { top, bottom, highest, lowest, lines }
+}
+
+export function stripLayout(entry, font, depth, band) {
+  const shape = stripRows(entry, stripRange(font, entry.stripSet ? entry.stripLayer ?? null : null), depth, font.capHeight)
+  if (!font.layers || font.layers.length < 2 || entry.stripSet) return { shape, offset: 0, total: shape.rows, stacked: false }
+  return { ...stackedStrip(shape, font.layers, band, font.cells), stacked: true }
 }
 
 export async function sheetFor(font) {

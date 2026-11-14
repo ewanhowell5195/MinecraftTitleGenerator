@@ -1,7 +1,7 @@
 import { blend } from "./blend.js"
 import { rgbOf } from "./colour.js"
 import { keptAt } from "./joins.js"
-import { MISSING, stripHasRow, stripRows, stripY } from "./strips.js"
+import { MISSING, stripHasRow, stripY } from "./strips.js"
 
 export const MARGIN = 2
 
@@ -28,11 +28,6 @@ export function sceneFrame(placed, margin) {
     frame: { width: maxX - minX + margin * 2, height: top - bottom + margin * 2 },
     placed: placed.map(item => ({ glyph: item.glyph, x: item.x - minX + margin, y: top - item.glyph.top + margin, lineX: item.x - placed[0].x }))
   }
-}
-
-export function stripSource(entry, image, range, depth, capHeight) {
-  const shape = stripRows(entry, range, depth, capHeight)
-  return { image, shape, density: image.height / shape.rows, top: shape.depth + shape.top, tiling: entry.tiling ?? "line" }
 }
 
 export function drawRing(image, placed, d, border, maskOf = glyph => glyph.mask) {

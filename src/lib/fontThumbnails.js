@@ -1,4 +1,4 @@
-import { stripRange } from "./assets.js"
+import { stripLayout, stripRange } from "./assets.js"
 import { rgbOf } from "./colour.js"
 import { expandBands, layerLeft, layerMask } from "./flatSheet.js"
 import { sheetLayout, solidMask } from "./font.js"
@@ -6,8 +6,8 @@ import { GENERATED_EDGE_OVERLAYS, SMOOTH_KINDS, edgeAlpha, generatedAlpha, withG
 import { joinNeighbours, keptAt } from "./joins.js"
 import { layout } from "./layout.js"
 import { defaultBorder, overlayLayer } from "./settings.js"
-import { bandEntry, stackedStrip, stripCovers } from "./strips.js"
-import { MARGIN, drawLayer, drawRing, drawStrip, over, sceneFrame, stripSource } from "./thumbnails.js"
+import { bandEntry, stripCovers } from "./strips.js"
+import { MARGIN, drawLayer, drawRing, drawStrip, over, sceneFrame } from "./thumbnails.js"
 
 const BACKGROUND_ALPHA = 0.3
 const AUTO_BORDER_ALPHA = 77
@@ -130,13 +130,13 @@ export function layerScene(scene, layer) {
 }
 
 export function sceneStrip(scene, entry, image) {
-  const range = entry.stripSet && entry.stripLayer != null ? stripRange({ cells: scene.cells, capHeight: scene.capHeight }, entry.stripLayer) : scene.stripRange
-  const strip = stripSource(entry, image, range, scene.depth, scene.capHeight)
-  if (strip.tiling !== "line" && strip.tiling !== "character") throw new Error(`${entry.id ?? "a strip"} has tiling "${strip.tiling}", strips tile by "line" or "character"`)
-  if (!scene.layers || entry.stripSet) return strip
-  const shapes = scene.layers.map((_, layer) => stackedStrip(strip.shape, scene.layers, layer, scene.cells))
-  const density = image.height / shapes[0].total
-  return { ...strip, density, layers: shapes.map(({ shape, offset }) => ({ ...strip, shape, density, top: offset + shape.depth + shape.top })) }
+  const tiling = entry.tiling ?? "line"
+  if (tiling !== "line" && tiling !== "character") throw new Error(`${entry.id ?? "a strip"} has tiling "${tiling}", strips tile by "line" or "character"`)
+  const first = stripLayout(entry, scene, scene.depth, 0)
+  const density = image.height / first.total
+  const placed = ({ shape, offset }) => ({ image, shape, density, top: offset + shape.depth + shape.top, tiling })
+  if (!first.stacked) return placed(first)
+  return { ...placed(first), layers: scene.layers.map((_, layer) => placed(stripLayout(entry, scene, scene.depth, layer))) }
 }
 
 function compose(base, top) {
