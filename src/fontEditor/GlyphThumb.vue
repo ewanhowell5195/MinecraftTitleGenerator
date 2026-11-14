@@ -31,7 +31,8 @@
     rows.forEach((text, row) => {
       for (let x = first; x < text.length; x++) {
         if (text[x] === "0") continue
-        artCtx.fillStyle = `rgba(255, 255, 255, ${0.35 + 0.65 * depthOf(props.font, text[x])})`
+        const value = Math.round(255 * depthOf(props.font, text[x]))
+        artCtx.fillStyle = `rgb(${value}, ${value}, ${value})`
         artCtx.fillRect(x - first, row, 1, 1)
       }
     })
