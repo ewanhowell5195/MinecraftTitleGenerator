@@ -126,6 +126,22 @@ export function expandBands(source, width, cells, capHeight, depth, layers) {
   return { data: out, height: size.height * density * layers.length }
 }
 
+export function blankStrip(cells, capHeight, depth, layers, width) {
+  const top = Math.max(capHeight, ...cells.map(cell => cell.top))
+  const bottom = Math.min(0, ...cells.map(cell => cell.bottom))
+  const bands = layers && layers.length > 1 ? layerSlices(layers, depth).map((slice, layer) => ({ rows: slice.rows, shade: layerShade(layers, layer) })) : [{ rows: depth, shade: 1 }]
+  let colours = []
+  for (const { rows, shade } of bands) {
+    const [face, up, down] = [FACE, UP, DOWN].map(colour => colour.map(value => Math.round(value * shade)).concat(255))
+    colours = colours.concat(Array(rows).fill(up), Array(top - bottom).fill(face), Array(rows).fill(down))
+  }
+  const data = new Uint8ClampedArray(width * colours.length * 4)
+  colours.forEach((colour, row) => {
+    for (let x = 0; x < width; x++) data.set(colour, (row * width + x) * 4)
+  })
+  return { data, width, height: colours.length }
+}
+
 export function flatPixels(cells, capHeight, depth, density = 1, wideStrips = false, shade = 1) {
   const layout = sheetLayout(cells, capHeight, depth)
   const { width, height } = sheetSize(layout, depth)

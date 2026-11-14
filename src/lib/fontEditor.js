@@ -1,5 +1,5 @@
 import { authorList } from "./authors.js"
-import { flatLayers, flatPixels } from "./flatSheet.js"
+import { blankStrip, flatLayers, flatPixels } from "./flatSheet.js"
 import { groupedKerning, kerningPairs, parseMask, scanMask } from "./font.js"
 import { titleCase } from "./names.js"
 import { mostCommon } from "./maths.js"
@@ -556,6 +556,13 @@ export function flatTexture(value, fill = null) {
   const { list, capHeight, layers } = parsedSheet(value, defaultBorder("top", entry))
   if (fill === "all") return flatPixels(list.map(cell => ({ ...cell, mask: new Uint8Array(cell.mask.length).fill(1) })), capHeight, defaultDepth(entry), 1, true)
   return flatLayers(list, capHeight, defaultDepth(entry), layers, 1, !!fill)
+}
+
+export function stripTexture(value) {
+  const entry = exportJson(value, "")
+  const { list, capHeight, layers } = parsedSheet(value, defaultBorder("top", entry))
+  const letter = list.find(cell => cell.char === "A" && cell.width) ?? list.find(cell => cell.char === "a" && cell.width)
+  return blankStrip(list, capHeight, defaultDepth(entry), layers, letter?.width ?? value.width * value.density)
 }
 
 export function parsedSheet(font, gap = font.border) {

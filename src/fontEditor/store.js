@@ -1,7 +1,7 @@
 import { computed, ref, shallowRef, watch } from "vue"
 import { authorList } from "../lib/authors.js"
 import { DEFAULT_ORDER } from "../lib/order.js"
-import { buildSheet, charactersOf, depthCode, fitGlyph, flatTexture, glyphOf, moveGlyph, reshapeGlyph, sameCharacter, sameGlyph, savedJson, setGlyph, setLetterCase } from "../lib/fontEditor.js"
+import { buildSheet, charactersOf, depthCode, fitGlyph, flatTexture, glyphOf, moveGlyph, reshapeGlyph, sameCharacter, sameGlyph, savedJson, setGlyph, setLetterCase, stripTexture } from "../lib/fontEditor.js"
 import { jsonText } from "../lib/jsonText.js"
 import { EDITOR_EDIT, EDITOR_SUBMISSION } from "../lib/submissions.js"
 import { fontFromUploads } from "./loaders.js"
@@ -215,6 +215,10 @@ export function flushSave() {
 
 export function downloadFlatTexture() {
   download("flat.png", pngUrl(flatTexture(font.value)))
+}
+
+export function downloadStripTexture() {
+  download("strip.png", pngUrl(stripTexture(font.value)))
 }
 
 export function downloadTexture() {

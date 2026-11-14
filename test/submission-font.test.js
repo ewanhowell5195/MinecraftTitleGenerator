@@ -8,7 +8,7 @@ import { PNG } from "pngjs"
 import { publishedFonts, readMask } from "../generator/fonts.js"
 import { prepare } from "../generator/submissionKinds/font.js"
 import { flattenFonts, fullOrder, parseMask, sheetLayout, solidMask, splitCells } from "../src/lib/font.js"
-import { addCharacters, autoStretch, buildSheet, depthCode, exportJson, fontFromPublished, parsedSheet, setGlyph, setLetterCase } from "../src/lib/fontEditor.js"
+import { addCharacters, autoStretch, buildSheet, depthCode, exportJson, fontFromPublished, parsedSheet, setGlyph, setLetterCase, stripTexture } from "../src/lib/fontEditor.js"
 import { flatLayers, layerSlices } from "../src/lib/flatSheet.js"
 import { jsonText } from "../src/lib/jsonText.js"
 import { titleCase } from "../src/lib/names.js"
@@ -174,6 +174,18 @@ describe("checking a font", () => {
     const built = ownFont(font)
     for (const cell of built.cells) assert.deepEqual(cell.stretch, marked[cell.char].stretch, cell.char)
     assert.ok(built.cells.find(cell => cell.char === "a").stretch.length > 0)
+  })
+
+  test("the editor's blank strip is as wide as the A and as tall as the font's strips", () => {
+    for (const id of ["minecraft-ten", "minecraft-gui", "minecraft-wiki"]) {
+      const entry = published.find(item => item.id === id)
+      const { png, cells } = readMask(entry, published)
+      const zero = parseMask(png.data, png.width, png.height, cells.map(cell => cell.char).join(""), 0)
+      const font = fontFromPublished({ ...entry, name: entry.id }, Object.values(splitCells(entry, published, zero.list).glyphs), zero.capHeight, zero.layers)
+      const strip = stripTexture(font)
+      assert.equal(strip.height, ownFont(font).template.rows, id)
+      assert.equal(strip.width, cells.find(cell => cell.char === "a").width, id)
+    }
   })
 
   test("the published entry keeps the editor's width and square size", () => {
