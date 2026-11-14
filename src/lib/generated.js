@@ -537,7 +537,7 @@ function edgeRuns(glyph, side) {
     }
     let end = start
     while (end + 1 < width && mask[row * width + end + 1]) end++
-    list.push([start, end, start === 0 && continues(-1), end === width - 1 && continues(width)])
+    list.push([start, end, continues(start - 1), continues(end + 1)])
     start = end + 1
   }
   return list

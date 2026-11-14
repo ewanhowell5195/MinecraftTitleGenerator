@@ -11,10 +11,6 @@ function glyph(rows, placedX) {
 }
 
 function linked(...chain) {
-  for (const [index, item] of chain.entries()) {
-    item.previous = chain[index - 1]
-    item.next = chain[index + 1]
-  }
   joinNeighbours(chain)
   return chain
 }
@@ -71,6 +67,25 @@ describe("joined characters", () => {
     assert.equal(middle(edgeAlpha(alone, "up", "edge_outline", {}, 5, 1), 2), 1)
     assert.equal(middle(edgeAlpha(left, "up", "edge_outline", {}, 5, 1), 2), 0)
     assert.equal(middle(edgeAlpha(left, "up", "edge_outline", {}, 5, 1), 0), 1)
+  })
+
+  test("a half unit gap keeps the outline on both sides", () => {
+    const [left, right] = linked(glyph(["111", "111", "111"], 0), glyph(["111", "111", "111"], 3.5))
+    const column = (alpha, x) => [0, 1, 2].map(row => alpha[row * 3 + x])
+    assert.deepEqual(column(generatedAlpha(left, "outline", {}, 3, 1), 2), [1, 1, 1])
+    assert.deepEqual(column(generatedAlpha(right, "outline", {}, 3, 1), 0), [1, 1, 1])
+  })
+
+  test("a half unit overlap still joins the outline on both sides", () => {
+    const [left, right] = linked(glyph(["111", "111", "111"], 0), glyph(["111", "111", "111"], 2.5))
+    const column = (alpha, x) => [0, 1, 2].map(row => alpha[row * 3 + x])
+    assert.deepEqual(column(generatedAlpha(left, "outline", {}, 3, 1), 2), [1, 0, 1])
+    assert.deepEqual(column(generatedAlpha(right, "outline", {}, 3, 1), 0), [1, 0, 1])
+  })
+
+  test("an edge outline stays open where a run meets the next character's run inside the boxes", () => {
+    const [left] = linked(glyph(["1111", "1100"], 0), glyph(["1111", "0011"], 0))
+    assert.equal(edgeAlpha(left, "down", "edge_outline", {}, 5, 1)[2 * 4 + 1], 0)
   })
 
   test("an outline runs round the joined shape, not down the seam", () => {

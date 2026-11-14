@@ -79,7 +79,6 @@ export function arcLayout(font, sheet, words, word, options) {
   const curve = (mode, top, bottom, marked, strength) => mode === "move" ? { raise: 0, drop: 0, marked } : { raise: bend(top, strength), drop: bend(bottom, strength), marked }
   let x = 0
   let height = 0
-  let previous = null
   const chain = []
   function extend(item, glyph, lift = 0) {
     line.minX = Math.min(line.minX, item.x)
@@ -104,11 +103,6 @@ export function arcLayout(font, sheet, words, word, options) {
     const grow = Math.round(((options.stretch ?? 1) * (shape.stretch ?? 1) - 1) * font.capHeight)
     const key = glyphKey(item.glyph.char, index)
     const glyph = { ...stretched(item.glyph, key, arcs, grow), placedX: item.x, lineX: item.x - placed[0].x, lift }
-    if (previous) {
-      Object.defineProperty(previous, "next", { value: glyph })
-      Object.defineProperty(glyph, "previous", { value: previous })
-    }
-    previous = glyph
     chain.push(glyph)
     const mesh = font.mesh?.glyphs[item.glyph.char]
     if (mesh) glyph.fine = font.mesh.tools.fineMasks(mesh, glyph, item.glyph)

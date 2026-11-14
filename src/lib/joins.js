@@ -19,6 +19,12 @@ function base(glyph) {
 }
 
 export function joinNeighbours(chain) {
+  for (const [index, glyph] of chain.entries()) {
+    const previous = chain[index - 1]
+    if (!previous) continue
+    Object.defineProperty(previous, "next", { value: glyph })
+    Object.defineProperty(glyph, "previous", { value: previous })
+  }
   for (const [index, right] of chain.entries()) {
     const left = chain[index - 1]
     if (!left || left.fine || right.fine) continue
@@ -36,6 +42,11 @@ export function joinNeighbours(chain) {
       cut(right, "left", y - base(right), middle - right.placedX)
     }
   }
+}
+
+export function keptAt(glyph, row, column) {
+  if (!glyph.clips) return true
+  return column >= (glyph.clips.left.get(row) ?? -Infinity) && column < (glyph.clips.right.get(row) ?? Infinity)
 }
 
 export function clippedBoxes(boxes, glyph, x) {
@@ -67,7 +78,8 @@ export function joinedMask(glyph, pad) {
   const mask = new Uint8Array(width * height)
   for (let row = 0; row < glyph.height; row++) mask.set(glyph.mask.subarray(row * glyph.width, (row + 1) * glyph.width), (row + pad) * width + pad)
   for (const other of neighbours) {
-    const dx = Math.round(other.placedX - glyph.placedX)
+    const shift = other.placedX - glyph.placedX
+    const dx = shift < 0 ? Math.floor(shift + 1e-6) : Math.ceil(shift - 1e-6)
     const dy = base(other) - base(glyph)
     for (let row = 0; row < other.height; row++) {
       const y = row + dy + pad
