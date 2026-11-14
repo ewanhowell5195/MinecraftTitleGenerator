@@ -187,7 +187,7 @@ function pullText(env, origin, row, described, preview, commit) {
     `**[Preview it on the site](${origin}/submissions/${row.id})**`,
     preview ? `<img src="https://raw.githubusercontent.com/${repository(env)}/${commit}/${preview}" alt="" width="512">` : null,
     row.notes ? `Notes from the submitter:\n\n${block(row.notes)}` : null,
-    sourced.source ? `The submitter says this is based on someone else's work, and its licence allows it to be used here. Check both links before merging.\n\n- Source: <${sourced.source}>\n- Licence: <${sourced.licence}>` : null
+    sourced.source ? `The submitter says this uses someone else's files or artwork, and their licence allows it to be used here. Check both links before merging.\n\n- Source: <${sourced.source}>\n- Licence: <${sourced.licence}>` : null
   ]
   return { title: phrase(row.name, noun, described.where), body: body.filter(Boolean).join("\n\n") }
 }

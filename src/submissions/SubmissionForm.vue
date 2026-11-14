@@ -258,12 +258,12 @@
       <component :is="parts.Fields" v-bind="linked.fields" v-model:target="target" v-model:details="details" v-model:files="extras" :fonts="fonts" :context="context" :kind="kind" :file="chosen" :initial="initial" :name="name" :problems="problems" :tried="tried" @problem="extraProblem = $event" />
     </div>
     <div v-if="type.sourced" class="sourced">
-      <Checkbox v-model="sourced">This is based on someone else's work, and its licence allows it to be used here</Checkbox>
+      <Checkbox v-model="sourced" hint="Leave this off if you only made it to look like something else, like a logo. Say what it's based on in the description instead.">This uses someone else's files or artwork, and their licence allows it to be used here</Checkbox>
       <div v-if="sourced" class="columns">
-        <Field label="The original" required :error="shown.source" hint="A link to the work this is based on, like its download page. Credit its author alongside yourself.">
+        <Field label="The original" required :error="shown.source" hint="A link to the files or artwork you used, like its download page. Credit its author alongside yourself.">
           <input type="text" v-model="source" inputmode="url" :maxlength="SUBMISSION_LIMITS.link" placeholder="https://" spellcheck="false">
         </Field>
-        <Field label="Its licence" required :error="shown.licence" hint="A link to the licence it is shared under. A reviewer checks both before accepting it.">
+        <Field label="Its licence" required :error="shown.licence" hint="A link to the licence those files are shared under. A reviewer checks both before accepting it.">
           <input type="text" v-model="licence" inputmode="url" :maxlength="SUBMISSION_LIMITS.link" placeholder="https://" spellcheck="false">
         </Field>
       </div>
