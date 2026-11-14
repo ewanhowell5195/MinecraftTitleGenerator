@@ -114,7 +114,8 @@
     }
   }
 
-  function saved() {
+  function saved(submission) {
+    item.value = submission
     router.replace(page)
   }
 

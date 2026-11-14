@@ -7,6 +7,7 @@ export const EXTRA_FILE = /^[a-z0-9-]{1,40}$/
 
 export const EDITOR_SUBMISSION = "minecraft-title-editor-submission"
 export const EDITOR_EDIT = "minecraft-title-editor-edit"
+export const EDITOR_REVISION = "minecraft-title-editor-revision"
 
 export const HEX_COLOUR = /^#[0-9a-f]{6}$/i
 

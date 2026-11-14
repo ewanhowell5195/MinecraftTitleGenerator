@@ -472,8 +472,11 @@ describe("sending a font", () => {
     const cookie = await signIn()
     const details = { id: "test-font", extras: [{ key: "gold", kind: "texture", name: "Gold", border: "#000000" }] }
     const { id } = await send(cookie, { details, extras: { gold: plainPng(566, 356) } })
-    const kept = JSON.parse((await env.DB.prepare("SELECT details FROM submissions WHERE id = ?").bind(id).first()).details)
-    const response = await editSubmission(context(`/api/submissions/${id}`, { method: "PATCH", body: form({ name: "Renamed Font", file: null, details: { ...kept, extras: [{ ...kept.extras[0], name: "Golden" }] } }), cookie, params: { id: String(id) } }))
+    const row = await env.DB.prepare("SELECT details, updated_at FROM submissions WHERE id = ?").bind(id).first()
+    const kept = JSON.parse(row.details)
+    const body = form({ name: "Renamed Font", file: null, details: { ...kept, extras: [{ ...kept.extras[0], name: "Golden" }] } })
+    body.set("revision", String(row.updated_at))
+    const response = await editSubmission(context(`/api/submissions/${id}`, { method: "PATCH", body, cookie, params: { id: String(id) } }))
     assert.equal(response.status, 200)
     assert.ok(branchFile(id, "public/font/test-font/textures/golden.png"))
     assert.equal(gh.pulls.get(1).title, "Renamed Font font")

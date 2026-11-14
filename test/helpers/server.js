@@ -92,6 +92,7 @@ export async function sendForm(cookie, data) {
 }
 
 export async function editForm(cookie, id, data) {
+  if (!data.has("revision")) data.set("revision", String(server.db.prepare("SELECT updated_at FROM submissions WHERE id = ?").get(id)?.updated_at))
   const response = await editSubmission(context(`/api/submissions/${id}`, { method: "PATCH", body: data, cookie, params: { id: String(id) } }))
   return { status: response.status, ...await response.json() }
 }

@@ -13,7 +13,7 @@
   import { account } from "../lib/community.js"
   import { SUBMISSION_KINDS, checkSubmission, submissionContext } from "../lib/submissionKinds/index.js"
   import { navigate } from "../lib/navigation.js"
-  import { EDITOR_EDIT, EDITOR_SUBMISSION, SUBMISSION_LIMITS } from "../lib/submissions.js"
+  import { EDITOR_EDIT, EDITOR_REVISION, EDITOR_SUBMISSION, SUBMISSION_LIMITS } from "../lib/submissions.js"
   import { editSubmission, sendSubmission, submissionFileUrl } from "../lib/submissionsApi.js"
   import { pickedFile, releaseFile } from "./files.js"
   import { KIND_COMPONENTS } from "./kinds/components.js"
@@ -64,6 +64,8 @@
   const sending = ref(false)
   const dragging = ref(false)
   const error = ref("")
+  const conflict = ref(false)
+  const revision = ref(props.initial?.updatedAt ?? null)
   const context = submissionContext(props.fonts, path => fetched(path, path))
   let checks = 0
 
@@ -182,6 +184,9 @@
     const { name: fileName, text, submission = null } = JSON.parse(saved)
     if (submission !== (props.initial?.id ?? null)) return
     sessionStorage.removeItem(EDITOR_SUBMISSION)
+    const opened = JSON.parse(sessionStorage.getItem(EDITOR_REVISION) ?? "null")
+    sessionStorage.removeItem(EDITOR_REVISION)
+    if (props.initial && opened?.submission === props.initial.id) revision.value = opened.revision
     use(new File([text], fileName, { type: "application/json" }))
   }
 
@@ -192,24 +197,31 @@
     try {
       const bytes = chosen.value?.bytes ?? new Uint8Array(await (await fetched(fileUrl.value, "the font")).arrayBuffer())
       sessionStorage.setItem(EDITOR_EDIT, JSON.stringify({ submission: props.initial.id, text: new TextDecoder().decode(bytes) }))
+      sessionStorage.setItem(EDITOR_REVISION, JSON.stringify({ submission: props.initial.id, revision: revision.value }))
       navigate("/font-editor/")
     } catch (err) {
       error.value = err.message
     }
   }
 
+  function reload() {
+    location.reload()
+  }
+
   async function send() {
     tried.value = true
     error.value = ""
+    conflict.value = false
     if (Object.keys(problems.value).length || fileProblem.value) return
     sending.value = true
     try {
       const fields = { kind: kind.value, target: target.value, details: sentDetails.value, name: name.value, credit: credit.value, notes: notes.value }
       const sent = Object.fromEntries(Object.entries(extras.value).map(([key, extra]) => [key, extra.blob]))
-      if (props.initial) emit("done", await editSubmission(props.initial.id, fields, chosen.value?.blob, sent))
+      if (props.initial) emit("done", await editSubmission(props.initial.id, fields, chosen.value?.blob, sent, revision.value))
       else emit("done", await sendSubmission(fields, chosen.value.blob, agree.value, sent))
     } catch (err) {
       error.value = err.message
+      conflict.value = err.status === 409 && !!props.initial
     } finally {
       sending.value = false
     }
@@ -276,6 +288,7 @@
       <Checkbox v-if="!initial" v-model="agree">I agree to the <a href="/terms/" target="_blank" rel="noopener">Terms of Service</a> <span class="required" aria-hidden="true">*</span></Checkbox>
       <p v-if="shown.agree || problems.check || error" class="hint bad">{{ error || problems.check || shown.agree }}</p>
       <div class="buttons">
+        <Button v-if="conflict" @click="reload">Reload</Button>
         <Button v-if="initial" @click="emit('cancel')">Cancel</Button>
         <Button primary type="submit" :disabled="blocked">{{ sending ? "Sending..." : initial ? "Save changes" : "Send for review" }}</Button>
       </div>

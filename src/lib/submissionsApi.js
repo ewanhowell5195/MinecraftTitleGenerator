@@ -68,8 +68,10 @@ export function sendSubmission(fields, file, agree, extras) {
   return called(API, { method: "POST", body: form(fields, file, agree, extras) })
 }
 
-export async function editSubmission(id, fields, file, extras) {
-  return (await called(`${API}/${id}`, { method: "PATCH", body: form(fields, file, true, extras) })).submission
+export async function editSubmission(id, fields, file, extras, revision) {
+  const data = form(fields, file, true, extras)
+  data.set("revision", String(revision))
+  return (await called(`${API}/${id}`, { method: "PATCH", body: data })).submission
 }
 
 export function withdrawSubmission(id) {

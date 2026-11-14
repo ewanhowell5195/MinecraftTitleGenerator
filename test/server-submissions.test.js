@@ -233,6 +233,21 @@ describe("a sent submission", () => {
     assert.equal(gh.pulls.size, 1)
   })
 
+  test("a save from a page opened before someone else's save is refused and changes nothing", async () => {
+    const cookie = await signIn()
+    const { id } = await send(cookie)
+    const opened = String(db.prepare("SELECT updated_at FROM submissions WHERE id = ?").get(id).updated_at)
+    assert.equal((await edit(cookie, id, { name: "Shiny Gold" })).status, 200)
+    const head = gh.refs.get(`heads/submission/${id}`)
+    const stale = form({ name: "Dull Gold" }, null)
+    stale.set("revision", opened)
+    const { status, error } = await editForm(cookie, id, stale)
+    assert.equal(status, 409)
+    assert.match(error, /changed after you opened it/)
+    assert.equal(gh.refs.get(`heads/submission/${id}`), head)
+    assert.equal(gh.pulls.get(1).title, "Shiny Gold texture for Minecraft Ten")
+  })
+
   test("saving without changing anything leaves the branch, pull request and notifications alone", async () => {
     const cookie = await signIn()
     const { id } = await send(cookie)

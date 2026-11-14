@@ -147,7 +147,7 @@ async function readForm(context, previous = null) {
   const missing = wanted.find(key => !files[key] && !before.files?.[key])
   if (missing) throw new Refusal(400, "One of the extra files is missing. Choose it again.")
   const stored = bytes && type.cleanFile ? type.cleanFile(bytes) : bytes
-  return { clean, fonts, bytes: stored, files: Object.fromEntries(wanted.map(key => [key, files[key] ?? before.files[key]])) }
+  return { clean, fonts, bytes: stored, files: Object.fromEntries(wanted.map(key => [key, files[key] ?? before.files[key]])), revision: Number(form.get("revision")) }
 }
 
 async function withFiles(env, clean, files) {
@@ -248,7 +248,8 @@ async function syncSubmission(context, row, fonts, open = null) {
   const text = pullText(env, new URL(request.url).origin, row, described, written.preview, made.sha)
   if (row.pull) await github(env, `pulls/${row.pull}`, { method: "PATCH", body: text })
   else row.pull = (await github(env, "pulls", { method: "POST", body: { ...text, head: branchOf(row.id), base: BASE, maintainer_can_modify: true } })).number
-  await env.DB.prepare("UPDATE submissions SET kind = ?, target = ?, asset = ?, name = ?, credit = ?, notes = ?, details = ?, file = ?, pull = ?, updated_at = ? WHERE id = ?").bind(row.kind, row.target, row.asset, row.name, JSON.stringify(row.credit), row.notes, row.details, row.file, row.pull, Date.now(), row.id).run()
+  row.updatedAt = Date.now()
+  await env.DB.prepare("UPDATE submissions SET kind = ?, target = ?, asset = ?, name = ?, credit = ?, notes = ?, details = ?, file = ?, pull = ?, updated_at = ? WHERE id = ?").bind(row.kind, row.target, row.asset, row.name, JSON.stringify(row.credit), row.notes, row.details, row.file, row.pull, row.updatedAt, row.id).run()
 }
 
 async function uploadFile(env, bytes) {
@@ -475,7 +476,8 @@ export const editSubmission = guarded(async context => {
   const { env } = context
   const { user, row, role } = await ownSubmission(context, true)
   const mine = role === "submitter"
-  const { clean, fonts, bytes, files } = await readForm(context, row)
+  const { clean, fonts, bytes, files, revision } = await readForm(context, row)
+  if (revision !== row.updatedAt) throw new Refusal(409, "This submission was changed after you opened it, by someone else or in another tab. Reload the page to see the latest version.")
   const file = bytes ? await onGitHub(() => uploadFile(env, bytes)) : row.file
   const changed = { ...row, ...await onGitHub(() => withFiles(env, clean, files)), file, notes: mine ? clean.notes : row.notes }
   if (sameSubmission(row, changed)) return reply(200, { submission: shown(env, row, user) })
