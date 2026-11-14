@@ -5,6 +5,7 @@
   import { history, redo, undo } from "../lib/history.js"
   import { startSavingPreset } from "../lib/presets.js"
   import { scene } from "../lib/scene.js"
+  import { droppedOnField } from "../lib/fileDrop.js"
   import { takeFile } from "../lib/ui.js"
   import MenuStrip from "./MenuStrip.vue"
 
@@ -59,7 +60,9 @@
   }
 
   function over(event) {
-    if (carriesFiles(event)) event.preventDefault()
+    if (!carriesFiles(event)) return
+    event.preventDefault()
+    dragging.value = depth > 0 && !droppedOnField(event)
   }
 
   function drop(event) {
@@ -67,6 +70,7 @@
     event.preventDefault()
     depth = 0
     dragging.value = false
+    if (droppedOnField(event)) return
     const file = event.dataTransfer.files[0]
     if (file) request(file)
   }

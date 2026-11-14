@@ -1,4 +1,5 @@
 <script setup>
+  import { vFileDrop } from "../lib/fileDrop.js"
   import Button from "./Button.vue"
 
   defineProps({
@@ -13,7 +14,7 @@
 </script>
 
 <template>
-  <div class="upload-field">
+  <div v-file-drop class="upload-field">
     <slot name="preview">
       <div class="upload-preview">
         <img v-if="image" :src="image" alt="">
@@ -37,6 +38,10 @@
     padding: 8px;
     background: var(--field);
     border: 2px dashed var(--line-strong);
+  }
+
+  .upload-field.file-over .upload-preview {
+    border-color: var(--accent);
   }
 
   .upload-preview img {

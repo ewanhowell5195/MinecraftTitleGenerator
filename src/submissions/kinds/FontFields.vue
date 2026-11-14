@@ -7,6 +7,7 @@
   import Icon from "../../components/Icon.vue"
   import NameList from "../../components/NameList.vue"
   import Segments from "../../components/Segments.vue"
+  import { vFileDrop } from "../../lib/fileDrop.js"
   import { flatTexture } from "../../lib/fontEditor.js"
   import { popular } from "../../lib/stats.js"
   import { EXTRA_KINDS, fontParents, submittedFontId } from "../../lib/submissionKinds/font.js"
@@ -140,7 +141,7 @@
   <Field group class="wide" label="Textures, overlays and strips for this font" :error="problems.extras">
     <p class="hint">Optional. A flat texture replaces the plain one the font gets otherwise. Paint flat textures, textures and overlays over the font's <a v-if="blankTexture" :href="blankTexture" :download="`${fontId || 'font'}-template.png`">blank texture</a><template v-else>blank texture, from the Textures tab of the font editor</template>, at its size or a whole number of times bigger.<template v-if="stripHeights"> Strips can be {{ either(stripHeights) }} pixels tall.</template> Up to {{ SUBMISSION_LIMITS.extraFiles }} files.</p>
     <div v-for="item of extras" :key="item.key" class="extra">
-      <label class="extra-image" v-tooltip="`Choose the ${KIND_LABELS[item.kind].toLowerCase()}'s PNG`">
+      <label v-file-drop class="extra-image" v-tooltip="`Choose the ${KIND_LABELS[item.kind].toLowerCase()}'s PNG`">
         <img v-if="imageOf(item.key)" :src="imageOf(item.key)" alt="">
         <span v-else class="hint">PNG</span>
         <input type="file" accept="image/png" @change="pick(item.key, $event)">
@@ -194,6 +195,10 @@
     border: 2px dashed var(--line-strong);
     cursor: pointer;
     user-select: none;
+  }
+
+  .extra-image.file-over {
+    border-color: var(--accent);
   }
 
   .extra-image img {

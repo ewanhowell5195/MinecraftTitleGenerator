@@ -171,6 +171,7 @@
 
   function drop(event) {
     dragging.value = false
+    if (event.fileDropped) return
     const file = event.dataTransfer.files[0]
     if (file) use(file)
   }
