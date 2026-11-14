@@ -371,7 +371,7 @@ function layeredGlyphs(sheet, band) {
   if (!bands.has(band)) {
     const copies = new Map()
     function own(glyph) {
-      if (!copies.has(glyph)) copies.set(glyph, { ...glyph, mask: glyph.depths ? layerMask(glyph, band) : glyph.mask, clips: undefined })
+      if (!copies.has(glyph)) copies.set(glyph, { ...glyph, mask: glyph.depths ? layerMask(glyph, band) : glyph.mask, caster: glyph.depths && band > 0 ? layerMask(glyph, band - 1) : null, clips: undefined })
       return copies.get(glyph)
     }
     const entries = Object.values(sheet.glyphs)

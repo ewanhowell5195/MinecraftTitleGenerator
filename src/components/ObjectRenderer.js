@@ -5,7 +5,7 @@ import { buildOutline, buildText } from "../lib/build.js"
 import { canvasLimit } from "../lib/canvas.js"
 import { customFontEntry, customFontId } from "../lib/customFonts.js"
 import { EulaDeclined } from "../lib/eula.js"
-import { SMOOTH_KINDS } from "../lib/generated.js"
+import { SMOOTH_KINDS, withFinalShadows } from "../lib/generated.js"
 import { CUSTOM_SHAPE, SILHOUETTE_TEXT, shapeOf } from "../lib/shapes.js"
 import { hasMarks, loadFont, sheetFolder } from "../lib/font.js"
 import { bandEntry, layerSlice, stackedStrip, stripRows } from "../lib/strips.js"
@@ -16,7 +16,7 @@ import { R, lookKey, paintBase, paintKey, paintSheet, stripDetail } from "../lib
 import { platform } from "../lib/platform.js"
 import { quietly } from "../lib/history.js"
 import { DEFAULT_CAP_HEIGHT, DEFAULT_HEIGHT, NO_ARC } from "../lib/rows.js"
-import { editorTitle, keepTexture, loadedFont, words } from "../lib/scene.js"
+import { editorTitle, finalShadows, keepTexture, loadedFont, words } from "../lib/scene.js"
 import { activeOverlays, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, effectiveScale, fontFaces, isCustomFont, layerTarget, sameValue, setTexture, textureEntry } from "../lib/settings.js"
 
 const BASE = ["font", "source", "textureSource", "texture", "textureVariant", "tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "customTexture", "stops", "smooth", "gradientAngle", "arcGradient", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "tileablePerCharacter", "disableFontOverlay", "edgeBrightness"]
@@ -52,6 +52,7 @@ export default {
     const buildError = shallowRef(null)
     const sharp = shallowRef(true)
     const error = computed(() => fontError.value ?? paintError.value ?? buildError.value)
+    const finalShadowed = computed(() => finalShadows.value && !!painted.value && (painted.value.layers ?? [painted.value]).some(({ assets }) => assets.overlays.some(({ layer, source }) => source.generated === "shadow" && layer.opacity > 0)))
     let fontRequest = 0
     let paintRequest = 0
     let painting = false
@@ -371,7 +372,8 @@ export default {
       const { arced, parts } = line
       let detail = text.detail
       while (detail > 1 && Math.max(arced.sheet.width, arced.sheet.height) * R * detail > canvasLimit()) detail = Math.floor(detail / 2)
-      const sharp = parts.map(({ own, remapped }) => ({ own: { ...own, ...paintSheet(arced.sheet, own.look, remapped, source.capHeight, paintBase(arced.sheet, own.look, remapped, source.capHeight, detail), detail) } }))
+      const paint = () => parts.map(({ own, remapped }) => ({ own: { ...own, ...paintSheet(arced.sheet, own.look, remapped, source.capHeight, paintBase(arced.sheet, own.look, remapped, source.capHeight, detail), detail) } }))
+      const sharp = finalShadowed.value ? withFinalShadows(paint) : paint()
       const plain = { image: text.texture, labels: text.labels, crackShapes: text.crackShapes, gradient: text.gradient, fades: text.fades, panels: text.panels }
       return { ...text, ...text.refine(owned(sharp)), refine: null, plain }
     }
@@ -426,8 +428,8 @@ export default {
       const { words: list, word, lineDepth, ...options } = inputs.value
       const source = shaped.value?.id === font.value.id ? shaped.value : font.value
       const inputsKey = JSON.stringify(inputs.value)
-      if (builtFrom?.painted === painted.value && builtFrom.source === source && builtFrom.inputsKey === inputsKey) return
-      builtFrom = { painted: painted.value, source, inputsKey }
+      if (builtFrom?.painted === painted.value && builtFrom.source === source && builtFrom.inputsKey === inputsKey && builtFrom.final === finalShadowed.value) return
+      builtFrom = { painted: painted.value, source, inputsKey, final: finalShadowed.value }
       let reach = null
       try {
         const { arced, parts } = lineFor(source, list, word, options)
@@ -515,6 +517,10 @@ export default {
 
     watch(looks, repaint)
     watch([inputs, painted], schedule)
+    watch(finalShadowed, () => {
+      sharp.value = false
+      schedule()
+    }, { flush: "sync" })
     const wanted = computed(() => {
       if (object.shape !== CUSTOM_SHAPE) return object.shape ?? object.font
       return object.customFont ? customFontId(object.customFont) : CUSTOM_SHAPE

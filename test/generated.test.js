@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { GENERATED_EDGE_OVERLAYS, GENERATED_SETTINGS, PLACED_KINDS, crackList, crackTriangle, crackWrap, edgeAlpha, generatedAlpha, generatedSetting, withGenerated } from "../src/lib/generated.js"
+import { GENERATED_EDGE_OVERLAYS, GENERATED_SETTINGS, PLACED_KINDS, crackList, crackTriangle, crackWrap, edgeAlpha, generatedAlpha, generatedSetting, withFinalShadows, withGenerated } from "../src/lib/generated.js"
 
 function glyphOf(rows, extra = {}) {
   const height = rows.length
@@ -762,5 +762,98 @@ describe("cracks", () => {
     for (const row of up) assert.deepEqual(row.slice(20 * scale, 30 * scale), new Array(10 * scale).fill(0))
     const downed = crackedOn(block, "down", 40)
     assert.deepEqual(edgeAlpha(solid(40, 40), "down", "cracks", downed, 6, scale), crackWrap(block, downed, "down", 40, 0, 40, 6, scale))
+  })
+})
+
+describe("layer shadow", () => {
+  const caster = glyphOf(["1100", "1100", "1100", "1100"]).mask
+  const receiver = glyphOf(["1111", "1111", "1111", "0000"], { caster })
+  const row = (alpha, y) => Array.from(alpha.subarray(y * 4, y * 4 + 4))
+
+  test("casts the layer in front of it along the angle, only onto its own pixels", () => {
+    const right = generatedAlpha(receiver, "shadow", { angle: 0, distance: 1, blur: 0 }, 4, 1)
+    assert.deepEqual(row(right, 0), [0, 0, 1, 0])
+    assert.deepEqual(row(right, 3), [0, 0, 0, 0])
+    const down = generatedAlpha({ ...receiver, caster: glyphOf(["1111", "0000", "0000", "0000"]).mask }, "shadow", { angle: 90, distance: 2, blur: 0 }, 4, 1)
+    assert.deepEqual([0, 1, 2, 3].map(y => row(down, y)[0]), [0, 1, 1, 0])
+  })
+
+  test("joins onto the corners of the layer in front", () => {
+    const block = { ...glyphOf(["1111", "1111", "1111", "1111"]), caster: glyphOf(["1100", "1100", "0000", "0000"]).mask }
+    const diagonal = generatedAlpha(block, "shadow", { angle: 45, distance: Math.SQRT2 * 2, blur: 0 }, 4, 1)
+    assert.equal(row(diagonal, 1)[2], 1)
+    assert.equal(row(diagonal, 2)[1], 1)
+    assert.equal(row(diagonal, 3)[0], 0)
+  })
+
+  test("a blurred shadow leaves the far side of a hole lit and the side it falls from dark", () => {
+    const framed = { ...glyphOf(["11111111", "11111111", "11111111", "11111111", "11111111", "11111111", "11111111", "11111111"]), caster: glyphOf(["11111111", "10000001", "10000001", "10000001", "10000001", "10000001", "10000001", "11111111"]).mask }
+    const alpha = generatedAlpha(framed, "shadow", { angle: 0, distance: 1, blur: 2 }, 8, 4)
+    const at = (column, row) => alpha[(row * 4 + 2) * 32 + column * 4 + 2]
+    assert.ok(at(6, 4) < 0.1)
+    assert.ok(at(1, 4) > 0.4)
+  })
+
+  test("never carries light or shadow between holes that only touch at a corner", () => {
+    const full = glyphOf(["11111111", "11111111", "11111111", "11111111", "11111111", "11111111", "11111111", "11111111"])
+    const both = generatedAlpha({ ...full, caster: glyphOf(["11111111", "10001111", "10001111", "10001111", "11110001", "11110001", "11110001", "11111111"]).mask }, "shadow", { angle: 0, distance: 1, blur: 2 }, 8, 4)
+    const alone = generatedAlpha({ ...full, caster: glyphOf(["11111111", "10001111", "10001111", "10001111", "11111111", "11111111", "11111111", "11111111"]).mask }, "shadow", { angle: 0, distance: 1, blur: 2 }, 8, 4)
+    for (let row = 4; row < 16; row++) {
+      for (let column = 4; column < 16; column++) assert.ok(Math.abs(both[row * 32 + column] - alone[row * 32 + column]) < 1e-6)
+    }
+  })
+
+  test("stays sharp against the layer in front and softens as it falls away", () => {
+    const strip = { ...glyphOf(["111111111111", "111111111111", "111111111111"]), caster: glyphOf(["100000000000", "100000000000", "100000000000"]).mask }
+    const alpha = withFinalShadows(() => generatedAlpha(strip, "shadow", { angle: 0, distance: 4, blur: 4 }, 3, 4))
+    const at = px => alpha[6 * 48 + px]
+    assert.ok(at(4) > 0.99)
+    assert.ok(at(20) > 0.1 && at(20) < 0.9)
+  })
+
+  test("only paints the full quality shadow when asked to", () => {
+    const strip = { ...glyphOf(["111111111111", "111111111111", "111111111111"]), caster: glyphOf(["100000000000", "100000000000", "100000000000"]).mask }
+    const settings = { angle: 0, distance: 4, blur: 4 }
+    const quick = generatedAlpha(strip, "shadow", settings, 3, 16)
+    const full = withFinalShadows(() => generatedAlpha(strip, "shadow", settings, 3, 16))
+    assert.ok(quick.some((value, index) => Math.abs(value - full[index]) > 0.01))
+    assert.deepEqual(generatedAlpha(strip, "shadow", settings, 3, 16), quick)
+  })
+
+  test("antialiases a sharp shadow's slanted edges but keeps straight ones crisp", () => {
+    const block = { ...glyphOf(["1111", "1111", "1111", "1111"]), caster: glyphOf(["1000", "0000", "0000", "0000"]).mask }
+    const slanted = generatedAlpha(block, "shadow", { angle: 30, distance: 3, blur: 0 }, 4, 4)
+    assert.ok(slanted.some(value => value > 0 && value < 1))
+    const straight = generatedAlpha(block, "shadow", { angle: 0, distance: 2, blur: 0 }, 4, 4)
+    assert.ok(straight.every(value => value === 0 || value === 1))
+  })
+
+  test("carries on across a touching neighbour without fading at the join", () => {
+    const left = { ...glyphOf(["1111", "1111"]), caster: glyphOf(["0011", "0011"]).mask }
+    const right = { ...glyphOf(["1111", "1111"], { placedX: 4 }), caster: glyphOf(["0000", "0000"]).mask, previous: left }
+    left.next = right
+    const sharp = generatedAlpha(right, "shadow", { angle: 0, distance: 2, blur: 0 }, 2, 1)
+    assert.deepEqual(Array.from(sharp.subarray(0, 4)), [1, 1, 0, 0])
+    const blurred = { angle: 0, distance: 2, blur: 2 }
+    const whole = generatedAlpha({ ...glyphOf(["11111111", "11111111"]), caster: glyphOf(["00110000", "00110000"]).mask }, "shadow", blurred, 2, 4)
+    const after = generatedAlpha(right, "shadow", blurred, 2, 4)
+    for (let row = 0; row < 8; row++) {
+      for (let px = 0; px < 16; px++) assert.ok(Math.abs(after[row * 16 + px] - whole[row * 32 + 16 + px]) < 0.05)
+    }
+    assert.ok(after[2 * 16] > 0.4)
+  })
+
+  test("the first layer, with nothing in front of it, gets no shadow", () => {
+    assert.ok(generatedAlpha({ ...receiver, caster: null }, "shadow", {}, 4, 1).every(value => value === 0))
+  })
+
+  test("blur softens the edge of the shadow", () => {
+    const soft = generatedAlpha(receiver, "shadow", { angle: 0, distance: 1, blur: 2 }, 4, 1)
+    assert.ok(row(soft, 1)[2] > 0 && row(soft, 1)[2] < 1)
+    assert.ok(row(soft, 1)[3] > 0)
+  })
+
+  test("is only offered as a layered overlay", () => {
+    assert.equal(withGenerated({}).layer_shadow.layered, true)
   })
 })

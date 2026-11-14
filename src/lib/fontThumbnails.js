@@ -121,7 +121,7 @@ function exposed(placed, layer) {
 export function layerScene(scene, layer) {
   const copies = new Map()
   function copy(glyph) {
-    if (!copies.has(glyph)) copies.set(glyph, { ...glyph, mask: layerMask(glyph, layer), depths: new Uint8Array(glyph.mask.length).fill(layer), clips: undefined })
+    if (!copies.has(glyph)) copies.set(glyph, { ...glyph, mask: layerMask(glyph, layer), caster: glyph.depths && layer > 0 ? layerMask(glyph, layer - 1) : null, depths: new Uint8Array(glyph.mask.length).fill(layer), clips: undefined })
     return copies.get(glyph)
   }
   const placed = scene.placed.map(item => ({ ...item, glyph: copy(item.glyph) }))
@@ -267,7 +267,7 @@ export async function fontThumbnails(entry, scene, textures, load) {
       if (!stripCovers(data, layer, scene.layers?.length ?? 1)) continue
       for (const [name, variant] of [[id, data]].concat(Object.entries(data.variants ?? {}))) drawn.push([prefix + name, await textureThumbnail(own, name, data, variant)])
     }
-    for (const [id, data] of Object.entries(meta.overlays)) drawn.push([prefix + id, compose(background, await overlayThumbnail(own, id, data, flat))])
+    for (const [id, data] of Object.entries(meta.overlays)) if (!data.layered || scene.layers && layer !== 0) drawn.push([prefix + id, compose(background, await overlayThumbnail(own, id, data, flat))])
     for (const [id, data] of Object.entries(GENERATED_EDGE_OVERLAYS)) drawn.push([prefix + id, edgeThumbnail(shown, data.generated, background, densityOf(flat))])
   }
 

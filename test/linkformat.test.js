@@ -112,6 +112,11 @@ describe("values", () => {
     assert.deepEqual(roundTrip([line]), [line])
   })
 
+  test("layer shadow settings", () => {
+    const line = { overlays: [{ overlay: "layer_shadow", source: "premade", angle: 135, distance: 2.5, blur: 4 }] }
+    assert.deepEqual(roundTrip([line]), [line])
+  })
+
   test("true and false", () => {
     assert.deepEqual(roundTrip([{ fade: true, smooth: false }]), [{ fade: true, smooth: false }])
   })

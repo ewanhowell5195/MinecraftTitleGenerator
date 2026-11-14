@@ -89,6 +89,8 @@ export const runtime = editorTitle.runtime
 
 export const library = shallowReactive({ fonts: [], shapes: [], tileables: {} })
 
+export const finalShadows = ref(false)
+
 export const saveError = ref(initial.error && `Your last title couldn't be restored: ${initial.error}`)
 
 export const TITLE_PARAM = "title"

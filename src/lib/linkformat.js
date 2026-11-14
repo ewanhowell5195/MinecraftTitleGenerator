@@ -385,7 +385,9 @@ const KEYS = [
   ["edgeWrap", BOOLEAN],
   ["separateOverlays", BOOLEAN],
   ["separateColour", BOOLEAN],
-  ["separateFaces", BOOLEAN]
+  ["separateFaces", BOOLEAN],
+  ["distance", NUMBER],
+  ["blur", NUMBER]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))

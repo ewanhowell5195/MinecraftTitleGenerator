@@ -3,7 +3,7 @@
   import { credit } from "../../lib/credits.js"
   import { GENERATED_SETTINGS, WRAPPED_KINDS, generatedSetting } from "../../lib/generated.js"
   import { titleCase } from "../../lib/names.js"
-  import { layerShown, usePanel } from "../../lib/panel.js"
+  import { layerShown, usePanel, usedLayers } from "../../lib/panel.js"
   import { useListReorder } from "../../lib/reorder.js"
   import { library } from "../../lib/scene.js"
   import { BLEND_OPTIONS, OVERLAY_KINDS, activeOverlays, defaultOverlays, overlayLayer } from "../../lib/settings.js"
@@ -32,7 +32,8 @@
   const { object, font, list, modified, reset } = usePanel(listKey)
   const shownLayer = layerShown("overlays")
   const available = computed(() => list.value?.[listKey] ?? {})
-  const overlays = computed(() => popular(Object.entries(available.value), ([id]) => `${font.value?.id}.${id}`, ([id, data]) => data.name ?? titleCase(id)))
+  const layerAbove = computed(() => shownLayer.value === null ? usedLayers.value.length > 1 : usedLayers.value.some(used => used < shownLayer.value))
+  const overlays = computed(() => popular(Object.entries(available.value).filter(([, data]) => !data.layered || layerAbove.value), ([id]) => `${font.value?.id}.${id}`, ([id, data]) => data.name ?? titleCase(id)))
   const selected = ref(0)
   const pending = ref("generated")
 

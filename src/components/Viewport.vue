@@ -8,7 +8,7 @@
   import { round } from "../lib/maths.js"
   import { platform } from "../lib/platform.js"
   import { renderTitle, screenBounds } from "../lib/render.js"
-  import { current, currentWord, scene as title, select, setScale, shapingWord } from "../lib/scene.js"
+  import { current, currentWord, finalShadows, scene as title, select, setScale, shapingWord } from "../lib/scene.js"
   import { TRANSFORM_LIMITS } from "../lib/settings.js"
   import { createSmoothing } from "../lib/smoothing.js"
   import { ORBIT_FOV, UNZOOMED, createStage, frameCamera, gizmoPose, lineBounds, movedBy, orbitDollied, orbitPanned, orbitStart, orbitTurned, panMatrix, pannedBy, pickEntry, placeOrbit, rotatedTo, titleFraming, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } from "../lib/stage.js"
@@ -410,11 +410,17 @@
   }
 
   async function capture(resolution, antialias, task) {
-    await whenSharp()
-    await nextTick()
-    refit()
-    stage.sort(camera)
-    return await renderTitle(renderer.getSize(new THREE.Vector2()), scene, camera, resolution, antialias, task)
+    finalShadows.value = true
+    try {
+      await nextTick()
+      await whenSharp()
+      await nextTick()
+      refit()
+      stage.sort(camera)
+      return await renderTitle(renderer.getSize(new THREE.Vector2()), scene, camera, resolution, antialias, task)
+    } finally {
+      finalShadows.value = false
+    }
   }
 
   function vector(resolution) {
