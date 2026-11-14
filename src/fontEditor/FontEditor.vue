@@ -16,7 +16,7 @@
   import PreviewPanel from "./PreviewPanel.vue"
   import TexturesPanel from "./TexturesPanel.vue"
   import StartScreen from "./StartScreen.vue"
-  import { canRedo, canUndo, closeFont, downloadFlatTexture, downloadJson, downloadTexture, flushSave, font, redo, editingSubmission, restoreFont, saveError, saveSubmission, submitFont, takeSubmissionFont, typing, undo } from "./store.js"
+  import { canRedo, canUndo, closeFont, downloadFlatTexture, downloadJson, downloadStripTexture, downloadTexture, flushSave, font, redo, editingSubmission, restoreFont, saveError, saveSubmission, submitFont, takeSubmissionFont, typing, undo } from "./store.js"
 
   const TABS = [{ id: "font", label: "Font" }, { id: "characters", label: "Characters" }, { id: "textures", label: "Textures" }, { id: "kerning", label: "Kerning" }]
 
@@ -38,7 +38,8 @@
       { label: "Save", icon: "download", action: downloadJson },
       { label: "Export", icon: "texture", items: [
         { label: "Font sheet (font.png)", icon: "download", action: downloadTexture },
-        { label: "Flat texture (flat.png)", icon: "download", action: downloadFlatTexture }
+        { label: "Flat texture (flat.png)", icon: "download", action: downloadFlatTexture },
+        { label: "Strip texture (strip.png)", icon: "download", action: downloadStripTexture }
       ] }
     ],
     Edit: [
