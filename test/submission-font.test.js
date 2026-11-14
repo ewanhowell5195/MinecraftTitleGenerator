@@ -204,6 +204,16 @@ describe("checking a font", () => {
     assert.match(wrong.problems["extra:a"], /flat texture has to be the font's template size, 566x356/)
   })
 
+  test("one bundled texture each can be the primary and the secondary, never an overlay", async () => {
+    const extras = [{ key: "a", kind: "texture", name: "Gold", border: "#000000", primary: true, secondary: true }, { key: "b", kind: "overlay", name: "Sparkle", primary: true }, { key: "c", kind: "texture", name: "Iron", border: "#000000", secondary: "yes" }]
+    const files = { a: plainPng(566, 356), b: plainPng(566, 356), c: plainPng(566, 356) }
+    const { problems, details } = await check({ bytes: f8thful, details: { id: "x", extras }, files })
+    assert.deepEqual(Object.values(problems).filter(Boolean), [])
+    assert.deepEqual(details.extras.map(item => [item.primary, item.secondary]), [[true, true], [undefined, undefined], [undefined, undefined]])
+    const twice = await check({ bytes: f8thful, details: { id: "x", extras: [extras[0], { ...extras[2], primary: true }] }, files })
+    assert.match(twice.problems["extra:c"], /Only one texture can be the primary/)
+  })
+
   test("a kept texture that no longer fits a changed font has to be chosen again", async () => {
     const flat = { key: "a", kind: "flat", border: "#000000" }
     const stale = await check({ bytes: f8thful, details: { id: "x", extras: [{ ...flat, size: { width: 566, height: 364 } }], files: { a: "sha" } } })
@@ -446,6 +456,20 @@ describe("sending a font", () => {
     assert.ok(branchFile(id, "public/font/test-font/textures/gold_bricks.png"))
     assert.equal(gh.pulls.get(1).title, "Test Font font")
     assert.equal(gh.commits.get(gh.refs.get(`heads/submission/${id}`)).message, "[CF-Pages-Skip] add Test Font font")
+  })
+
+  test("writes the bundled textures marked primary and secondary into textures.json", async () => {
+    const cookie = await signIn()
+    const extras = { base: plainPng(566, 356), gold: plainPng(566, 356) }
+    const details = { id: "test-font", extras: [{ key: "base", kind: "flat", border: "#000000", secondary: true }, { key: "gold", kind: "texture", name: "Gold Bricks", border: "#3d1f0a", primary: true }] }
+    const { status, id } = await send(cookie, { details, extras })
+    assert.equal(status, 201)
+    const list = JSON.parse(branchFile(id, "public/font/test-font/textures.json").toString())
+    assert.equal(list.primary, "gold_bricks")
+    assert.equal(list.secondary, "flat")
+    const both = await send(cookie, { details: { id: "test-font-2", extras: [{ ...details.extras[1], secondary: true }] }, extras: { gold: extras.gold } })
+    const single = JSON.parse(branchFile(both.id, "public/font/test-font-2/textures.json").toString())
+    assert.deepEqual([single.primary, single.secondary], ["gold_bricks", "gold_bricks"])
   })
 
   test("puts a bundled flat texture in place of the generated one", async () => {

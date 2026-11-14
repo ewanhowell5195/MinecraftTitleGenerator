@@ -4,7 +4,7 @@ import { jsonText } from "../../lib/jsonText.js"
 import { titleCase } from "../../lib/names.js"
 import { fontParent } from "../../lib/submissionKinds/font.js"
 import { holdingPath } from "../../lib/submissionKinds/fontBuild.js"
-import { assetId, sourceOf } from "../../lib/submissions.js"
+import { DEFAULT_ROLES, assetId, sourceOf } from "../../lib/submissions.js"
 import { usedIds } from "./fontAsset.js"
 
 const LIST = "public/font/fonts.json"
@@ -28,21 +28,25 @@ function bundle(row, details, folder) {
   const list = { textures: { flat: { border: "#000000" } }, overlays: {} }
   const used = new Set(usedIds(list))
   const files = []
+  const roles = {}
   for (const item of extras) {
     const sha = details.files?.[item.key]
     if (!sha) throw new Error(`submission ${row.id} has no file for its ${item.kind} ${item.key}`)
     if (item.kind === "flat") {
       list.textures.flat = { authors: authorList(item.credit).length ? authorList(item.credit) : row.credit, ...(item.density > 1 && { density: item.density }), border: item.border }
       files.push({ path: `public/${folder}/textures/flat.png`, sha })
+      for (const role of DEFAULT_ROLES) if (item[role]) roles[role] = "flat"
       continue
     }
     const id = assetId(item.name, used)
     used.add(id)
+    if (item.kind !== "overlay") for (const role of DEFAULT_ROLES) if (item[role]) roles[role] = id
     const entry = { ...(item.kind === "strip" && { type: "strip" }), ...(item.name !== titleCase(id) && { name: item.name }), authors: authorList(item.credit).length ? authorList(item.credit) : row.credit, ...(item.density > 1 && { density: item.density }), ...(item.kind !== "overlay" && { border: item.border }) }
     const section = item.kind === "overlay" ? "overlays" : "textures"
     list[section][id] = entry
     files.push({ path: `public/${folder}/${section}/${id}.png`, sha })
   }
+  Object.assign(list, roles)
   return [{ path: `public/${folder}/textures.json`, content: `${jsonText(list)}\n` }].concat(files)
 }
 

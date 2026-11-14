@@ -7,7 +7,7 @@ import { DEFAULT_ORDER } from "../order.js"
 import { defaultBorder, defaultDepth } from "../settings.js"
 import { stripUse } from "../strips.js"
 import { GENERATED_EDGE_OVERLAYS, withGenerated } from "../generated.js"
-import { EXTRA_FILE, HEX_COLOUR, SUBMISSION_LIMITS, assetId, creditProblem, pngProblem, pngSize, sizedProblem, textProblem, textureDensity } from "../submissions.js"
+import { DEFAULT_ROLES, EXTRA_FILE, HEX_COLOUR, SUBMISSION_LIMITS, assetId, creditProblem, pngProblem, pngSize, sizedProblem, textProblem, textureDensity } from "../submissions.js"
 import { MULTICASE_CHARACTERS, REQUIRED_CHARACTERS, characterName, fontId, hasCase } from "../fontEditor.js"
 import { FONT_LIMITS, drawnCells, ownFont, storedFont, submittedFont } from "./fontBuild.js"
 import { heightList, layerDepth, reachProblems, stripFit, stripHeights, stripSet } from "./stripFit.js"
@@ -229,8 +229,11 @@ function extrasOf(list, files, stored, template, problems) {
     else if (bordered && !border) problems[key] = "The border colour has to be a hex colour like #000000."
     else if (!files[item.key] && typeof stored?.[item.key] !== "string") problems[key] = `Choose a PNG for ${name}.`
     else if (file.problem) problems[key] = files[item.key] ? file.problem : `${file.problem} Choose a new one that fits the font.`
+    const roles = bordered ? DEFAULT_ROLES.filter(role => item[role] === true) : []
+    const repeated = roles.find(role => clean.some(other => other[role]))
+    if (repeated && !problems[key]) problems[key] = `Only one texture can be the ${repeated}.`
     if (id) ids.set(id, name)
-    clean.push({ key: item.key, kind: item.kind, name, ...(credit.length && { credit }), ...(border && { border }), ...(file.density > 1 && { density: file.density }), ...(file.size && { size: file.size }) })
+    clean.push({ key: item.key, kind: item.kind, name, ...(credit.length && { credit }), ...(border && { border }), ...(file.density > 1 && { density: file.density }), ...(file.size && { size: file.size }), ...Object.fromEntries(roles.map(role => [role, true])) })
   }
   return clean
 }

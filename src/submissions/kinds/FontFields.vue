@@ -7,6 +7,7 @@
   import Icon from "../../components/Icon.vue"
   import NameList from "../../components/NameList.vue"
   import Segments from "../../components/Segments.vue"
+  import Toggle from "../../components/Toggle.vue"
   import { vFileDrop } from "../../lib/fileDrop.js"
   import { flatTexture } from "../../lib/fontEditor.js"
   import { popular } from "../../lib/stats.js"
@@ -102,6 +103,10 @@
     emit("update:details", { ...props.details, extras: extras.value.map(item => item.key === key ? { ...item, ...change } : item) })
   }
 
+  function setDefault(key, role, on) {
+    emit("update:details", { ...props.details, extras: extras.value.map(item => item.key === key ? { ...item, [role]: on } : on ? { ...item, [role]: false } : item) })
+  }
+
   function add(kind) {
     const key = `${kind}-${Date.now().toString(36)}${Math.floor(Math.random() * 1296).toString(36)}`
     emit("update:details", { ...props.details, extras: extras.value.concat({ key, kind, name: "", ...(kind !== "overlay" && { border: "#000000" }) }) })
@@ -140,6 +145,7 @@
   </Field>
   <Field group class="wide" label="Textures, overlays and strips for this font" :error="problems.extras">
     <p class="hint">Optional. A flat texture replaces the plain one the font gets otherwise. Paint flat textures, textures and overlays over the font's <a v-if="blankTexture" :href="blankTexture" :download="`${fontId || 'font'}-template.png`">blank texture</a><template v-else>blank texture, from the Textures tab of the font editor</template>, at its size or a whole number of times bigger.<template v-if="stripHeights"> Strips can be {{ either(stripHeights) }} pixels tall.</template> Up to {{ SUBMISSION_LIMITS.extraFiles }} files.</p>
+    <p class="hint">The primary texture is what top and small lines start with, and the secondary is what bottom lines start with. Without a secondary, bottom lines use the primary, and without a primary, every line starts flat. Set one texture as both to keep the bottom line on the primary.</p>
     <div v-for="item of extras" :key="item.key" class="extra">
       <label v-file-drop class="extra-image" v-tooltip="`Choose the ${KIND_LABELS[item.kind].toLowerCase()}'s PNG`">
         <img v-if="imageOf(item.key)" :src="imageOf(item.key)" alt="">
@@ -159,6 +165,10 @@
         <div v-if="item.kind !== 'overlay'" class="row">
           <span class="hint">Border</span>
           <ColourPicker :model-value="item.border ?? '#000000'" @update:model-value="update(item.key, { border: $event })" />
+        </div>
+        <div v-if="item.kind !== 'overlay'" class="row defaults">
+          <Toggle label="Primary" :model-value="!!item.primary" @update:model-value="setDefault(item.key, 'primary', $event)" />
+          <Toggle label="Secondary" :model-value="!!item.secondary" @update:model-value="setDefault(item.key, 'secondary', $event)" />
         </div>
       </Field>
     </div>
@@ -213,6 +223,14 @@
     flex-direction: column;
     gap: 6px;
     min-width: 0;
+  }
+
+  .defaults {
+    gap: 16px;
+  }
+
+  .defaults > * {
+    flex: 1;
   }
 
   .extra-kind {

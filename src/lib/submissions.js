@@ -11,6 +11,8 @@ export const EDITOR_REVISION = "minecraft-title-editor-revision"
 
 export const HEX_COLOUR = /^#[0-9a-f]{6}$/i
 
+export const DEFAULT_ROLES = ["primary", "secondary"]
+
 function length(text) {
   return Array.from(text).length
 }

@@ -36,6 +36,7 @@ export const font = {
     const kind = item.target ? `Variant of ${parentName(item, fonts)}` : "New font"
     const extras = item.details.extras ?? []
     const bundled = Object.entries(KIND_NAMES).map(([kind, label]) => ({ label, value: extras.filter(extra => extra.kind === kind).map(extra => extra.name).join(", ") })).filter(row => row.value)
-    return [{ label: "ID", value: item.details.id }, { label: "Added as", value: kind }].concat(bundled)
+    const defaults = [["primary", "Primary texture"], ["secondary", "Secondary texture"]].map(([role, label]) => ({ label, value: extras.find(extra => extra[role])?.name ?? "" })).filter(row => row.value)
+    return [{ label: "ID", value: item.details.id }, { label: "Added as", value: kind }].concat(bundled, defaults)
   }
 }
