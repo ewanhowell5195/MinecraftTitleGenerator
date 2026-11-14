@@ -40,15 +40,17 @@ export function drawText(canvas, parsed, text, { maxWidth, maxHeight, maxScale =
   canvas.style.height = `${height * scale}px`
   ctx.setTransform(pixel, 0, 0, pixel, 0, 0)
   function paint(grow, colourOf) {
-    for (const { glyph, x } of placed) {
-      const originX = x - left
-      const originY = top - glyph.top
-      for (let row = 0; row < glyph.height; row++) {
-        for (let column = 0; column < glyph.width; column++) {
-          const at = (glyph.height - 1 - row) * glyph.width + column
-          if (!glyph.mask[at]) continue
-          ctx.fillStyle = colourOf(glyph.depths?.[at] ?? 0)
-          ctx.fillRect(originX + column - grow, originY + row - grow, 1 + grow * 2, 1 + grow * 2)
+    for (let depth = (parsed.layers?.length ?? 1) - 1; depth >= 0; depth--) {
+      for (const { glyph, x } of placed) {
+        const originX = x - left
+        const originY = top - glyph.top
+        for (let row = 0; row < glyph.height; row++) {
+          for (let column = 0; column < glyph.width; column++) {
+            const at = (glyph.height - 1 - row) * glyph.width + column
+            if (!glyph.mask[at] || (glyph.depths?.[at] ?? 0) !== depth) continue
+            ctx.fillStyle = colourOf(depth)
+            ctx.fillRect(originX + column - grow, originY + row - grow, 1 + grow * 2, 1 + grow * 2)
+          }
         }
       }
     }
