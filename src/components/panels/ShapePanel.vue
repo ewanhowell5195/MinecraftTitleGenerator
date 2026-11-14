@@ -8,7 +8,7 @@
   import { usePanel } from "../../lib/panel.js"
   import { gameVersions, library } from "../../lib/scene.js"
   import { CUSTOM_SHAPE, isMinecraftShape, minecraftShape, minecraftShapeParts } from "../../lib/shapes.js"
-  import { readFile } from "../../lib/ui.js"
+  import { readImage } from "../../lib/ui.js"
   import ColourPicker from "../ColourPicker.vue"
   import Dropdown from "../Dropdown.vue"
   import Field from "../Field.vue"
@@ -155,8 +155,8 @@
         <Tile v-for="shape of library.shapes" :key="shape.id" :label="shape.name" :image="`${shape.folder}/thumbnails/flat.png`" aspect="4 / 3" :author="shape.authors" :selected="object.shape === shape.id" @pick="object.shape = shape.id" />
       </TileGrid>
       <template v-else-if="source === 'custom'">
-        <UploadField accept="image/png" :label="object.shape === CUSTOM_SHAPE ? 'Replace PNG' : 'Choose a PNG'" empty="No PNG chosen" :image="object.shape === CUSTOM_SHAPE ? object.customFont?.data : null" @change="readFile($event, pickPng)" />
-        <p class="hint">The solid pixels make the shape, pushed out like a letter, and the PNG paints its front.</p>
+        <UploadField accept="image/*" :label="object.shape === CUSTOM_SHAPE ? 'Replace image' : 'Choose an image'" empty="No image chosen" :image="object.shape === CUSTOM_SHAPE ? object.customFont?.data : null" @change="readImage($event, pickPng)" />
+        <p class="hint">The solid pixels make the shape, pushed out like a letter, and the image paints its front.</p>
       </template>
       <template v-else>
         <MinecraftVersionField v-if="version" :version="version" @pick="chooseVersion" />

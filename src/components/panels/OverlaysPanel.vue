@@ -8,7 +8,7 @@
   import { library } from "../../lib/scene.js"
   import { BLEND_OPTIONS, OVERLAY_KINDS, activeOverlays, defaultOverlays, overlayLayer } from "../../lib/settings.js"
   import { popular } from "../../lib/stats.js"
-  import { readFile, saveSheet, thumbnail, thumbnailHeight } from "../../lib/ui.js"
+  import { readImage, saveSheet, thumbnail, thumbnailHeight } from "../../lib/ui.js"
   import Button from "../Button.vue"
   import ColourPicker from "../ColourPicker.vue"
   import Dropdown from "../Dropdown.vue"
@@ -195,7 +195,7 @@
       <Tile v-for="[id, data] of shown" :key="id" :label="data.name ?? titleCase(id)" :unit="thumbnailHeight(font)" :image="thumbnail(font, id, shownLayer)" :author="credit(data, font?.id, library.fonts)" :selected="layer?.overlay === id" :menu="overlayMenu(id, data)" @pick="pickOverlay(id)" />
     </TileGrid>
     <template v-else>
-      <UploadField accept="image/png" :label="layer?.file ? 'Replace PNG' : 'Choose a PNG'" empty="No file selected" :image="layer?.file" @change="readFile($event, pickFile)" />
+      <UploadField accept="image/*" :label="layer?.file ? 'Replace image' : 'Choose an image'" empty="No file selected" :image="layer?.file" @change="readImage($event, pickFile)" />
     </template>
 
     <template v-if="layer">

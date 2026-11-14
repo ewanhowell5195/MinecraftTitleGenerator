@@ -11,7 +11,7 @@
   import { pinnedTextures, setTexture, untouchedTileable } from "../../lib/settings.js"
   import { minecraftStatId, popular } from "../../lib/stats.js"
   import { stripCovers } from "../../lib/strips.js"
-  import { readFile, saveImage, thumbnail, thumbnailHeight, tilePreview } from "../../lib/ui.js"
+  import { readImage, saveImage, thumbnail, thumbnailHeight, tilePreview } from "../../lib/ui.js"
   import Button from "../Button.vue"
   import GradientEditor from "../GradientEditor.vue"
   import MinecraftVersionField from "../MinecraftVersionField.vue"
@@ -266,7 +266,7 @@
     </div>
 
     <template v-if="object.textureSource === 'custom'">
-      <UploadField accept="image/png" :label="object.customTexture ? 'Replace texture' : 'Choose a PNG'" empty="No texture uploaded" :image="object.customTexture" @change="readFile($event, pickCustom)" />
+      <UploadField accept="image/*" :label="object.customTexture ? 'Replace texture' : 'Choose an image'" empty="No texture uploaded" :image="object.customTexture" @change="readImage($event, pickCustom)" />
       <template v-if="object.customTexture">
         <Segments label="Use as" :options="CUSTOM_MODES" v-model="object.customTextureMode" />
         <p class="hint" :class="{ bad: object.customTextureMode === 'standard' && !fitsFont }">{{ modeHint }}</p>

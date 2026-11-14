@@ -2,6 +2,7 @@ import { reactive } from "vue"
 import { image, tileableUrl } from "./assets.js"
 import { surface } from "./canvas.js"
 import { customThumbnail } from "./customFonts.js"
+import { loadImage } from "./font.js"
 
 const heights = reactive({})
 
@@ -30,9 +31,22 @@ export function readDataUrl(file, apply) {
   reader.readAsDataURL(file)
 }
 
-export function readFile(event, apply) {
+export async function readImage(event, apply) {
   const file = takeFile(event)
-  if (file) readDataUrl(file, apply)
+  if (!file) return
+  if (file.type === "image/png") return readDataUrl(file, apply)
+  const url = URL.createObjectURL(file)
+  try {
+    const loaded = await loadImage(url)
+    const { canvas, ctx } = surface(loaded.width, loaded.height)
+    ctx.drawImage(loaded, 0, 0)
+    apply(canvas.toDataURL("image/png"))
+  } catch {
+    const { fileError } = await import("./file.js")
+    fileError.value = `Couldn't open ${file.name}: this browser can't read it as an image`
+  } finally {
+    URL.revokeObjectURL(url)
+  }
 }
 
 export function fontThumbnail(fonts, id) {
