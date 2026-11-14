@@ -31,6 +31,23 @@
     color: var(--faint);
   }
 
+  .nav-tabs :deep(.tab-bar-button)::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: -12px;
+    bottom: 0;
+    left: -12px;
+  }
+
+  .nav-tabs :deep(.tab-bar-button:first-of-type)::before {
+    left: 0;
+  }
+
+  .nav-tabs :deep(.tab-bar-button:last-of-type)::before {
+    right: 0;
+  }
+
   .nav-tabs :deep(.tab-bar-button:hover),
   .nav-tabs :deep(.tab-bar-button.active) {
     color: var(--text);
