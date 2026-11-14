@@ -174,10 +174,19 @@ function storedTemplate(template) {
 }
 
 function extraFileProblem(bytes, kind, template) {
-  const noun = kind === "flat" ? "flat texture" : kind
-  const problem = pngProblem(bytes, noun)
-  if (problem || !template) return { problem }
+  const problem = pngProblem(bytes, kind === "flat" ? "flat texture" : kind)
+  if (problem) return { problem }
   const size = pngSize(bytes)
+  return { size, ...extraSizeProblem(size, kind, template) }
+}
+
+function keptSize(size) {
+  return size && Number.isInteger(size.width) && Number.isInteger(size.height) ? { width: size.width, height: size.height } : null
+}
+
+function extraSizeProblem(size, kind, template) {
+  if (!size || !template) return {}
+  const noun = kind === "flat" ? "flat texture" : kind
   if (kind === "strip") {
     const heights = stripHeights(template.rows)
     return { problem: heights.includes(size.height) ? null : `Strips for this font have to be ${heightList(heights)} pixels tall, and this one is ${size.height}.` }
@@ -186,7 +195,7 @@ function extraFileProblem(bytes, kind, template) {
   return density ? { density } : { problem: `The ${noun} has to be the font's template size, ${template.width}x${template.height}, or a whole number of times bigger, and this one is ${size.width}x${size.height}.` }
 }
 
-function extrasOf(list, files, kept, template, problems) {
+function extrasOf(list, files, stored, template, problems) {
   if (list === undefined) return []
   if (!Array.isArray(list) || list.some(item => !item || typeof item !== "object")) {
     problems.extras = "The textures, overlays and strips aren't valid."
@@ -211,17 +220,18 @@ function extrasOf(list, files, kept, template, problems) {
     const id = flat ? "" : name ? assetId(name, new Set()) : ""
     const bordered = item.kind !== "overlay"
     const border = bordered && typeof item.border === "string" && HEX_COLOUR.test(item.border) ? item.border.toLowerCase() : null
-    const file = files[item.key] ? extraFileProblem(files[item.key], item.kind, template) : { density: Number.isInteger(item.density) && item.density > 1 && item.density <= 64 ? item.density : undefined }
+    const kept = keptSize(item.size)
+    const file = files[item.key] ? extraFileProblem(files[item.key], item.kind, template) : { size: kept, ...(kept && template ? extraSizeProblem(kept, item.kind, template) : { density: Number.isInteger(item.density) && item.density > 1 && item.density <= 64 ? item.density : undefined }) }
     if (named) problems[key] = named
     else if (flat && clean.some(other => other.kind === "flat")) problems[key] = "A font can only have one flat texture."
     else if (RESERVED_ASSETS.has(id)) problems[key] = `${name} is the name of one of the font's built in textures or overlays. Give it another name.`
     else if (ids.has(id)) problems[key] = `${name} and ${ids.get(id)} would get the same id. Give each one its own name.`
     else if (credited) problems[key] = credited
     else if (bordered && !border) problems[key] = "The border colour has to be a hex colour like #000000."
-    else if (!files[item.key] && typeof kept?.[item.key] !== "string") problems[key] = `Choose a PNG for ${name}.`
-    else if (file.problem) problems[key] = file.problem
+    else if (!files[item.key] && typeof stored?.[item.key] !== "string") problems[key] = `Choose a PNG for ${name}.`
+    else if (file.problem) problems[key] = files[item.key] ? file.problem : `${file.problem} Choose a new one that fits the font.`
     if (id) ids.set(id, name)
-    clean.push({ key: item.key, kind: item.kind, name, ...(credit.length && { credit }), ...(border && { border }), ...(file.density > 1 && { density: file.density }) })
+    clean.push({ key: item.key, kind: item.kind, name, ...(credit.length && { credit }), ...(border && { border }), ...(file.density > 1 && { density: file.density }), ...(file.size && { size: file.size }) })
   }
   return clean
 }

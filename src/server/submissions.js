@@ -121,6 +121,12 @@ async function extraFiles(form) {
   return files
 }
 
+function keptSizes(details, files, previous) {
+  if (!Array.isArray(details.extras)) return details
+  const before = previous ? JSON.parse(previous.details).extras ?? [] : []
+  return { ...details, extras: details.extras.map(item => item && typeof item === "object" && !files[item.key] ? { ...item, size: before.find(old => old.key === item.key)?.size } : item) }
+}
+
 async function readForm(context, previous = null) {
   const { request } = context
   const body = await bodyBytes(request, SUBMISSION_LIMITS.totalBytes + FORM_ALLOWANCE, "This submission is too big.")
@@ -134,7 +140,7 @@ async function readForm(context, previous = null) {
   if (!type?.available) throw new Refusal(400, "Pick what you're submitting.")
   if (!bytes && !previous) throw new Refusal(400, sizedProblem(bytes, type.noun))
   const fonts = await publishedFonts(context)
-  const fields = { kind, target: form.get("target") ?? "", details: parsedDetails(form.get("details")), bytes, files, name: form.get("name"), credit: sentCredit(form.get("credit")), notes: form.get("notes") ?? "", agree: form.get("agree") === "true" }
+  const fields = { kind, target: form.get("target") ?? "", details: keptSizes(parsedDetails(form.get("details")), files, previous), bytes, files, name: form.get("name"), credit: sentCredit(form.get("credit")), notes: form.get("notes") ?? "", agree: form.get("agree") === "true" }
   const { problems, clean } = await checkSubmission(fields, submissionContext(fonts, path => asset(context, path)))
   const problem = Object.values(problems)[0]
   if (problem) throw new Refusal(400, problem)

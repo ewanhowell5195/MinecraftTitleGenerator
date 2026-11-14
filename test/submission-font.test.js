@@ -185,7 +185,7 @@ describe("checking a font", () => {
     const files = { a: plainPng(566 * 2, 356 * 2), b: plainPng(566, 356), c: plainPng(1, 92 * 4) }
     const { problems, details } = await check({ bytes: f8thful, details: { id: "x", extras, files: { forged: "abc" } }, files })
     assert.deepEqual(Object.values(problems).filter(Boolean), [])
-    assert.deepEqual(details.extras, [{ key: "a", kind: "texture", name: "Gold", border: "#aabbcc", density: 2 }, { key: "b", kind: "overlay", name: "Sparkle" }, { key: "c", kind: "strip", name: "Stripes", credit: ["Someone Else", "Friend"], border: "#000000" }])
+    assert.deepEqual(details.extras, [{ key: "a", kind: "texture", name: "Gold", border: "#aabbcc", density: 2, size: { width: 1132, height: 712 } }, { key: "b", kind: "overlay", name: "Sparkle", size: { width: 566, height: 356 } }, { key: "c", kind: "strip", name: "Stripes", credit: ["Someone Else", "Friend"], border: "#000000", size: { width: 1, height: 368 } }])
     assert.equal(details.files, undefined)
     assert.deepEqual(kind.fileKeys(details), ["a", "b", "c"])
     const wrong = await check({ bytes: f8thful, details: { id: "x", extras }, files: { a: plainPng(500, 356), b: plainPng(566, 356), c: plainPng(1, 90) } })
@@ -197,11 +197,20 @@ describe("checking a font", () => {
     const flat = { key: "a", kind: "flat", border: "#AABBCC" }
     const { problems, details } = await check({ bytes: f8thful, details: { id: "x", extras: [flat] }, files: { a: plainPng(566 * 2, 356 * 2) } })
     assert.deepEqual(Object.values(problems).filter(Boolean), [])
-    assert.deepEqual(details.extras, [{ key: "a", kind: "flat", name: "Flat", border: "#aabbcc", density: 2 }])
+    assert.deepEqual(details.extras, [{ key: "a", kind: "flat", name: "Flat", border: "#aabbcc", density: 2, size: { width: 1132, height: 712 } }])
     const two = await check({ bytes: f8thful, details: { id: "x", extras: [flat, { ...flat, key: "b" }] }, files: { a: plainPng(566, 356), b: plainPng(566, 356) } })
     assert.match(two.problems["extra:b"], /only have one flat texture/)
     const wrong = await check({ bytes: f8thful, details: { id: "x", extras: [flat] }, files: { a: plainPng(500, 356) } })
     assert.match(wrong.problems["extra:a"], /flat texture has to be the font's template size, 566x356/)
+  })
+
+  test("a kept texture that no longer fits a changed font has to be chosen again", async () => {
+    const flat = { key: "a", kind: "flat", border: "#000000" }
+    const stale = await check({ bytes: f8thful, details: { id: "x", extras: [{ ...flat, size: { width: 566, height: 364 } }], files: { a: "sha" } } })
+    assert.match(stale.problems["extra:a"], /template size, 566x356, .* this one is 566x364\. Choose a new one that fits the font\./)
+    const fits = await check({ bytes: f8thful, details: { id: "x", extras: [{ ...flat, size: { width: 1132, height: 712 } }], files: { a: "sha" } } })
+    assert.equal(fits.problems["extra:a"], undefined)
+    assert.deepEqual(fits.details.extras, [{ key: "a", kind: "flat", name: "Flat", border: "#000000", density: 2, size: { width: 1132, height: 712 } }])
   })
 
   test("a font with depths keeps them, and its template holds a band for each depth", () => {
@@ -474,7 +483,7 @@ describe("sending a font", () => {
     const { id } = await send(cookie, { details, extras: { gold: plainPng(566, 356) } })
     const row = await env.DB.prepare("SELECT details, updated_at FROM submissions WHERE id = ?").bind(id).first()
     const kept = JSON.parse(row.details)
-    const body = form({ name: "Renamed Font", file: null, details: { ...kept, extras: [{ ...kept.extras[0], name: "Golden" }] } })
+    const body = form({ name: "Renamed Font", file: null, details: { ...kept, extras: [{ ...kept.extras[0], name: "Golden", size: { width: 1, height: 1 } }] } })
     body.set("revision", String(row.updated_at))
     const response = await editSubmission(context(`/api/submissions/${id}`, { method: "PATCH", body, cookie, params: { id: String(id) } }))
     assert.equal(response.status, 200)
