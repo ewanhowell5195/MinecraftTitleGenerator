@@ -1,0 +1,9 @@
+{
+  "textures": {
+    "flat": {
+      "authors": ["Miffen Kop", "Ewan Howell", "oakar258"],
+      "border": "#000000"
+    }
+  },
+  "overlays": {}
+}

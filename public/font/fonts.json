@@ -210,5 +210,21 @@
       "8": ["tj", "lt", "ly", "l-", "/j", "l\\", "l1", "t4", "_\\", "_4", ",\\", ".\\", "/_", "/,", "/.", "\\'", "\\^", "\\~", "^/", "^j", "~/", "~j", "7_", "f_", "l'", "l*", "l^", "l~", "l😩", "p_", "p,", "p.", "'j", "😩j"],
       "16": ["//", "\\\\"]
     }
+  },
+  {
+    "id": "minecraft-wiki",
+    "authors": ["Miffen Kop", "Ewan Howell", "oakar258"],
+    "description": "Recreation of the Minecraft Wiki logo",
+    "strips": [
+      {
+        "id": "minecraft-ten",
+        "layer": 1
+      }
+    ],
+    "spaceWidth": 14,
+    "depth": 32,
+    "border": 0,
+    "characterSpacing": -8,
+    "allFaces": true
   }
 ]
