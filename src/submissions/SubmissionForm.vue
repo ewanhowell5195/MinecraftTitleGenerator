@@ -352,7 +352,7 @@
     outline-offset: 4px;
   }
 
-  .stage-area.dragging {
+  .stage-area.dragging:not(:has(> .drop)) {
     outline-color: var(--accent);
   }
 
