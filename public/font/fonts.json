@@ -213,6 +213,18 @@
   },
   {
     "id": "minecraft-wiki",
-    "authors": ["Miffen Kop", "Ewan Howell", "oakar258"]
+    "authors": ["Miffen Kop", "Ewan Howell", "oakar258"],
+    "description": "Recreation of the Minecraft Wiki logo",
+    "strips": [
+      {
+        "id": "minecraft-ten",
+        "layer": 1
+      }
+    ],
+    "spaceWidth": 14,
+    "depth": 32,
+    "border": 0,
+    "characterSpacing": -8,
+    "allFaces": true
   }
 ]
