@@ -270,9 +270,9 @@ export default {
       }
       const keys = ["shape", "base", "tile", "fontOverlay"].filter(key => key in assets)
       const [loaded, overlays, sizes] = await Promise.all([Promise.all(keys.map(key => assets[key])), Promise.all(assets.overlays.map(async ({ layer, source }) => ({ layer, source: await source }))), Promise.all(files)])
-      const fromFont = new Set(["shape", "fontOverlay"].concat(value.source === "texture" && !(target.textureSource === "custom" && target.customTexture) ? ["base"] : []))
+      const fromFont = new Set(["shape", "fontOverlay"].concat(value.source === "texture" ? ["base"] : []))
       for (const [index, key] of keys.entries()) assets[key] = fromFont.has(key) ? bandOf(loaded[index], band, font.value) : loaded[index]
-      assets.overlays = overlays.map(({ layer, source }) => layer.source === "file" || source.generated ? { layer, source } : { layer, source: bandOf(source, band, font.value) })
+      assets.overlays = overlays.map(({ layer, source }) => source.generated ? { layer, source } : { layer, source: bandOf(source, band, font.value) })
       for (const file of sizes) assets.densities.push(file.width / sheet.value.width)
       if (value.source === "texture" && target.textureSource === "custom") assets.densities.push(assets.base.width / sheet.value.width)
       assets.edgeOverlays = value.edgeOverlays.flatMap(layer => list.value.edgeOverlays[layer.overlay] ? [{ layer, generated: list.value.edgeOverlays[layer.overlay].generated }] : [])
