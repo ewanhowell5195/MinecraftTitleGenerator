@@ -23,6 +23,10 @@ function stripColumns(glyph, capHeight) {
   return { up: new Set(tops.filter(([, level]) => level >= topline).map(([column]) => column)), down: new Set(bottoms.filter(([, level]) => level <= baseline).map(([column]) => column)) }
 }
 
+export function layerShade(layers, layer) {
+  return layers?.[layer] ?? 1
+}
+
 export function layerMask(glyph, layer) {
   return glyph.depths ? glyph.mask.map((solid, at) => solid && glyph.depths[at] <= layer ? 1 : 0) : glyph.mask
 }
@@ -49,7 +53,7 @@ function sheetSize(layout, depth) {
 export function flatLayers(cells, capHeight, depth, layers, density = 1, wideStrips = false) {
   if (!layers || layers.length < 2) return flatPixels(cells, capHeight, depth, density, wideStrips)
   const slices = layerSlices(layers, depth)
-  const bands = layers.map((_, layer) => flatPixels(cells.map(glyph => ({ ...glyph, mask: layerMask(glyph, layer) })), capHeight, slices[layer].rows, density, wideStrips, layers[layer]))
+  const bands = layers.map((_, layer) => flatPixels(cells.map(glyph => ({ ...glyph, mask: layerMask(glyph, layer) })), capHeight, slices[layer].rows, density, wideStrips, layerShade(layers, layer)))
   const data = new Uint8ClampedArray(bands.reduce((sum, band) => sum + band.data.length, 0))
   let at = 0
   for (const band of bands) {

@@ -1,4 +1,5 @@
 import { stretched } from "../lib/arc.js"
+import { layerShade } from "../lib/flatSheet.js"
 import { lineLayout } from "../lib/layout.js"
 import { parsedSheet } from "../lib/fontEditor.js"
 
@@ -6,8 +7,8 @@ const METRICS = ["spaceWidth", "terminatorSpace", "terminatorSpaceWidth", "force
 let unkerned = null
 
 export function unkernedFont(font) {
-  const { glyphs, capHeight } = parsedSheet(font)
-  if (unkerned?.glyphs !== glyphs || METRICS.some(key => unkerned[key] !== font[key])) unkerned = { glyphs, capHeight, multicase: font.letterCase === "both", ...Object.fromEntries(METRICS.map(key => [key, font[key]])) }
+  const { glyphs, capHeight, layers } = parsedSheet(font)
+  if (unkerned?.glyphs !== glyphs || METRICS.some(key => unkerned[key] !== font[key])) unkerned = { glyphs, capHeight, layers, multicase: font.letterCase === "both", ...Object.fromEntries(METRICS.map(key => [key, font[key]])) }
   return unkerned
 }
 
@@ -38,17 +39,24 @@ export function drawText(canvas, parsed, text, { maxWidth, maxHeight, maxScale =
   canvas.style.width = `${width * scale}px`
   canvas.style.height = `${height * scale}px`
   ctx.setTransform(pixel, 0, 0, pixel, 0, 0)
-  for (const [colour, grow] of [["#000", border], ["#fff", 0]]) {
-    ctx.fillStyle = colour
+  function paint(grow, colourOf) {
     for (const { glyph, x } of placed) {
       const originX = x - left
       const originY = top - glyph.top
       for (let row = 0; row < glyph.height; row++) {
         for (let column = 0; column < glyph.width; column++) {
-          if (glyph.mask[(glyph.height - 1 - row) * glyph.width + column]) ctx.fillRect(originX + column - grow, originY + row - grow, 1 + grow * 2, 1 + grow * 2)
+          const at = (glyph.height - 1 - row) * glyph.width + column
+          if (!glyph.mask[at]) continue
+          ctx.fillStyle = colourOf(glyph.depths?.[at] ?? 0)
+          ctx.fillRect(originX + column - grow, originY + row - grow, 1 + grow * 2, 1 + grow * 2)
         }
       }
     }
   }
+  paint(border, () => "#000")
+  paint(0, depth => {
+    const value = Math.round(255 * layerShade(parsed.layers, depth))
+    return `rgb(${value}, ${value}, ${value})`
+  })
   return true
 }
