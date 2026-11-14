@@ -48,6 +48,7 @@ const TOP_DEFAULTS = {
   shape: null,
   shapeVersion: null,
   blockState: null,
+  itemComponents: null,
   scaleMarked: false,
   scaleOutline: false,
   rotationX: 0,

@@ -53,7 +53,7 @@ export function shapeOf(shapes, id) {
 export function loadKey(object) {
   if (object.shape == null) return object.font
   if (object.shape === CUSTOM_SHAPE) return [CUSTOM_SHAPE, object.customFont?.data, JSON.stringify(object.customFont?.strips)].join()
-  return [object.shape, object.shapeVersion, JSON.stringify(object.blockState)].join()
+  return [object.shape, object.shapeVersion, JSON.stringify(object.blockState), JSON.stringify(object.itemComponents)].join()
 }
 
 export function isMinecraftShape(id) {

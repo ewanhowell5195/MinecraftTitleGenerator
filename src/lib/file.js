@@ -13,7 +13,7 @@ export const EXTENSION = "mctitle"
 const UNUSED = Object.entries(TEXTURE_TABS).map(([source, keys]) => [object => object.textureSource !== source, keys.filter(key => !TILING_KEYS.includes(key))]).concat([
   [object => object.shape !== null, ["text", "spaceBefore", "terminators", "creeperFace", "font", "spacing", "kerning"]],
   [object => object.shape !== null && object.shape !== CUSTOM_SHAPE, ["customFont"]],
-  [object => !isMinecraftShape(object.shape), ["shapeVersion", "blockState"]],
+  [object => !isMinecraftShape(object.shape), ["shapeVersion", "blockState", "itemComponents"]],
   [object => object.textureSource !== "tileable" && !(object.textureSource === "custom" && object.customTextureMode === "tileable"), TILING_KEYS],
   [object => !isCustomFont(object.font) && object.shape !== CUSTOM_SHAPE, ["customFont"]],
   [object => object.tileableSource !== "minecraft", ["minecraftTexture", "minecraftVersion"]],

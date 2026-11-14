@@ -73,7 +73,7 @@ export default {
     async function pickMinecraft(id, token) {
       const { kind, id: name } = minecraftShapeParts(id)
       if (!object.shapeVersion) throw new Error("this Minecraft shape has no game version")
-      const data = await minecraftQuads(kind, name, object.shapeVersion, kind === "block" ? object.blockState : null)
+      const data = await minecraftQuads(kind, name, object.shapeVersion, kind === "block" ? object.blockState : object.itemComponents)
       if (token !== request) return
       const sources = Object.fromEntries(Object.entries(data.sources).map(([key, picture]) => {
         const copy = surface(picture.width, picture.height, { willReadFrequently: true })
@@ -182,7 +182,7 @@ export default {
       })
     }
 
-    watch(() => [object.shape, object.shapeVersion, JSON.stringify(object.blockState), object.customModel], load, { immediate: true })
+    watch(() => [object.shape, object.shapeVersion, JSON.stringify(object.blockState), JSON.stringify(object.itemComponents), object.customModel], load, { immediate: true })
     watch([look, model, list], paint, { immediate: true })
 
     usePublished(object, props.title, {

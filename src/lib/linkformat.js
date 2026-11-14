@@ -208,6 +208,7 @@ const STATE = {
     return Object.fromEntries(entries)
   }
 }
+const COMPONENTS = { fits: isObject, write: (out, value) => writeText(out, JSON.stringify(value)), read: reader => JSON.parse(readText(reader)) }
 const OVERLAY_KEYS = new Map([["fade", "overlayFade"]])
 const OVERLAY_NAMES = new Map(Array.from(OVERLAY_KEYS, ([name, key]) => [key, name]))
 const OVERLAYS = list(isObject, (out, value) => writeObject(out, renamed(value, OVERLAY_KEYS)), reader => renamed(readObject(reader), OVERLAY_NAMES))
@@ -378,7 +379,8 @@ const KEYS = [
   ["amount", NUMBER],
   ["separateLayers", BOOLEAN],
   ["layerSettings", OBJECTS],
-  ["blockState", STATE]
+  ["blockState", STATE],
+  ["itemComponents", COMPONENTS]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))

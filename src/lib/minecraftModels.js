@@ -198,23 +198,36 @@ async function readStates(id, version) {
   return stateList(json, tables, id, lib.isWaterloggable(id))
 }
 
-export function blockStates(id, version) {
-  const key = `${version}/${id}`
+async function readDefinition(id, version) {
+  const { lib, assets } = await gameModels(version)
+  const file = await lib.readFile(assets, `${FOLDERS.item}${id}.json`)
+  return { definition: file ? JSON.parse(decoder.decode(file)) : null, potions: Object.keys(lib.COLORS?.potions ?? {}) }
+}
+
+function cached(key, read) {
   if (!states.has(key)) {
-    const loading = readStates(id, version)
+    const loading = read()
     states.set(key, loading)
     loading.catch(() => states.delete(key))
   }
   return states.get(key)
 }
 
+export function blockStates(id, version) {
+  return cached(`${version}/block/${id}`, () => readStates(id, version))
+}
+
+export function itemDefinition(id, version) {
+  return cached(`${version}/item/${id}`, () => readDefinition(id, version))
+}
+
 export function fitState(list, previous) {
   return Object.fromEntries(list.map(({ name, values, value }) => [name, values.includes(previous?.[name]) ? previous[name] : value]))
 }
 
-async function modelGroup(kind, id, version, properties) {
+async function modelGroup(kind, id, version, state) {
   const { lib, assets } = await gameModels(version)
-  const refs = kind === "block" ? await lib.parseBlockstate(assets, id, properties ? { properties } : undefined) : await lib.parseItemDefinition(assets, id, { display: "gui" })
+  const refs = kind === "block" ? await lib.parseBlockstate(assets, id, state ? { properties: state } : undefined) : await lib.parseItemDefinition(assets, id, { display: "gui", ...(state && { components: state }) })
   if (!refs.length) throw new Error(`Minecraft has no model for the ${kind} ${id}`)
   const group = new THREE.Group()
   for (const ref of refs) {
@@ -227,8 +240,8 @@ async function modelGroup(kind, id, version, properties) {
   return group
 }
 
-export async function minecraftQuads(kind, id, version, properties = null) {
-  const model = quadsOf(await modelGroup(kind, id, version, properties))
+export async function minecraftQuads(kind, id, version, state = null) {
+  const model = quadsOf(await modelGroup(kind, id, version, state))
   if (!model.quads.length) throw new Error(`Minecraft's ${kind} ${id} has nothing to draw`)
   return model
 }

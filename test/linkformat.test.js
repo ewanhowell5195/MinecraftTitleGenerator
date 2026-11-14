@@ -102,6 +102,11 @@ describe("values", () => {
     assert.ok(isCompact("blockState", line.blockState))
   })
 
+  test("item components", () => {
+    const line = { shape: "minecraft.item.crossbow", shapeVersion: "26.3", itemComponents: { charged_projectiles: [{ id: "firework_rocket" }], trim: { material: "gold" }, dyed_color: "#ff0000", "crossbow/pull": 0.79 } }
+    assert.deepEqual(roundTrip([line]), [line])
+  })
+
   test("true and false", () => {
     assert.deepEqual(roundTrip([{ fade: true, smooth: false }]), [{ fade: true, smooth: false }])
   })

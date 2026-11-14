@@ -2,13 +2,16 @@
   import { computed, ref, shallowRef, watch } from "vue"
   import { EulaDeclined } from "../../lib/eula.js"
   import { latestRelease } from "../../lib/minecraft.js"
-  import { blockStates, fitState, keepVersions, modelList } from "../../lib/minecraftModels.js"
+  import { fitComponents, itemControls } from "../../lib/itemComponents.js"
+  import { blockStates, fitState, itemDefinition, keepVersions, modelList } from "../../lib/minecraftModels.js"
   import { titleCase } from "../../lib/names.js"
   import { usePanel } from "../../lib/panel.js"
   import { gameVersions, library } from "../../lib/scene.js"
   import { CUSTOM_SHAPE, isMinecraftShape, minecraftShape, minecraftShapeParts } from "../../lib/shapes.js"
   import { readFile } from "../../lib/ui.js"
+  import ColourPicker from "../ColourPicker.vue"
   import Dropdown from "../Dropdown.vue"
+  import Field from "../Field.vue"
   import MinecraftShapeTile from "../MinecraftShapeTile.vue"
   import MinecraftVersionField from "../MinecraftVersionField.vue"
   import Notice from "../Notice.vue"
@@ -32,6 +35,7 @@
   const models = shallowRef(null)
   const failed = ref("")
   const states = shallowRef([])
+  const definition = shallowRef(null)
   let listRequest = 0
   let stateRequest = 0
 
@@ -46,22 +50,39 @@
     set: on => object.value.blockState = on ? fitState(states.value, null) : null
   })
 
-  function pickedBlock(shape) {
+  const componentsShown = computed(() => !!definition.value?.definition && fitComponents(definition.value.definition, {}, definition.value.potions) !== null)
+
+  const componentsCustomised = computed({
+    get: () => object.value.itemComponents !== null,
+    set: on => object.value.itemComponents = on ? {} : null
+  })
+
+  const controls = computed(() => definition.value?.definition && object.value.itemComponents ? itemControls(definition.value.definition, object.value.itemComponents, definition.value.potions) : [])
+
+  function picked(shape, wanted) {
     if (!isMinecraftShape(shape)) return null
     const parts = minecraftShapeParts(shape)
-    return parts.kind === "block" ? parts.id : null
+    return parts.kind === wanted ? parts.id : null
   }
 
   async function fittedState(shape, shapeVersion, previous) {
-    const block = pickedBlock(shape)
+    const block = picked(shape, "block")
     if (!previous || !block) return null
     const list = await blockStates(block, shapeVersion)
     return list.length ? fitState(list, previous) : null
   }
 
+  async function fittedComponents(shape, shapeVersion, previous) {
+    const item = picked(shape, "item")
+    if (!previous || !item) return null
+    const loaded = await itemDefinition(item, shapeVersion)
+    return loaded.definition ? fitComponents(loaded.definition, previous, loaded.potions) : null
+  }
+
   async function setShape(shape, shapeVersion) {
     const target = object.value
-    Object.assign(target, { shape, shapeVersion, blockState: await fittedState(shape, shapeVersion, target.blockState) })
+    const [blockState, itemComponents] = await Promise.all([fittedState(shape, shapeVersion, target.blockState), fittedComponents(shape, shapeVersion, target.itemComponents)])
+    Object.assign(target, { shape, shapeVersion, blockState, itemComponents })
   }
 
   function pick(id) {
@@ -90,13 +111,17 @@
   watch(() => [object.value.shape, object.value.shapeVersion], async ([shape, shapeVersion]) => {
     const request = ++stateRequest
     states.value = []
-    const block = pickedBlock(shape)
-    if (!block || !shapeVersion) return
+    definition.value = null
+    const block = picked(shape, "block")
+    const item = picked(shape, "item")
+    if (!block && !item || !shapeVersion) return
     try {
-      const list = await blockStates(block, shapeVersion)
-      if (request === stateRequest) states.value = list
+      const loaded = block ? await blockStates(block, shapeVersion) : await itemDefinition(item, shapeVersion)
+      if (request !== stateRequest) return
+      if (block) states.value = loaded
+      else definition.value = loaded
     } catch (err) {
-      if (request === stateRequest) failed.value = `Could not read the blockstates: ${err.message}`
+      if (request === stateRequest) failed.value = `Could not read the ${block ? "blockstates" : "item definition"}: ${err.message}`
     }
   }, { immediate: true })
 
@@ -151,6 +176,18 @@
               <Dropdown v-for="state of states" :key="state.name" :label="titleCase(state.name)" :options="state.values.map(value => ({ value, label: titleCase(value) }))" :model-value="object.blockState[state.name] ?? state.value" @update:model-value="setState(state.name, $event)" />
             </div>
           </template>
+          <template v-if="componentsShown">
+            <Toggle label="Customise components" v-model="componentsCustomised" />
+            <div v-if="object.itemComponents" class="states">
+              <template v-for="control of controls" :key="control.key">
+                <Dropdown v-if="control.type === 'select'" :label="control.label" :options="control.options" :searchable="control.options.length > 12" :model-value="control.value" @update:model-value="object.itemComponents = control.choose($event)" />
+                <Toggle v-else-if="control.type === 'toggle'" class="wide" :label="control.label" :model-value="control.value" @update:model-value="object.itemComponents = control.choose($event)" />
+                <Field v-else group :label="control.label">
+                  <ColourPicker :model-value="control.value" @update:model-value="object.itemComponents = control.choose($event)" />
+                </Field>
+              </template>
+            </div>
+          </template>
         </template>
       </template>
     </div>
@@ -162,5 +199,9 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
+  }
+
+  .wide {
+    grid-column: 1 / -1;
   }
 </style>
