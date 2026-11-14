@@ -211,7 +211,7 @@ export default {
     }
 
     async function loadAssets(value, band = 0, target = object) {
-      const assets = { shape: sheetImage("textures/flat.png"), border: list.value.textures.flat?.border ?? "#000000", densities: [] }
+      const assets = { shape: sheetImage("textures/flat.png"), border: list.value.textures.flat?.border ?? "#000000", densities: [], band: font.value.layers ? band : null }
       if (value.source === "gradient") assets.densities.push(1)
       if (value.source === "texture" && target.textureSource === "custom") {
         assets.base = target.customTexture ? image(target.customTexture) : sheetImage("textures/flat.png")

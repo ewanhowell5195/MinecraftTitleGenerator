@@ -27,7 +27,7 @@ describe("rowBottom", () => {
 
 globalThis.document = { createElement: () => ({ getContext: () => ({ fillRect() {}, drawImage() {} }) }) }
 
-const PAINTED = { scale: 1, canvas: {}, border: "rgb(0, 0, 0)", tiles: null, fade: null, edgeAverage: () => "#123456" }
+const PAINTED = { scale: 1, canvas: {}, border: "rgb(0, 0, 0)", tiles: null, fade: null, edgeAverage: () => "#123456", wraps: [], sideWraps: [] }
 
 function glyph(char, width, height, extra = {}) {
   return { char, width, height, bottom: 0, mask: new Uint8Array(width * height).fill(1), ...extra }

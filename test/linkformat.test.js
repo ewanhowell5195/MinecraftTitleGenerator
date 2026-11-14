@@ -107,6 +107,11 @@ describe("values", () => {
     assert.deepEqual(roundTrip([line]), [line])
   })
 
+  test("overlay wrapping", () => {
+    const line = { overlays: [{ overlay: "wave", source: "premade", sideWrap: false, edgeWrap: true }] }
+    assert.deepEqual(roundTrip([line]), [line])
+  })
+
   test("true and false", () => {
     assert.deepEqual(roundTrip([{ fade: true, smooth: false }]), [{ fade: true, smooth: false }])
   })

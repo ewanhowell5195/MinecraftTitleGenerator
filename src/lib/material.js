@@ -678,7 +678,7 @@ export function buildAtlas(faces, options) {
     const level = extent(face.points, 1).min
     const strip = { rect: face.rect, glyph: entry.glyph, side: face.kind === "top" ? "up" : "down", line: Math.round(block.own.maxY - level), from: Math.round(span.min - block.own.minX) }
     if (face.faces[0].extra) {
-      wrapped.push(strip)
+      wrapped.push({ ...strip, extra: true })
       if (painted.fade !== null) addFade(x * SCALE, y * SCALE, (x + width) * SCALE, (y + height) * SCALE, [0, front], [0, back], painted.fade)
       else if (stripStops) addGradient(face.rect, [x - strip.from - entry.glyph.wordX, 0], [x - strip.from - entry.glyph.wordX + sheet.wordWidth, 0], stripStops)
       continue
@@ -697,6 +697,17 @@ export function buildAtlas(faces, options) {
 
   if (lines) ctx.putImageData(lines, 0, linesTop)
   copyStrips(ctx, painted.canvas)
+  for (const wrap of painted.sideWraps) {
+    ctx.globalCompositeOperation = wrap.blend
+    ctx.globalAlpha = wrap.opacity
+    for (const { rect, glyph, side, line, from, extra } of wrapped) {
+      if (extra) continue
+      const drawn = wrap.face(glyph, side, line, from, rect.width, rect.height, SCALE)
+      if (drawn) ctx.drawImage(drawn, rect.x * SCALE, rect.y * SCALE)
+    }
+  }
+  ctx.globalAlpha = 1
+  ctx.globalCompositeOperation = "source-over"
   shadeFaces(shades)
 
   if (swatch) {

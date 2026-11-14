@@ -380,7 +380,9 @@ const KEYS = [
   ["separateLayers", BOOLEAN],
   ["layerSettings", OBJECTS],
   ["blockState", STATE],
-  ["itemComponents", COMPONENTS]
+  ["itemComponents", COMPONENTS],
+  ["sideWrap", BOOLEAN],
+  ["edgeWrap", BOOLEAN]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))

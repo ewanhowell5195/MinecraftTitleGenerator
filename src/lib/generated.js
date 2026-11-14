@@ -69,8 +69,8 @@ const GENERATED_OVERLAYS = {
   corner_dots: { generated: "corners" },
   shine: { generated: "shine" },
   shine_random: { generated: "shine_random", name: "Shine (Random)" },
-  wave: { generated: "wave", default: { blend: "source-over" } },
-  wave_inverted: { generated: "wave_inverted", name: "Wave (Inverted)", default: { blend: "source-over" } },
+  wave: { generated: "wave", default: { blend: "source-over", sideWrap: true, edgeWrap: true } },
+  wave_inverted: { generated: "wave_inverted", name: "Wave (Inverted)", default: { blend: "source-over", sideWrap: true, edgeWrap: true } },
   cracked_edges: { generated: "cracks", default: { colour: "#000000", blend: "source-over" } }
 }
 

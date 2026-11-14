@@ -1,6 +1,7 @@
 import { fadeStops, fillPattern, linearGradient, surface } from "./canvas.js"
 import { hexOf, packed } from "./colour.js"
 import { PLACED_KINDS, SMOOTH_KINDS, WRAPPED_KINDS, crackList, crackTriangle, crackWrap, edgeAlpha, generatedAlpha, wrapTriangles } from "./generated.js"
+import { layerMask } from "./flatSheet.js"
 import { gradientLine, gradientStops } from "./material.js"
 import { clamp, remember } from "./maths.js"
 import { stripY } from "./strips.js"
@@ -301,13 +302,40 @@ function scaled(sheet, detail) {
   return target
 }
 
-function drawOverlay(sheet, layer, source, capHeight, detail) {
+function wrapEdges(overlay, entries, scale, band) {
+  const { width, height } = overlay.canvas
+  const image = overlay.ctx.getImageData(0, 0, width, height)
+  const { data } = image
+  for (const { glyph, x, top, up, upHeight, down, downHeight } of entries) {
+    const mask = band === null || !glyph.depths ? glyph.mask : layerMask(glyph, band)
+    for (let column = 0; column < glyph.width; column++) {
+      let first = -1
+      let last = -1
+      for (let row = 0; row < glyph.height; row++) {
+        if (!mask[(glyph.height - 1 - row) * glyph.width + column]) continue
+        if (first < 0) first = row
+        last = row
+      }
+      if (first < 0) continue
+      for (const [from, to, rows] of [[(top + first) * scale, up * scale, upHeight * scale], [(top + last + 1) * scale - 1, down * scale, downHeight * scale]]) {
+        for (let px = (x + column) * scale; px < (x + column + 1) * scale; px++) {
+          const source = (from * width + px) * 4
+          for (let row = 0; row < rows; row++) data.copyWithin(((to + row) * width + px) * 4, source, source + 4)
+        }
+      }
+    }
+  }
+  overlay.ctx.putImageData(image, 0, 0)
+}
+
+function drawOverlay(sheet, layer, source, capHeight, detail, band) {
   const overlay = scaled(sheet, detail)
   const entries = Object.values(sheet.glyphs)
   if (source.edge) generateEdges(overlay.ctx, entries, source.edge, layer, R * detail)
   else if (source.generated) generate(overlay.ctx, entries, source.generated, layer, capHeight, R * detail)
   else overlay.ctx.drawImage(source, 0, 0)
   if (WRAPPED_KINDS.has(source.generated)) generateEdges(overlay.ctx, entries, source.generated, layer, R * detail)
+  else if (layer.edgeWrap && !source.edge) wrapEdges(overlay, entries.filter(entry => entry.glyph.width && entry.glyph.height), R * detail, band)
   return overlay
 }
 
@@ -344,6 +372,49 @@ function wrapsOf(layers, indexes) {
   }))
 }
 
+function sideWrapsOf(sheet, layers, capHeight, detail, band) {
+  const entries = new Map(Object.values(sheet.glyphs).map(entry => [entry.glyph, entry]))
+  const r = R * detail
+  return layers.filter(({ layer, source }) => layer.sideWrap && layer.opacity && !source.edge && !WRAPPED_KINDS.has(source.generated)).map(({ layer, source }) => {
+    let pixels = null
+    function read() {
+      if (!pixels) {
+        const overlay = overlayLayer(sheet, layer, source, capHeight, detail, band)
+        pixels = overlay.ctx.getImageData(0, 0, overlay.canvas.width, overlay.canvas.height)
+      }
+      return pixels
+    }
+    return {
+      blend: layer.blend,
+      opacity: layer.opacity / 100,
+      face(glyph, side, line, from, width, height, scale) {
+        const entry = entries.get(glyph)
+        if (!entry) return null
+        const { data, width: columns } = read()
+        const vertical = side === "left" || side === "right"
+        const out = surface(width * scale, height * scale)
+        const image = out.ctx.createImageData(width * scale, height * scale)
+        const across = vertical ? height * scale : width * scale
+        const along = vertical ? width * scale : height * scale
+        const low = vertical ? entry.top * r : entry.x * r
+        const high = vertical ? (entry.top + entry.height) * r - 1 : (entry.x + entry.width) * r - 1
+        const edge = vertical ? (entry.x + line) * r - (side === "right" ? 1 : 0) : (entry.top + line) * r - (side === "down" ? 1 : 0)
+        let any = false
+        for (let i = 0; i < across; i++) {
+          const at = clamp((vertical ? entry.top + from : entry.x + from) * r + Math.floor(i * r / scale), low, high)
+          const texel = ((vertical ? at : edge) * columns + (vertical ? edge : at)) * 4
+          if (!data[texel + 3]) continue
+          any = true
+          for (let j = 0; j < along; j++) image.data.set(data.subarray(texel, texel + 4), ((vertical ? i : j) * width * scale + (vertical ? j : i)) * 4)
+        }
+        if (!any) return null
+        out.ctx.putImageData(image, 0, 0)
+        return out.canvas
+      }
+    }
+  })
+}
+
 export function colourOverlay(mask, layer) {
   const { width, height } = mask.canvas
   const overlay = surface(width, height)
@@ -373,12 +444,12 @@ export function lookKey(value) {
   return JSON.stringify(value, (name, item) => typeof item === "string" && item.startsWith("data:") ? remember(urlIds, item, () => ++nextId, CACHED_URLS) : item)
 }
 
-function overlayLayer(sheet, layer, source, capHeight, detail) {
-  if (detail > 1) return colourOverlay(drawOverlay(sheet, layer, source, capHeight, detail), layer)
+function overlayLayer(sheet, layer, source, capHeight, detail, band = null) {
+  if (detail > 1) return colourOverlay(drawOverlay(sheet, layer, source, capHeight, detail, band), layer)
   if (!overlays.has(sheet)) overlays.set(sheet, { shapes: new Map(), coloured: new Map() })
   const { shapes, coloured } = overlays.get(sheet)
-  const shapeKey = JSON.stringify([source.edge ? `edge:${source.edge}` : source.generated ?? idOf(source), capHeight, Object.entries(layer).filter(([name]) => !["file", "blend", "opacity", "colour", "colourBlend"].includes(name))])
-  return remember(coloured, JSON.stringify([shapeKey, layer.colour, layer.colourBlend]), () => colourOverlay(remember(shapes, shapeKey, () => drawOverlay(sheet, layer, source, capHeight, detail), CACHED_OVERLAYS), layer), CACHED_OVERLAYS)
+  const shapeKey = JSON.stringify([source.edge ? `edge:${source.edge}` : source.generated ?? idOf(source), capHeight, Object.entries(layer).filter(([name]) => !["file", "blend", "opacity", "colour", "colourBlend", "sideWrap"].includes(name)), layer.edgeWrap ? band : null])
+  return remember(coloured, JSON.stringify([shapeKey, layer.colour, layer.colourBlend]), () => colourOverlay(remember(shapes, shapeKey, () => drawOverlay(sheet, layer, source, capHeight, detail, band), CACHED_OVERLAYS), layer), CACHED_OVERLAYS)
 }
 
 export function paintKey(sheet, assets, look) {
@@ -438,7 +509,7 @@ export function adjusted(source, look, options) {
   return out
 }
 
-function overlayLabels(sheet, layers, capHeight, width, height, detail) {
+function overlayLabels(sheet, layers, capHeight, width, height, detail, band) {
   const { ctx } = surface(width, height, { willReadFrequently: true })
   const image = ctx.createImageData(width, height)
   for (let at = 3; at < image.data.length; at += 4) image.data[at] = 255
@@ -449,7 +520,7 @@ function overlayLabels(sheet, layers, capHeight, width, height, detail) {
     const index = indexes.get(layer)
     const threshold = SMOOTH_KINDS.has(source.generated) ? 128 : 1
     reader.ctx.clearRect(0, 0, width, height)
-    reader.ctx.drawImage(overlayLayer(sheet, layer, source, capHeight, detail).canvas, 0, 0)
+    reader.ctx.drawImage(overlayLayer(sheet, layer, source, capHeight, detail, band).canvas, 0, 0)
     const alpha = reader.ctx.getImageData(0, 0, width, height).data
     for (let at = 0; at < alpha.length; at += 4) {
       if (alpha[at + 3] >= threshold) image.data[at + (index >> 3)] |= 1 << (index & 7)
@@ -474,6 +545,7 @@ export function paintSheet(sheet, look, assets, capHeight, base, detail = 1) {
   const height = sheet.height * scale
   const entries = Object.values(sheet.glyphs)
   const swatch = [sheet.swatch.x, sheet.swatch.y, 1, 1]
+  const band = assets.band ?? null
 
   const work = adjusted(base.canvas, look)
   work.ctx.scale(detail, detail)
@@ -497,8 +569,18 @@ export function paintSheet(sheet, look, assets, capHeight, base, detail = 1) {
   const faces = eager ? work.ctx.getImageData(0, 0, width, height) : layered ? copyOf(work.canvas) : null
 
   const overlayLayers = assets.overlays.concat(assets.edgeOverlays.map(({ layer, generated }) => ({ layer, source: { edge: generated } })))
+  function shadedEdges(overlay) {
+    const copy = copyOf(overlay.canvas)
+    copy.ctx.scale(detail, detail)
+    copy.ctx.globalCompositeOperation = "source-atop"
+    copy.ctx.fillStyle = `rgba(0, 0, 0, ${(100 - look.edgeBrightness) / 100})`
+    fillRects(copy.ctx, entries.flatMap(strips))
+    return copy
+  }
+
   for (const { layer, source } of overlayLayers) {
-    const overlay = overlayLayer(sheet, layer, source, capHeight, detail)
+    const own = overlayLayer(sheet, layer, source, capHeight, detail, band)
+    const overlay = layer.edgeWrap && !source.edge && !look.customEdge && look.edgeBrightness < 100 && ["source-over", "lighter"].includes(layer.blend) ? shadedEdges(own) : own
     work.ctx.globalCompositeOperation = layer.blend
     work.ctx.globalAlpha = layer.opacity / 100
     work.ctx.drawImage(overlay.canvas, 0, 0, sheet.width * R, sheet.height * R)
@@ -545,5 +627,5 @@ export function paintSheet(sheet, look, assets, capHeight, base, detail = 1) {
 
   const tiles = look.source === "tile" && look.tileableTileEdges ? adjustedTiles(look, assets.tile) : null
   const gradient = look.source === "gradient" ? { stops: paintedStops(look), ends: entry => gradientEnds(entry, look, capHeight, sheet) } : null
-  return { canvas: work.canvas, facePixels, border, edgeAverage, tiles, tilesAcrossLine: !look.tileablePerCharacter, gradient, fade, borderColour: packed(rgb, 0), labels: () => overlayLabels(sheet, overlayLayers, capHeight, width, height, detail), wraps: wrapsOf(assets.overlays, labelIndexes(overlayLayers)), scale, tileScale: R }
+  return { canvas: work.canvas, facePixels, border, edgeAverage, tiles, tilesAcrossLine: !look.tileablePerCharacter, gradient, fade, borderColour: packed(rgb, 0), labels: () => overlayLabels(sheet, overlayLayers, capHeight, width, height, detail, band), wraps: wrapsOf(assets.overlays, labelIndexes(overlayLayers)), sideWraps: sideWrapsOf(sheet, assets.overlays, capHeight, detail, band), scale, tileScale: R }
 }

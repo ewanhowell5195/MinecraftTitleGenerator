@@ -1,7 +1,7 @@
 <script setup>
   import { computed, ref, toRaw, watch } from "vue"
   import { credit } from "../../lib/credits.js"
-  import { GENERATED_SETTINGS, generatedSetting } from "../../lib/generated.js"
+  import { GENERATED_SETTINGS, WRAPPED_KINDS, generatedSetting } from "../../lib/generated.js"
   import { titleCase } from "../../lib/names.js"
   import { shownLayer, usePanel } from "../../lib/panel.js"
   import { useListReorder } from "../../lib/reorder.js"
@@ -46,10 +46,12 @@
   const kind = computed(() => !layer.value ? kinds.value.find(item => item.value === pending.value)?.value ?? kinds.value[0].value : layer.value.source === "file" ? "file" : generated.value ? "generated" : "texture")
   const shown = computed(() => overlays.value.filter(ofKind(kind.value)))
   const settings = computed(() => GENERATED_SETTINGS[generated.value] ?? [])
+  const wraps = computed(() => !props.edge && !font.value?.model && !WRAPPED_KINDS.has(generated.value))
   const baseline = computed(() => layer.value ? { ...overlayLayer(layer.value.overlay, layer.value.source === "file" ? null : available.value[layer.value.overlay]), source: layer.value.source, file: layer.value.file } : null)
   const layerModified = computed(() => {
     if (!layer.value) return false
     if (["blend", "colour", "colourBlend", "opacity"].some(key => layer.value[key] !== baseline.value[key])) return true
+    if (["sideWrap", "edgeWrap"].some(key => !!layer.value[key] !== !!baseline.value[key])) return true
     return settings.value.some(item => item.key !== "seed" && generatedSetting(layer.value, item) !== generatedSetting(baseline.value, item))
   })
 
@@ -205,6 +207,10 @@
         </div>
       </Field>
       <Slider label="Opacity" :model-value="layer.opacity" @update:model-value="set('opacity', $event)" :min="0" :max="100" />
+      <template v-if="wraps">
+        <Toggle v-if="object.internalFaces || object.sideFaces" label="Wrap onto inner and side faces" hint="Carries the overlay from the letter's edge back along its inner and side faces." :model-value="!!layer.sideWrap" @update:model-value="set('sideWrap', $event)" />
+        <Toggle label="Wrap onto top and bottom faces" hint="Carries the overlay from the letter's top and bottom edges back along its top and bottom faces." :model-value="!!layer.edgeWrap" @update:model-value="set('edgeWrap', $event)" />
+      </template>
     </template>
   </Panel>
 </template>
