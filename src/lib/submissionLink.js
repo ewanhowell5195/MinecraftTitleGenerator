@@ -1,6 +1,9 @@
 import { CLIENT_KINDS } from "../submissions/kinds/index.js"
+import { fontDefaults } from "../submissions/kinds/preview.js"
 import { fetched } from "./api.js"
-import { fileError, openTitleData } from "./file.js"
+import { customFontEntry } from "./customFonts.js"
+import { isPreviewHost } from "./previewSite.js"
+import { fileError, openTitleData, untouchedTitle } from "./file.js"
 import { FILE_VERSION } from "./settings.js"
 import { submission, submissionExtraUrl, submissionFileUrl } from "./submissionsApi.js"
 
@@ -41,8 +44,10 @@ export async function openSubmissionLink() {
   try {
     const item = await submission(id)
     const type = CLIENT_KINDS[item.kind]
-    const line = await type.line(item, await embedded(submissionFileUrl(item)), item.name)
+    const own = await type.line(item, await embedded(submissionFileUrl(item)), item.name)
+    const line = own.customFont ? { ...own, ...fontDefaults(await customFontEntry(own.customFont)) } : own
     const extra = type.extra?.(item)
+    if (!isPreviewHost(location.hostname) && !await untouchedTitle() && !confirm(`Replace your current title with ${item.name}?`)) return
     openTitleData({ version: FILE_VERSION, lines: [extra ? type.dressed(line, extra, await embedded(submissionExtraUrl(item, extra.key))) : line] })
   } catch (err) {
     fileError.value = `Couldn't open this submission: ${err.message}`

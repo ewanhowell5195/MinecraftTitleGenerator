@@ -1,4 +1,6 @@
 import { ref } from "vue"
+import { fontTextures } from "./assets.js"
+import { loadFont, loadFontList } from "./font.js"
 import { matchSolved } from "./match.js"
 import { lines, runtime, scene, titleFileName, titleObjects, validSelection } from "./scene.js"
 import { FILE_VERSION, TEXTURE_TABS, TILING_KEYS, createObject, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, fontFaces, isCustomFont, sameValue, typeDefaults } from "./settings.js"
@@ -79,13 +81,28 @@ function readTitle(text) {
   return titleValues(data)
 }
 
+function titleReference(list, font) {
+  return { ...typeDefaults("top"), texture: defaultTexture(list, "top"), spacing: defaultSpacing("top", font), depth: defaultDepth(font), border: defaultBorder("top", font), ...fontFaces("top", font) }
+}
+
 export function isDefaultTitle() {
   if (scene.objects.length !== 1) return false
   const object = scene.objects[0]
   const { list, font } = runtime[object.id] ?? {}
   if (!list || !font) return false
-  const reference = { ...typeDefaults("top"), texture: defaultTexture(list, "top"), spacing: defaultSpacing("top", font), depth: defaultDepth(font), border: defaultBorder("top", font), ...fontFaces("top", font) }
-  return sameValue(trim(object), trim(reference))
+  return sameValue(trim(object), trim(titleReference(list, font)))
+}
+
+export async function untouchedTitle() {
+  if (scene.objects.length !== 1) return false
+  if (isDefaultTitle()) return true
+  const object = scene.objects[0]
+  if (object.shape !== null || isCustomFont(object.font)) return false
+  const fonts = await loadFontList()
+  const entry = fonts.find(item => item.id === object.font)
+  if (!entry) return false
+  const font = await loadFont(entry, fonts)
+  return sameValue(trim(object), trim(titleReference(await fontTextures(font.sheetFolder, font.strips), font)))
 }
 
 function showObjects(objects) {
