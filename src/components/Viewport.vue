@@ -285,8 +285,22 @@
   }
 
   function dropView(event) {
+    if (pointers.get(event.pointerId)?.button === 2) holdMenu()
     pointers.delete(event.pointerId)
     panning.value = pointers.size > 0
+  }
+
+  function holdMenu() {
+    function block(event) {
+      event.preventDefault()
+      release()
+    }
+    function release() {
+      window.removeEventListener("contextmenu", block, true)
+      window.removeEventListener("pointerdown", release, true)
+    }
+    window.addEventListener("contextmenu", block, true)
+    window.addEventListener("pointerdown", release, true)
   }
 
   function pressText(event) {
