@@ -1,36 +1,22 @@
 import { pixelsOf } from "../lib/canvas.js"
-import { layerMask } from "../lib/flatSheet.js"
 import { parsedSheet } from "../lib/fontEditor.js"
 import { rgbOf } from "../lib/colour.js"
+import { fontScene, layerScene, opaque, render, sceneStrip } from "../lib/fontThumbnails.js"
 import { generatedAlpha, withGenerated } from "../lib/generated.js"
-import { layout } from "../lib/layout.js"
 import { clamp } from "../lib/maths.js"
 import { defaultBorder, defaultDepth, overlayLayer } from "../lib/settings.js"
 import { stripY } from "../lib/strips.js"
-import { MARGIN, drawLayer, drawRing, drawStrip, over, sceneFrame, stripSource } from "../lib/thumbnails.js"
+import { MARGIN, drawLayer, over } from "../lib/thumbnails.js"
 import { pngUrl } from "../lib/virtualFiles.js"
-import { previewFont } from "./textCanvas.js"
 
 const TEXT = "abc"
 const OVERLAYS = withGenerated({})
 
 export function thumbnailScene(font, mesh = null, text = TEXT, layer = null) {
-  const parsed = previewFont(font)
-  const laid = layout(parsed, text, { spacing: font.characterSpacing })
-  const placed = layer === null ? laid : laid.map(item => ({ ...item, glyph: { ...item.glyph, mask: layerMask(item.glyph, layer) } }))
-  if (!placed.length) return null
-  const ring = defaultBorder("top", font) > 0
-  const drawn = Object.values(parsed.glyphs).filter(glyph => glyph.width)
-  return {
-    ...sceneFrame(placed, ring ? MARGIN : 0),
-    capHeight: parsed.capHeight,
-    depth: defaultDepth(font),
-    ring,
-    mesh,
-    layers: mesh ? null : parsedSheet(font).layers ?? null,
-    stripTop: Math.max(parsed.capHeight, ...drawn.map(glyph => glyph.top)),
-    stripBottom: Math.min(0, ...drawn.map(glyph => glyph.bottom))
-  }
+  const { glyphs, list: cells, capHeight, layers } = parsedSheet(font, defaultBorder("top", font))
+  const scene = fontScene({ ...font, multicase: font.letterCase === "both" }, { glyphs, cells, capHeight, layers: mesh ? null : layers, kerning: font.kerning, depth: defaultDepth(font) }, text)
+  if (!scene) return null
+  return { ...(layer === null ? scene : layerScene(scene, layer)), mesh }
 }
 
 function coverage(scene, size, items, grow) {
@@ -62,10 +48,6 @@ function coverage(scene, size, items, grow) {
   return ctx.getImageData(0, 0, size.width, size.height).data
 }
 
-function stripOf(scene, entry, image) {
-  return stripSource(entry, image, { top: scene.stripTop, bottom: scene.stripBottom }, scene.depth, scene.capHeight)
-}
-
 function fineOf(scene, glyph) {
   const mesh = scene.mesh?.glyphs[glyph.char]
   return mesh ? scene.mesh.tools.fineMasks(mesh, glyph, glyph) : null
@@ -81,7 +63,7 @@ function drawOverlays(target, scene, entry, d) {
 }
 
 function meshPixels(scene, entry, image, detail) {
-  const { shape, density, top, tiling } = stripOf(scene, entry, image)
+  const { shape, density, top, tiling } = sceneStrip(scene, entry, image)
   const scale = Math.max(1, Math.ceil(density)) * detail
   const size = { width: scene.frame.width * scale, height: scene.frame.height * scale, scale }
   const target = { data: new Uint8ClampedArray(size.width * size.height * 4), width: size.width, height: size.height }
@@ -111,14 +93,13 @@ function meshPixels(scene, entry, image, detail) {
   return target
 }
 
+function generatedLayers(entry) {
+  return (entry.overlays ?? []).filter(layer => OVERLAYS[layer.overlay]?.generated).map(layer => ({ kind: OVERLAYS[layer.overlay].generated, image: null, layer: { ...overlayLayer(layer.overlay, OVERLAYS[layer.overlay]), ...layer } }))
+}
+
 export function stripPixels(scene, entry, image) {
-  const strip = stripOf(scene, entry, image)
-  const d = Math.max(1, Math.ceil(strip.density))
-  const target = { data: new Uint8ClampedArray(scene.frame.width * d * scene.frame.height * d * 4), width: scene.frame.width * d, height: scene.frame.height * d }
-  if (scene.ring) drawRing(target, scene.placed, d, rgbOf(entry.border ?? "#000000").concat(255))
-  drawStrip(target, scene.placed, d, strip)
-  drawOverlays(target, scene, entry, d)
-  return target
+  const strip = sceneStrip(scene, entry, image)
+  return render(scene, null, { density: Math.max(1, Math.ceil(strip.density)), border: opaque(entry.border ?? "#000000"), ring: scene.ring, strip, layers: generatedLayers(entry) })
 }
 
 export function stripThumbnail(scene, entry, image, detail = 1) {

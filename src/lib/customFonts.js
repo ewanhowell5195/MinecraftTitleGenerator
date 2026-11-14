@@ -86,27 +86,31 @@ function plainStrip(rows, colour) {
   return canvas
 }
 
-async function drawThumbnails(font, folder, strips, mesh) {
+async function meshThumbnails(font, mesh, list) {
   const { stripThumbnail, thumbnailScene } = await import("../fontEditor/stripThumbs.js")
   const scene = thumbnailScene(font, mesh)
   if (!scene) return {}
-  const rows = stripRows({}, { top: scene.stripTop, bottom: scene.stripBottom }, scene.depth, scene.capHeight).rows
+  const rows = stripRows({}, scene.stripRange, scene.depth, scene.capHeight).rows
   const shaded = plainStrip(rows, OVERLAY_BASE)
-  const list = await fontTextures(folder, strips)
-  const drawn = {}
-  if (mesh) drawn.preview = stripThumbnail(scene, {}, plainStrip(rows, "#ffffff"), PREVIEW_DETAIL)
-  for (const layer of [null].concat(Array.from(scene.layers ?? [], (_, index) => index))) {
-    const shown = layer === null ? scene : thumbnailScene(font, mesh, undefined, layer)
-    const prefix = layer === null ? "" : `layer-${layer + 1}/`
-    drawn[`${prefix}flat`] = stripThumbnail(shown, {}, plainStrip(rows, "#ffffff"))
-    for (const name of Object.keys(withGenerated({}))) drawn[prefix + name] = stripThumbnail(shown, { overlays: [{ overlay: name, blend: "source-over", colour: "#ffffff", colourBlend: "multiply", opacity: 100 }] }, shaded)
-    for (const name of Object.keys(GENERATED_EDGE_OVERLAYS)) drawn[prefix + name] = stripThumbnail(shown, {}, shaded)
-    const textures = Object.entries(list.textures).filter(([, entry]) => entry.type === "strip" && (entry.stripLayer == null || entry.stripLayer === layer))
-    await Promise.all(textures.flatMap(([id, entry]) => [[id, entry]].concat(Object.entries(entry.variants ?? {}).map(([name, variant]) => [name, { ...entry, ...variant }]))).map(async ([name, entry]) => {
-      drawn[prefix + name] = stripThumbnail(shown, entry, await loadImage(`${entry.folder}/textures/${name}.png`))
-    }))
-  }
+  const drawn = { preview: stripThumbnail(scene, {}, plainStrip(rows, "#ffffff"), PREVIEW_DETAIL), flat: stripThumbnail(scene, {}, plainStrip(rows, "#ffffff")) }
+  for (const name of Object.keys(withGenerated({}))) drawn[name] = stripThumbnail(scene, { overlays: [{ overlay: name, blend: "source-over", colour: "#ffffff", colourBlend: "multiply", opacity: 100 }] }, shaded)
+  for (const name of Object.keys(GENERATED_EDGE_OVERLAYS)) drawn[name] = stripThumbnail(scene, {}, shaded)
+  const textures = Object.entries(list.textures).filter(([, entry]) => entry.type === "strip")
+  await Promise.all(textures.flatMap(([id, entry]) => [[id, entry]].concat(Object.entries(entry.variants ?? {}).map(([name, variant]) => [name, { ...entry, ...variant }]))).map(async ([name, entry]) => {
+    drawn[name] = stripThumbnail(scene, entry, await loadImage(`${entry.folder}/textures/${name}.png`))
+  }))
   return drawn
+}
+
+async function drawThumbnails(font, folder, entry) {
+  const list = await fontTextures(folder, entry.strips)
+  if (entry.mesh) return meshThumbnails(font, entry.mesh, list)
+  const [{ parsedSheet }, { fontScene, fontThumbnails }] = await Promise.all([import("./fontEditor.js"), import("./fontThumbnails.js")])
+  const { glyphs, list: cells, capHeight, layers } = parsedSheet(font, defaultBorder("top", entry))
+  const scene = fontScene(entry, { glyphs, cells, capHeight, layers, kerning: font.kerning, depth: defaultDepth(entry) })
+  if (!scene) return {}
+  const drawn = await fontThumbnails(entry, scene, list, (kind, id, sheetFolder) => pixels(`${sheetFolder ?? folder}/${kind === "." ? "" : `${kind}/`}${id}.png`))
+  return Object.fromEntries(drawn.map(([name, image]) => [name, pngUrl(image)]))
 }
 
 async function silhouetteTexture(font, entry, sample) {
@@ -131,6 +135,6 @@ async function build(id, source) {
   const painted = sample ? await silhouetteTexture(font, entry, sample) : null
   if (painted) serveFile(`${folder}/textures/image.png`, pngUrl(painted))
   serveFile(`${folder}/textures.json`, { primary: own, secondary: own, textures: { ...(painted && { image: { border: "#000000", ...(painted.scale > 1 && { density: painted.scale }) } }), flat: { border: "#000000" } }, overlays: {} })
-  thumbnails.set(id, { ...await drawThumbnails(font, folder, entry.strips, entry.mesh), ...(own === "image" && { image: source.data }) })
+  thumbnails.set(id, await drawThumbnails(font, folder, entry))
   return entry
 }

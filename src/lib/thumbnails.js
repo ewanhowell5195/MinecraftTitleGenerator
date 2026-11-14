@@ -1,5 +1,6 @@
 import { blend } from "./blend.js"
 import { rgbOf } from "./colour.js"
+import { keptAt } from "./joins.js"
 import { stripRows, stripY } from "./strips.js"
 
 export const MARGIN = 2
@@ -57,7 +58,7 @@ export function drawStrip(image, placed, d, { image: strip, density, top, tiling
     const origin = tiling === "character" ? 0 : lineX
     for (let py = 0; py < glyph.height * d; py++) {
       for (let px = 0; px < glyph.width * d; px++) {
-        if (!glyph.mask[(glyph.height - 1 - Math.floor(py / d)) * glyph.width + Math.floor(px / d)]) continue
+        if (!glyph.mask[(glyph.height - 1 - Math.floor(py / d)) * glyph.width + Math.floor(px / d)] || !keptAt(glyph, glyph.height - 1 - Math.floor(py / d), (px + 0.5) / d)) continue
         const row = top - 1 - stripY(shape, glyph.top - 1 - Math.floor(py / d))
         const sx = Math.floor((origin * d + px) * density / d) % strip.width
         const sy = Math.floor((row * d + py % d) * density / d)
@@ -78,7 +79,7 @@ export function drawLayer(image, placed, d, layer, { alphaOf = null, texel = nul
       for (let px = 0; px < glyph.width * d; px++) {
         const k = at?.(px, py)
         const coverage = texel ? texel.data[k + 3] / 255 : alpha[py * glyph.width * d + px]
-        const strength = coverage * layer.opacity / 100
+        const strength = keptAt(glyph, glyph.height - 1 - Math.floor(py / d), (px + 0.5) / d) ? coverage * layer.opacity / 100 : 0
         const i = ((y * d + py) * image.width + x * d + px) * 4
         if (!strength || !image.data[i + 3]) continue
         const base = [image.data[i], image.data[i + 1], image.data[i + 2]]

@@ -155,18 +155,18 @@ describe("thumbnails", () => {
     for (const entry of list) assert.equal(thumbnailEntry(list, entry.id), entry)
   })
 
-  test("draws a font's thumbnails into the root it is given, and nothing changes on a second run", () => {
+  test("draws a font's thumbnails into the root it is given, and nothing changes on a second run", async () => {
     const root = tempRoot()
     fs.cpSync("public/font/fonts.json", path.join(root, "public/font/fonts.json"))
     fs.cpSync("public/font/minecraft-five", path.join(root, "public/font/minecraft-five"), { recursive: true, filter: file => !file.split(/[\\/]/).includes("thumbnails") })
     fs.cpSync("public/strips", path.join(root, "public/strips"), { recursive: true })
     fs.cpSync("public/shapes/shapes.json", path.join(root, "public/shapes/shapes.json"))
     const list = thumbnailList(root)
-    const first = drawThumbnails(thumbnailEntry(list, "minecraft-five"), list, root)
+    const first = await drawThumbnails(thumbnailEntry(list, "minecraft-five"), list, root)
     assert.equal(first.changed, first.count)
     assert.equal(fs.readdirSync(path.join(root, "public/font/minecraft-five/thumbnails")).length, first.count)
     assert.ok(fs.existsSync(path.join(root, "public/font/minecraft-five/thumbnails/flat.png")))
-    assert.equal(drawThumbnails(thumbnailEntry(list, "minecraft-five"), list, root).changed, 0)
+    assert.equal((await drawThumbnails(thumbnailEntry(list, "minecraft-five"), list, root)).changed, 0)
   })
 })
 
