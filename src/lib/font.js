@@ -232,13 +232,14 @@ export function solidMask(data, imageWidth, density, x, top, width, height) {
   return mask
 }
 
-export function sheetLayout(cells, capHeight, depth) {
+export function sheetLayout(cells, capHeight, depth, fit = false) {
   const positions = new Map()
   const rows = Map.groupBy(cells.filter(glyph => glyph.width).sort((a, b) => a.row - b.row || a.column - b.column), glyph => glyph.row)
   let band = 0
   for (const row of rows.values()) {
-    const rise = Math.max(capHeight, ...row.map(glyph => glyph.top))
-    const drop = Math.min(0, ...row.map(glyph => glyph.bottom))
+    const shown = row.filter(glyph => glyph.height)
+    const rise = fit ? shown.length ? Math.max(...shown.map(glyph => glyph.top)) : 0 : Math.max(capHeight, ...row.map(glyph => glyph.top))
+    const drop = fit ? shown.length ? Math.min(...shown.map(glyph => glyph.bottom)) : 0 : Math.min(0, ...row.map(glyph => glyph.bottom))
     let x = 0
     for (const glyph of row) {
       positions.set(glyph, { x, top: band + depth + rise - glyph.top, up: band, down: band + depth + rise - drop })

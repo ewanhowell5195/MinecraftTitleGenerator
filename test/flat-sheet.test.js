@@ -46,15 +46,15 @@ describe("layer bands", () => {
     assert.equal(layerLeft(cellOf(["011"], 0), 0), 0)
   })
 
-  test("each band's strips only hold its own slice of the depth", () => {
+  test("each band only holds its own slice of the depth and the rows its layer uses", () => {
     assert.deepEqual(layerSlices(layers, 4), [{ from: 2, rows: 2 }, { from: 0, rows: 2 }])
-    assert.equal(flatLayers([cell], 2, 4, layers, 1, true).height, 12)
+    assert.equal(flatLayers([cell], 2, 4, layers, 1, true).height, 11)
   })
 
   test("each band is darker the further back its layer sits", () => {
     const sheet = flatLayers([cell], 2, 4, layers, 1, true)
     const red = (x, y) => sheet.data[(y * sheet.width + x) * 4]
-    assert.deepEqual([red(0, 0), red(0, 2), red(0, 6), red(0, 8)], [176, 255, 88, 128])
+    assert.deepEqual([red(0, 0), red(0, 2), red(0, 5), red(0, 7)], [176, 255, 88, 128])
   })
 
   test("expanding puts each slice at its depth and stretches its end rows over the rest", () => {
@@ -64,6 +64,6 @@ describe("layer bands", () => {
     const { data, height } = expandBands(source, 2, [cell], 2, 4, layers)
     assert.equal(height, 20)
     const column = Array.from({ length: height }, (_, y) => data[y * 2 * 4])
-    assert.deepEqual(column, [0, 0, 0, 1, 2, 3, 4, 5, 5, 5, 6, 7, 7, 7, 8, 9, 10, 10, 10, 11])
+    assert.deepEqual(column, [0, 0, 0, 1, 2, 0, 3, 4, 4, 4, 5, 6, 6, 6, 7, 8, 9, 9, 9, 10])
   })
 })

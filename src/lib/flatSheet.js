@@ -31,6 +31,19 @@ export function layerMask(glyph, layer) {
   return glyph.depths ? glyph.mask.map((solid, at) => solid && glyph.depths[at] <= layer ? 1 : 0) : glyph.mask
 }
 
+export function layerCell(glyph, layer) {
+  const mask = layerMask(glyph, layer)
+  let low = glyph.height
+  let high = -1
+  for (let row = 0; row < glyph.height; row++) {
+    if (!mask.subarray(row * glyph.width, (row + 1) * glyph.width).some(Boolean)) continue
+    low = Math.min(low, row)
+    high = row
+  }
+  if (high < low) return { ...glyph, source: glyph, mask: new Uint8Array(0), depths: null, height: 0, bottom: glyph.top }
+  return { ...glyph, source: glyph, mask: mask.slice(low * glyph.width, (high + 1) * glyph.width), depths: glyph.depths?.slice(low * glyph.width, (high + 1) * glyph.width) ?? null, height: high - low + 1, bottom: glyph.bottom + low, top: glyph.bottom + high + 1 }
+}
+
 export function layerLeft(glyph, layer) {
   if (layer === null || !glyph.depths) return 0
   const mask = layerMask(glyph, layer)
@@ -64,7 +77,7 @@ function sheetSize(layout, depth) {
 export function flatLayers(cells, capHeight, depth, layers, density = 1, wideStrips = false) {
   if (!layers || layers.length < 2) return flatPixels(cells, capHeight, depth, density, wideStrips)
   const slices = layerSlices(layers, depth)
-  const bands = layers.map((_, layer) => flatPixels(cells.map(glyph => ({ ...glyph, mask: layerMask(glyph, layer) })), capHeight, slices[layer].rows, density, wideStrips, layerShade(layers, layer)))
+  const bands = layers.map((_, layer) => flatPixels(cells.map(glyph => layerCell(glyph, layer)), capHeight, slices[layer].rows, density, wideStrips, layerShade(layers, layer), true))
   const data = new Uint8ClampedArray(bands.reduce((sum, band) => sum + band.data.length, 0))
   let at = 0
   for (const band of bands) {
@@ -76,10 +89,11 @@ export function flatLayers(cells, capHeight, depth, layers, density = 1, wideStr
 
 export function bandLayouts(cells, capHeight, depth, layers) {
   let offset = 0
-  return layerSlices(layers, depth).map(slice => {
-    const layout = sheetLayout(cells, capHeight, slice.rows)
+  return layerSlices(layers, depth).map((slice, layer) => {
+    const fitted = sheetLayout(cells.map(glyph => layerCell(glyph, layer)), capHeight, slice.rows, true)
+    const layout = new Map(Array.from(fitted, ([cell, at]) => [cell.source, { ...at, top: at.top - cell.source.top + cell.top, rise: at.top - at.up - slice.rows + cell.top }]))
     const band = { ...slice, layout, offset }
-    offset += sheetSize(layout, slice.rows).height
+    offset += sheetSize(fitted, slice.rows).height
     return band
   })
 }
@@ -118,7 +132,7 @@ export function expandBands(source, width, cells, capHeight, depth, layers) {
     const base = index * size.height
     for (const [glyph, at] of full) {
       const own = band.layout.get(glyph)
-      rows(band.offset + own.up + band.rows, base + at.up + depth, at.x, glyph.width, own.down - own.up - band.rows)
+      rows(band.offset + own.up + band.rows, base + at.top + glyph.top - own.rise, at.x, glyph.width, own.down - own.up - band.rows)
       strip(band.offset + own.up, base + at.up, at.x, glyph.width, band, band.from)
       strip(band.offset + own.down, base + at.down, at.x, glyph.width, band, depth - band.from - band.rows)
     }
@@ -142,8 +156,8 @@ export function blankStrip(cells, capHeight, depth, layers, width) {
   return { data, width, height: colours.length }
 }
 
-export function flatPixels(cells, capHeight, depth, density = 1, wideStrips = false, shade = 1) {
-  const layout = sheetLayout(cells, capHeight, depth)
+export function flatPixels(cells, capHeight, depth, density = 1, wideStrips = false, shade = 1, fit = false) {
+  const layout = sheetLayout(cells, capHeight, depth, fit)
   const { width, height } = sheetSize(layout, depth)
   const data = new Uint8ClampedArray(width * density * height * density * 4)
   const [face, up, down] = [FACE, UP, DOWN].map(colour => colour.map(value => Math.round(value * shade)))

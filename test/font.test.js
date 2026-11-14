@@ -5,7 +5,7 @@ import { depthShade, flattenFonts, fullOrder, hasMarks, parseMask, scanMask, sha
 import { drawSheet } from "../src/lib/sheet.js"
 import { DEFAULT_ORDER } from "../src/lib/order.js"
 import { defaultDepth } from "../src/lib/settings.js"
-import { bandLayouts, layerMask } from "../src/lib/flatSheet.js"
+import { bandLayouts, layerCell } from "../src/lib/flatSheet.js"
 import { readJson, readPng } from "../generator/common.js"
 import { publishedFonts, readMask } from "../generator/fonts.js"
 
@@ -426,7 +426,8 @@ describe("published fonts", () => {
       const bands = layers ? bandLayouts(cells, capHeight, depth, layers) : [{ layout: sheetLayout(cells, capHeight, depth), offset: 0 }]
       for (const [layer, band] of bands.entries()) {
         for (const [glyph, at] of band.layout) {
-          assert.deepEqual(solidMask(flat.data, flat.width, density, at.x, at.top + band.offset, glyph.width, glyph.height), layerMask(glyph, layer), `${entry.id} ${glyph.char} layer ${layer + 1}`)
+          const own = layers ? layerCell(glyph, layer) : glyph
+          assert.deepEqual(solidMask(flat.data, flat.width, density, at.x, at.top + glyph.top - own.top + band.offset, glyph.width, own.height), own.mask, `${entry.id} ${glyph.char} layer ${layer + 1}`)
         }
       }
     }
