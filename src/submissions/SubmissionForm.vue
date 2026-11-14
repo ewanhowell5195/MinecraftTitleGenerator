@@ -57,6 +57,7 @@
   const extras = ref({})
   const previewText = ref("")
   const previewFont = ref("")
+  const lastFont = ref("")
   const trial = ref(null)
   const problems = ref({})
   const extraProblem = ref(null)
@@ -112,21 +113,40 @@
   })
   const blocked = computed(() => !account.value || sending.value)
   const linked = computed(() => {
-    if (kind.value === "strip") return { preview: { font: previewFont.value, "onUpdate:font": id => previewFont.value = id }, fields: { onPreview: id => previewFont.value = id } }
+    if (kind.value === "strip") return { preview: { font: previewFont.value, "onUpdate:font": id => previewFont.value = id }, fields: { onPreview: id => previewFont.value = id, defaultFont: lastFont.value } }
     const shared = kind.value === "shapeImage" ? { trial: trial.value, "onUpdate:trial": value => trial.value = value } : {}
     return { preview: shared, fields: shared }
   })
   const problemInBar = computed(() => group.value === "shape" && !!(fileUrl.value || chosen.value))
+
+  const BORDERED = ["texture", "strip"]
+
+  function fontOf(kindId, value) {
+    if (kindId === "texture" || kindId === "overlay") return value
+    return kindId === "strip" && value.startsWith("font:") ? value.slice(5) : ""
+  }
+
+  watch(target, value => {
+    const id = fontOf(kind.value, value)
+    if (id) lastFont.value = id
+  }, { immediate: true })
+
+  watch(previewFont, id => {
+    if (id) lastFont.value = id
+  })
 
   watch(kind, (next, before) => {
     if (groupOf(next) === "texture") textureKind = next
     if (groupOf(next) === "shape") shapeKind = next
     if (KIND_COMPONENTS[next].Fields !== KIND_COMPONENTS[before].Fields) {
       const back = props.initial?.kind === next
-      details.value = back ? ownDetails(props.initial.details) : {}
-      target.value = back ? props.initial.target : ""
+      const border = BORDERED.includes(before) && BORDERED.includes(next) && details.value.border ? { border: details.value.border } : {}
+      details.value = back ? ownDetails(props.initial.details) : border
+      target.value = back ? props.initial.target : next === "texture" || next === "overlay" ? lastFont.value : ""
+      if (next === "strip") previewFont.value = lastFont.value
     }
-    release()
+    if (SUBMISSION_KINDS[next].accept !== SUBMISSION_KINDS[before].accept) chosen.value = null
+    extras.value = {}
     extraProblem.value = null
     trial.value = null
   })

@@ -126,7 +126,7 @@
     if (file !== props.file) return
     if (found) emit("update:target", found.id)
     else emit("problem", `This ${noun.value} doesn't match any font's template. Paint over the template of the font it's for, at its size or a whole number of times bigger. This one is ${size.width}x${size.height}.`)
-  })
+  }, { immediate: true })
 </script>
 
 <template>

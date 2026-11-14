@@ -32,7 +32,8 @@
     file: { type: Object, default: null },
     problems: { type: Object, required: true },
     tried: { type: Boolean, default: false },
-    context: { type: Object, default: null }
+    context: { type: Object, default: null },
+    defaultFont: { type: String, default: "" }
   })
 
   const emit = defineEmits(["update:target", "update:details", "problem", "preview"])
@@ -89,7 +90,9 @@
   function fallback(kind) {
     if (kind === "new") return "new"
     if (kind === "set") return `set:${sets.value.includes(DEFAULT_SET) ? DEFAULT_SET : sets.value[0] ?? ""}`
-    return `font:${owners.value.find(item => item.id === DEFAULT_FONT)?.id ?? owners.value[0]?.id ?? ""}`
+    const owner = props.fonts.find(item => item.id === props.defaultFont)
+    const wanted = owner ? sheetOwner(owner, props.fonts).id : DEFAULT_FONT
+    return `font:${owners.value.find(item => item.id === wanted)?.id ?? owners.value.find(item => item.id === DEFAULT_FONT)?.id ?? owners.value[0]?.id ?? ""}`
   }
 
   function toggleFont(id, on) {
@@ -177,7 +180,7 @@
     if (file !== props.file) return
     suggestions.value = found
     if (chosen.value.kind !== "new" && found.length && !found.includes(props.target)) emit("update:target", found[0])
-  })
+  }, { immediate: true })
 </script>
 
 <template>
