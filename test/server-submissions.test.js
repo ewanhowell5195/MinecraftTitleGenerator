@@ -11,6 +11,7 @@ const { jsonText } = await import("../src/lib/jsonText.js")
 const { decodeTitle } = await import("../src/lib/linkformat.js")
 
 const TEXTURES = "public/font/minecraft-ten/textures.json"
+const LEGENDS = "public/font/minecraft-legends/textures.json"
 const FLAT = PNG.sync.read(fs.readFileSync("public/font/minecraft-ten/textures/flat.png"))
 
 let gh
@@ -42,7 +43,7 @@ function closed(number, merged, id) {
 }
 
 beforeEach(() => {
-  ({ gh, waiting, db, emails, resend, restore } = serverEnv({ files: [TEXTURES] }))
+  ({ gh, waiting, db, emails, resend, restore } = serverEnv({ files: [TEXTURES, LEGENDS] }))
 })
 
 afterEach(() => restore())
@@ -115,6 +116,36 @@ describe("sending a submission", () => {
     assert.match((await send(cookie, { name: "Lost", details: variantOf("cracked_left") })).error, /Pick the texture this is a variant of/)
     const over = await send(cookie, { kind: "overlay", name: "Over", details: variantOf("cracked") }, pngOf(FLAT.width, FLAT.height))
     assert.equal((await details(over.id)).details.variantOf, undefined)
+  })
+
+  test("makes a texture the font's primary or secondary only while the font has none", async () => {
+    const cookie = await signIn()
+    const legends = PNG.sync.read(fs.readFileSync("public/font/minecraft-legends/textures/flat.png"))
+    const roles = JSON.stringify({ border: "#3D1F0A", primary: true, secondary: true })
+    const { status, id } = await send(cookie, { font: "minecraft-legends", details: roles }, pngOf(legends.width, legends.height))
+    assert.equal(status, 201)
+    const list = JSON.parse(Buffer.from(gh.blobs.get(gh.filesAt(`submission/${id}`).get(LEGENDS))).toString())
+    assert.deepEqual([list.primary, list.secondary], ["gold_bricks", "gold_bricks"])
+    assert.deepEqual((await details(id)).details, { border: "#3d1f0a", primary: true, secondary: true, density: 1 })
+    assert.match((await send(cookie, { details: roles })).error, /already has a primary texture/)
+    const variant = await send(cookie, { details: JSON.stringify({ border: "#3D1F0A", variantOf: "cracked", primary: true }) })
+    assert.equal((await details(variant.id)).details.primary, undefined)
+  })
+
+  test("gives a texture default overlays, storing only what differs from each overlay's defaults", async () => {
+    const cookie = await signIn()
+    const layered = layers => JSON.stringify({ border: "#3D1F0A", ...layers })
+    const { status, id } = await send(cookie, { details: layered({ overlays: [{ overlay: "outline", source: "premade", file: null, blend: "source-over", colour: "#FF0000", colourBlend: "multiply", opacity: 80 }], edgeOverlays: [{ overlay: "edge_outline_fade", opacity: 46 }] }) })
+    assert.equal(status, 201)
+    const entry = branchList(id).textures.gold_bricks
+    assert.deepEqual(entry.overlays, [{ overlay: "outline", blend: "source-over", colour: "#ff0000", opacity: 80 }])
+    assert.deepEqual(entry.edgeOverlays, [{ overlay: "edge_outline_fade", opacity: 46 }])
+    assert.match((await send(cookie, { details: layered({ overlays: [{ overlay: "nope" }] }) })).error, /default overlays isn't valid/)
+    assert.match((await send(cookie, { details: layered({ overlays: [{ overlay: "outline", source: "file", file: "data:x" }] }) })).error, /default overlays isn't valid/)
+    assert.match((await send(cookie, { details: layered({ overlays: [{ overlay: "outline", opacity: 101 }] }) })).error, /default overlays isn't valid/)
+    assert.match((await send(cookie, { details: layered({ overlays: [] }) })).error, /Add a default overlay/)
+    const plain = await send(cookie, { details: layered({}) })
+    assert.equal(branchList(plain.id).textures[(await details(plain.id)).asset].overlays, undefined)
   })
 
   test("puts overlays in the overlays section and folder, without a border", async () => {

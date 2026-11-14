@@ -15,7 +15,7 @@
     text: { type: String, required: true }
   })
 
-  const { line, problem } = usePreviewLine(() => [props.kind, props.target, props.details.border, props.url, props.text], build)
+  const { line, problem } = usePreviewLine(() => [props.kind, props.target, props.details.border, JSON.stringify([props.details.overlays, props.details.edgeOverlays]), props.url, props.text], build)
 
   async function build() {
     const entry = props.fonts.find(font => font.id === props.target)
