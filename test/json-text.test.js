@@ -16,6 +16,12 @@ test("overlay layers and title lines are one line each", () => {
   assert.equal(text, `{\n  "overlays": [\n    { "overlay": "shine", "opacity": 50 }\n  ],\n  "lines": [\n    { "text": "a", "words": [{ "opacity": 50 }] }\n  ],\n  "other": [\n    {\n      "a": 1\n    }\n  ]\n}`)
 })
 
+test("strips are one line each, and editor settings sit on one line unless they hold an object", () => {
+  const text = jsonText({ strips: [{ id: "minecraft-ten", layer: 1 }, "other"], editor: { width: 40, grid: 2 } })
+  assert.equal(text, `{\n  "strips": [\n    { "id": "minecraft-ten", "layer": 1 },\n    "other"\n  ],\n  "editor": { "width": 40, "grid": 2 }\n}`)
+  assert.ok(jsonText({ editor: { width: 40, canvas: { a: { above: 1 } } } }).startsWith(`{\n  "editor": {\n    "width": 40,`))
+})
+
 test("leaves out undefined values like JSON.stringify", () => {
   assert.equal(jsonText({ a: 1, b: undefined }), `{\n  "a": 1\n}`)
 })

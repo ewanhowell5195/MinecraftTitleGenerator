@@ -1,5 +1,6 @@
 const INDENT = "  "
-const FLAT_ITEMS = new Set(["overlays", "lines"])
+const FLAT_ITEMS = new Set(["overlays", "lines", "strips"])
+const FLAT_OBJECTS = new Set(["editor"])
 
 function plain(value) {
   return value === null || typeof value !== "object"
@@ -25,6 +26,7 @@ function layout(value, indent, key) {
   }
   const entries = entriesOf(value)
   if (!entries.length) return "{}"
+  if (FLAT_OBJECTS.has(key) && entries.every(([, item]) => plain(item))) return oneLine(value)
   return `{\n${entries.map(([name, item]) => `${inner}${JSON.stringify(name)}: ${layout(item, inner, name)}`).join(",\n")}\n${indent}}`
 }
 
