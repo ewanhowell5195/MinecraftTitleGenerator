@@ -659,6 +659,19 @@ describe("starting from a published font", () => {
     assert.equal(copyOf("minecraft-ten").font.grid, 4)
   })
 
+  test("a font that kept its editor settings opens with them", () => {
+    const { font } = copyOf("minecraft-wiki")
+    assert.deepEqual([font.grid, font.width, squaresOf(font, font.height), font.density], [2, 40, 26, 1])
+  })
+
+  test("the editor's density divides the published sheet back down", () => {
+    const { entry, glyphs, capHeight } = copyOf("minecraft-ten")
+    const doubled = Object.values(glyphs).map(glyph => ({ ...glyph, advance: glyph.advance * 2, originX: glyph.originX * 2, top: glyph.top * 2, bottom: glyph.bottom * 2, width: glyph.width * 2, height: glyph.height * 2, mask: Uint8Array.from({ length: glyph.width * glyph.height * 4 }, (_, i) => glyph.mask[Math.floor(Math.floor(i / (glyph.width * 2)) / 2) * glyph.width + Math.floor((i % (glyph.width * 2)) / 2)]), stretch: glyph.stretch && glyph.stretch.flatMap(row => [row * 2, row * 2 + 1]) }))
+    const font = fontFromPublished({ ...entry, name: entry.id, editor: { grid: 4, density: 2 } }, doubled, capHeight * 2)
+    assert.deepEqual([font.height, font.density, font.grid], [capHeight, 2, 4])
+    assert.deepEqual(glyphOf(font, "a").rows, glyphOf(copyOf("minecraft-ten").font, "a").rows)
+  })
+
   test("the depth, border, flat setting and strips come across, the author and description do not", () => {
     const { font } = copyOf("minecraft-ten-outline")
     assert.deepEqual([font.name, font.depth, font.border, font.flat, font.authors, font.description, font.overlay], ["minecraft-ten-outline Copy", 0, 0, true, [], "", false])

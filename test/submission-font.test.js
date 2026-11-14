@@ -176,6 +176,12 @@ describe("checking a font", () => {
     assert.ok(built.cells.find(cell => cell.char === "a").stretch.length > 0)
   })
 
+  test("the published entry keeps the editor's width and square size", () => {
+    const font = copyOf("minecraft-gui")
+    assert.deepEqual(ownFont({ ...font, grid: 2, width: 30 }).entry.editor, { width: 30, grid: 2 })
+    assert.deepEqual(ownFont({ ...font, density: 2 }).entry.editor, { width: font.width, grid: font.grid, density: 2 })
+  })
+
   test("variants have to be of a font that isn't a variant itself", async () => {
     assert.match((await check({ target: "minecraft-ten-v2", bytes: f8thful })).problems.target, /Pick the font/)
   })

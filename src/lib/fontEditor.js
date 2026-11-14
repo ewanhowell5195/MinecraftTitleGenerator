@@ -680,9 +680,12 @@ export function fontFromFiles({ sheet = null, json = null }) {
 }
 
 export function fontFromPublished(entry, cells, capHeight, layers = null) {
-  const copy = metaFrom({ ...createFont({ height: capHeight, letterCase: entry.multicase ? "both" : "upper" }), name: `${entry.name} Copy` }, entry)
-  const font = applyCells({ ...copy, authors: [], description: "", basedOn: entry.id, flat: !!entry.flat, overlay: false, strips: entry.strips ?? [] }, cells, capHeight, 1, layers)
-  return { ...font, grid: detectGrid(font.glyphs) }
+  const { width, grid, density = 1 } = entry.editor ?? {}
+  const height = exactDivide(capHeight, density, "the cap height")
+  const copy = metaFrom({ ...createFont({ height, letterCase: entry.multicase ? "both" : "upper" }), name: `${entry.name} Copy` }, entry)
+  let font = applyCells({ ...copy, authors: [], description: "", basedOn: entry.id, flat: !!entry.flat, overlay: false, strips: entry.strips ?? [] }, cells, height, density, layers)
+  if (width) font = resizeDefaultWidth(font, width)
+  return { ...font, grid: grid ?? detectGrid(font.glyphs) }
 }
 
 function glyphFromShape(shape, height, fallbackWidth) {

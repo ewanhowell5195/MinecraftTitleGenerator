@@ -225,6 +225,10 @@
     "depth": 32,
     "border": 0,
     "characterSpacing": -8,
-    "allFaces": true
+    "allFaces": true,
+    "editor": {
+      "width": 40,
+      "grid": 2
+    }
   }
 ]

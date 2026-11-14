@@ -149,6 +149,7 @@ export function ownFont(font, parentId = null) {
   const preview = previewFor(drawn)
   if (preview) entry.preview = preview
   if (Object.keys(pairs).length) entry.kerning = groupedKerning(pairs)
+  entry.editor = { width: font.width, grid: font.grid, ...(font.density > 1 && { density: font.density }) }
   const sheet = drawSheet(cells, capHeight, { keepRows: true, layers })
   const parsed = parseMask(sheet.data, sheet.width, sheet.height, drawn.join(""), defaultBorder("top", entry))
   return { cells, capHeight, entry, sheet, published: parsed.list, layers: parsed.layers, template: fontTemplate(parsed.list, capHeight, defaultDepth(entry), parsed.layers) }

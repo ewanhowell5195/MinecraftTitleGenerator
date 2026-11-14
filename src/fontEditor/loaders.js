@@ -1,6 +1,6 @@
 import { pixelsOf } from "../lib/canvas.js"
 import { fontFromFiles, fontFromPublished, parseFontJson } from "../lib/fontEditor.js"
-import { fullName, loadImage, parseMask, sheetFolder, splitCells, fullOrder } from "../lib/font.js"
+import { fullName, loadImage, parseMask, sheetFolder, sheetOwner, splitCells, fullOrder } from "../lib/font.js"
 
 function sheetFromImage(image) {
   return { data: pixelsOf(image), width: image.width, height: image.height }
@@ -39,5 +39,5 @@ export async function fontFromList(entry, fonts) {
   const image = await loadImage(`${sheetFolder(entry, fonts)}/font.png`)
   const { list, capHeight, layers } = parseMask(pixelsOf(image), image.width, image.height, fullOrder(entry, fonts), 0)
   const { glyphs } = splitCells(entry, fonts, list)
-  return fontFromPublished({ ...entry, name: fullName(entry, fonts) }, Object.values(glyphs), capHeight, layers)
+  return fontFromPublished({ ...entry, name: fullName(entry, fonts), editor: entry.editor ?? sheetOwner(entry, fonts).editor }, Object.values(glyphs), capHeight, layers)
 }
