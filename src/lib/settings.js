@@ -448,10 +448,8 @@ export function setTexture(object, values, { before = null, after = before } = {
 }
 
 export function defaultTexture(list, type) {
-  const id = type === "bottom" ? list.secondary : list.primary
-  if (list.textures[id]) return id
-  const keys = Object.keys(list.textures)
-  return keys[1] ?? keys[0] ?? null
+  for (const id of [type === "bottom" ? list.secondary : null, list.primary, "flat"]) if (id && list.textures[id]) return id
+  return Object.keys(list.textures)[0] ?? null
 }
 
 export function pinnedTextures(list) {

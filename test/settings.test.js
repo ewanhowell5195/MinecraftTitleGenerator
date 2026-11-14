@@ -694,9 +694,12 @@ describe("texture lookups", () => {
     assert.deepEqual(pinnedTextures({ primary: "stone", secondary: "gold", textures: { flat: {}, other: {}, gold: {}, stone: {} } }), ["flat", "stone", "gold"])
   })
 
-  test("defaultTexture falls back to the second texture, then the first, then null", () => {
-    assert.equal(defaultTexture({ primary: "x", textures: { flat: {}, stone: {} } }, "top"), "stone")
-    assert.equal(defaultTexture({ primary: "x", textures: { flat: {} } }, "top"), "flat")
+  test("defaultTexture falls back from the secondary to the primary, then flat, then the first texture, then null", () => {
+    assert.equal(defaultTexture({ primary: "stone", textures: { flat: {}, gold: {}, stone: {} } }, "bottom"), "stone")
+    assert.equal(defaultTexture({ primary: "stone", secondary: "x", textures: { flat: {}, gold: {}, stone: {} } }, "bottom"), "stone")
+    assert.equal(defaultTexture({ textures: { gold: {}, flat: {}, stone: {} } }, "top"), "flat")
+    assert.equal(defaultTexture({ textures: { gold: {}, flat: {}, stone: {} } }, "bottom"), "flat")
+    assert.equal(defaultTexture({ primary: "x", textures: { gold: {}, stone: {} } }, "top"), "gold")
     assert.equal(defaultTexture({ primary: "x", textures: {} }, "top"), null)
   })
 })
