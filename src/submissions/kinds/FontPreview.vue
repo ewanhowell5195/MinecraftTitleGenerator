@@ -2,10 +2,11 @@
   import { computed } from "vue"
   import Dropdown from "../../components/Dropdown.vue"
   import LiveTitle from "../../components/LiveTitle.vue"
+  import { customFontEntry } from "../../lib/customFonts.js"
   import { embedded } from "../../lib/submissionLink.js"
   import { submissionExtraUrl } from "../../lib/submissionsApi.js"
   import { CLIENT_KINDS } from "./index.js"
-  import { usePreviewLine } from "./preview.js"
+  import { fontDefaults, usePreviewLine } from "./preview.js"
 
   defineOptions({ inheritAttrs: false })
 
@@ -38,7 +39,8 @@
     const extra = picked.value
     const file = await embedded(props.url)
     const type = CLIENT_KINDS[props.kind]
-    const plain = type.line({ target: props.target, details: props.details }, file, props.text)
+    const own = type.line({ target: props.target, details: props.details }, file, props.text)
+    const plain = { ...own, ...fontDefaults(await customFontEntry(own.customFont)) }
     const base = flat.value && (!extra || extra.kind === "overlay") ? type.dressed(plain, flat.value, await embedded(extraUrl(flat.value.key))) : plain
     return extra ? type.dressed(base, extra, await embedded(extraUrl(extra.key))) : base
   }
