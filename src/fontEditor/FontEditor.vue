@@ -88,7 +88,6 @@
       <a class="brand" href="/"><img src="/favicon.svg" alt="" width="24" height="24"><span>Minecraft Title Generator</span></a>
       <template v-if="font">
         <MenuStrip :menus="menus" />
-        <span class="name ellipsis">{{ font.name }}</span>
         <NavTabs class="main-tabs" v-model="tab" :tabs="TABS" />
       </template>
       <div class="spacer"></div>
@@ -171,15 +170,6 @@
     white-space: nowrap;
   }
 
-  .name {
-    min-width: 0;
-    margin-left: 8px;
-    padding-left: 12px;
-    font-size: var(--font-md);
-    color: var(--muted);
-    border-left: 1px solid var(--line-strong);
-  }
-
   .top-notice {
     flex: none;
   }
@@ -212,9 +202,21 @@
   }
 
   .main-tabs {
+    position: relative;
     flex: none;
     align-self: stretch;
     margin-left: 8px;
+    padding-left: 27px;
+  }
+
+  .main-tabs::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    height: 18px;
+    border-left: 1px solid var(--line-strong);
+    transform: translateY(-50%);
   }
 
   .main-tabs.nav-tabs {
@@ -277,7 +279,12 @@
       flex-basis: calc(100% + 32px);
       height: 44px;
       margin: 0 -14px 0 -18px;
+      padding-left: 0;
       border-top: 1px solid var(--line);
+    }
+
+    .main-tabs::before {
+      display: none;
     }
 
     .main-tabs :deep(.tab-bar) {
@@ -287,10 +294,6 @@
     .main-tabs.nav-tabs :deep(.tab-bar-button) {
       flex: 1;
       padding: 0 6px;
-    }
-
-    .name {
-      display: none;
     }
 
     .workspace {
