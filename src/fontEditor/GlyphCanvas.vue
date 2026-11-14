@@ -30,6 +30,8 @@
   const ARROWS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }
   const KEY_ZOOMS = { "+": KEY_ZOOM, "=": KEY_ZOOM, "-": 1 / KEY_ZOOM }
   const UNGUIDED = [CREEPER, SPACE_CHAR]
+  const PICKER_PATHS = ["M3 21l2.5-2.5", "M5.5 18.5v-2l7.5-7.5 2 2-7.5 7.5z", "M11.5 7.5l5 5", "M14 7l2.5-2.5a2.1 2.1 0 0 1 3 3L17 10"]
+  const PICKER_CURSOR = `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">${["#fff", "#000"].map((colour, index) => PICKER_PATHS.map(path => `<path d="${path}" stroke="${colour}" stroke-width="${index ? 1.5 : 3.5}"/>`).join("")).join("")}</svg>`)}") 3 21, crosshair`
 
   const tool = ref("pencil")
   const holder = ref(null)
@@ -50,6 +52,7 @@
   const chosenBrush = ref(null)
   const zoomed = ref(null)
   const spaceHeld = ref(false)
+  const altHeld = ref(false)
   const panning = ref(false)
   const outside = ref(false)
   const touches = new Map()
@@ -60,6 +63,7 @@
   let gesture = null
   let pendingFill = null
   let blockingMenu = false
+  let beforeEraser = "pencil"
   let over = false
   let backdrop = "#000"
   let gutterColour = "#000"
@@ -346,6 +350,11 @@
     }
     if (event.button !== 0 && event.button !== 2) return
     event.preventDefault()
+    if (event.altKey && event.button === 0 && at.inside) {
+      stroke = { kind: "pick" }
+      pick(at)
+      return
+    }
     if (event.button === 2 && !blockingMenu) {
       blockingMenu = true
       addEventListener("contextmenu", blockMenu, true)
@@ -384,10 +393,23 @@
       else if (event.pointerId === gesture.pointerId) pan(event)
       return
     }
+    altHeld.value = event.altKey
     const at = locate(event)
     if (stroke?.kind === "stretch") applyStretch(at.row)
+    else if (stroke?.kind === "pick") pick(at)
     else if (stroke) applyPaint(at, event.shiftKey)
     updateHover(at)
+  }
+
+  function pick(at) {
+    if (!at.inside) return
+    const code = glyph.value.rows[clampRow(at.row)][clampX(at.x)]
+    if (code === "0") {
+      tool.value = "eraser"
+      return
+    }
+    pencilDepth.value = depthOf(font.value, code) * 100
+    if (tool.value === "eraser") tool.value = beforeEraser
   }
 
   function updateHover(at) {
@@ -416,7 +438,7 @@
       pendingFill = null
     }
     if (stroke?.kind === "paint" && stroke.shape !== "rectangle") anchor = stroke.end ?? stroke.last
-    if (stroke) endStroke()
+    if (stroke && stroke.kind !== "pick") endStroke()
     stroke = null
     if (blockingMenu) setTimeout(unblockMenu)
   }
@@ -458,8 +480,15 @@
     if (holding) hover.value = null
   }
 
+  function altChanged(event) {
+    if (event.key !== "Alt") return
+    altHeld.value = event.type === "keydown"
+    if (over) event.preventDefault()
+  }
+
   function release() {
     spaceHeld.value = false
+    altHeld.value = false
   }
 
   function key(event) {
@@ -515,6 +544,8 @@
     addEventListener("keyup", shiftChanged)
     addEventListener("keydown", spaceChanged)
     addEventListener("keyup", spaceChanged)
+    addEventListener("keydown", altChanged)
+    addEventListener("keyup", altChanged)
     addEventListener("blur", release)
   })
 
@@ -526,10 +557,15 @@
     removeEventListener("keyup", shiftChanged)
     removeEventListener("keydown", spaceChanged)
     removeEventListener("keyup", spaceChanged)
+    removeEventListener("keydown", altChanged)
+    removeEventListener("keyup", altChanged)
     removeEventListener("blur", release)
     unblockMenu()
   })
 
+  watch(tool, (next, previous) => {
+    if (next === "eraser") beforeEraser = previous
+  }, { flush: "sync" })
   watch(selected, () => {
     anchor = null
     zoomed.value = null
@@ -547,7 +583,7 @@
         <span class="group-label">Density</span>
         <Button ghost :active="brush === size" v-for="size of brushes" :key="size" v-tooltip="toolTip(size === 1 ? 'Draw single pixels' : `Draw ${size} pixel blocks`)" :aria-pressed="brush === size" @click="chosenBrush = size">{{ font.grid / size }}x</Button>
       </span>
-      <span class="group depth" v-tooltip="toolTip('How far forward the pencil draws. Lower depths sit at the back of the letter')">
+      <span class="group depth" v-tooltip="toolTip('How far forward the pencil draws. Lower depths sit at the back of the letter. Hold Alt and click the character to pick a depth')">
         <Slider inline label="Depth" :min="12.5" :max="100" :step="12.5" :typed-min="1" v-model="pencilDepth" />
       </span>
       <span class="group">
@@ -562,7 +598,7 @@
       <Button ghost class="zoom" :disabled="!zoomed" v-tooltip="toolTip('Fit to view (0). Zoom with the mouse wheel or a pinch, and move around by dragging outside the character, with the middle mouse button, Space and drag, or two fingers')" aria-label="Fit to view" @click="fit"><template #icon><Icon name="fit" :size="16" /></template>{{ zoomPercent }}%</Button>
     </div>
     <div ref="holder" class="holder">
-      <canvas ref="canvas" class="board" :class="{ grab: spaceHeld || outside, grabbing: panning }" @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="up" @pointerenter="enter" @pointerleave="leave" @mousedown="noAutoscroll" @wheel="wheel" @contextmenu.prevent></canvas>
+      <canvas ref="canvas" class="board" :class="{ grab: spaceHeld || outside, grabbing: panning }" :style="altHeld && !spaceHeld && !outside && !panning ? { cursor: PICKER_CURSOR } : null" @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="up" @pointerenter="enter" @pointerleave="leave" @mousedown="noAutoscroll" @wheel="wheel" @contextmenu.prevent></canvas>
     </div>
     <p class="legend" :style="{ '--topline': TOPLINE_COLOUR, '--baseline': BASELINE_COLOUR, '--stretch': STRETCH_COLOUR }"><span class="key blue"></span>Topline <span class="key green"></span>Baseline <span class="key mark"></span>Stretch zone</p>
   </section>
