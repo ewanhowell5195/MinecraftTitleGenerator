@@ -11,7 +11,7 @@
   import { current, currentWord, scene as title, select, setScale, shapingWord } from "../lib/scene.js"
   import { TRANSFORM_LIMITS } from "../lib/settings.js"
   import { createSmoothing } from "../lib/smoothing.js"
-  import { UNTURNED, UNZOOMED, createStage, elevationOf, frameCamera, gizmoPose, lineBounds, movedBy, orbitCamera, panMatrix, pannedBy, pickEntry, rotatedTo, titleFraming, turnedBy, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } from "../lib/stage.js"
+  import { ORBIT_FOV, UNZOOMED, createStage, frameCamera, gizmoPose, lineBounds, movedBy, orbitDollied, orbitPanned, orbitStart, orbitTurned, panMatrix, pannedBy, pickEntry, placeOrbit, rotatedTo, titleFraming, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } from "../lib/stage.js"
   import { vectorTitle } from "../lib/vector.js"
   import { FORM_SECTIONS, view, viewport, viewportChanges } from "../lib/view.js"
 
@@ -33,18 +33,19 @@
   const { scene, entries } = stage
   const pointers = new Map()
   const pan = shallowRef(UNZOOMED)
-  const turn = shallowRef(UNTURNED)
+  const orbit = shallowRef(null)
   const orbiting = ref(false)
   const panning = ref(false)
   const navigable = computed(() => !view.render)
-  const moved = computed(() => pan.value !== UNZOOMED || turn.value !== UNTURNED)
+  const moved = computed(() => orbiting.value ? orbit.value !== orbitHome : pan.value !== UNZOOMED)
   const baseProjection = new THREE.Matrix4()
   const basePosition = new THREE.Vector3()
   const baseQuaternion = new THREE.Quaternion()
-  const pivot = new THREE.Vector3()
   let renderer, overlay, camera, perspective, orthographic, frame, observer, selection, controls, proxy, smoothing
   let frameSize = { width: 1, height: 1 }
   let fitted = null
+  let framedTitle = null
+  let orbitHome = null
   let framed = false
   let dirty = true
   let grabbed = null
@@ -211,19 +212,27 @@
     if (!title) return
     frameCamera(camera, { ...title, fov: view.fov, ...frameSize, maxScale: view.render ? Infinity : MAX_SCALE, frame: view.render ? { rect: frameRect, bounds: frameBounds, pixels: framePixels } : null })
     framed = true
+    framedTitle = title
     baseProjection.copy(camera.projectionMatrix)
     basePosition.copy(camera.position)
     baseQuaternion.copy(camera.quaternion)
-    title.anchor.getCenter(pivot)
     applyView()
   }
 
+  function lens() {
+    return { fov: view.fov || ORBIT_FOV, aspect: frameSize.width / frameSize.height, size: framedTitle?.size ?? 1 }
+  }
+
   function applyView() {
-    camera.position.copy(basePosition)
-    camera.quaternion.copy(baseQuaternion)
-    orbitCamera(camera, pivot, turn.value)
-    camera.projectionMatrix.multiplyMatrices(panMatrix(pan.value), baseProjection)
-    camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert()
+    if (orbiting.value && orbit.value) {
+      placeOrbit(camera, orbit.value, lens())
+    } else {
+      camera.position.copy(basePosition)
+      camera.quaternion.copy(baseQuaternion)
+      camera.updateMatrixWorld(true)
+      camera.projectionMatrix.multiplyMatrices(panMatrix(pan.value), baseProjection)
+      camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert()
+    }
     controls.size = 1 / pan.value.scale
     invalidate()
   }
@@ -233,16 +242,21 @@
     return { x: (event.clientX - box.left) / box.width * 2 - 1, y: 1 - (event.clientY - box.top) / box.height * 2 }
   }
 
-  function zoomFocus() {
-    return orbiting.value ? pivot.clone().project(camera) : { x: 0, y: 0 }
+  function zoomBy(factor) {
+    if (orbiting.value) orbit.value = orbitDollied(orbit.value, factor)
+    else pan.value = zoomedAt(pan.value, factor, 0, 0)
   }
 
   function zoom(event) {
     if (!navigable.value || !framed) return
     event.preventDefault()
-    const { x, y } = zoomFocus()
     const lines = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? LINE_HEIGHT : 1
-    pan.value = zoomedAt(pan.value, Math.exp(-event.deltaY * lines * (event.ctrlKey ? PINCH_WHEEL_ZOOM : WHEEL_ZOOM)), x, y)
+    zoomBy(Math.exp(-event.deltaY * lines * (event.ctrlKey ? PINCH_WHEEL_ZOOM : WHEEL_ZOOM)))
+  }
+
+  function panBy(dx, dy) {
+    if (orbiting.value) orbit.value = orbitPanned(orbit.value, camera, dx, dy, lens())
+    else pan.value = pannedBy(pan.value, dx, dy)
   }
 
   function grabView(event) {
@@ -261,13 +275,12 @@
     panning.value = true
     if (!last.dragged) return
     if (!other) {
-      if (orbiting.value && last.button === 0) turn.value = turnedBy(turn.value, (point.x - last.x) * Math.PI * frameSize.width / frameSize.height, (last.y - point.y) * Math.PI, elevationOf(basePosition, pivot))
-      else pan.value = pannedBy(pan.value, point.x - last.x, point.y - last.y)
+      if (orbiting.value && last.button === 0) orbit.value = orbitTurned(orbit.value, (point.x - last.x) * Math.PI * frameSize.width / frameSize.height, (last.y - point.y) * Math.PI)
+      else panBy(point.x - last.x, point.y - last.y)
       return
     }
-    const spread = Math.hypot(point.x - other.x, point.y - other.y) / Math.hypot(last.x - other.x, last.y - other.y)
-    const { x, y } = zoomFocus()
-    pan.value = pannedBy(zoomedAt(pan.value, spread, x, y), (point.x - last.x) / 2, (point.y - last.y) / 2)
+    zoomBy(Math.hypot(point.x - other.x, point.y - other.y) / Math.hypot(last.x - other.x, last.y - other.y))
+    panBy((point.x - last.x) / 2, (point.y - last.y) / 2)
   }
 
   function dropView(event) {
@@ -294,12 +307,16 @@
 
   function resetView() {
     pan.value = UNZOOMED
-    turn.value = UNTURNED
+    if (orbiting.value) orbit.value = orbitHome
   }
 
   function toggleOrbit() {
+    if (!framed) return
     orbiting.value = !orbiting.value
-    if (!orbiting.value) turn.value = UNTURNED
+    const { fov, aspect } = lens()
+    orbitHome = orbiting.value ? orbitStart(basePosition, new THREE.Box3().setFromPoints(framedTitle.corners).getCenter(new THREE.Vector3()), framedTitle.corners, fov, aspect) : null
+    orbit.value = orbitHome
+    if (!orbiting.value) fitCamera()
   }
 
   onMounted(() => {
@@ -422,11 +439,12 @@
   watch(() => view.gizmo, invalidate)
   watch([() => view.section, () => view.render], () => view.gizmo = null)
   watch(shapingWord, invalidate)
-  watch([pan, turn], applyView)
+  watch([pan, orbit], applyView)
   watch(navigable, () => {
     orbiting.value = false
+    orbit.value = orbitHome = null
     resetView()
-    applyView()
+    fitCamera()
   }, { flush: "sync" })
 
   watch(() => view.render && [framing, view.resolution], fitCamera, { deep: true })

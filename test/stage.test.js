@@ -7,7 +7,7 @@ import { quietStorage } from "./helpers/browser.js"
 quietStorage()
 globalThis.devicePixelRatio = 1
 
-const { UNTURNED, UNZOOMED, cornersOf, elevationOf, frameCamera, gizmoPose, lineBounds, movedBy, orbitCamera, panMatrix, pannedBy, pickEntry, placementMatrix, rotatedTo, sortEntries, titleFraming, turnedBy, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } = await import("../src/lib/stage.js")
+const { ORBIT_FOV, UNZOOMED, cornersOf, frameCamera, gizmoPose, lineBounds, movedBy, orbitDollied, orbitPanned, orbitStart, orbitTurned, panMatrix, pannedBy, pickEntry, placeOrbit, placementMatrix, rotatedTo, sortEntries, titleFraming, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } = await import("../src/lib/stage.js")
 
 const BOUNDS = new THREE.Box3(new THREE.Vector3(0, 0, 0), new THREE.Vector3(10, 4, 2))
 const WIDE = new THREE.Box3(new THREE.Vector3(-30, 0, 0), new THREE.Vector3(30, 20, 10))
@@ -648,73 +648,90 @@ describe("zoom and pan", () => {
 })
 
 describe("orbiting", () => {
-  function framed() {
-    const camera = new THREE.PerspectiveCamera()
-    camera.position.set(0, -50, 200)
-    camera.lookAt(0, 0, 0)
-    camera.updateMatrixWorld(true)
+  const corners = cornersOf(new THREE.Box3(new THREE.Vector3(-100, -20, -10), new THREE.Vector3(100, 20, 10)))
+  const centre = new THREE.Vector3()
+  const lens = { fov: 40, aspect: 2, size: 205 }
+
+  function started() {
+    return orbitStart(new THREE.Vector3(0, -50, 200), centre, corners, lens.fov, lens.aspect)
+  }
+
+  function placed(orbit, camera = new THREE.PerspectiveCamera()) {
+    placeOrbit(camera, orbit, lens)
     return camera
   }
 
-  const pivot = new THREE.Vector3(0, 0, 0)
-
-  function onScreen(camera, point) {
-    return point.clone().applyMatrix4(camera.matrixWorldInverse.copy(camera.matrixWorld).invert())
+  function clip(camera, point) {
+    return point.clone().project(camera)
   }
 
-  test("no turn leaves the camera where it was", () => {
-    const camera = framed()
-    orbitCamera(camera, pivot, UNTURNED)
-    assert.ok(camera.position.distanceTo(new THREE.Vector3(0, -50, 200)) < 1e-9)
+  test("starts from the framed camera's direction", () => {
+    const camera = placed(started())
+    const direction = camera.position.clone().normalize()
+    assert.ok(direction.distanceTo(new THREE.Vector3(0, -50, 200).normalize()) < 1e-9)
   })
 
-  test("the pivot stays at the same place in view", () => {
-    const camera = framed()
-    const centre = new THREE.Vector3(10, 5, -3)
-    const before = onScreen(camera, centre)
-    orbitCamera(camera, centre, { yaw: 0.7, pitch: -0.4 })
-    assert.ok(onScreen(camera, centre).distanceTo(before) < 1e-9)
+  test("starts with the whole title in view and the target in the middle", () => {
+    const camera = placed(started())
+    const points = corners.map(corner => clip(camera, corner))
+    assert.ok(points.every(point => Math.abs(point.x) <= 0.94 + 1e-9 && Math.abs(point.y) <= 0.94 + 1e-9))
+    assert.ok(points.some(point => Math.abs(point.x) > 0.93 || Math.abs(point.y) > 0.93))
+    const middle = clip(camera, centre)
+    assert.ok(Math.abs(middle.x) < 1e-9 && Math.abs(middle.y) < 1e-9)
   })
 
-  test("keeps the same distance from the pivot", () => {
-    const camera = framed()
-    const distance = camera.position.length()
-    orbitCamera(camera, pivot, { yaw: 2, pitch: 1 })
-    assert.ok(Math.abs(camera.position.length() - distance) < 1e-9)
+  test("uses the field of view setting with no lens shift", () => {
+    const camera = new THREE.PerspectiveCamera()
+    camera.setViewOffset(100, 100, 30, 0, 100, 100)
+    placed(started(), camera)
+    assert.equal(camera.fov, 40)
+    assert.equal(camera.view?.enabled ?? false, false)
+  })
+
+  test("turning keeps the target centred and the distance the same", () => {
+    const orbit = orbitTurned(started(), 0.7, 0.4)
+    const camera = placed(orbit)
+    assert.ok(Math.abs(camera.position.length() - orbit.distance) < 1e-9)
+    const middle = clip(camera, centre)
+    assert.ok(Math.abs(middle.x) < 1e-9 && Math.abs(middle.y) < 1e-9)
   })
 
   test("dragging right swings the camera left", () => {
-    const camera = framed()
-    orbitCamera(camera, pivot, turnedBy(UNTURNED, 0.5, 0))
-    assert.ok(camera.position.x < 0)
+    assert.ok(placed(orbitTurned(started(), 0.5, 0)).position.x < 0)
   })
 
   test("dragging down lifts the camera", () => {
-    const camera = framed()
-    orbitCamera(camera, pivot, turnedBy(UNTURNED, 0, 0.5))
-    assert.ok(camera.position.y > -50)
+    assert.ok(placed(orbitTurned(started(), 0, 0.3)).position.y > placed(started()).position.y)
   })
 
-  test("stops at straight up and straight down from any starting angle", () => {
-    const camera = framed()
-    const start = elevationOf(camera.position, pivot)
-    assert.ok(start < 0)
-    const up = framed()
-    orbitCamera(up, pivot, turnedBy(UNTURNED, 0, 100, start))
-    assert.ok(Math.abs(elevationOf(up.position, pivot) - Math.PI / 2) < 1e-6)
-    const down = framed()
-    orbitCamera(down, pivot, turnedBy(UNTURNED, 0, -100, start))
-    assert.ok(Math.abs(elevationOf(down.position, pivot) + Math.PI / 2) < 1e-6)
+  test("stops short of straight up and straight down", () => {
+    assert.ok(orbitTurned(started(), 0, 100).pitch < Math.PI / 2)
+    assert.ok(orbitTurned(started(), 0, -100).pitch > -Math.PI / 2)
   })
 
-  test("elevation is measured from level around the pivot", () => {
-    const pivotAbove = new THREE.Vector3(5, 10, 0)
-    assert.equal(elevationOf(new THREE.Vector3(5, 10, 100), pivotAbove), 0)
-    assert.ok(Math.abs(elevationOf(new THREE.Vector3(5, 110, 0), pivotAbove) - Math.PI / 2) < 1e-9)
+  test("zooming moves the camera toward the target, within limits", () => {
+    const orbit = started()
+    const closer = orbitDollied(orbit, 2)
+    assert.ok(Math.abs(closer.distance - orbit.distance / 2) < 1e-9)
+    assert.equal(placed(closer).fov, 40)
+    assert.equal(orbitDollied(orbit, 1e9).distance, orbit.home * 0.05)
+    assert.equal(orbitDollied(orbit, 1e-9).distance, orbit.home * 20)
   })
 
-  test("yaw has no limit", () => {
-    assert.equal(turnedBy(UNTURNED, 100, 0).yaw, -100)
+  test("panning moves the target with the cursor", () => {
+    const orbit = started()
+    const camera = placed(orbit)
+    const moved = orbitPanned(orbit, camera, 0.2, -0.1, lens)
+    const after = clip(placed(moved), centre)
+    assert.ok(Math.abs(after.x - 0.2) < 1e-9 && Math.abs(after.y + 0.1) < 1e-9)
+  })
+
+  test("an orthographic camera orbits with the same framing", () => {
+    const orbit = started()
+    const camera = placed(orbit, new THREE.OrthographicCamera())
+    const span = orbit.distance * Math.tan(ORBIT_FOV * Math.PI / 360)
+    assert.ok(Math.abs(camera.top - span) < 1e-9)
+    assert.ok(Math.abs(camera.right - span * lens.aspect) < 1e-9)
   })
 })
 
