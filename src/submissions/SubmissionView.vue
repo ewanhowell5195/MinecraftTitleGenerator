@@ -39,6 +39,7 @@
   const outcome = ref(null)
 
   const processing = ref(null)
+  const known = ref(props.editing)
   const tab = ref("comments")
   const textureKey = ref("")
   let pollTimer = null
@@ -70,7 +71,10 @@
 
   async function checkProcessing() {
     clearTimeout(pollTimer)
-    if (props.editing || item.value?.status !== "open") return
+    if (props.editing || item.value && item.value.status !== "open") {
+      known.value = true
+      return
+    }
     const before = processing.value?.state
     try {
       processing.value = await submissionProcessing(props.id)
@@ -78,6 +82,8 @@
       console.error(err)
       processing.value = null
       return
+    } finally {
+      known.value = true
     }
     if (processing.value.state === "processing") pollTimer = setTimeout(checkProcessing, PROCESSING_POLL)
     else if (before === "processing") load()
@@ -117,10 +123,7 @@
     else router.push(page)
   }
 
-  onMounted(async () => {
-    await load()
-    checkProcessing()
-  })
+  onMounted(() => Promise.all([load(), checkProcessing()]))
   onBeforeUnmount(() => clearTimeout(pollTimer))
   watch(() => item.value?.name, name => {
     if (name) document.title = `${props.editing ? "Edit " : ""}${name} | Submissions | Minecraft Title Generator`
@@ -146,7 +149,7 @@
       <h2>Processing submission</h2>
       <p class="hint">GitHub is building its files. This usually takes a minute or two, and this page updates when it's done.</p>
     </section>
-    <template v-else>
+    <template v-else-if="known">
       <Notice v-if="processing?.state === 'failed' && !reviewing"><p>Processing this submission failed on GitHub. <a :href="processing.url" target="_blank" rel="noopener">See what went wrong</a>.</p></Notice>
       <MessageDialog v-if="outcome" :title="outcome === 'published' ? 'Submission merged' : 'Submission declined'" @close="leave">{{ outcome === "published" ? `${item.name} was merged, and is now part of the generator.` : `${item.name} was declined.` }}</MessageDialog>
       <ReviewPanel v-if="reviewing" :key="item.updatedAt" :item="item" :failed-url="processing?.state === 'failed' ? processing.url : ''" @done="reviewed" />
