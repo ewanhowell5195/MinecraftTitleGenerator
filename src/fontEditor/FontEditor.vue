@@ -16,7 +16,7 @@
   import PreviewPanel from "./PreviewPanel.vue"
   import TexturesPanel from "./TexturesPanel.vue"
   import StartScreen from "./StartScreen.vue"
-  import { canRedo, canUndo, closeFont, downloadJson, downloadTexture, flushSave, font, redo, editingSubmission, restoreFont, saveError, submitFont, takeSubmissionFont, typing, undo, updateSubmission } from "./store.js"
+  import { canRedo, canUndo, closeFont, downloadFlatTexture, downloadJson, downloadTexture, flushSave, font, redo, editingSubmission, restoreFont, saveError, submitFont, takeSubmissionFont, typing, undo, updateSubmission } from "./store.js"
 
   const TABS = [{ id: "font", label: "Font" }, { id: "characters", label: "Characters" }, { id: "textures", label: "Textures" }, { id: "kerning", label: "Kerning" }]
 
@@ -36,7 +36,10 @@
     File: [
       { label: "New font...", icon: "plus", action: () => asking.value = true },
       { label: "Save", icon: "download", action: downloadJson },
-      { label: "Save texture", icon: "download", action: downloadTexture }
+      { label: "Export", icon: "texture", items: [
+        { label: "Font sheet (font.png)", icon: "download", action: downloadTexture },
+        { label: "Flat texture (flat.png)", icon: "download", action: downloadFlatTexture }
+      ] }
     ],
     Edit: [
       { label: "Undo", icon: "undo", disabled: !canUndo.value, keepOpen: true, action: undo },

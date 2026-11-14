@@ -13,6 +13,7 @@
 
   const menu = ref(null)
   const position = ref({})
+  const opened = ref(null)
   let origin = null
 
   async function place() {
@@ -25,7 +26,12 @@
     menu.value.querySelector("button:not(:disabled)")?.focus()
   }
 
-  function choose(item) {
+  function choose(item, index) {
+    if (item.items) {
+      opened.value = index
+      nextTick(() => menu.value.querySelector(".submenu button:not(:disabled)")?.focus())
+      return
+    }
     if (!item.keepOpen) emit("close")
     item.action()
   }
@@ -35,6 +41,19 @@
   }
 
   function key(event) {
+    const parent = Number(document.activeElement?.dataset.submenu)
+    if (event.key === "ArrowRight" && Number.isInteger(parent)) {
+      event.preventDefault()
+      opened.value = parent
+      nextTick(() => menu.value.querySelector(".submenu button:not(:disabled)")?.focus())
+      return
+    }
+    if (event.key === "ArrowLeft" && opened.value !== null) {
+      event.preventDefault()
+      menu.value.querySelector(`[data-submenu="${opened.value}"]`)?.focus()
+      opened.value = null
+      return
+    }
     if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return
     event.preventDefault()
     const buttons = Array.from(menu.value.querySelectorAll("button:not(:disabled)"))
@@ -48,6 +67,7 @@
 
   watch(() => props.at, (at, before) => {
     if (at && !before) origin = document.activeElement
+    if (!at) opened.value = null
     if (at) place()
   }, { immediate: true })
 </script>
@@ -58,6 +78,19 @@
       <template v-for="(item, index) of items" :key="index">
         <div v-if="item.divider" class="divider"></div>
         <p v-else-if="item.heading" class="heading">{{ item.label }}</p>
+        <div v-else-if="item.items" class="parent" @mouseenter="opened = index" @mouseleave="opened = null">
+          <button type="button" role="menuitem" aria-haspopup="menu" :aria-expanded="opened === index" :data-submenu="index" :disabled="item.disabled" @click="choose(item, index)">
+            <Icon :name="item.icon" :size="16" />
+            <span class="grow">{{ item.label }}</span>
+            <Icon name="right" :size="14" />
+          </button>
+          <div v-if="opened === index" class="submenu popover" role="menu">
+            <button v-for="(child, at) of item.items" :key="at" type="button" role="menuitem" :class="{ danger: child.danger }" :disabled="child.disabled" @click="choose(child)">
+              <Icon :name="child.icon" :size="16" />
+              <span>{{ child.label }}</span>
+            </button>
+          </div>
+        </div>
         <button v-else type="button" role="menuitem" :class="{ danger: item.danger }" :disabled="item.disabled" @click="choose(item)">
           <Icon :name="item.icon" :size="16" />
           <span>{{ item.label }}</span>
@@ -123,6 +156,28 @@
 
   button.danger svg {
     color: var(--danger);
+  }
+
+  .parent {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .grow {
+    flex-grow: 1;
+    text-align: left;
+  }
+
+  .submenu {
+    position: absolute;
+    top: -4px;
+    left: 100%;
+    display: flex;
+    flex-direction: column;
+    width: max-content;
+    min-width: 170px;
+    padding: 4px;
   }
 
   .divider {
