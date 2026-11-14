@@ -134,7 +134,7 @@ export function sceneStrip(scene, entry, image) {
   const strip = stripSource(entry, image, range, scene.depth, scene.capHeight)
   if (strip.tiling !== "line" && strip.tiling !== "character") throw new Error(`${entry.id ?? "a strip"} has tiling "${strip.tiling}", strips tile by "line" or "character"`)
   if (!scene.layers || entry.stripSet) return strip
-  const shapes = scene.layers.map((_, layer) => stackedStrip(strip.shape, scene.layers, layer))
+  const shapes = scene.layers.map((_, layer) => stackedStrip(strip.shape, scene.layers, layer, scene.cells))
   const density = image.height / shapes[0].total
   return { ...strip, density, layers: shapes.map(({ shape, offset }) => ({ ...strip, shape, density, top: offset + shape.depth + shape.top })) }
 }

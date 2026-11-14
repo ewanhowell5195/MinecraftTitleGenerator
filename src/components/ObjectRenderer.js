@@ -230,7 +230,7 @@ export default {
         const loaded = await image(custom ? target.customTexture : `${entry.folder ?? font.value.sheetFolder}/textures/${id}.png`)
         const layers = font.value.layers
         const full = stripRows(entry, stripRange(font.value, entry.stripSet ? entry.stripLayer ?? null : null), defaultDepth(font.value), font.value.capHeight)
-        const stacked = layers && !custom && !entry.stripSet ? stackedStrip(full, layers, band) : null
+        const stacked = layers && !custom && !entry.stripSet ? stackedStrip(full, layers, band, font.value.cells) : null
         const { depth, top, bottom, rows, scale } = stacked?.shape ?? full
         const density = loaded.height / (stacked?.total ?? rows)
         const strip = stacked ? stripBand(loaded, stacked.offset * density, rows * density) : loaded

@@ -115,11 +115,12 @@ describe("stripRows", () => {
     assert.equal(textures.a.stripLayer, 1)
   })
 
-  test("a font's own strip on a layered font holds one strip per layer, each as deep as its slice", () => {
-    const shape = stripRows({}, range, 10)
+  test("a font's own strip on a layered font holds one strip per layer, each as deep as its slice and as tall as its layer", () => {
+    const cells = [{ char: "a", row: 0, column: 0, width: 1, height: 4, top: 4, bottom: 0, mask: Uint8Array.from([1, 1, 1, 1]), depths: Uint8Array.from([1, 0, 0, 1]) }]
+    const shape = stripRows({}, { top: 4, bottom: 0 }, 10)
     const layers = [1, 0.8]
-    assert.deepEqual(stackedStrip(shape, layers, 0), { shape: { depth: 2, top: 40, bottom: -8, rows: 52 }, offset: 0, total: 116 })
-    assert.deepEqual(stackedStrip(shape, layers, 1), { shape: { depth: 8, top: 40, bottom: -8, rows: 64 }, offset: 52, total: 116 })
+    assert.deepEqual(stackedStrip(shape, layers, 0, cells), { shape: { depth: 2, top: 3, bottom: 1, rows: 6 }, offset: 0, total: 26 })
+    assert.deepEqual(stackedStrip(shape, layers, 1, cells), { shape: { depth: 8, top: 4, bottom: 0, rows: 20 }, offset: 6, total: 26 })
     assert.deepEqual(layerSlice(layers, 0), { from: 0.8, size: 1 - 0.8 })
     assert.deepEqual(layerSlice(layers, 1), { from: 0, size: 0.8 })
   })

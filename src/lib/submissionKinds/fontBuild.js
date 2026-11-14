@@ -3,7 +3,7 @@ import { SHEET_MAX_WIDTH, groupedKerning, parseMask, sheetLayout } from "../font
 import { autoStretch, charactersOf, exportJson, fontFromFiles, glyphOf, isBlank, parseFontJson, parsedSheet, savedJson } from "../fontEditor.js"
 import { DEFAULT_ORDER, TERMINATOR_CLOSE, TERMINATOR_OPEN } from "../order.js"
 import { defaultBorder, defaultDepth } from "../settings.js"
-import { flatLayers, layerSlices } from "../flatSheet.js"
+import { flatLayers, layerRange, layerSlices } from "../flatSheet.js"
 import { drawSheet } from "../sheet.js"
 import { pngSize } from "../submissions.js"
 import { decodePng, encodePng } from "./png.js"
@@ -165,7 +165,7 @@ function fontTemplate(cells, capHeight, depth, layers = null) {
   const top = Math.max(capHeight, ...cells.map(cell => cell.top))
   const bottom = Math.min(0, ...cells.map(cell => cell.bottom))
   if (!layers) return { width, height, rows: depth * 2 + top - bottom }
-  return { width, height: flatLayers(cells, capHeight, depth, layers).height, rows: layerSlices(layers, depth).reduce((sum, slice) => sum + slice.rows * 2 + top - bottom, 0) }
+  return { width, height: flatLayers(cells, capHeight, depth, layers).height, rows: layerSlices(layers, depth).reduce((sum, slice, layer) => sum + slice.rows * 2 + layerRange(cells, layer).top - layerRange(cells, layer).bottom, 0) }
 }
 
 export function finalEntry(skeleton, derived) {

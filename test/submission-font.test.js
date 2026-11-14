@@ -9,7 +9,7 @@ import { publishedFonts, readMask } from "../generator/fonts.js"
 import { prepare } from "../generator/submissionKinds/font.js"
 import { flattenFonts, fullOrder, parseMask, sheetLayout, solidMask, splitCells } from "../src/lib/font.js"
 import { addCharacters, autoStretch, buildSheet, depthCode, exportJson, fontFromPublished, parsedSheet, setGlyph, setLetterCase, stripTexture } from "../src/lib/fontEditor.js"
-import { flatLayers, layerSlices } from "../src/lib/flatSheet.js"
+import { flatLayers, layerRange, layerSlices } from "../src/lib/flatSheet.js"
 import { jsonText } from "../src/lib/jsonText.js"
 import { titleCase } from "../src/lib/names.js"
 import { font as kind } from "../src/lib/submissionKinds/font.js"
@@ -253,8 +253,9 @@ describe("checking a font", () => {
     assert.ok(built.published.find(cell => cell.char === char).depths.includes(1))
     assert.equal(built.template.width, before.template.width)
     assert.equal(built.template.height, flatLayers(built.published, built.capHeight, defaultDepth(built.entry), built.layers).height)
-    const front = before.template.rows - defaultDepth(built.entry) * 2
-    assert.equal(built.template.rows, layerSlices(built.layers, defaultDepth(built.entry)).reduce((sum, slice) => sum + slice.rows * 2 + front, 0))
+    const front = layer => layerRange(built.published, layer).top - layerRange(built.published, layer).bottom
+    assert.equal(front(1), before.template.rows - defaultDepth(built.entry) * 2)
+    assert.equal(built.template.rows, layerSlices(built.layers, defaultDepth(built.entry)).reduce((sum, slice, layer) => sum + slice.rows * 2 + front(layer), 0))
   })
 
   test("bundled files need names of their own and a PNG", async () => {

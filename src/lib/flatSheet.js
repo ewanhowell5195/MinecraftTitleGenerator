@@ -44,6 +44,11 @@ export function layerCell(glyph, layer) {
   return { ...glyph, source: glyph, mask: mask.slice(low * glyph.width, (high + 1) * glyph.width), depths: glyph.depths?.slice(low * glyph.width, (high + 1) * glyph.width) ?? null, height: high - low + 1, bottom: glyph.bottom + low, top: glyph.bottom + high + 1 }
 }
 
+export function layerRange(cells, layer) {
+  const shown = cells.filter(cell => cell.width).map(cell => layerCell(cell, layer)).filter(cell => cell.height)
+  return { top: Math.max(...shown.map(cell => cell.top)), bottom: Math.min(...shown.map(cell => cell.bottom)) }
+}
+
 export function layerLeft(glyph, layer) {
   if (layer === null || !glyph.depths) return 0
   const mask = layerMask(glyph, layer)
@@ -143,11 +148,11 @@ export function expandBands(source, width, cells, capHeight, depth, layers) {
 export function blankStrip(cells, capHeight, depth, layers, width) {
   const top = Math.max(capHeight, ...cells.map(cell => cell.top))
   const bottom = Math.min(0, ...cells.map(cell => cell.bottom))
-  const bands = layers && layers.length > 1 ? layerSlices(layers, depth).map((slice, layer) => ({ rows: slice.rows, shade: layerShade(layers, layer) })) : [{ rows: depth, shade: 1 }]
+  const bands = layers && layers.length > 1 ? layerSlices(layers, depth).map((slice, layer) => ({ rows: slice.rows, shade: layerShade(layers, layer), ...layerRange(cells, layer) })) : [{ rows: depth, shade: 1, top, bottom }]
   let colours = []
-  for (const { rows, shade } of bands) {
-    const [face, up, down] = [FACE, UP, DOWN].map(colour => colour.map(value => Math.round(value * shade)).concat(255))
-    colours = colours.concat(Array(rows).fill(up), Array(top - bottom).fill(face), Array(rows).fill(down))
+  for (const band of bands) {
+    const [face, up, down] = [FACE, UP, DOWN].map(colour => colour.map(value => Math.round(value * band.shade)).concat(255))
+    colours = colours.concat(Array(band.rows).fill(up), Array(band.top - band.bottom).fill(face), Array(band.rows).fill(down))
   }
   const data = new Uint8ClampedArray(width * colours.length * 4)
   colours.forEach((colour, row) => {

@@ -1,4 +1,4 @@
-import { layerSlices } from "./flatSheet.js"
+import { layerRange, layerSlices } from "./flatSheet.js"
 
 export function stripFolder(id) {
   return `strips/${id}`
@@ -36,11 +36,11 @@ export function layerSlice(layers, layer) {
   return { from, size: layers[layer] - from }
 }
 
-export function stackedStrip(shape, layers, layer) {
-  const front = shape.rows - shape.depth * 2
-  const heights = layerSlices(layers, shape.depth).map(slice => slice.rows * 2 + front)
-  const depth = (heights[layer] - front) / 2
-  return { shape: { ...shape, depth, rows: heights[layer] }, offset: heights.slice(0, layer).reduce((sum, rows) => sum + rows, 0), total: heights.reduce((sum, rows) => sum + rows, 0) }
+export function stackedStrip(shape, layers, layer, cells) {
+  const slices = layerSlices(layers, shape.depth)
+  const ranges = slices.map((_, index) => layerRange(cells, index))
+  const heights = slices.map((slice, index) => slice.rows * 2 + ranges[index].top - ranges[index].bottom)
+  return { shape: { ...shape, depth: slices[layer].rows, ...ranges[layer], rows: heights[layer] }, offset: heights.slice(0, layer).reduce((sum, rows) => sum + rows, 0), total: heights.reduce((sum, rows) => sum + rows, 0) }
 }
 
 export function centredOffset(height, capHeight) {
