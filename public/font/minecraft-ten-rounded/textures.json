@@ -10,5 +10,6 @@
       "border": "#000000"
     }
   },
-  "overlays": {}
+  "overlays": {},
+  "primary": "cracked"
 }
