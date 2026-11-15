@@ -44,9 +44,21 @@
 
 <style scoped>
   .menus {
+    position: relative;
     display: flex;
     gap: 2px;
     margin-left: 14px;
+    padding-left: 14px;
+  }
+
+  .menus::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    height: 18px;
+    border-left: 1px solid var(--line-strong);
+    transform: translateY(-50%);
   }
 
   .menu {
