@@ -7,7 +7,7 @@ import { quietStorage } from "./helpers/browser.js"
 quietStorage()
 globalThis.devicePixelRatio = 1
 
-const { ORBIT_FOV, UNZOOMED, cornersOf, frameCamera, gizmoPose, lineBounds, movedBy, orbitDollied, orbitPanned, orbitStart, orbitTurned, panMatrix, pannedBy, pickEntry, placeOrbit, placementMatrix, rotatedTo, sortEntries, titleFraming, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } = await import("../src/lib/stage.js")
+const { ORBIT_FOV, UNZOOMED, cornersOf, frameCamera, gizmoPose, keptPan, lineBounds, movedBy, orbitDollied, orbitPanned, orbitStart, orbitTurned, panMatrix, pannedBy, pickEntry, placeOrbit, placementMatrix, rotatedTo, screenExtent, sortEntries, titleFraming, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } = await import("../src/lib/stage.js")
 
 const BOUNDS = new THREE.Box3(new THREE.Vector3(0, 0, 0), new THREE.Vector3(10, 4, 2))
 const WIDE = new THREE.Box3(new THREE.Vector3(-30, 0, 0), new THREE.Vector3(30, 20, 10))
@@ -670,40 +670,137 @@ describe("zoom and pan", () => {
     assert.ok(panMatrix(UNZOOMED).equals(new THREE.Matrix4()))
   })
 
+  const square = { extent: { left: -0.94, right: 0.94, bottom: -0.94, top: 0.94 }, aspect: 1 }
+  const wide = { extent: { left: -0.94, right: 0.94, bottom: -0.1, top: 0.1 }, aspect: 2 }
+
+  function edges(pan, { extent }) {
+    const [left, bottom] = shown(pan, extent.left, extent.bottom)
+    const [right, top] = shown(pan, extent.right, extent.top)
+    return { left, right, bottom, top }
+  }
+
+  function furthest(pan, view) {
+    return [pannedBy(pan, 100, 100, view), pannedBy(pan, -100, -100, view)].map(moved => edges(moved, view))
+  }
+
   test("zooming keeps the point under the cursor where it is", () => {
-    const pan = zoomedAt(UNZOOMED, 2, 0.5, -0.25)
+    const pan = zoomedAt(UNZOOMED, 2, 0.5, -0.25, square)
     assert.equal(pan.scale, 2)
     const point = shown(pan, 0.5, -0.25)
     assert.ok(Math.abs(point[0] - 0.5) < 1e-9 && Math.abs(point[1] + 0.25) < 1e-9)
   })
 
   test("zooming again still keeps the point under the cursor", () => {
-    const first = zoomedAt(UNZOOMED, 2, 0.5, 0)
-    const second = zoomedAt(first, 3, -0.2, 0.4)
+    const first = zoomedAt(UNZOOMED, 2, 0.5, 0, square)
+    const second = zoomedAt(first, 3, -0.2, 0.4, square)
     const before = new THREE.Vector3(-0.2, 0.4, 0).applyMatrix4(panMatrix(first).invert())
     const after = before.applyMatrix4(panMatrix(second))
     assert.ok(Math.abs(after.x + 0.2) < 1e-9 && Math.abs(after.y - 0.4) < 1e-9)
   })
 
   test("zoom stops at its limits", () => {
-    assert.equal(zoomedAt(UNZOOMED, 1000, 0, 0).scale, 32)
-    assert.equal(zoomedAt(UNZOOMED, 0.001, 0, 0).scale, 0.25)
+    assert.equal(zoomedAt(UNZOOMED, 1000, 0, 0, square).scale, 32)
+    assert.equal(zoomedAt(UNZOOMED, 0.001, 0, 0, square).scale, 0.25)
   })
 
   test("a limited zoom does not move the view", () => {
-    const pan = zoomedAt(zoomedAt(UNZOOMED, 32, 0.1, 0.1), 2, 0.5, 0.5)
-    assert.deepEqual(pan, zoomedAt(UNZOOMED, 32, 0.1, 0.1))
+    const pan = zoomedAt(zoomedAt(UNZOOMED, 32, 0.1, 0.1, square), 2, 0.5, 0.5, square)
+    assert.deepEqual(pan, zoomedAt(UNZOOMED, 32, 0.1, 0.1, square))
   })
 
   test("panning moves the content the same way as the drag", () => {
-    const [x, y] = shown(pannedBy(UNZOOMED, 0.25, -0.5), 0, 0)
+    const pan = zoomedAt(UNZOOMED, 4, 0, 0, square)
+    const [x, y] = shown(pannedBy(pan, 0.25, -0.5, square), 0, 0)
     assert.equal(x, 0.25)
     assert.equal(y, -0.5)
   })
 
-  test("panning cannot lose the middle of the title", () => {
-    assert.deepEqual(pannedBy(UNZOOMED, 5, -5), { scale: 1, x: 1, y: -1 })
-    assert.deepEqual(pannedBy({ scale: 4, x: 0, y: 0 }, 5, -5), { scale: 4, x: 4, y: -4 })
+  test("zoomed out, a small title pans until its edge reaches the side of the view", () => {
+    const pan = zoomedAt(UNZOOMED, 0.25, 0, 0, wide)
+    const [right, left] = furthest(pan, wide)
+    close(right.right, 1 + 0.05 * 0.235)
+    close(left.left, -1 - 0.05 * 0.235)
+    close(right.top, 1 + 0.1 * 0.025)
+    close(left.bottom, -1 - 0.1 * 0.025)
+  })
+
+  test("a title that fills the view still has a little room to move", () => {
+    const [right, left] = furthest(UNZOOMED, square)
+    close(right.right, 1.094)
+    close(left.left, -1.094)
+  })
+
+  test("zoomed in, every edge of the title can be reached but never pulled off screen", () => {
+    for (const scale of [2, 8, 32]) {
+      const pan = zoomedAt(UNZOOMED, scale, 0, 0, wide)
+      const [right, left] = furthest(pan, wide)
+      close(right.left, -1 + 0.05)
+      close(left.right, 1 - 0.05)
+      assert.ok(right.right > 1 && left.left < -1)
+      if (scale > 10) {
+        close(right.bottom, -1 + 0.1)
+        close(left.top, 1 - 0.1)
+      } else {
+        close(right.top, 1 + 0.1 * 0.1 * scale)
+        close(left.bottom, -1 - 0.1 * 0.1 * scale)
+      }
+    }
+  })
+
+  test("the room past the edges grows with the title until it fills the view, then stays the same on screen", () => {
+    for (const scale of [0.25, 0.5, 1, 2, 4, 16, 32]) {
+      const pan = zoomedAt(UNZOOMED, scale, 0, 0, square)
+      const [right, left] = furthest(pan, square)
+      close(right.left - left.left, Math.abs(2 - 1.88 * scale) + 0.2 * Math.min(1, 0.94 * scale))
+    }
+  })
+
+  test("zooming after panning moves the title smoothly and keeps it on screen", () => {
+    let pan = pannedBy(zoomedAt(UNZOOMED, 8, 0, 0, wide), -100, 0, wide)
+    function seen(pan) {
+      const { left, right } = edges(pan, wide)
+      return { left: Math.max(left, -1), right: Math.min(right, 1) }
+    }
+    let last = seen(pan)
+    for (const factor of Array(400).fill(0.99).concat(Array(400).fill(1.01))) {
+      pan = zoomedAt(pan, factor, 0, 0, wide)
+      const now = seen(pan)
+      assert.ok(Math.abs(now.right - last.right) < 0.05 && Math.abs(now.left - last.left) < 0.05)
+      assert.ok(now.right > -1 && now.left < 1)
+      last = now
+    }
+  })
+
+  test("a view left outside the limits is pulled back in", () => {
+    const pan = keptPan({ scale: 1, x: 5, y: -5 }, wide)
+    close(pan.x, 0.107)
+    close(pan.y, -0.91)
+  })
+
+  test("the extent is where the title lands on screen at any field of view and tilt", () => {
+    const corners = cornersOf(WIDE)
+    for (const camera of [new THREE.OrthographicCamera(), new THREE.PerspectiveCamera()]) {
+      for (const tilt of [0, 12, -30]) {
+        frameCamera(camera, { anchor: WIDE, corners, size: 70, angle: { ...DEFAULT_CAMERA, tilt }, fov: 30, width: 900, height: 600 })
+        const extent = screenExtent(corners, new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse))
+        const projected = corners.map(corner => corner.clone().project(camera))
+        close(extent.left, Math.min(...projected.map(corner => corner.x)))
+        close(extent.right, Math.max(...projected.map(corner => corner.x)))
+        close(extent.bottom, Math.min(...projected.map(corner => corner.y)))
+        close(extent.top, Math.max(...projected.map(corner => corner.y)))
+        close(Math.max(extent.right - extent.left, (extent.top - extent.bottom) * 1.5), 1.88)
+      }
+    }
+  })
+
+  test("points behind the camera do not count towards the extent", () => {
+    const camera = new THREE.PerspectiveCamera(60, 1, 1, 100)
+    camera.updateMatrixWorld(true)
+    const matrix = new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse)
+    const extent = screenExtent([point(-1, 0, -10), point(1, 0, -10), point(50, 50, 10)], matrix)
+    close(extent.left, -extent.right)
+    assert.ok(extent.right < 1)
+    assert.equal(screenExtent([point(0, 0, 10)], matrix), null)
   })
 
   test("the matrix leaves depth alone and scales from the middle of the screen", () => {

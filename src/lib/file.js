@@ -9,6 +9,7 @@ import { CUSTOM_SHAPE, isMinecraftShape } from "./shapes.js"
 import { submitStats } from "./stats.js"
 import { titleLines, titleValues, trimmed } from "./titleFacts.js"
 import { downloadBlob } from "./ui.js"
+import { titleLoads } from "./view.js"
 
 const FORMAT = "minecraft-title"
 export const EXTENSION = "mctitle"
@@ -116,6 +117,7 @@ function showObjects(objects, camera) {
   setCamera(scene.camera, camera)
   Object.assign(scene, validSelection(objects, null, null))
   fileError.value = null
+  titleLoads.value++
 }
 
 export function resetTitle() {

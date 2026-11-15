@@ -5,6 +5,7 @@ import { clamp, round } from "./maths.js"
 const FAR_EYE = 1e6
 const TITLE_REACH = 144
 const ZOOM_LIMITS = [0.25, 32]
+const PAN_MARGIN = 0.1
 const PITCH_LIMIT = radians(89)
 const ORBIT_FILL = 0.94
 const DOLLY_LIMITS = [0.05, 20]
@@ -459,18 +460,38 @@ export function frameCamera(camera, { anchor, corners, size, angle = DEFAULT_CAM
 
 export const UNZOOMED = { scale: 1, x: 0, y: 0 }
 
-function kept({ scale, x, y }) {
-  return { scale, x: clamp(x, -scale, scale), y: clamp(y, -scale, scale) }
+export function screenExtent(points, matrix) {
+  const extent = { left: Infinity, right: -Infinity, bottom: Infinity, top: -Infinity }
+  const point = new THREE.Vector4()
+  for (const { x, y, z } of points) {
+    point.set(x, y, z, 1).applyMatrix4(matrix)
+    if (point.w <= 0) continue
+    extent.left = Math.min(extent.left, point.x / point.w)
+    extent.right = Math.max(extent.right, point.x / point.w)
+    extent.bottom = Math.min(extent.bottom, point.y / point.w)
+    extent.top = Math.max(extent.top, point.y / point.w)
+  }
+  return extent.left <= extent.right ? extent : null
 }
 
-export function pannedBy(pan, dx, dy) {
-  return kept({ scale: pan.scale, x: pan.x + dx, y: pan.y + dy })
+function slid(at, scale, low, high, margin) {
+  const ends = [-1 - scale * low, 1 - scale * high]
+  const give = margin * Math.min(1, scale * (high - low) / 2)
+  return clamp(at, Math.min(...ends) - give, Math.max(...ends) + give)
 }
 
-export function zoomedAt(pan, factor, x, y) {
+export function keptPan({ scale, x, y }, { extent, aspect }) {
+  return { scale, x: slid(x, scale, extent.left, extent.right, PAN_MARGIN * Math.min(1, 1 / aspect)), y: slid(y, scale, extent.bottom, extent.top, PAN_MARGIN * Math.min(1, aspect)) }
+}
+
+export function pannedBy(pan, dx, dy, view) {
+  return keptPan({ scale: pan.scale, x: pan.x + dx, y: pan.y + dy }, view)
+}
+
+export function zoomedAt(pan, factor, x, y, view) {
   const scale = clamp(pan.scale * factor, ...ZOOM_LIMITS)
   const change = scale / pan.scale
-  return kept({ scale, x: x - (x - pan.x) * change, y: y - (y - pan.y) * change })
+  return keptPan({ scale, x: x - (x - pan.x) * change, y: y - (y - pan.y) * change }, view)
 }
 
 export const ORBIT_FOV = 40

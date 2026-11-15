@@ -40,6 +40,8 @@ export const viewport = { capture: null }
 
 export const viewportChanges = ref(0)
 
+export const titleLoads = ref(0)
+
 watch(view, value => {
   try {
     localStorage.setItem("minecraft-title-view", JSON.stringify(value))

@@ -11,9 +11,9 @@
   import { current, currentWord, finalShadows, scene as title, select, setScale, shapingWord } from "../lib/scene.js"
   import { TRANSFORM_LIMITS } from "../lib/settings.js"
   import { createSmoothing } from "../lib/smoothing.js"
-  import { ORBIT_FOV, UNZOOMED, createStage, frameCamera, gizmoPose, lineBounds, movedBy, orbitDollied, orbitPanned, orbitStart, orbitTurned, panMatrix, pannedBy, pickEntry, placeOrbit, rotatedTo, titleFraming, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } from "../lib/stage.js"
+  import { ORBIT_FOV, UNZOOMED, createStage, frameCamera, gizmoPose, keptPan, lineBounds, movedBy, orbitDollied, orbitPanned, orbitStart, orbitTurned, panMatrix, pannedBy, pickEntry, placeOrbit, rotatedTo, screenExtent, titleFraming, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } from "../lib/stage.js"
   import { vectorTitle } from "../lib/vector.js"
-  import { FORM_SECTIONS, view, viewport, viewportChanges } from "../lib/view.js"
+  import { FORM_SECTIONS, titleLoads, view, viewport, viewportChanges } from "../lib/view.js"
 
   const TOOLS = [[null, "pointer", "No gizmo"], ["translate", "move", "Move"], ["rotate", "rotate", "Rotate"], ["scale", "scale", "Scale"]]
   const SELECTION_LAYER = 1
@@ -22,6 +22,7 @@
   const PINCH_WHEEL_ZOOM = 0.01
   const LINE_HEIGHT = 16
   const CLICK_DISTANCE = 6
+  const NO_EXTENT = { left: 0, right: 0, bottom: 0, top: 0 }
 
   const props = defineProps({
     items: { type: Array, required: true },
@@ -41,11 +42,14 @@
   const baseProjection = new THREE.Matrix4()
   const basePosition = new THREE.Vector3()
   const baseQuaternion = new THREE.Quaternion()
+  const baseView = new THREE.Matrix4()
   let renderer, overlay, camera, perspective, orthographic, frame, observer, selection, controls, proxy, smoothing
   let frameSize = { width: 1, height: 1 }
   let fitted = null
   let framedTitle = null
   let orbitHome = null
+  let extent = null
+  let extentFor = null
   let framed = false
   let dirty = true
   let grabbed = null
@@ -60,6 +64,7 @@
     frame = 0
     refit()
     if (fitted === null || !dirty) return
+    holdPan()
     pose()
     dirty = false
     stage.sort(camera)
@@ -209,6 +214,7 @@
   function fitCamera() {
     invalidate()
     viewportChanges.value++
+    extentFor = null
     const shot = titleFraming(props.items, title.camera.fixedDistance)
     if (!shot) return
     frameCamera(camera, { ...shot, angle: title.camera, ...frameSize, maxScale: view.render ? Infinity : MAX_SCALE, frame: view.render ? { rect: frameRect, bounds: frameBounds, pixels: framePixels } : null })
@@ -217,6 +223,26 @@
     baseProjection.copy(camera.projectionMatrix)
     basePosition.copy(camera.position)
     baseQuaternion.copy(camera.quaternion)
+    baseView.copy(camera.matrixWorldInverse)
+    measure(shot)
+    applyView()
+  }
+
+  function measure(shot) {
+    extent = shot && screenExtent(shot.corners, new THREE.Matrix4().multiplyMatrices(baseProjection, baseView))
+    extentFor = props.items
+  }
+
+  function panView() {
+    if (extentFor !== props.items && props.items.every(item => item.settled)) measure(titleFraming(props.items, title.camera.fixedDistance))
+    return { extent: extent ?? NO_EXTENT, aspect: frameSize.width / frameSize.height }
+  }
+
+  function holdPan() {
+    if (orbiting.value || !navigable.value) return
+    const held = keptPan(pan.value, panView())
+    if (held.x === pan.value.x && held.y === pan.value.y) return
+    pan.value = held
     applyView()
   }
 
@@ -245,7 +271,7 @@
 
   function zoomBy(factor) {
     if (orbiting.value) orbit.value = orbitDollied(orbit.value, factor)
-    else pan.value = zoomedAt(pan.value, factor, 0, 0)
+    else pan.value = zoomedAt(pan.value, factor, 0, 0, panView())
   }
 
   function zoom(event) {
@@ -257,7 +283,7 @@
 
   function panBy(dx, dy) {
     if (orbiting.value) orbit.value = orbitPanned(orbit.value, camera, dx, dy, lens())
-    else pan.value = pannedBy(pan.value, dx, dy)
+    else pan.value = pannedBy(pan.value, dx, dy, panView())
   }
 
   function grabView(event) {
@@ -460,12 +486,15 @@
   watch([() => view.section, () => view.render, () => view.camera], () => view.gizmo = null)
   watch(shapingWord, invalidate)
   watch([pan, orbit], applyView)
-  watch(navigable, () => {
+  function homeView() {
     orbiting.value = false
     orbit.value = orbitHome = null
     resetView()
     fitCamera()
-  }, { flush: "sync" })
+  }
+
+  watch(navigable, homeView, { flush: "sync" })
+  watch(titleLoads, homeView)
 
   watch(() => view.render && [framing, view.resolution], fitCamera, { deep: true })
 
