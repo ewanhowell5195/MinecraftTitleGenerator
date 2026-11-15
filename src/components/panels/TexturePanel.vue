@@ -1,5 +1,5 @@
 <script setup>
-  import { computed, ref, shallowRef, watch } from "vue"
+  import { computed, nextTick, ref, shallowRef, watch } from "vue"
   import { image, tileableUrl } from "../../lib/assets.js"
   import { credit } from "../../lib/credits.js"
   import { blockName, blockTextureImage, blockTextures, latestRelease } from "../../lib/minecraft.js"
@@ -109,6 +109,35 @@
   function rows(variants) {
     return Math.ceil((variants.length + 1) / 3)
   }
+
+  function leastRows(entries) {
+    return Math.min(2, Math.ceil(entries.length / 3))
+  }
+
+  const picker = ref(null)
+  const floor = ref(0)
+
+  function outerHeight(child) {
+    const style = getComputedStyle(child)
+    const own = child.classList.contains("scroll") ? parseFloat(style.minHeight) || 0 : child.getBoundingClientRect().height
+    return own + parseFloat(style.marginTop) + parseFloat(style.marginBottom)
+  }
+
+  function measureFloor() {
+    const box = picker.value
+    if (!box) return
+    const children = Array.from(box.children)
+    floor.value = children.reduce((total, child) => total + outerHeight(child), 0) + parseFloat(getComputedStyle(box).rowGap) * Math.max(0, children.length - 1)
+  }
+
+  watch(picker, (box, _, onCleanup) => {
+    if (!box) return
+    const observer = new ResizeObserver(measureFloor)
+    observer.observe(box)
+    onCleanup(() => observer.disconnect())
+  })
+
+  watch(() => [object.value.textureSource, usingMinecraft.value, textureVariants.value.length, tileableVariants.value.length, search.value], () => nextTick(measureFloor))
 
   function label(id, data) {
     return data.category ?? data.name ?? titleCase(id)
@@ -232,7 +261,7 @@
 
 <template>
   <Panel title="Source" :modified="modified" @reset="resetSource">
-    <div class="flow" :class="{ pick: object.textureSource === 'premade' || object.textureSource === 'tileable', peek: object.textureSource === 'tileable' }">
+    <div ref="picker" class="flow" :class="{ pick: object.textureSource === 'premade' || object.textureSource === 'tileable', peek: object.textureSource === 'tileable' }" :style="{ minHeight: `${floor}px` }">
       <Segments v-if="sources.length > 1" :options="sources" :model-value="object.textureSource" @update:model-value="chooseSource" />
 
       <template v-if="object.textureSource === 'premade'">
@@ -240,8 +269,8 @@
         <TileGrid v-if="searchingTextures" class="scroll">
           <Tile v-for="item of foundTextures" :key="`${item.id}/${item.variant ?? ''}`" :label="item.data.name ?? titleCase(item.variant ?? item.id)" :unit="thumbnailHeight(font)" :image="thumbnail(font, item.variant ?? item.id, shownLayer)" :author="item.variant ? credit(item.data, font?.id, library.fonts, item.parent) : credit(item.data, font?.id, library.fonts)" :selected="object.texture === item.id && (object.textureVariant ?? null) === item.variant" :menu="textureMenu(item.variant ?? item.id, item.variant ? { ...item.parent, ...item.data } : item.data)" @pick="setTexture(object, { texture: item.id, textureVariant: item.variant }, { before: list })" />
         </TileGrid>
-        <TileGrid v-else class="scroll">
-          <Tile v-for="[id, data] of textures" :key="id" :label="label(id, data)" :unit="thumbnailHeight(font)" :image="thumbnail(font, id, shownLayer)" :author="credit(data, font?.id, library.fonts)" :badge="variantBadge(data)" :selected="object.texture === id" :menu="textureMenu(id, data)" @pick="setTexture(object, { texture: id, textureVariant: null }, { before: list })" />
+        <TileGrid v-else class="scroll" :class="{ kept: textureVariants.length }" :style="{ '--least': leastRows(textures) }">
+          <Tile v-for="[id, data] of textures":key="id" :label="label(id, data)" :unit="thumbnailHeight(font)" :image="thumbnail(font, id, shownLayer)" :author="credit(data, font?.id, library.fonts)" :badge="variantBadge(data)" :selected="object.texture === id" :menu="textureMenu(id, data)" @pick="setTexture(object, { texture: id, textureVariant: null }, { before: list })" />
         </TileGrid>
         <template v-if="textureVariants.length && !searchingTextures">
           <h3>Variants</h3>
@@ -271,8 +300,8 @@
         <TileGrid v-if="searchingTileables" class="scroll">
           <Tile v-for="item of foundTileables" :key="`${item.id}/${item.variant ?? ''}`" :label="item.data.name ?? titleCase(item.variant ?? item.id)" aspect="2 / 1" :pattern="tilePreview(library.tileables, item.id, item.variant ?? undefined)" :author="item.data.authors ?? item.parent.authors" :selected="object.tileable === item.id && (object.tileableVariant ?? null) === item.variant" :menu="item.variant ? tileableMenu(item.id, item.variant) : tileableMenu(item.id)" @pick="object.tileable = item.id; object.tileableVariant = item.variant" />
         </TileGrid>
-        <TileGrid v-else class="scroll">
-          <Tile v-for="[id, data] of tileables" :key="id" :label="label(id, data)" aspect="2 / 1" :pattern="tilePreview(library.tileables, id)" :author="data.authors" :badge="variantBadge(data)" :selected="object.tileable === id" :menu="tileableMenu(id)" @pick="object.tileable = id; object.tileableVariant = null" />
+        <TileGrid v-else class="scroll patterns" :class="{ kept: tileableVariants.length }" :style="{ '--least': leastRows(tileables) }">
+          <Tile v-for="[id, data] of tileables":key="id" :label="label(id, data)" aspect="2 / 1" :pattern="tilePreview(library.tileables, id)" :author="data.authors" :badge="variantBadge(data)" :selected="object.tileable === id" :menu="tileableMenu(id)" @pick="object.tileable = id; object.tileableVariant = null" />
         </TileGrid>
         <template v-if="tileableVariants.length && !searchingTileables">
           <h3>Variants</h3>
@@ -318,15 +347,22 @@
     max-height: max(420px, calc(100cqh - 42px - 2 * var(--group-padding) - 120px - var(--disclaimer-height, 0px)));
   }
 
-  .variants {
+  .pick > .scroll {
     --thumb-ratio: 132 / 288;
     --row: calc(((100cqw - 16px) / 3 - 16px) * var(--thumb-ratio) + 39px);
+  }
+
+  .pick > .patterns {
+    --thumb-ratio: 1 / 2;
+  }
+
+  .variants {
     --shown: min(var(--rows), 3);
     flex: 0 1000 auto;
     min-height: calc(var(--shown) * var(--row) + (var(--shown) - 1) * 8px);
   }
 
-  .variants.patterns {
-    --thumb-ratio: 1 / 2;
+  .kept {
+    min-height: calc(var(--least) * var(--row) + (var(--least) - 1) * 8px);
   }
 </style>
