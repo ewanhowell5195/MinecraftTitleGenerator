@@ -1,3 +1,7 @@
+<script>
+  const kerningFilter = ref("all")
+</script>
+
 <script setup>
   import { computed, ref, toRaw } from "vue"
   import Button from "../components/Button.vue"
@@ -16,7 +20,7 @@
   const FILTERS = [{ id: "all", label: "Everything", ranks: [0, 1, 2, 3, 4] }, { id: "letters", label: "Letters", ranks: [0] }, { id: "numbers", label: "Numbers", ranks: [1, 2] }, { id: "symbols", label: "Symbols", ranks: [3, 4] }]
 
   const custom = ref("")
-  const filter = ref("all")
+  const filter = kerningFilter
   const customError = ref("")
   const search = ref("")
 

@@ -1,3 +1,7 @@
+<script>
+  const layerTab = ref(1)
+</script>
+
 <script setup>
   import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, toRaw, watch } from "vue"
   import Badge from "../components/Badge.vue"
@@ -69,7 +73,7 @@
   const layerCount = computed(() => props.subject === "font" ? parsedSheet(toRaw(props.font), 0).layers?.length ?? 1 : 1)
   const layered = computed(() => layerCount.value > 1)
   const layerTabs = computed(() => Array.from({ length: layerCount.value }, (_, index) => ({ value: index + 1, label: `Layer ${index + 1}` })))
-  const tab = ref(1)
+  const tab = layerTab
   const missing = computed(() => failed.value.filter(item => used(item.id)))
   const full = computed(() => props.maxSets !== null && new Set(uses.value.map(use => use.id)).size >= props.maxSets)
   const variants = computed(() => {
@@ -302,6 +306,9 @@
   watch(() => [props.font, props.strips], scheduleCheck)
   watch(() => props.selected, follow)
   watch(chosenSet, drawThumbs)
+  watch(layerCount, count => {
+    if (tab.value > count) tab.value = 1
+  }, { immediate: true })
   watch(tab, () => {
     check()
     announce()
