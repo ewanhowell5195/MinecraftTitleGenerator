@@ -23,7 +23,7 @@
   import UploadField from "./UploadField.vue"
   import UploadReuse from "./UploadReuse.vue"
 
-  const KINDS = [{ value: "generated", label: "Generated" }, { value: "texture", label: "Texture" }, { value: "file", label: "File" }]
+  const KINDS = [{ value: "generated", label: "Generated" }, { value: "texture", label: "Texture" }, { value: "file", label: "Custom" }]
   const COLOUR_MODES = [{ value: "original", label: "Original" }, { value: "colours", label: "Colours" }, { value: "tint", label: "Tint" }]
   const COLOUR_HINTS = {
     original: "The image's own colours.",
@@ -77,7 +77,7 @@
   }
 
   function layerName(item) {
-    if (item.source === "file") return "Custom file"
+    if (item.source === "file") return "Custom"
     return props.available[item.overlay]?.name ?? titleCase(item.overlay ?? "")
   }
 
