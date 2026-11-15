@@ -22,6 +22,7 @@ const DEFAULTS = {
   camera: false,
   gizmo: null,
   resolution: 2048,
+  customResolution: null,
   antialias: true
 }
 

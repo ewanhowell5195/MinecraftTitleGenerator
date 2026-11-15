@@ -24,7 +24,14 @@
 
   const PRESETS = [{ value: 1024, label: "1K" }, { value: 2048, label: "2K" }, { value: 4096, label: "4K" }, { value: 8192, label: "8K" }]
 
-  const custom = ref(!PRESETS.some(({ value }) => value === view.resolution && value <= canvasLimit()))
+  const custom = ref(view.customResolution === view.resolution || !PRESETS.some(({ value }) => value === view.resolution && value <= canvasLimit()))
+  const customSize = computed({
+    get: () => view.resolution,
+    set: value => {
+      view.resolution = value
+      view.customResolution = value
+    }
+  })
   const progress = ref(null)
   const failed = ref("")
   const result = shallowRef(null)
@@ -46,7 +53,7 @@
 
   function pick(size) {
     custom.value = size === "custom"
-    if (!custom.value) view.resolution = size
+    view.resolution = custom.value ? view.customResolution ?? view.resolution : size
   }
 
   let rendering = null
@@ -141,7 +148,7 @@
     </template>
     <template v-else>
       <Segments label="Resolution" :options="presets" :model-value="custom ? 'custom' : view.resolution" @update:model-value="pick" />
-      <Slider v-if="custom" label="Size" v-model="view.resolution" :min="128" :max="canvasLimit()" log />
+      <Slider v-if="custom" label="Size" v-model="customSize" :min="128" :max="canvasLimit()" log />
       <p class="hint">The longer side of the title, in pixels. The final size may differ slightly.</p>
     </template>
     <Toggle label="Antialiasing" hint="Smoother edges, renders take longer" v-model="view.antialias" />
