@@ -3,10 +3,10 @@ import { stripRange } from "../../lib/assets.js"
 import { pixelsOf } from "../../lib/canvas.js"
 import { fullName, loadFont, loadFontList, loadImage, sheetOwner, stripsOf } from "../../lib/font.js"
 import { defaultDepth } from "../../lib/settings.js"
-import { stripFolder, stripUse } from "../../lib/strips.js"
+import { stripFolder, stripRows, stripUse } from "../../lib/strips.js"
 import { textureName } from "../../lib/submissionKinds/fontAsset.js"
 import { stripFonts } from "../../lib/submissionKinds/published.js"
-import { remapStrip, setEntry, setName, stripTarget } from "../../lib/submissionKinds/stripFit.js"
+import { layerDepth, remapScale, remapStrip, setEntry, setName, stripTarget } from "../../lib/submissionKinds/stripFit.js"
 import { pngUrl } from "../../lib/virtualFiles.js"
 import { fontDefaults } from "./preview.js"
 
@@ -34,25 +34,51 @@ async function placedSet(item, font, fonts) {
   const owner = sheetOwner(font, fonts)
   if (target.kind === "set") {
     const use = stripsOf(font, fonts).map(stripUse).find(entry => entry.id === target.id)
-    return { set: await loadSet(target.id), offset: use?.offset ?? 0 }
+    return { set: await loadSet(target.id), offset: use?.offset ?? 0, layer: use?.layer ? use.layer - 1 : null }
   }
   const { depth, baseline, height } = item.details
   if (![depth, baseline, height].every(Number.isInteger) || depth < 1 || height < 1 || baseline < depth) throw new Error("Fill in the new strip type's shape to preview it")
-  return { set: { id: "new", depth, baseline, height }, offset: item.details.offsets?.[owner.id] ?? 0 }
+  return { set: { id: "new", depth, baseline, height }, offset: item.details.offsets?.[owner.id] ?? 0, layer: null }
+}
+
+function measureOf(loaded, band) {
+  return { range: stripRange(loaded, band), capHeight: loaded.capHeight, depth: layerDepth(defaultDepth(loaded), loaded.layers, band) }
+}
+
+function stackedRemap(pixels, entry, loaded, layer) {
+  const measures = loaded.layers.map((_, band) => measureOf(loaded, band))
+  const covered = band => layer === null || band === layer
+  const scale = Math.max(...measures.filter((_, band) => covered(band)).map(measure => remapScale(pixels, entry, measure)))
+  const bands = measures.map((measure, band) => covered(band) ? remapStrip(pixels, entry, measure, scale) : { data: null, height: stripRows({}, measure.range, measure.depth).rows * scale })
+  const widths = new Set(bands.filter(band => band.data).map(band => band.width))
+  if (widths.size !== 1) throw new Error(`this strip remaps to different widths on each layer of ${loaded.name ?? "this font"}, so it can't be stacked`)
+  const [width] = widths
+  const line = width * 4
+  const data = new Uint8ClampedArray(line * bands.reduce((sum, band) => sum + band.height, 0))
+  let at = 0
+  for (const band of bands) {
+    if (band.data) data.set(band.data, at * line)
+    at += band.height
+  }
+  return { data, width, height: at }
 }
 
 async function stripFile(item, file, font, fonts) {
-  if (stripTarget(item.target).kind === "font") return file
-  const [{ set, offset }, loaded, image] = await Promise.all([placedSet(item, font, fonts), loadFont(font, fonts), loadImage(file)])
-  const measure = { range: stripRange(loaded), capHeight: loaded.capHeight, depth: defaultDepth(loaded) }
+  if (stripTarget(item.target).kind === "font") return { url: file, layer: null, layers: 1 }
+  const [{ set, offset, layer }, loaded, image] = await Promise.all([placedSet(item, font, fonts), loadFont(font, fonts), loadImage(file)])
   const pixels = { data: pixelsOf(image), width: image.width, height: image.height }
-  return pngUrl(remapStrip(pixels, setEntry(set, offset, item.details.stretch), measure))
+  const entry = setEntry(set, offset, item.details.stretch)
+  if (!(loaded.layers?.length > 1)) return { url: pngUrl(remapStrip(pixels, entry, measureOf(loaded, null))), layer: null, layers: 1 }
+  return { url: pngUrl(stackedRemap(pixels, entry, loaded, layer)), layer, layers: loaded.layers.length }
 }
 
 export async function stripLine(item, file, text, fontId, fonts) {
   const font = fonts.find(entry => entry.id === fontId)
   if (!font) throw new Error(`there is no font called ${fontId}`)
-  return { text, font: font.id, textureSource: "custom", customTexture: await stripFile(item, file, font, fonts), customTextureMode: "strip", customBorder: true, borderColour: item.details.border ?? "#000000", ...fontDefaults(font) }
+  const { url, layer, layers } = await stripFile(item, file, font, fonts)
+  const custom = { textureSource: "custom", customTexture: url, customTextureMode: "strip", customBorder: true, borderColour: item.details.border ?? "#000000" }
+  if (layer === null) return { text, font: font.id, ...custom, ...fontDefaults(font) }
+  return { text, font: font.id, ...(layer === 0 && custom), ...fontDefaults(font), separateTexture: true, layerSettings: Array.from({ length: layers - 1 }, (_, index) => index + 1 === layer ? custom : {}) }
 }
 
 function targetName(item, fonts) {
