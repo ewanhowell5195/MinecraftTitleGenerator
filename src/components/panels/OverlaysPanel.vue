@@ -18,7 +18,7 @@
   const { object, font, list, modified, reset } = usePanel(listKey)
   const shownLayer = layerShown("overlays")
   const layerAbove = computed(() => shownLayer.value === null ? usedLayers.value.length > 1 : usedLayers.value.some(used => used < shownLayer.value))
-  const available = computed(() => Object.fromEntries(Object.entries(list.value?.[listKey] ?? {}).filter(([, data]) => !data.layered || layerAbove.value)))
+  const available = computed(() => Object.fromEntries(Object.entries(list.value?.[listKey] ?? {}).filter(([, data]) => (!data.layered || layerAbove.value) && (!data.layers || shownLayer.value === null || data.layers.includes(shownLayer.value)))))
   const selected = ref(0)
   const defaults = computed(() => defaultOverlays(list.value, object.value, listKey))
   const layers = computed(() => activeOverlays(list.value, object.value, listKey))

@@ -270,7 +270,7 @@ export async function fontThumbnails(entry, scene, textures, load) {
       if (!stripCovers(data, layer, scene.layers?.length ?? 1)) continue
       for (const [name, variant] of [[id, data]].concat(Object.entries(data.variants ?? {}))) drawn.push([prefix + name, await textureThumbnail(own, name, data, variant)])
     }
-    for (const [id, data] of Object.entries(meta.overlays)) if (!data.layered || scene.layers && layer !== 0) drawn.push([prefix + id, compose(background, await overlayThumbnail(own, id, data, flat))])
+    for (const [id, data] of Object.entries(meta.overlays)) if ((!data.layered || scene.layers && layer !== 0) && (!data.layers || layer === null || data.layers.includes(layer))) drawn.push([prefix + id, compose(background, await overlayThumbnail(own, id, data, flat))])
     for (const [id, data] of Object.entries(GENERATED_EDGE_OVERLAYS)) drawn.push([prefix + id, edgeThumbnail(shown, data.generated, background, densityOf(flat))])
   }
 

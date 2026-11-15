@@ -260,7 +260,7 @@ export default {
           continue
         }
         const entry = list.value.overlays[layer.overlay]
-        if (!entry) continue
+        if (!entry || entry.layers && assets.band !== null && !entry.layers.includes(assets.band)) continue
         if (entry.generated) {
           assets.overlays.push({ layer: { ...layer, palette: definitionPalette(entry) }, source: { generated: entry.generated } })
           assets.densities.push(1)
