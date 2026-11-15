@@ -300,18 +300,6 @@
 
   useWindowEvents(() => true, { keydown: key })
 
-  function scopeSiteBar(on) {
-    const scopes = new Set(document.documentElement.dataset.styles.split(" "))
-    if (on) scopes.add("bar")
-    else scopes.delete("bar")
-    document.documentElement.dataset.styles = Array.from(scopes).join(" ")
-  }
-
-  watch(() => presetsPage.fromEditor, fromEditor => scopeSiteBar(!fromEditor), { immediate: true })
-  onBeforeUnmount(() => {
-    if (router.currentRoute.value.meta.name === "app") scopeSiteBar(false)
-  })
-
   watch(tab, value => {
     rememberTab(value)
     search.value = ""

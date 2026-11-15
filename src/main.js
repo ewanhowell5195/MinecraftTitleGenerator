@@ -12,7 +12,6 @@ import "./submissions/submissions.css"
 import "./home/home.css"
 import "./legal/legal.css"
 import "./credits/credits.css"
-import "./site/bar.css"
 
 indexedDB.deleteDatabase("minecraft-title-pictures")
 

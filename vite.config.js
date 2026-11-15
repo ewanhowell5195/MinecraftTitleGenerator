@@ -18,8 +18,7 @@ const STYLE_SCOPES = {
   "src/submissions/submissions.css": "submissions",
   "src/home/home.css": "site",
   "src/legal/legal.css": "site",
-  "src/credits/credits.css": "site",
-  "src/site/bar.css": "bar"
+  "src/credits/credits.css": "site"
 }
 const PRESET_PAGE = /^\/app\/presets(?:\/(\d+))?\/?$/
 const APP_PAGE = /^\/app\/(index\.html)?$/
