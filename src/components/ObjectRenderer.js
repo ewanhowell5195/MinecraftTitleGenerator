@@ -174,30 +174,36 @@ export default {
       twist: object.twistRibbon || object.twistDoor ? { ribbon: { amount: object.twistRibbon, centre: object.twistRibbonCentre / 100, same: object.twistRibbonMirror }, door: { amount: object.twistDoor, centre: object.twistDoorCentre / 100, same: object.twistDoorSame, roll: object.twistDoorRoll } } : null,
       stretch: stretching.value ? effectiveScale(object)[1] : 1,
       terminators: object.terminators,
-      internalFaces: object.internalFaces,
-      internalFade: object.fadeInternal ? object.internalFade / 100 : null,
-      customInternal: object.customInternal,
-      internalColour: object.internalColour,
-      internalBrightness: object.internalBrightness,
-      internalFill: object.internalFill,
-      internalStops: plainStops(object.internalStops),
-      internalSmooth: object.internalSmooth,
-      internalDirection: object.internalDirection,
-      sideFaces: object.sideFaces,
-      sideFade: object.fadeSides ? object.sideFade / 100 : null,
-      customSide: object.customSide,
-      sideColour: object.sideColour,
-      sideBrightness: object.sideBrightness,
-      sideFill: object.sideFill,
-      sideStops: plainStops(object.sideStops),
-      sideSmooth: object.sideSmooth,
-      sideDirection: object.sideDirection,
-      customEdge: object.customEdge,
-      edgeColour: object.edgeColour,
-      edgeFill: object.edgeFill,
-      edgeStops: plainStops(object.edgeStops),
-      edgeSmooth: object.edgeSmooth
+      ...faceOptions(object)
     }))
+
+    function faceOptions(target) {
+      return {
+        internalFaces: target.internalFaces,
+        internalFade: target.fadeInternal ? target.internalFade / 100 : null,
+        customInternal: target.customInternal,
+        internalColour: target.internalColour,
+        internalBrightness: target.internalBrightness,
+        internalFill: target.internalFill,
+        internalStops: plainStops(target.internalStops),
+        internalSmooth: target.internalSmooth,
+        internalDirection: target.internalDirection,
+        sideFaces: target.sideFaces,
+        sideFade: target.fadeSides ? target.sideFade / 100 : null,
+        customSide: target.customSide,
+        sideColour: target.sideColour,
+        sideBrightness: target.sideBrightness,
+        sideFill: target.sideFill,
+        sideStops: plainStops(target.sideStops),
+        sideSmooth: target.sideSmooth,
+        sideDirection: target.sideDirection,
+        customEdge: target.customEdge,
+        edgeColour: target.edgeColour,
+        edgeFill: target.edgeFill,
+        edgeStops: plainStops(target.edgeStops),
+        edgeSmooth: target.edgeSmooth
+      }
+    }
 
     function size() {
       return { height: font.value?.height ?? DEFAULT_HEIGHT, capHeight: font.value?.capHeight ?? DEFAULT_CAP_HEIGHT }
@@ -358,13 +364,14 @@ export default {
     }
 
     function layerOptions() {
-      return painted.value.layers ? targets.value.map(target => ({ options: { customEdge: target.customEdge, edgeColour: target.edgeColour, edgeFill: target.edgeFill, edgeStops: plainStops(target.edgeStops), edgeSmooth: target.edgeSmooth } })) : null
+      return painted.value.layers ? targets.value.map(target => ({ options: faceOptions(target) })) : null
     }
 
     function detailed(options, sheet) {
       const depth = Object.values(sheet.glyphs)[0]?.upHeight ?? 0
-      return Math.max(0, ...(painted.value.layers ?? [painted.value]).map(({ look, assets }) => {
-        const gradient = look.source === "gradient" || look.customEdge && look.edgeFill === "gradient" || options.internalFaces && options.customInternal && options.internalFill === "gradient" || options.sideFaces && options.customSide && options.sideFill === "gradient"
+      return Math.max(0, ...(painted.value.layers ?? [painted.value]).map(({ look, assets }, layer) => {
+        const faces = painted.value.layers ? faceOptions(targets.value[layer]) : options
+        const gradient = look.source === "gradient" || look.customEdge && look.edgeFill === "gradient" || faces.internalFaces && faces.customInternal && faces.internalFill === "gradient" || faces.sideFaces && faces.customSide && faces.sideFill === "gradient"
         if (gradient || assets.overlays.some(({ layer, source }) => SMOOTH_KINDS.has(source.generated) && layer.opacity > 0)) return Infinity
         return look.source === "strip" && depth ? stripDetail(assets.strip, depth) : 0
       }))

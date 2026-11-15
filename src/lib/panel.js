@@ -5,7 +5,7 @@ import { view } from "./view.js"
 
 const font = computed(() => active.value.font)
 const list = computed(() => active.value.list)
-const GROUPS = { texture: "texture", tiling: "texture", overlays: "overlays", edgeOverlays: "overlays", colour: "colour", faces: "faces" }
+const GROUPS = { texture: "texture", tiling: "texture", overlays: "overlays", edgeOverlays: "overlays", colour: "colour", outline: "colour", faces: "colour", inner: "colour", sides: "colour" }
 
 export const usedLayers = computed(() => active.value.built?.layers ?? [0])
 

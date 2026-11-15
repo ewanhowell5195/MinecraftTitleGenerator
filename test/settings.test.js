@@ -134,7 +134,6 @@ const TOP_DEFAULTS = {
   separateTexture: false,
   separateColour: false,
   separateOverlays: false,
-  separateFaces: false,
   layerSettings: [],
   fade: false,
   outerFade: 0,
@@ -777,6 +776,21 @@ describe("separate layers per tab", () => {
     assert.deepEqual(object.overlays.map(item => item.overlay ?? item.source), ["outline", "file"])
     assert.deepEqual(object.layerSettings[0].overlays.map(item => item.overlay ?? item.source), ["outline", "layer_shadow", "extrusion_outline", "file"])
     assert.deepEqual(object.layerSettings[1].overlays.map(item => item.overlay ?? item.source), ["outline", "layer_shadow", "file"])
+  })
+
+  test("the colour switch also splits the outline and every kind of face", () => {
+    const object = createObject({ sideFaces: true, sideColour: "#111111", internalFaces: true, customBorder: true })
+    separateLayers(object, "colour", true, 2)
+    const layer = layerView(object, 1, "colour")
+    layer.sideColour = "#222222"
+    layer.internalFaces = false
+    layer.borderColour = "#333333"
+    layer.edgeColour = "#444444"
+    assert.equal(object.sideColour, "#111111")
+    assert.equal(object.internalFaces, true)
+    assert.equal(object.borderColour, "#000000")
+    assert.equal(object.edgeColour, "#000000")
+    assert.deepEqual([layerTarget(object, 1).sideColour, layerTarget(object, 1).internalFaces, layerTarget(object, 1).borderColour, layerTarget(object, 1).edgeColour], ["#222222", false, "#333333", "#444444"])
   })
 
   test("an overlay fits a layer it's allowed on", () => {

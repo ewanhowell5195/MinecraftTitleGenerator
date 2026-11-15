@@ -211,7 +211,6 @@ const PANELS = {
     separateTexture: false,
     separateColour: false,
     separateOverlays: false,
-    separateFaces: false,
     layerSettings: []
   }),
   faces: () => ({
@@ -231,11 +230,10 @@ export const LINE = new Set(["font", "customFont", "terminators", "type", "row",
 export const LAYER_GROUPS = {
   texture: Object.keys(PANELS.texture()),
   overlays: Object.keys(PANELS.overlays()).concat(Object.keys(PANELS.edgeOverlays())),
-  colour: Object.keys(PANELS.colour()),
-  faces: ["customEdge", "edgeColour", "edgeBrightness", "edgeFill", "edgeStops", "edgeSmooth"]
+  colour: Object.keys(PANELS.colour()).concat(Object.keys(PANELS.outline()), Object.keys(PANELS.faces()), Object.keys(PANELS.inner()), Object.keys(PANELS.sides()))
 }
 
-export const SEPARATE_KEYS = { texture: "separateTexture", overlays: "separateOverlays", colour: "separateColour", faces: "separateFaces" }
+export const SEPARATE_KEYS = { texture: "separateTexture", overlays: "separateOverlays", colour: "separateColour" }
 
 export const LAYER_KEYS = Object.values(LAYER_GROUPS).flat()
 

@@ -9,7 +9,6 @@
   import Segments from "../Segments.vue"
   import Slider from "../Slider.vue"
   import Toggle from "../Toggle.vue"
-  import LayerPanel from "./LayerPanel.vue"
 
   const FILLS = [{ value: "solid", label: "Solid" }, { value: "gradient", label: "Gradient" }]
   const DIRECTIONS = [{ value: "up", label: "Up the letters" }, { value: "along", label: "Along the text" }]
@@ -42,7 +41,6 @@
 </script>
 
 <template>
-  <LayerPanel group="faces" />
   <Panel v-for="group of groups" :key="group.name" :title="group.title" :enabled="group.enabled ? group.object.value[group.enabled] : null" @update:enabled="group.object.value[group.enabled] = $event" :modified="group.modified.value" @reset="group.reset">
     <ColourToggle v-model:enabled="group.object.value[group.custom]" v-model:colour="group.object.value[group.colour]" @change="pickDefault(group)">
       <Segments :options="FILLS" :model-value="group.object.value[group.fill]" @update:model-value="pickFill(group, $event)" />
