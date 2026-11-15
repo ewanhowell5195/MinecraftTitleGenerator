@@ -53,6 +53,7 @@
         "id": "minecraft-ten-hollow",
         "name": "Hollow",
         "authors": ["Ewan Howell"],
+        "characterSpacing": -4,
         "terminatorSpace": true,
         "order": "😳abcdefghijklmnopqrstuvwxyz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣ ",
         "editor": { "width": 36, "grid": 4 }
