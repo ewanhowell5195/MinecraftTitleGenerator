@@ -1,9 +1,9 @@
-import { fontFolder, sheetOwner } from "../font.js"
+import { fontFolder, fullOrder, parseMask, sheetOwner } from "../font.js"
 import { GENERATED_EDGE_OVERLAYS, GENERATED_SETTINGS, withGenerated } from "../generated.js"
 import { titleCase } from "../names.js"
 import { MAX_ANCHORS, paletteHexes, paletteOf } from "../overlayColours.js"
 import { decodePng } from "./png.js"
-import { BLEND_OPTIONS, overlayLayer } from "../settings.js"
+import { BLEND_OPTIONS, FACE_PANELS, defaultBorder, overlayFits, overlayLayer } from "../settings.js"
 import { DEFAULT_ROLES, HEX_COLOUR, pngProblem, pngSize, textureDensity } from "../submissions.js"
 
 export function submissionFont(fonts, id) {
@@ -48,8 +48,17 @@ export const DEFAULT_OVERLAY_LIMIT = 8
 const LAYER_KINDS = { overlays: "overlay", edgeOverlays: "edge overlay" }
 const BLEND_VALUES = new Set(BLEND_OPTIONS.map(item => item.value))
 
-export function overlayChoices(list) {
-  return { overlays: Object.fromEntries(Object.entries(withGenerated(list?.overlays ?? {})).filter(([, data]) => !data.layered)), edgeOverlays: GENERATED_EDGE_OVERLAYS }
+export function overlayChoices(list, layer = null, count = 1) {
+  const used = Array.from({ length: count }, (_, index) => index)
+  const fits = data => layer === null ? !data.layered : overlayFits(data, layer, used)
+  return { overlays: Object.fromEntries(Object.entries(withGenerated(list?.overlays ?? {})).filter(([, data]) => fits(data))), edgeOverlays: GENERATED_EDGE_OVERLAYS }
+}
+
+export function fontLayerCount(ctx, font) {
+  return ctx.memo(`layers:${font.id}`, async () => {
+    const image = await decodePng(await ctx.bytes(`/${fontFolder(font)}/font.png`))
+    return parseMask(image.data, image.width, image.height, fullOrder(font, ctx.fonts), defaultBorder("top", font)).layers?.length ?? 1
+  })
 }
 
 function cleanLayer(layer, available) {
@@ -84,21 +93,50 @@ function cleanLayer(layer, available) {
   return clean
 }
 
-function defaultLayers(details, list, problems) {
+function defaultLayers(details, list, problems, count) {
   if (details.overlays === undefined) return {}
-  const choices = overlayChoices(list)
+  const perLayer = details.perLayer === true
   const clean = {}
   for (const [key, noun] of Object.entries(LAYER_KINDS)) {
-    const layers = details[key] ?? []
-    if (!Array.isArray(layers) || layers.length > DEFAULT_OVERLAY_LIMIT) {
-      problems.overlays = `A texture can have up to ${DEFAULT_OVERLAY_LIMIT} default ${noun}s.`
+    const given = details[key] ?? (perLayer ? Array.from({ length: count }, () => []) : [])
+    if (perLayer && (!Array.isArray(given) || given.length !== count)) {
+      problems.overlays = `Give the default ${noun}s for each of the font's ${count} layers.`
       continue
     }
-    const cleaned = layers.map(layer => cleanLayer(layer, choices[key]))
-    if (cleaned.includes(null)) problems.overlays = `One of the default ${noun}s isn't valid. Remove it and add it again.`
-    else if (cleaned.length) clean[key] = cleaned
+    const lists = perLayer ? given : [given]
+    if (lists.some(layers => !Array.isArray(layers) || layers.length > DEFAULT_OVERLAY_LIMIT)) {
+      problems.overlays = `A texture can have up to ${DEFAULT_OVERLAY_LIMIT} default ${noun}s${perLayer ? " on each layer" : ""}.`
+      continue
+    }
+    const cleaned = lists.map((layers, index) => layers.map(layer => cleanLayer(layer, overlayChoices(list, perLayer ? index : null, count)[key])))
+    if (cleaned.some(layers => layers.includes(null))) problems.overlays = `One of the default ${noun}s isn't valid. Remove it and add it again.`
+    else if (cleaned.some(layers => layers.length)) clean[key] = perLayer ? cleaned : cleaned[0]
   }
   if (!problems.overlays && !clean.overlays && !clean.edgeOverlays) problems.overlays = "Add a default overlay, or turn off default overlays."
+  return clean
+}
+
+function defaultColours(details, problems, count) {
+  const perLayer = details.perLayer === true
+  const clean = {}
+  for (const name of FACE_PANELS) {
+    const given = details[name]
+    if (given === undefined) continue
+    const colours = perLayer ? given : [given]
+    if (perLayer && (!Array.isArray(given) || given.length !== count)) problems.colours = `Give the default colours for each of the font's ${count} layers.`
+    else if (colours.some(colour => !(perLayer && colour === null) && !(typeof colour === "string" && HEX_COLOUR.test(colour)))) problems.colours = "The default face colours have to be hex colours like #000000."
+    else if (colours.some(colour => colour !== null)) clean[name] = perLayer ? colours.map(colour => colour?.toLowerCase() ?? null) : given.toLowerCase()
+  }
+  return clean
+}
+
+function textureDefaults(details, list, problems, count) {
+  if (details.perLayer === true && count < 2) {
+    problems.perLayer = "This font only has one layer, so its defaults can't differ by layer."
+    return {}
+  }
+  const clean = { ...defaultLayers(details, list, problems, count), ...defaultColours(details, problems, count) }
+  if (details.perLayer === true && Object.keys(clean).length) clean.perLayer = true
   return clean
 }
 
@@ -132,7 +170,7 @@ function fontAsset(id, label, { border, variants = false }) {
           else clean[role] = true
         }
       }
-      if (variants && font) Object.assign(clean, defaultLayers(details, list, problems))
+      if (variants && font) Object.assign(clean, textureDefaults(details, list, problems, details.perLayer === true ? await fontLayerCount(ctx, font) : 1))
       if (bytes) {
         problems.file = pngProblem(bytes, noun)
         if (!problems.file && font) {

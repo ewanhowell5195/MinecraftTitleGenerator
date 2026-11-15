@@ -12,7 +12,9 @@ const { decodeTitle } = await import("../src/lib/linkformat.js")
 
 const TEXTURES = "public/font/minecraft-ten/textures.json"
 const LEGENDS = "public/font/minecraft-legends/textures.json"
+const WIKI = "public/font/minecraft-wiki/textures.json"
 const FLAT = PNG.sync.read(fs.readFileSync("public/font/minecraft-ten/textures/flat.png"))
+const WIKI_FLAT = PNG.sync.read(fs.readFileSync("public/font/minecraft-wiki/textures/flat.png"))
 
 let gh
 let waiting
@@ -34,8 +36,8 @@ function form(fields = {}, image = pngOf(FLAT.width, FLAT.height)) {
 const send = (cookie, fields, image) => sendForm(cookie, form(fields, image))
 const edit = (cookie, id, fields, image = null) => editForm(cookie, id, form(fields, image))
 
-function branchList(id) {
-  return JSON.parse(gh.filesAt(`submission/${id}`) && Buffer.from(gh.blobs.get(gh.filesAt(`submission/${id}`).get(TEXTURES))).toString())
+function branchList(id, path = TEXTURES) {
+  return JSON.parse(gh.filesAt(`submission/${id}`) && Buffer.from(gh.blobs.get(gh.filesAt(`submission/${id}`).get(path))).toString())
 }
 
 function closed(number, merged, id) {
@@ -43,7 +45,7 @@ function closed(number, merged, id) {
 }
 
 beforeEach(() => {
-  ({ gh, waiting, db, emails, resend, restore } = serverEnv({ files: [TEXTURES, LEGENDS] }))
+  ({ gh, waiting, db, emails, resend, restore } = serverEnv({ files: [TEXTURES, LEGENDS, WIKI] }))
 })
 
 afterEach(() => restore())
@@ -146,6 +148,32 @@ describe("sending a submission", () => {
     assert.match((await send(cookie, { details: layered({ overlays: [] }) })).error, /Add a default overlay/)
     const plain = await send(cookie, { details: layered({}) })
     assert.equal(branchList(plain.id).textures[(await details(plain.id)).asset].overlays, undefined)
+  })
+
+  test("gives a texture default face colours", async () => {
+    const cookie = await signIn()
+    const { status, id } = await send(cookie, { details: JSON.stringify({ border: "#3D1F0A", sides: "#575757", inner: "#3F3F3F" }) })
+    assert.equal(status, 201)
+    const entry = branchList(id).textures.gold_bricks
+    assert.equal(entry.sides, "#575757")
+    assert.equal(entry.inner, "#3f3f3f")
+    assert.equal(entry.faces, undefined)
+    assert.match((await send(cookie, { details: JSON.stringify({ border: "#3D1F0A", sides: "red" }) })).error, /hex colours/)
+  })
+
+  test("gives each layer of a layered font its own defaults when asked to", async () => {
+    const cookie = await signIn()
+    const image = pngOf(WIKI_FLAT.width, WIKI_FLAT.height)
+    const perLayer = fields => JSON.stringify({ border: "#000000", perLayer: true, ...fields })
+    const overlays = [[{ overlay: "two_tone_outline", thickness: 0.5 }], [{ overlay: "extrusion_outline", colours: ["#1a1a1a"] }]]
+    const { status, id } = await send(cookie, { font: "minecraft-wiki", details: perLayer({ overlays, sides: ["#575757", null] }) }, image)
+    assert.equal(status, 201)
+    const entry = branchList(id, WIKI).textures.gold_bricks
+    assert.deepEqual(entry.overlays, [[{ overlay: "two_tone_outline", thickness: 0.5 }], [{ overlay: "extrusion_outline", colours: ["#1a1a1a"] }]])
+    assert.deepEqual(entry.sides, ["#575757", null])
+    assert.match((await send(cookie, { font: "minecraft-wiki", details: perLayer({ overlays: [[{ overlay: "extrusion_outline" }], []] }) }, image)).error, /default overlays isn't valid/)
+    assert.match((await send(cookie, { font: "minecraft-wiki", details: perLayer({ sides: ["#575757"] }) }, image)).error, /each of the font's 2 layers/)
+    assert.match((await send(cookie, { details: perLayer({ sides: ["#575757", "#242424"] }) })).error, /only has one layer/)
   })
 
   test("puts overlays in the overlays section and folder, without a border", async () => {

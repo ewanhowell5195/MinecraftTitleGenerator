@@ -2,8 +2,8 @@ import { fontFolder, fullName } from "../../lib/font.js"
 import { GENERATED_EDGE_OVERLAYS, GENERATED_SETTINGS, withGenerated } from "../../lib/generated.js"
 import { jsonText } from "../../lib/jsonText.js"
 import { titleCase } from "../../lib/names.js"
-import { overlayLayer } from "../../lib/settings.js"
-import { overlayChoices, textureName } from "../../lib/submissionKinds/fontAsset.js"
+import { FACE_PANELS, overlayLayer } from "../../lib/settings.js"
+import { textureName } from "../../lib/submissionKinds/fontAsset.js"
 import { DEFAULT_ROLES, assetId } from "../../lib/submissions.js"
 
 const SECTIONS = { texture: "textures", overlay: "overlays" }
@@ -55,8 +55,12 @@ function fontAsset(kind) {
         ...(kind === "texture" && { border: details.border }),
         ...(kind === "overlay" && details.palette && { palette: details.palette })
       }
-      const choices = overlayChoices(list)
-      for (const key of ["overlays", "edgeOverlays"]) if (kind === "texture" && details[key]?.length) entry[key] = storedLayers(details[key], choices[key])
+      const choices = { overlays: withGenerated(list.overlays ?? {}), edgeOverlays: GENERATED_EDGE_OVERLAYS }
+      for (const key of ["overlays", "edgeOverlays"]) {
+        if (kind !== "texture" || !details[key]?.length) continue
+        entry[key] = details.perLayer ? details[key].map(layers => storedLayers(layers, choices[key])) : storedLayers(details[key], choices[key])
+      }
+      for (const name of FACE_PANELS) if (kind === "texture" && details[name] !== undefined) entry[name] = details[name]
       if (parent) list.textures = { ...list.textures, [details.variantOf]: { ...parent, variants: { ...parent.variants, [asset]: entry } } }
       else list[section] = { ...list[section], [asset]: entry }
       for (const role of DEFAULT_ROLES.filter(role => kind === "texture" && !parent && details[role])) {

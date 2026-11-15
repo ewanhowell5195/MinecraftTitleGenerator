@@ -461,7 +461,7 @@ export function activeOverlays(list, object, kind, layer = 0) {
   return object[OVERLAY_KINDS[kind]] === "custom" ? object[kind] : defaultOverlays(list, object, kind, layer)
 }
 
-const FACE_COLOURS = {
+export const FACE_COLOURS = {
   faces: { custom: "customEdge", colour: "edgeColour" },
   inner: { custom: "customInternal", colour: "internalColour" },
   sides: { custom: "customSide", colour: "sideColour" }
