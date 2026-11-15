@@ -3,7 +3,7 @@ import { clamp } from "./maths.js"
 
 const SIDES = { top: [0, 1], bottom: [0, -1], left: [-1, 0], right: [1, 0] }
 
-const highlight = { key: "thickness", label: "Highlight thickness", min: 1, max: 8, fallback: 1 }
+const highlight = { key: "thickness", label: "Highlight thickness", min: 0.25, max: 8, steps: [0.25, 0.5, 1, 2, 3, 4, 5, 6, 7, 8], fallback: 1 }
 const outline = { ...highlight, label: "Outline thickness" }
 const fade = { key: "fade", label: "Fade", min: 0, max: 100, fallback: 80 }
 const seed = { key: "seed", label: "Seed", min: 0, max: 99, fallback: 0 }
@@ -539,13 +539,40 @@ function finePixels(glyph, fine, kind, settings, scale) {
   return upscale(pixels(detailed, kind, scaled), detailed.width, detailed.height, 1, true)
 }
 
+function joinPad(settings) {
+  return Math.ceil((settings.thickness ?? 0) + (settings.inset ?? 0) + (settings.size ?? 0)) + 1
+}
+
 function joinedPixels(glyph, kind, settings) {
-  const pad = Math.ceil((settings.thickness ?? 0) + (settings.inset ?? 0) + (settings.size ?? 0)) + 1
+  const pad = joinPad(settings)
   const joined = joinedMask(glyph, pad)
   if (!joined) return pixels(glyph, kind, settings)
   const full = pixels(joined, kind, settings)
   const out = new Float32Array(glyph.width * glyph.height)
   for (let row = 0; row < glyph.height; row++) out.set(full.subarray((row + pad) * joined.width + pad, (row + pad) * joined.width + pad + glyph.width), row * glyph.width)
+  return out
+}
+
+function blocks(glyph, scale) {
+  const columns = glyph.width * scale
+  const mask = new Uint8Array(columns * glyph.height * scale)
+  for (let y = 0; y < glyph.height * scale; y++) {
+    for (let x = 0; x < columns; x++) mask[y * columns + x] = glyph.mask[Math.floor(y / scale) * glyph.width + Math.floor(x / scale)]
+  }
+  return mask
+}
+
+function blockPixels(glyph, kind, settings, scale) {
+  const pad = joinPad(settings)
+  const joined = joinedMask(glyph, pad)
+  const source = joined ?? glyph
+  const full = finePixels(source, blocks(source, scale), kind, settings, scale)
+  if (!joined) return full
+  const columns = glyph.width * scale
+  const wide = source.width * scale
+  const offset = pad * scale
+  const out = new Float32Array(columns * glyph.height * scale)
+  for (let row = 0; row < glyph.height * scale; row++) out.set(full.subarray((row + offset) * wide + offset, (row + offset) * wide + offset + columns), row * columns)
   return out
 }
 
@@ -783,6 +810,7 @@ export function generatedAlpha(glyph, kind, layer, capHeight, scale, soft = fals
   if (kind === "wave" || kind === "wave_inverted") return waveFill(glyph, kind, settings, scale, fine)
   if (kind === "cracks") return crackFaces(glyph, layer, scale, fine, soft)
   if (fine && kind !== "corners") return finePixels(glyph, fine, kind, settings, scale)
+  if (!Number.isInteger(settings.thickness ?? 1)) return blockPixels(glyph, kind, settings, scale)
   const alpha = upscale(joinedPixels(glyph, kind, settings), glyph.width, glyph.height, scale, true)
   if (fine) {
     const columns = glyph.width * scale
@@ -848,19 +876,22 @@ export function edgeAlpha(glyph, side, kind, layer, depth, scale, soft = false) 
   const settings = settingsOf(kind, layer)
   if (kind === "edge_rounded") return rounded(glyph, side, settings.radius, depth, scale)
   const { thickness } = settings
-  const { width } = glyph
-  const own = new Float32Array(width * depth)
+  const columns = glyph.width * scale
+  const rows = depth * scale
+  const out = new Float32Array(columns * rows)
   for (const [start, end, leftJoined, rightJoined] of edgeRuns(glyph, side)) {
-    for (let d = 0; d < depth; d++) {
-      const strength = kind === "edge_outline_fade" ? d / Math.max(1, depth - 1) : 1
-      const y = side === "up" ? depth - 1 - d : d
+    for (let sd = 0; sd < rows; sd++) {
+      const d = (sd + 0.5) / scale
+      const strength = kind === "edge_outline_fade" ? Math.floor(d) / Math.max(1, depth - 1) : 1
+      const sy = side === "up" ? rows - 1 - sd : sd
       const far = d >= depth - thickness && kind !== "edge_front"
       const front = d < thickness && (kind === "edge_outline" || kind === "edge_front")
-      for (let x = start; x <= end; x++) {
-        const atEnd = (x - start < thickness && !leftJoined || end - x < thickness && !rightJoined) && kind !== "edge_front"
-        if (far || front || atEnd) own[y * width + x] = strength
+      for (let sx = start * scale; sx < (end + 1) * scale; sx++) {
+        const x = (sx + 0.5) / scale
+        const atEnd = (x - start < thickness && !leftJoined || end + 1 - x < thickness && !rightJoined) && kind !== "edge_front"
+        if (far || front || atEnd) out[sy * columns + sx] = strength
       }
     }
   }
-  return upscale(own, width, depth, scale, false)
+  return out
 }
