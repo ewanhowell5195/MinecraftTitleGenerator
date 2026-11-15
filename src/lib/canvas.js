@@ -48,6 +48,31 @@ export function canvasLimit() {
   return largest
 }
 
+export const TEXTURE_CEILING = 8192
+let textureSide = 0
+
+function drawsAt(size) {
+  try {
+    const { canvas, ctx } = canvasOf(size, size)
+    ctx.fillRect(size - 1, size - 1, 1, 1)
+    const drawn = ctx.getImageData(size - 1, size - 1, 1, 1).data[3] === 255
+    canvas.width = 0
+    canvas.height = 0
+    return drawn
+  } catch {
+    return false
+  }
+}
+
+export function largestTexture(gpu, draws) {
+  return [TEXTURE_CEILING, 4096, 2048].find(size => size <= (gpu || TEXTURE_CEILING) && draws(size)) ?? 2048
+}
+
+export function textureLimit() {
+  textureSide ||= largestTexture(platform.maxTextureSize(), drawsAt)
+  return textureSide
+}
+
 export function pixelsOf(image) {
   const { ctx } = surface(image.width, image.height, { willReadFrequently: true })
   ctx.drawImage(image, 0, 0)
