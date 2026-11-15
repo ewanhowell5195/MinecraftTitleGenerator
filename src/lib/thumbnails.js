@@ -68,7 +68,7 @@ export function drawStrip(image, placed, d, { image: strip, density, top, tiling
   }
 }
 
-export function drawLayer(image, placed, d, layer, { alphaOf = null, texel = null }) {
+export function drawLayer(image, placed, d, layer, { tonesOf = null, texel = null }) {
   const anchors = layer.palette ?? [WHITE]
   const colours = chosenColours(layer, anchors)
   const cache = new Map()
@@ -82,17 +82,19 @@ export function drawLayer(image, placed, d, layer, { alphaOf = null, texel = nul
 
   for (const item of placed) {
     const { glyph, x, y } = item
-    const alpha = alphaOf?.(item)
+    const tones = tonesOf?.(item)
     const at = texel?.at(item)
     for (let py = 0; py < glyph.height * d; py++) {
       for (let px = 0; px < glyph.width * d; px++) {
         const k = at?.(px, py)
-        const coverage = texel ? texel.data[k + 3] / 255 : alpha[py * glyph.width * d + px]
+        const index = py * glyph.width * d + px
+        const tone = texel ? 0 : Math.max(0, tones.findIndex(alpha => alpha[index]))
+        const coverage = texel ? texel.data[k + 3] / 255 : tones[tone][index]
         const strength = keptAt(glyph, glyph.height - 1 - Math.floor(py / d), (px + 0.5) / d) ? coverage * layer.opacity / 100 : 0
         const i = ((y * d + py) * image.width + x * d + px) * 4
         if (!strength || !image.data[i + 3]) continue
         const base = [image.data[i], image.data[i + 1], image.data[i + 2]]
-        const mixed = blend(layer.blend, base, coloured(texel ? [texel.data[k], texel.data[k + 1], texel.data[k + 2]] : WHITE))
+        const mixed = blend(layer.blend, base, coloured(texel ? [texel.data[k], texel.data[k + 1], texel.data[k + 2]] : anchors[tone]))
         for (let c = 0; c < 3; c++) image.data[i + c] = Math.round(base[c] + (mixed[c] - base[c]) * strength)
       }
     }

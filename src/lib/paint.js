@@ -1,6 +1,6 @@
 import { fadeStops, fillPattern, linearGradient, surface } from "./canvas.js"
 import { hexOf, packed } from "./colour.js"
-import { PLACED_KINDS, SMOOTH_KINDS, WRAPPED_KINDS, crackList, crackTriangle, crackWrap, edgeAlpha, generatedAlpha, shadowQualityName, wrapTriangles } from "./generated.js"
+import { PLACED_KINDS, SMOOTH_KINDS, WRAPPED_KINDS, crackList, crackTriangle, crackWrap, edgeAlpha, generatedAlpha, shadowQualityName, toneKinds, wrapTriangles } from "./generated.js"
 import { layerLeft, layerMask } from "./flatSheet.js"
 import { joinNeighbours } from "./joins.js"
 import { gradientLine, gradientStops } from "./material.js"
@@ -309,16 +309,22 @@ function stretchRow(ctx, strip, origin, row, rect) {
   fillRect(ctx, rect)
 }
 
-function putAlpha(ctx, alpha, width, height, x, y, scale) {
+function putAlpha(ctx, tones, palette, width, height, x, y, scale) {
   const image = ctx.createImageData(width * scale, height * scale)
   image.data.fill(255)
-  for (let index = 0; index < alpha.length; index++) image.data[index * 4 + 3] = Math.round(alpha[index] * 255)
+  for (const [tone, alpha] of tones.entries()) {
+    for (let index = 0; index < alpha.length; index++) {
+      if (tone && !alpha[index]) continue
+      if (tones.length > 1) image.data.set(palette[tone], index * 4)
+      image.data[index * 4 + 3] = Math.round(alpha[index] * 255)
+    }
+  }
   ctx.putImageData(image, x * scale, y * scale)
 }
 
 function generate(ctx, entries, kind, layer, capHeight, scale) {
   for (const { glyph, x, top } of entries) {
-    if (glyph.width && glyph.height) putAlpha(ctx, generatedAlpha(glyph, kind, layer, capHeight, scale, scale > R), glyph.width, glyph.height, x, top, scale)
+    if (glyph.width && glyph.height) putAlpha(ctx, toneKinds(kind).map(tone => generatedAlpha(glyph, tone, layer, capHeight, scale, scale > R)), layer.palette ?? [WHITE], glyph.width, glyph.height, x, top, scale)
   }
 }
 
@@ -326,7 +332,7 @@ function generateEdges(ctx, entries, kind, layer, scale) {
   for (const entry of entries) {
     if (!entry.glyph.width || !entry.glyph.height) continue
     for (const [side, y, depth] of [["up", entry.up, entry.upHeight], ["down", entry.down, entry.downHeight]]) {
-      if (depth) putAlpha(ctx, edgeAlpha(entry.glyph, side, kind, layer, depth, scale, scale > R), entry.glyph.width, depth, entry.x, y, scale)
+      if (depth) putAlpha(ctx, [edgeAlpha(entry.glyph, side, kind, layer, depth, scale, scale > R)], [WHITE], entry.glyph.width, depth, entry.x, y, scale)
     }
   }
 }

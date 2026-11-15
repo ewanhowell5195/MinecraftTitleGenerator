@@ -2,10 +2,10 @@ import { stripLayout, stripRange } from "./assets.js"
 import { rgbOf } from "./colour.js"
 import { expandBands, layerLeft, layerMask } from "./flatSheet.js"
 import { sheetLayout, solidMask } from "./font.js"
-import { GENERATED_EDGE_OVERLAYS, SMOOTH_KINDS, edgeAlpha, generatedAlpha, withGenerated } from "./generated.js"
+import { GENERATED_EDGE_OVERLAYS, SMOOTH_KINDS, edgeAlpha, generatedAlpha, toneKinds, withGenerated } from "./generated.js"
 import { joinNeighbours, keptAt } from "./joins.js"
 import { layout } from "./layout.js"
-import { definitionPalette } from "./overlayColours.js"
+import { WHITE, definitionPalette } from "./overlayColours.js"
 import { defaultBorder, overlayLayer } from "./settings.js"
 import { bandEntry, stripCovers } from "./strips.js"
 import { MARGIN, drawLayer, drawRing, drawStrip, over, sceneFrame } from "./thumbnails.js"
@@ -65,20 +65,22 @@ function depthAlpha(scene, index, scale, alphaOf) {
   return out
 }
 
-function drawGenerated(image, scene, { density: d, generated }) {
+function drawGenerated(image, scene, { density: d, generated, palette = [WHITE] }) {
   const { placed, capHeight } = scene
   const fine = SMOOTH_KINDS.has(generated) ? SUPERSAMPLE : 1
   for (const [index, { glyph, x, y }] of placed.entries()) {
-    const alpha = depthAlpha(scene, index, d * fine, own => generatedAlpha(own, generated, {}, capHeight, d * fine, fine > 1))
     const columns = glyph.width * d * fine
-    for (let py = 0; py < glyph.height * d; py++) {
-      for (let px = 0; px < glyph.width * d; px++) {
-        if (!keptAt(glyph, glyph.height - 1 - Math.floor(py / d), (px + 0.5) / d)) continue
-        let sum = 0
-        for (let j = 0; j < fine; j++) {
-          for (let i = 0; i < fine; i++) sum += alpha[(py * fine + j) * columns + px * fine + i]
+    for (const [tone, kind] of toneKinds(generated).entries()) {
+      const alpha = depthAlpha(scene, index, d * fine, own => generatedAlpha(own, kind, {}, capHeight, d * fine, fine > 1))
+      for (let py = 0; py < glyph.height * d; py++) {
+        for (let px = 0; px < glyph.width * d; px++) {
+          if (!keptAt(glyph, glyph.height - 1 - Math.floor(py / d), (px + 0.5) / d)) continue
+          let sum = 0
+          for (let j = 0; j < fine; j++) {
+            for (let i = 0; i < fine; i++) sum += alpha[(py * fine + j) * columns + px * fine + i]
+          }
+          over(image, x * d + px, y * d + py, palette[tone].concat(Math.round(sum / (fine * fine) * 255)))
         }
-        over(image, x * d + px, y * d + py, [255, 255, 255, Math.round(sum / (fine * fine) * 255)])
       }
     }
   }
@@ -86,7 +88,7 @@ function drawGenerated(image, scene, { density: d, generated }) {
 
 function layerSource(scene, { kind, image, layer }, { density: d, width }) {
   const { layouts, capHeight, bands } = scene
-  if (!image) return { alphaOf: item => depthAlpha(scene, scene.placed.indexOf(item), d, own => generatedAlpha(own, kind, layer, capHeight, d)) }
+  if (!image) return { tonesOf: item => toneKinds(kind).map(tone => depthAlpha(scene, scene.placed.indexOf(item), d, own => generatedAlpha(own, tone, layer, capHeight, d))) }
   const scale = image.width / width
   function at({ glyph }) {
     const { x: sx, top: sy } = layouts.get(glyph)
@@ -221,7 +223,7 @@ async function textureThumbnail({ entry, scene, meta, sheet, width, densityOf },
 }
 
 async function overlayThumbnail({ scene, sheet, width, densityOf }, id, data, flat) {
-  if (data.generated) return render(scene, blankImage(flat.width, flat.height), { density: densityOf(flat), border: [0, 0, 0, 0], width, generated: data.generated })
+  if (data.generated) return render(scene, blankImage(flat.width, flat.height), { density: densityOf(flat), border: [0, 0, 0, 0], width, generated: data.generated, palette: definitionPalette(data) })
   const image = await sheet("overlays", id)
   return render(scene, image, { density: densityOf(image), border: [0, 0, 0, 0], width })
 }

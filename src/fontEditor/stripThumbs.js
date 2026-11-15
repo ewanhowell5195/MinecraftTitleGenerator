@@ -2,8 +2,9 @@ import { pixelsOf } from "../lib/canvas.js"
 import { parsedSheet } from "../lib/fontEditor.js"
 import { rgbOf } from "../lib/colour.js"
 import { fontScene, layerScene, opaque, render, sceneStrip } from "../lib/fontThumbnails.js"
-import { generatedAlpha, withGenerated } from "../lib/generated.js"
+import { generatedAlpha, toneKinds, withGenerated } from "../lib/generated.js"
 import { clamp } from "../lib/maths.js"
+import { definitionPalette } from "../lib/overlayColours.js"
 import { defaultBorder, defaultDepth, overlayLayer } from "../lib/settings.js"
 import { MISSING, stripHasRow, stripY } from "../lib/strips.js"
 import { MARGIN, drawLayer, over } from "../lib/thumbnails.js"
@@ -57,8 +58,8 @@ function drawOverlays(target, scene, entry, d) {
   for (const layer of entry.overlays ?? []) {
     const known = OVERLAYS[layer.overlay]
     if (!known?.generated) continue
-    const settings = { ...overlayLayer(layer.overlay, known), ...layer }
-    drawLayer(target, scene.placed, d, settings, { alphaOf: ({ glyph, x }) => generatedAlpha({ ...glyph, placedX: x, fine: fineOf(scene, glyph) }, known.generated, settings, scene.capHeight, d) })
+    const settings = { ...overlayLayer(layer.overlay, known), ...layer, palette: definitionPalette(known) }
+    drawLayer(target, scene.placed, d, settings, { tonesOf: ({ glyph, x }) => toneKinds(known.generated).map(tone => generatedAlpha({ ...glyph, placedX: x, fine: fineOf(scene, glyph) }, tone, settings, scene.capHeight, d)) })
   }
 }
 

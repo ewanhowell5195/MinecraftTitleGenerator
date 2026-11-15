@@ -11,6 +11,8 @@ const bandOffset = { key: "offset", label: "Offset", min: 0, max: 63, fallback: 
 const angle = { key: "angle", label: "Angle", min: 0, max: 180, fallback: 45 }
 const wave = [{ key: "level", label: "Level", min: 0, max: 100, fallback: 45 }, { key: "amplitude", label: "Wave height", min: 0, max: 24, fallback: 7 }, { key: "length", label: "Wave length", min: 8, max: 160, fallback: 40 }, { key: "offset", label: "Offset", min: 0, max: 200, fallback: 0 }, { key: "randomness", label: "Randomness", min: 0, max: 100, fallback: 60 }, seed]
 const cracks = [{ key: "amount", label: "Amount", min: 1, max: 100, fallback: 30 }, { key: "length", label: "Length", min: 1, max: 24, fallback: 5 }, { key: "width", label: "Width", min: 1, max: 6, step: 0.25, fallback: 2 }, seed]
+const twoTone = [{ key: "inset", label: "Inset", min: 0, max: 8, fallback: 0 }, outline]
+const TONES = { two_tone_outline: ["two_tone_outline_light", "two_tone_outline_dark"] }
 const CRACK_SPACING = 1800
 const CRACK_BLEND = 0.5
 const CRACK_CORNER = 2
@@ -37,6 +39,9 @@ export const GENERATED_SETTINGS = {
   outline: [{ key: "inset", label: "Inset", min: 0, max: 8, fallback: 0 }, outline],
   outline_fade: [outline, { key: "spread", label: "Fade height", min: 10, max: 100, fallback: 60 }],
   outline_fade_inverted: [outline, { key: "spread", label: "Fade height", min: 10, max: 100, fallback: 75 }],
+  two_tone_outline: twoTone,
+  two_tone_outline_light: twoTone,
+  two_tone_outline_dark: twoTone,
   corners: [{ key: "size", label: "Dot size", min: 1, max: 8, fallback: 2 }, { key: "inset", label: "Inset", min: 0, max: 8, fallback: 1 }],
   shine: [{ key: "width", label: "Band width", min: 1, max: 32, fallback: 11 }, { key: "gap", label: "Band gap", min: 1, max: 32, fallback: 12 }, angle, bandOffset, fade],
   shine_random: [{ key: "width", label: "Band width", min: 1, max: 32, fallback: 6 }, { key: "gap", label: "Band gap", min: 1, max: 32, fallback: 11 }, { key: "randomness", label: "Randomness", min: 0, max: 100, fallback: 75 }, seed, angle, bandOffset, fade],
@@ -67,6 +72,7 @@ const GENERATED_OVERLAYS = {
   outline: { generated: "outline", default: { blend: "source-over", opacity: 50 } },
   outline_fade: { generated: "outline_fade", default: { blend: "source-over", opacity: 50 } },
   outline_fade_inverted: { generated: "outline_fade_inverted", name: "Outline Fade (Inverted)", default: { blend: "source-over", opacity: 50 } },
+  two_tone_outline: { generated: "two_tone_outline", name: "Two-Tone Outline", palette: ["#ffffff", "#000000"] },
   corner_dots: { generated: "corners" },
   shine: { generated: "shine" },
   shine_random: { generated: "shine_random", name: "Shine (Random)" },
@@ -82,6 +88,10 @@ export function withGenerated(overlays) {
 
 export function generatedSetting(layer, item) {
   return layer[item.key] ?? item.fallback
+}
+
+export function toneKinds(kind) {
+  return TONES[kind] ?? [kind]
 }
 
 function settingsOf(kind, layer) {
@@ -148,6 +158,34 @@ function randomBands(from, to, settings) {
   return list
 }
 
+function twoTonePixels(glyph, kind, settings) {
+  const { width, height, mask } = glyph
+  const out = new Float32Array(width * height)
+  const at = (i, j) => i >= 0 && j >= 0 && i < width && j < height && mask[j * width + i] === 1
+  const from = settings.inset + 1
+  const reach = settings.inset + Math.ceil(settings.thickness)
+  const dist = distances(mask, width, height)
+  function ray(i, j, dx, dy) {
+    for (let step = 1; step <= reach; step++) if (!at(i + dx * step, j + dy * step)) return true
+    return false
+  }
+  function corner(i, j, radius) {
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) if ((dy > 0 || dx < 0) && !at(i + dx, j + dy)) return true
+    }
+    return false
+  }
+  for (let j = 0; j < height; j++) {
+    for (let i = 0; i < width; i++) {
+      const own = dist[j * width + i]
+      if (own < from || own >= from + settings.thickness) continue
+      const light = ray(i, j, 0, 1) || ray(i, j, -1, 0) || !ray(i, j, 0, -1) && !ray(i, j, 1, 0) && corner(i, j, own)
+      out[j * width + i] = kind === "two_tone_outline" || light === (kind === "two_tone_outline_light") ? 1 : 0
+    }
+  }
+  return out
+}
+
 function pixels(glyph, kind, settings) {
   const { width, height, mask } = glyph
   const out = new Float32Array(width * height)
@@ -191,6 +229,7 @@ function pixels(glyph, kind, settings) {
     }
     return out
   }
+  if (kind === "two_tone_outline" || TONES.two_tone_outline.includes(kind)) return twoTonePixels(glyph, kind, settings)
   const from = settings.inset + 1
   const dist = distances(mask, width, height)
   for (let index = 0; index < out.length; index++) out[index] = dist[index] >= from && dist[index] < from + thickness ? 1 : 0

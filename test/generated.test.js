@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { GENERATED_EDGE_OVERLAYS, GENERATED_SETTINGS, PLACED_KINDS, crackList, crackTriangle, crackWrap, edgeAlpha, generatedAlpha, generatedSetting, withFinalShadows, withGenerated } from "../src/lib/generated.js"
+import { GENERATED_EDGE_OVERLAYS, GENERATED_SETTINGS, PLACED_KINDS, crackList, crackTriangle, crackWrap, edgeAlpha, generatedAlpha, generatedSetting, toneKinds, withFinalShadows, withGenerated } from "../src/lib/generated.js"
 
 function glyphOf(rows, extra = {}) {
   const height = rows.length
@@ -165,6 +165,51 @@ describe("outline", () => {
   test("a hole gets its own ring including diagonals", () => {
     const glyph = glyphOf(["1111111", "1111111", "1111111", "1110111", "1111111", "1111111", "1111111"])
     assert.deepEqual(picture(generatedAlpha(glyph, "outline", {}, 7, 1), 7), ["1111111", "1000001", "1011101", "1010101", "1011101", "1000001", "1111111"])
+  })
+})
+
+describe("two-tone outline", () => {
+  function toned(glyph, layer, columns) {
+    const [light, dark] = toneKinds("two_tone_outline").map(kind => picture(generatedAlpha(glyph, kind, layer, glyph.height, 1), columns))
+    return light.map((row, y) => Array.from(row, (value, x) => value === "1" ? dark[y][x] === "1" ? "?" : "L" : dark[y][x] === "1" ? "D" : "0").join(""))
+  }
+
+  test("is built in with white and black colours and the default layer settings", () => {
+    const overlay = withGenerated({}).two_tone_outline
+    assert.equal(overlay.name, "Two-Tone Outline")
+    assert.deepEqual(overlay.palette, ["#ffffff", "#000000"])
+    assert.equal(overlay.default, undefined)
+  })
+
+  test("splits into a light and a dark tone", () => {
+    assert.deepEqual(toneKinds("two_tone_outline"), ["two_tone_outline_light", "two_tone_outline_dark"])
+    assert.deepEqual(toneKinds("outline"), ["outline"])
+  })
+
+  test("lights the top and left sides and darkens the bottom and right, with the top and left winning the corners", () => {
+    assert.deepEqual(toned(solid(5, 5), {}, 5), ["LLLLL", "L000D", "L000D", "L000D", "LDDDD"])
+  })
+
+  test("covers the same ring as the plain outline", () => {
+    const glyph = glyphOf(["111000", "111000", "111000", "111111", "111111", "111111"])
+    for (const layer of [{}, { thickness: 2 }, { inset: 1 }]) assert.deepEqual(picture(generatedAlpha(glyph, "two_tone_outline", layer, 6, 1), 6), picture(generatedAlpha(glyph, "outline", layer, 6, 1), 6))
+  })
+
+  test("thickness widens each side and the overlapping corners stay light", () => {
+    assert.deepEqual(toned(solid(5, 5), { thickness: 2 }, 5), ["LLLLL", "LLLLL", "LL0DD", "LLDDD", "LLDDD"])
+  })
+
+  test("inset moves the ring inward", () => {
+    assert.deepEqual(toned(solid(5, 5), { inset: 1 }, 5), ["00000", "0LLL0", "0L0D0", "0LDD0", "00000"])
+  })
+
+  test("an inner corner counts as top", () => {
+    assert.deepEqual(toned(glyphOf(["111000", "111000", "111000", "111111", "111111", "111111"]), {}, 6), ["LLL000", "L0D000", "L0D000", "L0LLLL", "L0000D", "LDDDDD"])
+  })
+
+  test("a hole is shaded the other way round", () => {
+    const glyph = glyphOf(["1111111", "1111111", "1111111", "1110111", "1111111", "1111111", "1111111"])
+    assert.deepEqual(toned(glyph, {}, 7), ["LLLLLLL", "L00000D", "L0DDL0D", "L0D0L0D", "L0LLL0D", "L00000D", "LDDDDDD"])
   })
 })
 

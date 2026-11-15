@@ -262,7 +262,7 @@ export default {
         const entry = list.value.overlays[layer.overlay]
         if (!entry) continue
         if (entry.generated) {
-          assets.overlays.push({ layer, source: { generated: entry.generated } })
+          assets.overlays.push({ layer: { ...layer, palette: definitionPalette(entry) }, source: { generated: entry.generated } })
           assets.densities.push(1)
         } else {
           assets.overlays.push({ layer: { ...layer, palette: definitionPalette(entry) }, source: sheetImage(`overlays/${layer.overlay}.png`) })
