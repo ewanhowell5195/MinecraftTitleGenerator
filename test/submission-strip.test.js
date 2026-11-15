@@ -231,6 +231,18 @@ describe("sending a strip", () => {
     assert.match((await send(cookie, { name: "Lost", details: { variantOf: "smooth_inverted" } })).error, /Pick the strip this is a variant of/)
   })
 
+  test("keeps its snap, and a variant only says so where it snaps differently from its strip", async () => {
+    const cookie = await signIn()
+    const { id } = await send(cookie, { details: { snap: 2 } }, png(16, 46))
+    assert.deepEqual(branchJson(id, SET).textures.pale_dawn, { type: "strip", authors: ["Someone"], border: "#3d1f0a", snap: 2 })
+    assert.equal((await details(id)).details.snap, 2)
+    const same = await send(cookie, { name: "Same", details: { variantOf: "bricks", snap: 4 } }, png(16, 46))
+    assert.deepEqual(branchJson(same.id, SET).textures.bricks.variants.same, { authors: ["Someone"], border: "#3d1f0a" })
+    const plain = await send(cookie, { name: "Plain", details: { variantOf: "bricks" } }, png(16, 46))
+    assert.deepEqual(branchJson(plain.id, SET).textures.bricks.variants.plain, { authors: ["Someone"], border: "#3d1f0a" })
+    assert.match((await send(cookie, { name: "Odd", details: { snap: 1.5 } }, png(16, 46))).error, /snap has to be a whole number/)
+  })
+
   test("a font's own strip takes variants, and its other textures don't", async () => {
     const cookie = await signIn()
     const main = onMain("public/font/minecraft-five/textures.json")

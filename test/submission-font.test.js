@@ -199,16 +199,18 @@ describe("checking a font", () => {
   })
 
   test("bundled textures, overlays and strips are checked against the font's template", async () => {
-    const extras = [{ key: "a", kind: "texture", name: "Gold", border: "#AABBCC" }, { key: "b", kind: "overlay", name: "Sparkle", border: "#000000" }, { key: "c", kind: "strip", name: "Stripes", border: "#000000", credit: ["Someone Else", " someone  else ", "Friend"] }]
+    const extras = [{ key: "a", kind: "texture", name: "Gold", border: "#AABBCC" }, { key: "b", kind: "overlay", name: "Sparkle", border: "#000000" }, { key: "c", kind: "strip", name: "Stripes", border: "#000000", snap: 4, credit: ["Someone Else", " someone  else ", "Friend"] }]
     const files = { a: plainPng(566 * 2, 356 * 2), b: plainPng(566, 356), c: plainPng(1, 92 * 4) }
     const { problems, details } = await check({ bytes: f8thful, details: { id: "x", extras, files: { forged: "abc" } }, files })
     assert.deepEqual(Object.values(problems).filter(Boolean), [])
-    assert.deepEqual(details.extras, [{ key: "a", kind: "texture", name: "Gold", border: "#aabbcc", density: 2, size: { width: 1132, height: 712 } }, { key: "b", kind: "overlay", name: "Sparkle", size: { width: 566, height: 356 }, palette: ["#c8c8c8"] }, { key: "c", kind: "strip", name: "Stripes", credit: ["Someone Else", "Friend"], border: "#000000", size: { width: 1, height: 368 } }])
+    assert.deepEqual(details.extras, [{ key: "a", kind: "texture", name: "Gold", border: "#aabbcc", density: 2, size: { width: 1132, height: 712 } }, { key: "b", kind: "overlay", name: "Sparkle", size: { width: 566, height: 356 }, palette: ["#c8c8c8"] }, { key: "c", kind: "strip", name: "Stripes", credit: ["Someone Else", "Friend"], border: "#000000", snap: 4, size: { width: 1, height: 368 } }])
     assert.equal(details.files, undefined)
     assert.deepEqual(kind.fileKeys(details), ["a", "b", "c"])
     const wrong = await check({ bytes: f8thful, details: { id: "x", extras }, files: { a: plainPng(500, 356), b: plainPng(566, 356), c: plainPng(1, 90) } })
     assert.match(wrong.problems["extra:a"], /template size, 566x356/)
     assert.match(wrong.problems["extra:c"], /23, 46, 92, 184, .* or 2944 pixels tall, and this one is 90/)
+    const snapped = await check({ bytes: f8thful, details: { id: "x", extras: extras.map(item => item.key === "c" ? { ...item, snap: 0 } : item) }, files })
+    assert.match(snapped.problems["extra:c"], /snap has to be a whole number from 1 to 64/)
   })
 
   test("a font can bundle one flat texture of its own, checked against its template", async () => {

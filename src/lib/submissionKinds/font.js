@@ -12,7 +12,7 @@ import { MULTICASE_CHARACTERS, REQUIRED_CHARACTERS, characterName, fontId, hasCa
 import { MAX_ANCHORS } from "../overlayColours.js"
 import { overlayPalette } from "./fontAsset.js"
 import { FONT_LIMITS, drawnCells, ownFont, storedFont, submittedFont } from "./fontBuild.js"
-import { heightList, layerDepth, reachProblems, stripFit, stripHeights, stripSet } from "./stripFit.js"
+import { STRIP_LIMITS, heightList, layerDepth, reachProblems, stripFit, stripHeights, stripSet } from "./stripFit.js"
 
 const FONT_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/
 const FONT_ID_LENGTH = 40
@@ -226,6 +226,8 @@ function extrasOf(list, files, stored, template, problems) {
     const bordered = item.kind !== "overlay"
     const border = bordered && typeof item.border === "string" && HEX_COLOUR.test(item.border) ? item.border.toLowerCase() : null
     const kept = keptSize(item.size)
+    const snapped = item.kind === "strip" && item.snap != null
+    const badSnap = snapped && !(Number.isInteger(item.snap) && item.snap >= 1 && item.snap <= STRIP_LIMITS.snap)
     const file = files[item.key] ? extraFileProblem(files[item.key], item.kind, template) : { size: kept, ...(kept && template ? extraSizeProblem(kept, item.kind, template) : { density: Number.isInteger(item.density) && item.density > 1 && item.density <= 64 ? item.density : undefined }) }
     const coloured = item.kind === "overlay" && files[item.key] && !file.problem ? overlayPalette(files[item.key]) : null
     const palette = coloured ? coloured.palette : item.kind === "overlay" && keptPalette(item.palette)
@@ -235,6 +237,7 @@ function extrasOf(list, files, stored, template, problems) {
     else if (ids.has(id)) problems[key] = `${name} and ${ids.get(id)} would get the same id. Give each one its own name.`
     else if (credited) problems[key] = credited
     else if (bordered && !border) problems[key] = "The border colour has to be a hex colour like #000000."
+    else if (badSnap) problems[key] = `The snap has to be a whole number from 1 to ${STRIP_LIMITS.snap}.`
     else if (!files[item.key] && typeof stored?.[item.key] !== "string") problems[key] = `Choose a PNG for ${name}.`
     else if (file.problem) problems[key] = files[item.key] ? file.problem : `${file.problem} Choose a new one that fits the font.`
     else if (coloured?.problem) problems[key] = coloured.problem
@@ -242,7 +245,7 @@ function extrasOf(list, files, stored, template, problems) {
     const repeated = roles.find(role => clean.some(other => other[role]))
     if (repeated && !problems[key]) problems[key] = `Only one texture can be the ${repeated}.`
     if (id) ids.set(id, name)
-    clean.push({ key: item.key, kind: item.kind, name, ...(credit.length && { credit }), ...(border && { border }), ...(file.density > 1 && { density: file.density }), ...(file.size && { size: file.size }), ...(palette && { palette }), ...Object.fromEntries(roles.map(role => [role, true])) })
+    clean.push({ key: item.key, kind: item.kind, name, ...(credit.length && { credit }), ...(border && { border }), ...(snapped && !badSnap && item.snap > 1 && { snap: item.snap }), ...(file.density > 1 && { density: file.density }), ...(file.size && { size: file.size }), ...(palette && { palette }), ...Object.fromEntries(roles.map(role => [role, true])) })
   }
   return clean
 }

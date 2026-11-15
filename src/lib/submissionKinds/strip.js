@@ -94,6 +94,8 @@ export const strip = {
     const problems = {}
     if (typeof details.border === "string" && HEX_COLOUR.test(details.border)) clean.border = details.border.toLowerCase()
     else problems.border = "The border colour has to be a hex colour like #000000."
+    if (details.snap != null) problems.snap = wholeProblem(details.snap, "snap", 1, STRIP_LIMITS.snap)
+    if (details.snap > 1 && !problems.snap) clean.snap = details.snap
     if (bytes) problems.file = pngProblem(bytes, "strip")
     const size = bytes ? problems.file ? null : pngSize(bytes) : storedSize(details.size)
     if (bytes && size) clean.size = size

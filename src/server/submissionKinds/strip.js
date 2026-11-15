@@ -37,7 +37,7 @@ async function freeAsset(read, row, fonts, extra, taken) {
 }
 
 function entryFor(row, details, asset) {
-  return { type: "strip", ...(details.stretch && { stretch: true }), ...(row.name !== titleCase(asset) && { name: row.name }), authors: row.credit, border: details.border }
+  return { type: "strip", ...(details.stretch && { stretch: true }), ...(row.name !== titleCase(asset) && { name: row.name }), authors: row.credit, border: details.border, ...(details.snap > 1 && { snap: details.snap }) }
 }
 
 function added(textures, row, details, asset, where) {
@@ -45,8 +45,8 @@ function added(textures, row, details, asset, where) {
   if (!details.variantOf) return { ...textures, [asset]: entry }
   const parent = textures?.[details.variantOf]
   if (parent?.type !== "strip") throw new Error(`submission ${row.id} is a variant of ${details.variantOf}, which isn't a published strip of ${where}`)
-  const { type, stretch, ...own } = entry
-  const variant = { ...(!!stretch !== !!parent.stretch && { stretch: !!stretch }), ...own }
+  const { type, stretch, snap = 1, ...own } = entry
+  const variant = { ...(!!stretch !== !!parent.stretch && { stretch: !!stretch }), ...own, ...(snap > 1 && snap !== parent.snap && { snap }) }
   return { ...textures, [details.variantOf]: { ...parent, variants: { ...parent.variants, [asset]: variant } } }
 }
 

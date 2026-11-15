@@ -101,7 +101,7 @@ export const strip = {
   },
   rows(item, fonts) {
     const target = stripTarget(item.target)
-    const { size, border, stretch } = item.details
+    const { size, border, stretch, snap } = item.details
     const shape = target.kind === "new" ? [
       { label: "Strip type", value: `${setName(item.details.set ?? "")} (new)` },
       { label: "Depth", value: String(item.details.depth) },
@@ -109,6 +109,6 @@ export const strip = {
       { label: "Height", value: String(item.details.height) },
       { label: "Fonts", value: (item.details.fonts ?? []).map(id => named(fonts, id)).join(", ") }
     ] : [{ label: target.kind === "font" ? "Font" : "Strip type", value: target.kind === "font" ? named(fonts, target.id) : setName(target.id) }]
-    return shape.concat(item.details.variantOf ? [{ label: "Variant of", value: textureName(item.details.variantOf) }] : [], size ? [{ label: "Size", value: `${size.width}x${size.height}` }] : [], target.kind === "font" ? [] : [{ label: "Stretches", value: stretch ? "Yes" : "No" }], [{ label: "Border", value: border, colour: border }])
+    return shape.concat(item.details.variantOf ? [{ label: "Variant of", value: textureName(item.details.variantOf) }] : [], size ? [{ label: "Size", value: `${size.width}x${size.height}` }] : [], target.kind === "font" ? [] : [{ label: "Stretches", value: stretch ? "Yes" : "No" }], snap > 1 ? [{ label: "Snap", value: `${snap} pixels` }] : [], [{ label: "Border", value: border, colour: border }])
   }
 }

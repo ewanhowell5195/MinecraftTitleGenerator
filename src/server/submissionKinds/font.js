@@ -41,7 +41,7 @@ function bundle(row, details, folder) {
     const id = assetId(item.name, used)
     used.add(id)
     if (item.kind !== "overlay") for (const role of DEFAULT_ROLES) if (item[role]) roles[role] = id
-    const entry = { ...(item.kind === "strip" && { type: "strip" }), ...(item.name !== titleCase(id) && { name: item.name }), authors: authorList(item.credit).length ? authorList(item.credit) : row.credit, ...(item.density > 1 && { density: item.density }), ...(item.kind !== "overlay" && { border: item.border }), ...(item.palette && { palette: item.palette }) }
+    const entry = { ...(item.kind === "strip" && { type: "strip" }), ...(item.name !== titleCase(id) && { name: item.name }), authors: authorList(item.credit).length ? authorList(item.credit) : row.credit, ...(item.density > 1 && { density: item.density }), ...(item.kind !== "overlay" && { border: item.border }), ...(item.snap > 1 && { snap: item.snap }), ...(item.palette && { palette: item.palette }) }
     const section = item.kind === "overlay" ? "overlays" : "textures"
     list[section][id] = entry
     files.push({ path: `public/${folder}/${section}/${id}.png`, sha })

@@ -6,13 +6,14 @@
   import Field from "../../components/Field.vue"
   import Icon from "../../components/Icon.vue"
   import NameList from "../../components/NameList.vue"
+  import NumberInput from "../../components/NumberInput.vue"
   import Segments from "../../components/Segments.vue"
   import Toggle from "../../components/Toggle.vue"
   import UploadField from "../../components/UploadField.vue"
   import { flatTexture } from "../../lib/fontEditor.js"
   import { popular } from "../../lib/stats.js"
   import { EXTRA_KINDS, fontParents, submittedFontId } from "../../lib/submissionKinds/font.js"
-  import { stripHeights as heightsOf } from "../../lib/submissionKinds/stripFit.js"
+  import { STRIP_LIMITS, stripHeights as heightsOf } from "../../lib/submissionKinds/stripFit.js"
   import { ownFont, submittedFont } from "../../lib/submissionKinds/fontBuild.js"
   import { SUBMISSION_LIMITS } from "../../lib/submissions.js"
   import { submissionExtraUrl } from "../../lib/submissionsApi.js"
@@ -161,6 +162,10 @@
         <div v-if="item.kind !== 'overlay'" class="row">
           <span class="hint">Border</span>
           <ColourPicker :model-value="item.border ?? '#000000'" @update:model-value="update(item.key, { border: $event })" />
+        </div>
+        <div v-if="item.kind === 'strip'" class="row">
+          <span class="hint">Snap</span>
+          <NumberInput min="1" :max="STRIP_LIMITS.snap" :value="item.snap ?? 1" v-tooltip="'How many pixels wide each pixel of the strip is'" @input="update(item.key, { snap: $event.target.value === '' ? null : Number($event.target.value) })" />
         </div>
         <div v-if="item.kind !== 'overlay'" class="row defaults">
           <Toggle label="Primary" :model-value="!!item.primary" @update:model-value="setDefault(item.key, 'primary', $event)" />

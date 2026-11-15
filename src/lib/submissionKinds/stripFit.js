@@ -10,7 +10,7 @@ import { SUBMISSION_LIMITS } from "../submissions.js"
 import { submissionFont } from "./fontAsset.js"
 import { decodePng } from "./png.js"
 
-export const STRIP_LIMITS = { depth: 64, height: 256, below: 64 }
+export const STRIP_LIMITS = { depth: 64, height: 256, below: 64, snap: 64 }
 
 export function stripTarget(target) {
   if (target === "new") return { kind: "new", id: "" }
