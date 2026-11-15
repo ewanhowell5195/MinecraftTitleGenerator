@@ -177,6 +177,8 @@ export default {
       ...faceOptions(object)
     }))
 
+    const layerFaces = computed(() => targets.value.map(faceOptions))
+
     function faceOptions(target) {
       return {
         internalFaces: target.internalFaces,
@@ -364,7 +366,7 @@ export default {
     }
 
     function layerOptions() {
-      return painted.value.layers ? targets.value.map(target => ({ options: faceOptions(target) })) : null
+      return painted.value.layers ? layerFaces.value.map(options => ({ options })) : null
     }
 
     function detailed(options, sheet) {
@@ -440,7 +442,7 @@ export default {
       if (!font.value || painted.value?.font !== font.value.id) return
       const { words: list, word, lineDepth, ...options } = inputs.value
       const source = shaped.value?.id === font.value.id ? shaped.value : font.value
-      const inputsKey = JSON.stringify(inputs.value)
+      const inputsKey = JSON.stringify([inputs.value, layerFaces.value])
       if (builtFrom?.painted === painted.value && builtFrom.source === source && builtFrom.inputsKey === inputsKey && builtFrom.final === finalShadowed.value) return
       builtFrom = { painted: painted.value, source, inputsKey, final: finalShadowed.value }
       let reach = null
@@ -529,7 +531,7 @@ export default {
     }
 
     watch(looks, repaint)
-    watch([inputs, painted], schedule)
+    watch([inputs, painted, layerFaces], schedule)
     watch(finalShadowed, () => {
       sharp.value = false
       schedule()
