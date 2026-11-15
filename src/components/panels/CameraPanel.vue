@@ -1,5 +1,9 @@
+<script>
+  let custom = null
+</script>
+
 <script setup>
-  import { computed } from "vue"
+  import { computed, watch } from "vue"
   import { CAMERA_PRESETS, DEFAULT_CAMERA, cameraChanges, cameraPreset, setCamera } from "../../lib/camera.js"
   import { scene } from "../../lib/scene.js"
   import Panel from "../Panel.vue"
@@ -8,14 +12,19 @@
   import Toggle from "../Toggle.vue"
 
   const PRESETS = CAMERA_PRESETS.map(({ value, label }) => ({ value, label })).concat({ value: "custom", label: "Custom" })
+  const ANGLE_KEYS = Object.keys(CAMERA_PRESETS[0].camera)
 
   const camera = scene.camera
   const preset = computed(() => cameraPreset(camera) ?? "custom")
   const modified = computed(() => Object.keys(cameraChanges(camera)).length > 0)
 
+  watch(() => ANGLE_KEYS.map(key => camera[key]), values => {
+    if (!cameraPreset(camera)) custom = Object.fromEntries(ANGLE_KEYS.map((key, index) => [key, values[index]]))
+  }, { immediate: true })
+
   function pick(value) {
-    const chosen = CAMERA_PRESETS.find(item => item.value === value)
-    if (chosen) Object.assign(camera, chosen.camera)
+    const chosen = value === "custom" ? custom : CAMERA_PRESETS.find(item => item.value === value)?.camera
+    if (chosen) Object.assign(camera, chosen)
   }
 </script>
 
