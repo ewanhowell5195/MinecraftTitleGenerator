@@ -1,7 +1,7 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import { isReactive } from "vue"
-import { LAYER, activeOverlays, applyType, createObject, layerTarget, layerView, separateLayers, defaultBorder, defaultDepth, defaultOverlays, defaultSpacing, defaultTexture, effectiveScale, fontFaces, isModified, overlayLayer, pinnedTextures, resetPanel, resetTransform, restore, setTexture, snapshot, textureEntry, transformKeys, typeDefaults } from "../src/lib/settings.js"
+import { LAYER, activeOverlays, applyType, createObject, layerTarget, layerView, separateLayers, defaultBorder, defaultDepth, defaultOverlays, defaultSpacing, defaultTexture, effectiveScale, fontFaces, isModified, overlayFits, overlayLayer, pinnedTextures, resetPanel, resetTransform, restore, setTexture, snapshot, textureEntry, transformKeys, typeDefaults } from "../src/lib/settings.js"
 
 const TOP_DEFAULTS = {
   hidden: false,
@@ -768,5 +768,22 @@ describe("separate layers per tab", () => {
     assert.equal("textureSource" in object.layerSettings[0], true)
     separateLayers(object, "texture", false, 2)
     assert.deepEqual(object.layerSettings, [])
+  })
+
+  test("splitting the overlays drops the ones a layer doesn't allow", () => {
+    const definitions = { outline: {}, layer_shadow: { layered: true }, extrusion_outline: { layers: [1] } }
+    const object = createObject({ overlays: [{ overlay: "outline" }, { overlay: "layer_shadow" }, { overlay: "extrusion_outline" }, { source: "file", file: "data:x" }] })
+    separateLayers(object, "overlays", true, 3, (layer, item) => item.source === "file" || overlayFits(definitions[item.overlay], layer, [0, 1, 2]))
+    assert.deepEqual(object.overlays.map(item => item.overlay ?? item.source), ["outline", "file"])
+    assert.deepEqual(object.layerSettings[0].overlays.map(item => item.overlay ?? item.source), ["outline", "layer_shadow", "extrusion_outline", "file"])
+    assert.deepEqual(object.layerSettings[1].overlays.map(item => item.overlay ?? item.source), ["outline", "layer_shadow", "file"])
+  })
+
+  test("an overlay fits a layer it's allowed on", () => {
+    assert.equal(overlayFits({ layered: true }, 0, [0, 1]), false)
+    assert.equal(overlayFits({ layered: true }, 1, [0, 1]), true)
+    assert.equal(overlayFits({ layered: true }, null, [0]), false)
+    assert.equal(overlayFits({ layers: [1] }, 0, [0, 1]), false)
+    assert.equal(overlayFits({ layers: [1] }, null, [0, 1]), true)
   })
 })

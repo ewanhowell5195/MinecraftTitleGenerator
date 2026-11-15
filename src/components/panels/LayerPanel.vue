@@ -2,7 +2,7 @@
   import { computed } from "vue"
   import { editingLayer, usedLayers } from "../../lib/panel.js"
   import { active, current } from "../../lib/scene.js"
-  import { SEPARATE_KEYS, separateLayers } from "../../lib/settings.js"
+  import { SEPARATE_KEYS, overlayFits, separateLayers } from "../../lib/settings.js"
   import { view } from "../../lib/view.js"
   import Panel from "../Panel.vue"
   import Segments from "../Segments.vue"
@@ -13,8 +13,13 @@
   const tabs = computed(() => usedLayers.value.map(layer => ({ value: layer, label: `Layer ${layer + 1}` })))
   const key = computed(() => SEPARATE_KEYS[props.group])
 
+  function fits(layer, item) {
+    const data = item.source === "file" ? null : active.value.list?.overlays?.[item.overlay]
+    return !data || overlayFits(data, layer, usedLayers.value)
+  }
+
   function toggle(on) {
-    separateLayers(current.value, props.group, on, active.value.font?.layers?.length ?? 1)
+    separateLayers(current.value, props.group, on, active.value.font?.layers?.length ?? 1, fits)
     view.layer = usedLayers.value[0]
   }
 </script>

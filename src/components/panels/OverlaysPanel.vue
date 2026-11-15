@@ -2,7 +2,7 @@
   import { computed, ref, toRaw, watch } from "vue"
   import { layerShown, usePanel, usedLayers } from "../../lib/panel.js"
   import { library } from "../../lib/scene.js"
-  import { OVERLAY_KINDS, activeOverlays, defaultOverlays } from "../../lib/settings.js"
+  import { OVERLAY_KINDS, activeOverlays, defaultOverlays, overlayFits } from "../../lib/settings.js"
   import { usedOverlayFiles } from "../../lib/uploads.js"
   import OverlayLayers from "../OverlayLayers.vue"
   import Panel from "../Panel.vue"
@@ -17,8 +17,7 @@
   const modeKey = OVERLAY_KINDS[listKey]
   const { object, font, list, modified, reset } = usePanel(listKey)
   const shownLayer = layerShown("overlays")
-  const layerAbove = computed(() => shownLayer.value === null ? usedLayers.value.length > 1 : usedLayers.value.some(used => used < shownLayer.value))
-  const available = computed(() => Object.fromEntries(Object.entries(list.value?.[listKey] ?? {}).filter(([, data]) => (!data.layered || layerAbove.value) && (!data.layers || shownLayer.value === null || data.layers.includes(shownLayer.value)))))
+  const available = computed(() => Object.fromEntries(Object.entries(list.value?.[listKey] ?? {}).filter(([, data]) => overlayFits(data, shownLayer.value, usedLayers.value))))
   const selected = ref(0)
   const defaults = computed(() => defaultOverlays(list.value, object.value, listKey))
   const layers = computed(() => activeOverlays(list.value, object.value, listKey))

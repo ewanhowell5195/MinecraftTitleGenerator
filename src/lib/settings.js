@@ -266,10 +266,18 @@ export function layerView(object, layer, group = null) {
   })
 }
 
-export function separateLayers(object, group, on, count) {
+export function overlayFits(data, layer, used) {
+  if (layer === null) return !data.layered || used.length > 1
+  return (!data.layered || used.some(other => other < layer)) && (!data.layers || data.layers.includes(layer))
+}
+
+export function separateLayers(object, group, on, count, fits = null) {
   const keys = LAYER_GROUPS[group]
-  if (on) object.layerSettings = Array.from({ length: count - 1 }, (_, index) => ({ ...object.layerSettings[index], ...Object.fromEntries(keys.map(key => [key, structuredClone(toRaw(object[key]))])) }))
-  else object.layerSettings = object.layerSettings.map(layer => Object.fromEntries(Object.entries(layer).filter(([key]) => !keys.includes(key))))
+  const kept = (value, key, layer) => fits && key === "overlays" && Array.isArray(value) ? value.filter(item => fits(layer, item)) : value
+  if (on) {
+    object.layerSettings = Array.from({ length: count - 1 }, (_, index) => ({ ...object.layerSettings[index], ...Object.fromEntries(keys.map(key => [key, kept(structuredClone(toRaw(object[key])), key, index + 1)])) }))
+    for (const key of keys) object[key] = kept(object[key], key, 0)
+  } else object.layerSettings = object.layerSettings.map(layer => Object.fromEntries(Object.entries(layer).filter(([key]) => !keys.includes(key))))
   object[SEPARATE_KEYS[group]] = on
   if (!Object.keys(LAYER_GROUPS).some(name => isSeparate(object, name))) object.layerSettings = []
 }
