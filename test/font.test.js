@@ -407,7 +407,10 @@ describe("published fonts", () => {
   test("every sheet parses into one tight glyph per character", () => {
     for (const entry of sheets) {
       const { cells } = readMask(entry, fonts)
-      assert.equal(cells.length, Array.from(fullOrder(entry, fonts)).length, entry.id)
+      const order = Array.from(fullOrder(entry, fonts))
+      const chars = cells.map(cell => cell.char)
+      assert.deepEqual(chars.slice(0, order.length), order, entry.id)
+      assert.ok(chars.length === order.length || chars.length === order.length + 1 && chars.at(-1) === " ", entry.id)
       for (const glyph of cells.filter(cell => cell.width)) {
         assert.equal(glyph.mask.length, glyph.width * glyph.height, `${entry.id} ${glyph.char}`)
         assert.equal(glyph.top - glyph.bottom, glyph.height, `${entry.id} ${glyph.char}`)

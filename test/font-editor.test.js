@@ -490,8 +490,8 @@ describe("saving and reopening", () => {
     assert.equal(fontFromFiles({ json: { id: "t", name: "T", terminatorSpace: true, terminatorSpaceWidth: 6 } }).terminatorSpaceWidth, 6)
   })
 
-  test("any change to the characters lists the order", () => {
-    assert.equal(exportJson({ ...createFont(), creeper: true, defineSpace: true }, "t").order, `${DEFAULT_ORDER} `)
+  test("any change to the characters lists the order, except a drawn space after the default ones", () => {
+    assert.equal(exportJson({ ...createFont(), creeper: true, defineSpace: true }, "t").order, undefined)
     assert.equal(exportJson(createFont(), "t").order, DEFAULT_ORDER.replace(CREEPER, ""))
   })
 

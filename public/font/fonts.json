@@ -75,7 +75,6 @@
     "id": "minecraft-five-bold-block",
     "authors": ["Ewan Howell"],
     "characterSpacing": -4,
-    "order": "😳abcdefghijklmnopqrstuvwxyz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣ ",
     "depth": 16,
     "border": 2,
     "forcedTerminators": true,
@@ -86,7 +85,6 @@
   {
     "id": "minecraft-ten-outline",
     "authors": ["Ewan Howell"],
-    "order": "😳abcdefghijklmnopqrstuvwxyz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣ ",
     "depth": 0,
     "border": 0,
     "forcedTerminators": true,
@@ -98,7 +96,6 @@
     "authors": ["Ewan Howell"],
     "characterSpacing": -8,
     "terminatorSpace": true,
-    "order": "😳abcdefghijklmnopqrstuvwxyz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣ ",
     "editor": { "width": 36, "grid": 4 }
   },
   {
@@ -111,7 +108,6 @@
     "id": "minecraft-gui",
     "authors": ["Ewan Howell"],
     "characterSpacing": -4,
-    "order": "😳abcdefghijklmnopqrstuvwxyz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣ ",
     "depth": 0,
     "border": 2,
     "forcedTerminators": true,

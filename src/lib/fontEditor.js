@@ -733,7 +733,7 @@ export function exportJson(font, texture, characters = charactersOf(font)) {
   if (font.description) entry.description = font.description
   if (font.basedOn) entry.basedOn = font.basedOn
   if (font.strips.length) entry.strips = font.strips
-  if (order !== DEFAULT_ORDER) entry.order = order
+  if (order !== DEFAULT_ORDER && order !== `${DEFAULT_ORDER}${SPACE_CHAR}`) entry.order = order
   if (font.letterCase === "both") entry.multicase = true
   if (font.spaceWidth !== DEFAULT_SPACE_WIDTH) entry.spaceWidth = font.spaceWidth
   if (font.depth !== DEFAULT_DEPTH) entry.depth = font.depth

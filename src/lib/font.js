@@ -163,6 +163,7 @@ export function hasMarks(font) {
 export function parseMask(data, width, height, order, gap) {
   const characters = Array.from(order)
   const { rows, layers, isGlyph, isStretch, layerAt } = scanMask(data, width, height)
+  if (order === DEFAULT_ORDER && rows.reduce((total, row) => total + row.cells.length, 0) === characters.length + 1) characters.push(" ")
   const layered = layers.length > 1
   const list = []
   const capHeights = []
