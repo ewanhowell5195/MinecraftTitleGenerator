@@ -36,7 +36,7 @@
   const orbit = shallowRef(null)
   const orbiting = ref(false)
   const panning = ref(false)
-  const navigable = computed(() => !view.render)
+  const navigable = computed(() => !view.render && !view.camera)
   const moved = computed(() => orbiting.value ? orbit.value !== orbitHome : pan.value !== UNZOOMED)
   const baseProjection = new THREE.Matrix4()
   const basePosition = new THREE.Vector3()
