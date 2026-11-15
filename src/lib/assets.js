@@ -130,10 +130,10 @@ export function bandOf(source, band, font) {
   if (!bands.has(source)) {
     const expanded = expandBands(pixelsOf(source), source.width, font.cells, font.capHeight, defaultDepth(font), font.layers)
     const height = expanded.height / count
-    const size = source.width * height * 4
+    const size = expanded.width * height * 4
     bands.set(source, Array.from({ length: count }, (_, index) => {
-      const { canvas, ctx } = surface(source.width, height)
-      const pixels = ctx.createImageData(source.width, height)
+      const { canvas, ctx } = surface(expanded.width, height)
+      const pixels = ctx.createImageData(expanded.width, height)
       pixels.data.set(expanded.data.subarray(index * size, (index + 1) * size))
       ctx.putImageData(pixels, 0, 0)
       return canvas
@@ -198,8 +198,10 @@ export async function sheetFor(font) {
   const [list, flat] = await Promise.all([textureList(font.sheetFolder), image(`${font.sheetFolder}/textures/flat.png`)])
   const depth = defaultDepth(font)
   const glyphs = {}
+  let wide = 0
   for (const [glyph, at] of sheetLayout(font.cells, font.capHeight, depth)) {
+    wide = Math.max(wide, at.x + glyph.width)
     if (font.glyphs[glyph.char] === glyph) glyphs[glyph.char] = { char: glyph.char, glyph, x: at.x, top: at.top, up: at.up, upHeight: depth, down: at.down, downHeight: depth, width: glyph.width, height: glyph.height }
   }
-  return { width: flat.width / (list.textures.flat?.density ?? 1), glyphs }
+  return { width: font.layers?.length > 1 ? wide : flat.width / (list.textures.flat?.density ?? 1), glyphs }
 }

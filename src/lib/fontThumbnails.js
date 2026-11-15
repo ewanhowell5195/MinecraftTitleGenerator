@@ -163,8 +163,7 @@ function fade(image, amount) {
 
 function expanded({ cells, capHeight, depth, layers }, image) {
   if (!layers || layers.length < 2) return image
-  const { data, height } = expandBands(image.data, image.width, cells, capHeight, depth, layers)
-  return { data, width: image.width, height }
+  return expandBands(image.data, image.width, cells, capHeight, depth, layers)
 }
 
 function frameFill(image, colour) {

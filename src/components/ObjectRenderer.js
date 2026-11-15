@@ -282,7 +282,7 @@ export default {
       const fromFont = new Set(["shape", "fontOverlay"].concat(value.source === "texture" ? ["base"] : []))
       for (const [index, key] of keys.entries()) assets[key] = fromFont.has(key) ? bandOf(loaded[index], band, font.value) : loaded[index]
       assets.overlays = overlays.map(({ layer, source }) => source.generated ? { layer, source } : { layer, source: bandOf(source, band, font.value) })
-      for (const file of sizes) assets.densities.push(file.width / sheet.value.width)
+      for (const file of sizes) assets.densities.push(bandOf(file, band, font.value).width / sheet.value.width)
       if (value.source === "texture" && target.textureSource === "custom") assets.densities.push(assets.base.width / sheet.value.width)
       assets.edgeOverlays = value.edgeOverlays.flatMap(layer => list.value.edgeOverlays[layer.overlay] ? [{ layer, generated: list.value.edgeOverlays[layer.overlay].generated }] : [])
       return assets

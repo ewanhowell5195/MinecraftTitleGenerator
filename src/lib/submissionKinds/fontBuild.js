@@ -165,7 +165,8 @@ function fontTemplate(cells, capHeight, depth, layers = null) {
   const top = Math.max(capHeight, ...cells.map(cell => cell.top))
   const bottom = Math.min(0, ...cells.map(cell => cell.bottom))
   if (!layers) return { width, height, rows: depth * 2 + top - bottom }
-  return { width, height: flatLayers(cells, capHeight, depth, layers).height, rows: layerSlices(layers, depth).reduce((sum, slice, layer) => sum + slice.rows * 2 + layerRange(cells, layer).top - layerRange(cells, layer).bottom, 0) }
+  const flat = flatLayers(cells, capHeight, depth, layers)
+  return { width: flat.width, height: flat.height, rows: layerSlices(layers, depth).reduce((sum, slice, layer) => sum + slice.rows * 2 + layerRange(cells, layer).top - layerRange(cells, layer).bottom, 0) }
 }
 
 export function finalEntry(skeleton, derived) {

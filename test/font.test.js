@@ -427,7 +427,7 @@ describe("published fonts", () => {
       for (const [layer, band] of bands.entries()) {
         for (const [glyph, at] of band.layout) {
           const own = layers ? layerCell(glyph, layer) : glyph
-          assert.deepEqual(solidMask(flat.data, flat.width, density, at.x, at.top + glyph.top - own.top + band.offset, glyph.width, own.height), own.mask, `${entry.id} ${glyph.char} layer ${layer + 1}`)
+          assert.deepEqual(solidMask(flat.data, flat.width, density, at.x + (own.left ?? 0), at.top + glyph.top - own.top + band.offset, own.width, own.height), own.mask, `${entry.id} ${glyph.char} layer ${layer + 1}`)
         }
       }
     }
