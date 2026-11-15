@@ -514,15 +514,30 @@ describe("frameCamera", () => {
     close(camera.position.distanceTo(target), 10 + DIRECTION.z)
   })
 
-  test("the camera is tilted by the camera angle in both projections", () => {
+  test("perspective turns the camera by the tilt", () => {
     const target = anchor.getCenter(new THREE.Vector3())
-    for (const camera of cameras()) {
-      frameCamera(camera, { anchor, corners, size, fov: 43, width: 800, height: 600 })
-      const direction = camera.getWorldDirection(new THREE.Vector3())
-      const towards = target.clone().sub(camera.position).normalize()
-      close(direction.angleTo(towards), radians(7.285), 1e-6)
-      assert.ok(direction.y > towards.y)
+    const camera = new THREE.PerspectiveCamera()
+    frameCamera(camera, { anchor, corners, size, fov: 43, width: 800, height: 600 })
+    const direction = camera.getWorldDirection(new THREE.Vector3())
+    const towards = target.clone().sub(camera.position).normalize()
+    close(direction.angleTo(towards), radians(7.285), 1e-6)
+    assert.ok(direction.y > towards.y)
+  })
+
+  test("orthographic matches perspective as the field of view closes", () => {
+    const target = anchor.getCenter(new THREE.Vector3())
+    const camera = new THREE.OrthographicCamera()
+    frameCamera(camera, { anchor, corners, size, width: 800, height: 600 })
+    close(camera.getWorldDirection(new THREE.Vector3()).angleTo(target.clone().sub(camera.position).normalize()), 0, 1e-9)
+    const narrow = new THREE.PerspectiveCamera()
+    frameCamera(narrow, { anchor, corners, size, fov: 0.001, width: 800, height: 600 })
+    function shape(camera) {
+      const points = corners.map(corner => corner.clone().project(camera))
+      const xs = points.map(item => item.x)
+      const ys = points.map(item => item.y)
+      return (Math.max(...ys) - Math.min(...ys)) / (Math.max(...xs) - Math.min(...xs))
     }
+    close(shape(camera), shape(narrow), 1e-4)
   })
 
   test("yaw swings the camera round to the side", () => {
@@ -562,7 +577,7 @@ describe("frameCamera", () => {
     const camera = new THREE.OrthographicCamera()
     frameCamera(camera, { anchor: line, corners: cornersOf(line), size: 20, fov: 90, width: 800, height: 600, maxScale: 2 })
     close(camera.top - camera.bottom, 300)
-    close(camera.right - camera.left, 400)
+    close(camera.right - camera.left, 400 / Math.cos(radians(DEFAULT_CAMERA.tilt)))
   })
 
   test("maxScale limits perspective magnification at the camera distance", () => {
@@ -613,7 +628,7 @@ describe("frameCamera", () => {
     } finally {
       globalThis.devicePixelRatio = 1
     }
-    close(camera.top - camera.bottom, 2400)
+    close((camera.top - camera.bottom) / Math.cos(radians(DEFAULT_CAMERA.tilt)), 2400)
   })
 })
 

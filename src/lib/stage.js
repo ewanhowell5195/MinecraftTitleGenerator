@@ -407,7 +407,8 @@ export function frameCamera(camera, { anchor, corners, size, angle = DEFAULT_CAM
   const distance = orthographic ? size * 2 : Math.max((reach ?? widest) / Math.tan(fov * Math.PI / 360) + front, clearance)
   camera.position.copy(target).addScaledVector(direction, distance)
   camera.lookAt(target)
-  camera.rotateX(radians(angle.tilt))
+  if (!orthographic) camera.rotateX(radians(angle.tilt))
+  const stretch = orthographic ? 1 / Math.cos(radians(angle.tilt)) : 1
   camera.updateMatrixWorld(true)
   const inverse = camera.matrixWorld.clone().invert()
   let minX = Infinity
@@ -419,7 +420,7 @@ export function frameCamera(camera, { anchor, corners, size, angle = DEFAULT_CAM
     const local = corner.clone().applyMatrix4(inverse)
     const depth = -local.z
     const x = orthographic ? local.x : local.x / depth
-    const y = orthographic ? local.y : local.y / depth
+    const y = orthographic ? local.y * stretch : local.y / depth
     minX = Math.min(minX, x)
     maxX = Math.max(maxX, x)
     minY = Math.min(minY, y)
@@ -429,12 +430,12 @@ export function frameCamera(camera, { anchor, corners, size, angle = DEFAULT_CAM
   const title = { left: 0, top: 0, width: maxX - minX, height: maxY - minY }
   const output = frame?.rect(title)
   const box = output ? frame.bounds(title) : title
-  const fitted = Math.max(box.height / 2 / 0.94, box.width / 2 / aspect / 0.94, height / (2 * maxScale * (orthographic ? 1 : distance)))
+  const fitted = Math.max(box.height / 2 / 0.94, box.width / 2 / aspect / 0.94, height * stretch / (2 * maxScale * (orthographic ? 1 : distance)))
   const span = output ? Math.max(fitted, height * devicePixelRatio / (2 * frame.pixels(title, output))) : fitted
   const centreX = minX + box.left + box.width / 2
   const centreY = maxY - box.top - box.height / 2
   if (orthographic) {
-    Object.assign(camera, { left: centreX - span * aspect, right: centreX + span * aspect, top: centreY + span, bottom: centreY - span, near: distance / 100, far: distance * 100 })
+    Object.assign(camera, { left: centreX - span * aspect, right: centreX + span * aspect, top: (centreY + span) / stretch, bottom: (centreY - span) / stretch, near: distance / 100, far: distance * 100 })
   } else {
     camera.aspect = aspect
     camera.fov = Math.atan(span) * 360 / Math.PI
