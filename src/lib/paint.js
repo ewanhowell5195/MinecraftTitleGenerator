@@ -565,8 +565,8 @@ export function paintBase(sheet, look, assets, capHeight, detail = 1) {
   return base
 }
 
-function copyOf(source) {
-  const copy = surface(source.width, source.height)
+function copyOf(source, options) {
+  const copy = surface(source.width, source.height, options)
   copy.ctx.drawImage(source, 0, 0)
   return copy
 }
@@ -622,17 +622,16 @@ export function borderOf(look, assets) {
   }, CACHED_OVERLAYS)
 }
 
-export function paintSheet(sheet, look, assets, capHeight, base, detail = 1) {
-  const scale = R * detail
-  const width = sheet.width * scale
-  const height = sheet.height * scale
+const preparedSheets = new WeakMap()
+
+function preparedSheet(sheet, look, base, detail, reads) {
+  const key = lookKey([look.hue, look.saturation, look.brightness, look.contrast, look.blend, look.colourOpacity, look.colour, look.customEdge, look.edgeFill, look.edgeColour, look.edgeStops, look.edgeSmooth, detail, !!reads])
+  if (!preparedSheets.has(base.canvas)) preparedSheets.set(base.canvas, new Map())
+  const known = preparedSheets.get(base.canvas)
+  if (known.has(key)) return known.get(key)
   const entries = Object.values(sheet.glyphs)
-  const swatch = [sheet.swatch.x, sheet.swatch.y, 1, 1]
-  const band = assets.band ?? null
-
-  const work = adjusted(base.canvas, look)
+  const work = adjusted(base.canvas, look, reads)
   work.ctx.scale(detail, detail)
-
   if (look.customEdge) {
     work.ctx.globalCompositeOperation = "source-atop"
     const stops = look.edgeFill === "gradient" ? gradientStops(look.edgeStops, look.edgeSmooth) : null
@@ -645,11 +644,28 @@ export function paintSheet(sheet, look, assets, capHeight, base, detail = 1) {
     } else fillRects(work.ctx, entries.flatMap(strips))
   }
   work.ctx.globalCompositeOperation = "source-over"
+  known.clear()
+  known.set(key, { canvas: work.canvas, read: readLater(work) })
+  return known.get(key)
+}
+
+export function paintSheet(sheet, look, assets, capHeight, base, detail = 1) {
+  const scale = R * detail
+  const width = sheet.width * scale
+  const height = sheet.height * scale
+  const entries = Object.values(sheet.glyphs)
+  const swatch = [sheet.swatch.x, sheet.swatch.y, 1, 1]
+  const band = assets.band ?? null
 
   const layered = assets.overlays.length || assets.edgeOverlays.length || look.customBorder
+  const reads = layered ? { willReadFrequently: true } : undefined
+  const ready = preparedSheet(sheet, look, base, detail, reads)
+  const work = copyOf(ready.canvas, reads)
+  work.ctx.scale(detail, detail)
+
   // layered sheets must be faded in software, and reading this canvas back twice is what makes Chrome do that
   const eager = layered && look.fade
-  const faces = eager ? work.ctx.getImageData(0, 0, width, height) : layered ? copyOf(work.canvas) : null
+  const faces = eager ? ready.read() : null
 
   const overlayLayers = assets.overlays.concat(assets.edgeOverlays.map(({ layer, generated }) => ({ layer, source: { edge: generated } })))
   function shadedEdges(overlay) {
@@ -681,8 +697,8 @@ export function paintSheet(sheet, look, assets, capHeight, base, detail = 1) {
   const [r, g, b] = rgb
   const border = `rgb(${r}, ${g}, ${b})`
 
-  const finalPixels = final ? () => final : readLater(look.fade ? copyOf(work.canvas) : work)
-  const facePixels = eager ? () => faces : layered ? readLater(faces) : finalPixels
+  const finalPixels = final ? () => final : layered ? readLater(look.fade ? copyOf(work.canvas) : work) : ready.read
+  const facePixels = eager ? () => faces : layered ? ready.read : finalPixels
   let average = null
   const edgeAverage = () => average ??= averageColour(finalPixels(), entries.flatMap(strips), scale)
 

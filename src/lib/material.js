@@ -208,6 +208,8 @@ function flow(blocks, maxWidth, space) {
 }
 
 const tileTotals = new WeakMap()
+const drawnLineCache = new WeakMap()
+const LINE_CACHE = 4
 
 function totalsOf(canvas) {
   if (tileTotals.has(canvas)) return tileTotals.get(canvas)
@@ -613,22 +615,50 @@ export function buildAtlas(faces, options) {
   const linesTop = Math.min(...packed.map(face => face.rect.y)) * SCALE
   const shades = []
   let lines = null
+  let lineWords = null
 
   function drawLine(row, { x, y, width, height }) {
     lines ??= new ImageData(canvas.width, Math.max(...packed.map(face => face.rect.y + face.rect.height)) * SCALE - linesTop)
+    lineWords ??= new Uint32Array(lines.data.buffer)
+    const source = new Uint32Array(row.data.buffer, row.data.byteOffset, row.width * row.height)
     const columns = width * SCALE
     const rows = height * SCALE
+    const across = new Int32Array(columns)
+    for (let dx = 0; dx < columns; dx++) across[dx] = Math.floor(dx * row.width / columns)
     for (let dy = 0; dy < rows; dy++) {
       const from = Math.floor(dy * row.height / rows) * row.width
-      let to = ((y * SCALE - linesTop + dy) * lines.width + x * SCALE) * 4
-      for (let dx = 0; dx < columns; dx++) {
-        const at = (from + Math.floor(dx * row.width / columns)) * 4
-        lines.data[to++] = row.data[at]
-        lines.data[to++] = row.data[at + 1]
-        lines.data[to++] = row.data[at + 2]
-        lines.data[to++] = row.data[at + 3]
+      const to = (y * SCALE - linesTop + dy) * lines.width + x * SCALE
+      for (let dx = 0; dx < columns; dx++) lineWords[to + dx] = source[from + across[dx]]
+    }
+  }
+
+  const lineDraws = []
+
+  function drawnLines() {
+    const pixels = painted.facePixels()
+    const key = JSON.stringify([canvas.width, linesTop, SCALE, R, painted.edge, painted.edgeOnly, lineDraws.map(({ from, rect, repeat }) => [from, rect.x, rect.y, rect.width, rect.height, repeat])])
+    if (!drawnLineCache.has(pixels)) drawnLineCache.set(pixels, new Map())
+    const known = drawnLineCache.get(pixels)
+    if (known.has(key)) return known.get(key)
+    lines = null
+    lineWords = null
+    const sum = [0, 0, 0, 0]
+    for (const { from, rect, repeat } of lineDraws) {
+      const line = cornerPixels(painted, ...from)
+      drawLine(line, rect)
+      if (!repeat) continue
+      for (let i = 0; i < line.data.length; i += 4) {
+        if (line.data[i + 3] < 128) continue
+        sum[0] += line.data[i] * repeat
+        sum[1] += line.data[i + 1] * repeat
+        sum[2] += line.data[i + 2] * repeat
+        sum[3] += repeat
       }
     }
+    const made = { lines, sideSum: sum }
+    if (known.size >= LINE_CACHE) known.delete(known.keys().next().value)
+    known.set(key, made)
+    return made
   }
 
   function tile(rect, column = 0) {
@@ -656,18 +686,7 @@ export function buildAtlas(faces, options) {
           const start = (py % totals.height) * (totals.width + 1) * 4
           for (let channel = 0; channel < 4; channel++) sideSum[channel] += whole * totals.sums[start + totals.width * 4 + channel] + totals.sums[start + rest * 4 + channel]
         }
-      } else {
-        const line = cornerPixels(painted, west ? column * R : (column + 1) * R - 1, row * R, height * R, true, west ? 1 : -1)
-        drawLine(line, face.rect)
-        const repeat = width * SCALE * SCALE / R
-        for (let i = 0; i < line.data.length; i += 4) {
-          if (line.data[i + 3] < 128) continue
-          sideSum[0] += line.data[i] * repeat
-          sideSum[1] += line.data[i + 1] * repeat
-          sideSum[2] += line.data[i + 2] * repeat
-          sideSum[3] += repeat
-        }
-      }
+      } else lineDraws.push({ from: [west ? column * R : (column + 1) * R - 1, row * R, height * R, true, west ? 1 : -1], rect: face.rect, repeat: width * SCALE * SCALE / R })
       shades.push([face.rect, sideFill(face, block, span), options.sideFade, x * SCALE, (x + width) * SCALE, true])
       wrapped.push({ rect: face.rect, glyph: entry.glyph, side: west ? "left" : "right", line: Math.round(face.points[0][0] - block.own.minX), from: Math.round(block.own.maxY - span.max) })
       if (options.sideFade === null && sideGradient && sideGradient.direction !== "along") addGradient(face.rect, [0, y + span.max - shared.minY], [0, y + span.max - shared.maxY], sideGradient.stops)
@@ -688,7 +707,7 @@ export function buildAtlas(faces, options) {
     const row = inside(entry.top + Math.round(block.own.maxY - level) - (face.kind === "top" ? 0 : 1), entry.top, entry.height)
     const edge = face.kind === "top" ? row * R : (row + 1) * R - 1
     if (painted.tiles) tile(face.rect, painted.tilesAcrossLine ? column - entry.x + entry.glyph.lineX : 0)
-    else drawLine(cornerPixels(painted, column * R, edge, width * R, false, face.kind === "top" ? 1 : -1), face.rect)
+    else lineDraws.push({ from: [column * R, edge, width * R, false, face.kind === "top" ? 1 : -1], rect: face.rect, repeat: 0 })
     shades.push([face.rect, innerFill(face, block, span, level), options.internalFade, back, front, false])
     wrapped.push(strip)
     if (options.internalFade === null && innerGradient && innerGradient.direction !== "up") {
@@ -697,6 +716,11 @@ export function buildAtlas(faces, options) {
     }
   }
 
+  if (lineDraws.length) {
+    const drawn = drawnLines()
+    lines = drawn.lines
+    for (let channel = 0; channel < 4; channel++) sideSum[channel] += drawn.sideSum[channel]
+  }
   if (lines) ctx.putImageData(lines, 0, linesTop)
   copyStrips(ctx, painted.canvas)
   for (const wrap of painted.sideWraps) {
