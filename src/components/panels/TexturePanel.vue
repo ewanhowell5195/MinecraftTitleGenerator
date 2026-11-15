@@ -152,6 +152,7 @@
     const fresh = source === "tileable" && untouchedTileable(object.value) && !eulaDeclined()
     setTexture(object.value, { textureSource: source }, { before: list.value })
     if (fresh) chooseTileables("minecraft")
+    else if (usingMinecraft.value) retint(blockTint(object.value.minecraftTexture))
   }
 
   async function chooseTileables(source) {
@@ -166,6 +167,7 @@
       }
     }
     target.tileableSource = source
+    if (usingMinecraft.value) retint(blockTint(target.minecraftTexture))
   }
 
   function resetSource() {
