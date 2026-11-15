@@ -1,13 +1,12 @@
 <script setup>
   import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
   import Button from "../components/Button.vue"
-  import AccountMenu from "../components/AccountMenu.vue"
   import Notice from "../components/Notice.vue"
   import NavTabs from "../components/NavTabs.vue"
-  import NotificationBell from "../components/NotificationBell.vue"
   import Icon from "../components/Icon.vue"
   import MenuStrip from "../components/MenuStrip.vue"
   import RenderDialog from "../components/RenderDialog.vue"
+  import TopBar from "../components/TopBar.vue"
   import CharacterList from "./CharacterList.vue"
   import CharacterPanel from "./CharacterPanel.vue"
   import FontPanel from "./FontPanel.vue"
@@ -85,18 +84,16 @@
 
 <template>
   <div class="editor-page">
-    <header class="top" :class="{ editing: font }">
-      <a class="brand" href="/"><img src="/favicon.svg" alt="" width="24" height="24"><span>Minecraft Title Generator</span></a>
+    <TopBar class="top">
       <template v-if="font">
         <MenuStrip :menus="menus" />
-        <NavTabs class="main-tabs" v-model="tab" :tabs="TABS" />
+        <NavTabs class="main-tabs divided" v-model="tab" :tabs="TABS" />
       </template>
-      <div class="spacer"></div>
-      <Button v-if="font && editingSubmission" primary class="update" v-tooltip="'Save your submission with this font as its file'" @click="saveSubmission"><template #icon><Icon name="upload" :size="16" /></template>Save submission</Button>
-      <Button v-else-if="font" primary v-tooltip="'Send this font to be added to the title generator'" @click="submitFont"><template #icon><Icon name="upload" :size="16" /></template>Submit</Button>
-      <AccountMenu />
-      <NotificationBell />
-    </header>
+      <template #end>
+        <Button v-if="font && editingSubmission" primary class="update" v-tooltip="'Save your submission with this font as its file'" @click="saveSubmission"><template #icon><Icon name="upload" :size="16" /></template>Save submission</Button>
+        <Button v-else-if="font" primary v-tooltip="'Send this font to be added to the title generator'" @click="submitFont"><template #icon><Icon name="upload" :size="16" /></template>Submit</Button>
+      </template>
+    </TopBar>
 
     <Notice v-if="loadError" class="top-notice">{{ loadError }}</Notice>
     <Notice v-if="saveError" class="top-notice">{{ saveError }}</Notice>
@@ -151,24 +148,6 @@
 
   .top {
     flex: none;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    height: 60px;
-    padding: 0 14px 0 18px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--line);
-  }
-
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-weight: 700;
-    color: var(--text);
-    text-decoration: none;
-    user-select: none;
-    white-space: nowrap;
   }
 
   .top-notice {
@@ -203,21 +182,9 @@
   }
 
   .main-tabs {
-    position: relative;
     flex: none;
     align-self: stretch;
-    margin-left: 8px;
-    padding-left: 27px;
-  }
-
-  .main-tabs::before {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 0;
-    height: 18px;
-    border-left: 1px solid var(--line-strong);
-    transform: translateY(-50%);
+    padding-left: var(--bar-item-padding);
   }
 
   .main-tabs.nav-tabs {
@@ -267,19 +234,18 @@
       top: 0;
       z-index: 10;
       flex-wrap: wrap;
-      height: auto;
-      min-height: 54px;
+      row-gap: 0;
     }
 
-    .brand {
-      height: 54px;
+    .top :deep(.top-bar-brand) {
+      min-height: var(--bar-height);
     }
 
     .main-tabs {
       order: 10;
-      flex-basis: calc(100% + 32px);
+      flex-basis: calc(100% + var(--bar-start) + var(--bar-end));
       height: 44px;
-      margin: 0 -14px 0 -18px;
+      margin: 0 calc(-1 * var(--bar-end)) 0 calc(-1 * var(--bar-start));
       padding-left: 0;
       border-top: 1px solid var(--line);
     }
@@ -320,20 +286,6 @@
   }
 
   @media (max-width: 520px) {
-    .editing .brand span {
-      display: none;
-    }
-
-    .top {
-      gap: 2px;
-      padding: 0 8px;
-    }
-
-    .main-tabs {
-      flex-basis: calc(100% + 16px);
-      margin: 0 -8px;
-    }
-
     .page-body {
       padding: 16px;
     }

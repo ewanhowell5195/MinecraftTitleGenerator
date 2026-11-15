@@ -2,11 +2,8 @@
   import { computed, onMounted, ref, watch } from "vue"
   import Button from "./components/Button.vue"
   import FluidTabs from "fluid-tabs-vue"
-  import AccountMenu from "./components/AccountMenu.vue"
-  import BrandLink from "./components/BrandLink.vue"
   import EulaDialog from "./components/EulaDialog.vue"
   import Notice from "./components/Notice.vue"
-  import NotificationBell from "./components/NotificationBell.vue"
   import Icon from "./components/Icon.vue"
   import LayerActions from "./components/LayerActions.vue"
   import Panel from "./components/Panel.vue"
@@ -17,6 +14,7 @@
   import RenderFrame from "./components/RenderFrame.vue"
   import Segments from "./components/Segments.vue"
   import ShareButton from "./components/ShareButton.vue"
+  import TopBar from "./components/TopBar.vue"
   import Viewport from "./components/Viewport.vue"
   import ArcPanel from "./components/panels/ArcPanel.vue"
   import TwistPanel from "./components/panels/TwistPanel.vue"
@@ -123,13 +121,10 @@
 
 <template>
   <div class="app" :class="{ wide: !editing }">
-    <header class="bar">
-      <h1><BrandLink /></h1>
+    <TopBar class="bar" heading>
       <MenuBar ref="menuBar" />
-      <ShareButton />
-      <AccountMenu />
-      <NotificationBell />
-    </header>
+      <template #end><ShareButton /></template>
+    </TopBar>
 
     <LayerList />
 
@@ -231,27 +226,6 @@
 
   .bar {
     grid-area: bar;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 0 14px 0 18px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--line);
-  }
-
-  .account {
-    margin-left: 10px;
-  }
-
-  .notification-bell {
-    margin-left: 6px;
-  }
-
-  h1 {
-    min-width: 0;
-    margin: 0;
-    font-size: var(--font-lg);
-    font-weight: 600;
   }
 
   .tabs {
@@ -360,14 +334,6 @@
       grid-template-columns: minmax(0, 1fr);
       grid-template-rows: 54px minmax(170px, 30dvh) auto auto minmax(0, 1fr) auto;
       grid-template-areas: "bar" "stage" "layers" "actions" "drawer" "tabs";
-    }
-
-    .bar {
-      padding: 0 8px 0 12px;
-    }
-
-    h1 {
-      font-size: var(--font-base);
     }
 
     .tabs {

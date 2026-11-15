@@ -9,13 +9,10 @@
   import { parseSearch, searchWithUser } from "../lib/presetSearch.js"
   import { closePresetsPage, leavePresetsForEditor, openLinkInEditor, presetsPage, showOwnPreset, showPreset, takeLanding } from "../lib/presetsPage.js"
   import { openSharedLink } from "../lib/share.js"
-  import AccountMenu from "./AccountMenu.vue"
   import AuthorLink from "./AuthorLink.vue"
-  import BrandLink from "./BrandLink.vue"
   import Badge from "./Badge.vue"
   import Button from "./Button.vue"
   import Notice from "./Notice.vue"
-  import NotificationBell from "./NotificationBell.vue"
   import DeletePresetDialog from "./DeletePresetDialog.vue"
   import Dropdown from "./Dropdown.vue"
   import Icon from "./Icon.vue"
@@ -24,6 +21,7 @@
   import SharePresetDialog from "./SharePresetDialog.vue"
   import SubmissionUsage from "./SubmissionUsage.vue"
   import TitlePicture from "./TitlePicture.vue"
+  import TopBar from "./TopBar.vue"
   import { router } from "../router.js"
 
   const TABS = [{ value: "community", label: "Community" }, { value: "mine", label: "My presets" }]
@@ -368,15 +366,11 @@
 
 <template>
   <div ref="root" class="page">
-    <header class="top">
-      <Button v-if="presetsPage.fromEditor" class="back" @click="closePresetsPage()"><template #icon><Icon name="back" :size="18" /></template><span>Back to editor</span></Button>
-      <BrandLink v-else class="home" />
-      <h1 :class="{ divided: !presetsPage.fromEditor }">Presets</h1>
-      <SubmissionUsage v-if="tab === 'mine'" class="usage" />
-      <Segments class="tabs" :options="TABS" v-model="tab" />
-      <AccountMenu />
-      <NotificationBell />
-    </header>
+    <TopBar class="top" title="Presets">
+      <template v-if="presetsPage.fromEditor" #start><Button class="back" @click="closePresetsPage()"><template #icon><Icon name="back" :size="18" /></template><span>Back to editor</span></Button></template>
+      <SubmissionUsage v-if="tab === 'mine'" class="usage divided" />
+      <template #end><Segments class="tabs" :options="TABS" v-model="tab" /></template>
+    </TopBar>
     <div class="body" :class="{ open: selected }">
       <main class="browse">
         <div class="tools input-row">
@@ -446,39 +440,14 @@
 
   .top {
     flex: none;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    height: 60px;
-    padding: 0 16px 0 18px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--line);
   }
 
-  .back,
-  .home {
+  .back {
     flex: none;
-  }
-
-  .home {
-    font-size: var(--font-lg);
-    font-weight: 600;
-  }
-
-  .home + h1 {
-    margin-left: 2px;
-    padding-left: 24px;
-  }
-
-  h1 {
-    margin: 0;
-    font-size: var(--font-xl);
-    font-weight: 600;
   }
 
   .tabs {
     width: 280px;
-    margin-left: auto;
   }
 
   .body {
@@ -519,8 +488,7 @@
 
   .usage {
     flex: none;
-    padding-left: 16px;
-    border-left: 1px solid var(--line);
+    padding-left: var(--bar-item-padding);
   }
 
   .list {
@@ -647,28 +615,26 @@
   @media (max-width: 800px) {
     .top {
       flex-wrap: wrap;
-      gap: 8px;
-      height: auto;
-      min-height: 60px;
-      padding: 8px;
+      row-gap: 8px;
+      padding-top: 8px;
+      padding-bottom: 8px;
     }
 
     .usage {
       order: 1;
       flex-basis: 100%;
+      margin-left: 0;
       padding-left: 0;
-      border-left: none;
     }
 
-    .back span,
-    h1 {
+    .usage::before,
+    .back span {
       display: none;
     }
 
     .tabs {
       flex: 1;
       width: auto;
-      margin-left: 0;
     }
 
     .tools {

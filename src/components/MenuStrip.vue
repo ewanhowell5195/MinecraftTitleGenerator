@@ -46,12 +46,11 @@
   .menus {
     display: flex;
     gap: 2px;
-    margin-left: 14px;
   }
 
   .menu {
     min-height: var(--control);
-    padding: 0 10px;
+    padding: 0 var(--bar-item-padding);
     font-weight: 500;
     background: transparent;
   }

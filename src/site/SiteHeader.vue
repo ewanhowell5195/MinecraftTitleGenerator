@@ -1,9 +1,9 @@
 <script setup>
   import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
   import { useRoute } from "vue-router"
-  import AccountMenu from "../components/AccountMenu.vue"
+  import BrandLink from "../components/BrandLink.vue"
   import Button from "../components/Button.vue"
-  import NotificationBell from "../components/NotificationBell.vue"
+  import TopBar from "../components/TopBar.vue"
   import { useWindowEvents } from "../lib/events.js"
 
   const LINKS = [{ to: "/app/presets", label: "Presets" }, { to: "/font-editor/", label: "Font editor" }, { to: "/submit/", label: "Submit" }]
@@ -50,15 +50,13 @@
 </script>
 
 <template>
-  <header class="bar" :class="{ scrolled }">
-    <RouterLink class="brand" to="/" @click="home"><img src="/favicon.svg" alt="" width="28" height="28"><span>Minecraft Title Generator</span></RouterLink>
+  <TopBar class="bar" :class="{ clear: !scrolled }" site>
+    <template #brand><BrandLink to="/" @click="home" /></template>
     <nav class="bar-links" aria-label="Main">
       <RouterLink v-for="link of LINKS" :key="link.to" :to="link.to">{{ link.label }}</RouterLink>
     </nav>
-    <div class="bar-end">
-      <Button primary class="bar-button" to="/app/">Open the generator</Button>
-      <div class="bar-account"><AccountMenu /></div>
-      <div class="bar-notifications"><NotificationBell /></div>
+    <template #end><Button primary class="bar-button" to="/app/">Open the generator</Button></template>
+    <template #after>
       <div ref="menu" class="bar-menu">
         <Button ref="toggle" ghost class="bar-toggle" :class="{ open }" icon="menu" :icon-size="20" aria-label="Menu" :aria-expanded="open" @click="open = !open" />
         <nav v-if="open" class="bar-list popover" aria-label="Menu" @click="close">
@@ -66,8 +64,8 @@
           <RouterLink class="bar-generator" to="/app/">Open the generator</RouterLink>
         </nav>
       </div>
-    </div>
-  </header>
+    </template>
+  </TopBar>
 </template>
 
 <style scoped>
@@ -77,43 +75,13 @@
     right: 0;
     left: 0;
     z-index: 10;
-    display: flex;
-    align-items: center;
-    gap: 28px;
-    height: 64px;
-    padding: 0 max(16px, calc((100% - 1120px) / 2));
-    font-family: var(--font-ui);
     line-height: 1.15;
-    border-bottom: 1px solid transparent;
     transition: background-color 0.4s, border-color 0.4s;
   }
 
-  .bar.scrolled {
-    background-color: var(--surface);
-    border-bottom-color: var(--line);
-  }
-
-  .bar .brand {
-    display: flex;
-    min-width: 0;
-    align-items: center;
-    gap: 10px;
-    font-size: 17px;
-    font-weight: 700;
-    text-decoration: none;
-    color: var(--text);
-    user-select: none;
-  }
-
-  .bar .brand img {
-    flex: none;
-    translate: 0 7%;
-  }
-
-  .bar .brand span {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+  .bar.clear {
+    background-color: transparent;
+    border-bottom-color: transparent;
   }
 
   .bar-links {
@@ -133,18 +101,6 @@
   .bar-links a:hover,
   .bar-links a[aria-current] {
     color: var(--text);
-  }
-
-  .bar-end {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-left: auto;
-  }
-
-  .bar-notifications,
-  .bar-account {
-    display: flex;
   }
 
   .bar-button {
@@ -210,16 +166,7 @@
   }
 
   @media (max-width: 600px) {
-    .bar {
-      gap: 12px;
-    }
-
-    .bar-end {
-      gap: 8px;
-    }
-
-    .bar-button,
-    .bar-account :deep(.account:not(.signed) span) {
+    .bar-button {
       display: none;
     }
 

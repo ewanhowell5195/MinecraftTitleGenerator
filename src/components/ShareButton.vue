@@ -39,6 +39,5 @@
 <style scoped>
   .share {
     flex: none;
-    margin-left: auto;
   }
 </style>
