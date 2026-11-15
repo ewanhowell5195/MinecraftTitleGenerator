@@ -3,6 +3,7 @@
   import { layerShown, usePanel, usedLayers } from "../../lib/panel.js"
   import { library } from "../../lib/scene.js"
   import { OVERLAY_KINDS, activeOverlays, defaultOverlays } from "../../lib/settings.js"
+  import { usedOverlayFiles } from "../../lib/uploads.js"
   import OverlayLayers from "../OverlayLayers.vue"
   import Panel from "../Panel.vue"
   import Segments from "../Segments.vue"
@@ -52,6 +53,6 @@
     <Segments :options="MODES" :model-value="object[modeKey]" @update:model-value="pickMode" />
     <p class="hint" v-if="edge">Paints the top and bottom faces around each letter.</p>
     <p class="hint" v-if="object[modeKey] === 'default'">The overlays this texture comes with. Editing switches to Custom.</p>
-    <OverlayLayers v-model:selected="selected" :layers="layers" :edit="custom" :available="available" :font="font" :fonts="library.fonts" :shown-layer="shownLayer" :edge="edge" :side-faces="!!(object.internalFaces || object.sideFaces)" />
+    <OverlayLayers v-model:selected="selected" :layers="layers" :edit="custom" :available="available" :font="font" :fonts="library.fonts" :shown-layer="shownLayer" :edge="edge" :side-faces="!!(object.internalFaces || object.sideFaces)" :reuse="usedOverlayFiles()" />
   </Panel>
 </template>

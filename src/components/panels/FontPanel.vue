@@ -12,6 +12,7 @@
   import { DEFAULT_FONT, isCustomFont } from "../../lib/settings.js"
   import { popular } from "../../lib/stats.js"
   import { fontThumbnail, readDataUrl, takeFile } from "../../lib/ui.js"
+  import { usedFonts } from "../../lib/uploads.js"
   import Button from "../Button.vue"
   import Field from "../Field.vue"
   import Notice from "../Notice.vue"
@@ -22,6 +23,7 @@
   import Tile from "../Tile.vue"
   import TileGrid from "../TileGrid.vue"
   import UploadField from "../UploadField.vue"
+  import UploadReuse from "../UploadReuse.vue"
   import Toggle from "../Toggle.vue"
 
   const TABS = [{ value: "published", label: "All fonts" }, { value: "custom", label: "Custom" }]
@@ -123,6 +125,22 @@
     }
   }, { immediate: true })
 
+  const reusable = ref([])
+  const otherFonts = computed(() => usedFonts().filter(item => item.key !== object.value.customFont?.data))
+  let reuseToken = 0
+  let reuseKeys = null
+
+  watch(otherFonts, async items => {
+    if (reuseKeys && items.length === reuseKeys.length && items.every((item, index) => item.key === reuseKeys[index])) return
+    reuseKeys = items.map(item => item.key)
+    const token = ++reuseToken
+    const shown = await Promise.all(items.map(async item => {
+      const entry = await customFontEntry(item.value)
+      return { ...item, label: entry.name, image: customThumbnail(entry.id, "preview") ?? customThumbnail(entry.id, "flat") }
+    }))
+    if (token === reuseToken) reusable.value = shown
+  }, { immediate: true })
+
   watch(() => [object.value.id, isCustomFont(object.value.font)], () => {
     tab.value = isCustomFont(object.value.font) ? "custom" : "published"
     customError.value = ""
@@ -175,6 +193,7 @@
         </div>
         <p v-if="squares" class="hint">Square size is how many pixels each square is. 4 gives chunky squares like Minecraft Ten. Fonts drawn on a pixel grid keep their own.</p>
       </template>
+      <UploadReuse :items="reusable" @pick="applyCustom" />
     </template>
     <TileGrid v-else>
       <Tile v-for="data of baseFonts" :key="data.id" :label="data.name" :image="fontThumbnail(library.fonts, data.id)" :author="fontCredit(data, library.fonts)" :badge="variantBadges[data.id]" :selected="baseId === data.id" @pick="object.font = data.id" />

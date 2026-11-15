@@ -18,6 +18,7 @@
   import TileGrid from "./TileGrid.vue"
   import Toggle from "./Toggle.vue"
   import UploadField from "./UploadField.vue"
+  import UploadReuse from "./UploadReuse.vue"
 
   const KINDS = [{ value: "generated", label: "Generated" }, { value: "texture", label: "Texture" }, { value: "file", label: "File" }]
 
@@ -31,7 +32,8 @@
     edge: { type: Boolean, default: false },
     files: { type: Boolean, default: true },
     sideFaces: { type: Boolean, default: false },
-    tileMin: { type: Number, default: null }
+    tileMin: { type: Number, default: null },
+    reuse: { type: Array, default: () => [] }
   })
 
   const selected = defineModel("selected", { type: Number, default: 0 })
@@ -52,6 +54,8 @@
     if (["sideWrap", "edgeWrap"].some(key => !!layer.value[key] !== !!baseline.value[key])) return true
     return settings.value.some(item => item.key !== "seed" && generatedSetting(layer.value, item) !== generatedSetting(baseline.value, item))
   })
+
+  const reusable = computed(() => props.reuse.filter(item => item.value !== layer.value?.file).map(item => ({ ...item, image: item.value })))
 
   function overlayMenu(id, data) {
     return data.generated ? null : [{ label: "Download overlay", icon: "download", action: () => saveSheet(props.font, "overlays", id) }]
@@ -172,6 +176,7 @@
   </TileGrid>
   <template v-else>
     <UploadField accept="image/*" :label="layer?.file ? 'Replace image' : 'Choose an image'" empty="No file selected" :image="layer?.file" @change="readImage($event, pickFile)" />
+    <UploadReuse :items="reusable" @pick="pickFile" />
   </template>
 
   <template v-if="layer">

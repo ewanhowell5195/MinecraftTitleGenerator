@@ -12,6 +12,7 @@
   import { minecraftStatId, popular } from "../../lib/stats.js"
   import { stripCovers } from "../../lib/strips.js"
   import { readImage, saveImage, thumbnail, thumbnailHeight, tilePreview } from "../../lib/ui.js"
+  import { usedTextures } from "../../lib/uploads.js"
   import Button from "../Button.vue"
   import GradientEditor from "../GradientEditor.vue"
   import MinecraftVersionField from "../MinecraftVersionField.vue"
@@ -22,6 +23,7 @@
   import Tile from "../Tile.vue"
   import TileGrid from "../TileGrid.vue"
   import UploadField from "../UploadField.vue"
+  import UploadReuse from "../UploadReuse.vue"
   import Toggle from "../Toggle.vue"
 
   const SEARCH_ABOVE = 16
@@ -112,6 +114,8 @@
   function sameShape(a, b) {
     return Math.abs(a.width / a.height - b.width / b.height) < SAME_SHAPE
   }
+
+  const reusable = computed(() => usedTextures().filter(item => item.value !== object.value.customTexture).map(item => ({ ...item, image: item.value })))
 
   async function pickCustom(data) {
     const target = object.value
@@ -272,6 +276,7 @@
         <p class="hint" :class="{ bad: object.customTextureMode === 'standard' && !fitsFont }">{{ modeHint }}</p>
       </template>
       <p v-else class="hint">An image the shape of this font's flat texture is painted onto the letters. Anything else is tiled, or you can use it as a strip.</p>
+      <UploadReuse :items="reusable" @pick="pickCustom" />
     </template>
 
     <template v-if="object.textureSource === 'gradient'">
