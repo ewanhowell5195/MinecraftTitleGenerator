@@ -1,4 +1,5 @@
 import { deflateSync, inflateSync } from "three/addons/libs/fflate.module.js"
+import { cameraChanges } from "./camera.js"
 import { hexOf, rgbOf } from "./colour.js"
 import { DEFAULT_ORDER } from "./order.js"
 import { FILE_VERSION, LAYERS, LINE, isCustomFont, sameValue, typeDefaults, upgradeLine } from "./settings.js"
@@ -391,7 +392,12 @@ const KEYS = [
   ["colours", list(isColour, writeColour, readColour)],
   ["tint", COLOUR],
   ["tintBlend", BLEND],
-  ["direction", NUMBER]
+  ["direction", NUMBER],
+  ["pitch", NUMBER],
+  ["yaw", NUMBER],
+  ["tilt", NUMBER],
+  ["fov", NUMBER],
+  ["fixedDistance", BOOLEAN]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))
@@ -443,9 +449,10 @@ export function unknownSetting(items, names = new Map(), accepts = fittingType) 
   return null
 }
 
-export function writeLines(lines) {
+export function writeLines(lines, camera = null) {
   const out = []
   OBJECTS.write(out, lines)
+  if (camera) writeObject(out, camera)
   return new Uint8Array(out)
 }
 
@@ -454,6 +461,14 @@ export function readLines(bytes) {
   const lines = OBJECTS.read(reader)
   if (reader.at !== bytes.length) throw new Error("the link has extra data on the end")
   return lines
+}
+
+function readTitleBytes(bytes) {
+  const reader = { bytes, at: 0 }
+  const lines = OBJECTS.read(reader)
+  const camera = reader.at < bytes.length ? readObject(reader) : null
+  if (reader.at !== bytes.length || camera && !Object.keys(camera).length) throw new Error("the link has extra data on the end")
+  return { lines, camera }
 }
 
 function toBase64Url(bytes) {
@@ -521,9 +536,10 @@ export function lowered(line) {
   return { ...Object.fromEntries(Object.entries(line).filter(([key]) => lineKey(key))), words: line.words.map(word => ({ ...Object.fromEntries(shared), ...word })) }
 }
 
-export function encodeTitle({ version, lines }) {
+export function encodeTitle({ version, lines, camera = null }) {
   if (version * 2 + 1 >= PREFIXES.length) throw new Error(`links can't hold version ${version}`)
-  const bytes = writeLines(lines.map(line => hoisted(withoutUploads(line))))
+  const changes = cameraChanges(camera)
+  const bytes = writeLines(lines.map(line => hoisted(withoutUploads(line))), Object.keys(changes).length ? changes : null)
   const packed = deflateSync(bytes, { level: 9 })
   const compressed = packed.length < bytes.length
   return { code: `${PREFIXES[version * 2 + (compressed ? 1 : 0)]}${toBase64Url(compressed ? packed : bytes)}`, skipped: lines.reduce((total, line) => total + countUploads(line), 0) }
@@ -534,7 +550,8 @@ export function decodeTitle(code) {
     const prefix = PREFIXES.indexOf(code[0])
     if (prefix < 0) throw new Error("the link has no version")
     const bytes = fromBase64Url(code.slice(1))
-    return { version: prefix >> 1, lines: readLines(prefix % 2 ? inflateSync(bytes) : bytes).map(lowered) }
+    const { lines, camera } = readTitleBytes(prefix % 2 ? inflateSync(bytes) : bytes)
+    return { version: prefix >> 1, lines: lines.map(lowered), ...(camera && { camera }) }
   } catch {
     throw new Error("it is incomplete or damaged")
   }
@@ -553,9 +570,9 @@ function upgradedBody(code) {
   const body = code.slice(1)
   if (PREFIXES.indexOf(code[0]) >> 1 >= FILE_VERSION) return body
   try {
-    const { version, lines } = decodeTitle(code)
+    const { version, lines, camera } = decodeTitle(code)
     const upgraded = lines.map(line => upgradeLine(line, version))
-    return sameValue(upgraded, lines) ? body : encodeTitle({ version: FILE_VERSION, lines: upgraded }).code.slice(1)
+    return sameValue(upgraded, lines) ? body : encodeTitle({ version: FILE_VERSION, lines: upgraded, camera }).code.slice(1)
   } catch {
     return body
   }

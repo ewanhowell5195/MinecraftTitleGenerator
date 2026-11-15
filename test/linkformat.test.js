@@ -15,6 +15,24 @@ function isCompact(key, value) {
   return writeLines([{ [key]: value }])[2] !== 0
 }
 
+describe("camera in links", () => {
+  test("a default camera leaves the code exactly as it was", () => {
+    const lines = [{ text: "camera" }]
+    assert.equal(encodeTitle({ version: FILE_VERSION, lines, camera: { fov: 43, yaw: 0 } }).code, encodeTitle({ version: FILE_VERSION, lines }).code)
+    assert.equal(decodeTitle(encodeTitle({ version: FILE_VERSION, lines }).code).camera, undefined)
+  })
+
+  test("a changed camera comes back with only its changes", () => {
+    const title = decodeTitle(encodeTitle({ version: FILE_VERSION, lines: [{ text: "camera" }], camera: { pitch: 0, yaw: -12.5, tilt: 0, fov: 0, fixedDistance: false } }).code)
+    assert.deepEqual(title.lines, [{ text: "camera" }])
+    assert.deepEqual(title.camera, { pitch: 0, yaw: -12.5, tilt: 0, fov: 0 })
+  })
+
+  test("an empty camera after the lines is refused", () => {
+    assert.throws(() => decodeTitle(`A${Buffer.from(Array.from(writeLines([{ text: "camera" }])).concat(0)).toString("base64url")}`))
+  })
+})
+
 describe("twist in links", () => {
   test("round trips the twist centres", () => {
     const lines = [{ twistRibbon: 30, twistRibbonCentre: 25, twistRibbonMirror: true, twistDoor: -10, twistDoorCentre: 100 }]

@@ -77,7 +77,7 @@ export async function titleCanvas(code, width = PICTURE_WIDTH, fixedDistance = f
 }
 
 function titleOf(decoded, fixedDistance) {
-  return createTitle(reactive(readTitleObjects(decoded)), OFFSCREEN_VIEW, reactive(fullCamera({ fixedDistance })))
+  return createTitle(reactive(readTitleObjects(decoded)), OFFSCREEN_VIEW, reactive(fullCamera({ ...decoded.camera, ...(fixedDistance && { fixedDistance }) })))
 }
 
 async function pictureOf(title, fonts, tileables, width, shapes) {

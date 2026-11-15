@@ -931,6 +931,20 @@ describe("a preset by fingerprint", () => {
     assert.equal(presets[0].code, shared)
   })
 
+  test("differs for each camera angle and stays the same for the default camera", async () => {
+    const fingerprintOf = async body => db.prepare("SELECT fingerprint FROM presets WHERE id = ?").get((await post(body, `${Math.random()}`)).preset.id).fingerprint
+    const plain = await fingerprintOf({ code: code([{ text: "plain" }]) })
+    db.exec("DELETE FROM presets")
+    const defaulted = await fingerprintOf({ code: encodeTitle({ version: FILE_VERSION, lines: [{ text: "plain" }], camera: { fov: 43 } }).code })
+    db.exec("DELETE FROM presets")
+    const front = await fingerprintOf({ code: encodeTitle({ version: FILE_VERSION, lines: [{ text: "plain" }], camera: { pitch: 0, tilt: 0, fov: 0 } }).code })
+    db.exec("DELETE FROM presets")
+    const turned = await fingerprintOf({ code: encodeTitle({ version: FILE_VERSION, lines: [{ text: "plain" }], camera: { pitch: 0, tilt: 0, fov: 0, yaw: 20 } }).code })
+    assert.equal(defaulted, plain)
+    assert.notEqual(front, plain)
+    assert.notEqual(turned, front)
+  })
+
   test("lists nothing for an unknown fingerprint", async () => {
     assert.deepEqual(await fetched("0".repeat(64)), [])
   })

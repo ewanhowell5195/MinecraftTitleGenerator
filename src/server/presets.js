@@ -1,3 +1,4 @@
+import { CAMERA_KEYS, cameraChanges, fullCamera } from "../lib/camera.js"
 import { LIMITS } from "../lib/limits.js"
 import { decodeTitle, unknownSetting } from "../lib/linkformat.js"
 import { capitalWords } from "../lib/names.js"
@@ -34,7 +35,9 @@ function canonical(value) {
 }
 
 function titleFingerprint(code) {
-  return hashed(JSON.stringify(canonical(decodeTitle(code).lines)))
+  const { lines, camera } = decodeTitle(code)
+  const changes = cameraChanges(camera)
+  return hashed(JSON.stringify(canonical(Object.keys(changes).length ? { lines, camera: fullCamera(changes) } : lines)))
 }
 
 function network(ip) {
@@ -63,7 +66,7 @@ export function checkTitle(code) {
     throw new Refusal(400, "This title is damaged, so it can't be shared.")
   }
   if (title.version > FILE_VERSION) throw new Refusal(400, "This title was made by a newer version of the generator. Reload the page and try again.")
-  const unknown = unknownSetting(title.lines)
+  const unknown = unknownSetting(title.lines) ?? Object.keys(title.camera ?? {}).find(key => !CAMERA_KEYS.includes(key))
   if (unknown) throw new Refusal(400, `This title has a setting that can't be shared: ${unknown}.`)
   const problem = titleProblem(title.lines)
   if (problem) throw new Refusal(400, `This title can't be shared: ${problem}.`)

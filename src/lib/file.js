@@ -1,5 +1,6 @@
 import { ref } from "vue"
 import { fontTextures } from "./assets.js"
+import { cameraChanges, setCamera } from "./camera.js"
 import { loadFont, loadFontList } from "./font.js"
 import { matchSolved } from "./match.js"
 import { lines, runtime, scene, titleFileName, titleObjects, validSelection } from "./scene.js"
@@ -57,7 +58,8 @@ function trim(object) {
 }
 
 export function titleData() {
-  return { format: FORMAT, version: FILE_VERSION, lines: titleLines(lines(), trim) }
+  const camera = cameraChanges(scene.camera)
+  return { format: FORMAT, version: FILE_VERSION, lines: titleLines(lines(), trim), ...(Object.keys(camera).length && { camera }) }
 }
 
 export function saveTitle() {
@@ -78,15 +80,19 @@ function parse(text) {
 function readTitle(text) {
   const data = parse(text)
   if (data?.format !== FORMAT) throw new Error("this isn't a Minecraft title file")
-  return titleValues(data)
+  return { values: titleValues(data), camera: data.camera }
 }
 
 function titleReference(list, font) {
   return { ...typeDefaults("top"), texture: defaultTexture(list, "top"), spacing: defaultSpacing("top", font), depth: defaultDepth(font), border: defaultBorder("top", font), ...fontFaces("top", font) }
 }
 
+function defaultCamera() {
+  return !Object.keys(cameraChanges(scene.camera)).length
+}
+
 export function isDefaultTitle() {
-  if (scene.objects.length !== 1) return false
+  if (scene.objects.length !== 1 || !defaultCamera()) return false
   const object = scene.objects[0]
   const { list, font } = runtime[object.id] ?? {}
   if (!list || !font) return false
@@ -94,7 +100,7 @@ export function isDefaultTitle() {
 }
 
 export async function untouchedTitle() {
-  if (scene.objects.length !== 1) return false
+  if (scene.objects.length !== 1 || !defaultCamera()) return false
   if (isDefaultTitle()) return true
   const object = scene.objects[0]
   if (object.shape !== null || isCustomFont(object.font)) return false
@@ -105,8 +111,9 @@ export async function untouchedTitle() {
   return sameValue(trim(object), trim(titleReference(await fontTextures(font.sheetFolder, font.strips), font)))
 }
 
-function showObjects(objects) {
+function showObjects(objects, camera) {
   scene.objects.splice(0, scene.objects.length, ...objects)
+  setCamera(scene.camera, camera)
   Object.assign(scene, validSelection(objects, null, null))
   fileError.value = null
 }
@@ -120,14 +127,14 @@ export function readTitleObjects(data) {
 }
 
 export function openTitleData(data) {
-  showObjects(readTitleObjects(data))
+  showObjects(readTitleObjects(data), data.camera)
 }
 
 export async function openTitle(file, allow = () => true) {
   try {
-    const values = readTitle(await file.text())
+    const { values, camera } = readTitle(await file.text())
     if (!allow()) return
-    showObjects(titleObjects(values))
+    showObjects(titleObjects(values), camera)
   } catch (err) {
     fileError.value = `Couldn't open ${file.name}: ${err.message}`
   }

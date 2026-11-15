@@ -1,5 +1,5 @@
 import { computed, reactive, ref, shallowReactive, watch } from "vue"
-import { fullCamera } from "./camera.js"
+import { cameraChanges, fullCamera } from "./camera.js"
 import { hoisted, lowered } from "./linkformat.js"
 import { round } from "./maths.js"
 import { FILE_VERSION, LINE, applyType, createObject, isModified, snapshot } from "./settings.js"
@@ -48,10 +48,11 @@ export function lines(objects = scene.objects) {
   return list
 }
 
-function stored(objects, { selected, selectedGroup }, version, values) {
+function stored(objects, { selected, selectedGroup, camera }, version, values) {
   const list = lines(objects)
   const group = list.findIndex(line => line[0].group !== null && line[0].group === selectedGroup)
-  return { version, lines: titleLines(list, values).map(hoisted), selected: objects.findIndex(object => object.id === selected), selectedGroup: group < 0 ? null : group }
+  const changes = cameraChanges(camera)
+  return { version, lines: titleLines(list, values).map(hoisted), ...(Object.keys(changes).length && { camera: changes }), selected: objects.findIndex(object => object.id === selected), selectedGroup: group < 0 ? null : group }
 }
 
 function unversioned(saved) {
@@ -69,7 +70,7 @@ function load() {
     if (!data?.lines?.length) return fresh()
     const objects = titleObjects(titleValues({ ...data, lines: data.lines.map(lowered) }))
     if (!objects.some(object => object.shape !== null || object.text.trim())) return fresh()
-    return { objects, selected: objects[data.selected]?.id ?? null, selectedGroup: lines(objects)[data.selectedGroup]?.[0].group ?? null, error: null }
+    return { objects, camera: data.camera, selected: objects[data.selected]?.id ?? null, selectedGroup: lines(objects)[data.selectedGroup]?.[0].group ?? null, error: null }
   } catch (err) {
     return fresh(err.message)
   }
@@ -77,7 +78,7 @@ function load() {
 
 const initial = load()
 
-export const scene = reactive({ objects: initial.objects, camera: fullCamera(), ...validSelection(initial.objects, initial.selected, initial.selectedGroup) })
+export const scene = reactive({ objects: initial.objects, camera: fullCamera(initial.camera), ...validSelection(initial.objects, initial.selected, initial.selectedGroup) })
 
 export const editorTitle = {
   ...createTitle(scene.objects, view, scene.camera),
