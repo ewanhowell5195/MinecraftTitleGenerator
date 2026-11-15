@@ -329,6 +329,14 @@ describe("splitCells", () => {
     assert.equal(alternates.alt.a, extra)
   })
 
+  test("keeps a space drawn after the default order", () => {
+    const characters = Array.from(DEFAULT_ORDER)
+    const space = { char: " " }
+    const entry = { id: "plain" }
+    const { glyphs } = splitCells(entry, [entry], characters.map(char => ({ char })).concat(space))
+    assert.equal(glyphs[" "], space)
+  })
+
   test("counts an astral character in an order as one cell", () => {
     const entry = { id: "e", order: "\u{1F633}b" }
     const { glyphs, alternates } = splitCells(entry, [entry, { id: "alt", variant: "e", inherits: true, order: "c" }], [{ char: "\u{1F633}" }, { char: "b" }, { char: "c" }])

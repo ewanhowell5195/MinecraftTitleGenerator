@@ -261,6 +261,7 @@ function orderOf(data) {
 
 export function splitCells(data, list, cells) {
   let start = Array.from(orderOf(data)).length
+  if (cells.length === Array.from(fullOrder(data, list)).length + 1 && cells[start]?.char === " ") start++
   const glyphs = Object.fromEntries(cells.slice(0, start).map(glyph => [glyph.char, glyph]))
   const alternates = {}
   for (const entry of partialsOf(data, list)) {
