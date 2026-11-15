@@ -65,6 +65,10 @@
   const kind = computed(() => !layer.value ? kinds.value.find(item => item.value === pending.value)?.value ?? kinds.value[0].value : layer.value.source === "file" ? "file" : generated.value ? "generated" : "texture")
   const shown = computed(() => overlays.value.filter(ofKind(kind.value)))
   const settings = computed(() => GENERATED_SETTINGS[generated.value] ?? [])
+  const shownSettings = computed(() => {
+    const values = Object.fromEntries(settings.value.map(item => [item.key, generatedSetting(layer.value, item)]))
+    return settings.value.filter(item => !item.shown || item.shown(values))
+  })
   const wraps = computed(() => !props.edge && !props.font?.model && !WRAPPED_KINDS.has(generated.value))
   const baseline = computed(() => layer.value ? { ...overlayLayer(layer.value.overlay, layer.value.source === "file" ? null : props.available[layer.value.overlay]), source: layer.value.source, file: layer.value.file } : null)
   const layerModified = computed(() => {
@@ -246,7 +250,10 @@
   </template>
 
   <template v-if="layer">
-    <Slider v-for="item of settings" :key="item.key" :label="item.label" :model-value="generatedSetting(layer, item)" @update:model-value="set(item.key, $event)" :min="item.min" :max="item.max" :step="item.step ?? 1" :steps="item.steps ?? null" />
+    <template v-for="item of shownSettings" :key="item.key">
+      <Dropdown v-if="item.options" :label="item.label" :options="item.options" :model-value="generatedSetting(layer, item)" @update:model-value="set(item.key, $event)" />
+      <Slider v-else :label="item.label" :model-value="generatedSetting(layer, item)" @update:model-value="set(item.key, $event)" :min="item.min" :max="item.max" :step="item.step ?? 1" :steps="item.steps ?? null" />
+    </template>
     <Dropdown label="Blend mode" :options="BLEND_OPTIONS" :model-value="layer.blend" @update:model-value="set('blend', $event)" />
     <Field group :label="palette.anchors.length > 1 && !palette.complex ? 'Colours' : 'Colour'">
       <template v-if="palette.complex">

@@ -73,11 +73,11 @@ describe("settings table", () => {
     })
   }
 
-  const generated = new Set(Object.values(GENERATED_SETTINGS).flat().map(setting => setting.key))
-  for (const key of generated) {
+  const generated = new Map(Object.values(GENERATED_SETTINGS).flat().map(setting => [setting.key, setting]))
+  for (const [key, setting] of generated) {
     test(`generated overlay ${key} is stored compactly`, () => {
       for (const list of ["overlays", "edgeOverlays"]) {
-        const lines = [{ [list]: [{ overlay: "shine", source: "premade", [key]: 40 }] }]
+        const lines = [{ [list]: [{ overlay: "shine", source: "premade", [key]: setting.options ? setting.options.at(-1).value : 40 }] }]
         assert.ok(!Buffer.from(writeLines(lines)).includes(key))
         assert.deepEqual(roundTrip(lines), lines)
         assert.equal(unknownSetting(lines), null)

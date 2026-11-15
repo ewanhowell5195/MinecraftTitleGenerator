@@ -87,7 +87,7 @@ function cleanLayer(layer, available) {
   for (const item of GENERATED_SETTINGS[definition.generated] ?? []) {
     const value = layer[item.key]
     if (value === undefined) continue
-    if (typeof value !== "number" || !Number.isFinite(value) || value < item.min || value > item.max) return null
+    if (item.options ? !item.options.some(option => option.value === value) : typeof value !== "number" || !Number.isFinite(value) || value < item.min || value > item.max) return null
     clean[item.key] = value
   }
   return clean

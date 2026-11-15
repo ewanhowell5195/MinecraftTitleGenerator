@@ -7,9 +7,12 @@ const highlight = { key: "thickness", label: "Highlight thickness", min: 0.25, m
 const outline = { ...highlight, label: "Outline thickness" }
 const fade = { key: "fade", label: "Fade", min: 0, max: 100, fallback: 80 }
 const seed = { key: "seed", label: "Seed", min: 0, max: 99, fallback: 0 }
+const randomSeed = { ...seed, shown: values => values.randomness > 0 }
 const bandOffset = { key: "offset", label: "Offset", min: 0, max: 63, fallback: 0 }
 const angle = { key: "angle", label: "Angle", min: 0, max: 180, fallback: 45 }
-const wave = [{ key: "level", label: "Level", min: 0, max: 100, fallback: 45 }, { key: "amplitude", label: "Wave height", min: 0, max: 24, fallback: 7 }, { key: "length", label: "Wave length", min: 8, max: 160, fallback: 40 }, { key: "offset", label: "Offset", min: 0, max: 200, fallback: 0 }, { key: "randomness", label: "Randomness", min: 0, max: 100, fallback: 60 }, seed]
+const WAVE_SHAPES = [{ value: "sine", label: "Sine" }, { value: "square", label: "Square" }, { value: "triangle", label: "Triangle" }]
+const wave = [{ key: "waveShape", label: "Shape", options: WAVE_SHAPES, fallback: "sine" }, { key: "pixelation", label: "Pixelation", min: 0, max: 8, fallback: 0 }, { key: "level", label: "Vertical offset", min: 0, max: 100, fallback: 45 }, { key: "amplitude", label: "Wave height", min: 0, max: 24, fallback: 7 }, { key: "length", label: "Wave length", min: 8, max: 160, fallback: 40 }, { key: "offset", label: "Wave offset", min: 0, max: 200, fallback: 0 }, { key: "randomness", label: "Randomness", min: 0, max: 100, fallback: 0 }, randomSeed, { key: "angle", label: "Angle", min: 0, max: 360, fallback: 0 }, { key: "horizontalOffset", label: "Horizontal offset", min: -200, max: 200, fallback: 0 }]
+const WAVE_START = -1024
 const cracks = [{ key: "amount", label: "Amount", min: 1, max: 100, fallback: 30 }, { key: "length", label: "Length", min: 1, max: 24, fallback: 5 }, { key: "width", label: "Width", min: 1, max: 6, step: 0.25, fallback: 2 }, seed]
 const twoTone = [outline, { key: "direction", label: "Direction", min: 0, max: 270, steps: [0, 90, 180, 270], fallback: 0 }]
 const LIGHT_SIDES = { 0: [-1, 1], 90: [1, 1], 180: [1, -1], 270: [-1, -1] }
@@ -28,9 +31,9 @@ const CRACK_OPPOSITE = 6
 const CRACK_STEEP_REACH = 2
 const CRACK_SIDES = ["up", "down", "left", "right"]
 
-export const PLACED_KINDS = new Set(["shine", "shine_random", "wave", "wave_inverted", "cracks"])
+export const PLACED_KINDS = new Set(["shine", "shine_random", "wave", "cracks"])
 export const WRAPPED_KINDS = new Set(["cracks"])
-export const SMOOTH_KINDS = new Set(["wave", "wave_inverted", "cracks", "shadow"])
+export const SMOOTH_KINDS = new Set(["wave", "cracks", "shadow"])
 
 export const GENERATED_SETTINGS = {
   top: [highlight],
@@ -45,9 +48,8 @@ export const GENERATED_SETTINGS = {
   two_tone_outline_dark: twoTone,
   corners: [{ key: "size", label: "Dot size", min: 1, max: 8, fallback: 2 }, { key: "inset", label: "Inset", min: 0, max: 8, fallback: 1 }],
   shine: [{ key: "width", label: "Band width", min: 1, max: 32, fallback: 11 }, { key: "gap", label: "Band gap", min: 1, max: 32, fallback: 12 }, angle, bandOffset, fade],
-  shine_random: [{ key: "width", label: "Band width", min: 1, max: 32, fallback: 6 }, { key: "gap", label: "Band gap", min: 1, max: 32, fallback: 11 }, { key: "randomness", label: "Randomness", min: 0, max: 100, fallback: 75 }, seed, angle, bandOffset, fade],
+  shine_random: [{ key: "width", label: "Band width", min: 1, max: 32, fallback: 6 }, { key: "gap", label: "Band gap", min: 1, max: 32, fallback: 11 }, { key: "randomness", label: "Randomness", min: 0, max: 100, fallback: 75 }, randomSeed, angle, bandOffset, fade],
   wave,
-  wave_inverted: wave,
   cracks,
   extrusion_outline: [outline],
   edge_outline: [outline],
@@ -79,7 +81,6 @@ const GENERATED_OVERLAYS = {
   shine: { generated: "shine" },
   shine_random: { generated: "shine_random", name: "Shine (Random)" },
   wave: { generated: "wave", default: { blend: "source-over", sideWrap: true, edgeWrap: true } },
-  wave_inverted: { generated: "wave_inverted", name: "Wave (Inverted)", default: { blend: "source-over", sideWrap: true, edgeWrap: true } },
   cracked_edges: { generated: "cracks", default: { colours: ["#000000"], blend: "source-over" } },
   layer_shadow: { generated: "shadow", name: "Shadow", layered: true, default: { colours: ["#000000"], blend: "source-over", opacity: 60 } },
   extrusion_outline: { generated: "extrusion_outline", name: "Extrusion Outline", layered: true }
@@ -273,37 +274,140 @@ function shine(glyph, kind, settings, scale, fine) {
   return out
 }
 
-function wavePoints(to, settings) {
+function wavePoints(from, to, settings) {
   const swing = settings.randomness / 100
   const next = random(settings.seed)
   const points = []
-  let at = -1024 - next() * settings.length * 2 * swing
+  let at = WAVE_START - next() * settings.length * 2 * swing
   for (let index = 0; !points.length || points.at(-1)[0] <= to; index++) {
     points.push([at, (index % 2 ? 1 : -1) * settings.amplitude * (1 - 0.5 * swing * next())])
     at += settings.length * (1 + 0.6 * swing * (next() * 2 - 1))
   }
-  return points
+  const back = random(settings.seed + 100)
+  const before = []
+  at = points[0][0]
+  for (let index = -1; at > from; index--) {
+    at -= settings.length * (1 + 0.6 * swing * (back() * 2 - 1))
+    before.push([at, (index % 2 ? 1 : -1) * settings.amplitude * (1 - 0.5 * swing * back())])
+  }
+  return before.reverse().concat(points)
 }
 
-function waveFill(glyph, kind, settings, scale, fine) {
+function waveSegment(points, along) {
+  let low = 0
+  let high = points.length - 1
+  while (high - low > 1) {
+    const middle = (low + high) >> 1
+    if (points[middle][0] <= along) low = middle
+    else high = middle
+  }
+  return low
+}
+
+function waveHeight(shape, [x0, y0], [x1, y1], along) {
+  const part = (along - x0) / (x1 - x0)
+  if (shape === "square") return part < 0.5 ? y0 : y1
+  if (shape === "triangle") return y0 + (y1 - y0) * part
+  return y0 + (y1 - y0) * (1 - Math.cos(Math.PI * part)) / 2
+}
+
+function stairCrossing(shape, share) {
+  if (shape === "square") return 0.5
+  if (shape === "triangle") return share
+  return Math.acos(1 - 2 * share) / Math.PI
+}
+
+function stairRuns(shape, count, steps) {
+  if (!steps) return [count]
+  const bounds = [0]
+  for (let step = 1; step <= steps; step++) bounds.push(Math.max(bounds.at(-1), Math.min(count, Math.round(count * stairCrossing(shape, (step - 0.5) / steps)))))
+  const runs = bounds.map((bound, step) => (bounds[step + 1] ?? count) - bound)
+  const slope = runs.slice(1, -1).sort((a, b) => b - a)
+  const valley = new Array(slope.length)
+  let left = 0
+  let right = slope.length - 1
+  slope.forEach((run, index) => index % 2 ? valley[right--] = run : valley[left++] = run)
+  return [runs[0]].concat(valley, runs.at(-1))
+}
+
+function snappedBlocks(value, block) {
+  return Math.sign(value) * Math.round(Math.abs(value) / block) * block
+}
+
+function waveStairs(points, shape, block) {
+  const snapped = []
+  for (const [x, y] of points) snapped.push([Math.max(Math.round(x / block) * block, snapped.length ? snapped.at(-1)[0] + block : -Infinity), snappedBlocks(y, block)])
+  const heights = new Map()
+  for (let index = 0; index + 1 < snapped.length; index++) {
+    const [[x0, y0], [x1, y1]] = [snapped[index], snapped[index + 1]]
+    const turn = Math.sign(y1 - y0) * block
+    let column = Math.round(x0 / block)
+    stairRuns(shape, Math.round((x1 - x0) / block), Math.round(Math.abs(y1 - y0) / block)).forEach((run, step) => {
+      for (let count = 0; count < run; count++) heights.set(column++, y0 + turn * step)
+    })
+  }
+  return heights
+}
+
+function cleanBlocks(grid, across, down) {
+  const at = (x, y) => grid[Math.min(down - 1, Math.max(0, y)) * across + Math.min(across - 1, Math.max(0, x))]
+  return grid.map((value, index) => {
+    const x = index % across
+    const y = Math.floor(index / across)
+    const agreeing = [at(x - 1, y), at(x + 1, y), at(x, y - 1), at(x, y + 1)].filter(other => other === value).length
+    return agreeing <= 1 ? 1 - value : value
+  })
+}
+
+function waveFill(glyph, settings, scale, fine) {
   const { width, height, mask } = glyph
   const columns = width * scale
   const rows = height * scale
   const out = new Float32Array(columns * rows)
   const capTop = settings.capHeight - glyph.top
+  const middle = settings.capHeight / 2
+  const block = settings.pixelation
   const level = settings.level / 100 * settings.capHeight
-  const start = glyph.placedX - settings.offset
-  const points = wavePoints(start + width, settings)
-  let index = 0
-  for (let sx = 0; sx < columns; sx++) {
-    const along = start + (sx + 0.5) / scale
-    while (points[index + 1][0] <= along) index++
-    const [[x0, y0], [x1, y1]] = [points[index], points[index + 1]]
-    const surface = level + y0 + (y1 - y0) * (1 - Math.cos(Math.PI * (along - x0) / (x1 - x0))) / 2
+  const turn = settings.angle * Math.PI / 180
+  const cos = Math.round(Math.cos(turn) * 1e9) / 1e9
+  const sin = Math.round(Math.sin(turn) * 1e9) / 1e9
+  const [start, end] = glyph.lineSpan ?? [0, 0]
+  const centre = (start + end) / 2
+  const along = (x, down) => (x - settings.horizontalOffset - centre) * cos + (down - middle) * sin + centre - settings.offset
+  const across = (x, down) => middle - (x - settings.horizontalOffset - centre) * sin + (down - middle) * cos
+  const corners = [[glyph.placedX, capTop], [glyph.placedX + width, capTop], [glyph.placedX, capTop + height], [glyph.placedX + width, capTop + height]].map(([x, down]) => along(x, down))
+  const solid = (sx, sy) => fine ? fine[(rows - 1 - sy) * columns + sx] : mask[(height - 1 - Math.floor(sy / scale)) * width + Math.floor(sx / scale)]
+  if (!block) {
+    const points = wavePoints(Math.min(...corners) - 1, Math.max(...corners) + 1, settings)
     for (let sy = 0; sy < rows; sy++) {
-      if (fine ? !fine[(rows - 1 - sy) * columns + sx] : !mask[(height - 1 - Math.floor(sy / scale)) * width + Math.floor(sx / scale)]) continue
-      const above = clamp((surface - capTop) * scale - sy, 0, 1)
-      out[sy * columns + sx] = kind === "wave" ? above : 1 - above
+      const down = capTop + (sy + 0.5) / scale
+      for (let sx = 0; sx < columns; sx++) {
+        if (!solid(sx, sy)) continue
+        const x = glyph.placedX + (sx + 0.5) / scale
+        const at = along(x, down)
+        const index = waveSegment(points, at)
+        out[sy * columns + sx] = clamp((level + waveHeight(settings.waveShape, points[index], points[index + 1], at) - across(x, down)) * scale + 0.5, 0, 1)
+      }
+    }
+    return out
+  }
+  const reach = 2 * block
+  const points = wavePoints(Math.min(...corners) - reach - 1, Math.max(...corners) + reach + 1, { ...settings, length: Math.max(block, snappedBlocks(settings.length, block)) })
+  const stairs = waveStairs(points, settings.waveShape, block)
+  const surface = snappedBlocks(level, block)
+  const firstRow = Math.floor(capTop / block) - 1
+  const blocksAcross = Math.ceil(width / block) + 2
+  const blocksDown = Math.floor((capTop + height) / block) + 2 - firstRow
+  let grid = Array.from({ length: blocksAcross * blocksDown }, (_, index) => {
+    const x = glyph.placedX + (index % blocksAcross - 0.5) * block
+    const down = (firstRow + Math.floor(index / blocksAcross) + 0.5) * block
+    return across(x, down) < surface + stairs.get(Math.floor(along(x, down) / block)) ? 1 : 0
+  })
+  if (settings.angle % 90) grid = cleanBlocks(grid, blocksAcross, blocksDown)
+  for (let sy = 0; sy < rows; sy++) {
+    const row = Math.floor((capTop + (sy + 0.5) / scale) / block) - firstRow
+    for (let sx = 0; sx < columns; sx++) {
+      if (solid(sx, sy)) out[sy * columns + sx] = grid[row * blocksAcross + Math.floor((sx + 0.5) / scale / block) + 1]
     }
   }
   return out
@@ -844,7 +948,7 @@ export function generatedAlpha(glyph, kind, layer, capHeight, scale, soft = fals
   if (kind === "extrusion_outline") return extrusionOutline(glyph, settings, scale)
   const fine = glyph.fine?.(scale) ?? null
   if (kind === "shine" || kind === "shine_random") return shine(glyph, kind, settings, scale, fine)
-  if (kind === "wave" || kind === "wave_inverted") return waveFill(glyph, kind, settings, scale, fine)
+  if (kind === "wave") return waveFill(glyph, settings, scale, fine)
   if (kind === "cracks") return crackFaces(glyph, layer, scale, fine, soft)
   if (fine && kind !== "corners") return finePixels(glyph, fine, kind, settings, scale)
   if (!Number.isInteger(settings.thickness ?? 1)) return blockPixels(glyph, kind, settings, scale)

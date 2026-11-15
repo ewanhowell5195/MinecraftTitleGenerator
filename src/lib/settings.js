@@ -1,6 +1,7 @@
 import { reactive, toRaw } from "vue"
 
-export const FILE_VERSION = 6
+export const FILE_VERSION = 7
+const OLD_WAVE = { level: 45, randomness: 60 }
 export const DEFAULT_FONT = "minecraft-ten"
 
 export const TYPES = {
@@ -616,7 +617,19 @@ function turnDoorsInPlace(line) {
   return line.twistDoor && !("twistDoorRoll" in line) ? { ...line, twistDoorRoll: false } : line
 }
 
-const UPGRADES = [[2, restartLineTiles], [3, separateMatchScale], [4, widenBlockSerif], [5, anchorDepthAtFront], [6, turnDoorsInPlace]]
+function oldWave(layer) {
+  if (layer.overlay === "wave") return { randomness: OLD_WAVE.randomness, ...layer }
+  if (layer.overlay === "wave_inverted") return { randomness: OLD_WAVE.randomness, ...layer, overlay: "wave", angle: 180, level: 100 - (layer.level ?? OLD_WAVE.level) }
+  return layer
+}
+
+function turnInvertedWaves(value) {
+  if (Array.isArray(value)) return value.map(turnInvertedWaves)
+  if (!value || typeof value !== "object") return value
+  return oldWave(Object.fromEntries(Object.entries(value).map(([key, item]) => [key, turnInvertedWaves(item)])))
+}
+
+const UPGRADES = [[2, restartLineTiles], [3, separateMatchScale], [4, widenBlockSerif], [5, anchorDepthAtFront], [6, turnDoorsInPlace], [7, turnInvertedWaves]]
 
 export function upgradeLine(line, version) {
   return UPGRADES.reduce((upgraded, [to, upgrade]) => version < to ? upgrade(upgraded) : upgraded, line)

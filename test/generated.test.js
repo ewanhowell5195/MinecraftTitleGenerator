@@ -56,8 +56,16 @@ function columnFill(alpha, columns, index) {
 describe("settings tables", () => {
   test("every fallback sits inside its slider range", () => {
     for (const [kind, settings] of Object.entries(GENERATED_SETTINGS)) {
-      for (const item of settings) assert.ok(item.fallback >= item.min && item.fallback <= item.max, `${kind}.${item.key}`)
+      for (const item of settings) assert.ok(item.options ? item.options.some(option => option.value === item.fallback) : item.fallback >= item.min && item.fallback <= item.max, `${kind}.${item.key}`)
     }
+  })
+
+  test("the seed only shows once there is randomness to seed", () => {
+    for (const kind of ["wave", "shine_random"]) {
+      const seed = GENERATED_SETTINGS[kind].find(item => item.key === "seed")
+      assert.deepEqual([0, 1, 60].map(randomness => seed.shown({ randomness })), [false, true, true], kind)
+    }
+    assert.equal(GENERATED_SETTINGS.cracks.find(item => item.key === "seed").shown, undefined)
   })
 
   test("every setting key is unique within its kind", () => {
@@ -399,13 +407,17 @@ describe("wave", () => {
     assert.deepEqual(picture(generatedAlpha(solid(2, 10), "wave", { ...flat, level: 50 }, 10, 1), 2), ["11", "11", "11", "11", "11", "00", "00", "00", "00", "00"])
   })
 
-  test("the inverted wave fills the rest", () => {
-    assert.deepEqual(picture(generatedAlpha(solid(2, 10), "wave_inverted", { ...flat, level: 50 }, 10, 1), 2), ["00", "00", "00", "00", "00", "11", "11", "11", "11", "11"])
+  test("turned upside down, the wave fills up from the bottom", () => {
+    assert.deepEqual(picture(generatedAlpha(solid(2, 10), "wave", { ...flat, level: 50, angle: 180 }, 10, 1), 2), ["00", "00", "00", "00", "00", "11", "11", "11", "11", "11"])
+  })
+
+  test("turned a quarter, the wave fills in from the side", () => {
+    assert.deepEqual(picture(generatedAlpha(solid(4, 10), "wave", { ...flat, level: 30, angle: 90 }, 10, 1), 4), new Array(10).fill("0011"))
   })
 
   test("the surface row is antialiased", () => {
     assert.deepEqual(columnOf(generatedAlpha(solid(1, 10), "wave", { ...flat, level: 45 }, 10, 1), 1, 0), [1, 1, 1, 1, 0.5, 0, 0, 0, 0, 0])
-    assert.deepEqual(columnOf(generatedAlpha(solid(1, 10), "wave_inverted", { ...flat, level: 45 }, 10, 1), 1, 0), [0, 0, 0, 0, 0.5, 1, 1, 1, 1, 1])
+    assert.deepEqual(columnOf(generatedAlpha(solid(1, 10), "wave", { ...flat, level: 55, angle: 180 }, 10, 1), 1, 0), [0, 0, 0, 0, 0.5, 1, 1, 1, 1, 1])
   })
 
   test("scale sharpens the surface", () => {
@@ -425,10 +437,10 @@ describe("wave", () => {
     assert.equal(columnFill(tall, 1, 0), 7)
   })
 
-  test("leaves empty pixels clear in both kinds", () => {
+  test("leaves empty pixels clear at any angle", () => {
     const glyph = glyphOf(["101", "010"])
     assert.deepEqual(picture(generatedAlpha(glyph, "wave", { ...flat, level: 100 }, 2, 1), 3), ["101", "010"])
-    assert.deepEqual(picture(generatedAlpha(glyph, "wave_inverted", { ...flat, level: 0 }, 2, 1), 3), ["101", "010"])
+    assert.deepEqual(picture(generatedAlpha(glyph, "wave", { ...flat, level: 100, angle: 180 }, 2, 1), 3), ["101", "010"])
   })
 
   test("the surface swings by the amplitude around the level", () => {
@@ -457,13 +469,148 @@ describe("wave", () => {
 
   test("the seed changes a random wave and repeats exactly", () => {
     const glyph = solid(60, 20)
-    assert.deepEqual(generatedAlpha(glyph, "wave", { seed: 1 }, 20, 1), generatedAlpha(glyph, "wave", { seed: 1 }, 20, 1))
-    assert.notDeepEqual(generatedAlpha(glyph, "wave", { seed: 1 }, 20, 1), generatedAlpha(glyph, "wave", { seed: 2 }, 20, 1))
+    assert.deepEqual(generatedAlpha(glyph, "wave", { randomness: 60, seed: 1 }, 20, 1), generatedAlpha(glyph, "wave", { randomness: 60, seed: 1 }, 20, 1))
+    assert.notDeepEqual(generatedAlpha(glyph, "wave", { randomness: 60, seed: 1 }, 20, 1), generatedAlpha(glyph, "wave", { randomness: 60, seed: 2 }, 20, 1))
   })
 
   test("the surface carries on across neighbouring glyphs", () => {
     assertContinues("wave", {})
-    assertContinues("wave_inverted", {})
+    assertContinues("wave", { angle: 180 })
+    assertContinues("wave", { angle: 35, waveShape: "triangle" })
+    assertContinues("wave", { waveShape: "square" })
+    assertContinues("wave", { pixelation: 3 })
+    assertContinues("wave", { pixelation: 2, angle: 60 })
+  })
+
+  test("a square wave only sits at its top and bottom", () => {
+    const alpha = generatedAlpha(solid(160, 40), "wave", { waveShape: "square", level: 50, amplitude: 7, length: 40, randomness: 0 }, 40, 1)
+    const fills = new Set(Array.from({ length: 160 }, (_, column) => columnFill(alpha, 160, column)))
+    assert.deepEqual(Array.from(fills).sort((a, b) => a - b), [13, 27])
+  })
+
+  test("a triangle wave climbs in straight lines", () => {
+    const alpha = generatedAlpha(solid(160, 40), "wave", { waveShape: "triangle", level: 50, amplitude: 7, length: 40, randomness: 0 }, 40, 1)
+    const fills = Array.from({ length: 160 }, (_, column) => columnFill(alpha, 160, column))
+    const steps = fills.slice(1).map((fill, column) => Math.abs(fill - fills[column]))
+    assert.ok(steps.every(step => step <= 0.351))
+    assert.ok(steps.filter(step => Math.abs(step - 0.35) < 0.001).length >= 150)
+    near(Math.min(...fills), 13, 0.2)
+    near(Math.max(...fills), 27, 0.2)
+  })
+
+  test("pixelation snaps the surface to blocks of that size", () => {
+    for (const waveShape of ["sine", "square", "triangle"]) {
+      const alpha = generatedAlpha(solid(80, 40), "wave", { waveShape, level: 50, amplitude: 7, length: 40, randomness: 0, pixelation: 4 }, 40, 2)
+      const fills = Array.from({ length: 160 }, (_, column) => columnFill(alpha, 160, column) / 2)
+      for (let column = 0; column < 160; column++) {
+        assert.equal(fills[column] % 4, 0)
+        assert.equal(fills[column], fills[column - column % 8])
+      }
+    }
+  })
+
+  test("pixelation keeps square blocks on the pixel grid at any angle", () => {
+    const alpha = generatedAlpha(solid(24, 24), "wave", { level: 50, amplitude: 5, length: 16, randomness: 0, angle: 45, pixelation: 2 }, 24, 2)
+    const rows = rowsOf(alpha, 48)
+    for (let y = 0; y < 48; y++) {
+      for (let x = 0; x < 48; x++) assert.equal(rows[y][x], rows[y - y % 4][x - x % 4])
+    }
+    assert.ok(alpha.some(value => value === 1) && alpha.some(value => value === 0))
+  })
+
+  function blockHeights(layer, block) {
+    const alpha = generatedAlpha(solid(240, 48), "wave", { level: 50, amplitude: 9, length: 36, randomness: 0, ...layer, pixelation: block }, 48, 1)
+    return Array.from({ length: 240 / block }, (_, column) => columnFill(alpha, 240, column * block))
+  }
+
+  function runsOf(heights) {
+    const runs = []
+    for (const height of heights) {
+      if (runs.at(-1)?.height === height) runs.at(-1).length++
+      else runs.push({ height, length: 1 })
+    }
+    return runs
+  }
+
+  test("every pixelated bump is the same", () => {
+    for (const waveShape of ["sine", "triangle", "square"]) {
+      const heights = blockHeights({ waveShape }, 2)
+      for (let column = 0; column + 36 < heights.length; column++) assert.equal(heights[column], heights[column + 36], waveShape)
+    }
+  })
+
+  test("pixelated slopes only shorten towards the middle and lengthen again", () => {
+    const runs = runsOf(blockHeights({ waveShape: "sine", amplitude: 12, length: 60 }, 2))
+    for (let index = 2; index < runs.length - 2; index++) {
+      const [before, run, after] = runs.slice(index - 1, index + 2)
+      if ((before.height - run.height) * (run.height - after.height) > 0) assert.ok(!(run.length > before.length && run.length > after.length), `run ${index}`)
+    }
+  })
+
+  test("a pixelated triangle comes to a point", () => {
+    const runs = runsOf(blockHeights({ waveShape: "triangle" }, 2))
+    const peaks = runs.slice(1, -1).filter((run, index) => run.height > runs[index].height && run.height > runs[index + 2].height)
+    assert.ok(peaks.length)
+    for (const peak of peaks) assert.ok(peak.length <= 2)
+  })
+
+  test("an angled pixelated wave leaves no stray blocks", () => {
+    const alpha = generatedAlpha(solid(120, 48), "wave", { level: 50, amplitude: 9, length: 36, angle: 20, pixelation: 3 }, 48, 1)
+    const blocks = rowsOf(alpha, 120).filter((_, y) => y % 3 === 0).map(row => row.filter((_, x) => x % 3 === 0))
+    for (let y = 1; y < blocks.length - 1; y++) {
+      for (let x = 1; x < blocks[y].length - 1; x++) {
+        const value = blocks[y][x]
+        assert.ok([blocks[y - 1][x], blocks[y + 1][x], blocks[y][x - 1], blocks[y][x + 1]].some(other => other === value), `${x},${y}`)
+      }
+    }
+  })
+
+  test("pixelation blocks start at the letter's own left edge", () => {
+    const alpha = generatedAlpha(solid(12, 12, { placedX: 3 }), "wave", { level: 50, amplitude: 5, length: 10, angle: 30, pixelation: 4 }, 12, 1)
+    for (const row of rowsOf(alpha, 12)) {
+      for (let x = 0; x < 12; x++) assert.equal(row[x], row[x - x % 4])
+    }
+  })
+
+  test("the angle turns around the middle of the line", () => {
+    const layer = { level: 40, amplitude: 5, length: 12, randomness: 0 }
+    const turned = generatedAlpha(solid(4, 10, { placedX: 0, lineSpan: [0, 20] }), "wave", { ...layer, angle: 180 }, 10, 1)
+    const plain = generatedAlpha(solid(4, 10, { placedX: 16, lineSpan: [0, 20] }), "wave", layer, 10, 1)
+    nearAll(Array.from(turned).reverse(), Array.from(plain), 0.00001)
+  })
+
+  test("the horizontal offset slides a turned wave sideways", () => {
+    const layer = { level: 40, amplitude: 5, length: 12, angle: 30 }
+    const moved = generatedAlpha(solid(20, 10, { placedX: 5, lineSpan: [0, 40] }), "wave", { ...layer, horizontalOffset: 5 }, 10, 1)
+    const still = generatedAlpha(solid(20, 10, { placedX: 0, lineSpan: [0, 40] }), "wave", layer, 10, 1)
+    nearAll(Array.from(moved), Array.from(still), 0.00001)
+  })
+
+  test("the wave offset slides along a turned wave rather than across the screen", () => {
+    const layer = { level: 40, amplitude: 5, length: 12, angle: 30 }
+    const glyph = solid(20, 10, { placedX: 0, lineSpan: [0, 20] })
+    assert.notDeepEqual(generatedAlpha(glyph, "wave", { ...layer, offset: 5 }, 10, 1), generatedAlpha(glyph, "wave", { ...layer, horizontalOffset: 5 }, 10, 1))
+  })
+
+  test("both offsets match on an unturned wave", () => {
+    const layer = { level: 40, amplitude: 5, length: 12 }
+    const glyph = solid(20, 10, { placedX: 0, lineSpan: [0, 20] })
+    assert.deepEqual(generatedAlpha(glyph, "wave", { ...layer, offset: 5 }, 10, 1), generatedAlpha(glyph, "wave", { ...layer, horizontalOffset: 5 }, 10, 1))
+  })
+
+  test("an unturned wave ignores where the middle of the line is", () => {
+    const layer = { level: 40, amplitude: 5, length: 12 }
+    assert.deepEqual(generatedAlpha(solid(8, 10, { placedX: 4, lineSpan: [0, 60] }), "wave", layer, 10, 1), generatedAlpha(solid(8, 10, { placedX: 4 }), "wave", layer, 10, 1))
+  })
+
+  test("a wave far to the left of the start still draws", () => {
+    const alpha = generatedAlpha(solid(20, 20, { placedX: 3000 }), "wave", { level: 50, angle: 180 }, 20, 1)
+    assert.ok(alpha.some(value => value > 0) && alpha.some(value => value === 0))
+  })
+
+  test("no pixelation leaves the wave smooth", () => {
+    const layer = { level: 50, amplitude: 7, length: 40, randomness: 0 }
+    assert.deepEqual(generatedAlpha(solid(60, 40), "wave", { ...layer, pixelation: 0 }, 40, 2), generatedAlpha(solid(60, 40), "wave", layer, 40, 2))
   })
 })
 

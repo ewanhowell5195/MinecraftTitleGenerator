@@ -648,7 +648,7 @@ export function paintKey(sheet, assets, look) {
   const placed = assets.overlays.some(overlay => PLACED_KINDS.has(overlay.source.generated))
   const lined = assets.strip?.tiling === "line" || look.source === "tile" && !look.tileablePerCharacter
   const worded = look.wordedFaces || look.source === "gradient" && look.gradientAngle % 180 !== 0
-  return JSON.stringify([sheet.width, sheet.height, sheet.swatch, sheet.tallest, worded ? sheet.wordWidth : null, Object.values(sheet.glyphs).map(entry => [entry.char, entry.regions, entry.x, entry.top, entry.up, entry.upHeight, entry.down, entry.downHeight, entry.width, entry.height, entry.glyph.bottom, entry.glyph.top, entry.glyph.arc, placed ? entry.glyph.placedX : null, lined ? [entry.glyph.lineX, entry.glyph.lineFirst?.char] : null, worded ? entry.glyph.wordX : null])])
+  return JSON.stringify([sheet.width, sheet.height, sheet.swatch, sheet.tallest, worded ? sheet.wordWidth : null, Object.values(sheet.glyphs).map(entry => [entry.char, entry.regions, entry.x, entry.top, entry.up, entry.upHeight, entry.down, entry.downHeight, entry.width, entry.height, entry.glyph.bottom, entry.glyph.top, entry.glyph.arc, placed ? [entry.glyph.placedX, entry.glyph.lineSpan] : null, lined ? [entry.glyph.lineX, entry.glyph.lineFirst?.char] : null, worded ? entry.glyph.wordX : null])])
 }
 
 function fillSwatch(ctx, sheet, colour) {

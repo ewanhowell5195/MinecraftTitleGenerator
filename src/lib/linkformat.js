@@ -397,7 +397,10 @@ const KEYS = [
   ["yaw", NUMBER],
   ["tilt", NUMBER],
   ["fov", NUMBER],
-  ["fixedDistance", BOOLEAN]
+  ["fixedDistance", BOOLEAN],
+  ["pixelation", NUMBER],
+  ["waveShape", choice("sine", "square", "triangle")],
+  ["horizontalOffset", NUMBER]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))
