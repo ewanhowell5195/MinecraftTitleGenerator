@@ -35,7 +35,7 @@
 </script>
 
 <template>
-  <nav class="menus">
+  <nav class="menus divided">
     <button v-for="(items, name) of props.menus" :key="name" class="menu" :class="{ active: open === name }" aria-haspopup="menu" :aria-expanded="open === name" @click="show($event, name)" @pointerenter="hover($event, name)">{{ name }}</button>
     <ContextMenu :items="open ? props.menus[open] : []" :at="at" @close="close" />
     <slot></slot>
@@ -44,21 +44,9 @@
 
 <style scoped>
   .menus {
-    position: relative;
     display: flex;
     gap: 2px;
     margin-left: 14px;
-    padding-left: 14px;
-  }
-
-  .menus::before {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 0;
-    height: 18px;
-    border-left: 1px solid var(--line-strong);
-    transform: translateY(-50%);
   }
 
   .menu {

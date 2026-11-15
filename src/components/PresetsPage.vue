@@ -371,7 +371,7 @@
     <header class="top">
       <Button v-if="presetsPage.fromEditor" class="back" @click="closePresetsPage()"><template #icon><Icon name="back" :size="18" /></template><span>Back to editor</span></Button>
       <BrandLink v-else class="home" />
-      <h1>Presets</h1>
+      <h1 :class="{ divided: !presetsPage.fromEditor }">Presets</h1>
       <SubmissionUsage v-if="tab === 'mine'" class="usage" />
       <Segments class="tabs" :options="TABS" v-model="tab" />
       <AccountMenu />
@@ -450,7 +450,7 @@
     align-items: center;
     gap: 16px;
     height: 60px;
-    padding: 0 16px;
+    padding: 0 16px 0 18px;
     background: var(--surface);
     border-bottom: 1px solid var(--line);
   }
@@ -466,8 +466,8 @@
   }
 
   .home + h1 {
-    padding-left: 16px;
-    border-left: 1px solid var(--line);
+    margin-left: 2px;
+    padding-left: 24px;
   }
 
   h1 {
