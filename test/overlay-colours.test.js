@@ -3,6 +3,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { test } from "node:test"
 import { PNG } from "pngjs"
+import { decodeTitle, encodeTitle } from "../src/lib/linkformat.js"
 import { MAX_ANCHORS, chosenColours, mapColour, paletteHexes, paletteOf, recolour } from "../src/lib/overlayColours.js"
 
 function pixels(colours, alpha = 255) {
@@ -61,6 +62,11 @@ test("a layer without colours keeps the image's own, and missing colours fall ba
   const data = pixels([[255, 255, 255], [0, 0, 0]], 128)
   recolour(data, anchors, [[255, 0, 0], [0, 0, 255]])
   assert.deepEqual(Array.from(data), [255, 0, 0, 128, 0, 0, 255, 128])
+})
+
+test("links carry overlay colours, tints and tint modes", () => {
+  const lines = [{ text: "Title", overlayMode: "custom", overlays: [{ overlay: "bevel", colours: ["#c01010", "#ff3030"] }, { overlay: "glass", tint: "#2dff00", tintBlend: "screen" }] }]
+  assert.deepEqual(decodeTitle(encodeTitle({ version: 1, lines }).code).lines, lines)
 })
 
 test("every stored overlay palette matches its image, and no overlay is complex", () => {

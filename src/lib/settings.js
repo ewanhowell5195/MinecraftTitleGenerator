@@ -395,7 +395,7 @@ export function isCustomFont(id) {
   return typeof id === "string" && id.startsWith(CUSTOM_FONT)
 }
 
-export const LAYER = { source: "premade", file: null, blend: "overlay", colours: null, opacity: 100 }
+export const LAYER = { source: "premade", file: null, blend: "overlay", colours: null, tint: null, tintBlend: "multiply", opacity: 100 }
 
 export function overlayLayer(overlay, definition) {
   return { ...LAYER, overlay, ...structuredClone(definition?.default ?? {}) }

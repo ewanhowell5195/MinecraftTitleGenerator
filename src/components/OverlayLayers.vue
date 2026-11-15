@@ -24,6 +24,12 @@
   import UploadReuse from "./UploadReuse.vue"
 
   const KINDS = [{ value: "generated", label: "Generated" }, { value: "texture", label: "Texture" }, { value: "file", label: "File" }]
+  const COLOUR_MODES = [{ value: "original", label: "Original" }, { value: "colours", label: "Colours" }, { value: "tint", label: "Tint" }]
+  const COLOUR_HINTS = {
+    original: "The image's own colours.",
+    colours: `This image has more than ${MAX_ANCHORS} colours, so its colours are mapped onto ${MAX_ANCHORS} and lose some detail.`,
+    tint: "One colour blended over the whole image, keeping its detail."
+  }
 
   const props = defineProps({
     layers: { type: Array, required: true },
@@ -55,6 +61,7 @@
     if (!layer.value) return false
     if (["blend", "opacity"].some(key => layer.value[key] !== baseline.value[key])) return true
     if (JSON.stringify(layer.value.colours ?? null) !== JSON.stringify(baseline.value.colours ?? null)) return true
+    if (layer.value.tint !== baseline.value.tint || layer.value.tint && layer.value.tintBlend !== baseline.value.tintBlend) return true
     if (["sideWrap", "edgeWrap"].some(key => !!layer.value[key] !== !!baseline.value[key])) return true
     return settings.value.some(item => item.key !== "seed" && generatedSetting(layer.value, item) !== generatedSetting(baseline.value, item))
   })
@@ -88,6 +95,7 @@
     if (!layer.value) return addLayer({ ...overlayLayer(null), source: "file", file })
     set("file", file)
     set("colours", null)
+    set("tint", null)
   }
 
   const filePalettes = ref({})
@@ -113,8 +121,11 @@
     set("colours", next)
   }
 
-  function setCustomised(on) {
-    set("colours", on ? paletteHexes(palette.value.anchors) : null)
+  const colourMode = computed(() => !palette.value.complex || layer.value.colours ? "colours" : layer.value.tint ? "tint" : "original")
+
+  function setColourMode(mode) {
+    set("colours", mode === "colours" ? paletteHexes(palette.value.anchors) : null)
+    set("tint", mode === "tint" ? "#ffffff" : null)
   }
 
   function freshLayer(id, seed) {
@@ -214,10 +225,17 @@
   <template v-if="layer">
     <Slider v-for="item of settings" :key="item.key" :label="item.label" :model-value="generatedSetting(layer, item)" @update:model-value="set(item.key, $event)" :min="item.min" :max="item.max" :step="item.step ?? 1" />
     <Dropdown label="Blend mode" :options="BLEND_OPTIONS" :model-value="layer.blend" @update:model-value="set('blend', $event)" />
-    <Field group :label="palette.anchors.length > 1 ? 'Colours' : 'Colour'">
-      <Toggle v-if="palette.complex" label="Customise colours" :hint="`This image has more than ${MAX_ANCHORS} colours, so customising maps them onto ${MAX_ANCHORS} and loses some detail.`" :model-value="!!layer.colours" @update:model-value="setCustomised" />
-      <div v-if="!palette.complex || layer.colours" class="colours">
+    <Field group :label="palette.anchors.length > 1 && !palette.complex ? 'Colours' : 'Colour'">
+      <template v-if="palette.complex">
+        <Segments :options="COLOUR_MODES" :model-value="colourMode" @update:model-value="setColourMode" />
+        <p class="hint">{{ COLOUR_HINTS[colourMode] }}</p>
+      </template>
+      <div v-if="colourMode === 'colours'" class="colours">
         <ColourPicker v-for="(anchor, index) of palette.anchors" :key="index" :model-value="colourAt(index)" @update:model-value="setColour(index, $event)" />
+      </div>
+      <div v-else-if="colourMode === 'tint'" class="row">
+        <ColourPicker class="grow" :model-value="layer.tint" @update:model-value="set('tint', $event)" />
+        <Dropdown class="grow" :options="BLEND_OPTIONS" :model-value="layer.tintBlend" @update:model-value="set('tintBlend', $event)" v-tooltip="'Tint mode'" />
       </div>
     </Field>
     <Slider label="Opacity" :model-value="layer.opacity" @update:model-value="set('opacity', $event)" :min="0" :max="100" />

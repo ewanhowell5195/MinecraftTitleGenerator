@@ -1,4 +1,5 @@
 import { blend } from "./blend.js"
+import { rgbOf } from "./colour.js"
 import { keptAt } from "./joins.js"
 import { WHITE, chosenColours, mapColour } from "./overlayColours.js"
 import { MISSING, stripHasRow, stripY } from "./strips.js"
@@ -73,7 +74,7 @@ export function drawLayer(image, placed, d, layer, { alphaOf = null, texel = nul
   const cache = new Map()
 
   function coloured(rgb) {
-    if (!colours) return rgb
+    if (!colours) return layer.tint ? blend(layer.tintBlend, rgb, rgbOf(layer.tint)) : rgb
     const key = rgb[0] << 16 | rgb[1] << 8 | rgb[2]
     if (!cache.has(key)) cache.set(key, mapColour(rgb, anchors, colours))
     return cache.get(key)

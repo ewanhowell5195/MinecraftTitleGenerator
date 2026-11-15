@@ -489,6 +489,14 @@ export function colourOverlay(mask, layer) {
   overlay.ctx.drawImage(mask.canvas, 0, 0)
   const anchors = layer.palette ?? [WHITE]
   const colours = chosenColours(layer, anchors)
+  if (!colours && layer.tint) {
+    overlay.ctx.globalCompositeOperation = layer.tintBlend
+    overlay.ctx.fillStyle = layer.tint
+    overlay.ctx.fillRect(0, 0, width, height)
+    overlay.ctx.globalCompositeOperation = "destination-in"
+    overlay.ctx.drawImage(mask.canvas, 0, 0)
+    return overlay
+  }
   if (!colours) return overlay
   if (anchors.length === 1) {
     overlay.ctx.globalCompositeOperation = "source-in"
@@ -523,8 +531,8 @@ function overlayLayer(sheet, layer, source, capHeight, detail, band = null) {
   if (detail > 1) return colourOverlay(drawOverlay(sheet, layer, source, capHeight, detail, band), layer)
   if (!overlays.has(sheet)) overlays.set(sheet, { shapes: new Map(), coloured: new Map() })
   const { shapes, coloured } = overlays.get(sheet)
-  const shapeKey = JSON.stringify([source.edge ? `edge:${source.edge}` : source.generated ?? idOf(source), capHeight, Object.entries(layer).filter(([name]) => !["file", "blend", "opacity", "colours", "palette", "sideWrap"].includes(name)), band])
-  return remember(coloured, JSON.stringify([shapeKey, layer.colours, layer.palette]), () => colourOverlay(remember(shapes, shapeKey, () => drawOverlay(sheet, layer, source, capHeight, detail, band), CACHED_OVERLAYS), layer), CACHED_OVERLAYS)
+  const shapeKey = JSON.stringify([source.edge ? `edge:${source.edge}` : source.generated ?? idOf(source), capHeight, Object.entries(layer).filter(([name]) => !["file", "blend", "opacity", "colours", "palette", "tint", "tintBlend", "sideWrap"].includes(name)), band])
+  return remember(coloured, JSON.stringify([shapeKey, layer.colours, layer.palette, layer.tint, layer.tintBlend]), () => colourOverlay(remember(shapes, shapeKey, () => drawOverlay(sheet, layer, source, capHeight, detail, band), CACHED_OVERLAYS), layer), CACHED_OVERLAYS)
 }
 
 export function paintKey(sheet, assets, look) {
