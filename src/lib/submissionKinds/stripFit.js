@@ -5,7 +5,7 @@ import { characterName } from "../fontEditor.js"
 import { clamp } from "../maths.js"
 import { titleCase } from "../names.js"
 import { defaultBorder, defaultDepth } from "../settings.js"
-import { centredOffset, stripRows, stripTag, stripUse, stripY } from "../strips.js"
+import { centredOffset, stackedStrip, stripRows, stripTag, stripUse, stripY } from "../strips.js"
 import { SUBMISSION_LIMITS } from "../submissions.js"
 import { submissionFont } from "./fontAsset.js"
 import { decodePng } from "./png.js"
@@ -46,7 +46,8 @@ export function fontMeasure(ctx, font, layer = null) {
   return ctx.memo(`strip-measure:${font.id}:${layer}`, async () => {
     const image = await decodePng(await ctx.bytes(`/${fontFolder(font)}/font.png`))
     const { list, capHeight, layers } = parseMask(image.data, image.width, image.height, fullOrder(font, ctx.fonts), defaultBorder("top", font))
-    return { range: stripRange({ cells: list, capHeight }, layer), capHeight, depth: layerDepth(defaultDepth(font), layers, layer) }
+    const stacked = layer === null && layers?.length > 1 ? stackedStrip({ depth: defaultDepth(font) }, layers, 0, list).total : null
+    return { range: stripRange({ cells: list, capHeight }, layer), capHeight, depth: layerDepth(defaultDepth(font), layers, layer), stacked }
   })
 }
 
@@ -60,7 +61,7 @@ export function stripSet(ctx, id) {
 }
 
 export function fontRows(measure) {
-  return measure.depth * 2 + measure.range.top - measure.range.bottom
+  return measure.stacked ?? measure.depth * 2 + measure.range.top - measure.range.bottom
 }
 
 export function setRows(set, measure, offset) {

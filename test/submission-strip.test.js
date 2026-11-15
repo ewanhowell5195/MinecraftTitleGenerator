@@ -6,7 +6,7 @@ import { PNG } from "pngjs"
 import { readMask } from "../generator/fonts.js"
 import { prepare as prepareAsset } from "../generator/submissionKinds/fontAsset.js"
 import { prepare } from "../generator/submissionKinds/strip.js"
-import { stripRange } from "../src/lib/assets.js"
+import { stripLayout, stripRange } from "../src/lib/assets.js"
 import { flattenFonts, stripsOf } from "../src/lib/font.js"
 import { jsonText } from "../src/lib/jsonText.js"
 import { titleCase } from "../src/lib/names.js"
@@ -51,8 +51,9 @@ describe("strip shapes", () => {
   test("measures fonts the way the thumbnails do", async () => {
     const ctx = siteContext()
     for (const font of published.filter(item => !item.inherits)) {
-      const { cells, capHeight } = readMask(font, published)
-      assert.deepEqual(await fontMeasure(ctx, font), { range: stripRange({ cells, capHeight }), capHeight, depth: defaultDepth(font) })
+      const { cells, capHeight, layers } = readMask(font, published)
+      const stacked = layers?.length > 1 ? stripLayout({}, { cells, capHeight, layers }, defaultDepth(font), 0).total : null
+      assert.deepEqual(await fontMeasure(ctx, font), { range: stripRange({ cells, capHeight }), capHeight, depth: defaultDepth(font), stacked })
     }
   })
 
