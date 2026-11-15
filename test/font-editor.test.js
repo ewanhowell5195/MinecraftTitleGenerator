@@ -9,6 +9,7 @@ import { DEFAULT_ORDER } from "../src/lib/order.js"
 import { CREEPER, MULTICASE_CHARACTERS, REQUIRED_CHARACTERS, SPACE_CHAR, addCharacters, autoStretch, blankGlyph, blockAt, buildSheet, changeGlyph, characterLabel, charactersOf, depthCode, depthOf, fontLayers, sameCharacter, setLetterCase, createFont, exportJson, fillCells, fitGlyph, fontFromFiles, fontFromPublished, glyphOf, isBlank, isOptional, lineCells, lostPixels, moveGlyph, paint, parseFontJson, rectangleCells, removeCharacter, reshapeGlyph, resizeFont, rowOfY, savedCharacters, savedJson, savedSheet, setGlyph, setSquareSize, setStretch, sheetOrder, slug, squareSizeLoss, squaresOf, trimGlyph, widthOf, yOfRow } from "../src/lib/fontEditor.js"
 import { fontFromAscii } from "../src/lib/asciiImport.js"
 import { fontFromOutlines, parseFontFile } from "../src/lib/fontImport.js"
+import { templateGlyphs, withTemplateGlyphs } from "../src/fontEditor/template.js"
 import { gridShift, lineUnits, rasterise } from "../src/lib/fontOutline.js"
 import { jsonText } from "../src/lib/jsonText.js"
 import { nearestOffset, stripFit } from "../src/lib/submissionKinds/stripFit.js"
@@ -750,6 +751,37 @@ describe("importing a font file", () => {
     built.tables.os2 = { ...built.tables.os2, sCapHeight: 950 }
     const font = fontFromOutlines(opentype.parse(built.toArrayBuffer()), { height: 21 })
     assert.deepEqual(font.glyphs.A.rows, fontFromOutlines(await testFont(), { height: 21 }).glyphs.A.rows)
+  })
+
+  function templateOf(chars = "ABH", size = 1) {
+    const notdef = new opentype.Glyph({ name: ".notdef", unicode: 0, advanceWidth: 500, path: new opentype.Path() })
+    const built = new opentype.Font({ familyName: "Test", styleName: "Regular", unitsPerEm: 1000, ascender: 800, descender: -200, glyphs: [notdef].concat(Array.from(chars).map(char => square(1000, char, 700))) })
+    return { name: "Test.ttf", data: `data:font/ttf;base64,${Buffer.from(built.toArrayBuffer()).toString("base64")}`, square: size }
+  }
+
+  test("the template font is saved in the JSON and read back", async () => {
+    const template = templateOf()
+    const font = { ...fontFromOutlines(await testFont(), { height: 21 }), template }
+    const json = exportJson(font, "")
+    assert.deepEqual(json.editor.template, template)
+    assert.deepEqual(fontFromFiles({ json: parseFontJson(JSON.stringify(json)) }).template, template)
+    assert.equal(exportJson(fontFromOutlines(await testFont(), { height: 21 }), "").editor.template, undefined)
+    assert.throws(() => fontFromFiles({ json: { ...json, editor: { ...json.editor, template: { name: "Test.ttf", data: "nope", square: 1 } } } }), /template font isn't valid/)
+  })
+
+  test("added characters are drawn from the template at the font's height", async () => {
+    const font = { ...fontFromOutlines(await testFont("ABHÄ"), { height: 21 }), template: templateOf("ABHÄ") }
+    const { font: next, added } = addCharacters(font, "äz")
+    const generated = await templateGlyphs(next, added)
+    assert.deepEqual(Object.keys(generated), ["Ä"])
+    assert.deepEqual(generated.Ä.rows, font.glyphs.A.rows)
+    assert.ok(withTemplateGlyphs(next, generated).glyphs.Ä.stretch.length > 0)
+    const taller = resizeFont(font, { height: 25 })
+    assert.equal((await templateGlyphs(taller, ["A"])).A.rows.length, 25)
+  })
+
+  test("a font with no template generates nothing", async () => {
+    assert.deepEqual(await templateGlyphs(fontFromOutlines(await testFont(), { height: 21 }), ["A"]), {})
   })
 
   test("the topline and baseline come from the edges most capitals share, not drips or a stray letter", () => {

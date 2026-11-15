@@ -40,6 +40,13 @@ function enlarged(shape, square) {
   return { left: shape.left * square, bottom: shape.bottom * square, top: shape.top * square, width, height: shape.height * square, mask }
 }
 
+export function outlineShape(source, char, options = {}) {
+  const { unit, scale, square, capHeight, base } = scaled(source, options)
+  const glyph = glyphFor(source, char)
+  const shape = glyph && rasterise(glyph, scale, gridShift(glyph, unit, scale), base)
+  return shape ? { shape: enlarged(shape, square), capHeight } : null
+}
+
 export function meshOutlines(source, options = {}) {
   const { glyphs, unit, scale, square, base } = scaled(source, options)
   return Object.fromEntries(MULTICASE_CHARACTERS.flatMap((char, index) => {

@@ -41,7 +41,7 @@ function isUpper(char) {
   return hasCase(char) && char === char.toUpperCase()
 }
 
-function shownAs(char, letterCase) {
+export function shownAs(char, letterCase) {
   return letterCase === "upper" && hasCase(char) ? char.toUpperCase() : char
 }
 
@@ -674,6 +674,7 @@ export function fontFromFiles({ sheet = null, json = null }) {
   const height = editor.height ?? (json?.height ? json.height - border * 2 : 40)
   let font = createFont({ height, width: editor.width ?? 24, grid: editor.grid ?? 4, density, letterCase: json?.multicase ? "both" : editor.letterCase === "lower" ? "lower" : "upper" })
   if (json) font = metaFrom({ ...font, name: json.name ?? (json.id ? titleCase(json.id) : font.name), id: json.id ?? "" }, json)
+  if (editor.template) font = { ...font, template: templateFrom(editor.template) }
   if (json?.order) {
     const listed = Array.from(json.order)
     font = { ...font, creeper: listed.includes(CREEPER), defineSpace: listed.includes(SPACE_CHAR), extras: extrasOf(listed) }
@@ -714,6 +715,18 @@ export function fontFromShapes(shapes, { name, authors = [], capHeight, grid = n
   return { ...marked, imported: { ...marked.glyphs, [SPACE_CHAR]: glyphFromShape(null, capHeight, fallback) } }
 }
 
+export function glyphFromTemplate(font, shape, capHeight) {
+  const glyph = glyphFromShape(shape, capHeight, font.width)
+  const sized = { ...font, height: capHeight, imported: null, hidden: null, glyphs: { glyph: { ...glyph, width: glyph.width === font.width ? null : glyph.width } } }
+  return resizeFont(sized, { height: font.height }).glyphs.glyph
+}
+
+function templateFrom(value) {
+  const valid = value && typeof value === "object" && typeof value.name === "string" && typeof value.data === "string" && value.data.startsWith("data:") && Number.isInteger(value.square) && value.square >= 1
+  if (!valid) throw new Error("that JSON file's template font isn't valid")
+  return { name: value.name, data: value.data, square: value.square }
+}
+
 export function autoStretch(font, characters = charactersOf(font)) {
   const { list, capHeight } = parsedSheet(font, 0)
   const measures = { capHeight, ...sheetMeasures(list.filter(cell => cell.width)), block: font.grid * font.density }
@@ -748,6 +761,6 @@ export function exportJson(font, texture, characters = charactersOf(font)) {
     const saved = font.glyphs[char] && canvasOf(font, font.glyphs[char])
     return saved ? [[char, saved]] : []
   }))
-  entry.editor = { height: font.height, width: font.width, grid: font.grid, density: font.density, ...(font.letterCase === "lower" && { letterCase: "lower" }), ...(Object.keys(canvas).length && { canvas }), texture }
+  entry.editor = { height: font.height, width: font.width, grid: font.grid, density: font.density, ...(font.letterCase === "lower" && { letterCase: "lower" }), ...(Object.keys(canvas).length && { canvas }), texture, ...(font.template && { template: font.template }) }
   return entry
 }

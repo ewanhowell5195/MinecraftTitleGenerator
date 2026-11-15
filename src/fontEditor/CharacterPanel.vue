@@ -1,5 +1,5 @@
 <script setup>
-  import { computed } from "vue"
+  import { computed, shallowRef, watch } from "vue"
   import Button from "../components/Button.vue"
   import Field from "../components/Field.vue"
   import Icon from "../components/Icon.vue"
@@ -7,10 +7,22 @@
   import { autoStretch, changeGlyph, characterName, inkCount, setGlyph, squaresOf, widthOf } from "../lib/fontEditor.js"
   import { typedNumber } from "./fields.js"
   import { font, glyph, reshapeSelected, selected, update, updateGlyph } from "./store.js"
+  import { templateGlyphs } from "./template.js"
 
   const width = computed(() => widthOf(font.value, glyph.value))
   const overridden = computed(() => glyph.value.width !== null && glyph.value.width !== font.value.width)
-  const imported = computed(() => font.value.imported?.[selected.value] ?? null)
+  const fromTemplate = shallowRef(null)
+  const imported = computed(() => font.value.imported?.[selected.value] ?? fromTemplate.value)
+
+  let asking = 0
+
+  watch(() => [font.value.template, font.value.height, font.value.width, font.value.letterCase, selected.value], async () => {
+    fromTemplate.value = null
+    const ask = ++asking
+    const char = selected.value
+    const glyphs = await templateGlyphs(font.value, [char])
+    if (ask === asking) fromTemplate.value = glyphs[char] ?? null
+  }, { immediate: true })
 
   function setNumber(key, event, minimum) {
     const squares = typedNumber(event, squaresOf(font.value, key === "width" ? width.value : glyph.value[key]), value => Number.isInteger(value * font.value.grid) && value * font.value.grid >= minimum)
@@ -26,7 +38,7 @@
   }
 
   function revert() {
-    update(setGlyph(font.value, selected.value, imported.value))
+    update(autoStretch(setGlyph(font.value, selected.value, imported.value), [selected.value]))
   }
 
   function mark() {

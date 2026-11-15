@@ -9,11 +9,13 @@
   import Notice from "../components/Notice.vue"
   import NumberInput from "../components/NumberInput.vue"
   import Segments from "../components/Segments.vue"
+  import UploadField from "../components/UploadField.vue"
   import { fullName, loadFontList } from "../lib/font.js"
   import { DEFAULT_BORDER, DEFAULT_DEPTH, DEFAULT_ID, DEFAULT_SPACE_WIDTH, LETTER_CASES, autoStretch, fontId, fontLayers, lostPixels, resizeFont, setSquareSize, slug, squareSizeLoss, squaresOf } from "../lib/fontEditor.js"
   import { fontThumbnail } from "../lib/ui.js"
   import { typedNumber } from "./fields.js"
   import { changeLetterCase, font, update } from "./store.js"
+  import { loadTemplate } from "./template.js"
 
   const ABOUT = [
     { key: "name", label: "Name", required: true, hint: "Shown in the font list and the credits." },
@@ -53,6 +55,8 @@
   }
 
   const warning = ref(null)
+  const templateError = ref("")
+  const loadingTemplate = ref(false)
   const layered = computed(() => !!fontLayers(font.value))
   const published = shallowRef([])
 
@@ -126,6 +130,27 @@
     warning.value = null
   }
 
+  async function pickTemplate(event) {
+    const file = event.target.files[0]
+    if (!file) return
+    templateError.value = ""
+    loadingTemplate.value = true
+    try {
+      const { template } = await loadTemplate(file, font.value.template?.square ?? font.value.grid)
+      update({ ...font.value, template, imported: null })
+    } catch (err) {
+      templateError.value = err.message
+    } finally {
+      loadingTemplate.value = false
+      event.target.value = ""
+    }
+  }
+
+  function removeTemplate() {
+    templateError.value = ""
+    update({ ...font.value, template: null, imported: null })
+  }
+
   function markAll() {
     update(autoStretch(font.value))
   }
@@ -147,6 +172,17 @@
           <input v-else type="text" :class="{ clashing: clashes[item.key] }" :value="font[item.key]" @input="setText(item.key, $event)">
         </Field>
       </div>
+    </section>
+
+    <section class="flow">
+      <h3>Template font</h3>
+      <UploadField accept=".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2" :label="loadingTemplate ? 'Loading...' : font.template ? 'Replace font file' : 'Choose a font file'" empty="No template font" :disabled="loadingTemplate" :clearable="!!font.template" @change="pickTemplate" @clear="removeTemplate">
+        <template v-if="font.template" #preview>
+          <span class="template-name ellipsis">{{ font.template.name }}</span>
+        </template>
+      </UploadField>
+      <Notice v-if="templateError">{{ templateError }}</Notice>
+      <p v-else class="hint">A .ttf, .otf, .woff or .woff2 that characters you add are drawn from to start with. Each character can also go back to its shape in it. It's saved inside the font's JSON.</p>
     </section>
 
     <section class="flow">
@@ -217,6 +253,11 @@
 
   .full {
     grid-column: 1 / -1;
+  }
+
+  .template-name {
+    max-width: 100%;
+    font-weight: 600;
   }
 
   input.clashing {

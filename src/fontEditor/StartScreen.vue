@@ -16,6 +16,7 @@
   import { fontThumbnail } from "../lib/ui.js"
   import { fontFromList, fontFromUploads, imageOf } from "./loaders.js"
   import { openFont } from "./store.js"
+  import { loadTemplate } from "./template.js"
 
   const height = ref(10)
   const width = ref(6)
@@ -73,8 +74,8 @@
         const [{ fontFromAscii }, image] = await Promise.all([import("../lib/asciiImport.js"), imageOf(file)])
         return setLetterCase(fontFromAscii(image, { height: importHeight.value }), letterCase.value)
       }
-      const { fontFromOutlines, parseFontFile } = await import("../lib/fontImport.js")
-      return setLetterCase(fontFromOutlines(await parseFontFile(await file.arrayBuffer()), { height: importHeight.value, density: importDensity.value }), letterCase.value)
+      const [{ fontFromOutlines }, { template, source }] = await Promise.all([import("../lib/fontImport.js"), loadTemplate(file, importDensity.value)])
+      return setLetterCase({ ...fontFromOutlines(source, { height: importHeight.value, density: importDensity.value }), template }, letterCase.value)
     }).finally(() => event.target.value = "")
   }
 </script>
@@ -107,7 +108,7 @@
           <UploadField multiple accept=".png,.json,image/png,application/json" label="Choose files" empty="Drop a font JSON, a font.png, or both" @change="upload" />
 
           <h2 class="second">Import a font file</h2>
-          <p class="hint">Turns a .ttf, .otf, .woff or .woff2, or a Minecraft ascii.png, into pixels at this height, ready for you to edit. Square size is how many pixels each square is, for font files that aren't already drawn on a pixel grid. Each character can go back to its imported shape.</p>
+          <p class="hint">Turns a .ttf, .otf, .woff or .woff2, or a Minecraft ascii.png, into pixels at this height, ready for you to edit. Square size is how many pixels each square is, for font files that aren't already drawn on a pixel grid. The font file is kept as its template, so each character can go back to its imported shape and characters you add start from it.</p>
           <div class="numbers import">
             <Field label="Height in pixels"><NumberInput min="1" v-model.number="importHeight" /></Field>
             <Field label="Square size"><NumberInput min="1" v-model.number="importDensity" /></Field>

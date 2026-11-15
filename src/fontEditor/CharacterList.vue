@@ -11,6 +11,7 @@
   import { CREEPER, SPACE_CHAR, addCharacters, characterLabel, characterName, glyphOf, isBlank, isOptional, removeCharacter, setGlyph } from "../lib/fontEditor.js"
   import GlyphThumb from "./GlyphThumb.vue"
   import { arrowsMove, characters, clipboard, copyGlyph, font, pasteGlyph, selected, typing, update } from "./store.js"
+  import { templateGlyphs, withTemplateGlyphs } from "./template.js"
 
   const ARROWS = { ArrowLeft: -1, ArrowRight: 1 }
 
@@ -52,10 +53,14 @@
     if (selected.value === char) selected.value = "a"
   }
 
-  function add(text) {
+  async function add(text) {
     const { font: next, added } = addCharacters(font.value, text)
     if (!added.length) return
-    update(added.reduce((result, char) => result.glyphs[char] || !result.imported?.[char] ? result : setGlyph(result, char, result.imported[char]), next))
+    const before = font.value
+    const restored = added.reduce((result, char) => result.glyphs[char] || !result.imported?.[char] ? result : setGlyph(result, char, result.imported[char]), next)
+    const generated = await templateGlyphs(restored, added.filter(char => !restored.glyphs[char]))
+    if (font.value !== before) return
+    update(withTemplateGlyphs(restored, generated))
     selected.value = added[0]
   }
 
