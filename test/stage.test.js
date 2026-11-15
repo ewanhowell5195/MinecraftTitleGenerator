@@ -576,8 +576,22 @@ describe("frameCamera", () => {
   test("maxScale limits orthographic magnification", () => {
     const camera = new THREE.OrthographicCamera()
     frameCamera(camera, { anchor: line, corners: cornersOf(line), size: 20, fov: 90, width: 800, height: 600, maxScale: 2 })
-    close(camera.top - camera.bottom, 300)
-    close(camera.right - camera.left, 400 / Math.cos(radians(DEFAULT_CAMERA.tilt)))
+    const lens = Math.cos(radians(DEFAULT_CAMERA.tilt))
+    close(camera.top - camera.bottom, 300 * lens ** 2)
+    close(camera.right - camera.left, 400 * lens)
+  })
+
+  test("maxScale holds the same size as the field of view closes", () => {
+    const angle = { ...DEFAULT_CAMERA, tilt: 30 }
+    function shown(camera) {
+      frameCamera(camera, { anchor: line, corners: cornersOf(line), size: 20, angle, fov: 0.001, width: 800, height: 600, maxScale: 2 })
+      camera.updateMatrixWorld(true)
+      const points = cornersOf(line).map(corner => corner.clone().project(camera))
+      const xs = points.map(item => item.x)
+      const ys = points.map(item => item.y)
+      return [Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)]
+    }
+    closeList(shown(new THREE.OrthographicCamera()), shown(new THREE.PerspectiveCamera()), 1e-4)
   })
 
   test("maxScale limits perspective magnification at the camera distance", () => {
@@ -614,7 +628,7 @@ describe("frameCamera", () => {
     const camera = new THREE.OrthographicCamera()
     frameCamera(camera, { anchor: line, corners: cornersOf(line), size: 20, fov: 43, width: 800, height: 600, frame })
     assert.equal(seen[1], output)
-    close(seen[0].width, 20)
+    close(seen[0].width, 20 / Math.cos(radians(DEFAULT_CAMERA.tilt)))
     assert.equal(seen[0].left, 0)
     assert.equal(seen[0].top, 0)
   })
@@ -628,7 +642,7 @@ describe("frameCamera", () => {
     } finally {
       globalThis.devicePixelRatio = 1
     }
-    close((camera.top - camera.bottom) / Math.cos(radians(DEFAULT_CAMERA.tilt)), 2400)
+    close((camera.top - camera.bottom) / Math.cos(radians(DEFAULT_CAMERA.tilt)) ** 2, 2400)
   })
 })
 
