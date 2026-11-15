@@ -179,7 +179,6 @@
     const found = await findSuggestions(pngSize(file.bytes))
     if (file !== props.file) return
     suggestions.value = found
-    if (chosen.value.kind !== "new" && found.length && !found.includes(props.target)) emit("update:target", found[0])
   }, { immediate: true })
 </script>
 
