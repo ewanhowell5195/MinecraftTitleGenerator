@@ -1,6 +1,5 @@
 <script setup>
   import { computed, ref, watch } from "vue"
-  import Button from "../../components/Button.vue"
   import Checkbox from "../../components/Checkbox.vue"
   import ColourPicker from "../../components/ColourPicker.vue"
   import Dropdown from "../../components/Dropdown.vue"
@@ -13,7 +12,7 @@
   import { texturesList } from "../../lib/submissionKinds/fontAsset.js"
   import { submissionContext } from "../../lib/submissionKinds/index.js"
   import { STRIP_LIMITS, fitOffset, fitProblems, fontMeasure, heightList, setIdOf, setIds, setName, setUsers, sharedHeights, stripOwners, stripTarget, targetRows } from "../../lib/submissionKinds/stripFit.js"
-  import { SUBMISSION_LIMITS, pngProblem, pngSize } from "../../lib/submissions.js"
+  import { SUBMISSION_LIMITS } from "../../lib/submissions.js"
   import { fontThumbnail } from "../../lib/ui.js"
   import VariantOf from "./VariantOf.vue"
 
@@ -49,7 +48,6 @@
   const variantList = computed(() => chosen.value.kind === "set" ? `/strips/${chosen.value.id}/textures.json` : shownOn.value ? texturesList(shownOn.value) : null)
   const heights = ref(null)
   const fits = ref([])
-  const suggestions = ref([])
 
   const mode = computed({
     get: () => chosen.value.kind,
@@ -110,11 +108,6 @@
     return `Fits, ${Math.abs(item.offset)} ${Math.abs(item.offset) === 1 ? "row" : "rows"} ${item.offset > 0 ? "higher" : "lower"}`
   }
 
-  function label(target) {
-    const { kind, id } = stripTarget(target)
-    return kind === "set" ? `${setName(id)} strip type` : fullName(owners.value.find(item => item.id === id), props.fonts)
-  }
-
   async function heightsOf(target) {
     const rows = await targetRows(ctx, target, props.details)
     return rows && sharedHeights(rows)
@@ -129,12 +122,6 @@
       return { id: item.id, name: fullName(item, props.fonts), offset, problems: offset === null ? fitProblems(shape, measure, 0, stretch.value) : [] }
     }))
     return found.sort((a, b) => (a.offset === null) - (b.offset === null))
-  }
-
-  async function findSuggestions(size) {
-    const targets = sets.value.map(id => `set:${id}`).concat(owners.value.map(item => `font:${item.id}`))
-    const found = await Promise.all(targets.map(async target => (await heightsOf(target))?.includes(size.height) ? target : null))
-    return found.filter(Boolean)
   }
 
   watch(() => props.target, () => {
@@ -170,15 +157,6 @@
       console.error(err)
       heights.value = null
     }
-  }, { immediate: true })
-
-  watch(() => props.file, async file => {
-    emit("problem", null)
-    suggestions.value = []
-    if (!file?.bytes || pngProblem(file.bytes, "strip")) return
-    const found = await findSuggestions(pngSize(file.bytes))
-    if (file !== props.file) return
-    suggestions.value = found
   }, { immediate: true })
 </script>
 
@@ -230,11 +208,6 @@
     <span v-if="problems.border" class="hint bad">{{ problems.border }}</span>
   </Field>
   <p v-if="required" class="hint">{{ required }}</p>
-  <Field group v-if="suggestions.length" class="wide" label="Its height fits">
-    <div class="suggestions">
-      <Button :primary="item === target" v-for="item of suggestions" :key="item" @click="emit('update:target', item)">{{ label(item) }}</Button>
-    </div>
-  </Field>
 </template>
 
 <style scoped>
@@ -303,11 +276,5 @@
   .note {
     font-size: var(--font-xs);
     color: var(--faint);
-  }
-
-  .suggestions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
   }
 </style>
