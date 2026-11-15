@@ -71,7 +71,7 @@ function fill(entry, built) {
   })
   entry.border.map = entry.textures[0] ?? null
   entry.border.needsUpdate = true
-  entry.solid = built.body.triangles ? mesh(built.body, entry.materials) : null
+  entry.solid = built.body.triangles ? mesh(built.body, entry.materials.length === 1 ? entry.materials[0] : entry.materials) : null
   if (entry.solid && built.runs) entry.solid.userData.extent = new THREE.BufferAttribute(new Float32Array(opaquePoints(built.runs).flatMap(point => point.toArray())), 3)
   if (entry.solid) entry.group.add(entry.solid)
 }

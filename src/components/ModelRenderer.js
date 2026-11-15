@@ -166,7 +166,7 @@ export default {
         const atlas = minecraft ? solidAdjusted(drawn, value, layout.width, layout.swatchY) : drawn
         atlas.ctx.fillStyle = `rgba(${border[0]}, ${border[1]}, ${border[2]}, ${border[3] / 255})`
         atlas.ctx.fillRect(0, layout.swatchY, 1, 1)
-        built.value = { body, texture: atlas.canvas, depth: modelDepth, get border() { return object.border }, bottom, line, frame: null, shapes: null, tools: null, twist: null, swatch, averages: null, runs }
+        built.value = { body, pages: [{ texture: atlas.canvas }], depth: modelDepth, get border() { return object.border }, bottom, line, frame: null, shapes: null, tools: null, twist: null, swatch, averages: null, runs }
         painted.value = { shape: shape.value.id, depth: modelDepth }
         paintError.value = null
       } catch (err) {
