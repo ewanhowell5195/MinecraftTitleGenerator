@@ -13,7 +13,7 @@ import { titleCase } from "../src/lib/names.js"
 import { defaultDepth } from "../src/lib/settings.js"
 import { centredOffset, stripUse } from "../src/lib/strips.js"
 import { strip as checker } from "../src/lib/submissionKinds/strip.js"
-import { fitOffset, fitProblems, fontMeasure, heightList, offsetRange, remapStrip, setEntry, stripHeights, stripTarget } from "../src/lib/submissionKinds/stripFit.js"
+import { fitOffset, fitProblems, fontMeasure, heightList, offsetRange, remapStrip, setEntry, stripHeights, stripSnap, stripTarget } from "../src/lib/submissionKinds/stripFit.js"
 import { decodePng } from "../src/lib/submissionKinds/png.js"
 import { strip as writer } from "../src/server/submissionKinds/strip.js"
 import { pngOf } from "./helpers/png.js"
@@ -61,6 +61,14 @@ describe("strip shapes", () => {
     assert.deepEqual(stripHeights(92), [23, 46, 92, 184, 368, 736, 1472, 2944])
     assert.deepEqual(stripHeights(80).slice(0, 4), [5, 10, 20, 40])
     assert.equal(heightList([1, 2, 4]), "1, 2 or 4")
+  })
+
+  test("a strip's snap is how many columns wide its pixels are", () => {
+    const blocks = size => new Uint8Array(pngOf(48, 46, (x, y) => [Math.floor(x / size) * 40 % 256, y, 0, 255]))
+    assert.equal(stripSnap(blocks(8)), 8)
+    assert.equal(stripSnap(blocks(3)), 3)
+    assert.equal(stripSnap(new Uint8Array(png(16, 46))), 1)
+    assert.equal(stripSnap(new Uint8Array(pngOf(16, 46, (x, y) => [y, y, y, 255]))), 1)
   })
 
   test("targets", () => {

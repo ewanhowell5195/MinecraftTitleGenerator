@@ -11,8 +11,8 @@
   import { popular } from "../../lib/stats.js"
   import { texturesList } from "../../lib/submissionKinds/fontAsset.js"
   import { submissionContext } from "../../lib/submissionKinds/index.js"
-  import { STRIP_LIMITS, fitOffset, fitProblems, fontMeasure, heightList, setIdOf, setIds, setName, setUsers, sharedHeights, stripOwners, stripTarget, targetRows } from "../../lib/submissionKinds/stripFit.js"
-  import { SUBMISSION_LIMITS } from "../../lib/submissions.js"
+  import { STRIP_LIMITS, fitOffset, fitProblems, fontMeasure, heightList, setIdOf, setIds, setName, setUsers, sharedHeights, stripOwners, stripSnap, stripTarget, targetRows } from "../../lib/submissionKinds/stripFit.js"
+  import { SUBMISSION_LIMITS, pngProblem } from "../../lib/submissions.js"
   import { fontThumbnail } from "../../lib/ui.js"
   import VariantOf from "./VariantOf.vue"
 
@@ -134,6 +134,12 @@
       emit("update:target", entry ? `font:${sheetOwner(entry, props.fonts).id}` : fallback("font"))
     } else if (kind === "font" && !owners.value.some(item => item.id === id)) emit("update:target", fallback("font"))
   }, { immediate: true })
+
+  watch(() => props.file?.bytes, bytes => {
+    if (!bytes || pngProblem(bytes, "strip")) return
+    const snap = stripSnap(bytes)
+    change({ snap: snap > 1 ? snap : undefined })
+  })
 
   watch(() => [props.target, props.kind], () => {
     const missing = {}

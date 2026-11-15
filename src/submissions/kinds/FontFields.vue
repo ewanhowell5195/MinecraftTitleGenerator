@@ -13,9 +13,9 @@
   import { flatTexture } from "../../lib/fontEditor.js"
   import { popular } from "../../lib/stats.js"
   import { EXTRA_KINDS, fontParents, submittedFontId } from "../../lib/submissionKinds/font.js"
-  import { STRIP_LIMITS, stripHeights as heightsOf } from "../../lib/submissionKinds/stripFit.js"
+  import { STRIP_LIMITS, stripHeights as heightsOf, stripSnap } from "../../lib/submissionKinds/stripFit.js"
   import { ownFont, submittedFont } from "../../lib/submissionKinds/fontBuild.js"
-  import { SUBMISSION_LIMITS } from "../../lib/submissions.js"
+  import { SUBMISSION_LIMITS, pngProblem } from "../../lib/submissions.js"
   import { submissionExtraUrl } from "../../lib/submissionsApi.js"
   import { fontThumbnail } from "../../lib/ui.js"
   import { pngUrl } from "../../lib/virtualFiles.js"
@@ -126,6 +126,10 @@
     if (!chosen) return
     const file = await pickedFile(chosen)
     emit("update:files", { ...props.files, [key]: file })
+    if (extras.value.find(item => item.key === key)?.kind === "strip" && !pngProblem(file.bytes, "strip")) {
+      const snap = stripSnap(file.bytes)
+      update(key, { snap: snap > 1 ? snap : undefined })
+    }
   }
 
   function imageOf(key) {

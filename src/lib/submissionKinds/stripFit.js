@@ -151,6 +151,26 @@ export function fitProblems(set, measure, offset, stretched) {
   return reachProblems(set, measure, offset, problems, { named: char => `its "${characterName(char, null)}"`, stretched })
 }
 
+function sameColumn({ width, height, data }, a, b) {
+  for (let y = 0; y < height; y++) {
+    const i = (y * width + a) * 4
+    const j = (y * width + b) * 4
+    if (!data[i + 3] && !data[j + 3]) continue
+    if (data[i] !== data[j] || data[i + 1] !== data[j + 1] || data[i + 2] !== data[j + 2] || data[i + 3] !== data[j + 3]) return false
+  }
+  return true
+}
+
+export function stripSnap(bytes) {
+  const image = decodePng(bytes)
+  const columns = Array.from({ length: image.width }, (_, x) => x)
+  if (columns.every(x => sameColumn(image, 0, x))) return 1
+  for (let size = Math.min(STRIP_LIMITS.snap, image.width); size > 1; size--) {
+    if (!(image.width % size) && columns.every(x => sameColumn(image, x, x - x % size))) return size
+  }
+  return 1
+}
+
 export function setEntry(set, offset, stretch) {
   return { ...stripTag(set, offset), ...(stretch && { stretch: true }) }
 }
