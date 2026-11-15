@@ -68,20 +68,29 @@ function materialColour(material) {
   return parseInt(material.color.getHexString().replace(/(..)(..)(..)/, "$3$2$1"), 16)
 }
 
+function firstMaterial(mesh) {
+  return Array.isArray(mesh.material) ? mesh.material[0] : mesh.material
+}
+
+function materialAt(mesh, vertex) {
+  if (!Array.isArray(mesh.material)) return mesh.material
+  const group = mesh.geometry.groups.find(item => vertex >= item.start && vertex < item.start + item.count)
+  return mesh.material[group?.materialIndex ?? 0]
+}
+
 function facesOf(mesh, view, project, cache) {
-  const { position, uv } = mesh.geometry.attributes
+  const { position, uv, plainUv } = mesh.geometry.attributes
   const mirrored = mesh.matrixWorld.determinant() < 0
-  const showsBack = mesh.material.side === THREE.BackSide
-  const image = mesh.material.map ? imageOf(mesh.material.map, cache) : null
+  const showsBack = firstMaterial(mesh).side === THREE.BackSide
   const faces = []
   const solids = []
-  function faceFrom(corners, texels, rect, analysis, normal) {
+  function faceFrom(corners, texels, rect, analysis, normal, image) {
     const points = view.perspective ? split(corners, view.direction, view.direction.dot(view.eye) + view.near)[0] : corners
     if (!points) return null
     const facing = corners[1].clone().sub(corners[0]).cross(corners[2].clone().sub(corners[0])).normalize()
     return { index: faces.length, corners, texels, rect, image, analysis, points, facing, normal: normal.dot(toViewer(view, corners[0])) < 0 ? normal.clone().negate().normalize() : normal.clone().normalize(), box: boxOfPolygons([points.map(project)]) }
   }
-  function analysisOf(rect, parts = null) {
+  function analysisOf(image, rect, parts = null) {
     const key = [rect].concat(parts ?? []).map(({ left, top, right, bottom, triangle }) => `${left},${top},${right},${bottom}${triangle ? `:${triangle.join(";")}` : ""}`).join(" ")
     if (!image.analyses.has(key)) image.analyses.set(key, analyse(image, rect, parts && maskOf(rect, parts)))
     return image.analyses.get(key)
@@ -93,8 +102,8 @@ function facesOf(mesh, view, project, cache) {
     const { corners, normal, texels, rect } = quad.texels.length === 3 ? panel.parts.reduce((best, part) => texelArea(part.texels) > texelArea(best.texels) ? part : best) : quad
     const toWorld = worldMap({ corners, texels })
     const wholeTexels = texels.length === 3 ? facingCorners(bounds, toWorld, normal) : texels.map(([x, y]) => [x === rect.left ? bounds.left : bounds.right, y === rect.top ? bounds.top : bounds.bottom])
-    const analysis = analysisOf(bounds, rects)
-    panel.whole = analysis && faceFrom(wholeTexels.map(([x, y]) => toWorld(x, y)), wholeTexels, bounds, analysis, normal)
+    const analysis = analysisOf(quad.image, bounds, rects)
+    panel.whole = analysis && faceFrom(wholeTexels.map(([x, y]) => toWorld(x, y)), wholeTexels, bounds, analysis, normal, quad.image)
     if (panel.whole) faces.push(panel.whole)
     return panel.whole
   }
@@ -108,42 +117,45 @@ function facesOf(mesh, view, project, cache) {
     if (normal.lengthSq() < EPSILON * EPSILON) continue
     if (mirrored) normal.negate()
     if (normal.dot(toViewer(view, corners[0])) > 0 === showsBack) continue
+    const material = materialAt(mesh, start)
+    const image = material.map ? imageOf(material.map, cache) : null
+    const coords = material.map?.userData.plain && plainUv ? plainUv : uv
     let texels = null
     let rect = null
     if (image) {
-      texels = offsets.map(offset => [Math.round(uv.getX(start + offset) * image.width), Math.round((1 - uv.getY(start + offset)) * image.height)])
+      texels = offsets.map(offset => [Math.round(coords.getX(start + offset) * image.width), Math.round((1 - coords.getY(start + offset)) * image.height)])
       const xs = texels.map(texel => texel[0])
       const ys = texels.map(texel => texel[1])
       rect = { left: Math.min(...xs), top: Math.min(...ys), right: Math.max(...xs), bottom: Math.max(...ys) }
       if (rect.right <= rect.left || rect.bottom <= rect.top) {
-        rect.left = Math.floor(uv.getX(start) * image.width)
-        rect.top = Math.floor((1 - uv.getY(start)) * image.height)
+        rect.left = Math.floor(coords.getX(start) * image.width)
+        rect.top = Math.floor((1 - coords.getY(start)) * image.height)
         rect.right = rect.left + 1
         rect.bottom = rect.top + 1
       }
     }
-    const quad = { corners, normal, texels, rect, panel: null }
+    const quad = { corners, normal, texels, rect, image, material, panel: null }
     quads.push(quad)
     const panelArea = rect && image.panels?.find(item => contains(item, rect))
     if (!panelArea) continue
-    const key = `${panelArea.left},${panelArea.top},${Math.round(normal.clone().normalize().dot(corners[0]) / PLANE_ERROR)}`
+    const key = `${material.id},${panelArea.left},${panelArea.top},${Math.round(normal.clone().normalize().dot(corners[0]) / PLANE_ERROR)}`
     if (!panels.has(key)) panels.set(key, { parts: [] })
     quad.panel = panels.get(key)
     quad.panel.parts.push(quad)
   }
   for (const quad of quads) {
-    const { corners, normal, texels, rect, panel } = quad
+    const { corners, normal, texels, rect, image, material, panel } = quad
     if (panel) {
-      const part = faceFrom(corners, texels, rect, null, normal)
+      const part = faceFrom(corners, texels, rect, null, normal, image)
       if (!part) continue
       solids.push(part)
       const whole = wholeOf(panel, quad)
       if (whole) part.whole = whole
       continue
     }
-    const analysis = rect ? analysisOf(rect) : { base: { colour: materialColour(mesh.material) }, layers: [] }
+    const analysis = rect ? analysisOf(image, rect) : { base: { colour: materialColour(material) }, layers: [] }
     if (!analysis) continue
-    const face = faceFrom(corners, texels, rect, analysis, normal)
+    const face = faceFrom(corners, texels, rect, analysis, normal, image)
     if (!face) continue
     faces.push(face)
     solids.push(face)
@@ -922,8 +934,9 @@ export function vectorTitle(scene, camera, size, resolution) {
   const layers = []
   for (const mesh of meshes) {
     const { faces, solids } = facesOf(mesh, view, project, cache)
-    const own = mesh.material.depthWrite ? solids.map(face => occluderOf(face, view)) : []
-    if (!mesh.material.colorWrite) {
+    const material = firstMaterial(mesh)
+    const own = material.depthWrite ? solids.map(face => occluderOf(face, view)) : []
+    if (!material.colorWrite) {
       occluders.push(...own)
       continue
     }

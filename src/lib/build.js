@@ -2,7 +2,7 @@ import { boxFaces, boxesFor } from "./boxes.js"
 import { layerMask, stripLimits } from "./flatSheet.js"
 import { clippedBoxes } from "./joins.js"
 import { SPACE } from "./layout.js"
-import { buildAtlas, detailFor, stackAtlases } from "./material.js"
+import { REGION_KINDS, finishAtlas, layoutPages, pageGroups, planAtlas, regionScales } from "./atlas.js"
 import { remember } from "./maths.js"
 import { baseChar } from "./order.js"
 
@@ -159,20 +159,28 @@ function turned([x, y, z], { ribbon, door, x: pivotX, y: pivotY, moveX, moveZ },
   ]
 }
 
-function toBuffers(faces, units) {
+function toBuffers(faces, mapped, pages) {
+  const order = Array.from(faces.keys()).sort((a, b) => pages.indexOf(mapped[a].page) - pages.indexOf(mapped[b].page))
   const positions = []
   const uvs = []
   const sizes = []
-  for (const face of faces) {
+  const groups = []
+  for (const at of order) {
+    const face = faces[at]
+    const { page, uvs: coords } = mapped[at]
+    const index = pages.indexOf(page)
+    const start = positions.length / 3
+    if (groups.at(-1)?.page !== index) groups.push({ start, count: 0, page: index })
     sizes.push(face.points.length === 3 ? 3 : 6)
-    for (const index of face.points.length === 3 ? [0, 1, 2] : [0, 1, 2, 0, 2, 3]) {
-      const point = face.points[index]
-      const coord = face.uvs[index]
+    for (const corner of face.points.length === 3 ? [0, 1, 2] : [0, 1, 2, 0, 2, 3]) {
+      const point = face.points[corner]
+      const coord = coords[corner]
       positions.push(point[0], point[1], point[2])
-      uvs.push(coord[0] / units.width, 1 - coord[1] / units.height)
+      uvs.push(coord[0] / page.width, 1 - coord[1] / page.height)
     }
+    groups.at(-1).count += positions.length / 3 - start
   }
-  return { positions: new Float32Array(positions), uvs: new Float32Array(uvs), triangles: positions.length / 9, sizes: sizes.includes(3) ? Uint8Array.from(sizes) : null }
+  return { positions: new Float32Array(positions), uvs: new Float32Array(uvs), triangles: positions.length / 9, sizes: sizes.includes(3) ? Uint8Array.from(sizes) : null, groups }
 }
 
 export function rowBottom(boxLists) {
@@ -231,17 +239,41 @@ export function buildText(font, options) {
     spaces: glyphs.map(glyph => glyph.spaces),
     space: font.spaceWidth ?? SPACE
   }
-  function atlasFor(faces, painted, detail = 1) {
-    if (!options.layers) return buildAtlas(faces, { ...atlas, painted, detail })
-    const parts = Array.from(Map.groupBy(faces, face => face.layer ?? 0)).sort(([a], [b]) => a - b).map(([layer, group]) => ({ faces: group, atlas: buildAtlas(group, { ...atlas, ...options.layers[layer].options, painted: painted[layer], detail }) }))
-    return stackAtlases(parts, detail)
+  const flat = body.map(face => ({ ...face, points: face.points.map(point => point.slice()) }))
+  const limit = options.textureLimit ?? Infinity
+  const parts = (options.layers ? Array.from(Map.groupBy(flat, face => face.layer ?? 0)).sort(([a], [b]) => a - b) : [[0, flat]]).map(([layer, faces]) => {
+    const own = { ...atlas, ...options.layers?.[layer].options }
+    const plan = planAtlas(faces, own)
+    const details = options.details?.[layer] ?? null
+    return { layer, plan, details, groups: pageGroups(plan, regionScales(details), limit), options: own }
+  })
+  const sharpened = parts.some(part => REGION_KINDS.some(kind => (part.details?.[kind] ?? 1) > 1))
+  function textured(paint, sharp) {
+    const layouts = parts.map(part => layoutPages(part.plan, part.groups, regionScales(sharp ? part.details : null), options.sheet).map(page => ({ ...page, sharp, layer: part.layer })))
+    const painted = paint(layouts)
+    const pages = []
+    const finished = []
+    for (const [index, part] of parts.entries()) {
+      for (const [at, page] of layouts[index].entries()) {
+        pages.push(page)
+        finished.push({ ...finishAtlas(part.plan, page, painted[index][at], part.options), page, layer: part.layer })
+      }
+    }
+    const first = finished[0]
+    const swatched = atlas.outline || finished.some(item => item.swatched)
+    return {
+      layouts: pages,
+      pages: finished.map(({ canvas, labels, crackShapes, gradient, fades, panels, layer }) => ({ texture: canvas, labels, crackShapes, gradient, fades, panels, layer })),
+      swatch: swatched ? [(first.swatch.x + first.swatch.scale / 2) / first.page.width, 1 - (first.swatch.y + first.swatch.scale / 2) / first.page.height] : null,
+      side: finished.find(item => item.side)?.side ?? null,
+      edge: () => painted[0][0].edgeAverage()
+    }
   }
-  const texture = atlasFor(body, options.painted)
-  const detail = options.detailed > 1 ? detailFor(texture.units, options.textureLimit, options.detailed) : 1
-  const flat = detail > 1 || options.redraw ? body.map(face => ({ ...face, points: face.points.map(point => point.slice()) })) : null
-  function refine(painted) {
-    const sharp = atlasFor(flat, painted, detail)
-    return { texture: sharp.canvas, labels: sharp.labels, crackShapes: sharp.crackShapes, gradient: sharp.gradient, fades: sharp.fades, panels: sharp.panels }
+  const texture = textured(options.paint, false)
+  let drafted = null
+  function refine(paint) {
+    const sharp = textured(paint, true)
+    return { body: { ...toBuffers(body, flat, sharp.layouts), plainUvs: drafted.uvs }, pages: sharp.pages.map((page, index) => ({ ...page, plain: texture.pages[index] })), swatch: sharp.swatch }
   }
   for (const [index, item] of placed.entries()) {
     if (item.glyph.lift) shift(glyphs[index], 1, item.glyph.lift)
@@ -254,16 +286,11 @@ export function buildText(font, options) {
     for (const face of glyph.body) face.points = face.points.map(point => turned(point, turn))
     return { turn, rings: font.mesh ? glyphRings(glyph) : null, sources: font.autoBorder ? frameRects(glyph.boxes) : flatRects(glyph.boxes), slabs: font.autoBorder || !font.layers ? null : font.layers.map((_, layer) => flatRects(glyph.slabs?.[layer] ?? glyph.boxes)) }
   }) : null
+  drafted = toBuffers(body, flat, texture.layouts)
   return {
-    body: toBuffers(body, texture.units),
-    texture: texture.canvas,
-    labels: texture.labels,
-    crackShapes: texture.crackShapes,
-    gradient: texture.gradient,
-    fades: texture.fades,
-    panels: texture.panels,
-    detail,
-    refine: flat && refine,
+    body: drafted,
+    pages: texture.pages,
+    refine: sharpened || options.redraw ? refine : null,
     layers: Array.from(new Set(body.map(face => face.layer ?? 0))).sort((a, b) => a - b),
     depth,
     border,
@@ -276,8 +303,8 @@ export function buildText(font, options) {
     shapes: font.mesh ? glyphs.flatMap(glyphRings) : null,
     tools: font.mesh?.tools ?? null,
     twist,
-    swatch: texture.swatch ? [(texture.swatch.x + 0.5) / texture.units.width, 1 - (texture.swatch.y + 0.5) / texture.units.height] : null,
-    averages: { side: texture.side, get edge() { return (options.layers ? options.painted[0] : options.painted).edgeAverage() } }
+    swatch: texture.swatch,
+    averages: { side: texture.side, get edge() { return texture.edge() } }
   }
 }
 

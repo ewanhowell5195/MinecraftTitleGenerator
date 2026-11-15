@@ -27,6 +27,8 @@ function mesh(buffers, material) {
   const geometry = new THREE.BufferGeometry()
   geometry.setAttribute("position", new THREE.BufferAttribute(buffers.positions, 3))
   geometry.setAttribute("uv", new THREE.BufferAttribute(buffers.uvs, 2))
+  if (buffers.plainUvs) geometry.setAttribute("plainUv", new THREE.BufferAttribute(buffers.plainUvs, 2))
+  for (const { start, count, page } of buffers.groups ?? []) geometry.addGroup(start, count, page)
   geometry.userData.sizes = buffers.sizes ?? null
   return new THREE.Mesh(geometry, material)
 }
@@ -43,30 +45,33 @@ function clear(entry) {
   discard(entry, "outline")
   discard(entry, "solid")
   discard(entry, "holes")
-  entry.texture?.dispose()
-  entry.texture = null
+  for (const texture of entry.textures ?? []) texture.dispose()
+  for (const material of entry.materials ?? []) material.dispose()
+  entry.textures = []
+  entry.materials = []
 }
 
 function fill(entry, built) {
   clear(entry)
   entry.built = built
   if (!built) return
-  entry.texture = new THREE.CanvasTexture(built.texture)
-  entry.texture.magFilter = THREE.NearestFilter
-  entry.texture.minFilter = THREE.NearestFilter
-  entry.texture.generateMipmaps = false
-  entry.texture.colorSpace = THREE.SRGBColorSpace
-  entry.texture.userData.labels = built.labels
-  entry.texture.userData.crackShapes = built.crackShapes
-  entry.texture.userData.gradient = built.gradient
-  entry.texture.userData.fades = built.fades
-  entry.texture.userData.panels = built.panels
-  entry.texture.userData.plain = built.plain ?? null
-  entry.body.map = entry.texture
-  entry.body.needsUpdate = true
-  entry.border.map = entry.texture
+  entry.textures = built.pages.map(page => {
+    const texture = new THREE.CanvasTexture(page.texture)
+    texture.magFilter = THREE.NearestFilter
+    texture.minFilter = THREE.NearestFilter
+    texture.generateMipmaps = false
+    texture.colorSpace = THREE.SRGBColorSpace
+    Object.assign(texture.userData, { labels: page.labels, crackShapes: page.crackShapes, gradient: page.gradient, fades: page.fades, panels: page.panels, plain: page.plain ? { image: page.plain.texture, labels: page.plain.labels, crackShapes: page.plain.crackShapes, gradient: page.plain.gradient, fades: page.plain.fades, panels: page.plain.panels } : null })
+    return texture
+  })
+  entry.materials = entry.textures.map(texture => {
+    const material = entry.body.clone()
+    material.map = texture
+    return material
+  })
+  entry.border.map = entry.textures[0] ?? null
   entry.border.needsUpdate = true
-  entry.solid = built.body.triangles ? mesh(built.body, entry.body) : null
+  entry.solid = built.body.triangles ? mesh(built.body, entry.materials) : null
   if (entry.solid) entry.group.add(entry.solid)
 }
 

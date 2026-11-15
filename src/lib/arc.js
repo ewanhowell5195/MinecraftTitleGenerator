@@ -4,7 +4,7 @@ import { joinNeighbours } from "./joins.js"
 import { faceDepth } from "./material.js"
 import { remember } from "./maths.js"
 import { glyphKey } from "./order.js"
-import { R, idOf } from "./paint.js"
+import { idOf } from "./paint.js"
 
 const GAP = 2
 const CACHED_REMAPS = 32
@@ -152,28 +152,29 @@ function runs(arc) {
   return list
 }
 
-function remap(arced, original, source, smooth) {
-  const { canvas, ctx } = surface(arced.width * R, arced.swatch.y * R)
+function remap(page, original, source, smooth) {
+  const { canvas, ctx } = surface(page.width, page.height)
   const scale = source.width / original.width
-  function copy(entry, sy, h, dy, dh = h) {
+  function copy(entry, part, sy, h, dy, dh = h) {
     const { source: from, glyph } = entry
     const [sx, sw] = glyph.fill ? [from.x + Math.floor(from.width / 2), 1] : [from.x, from.width]
-    if (sw > 0 && h > 0) ctx.drawImage(source, sx * scale, sy * scale, sw * scale, h * scale, entry.x * R, dy * R, entry.width * R, dh * R)
+    const region = entry.regions[part]
+    if (sw > 0 && h > 0) ctx.drawImage(source, sx * scale, sy * scale, sw * scale, h * scale, region.x + (entry.x - region.u0) * region.scale, region.y + (dy - region.v0) * region.scale, entry.width * region.scale, dh * region.scale)
   }
-  for (const entry of Object.values(arced.glyphs)) {
+  for (const entry of Object.values(page.glyphs)) {
     const { source: from, glyph } = entry
-    copy(entry, from.up, from.upHeight, entry.up, entry.upHeight)
-    copy(entry, from.down, from.downHeight, entry.down, entry.downHeight)
+    copy(entry, "up", from.up, from.upHeight, entry.up, entry.upHeight)
+    copy(entry, "down", from.down, from.downHeight, entry.down, entry.downHeight)
     const rows = glyph.arc.map
     if (!glyph.arc.top && !glyph.arc.bottom) {
-      copy(entry, from.top, from.height, entry.top)
+      copy(entry, "front", from.top, from.height, entry.top)
       continue
     }
     if (!smooth && scale <= 1) {
-      for (const [row, sourceRow] of rows.entries()) copy(entry, from.top + from.height - 1 - sourceRow, 1, entry.top + rows.length - 1 - row)
+      for (const [row, sourceRow] of rows.entries()) copy(entry, "front", from.top + from.height - 1 - sourceRow, 1, entry.top + rows.length - 1 - row)
       continue
     }
-    for (const run of runs(glyph.arc)) copy(entry, from.top + from.height - run.from - run.rows, run.rows, entry.top + rows.length - run.at - run.height, run.height)
+    for (const run of runs(glyph.arc)) copy(entry, "front", from.top + from.height - run.from - run.rows, run.rows, entry.top + rows.length - run.at - run.height, run.height)
   }
   return canvas
 }

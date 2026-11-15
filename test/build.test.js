@@ -25,9 +25,21 @@ describe("rowBottom", () => {
   })
 })
 
-globalThis.document = { createElement: () => ({ getContext: () => ({ fillRect() {}, drawImage() {} }) }) }
+function fakeCanvas(width = 1, height = 1) {
+  const ctx = { setTransform() {}, clearRect() {}, fillRect() {}, drawImage() {}, beginPath() {}, rect() {}, fill() {}, putImageData() {} }
+  return { width, height, getContext: () => ctx }
+}
 
-const PAINTED = { scale: 1, canvas: {}, border: "rgb(0, 0, 0)", tiles: null, fade: null, edgeAverage: () => "#123456", wraps: [], sideWraps: [] }
+globalThis.document = { createElement: () => fakeCanvas() }
+
+const PAINTED = { border: "rgb(0, 0, 0)", tiles: null, fade: null, edgeAverage: () => "#123456", wraps: [], sideWraps: [] }
+
+function painter(painted, seen = []) {
+  return layouts => {
+    seen.push(layouts)
+    return layouts.map(pages => pages.map(page => ({ ...painted, canvas: fakeCanvas(page.width, page.height) })))
+  }
+}
 
 function glyph(char, width, height, extra = {}) {
   return { char, width, height, bottom: 0, mask: new Uint8Array(width * height).fill(1), ...extra }
@@ -38,7 +50,8 @@ function place(item, x) {
 }
 
 function text(placed, options = {}, font = {}) {
-  return buildText(font, { placed, depth: 4, border: 1, sheet: { glyphs: {} }, painted: PAINTED, sideFaces: false, internalFaces: false, ...options })
+  const { painted = PAINTED, ...rest } = options
+  return buildText(font, { placed, depth: 4, border: 1, sheet: { glyphs: {} }, paint: painter(painted), sideFaces: false, internalFaces: false, ...rest })
 }
 
 function points(positions) {
@@ -341,13 +354,13 @@ describe("buildText", () => {
     assert.equal(result.averages.edge, 1)
   })
 
-  test("throws when the atlas would pass the texture limit", () => {
-    assert.throws(() => text([place(glyph("w", 2000, 1), 0)]), /over the 4096 limit/)
+  test("throws when one character's texture would pass the texture limit", () => {
+    assert.throws(() => text([place(glyph("w", 2000, 1), 0)], { textureLimit: 4096 }), /over the 4096 limit/)
   })
 })
 
 describe("depth layers", () => {
-  const LAYERED = { layers: [{ options: {} }, { options: {} }], painted: [PAINTED, PAINTED] }
+  const LAYERED = { layers: [{ options: {} }, { options: {} }] }
 
   function flatZs(body) {
     const list = points(body.positions)
@@ -684,29 +697,84 @@ describe("detail", () => {
   const ROW = [place(glyph("a", 4, 4), 0), place(glyph("b", 4, 4), 8)]
   const TURN = { ribbon: { amount: 40, centre: 0.5, same: false }, door: { amount: 0, centre: 0.5, same: false } }
 
-  test("a plain text keeps its texture as it is", () => {
+  const FRONT = [{ front: 4 }]
+
+  function line(count, every = 0) {
+    return Array.from({ length: count }, (_, index) => ({ ...place(glyph(`g${index}`, 4, 4), index * 6), spaces: every && index && index % every === 0 ? 1 : 0 }))
+  }
+
+  test("a plain text has nothing to draw again", () => {
     const word = text(ROW)
-    assert.equal(word.detail, 1)
     assert.equal(word.refine, null)
+    assert.equal(word.pages.length, 1)
   })
 
-  test("a detailed text says how far its texture can grow, and can be drawn again that big", () => {
-    const word = text(ROW, { detailed: Infinity, textureLimit: 4096 })
-    assert.ok(word.detail > 1)
-    assert.equal(word.detail, 2 ** Math.round(Math.log2(word.detail)))
-    const sharp = word.refine({ ...PAINTED, scale: word.detail })
-    assert.deepEqual(Object.keys(sharp).sort(), ["crackShapes", "fades", "gradient", "labels", "panels", "texture"])
+  test("only the regions that ask for detail are drawn bigger", () => {
+    const seen = []
+    const word = text(ROW, { details: FRONT, paint: painter(PAINTED, seen) })
+    word.refine(painter(PAINTED, seen))
+    const [draft] = seen[0]
+    const [sharp] = seen[1]
+    for (const index of [0, 1]) {
+      assert.deepEqual([draft[0].regions.get(index).front.scale, draft[0].regions.get(index).up.scale, draft[0].regions.get(index).down.scale], [4, 4, 4])
+      assert.deepEqual([sharp[0].regions.get(index).front.scale, sharp[0].regions.get(index).up.scale, sharp[0].regions.get(index).down.scale], [16, 4, 4])
+    }
   })
 
-  test("a limit too small to grow into leaves the texture alone", () => {
-    assert.equal(text(ROW, { detailed: Infinity, textureLimit: 0 }).refine, null)
+  test("drawing it again keeps the draft's texture coordinates beside the sharp ones", () => {
+    const word = text(ROW, { details: FRONT })
+    const sharp = word.refine(painter(PAINTED))
+    assert.deepEqual(Array.from(sharp.body.plainUvs), Array.from(word.body.uvs))
+    assert.notDeepEqual(Array.from(sharp.body.uvs), Array.from(word.body.uvs))
+    assert.equal(sharp.pages[0].plain, word.pages[0])
+  })
+
+  test("drawing it again points the outline at the swatch in the sharp texture", () => {
+    const seen = []
+    const word = text(ROW, { details: FRONT, paint: painter(PAINTED, seen) })
+    const sharp = word.refine(painter(PAINTED, seen))
+    const [[page]] = seen[1]
+    assert.deepEqual(sharp.swatch, [(page.swatch.x + page.swatch.scale / 2) / page.width, 1 - (page.swatch.y + page.swatch.scale / 2) / page.height])
   })
 
   test("drawing it again lays the texture out the same after a twist", () => {
-    const flat = text(ROW, { detailed: Infinity, textureLimit: 4096, internalFaces: true, sideFaces: true })
-    const turned = text(ROW, { detailed: Infinity, textureLimit: 4096, internalFaces: true, sideFaces: true, twist: TURN })
-    assert.deepEqual(turned.refine({ ...PAINTED, scale: turned.detail }).panels, flat.refine({ ...PAINTED, scale: flat.detail }).panels)
-    assert.deepEqual(Array.from(turned.body.uvs), Array.from(flat.body.uvs))
+    const flat = text(ROW, { details: FRONT, internalFaces: true, sideFaces: true })
+    const turned = text(ROW, { details: FRONT, internalFaces: true, sideFaces: true, twist: TURN })
+    const [a, b] = [flat, turned].map(word => word.refine(painter(PAINTED)))
+    assert.deepEqual(b.pages[0].panels, a.pages[0].panels)
+    assert.deepEqual(Array.from(b.body.uvs), Array.from(a.body.uvs))
+  })
+
+  test("packs a long line close to square", () => {
+    const seen = []
+    text(line(40), { paint: painter(PAINTED, seen) })
+    const [[page]] = seen[0]
+    assert.ok(Math.max(page.width, page.height) / Math.min(page.width, page.height) < 1.5)
+  })
+
+  test("splits a line that won't fit one texture across more, starting each at a word", () => {
+    const seen = []
+    const placed = line(30, 4)
+    const word = text(placed, { paint: painter(PAINTED, seen), textureLimit: 128 })
+    const [pages] = seen[0]
+    assert.ok(pages.length > 1)
+    for (const page of pages) assert.ok(page.width <= 128 && page.height <= 128)
+    for (const page of pages.slice(1)) assert.equal(placed[page.indexes[0]].spaces, 1)
+    assert.deepEqual(word.body.groups.map(group => group.page), pages.map((page, index) => index))
+    assert.equal(word.pages.length, pages.length)
+  })
+
+  test("splits instead of lowering detail when the sharp texture won't fit", () => {
+    const seen = []
+    const word = text(line(12), { details: FRONT, textureLimit: 256 })
+    word.refine(painter(PAINTED, seen))
+    const [pages] = seen[0]
+    assert.ok(pages.length > 1)
+    for (const page of pages) {
+      assert.ok(page.width <= 256 && page.height <= 256)
+      for (const regions of page.regions.values()) assert.equal(regions.front.scale, 16)
+    }
+    assert.equal(word.pages.length, pages.length)
   })
 })
 

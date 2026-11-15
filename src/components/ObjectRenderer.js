@@ -3,17 +3,19 @@ import { bandOf, filePalette, fontTextures, image, preload, shapeFont, sheetFor,
 import { definitionPalette } from "../lib/overlayColours.js"
 import { arcAssets, arcLayout } from "../lib/arc.js"
 import { buildOutline, buildText } from "../lib/build.js"
-import { canvasLimit } from "../lib/canvas.js"
+import { MAX_DETAIL } from "../lib/atlas.js"
+import { textureLimit } from "../lib/canvas.js"
 import { customFontEntry, customFontId } from "../lib/customFonts.js"
 import { EulaDeclined } from "../lib/eula.js"
-import { SMOOTH_KINDS, withDraftShadows, withFinalShadows } from "../lib/generated.js"
+import { SMOOTH_KINDS, WRAPPED_KINDS, withDraftShadows, withFinalShadows } from "../lib/generated.js"
 import { CUSTOM_SHAPE, SILHOUETTE_TEXT, shapeOf } from "../lib/shapes.js"
 import { hasMarks, loadFont, sheetFolder } from "../lib/font.js"
 import { bandEntry, layerSlice } from "../lib/strips.js"
 import { thumbnailItems } from "../lib/layout.js"
 import { blockTextureImage } from "../lib/minecraft.js"
 import { setHeights, usePlacement, usePublished } from "../lib/objectState.js"
-import { R, lookKey, paintBase, paintKey, paintSheet, stripDetail } from "../lib/paint.js"
+import { faceDepth } from "../lib/material.js"
+import { idOf, lookKey, paintBase, paintKey, paintSheet, stripDetail } from "../lib/paint.js"
 import { platform } from "../lib/platform.js"
 import { quietly } from "../lib/history.js"
 import { DEFAULT_CAP_HEIGHT, DEFAULT_HEIGHT, NO_ARC } from "../lib/rows.js"
@@ -65,6 +67,9 @@ export default {
     let shown = null
     let paintedKey = null
     let builtFrom = null
+    const paintCache = new Map()
+    let paintUsed = new Set()
+    let paintKept = new Set()
 
     function sourceOf(object) {
       if (object.textureSource === "gradient") return "gradient"
@@ -303,7 +308,7 @@ export default {
         const [assets] = loaded
         shaped.value = assets.base && !font.value.mesh && !font.value.layers ? shapeFont(font.value, sheet.value, assets.base) : font.value
         const layers = values.map((value, layer) => paintedLayer(value, loaded[layer]))
-        painted.value = { font: values[0].font, scale: R, ...layers[0], layers: font.value.layers ? layers : null }
+        painted.value = { font: values[0].font, ...layers[0], layers: font.value.layers ? layers : null }
         paintedKey = key
         paintError.value = null
       } catch (err) {
@@ -332,51 +337,69 @@ export default {
 
     function lineFor(source, list, word, options) {
       const key = JSON.stringify([list, word, options.depth, options.arcMode, options.arcTop, options.arcBottom, options.arcMove, options.arcCentre, options.arcMarked, options.stretch, options.terminators, options.spacing, options.kerning])
-      const final = finalShadowed.value
-      const same = line?.source === source && line.key === key
-      if (same && line.painted === painted.value && line.final === final) return line
-      const laid = same ? line.laid : arcLayout(source, sheet.value, list, word, options)
-      if (!laid) {
-        line = { painted: painted.value, source, key, final, laid, arced: null }
-        return line
-      }
-      const layers = painted.value.layers ?? [painted.value]
-      const { look, assets } = layers[0]
-      const held = line?.source === source ? line.arced?.sheet : null
-      const kept = held && (held === laid.sheet || paintKey(held, assets, look) === paintKey(laid.sheet, assets, look))
-      const arced = kept ? { ...laid, sheet: held } : laid
-      if (kept && line.painted === painted.value && line.final === final) {
-        line = { ...line, key, laid, arced }
-        return line
-      }
-      const paintParts = () => layers.map((layer, index) => {
-        const remapped = arcAssets(layer.assets, arced.sheet, sheet.value)
-        const baseKey = lookKey(BASE.map(name => layer.look[name]))
-        const before = kept ? line.parts?.[index] : null
-        const base = before?.baseKey === baseKey ? before.base : paintBase(arced.sheet, layer.look, remapped, source.capHeight)
-        return { baseKey, base, remapped, own: { ...painted.value, ...layer, ...paintSheet(arced.sheet, layer.look, remapped, source.capHeight, base) } }
-      })
-      const parts = final ? withFinalShadows(paintParts) : withDraftShadows(paintParts)
-      line = { painted: painted.value, source, key, final, laid, arced, parts }
+      if (line?.source === source && line.key === key) return line
+      line = { source, key, laid: arcLayout(source, sheet.value, list, word, options) }
       return line
     }
 
-    function owned(parts) {
-      return painted.value.layers ? parts.map(part => part.own) : parts[0].own
+    function sweepPaints() {
+      for (const key of paintCache.keys()) if (!paintUsed.has(key) && !paintKept.has(key)) paintCache.delete(key)
+      paintKept = paintUsed
+      paintUsed = new Set()
+    }
+
+    function remembered(key, make, sharp) {
+      paintUsed.add(key)
+      if (paintCache.has(key)) return paintCache.get(key)
+      const made = make()
+      if (!sharp) paintCache.set(key, made)
+      return made
+    }
+
+    function painter(source, sharp = false) {
+      const final = finalShadowed.value
+      const layers = painted.value.layers ?? [painted.value]
+      const id = idOf(painted.value)
+      function paintPage(page) {
+        const index = layers.length > 1 ? page.layer : 0
+        const layer = layers[index]
+        const { look, assets } = layer
+        const pageKey = paintKey(page, assets, look)
+        const own = remembered(JSON.stringify(["page", id, index, final, pageKey, sharp]), () => ({ page }), sharp).page
+        const remapped = arcAssets(assets, own, sheet.value)
+        const base = remembered(JSON.stringify(["base", id, index, lookKey(BASE.map(name => look[name])), pageKey, sharp]), () => paintBase(own, look, remapped, source.capHeight), sharp)
+        return remembered(JSON.stringify(["paint", id, index, final, pageKey, sharp]), () => ({ ...painted.value, ...layer, ...paintSheet(own, look, remapped, source.capHeight, base) }), sharp)
+      }
+      return layouts => {
+        const run = () => layouts.map(pages => pages.map(paintPage))
+        if (final) return withFinalShadows(run)
+        return sharp ? run() : withDraftShadows(run)
+      }
     }
 
     function layerOptions() {
       return painted.value.layers ? layerFaces.value.map(options => ({ options })) : null
     }
 
-    function detailed(options, sheet) {
-      const depth = Object.values(sheet.glyphs)[0]?.upHeight ?? 0
-      return Math.max(0, ...(painted.value.layers ?? [painted.value]).map(({ look, assets }, layer) => {
+    function smoothDetail(base, smooth) {
+      return smooth ? base * Math.ceil(MAX_DETAIL / base) : base
+    }
+
+    function regionDetails(options) {
+      const depth = faceDepth(options.depth)
+      return (painted.value.layers ?? [painted.value]).map(({ look, assets }, layer) => {
         const faces = painted.value.layers ? faceOptions(targets.value[layer]) : options
-        const gradient = look.source === "gradient" || look.customEdge && look.edgeFill === "gradient" || faces.internalFaces && faces.customInternal && faces.internalFill === "gradient" || faces.sideFaces && faces.customSide && faces.sideFill === "gradient"
-        if (gradient || assets.overlays.some(({ layer, source }) => SMOOTH_KINDS.has(source.generated) && layer.opacity > 0)) return Infinity
-        return look.source === "strip" && depth ? stripDetail(assets.strip, depth) : 0
-      }))
+        const smooth = assets.overlays.filter(({ layer, source }) => SMOOTH_KINDS.has(source.generated) && layer.opacity > 0)
+        const strip = look.source === "strip" ? stripDetail(assets.strip, depth) : 1
+        const edgeGradient = look.customEdge && look.edgeFill === "gradient"
+        const sideWrapped = smooth.some(({ layer }) => layer.sideWrap)
+        return {
+          front: smoothDetail(1, look.source === "gradient" || smooth.length > 0),
+          edge: smoothDetail(Number.isFinite(strip) ? strip : MAX_DETAIL, look.source === "gradient" || edgeGradient || smooth.some(({ layer, source }) => layer.edgeWrap || WRAPPED_KINDS.has(source.generated))),
+          internal: smoothDetail(1, faces.internalFaces && (sideWrapped || (faces.customInternal ? faces.internalFill === "gradient" : edgeGradient))),
+          side: smoothDetail(1, faces.sideFaces && (sideWrapped || faces.customSide && faces.sideFill === "gradient"))
+        }
+      })
     }
 
     function shadowed() {
@@ -384,13 +407,9 @@ export default {
     }
 
     function sharpened(text, source) {
-      const { arced, parts } = line
-      let detail = text.detail
-      while (detail > 1 && Math.max(arced.sheet.width, arced.sheet.height) * R * detail > canvasLimit()) detail = Math.floor(detail / 2)
-      const paint = () => parts.map(({ own, remapped }) => ({ own: { ...own, ...paintSheet(arced.sheet, own.look, remapped, source.capHeight, paintBase(arced.sheet, own.look, remapped, source.capHeight, detail), detail) } }))
-      const sharp = finalShadowed.value ? withFinalShadows(paint) : paint()
-      const plain = { image: text.texture, labels: text.labels, crackShapes: text.crackShapes, gradient: text.gradient, fades: text.fades, panels: text.panels }
-      return { ...text, ...text.refine(owned(sharp)), refine: null, plain }
+      const sharp = text.refine(painter(source, true))
+      sweepPaints()
+      return { ...text, ...sharp, refine: null }
     }
 
     function sharpen(text, source) {
@@ -430,11 +449,12 @@ export default {
       return { top: reach.top + Math.max(0, high - text.line.max[1]), bottom: reach.bottom + Math.max(0, text.line.min[1] - low) }
     }
 
-    function previewFor(source, options, placed, sheet, parts) {
+    function previewFor(source, options, placed, sheet) {
       const key = JSON.stringify([placed.map(item => [item.glyph.char, item.glyph.width, item.x, item.spaces]), ownDepth.value, Object.entries(options).filter(([name]) => !LAYOUT.has(name))])
-      if (shown?.source === source && shown.sheet === sheet && shown.parts === parts && shown.key === key) return shown.value
-      const value = buildText(source, { ...options, twist: null, depth: ownDepth.value, placed, sheet, painted: owned(parts), layers: layerOptions() })
-      shown = { source, sheet, parts, key, value }
+      const final = finalShadowed.value
+      if (shown?.source === source && shown.sheet === sheet && shown.painted === painted.value && shown.final === final && shown.key === key) return shown.value
+      const value = buildText(source, { ...options, twist: null, depth: ownDepth.value, placed, sheet, paint: painter(source), layers: layerOptions(), textureLimit: textureLimit() })
+      shown = { source, sheet, painted: painted.value, final, key, value }
       return value
     }
 
@@ -447,19 +467,20 @@ export default {
       builtFrom = { painted: painted.value, source, inputsKey, final: finalShadowed.value }
       let reach = null
       try {
-        const { arced, parts } = lineFor(source, list, word, options)
-        reach = arced?.reach ?? NO_ARC
-        if (!arced) {
+        const { laid } = lineFor(source, list, word, options)
+        reach = laid?.reach ?? NO_ARC
+        if (!laid) {
           built.value = null
           preview.value = null
           buildError.value = null
           sharpen(null)
           return
         }
-        built.value = buildText(source, { ...options, lineDepth, placed: arced.placed, line: arced.line, ends: arced.ends, sheet: arced.sheet, painted: owned(parts), layers: layerOptions(), detailed: detailed(options, arced.sheet), redraw: !finalShadowed.value && shadowed(), textureLimit: platform.maxTextureSize() })
-        reach = twistedReach(built.value, arced.reach)
-        const thumbnail = view.previews === false ? [] : thumbnailItems(source, arced.placed)
-        preview.value = thumbnail.length ? previewFor(source, options, thumbnail, arced.sheet, parts) : null
+        built.value = buildText(source, { ...options, lineDepth, placed: laid.placed, line: laid.line, ends: laid.ends, sheet: laid.sheet, paint: painter(source), layers: layerOptions(), details: regionDetails(options), redraw: !finalShadowed.value && shadowed(), textureLimit: textureLimit() })
+        reach = twistedReach(built.value, laid.reach)
+        const thumbnail = view.previews === false ? [] : thumbnailItems(source, laid.placed)
+        preview.value = thumbnail.length ? previewFor(source, options, thumbnail, laid.sheet) : null
+        sweepPaints()
         buildError.value = null
         sharpen(built.value, source)
       } catch (err) {
