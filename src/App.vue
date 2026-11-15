@@ -134,7 +134,7 @@
 
     <LayerActions v-if="editing" />
 
-    <FluidTabs v-if="editing" class="tabs" v-model="view.section" :tabs="tabs" tab-style="nav">
+    <FluidTabs v-if="editing" class="tabs" v-model="view.section" :tabs="tabs" tab-style="nav" wrap>
       <template #label="{ tab }">
         <Icon :name="tab.icon" :size="20" />
         <span>{{ tab.label }}</span>

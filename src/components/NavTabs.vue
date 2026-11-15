@@ -9,7 +9,7 @@
 </script>
 
 <template>
-  <FluidTabs v-model="model" :tabs="tabs" tab-style="nav" class="nav-tabs" />
+  <FluidTabs v-model="model" :tabs="tabs" tab-style="nav" class="nav-tabs" wrap />
 </template>
 
 <style scoped>

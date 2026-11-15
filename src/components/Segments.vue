@@ -7,7 +7,8 @@
     options: { type: Array, required: true },
     modelValue: { required: true },
     label: { type: String, default: "" },
-    hint: { type: String, default: "" }
+    hint: { type: String, default: "" },
+    radio: { type: Boolean, default: false }
   })
 
   const emit = defineEmits(["update:modelValue"])
@@ -22,11 +23,11 @@
 
 <template>
   <Field v-if="label" group :label="label" :hint="hint">
-    <FluidTabs :model-value="String(modelValue)" :tabs="tabs" tab-style="slide" @tab-changed="change">
+    <FluidTabs :model-value="String(modelValue)" :tabs="tabs" :tab-style="radio ? 'card' : 'slide'" :class="{ radio }" wrap @tab-changed="change">
       <template #label="{ tab }"><span v-tooltip="tab.title">{{ tab.label }}</span></template>
     </FluidTabs>
   </Field>
-  <FluidTabs v-else :model-value="String(modelValue)" :tabs="tabs" tab-style="slide" @tab-changed="change">
+  <FluidTabs v-else :model-value="String(modelValue)" :tabs="tabs" :tab-style="radio ? 'card' : 'slide'" :class="{ radio }" wrap @tab-changed="change">
     <template #label="{ tab }"><span v-tooltip="tab.title">{{ tab.label }}</span></template>
   </FluidTabs>
 </template>
