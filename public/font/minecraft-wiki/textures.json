@@ -3,6 +3,12 @@
     "flat": {
       "authors": ["Miffen Kop", "Ewan Howell", "oakar258"],
       "border": "#000000"
+    },
+    "wiki_old": {
+      "type": "strip",
+      "name": "Wiki (Old)",
+      "authors": ["ewanhowell5195"],
+      "border": "#000000"
     }
   },
   "overlays": {
