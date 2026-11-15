@@ -17,7 +17,7 @@ fakeTimeouts()
 
 const { FILE_VERSION, createObject, snapshot, typeDefaults } = await import("../src/lib/settings.js")
 const { view } = await import("../src/lib/view.js")
-const { addObject, addWord, bakeMatch, chooseMatch, current, currentWord, duplicateLine, insertWord, keepTexture, lineHidden, lineText, removeLine, removeObject, runtime, saveError, scene, select, selectGroup, selection, setScale, shapingWord, titleFileName, toggleLine, validSelection, wordTabs, words } = await import("../src/lib/scene.js")
+const { addObject, addWord, freeRow, noteType, bakeMatch, chooseMatch, current, currentWord, duplicateLine, insertWord, keepTexture, lineHidden, lineText, removeLine, removeObject, runtime, saveError, scene, select, selectGroup, selection, setScale, shapingWord, titleFileName, toggleLine, validSelection, wordTabs, words } = await import("../src/lib/scene.js")
 
 function setScene(...objects) {
   scene.objects = objects
@@ -637,27 +637,47 @@ describe("selecting", () => {
 })
 
 describe("addObject", () => {
-  test("the second object in a top-only title becomes update text", () => {
+  test("goes on the next free row of the last line's placement", () => {
     setScene(createObject({ text: "a" }))
     addObject()
     const object = scene.objects[1]
     assert.equal(object.text, "text")
-    assert.equal(object.type, "bottom")
-    assert.equal(object.fade, true)
-    assert.equal(object.outerFade, 50)
+    assert.equal(object.type, "top")
+    assert.equal(object.row, 1)
     assert.equal(scene.selected, object.id)
   })
 
-  test("further objects stay top text", () => {
-    setScene(createObject({ text: "a" }), createObject({ text: "b" }))
+  test("an empty title starts with top text on row 0", () => {
+    setScene()
     addObject()
-    assert.equal(scene.objects[2].type, "top")
+    assert.equal(scene.objects[0].type, "top")
+    assert.equal(scene.objects[0].row, 0)
   })
 
-  test("an object added to a non-top title stays top text", () => {
-    setScene(createObject({ ...typeDefaults("small"), text: "a" }))
+  test("takes the placement a line was last changed to", () => {
+    const [a, b] = setScene(createObject({ text: "a" }), createObject({ text: "b", row: 1 }))
+    Object.assign(b, typeDefaults("bottom"), { type: "bottom", row: 0 })
+    noteType(b)
     addObject()
-    assert.equal(scene.objects[1].type, "top")
+    const object = scene.objects[2]
+    assert.equal(object.type, "bottom")
+    assert.equal(object.row, 1)
+    assert.equal(object.fade, true)
+    assert.equal(object.outerFade, 50)
+    assert.equal(a.row, 0)
+  })
+
+  test("fills the lowest free row and only counts lines of the same placement", () => {
+    setScene(createObject({ text: "a" }), createObject({ text: "b", row: 2 }), createObject({ ...typeDefaults("small"), text: "c" }))
+    assert.equal(freeRow("top"), 1)
+    assert.equal(freeRow("small"), 1)
+    assert.equal(freeRow("bottom"), 0)
+  })
+
+  test("a line moving placement doesn't count its own row", () => {
+    const [a] = setScene(createObject({ ...typeDefaults("bottom"), text: "a" }), createObject({ text: "b" }))
+    assert.equal(freeRow("bottom", a), 0)
+    assert.equal(freeRow("top", a), 1)
   })
 })
 

@@ -1,7 +1,7 @@
 <script setup>
   import { usePanel } from "../../lib/panel.js"
   import { TYPES, applyType, defaultTexture, setTexture } from "../../lib/settings.js"
-  import { selection, words } from "../../lib/scene.js"
+  import { freeRow, noteType, selection, words } from "../../lib/scene.js"
   import Panel from "../Panel.vue"
   import Slider from "../Slider.vue"
   import Tile from "../Tile.vue"
@@ -17,12 +17,14 @@
 
   function pick(type) {
     if (object.value.type === type) return
+    const row = freeRow(type, selection.value[0])
     for (const word of words(selection.value[0])) {
       if (list.value && !word.textureVariant && word.texture === defaultTexture(list.value, word.type)) setTexture(word, { texture: defaultTexture(list.value, type) }, { before: list.value })
       word.type = type
-      if (type !== "top") word.row = Math.max(0, word.row)
+      word.row = row
       applyType(word, type, font.value)
     }
+    noteType(selection.value[0])
   }
 
   function reset() {

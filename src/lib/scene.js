@@ -271,11 +271,32 @@ export function selectGroup(group) {
   scene.selectedGroup = group
 }
 
+let lastTyped = null
+
+export function noteType(object) {
+  lastTyped = { id: object.id, type: object.type }
+}
+
+function nextType() {
+  if (!scene.objects.length) return "top"
+  return scene.objects.some(object => object.id === lastTyped?.id) ? lastTyped.type : scene.objects.at(-1).type
+}
+
+export function freeRow(type, moving = null) {
+  const own = new Set(moving ? words(moving) : [])
+  const used = new Set(scene.objects.filter(object => object.type === type && !own.has(object)).map(object => object.row))
+  const rows = type === "top" ? [0, 1, 2, 3, -1, -2, -3] : [0, 1, 2, 3]
+  return rows.find(row => !used.has(row)) ?? rows[3]
+}
+
 function addNew(object, section) {
-  if (scene.objects.length === 1 && scene.objects[0].type === "top") {
-    object.type = "bottom"
-    applyType(object, "bottom")
+  const type = nextType()
+  if (type !== object.type) {
+    object.type = type
+    applyType(object, type)
   }
+  object.row = freeRow(type)
+  noteType(object)
   scene.objects.push(object)
   select(object)
   view.section = section
