@@ -49,6 +49,8 @@ export async function readImage(event, apply) {
   }
 }
 
+export const SEARCH_ABOVE = 9
+
 export function fontThumbnail(fonts, id) {
   const entry = fonts.find(item => item.id === id)
   return `font/${entry?.variant ? `${entry.variant}/` : ""}${id}/thumbnails/flat.png`

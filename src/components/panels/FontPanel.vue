@@ -6,12 +6,12 @@
   import { computed, ref, watch } from "vue"
   import { fontCredit } from "../../lib/credits.js"
   import { PREVIEW_DETAIL, customFontEntry, customFontKind, customThumbnail } from "../../lib/customFonts.js"
-  import { loadImage } from "../../lib/font.js"
+  import { fullName, loadImage } from "../../lib/font.js"
   import { usePanel } from "../../lib/panel.js"
   import { library } from "../../lib/scene.js"
   import { DEFAULT_FONT, isCustomFont } from "../../lib/settings.js"
   import { popular } from "../../lib/stats.js"
-  import { fontThumbnail, readDataUrl, takeFile } from "../../lib/ui.js"
+  import { SEARCH_ABOVE, fontThumbnail, readDataUrl, takeFile } from "../../lib/ui.js"
   import { usedFonts } from "../../lib/uploads.js"
   import Button from "../Button.vue"
   import Field from "../Field.vue"
@@ -49,6 +49,14 @@
   const baseId = computed(() => entry.value?.variant ?? object.value.font)
   const baseFonts = computed(() => popular(library.fonts.filter(item => !item.variant), item => item.id, item => item.name, ["minecraft-ten"]))
   const variants = computed(() => popular(library.fonts.filter(item => item.variant === baseId.value), item => item.id, item => item.name))
+  const search = ref("")
+  const searchable = computed(() => baseFonts.value.length > SEARCH_ABOVE)
+  const searching = computed(() => searchable.value && !!search.value.trim())
+  const foundFonts = computed(() => {
+    if (!searching.value) return []
+    const term = search.value.trim().toLowerCase()
+    return baseFonts.value.flatMap(base => [base].concat(popular(library.fonts.filter(item => item.variant === base.id), item => item.id, item => item.name))).filter(item => [item.id, fullName(item, library.fonts)].some(text => text.toLowerCase().includes(term)))
+  })
 
   const characters = computed(() => {
     if (!font.value) return ""
@@ -73,6 +81,7 @@
 
   function chooseTab(value) {
     tab.value = value
+    search.value = ""
     if (value === "custom") {
       if (!isCustomFont(object.value.font)) publishedFonts.set(object.value.id, object.value.font)
       if (object.value.customFont && !usingCustom.value) applyCustom(object.value.customFont)
@@ -195,10 +204,16 @@
       </template>
       <UploadReuse :items="reusable" @pick="applyCustom" />
     </template>
-    <TileGrid v-else>
-      <Tile v-for="data of baseFonts" :key="data.id" :label="data.name" :image="fontThumbnail(library.fonts, data.id)" :author="fontCredit(data, library.fonts)" :badge="variantBadges[data.id]" :selected="baseId === data.id" @pick="object.font = data.id" />
-    </TileGrid>
-    <template v-if="tab === 'published' && variants.length">
+    <template v-else>
+      <input v-if="searchable" type="text" v-model="search" placeholder="Search fonts" aria-label="Search fonts">
+      <TileGrid v-if="searching">
+        <Tile v-for="data of foundFonts" :key="data.id" :label="fullName(data, library.fonts)" :image="fontThumbnail(library.fonts, data.id)" :author="fontCredit(data, library.fonts)" :selected="object.font === data.id" @pick="object.font = data.id" />
+      </TileGrid>
+      <TileGrid v-else>
+        <Tile v-for="data of baseFonts" :key="data.id" :label="data.name" :image="fontThumbnail(library.fonts, data.id)" :author="fontCredit(data, library.fonts)" :badge="variantBadges[data.id]" :selected="baseId === data.id" @pick="object.font = data.id" />
+      </TileGrid>
+    </template>
+    <template v-if="tab === 'published' && variants.length && !searching">
       <h3>Variants</h3>
       <TileGrid>
         <Tile label="Default" :image="fontThumbnail(library.fonts, baseId)" :selected="object.font === baseId" @pick="object.font = baseId" />

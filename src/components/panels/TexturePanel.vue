@@ -11,7 +11,7 @@
   import { pinnedTextures, setTexture, untouchedTileable } from "../../lib/settings.js"
   import { minecraftStatId, popular } from "../../lib/stats.js"
   import { stripCovers } from "../../lib/strips.js"
-  import { readImage, saveImage, thumbnail, thumbnailHeight, tilePreview } from "../../lib/ui.js"
+  import { SEARCH_ABOVE, readImage, saveImage, thumbnail, thumbnailHeight, tilePreview } from "../../lib/ui.js"
   import { usedTextures } from "../../lib/uploads.js"
   import Button from "../Button.vue"
   import GradientEditor from "../GradientEditor.vue"
@@ -26,7 +26,6 @@
   import UploadReuse from "../UploadReuse.vue"
   import Toggle from "../Toggle.vue"
 
-  const SEARCH_ABOVE = 16
   const TILE_SCALES = [1 / 4, 1 / 3, 1 / 2, 1, 2, 3, 4, 5, 6, 7, 8]
   const SOURCES = [{ value: "premade", label: "Textures" }, { value: "tileable", label: "Tileables" }, { value: "gradient", label: "Gradient" }, { value: "custom", label: "Custom" }]
   const CUSTOM_MODES = [{ value: "standard", label: "Standard" }, { value: "tileable", label: "Tileable" }, { value: "strip", label: "Strip" }]
@@ -84,15 +83,23 @@
     return entries.length > SEARCH_ABOVE
   }
 
-  function searched(entries, selected) {
+  function searched(entries) {
     const term = search.value.trim().toLowerCase()
     if (!searchable(entries) || !term) return entries
-    return entries.filter(([id, data]) => id === selected || id.includes(term) || (data.name ?? "").toLowerCase().includes(term) || (data.category ?? "").toLowerCase().includes(term) || Object.keys(data.variants ?? {}).some(key => key.includes(term)))
+    return entries.filter(([id, data]) => id.includes(term) || (data.name ?? "").toLowerCase().includes(term) || (data.category ?? "").toLowerCase().includes(term))
   }
 
-  const shownTextures = computed(() => searched(textures.value, object.value.texture))
-  const shownTileables = computed(() => searched(tileables.value, object.value.tileable))
-  const shownBlocks = computed(() => searched(blockEntries.value, object.value.minecraftTexture))
+  function flattened(entries) {
+    const term = search.value.trim().toLowerCase()
+    const words = (id, data) => [id, data.name ?? "", data.category ?? ""].map(text => text.toLowerCase())
+    return entries.flatMap(([id, data]) => [{ id, variant: null, data, parent: data }].concat(Object.entries(data.variants ?? {}).map(([key, own]) => ({ id, variant: key, data: own, parent: data })))).filter(item => words(item.variant ?? item.id, item.data).concat(words(item.id, item.parent)).some(text => text.includes(term)))
+  }
+
+  const searchingTextures = computed(() => searchable(textures.value) && !!search.value.trim())
+  const searchingTileables = computed(() => searchable(tileables.value) && !!search.value.trim())
+  const foundTextures = computed(() => searchingTextures.value ? flattened(textures.value) : [])
+  const foundTileables = computed(() => searchingTileables.value ? flattened(tileables.value) : [])
+  const shownBlocks = computed(() => searched(blockEntries.value))
 
   function spread() {
     const order = object.value.stops.slice().sort((a, b) => a.position - b.position)
@@ -228,10 +235,13 @@
 
       <template v-if="object.textureSource === 'premade'">
         <input v-if="searchable(textures)" type="text" v-model="search" placeholder="Search textures" aria-label="Search textures">
-        <TileGrid class="scroll">
-          <Tile v-for="[id, data] of shownTextures" :key="id" :label="label(id, data)" :unit="thumbnailHeight(font)" :image="thumbnail(font, id, shownLayer)" :author="credit(data, font?.id, library.fonts)" :badge="variantBadge(data)" :selected="object.texture === id" :menu="textureMenu(id, data)" @pick="setTexture(object, { texture: id, textureVariant: null }, { before: list })" />
+        <TileGrid v-if="searchingTextures" class="scroll">
+          <Tile v-for="item of foundTextures" :key="`${item.id}/${item.variant ?? ''}`" :label="item.data.name ?? titleCase(item.variant ?? item.id)" :unit="thumbnailHeight(font)" :image="thumbnail(font, item.variant ?? item.id, shownLayer)" :author="item.variant ? credit(item.data, font?.id, library.fonts, item.parent) : credit(item.data, font?.id, library.fonts)" :selected="object.texture === item.id && (object.textureVariant ?? null) === item.variant" :menu="textureMenu(item.variant ?? item.id, item.variant ? { ...item.parent, ...item.data } : item.data)" @pick="setTexture(object, { texture: item.id, textureVariant: item.variant }, { before: list })" />
         </TileGrid>
-        <template v-if="textureVariants.length">
+        <TileGrid v-else class="scroll">
+          <Tile v-for="[id, data] of textures" :key="id" :label="label(id, data)" :unit="thumbnailHeight(font)" :image="thumbnail(font, id, shownLayer)" :author="credit(data, font?.id, library.fonts)" :badge="variantBadge(data)" :selected="object.texture === id" :menu="textureMenu(id, data)" @pick="setTexture(object, { texture: id, textureVariant: null }, { before: list })" />
+        </TileGrid>
+        <template v-if="textureVariants.length && !searchingTextures">
           <h3>Variants</h3>
           <TileGrid class="scroll variants" :style="{ '--rows': rows(textureVariants) }">
             <Tile :label="list.textures[object.texture].name ?? titleCase(object.texture)" :unit="thumbnailHeight(font)" :image="thumbnail(font, object.texture, shownLayer)" :selected="!object.textureVariant" :menu="textureMenu(object.texture, list.textures[object.texture])" @pick="setTexture(object, { textureVariant: null }, { before: list })" />
@@ -256,10 +266,13 @@
 
       <template v-if="object.textureSource === 'tileable' && !usingMinecraft">
         <input v-if="searchable(tileables)" type="text" v-model="search" placeholder="Search textures" aria-label="Search textures">
-        <TileGrid class="scroll">
-          <Tile v-for="[id, data] of shownTileables" :key="id" :label="label(id, data)" aspect="2 / 1" :pattern="tilePreview(library.tileables, id)" :author="data.authors" :badge="variantBadge(data)" :selected="object.tileable === id" :menu="tileableMenu(id)" @pick="object.tileable = id; object.tileableVariant = null" />
+        <TileGrid v-if="searchingTileables" class="scroll">
+          <Tile v-for="item of foundTileables" :key="`${item.id}/${item.variant ?? ''}`" :label="item.data.name ?? titleCase(item.variant ?? item.id)" aspect="2 / 1" :pattern="tilePreview(library.tileables, item.id, item.variant ?? undefined)" :author="item.data.authors ?? item.parent.authors" :selected="object.tileable === item.id && (object.tileableVariant ?? null) === item.variant" :menu="item.variant ? tileableMenu(item.id, item.variant) : tileableMenu(item.id)" @pick="object.tileable = item.id; object.tileableVariant = item.variant" />
         </TileGrid>
-        <template v-if="tileableVariants.length">
+        <TileGrid v-else class="scroll">
+          <Tile v-for="[id, data] of tileables" :key="id" :label="label(id, data)" aspect="2 / 1" :pattern="tilePreview(library.tileables, id)" :author="data.authors" :badge="variantBadge(data)" :selected="object.tileable === id" :menu="tileableMenu(id)" @pick="object.tileable = id; object.tileableVariant = null" />
+        </TileGrid>
+        <template v-if="tileableVariants.length && !searchingTileables">
           <h3>Variants</h3>
           <TileGrid class="scroll variants patterns" :style="{ '--rows': rows(tileableVariants) }">
             <Tile :label="library.tileables[object.tileable].name" aspect="2 / 1" :pattern="tilePreview(library.tileables, object.tileable)" :selected="!object.tileableVariant" :menu="tileableMenu(object.tileable)" @pick="object.tileableVariant = null" />
