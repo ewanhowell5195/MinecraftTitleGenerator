@@ -52,21 +52,21 @@ export const GENERATED_SETTINGS = {
 }
 
 export const GENERATED_EDGE_OVERLAYS = {
-  edge_outline: { generated: "edge_outline", name: "Outline" },
-  edge_outline_open: { generated: "edge_outline_open", name: "Outline (No Front)" },
-  edge_outline_fade: { generated: "edge_outline_fade", name: "Outline Fade" },
-  edge_front: { generated: "edge_front", name: "Highlight" },
+  edge_outline: { generated: "edge_outline", name: "Outline", default: { blend: "source-over", opacity: 50 } },
+  edge_outline_open: { generated: "edge_outline_open", name: "Outline (No Front)", default: { blend: "source-over", opacity: 50 } },
+  edge_outline_fade: { generated: "edge_outline_fade", name: "Outline Fade", default: { blend: "source-over", opacity: 50 } },
+  edge_front: { generated: "edge_front", name: "Highlight", default: { blend: "source-over", opacity: 50 } },
   edge_rounded: { generated: "edge_rounded", name: "Rounded", default: { colours: ["#000000"], blend: "source-over" } }
 }
 
 const GENERATED_OVERLAYS = {
-  highlights_top: { generated: "top", name: "Top Highlight" },
-  highlights_bottom: { generated: "bottom", name: "Bottom Highlight" },
-  highlights_left: { generated: "left", name: "Left Highlight" },
-  highlights_right: { generated: "right", name: "Right Highlight" },
-  outline: { generated: "outline" },
-  outline_fade: { generated: "outline_fade" },
-  outline_fade_inverted: { generated: "outline_fade_inverted", name: "Outline Fade (Inverted)" },
+  highlights_top: { generated: "top", name: "Top Highlight", default: { blend: "source-over", opacity: 50 } },
+  highlights_bottom: { generated: "bottom", name: "Bottom Highlight", default: { blend: "source-over", opacity: 50 } },
+  highlights_left: { generated: "left", name: "Left Highlight", default: { blend: "source-over", opacity: 50 } },
+  highlights_right: { generated: "right", name: "Right Highlight", default: { blend: "source-over", opacity: 50 } },
+  outline: { generated: "outline", default: { blend: "source-over", opacity: 50 } },
+  outline_fade: { generated: "outline_fade", default: { blend: "source-over", opacity: 50 } },
+  outline_fade_inverted: { generated: "outline_fade_inverted", name: "Outline Fade (Inverted)", default: { blend: "source-over", opacity: 50 } },
   corner_dots: { generated: "corners" },
   shine: { generated: "shine" },
   shine_random: { generated: "shine_random", name: "Shine (Random)" },

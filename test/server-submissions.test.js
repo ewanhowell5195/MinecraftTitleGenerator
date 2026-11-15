@@ -138,7 +138,7 @@ describe("sending a submission", () => {
     const { status, id } = await send(cookie, { details: layered({ overlays: [{ overlay: "outline", source: "premade", file: null, blend: "source-over", colours: ["#FF0000"], opacity: 80 }], edgeOverlays: [{ overlay: "edge_outline_fade", opacity: 46 }] }) })
     assert.equal(status, 201)
     const entry = branchList(id).textures.gold_bricks
-    assert.deepEqual(entry.overlays, [{ overlay: "outline", blend: "source-over", colours: ["#ff0000"], opacity: 80 }])
+    assert.deepEqual(entry.overlays, [{ overlay: "outline", colours: ["#ff0000"], opacity: 80 }])
     assert.deepEqual(entry.edgeOverlays, [{ overlay: "edge_outline_fade", opacity: 46 }])
     assert.match((await send(cookie, { details: layered({ overlays: [{ overlay: "nope" }] }) })).error, /default overlays isn't valid/)
     assert.match((await send(cookie, { details: layered({ overlays: [{ overlay: "outline", source: "file", file: "data:x" }] }) })).error, /default overlays isn't valid/)

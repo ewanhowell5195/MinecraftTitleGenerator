@@ -36,7 +36,7 @@
     },
     "mangrove": {
       "overlays": [
-        { "overlay": "highlights_top", "colours": ["#f5f3ef"], "opacity": 69 }
+        { "overlay": "highlights_top", "blend": "overlay", "colours": ["#f5f3ef"], "opacity": 69 }
       ],
       "name": "Mangrove (Wild Update)",
       "authors": ["Narrator2", "TheAnnoying"],
@@ -126,11 +126,12 @@
     },
     "fired": {
       "overlays": [
-        { "overlay": "outline_fade_inverted", "opacity": 80 }
+        { "overlay": "outline_fade_inverted", "blend": "overlay", "opacity": 80 }
       ],
       "edgeOverlays": [
         {
           "overlay": "edge_outline_fade",
+          "blend": "overlay",
           "opacity": 46
         }
       ],

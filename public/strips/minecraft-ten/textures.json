@@ -62,7 +62,7 @@
       "variants": {
         "story_mode1": {
           "overlays": [
-            { "overlay": "highlights_top", "blend": "source-over", "colours": ["#b08d4a"] }
+            { "overlay": "highlights_top", "blend": "source-over", "colours": ["#b08d4a"], "opacity": 100 }
           ],
           "name": "Story Mode (Season 1)",
           "border": "#000000"
@@ -72,7 +72,7 @@
     "mineimator": {
       "type": "strip",
       "overlays": [
-        { "overlay": "highlights_bottom", "blend": "soft-light" }
+        { "overlay": "highlights_bottom", "blend": "soft-light", "opacity": 100 }
       ],
       "name": "Mine-Imator Family",
       "authors": ["ModelBench", "ShrimpSnail"],
@@ -81,7 +81,7 @@
     "deep_dark": {
       "type": "strip",
       "overlays": [
-        { "overlay": "highlights_top", "blend": "source-over", "colours": ["#40b2b7"] }
+        { "overlay": "highlights_top", "blend": "source-over", "colours": ["#40b2b7"], "opacity": 100 }
       ],
       "name": "Deep Dark (Wild Update)",
       "authors": ["Banjoei", "ShrimpSnail"],
@@ -90,7 +90,7 @@
     "fruit": {
       "type": "strip",
       "overlays": [
-        { "overlay": "highlights_top", "opacity": 58 }
+        { "overlay": "highlights_top", "blend": "overlay", "opacity": 58 }
       ],
       "authors": ["Ewan Howell", "DamienBrittan"],
       "border": "#260b28"
@@ -98,27 +98,27 @@
     "grass": {
       "type": "strip",
       "overlays": [
-        { "overlay": "outline", "colours": ["#f6f6f5"], "opacity": 46 }
+        { "overlay": "outline", "blend": "overlay", "colours": ["#f6f6f5"], "opacity": 46 }
       ],
       "authors": ["ShrimpSnail", "DamienBrittan", "blank3times"],
       "border": "#2b040c",
       "variants": {
         "grass_side": {
           "overlays": [
-            { "overlay": "outline", "colours": ["#f9f9f8"], "opacity": 45 }
+            { "overlay": "outline", "blend": "overlay", "colours": ["#f9f9f8"], "opacity": 45 }
           ],
           "authors": ["Magminer", "Ewan Howell"],
           "border": "#2b040c"
         },
         "podzol": {
           "overlays": [
-            { "overlay": "outline", "colours": ["#eae5fd"], "opacity": 24 }
+            { "overlay": "outline", "blend": "overlay", "colours": ["#eae5fd"], "opacity": 24 }
           ],
           "border": "#2b040c"
         },
         "mycelium": {
           "overlays": [
-            { "overlay": "outline", "colours": ["#f2f4f3"], "opacity": 13 }
+            { "overlay": "outline", "blend": "overlay", "colours": ["#f2f4f3"], "opacity": 13 }
           ],
           "border": "#2b040c"
         },
@@ -189,7 +189,7 @@
     "bee": {
       "type": "strip",
       "overlays": [
-        { "overlay": "outline", "colours": ["#ebebeb"], "opacity": 86 }
+        { "overlay": "outline", "blend": "overlay", "colours": ["#ebebeb"], "opacity": 86 }
       ],
       "authors": ["Ewan Howell"],
       "border": "#16100e"
@@ -213,7 +213,7 @@
     "dock": {
       "type": "strip",
       "overlays": [
-        { "overlay": "outline", "blend": "source-over" }
+        { "overlay": "outline", "blend": "source-over", "opacity": 100 }
       ],
       "authors": ["RyanCR"],
       "border": "#000000",
@@ -302,10 +302,10 @@
       "type": "strip",
       "stretch": true,
       "overlays": [
-        { "overlay": "highlights_left", "blend": "source-over", "colours": ["#4a474a"] },
-        { "overlay": "highlights_right", "blend": "source-over", "colours": ["#4a474a"] },
-        { "overlay": "highlights_top", "blend": "source-over", "colours": ["#5a575a"] },
-        { "overlay": "highlights_bottom", "blend": "source-over", "colours": ["#3b393b"] }
+        { "overlay": "highlights_left", "blend": "source-over", "colours": ["#4a474a"], "opacity": 100 },
+        { "overlay": "highlights_right", "blend": "source-over", "colours": ["#4a474a"], "opacity": 100 },
+        { "overlay": "highlights_top", "blend": "source-over", "colours": ["#5a575a"], "opacity": 100 },
+        { "overlay": "highlights_bottom", "blend": "source-over", "colours": ["#3b393b"], "opacity": 100 }
       ],
       "authors": ["Ewan Howell"],
       "border": "#1f1a1d"
