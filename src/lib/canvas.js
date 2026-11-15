@@ -30,32 +30,11 @@ export function fadeStops(colour, clear, fade) {
   return [{ position: 0, colour: clear }, { position: 1 - fade, colour }, { position: 1, colour }]
 }
 
-let largest = 0
-
-export function canvasLimit() {
-  if (largest) return largest
-  largest = 4096
-  for (const size of [16384, 8192]) {
-    try {
-      const { ctx } = canvasOf(size, 1)
-      ctx.fillRect(size - 1, 0, 1, 1)
-      if (ctx.getImageData(size - 1, 0, 1, 1).data[3] === 255) {
-        largest = size
-        break
-      }
-    } catch {}
-  }
-  return largest
-}
-
-export const TEXTURE_CEILING = 8192
-let textureSide = 0
-
-function drawsAt(size) {
+function drawsAt(width, height) {
   try {
-    const { canvas, ctx } = canvasOf(size, size)
-    ctx.fillRect(size - 1, size - 1, 1, 1)
-    const drawn = ctx.getImageData(size - 1, size - 1, 1, 1).data[3] === 255
+    const { canvas, ctx } = canvasOf(width, height)
+    ctx.fillRect(width - 1, height - 1, 1, 1)
+    const drawn = ctx.getImageData(width - 1, height - 1, 1, 1).data[3] === 255
     canvas.width = 0
     canvas.height = 0
     return drawn
@@ -64,12 +43,22 @@ function drawsAt(size) {
   }
 }
 
+let largest = 0
+
+export function canvasLimit() {
+  largest ||= [16384, 8192].find(size => drawsAt(size, 1)) ?? 4096
+  return largest
+}
+
+export const TEXTURE_CEILING = 8192
+let textureSide = 0
+
 export function largestTexture(gpu, draws) {
   return [TEXTURE_CEILING, 4096, 2048].find(size => size <= (gpu || TEXTURE_CEILING) && draws(size)) ?? 2048
 }
 
 export function textureLimit() {
-  textureSide ||= largestTexture(platform.maxTextureSize(), drawsAt)
+  textureSide ||= largestTexture(platform.maxTextureSize(), size => drawsAt(size, size))
   return textureSide
 }
 
