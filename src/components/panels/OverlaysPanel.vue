@@ -1,5 +1,9 @@
+<script>
+  const remembered = reactive(new Map())
+</script>
+
 <script setup>
-  import { computed, ref, toRaw, watch } from "vue"
+  import { computed, reactive, toRaw, watch } from "vue"
   import { layerShown, usePanel, usedLayers } from "../../lib/panel.js"
   import { library } from "../../lib/scene.js"
   import { OVERLAY_KINDS, activeOverlays, defaultOverlays, overlayFits } from "../../lib/settings.js"
@@ -18,9 +22,16 @@
   const { object, font, list, layer, modified, reset } = usePanel(listKey)
   const shownLayer = layerShown("overlays")
   const available = computed(() => Object.fromEntries(Object.entries(list.value?.[listKey] ?? {}).filter(([, data]) => overlayFits(data, shownLayer.value, usedLayers.value))))
-  const selected = ref(0)
   const defaults = computed(() => defaultOverlays(list.value, object.value, listKey, layer.value))
   const layers = computed(() => activeOverlays(list.value, object.value, listKey, layer.value))
+  const memoryKey = computed(() => `${object.value.id}:${listKey}:${layer.value}:${object.value[modeKey]}`)
+  const selected = computed({
+    get: () => {
+      const value = remembered.has(memoryKey.value) ? remembered.get(memoryKey.value) : 0
+      return value === null ? null : Math.max(0, Math.min(value, layers.value.length - 1))
+    },
+    set: value => remembered.set(memoryKey.value, value)
+  })
 
   function custom() {
     if (object.value[modeKey] !== "custom") {
@@ -33,7 +44,6 @@
   function pickMode(mode) {
     if (mode === "custom" && !object.value[listKey].length) object.value[listKey] = structuredClone(toRaw(defaults.value))
     object.value[modeKey] = mode
-    selected.value = 0
   }
 
   function resetLayers() {

@@ -1,3 +1,13 @@
+<script>
+  const memories = new WeakMap()
+  const pendingKind = ref("generated")
+
+  function memoryOf(layer) {
+    if (!memories.has(layer)) memories.set(layer, { kinds: {}, colours: {} })
+    return memories.get(layer)
+  }
+</script>
+
 <script setup>
   import { computed, ref, toRaw, watch } from "vue"
   import { filePalette } from "../lib/assets.js"
@@ -46,7 +56,7 @@
   })
 
   const selected = defineModel("selected", { type: Number, default: 0 })
-  const pending = ref("generated")
+  const pending = pendingKind
 
   const overlays = computed(() => popular(Object.entries(props.available), ([id]) => `${props.font?.id}.${id}`, ([id, data]) => data.name ?? titleCase(id)))
   const layer = computed(() => props.layers[selected.value] ?? null)
@@ -124,8 +134,17 @@
   const colourMode = computed(() => !palette.value.complex || layer.value.colours ? "colours" : layer.value.tint ? "tint" : "original")
 
   function setColourMode(mode) {
-    set("colours", mode === "colours" ? paletteHexes(palette.value.anchors) : null)
-    set("tint", mode === "tint" ? "#ffffff" : null)
+    const current = toRaw(props.edit()[selected.value])
+    const saved = memoryOf(current).colours
+    saved[colourMode.value] = structuredClone({ colours: current.colours ?? null, tint: current.tint ?? null })
+    set("colours", structuredClone(saved[mode]?.colours ?? (mode === "colours" ? paletteHexes(palette.value.anchors) : null)))
+    set("tint", saved[mode]?.tint ?? (mode === "tint" ? "#ffffff" : null))
+  }
+
+  function replaceLayer(target, next) {
+    const before = toRaw(target[selected.value])
+    target[selected.value] = next
+    memories.set(toRaw(target[selected.value]), memoryOf(before))
   }
 
   function freshLayer(id, seed) {
@@ -141,7 +160,7 @@
     if (layer.value.overlay === id) return
     const target = props.edit()
     const before = target[selected.value]
-    target[selected.value] = { ...freshLayer(id, before.seed), source: before.source, file: before.file }
+    replaceLayer(target, { ...freshLayer(id, before.seed), source: before.source, file: before.file })
   }
 
   function pickKind(value) {
@@ -150,6 +169,10 @@
       pending.value = value
       return
     }
+    const target = props.edit()
+    const kinds = memoryOf(toRaw(target[selected.value])).kinds
+    kinds[kind.value] = structuredClone(toRaw(target[selected.value]))
+    if (kinds[value]) return replaceLayer(target, structuredClone(kinds[value]))
     if (value === "file") {
       set("source", "file")
       return
@@ -164,7 +187,7 @@
   function resetLayer() {
     const fresh = structuredClone(toRaw(baseline.value))
     if (layer.value.seed !== undefined) fresh.seed = layer.value.seed
-    props.edit()[selected.value] = fresh
+    replaceLayer(props.edit(), fresh)
   }
 
   function removeLayer(index) {
