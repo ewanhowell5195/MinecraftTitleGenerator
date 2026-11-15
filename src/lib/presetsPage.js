@@ -6,7 +6,25 @@ export const PRESETS_PATH = "/app/presets"
 const PATH = PRESETS_PATH
 const EDITOR = "/app/"
 
-export const presetsPage = reactive({ open: false, id: null, code: null })
+const FROM_EDITOR = "minecraft-title-presets-from-editor"
+
+function rememberedFromEditor() {
+  try {
+    return performance.getEntriesByType("navigation")[0]?.type === "reload" && sessionStorage.getItem(FROM_EDITOR) === "true"
+  } catch {
+    return false
+  }
+}
+
+export const presetsPage = reactive({ open: false, id: null, code: null, fromEditor: rememberedFromEditor() })
+
+function setFromEditor(on) {
+  presetsPage.fromEditor = on
+  try {
+    if (on) sessionStorage.setItem(FROM_EDITOR, "true")
+    else sessionStorage.removeItem(FROM_EDITOR)
+  } catch {}
+}
 
 let returnTo = EDITOR
 
@@ -38,6 +56,7 @@ function go(path, replace) {
 
 export function openPresetsPage() {
   returnTo = `${location.pathname}${location.search}${location.hash}`
+  setFromEditor(true)
   go(PATH, false)
 }
 
@@ -77,5 +96,6 @@ let landing = false
 
 onNavigated((to, from) => {
   syncPresetsPage()
+  if (!presetsPage.open && presetsPage.fromEditor) setFromEditor(false)
   if (to.meta.name === "app" && from.meta.name !== "app") landing = presetsPage.open
 })

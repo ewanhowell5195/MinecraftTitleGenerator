@@ -24,6 +24,7 @@
   import SubmissionUsage from "./SubmissionUsage.vue"
   import TitlePicture from "./TitlePicture.vue"
   import { router } from "../router.js"
+  import SiteHeader from "../site/SiteHeader.vue"
 
   const TABS = [{ value: "community", label: "Community" }, { value: "mine", label: "My presets" }]
   const SORTS = [{ value: "week", label: "Popular this week" }, { value: "popular", label: "Popular all time" }, { value: "top", label: "Top rated" }, { value: "new", label: "Newest" }, { value: "needs", label: "Needs votes" }]
@@ -294,10 +295,22 @@
   function key(event) {
     if (event.key !== "Escape" || event.defaultPrevented || sharing.value || removing.value) return
     if (selected.value) clearSelection()
-    else closePresetsPage()
+    else if (presetsPage.fromEditor) closePresetsPage()
   }
 
   useWindowEvents(() => true, { keydown: key })
+
+  function scopeSiteBar(on) {
+    const scopes = new Set(document.documentElement.dataset.styles.split(" "))
+    if (on) scopes.add("bar")
+    else scopes.delete("bar")
+    document.documentElement.dataset.styles = Array.from(scopes).join(" ")
+  }
+
+  watch(() => presetsPage.fromEditor, fromEditor => scopeSiteBar(!fromEditor), { immediate: true })
+  onBeforeUnmount(() => {
+    if (router.currentRoute.value.meta.name === "app") scopeSiteBar(false)
+  })
 
   watch(tab, value => {
     rememberTab(value)
@@ -367,13 +380,16 @@
 
 <template>
   <div ref="root" class="page">
+    <SiteHeader v-if="!presetsPage.fromEditor" />
     <header class="top">
-      <Button class="back" @click="closePresetsPage()"><template #icon><Icon name="back" :size="18" /></template><span>Back to editor</span></Button>
+      <Button v-if="presetsPage.fromEditor" class="back" @click="closePresetsPage()"><template #icon><Icon name="back" :size="18" /></template><span>Back to editor</span></Button>
       <h1>Presets</h1>
       <SubmissionUsage v-if="tab === 'mine'" class="usage" />
       <Segments class="tabs" :options="TABS" v-model="tab" />
-      <AccountMenu />
-      <NotificationBell />
+      <template v-if="presetsPage.fromEditor">
+        <AccountMenu />
+        <NotificationBell />
+      </template>
     </header>
     <div class="body" :class="{ open: selected }">
       <main class="browse">
@@ -440,6 +456,11 @@
     display: flex;
     flex-direction: column;
     background: var(--bg);
+  }
+
+  .page > .bar {
+    position: relative;
+    flex: none;
   }
 
   .top {
