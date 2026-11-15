@@ -219,9 +219,9 @@
       { "id": "minecraft-ten", "layer": 1 }
     ],
     "spaceWidth": 16,
-    "depth": 32,
+    "depth": 30,
     "border": 0,
-    "characterSpacing": -8,
+    "characterSpacing": -5,
     "allFaces": true,
     "editor": { "width": 40, "grid": 2 }
   }
