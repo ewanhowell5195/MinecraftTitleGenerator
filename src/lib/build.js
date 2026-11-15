@@ -238,7 +238,7 @@ export function buildText(font, options) {
   }
   const texture = atlasFor(body, options.painted)
   const detail = options.detailed > 1 ? detailFor(texture.units, options.textureLimit, options.detailed) : 1
-  const flat = detail > 1 ? body.map(face => ({ ...face, points: face.points.map(point => point.slice()) })) : null
+  const flat = detail > 1 || options.redraw ? body.map(face => ({ ...face, points: face.points.map(point => point.slice()) })) : null
   function refine(painted) {
     const sharp = atlasFor(flat, painted, detail)
     return { texture: sharp.canvas, labels: sharp.labels, crackShapes: sharp.crackShapes, gradient: sharp.gradient, fades: sharp.fades, panels: sharp.panels }

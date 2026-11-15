@@ -6,7 +6,7 @@ import { buildOutline, buildText } from "../lib/build.js"
 import { canvasLimit } from "../lib/canvas.js"
 import { customFontEntry, customFontId } from "../lib/customFonts.js"
 import { EulaDeclined } from "../lib/eula.js"
-import { SMOOTH_KINDS, withFinalShadows } from "../lib/generated.js"
+import { SMOOTH_KINDS, withDraftShadows, withFinalShadows } from "../lib/generated.js"
 import { CUSTOM_SHAPE, SILHOUETTE_TEXT, shapeOf } from "../lib/shapes.js"
 import { hasMarks, loadFont, sheetFolder } from "../lib/font.js"
 import { bandEntry, layerSlice } from "../lib/strips.js"
@@ -324,11 +324,12 @@ export default {
 
     function lineFor(source, list, word, options) {
       const key = JSON.stringify([list, word, options.depth, options.arcMode, options.arcTop, options.arcBottom, options.arcMove, options.arcCentre, options.arcMarked, options.stretch, options.terminators, options.spacing, options.kerning])
+      const final = finalShadowed.value
       const same = line?.source === source && line.key === key
-      if (same && line.painted === painted.value) return line
+      if (same && line.painted === painted.value && line.final === final) return line
       const laid = same ? line.laid : arcLayout(source, sheet.value, list, word, options)
       if (!laid) {
-        line = { painted: painted.value, source, key, laid, arced: null }
+        line = { painted: painted.value, source, key, final, laid, arced: null }
         return line
       }
       const layers = painted.value.layers ?? [painted.value]
@@ -336,18 +337,19 @@ export default {
       const held = line?.source === source ? line.arced?.sheet : null
       const kept = held && (held === laid.sheet || paintKey(held, assets, look) === paintKey(laid.sheet, assets, look))
       const arced = kept ? { ...laid, sheet: held } : laid
-      if (kept && line.painted === painted.value) {
+      if (kept && line.painted === painted.value && line.final === final) {
         line = { ...line, key, laid, arced }
         return line
       }
-      const parts = layers.map((layer, index) => {
+      const paintParts = () => layers.map((layer, index) => {
         const remapped = arcAssets(layer.assets, arced.sheet, sheet.value)
         const baseKey = lookKey(BASE.map(name => layer.look[name]))
         const before = kept ? line.parts?.[index] : null
         const base = before?.baseKey === baseKey ? before.base : paintBase(arced.sheet, layer.look, remapped, source.capHeight)
         return { baseKey, base, remapped, own: { ...painted.value, ...layer, ...paintSheet(arced.sheet, layer.look, remapped, source.capHeight, base) } }
       })
-      line = { painted: painted.value, source, key, laid, arced, parts }
+      const parts = final ? withFinalShadows(paintParts) : withDraftShadows(paintParts)
+      line = { painted: painted.value, source, key, final, laid, arced, parts }
       return line
     }
 
@@ -366,6 +368,10 @@ export default {
         if (gradient || assets.overlays.some(({ layer, source }) => SMOOTH_KINDS.has(source.generated) && layer.opacity > 0)) return Infinity
         return look.source === "strip" && depth ? stripDetail(assets.strip, depth) : 0
       }))
+    }
+
+    function shadowed() {
+      return (painted.value.layers ?? [painted.value]).some(({ assets }) => assets.overlays.some(({ layer, source }) => source.generated === "shadow" && layer.opacity > 0))
     }
 
     function sharpened(text, source) {
@@ -441,7 +447,7 @@ export default {
           sharpen(null)
           return
         }
-        built.value = buildText(source, { ...options, lineDepth, placed: arced.placed, line: arced.line, ends: arced.ends, sheet: arced.sheet, painted: owned(parts), layers: layerOptions(), detailed: detailed(options, arced.sheet), textureLimit: platform.maxTextureSize() })
+        built.value = buildText(source, { ...options, lineDepth, placed: arced.placed, line: arced.line, ends: arced.ends, sheet: arced.sheet, painted: owned(parts), layers: layerOptions(), detailed: detailed(options, arced.sheet), redraw: !finalShadowed.value && shadowed(), textureLimit: platform.maxTextureSize() })
         reach = twistedReach(built.value, arced.reach)
         const thumbnail = view.previews === false ? [] : thumbnailItems(source, arced.placed)
         preview.value = thumbnail.length ? previewFor(source, options, thumbnail, arced.sheet, parts) : null

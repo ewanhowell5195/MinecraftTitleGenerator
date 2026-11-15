@@ -511,16 +511,30 @@ function joinedPixels(glyph, kind, settings) {
 }
 
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5))
-const SHADOW_QUALITY = { preview: { scale: 4, samples: 8, subrows: 1 }, final: { scale: 8, samples: 64, subrows: 2 } }
-let shadowQuality = SHADOW_QUALITY.preview
+const SHADOW_QUALITY = { draft: { scale: 1, samples: 4, subrows: 1 }, preview: { scale: 4, samples: 8, subrows: 1 }, final: { scale: 8, samples: 64, subrows: 2 } }
+let shadowQuality = "preview"
+const PENUMBRA_SAMPLES = 2
 
-export function withFinalShadows(work) {
-  shadowQuality = SHADOW_QUALITY.final
+export function shadowQualityName() {
+  return shadowQuality
+}
+
+function withShadowQuality(name, work) {
+  const before = shadowQuality
+  shadowQuality = name
   try {
     return work()
   } finally {
-    shadowQuality = SHADOW_QUALITY.preview
+    shadowQuality = before
   }
+}
+
+export function withFinalShadows(work) {
+  return withShadowQuality("final", work)
+}
+
+export function withDraftShadows(work) {
+  return withShadowQuality("draft", work)
 }
 
 function boxBlur(values, columns, rows, radius) {
@@ -644,9 +658,10 @@ function shadow(glyph, settings, target) {
   const { width, height, mask, caster } = glyph
   if (!caster) return new Float32Array(width * target * height * target)
   const light = settings.blur / 2
-  const quality = shadowQuality
+  const quality = SHADOW_QUALITY[shadowQuality]
   const samples = light > 0 ? Math.min(quality.samples, Math.max(8, Math.ceil(light * light * 16))) : 1
-  const scale = samples > 1 ? Math.min(target, quality.scale) : target
+  const wanted = shadowQuality === "draft" ? quality.scale : Math.max(quality.scale, Math.ceil(PENUMBRA_SAMPLES / light))
+  const scale = samples > 1 ? Math.min(target, wanted) : target
   const columns = width * scale
   const rows = height * scale
   const field = new Float32Array(columns * rows)

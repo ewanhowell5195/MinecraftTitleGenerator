@@ -1,6 +1,6 @@
 import { fadeStops, fillPattern, linearGradient, surface } from "./canvas.js"
 import { hexOf, packed } from "./colour.js"
-import { PLACED_KINDS, SMOOTH_KINDS, WRAPPED_KINDS, crackList, crackTriangle, crackWrap, edgeAlpha, generatedAlpha, wrapTriangles } from "./generated.js"
+import { PLACED_KINDS, SMOOTH_KINDS, WRAPPED_KINDS, crackList, crackTriangle, crackWrap, edgeAlpha, generatedAlpha, shadowQualityName, wrapTriangles } from "./generated.js"
 import { layerLeft, layerMask } from "./flatSheet.js"
 import { joinNeighbours } from "./joins.js"
 import { gradientLine, gradientStops } from "./material.js"
@@ -531,7 +531,7 @@ function overlayLayer(sheet, layer, source, capHeight, detail, band = null) {
   if (detail > 1) return colourOverlay(drawOverlay(sheet, layer, source, capHeight, detail, band), layer)
   if (!overlays.has(sheet)) overlays.set(sheet, { shapes: new Map(), coloured: new Map() })
   const { shapes, coloured } = overlays.get(sheet)
-  const shapeKey = JSON.stringify([source.edge ? `edge:${source.edge}` : source.generated ?? idOf(source), capHeight, Object.entries(layer).filter(([name]) => !["file", "blend", "opacity", "colours", "palette", "tint", "tintBlend", "sideWrap"].includes(name)), band])
+  const shapeKey = JSON.stringify([source.edge ? `edge:${source.edge}` : source.generated ?? idOf(source), capHeight, Object.entries(layer).filter(([name]) => !["file", "blend", "opacity", "colours", "palette", "tint", "tintBlend", "sideWrap"].includes(name)), band, source.generated === "shadow" && shadowQualityName()])
   return remember(coloured, JSON.stringify([shapeKey, layer.colours, layer.palette, layer.tint, layer.tintBlend]), () => colourOverlay(remember(shapes, shapeKey, () => drawOverlay(sheet, layer, source, capHeight, detail, band), CACHED_OVERLAYS), layer), CACHED_OVERLAYS)
 }
 
