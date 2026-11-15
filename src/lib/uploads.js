@@ -23,6 +23,10 @@ export function usedOverlayFiles() {
   return used(object => settingsOf(object).flatMap(settings => (settings.overlays ?? []).concat(settings.edgeOverlays ?? [])).filter(layer => layer.source === "file" && layer.file).map(layer => layer.file))
 }
 
+export function usedShapes() {
+  return used(object => object.customFont?.kind === "silhouette" ? [object.customFont.data] : [])
+}
+
 export function usedFonts() {
   return used(object => object.customFont && object.customFont.kind !== "silhouette" ? [object.customFont] : [], font => font.data)
 }

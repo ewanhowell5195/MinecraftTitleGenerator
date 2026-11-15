@@ -9,6 +9,7 @@
   import { gameVersions, library } from "../../lib/scene.js"
   import { CUSTOM_SHAPE, isMinecraftShape, minecraftShape, minecraftShapeParts } from "../../lib/shapes.js"
   import { readImage } from "../../lib/ui.js"
+  import { usedShapes } from "../../lib/uploads.js"
   import ColourPicker from "../ColourPicker.vue"
   import Dropdown from "../Dropdown.vue"
   import Field from "../Field.vue"
@@ -21,6 +22,7 @@
   import TileGrid from "../TileGrid.vue"
   import Toggle from "../Toggle.vue"
   import UploadField from "../UploadField.vue"
+  import UploadReuse from "../UploadReuse.vue"
 
   const SOURCES = [{ value: "premade", label: "Premade" }, { value: "minecraft", label: "Minecraft" }, { value: "custom", label: "Custom" }]
   const KINDS = [{ value: "block", label: "Blocks" }, { value: "item", label: "Items" }]
@@ -93,6 +95,8 @@
     Object.assign(object.value, { shape: CUSTOM_SHAPE, customFont: { kind: "silhouette", fileName: "shape.png", data } })
   }
 
+  const reusable = computed(() => usedShapes().filter(item => object.value.shape !== CUSTOM_SHAPE || item.value !== object.value.customFont?.data).map(item => ({ ...item, image: item.value })))
+
   function clearPng() {
     Object.assign(object.value, { shape: library.shapes[0].id, customFont: null })
   }
@@ -161,6 +165,7 @@
       <template v-else-if="source === 'custom'">
         <UploadField accept="image/*" :label="object.shape === CUSTOM_SHAPE ? 'Replace image' : 'Choose an image'" empty="No image chosen" :image="object.shape === CUSTOM_SHAPE ? object.customFont?.data : null" :clearable="object.shape === CUSTOM_SHAPE" @change="readImage($event, pickPng)" @clear="clearPng" />
         <p class="hint">The solid pixels make the shape, pushed out like a letter, and the image paints its front.</p>
+        <UploadReuse :items="reusable" @pick="pickPng" />
       </template>
       <template v-else>
         <MinecraftVersionField v-if="version" :version="version" @pick="chooseVersion" />
