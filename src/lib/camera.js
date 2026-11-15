@@ -1,5 +1,6 @@
 export const CAMERA_PRESETS = [
   { value: "minecraft", label: "Minecraft", camera: { pitch: 30.67, yaw: 0, tilt: 7.285, fov: 43 } },
+  { value: "shallow", label: "Shallow", camera: { pitch: 20.8, yaw: 0, tilt: -2.8, fov: 51.5 } },
   { value: "front", label: "Front orthographic", camera: { pitch: 0, yaw: 0, tilt: 0, fov: 0 } }
 ]
 
