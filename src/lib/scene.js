@@ -1,4 +1,4 @@
-import { computed, reactive, ref, shallowReactive, watch } from "vue"
+import { computed, reactive, ref, shallowReactive, toRaw, watch } from "vue"
 import { cameraChanges, fullCamera } from "./camera.js"
 import { hoisted, lowered } from "./linkformat.js"
 import { round } from "./maths.js"
@@ -302,12 +302,19 @@ function addNew(object, section) {
   view.section = section
 }
 
+function selectedValues(keys, wanted) {
+  const selected = scene.objects.find(object => object.id === scene.selected)
+  if (!selected || !wanted(selected)) return null
+  const raw = toRaw(selected)
+  return Object.fromEntries(keys.map(key => [key, raw[key]]))
+}
+
 export function addObject() {
-  addNew(createObject({ text: "text" }), "text")
+  addNew(createObject({ text: "text", ...selectedValues(["font", "customFont"], object => object.shape === null) }), "text")
 }
 
 export function addShape() {
-  addNew(createObject({ shape: library.shapes[0].id }), "shape")
+  addNew(createObject(selectedValues(["shape", "shapeVersion", "blockState", "itemComponents"], object => object.shape !== null) ?? { shape: library.shapes[0].id }), "shape")
 }
 
 function nextGroup() {

@@ -17,7 +17,7 @@ fakeTimeouts()
 
 const { FILE_VERSION, createObject, snapshot, typeDefaults } = await import("../src/lib/settings.js")
 const { view } = await import("../src/lib/view.js")
-const { addObject, addWord, freeRow, noteType, bakeMatch, chooseMatch, current, currentWord, duplicateLine, insertWord, keepTexture, lineHidden, lineText, removeLine, removeObject, runtime, saveError, scene, select, selectGroup, selection, setScale, shapingWord, titleFileName, toggleLine, validSelection, wordTabs, words } = await import("../src/lib/scene.js")
+const { addObject, addShape, addWord, freeRow, noteType, bakeMatch, chooseMatch, current, currentWord, duplicateLine, insertWord, keepTexture, lineHidden, lineText, removeLine, removeObject, runtime, saveError, scene, select, selectGroup, selection, setScale, shapingWord, titleFileName, toggleLine, validSelection, wordTabs, words } = await import("../src/lib/scene.js")
 
 function setScene(...objects) {
   scene.objects = objects
@@ -645,6 +645,24 @@ describe("addObject", () => {
     assert.equal(object.type, "top")
     assert.equal(object.row, 1)
     assert.equal(scene.selected, object.id)
+  })
+
+  test("new text uses the selected line's font", () => {
+    const [a] = setScene(createObject({ text: "a", font: "minecraft-five" }))
+    select(a)
+    addObject()
+    assert.equal(scene.objects[1].font, "minecraft-five")
+  })
+
+  test("a new shape copies the selected shape", () => {
+    const [a] = setScene(createObject({ shape: "minecraft.block.piston", shapeVersion: "26.3", blockState: { extended: "true" } }))
+    select(a)
+    addShape()
+    const object = scene.objects[1]
+    assert.equal(object.shape, "minecraft.block.piston")
+    assert.equal(object.shapeVersion, "26.3")
+    assert.deepEqual(object.blockState, { extended: "true" })
+    assert.notEqual(object.blockState, a.blockState)
   })
 
   test("an empty title starts with top text on row 0", () => {
