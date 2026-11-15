@@ -159,7 +159,7 @@ function remap(page, original, source, smooth) {
     const { source: from, glyph } = entry
     const [sx, sw] = glyph.fill ? [from.x + Math.floor(from.width / 2), 1] : [from.x, from.width]
     const region = entry.regions[part]
-    if (sw > 0 && h > 0) ctx.drawImage(source, sx * scale, sy * scale, sw * scale, h * scale, region.x + (entry.x - region.u0) * region.scale, region.y + (dy - region.v0) * region.scale, entry.width * region.scale, dh * region.scale)
+    if (sw > 0 && h > 0) ctx.drawImage(source, sx * scale, sy * scale, sw * scale, h * scale, region.x + (entry.x - region.u0) * region.sx, region.y + (dy - region.v0) * region.sy, entry.width * region.sx, dh * region.sy)
   }
   for (const entry of Object.values(page.glyphs)) {
     const { source: from, glyph } = entry

@@ -88,17 +88,25 @@ export function planAtlas(faces, options) {
   return { faces, blocks, runs, depth, shared, glyphs, spaces: options.spaces }
 }
 
+export function detailOf(detail) {
+  return typeof detail === "object" && detail ? detail : { along: detail ?? 1, deep: detail ?? 1 }
+}
+
 export function regionScales(details) {
-  return Object.fromEntries(REGION_KINDS.map(kind => [kind, R * (details?.[kind] ?? 1)]))
+  return Object.fromEntries(REGION_KINDS.map(kind => {
+    const { along, deep } = detailOf(details?.[kind])
+    return [kind, { along: R * along, deep: R * deep }]
+  }))
 }
 
 function blockSize(block, depth, scales) {
-  return { width: Math.ceil(block.own.width * Math.max(scales.front, scales.edge)), height: depth * scales.edge * 2 + block.own.height * scales.front }
+  return { width: Math.ceil(block.own.width * Math.max(scales.front.along, scales.edge.along)), height: depth * scales.edge.deep * 2 + block.own.height * scales.front.along }
 }
 
 function runSize(run, scales) {
-  const scale = scales[run.region]
-  return { width: Math.ceil(run.width * scale), height: Math.ceil(run.height * scale), scale }
+  const { along, deep } = scales[run.region]
+  const [sx, sy] = run.kind === "side" ? [deep, along] : [along, deep]
+  return { width: Math.ceil(run.width * sx), height: Math.ceil(run.height * sy), sx, sy }
 }
 
 function arrange(items, width) {
@@ -162,8 +170,7 @@ export function pageGroups(plan, scales, limit) {
       else high = middle - 1
     }
     if (!low) {
-      const block = plan.blocks.find(item => item.glyph === order[start])
-      const { width, height } = blockSize(block, plan.depth, scales)
+      const { width, height } = squarest(itemsOf(plan, [order[start]], scales), limit)
       throw new Error(`one character's texture would be ${width}x${height}, over the ${limit} limit`)
     }
     let count = low
@@ -177,9 +184,9 @@ export function pageGroups(plan, scales, limit) {
   return groups.length ? groups : [[]]
 }
 
-export function layoutPage(plan, indexes, scales, sheet) {
+export function layoutPage(plan, indexes, scales, sheet, limit = Infinity) {
   const items = itemsOf(plan, indexes, scales)
-  const size = arrange(items, squarest(items, Infinity).shelf)
+  const size = arrange(items, squarest(items, limit).shelf)
   const glyphs = {}
   const regions = new Map()
   const swatchItem = items.find(item => item.swatch)
@@ -188,22 +195,23 @@ export function layoutPage(plan, indexes, scales, sheet) {
   for (const block of plan.blocks) {
     const item = placedBlocks.get(block)
     if (!item) continue
-    const up = { x: item.x, y: item.y, scale: scales.edge }
-    const front = { x: item.x, y: item.y + plan.depth * scales.edge, scale: scales.front }
-    const down = { x: item.x, y: front.y + block.own.height * scales.front, scale: scales.edge }
+    const edge = { sx: scales.edge.along, sy: scales.edge.deep }
+    const up = { x: item.x, y: item.y, ...edge }
+    const front = { x: item.x, y: item.y + plan.depth * edge.sy, sx: scales.front.along, sy: scales.front.along }
+    const down = { x: item.x, y: front.y + block.own.height * front.sy, ...edge }
     regions.set(block.glyph, { up, front, down })
     const entry = sheet.glyphs[block.char]
     if (!entry) continue
     const u0 = entry.x + block.own.minX - block.rect.minX
     glyphs[block.char] = { ...entry, regions: { front: { ...front, u0, v0: entry.top + block.rect.maxY - block.own.maxY }, up: { ...up, u0, v0: entry.up }, down: { ...down, u0, v0: entry.down } } }
   }
-  const placed = new Map(items.filter(item => item.run).map(item => [item.run, { x: item.x, y: item.y, width: item.width, height: item.height, scale: item.scale }]))
+  const placed = new Map(items.filter(item => item.run).map(item => [item.run, { x: item.x, y: item.y, width: item.width, height: item.height, sx: item.sx, sy: item.sy }]))
   const key = JSON.stringify([size.width, size.height, swatch, Object.values(glyphs).map(entry => [entry.char, entry.regions])])
   return { width: size.width, height: size.height, glyphs, regions, runs: placed, swatch, tallest: sheet.tallest, wordWidth: sheet.wordWidth, key, indexes }
 }
 
-export function layoutPages(plan, groups, scales, sheet) {
-  return groups.map(indexes => layoutPage(plan, indexes, scales, sheet))
+export function layoutPages(plan, groups, scales, sheet, limit) {
+  return groups.map(indexes => layoutPage(plan, indexes, scales, sheet, limit))
 }
 
 const tileTotals = new WeakMap()
@@ -274,8 +282,8 @@ function faceGradient(custom, fill, stops, smooth, direction) {
   return custom && fill === "gradient" ? { stops: gradientStops(stops, smooth), direction } : null
 }
 
-function pixelRect({ x, y, scale }, width, height) {
-  return { x, y, width: Math.round(width * scale), height: Math.round(height * scale) }
+function pixelRect({ x, y, sx, sy }, width, height) {
+  return { x, y, width: Math.round(width * sx), height: Math.round(height * sy) }
 }
 
 function areaOf({ x, y, width, height }) {
@@ -306,7 +314,7 @@ export function finishAtlas(plan, page, painted, options) {
   let sideSum = [0, 0, 0, 0]
 
   function glyphOrigin(block, region) {
-    return [region.x + (block.rect.minX - block.own.minX) * region.scale, region.y + (block.own.maxY - block.rect.maxY) * region.scale]
+    return [region.x + (block.rect.minX - block.own.minX) * region.sx, region.y + (block.own.maxY - block.rect.maxY) * region.sy]
   }
 
   for (const block of own) {
@@ -316,22 +324,22 @@ export function finishAtlas(plan, page, painted, options) {
       if (face.extra) continue
       face.page = page
       const points = face.mesh ? face.points.map(point => [clamp(point[0], bounds.minX + INSET, bounds.maxX - INSET), clamp(point[1], bounds.minY + INSET, bounds.maxY - INSET), clamp(point[2], INSET - half, half - INSET)]) : face.points
-      if (face.kind === "top") face.uvs = points.map(point => [up.x + (point[0] - bounds.minX) * up.scale, up.y + (half + point[2]) * up.scale])
-      else if (face.kind === "bottom") face.uvs = points.map(point => [down.x + (point[0] - bounds.minX) * down.scale, down.y + (half - point[2]) * down.scale])
-      else face.uvs = points.map(point => [front.x + (point[0] - bounds.minX) * front.scale, front.y + (bounds.maxY - point[1]) * front.scale])
+      if (face.kind === "top") face.uvs = points.map(point => [up.x + (point[0] - bounds.minX) * up.sx, up.y + (half + point[2]) * up.sy])
+      else if (face.kind === "bottom") face.uvs = points.map(point => [down.x + (point[0] - bounds.minX) * down.sx, down.y + (half - point[2]) * down.sy])
+      else face.uvs = points.map(point => [front.x + (point[0] - bounds.minX) * front.sx, front.y + (bounds.maxY - point[1]) * front.sy])
     }
   }
 
   for (const run of packed) {
     const span = extent(run.points, run.kind === "side" ? 1 : 0)
-    const { x, y, scale } = page.runs.get(run)
+    const { x, y, sx, sy } = page.runs.get(run)
     const width = run.width
     const height = run.height
     const within = run.faces[0].mesh ? (value, size) => clamp(value, INSET, size - INSET) : value => value
     for (const face of run.faces) {
       face.page = page
-      if (run.kind === "side") face.uvs = face.points.map(point => [x + within(half + point[2], width) * scale, y + within(span.max - point[1], height) * scale])
-      else face.uvs = face.points.map(point => [x + within(point[0] - span.min, width) * scale, y + within(run.kind === "top" ? half + point[2] : half - point[2], height) * scale])
+      if (run.kind === "side") face.uvs = face.points.map(point => [x + within(half + point[2], width) * sx, y + within(span.max - point[1], height) * sy])
+      else face.uvs = face.points.map(point => [x + within(point[0] - span.min, width) * sx, y + within(run.kind === "top" ? half + point[2] : half - point[2], height) * sy])
     }
   }
 
@@ -355,7 +363,7 @@ export function finishAtlas(plan, page, painted, options) {
       const from = sourceStrip(block, run.kind)
       const column = Math.round(extent(run.points, 0).min - block.own.minX)
       const at = page.runs.get(run)
-      target.drawImage(source, from.x + column * from.scale, from.y, run.width * from.scale, depth * from.scale, at.x, at.y, at.width, at.height)
+      target.drawImage(source, from.x + column * from.sx, from.y, run.width * from.sx, depth * from.sy, at.x, at.y, at.width, at.height)
     }
   }
 
@@ -372,9 +380,12 @@ export function finishAtlas(plan, page, painted, options) {
       for (const wrap of painted.wraps) {
         const alpha = wrap.label === null ? null : wrap.alpha(glyph, side, line, from, width, height, scale)
         if (!alpha) continue
-        const columns = rect.width
-        for (const [index, value] of alpha.entries()) {
-          if (value >= 0.5) data[((rect.y + Math.floor(index / columns)) * canvas.width + rect.x + index % columns) * 4 + (wrap.label >> 3)] |= 1 << (wrap.label & 7)
+        const columns = width * scale
+        const rows = height * scale
+        for (let py = 0; py < rect.height; py++) {
+          for (let px = 0; px < rect.width; px++) {
+            if (alpha[Math.floor(py * rows / rect.height) * columns + Math.floor(px * columns / rect.width)] >= 0.5) data[((rect.y + py) * canvas.width + rect.x + px) * 4 + (wrap.label >> 3)] |= 1 << (wrap.label & 7)
+          }
         }
       }
     }
@@ -383,9 +394,9 @@ export function finishAtlas(plan, page, painted, options) {
 
   function crackShapes() {
     const found = new Map()
-    function add(label, triangles, [x, y], scale) {
+    function add(label, triangles, [x, y], sx, sy) {
       if (!found.has(label)) found.set(label, [])
-      for (const points of triangles) found.get(label).push(points.map(([px, py]) => [x + px * scale, y + py * scale]))
+      for (const points of triangles) found.get(label).push(points.map(([px, py]) => [x + px * sx, y + py * sy]))
     }
     for (const wrap of painted.wraps) {
       if (wrap.label === null) continue
@@ -394,11 +405,11 @@ export function finishAtlas(plan, page, painted, options) {
         if (!entry) continue
         const { glyph } = entry
         const { up, front, down } = page.regions.get(block.glyph)
-        add(wrap.label, wrap.front(glyph), glyphOrigin(block, front), front.scale)
-        add(wrap.label, wrap.triangles(glyph, "up", 0, 0, glyph.width, depth), glyphOrigin(block, up), up.scale)
-        add(wrap.label, wrap.triangles(glyph, "down", glyph.height, 0, glyph.width, depth), glyphOrigin(block, down), down.scale)
+        add(wrap.label, wrap.front(glyph), glyphOrigin(block, front), front.sx, front.sy)
+        add(wrap.label, wrap.triangles(glyph, "up", 0, 0, glyph.width, depth), glyphOrigin(block, up), up.sx, up.sy)
+        add(wrap.label, wrap.triangles(glyph, "down", glyph.height, 0, glyph.width, depth), glyphOrigin(block, down), down.sx, down.sy)
       }
-      for (const { rect, scale, width, height, glyph, side, line, from } of wrapped) add(wrap.label, wrap.triangles(glyph, side, line, from, width, height), [rect.x, rect.y], scale)
+      for (const { rect, sx, sy, width, height, glyph, side, line, from } of wrapped) add(wrap.label, wrap.triangles(glyph, side, line, from, width, height), [rect.x, rect.y], sx, sy)
     }
     return found
   }
@@ -434,7 +445,7 @@ export function finishAtlas(plan, page, painted, options) {
         if (!drawn) continue
         ctx.globalCompositeOperation = wrap.blend
         ctx.globalAlpha = wrap.opacity
-        ctx.drawImage(drawn, rect.x, rect.y)
+        ctx.drawImage(drawn, rect.x, rect.y, rect.width, rect.height)
       }
     }
     ctx.globalAlpha = 1
@@ -470,18 +481,18 @@ export function finishAtlas(plan, page, painted, options) {
     return clamp((y - shared.minY) / (shared.maxY - shared.minY), 0, 1)
   }
 
-  function sideFill(run, rect, scale, block, span) {
+  function sideFill(run, rect, sy, block, span) {
     if (!options.customSide) return `rgba(0, 0, 0, ${1 - options.sideBrightness / 100})`
     if (!sideGradient) return options.sideColour
     if (sideGradient.direction === "along") return stopColour(sideGradient.stops, clamp((Math.round(run.points[0][0] - block.own.minX) + entryOf(block).glyph.wordX) / wordWidth, 0, 1))
-    return linearGradient(ctx, 0, rect.y + (span.max - shared.minY) * scale, 0, rect.y + (span.max - shared.maxY) * scale, sideGradient.stops)
+    return linearGradient(ctx, 0, rect.y + (span.max - shared.minY) * sy, 0, rect.y + (span.max - shared.maxY) * sy, sideGradient.stops)
   }
 
-  function innerFill(rect, scale, block, span, level) {
+  function innerFill(rect, sx, block, span, level) {
     if (innerGradient?.direction === "up") return stopColour(innerGradient.stops, heightOf(level))
     if (innerGradient) {
-      const left = rect.x - (Math.round(span.min - block.own.minX) + entryOf(block).glyph.wordX) * scale
-      return linearGradient(ctx, left, 0, left + wordWidth * scale, 0, innerGradient.stops)
+      const left = rect.x - (Math.round(span.min - block.own.minX) + entryOf(block).glyph.wordX) * sx
+      return linearGradient(ctx, left, 0, left + wordWidth * sx, 0, innerGradient.stops)
     }
     if (options.customInternal) return options.internalColour
     return options.customEdge ? options.edgeColour : `rgba(0, 0, 0, ${1 - options.internalBrightness / 100})`
@@ -525,8 +536,8 @@ export function finishAtlas(plan, page, painted, options) {
     return made
   }
 
-  function tile(rect, scale, column = 0) {
-    fillPattern(ctx, painted.tiles, new DOMMatrix().translate(rect.x - column * scale, rect.y).scale(scale / painted.tileScale))
+  function tile(rect, sx, sy, column = 0) {
+    fillPattern(ctx, painted.tiles, new DOMMatrix().translate(rect.x - column * sx, rect.y).scale(sx / painted.tileScale, sy / painted.tileScale))
     ctx.fillRect(rect.x, rect.y, rect.width, rect.height)
   }
 
@@ -536,10 +547,11 @@ export function finishAtlas(plan, page, painted, options) {
     const entry = entryOf(block)
     if (!entry) continue
     const at = page.runs.get(run)
-    const { scale } = at
+    const { sx, sy } = at
+    const scale = Math.max(sx, sy)
     const rect = { x: at.x, y: at.y, width: at.width, height: at.height }
     const { front } = page.regions.get(block.glyph)
-    const f = front.scale
+    const f = front.sx
     const [fx, fy] = glyphOrigin(block, front)
     if (run.kind === "side") {
       const span = extent(run.points, 1)
@@ -547,7 +559,7 @@ export function finishAtlas(plan, page, painted, options) {
       const column = inside(Math.round(run.points[0][0] - block.own.minX) - (west ? 0 : 1), 0, entry.width)
       const row = inside(Math.round(block.own.maxY - span.max), 0, entry.height)
       if (painted.tiles) {
-        tile(rect, scale)
+        tile(rect, sx, sy)
         const totals = totalsOf(painted.tiles)
         const tileWidth = Math.round(run.width * painted.tileScale)
         const whole = Math.floor(tileWidth / totals.width)
@@ -557,9 +569,9 @@ export function finishAtlas(plan, page, painted, options) {
           for (let channel = 0; channel < 4; channel++) sideSum[channel] += whole * totals.sums[start + totals.width * 4 + channel] + totals.sums[start + rest * 4 + channel]
         }
       } else lineDraws.push({ from: [west ? fx + column * f : fx + (column + 1) * f - 1, fy + row * f, run.height * f, true, west ? 1 : -1, f], rect, repeat: rect.width * rect.height / (run.height * f) })
-      shades.push([rect, sideFill(run, rect, scale, block, span), options.sideFade, rect.x, rect.x + rect.width, true])
-      wrapped.push({ rect, scale, width: run.width, height: run.height, glyph: entry.glyph, side: west ? "left" : "right", line: Math.round(run.points[0][0] - block.own.minX), from: Math.round(block.own.maxY - span.max) })
-      if (options.sideFade === null && sideGradient && sideGradient.direction !== "along") addGradient(rect, [0, rect.y + (span.max - shared.minY) * scale], [0, rect.y + (span.max - shared.maxY) * scale], sideGradient.stops)
+      shades.push([rect, sideFill(run, rect, sy, block, span), options.sideFade, rect.x, rect.x + rect.width, true])
+      wrapped.push({ rect, scale, sx, sy, width: run.width, height: run.height, glyph: entry.glyph, side: west ? "left" : "right", line: Math.round(run.points[0][0] - block.own.minX), from: Math.round(block.own.maxY - span.max) })
+      if (options.sideFade === null && sideGradient && sideGradient.direction !== "along") addGradient(rect, [0, rect.y + (span.max - shared.minY) * sy], [0, rect.y + (span.max - shared.maxY) * sy], sideGradient.stops)
       continue
     }
     const span = extent(run.points, 0)
@@ -567,23 +579,23 @@ export function finishAtlas(plan, page, painted, options) {
     const near = run.kind === "top" ? rect.y + rect.height : rect.y
     const far = run.kind === "top" ? rect.y : rect.y + rect.height
     const level = extent(run.points, 1).min
-    const strip = { rect, scale, width: run.width, height: run.height, glyph: entry.glyph, side: run.kind === "top" ? "up" : "down", line: Math.round(block.own.maxY - level), from: Math.round(span.min - block.own.minX) }
+    const strip = { rect, scale, sx, sy, width: run.width, height: run.height, glyph: entry.glyph, side: run.kind === "top" ? "up" : "down", line: Math.round(block.own.maxY - level), from: Math.round(span.min - block.own.minX) }
     if (run.region === "edge") {
       wrapped.push({ ...strip, extra: true })
-      const start = rect.x - (strip.from + entry.glyph.wordX) * scale
+      const start = rect.x - (strip.from + entry.glyph.wordX) * sx
       if (painted.fade !== null) addFade(rect.x, rect.y, rect.x + rect.width, rect.y + rect.height, [0, near], [0, far], painted.fade)
-      else if (stripStops) addGradient(rect, [start, 0], [start + wordWidth * scale, 0], stripStops)
+      else if (stripStops) addGradient(rect, [start, 0], [start + wordWidth * sx, 0], stripStops)
       continue
     }
     const row = inside(Math.round(block.own.maxY - level) - (run.kind === "top" ? 0 : 1), 0, entry.height)
     const edge = run.kind === "top" ? fy + row * f : fy + (row + 1) * f - 1
-    if (painted.tiles) tile(rect, scale, painted.tilesAcrossLine ? column + entry.glyph.lineX : 0)
+    if (painted.tiles) tile(rect, sx, sy, painted.tilesAcrossLine ? column + entry.glyph.lineX : 0)
     else lineDraws.push({ from: [fx + column * f, edge, run.width * f, false, run.kind === "top" ? 1 : -1, f], rect, repeat: 0 })
-    shades.push([rect, innerFill(rect, scale, block, span, level), options.internalFade, far, near, false])
+    shades.push([rect, innerFill(rect, sx, block, span, level), options.internalFade, far, near, false])
     wrapped.push(strip)
     if (options.internalFade === null && innerGradient && innerGradient.direction !== "up") {
-      const start = rect.x - (Math.round(span.min - block.own.minX) + entry.glyph.wordX) * scale
-      addGradient(rect, [start, 0], [start + wordWidth * scale, 0], innerGradient.stops)
+      const start = rect.x - (Math.round(span.min - block.own.minX) + entry.glyph.wordX) * sx
+      addGradient(rect, [start, 0], [start + wordWidth * sx, 0], innerGradient.stops)
     }
   }
 
@@ -599,7 +611,7 @@ export function finishAtlas(plan, page, painted, options) {
     for (const { rect, scale, width, height, glyph, side, line, from, extra } of wrapped) {
       if (extra) continue
       const drawn = wrap.face(glyph, side, line, from, width, height, scale)
-      if (drawn) ctx.drawImage(drawn, rect.x, rect.y)
+      if (drawn) ctx.drawImage(drawn, rect.x, rect.y, rect.width, rect.height)
     }
   }
   ctx.globalAlpha = 1
@@ -626,16 +638,16 @@ export function finishAtlas(plan, page, painted, options) {
       addFade(downRect.x, downRect.y, downRect.x + downRect.width, downRect.y + downRect.height, [0, downRect.y], [0, downRect.y + downRect.height], painted.fade)
     } else if (edgeStops) {
       for (const [rect, region] of [[upRect, up], [downRect, down]]) {
-        const start = glyphOrigin(block, region)[0] - entry.glyph.wordX * region.scale
-        addGradient(rect, [start, 0], [start + wordWidth * region.scale, 0], edgeStops)
+        const start = glyphOrigin(block, region)[0] - entry.glyph.wordX * region.sx
+        addGradient(rect, [start, 0], [start + wordWidth * region.sx, 0], edgeStops)
       }
     }
     if (painted.gradient) {
       const { from, to } = painted.gradient.ends(entry)
       const region = entry.regions.front
-      const u0 = region.x - region.u0 * region.scale
-      const v0 = region.y - region.v0 * region.scale
-      frontFaces.push({ ...areaOf(frontRect), from: [u0 + from[0] * front.scale, v0 + from[1] * front.scale], to: [u0 + to[0] * front.scale, v0 + to[1] * front.scale], stops: painted.gradient.stops })
+      const u0 = region.x - region.u0 * region.sx
+      const v0 = region.y - region.v0 * region.sy
+      frontFaces.push({ ...areaOf(frontRect), from: [u0 + from[0] * region.sx, v0 + from[1] * region.sy], to: [u0 + to[0] * region.sx, v0 + to[1] * region.sy], stops: painted.gradient.stops })
     }
   }
   const gradient = frontFaces.length || gradientFaces.length ? { faces: frontFaces.concat(gradientFaces) } : null

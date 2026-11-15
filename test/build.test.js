@@ -715,10 +715,21 @@ describe("detail", () => {
     word.refine(painter(PAINTED, seen))
     const [draft] = seen[0]
     const [sharp] = seen[1]
+    const scales = (page, index) => ["front", "up", "down"].map(part => [page.regions.get(index)[part].sx, page.regions.get(index)[part].sy])
     for (const index of [0, 1]) {
-      assert.deepEqual([draft[0].regions.get(index).front.scale, draft[0].regions.get(index).up.scale, draft[0].regions.get(index).down.scale], [4, 4, 4])
-      assert.deepEqual([sharp[0].regions.get(index).front.scale, sharp[0].regions.get(index).up.scale, sharp[0].regions.get(index).down.scale], [16, 4, 4])
+      assert.deepEqual(scales(draft[0], index), [[4, 4], [4, 4], [4, 4]])
+      assert.deepEqual(scales(sharp[0], index), [[16, 16], [4, 4], [4, 4]])
     }
+  })
+
+  test("an edge can be sharper along its length than across its depth", () => {
+    const seen = []
+    const word = text(ROW, { details: [{ edge: { along: 4, deep: 1 } }], paint: painter(PAINTED, seen) })
+    word.refine(painter(PAINTED, seen))
+    const [[page]] = seen[1]
+    const { up, front, down } = page.regions.get(0)
+    assert.deepEqual([up.sx, up.sy, down.sx, down.sy, front.sx], [16, 4, 16, 4, 4])
+    assert.equal(front.y - up.y, 4 * 4)
   })
 
   test("drawing it again keeps the draft's texture coordinates beside the sharp ones", () => {
@@ -764,6 +775,17 @@ describe("detail", () => {
     assert.equal(word.pages.length, pages.length)
   })
 
+  test("never lays a page out past the limit, drafted or sharp", () => {
+    for (const limit of [128, 160, 200, 256, 300, 512]) {
+      for (const count of [3, 5, 12, 30]) {
+        const seen = []
+        const word = text(line(count, 3), { details: [{ front: 4, edge: { along: 4, deep: 1 } }], paint: painter(PAINTED, seen), sideFaces: true, internalFaces: true, textureLimit: limit })
+        word.refine(painter(PAINTED, seen))
+        for (const page of seen.flat(2)) assert.ok(page.width <= limit && page.height <= limit, `${page.width}x${page.height} is over ${limit} with ${count} letters`)
+      }
+    }
+  })
+
   test("splits instead of lowering detail when the sharp texture won't fit", () => {
     const seen = []
     const word = text(line(12), { details: FRONT, textureLimit: 256 })
@@ -772,7 +794,7 @@ describe("detail", () => {
     assert.ok(pages.length > 1)
     for (const page of pages) {
       assert.ok(page.width <= 256 && page.height <= 256)
-      for (const regions of page.regions.values()) assert.equal(regions.front.scale, 16)
+      for (const regions of page.regions.values()) assert.equal(regions.front.sx, 16)
     }
     assert.equal(word.pages.length, pages.length)
   })

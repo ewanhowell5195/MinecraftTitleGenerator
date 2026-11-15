@@ -2,7 +2,7 @@ import { boxFaces, boxesFor } from "./boxes.js"
 import { layerMask, stripLimits } from "./flatSheet.js"
 import { clippedBoxes } from "./joins.js"
 import { SPACE } from "./layout.js"
-import { REGION_KINDS, finishAtlas, layoutPages, pageGroups, planAtlas, regionScales } from "./atlas.js"
+import { REGION_KINDS, detailOf, finishAtlas, layoutPages, pageGroups, planAtlas, regionScales } from "./atlas.js"
 import { remember } from "./maths.js"
 import { baseChar } from "./order.js"
 
@@ -247,9 +247,9 @@ export function buildText(font, options) {
     const details = options.details?.[layer] ?? null
     return { layer, plan, details, groups: pageGroups(plan, regionScales(details), limit), options: own }
   })
-  const sharpened = parts.some(part => REGION_KINDS.some(kind => (part.details?.[kind] ?? 1) > 1))
+  const sharpened = parts.some(part => REGION_KINDS.some(kind => Math.max(...Object.values(detailOf(part.details?.[kind]))) > 1))
   function textured(paint, sharp) {
-    const layouts = parts.map(part => layoutPages(part.plan, part.groups, regionScales(sharp ? part.details : null), options.sheet).map(page => ({ ...page, sharp, layer: part.layer })))
+    const layouts = parts.map(part => layoutPages(part.plan, part.groups, regionScales(sharp ? part.details : null), options.sheet, limit).map(page => ({ ...page, sharp, layer: part.layer })))
     const painted = paint(layouts)
     const pages = []
     const finished = []

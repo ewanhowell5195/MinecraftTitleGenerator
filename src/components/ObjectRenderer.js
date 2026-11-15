@@ -391,13 +391,15 @@ export default {
         const faces = painted.value.layers ? faceOptions(targets.value[layer]) : options
         const smooth = assets.overlays.filter(({ layer, source }) => SMOOTH_KINDS.has(source.generated) && layer.opacity > 0)
         const strip = look.source === "strip" ? stripDetail(assets.strip, depth) : 1
+        const base = Number.isFinite(strip) ? strip : MAX_DETAIL
         const edgeGradient = look.customEdge && look.edgeFill === "gradient"
         const sideWrapped = smooth.some(({ layer }) => layer.sideWrap)
+        const cracked = smooth.some(({ source }) => WRAPPED_KINDS.has(source.generated))
         return {
           front: smoothDetail(1, look.source === "gradient" || smooth.length > 0),
-          edge: smoothDetail(Number.isFinite(strip) ? strip : MAX_DETAIL, look.source === "gradient" || edgeGradient || smooth.some(({ layer, source }) => layer.edgeWrap || WRAPPED_KINDS.has(source.generated))),
-          internal: smoothDetail(1, faces.internalFaces && (sideWrapped || (faces.customInternal ? faces.internalFill === "gradient" : edgeGradient))),
-          side: smoothDetail(1, faces.sideFaces && (sideWrapped || faces.customSide && faces.sideFill === "gradient"))
+          edge: { along: smoothDetail(base, look.source === "gradient" || edgeGradient || cracked || smooth.some(({ layer }) => layer.edgeWrap)), deep: smoothDetail(base, cracked) },
+          internal: { along: smoothDetail(1, faces.internalFaces && (sideWrapped || (faces.customInternal ? faces.internalFill === "gradient" && faces.internalDirection !== "up" : edgeGradient))), deep: 1 },
+          side: { along: smoothDetail(1, faces.sideFaces && (sideWrapped || faces.customSide && faces.sideFill === "gradient" && faces.sideDirection !== "along")), deep: 1 }
         }
       })
     }

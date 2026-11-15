@@ -30,8 +30,7 @@ function random(x, y, z) {
 
 function into(ctx, entry, part) {
   const region = entry.regions[part]
-  const k = region.scale / R
-  ctx.setTransform(k, 0, 0, k, region.x - region.u0 * region.scale, region.y - region.v0 * region.scale)
+  ctx.setTransform(region.sx / R, 0, 0, region.sy / R, region.x - region.u0 * region.sx, region.y - region.v0 * region.sy)
 }
 
 function plain(ctx) {
@@ -40,7 +39,7 @@ function plain(ctx) {
 
 function pixelAt(entry, part, u, v) {
   const region = entry.regions[part]
-  return [region.x + (u - region.u0) * region.scale, region.y + (v - region.v0) * region.scale]
+  return [region.x + (u - region.u0) * region.sx, region.y + (v - region.v0) * region.sy]
 }
 
 function stripParts(entry) {
@@ -50,8 +49,8 @@ function stripParts(entry) {
 function stripPixels(entry) {
   return stripParts(entry).map(([part, [x, y, w, h]]) => {
     const [px, py] = pixelAt(entry, part, x, y)
-    const scale = entry.regions[part].scale
-    return [px, py, w * scale, h * scale]
+    const { sx, sy } = entry.regions[part]
+    return [px, py, w * sx, h * sy]
   })
 }
 
@@ -256,13 +255,13 @@ function paintTiles(ctx, entries, look, image, capHeight) {
   const faces = surface(ctx.canvas.width, ctx.canvas.height)
   faces.ctx.drawImage(ctx.canvas, 0, 0)
   for (const entry of entries) {
-    const scale = entry.regions.front.scale
+    const scale = entry.regions.front.sx
     const [left, top] = pixelAt(entry, "front", entry.x, entry.top)
     const bottom = pixelAt(entry, "front", entry.x, entry.top + entry.height)[1] - 1
     for (const [part, [x, y, width, height]] of stripParts(entry)) {
       const [px, py] = pixelAt(entry, part, x, y)
-      const strip = entry.regions[part].scale
-      ctx.drawImage(faces.canvas, left, part === "up" ? top : bottom, entry.width * scale, 1, px, py, width * strip, height * strip)
+      const { sx, sy } = entry.regions[part]
+      ctx.drawImage(faces.canvas, left, part === "up" ? top : bottom, entry.width * scale, 1, px, py, width * sx, height * sy)
     }
   }
 }
@@ -409,7 +408,7 @@ function putAlpha(ctx, tones, palette, width, height, [x, y], scale) {
 function generate(ctx, entries, kind, layer, capHeight) {
   for (const entry of entries) {
     const { glyph } = entry
-    const scale = entry.regions.front.scale
+    const scale = entry.regions.front.sx
     if (glyph.width && glyph.height) putAlpha(ctx, toneKinds(kind).map(tone => generatedAlpha(glyph, tone, layer, capHeight, scale, scale > R)), layer.palette ?? [WHITE], glyph.width, glyph.height, pixelAt(entry, "front", entry.x, entry.top), scale)
   }
 }
@@ -418,8 +417,18 @@ function generateEdges(ctx, entries, kind, layer) {
   for (const entry of entries) {
     if (!entry.glyph.width || !entry.glyph.height) continue
     for (const [side, y, depth] of [["up", entry.up, entry.upHeight], ["down", entry.down, entry.downHeight]]) {
-      const scale = entry.regions[side].scale
-      if (depth) putAlpha(ctx, [edgeAlpha(entry.glyph, side, kind, layer, depth, scale, scale > R)], [WHITE], entry.glyph.width, depth, pixelAt(entry, side, entry.x, y), scale)
+      if (!depth) continue
+      const { sx, sy } = entry.regions[side]
+      const scale = Math.max(sx, sy)
+      const at = pixelAt(entry, side, entry.x, y)
+      const tones = [edgeAlpha(entry.glyph, side, kind, layer, depth, scale, scale > R)]
+      if (sx === sy) {
+        putAlpha(ctx, tones, [WHITE], entry.glyph.width, depth, at, scale)
+        continue
+      }
+      const square = surface(entry.glyph.width * scale, depth * scale)
+      putAlpha(square.ctx, tones, [WHITE], entry.glyph.width, depth, [0, 0], scale)
+      ctx.drawImage(square.canvas, at[0], at[1], entry.glyph.width * sx, depth * sy)
     }
   }
 }
@@ -435,7 +444,7 @@ function wrapEdges(overlay, entries, band) {
   for (const entry of entries) {
     const { glyph, x, top, up, upHeight, down, downHeight } = entry
     const mask = band === null || !glyph.depths ? glyph.mask : layerMask(glyph, band)
-    const scale = entry.regions.front.scale
+    const scale = entry.regions.front.sx
     for (let column = 0; column < glyph.width; column++) {
       let first = -1
       let last = -1
@@ -449,10 +458,10 @@ function wrapEdges(overlay, entries, band) {
       const low = pixelAt(entry, "front", x + column, top + last + 1)[1] - 1
       for (const [from, part, y, depth] of [[high, "up", up, upHeight], [low, "down", down, downHeight]]) {
         const [start, to] = pixelAt(entry, part, x + column, y)
-        const strip = entry.regions[part].scale
-        for (let step = 0; step < strip; step++) {
-          const source = (from * width + left + Math.floor(step * scale / strip)) * 4
-          for (let row = 0; row < depth * strip; row++) data.copyWithin(((to + row) * width + start + step) * 4, source, source + 4)
+        const { sx, sy } = entry.regions[part]
+        for (let step = 0; step < sx; step++) {
+          const source = (from * width + left + Math.floor(step * scale / sx)) * 4
+          for (let row = 0; row < depth * sy; row++) data.copyWithin(((to + row) * width + start + step) * 4, source, source + 4)
         }
       }
     }
@@ -560,7 +569,7 @@ function sideWrapsOf(sheet, layers, capHeight, band) {
         const image = out.ctx.createImageData(width * scale, height * scale)
         const across = vertical ? height * scale : width * scale
         const along = vertical ? width * scale : height * scale
-        const r = entry.regions.front.scale
+        const r = entry.regions.front.sx
         const [left, top] = pixelAt(entry, "front", entry.x, entry.top)
         const [lineX, lineY] = pixelAt(entry, "front", entry.x + line, entry.top + line)
         const low = vertical ? top : left
