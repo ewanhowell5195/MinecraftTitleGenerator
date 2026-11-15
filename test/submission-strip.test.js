@@ -97,6 +97,16 @@ describe("strip shapes", () => {
     assert.equal(rows[16 + 44], 70)
     assert.equal(rows.at(-1), 91)
   })
+
+  test("a strip drawn at half size keeps square pixels when it's redrawn", () => {
+    const measure = { range: { top: 36, bottom: -8 }, capHeight: 36, depth: 16 }
+    const set = { id: "s", depth: 22, baseline: 30, height: 40 }
+    const image = { width: 2, height: 46, data: new Uint8ClampedArray(Array.from({ length: 46 * 2 }, (_, at) => [at % 2, 0, 0, 255]).flat()) }
+    const remapped = remapStrip(image, setEntry(set, 0, false), measure)
+    assert.equal(remapped.height, 16 * 2 + 36 + 8)
+    assert.equal(remapped.width, 4)
+    assert.deepEqual(Array.from({ length: 4 }, (_, x) => remapped.data[x * 4]), [0, 0, 1, 1])
+  })
 })
 
 describe("checking a strip", () => {

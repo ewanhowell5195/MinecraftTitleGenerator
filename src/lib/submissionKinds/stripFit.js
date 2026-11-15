@@ -155,15 +155,19 @@ export function setEntry(set, offset, stretch) {
   return { ...stripTag(set, offset), ...(stretch && { stretch: true }) }
 }
 
-export function remapStrip(image, entry, measure) {
+export function remapScale(image, entry, measure) {
+  return Math.max(1, image.height / stripRows(entry, measure.range, measure.depth, measure.capHeight).rows)
+}
+
+export function remapStrip(image, entry, measure, scale = remapScale(image, entry, measure)) {
   const from = stripRows(entry, measure.range, measure.depth, measure.capHeight)
   const to = stripRows({}, measure.range, measure.depth)
   const density = image.height / from.rows
-  const scale = Math.max(1, density)
   const height = to.rows * scale
+  const width = Math.round(image.width * scale / density)
+  const columns = Int32Array.from({ length: width }, (_, x) => Math.floor((x + 0.5) * density / scale) % image.width)
   const face = to.depth + to.top - to.bottom
-  const line = image.width * 4
-  const data = new Uint8ClampedArray(line * height)
+  const data = new Uint8ClampedArray(width * 4 * height)
   for (let y = 0; y < height; y++) {
     const row = (y + 0.5) / scale
     const whole = Math.floor(row)
@@ -172,7 +176,7 @@ export function remapStrip(image, entry, measure) {
     else if (whole < face) source = from.depth + from.top - 1 - stripY(from, to.top - 1 - (whole - to.depth)) + row - whole
     else source = from.depth + from.top - from.bottom + (row - face) * from.depth / to.depth
     const at = (Math.floor(source * density) % image.height + image.height) % image.height
-    data.set(image.data.subarray(at * line, (at + 1) * line), y * line)
+    for (let x = 0; x < width; x++) data.set(image.data.subarray((at * image.width + columns[x]) * 4, (at * image.width + columns[x] + 1) * 4), (y * width + x) * 4)
   }
-  return { data, width: image.width, height }
+  return { data, width, height }
 }
