@@ -2,7 +2,8 @@ import { reactive } from "vue"
 import { navigate, onNavigated } from "./navigation.js"
 import { TITLE_PARAM } from "./scene.js"
 
-const PATH = "/app/presets"
+export const PRESETS_PATH = "/app/presets"
+const PATH = PRESETS_PATH
 const EDITOR = "/app/"
 
 export const presetsPage = reactive({ open: false, id: null, code: null })

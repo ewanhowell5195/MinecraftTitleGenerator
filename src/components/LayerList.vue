@@ -2,7 +2,7 @@
   import { computed, onBeforeUnmount, ref, watch } from "vue"
   import { vLongPress } from "../lib/events.js"
   import { namingForShare, namingPreset } from "../lib/presets.js"
-  import { openPresetsPage } from "../lib/presetsPage.js"
+  import { PRESETS_PATH, openPresetsPage } from "../lib/presetsPage.js"
   import { dropPreview, previews, renderPreview } from "../lib/previews.js"
   import { clampedSpot, followPointer, useReorderDrag } from "../lib/reorder.js"
   import { TYPES } from "../lib/settings.js"
@@ -196,15 +196,21 @@
     context.value = { at: { x: event.clientX, y: event.clientY }, items }
   }
 
+  function openPresets(event) {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    event.preventDefault()
+    openPresetsPage()
+  }
+
   onBeforeUnmount(() => clearTimeout(timer))
 </script>
 
 <template>
   <nav class="layers">
-    <button class="rail-button" @click="openPresetsPage()">
+    <a class="rail-button" :href="PRESETS_PATH" @click="openPresets">
       <Icon name="bookmark" :size="20" />
       <span>Presets</span>
-    </button>
+    </a>
     <div class="divider"></div>
     <div ref="list" class="list" :class="{ dragging: dragged !== null }" @dragstart.prevent>
       <div v-for="row of rows" :key="row.key" :data-row="row.key" :class="row.group === null ? 'single' : { group: true, selected: !view.render && !view.camera && scene.selectedGroup === row.group, hidden: lineHidden(row.words[0]), dragged: dragged === row.key }">
@@ -436,6 +442,16 @@
     font-size: var(--font-xs);
     color: var(--faint);
     background: transparent;
+  }
+
+  a.rail-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    text-decoration: none;
+    user-select: none;
+    transition: background var(--duration), color var(--duration);
   }
 
   .rail-button:hover {
