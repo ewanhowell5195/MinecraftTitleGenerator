@@ -21,7 +21,7 @@ import { platform } from "../lib/platform.js"
 import { quietly } from "../lib/history.js"
 import { DEFAULT_CAP_HEIGHT, DEFAULT_HEIGHT, NO_ARC } from "../lib/rows.js"
 import { editorTitle, finalShadows, keepTexture, loadedFont, words } from "../lib/scene.js"
-import { activeOverlays, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, effectiveScale, fontFaces, isCustomFont, isSeparate, layerTarget, sameValue, separateForDefaults, setTexture, textureEntry } from "../lib/settings.js"
+import { activeOverlays, applyFontFaces, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, effectiveScale, fontFaces, isCustomFont, isSeparate, layerTarget, sameValue, separateForDefaults, setTexture, textureEntry } from "../lib/settings.js"
 
 const BASE = ["font", "source", "textureSource", "texture", "textureVariant", "tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "customTexture", "stops", "smooth", "gradientAngle", "arcGradient", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "tileablePerCharacter", "disableFontOverlay", "edgeBrightness"]
 
@@ -540,7 +540,7 @@ export default {
           object.wordDepth = null
           object.wordBorder = null
           const faces = fontFaces(object.type, loaded)
-          if (!sameValue(faces, loadedFaces.get(object) ?? fontFaces(object.type, null))) Object.assign(object, faces)
+          if (!sameValue(faces, loadedFaces.get(object) ?? fontFaces(object.type, null))) applyFontFaces(object, faces)
         })
       } else if (object.texture === null) quietly(() => (object.texture = defaultTexture(textures, object.type)))
       if (loaded.mesh && object.textureSource === "custom") quietly(() => setTexture(object, { textureSource: "premade" }))

@@ -1,7 +1,7 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import { isReactive } from "vue"
-import { LAYER, activeOverlays, applyType, createObject, layerTarget, layerView, separateLayers, defaultBorder, defaultDepth, defaultOverlays, defaultSpacing, defaultTexture, effectiveScale, fontFaces, isModified, overlayFits, overlayLayer, pinnedTextures, resetPanel, resetTransform, restore, setTexture, snapshot, textureEntry, transformKeys, typeDefaults } from "../src/lib/settings.js"
+import { LAYER, activeOverlays, applyFontFaces, applyType, createObject, layerTarget, layerView, separateLayers, defaultBorder, defaultDepth, defaultOverlays, defaultSpacing, defaultTexture, effectiveScale, fontFaces, isModified, overlayFits, overlayLayer, pinnedTextures, resetPanel, resetTransform, restore, setTexture, snapshot, textureEntry, transformKeys, typeDefaults } from "../src/lib/settings.js"
 
 const TOP_DEFAULTS = {
   hidden: false,
@@ -718,6 +718,12 @@ describe("font defaults", () => {
   test("border comes from the font even when it is zero", () => {
     assert.equal(defaultBorder("small"), 3)
     assert.equal(defaultBorder("small", { border: 0 }), 0)
+  })
+  test("a font's faces reach every colour layer", () => {
+    const object = createObject()
+    separateLayers(object, "colour", true, 2)
+    applyFontFaces(object, fontFaces("top", { allFaces: true }))
+    assert.deepEqual([0, 1].map(layer => [layerView(object, layer, "colour").internalFaces, layerView(object, layer, "colour").sideFaces]), [[true, true], [true, true]])
   })
 })
 

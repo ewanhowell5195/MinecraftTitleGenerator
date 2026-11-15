@@ -354,6 +354,12 @@ export function fontFaces(type, font) {
   return Object.fromEntries(FACE_KEYS.map(key => [key, values[key]]))
 }
 
+export function applyFontFaces(object, faces) {
+  const base = viewed(object)
+  const layers = isSeparate(base, "colour") ? base.layerSettings.length + 1 : 1
+  for (let layer = 0; layer < layers; layer++) Object.assign(layerView(base, layer, "colour"), faces)
+}
+
 function panelKeys(object, name) {
   if (name === "texture") return TEXTURE_TABS[object.textureSource]
   if (name === "overlays" && object.textureSource === "premade") return ["overlayMode", "overlays"]
