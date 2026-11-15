@@ -27,6 +27,18 @@ describe("font thumbnails", () => {
     assert.deepEqual(shades((await drawn()).get("flat")), [128, 255])
   })
 
+  test("a font that draws its own space fills the gaps between characters with it", async () => {
+    const letter = { char: "a", width: 2, height: 2, bottom: 0, top: 2, advance: 4, originX: 0, mask: Uint8Array.from([1, 1, 1, 1]) }
+    const space = { char: " ", width: 3, height: 2, bottom: 0, top: 2, advance: 3, originX: 0, mask: Uint8Array.from([1, 1, 1, 1, 1, 1]) }
+    const spaced = fontScene({ id: "spaced", border: 0 }, { glyphs: { a: letter, " ": space }, cells: [letter, space], capHeight: 2, layers: null, kerning: {}, depth: 4 }, "aa")
+    assert.ok(spaced.placed.some(item => item.glyph.fill))
+    const flat = flatLayers([letter, space], 2, 4, null)
+    const image = new Map(await fontThumbnails({ id: "spaced", border: 0 }, spaced, textures, () => flat)).get("flat")
+    const row = Math.floor(image.height / 2)
+    const opaque = Array.from({ length: image.width }, (_, x) => image.data[(row * image.width + x) * 4 + 3] > 0)
+    assert.ok(opaque.every(Boolean))
+  })
+
   test("neighbouring characters are joined and overlaps split down the middle, like the renderer", () => {
     const overlapping = fontScene({ ...entry, characterSpacing: -1 }, { glyphs: { a: cell }, cells: [cell], capHeight: 2, layers, kerning: {}, depth: 4 }, "aa")
     const [first, second] = overlapping.placed.map(item => item.glyph)

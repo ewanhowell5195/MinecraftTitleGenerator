@@ -34,12 +34,12 @@ function drawFaces(image, { placed, layouts, bands }, sheet, masks, { density: d
   const scale = sheet.width / width
   for (const { glyph, x, y } of placed) {
     const mask = masks.get(glyph)
-    const { x: sx, top: sy } = layouts.get(glyph)
+    const { x: sx, top: sy, fill } = layouts.get(glyph)
     for (let py = 0; py < glyph.height * d; py++) {
       for (let px = 0; px < glyph.width * d; px++) {
         const row = glyph.height - 1 - Math.floor(py / d)
         if (!mask[row * glyph.width + Math.floor(px / d)] || !keptAt(glyph, row, (px + 0.5) / d)) continue
-        const sxp = Math.floor((sx * d + px) * scale / d)
+        const sxp = Math.floor((sx * d + (fill ? px % d : px)) * scale / d)
         const syp = Math.floor((sy * d + py) * scale / d + bandRow(glyph, px, py, d, sheet.height, bands))
         over(image, x * d + px, y * d + py, rgba(sheet.data, (syp * sheet.width + sxp) * 4))
       }
@@ -91,8 +91,8 @@ function layerSource(scene, { kind, image, layer }, { density: d, width }) {
   if (!image) return { tonesOf: item => toneKinds(kind).map(tone => depthAlpha(scene, scene.placed.indexOf(item), d, own => generatedAlpha(own, tone, layer, capHeight, d))) }
   const scale = image.width / width
   function at({ glyph }) {
-    const { x: sx, top: sy } = layouts.get(glyph)
-    return (px, py) => (Math.floor((sy * d + py) * scale / d + bandRow(glyph, px, py, d, image.height, bands)) * image.width + Math.floor((sx * d + px) * scale / d)) * 4
+    const { x: sx, top: sy, fill } = layouts.get(glyph)
+    return (px, py) => (Math.floor((sy * d + py) * scale / d + bandRow(glyph, px, py, d, image.height, bands)) * image.width + Math.floor((sx * d + (fill ? px % d : px)) * scale / d)) * 4
   }
   return { texel: { data: image.data, at } }
 }
@@ -100,8 +100,8 @@ function layerSource(scene, { kind, image, layer }, { density: d, width }) {
 export function render(scene, sheet, options) {
   const image = blankImage(scene.frame.width * options.density, scene.frame.height * options.density)
   const masks = new Map(scene.placed.map(({ glyph }) => {
-    if (!options.ownShape) return [glyph, glyph.mask]
-    const { x, top } = scene.layouts.get(glyph)
+    const { x, top, fill } = scene.layouts.get(glyph)
+    if (!options.ownShape || fill) return [glyph, glyph.mask]
     const bands = Array.from({ length: scene.bands }, (_, band) => solidMask(sheet.data, sheet.width, sheet.width / options.width, x, top + band * sheet.height / (sheet.width / options.width) / scene.bands, glyph.width, glyph.height))
     if (scene.layer != null) return [glyph, bands[scene.layer]]
     return [glyph, bands[0].map((solid, at) => bands.some(band => band[at]) ? 1 : 0)]
@@ -173,6 +173,12 @@ function frameFill(image, colour) {
   }
 }
 
+function fillerLayout(sheet, cells) {
+  const space = cells.find(cell => cell.char === " ")
+  const at = sheet.get(space)
+  return { ...at, x: at.x + Math.floor(space.width / 2), fill: true }
+}
+
 export function fontScene(entry, { glyphs, cells, capHeight, layers, kerning, depth }, text = entry.preview ?? "abc") {
   const placed = layout({ ...entry, glyphs, kerning }, text, { spacing: entry.characterSpacing ?? 0 })
   if (!placed.length) return null
@@ -184,7 +190,7 @@ export function fontScene(entry, { glyphs, cells, capHeight, layers, kerning, de
   return {
     frame,
     placed: own,
-    layouts: new Map(own.map((item, index) => [item.glyph, sheet.get(framed[index].glyph)])),
+    layouts: new Map(own.map((item, index) => [item.glyph, framed[index].glyph.fill ? fillerLayout(sheet, cells) : sheet.get(framed[index].glyph)])),
     cells,
     layers,
     bands: layers?.length ?? 1,
