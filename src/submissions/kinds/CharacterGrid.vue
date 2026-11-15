@@ -9,6 +9,7 @@
   import { loadImage, sheetLayout } from "../../lib/font.js"
   import { characterName, exportJson, flatTexture, parsedSheet } from "../../lib/fontEditor.js"
   import { defaultBorder, defaultDepth } from "../../lib/settings.js"
+  import { stackedStrip } from "../../lib/strips.js"
   import { submittedFont } from "../../lib/submissionKinds/fontBuild.js"
 
   const TILE_HEIGHT = 72
@@ -47,27 +48,38 @@
     return mixed.concat(base[3])
   }
 
+  const stripBands = computed(() => {
+    if (!drawn.value || !span.value) return null
+    const { cells, depth, layers } = drawn.value
+    if (layers) return layers.map((_, layer) => stackedStrip({ depth }, layers, layer, cells))
+    const rows = depth * 2 + span.value.top - span.value.bottom
+    return [{ shape: { depth, top: span.value.top, rows }, offset: 0, total: rows }]
+  })
+
   function densityOf(source) {
-    const { flat, depth } = drawn.value
-    const exact = source.kind === "strip" ? source.height / (depth * 2 + span.value.top - span.value.bottom) : source.width / flat.width
+    const exact = source.kind === "strip" ? source.height / stripBands.value[0].total : source.width / drawn.value.flat.width
     return Math.max(1, Math.round(exact))
   }
 
-  function colourAt(cell, { at, offset }, ox, oy, density) {
-    const { flat, depth } = drawn.value
+  function colourAt(cell, { at, offset, band }, ox, oy, density) {
+    const { flat } = drawn.value
     const source = sheet.value
     const cx = Math.floor(ox / density)
     const cy = Math.floor(oy / density)
     const base = pixel(flat, at.x + cx, offset + at.top + cy)
     if (!source) return base
-    if (source.kind === "strip") return pixel(source, ox % source.width, (depth + span.value.top - cell.top + cy) * density + oy % density)
+    if (source.kind === "strip") {
+      const strip = stripBands.value[band]
+      return pixel(source, ox % source.width, (strip.offset + strip.shape.depth + strip.shape.top - cell.top + cy) * density + oy % density)
+    }
     const painted = pixel(source, at.x * density + ox, (offset + at.top) * density + oy)
     return source.kind === "overlay" ? overlaid(base, painted) : painted
   }
 
   function placeOf(cell, at) {
-    const band = drawn.value.bands[cell.depths?.[at] ?? 0]
-    return { at: band.layout.get(cell), offset: band.offset }
+    const index = cell.depths?.[at] ?? 0
+    const band = drawn.value.bands[index]
+    return { at: band.layout.get(cell), offset: band.offset, band: index }
   }
 
   function glyphImage(cell) {
@@ -98,7 +110,7 @@
       const entry = exportJson(font, "")
       const depth = defaultDepth(entry)
       const { list, capHeight, layers } = parsedSheet(font, defaultBorder("top", entry))
-      drawn.value = { letterCase: font.letterCase, cells: list.filter(cell => cell.width), bands: layers ? bandLayouts(list, capHeight, depth, layers) : [{ layout: sheetLayout(list, capHeight, depth), offset: 0 }], depth, flat: flatTexture(font) }
+      drawn.value = { letterCase: font.letterCase, cells: list.filter(cell => cell.width), layers, bands: layers ? bandLayouts(list, capHeight, depth, layers) : [{ layout: sheetLayout(list, capHeight, depth), offset: 0 }], depth, flat: flatTexture(font) }
     } catch (err) {
       problem.value = err.message
     }
