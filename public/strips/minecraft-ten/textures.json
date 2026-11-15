@@ -76,7 +76,8 @@
       ],
       "name": "Mine-Imator Family",
       "authors": ["ModelBench", "ShrimpSnail"],
-      "border": "#121833"
+      "border": "#121833",
+      "snap": 4
     },
     "deep_dark": {
       "type": "strip",
@@ -85,7 +86,8 @@
       ],
       "name": "Deep Dark (Wild Update)",
       "authors": ["Banjoei", "ShrimpSnail"],
-      "border": "#000000"
+      "border": "#000000",
+      "snap": 4
     },
     "fruit": {
       "type": "strip",
@@ -93,7 +95,8 @@
         { "overlay": "highlights_top", "blend": "overlay", "opacity": 58 }
       ],
       "authors": ["Ewan Howell", "DamienBrittan"],
-      "border": "#260b28"
+      "border": "#260b28",
+      "snap": 2
     },
     "grass": {
       "type": "strip",
@@ -102,6 +105,7 @@
       ],
       "authors": ["ShrimpSnail", "DamienBrittan", "blank3times"],
       "border": "#2b040c",
+      "snap": 2,
       "variants": {
         "grass_side": {
           "overlays": [
@@ -203,6 +207,7 @@
       "type": "strip",
       "authors": ["Ewan Howell"],
       "border": "#45362a",
+      "snap": 2,
       "variants": {
         "sand": {
           "authors": ["Magminer"],
@@ -286,6 +291,7 @@
       "type": "strip",
       "authors": ["IAmMaker"],
       "border": "#3e0e14",
+      "snap": 4,
       "variants": {
         "bricks_minecraft": {
           "name": "Bricks (Minecraft)",
@@ -294,7 +300,8 @@
         "bricks_bare_bones": {
           "name": "Bricks (Bare Bones)",
           "authors": ["Klayv"],
-          "border": "#190f0f"
+          "border": "#190f0f",
+          "snap": 2
         }
       }
     },
@@ -314,17 +321,20 @@
       "type": "strip",
       "tiling": "character",
       "authors": ["WassMan"],
-      "border": "#000000"
+      "border": "#000000",
+      "snap": 2
     },
     "creeper": {
       "type": "strip",
       "authors": ["Andre_601"],
-      "border": "#000000"
+      "border": "#000000",
+      "snap": 2
     },
     "flames": {
       "type": "strip",
       "authors": ["RyanCR"],
       "border": "#000000",
+      "snap": 4,
       "variants": {
         "flames_soul": {
           "name": "Soul Flames",
@@ -340,7 +350,8 @@
     "atmosphere": {
       "type": "strip",
       "authors": ["Zodiuss"],
-      "border": "#36005d"
+      "border": "#36005d",
+      "snap": 4
     },
     "gurgles": {
       "type": "strip",
@@ -351,6 +362,7 @@
       "type": "strip",
       "authors": ["B1tseK"],
       "border": "#00302c",
+      "snap": 2,
       "variants": {
         "glow_squid_old": {
           "name": "Glow Squid (Old)",
@@ -362,6 +374,7 @@
       "type": "strip",
       "authors": ["Klayv"],
       "border": "#441b39",
+      "snap": 2,
       "variants": {
         "cherry_blossom_small": {
           "name": "Cherry Blossom (Small)",
@@ -373,7 +386,8 @@
     "hay_bale": {
       "type": "strip",
       "authors": ["Klayv"],
-      "border": "#1c0d06"
+      "border": "#1c0d06",
+      "snap": 2
     },
     "winter": {
       "type": "strip",
@@ -381,12 +395,14 @@
         { "overlay": "highlights_bottom", "blend": "screen", "colours": ["#fbfcff"], "opacity": 55 }
       ],
       "authors": ["Klayv"],
-      "border": "#1d193d"
+      "border": "#1d193d",
+      "snap": 2
     },
     "terracotta": {
       "type": "strip",
       "authors": ["Klayv"],
-      "border": "#2a1c16"
+      "border": "#2a1c16",
+      "snap": 2
     },
     "lagoona": {
       "type": "strip",
@@ -396,7 +412,8 @@
     "enderman": {
       "type": "strip",
       "authors": ["B1tseK"],
-      "border": "#000000"
+      "border": "#000000",
+      "snap": 2
     }
   }
 }
