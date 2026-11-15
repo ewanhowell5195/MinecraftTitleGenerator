@@ -6,7 +6,7 @@ import { GENERATED_EDGE_OVERLAYS, SMOOTH_KINDS, edgeAlpha, generatedAlpha, toneK
 import { joinNeighbours, keptAt } from "./joins.js"
 import { layout } from "./layout.js"
 import { WHITE, definitionPalette } from "./overlayColours.js"
-import { defaultBorder, overlayLayer } from "./settings.js"
+import { defaultBorder, layerDefault, overlayLayer, perLayerDefault } from "./settings.js"
 import { bandEntry, stripCovers } from "./strips.js"
 import { MARGIN, drawLayer, drawRing, drawStrip, over, sceneFrame } from "./thumbnails.js"
 
@@ -201,10 +201,15 @@ function bandedStrip(scene, entry, image) {
   return { ...layers[0], layers }
 }
 
-async function textureThumbnail({ entry, scene, meta, sheet, width, densityOf }, name, data, variant) {
+async function textureThumbnail(context, name, data, variant) {
+  const { entry, scene, meta, sheet, width, densityOf } = context
   const border = opaque(variant.border ?? data.border ?? "#000000")
   const merged = { ...data, ...variant }
-  const overlays = await Promise.all((merged.overlays ?? []).map(async layer => {
+  if (perLayerDefault(merged.overlays, "overlays") && scene.layer == null && scene.layers) {
+    const bands = await Promise.all(scene.layers.map((_, band) => textureThumbnail({ ...context, scene: layerScene(scene, band) }, name, data, variant)))
+    return bands.reduceRight((behind, front) => compose(behind, front))
+  }
+  const overlays = await Promise.all((layerDefault(merged.overlays, "overlays", scene.layer ?? 0) ?? []).map(async layer => {
     const known = meta.overlays[layer.overlay]
     if (!known) throw new Error(`${name}: default overlay "${layer.overlay}" is not one of this font's overlays`)
     return { kind: known.generated ?? null, image: known.generated ? null : await sheet("overlays", layer.overlay), layer: { ...overlayLayer(layer.overlay, known), ...layer, palette: definitionPalette(known) } }

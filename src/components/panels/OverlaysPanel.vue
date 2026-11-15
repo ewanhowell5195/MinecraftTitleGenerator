@@ -15,12 +15,12 @@
 
   const listKey = props.edge ? "edgeOverlays" : "overlays"
   const modeKey = OVERLAY_KINDS[listKey]
-  const { object, font, list, modified, reset } = usePanel(listKey)
+  const { object, font, list, layer, modified, reset } = usePanel(listKey)
   const shownLayer = layerShown("overlays")
   const available = computed(() => Object.fromEntries(Object.entries(list.value?.[listKey] ?? {}).filter(([, data]) => overlayFits(data, shownLayer.value, usedLayers.value))))
   const selected = ref(0)
-  const defaults = computed(() => defaultOverlays(list.value, object.value, listKey))
-  const layers = computed(() => activeOverlays(list.value, object.value, listKey))
+  const defaults = computed(() => defaultOverlays(list.value, object.value, listKey, layer.value))
+  const layers = computed(() => activeOverlays(list.value, object.value, listKey, layer.value))
 
   function custom() {
     if (object.value[modeKey] !== "custom") {

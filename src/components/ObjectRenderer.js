@@ -18,7 +18,7 @@ import { platform } from "../lib/platform.js"
 import { quietly } from "../lib/history.js"
 import { DEFAULT_CAP_HEIGHT, DEFAULT_HEIGHT, NO_ARC } from "../lib/rows.js"
 import { editorTitle, finalShadows, keepTexture, loadedFont, words } from "../lib/scene.js"
-import { activeOverlays, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, effectiveScale, fontFaces, isCustomFont, layerTarget, sameValue, setTexture, textureEntry } from "../lib/settings.js"
+import { activeOverlays, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, effectiveScale, fontFaces, isCustomFont, isSeparate, layerTarget, sameValue, separateForDefaults, setTexture, textureEntry } from "../lib/settings.js"
 
 const BASE = ["font", "source", "textureSource", "texture", "textureVariant", "tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "customTexture", "stops", "smooth", "gradientAngle", "arcGradient", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "tileablePerCharacter", "disableFontOverlay", "edgeBrightness"]
 
@@ -80,9 +80,9 @@ export default {
 
     const layerCount = computed(() => font.value?.layers?.length ?? 1)
     const targets = computed(() => Array.from({ length: layerCount.value }, (_, layer) => layerTarget(object, layer)))
-    const looks = computed(() => targets.value.map(lookOf))
+    const looks = computed(() => targets.value.map((target, layer) => lookOf(target, isSeparate(object, "overlays") ? layer : 0)))
 
-    function lookOf(object) {
+    function lookOf(object, layer = 0) {
       return {
         font: font.value?.id,
         source: sourceOf(object),
@@ -99,8 +99,8 @@ export default {
         smooth: object.smooth,
         gradientAngle: object.gradientAngle,
         arcGradient: object.arcGradient,
-        overlays: activeOverlays(list.value, object, "overlays").map(layer => ({ ...layer })),
-        edgeOverlays: activeOverlays(list.value, object, "edgeOverlays").map(layer => ({ ...layer })),
+        overlays: activeOverlays(list.value, object, "overlays", layer).map(entry => ({ ...entry })),
+        edgeOverlays: activeOverlays(list.value, object, "edgeOverlays", layer).map(entry => ({ ...entry })),
         tileableScale: object.tileableScale,
         tileableXOffset: object.tileableXOffset,
         tileableYOffset: object.tileableYOffset,
@@ -520,6 +520,7 @@ export default {
         })
       } else if (object.texture === null) quietly(() => (object.texture = defaultTexture(textures, object.type)))
       if (loaded.mesh && object.textureSource === "custom") quietly(() => setTexture(object, { textureSource: "premade" }))
+      quietly(() => separateForDefaults(object, textures))
       keepTexture.delete(object)
       loadedFont.set(object, loaded.id)
       loadedFaces.set(object, fontFaces(object.type, loaded))

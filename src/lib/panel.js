@@ -25,13 +25,15 @@ function context() {
 export function usePanel(name, word = false) {
   const base = word ? currentWord : current
   const group = GROUPS[name]
-  const object = group ? computed(() => layerView(base.value, isSeparate(base.value, group) ? editingLayer.value : 0, group)) : base
+  const layer = computed(() => group && isSeparate(base.value, group) ? editingLayer.value : 0)
+  const object = group ? computed(() => layerView(base.value, layer.value, group)) : base
   return {
     object,
     font,
     list,
-    modified: computed(() => isModified(object.value, name, context())),
-    reset: () => resetPanel(object.value, name, context()),
+    layer,
+    modified: computed(() => isModified(object.value, name, { ...context(), layer: layer.value })),
+    reset: () => resetPanel(object.value, name, { ...context(), layer: layer.value }),
     k: key => word ? wordKey(key) : key
   }
 }
