@@ -1,10 +1,10 @@
 import { reactive, shallowReactive } from "vue"
-import { DEFAULT_FOV } from "./view.js"
+import { fullCamera } from "./camera.js"
 
-export const OFFSCREEN_VIEW = { render: false, fov: DEFAULT_FOV, fixedDistance: false, previews: false, eager: true }
+export const OFFSCREEN_VIEW = { render: false, previews: false, eager: true }
 
-export function createTitle(objects, view) {
-  return { objects, view, runtime: shallowReactive({}), heights: reactive({}), problems: reactive({}) }
+export function createTitle(objects, view, camera = reactive(fullCamera())) {
+  return { objects, view, camera, runtime: shallowReactive({}), heights: reactive({}), problems: reactive({}) }
 }
 
 export function firstError(title) {

@@ -209,11 +209,11 @@
   function fitCamera() {
     invalidate()
     viewportChanges.value++
-    const title = titleFraming(props.items, view.fixedDistance)
-    if (!title) return
-    frameCamera(camera, { ...title, fov: view.fov, ...frameSize, maxScale: view.render ? Infinity : MAX_SCALE, frame: view.render ? { rect: frameRect, bounds: frameBounds, pixels: framePixels } : null })
+    const shot = titleFraming(props.items, title.camera.fixedDistance)
+    if (!shot) return
+    frameCamera(camera, { ...shot, angle: title.camera, ...frameSize, maxScale: view.render ? Infinity : MAX_SCALE, frame: view.render ? { rect: frameRect, bounds: frameBounds, pixels: framePixels } : null })
     framed = true
-    framedTitle = title
+    framedTitle = shot
     baseProjection.copy(camera.projectionMatrix)
     basePosition.copy(camera.position)
     baseQuaternion.copy(camera.quaternion)
@@ -221,7 +221,7 @@
   }
 
   function lens() {
-    return { fov: view.fov || ORBIT_FOV, aspect: frameSize.width / frameSize.height, size: framedTitle?.size ?? 1 }
+    return { fov: title.camera.fov || ORBIT_FOV, aspect: frameSize.width / frameSize.height, size: framedTitle?.size ?? 1 }
   }
 
   function applyView() {
@@ -343,9 +343,9 @@
     smoothing = createSmoothing(renderer)
     host.value.append(renderer.domElement)
     frameSize = { width, height }
-    perspective = new THREE.PerspectiveCamera(view.fov || 40, width / height, 1, 5000)
+    perspective = new THREE.PerspectiveCamera(title.camera.fov || 40, width / height, 1, 5000)
     orthographic = new THREE.OrthographicCamera()
-    camera = view.fov ? perspective : orthographic
+    camera = title.camera.fov ? perspective : orthographic
     selection = wireBox(new THREE.LineBasicMaterial({ color: getComputedStyle(host.value).getPropertyValue("--accent").trim(), depthTest: false }))
     selection.matrixAutoUpdate = false
     selection.visible = false
@@ -449,15 +449,15 @@
     renderer.domElement.remove()
   })
 
-  watch(() => view.fov, value => {
+  watch(() => title.camera.fov, value => {
     camera = value ? perspective : orthographic
     controls.camera = camera
     fitCamera()
   })
 
-  watch(() => view.fixedDistance, fitCamera)
+  watch(() => [title.camera.fixedDistance, title.camera.pitch, title.camera.yaw, title.camera.tilt], fitCamera)
   watch(() => view.gizmo, invalidate)
-  watch([() => view.section, () => view.render], () => view.gizmo = null)
+  watch([() => view.section, () => view.render, () => view.camera], () => view.gizmo = null)
   watch(shapingWord, invalidate)
   watch([pan, orbit], applyView)
   watch(navigable, () => {

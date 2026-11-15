@@ -6,7 +6,7 @@
   import { scene, titleFileName } from "../../lib/scene.js"
   import { submitStats } from "../../lib/stats.js"
   import { downloadBlob } from "../../lib/ui.js"
-  import { DEFAULT_FOV, view } from "../../lib/view.js"
+  import { view } from "../../lib/view.js"
   import Button from "../Button.vue"
   import ColourPicker from "../ColourPicker.vue"
   import Dropdown from "../Dropdown.vue"
@@ -90,10 +90,6 @@
     }
   }
 
-  function resetCamera() {
-    view.fov = DEFAULT_FOV
-    view.fixedDistance = false
-  }
 </script>
 
 <template>
@@ -160,11 +156,6 @@
 
   <RenderProgress v-if="progress !== null" :progress="progress" @close="cancel" />
   <RenderResult v-if="result" :image="result" :name="`${titleFileName()}.png`" @close="result = null" />
-
-  <Panel title="Camera" :modified="view.fov !== DEFAULT_FOV || view.fixedDistance" @reset="resetCamera">
-    <Slider label="Field of view" v-model="view.fov" :min="0" :max="90" hint="0 is orthographic." />
-    <Toggle v-if="view.fov" label="Fixed camera distance" hint="The camera normally moves with the top text's width so its ends always lean the same. This keeps it still instead, so longer text leans more at the ends" v-model="view.fixedDistance" />
-  </Panel>
 </template>
 
 <style scoped>

@@ -99,7 +99,7 @@
       const framed = titleFraming(items.value, false)
       if (framed) {
         fitted = items.value
-        frameCamera(camera, { ...framed, fov: title.view.fov, ...size })
+        frameCamera(camera, { ...framed, angle: title.camera, ...size })
       }
     }
     if (!fitted) return
@@ -128,7 +128,7 @@
   onMounted(() => {
     renderer = platform.createWebGLRenderer()
     smoothing = createSmoothing(renderer)
-    camera = new THREE.PerspectiveCamera(title.view.fov, 1, 1, 5000)
+    camera = new THREE.PerspectiveCamera(title.camera.fov, 1, 1, 5000)
     stage.value.append(renderer.domElement)
     observer = new ResizeObserver(resize)
     observer.observe(stage.value)

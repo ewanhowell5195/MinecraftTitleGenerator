@@ -12,9 +12,9 @@ export const problems = editorTitle.problems
 const perspective = new THREE.PerspectiveCamera()
 const orthographic = new THREE.OrthographicCamera()
 
-function titleCamera(items, view) {
-  const camera = view.fov ? perspective : orthographic
-  frameCamera(camera, { ...titleFraming(items.map(({ object, state }) => ({ ...state, type: object.type })), view.fixedDistance), fov: view.fov, width: 1, height: 1 })
+function titleCamera(items, angle) {
+  const camera = angle.fov ? perspective : orthographic
+  frameCamera(camera, { ...titleFraming(items.map(({ object, state }) => ({ ...state, type: object.type })), angle.fixedDistance), angle, width: 1, height: 1 })
   return camera
 }
 
@@ -163,7 +163,7 @@ function update(title) {
     const reference = matchReference(object, title)
     if (!reference || !ready(object, title) || !ready(reference, title)) continue
     try {
-      camera ??= titleCamera(items, title.view)
+      camera ??= titleCamera(items, title.camera)
       const solved = solve(camera, { object, state: rested(object, title) }, { object: reference, state: rested(reference, title) }, title)
       const matchScale = round(solved.matchScale, 4)
       const matchOffset = round(solved.matchOffset, 2)
@@ -181,5 +181,5 @@ function update(title) {
 }
 
 export function keepMatched(title = editorTitle) {
-  watch(() => [title.view.fov, title.view.fixedDistance, title.objects.map(object => [object.matchWidth, object.matchBottom, object.matchScaleY, object.hidden, title.runtime[object.id]])], () => update(title))
+  watch(() => [{ ...title.camera }, title.objects.map(object => [object.matchWidth, object.matchBottom, object.matchScaleY, object.hidden, title.runtime[object.id]])], () => update(title))
 }

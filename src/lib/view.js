@@ -1,7 +1,5 @@
 import { reactive, ref, watch } from "vue"
 
-export const DEFAULT_FOV = 43
-
 export const SECTIONS = {
   text: { name: "Text", icon: "text" },
   font: { name: "Font", icon: "font" },
@@ -21,9 +19,8 @@ const DEFAULTS = {
   shapeTab: "line",
   layer: 0,
   render: false,
+  camera: false,
   gizmo: null,
-  fov: DEFAULT_FOV,
-  fixedDistance: false,
   resolution: 2048,
   antialias: true
 }

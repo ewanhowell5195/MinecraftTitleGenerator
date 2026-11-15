@@ -51,7 +51,7 @@
   const rows = computed(() => lines().map(words => ({ key: words[0].group === null ? `object-${words[0].id}` : `group-${words[0].group}`, group: words[0].group, words })))
 
   function selected(object) {
-    if (view.render) return false
+    if (view.render || view.camera) return false
     return scene.selectedGroup === null ? scene.selected === object.id : object.group === scene.selectedGroup
   }
 
@@ -63,12 +63,14 @@
     if (dropped) return
     select(object)
     view.render = false
+    view.camera = false
   }
 
   function pickGroup(group) {
     if (dropped) return
     selectGroup(group)
     view.render = false
+    view.camera = false
   }
 
   const list = ref(null)
@@ -157,11 +159,13 @@
   function add() {
     addObject()
     view.render = false
+    view.camera = false
   }
 
   function addShapeLine() {
     addShape()
     view.render = false
+    view.camera = false
   }
 
   const context = ref(null)
@@ -203,8 +207,8 @@
     </button>
     <div class="divider"></div>
     <div ref="list" class="list" :class="{ dragging: dragged !== null }" @dragstart.prevent>
-      <div v-for="row of rows" :key="row.key" :data-row="row.key" :class="row.group === null ? 'single' : { group: true, selected: !view.render && scene.selectedGroup === row.group, hidden: lineHidden(row.words[0]), dragged: dragged === row.key }">
-        <div v-if="row.group !== null" class="head" tabindex="0" role="button" :aria-label="`${lineText(row.words[0]) || '(empty)'} line`" :aria-pressed="!view.render && scene.selectedGroup === row.group" @pointerdown="press($event, row, null)" @click="pickGroup(row.group)" v-long-press @contextmenu.prevent="menu($event, row, null)" @keydown.enter="pickGroup(row.group)" @keydown.space.prevent="pickGroup(row.group)" v-tooltip="{ text: `${lineText(row.words[0]) || '(empty)'} (${TYPES[row.words[0].type].name})`, prefer: 'right', tooltipClass: 'rail-tip rail-head' }">
+      <div v-for="row of rows" :key="row.key" :data-row="row.key" :class="row.group === null ? 'single' : { group: true, selected: !view.render && !view.camera && scene.selectedGroup === row.group, hidden: lineHidden(row.words[0]), dragged: dragged === row.key }">
+        <div v-if="row.group !== null" class="head" tabindex="0" role="button" :aria-label="`${lineText(row.words[0]) || '(empty)'} line`" :aria-pressed="!view.render && !view.camera && scene.selectedGroup === row.group" @pointerdown="press($event, row, null)" @click="pickGroup(row.group)" v-long-press @contextmenu.prevent="menu($event, row, null)" @keydown.enter="pickGroup(row.group)" @keydown.space.prevent="pickGroup(row.group)" v-tooltip="{ text: `${lineText(row.words[0]) || '(empty)'} (${TYPES[row.words[0].type].name})`, prefer: 'right', tooltipClass: 'rail-tip rail-head' }">
           <Icon name="layers" :size="14" />
         </div>
         <div class="layer" v-for="object of row.words" :key="object.id" tabindex="0" role="button" :aria-pressed="selected(object)" @pointerdown="press($event, row, row.group === null ? null : object)" @click="pick(object)" v-long-press @contextmenu.prevent="menu($event, row, row.group === null ? null : object)" @keydown.enter="pick(object)" @keydown.space.prevent="pick(object)" :class="{ selected: selected(object), hidden: object.hidden, error: runtime[object.id]?.error, dragged: dragged === object.id || dragged === row.key && row.group === null }" v-tooltip="{ text: `${label(object)} (${TYPES[object.type].name})`, prefer: 'right', tooltipClass: row.group === null ? 'rail-tip thumb-tip' : 'rail-tip thumb-tip rail-word' }">
@@ -222,8 +226,12 @@
       </button>
     </div>
     <div class="divider"></div>
-    <button class="render rail-button" :class="{ selected: view.render }" @click="view.render = true">
+    <button class="render rail-button" :class="{ selected: view.camera }" @click="view.camera = true; view.render = false">
       <Icon name="camera" :size="20" />
+      <span>Camera</span>
+    </button>
+    <button class="render rail-button" :class="{ selected: view.render }" @click="view.render = true; view.camera = false">
+      <Icon name="image" :size="20" />
       <span>Render</span>
     </button>
     <ContextMenu :items="context?.items" :at="context?.at" @close="context = null" />
@@ -440,7 +448,16 @@
     background: var(--accent-soft);
   }
 
+  .rail-button + .rail-button {
+    margin-top: 6px;
+  }
+
   @media (max-width: 800px) {
+    .rail-button + .rail-button {
+      margin-top: 0;
+      margin-left: 6px;
+    }
+
     .layers {
       flex-direction: row;
       align-items: center;

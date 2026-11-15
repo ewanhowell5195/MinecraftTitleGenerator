@@ -1,5 +1,6 @@
 import { effect, reactive, watch } from "vue"
 import { forgetImages } from "./assets.js"
+import { setCamera } from "./camera.js"
 import { restore } from "./settings.js"
 import { keepTexture, keptObject, leaveSharedLink, scene, validSelection } from "./scene.js"
 import { loadKey } from "./shapes.js"
@@ -48,7 +49,7 @@ function prune() {
 }
 
 function take() {
-  return JSON.stringify({ objects: scene.objects, selected: scene.selected, selectedGroup: scene.selectedGroup }, intern)
+  return JSON.stringify({ objects: scene.objects, camera: scene.camera, selected: scene.selected, selectedGroup: scene.selectedGroup }, intern)
 }
 
 function commit() {
@@ -70,7 +71,7 @@ function commit() {
 }
 
 function apply(snapshot) {
-  const { objects, selected, selectedGroup } = JSON.parse(snapshot, revive)
+  const { objects, camera, selected, selectedGroup } = JSON.parse(snapshot, revive)
   restoring = true
   const list = objects.map(values => {
     const existing = scene.objects.find(object => object.id === values.id)
@@ -80,6 +81,7 @@ function apply(snapshot) {
     return existing
   })
   scene.objects.splice(0, scene.objects.length, ...list)
+  setCamera(scene.camera, camera)
   Object.assign(scene, validSelection(list, selected, selectedGroup))
   restoring = false
 }
@@ -138,7 +140,7 @@ function noticeChange() {
   timer = held ? null : setTimeout(commit, SETTLE)
 }
 
-const tracker = effect(() => touch(scene.objects), { scheduler: noticeChange })
+const tracker = effect(() => touch([scene.objects, scene.camera]), { scheduler: noticeChange })
 
 watch(() => [scene.selected, scene.selectedGroup], () => {
   if (!restoring && !changed && !timer) present = take()

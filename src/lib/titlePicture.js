@@ -2,6 +2,7 @@ import { createRenderer, effectScope, reactive, watch } from "vue"
 import * as THREE from "three"
 import ModelRenderer from "../components/ModelRenderer.js"
 import ObjectRenderer from "../components/ObjectRenderer.js"
+import { fullCamera } from "./camera.js"
 import { readTitleObjects } from "./file.js"
 import { createTitleItems } from "./items.js"
 import { decodeTitle, unknownSetting } from "./linkformat.js"
@@ -45,15 +46,15 @@ function scales(title) {
   return title.objects.map(object => [object.scaleX, object.scaleY, object.matchScale, object.matchOffset]).join()
 }
 
-async function shoot(items, width, fixedDistance) {
+async function shoot(items, width, angle) {
   const stage = createStage()
   const { scene } = stage
   stage.sync(items)
   try {
-    const framed = titleFraming(items, fixedDistance)
+    const framed = titleFraming(items, angle.fixedDistance)
     if (!framed) return null
-    const camera = new THREE.PerspectiveCamera(OFFSCREEN_VIEW.fov, STAGE_WIDTH / STAGE_HEIGHT, 1, 5000)
-    frameCamera(camera, { ...framed, fov: OFFSCREEN_VIEW.fov, width: STAGE_WIDTH, height: STAGE_HEIGHT })
+    const camera = angle.fov ? new THREE.PerspectiveCamera(angle.fov, STAGE_WIDTH / STAGE_HEIGHT, 1, 5000) : new THREE.OrthographicCamera()
+    frameCamera(camera, { ...framed, angle, width: STAGE_WIDTH, height: STAGE_HEIGHT })
     stage.sort(camera)
     const shot = titleShot(scene, camera, new THREE.Vector2(STAGE_WIDTH, STAGE_HEIGHT), 1)
     if (!shot) return null
@@ -76,7 +77,7 @@ export async function titleCanvas(code, width = PICTURE_WIDTH, fixedDistance = f
 }
 
 function titleOf(decoded, fixedDistance) {
-  return createTitle(reactive(readTitleObjects(decoded)), { ...OFFSCREEN_VIEW, fixedDistance })
+  return createTitle(reactive(readTitleObjects(decoded)), OFFSCREEN_VIEW, reactive(fullCamera({ fixedDistance })))
 }
 
 async function pictureOf(title, fonts, tileables, width, shapes) {
@@ -96,7 +97,7 @@ async function pictureOf(title, fonts, tileables, width, shapes) {
     } while (scales(title) !== before)
     const failed = firstError(title)
     if (failed) throw new Error(failed)
-    return await shoot(items.value, width, title.view.fixedDistance)
+    return await shoot(items.value, width, title.camera)
   } finally {
     for (const app of apps) app.unmount()
     scope.stop()

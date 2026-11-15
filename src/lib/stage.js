@@ -1,9 +1,8 @@
 import * as THREE from "three"
+import { DEFAULT_CAMERA } from "./camera.js"
 import { clamp, round } from "./maths.js"
 
-const DIRECTION = new THREE.Vector3(0, -0.51007, 0.86013).normalize()
 const FAR_EYE = 1e6
-const TILT = radians(7.285)
 const TITLE_REACH = 144
 const ZOOM_LIMITS = [0.25, 32]
 const PITCH_LIMIT = radians(89)
@@ -385,23 +384,30 @@ export function cornersOf(box) {
   return corners
 }
 
-export function frameCamera(camera, { anchor, corners, size, fov, width, height, frame, maxScale = Infinity, reach }) {
+function cameraDirection({ pitch, yaw }) {
+  const up = radians(pitch)
+  const around = radians(yaw)
+  return new THREE.Vector3(Math.sin(around) * Math.cos(up), -Math.sin(up), Math.cos(around) * Math.cos(up))
+}
+
+export function frameCamera(camera, { anchor, corners, size, angle = DEFAULT_CAMERA, fov = angle.fov, width, height, frame, maxScale = Infinity, reach }) {
   const target = anchor.getCenter(new THREE.Vector3())
+  const direction = cameraDirection(angle)
   const aspect = width / height
   const orthographic = camera.isOrthographicCamera
-  const right = new THREE.Vector3(0, 1, 0).cross(DIRECTION).normalize()
+  const right = new THREE.Vector3(0, 1, 0).cross(direction).normalize()
   let widest = 0
   let front = 0
   for (const corner of cornersOf(anchor)) {
     const offset = corner.clone().sub(target)
     widest = Math.max(widest, Math.abs(offset.dot(right)))
-    front = Math.max(front, offset.dot(DIRECTION))
+    front = Math.max(front, offset.dot(direction))
   }
-  const clearance = reach ? Math.max(...corners.map(corner => corner.clone().sub(target).dot(DIRECTION))) + reach : 0
+  const clearance = reach ? Math.max(...corners.map(corner => corner.clone().sub(target).dot(direction))) + reach : 0
   const distance = orthographic ? size * 2 : Math.max((reach ?? widest) / Math.tan(fov * Math.PI / 360) + front, clearance)
-  camera.position.copy(target).addScaledVector(DIRECTION, distance)
+  camera.position.copy(target).addScaledVector(direction, distance)
   camera.lookAt(target)
-  if (!orthographic) camera.rotateX(TILT)
+  camera.rotateX(radians(angle.tilt))
   camera.updateMatrixWorld(true)
   const inverse = camera.matrixWorld.clone().invert()
   let minX = Infinity

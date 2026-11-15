@@ -19,6 +19,7 @@
   import Viewport from "./components/Viewport.vue"
   import ArcPanel from "./components/panels/ArcPanel.vue"
   import TwistPanel from "./components/panels/TwistPanel.vue"
+  import CameraPanel from "./components/panels/CameraPanel.vue"
   import ColourPanel from "./components/panels/ColourPanel.vue"
   import LayerPanel from "./components/panels/LayerPanel.vue"
   import FontPanel from "./components/panels/FontPanel.vue"
@@ -67,13 +68,13 @@
   const menuBar = ref(null)
 
   const selected = computed(() => {
-    if (view.render || !currentWord.value) return []
+    if (view.render || view.camera || !currentWord.value) return []
     if (FORM_SECTIONS.has(view.section)) return (shapingWord.value ? [currentWord.value] : words(currentWord.value)).map(object => object.id)
     if (LINE_SECTIONS.has(view.section)) return words(currentWord.value).map(object => object.id)
     return selection.value.map(object => object.id)
   })
   const status = computed(() => error.value ?? fileError.value ?? saveError.value ?? active.value.error)
-  const editing = computed(() => !view.render && scene.objects.length > 0)
+  const editing = computed(() => !view.render && !view.camera && scene.objects.length > 0)
   const shapeLine = computed(() => currentWord.value?.shape != null)
   const minecraftLine = computed(() => isMinecraftShape(currentWord.value?.shape))
   const tabs = computed(() => SECTION_TABS.filter(tab => shapeLine.value ? !TEXT_SECTIONS.has(tab.id) && !(minecraftLine.value && GAME_TEXTURED.has(tab.id)) : !SHAPE_SECTIONS.has(tab.id)))
@@ -99,7 +100,7 @@
     event.preventDefault()
   }
 
-  watch(() => [view.section, view.render], () => {
+  watch(() => [view.section, view.render, view.camera], () => {
     drawer.value.scrollTop = 0
   })
 
@@ -142,9 +143,10 @@
 
     <aside ref="drawer" class="drawer">
       <div v-if="!editing" class="intro row">
-        <h2>{{ view.render ? "Render" : "No text" }}</h2>
+        <h2>{{ view.render ? "Render" : view.camera ? "Camera" : "No text" }}</h2>
       </div>
       <RenderPanel v-if="view.render" />
+      <CameraPanel v-else-if="view.camera" />
       <Panel v-else-if="!editing">
         <Button primary wide @click="addObject"><template #icon><Icon name="letter" :size="16" /></template>
           <span>Add text</span>

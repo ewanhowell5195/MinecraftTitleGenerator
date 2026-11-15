@@ -8,7 +8,6 @@ forbidFetch()
 fakeTimeouts()
 
 const { createObject } = await import("../src/lib/settings.js")
-const { view } = await import("../src/lib/view.js")
 const { runtime, scene } = await import("../src/lib/scene.js")
 const { history } = await import("../src/lib/history.js")
 const { keepMatched, leadsTo, matchSolved, problems } = await import("../src/lib/match.js")
@@ -141,7 +140,7 @@ describe("matchSolved", () => {
 describe("problems and solving", () => {
   before(() => {
     keepMatched()
-    view.fov = 0
+    scene.camera.fov = 0
   })
 
   function state(halfWidth, border, offsetY = 0, settled = true) {
@@ -384,11 +383,11 @@ describe("problems and solving", () => {
 
 describe("rows scaled by their stretch marks", () => {
   before(() => {
-    view.fov = 70
+    scene.camera.fov = 70
   })
 
   after(() => {
-    view.fov = 0
+    scene.camera.fov = 0
   })
 
   function state(halfWidth, height, offsetY, scale = [1, 1, 1]) {

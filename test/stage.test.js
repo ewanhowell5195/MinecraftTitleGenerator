@@ -11,7 +11,8 @@ const { ORBIT_FOV, UNZOOMED, cornersOf, frameCamera, gizmoPose, lineBounds, move
 
 const BOUNDS = new THREE.Box3(new THREE.Vector3(0, 0, 0), new THREE.Vector3(10, 4, 2))
 const WIDE = new THREE.Box3(new THREE.Vector3(-30, 0, 0), new THREE.Vector3(30, 20, 10))
-const DIRECTION = new THREE.Vector3(0, -0.51007, 0.86013).normalize()
+const { CAMERA_PRESETS, DEFAULT_CAMERA } = await import("../src/lib/camera.js")
+const DIRECTION = new THREE.Vector3(0, -Math.sin(radians(DEFAULT_CAMERA.pitch)), Math.cos(radians(DEFAULT_CAMERA.pitch)))
 
 function closeList(actual, expected, tolerance = 1e-6) {
   const list = actual.toArray ? actual.toArray() : actual
@@ -513,17 +514,32 @@ describe("frameCamera", () => {
     close(camera.position.distanceTo(target), 10 + DIRECTION.z)
   })
 
-  test("perspective is tilted by the title angle, orthographic is not", () => {
+  test("the camera is tilted by the camera angle in both projections", () => {
     const target = anchor.getCenter(new THREE.Vector3())
-    const flat = new THREE.OrthographicCamera()
-    frameCamera(flat, { anchor, corners, size, fov: 43, width: 800, height: 600 })
-    close(flat.getWorldDirection(new THREE.Vector3()).angleTo(target.clone().sub(flat.position)), 0, 1e-6)
-    const deep = new THREE.PerspectiveCamera()
-    frameCamera(deep, { anchor, corners, size, fov: 43, width: 800, height: 600 })
-    const direction = deep.getWorldDirection(new THREE.Vector3())
-    const towards = target.clone().sub(deep.position).normalize()
-    close(direction.angleTo(towards), radians(7.285), 1e-6)
-    assert.ok(direction.y > towards.y)
+    for (const camera of cameras()) {
+      frameCamera(camera, { anchor, corners, size, fov: 43, width: 800, height: 600 })
+      const direction = camera.getWorldDirection(new THREE.Vector3())
+      const towards = target.clone().sub(camera.position).normalize()
+      close(direction.angleTo(towards), radians(7.285), 1e-6)
+      assert.ok(direction.y > towards.y)
+    }
+  })
+
+  test("yaw swings the camera round to the side", () => {
+    const target = anchor.getCenter(new THREE.Vector3())
+    const camera = new THREE.PerspectiveCamera()
+    frameCamera(camera, { anchor, corners, size, angle: { ...DEFAULT_CAMERA, yaw: 30 }, width: 800, height: 600 })
+    const offset = camera.position.clone().sub(target).normalize()
+    close(Math.atan2(offset.x, offset.z), radians(30), 1e-9)
+    close(Math.asin(-offset.y), radians(DEFAULT_CAMERA.pitch), 1e-9)
+  })
+
+  test("the front preset looks straight at the title", () => {
+    const target = anchor.getCenter(new THREE.Vector3())
+    const camera = new THREE.OrthographicCamera()
+    frameCamera(camera, { anchor, corners, size, angle: CAMERA_PRESETS.find(preset => preset.value === "front").camera, width: 800, height: 600 })
+    closeList(camera.position.clone().sub(target).normalize(), [0, 0, 1])
+    closeList(camera.getWorldDirection(new THREE.Vector3()), [0, 0, -1])
   })
 
   test("a fixed reach sets the distance whatever the title width", () => {

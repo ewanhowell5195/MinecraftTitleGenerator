@@ -1,4 +1,5 @@
 import { computed, reactive, ref, shallowReactive, watch } from "vue"
+import { fullCamera } from "./camera.js"
 import { hoisted, lowered } from "./linkformat.js"
 import { round } from "./maths.js"
 import { FILE_VERSION, LINE, applyType, createObject, isModified, snapshot } from "./settings.js"
@@ -76,10 +77,10 @@ function load() {
 
 const initial = load()
 
-export const scene = reactive({ objects: initial.objects, ...validSelection(initial.objects, initial.selected, initial.selectedGroup) })
+export const scene = reactive({ objects: initial.objects, camera: fullCamera(), ...validSelection(initial.objects, initial.selected, initial.selectedGroup) })
 
 export const editorTitle = {
-  ...createTitle(scene.objects, view),
+  ...createTitle(scene.objects, view, scene.camera),
   get objects() {
     return scene.objects
   }
