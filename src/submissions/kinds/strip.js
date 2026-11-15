@@ -42,7 +42,7 @@ async function placedSet(item, font, fonts) {
 }
 
 function measureOf(loaded, band) {
-  return { range: stripRange(loaded, band), capHeight: loaded.capHeight, depth: layerDepth(defaultDepth(loaded), loaded.layers, band) }
+  return { range: stripRange(loaded, band), capHeight: loaded.capHeight, depth: layerDepth(defaultDepth(loaded), loaded.layers, band, loaded.layerDepth === "independent") }
 }
 
 function stackedRemap(pixels, entry, loaded, layer) {

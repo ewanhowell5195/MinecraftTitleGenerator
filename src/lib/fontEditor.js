@@ -1,5 +1,5 @@
 import { authorList } from "./authors.js"
-import { blankStrip, flatLayers, flatPixels } from "./flatSheet.js"
+import { blankStrip, flatLayers, flatPixels, independentLayers } from "./flatSheet.js"
 import { groupedKerning, kerningPairs, parseMask, scanMask } from "./font.js"
 import { titleCase } from "./names.js"
 import { mostCommon } from "./maths.js"
@@ -24,7 +24,7 @@ const SHEETS_KEPT = 8
 const NAMES = { [CREEPER]: "Creeper A", [OPENING_QUOTE]: "Opening quote", "'": "Closing quote", [TERMINATOR_OPEN]: "Left line terminator", [TERMINATOR_CLOSE]: "Right line terminator", [SPACE_CHAR]: "Space" }
 const LABELS = { [CREEPER]: "Creeper", [OPENING_QUOTE]: String.fromCodePoint(0x2018), "'": String.fromCodePoint(0x2019), [SPACE_CHAR]: "Space" }
 const NOTHING_TO_DRAW = /^[\p{M}\p{Cf}]$/u
-const META_KEYS = ["authors", "description", "basedOn", "spaceWidth", "depth", "border", "characterSpacing", "terminatorSpace", "terminatorSpaceWidth", "forcedTerminators", "autoBorder", "flat", "overlay", "allFaces", "strips", "kerning"]
+const META_KEYS = ["authors", "description", "basedOn", "spaceWidth", "depth", "border", "characterSpacing", "terminatorSpace", "terminatorSpaceWidth", "forcedTerminators", "autoBorder", "flat", "overlay", "allFaces", "layerDepth", "strips", "kerning"]
 const sheets = new Map()
 
 export function hasCase(char) {
@@ -62,7 +62,7 @@ export function fontId(font) {
 }
 
 export function createFont({ height = 40, width = 24, grid = 4, density = 1, letterCase = "upper" } = {}) {
-  return { name: "My Font", id: "", authors: [], description: "", basedOn: "", height, width, grid, density, letterCase, creeper: false, extras: [], defineSpace: false, spaceWidth: DEFAULT_SPACE_WIDTH, depth: DEFAULT_DEPTH, border: DEFAULT_BORDER, characterSpacing: 0, terminatorSpace: true, terminatorSpaceWidth: null, forcedTerminators: false, autoBorder: false, flat: false, overlay: false, allFaces: false, strips: [], kerning: {}, glyphs: {}, imported: null }
+  return { name: "My Font", id: "", authors: [], description: "", basedOn: "", height, width, grid, density, letterCase, creeper: false, extras: [], defineSpace: false, spaceWidth: DEFAULT_SPACE_WIDTH, depth: DEFAULT_DEPTH, border: DEFAULT_BORDER, characterSpacing: 0, terminatorSpace: true, terminatorSpaceWidth: null, forcedTerminators: false, autoBorder: false, flat: false, overlay: false, allFaces: false, layerDepth: "stacked", strips: [], kerning: {}, glyphs: {}, imported: null }
 }
 
 function withCases(font, list) {
@@ -555,14 +555,14 @@ export function flatTexture(value, fill = null) {
   const entry = exportJson(value, "")
   const { list, capHeight, layers } = parsedSheet(value, defaultBorder("top", entry))
   if (fill === "all") return flatPixels(list.map(cell => ({ ...cell, mask: new Uint8Array(cell.mask.length).fill(1) })), capHeight, defaultDepth(entry), 1, true)
-  return flatLayers(list, capHeight, defaultDepth(entry), layers, 1, !!fill)
+  return flatLayers(list, capHeight, defaultDepth(entry), layers, 1, !!fill, independentLayers(entry))
 }
 
 export function stripTexture(value) {
   const entry = exportJson(value, "")
   const { list, capHeight, layers } = parsedSheet(value, defaultBorder("top", entry))
   const letter = list.find(cell => cell.char === "A" && cell.width) ?? list.find(cell => cell.char === "a" && cell.width)
-  return blankStrip(list, capHeight, defaultDepth(entry), layers, letter?.width ?? value.width * value.density)
+  return blankStrip(list, capHeight, defaultDepth(entry), layers, letter?.width ?? value.width * value.density, independentLayers(entry))
 }
 
 export function parsedSheet(font, gap = font.border) {
@@ -740,6 +740,7 @@ export function exportJson(font, texture, characters = charactersOf(font)) {
   if (font.border !== DEFAULT_BORDER) entry.border = font.border
   if (font.characterSpacing) entry.characterSpacing = font.characterSpacing
   for (const key of ["terminatorSpace", "forcedTerminators", "autoBorder", "flat", "overlay", "allFaces"]) if (font[key]) entry[key] = true
+  if (font.layerDepth === "independent" && fontLayers(font)) entry.layerDepth = "independent"
   if (font.terminatorSpace && !font.defineSpace && (font.terminatorSpaceWidth ?? font.spaceWidth) !== font.spaceWidth) entry.terminatorSpaceWidth = font.terminatorSpaceWidth
   const kerning = Object.fromEntries(Object.entries(font.kerning).filter(([, amount]) => amount))
   if (Object.keys(kerning).length) entry.kerning = groupedKerning(kerning)

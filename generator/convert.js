@@ -136,7 +136,7 @@ if (order !== DEFAULT_ORDER) entry.order = order
 
 const parsed = parseMask(png.data, png.width, png.height, order, defaultBorder("top", entry))
 const { marked } = markSheet(png, parsed.list, parsed.capHeight)
-const { sheet } = flatSheet(parsed.list, parsed.capHeight, defaultDepth(entry), 1, parsed.layers)
+const { sheet } = flatSheet(parsed.list, parsed.capHeight, defaultDepth(entry), 1, parsed.layers, entry.layerDepth === "independent")
 
 writePng(path.join(folder, "font.png"), png)
 writePng(path.join(folder, "textures", "flat.png"), sheet)

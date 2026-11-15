@@ -94,7 +94,7 @@ const LETTERS = { subject: "Its letters", goes: "go", is: "are", fix: "Change th
 export async function stripProblem(entry, cells, capHeight, ctx, words = LETTERS, layers = null) {
   for (const use of (entry.strips ?? []).map(stripUse)) {
     const layer = use.layer && layers ? use.layer - 1 : null
-    const measure = { range: stripRange({ cells, capHeight }, layer), capHeight, depth: layerDepth(defaultDepth(entry), layers, layer) }
+    const measure = { range: stripRange({ cells, capHeight, layerDepth: entry.layerDepth }, layer), capHeight, depth: layerDepth(defaultDepth(entry), layers, layer, entry.layerDepth === "independent") }
     let set
     try {
       set = await stripSet(ctx, use.id)

@@ -292,21 +292,21 @@ function stretchedStrip(strip, low, high) {
   }, CACHED_OVERLAYS)
 }
 
-function bandExtent(glyph, band) {
+function bandExtent(glyph, band, independent) {
   if (band === null || !glyph.depths) return { left: 0, right: glyph.width }
-  const cell = layerCell(glyph, band)
+  const cell = layerCell(glyph, band, independent)
   return cell.width ? { left: cell.left, right: cell.left + cell.width } : null
 }
 
 function stripShift(glyph, strip, shifts) {
   if (shifts.has(glyph)) return shifts.get(glyph)
-  const own = bandExtent(glyph, strip.band)
-  const before = glyph.previous && bandExtent(glyph.previous, strip.band)
+  const own = bandExtent(glyph, strip.band, strip.independent)
+  const before = glyph.previous && bandExtent(glyph.previous, strip.band, strip.independent)
   let shift = 0
   if (own && before && glyph.previous.lineX + before.right >= glyph.lineX + own.left) shift = stripShift(glyph.previous, strip, shifts)
   else if (own) {
     const pixel = strip.snap ?? 1 / strip.density
-    const phase = ((glyph.lineX + own.left - layerLeft(glyph.lineFirst ?? glyph, strip.band)) % pixel + pixel) % pixel
+    const phase = ((glyph.lineX + own.left - layerLeft(glyph.lineFirst ?? glyph, strip.band, strip.independent)) % pixel + pixel) % pixel
     shift = phase <= pixel / 2 ? phase : phase - pixel
   }
   shifts.set(glyph, shift)
@@ -321,7 +321,7 @@ function paintStrip(ctx, entries, strip) {
   const stretched = strip.scale && Number.isInteger(strip.density) && spans.length ? stretchedStrip(strip, Math.min(...spans), high) : null
   for (const [entry, list] of runs) {
     const { glyph, source } = entry
-    const origin = strip.tiling === "character" ? entry.x + layerLeft(glyph, strip.band) : entry.x - glyph.lineX + layerLeft(glyph.lineFirst ?? glyph, strip.band) + stripShift(glyph, strip, shifts)
+    const origin = strip.tiling === "character" ? entry.x + layerLeft(glyph, strip.band, strip.independent) : entry.x - glyph.lineX + layerLeft(glyph.lineFirst ?? glyph, strip.band, strip.independent) + stripShift(glyph, strip, shifts)
     into(ctx, entry, "front")
     for (const { row, from, height } of list) {
       if (stretched) {
@@ -437,13 +437,13 @@ function pageSurface(sheet, options) {
   return surface(sheet.width, sheet.height, options)
 }
 
-function wrapEdges(overlay, entries, band) {
+function wrapEdges(overlay, entries, band, independent) {
   const { width, height } = overlay.canvas
   const image = overlay.ctx.getImageData(0, 0, width, height)
   const { data } = image
   for (const entry of entries) {
     const { glyph, x, top, up, upHeight, down, downHeight } = entry
-    const mask = band === null || !glyph.depths ? glyph.mask : layerMask(glyph, band)
+    const mask = band === null || !glyph.depths ? glyph.mask : layerMask(glyph, band, independent)
     const scale = entry.regions.front.sx
     for (let column = 0; column < glyph.width; column++) {
       let first = -1
@@ -471,14 +471,15 @@ function wrapEdges(overlay, entries, band) {
 
 const layeredSheets = new WeakMap()
 
-function layeredGlyphs(sheet, band) {
+function layeredGlyphs(sheet, band, independent) {
   if (band === null) return null
   if (!layeredSheets.has(sheet)) layeredSheets.set(sheet, new Map())
   const bands = layeredSheets.get(sheet)
-  if (!bands.has(band)) {
+  const key = `${band}:${!!independent}`
+  if (!bands.has(key)) {
     const copies = new Map()
     function own(glyph) {
-      if (!copies.has(glyph)) copies.set(glyph, { ...glyph, mask: glyph.depths ? layerMask(glyph, band) : glyph.mask, caster: glyph.depths && band > 0 ? layerMask(glyph, band - 1) : null, clips: undefined })
+      if (!copies.has(glyph)) copies.set(glyph, { ...glyph, mask: glyph.depths ? layerMask(glyph, band, independent) : glyph.mask, caster: glyph.depths && band > 0 ? layerMask(glyph, band - 1) : null, clips: undefined })
       return copies.get(glyph)
     }
     const entries = Object.values(sheet.glyphs)
@@ -490,24 +491,24 @@ function layeredGlyphs(sheet, band) {
       for (let item = head; item; item = item.next) chain.push(own(item))
       joinNeighbours(chain)
     }
-    bands.set(band, new Map(entries.map(({ glyph }) => [glyph.char, own(glyph)])))
+    bands.set(key, new Map(entries.map(({ glyph }) => [glyph.char, own(glyph)])))
   }
-  return bands.get(band)
+  return bands.get(key)
 }
 
-function layeredEntries(sheet, band) {
-  const layered = layeredGlyphs(sheet, band)
+function layeredEntries(sheet, band, independent) {
+  const layered = layeredGlyphs(sheet, band, independent)
   return Object.values(sheet.glyphs).map(entry => layered ? { ...entry, glyph: layered.get(entry.glyph.char) } : entry)
 }
 
-function drawOverlay(sheet, layer, source, capHeight, band) {
+function drawOverlay(sheet, layer, source, capHeight, band, independent) {
   const overlay = pageSurface(sheet)
-  const entries = layeredEntries(sheet, band)
+  const entries = layeredEntries(sheet, band, independent)
   if (source.edge) generateEdges(overlay.ctx, entries, source.edge, layer)
   else if (source.generated) generate(overlay.ctx, entries, source.generated, layer, capHeight)
   else overlay.ctx.drawImage(source, 0, 0)
   if (WRAPPED_KINDS.has(source.generated)) generateEdges(overlay.ctx, entries, source.generated, layer)
-  else if (layer.edgeWrap && !source.edge) wrapEdges(overlay, entries.filter(entry => entry.glyph.width && entry.glyph.height), band)
+  else if (layer.edgeWrap && !source.edge) wrapEdges(overlay, entries.filter(entry => entry.glyph.width && entry.glyph.height), band, independent)
   return overlay
 }
 
@@ -523,8 +524,8 @@ function labelIndexes(layers) {
   return indexes
 }
 
-function wrapsOf(sheet, layers, indexes, band) {
-  const layered = layeredGlyphs(sheet, band)
+function wrapsOf(sheet, layers, indexes, band, independent) {
+  const layered = layeredGlyphs(sheet, band, independent)
   const own = glyph => layered?.get(glyph.char) ?? glyph
   return layers.filter(({ layer, source }) => WRAPPED_KINDS.has(source.generated) && layer.opacity).map(({ layer }) => ({
     blend: layer.blend,
@@ -546,13 +547,13 @@ function wrapsOf(sheet, layers, indexes, band) {
   }))
 }
 
-function sideWrapsOf(sheet, layers, capHeight, band) {
+function sideWrapsOf(sheet, layers, capHeight, band, independent) {
   const entries = new Map(Object.values(sheet.glyphs).map(entry => [entry.glyph.char, entry]))
   return layers.filter(({ layer, source }) => layer.sideWrap && layer.opacity && !source.edge && !WRAPPED_KINDS.has(source.generated)).map(({ layer, source }) => {
     let pixels = null
     function read() {
       if (!pixels) {
-        const overlay = overlayLayer(sheet, layer, source, capHeight, band)
+        const overlay = overlayLayer(sheet, layer, source, capHeight, band, independent)
         pixels = overlay.ctx.getImageData(0, 0, overlay.canvas.width, overlay.canvas.height)
       }
       return pixels
@@ -635,12 +636,12 @@ export function lookKey(value) {
   return JSON.stringify(value, (name, item) => typeof item === "string" && item.startsWith("data:") ? remember(urlIds, item, () => ++nextId, CACHED_URLS) : item)
 }
 
-function overlayLayer(sheet, layer, source, capHeight, band = null) {
-  if (sheet.sharp) return colourOverlay(drawOverlay(sheet, layer, source, capHeight, band), layer)
+function overlayLayer(sheet, layer, source, capHeight, band = null, independent = false) {
+  if (sheet.sharp) return colourOverlay(drawOverlay(sheet, layer, source, capHeight, band, independent), layer)
   if (!overlays.has(sheet)) overlays.set(sheet, { shapes: new Map(), coloured: new Map() })
   const { shapes, coloured } = overlays.get(sheet)
-  const shapeKey = JSON.stringify([source.edge ? `edge:${source.edge}` : source.generated ?? idOf(source), capHeight, Object.entries(layer).filter(([name]) => !["file", "blend", "opacity", "colours", "palette", "tint", "tintBlend", "sideWrap"].includes(name)), band, source.generated === "shadow" && shadowQualityName()])
-  return remember(coloured, JSON.stringify([shapeKey, layer.colours, layer.palette, layer.tint, layer.tintBlend]), () => colourOverlay(remember(shapes, shapeKey, () => drawOverlay(sheet, layer, source, capHeight, band), CACHED_OVERLAYS), layer), CACHED_OVERLAYS)
+  const shapeKey = JSON.stringify([source.edge ? `edge:${source.edge}` : source.generated ?? idOf(source), capHeight, Object.entries(layer).filter(([name]) => !["file", "blend", "opacity", "colours", "palette", "tint", "tintBlend", "sideWrap"].includes(name)), band, independent, source.generated === "shadow" && shadowQualityName()])
+  return remember(coloured, JSON.stringify([shapeKey, layer.colours, layer.palette, layer.tint, layer.tintBlend]), () => colourOverlay(remember(shapes, shapeKey, () => drawOverlay(sheet, layer, source, capHeight, band, independent), CACHED_OVERLAYS), layer), CACHED_OVERLAYS)
 }
 
 export function paintKey(sheet, assets, look) {
@@ -704,7 +705,7 @@ export function adjusted(source, look, options) {
   return out
 }
 
-function overlayLabels(sheet, layers, capHeight, width, height, band) {
+function overlayLabels(sheet, layers, capHeight, width, height, band, independent) {
   const { ctx } = surface(width, height, { willReadFrequently: true })
   const image = ctx.createImageData(width, height)
   for (let at = 3; at < image.data.length; at += 4) image.data[at] = 255
@@ -715,7 +716,7 @@ function overlayLabels(sheet, layers, capHeight, width, height, band) {
     const index = indexes.get(layer)
     const threshold = SMOOTH_KINDS.has(source.generated) ? 128 : 1
     reader.ctx.clearRect(0, 0, width, height)
-    reader.ctx.drawImage(overlayLayer(sheet, layer, source, capHeight, band).canvas, 0, 0)
+    reader.ctx.drawImage(overlayLayer(sheet, layer, source, capHeight, band, independent).canvas, 0, 0)
     const alpha = reader.ctx.getImageData(0, 0, width, height).data
     for (let at = 0; at < alpha.length; at += 4) {
       if (alpha[at + 3] >= threshold) image.data[at + (index >> 3)] |= 1 << (index & 7)
@@ -768,6 +769,7 @@ export function paintSheet(sheet, look, assets, capHeight, base) {
   const { width, height } = sheet
   const entries = Object.values(sheet.glyphs)
   const band = assets.band ?? null
+  const independent = !!assets.independent
 
   const layered = assets.overlays.length || assets.edgeOverlays.length || look.customBorder
   const reads = layered ? { willReadFrequently: true } : undefined
@@ -788,7 +790,7 @@ export function paintSheet(sheet, look, assets, capHeight, base) {
   }
 
   for (const { layer, source } of overlayLayers) {
-    const own = overlayLayer(sheet, layer, source, capHeight, band)
+    const own = overlayLayer(sheet, layer, source, capHeight, band, independent)
     const overlay = layer.edgeWrap && !source.edge && !look.customEdge && look.edgeBrightness < 100 && ["source-over", "lighter"].includes(layer.blend) ? shadedEdges(own) : own
     work.ctx.globalCompositeOperation = layer.blend
     work.ctx.globalAlpha = layer.opacity / 100
@@ -829,5 +831,5 @@ export function paintSheet(sheet, look, assets, capHeight, base) {
 
   const tiles = look.source === "tile" && look.tileableTileEdges ? adjustedTiles(look, assets.tile) : null
   const gradient = look.source === "gradient" ? { stops: paintedStops(look), ends: entry => gradientEnds(entry, look, capHeight, sheet) } : null
-  return { canvas: work.canvas, facePixels, border, edgeAverage, tiles, tilesAcrossLine: !look.tileablePerCharacter, gradient, fade, borderColour: packed(rgb, 0), labels: () => overlayLabels(sheet, overlayLayers, capHeight, width, height, band), wraps: wrapsOf(sheet, assets.overlays, labelIndexes(overlayLayers), band), sideWraps: sideWrapsOf(sheet, assets.overlays, capHeight, band), tileScale: R }
+  return { canvas: work.canvas, facePixels, border, edgeAverage, tiles, tilesAcrossLine: !look.tileablePerCharacter, gradient, fade, borderColour: packed(rgb, 0), labels: () => overlayLabels(sheet, overlayLayers, capHeight, width, height, band, independent), wraps: wrapsOf(sheet, assets.overlays, labelIndexes(overlayLayers), band, independent), sideWraps: sideWrapsOf(sheet, assets.overlays, capHeight, band, independent), tileScale: R }
 }

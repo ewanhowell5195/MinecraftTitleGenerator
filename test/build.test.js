@@ -405,6 +405,24 @@ describe("depth layers", () => {
     assert.equal(covering(1), true)
   })
 
+  test("independent layers each run from the back to their own depth without sharing boxes", () => {
+    const stepped = glyph("x", 3, 1, { depths: Uint8Array.from([0, 1, 0]) })
+    const backCapWithin = built => {
+      const corners = points(built.body.positions)
+      for (let index = 0; index < corners.length; index += 3) {
+        const triangle = corners.slice(index, index + 3)
+        if (triangle.every(point => point[2] === -2 && point[0] >= -1.5 && point[0] <= -0.5)) return true
+      }
+      return false
+    }
+    const stacked = text([place(stepped, 0)], LAYERED, { layers: [1, 0.5], capHeight: 1, glyphs: { x: stepped } })
+    const independent = text([place(stepped, 0)], LAYERED, { layers: [1, 0.5], layerDepth: "independent", capHeight: 1, glyphs: { x: stepped } })
+    assert.deepEqual(flatZs(independent.body), [-2, 0, 2])
+    assert.equal(backCapWithin(stacked), false)
+    assert.equal(backCapWithin(independent), true)
+    assert.equal(independent.independent, true)
+  })
+
   test("a character with no shallower pixels stays one piece, with no seam where a layer would start", () => {
     const solid = glyph("x", 3, 1, { depths: new Uint8Array(3) })
     const built = text([place(solid, 0)], LAYERED, { layers: [1, 0.5], capHeight: 1, glyphs: { x: solid } })

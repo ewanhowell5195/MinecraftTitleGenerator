@@ -1,5 +1,5 @@
 import { stripRange } from "../assets.js"
-import { layerSlices } from "../flatSheet.js"
+import { independentLayers, layerSlices } from "../flatSheet.js"
 import { fontFolder, fullOrder, parseMask, sheetOwner } from "../font.js"
 import { characterName } from "../fontEditor.js"
 import { clamp } from "../maths.js"
@@ -38,16 +38,17 @@ export function setIds(fonts) {
   return Array.from(new Set(stripOwners(fonts).flatMap(font => (font.strips ?? []).map(item => stripUse(item).id))))
 }
 
-export function layerDepth(depth, layers, layer) {
-  return layer === null || !layers ? depth : layerSlices(layers, depth)[layer].rows
+export function layerDepth(depth, layers, layer, independent = false) {
+  return layer === null || !layers ? depth : layerSlices(layers, depth, independent)[layer].rows
 }
 
 export function fontMeasure(ctx, font, layer = null) {
   return ctx.memo(`strip-measure:${font.id}:${layer}`, async () => {
     const image = await decodePng(await ctx.bytes(`/${fontFolder(font)}/font.png`))
     const { list, capHeight, layers } = parseMask(image.data, image.width, image.height, fullOrder(font, ctx.fonts), defaultBorder("top", font))
-    const stacked = layer === null && layers?.length > 1 ? stackedStrip({ depth: defaultDepth(font) }, layers, 0, list).total : null
-    return { range: stripRange({ cells: list, capHeight }, layer), capHeight, depth: layerDepth(defaultDepth(font), layers, layer), stacked }
+    const independent = independentLayers(font)
+    const stacked = layer === null && layers?.length > 1 ? stackedStrip({ depth: defaultDepth(font) }, layers, 0, list, independent).total : null
+    return { range: stripRange({ cells: list, capHeight, layerDepth: font.layerDepth }, layer), capHeight, depth: layerDepth(defaultDepth(font), layers, layer, independent), stacked }
   })
 }
 

@@ -1,5 +1,5 @@
 import { boxFaces, boxesFor } from "./boxes.js"
-import { layerMask, stripLimits } from "./flatSheet.js"
+import { independentLayers, layerMask, stripLimits } from "./flatSheet.js"
 import { clippedBoxes } from "./joins.js"
 import { SPACE } from "./layout.js"
 import { REGION_KINDS, detailOf, finishAtlas, layoutPages, pageGroups, planAtlas, regionScales } from "./atlas.js"
@@ -68,9 +68,17 @@ function stripFaces(body, glyph, original, capHeight) {
   for (const { face, level } of levels) face.internal = face.kind === "top" ? level < topline : level > baseline
 }
 
-function sliceFaces(glyph, x, depth, layers) {
+function sliceFaces(glyph, x, depth, layers, independent) {
   const present = Array.from(new Set(Array.from(glyph.depths).filter((value, at) => glyph.mask[at]))).sort((a, b) => a - b)
   const faces = []
+  if (independent) {
+    for (const layer of present) {
+      const own = boxFaces(clippedBoxes(boxesFor(layerMask(glyph, layer, true), glyph.width, glyph.height, x, glyph.bottom), glyph, x), -depth / 2, layers[layer] * depth - depth / 2)
+      for (const face of own) face.layer = layer
+      faces.push(...own)
+    }
+    return faces
+  }
   for (const [index, layer] of present.entries()) {
     const next = present[index + 1]
     const near = layers[layer] * depth - depth / 2
@@ -213,13 +221,14 @@ export function buildText(font, options) {
     const reach = font.capHeight * EDGE_SHARE
     const shaped = mesh ? font.mesh.tools.meshFaces(mesh, glyph, font.glyphs[char], item.x, depth, reach) : null
     const sliced = !shaped && glyph.depths && font.layers
-    const body = shaped ? shaped.faces : sliced ? sliceFaces(glyph, item.x, depth, font.layers) : boxFaces(boxes, -depth / 2, depth / 2)
+    const independent = independentLayers(font)
+    const body = shaped ? shaped.faces : sliced ? sliceFaces(glyph, item.x, depth, font.layers, independent) : boxFaces(boxes, -depth / 2, depth / 2)
     if (sliced) {
       for (const slice of Map.groupBy(body, face => face.layer).values()) stripFaces(slice, glyph, font.glyphs[char], font.capHeight)
     } else if (font.glyphs?.[char]) stripFaces(body, glyph, font.glyphs[char], font.capHeight)
     if (!shaped && font.outlines?.[char]) roundEdges(body, font.outlines[char], glyph, font.glyphs[char], item.x, reach)
     for (const face of body) face.glyph = glyphs.length
-    const slabs = sliced ? font.layers.map((_, layer) => clippedBoxes(boxesFor(layerMask(glyph, layer), glyph.width, glyph.height, item.x, glyph.bottom), glyph, item.x)) : null
+    const slabs = sliced ? font.layers.map((_, layer) => clippedBoxes(boxesFor(layerMask(glyph, layer, independent), glyph.width, glyph.height, item.x, glyph.bottom), glyph, item.x)) : null
     glyphs.push({ body, boxes, slabs, rings: shaped?.rings ?? null, spaces: item.spaces, char: glyph.char, rect: { minX: item.x, maxX: item.x + glyph.width, minY: glyph.bottom, maxY: glyph.bottom + glyph.height } })
     expand(bounds, body)
   }
@@ -300,6 +309,7 @@ export function buildText(font, options) {
     frame: font.autoBorder ? frameRects(glyphs.flatMap(glyph => glyph.boxes)) : null,
     slabs: font.layers && !font.autoBorder ? font.layers.map((_, layer) => glyphs.flatMap(glyph => flatRects(glyph.slabs?.[layer] ?? glyph.boxes))) : null,
     layerDepths: font.layers ?? null,
+    independent: independentLayers(font),
     shapes: font.mesh ? glyphs.flatMap(glyphRings) : null,
     tools: font.mesh?.tools ?? null,
     twist,
@@ -342,7 +352,7 @@ export function buildOutline(built, scale, extra = [0, 0, 0]) {
   function shell(sources, turn, slabs = null) {
     const rects = grow(sources)
     const last = (slabs?.length ?? 1) - 1
-    const pieces = slabs ? slabs.map((list, layer) => ({ rects: grow(list), low: layer === last ? -z : front(layer + 1), high: front(layer), capped: layer === last })) : [{ rects, low: -z, high: z, capped: true }]
+    const pieces = slabs ? slabs.map((list, layer) => ({ rects: grow(list), low: layer === last || built.independent ? -z : front(layer + 1), high: front(layer), capped: layer === last || built.independent })) : [{ rects, low: -z, high: z, capped: true }]
     for (const piece of rx > 0 ? pieces : []) {
       const boxes = union(piece.rects).map(box => piece.capped ? box : { ...box, faces: { ...box.faces, front: false } })
       for (const face of boxFaces(boxes, piece.low, piece.high)) {

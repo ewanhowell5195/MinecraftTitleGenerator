@@ -117,7 +117,7 @@
 
   function measureOf(layer) {
     const { list: cells, capHeight, layers } = parsedSheet(toRaw(props.font), 0)
-    return { range: stripRange({ cells, capHeight }, layer ? layer - 1 : null), capHeight, depth: layerDepth(props.font.depth, layers, layer ? layer - 1 : null) }
+    return { range: stripRange({ cells, capHeight, layerDepth: props.font.layerDepth }, layer ? layer - 1 : null), capHeight, depth: layerDepth(props.font.depth, layers, layer ? layer - 1 : null, props.font.layerDepth === "independent") }
   }
 
   function place(id, offset) {

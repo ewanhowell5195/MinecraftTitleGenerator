@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
-import { expandBands, flatLayers, flatPixels, layerLeft, layerSlices, stripLimits } from "../src/lib/flatSheet.js"
+import { expandBands, flatLayers, flatPixels, layerLeft, layerMask, layerSlices, stripLimits } from "../src/lib/flatSheet.js"
 
 function cellOf(rows, bottom) {
   const width = rows[0].length
@@ -49,6 +49,13 @@ describe("layer bands", () => {
   test("each band only holds its own slice of the depth and the rows its layer uses", () => {
     assert.deepEqual(layerSlices(layers, 4), [{ from: 2, rows: 2 }, { from: 0, rows: 2 }])
     assert.equal(flatLayers([cell], 2, 4, layers, 1, true).height, 11)
+  })
+
+  test("independent layers each take their full depth and only their own pixels", () => {
+    assert.deepEqual(layerSlices(layers, 4, true), [{ from: 0, rows: 4 }, { from: 0, rows: 2 }])
+    assert.deepEqual(Array.from(layerMask(cell, 1, true)), [1, 1, 0, 0])
+    assert.deepEqual(Array.from(layerMask(cell, 1)), [1, 1, 1, 1])
+    assert.equal(flatLayers([cell], 2, 4, layers, 1, true, true).height, 14)
   })
 
   test("each band is darker the further back its layer sits", () => {

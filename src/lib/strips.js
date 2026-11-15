@@ -31,14 +31,15 @@ export function placedStrips(strips, id, placed, count, wholeFits = true) {
   return others.slice(0, index).concat(items, others.slice(index))
 }
 
-export function layerSlice(layers, layer) {
+export function layerSlice(layers, layer, independent = false) {
+  if (independent) return { from: 0, size: layers[layer] }
   const from = layers[layer + 1] ?? 0
   return { from, size: layers[layer] - from }
 }
 
-export function stackedStrip(shape, layers, layer, cells) {
-  const slices = layerSlices(layers, shape.depth)
-  const ranges = slices.map((_, index) => layerRange(cells, index))
+export function stackedStrip(shape, layers, layer, cells, independent = false) {
+  const slices = layerSlices(layers, shape.depth, independent)
+  const ranges = slices.map((_, index) => layerRange(cells, index, independent))
   const heights = slices.map((slice, index) => slice.rows * 2 + ranges[index].top - ranges[index].bottom)
   return { shape: { ...shape, depth: slices[layer].rows, ...ranges[layer], rows: heights[layer] }, offset: heights.slice(0, layer).reduce((sum, rows) => sum + rows, 0), total: heights.reduce((sum, rows) => sum + rows, 0) }
 }

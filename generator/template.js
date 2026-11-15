@@ -17,7 +17,7 @@ if (!entry) throw new Error(`no font with id ${id}`)
 if (entry.inherits) throw new Error(`${id} keeps its characters in ${entry.variant}'s sheet, make the template for ${entry.variant} instead`)
 const { folder, cells, capHeight, layers } = readMask(entry, list)
 const depth = defaultDepth(entry)
-const { sheet, layout, width, height } = flatSheet(cells, capHeight, depth, density, layers)
+const { sheet, layout, width, height } = flatSheet(cells, capHeight, depth, density, layers, entry.layerDepth === "independent")
 
 const target = has("--out") ? path.resolve(option("--out")) : path.join(folder, "textures", "flat.png")
 

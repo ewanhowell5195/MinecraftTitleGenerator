@@ -50,8 +50,8 @@
 
   const stripBands = computed(() => {
     if (!drawn.value || !span.value) return null
-    const { cells, depth, layers } = drawn.value
-    if (layers) return layers.map((_, layer) => stackedStrip({ depth }, layers, layer, cells))
+    const { cells, depth, layers, independent } = drawn.value
+    if (layers) return layers.map((_, layer) => stackedStrip({ depth }, layers, layer, cells, independent))
     const rows = depth * 2 + span.value.top - span.value.bottom
     return [{ shape: { depth, top: span.value.top, rows }, offset: 0, total: rows }]
   })
@@ -110,7 +110,8 @@
       const entry = exportJson(font, "")
       const depth = defaultDepth(entry)
       const { list, capHeight, layers } = parsedSheet(font, defaultBorder("top", entry))
-      drawn.value = { letterCase: font.letterCase, cells: list.filter(cell => cell.width), layers, bands: layers ? bandLayouts(list, capHeight, depth, layers) : [{ layout: sheetLayout(list, capHeight, depth), offset: 0 }], depth, flat: flatTexture(font) }
+      const independent = entry.layerDepth === "independent"
+      drawn.value = { letterCase: font.letterCase, cells: list.filter(cell => cell.width), layers, independent, bands: layers ? bandLayouts(list, capHeight, depth, layers, independent) : [{ layout: sheetLayout(list, capHeight, depth), offset: 0 }], depth, flat: flatTexture(font) }
     } catch (err) {
       problem.value = err.message
     }

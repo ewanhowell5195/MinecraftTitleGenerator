@@ -1,5 +1,5 @@
 import { pixelsOf, surface } from "./canvas.js"
-import { expandBands } from "./flatSheet.js"
+import { expandBands, independentLayers } from "./flatSheet.js"
 import { loadImage, sheetLayout, solidMask } from "./font.js"
 import { GENERATED_EDGE_OVERLAYS, withGenerated } from "./generated.js"
 import { mostCommon } from "./maths.js"
@@ -128,7 +128,7 @@ export function bandOf(source, band, font) {
   const count = font.layers?.length ?? 1
   if (count < 2) return source
   if (!bands.has(source)) {
-    const expanded = expandBands(pixelsOf(source), source.width, font.cells, font.capHeight, defaultDepth(font), font.layers)
+    const expanded = expandBands(pixelsOf(source), source.width, font.cells, font.capHeight, defaultDepth(font), font.layers, independentLayers(font))
     const height = expanded.height / count
     const size = expanded.width * height * 4
     bands.set(source, Array.from({ length: count }, (_, index) => {
@@ -156,13 +156,13 @@ export function stripBand(source, top, height) {
   return cropped.get(top)
 }
 
-function layerExtent(glyph, layer) {
+function layerExtent(glyph, layer, independent) {
   let low = Infinity
   let high = -Infinity
   for (let row = 0; row < glyph.height; row++) {
     for (let column = 0; column < glyph.width; column++) {
       const at = row * glyph.width + column
-      if (!glyph.mask[at] || glyph.depths[at] > layer) continue
+      if (!glyph.mask[at] || (independent ? glyph.depths[at] !== layer : glyph.depths[at] > layer)) continue
       low = Math.min(low, row)
       high = Math.max(high, row)
     }
@@ -170,8 +170,8 @@ function layerExtent(glyph, layer) {
   return high < low ? null : { char: glyph.char, bottom: glyph.bottom + low, top: glyph.bottom + high + 1 }
 }
 
-function layerLines(cells, capHeight, layer) {
-  const standard = cells.filter(glyph => glyph.depths && glyph.top === capHeight && glyph.bottom === 0).map(glyph => layerExtent(glyph, layer)).filter(Boolean)
+function layerLines(cells, capHeight, layer, independent) {
+  const standard = cells.filter(glyph => glyph.depths && glyph.top === capHeight && glyph.bottom === 0).map(glyph => layerExtent(glyph, layer, independent)).filter(Boolean)
   if (!standard.length) return { base: 0, top: capHeight }
   return { base: mostCommon(standard.map(extent => extent.bottom)), top: mostCommon(standard.map(extent => extent.top)) }
 }
@@ -179,8 +179,9 @@ function layerLines(cells, capHeight, layer) {
 export function stripRange(font, layer = null) {
   const cells = font.cells.filter(glyph => glyph.width)
   const layered = layer !== null && cells.some(glyph => glyph.depths)
-  const extents = layered ? cells.map(glyph => glyph.depths ? layerExtent(glyph, layer) : glyph).filter(Boolean) : cells
-  const lines = layered ? layerLines(cells, font.capHeight, layer) : { base: 0, top: font.capHeight }
+  const independent = independentLayers(font)
+  const extents = layered ? cells.map(glyph => glyph.depths ? layerExtent(glyph, layer, independent) : glyph).filter(Boolean) : cells
+  const lines = layered ? layerLines(cells, font.capHeight, layer, independent) : { base: 0, top: font.capHeight }
   const top = Math.max(...(layered ? [] : [font.capHeight]).concat(extents.map(extent => extent.top)))
   const bottom = Math.min(...(layered ? [] : [0]).concat(extents.map(extent => extent.bottom)))
   const highest = top > lines.top ? extents.find(extent => extent.top === top).char : null
@@ -191,7 +192,7 @@ export function stripRange(font, layer = null) {
 export function stripLayout(entry, font, depth, band) {
   const shape = stripRows(entry, stripRange(font, entry.stripSet ? entry.stripLayer ?? null : null), depth, font.capHeight)
   if (!font.layers || font.layers.length < 2 || entry.stripSet) return { shape, offset: 0, total: shape.rows, stacked: false }
-  return { ...stackedStrip(shape, font.layers, band, font.cells), stacked: true }
+  return { ...stackedStrip(shape, font.layers, band, font.cells, independentLayers(font)), stacked: true }
 }
 
 export async function sheetFor(font) {

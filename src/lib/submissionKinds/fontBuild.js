@@ -3,7 +3,7 @@ import { SHEET_MAX_WIDTH, groupedKerning, parseMask, sheetLayout } from "../font
 import { autoStretch, charactersOf, exportJson, fontFromFiles, glyphOf, isBlank, parseFontJson, parsedSheet, savedJson } from "../fontEditor.js"
 import { DEFAULT_ORDER, TERMINATOR_CLOSE, TERMINATOR_OPEN } from "../order.js"
 import { defaultBorder, defaultDepth } from "../settings.js"
-import { flatLayers, layerRange, layerSlices } from "../flatSheet.js"
+import { flatLayers, independentLayers, layerRange, layerSlices } from "../flatSheet.js"
 import { drawSheet } from "../sheet.js"
 import { pngSize } from "../submissions.js"
 import { decodePng, encodePng } from "./png.js"
@@ -44,6 +44,7 @@ export function fontJsonFields(entry) {
   if (authors.length) clean.authors = authors
   if (Array.isArray(entry.strips)) clean.strips = entry.strips.map(stripField).filter(Boolean)
   if (isRecord(entry.kerning)) clean.kerning = Object.fromEntries(Object.entries(entry.kerning).filter(([amount, pairs]) => Number.isFinite(Number(amount)) && Array.isArray(pairs)).map(([amount, pairs]) => [amount, pairs.filter(pair => typeof pair === "string")]))
+  if (entry.layerDepth === "independent") clean.layerDepth = "independent"
   if (isRecord(entry.editor)) clean.editor = { ...picked(entry.editor, EDITOR_NUMBERS, "number"), ...picked(entry.editor, ["letterCase", "texture"], "string") }
   return clean
 }
@@ -152,10 +153,10 @@ export function ownFont(font, parentId = null) {
   entry.editor = { width: font.width, grid: font.grid, ...(font.density > 1 && { density: font.density }) }
   const sheet = drawSheet(cells, capHeight, { keepRows: true, layers })
   const parsed = parseMask(sheet.data, sheet.width, sheet.height, drawn.join(""), defaultBorder("top", entry))
-  return { cells, capHeight, entry, sheet, published: parsed.list, layers: parsed.layers, template: fontTemplate(parsed.list, capHeight, defaultDepth(entry), parsed.layers) }
+  return { cells, capHeight, entry, sheet, published: parsed.list, layers: parsed.layers, template: fontTemplate(parsed.list, capHeight, defaultDepth(entry), parsed.layers, independentLayers(entry)) }
 }
 
-function fontTemplate(cells, capHeight, depth, layers = null) {
+function fontTemplate(cells, capHeight, depth, layers = null, independent = false) {
   let width = 0
   let height = 0
   for (const [glyph, at] of sheetLayout(cells, capHeight, depth)) {
@@ -165,8 +166,8 @@ function fontTemplate(cells, capHeight, depth, layers = null) {
   const top = Math.max(capHeight, ...cells.map(cell => cell.top))
   const bottom = Math.min(0, ...cells.map(cell => cell.bottom))
   if (!layers) return { width, height, rows: depth * 2 + top - bottom }
-  const flat = flatLayers(cells, capHeight, depth, layers)
-  return { width: flat.width, height: flat.height, rows: layerSlices(layers, depth).reduce((sum, slice, layer) => sum + slice.rows * 2 + layerRange(cells, layer).top - layerRange(cells, layer).bottom, 0) }
+  const flat = flatLayers(cells, capHeight, depth, layers, 1, false, independent)
+  return { width: flat.width, height: flat.height, rows: layerSlices(layers, depth, independent).reduce((sum, slice, layer) => sum + slice.rows * 2 + layerRange(cells, layer, independent).top - layerRange(cells, layer, independent).bottom, 0) }
 }
 
 export function finalEntry(skeleton, derived) {

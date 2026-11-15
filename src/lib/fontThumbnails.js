@@ -1,6 +1,6 @@
 import { stripLayout, stripRange } from "./assets.js"
 import { rgbOf } from "./colour.js"
-import { expandBands, layerLeft, layerMask } from "./flatSheet.js"
+import { expandBands, independentLayers, layerLeft, layerMask } from "./flatSheet.js"
 import { sheetLayout, solidMask } from "./font.js"
 import { GENERATED_EDGE_OVERLAYS, SMOOTH_KINDS, edgeAlpha, generatedAlpha, thumbnailLayer, toneKinds, withGenerated } from "./generated.js"
 import { joinNeighbours, keptAt } from "./joins.js"
@@ -108,8 +108,8 @@ export function render(scene, sheet, options) {
   }))
   if (options.ring) drawRing(image, scene.placed, options.density, options.border, glyph => masks.get(glyph))
   if (options.strip && scene.layers && scene.layer == null) {
-    for (const layer of scene.layers.keys()) drawStrip(image, exposed(scene.placed, layer), options.density, options.strip.layers?.[layer] ?? options.strip)
-  } else if (options.strip) drawStrip(image, scene.placed.map(item => ({ ...item, trim: layerLeft(item.glyph, scene.layer ?? null) })), options.density, options.strip.layers?.[scene.layer] ?? options.strip)
+    for (const layer of scene.layers.keys()) drawStrip(image, exposed(scene.placed, layer, independentLayers(scene)), options.density, options.strip.layers?.[layer] ?? options.strip)
+  } else if (options.strip) drawStrip(image, scene.placed.map(item => ({ ...item, trim: layerLeft(item.glyph, scene.layer ?? null, independentLayers(scene)) })), options.density, options.strip.layers?.[scene.layer] ?? options.strip)
   else drawFaces(image, scene, sheet, masks, options)
   if (options.fontOverlay) drawFaces(image, scene, options.fontOverlay, masks, options)
   if (options.generated) drawGenerated(image, scene, options)
@@ -117,14 +117,14 @@ export function render(scene, sheet, options) {
   return image
 }
 
-function exposed(placed, layer) {
-  return placed.map(item => ({ ...item, trim: layerLeft(item.glyph, layer), glyph: { ...item.glyph, mask: item.glyph.mask.map((solid, at) => solid && (item.glyph.depths?.[at] ?? 0) === layer ? 1 : 0) } }))
+function exposed(placed, layer, independent) {
+  return placed.map(item => ({ ...item, trim: layerLeft(item.glyph, layer, independent), glyph: { ...item.glyph, mask: item.glyph.mask.map((solid, at) => solid && (item.glyph.depths?.[at] ?? 0) === layer ? 1 : 0) } }))
 }
 
 export function layerScene(scene, layer) {
   const copies = new Map()
   function copy(glyph) {
-    if (!copies.has(glyph)) copies.set(glyph, { ...glyph, mask: layerMask(glyph, layer), caster: glyph.depths && layer > 0 ? layerMask(glyph, layer - 1) : null, depths: new Uint8Array(glyph.mask.length).fill(layer), clips: undefined })
+    if (!copies.has(glyph)) copies.set(glyph, { ...glyph, mask: layerMask(glyph, layer, independentLayers(scene)), caster: glyph.depths && layer > 0 ? layerMask(glyph, layer - 1) : null, depths: new Uint8Array(glyph.mask.length).fill(layer), clips: undefined })
     return copies.get(glyph)
   }
   const placed = scene.placed.map(item => ({ ...item, glyph: copy(item.glyph) }))
@@ -161,9 +161,9 @@ function fade(image, amount) {
   return image
 }
 
-function expanded({ cells, capHeight, depth, layers }, image) {
+function expanded({ cells, capHeight, depth, layers, layerDepth }, image) {
   if (!layers || layers.length < 2) return image
-  return expandBands(image.data, image.width, cells, capHeight, depth, layers)
+  return expandBands(image.data, image.width, cells, capHeight, depth, layers, independentLayers({ layerDepth }))
 }
 
 function frameFill(image, colour) {
@@ -188,10 +188,11 @@ export function fontScene(entry, { glyphs, cells, capHeight, layers, kerning, de
     cells,
     layers,
     bands: layers?.length ?? 1,
+    layerDepth: entry.layerDepth,
     depth,
     capHeight,
     ring,
-    stripRange: stripRange({ cells, capHeight })
+    stripRange: stripRange({ cells, capHeight, layerDepth: entry.layerDepth })
   }
 }
 

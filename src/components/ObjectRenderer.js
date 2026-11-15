@@ -11,6 +11,7 @@ import { SMOOTH_KINDS, WRAPPED_KINDS, withDraftShadows, withFinalShadows } from 
 import { CUSTOM_SHAPE, SILHOUETTE_TEXT, shapeOf } from "../lib/shapes.js"
 import { hasMarks, loadFont, sheetFolder } from "../lib/font.js"
 import { bandEntry, layerSlice } from "../lib/strips.js"
+import { independentLayers } from "../lib/flatSheet.js"
 import { thumbnailItems } from "../lib/layout.js"
 import { blockTextureImage } from "../lib/minecraft.js"
 import { setHeights, usePlacement, usePublished } from "../lib/objectState.js"
@@ -226,7 +227,7 @@ export default {
     }
 
     async function loadAssets(value, band = 0, target = object) {
-      const assets = { shape: sheetImage("textures/flat.png"), border: list.value.textures.flat?.border ?? "#000000", densities: [], band: font.value.layers ? band : null }
+      const assets = { shape: sheetImage("textures/flat.png"), border: list.value.textures.flat?.border ?? "#000000", densities: [], band: font.value.layers ? band : null, independent: independentLayers(font.value) }
       if (value.source === "gradient") assets.densities.push(1)
       if (value.source === "texture" && target.textureSource === "custom") {
         assets.base = target.customTexture ? image(target.customTexture) : sheetImage("textures/flat.png")
@@ -249,8 +250,8 @@ export default {
         const strip = layout.stacked ? stripBand(loaded, layout.offset * density, rows * density) : loaded
         const tiling = entry.tiling ?? "line"
         if (tiling !== "line" && tiling !== "character") throw new Error(`${id} has tiling "${tiling}", strips tile by "line" or "character"`)
-        const slice = layers && (layout.stacked || entry.stripLayer != null) ? layerSlice(layers, band) : null
-        assets.strip = { image: strip, density, snap: (entry.snap ?? 1) / density, top, bottom, depth, tiling, scale, slice, band: assets.band }
+        const slice = layers && (layout.stacked || entry.stripLayer != null) ? layerSlice(layers, band, independentLayers(font.value)) : null
+        assets.strip = { image: strip, density, snap: (entry.snap ?? 1) / density, top, bottom, depth, tiling, scale, slice, band: assets.band, independent: assets.independent }
         if (entry.border) assets.border = entry.border
         assets.densities.push(Math.max(1, density))
       }

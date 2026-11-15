@@ -27,12 +27,16 @@ export function layerShade(layers, layer) {
   return layers?.[layer] ?? 1
 }
 
-export function layerMask(glyph, layer) {
-  return glyph.depths ? glyph.mask.map((solid, at) => solid && glyph.depths[at] <= layer ? 1 : 0) : glyph.mask
+export function independentLayers(font) {
+  return font?.layerDepth === "independent"
 }
 
-export function layerCell(glyph, layer) {
-  const mask = layerMask(glyph, layer)
+export function layerMask(glyph, layer, independent = false) {
+  return glyph.depths ? glyph.mask.map((solid, at) => solid && (independent ? glyph.depths[at] === layer : glyph.depths[at] <= layer) ? 1 : 0) : glyph.mask
+}
+
+export function layerCell(glyph, layer, independent = false) {
+  const mask = layerMask(glyph, layer, independent)
   let low = glyph.height
   let high = -1
   let left = glyph.width
@@ -57,14 +61,14 @@ export function layerCell(glyph, layer) {
   return { ...glyph, source: glyph, mask: crop(mask), depths: glyph.depths ? crop(glyph.depths) : null, width, height, left, bottom: glyph.bottom + low, top: glyph.bottom + high + 1 }
 }
 
-export function layerRange(cells, layer) {
-  const shown = cells.filter(cell => cell.width).map(cell => layerCell(cell, layer)).filter(cell => cell.height)
+export function layerRange(cells, layer, independent = false) {
+  const shown = cells.filter(cell => cell.width).map(cell => layerCell(cell, layer, independent)).filter(cell => cell.height)
   return { top: Math.max(...shown.map(cell => cell.top)), bottom: Math.min(...shown.map(cell => cell.bottom)) }
 }
 
-export function layerLeft(glyph, layer) {
+export function layerLeft(glyph, layer, independent = false) {
   if (layer === null || !glyph.depths) return 0
-  const mask = layerMask(glyph, layer)
+  const mask = layerMask(glyph, layer, independent)
   for (let column = 0; column < glyph.width; column++) {
     for (let row = 0; row < glyph.height; row++) {
       if (mask[row * glyph.width + column]) return column
@@ -73,7 +77,8 @@ export function layerLeft(glyph, layer) {
   return 0
 }
 
-export function layerSlices(layers, depth) {
+export function layerSlices(layers, depth, independent = false) {
+  if (independent) return layers.map(value => ({ from: 0, rows: Math.max(1, Math.round(value * depth)) }))
   return layers.map((value, layer) => {
     const low = Math.round((layers[layer + 1] ?? 0) * depth)
     const high = Math.round(value * depth)
@@ -92,10 +97,10 @@ function sheetSize(layout, depth) {
   return { width, height }
 }
 
-export function flatLayers(cells, capHeight, depth, layers, density = 1, wideStrips = false) {
+export function flatLayers(cells, capHeight, depth, layers, density = 1, wideStrips = false, independent = false) {
   if (!layers || layers.length < 2) return flatPixels(cells, capHeight, depth, density, wideStrips)
-  const slices = layerSlices(layers, depth)
-  const bands = layers.map((_, layer) => flatPixels(cells.map(glyph => layerCell(glyph, layer)), capHeight, slices[layer].rows, density, wideStrips, layerShade(layers, layer), true))
+  const slices = layerSlices(layers, depth, independent)
+  const bands = layers.map((_, layer) => flatPixels(cells.map(glyph => layerCell(glyph, layer, independent)), capHeight, slices[layer].rows, density, wideStrips, layerShade(layers, layer), true))
   const width = Math.max(...bands.map(band => band.width))
   const line = width * density * 4
   const data = new Uint8ClampedArray(line * bands.reduce((sum, band) => sum + band.height, 0) * density)
@@ -108,10 +113,10 @@ export function flatLayers(cells, capHeight, depth, layers, density = 1, wideStr
   return { data, layout: sheetLayout(cells, capHeight, depth), width, height: bands.reduce((sum, band) => sum + band.height, 0) }
 }
 
-export function bandLayouts(cells, capHeight, depth, layers) {
+export function bandLayouts(cells, capHeight, depth, layers, independent = false) {
   let offset = 0
-  return layerSlices(layers, depth).map((slice, layer) => {
-    const fitted = sheetLayout(cells.map(glyph => layerCell(glyph, layer)), capHeight, slice.rows, true)
+  return layerSlices(layers, depth, independent).map((slice, layer) => {
+    const fitted = sheetLayout(cells.map(glyph => layerCell(glyph, layer, independent)), capHeight, slice.rows, true)
     const layout = new Map(Array.from(fitted, ([cell, at]) => [cell.source, { ...at, x: at.x - cell.left, left: cell.left, columns: cell.width, top: at.top - cell.source.top + cell.top, rise: at.top - at.up - slice.rows + cell.top }]))
     const size = sheetSize(fitted, slice.rows)
     const band = { ...slice, layout, offset, width: size.width }
@@ -120,10 +125,10 @@ export function bandLayouts(cells, capHeight, depth, layers) {
   })
 }
 
-export function expandBands(source, width, cells, capHeight, depth, layers) {
+export function expandBands(source, width, cells, capHeight, depth, layers, independent = false) {
   const full = sheetLayout(cells, capHeight, depth)
   const size = sheetSize(full, depth)
-  const bands = bandLayouts(cells, capHeight, depth, layers)
+  const bands = bandLayouts(cells, capHeight, depth, layers, independent)
   const compact = Math.max(...bands.map(band => band.width))
   const density = width / compact
   if (!Number.isInteger(density)) throw new Error(`an image ${width}px wide doesn't fit this font's ${compact} unit wide layer bands`)
@@ -167,10 +172,10 @@ export function expandBands(source, width, cells, capHeight, depth, layers) {
   return { data: out, width: wide, height: size.height * density * layers.length }
 }
 
-export function blankStrip(cells, capHeight, depth, layers, width) {
+export function blankStrip(cells, capHeight, depth, layers, width, independent = false) {
   const top = Math.max(capHeight, ...cells.map(cell => cell.top))
   const bottom = Math.min(0, ...cells.map(cell => cell.bottom))
-  const bands = layers && layers.length > 1 ? layerSlices(layers, depth).map((slice, layer) => ({ rows: slice.rows, shade: layerShade(layers, layer), ...layerRange(cells, layer) })) : [{ rows: depth, shade: 1, top, bottom }]
+  const bands = layers && layers.length > 1 ? layerSlices(layers, depth, independent).map((slice, layer) => ({ rows: slice.rows, shade: layerShade(layers, layer), ...layerRange(cells, layer, independent) })) : [{ rows: depth, shade: 1, top, bottom }]
   let colours = []
   for (const band of bands) {
     const [face, up, down] = [FACE, UP, DOWN].map(colour => colour.map(value => Math.round(value * band.shade)).concat(255))

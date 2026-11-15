@@ -100,6 +100,14 @@ describe("depth", () => {
     assert.deepEqual(reopened.depths, [0.5])
   })
 
+  test("independent layer depth is only saved for a font with layers", () => {
+    const { font } = drawn()
+    assert.equal(exportJson({ ...font, layerDepth: "independent" }, "").layerDepth, "independent")
+    assert.equal(exportJson(font, "").layerDepth, undefined)
+    assert.equal(exportJson({ ...createFont(), layerDepth: "independent" }, "").layerDepth, undefined)
+    assert.equal(fontFromFiles({ json: exportJson({ ...font, layerDepth: "independent" }, "") }).layerDepth, "independent")
+  })
+
   test("a font drawn only at full depth has no layers", () => {
     const font = setGlyph(createFont({ height: 2, width: 3, grid: 1 }), "a", paint(blankGlyph(createFont({ height: 2, width: 3, grid: 1 })), [{ x: 0, row: 0 }], true))
     assert.equal(fontLayers(font), null)

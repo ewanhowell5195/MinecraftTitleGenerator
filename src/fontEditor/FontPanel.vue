@@ -10,7 +10,7 @@
   import NumberInput from "../components/NumberInput.vue"
   import Segments from "../components/Segments.vue"
   import { fullName, loadFontList } from "../lib/font.js"
-  import { DEFAULT_BORDER, DEFAULT_DEPTH, DEFAULT_ID, DEFAULT_SPACE_WIDTH, LETTER_CASES, autoStretch, fontId, lostPixels, resizeFont, setSquareSize, slug, squareSizeLoss, squaresOf } from "../lib/fontEditor.js"
+  import { DEFAULT_BORDER, DEFAULT_DEPTH, DEFAULT_ID, DEFAULT_SPACE_WIDTH, LETTER_CASES, autoStretch, fontId, fontLayers, lostPixels, resizeFont, setSquareSize, slug, squareSizeLoss, squaresOf } from "../lib/fontEditor.js"
   import { fontThumbnail } from "../lib/ui.js"
   import { typedNumber } from "./fields.js"
   import { changeLetterCase, font, update } from "./store.js"
@@ -39,6 +39,13 @@
     { key: "overlay", label: "Forced overlay", hint: "Draws an overlay.png over the letters on every texture except premade sheets. This editor doesn't make that file: you add it to the font's folder yourself, on the same layout as the font's flat.png." }
   ]
 
+  const LAYER_DEPTHS = [{ value: "stacked", label: "Stacked" }, { value: "independent", label: "Independent" }]
+
+  const LAYER_DEPTH_HINTS = {
+    stacked: "The layers are slices of the depth stacked on each other, so a deeper layer sits on top of the shallower layers' area and their textures run up its sides.",
+    independent: "Each layer goes from the back to its own depth on its own, so its edges and texture never run into another layer. Textures give each layer's sides its full depth."
+  }
+
   const CASE_HINTS = {
     both: "Titles keep the case they're typed in, so every letter needs a capital and a lowercase version.",
     upper: "Titles use one case, drawn with capital letters.",
@@ -46,6 +53,7 @@
   }
 
   const warning = ref(null)
+  const layered = computed(() => !!fontLayers(font.value))
   const published = shallowRef([])
 
   const basedOnOptions = computed(() => {
@@ -174,6 +182,12 @@
           </NumberInput>
         </Field>
       </div>
+    </section>
+
+    <section v-if="layered" class="flow">
+      <h3>Layer depth</h3>
+      <Segments :options="LAYER_DEPTHS" :model-value="font.layerDepth ?? 'stacked'" @update:model-value="setField('layerDepth', $event, false)" />
+      <p class="hint">{{ LAYER_DEPTH_HINTS[font.layerDepth ?? "stacked"] }}</p>
     </section>
 
     <section class="flow">
