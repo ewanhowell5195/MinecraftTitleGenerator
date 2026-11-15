@@ -203,7 +203,7 @@ describe("checking a font", () => {
     const files = { a: plainPng(566 * 2, 356 * 2), b: plainPng(566, 356), c: plainPng(1, 92 * 4) }
     const { problems, details } = await check({ bytes: f8thful, details: { id: "x", extras, files: { forged: "abc" } }, files })
     assert.deepEqual(Object.values(problems).filter(Boolean), [])
-    assert.deepEqual(details.extras, [{ key: "a", kind: "texture", name: "Gold", border: "#aabbcc", density: 2, size: { width: 1132, height: 712 } }, { key: "b", kind: "overlay", name: "Sparkle", size: { width: 566, height: 356 } }, { key: "c", kind: "strip", name: "Stripes", credit: ["Someone Else", "Friend"], border: "#000000", size: { width: 1, height: 368 } }])
+    assert.deepEqual(details.extras, [{ key: "a", kind: "texture", name: "Gold", border: "#aabbcc", density: 2, size: { width: 1132, height: 712 } }, { key: "b", kind: "overlay", name: "Sparkle", size: { width: 566, height: 356 }, palette: ["#c8c8c8"] }, { key: "c", kind: "strip", name: "Stripes", credit: ["Someone Else", "Friend"], border: "#000000", size: { width: 1, height: 368 } }])
     assert.equal(details.files, undefined)
     assert.deepEqual(kind.fileKeys(details), ["a", "b", "c"])
     const wrong = await check({ bytes: f8thful, details: { id: "x", extras }, files: { a: plainPng(500, 356), b: plainPng(566, 356), c: plainPng(1, 90) } })
@@ -470,7 +470,7 @@ describe("sending a font", () => {
     const list = JSON.parse(branchFile(id, LIST).toString())
     assert.deepEqual(list.at(-1), { id: "test-font", authors: ["Someone"] })
     assert.deepEqual(branchFile(id, "submissions/fonts/test-font.json"), Buffer.from(f8thful))
-    assert.deepEqual(JSON.parse(branchFile(id, "public/font/test-font/textures.json").toString()), { textures: { flat: { border: "#000000" }, gold_bricks: { authors: ["Someone"], border: "#3d1f0a" } }, overlays: { sparkle: { authors: ["Helper", "Someone"], density: 2 } } })
+    assert.deepEqual(JSON.parse(branchFile(id, "public/font/test-font/textures.json").toString()), { textures: { flat: { border: "#000000" }, gold_bricks: { authors: ["Someone"], border: "#3d1f0a" } }, overlays: { sparkle: { authors: ["Helper", "Someone"], density: 2, palette: ["#c8c8c8"] } } })
     assert.equal(sha1(branchFile(id, "public/font/test-font/overlays/sparkle.png")), sha1(extras.sparkle))
     assert.ok(branchFile(id, "public/font/test-font/textures/gold_bricks.png"))
     assert.equal(gh.pulls.get(1).title, "Test Font font")

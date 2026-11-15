@@ -185,7 +185,8 @@
     },
     "glass_tempered": {
       "name": "Glass (Tempered)",
-      "basedOn": "minecraft-ten.glass_tempered"
+      "basedOn": "minecraft-ten.glass_tempered",
+      "palette": ["#ffffff", "#ceddec"]
     }
   },
   "primary": "cracked",

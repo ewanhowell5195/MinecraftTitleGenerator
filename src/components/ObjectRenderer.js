@@ -1,5 +1,6 @@
 import { computed, onBeforeUnmount, shallowRef, watch } from "vue"
-import { bandOf, fontTextures, image, preload, shapeFont, sheetFor, stripBand, stripLayout, tileableUrl } from "../lib/assets.js"
+import { bandOf, filePalette, fontTextures, image, preload, shapeFont, sheetFor, stripBand, stripLayout, tileableUrl } from "../lib/assets.js"
+import { definitionPalette } from "../lib/overlayColours.js"
 import { arcAssets, arcLayout } from "../lib/arc.js"
 import { buildOutline, buildText } from "../lib/build.js"
 import { canvasLimit } from "../lib/canvas.js"
@@ -254,7 +255,7 @@ export default {
         if (layer.source === "file") {
           if (!layer.file) continue
           const file = image(layer.file)
-          assets.overlays.push({ layer, source: file })
+          assets.overlays.push({ layer: filePalette(layer.file).then(({ anchors }) => ({ ...layer, palette: anchors })), source: file })
           files.push(file)
           continue
         }
@@ -264,12 +265,12 @@ export default {
           assets.overlays.push({ layer, source: { generated: entry.generated } })
           assets.densities.push(1)
         } else {
-          assets.overlays.push({ layer, source: sheetImage(`overlays/${layer.overlay}.png`) })
+          assets.overlays.push({ layer: { ...layer, palette: definitionPalette(entry) }, source: sheetImage(`overlays/${layer.overlay}.png`) })
           assets.densities.push(entry.density ?? 1)
         }
       }
       const keys = ["shape", "base", "tile", "fontOverlay"].filter(key => key in assets)
-      const [loaded, overlays, sizes] = await Promise.all([Promise.all(keys.map(key => assets[key])), Promise.all(assets.overlays.map(async ({ layer, source }) => ({ layer, source: await source }))), Promise.all(files)])
+      const [loaded, overlays, sizes] = await Promise.all([Promise.all(keys.map(key => assets[key])), Promise.all(assets.overlays.map(async ({ layer, source }) => ({ layer: await layer, source: await source }))), Promise.all(files)])
       const fromFont = new Set(["shape", "fontOverlay"].concat(value.source === "texture" ? ["base"] : []))
       for (const [index, key] of keys.entries()) assets[key] = fromFont.has(key) ? bandOf(loaded[index], band, font.value) : loaded[index]
       assets.overlays = overlays.map(({ layer, source }) => source.generated ? { layer, source } : { layer, source: bandOf(source, band, font.value) })

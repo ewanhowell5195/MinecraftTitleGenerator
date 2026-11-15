@@ -387,7 +387,8 @@ const KEYS = [
   ["separateColour", BOOLEAN],
   ["separateFaces", BOOLEAN],
   ["distance", NUMBER],
-  ["blur", NUMBER]
+  ["blur", NUMBER],
+  ["colours", list(isColour, writeColour, readColour)]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))

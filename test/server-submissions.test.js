@@ -135,10 +135,10 @@ describe("sending a submission", () => {
   test("gives a texture default overlays, storing only what differs from each overlay's defaults", async () => {
     const cookie = await signIn()
     const layered = layers => JSON.stringify({ border: "#3D1F0A", ...layers })
-    const { status, id } = await send(cookie, { details: layered({ overlays: [{ overlay: "outline", source: "premade", file: null, blend: "source-over", colour: "#FF0000", colourBlend: "multiply", opacity: 80 }], edgeOverlays: [{ overlay: "edge_outline_fade", opacity: 46 }] }) })
+    const { status, id } = await send(cookie, { details: layered({ overlays: [{ overlay: "outline", source: "premade", file: null, blend: "source-over", colours: ["#FF0000"], opacity: 80 }], edgeOverlays: [{ overlay: "edge_outline_fade", opacity: 46 }] }) })
     assert.equal(status, 201)
     const entry = branchList(id).textures.gold_bricks
-    assert.deepEqual(entry.overlays, [{ overlay: "outline", blend: "source-over", colour: "#ff0000", opacity: 80 }])
+    assert.deepEqual(entry.overlays, [{ overlay: "outline", blend: "source-over", colours: ["#ff0000"], opacity: 80 }])
     assert.deepEqual(entry.edgeOverlays, [{ overlay: "edge_outline_fade", opacity: 46 }])
     assert.match((await send(cookie, { details: layered({ overlays: [{ overlay: "nope" }] }) })).error, /default overlays isn't valid/)
     assert.match((await send(cookie, { details: layered({ overlays: [{ overlay: "outline", source: "file", file: "data:x" }] }) })).error, /default overlays isn't valid/)
@@ -152,12 +152,20 @@ describe("sending a submission", () => {
     const cookie = await signIn()
     const { id } = await send(cookie, { kind: "overlay", name: "Soft Shading", border: "" }, pngOf(FLAT.width * 2, FLAT.height * 2))
     const list = branchList(id)
-    assert.deepEqual(list.overlays.soft_shading, { authors: ["Someone"], density: 2 })
+    assert.deepEqual(list.overlays.soft_shading, { authors: ["Someone"], density: 2, palette: ["#c8c8c8"] })
     assert.equal(list.textures.soft_shading, undefined)
     assert.ok(gh.filesAt(`submission/${id}`).has("public/font/minecraft-ten/overlays/soft_shading.png"))
     assert.equal(gh.pulls.get(1).title, "Soft Shading overlay for Minecraft Ten")
     assert.equal(gh.commits.get(gh.refs.get(`heads/submission/${id}`)).message, "[CF-Pages-Skip] add Soft Shading overlay to Minecraft Ten")
     assert.equal((await details(id)).details.border, undefined)
+  })
+
+  test("stores no palette for a white overlay, and refuses one with too many colours", async () => {
+    const cookie = await signIn()
+    const white = await send(cookie, { kind: "overlay", name: "Soft Glow", border: "" }, pngOf(FLAT.width, FLAT.height, [255, 255, 255, 120]))
+    assert.equal(branchList(white.id).overlays.soft_glow.palette, undefined)
+    const busy = await send(cookie, { kind: "overlay", name: "Busy", border: "" }, pngOf(FLAT.width, FLAT.height, (x, y) => [x * 7 % 256, y * 13 % 256, x * y % 256, 255]))
+    assert.match(busy.error, /too many colours/)
   })
 
   test("keeps ids clear of textures, overlays and generated overlays, which share the thumbnails folder", async () => {

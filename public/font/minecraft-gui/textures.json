@@ -58,7 +58,7 @@
     },
     "shadow": {
       "default": {
-        "colour": "#000000"
+        "colours": ["#000000"]
       },
       "authors": ["Ewan Howell"]
     },

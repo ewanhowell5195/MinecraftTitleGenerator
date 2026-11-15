@@ -9,6 +9,8 @@ import { stripUse } from "../strips.js"
 import { GENERATED_EDGE_OVERLAYS, withGenerated } from "../generated.js"
 import { DEFAULT_ROLES, EXTRA_FILE, HEX_COLOUR, SUBMISSION_LIMITS, assetId, creditProblem, pngProblem, pngSize, sizedProblem, textProblem, textureDensity } from "../submissions.js"
 import { MULTICASE_CHARACTERS, REQUIRED_CHARACTERS, characterName, fontId, hasCase } from "../fontEditor.js"
+import { MAX_ANCHORS } from "../overlayColours.js"
+import { overlayPalette } from "./fontAsset.js"
 import { FONT_LIMITS, drawnCells, ownFont, storedFont, submittedFont } from "./fontBuild.js"
 import { heightList, layerDepth, reachProblems, stripFit, stripHeights, stripSet } from "./stripFit.js"
 
@@ -194,6 +196,10 @@ function extraSizeProblem(size, kind, template) {
   return density ? { density } : { problem: `The ${noun} has to be the font's template size, ${template.width}x${template.height}, or a whole number of times bigger, and this one is ${size.width}x${size.height}.` }
 }
 
+function keptPalette(palette) {
+  return Array.isArray(palette) && palette.length && palette.length <= MAX_ANCHORS && palette.every(colour => typeof colour === "string" && HEX_COLOUR.test(colour)) ? palette.map(colour => colour.toLowerCase()) : null
+}
+
 function extrasOf(list, files, stored, template, problems) {
   if (list === undefined) return []
   if (!Array.isArray(list) || list.some(item => !item || typeof item !== "object")) {
@@ -221,6 +227,8 @@ function extrasOf(list, files, stored, template, problems) {
     const border = bordered && typeof item.border === "string" && HEX_COLOUR.test(item.border) ? item.border.toLowerCase() : null
     const kept = keptSize(item.size)
     const file = files[item.key] ? extraFileProblem(files[item.key], item.kind, template) : { size: kept, ...(kept && template ? extraSizeProblem(kept, item.kind, template) : { density: Number.isInteger(item.density) && item.density > 1 && item.density <= 64 ? item.density : undefined }) }
+    const coloured = item.kind === "overlay" && files[item.key] && !file.problem ? overlayPalette(files[item.key]) : null
+    const palette = coloured ? coloured.palette : item.kind === "overlay" && keptPalette(item.palette)
     if (named) problems[key] = named
     else if (flat && clean.some(other => other.kind === "flat")) problems[key] = "A font can only have one flat texture."
     else if (RESERVED_ASSETS.has(id)) problems[key] = `${name} is the name of one of the font's built in textures or overlays. Give it another name.`
@@ -229,11 +237,12 @@ function extrasOf(list, files, stored, template, problems) {
     else if (bordered && !border) problems[key] = "The border colour has to be a hex colour like #000000."
     else if (!files[item.key] && typeof stored?.[item.key] !== "string") problems[key] = `Choose a PNG for ${name}.`
     else if (file.problem) problems[key] = files[item.key] ? file.problem : `${file.problem} Choose a new one that fits the font.`
+    else if (coloured?.problem) problems[key] = coloured.problem
     const roles = bordered ? DEFAULT_ROLES.filter(role => item[role] === true) : []
     const repeated = roles.find(role => clean.some(other => other[role]))
     if (repeated && !problems[key]) problems[key] = `Only one texture can be the ${repeated}.`
     if (id) ids.set(id, name)
-    clean.push({ key: item.key, kind: item.kind, name, ...(credit.length && { credit }), ...(border && { border }), ...(file.density > 1 && { density: file.density }), ...(file.size && { size: file.size }), ...Object.fromEntries(roles.map(role => [role, true])) })
+    clean.push({ key: item.key, kind: item.kind, name, ...(credit.length && { credit }), ...(border && { border }), ...(file.density > 1 && { density: file.density }), ...(file.size && { size: file.size }), ...(palette && { palette }), ...Object.fromEntries(roles.map(role => [role, true])) })
   }
   return clean
 }

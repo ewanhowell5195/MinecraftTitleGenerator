@@ -1,5 +1,4 @@
 import { unzlibSync, zlibSync } from "three/addons/libs/fflate.module.js"
-import { SUBMISSION_LIMITS } from "../submissions.js"
 
 const SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10]
 const CHANNELS = { 0: 1, 2: 3, 3: 1, 4: 2, 6: 4 }
@@ -63,7 +62,9 @@ function inflated(joined, size) {
   return raw
 }
 
-export function decodePng(bytes) {
+export const PNG_SIDE = 4096
+
+export function decodePng(bytes, maxSide = PNG_SIDE) {
   if (bytes.length < 8 || SIGNATURE.some((value, index) => bytes[index] !== value)) throw new Error("it isn't a PNG")
   const list = chunks(bytes)
   const header = list.find(chunk => chunk.type === "IHDR")?.data
@@ -71,7 +72,7 @@ export function decodePng(bytes) {
   const view = new DataView(header.buffer, header.byteOffset, header.byteLength)
   const width = view.getUint32(0)
   const height = view.getUint32(4)
-  if (width > SUBMISSION_LIMITS.side || height > SUBMISSION_LIMITS.side) throw new Error(`the PNG is ${width}x${height}, and it can be up to ${SUBMISSION_LIMITS.side} pixels on each side`)
+  if (width > maxSide || height > maxSide) throw new Error(`the PNG is ${width}x${height}, and it can be up to ${maxSide} pixels on each side`)
   const [depth, colour, , , interlace] = header.subarray(8, 13)
   const channels = CHANNELS[colour]
   if (!channels || ![1, 2, 4, 8, 16].includes(depth)) throw new Error(`the PNG uses colour type ${colour} at ${depth} bits, which can't be read`)

@@ -5,6 +5,7 @@ import { layerLeft, layerMask } from "./flatSheet.js"
 import { joinNeighbours } from "./joins.js"
 import { gradientLine, gradientStops } from "./material.js"
 import { clamp, remember } from "./maths.js"
+import { WHITE, chosenColours, recolour } from "./overlayColours.js"
 import { MISSING, stripHasRow, stripY } from "./strips.js"
 
 export const R = 4
@@ -486,11 +487,18 @@ export function colourOverlay(mask, layer) {
   const { width, height } = mask.canvas
   const overlay = surface(width, height)
   overlay.ctx.drawImage(mask.canvas, 0, 0)
-  overlay.ctx.globalCompositeOperation = layer.colourBlend
-  overlay.ctx.fillStyle = layer.colour
-  overlay.ctx.fillRect(0, 0, width, height)
-  overlay.ctx.globalCompositeOperation = "destination-in"
-  overlay.ctx.drawImage(mask.canvas, 0, 0)
+  const anchors = layer.palette ?? [WHITE]
+  const colours = chosenColours(layer, anchors)
+  if (!colours) return overlay
+  if (anchors.length === 1) {
+    overlay.ctx.globalCompositeOperation = "source-in"
+    overlay.ctx.fillStyle = hexOf(colours[0])
+    overlay.ctx.fillRect(0, 0, width, height)
+    return overlay
+  }
+  const pixels = overlay.ctx.getImageData(0, 0, width, height)
+  recolour(pixels.data, anchors, colours)
+  overlay.ctx.putImageData(pixels, 0, 0)
   return overlay
 }
 
@@ -515,8 +523,8 @@ function overlayLayer(sheet, layer, source, capHeight, detail, band = null) {
   if (detail > 1) return colourOverlay(drawOverlay(sheet, layer, source, capHeight, detail, band), layer)
   if (!overlays.has(sheet)) overlays.set(sheet, { shapes: new Map(), coloured: new Map() })
   const { shapes, coloured } = overlays.get(sheet)
-  const shapeKey = JSON.stringify([source.edge ? `edge:${source.edge}` : source.generated ?? idOf(source), capHeight, Object.entries(layer).filter(([name]) => !["file", "blend", "opacity", "colour", "colourBlend", "sideWrap"].includes(name)), band])
-  return remember(coloured, JSON.stringify([shapeKey, layer.colour, layer.colourBlend]), () => colourOverlay(remember(shapes, shapeKey, () => drawOverlay(sheet, layer, source, capHeight, detail, band), CACHED_OVERLAYS), layer), CACHED_OVERLAYS)
+  const shapeKey = JSON.stringify([source.edge ? `edge:${source.edge}` : source.generated ?? idOf(source), capHeight, Object.entries(layer).filter(([name]) => !["file", "blend", "opacity", "colours", "palette", "sideWrap"].includes(name)), band])
+  return remember(coloured, JSON.stringify([shapeKey, layer.colours, layer.palette]), () => colourOverlay(remember(shapes, shapeKey, () => drawOverlay(sheet, layer, source, capHeight, detail, band), CACHED_OVERLAYS), layer), CACHED_OVERLAYS)
 }
 
 export function paintKey(sheet, assets, look) {

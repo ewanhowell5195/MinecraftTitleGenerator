@@ -5,6 +5,7 @@ import { sheetLayout, solidMask } from "./font.js"
 import { GENERATED_EDGE_OVERLAYS, SMOOTH_KINDS, edgeAlpha, generatedAlpha, withGenerated } from "./generated.js"
 import { joinNeighbours, keptAt } from "./joins.js"
 import { layout } from "./layout.js"
+import { definitionPalette } from "./overlayColours.js"
 import { defaultBorder, overlayLayer } from "./settings.js"
 import { bandEntry, stripCovers } from "./strips.js"
 import { MARGIN, drawLayer, drawRing, drawStrip, over, sceneFrame } from "./thumbnails.js"
@@ -205,7 +206,7 @@ async function textureThumbnail({ entry, scene, meta, sheet, width, densityOf },
   const overlays = await Promise.all((merged.overlays ?? []).map(async layer => {
     const known = meta.overlays[layer.overlay]
     if (!known) throw new Error(`${name}: default overlay "${layer.overlay}" is not one of this font's overlays`)
-    return { kind: known.generated ?? null, image: known.generated ? null : await sheet("overlays", layer.overlay), layer: { ...overlayLayer(layer.overlay, known), ...layer } }
+    return { kind: known.generated ?? null, image: known.generated ? null : await sheet("overlays", layer.overlay), layer: { ...overlayLayer(layer.overlay, known), ...layer, palette: definitionPalette(known) } }
   }))
   const image = await sheet("textures", name, merged.folder, merged.type === "strip")
   let png

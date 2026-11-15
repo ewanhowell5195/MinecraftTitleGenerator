@@ -1,6 +1,8 @@
 import { fontFolder, sheetOwner } from "../font.js"
 import { GENERATED_EDGE_OVERLAYS, GENERATED_SETTINGS, withGenerated } from "../generated.js"
 import { titleCase } from "../names.js"
+import { MAX_ANCHORS, paletteHexes, paletteOf } from "../overlayColours.js"
+import { decodePng } from "./png.js"
 import { BLEND_OPTIONS, overlayLayer } from "../settings.js"
 import { DEFAULT_ROLES, HEX_COLOUR, pngProblem, pngSize, textureDensity } from "../submissions.js"
 
@@ -35,6 +37,13 @@ export function templateProblem(bytes, flat, noun) {
   return textureDensity(size, flat) ? null : `The ${noun} has to be the font's template size, ${flat.width}x${flat.height}, or a whole number of times bigger, and this one is ${size.width}x${size.height}.`
 }
 
+export function overlayPalette(bytes) {
+  const { anchors, complex } = paletteOf(decodePng(bytes).data)
+  if (complex) return { problem: `This overlay has too many colours. Overlays can have up to ${MAX_ANCHORS}, so put shading, glows and fades in its transparency instead.` }
+  const palette = paletteHexes(anchors)
+  return { palette: palette.length === 1 && palette[0] === "#ffffff" ? null : palette }
+}
+
 export const DEFAULT_OVERLAY_LIMIT = 8
 const LAYER_KINDS = { overlays: "overlay", edgeOverlays: "edge overlay" }
 const BLEND_VALUES = new Set(BLEND_OPTIONS.map(item => item.value))
@@ -49,14 +58,13 @@ function cleanLayer(layer, available) {
   const definition = available[layer.overlay]
   const clean = overlayLayer(layer.overlay, definition)
   delete clean.file
-  for (const key of ["blend", "colourBlend"]) {
-    if (layer[key] === undefined) continue
-    if (!BLEND_VALUES.has(layer[key])) return null
-    clean[key] = layer[key]
+  if (layer.blend !== undefined) {
+    if (!BLEND_VALUES.has(layer.blend)) return null
+    clean.blend = layer.blend
   }
-  if (layer.colour !== undefined) {
-    if (typeof layer.colour !== "string" || !HEX_COLOUR.test(layer.colour)) return null
-    clean.colour = layer.colour.toLowerCase()
+  if (layer.colours !== undefined && layer.colours !== null) {
+    if (!Array.isArray(layer.colours) || !layer.colours.length || layer.colours.length > MAX_ANCHORS || !layer.colours.every(colour => typeof colour === "string" && HEX_COLOUR.test(colour))) return null
+    clean.colours = layer.colours.map(colour => colour.toLowerCase())
   }
   if (layer.opacity !== undefined) {
     if (!Number.isInteger(layer.opacity) || layer.opacity < 0 || layer.opacity > 100) return null
@@ -102,7 +110,7 @@ function fontAsset(id, label, { border, variants = false }) {
     noun,
     available: true,
     accept: "image/png",
-    derived: ["density"],
+    derived: border ? ["density"] : ["density", "palette"],
     async check({ target, details, bytes }, ctx) {
       const problems = {}
       const clean = {}
@@ -131,6 +139,11 @@ function fontAsset(id, label, { border, variants = false }) {
           const flat = await flatSize(ctx, font)
           problems.file = templateProblem(bytes, flat, noun)
           if (!problems.file) clean.density = textureDensity(pngSize(bytes), flat)
+        }
+        if (!problems.file && !border) {
+          const { palette, problem } = overlayPalette(bytes)
+          if (problem) problems.file = problem
+          else if (palette) clean.palette = palette
         }
       }
       return { problems, target: font?.id ?? target, details: clean }

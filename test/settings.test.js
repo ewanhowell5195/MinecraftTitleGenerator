@@ -207,7 +207,7 @@ describe("typeDefaults", () => {
 
 describe("LAYER", () => {
   test("pins every layer default", () => {
-    assert.deepEqual(LAYER, { source: "premade", file: null, blend: "overlay", colour: "#ffffff", colourBlend: "multiply", opacity: 100 })
+    assert.deepEqual(LAYER, { source: "premade", file: null, blend: "overlay", colours: null, opacity: 100 })
   })
 })
 

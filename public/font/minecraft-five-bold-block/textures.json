@@ -64,20 +64,20 @@
   "overlays": {
     "drop_shadow": {
       "default": {
-        "colour": "#000000"
+        "colours": ["#000000"]
       },
       "authors": ["Ewan Howell"]
     },
     "drop_shadow_left": {
       "default": {
-        "colour": "#000000"
+        "colours": ["#000000"]
       },
       "name": "Drop Shadow (Left)",
       "authors": ["Ewan Howell"]
     },
     "drop_shadow_right": {
       "default": {
-        "colour": "#000000"
+        "colours": ["#000000"]
       },
       "name": "Drop Shadow (Right)",
       "authors": ["Ewan Howell"]

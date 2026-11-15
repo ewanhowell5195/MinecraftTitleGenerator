@@ -3,6 +3,8 @@ import { expandBands } from "./flatSheet.js"
 import { loadImage, sheetLayout, solidMask } from "./font.js"
 import { GENERATED_EDGE_OVERLAYS, withGenerated } from "./generated.js"
 import { mostCommon } from "./maths.js"
+import { paletteOf } from "./overlayColours.js"
+import { decodePng } from "./submissionKinds/png.js"
 import { titleCase } from "./names.js"
 import { platform } from "./platform.js"
 import { defaultDepth } from "./settings.js"
@@ -10,6 +12,7 @@ import { mergeStrips, stackedStrip, stripFolder, stripRows, stripUse } from "./s
 
 const json = new Map()
 const images = new Map()
+const palettes = new Map()
 const shapes = new WeakMap()
 
 function remembered(cache, url, load) {
@@ -45,9 +48,20 @@ export function forgetFolder(folder) {
 }
 
 export function forgetImages(keep) {
-  for (const url of images.keys()) {
-    if (url.startsWith("data:") && !keep(url)) images.delete(url)
+  for (const cache of [images, palettes]) {
+    for (const url of cache.keys()) if (url.startsWith("data:") && !keep(url)) cache.delete(url)
   }
+}
+
+export function filePalette(url) {
+  return remembered(palettes, url, async () => {
+    const bytes = Uint8Array.from(atob(url.slice(url.indexOf(",") + 1)), char => char.charCodeAt(0))
+    try {
+      return paletteOf(decodePng(bytes, Infinity).data)
+    } catch {
+      return paletteOf(pixelsOf(await image(url)))
+    }
+  })
 }
 
 function textureList(folder) {

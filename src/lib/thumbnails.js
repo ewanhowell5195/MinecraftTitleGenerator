@@ -1,11 +1,9 @@
 import { blend } from "./blend.js"
-import { rgbOf } from "./colour.js"
 import { keptAt } from "./joins.js"
+import { WHITE, chosenColours, mapColour } from "./overlayColours.js"
 import { MISSING, stripHasRow, stripY } from "./strips.js"
 
 export const MARGIN = 2
-
-const WHITE = [255, 255, 255]
 
 export function over({ data, width, height }, x, y, [r, g, b, a]) {
   if (!a || x < 0 || y < 0 || x >= width || y >= height) return
@@ -70,7 +68,17 @@ export function drawStrip(image, placed, d, { image: strip, density, top, tiling
 }
 
 export function drawLayer(image, placed, d, layer, { alphaOf = null, texel = null }) {
-  const tint = rgbOf(layer.colour)
+  const anchors = layer.palette ?? [WHITE]
+  const colours = chosenColours(layer, anchors)
+  const cache = new Map()
+
+  function coloured(rgb) {
+    if (!colours) return rgb
+    const key = rgb[0] << 16 | rgb[1] << 8 | rgb[2]
+    if (!cache.has(key)) cache.set(key, mapColour(rgb, anchors, colours))
+    return cache.get(key)
+  }
+
   for (const item of placed) {
     const { glyph, x, y } = item
     const alpha = alphaOf?.(item)
@@ -83,7 +91,7 @@ export function drawLayer(image, placed, d, layer, { alphaOf = null, texel = nul
         const i = ((y * d + py) * image.width + x * d + px) * 4
         if (!strength || !image.data[i + 3]) continue
         const base = [image.data[i], image.data[i + 1], image.data[i + 2]]
-        const mixed = blend(layer.blend, base, blend(layer.colourBlend, texel ? [texel.data[k], texel.data[k + 1], texel.data[k + 2]] : WHITE, tint))
+        const mixed = blend(layer.blend, base, coloured(texel ? [texel.data[k], texel.data[k + 1], texel.data[k + 2]] : WHITE))
         for (let c = 0; c < 3; c++) image.data[i + c] = Math.round(base[c] + (mixed[c] - base[c]) * strength)
       }
     }

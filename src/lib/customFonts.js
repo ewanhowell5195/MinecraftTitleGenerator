@@ -93,7 +93,7 @@ async function meshThumbnails(font, mesh, list) {
   const rows = stripRows({}, scene.stripRange, scene.depth, scene.capHeight).rows
   const shaded = plainStrip(rows, OVERLAY_BASE)
   const drawn = { preview: stripThumbnail(scene, {}, plainStrip(rows, "#ffffff"), PREVIEW_DETAIL), flat: stripThumbnail(scene, {}, plainStrip(rows, "#ffffff")) }
-  for (const name of Object.keys(withGenerated({}))) drawn[name] = stripThumbnail(scene, { overlays: [{ overlay: name, blend: "source-over", colour: "#ffffff", colourBlend: "multiply", opacity: 100 }] }, shaded)
+  for (const name of Object.keys(withGenerated({}))) drawn[name] = stripThumbnail(scene, { overlays: [{ overlay: name, blend: "source-over", opacity: 100 }] }, shaded)
   for (const name of Object.keys(GENERATED_EDGE_OVERLAYS)) drawn[name] = stripThumbnail(scene, {}, shaded)
   const textures = Object.entries(list.textures).filter(([, entry]) => entry.type === "strip")
   await Promise.all(textures.flatMap(([id, entry]) => [[id, entry]].concat(Object.entries(entry.variants ?? {}).map(([name, variant]) => [name, { ...entry, ...variant }]))).map(async ([name, entry]) => {

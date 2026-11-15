@@ -32,7 +32,7 @@ function storedLayers(layers, available) {
     const definition = available[layer.overlay]
     const base = overlayLayer(layer.overlay, definition)
     const fallbacks = Object.fromEntries((GENERATED_SETTINGS[definition?.generated] ?? []).map(item => [item.key, item.key === "seed" ? undefined : item.fallback]))
-    const kept = Object.entries(layer).filter(([key, value]) => !["overlay", "source", "file"].includes(key) && value !== (key in base ? base[key] : fallbacks[key]) && !(value === false && !base[key]))
+    const kept = Object.entries(layer).filter(([key, value]) => !["overlay", "source", "file"].includes(key) && JSON.stringify(value) !== JSON.stringify(key in base ? base[key] : fallbacks[key]) && !(value === false && !base[key]))
     return { overlay: layer.overlay, ...Object.fromEntries(kept) }
   })
 }
@@ -52,7 +52,8 @@ function fontAsset(kind) {
         ...(row.name !== titleCase(asset) && { name: row.name }),
         authors: row.credit,
         ...((density > 1 || (parent?.density ?? 1) > 1) && { density }),
-        ...(kind === "texture" && { border: details.border })
+        ...(kind === "texture" && { border: details.border }),
+        ...(kind === "overlay" && details.palette && { palette: details.palette })
       }
       const choices = overlayChoices(list)
       for (const key of ["overlays", "edgeOverlays"]) if (kind === "texture" && details[key]?.length) entry[key] = storedLayers(details[key], choices[key])

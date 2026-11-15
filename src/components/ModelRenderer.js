@@ -1,5 +1,5 @@
 import { computed, shallowRef, watch } from "vue"
-import { image, modelOf, modelTextures } from "../lib/assets.js"
+import { filePalette, image, modelOf, modelTextures } from "../lib/assets.js"
 import { rowBottom } from "../lib/build.js"
 import { surface } from "../lib/canvas.js"
 import { quietly } from "../lib/history.js"
@@ -10,6 +10,7 @@ import { NO_ARC } from "../lib/rows.js"
 import { editorTitle, keepTexture, loadedFont } from "../lib/scene.js"
 import { activeOverlays, defaultTexture, effectiveScale, setTexture, textureEntry } from "../lib/settings.js"
 import { minecraftQuads } from "../lib/minecraftModels.js"
+import { definitionPalette } from "../lib/overlayColours.js"
 import { CUSTOM_SHAPE, MODEL_BASELINE, SHAPE_TEXTURE, isMinecraftShape, minecraftShapeParts, modelHeight, shapeName, shapeOf } from "../lib/shapes.js"
 
 const BLOCK_TURN = 180
@@ -125,8 +126,9 @@ export default {
       source.ctx.drawImage(base, 0, 0)
       const work = adjusted(source.canvas, value)
       const layers = await Promise.all(value.overlays.flatMap(layer => {
-        if (layer.source === "file") return layer.file ? [image(layer.file).then(file => ({ layer, file }))] : []
-        return list.value.overlays[layer.overlay] ? [image(`${shape.value.folder}/overlays/${layer.overlay}.png`).then(file => ({ layer, file }))] : []
+        if (layer.source === "file") return layer.file ? [Promise.all([image(layer.file), filePalette(layer.file)]).then(([file, { anchors }]) => ({ layer: { ...layer, palette: anchors }, file }))] : []
+        const entry = list.value.overlays[layer.overlay]
+        return entry ? [image(`${shape.value.folder}/overlays/${layer.overlay}.png`).then(file => ({ layer: { ...layer, palette: definitionPalette(entry) }, file }))] : []
       }))
       for (const { layer, file } of layers) {
         const mask = surface(base.width, base.height)

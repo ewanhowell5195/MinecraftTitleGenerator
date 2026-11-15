@@ -56,7 +56,7 @@ export const GENERATED_EDGE_OVERLAYS = {
   edge_outline_open: { generated: "edge_outline_open", name: "Outline (No Front)" },
   edge_outline_fade: { generated: "edge_outline_fade", name: "Outline Fade" },
   edge_front: { generated: "edge_front", name: "Highlight" },
-  edge_rounded: { generated: "edge_rounded", name: "Rounded", default: { colour: "#000000", blend: "source-over" } }
+  edge_rounded: { generated: "edge_rounded", name: "Rounded", default: { colours: ["#000000"], blend: "source-over" } }
 }
 
 const GENERATED_OVERLAYS = {
@@ -72,8 +72,8 @@ const GENERATED_OVERLAYS = {
   shine_random: { generated: "shine_random", name: "Shine (Random)" },
   wave: { generated: "wave", default: { blend: "source-over", sideWrap: true, edgeWrap: true } },
   wave_inverted: { generated: "wave_inverted", name: "Wave (Inverted)", default: { blend: "source-over", sideWrap: true, edgeWrap: true } },
-  cracked_edges: { generated: "cracks", default: { colour: "#000000", blend: "source-over" } },
-  layer_shadow: { generated: "shadow", name: "Shadow", layered: true, default: { colour: "#000000", blend: "source-over", opacity: 60 } }
+  cracked_edges: { generated: "cracks", default: { colours: ["#000000"], blend: "source-over" } },
+  layer_shadow: { generated: "shadow", name: "Shadow", layered: true, default: { colours: ["#000000"], blend: "source-over", opacity: 60 } }
 }
 
 export function withGenerated(overlays) {

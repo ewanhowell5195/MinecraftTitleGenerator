@@ -1,8 +1,11 @@
 <script setup>
-  import { computed, ref, toRaw } from "vue"
+  import { computed, ref, toRaw, watch } from "vue"
+  import { filePalette } from "../lib/assets.js"
+  import { hexOf } from "../lib/colour.js"
   import { credit } from "../lib/credits.js"
   import { GENERATED_SETTINGS, WRAPPED_KINDS, generatedSetting } from "../lib/generated.js"
   import { titleCase } from "../lib/names.js"
+  import { MAX_ANCHORS, WHITE, definitionPalette, paletteHexes } from "../lib/overlayColours.js"
   import { useListReorder } from "../lib/reorder.js"
   import { BLEND_OPTIONS, overlayLayer } from "../lib/settings.js"
   import { popular } from "../lib/stats.js"
@@ -50,7 +53,8 @@
   const baseline = computed(() => layer.value ? { ...overlayLayer(layer.value.overlay, layer.value.source === "file" ? null : props.available[layer.value.overlay]), source: layer.value.source, file: layer.value.file } : null)
   const layerModified = computed(() => {
     if (!layer.value) return false
-    if (["blend", "colour", "colourBlend", "opacity"].some(key => layer.value[key] !== baseline.value[key])) return true
+    if (["blend", "opacity"].some(key => layer.value[key] !== baseline.value[key])) return true
+    if (JSON.stringify(layer.value.colours ?? null) !== JSON.stringify(baseline.value.colours ?? null)) return true
     if (["sideWrap", "edgeWrap"].some(key => !!layer.value[key] !== !!baseline.value[key])) return true
     return settings.value.some(item => item.key !== "seed" && generatedSetting(layer.value, item) !== generatedSetting(baseline.value, item))
   })
@@ -81,8 +85,36 @@
   }
 
   function pickFile(file) {
-    if (layer.value) set("file", file)
-    else addLayer({ ...overlayLayer(null), source: "file", file })
+    if (!layer.value) return addLayer({ ...overlayLayer(null), source: "file", file })
+    set("file", file)
+    set("colours", null)
+  }
+
+  const filePalettes = ref({})
+  const palette = computed(() => {
+    if (!layer.value) return { anchors: [WHITE], complex: false }
+    if (layer.value.source === "file") return filePalettes.value[layer.value.file] ?? { anchors: [WHITE], complex: false }
+    return { anchors: definitionPalette(props.available[layer.value.overlay]), complex: false }
+  })
+
+  watch(() => layer.value?.source === "file" ? layer.value.file : null, async url => {
+    if (!url || filePalettes.value[url]) return
+    const found = await filePalette(url)
+    filePalettes.value = { ...filePalettes.value, [url]: found }
+  }, { immediate: true })
+
+  function colourAt(index) {
+    return layer.value.colours?.[index] ?? hexOf(palette.value.anchors[index])
+  }
+
+  function setColour(index, value) {
+    const next = palette.value.anchors.map((_, at) => colourAt(at))
+    next[index] = value
+    set("colours", next)
+  }
+
+  function setCustomised(on) {
+    set("colours", on ? paletteHexes(palette.value.anchors) : null)
   }
 
   function freshLayer(id, seed) {
@@ -182,10 +214,10 @@
   <template v-if="layer">
     <Slider v-for="item of settings" :key="item.key" :label="item.label" :model-value="generatedSetting(layer, item)" @update:model-value="set(item.key, $event)" :min="item.min" :max="item.max" :step="item.step ?? 1" />
     <Dropdown label="Blend mode" :options="BLEND_OPTIONS" :model-value="layer.blend" @update:model-value="set('blend', $event)" />
-    <Field group label="Colour">
-      <div class="row">
-        <ColourPicker class="grow" :model-value="layer.colour" @update:model-value="set('colour', $event)" />
-        <Dropdown class="grow" :options="BLEND_OPTIONS" :model-value="layer.colourBlend" @update:model-value="set('colourBlend', $event)" v-tooltip="'Colour blend mode'" />
+    <Field group :label="palette.anchors.length > 1 ? 'Colours' : 'Colour'">
+      <Toggle v-if="palette.complex" label="Customise colours" :hint="`This image has more than ${MAX_ANCHORS} colours, so customising maps them onto ${MAX_ANCHORS} and loses some detail.`" :model-value="!!layer.colours" @update:model-value="setCustomised" />
+      <div v-if="!palette.complex || layer.colours" class="colours">
+        <ColourPicker v-for="(anchor, index) of palette.anchors" :key="index" :model-value="colourAt(index)" @update:model-value="setColour(index, $event)" />
       </div>
     </Field>
     <Slider label="Opacity" :model-value="layer.opacity" @update:model-value="set('opacity', $event)" :min="0" :max="100" />
@@ -236,5 +268,11 @@
 
   .scroll {
     max-height: 360px;
+  }
+
+  .colours {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
   }
 </style>

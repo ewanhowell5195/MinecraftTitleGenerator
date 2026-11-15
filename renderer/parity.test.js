@@ -20,7 +20,7 @@ function line(values) {
 }
 
 function layer(overlay, values) {
-  return { overlay, source: "premade", blend: "source-over", colour: "#ff0000", colourBlend: "multiply", opacity: 100, ...values }
+  return { overlay, source: "premade", blend: "source-over", colours: ["#ff0000"], opacity: 100, ...values }
 }
 
 function code(...lines) {

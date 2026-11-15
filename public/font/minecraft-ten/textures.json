@@ -36,7 +36,7 @@
     },
     "mangrove": {
       "overlays": [
-        { "overlay": "highlights_top", "colour": "#f5f3ef", "opacity": 69 }
+        { "overlay": "highlights_top", "colours": ["#f5f3ef"], "opacity": 69 }
       ],
       "name": "Mangrove (Wild Update)",
       "authors": ["Narrator2", "TheAnnoying"],
@@ -247,12 +247,13 @@
   "overlays": {
     "bevel": {
       "authors": ["Ewan Howell"],
-      "density": 4
+      "density": 4,
+      "palette": ["#626262", "#6e6e6e", "#e7e7e7", "#d0d0d0", "#a4a4a4"]
     },
     "cracks": {
       "default": {
         "blend": "multiply",
-        "colour": "#000000",
+        "colours": ["#000000"],
         "opacity": 50
       },
       "authors": ["Ewan Howell"]
@@ -260,7 +261,7 @@
     "tiles": {
       "default": {
         "blend": "multiply",
-        "colour": "#000000",
+        "colours": ["#000000"],
         "opacity": 50
       },
       "authors": ["0Szysza"]
@@ -268,12 +269,14 @@
     "bevel_highlight_bottom": {
       "name": "Bottom Bevel Highlight",
       "authors": ["FloideN"],
-      "density": 4
+      "density": 4,
+      "palette": ["#d0d0d0", "#aaaaaa", "#bfbfbf"]
     },
     "bevel_highlight_top": {
       "name": "Top Bevel Highlight",
       "authors": ["FloideN"],
-      "density": 4
+      "density": 4,
+      "palette": ["#e7e7e7", "#a4a4a4"]
     },
     "texture_highlight_1": {
       "name": "Texture Highlight",
@@ -296,7 +299,8 @@
     },
     "glass_tempered": {
       "name": "Glass (Tempered)",
-      "authors": ["B1tseK"]
+      "authors": ["B1tseK"],
+      "palette": ["#ffffff", "#ceddec"]
     }
   },
   "primary": "cracked",
