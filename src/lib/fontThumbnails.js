@@ -275,6 +275,6 @@ export async function fontThumbnails(entry, scene, textures, load) {
   }
 
   await drawAll(scene, "", null)
-  for (let layer = 0; layer < (scene.layers?.length ?? 0); layer++) await drawAll(layerScene(scene, layer), `layer-${layer + 1}/`, layer)
+  for (let layer = 0; layer < (scene.layers?.length ?? 0); layer++) await drawAll(layerScene(scene, layer), `layer-${layer}/`, layer)
   return drawn
 }

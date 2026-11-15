@@ -55,7 +55,7 @@ export function fontThumbnail(fonts, id) {
 }
 
 export function thumbnail(font, id, layer = null) {
-  const name = layer === null ? id : `layer-${layer + 1}/${id}`
+  const name = layer === null ? id : `layer-${layer}/${id}`
   return customThumbnail(font?.id, name) ?? `${font?.folder ?? "font"}/thumbnails/${name}.png`
 }
 

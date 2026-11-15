@@ -58,7 +58,7 @@ describe("font thumbnails", () => {
 
   test("each layer's flat thumbnail shows only that layer's shade", async () => {
     const thumbnails = await drawn()
-    assert.deepEqual(shades(thumbnails.get("layer-1/flat")), [255])
-    assert.deepEqual(shades(thumbnails.get("layer-2/flat")), [128])
+    assert.deepEqual(shades(thumbnails.get("layer-0/flat")), [255])
+    assert.deepEqual(shades(thumbnails.get("layer-1/flat")), [128])
   })
 })
