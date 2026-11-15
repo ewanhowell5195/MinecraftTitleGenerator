@@ -439,7 +439,7 @@ export function frameCamera(camera, { anchor, corners, size, angle = DEFAULT_CAM
   } else {
     camera.aspect = aspect
     camera.fov = Math.atan(span) * 360 / Math.PI
-    camera.near = Math.max(near / 100, 0.01)
+    camera.near = Math.max(near - size, near / 100, 0.01)
     camera.far = distance + size * 100
     camera.setViewOffset(width, height, centreX / (span * aspect) * width / 2, -centreY / span * height / 2, width, height)
   }

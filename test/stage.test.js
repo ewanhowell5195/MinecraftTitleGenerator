@@ -594,6 +594,14 @@ describe("frameCamera", () => {
     closeList(shown(new THREE.OrthographicCamera()), shown(new THREE.PerspectiveCamera()), 1e-4)
   })
 
+  test("a narrow field of view keeps the near plane close to the title", () => {
+    const camera = new THREE.PerspectiveCamera()
+    frameCamera(camera, { anchor: line, corners: cornersOf(line), size: 20, fov: 0.1, width: 800, height: 600 })
+    camera.updateMatrixWorld(true)
+    const nearest = Math.min(...cornersOf(line).map(corner => -corner.clone().applyMatrix4(camera.matrixWorldInverse).z))
+    close(camera.near, nearest - 20, 1e-6)
+  })
+
   test("maxScale limits perspective magnification at the camera distance", () => {
     const camera = new THREE.PerspectiveCamera()
     frameCamera(camera, { anchor: line, corners: cornersOf(line), size: 20, fov: 90, width: 800, height: 600, maxScale: 2 })
