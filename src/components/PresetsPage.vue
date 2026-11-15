@@ -465,6 +465,11 @@
     font-weight: 600;
   }
 
+  .home + h1 {
+    padding-left: 16px;
+    border-left: 1px solid var(--line);
+  }
+
   h1 {
     margin: 0;
     font-size: var(--font-xl);
