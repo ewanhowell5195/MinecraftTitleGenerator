@@ -47,9 +47,38 @@ export function drawRing(image, placed, d, border, maskOf = glyph => glyph.mask)
   }
 }
 
-export function drawStrip(image, placed, d, { image: strip, density, top, tiling, shape }) {
-  for (const { glyph, x, y, lineX, trim = 0 } of placed) {
-    const origin = tiling === "character" ? -trim : lineX - (placed[0].trim ?? 0)
+function maskExtent(glyph) {
+  let left = glyph.width
+  let right = -1
+  for (let row = 0; row < glyph.height; row++) {
+    for (let column = 0; column < glyph.width; column++) {
+      if (!glyph.mask[row * glyph.width + column]) continue
+      left = Math.min(left, column)
+      right = Math.max(right, column)
+    }
+  }
+  return right < left ? null : { left, right: right + 1 }
+}
+
+function stripShifts(placed, pixel) {
+  const shifts = []
+  for (const [index, item] of placed.entries()) {
+    const own = maskExtent(item.glyph)
+    const before = index ? maskExtent(placed[index - 1].glyph) : null
+    if (!own) shifts.push(0)
+    else if (before && placed[index - 1].lineX + before.right >= item.lineX + own.left) shifts.push(shifts[index - 1])
+    else {
+      const phase = ((item.lineX + own.left - (placed[0].trim ?? 0)) % pixel + pixel) % pixel
+      shifts.push(phase <= pixel / 2 ? phase : phase - pixel)
+    }
+  }
+  return shifts
+}
+
+export function drawStrip(image, placed, d, { image: strip, density, snap = 1 / density, top, tiling, shape }) {
+  const shifts = tiling === "character" ? null : stripShifts(placed, snap)
+  for (const [index, { glyph, x, y, lineX, trim = 0 }] of placed.entries()) {
+    const origin = tiling === "character" ? -trim : lineX - (placed[0].trim ?? 0) - shifts[index]
     for (let py = 0; py < glyph.height * d; py++) {
       for (let px = 0; px < glyph.width * d; px++) {
         if (!glyph.mask[(glyph.height - 1 - Math.floor(py / d)) * glyph.width + Math.floor(px / d)] || !keptAt(glyph, glyph.height - 1 - Math.floor(py / d), (px + 0.5) / d)) continue

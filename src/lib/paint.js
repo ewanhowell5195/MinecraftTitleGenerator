@@ -1,7 +1,7 @@
 import { fadeStops, fillPattern, linearGradient, surface } from "./canvas.js"
 import { hexOf, packed } from "./colour.js"
 import { PLACED_KINDS, SMOOTH_KINDS, WRAPPED_KINDS, crackList, crackTriangle, crackWrap, edgeAlpha, generatedAlpha, shadowQualityName, toneKinds, wrapTriangles } from "./generated.js"
-import { layerLeft, layerMask } from "./flatSheet.js"
+import { layerCell, layerLeft, layerMask } from "./flatSheet.js"
 import { joinNeighbours } from "./joins.js"
 import { gradientLine, gradientStops } from "./material.js"
 import { clamp, remember } from "./maths.js"
@@ -235,14 +235,36 @@ function stretchedStrip(strip, low, high) {
   }, CACHED_OVERLAYS)
 }
 
+function bandExtent(glyph, band) {
+  if (band === null || !glyph.depths) return { left: 0, right: glyph.width }
+  const cell = layerCell(glyph, band)
+  return cell.width ? { left: cell.left, right: cell.left + cell.width } : null
+}
+
+function stripShift(glyph, strip, shifts) {
+  if (shifts.has(glyph)) return shifts.get(glyph)
+  const own = bandExtent(glyph, strip.band)
+  const before = glyph.previous && bandExtent(glyph.previous, strip.band)
+  let shift = 0
+  if (own && before && glyph.previous.lineX + before.right >= glyph.lineX + own.left) shift = stripShift(glyph.previous, strip, shifts)
+  else if (own) {
+    const pixel = strip.snap ?? 1 / strip.density
+    const phase = ((glyph.lineX + own.left - layerLeft(glyph.lineFirst ?? glyph, strip.band)) % pixel + pixel) % pixel
+    shift = phase <= pixel / 2 ? phase : phase - pixel
+  }
+  shifts.set(glyph, shift)
+  return shift
+}
+
 function paintStrip(ctx, entries, strip) {
+  const shifts = new Map()
   const runs = new Map(entries.map(entry => [entry, stripRuns(entry.glyph.arc.map)]))
   const spans = Array.from(runs).flatMap(([entry, list]) => list.flatMap(run => [entry.source.glyph.bottom + run.from, entry.source.glyph.bottom + run.from + run.height - 1]))
   const high = Math.max(...spans)
   const stretched = strip.scale && Number.isInteger(strip.density) && spans.length ? stretchedStrip(strip, Math.min(...spans), high) : null
   for (const [entry, list] of runs) {
     const { glyph, source } = entry
-    const origin = strip.tiling === "character" ? entry.x + layerLeft(glyph, strip.band) : entry.x - glyph.lineX + layerLeft(glyph.lineFirst ?? glyph, strip.band)
+    const origin = strip.tiling === "character" ? entry.x + layerLeft(glyph, strip.band) : entry.x - glyph.lineX + layerLeft(glyph.lineFirst ?? glyph, strip.band) + stripShift(glyph, strip, shifts)
     for (const { row, from, height } of list) {
       if (stretched) {
         const y = entry.top + glyph.height - 1 - row

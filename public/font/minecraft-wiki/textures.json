@@ -25,9 +25,10 @@
           "name": "Wiki (Old)",
           "authors": ["ewanhowell5195"],
           "border": "#000000",
+          "snap": 8,
           "overlays": null,
-          "inner": null,
-          "sides": null
+          "inner": ["#424242", "#151515"],
+          "sides": ["#5b5b5b", "#262626"]
         }
       }
     }
