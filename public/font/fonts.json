@@ -218,7 +218,7 @@
     "strips": [
       { "id": "minecraft-ten", "layer": 1 }
     ],
-    "spaceWidth": 14,
+    "spaceWidth": 16,
     "depth": 32,
     "border": 0,
     "characterSpacing": -8,
