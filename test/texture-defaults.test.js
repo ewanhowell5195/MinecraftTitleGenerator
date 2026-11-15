@@ -1,7 +1,7 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import { publishedFonts, fontTextureList, readMask } from "../generator/fonts.js"
-import { FACE_PANELS, LAYERS, activeOverlays, createObject, isModified, layerTarget, layerView, perLayerDefault, resetPanel, separateForDefaults, setTexture, textureFaces } from "../src/lib/settings.js"
+import { FACE_PANELS, LAYERS, activeOverlays, createObject, isModified, layerTarget, layerView, perLayerDefault, resetPanel, separateForDefaults, separateLayers, setTexture, textureFaces } from "../src/lib/settings.js"
 
 const list = {
   overlays: { dust: {}, glow: {} },
@@ -9,6 +9,8 @@ const list = {
   textures: {
     plain: {},
     flatFaces: { faces: "#575757", inner: "#111111" },
+    red: { sides: "#ff0000" },
+    blue: { sides: "#0000ff" },
     flatFacesCopy: { faces: "#575757", inner: "#111111" },
     layered: { sides: ["#575757", "#242424"], overlays: [[{ overlay: "dust" }], [{ overlay: "glow" }]], variants: { bare: { sides: null, overlays: null } } },
     notColour: { sides: { sideColour: "#575757" } },
@@ -76,6 +78,16 @@ describe("texture face defaults", () => {
     assert.equal(object.fadeInternal, false)
   })
 
+  test("with separate textures, picking one layer's texture only changes that layer's colours", () => {
+    const object = premade("plain")
+    separateLayers(object, "texture", true, 2)
+    separateLayers(object, "colour", true, 2)
+    setTexture(layerView(object, 0, "texture"), { texture: "red" }, { before: list })
+    setTexture(layerView(object, 1, "texture"), { texture: "blue" }, { before: list })
+    assert.equal(layerTarget(object, 0).sideColour, "#ff0000")
+    assert.equal(layerTarget(object, 1).sideColour, "#0000ff")
+  })
+
   test("reset and modified follow the texture's defaults, per layer", () => {
     const object = premade("plain")
     setTexture(object, { texture: "layered" }, { before: list })
@@ -121,6 +133,15 @@ describe("texture overlay defaults", () => {
     const faces = premade("layered")
     separateForDefaults(faces, list)
     assert.equal(faces.separateColour, true)
+  })
+
+  test("with separate textures, picking a layer's texture separates the overlays and only resets that layer", () => {
+    const object = createObject({ textureSource: "premade", texture: "plain", overlayMode: "custom", overlays: [{ overlay: "glow" }] })
+    separateLayers(object, "texture", true, 2)
+    setTexture(layerView(object, 1, "texture"), { texture: "flatOverlays" }, { before: list })
+    assert.equal(object.separateOverlays, true)
+    assert.deepEqual(activeOverlays(list, layerTarget(object, 0), "overlays", 0).map(layer => layer.overlay), ["glow"])
+    assert.deepEqual(activeOverlays(list, layerTarget(object, 1), "overlays", 1).map(layer => layer.overlay), ["dust"])
   })
 
   test("a list of lists gives each layer its own overlays and separates them", () => {

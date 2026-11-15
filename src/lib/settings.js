@@ -250,12 +250,18 @@ function separatedKeys(object, group = null) {
   return new Set(groups.filter(name => isSeparate(object, name)).flatMap(name => LAYER_GROUPS[name]))
 }
 
+const VIEWED = Symbol("viewed")
+
+function viewed(object) {
+  return object[VIEWED] ?? object
+}
+
 export function layerView(object, layer, group = null) {
   const keys = separatedKeys(object, group)
   const settings = layer && keys.size ? object.layerSettings[layer - 1] : null
   if (!settings) return object
   return new Proxy(object, {
-    get: (target, key) => keys.has(key) ? target.layerSettings[layer - 1][key] : target[key],
+    get: (target, key) => key === VIEWED ? target : keys.has(key) ? target.layerSettings[layer - 1][key] : target[key],
     set: (target, key, value) => {
       if (keys.has(key)) target.layerSettings[layer - 1][key] = value
       else target[key] = value
@@ -486,15 +492,17 @@ function textureDefaults(list, object, count) {
 
 export function separateForDefaults(object, list, layers = defaultsLayers(list, object)) {
   const merged = list && object.textureSource === "premade" ? textureEntry(list, object) : null
+  const base = viewed(object)
   for (const group of ["overlays", "colour"]) {
     const keys = group === "overlays" ? LAYERS : FACE_PANELS
-    if (!isSeparate(object, group) && keys.some(key => perLayerDefault(merged?.[key], key))) separateLayers(object, group, true, layers)
+    if (!isSeparate(base, group) && keys.some(key => perLayerDefault(merged?.[key], key))) separateLayers(base, group, true, layers)
   }
 }
 
 export function setTexture(object, values, { before = null, after = before } = {}) {
-  const count = Math.max(object.layerSettings?.length ?? 0, defaultsLayers(before, object) - 1) + 1
-  const old = textureDefaults(before, object, count)
+  const base = viewed(object)
+  const count = Math.max(base.layerSettings?.length ?? 0, defaultsLayers(before, object) - 1) + 1
+  const old = textureDefaults(before, base, count)
   let changed = false
   for (const [key, value] of Object.entries(values)) {
     if (object[key] === value) continue
@@ -508,14 +516,19 @@ export function setTexture(object, values, { before = null, after = before } = {
   }
   const layers = Math.max(count, defaultsLayers(after, object))
   separateForDefaults(object, after, layers)
-  const fresh = textureDefaults(after, object, layers)
+  const fresh = textureDefaults(after, base, layers)
+  if (isSeparate(base, "texture")) {
+    if (!isSeparate(base, "overlays")) separateLayers(base, "overlays", true, layers)
+    const faces = old.concat(fresh).some(defaults => FACE_PANELS.some(name => Object.keys(defaults.faces[name]).length))
+    if (faces && !isSeparate(base, "colour")) separateLayers(base, "colour", true, layers)
+  }
   for (let layer = 0; layer < layers; layer++) {
-    const overlays = layerView(object, isSeparate(object, "overlays") ? layer : 0, "overlays")
+    const overlays = layerView(base, isSeparate(base, "overlays") ? layer : 0, "overlays")
     for (const kind of LAYERS) {
       if (!before || !sameValue(old[layer]?.overlays[kind] ?? [], fresh[layer].overlays[kind])) overlays[OVERLAY_KINDS[kind]] = "default"
     }
-    if (layer && !isSeparate(object, "colour")) continue
-    const colours = layerView(object, layer, "colour")
+    if (layer && !isSeparate(base, "colour")) continue
+    const colours = layerView(base, layer, "colour")
     for (const name of FACE_PANELS) {
       const now = fresh[layer].faces[name]
       if (before && sameValue(old[layer]?.faces[name] ?? {}, now)) continue
