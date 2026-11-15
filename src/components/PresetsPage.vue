@@ -11,6 +11,7 @@
   import { openSharedLink } from "../lib/share.js"
   import AccountMenu from "./AccountMenu.vue"
   import AuthorLink from "./AuthorLink.vue"
+  import BrandLink from "./BrandLink.vue"
   import Badge from "./Badge.vue"
   import Button from "./Button.vue"
   import Notice from "./Notice.vue"
@@ -24,7 +25,6 @@
   import SubmissionUsage from "./SubmissionUsage.vue"
   import TitlePicture from "./TitlePicture.vue"
   import { router } from "../router.js"
-  import SiteHeader from "../site/SiteHeader.vue"
 
   const TABS = [{ value: "community", label: "Community" }, { value: "mine", label: "My presets" }]
   const SORTS = [{ value: "week", label: "Popular this week" }, { value: "popular", label: "Popular all time" }, { value: "top", label: "Top rated" }, { value: "new", label: "Newest" }, { value: "needs", label: "Needs votes" }]
@@ -368,16 +368,14 @@
 
 <template>
   <div ref="root" class="page">
-    <SiteHeader v-if="!presetsPage.fromEditor" />
-    <header class="top" :class="{ heading: !presetsPage.fromEditor }">
+    <header class="top">
       <Button v-if="presetsPage.fromEditor" class="back" @click="closePresetsPage()"><template #icon><Icon name="back" :size="18" /></template><span>Back to editor</span></Button>
+      <BrandLink v-else class="home" />
       <h1>Presets</h1>
       <SubmissionUsage v-if="tab === 'mine'" class="usage" />
       <Segments class="tabs" :options="TABS" v-model="tab" />
-      <template v-if="presetsPage.fromEditor">
-        <AccountMenu />
-        <NotificationBell />
-      </template>
+      <AccountMenu />
+      <NotificationBell />
     </header>
     <div class="body" :class="{ open: selected }">
       <main class="browse">
@@ -446,11 +444,6 @@
     background: var(--bg);
   }
 
-  .page > .bar {
-    position: relative;
-    flex: none;
-  }
-
   .top {
     flex: none;
     display: flex;
@@ -462,19 +455,14 @@
     border-bottom: 1px solid var(--line);
   }
 
-  .top.heading {
-    height: auto;
-    padding: 20px 20px 4px;
-    background: none;
-    border-bottom: none;
-  }
-
-  .top.heading h1 {
-    font-size: 28px;
-  }
-
-  .back {
+  .back,
+  .home {
     flex: none;
+  }
+
+  .home {
+    font-size: var(--font-lg);
+    font-weight: 600;
   }
 
   h1 {
@@ -670,15 +658,6 @@
     .back span,
     h1 {
       display: none;
-    }
-
-    .top.heading {
-      padding: 12px 12px 0;
-    }
-
-    .top.heading h1 {
-      display: block;
-      flex-basis: 100%;
     }
 
     .tabs {

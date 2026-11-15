@@ -3,6 +3,7 @@
   import Button from "./components/Button.vue"
   import FluidTabs from "fluid-tabs-vue"
   import AccountMenu from "./components/AccountMenu.vue"
+  import BrandLink from "./components/BrandLink.vue"
   import EulaDialog from "./components/EulaDialog.vue"
   import Notice from "./components/Notice.vue"
   import NotificationBell from "./components/NotificationBell.vue"
@@ -123,7 +124,7 @@
 <template>
   <div class="app" :class="{ wide: !editing }">
     <header class="bar">
-      <h1><a class="brand" href="/" aria-label="Minecraft Title Generator"><img src="/favicon.svg" alt="" width="24" height="24"><span class="ellipsis">Minecraft Title Generator</span></a></h1>
+      <h1><BrandLink /></h1>
       <MenuBar ref="menuBar" />
       <ShareButton />
       <AccountMenu />
@@ -251,20 +252,6 @@
     margin: 0;
     font-size: var(--font-lg);
     font-weight: 600;
-  }
-
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-family: var(--font-ui);
-    color: var(--text);
-    text-decoration: none;
-    user-select: none;
-  }
-
-  .brand img {
-    flex: none;
   }
 
   .tabs {
@@ -415,12 +402,6 @@
 
     .intro h2 {
       font-size: 17px;
-    }
-  }
-
-  @media (max-width: 600px) {
-    .brand span {
-      display: none;
     }
   }
 </style>
