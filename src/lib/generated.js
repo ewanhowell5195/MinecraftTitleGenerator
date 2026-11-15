@@ -89,6 +89,10 @@ export function withGenerated(overlays) {
   return { ...GENERATED_OVERLAYS, ...overlays }
 }
 
+export function thumbnailLayer(layer) {
+  return layer.thickness < 1 ? { ...layer, thickness: 1 } : layer
+}
+
 export function generatedSetting(layer, item) {
   return layer[item.key] ?? item.fallback
 }

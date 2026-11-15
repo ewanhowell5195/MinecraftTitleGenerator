@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { GENERATED_EDGE_OVERLAYS, GENERATED_SETTINGS, PLACED_KINDS, crackList, crackTriangle, crackWrap, edgeAlpha, generatedAlpha, generatedSetting, toneKinds, withFinalShadows, withGenerated } from "../src/lib/generated.js"
+import { GENERATED_EDGE_OVERLAYS, GENERATED_SETTINGS, PLACED_KINDS, crackList, crackTriangle, crackWrap, edgeAlpha, generatedAlpha, generatedSetting, thumbnailLayer, toneKinds, withFinalShadows, withGenerated } from "../src/lib/generated.js"
 
 function glyphOf(rows, extra = {}) {
   const height = rows.length
@@ -89,6 +89,19 @@ describe("withGenerated", () => {
   test("does not change the table for later fonts", () => {
     withGenerated({ shine: { name: "Mine" } })
     assert.equal(withGenerated({}).shine.generated, "shine")
+  })
+})
+
+describe("thumbnailLayer", () => {
+  test("raises a thickness under a pixel to one pixel", () => {
+    assert.equal(thumbnailLayer({ overlay: "outline", thickness: 0.25 }).thickness, 1)
+    assert.equal(thumbnailLayer({ overlay: "outline", thickness: 0.5 }).thickness, 1)
+  })
+
+  test("leaves a pixel or more, or no thickness, alone", () => {
+    const layer = { overlay: "outline", thickness: 2 }
+    assert.equal(thumbnailLayer(layer), layer)
+    assert.equal("thickness" in thumbnailLayer({ overlay: "shine" }), false)
   })
 })
 

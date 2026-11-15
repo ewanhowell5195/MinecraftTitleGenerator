@@ -2,7 +2,7 @@ import { stripLayout, stripRange } from "./assets.js"
 import { rgbOf } from "./colour.js"
 import { expandBands, layerLeft, layerMask } from "./flatSheet.js"
 import { sheetLayout, solidMask } from "./font.js"
-import { GENERATED_EDGE_OVERLAYS, SMOOTH_KINDS, edgeAlpha, generatedAlpha, toneKinds, withGenerated } from "./generated.js"
+import { GENERATED_EDGE_OVERLAYS, SMOOTH_KINDS, edgeAlpha, generatedAlpha, thumbnailLayer, toneKinds, withGenerated } from "./generated.js"
 import { joinNeighbours, keptAt } from "./joins.js"
 import { layout } from "./layout.js"
 import { WHITE, definitionPalette } from "./overlayColours.js"
@@ -212,7 +212,7 @@ async function textureThumbnail(context, name, data, variant) {
   const overlays = await Promise.all((layerDefault(merged.overlays, "overlays", scene.layer ?? 0) ?? []).map(async layer => {
     const known = meta.overlays[layer.overlay]
     if (!known) throw new Error(`${name}: default overlay "${layer.overlay}" is not one of this font's overlays`)
-    return { kind: known.generated ?? null, image: known.generated ? null : await sheet("overlays", layer.overlay), layer: { ...overlayLayer(layer.overlay, known), ...layer, palette: definitionPalette(known) } }
+    return { kind: known.generated ?? null, image: known.generated ? null : await sheet("overlays", layer.overlay), layer: thumbnailLayer({ ...overlayLayer(layer.overlay, known), ...layer, palette: definitionPalette(known) }) }
   }))
   const image = await sheet("textures", name, merged.folder, merged.type === "strip")
   let png

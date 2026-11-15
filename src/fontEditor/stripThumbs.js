@@ -2,7 +2,7 @@ import { pixelsOf } from "../lib/canvas.js"
 import { parsedSheet } from "../lib/fontEditor.js"
 import { rgbOf } from "../lib/colour.js"
 import { fontScene, layerScene, opaque, render, sceneStrip } from "../lib/fontThumbnails.js"
-import { generatedAlpha, toneKinds, withGenerated } from "../lib/generated.js"
+import { generatedAlpha, thumbnailLayer, toneKinds, withGenerated } from "../lib/generated.js"
 import { clamp } from "../lib/maths.js"
 import { definitionPalette } from "../lib/overlayColours.js"
 import { defaultBorder, defaultDepth, overlayLayer } from "../lib/settings.js"
@@ -58,7 +58,7 @@ function drawOverlays(target, scene, entry, d) {
   for (const layer of entry.overlays ?? []) {
     const known = OVERLAYS[layer.overlay]
     if (!known?.generated) continue
-    const settings = { ...overlayLayer(layer.overlay, known), ...layer, palette: definitionPalette(known) }
+    const settings = thumbnailLayer({ ...overlayLayer(layer.overlay, known), ...layer, palette: definitionPalette(known) })
     drawLayer(target, scene.placed, d, settings, { tonesOf: ({ glyph, x }) => toneKinds(known.generated).map(tone => generatedAlpha({ ...glyph, placedX: x, fine: fineOf(scene, glyph) }, tone, settings, scene.capHeight, d)) })
   }
 }
@@ -100,7 +100,7 @@ function meshPixels(scene, entry, image, detail) {
 }
 
 function generatedLayers(entry) {
-  return (entry.overlays ?? []).filter(layer => OVERLAYS[layer.overlay]?.generated).map(layer => ({ kind: OVERLAYS[layer.overlay].generated, image: null, layer: { ...overlayLayer(layer.overlay, OVERLAYS[layer.overlay]), ...layer } }))
+  return (entry.overlays ?? []).filter(layer => OVERLAYS[layer.overlay]?.generated).map(layer => ({ kind: OVERLAYS[layer.overlay].generated, image: null, layer: thumbnailLayer({ ...overlayLayer(layer.overlay, OVERLAYS[layer.overlay]), ...layer }) }))
 }
 
 export function stripPixels(scene, entry, image) {
