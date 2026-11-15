@@ -28,3 +28,20 @@
     <img v-for="name of names" :key="name" class="fluid-marquee-item" :src="`${FOLDER}/thumbnails/${name}.png`" alt="" width="96" height="44">
   </FluidMarquee>
 </template>
+
+<style scoped>
+  .strip .fluid-marquee-item {
+    width: auto;
+    max-width: none;
+    height: 72px;
+    padding: 0 14px;
+    image-rendering: pixelated;
+  }
+
+  @media (max-width: 600px) {
+    .strip .fluid-marquee-item {
+      height: 56px;
+      padding: 0 10px;
+    }
+  }
+</style>

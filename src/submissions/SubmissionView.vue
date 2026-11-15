@@ -206,3 +206,56 @@
     </template>
   </template>
 </template>
+
+<style scoped>
+  .submission-view {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 320px);
+    align-items: start;
+    gap: 28px;
+  }
+
+  .submission-view > .details {
+    align-self: stretch;
+    gap: 8px;
+  }
+
+  .submission-view > .details > .actions:first-of-type {
+    margin-top: auto;
+  }
+
+  .processing {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 64px 16px;
+    text-align: center;
+    background: var(--surface);
+  }
+
+  .processing .hint {
+    max-width: 46ch;
+  }
+
+  .spinner {
+    width: 36px;
+    height: 36px;
+    border: 4px solid var(--line-strong);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @media (max-width: 760px) {
+    .submission-view {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>
