@@ -380,6 +380,15 @@ describe("depth layers", () => {
     assert.deepEqual(built.layers, [0, 1])
   })
 
+  test("each layer packs side faces by its own setting", () => {
+    const stepped = glyph("x", 3, 1, { depths: Uint8Array.from([0, 1, 0]) })
+    const seen = []
+    text([place(stepped, 0)], { layers: [{ options: { sideFaces: false } }, { options: { sideFaces: true } }], paint: painter(PAINTED, seen) }, { layers: [1, 0.5], capHeight: 1, glyphs: { x: stepped } })
+    const [[back], [front]] = seen[0]
+    assert.equal(back.runs.size, 0)
+    assert.ok(front.runs.size > 0)
+  })
+
   test("the outline steps back with each layer instead of boxing the whole character", () => {
     const stepped = glyph("x", 5, 1, { depths: Uint8Array.from([0, 1, 1, 1, 0]) })
     const built = text([place(stepped, 0)], LAYERED, { layers: [1, 0.5], capHeight: 1, glyphs: { x: stepped } })
