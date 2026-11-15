@@ -15,20 +15,21 @@
 
   const menus = computed(() => ({
     File: [
+      { label: "New title", icon: "plus", disabled: isDefaultTitle(), action: startNew },
+      { divider: true },
       { label: "Open...", icon: "open", action: openPicker },
       { label: "Save", icon: "download", disabled: !scene.objects.length, action: saveTitle },
+      { divider: true },
       { label: "Save preset", icon: "bookmark", disabled: !scene.objects.length, action: startSavingPreset }
     ],
     Edit: [
       { label: "Undo", icon: "undo", disabled: !history.undo.length, keepOpen: true, action: undo },
-      { label: "Redo", icon: "redo", disabled: !history.redo.length, keepOpen: true, action: redo },
-      { divider: true },
-      { label: "Reset", icon: "reset", danger: true, disabled: isDefaultTitle(), action: reset }
+      { label: "Redo", icon: "redo", disabled: !history.redo.length, keepOpen: true, action: redo }
     ]
   }))
 
-  function reset() {
-    if (confirm("Reset to the default title?")) resetTitle()
+  function startNew() {
+    if (confirm("Start a new title? This replaces your current one.")) resetTitle()
   }
 
   function request(file) {
