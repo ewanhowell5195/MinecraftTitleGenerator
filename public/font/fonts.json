@@ -48,6 +48,14 @@
           "16": ["//", "\\\\"]
         },
         "editor": { "width": 28, "grid": 4 }
+      },
+      {
+        "id": "minecraft-ten-hollow",
+        "name": "Hollow",
+        "authors": ["Ewan Howell"],
+        "terminatorSpace": true,
+        "order": "😳abcdefghijklmnopqrstuvwxyz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣ ",
+        "editor": { "width": 36, "grid": 4 }
       }
     ],
     "editor": { "width": 28, "grid": 4 }
