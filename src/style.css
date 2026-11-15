@@ -390,6 +390,29 @@ input[type="file"] {
   align-content: start;
 }
 
+.pick.peek {
+  max-height: max(420px, calc(100cqh - 42px - 2 * var(--group-padding) - 120px - var(--disclaimer-height, 0px)));
+}
+
+.pick > .scroll {
+  --thumb-ratio: 132 / 288;
+  --row: calc(((100cqw - 16px) / 3 - 16px) * var(--thumb-ratio) + 39px);
+}
+
+.pick > .patterns {
+  --thumb-ratio: 1 / 2;
+}
+
+.pick > .variants {
+  --shown: min(var(--rows), 3);
+  flex: 0 1000 auto;
+  min-height: calc(var(--shown) * var(--row) + (var(--shown) - 1) * 8px);
+}
+
+.pick > .kept {
+  min-height: calc(var(--least) * var(--row) + (var(--least) - 1) * 8px);
+}
+
 .dialog-body {
   display: flex;
   flex-direction: column;

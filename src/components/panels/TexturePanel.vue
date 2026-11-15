@@ -1,11 +1,12 @@
 <script setup>
-  import { computed, nextTick, ref, shallowRef, watch } from "vue"
+  import { computed, ref, shallowRef, watch } from "vue"
   import { image, tileableUrl } from "../../lib/assets.js"
   import { credit } from "../../lib/credits.js"
   import { blockName, blockTextureImage, blockTextures, latestRelease } from "../../lib/minecraft.js"
   import { keepVersions } from "../../lib/minecraftModels.js"
   import { titleCase } from "../../lib/names.js"
   import { layerShown, usePanel } from "../../lib/panel.js"
+  import { leastRows, usePickFloor, variantRows } from "../../lib/pickFloor.js"
   import { gameVersions, library } from "../../lib/scene.js"
   import { EulaDeclined, eulaDeclined } from "../../lib/eula.js"
   import { pinnedTextures, setTexture, untouchedTileable } from "../../lib/settings.js"
@@ -106,38 +107,7 @@
     order.forEach((item, i) => item.position = Math.round(i / (object.value.smooth ? order.length - 1 : order.length) * 100))
   }
 
-  function rows(variants) {
-    return Math.ceil((variants.length + 1) / 3)
-  }
-
-  function leastRows(entries) {
-    return Math.min(2, Math.ceil(entries.length / 3))
-  }
-
-  const picker = ref(null)
-  const floor = ref(0)
-
-  function outerHeight(child) {
-    const style = getComputedStyle(child)
-    const own = child.classList.contains("scroll") ? parseFloat(style.minHeight) || 0 : child.getBoundingClientRect().height
-    return own + parseFloat(style.marginTop) + parseFloat(style.marginBottom)
-  }
-
-  function measureFloor() {
-    const box = picker.value
-    if (!box) return
-    const children = Array.from(box.children)
-    floor.value = children.reduce((total, child) => total + outerHeight(child), 0) + parseFloat(getComputedStyle(box).rowGap) * Math.max(0, children.length - 1)
-  }
-
-  watch(picker, (box, _, onCleanup) => {
-    if (!box) return
-    const observer = new ResizeObserver(measureFloor)
-    observer.observe(box)
-    onCleanup(() => observer.disconnect())
-  })
-
-  watch(() => [object.value.textureSource, usingMinecraft.value, textureVariants.value.length, tileableVariants.value.length, search.value], () => nextTick(measureFloor))
+  const { picker, floor } = usePickFloor(() => [object.value.textureSource, usingMinecraft.value, textureVariants.value.length, tileableVariants.value.length, search.value])
 
   function label(id, data) {
     return data.category ?? data.name ?? titleCase(id)
@@ -274,7 +244,7 @@
         </TileGrid>
         <template v-if="textureVariants.length && !searchingTextures">
           <h3>Variants</h3>
-          <TileGrid class="scroll variants" :style="{ '--rows': rows(textureVariants) }">
+          <TileGrid class="scroll variants" :style="{ '--rows': variantRows(textureVariants) }">
             <Tile :label="list.textures[object.texture].name ?? titleCase(object.texture)" :unit="thumbnailHeight(font)" :image="thumbnail(font, object.texture, shownLayer)" :selected="!object.textureVariant" :menu="textureMenu(object.texture, list.textures[object.texture])" @pick="setTexture(object, { textureVariant: null }, { before: list })" />
             <Tile v-for="[id, data] of textureVariants" :key="id" :label="data.name ?? titleCase(id)" :unit="thumbnailHeight(font)" :image="thumbnail(font, id, shownLayer)" :author="credit(data, font?.id, library.fonts, list.textures[object.texture])" :selected="object.textureVariant === id" :menu="textureMenu(id, { ...list.textures[object.texture], ...data })" @pick="setTexture(object, { textureVariant: id }, { before: list })" />
           </TileGrid>
@@ -305,7 +275,7 @@
         </TileGrid>
         <template v-if="tileableVariants.length && !searchingTileables">
           <h3>Variants</h3>
-          <TileGrid class="scroll variants patterns" :style="{ '--rows': rows(tileableVariants) }">
+          <TileGrid class="scroll variants patterns" :style="{ '--rows': variantRows(tileableVariants) }">
             <Tile :label="library.tileables[object.tileable].name" aspect="2 / 1" :pattern="tilePreview(library.tileables, object.tileable)" :selected="!object.tileableVariant" :menu="tileableMenu(object.tileable)" @pick="object.tileableVariant = null" />
             <Tile v-for="[id, data] of tileableVariants" :key="id" :label="data.name" aspect="2 / 1" :pattern="tilePreview(library.tileables, object.tileable, id)" :author="data.authors ?? library.tileables[object.tileable].authors" :selected="object.tileableVariant === id" :menu="tileableMenu(object.tileable, id)" @pick="object.tileableVariant = id" />
           </TileGrid>
@@ -341,28 +311,3 @@
     <Toggle label="Restart on each character" hint="Starts the texture again from the left of every character" v-model="object.tileablePerCharacter" />
   </Panel>
 </template>
-
-<style scoped>
-  .pick.peek {
-    max-height: max(420px, calc(100cqh - 42px - 2 * var(--group-padding) - 120px - var(--disclaimer-height, 0px)));
-  }
-
-  .pick > .scroll {
-    --thumb-ratio: 132 / 288;
-    --row: calc(((100cqw - 16px) / 3 - 16px) * var(--thumb-ratio) + 39px);
-  }
-
-  .pick > .patterns {
-    --thumb-ratio: 1 / 2;
-  }
-
-  .variants {
-    --shown: min(var(--rows), 3);
-    flex: 0 1000 auto;
-    min-height: calc(var(--shown) * var(--row) + (var(--shown) - 1) * 8px);
-  }
-
-  .kept {
-    min-height: calc(var(--least) * var(--row) + (var(--least) - 1) * 8px);
-  }
-</style>

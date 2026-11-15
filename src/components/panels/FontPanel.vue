@@ -8,6 +8,7 @@
   import { PREVIEW_DETAIL, customFontEntry, customFontKind, customThumbnail } from "../../lib/customFonts.js"
   import { fullName, loadImage } from "../../lib/font.js"
   import { usePanel } from "../../lib/panel.js"
+  import { leastRows, usePickFloor, variantRows } from "../../lib/pickFloor.js"
   import { library } from "../../lib/scene.js"
   import { DEFAULT_FONT, isCustomFont } from "../../lib/settings.js"
   import { popular } from "../../lib/stats.js"
@@ -50,6 +51,7 @@
   const baseFonts = computed(() => popular(library.fonts.filter(item => !item.variant), item => item.id, item => item.name, ["minecraft-ten"]))
   const variants = computed(() => popular(library.fonts.filter(item => item.variant === baseId.value), item => item.id, item => item.name))
   const search = ref("")
+  const { picker, floor } = usePickFloor(() => [tab.value, variants.value.length, search.value])
   const searchable = computed(() => baseFonts.value.length > SEARCH_ABOVE)
   const searching = computed(() => searchable.value && !!search.value.trim())
   const foundFonts = computed(() => {
@@ -176,7 +178,7 @@
         <div class="code">{{ characters }}</div>
       </div>
     </RenderDialog>
-    <Segments :options="TABS" :model-value="tab" @update:model-value="chooseTab" />
+    <Segments v-if="tab === 'custom'" :options="TABS" :model-value="tab" @update:model-value="chooseTab" />
     <template v-if="tab === 'custom'">
       <UploadField accept=".json,.png,.ttf,.otf,.woff,.woff2,application/json,image/png,font/ttf,font/otf,font/woff,font/woff2" :label="loading ? 'Loading...' : object.customFont ? 'Replace font' : 'Choose a font file'" empty="No font uploaded" :disabled="loading" :clearable="!!object.customFont" @change="upload" @clear="clearCustom">
         <template v-if="object.customFont" #preview>
@@ -204,22 +206,23 @@
       </template>
       <UploadReuse :items="reusable" @pick="applyCustom" />
     </template>
-    <template v-else>
+    <div v-if="tab === 'published'" ref="picker" class="flow pick peek" :style="{ minHeight: `${floor}px` }">
+      <Segments :options="TABS" :model-value="tab" @update:model-value="chooseTab" />
       <input v-if="searchable" type="text" v-model="search" placeholder="Search fonts" aria-label="Search fonts">
-      <TileGrid v-if="searching">
+      <TileGrid v-if="searching" class="scroll">
         <Tile v-for="data of foundFonts" :key="data.id" :label="fullName(data, library.fonts)" :image="fontThumbnail(library.fonts, data.id)" :author="fontCredit(data, library.fonts)" :selected="object.font === data.id" @pick="object.font = data.id" />
       </TileGrid>
-      <TileGrid v-else>
+      <TileGrid v-else class="scroll" :class="{ kept: variants.length }" :style="{ '--least': leastRows(baseFonts) }">
         <Tile v-for="data of baseFonts" :key="data.id" :label="data.name" :image="fontThumbnail(library.fonts, data.id)" :author="fontCredit(data, library.fonts)" :badge="variantBadges[data.id]" :selected="baseId === data.id" @pick="object.font = data.id" />
       </TileGrid>
-    </template>
-    <template v-if="tab === 'published' && variants.length && !searching">
-      <h3>Variants</h3>
-      <TileGrid>
-        <Tile label="Default" :image="fontThumbnail(library.fonts, baseId)" :selected="object.font === baseId" @pick="object.font = baseId" />
-        <Tile v-for="data of variants" :key="data.id" :label="data.name" :image="fontThumbnail(library.fonts, data.id)" :author="fontCredit(data, library.fonts)" :selected="object.font === data.id" @pick="object.font = data.id" />
-      </TileGrid>
-    </template>
+      <template v-if="variants.length && !searching">
+        <h3>Variants</h3>
+        <TileGrid class="scroll variants" :style="{ '--rows': variantRows(variants) }">
+          <Tile label="Default" :image="fontThumbnail(library.fonts, baseId)" :selected="object.font === baseId" @pick="object.font = baseId" />
+          <Tile v-for="data of variants" :key="data.id" :label="data.name" :image="fontThumbnail(library.fonts, data.id)" :author="fontCredit(data, library.fonts)" :selected="object.font === data.id" @pick="object.font = data.id" />
+        </TileGrid>
+      </template>
+    </div>
   </Panel>
   <Panel v-if="hasCreeper" title="Creeper face" :modified="creeper.modified.value" @reset="creeper.reset">
     <Toggle label="Creeper face on A" :hint="`${font.multicase ? 'Every capital A' : 'Every a'} gets the creeper face. Split a word off to set it for just part of the text`" v-model="object.creeperFace" />
