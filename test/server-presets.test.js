@@ -53,7 +53,7 @@ async function download(id, ip) {
 }
 
 async function share(text, extra = {}, ip = `${Math.random()}`) {
-  return (await post({ code: code([{ text }]), ...extra }, ip)).preset
+  return (await post({ code: code([{ text }]), name: `${text} title`, ...extra }, ip)).preset
 }
 
 beforeEach(() => {
@@ -218,6 +218,17 @@ describe("submitting", () => {
     })
   }
 
+  test("refuses a name shorter than 3 characters", async () => {
+    const { status, error } = await post({ code: code([{ text: "stone" }]), name: "H " })
+    assert.equal(status, 400)
+    assert.match(error, /at least 3 characters/)
+    assert.equal((await post({ code: code([{ text: "stone" }]), name: "Hey" })).status, 201)
+  })
+
+  test("a title too short to name itself needs a name", async () => {
+    assert.match((await post({ code: code([{ text: "H" }]) })).error, /at least 3 characters/)
+  })
+
   test("refuses a long name", async () => {
     assert.match((await post({ code: code([{ text: "a" }]), name: "x".repeat(61) })).error, /name can be up to 60/)
   })
@@ -262,11 +273,11 @@ describe("submitting", () => {
   })
 
   test("allows 5 a day per IP", async () => {
-    for (let index = 0; index < 5; index++) assert.equal((await post({ code: code([{ text: `a${index}` }]) }, "9.9.9.9")).status, 201)
-    const refused = await post({ code: code([{ text: "a5" }]) }, "9.9.9.9")
+    for (let index = 0; index < 5; index++) assert.equal((await post({ code: code([{ text: `day${index}` }]) }, "9.9.9.9")).status, 201)
+    const refused = await post({ code: code([{ text: "day5" }]) }, "9.9.9.9")
     assert.equal(refused.status, 429)
     assert.match(refused.error, /up to 5 titles a day/)
-    assert.equal((await post({ code: code([{ text: "a5" }]) }, "8.8.8.8")).status, 201)
+    assert.equal((await post({ code: code([{ text: "day5" }]) }, "8.8.8.8")).status, 201)
   })
 
   test("shares sent at once can't go past the daily limit", async () => {
@@ -294,10 +305,10 @@ describe("submitting", () => {
   test("the limit starts again the next day", async () => {
     mock.timers.enable({ apis: ["Date"], now: Date.parse("2026-11-05T23:00:00Z") })
     try {
-      for (let index = 0; index < 5; index++) await post({ code: code([{ text: `b${index}` }]) }, "6.6.6.6")
-      assert.equal((await post({ code: code([{ text: "b5" }]) }, "6.6.6.6")).status, 429)
+      for (let index = 0; index < 5; index++) await post({ code: code([{ text: `next${index}` }]) }, "6.6.6.6")
+      assert.equal((await post({ code: code([{ text: "next5" }]) }, "6.6.6.6")).status, 429)
       mock.timers.setTime(Date.parse("2026-11-06T01:00:00Z"))
-      assert.equal((await post({ code: code([{ text: "b5" }]) }, "6.6.6.6")).status, 201)
+      assert.equal((await post({ code: code([{ text: "next5" }]) }, "6.6.6.6")).status, 201)
     } finally {
       mock.timers.reset()
     }
@@ -311,7 +322,7 @@ describe("submitting", () => {
   })
 
   test("never stores an IP address, only its hash", async () => {
-    await post({ code: code([{ text: "a" }]) }, "123.45.67.89")
+    await post({ code: code([{ text: "abc" }]) }, "123.45.67.89")
     const [row] = db.prepare("SELECT ip_hash FROM preset_submissions").all()
     assert.equal(row.ip_hash.length, 64)
     assert.equal(row.ip_hash.includes("123.45"), false)
@@ -319,7 +330,7 @@ describe("submitting", () => {
 
   test("a missing salt fails loudly rather than storing unsalted hashes", async () => {
     env.IP_SALT = ""
-    await assert.rejects(post({ code: code([{ text: "a" }]) }), /IP_SALT is not set/)
+    await assert.rejects(post({ code: code([{ text: "abc" }]) }), /IP_SALT is not set/)
   })
 })
 
@@ -1915,6 +1926,7 @@ describe("accounts", () => {
     assert.equal((await rename(cookie, preset.id, "   ")).status, 400)
     assert.equal((await rename(cookie, preset.id, "x".repeat(LIMITS.name + 1))).status, 400)
     assert.equal((await rename(cookie, preset.id, "fuck")).status, 400)
+    assert.match((await rename(cookie, preset.id, " H ")).error, /at least 3 characters/)
   })
 
   test("only the owner can rename or delete", async () => {

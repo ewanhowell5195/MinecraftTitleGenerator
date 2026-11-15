@@ -8,6 +8,7 @@ import { showNotice } from "./notices.js"
 import { casedTitle, titleText } from "./scene.js"
 import { submitStats } from "./stats.js"
 import { readStored } from "./view.js"
+import { shortNameProblem } from "./wording.js"
 
 const STORAGE = "minecraft-title-presets"
 const FALLBACK_NAME = "Title"
@@ -162,6 +163,11 @@ export function renamePreset(preset, name) {
   if (!trimmed) return preset
   const named = name => list => list.map(item => item.code === preset.code ? { ...item, name } : item)
   if (managedPresets.value.includes(preset.shared)) {
+    const short = shortNameProblem(trimmed)
+    if (short) {
+      showNotice(short)
+      return preset
+    }
     setList(named(trimmed))
     queued(() => renameShared(preset.shared, trimmed)).catch(err => {
       console.error(err)

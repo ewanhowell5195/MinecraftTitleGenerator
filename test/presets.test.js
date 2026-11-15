@@ -22,6 +22,8 @@ const { notice } = await import("../src/lib/notices.js")
 const { decodeTitle, encodeTitle } = await import("../src/lib/linkformat.js")
 const { NAME_LIMIT, addPreset, loadPreset, markShared, namingPreset, namingShared, presets, removePreset, renamePreset, savePreset, startSavingPreset } = await import("../src/lib/presets.js")
 const { setTitle } = await import("./helpers/scene.js")
+const { accountPresets } = await import("../src/lib/community.js")
+const { sharingProblem } = await import("../src/lib/sharing.js")
 
 const STORAGE = "minecraft-title-presets"
 
@@ -269,6 +271,22 @@ describe("presets", () => {
     markShared(preset, 12)
     assert.deepEqual(savedList(), [{ name: "stone", code: "a", shared: 12 }])
     assert.equal(renamePreset(presets.value[0], "new name").shared, 12)
+  })
+
+  test("a shared one can't be renamed shorter than 3 characters", () => {
+    const preset = addPreset("stone", "a")
+    markShared(preset, 12)
+    accountPresets.value = [12]
+    assert.equal(renamePreset(presets.value[0], " H ").name, "stone")
+    assert.equal(notice.value, "The name needs at least 3 characters.")
+    assert.deepEqual(savedList().map(item => item.name), ["stone"])
+    accountPresets.value = []
+  })
+
+  test("sharing needs a name of at least 3 characters", () => {
+    const code = encodeTitle({ version: FILE_VERSION, lines: [{ text: "stone" }] }).code
+    assert.equal(sharingProblem(code, "H"), "The name needs at least 3 characters.")
+    assert.equal(sharingProblem(code, "Hey"), null)
   })
 
   test("can be removed", () => {

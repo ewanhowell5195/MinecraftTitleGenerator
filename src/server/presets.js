@@ -6,7 +6,7 @@ import { pictureUrl } from "../lib/pictures.js"
 import { parseSearch } from "../lib/presetSearch.js"
 import { FILE_VERSION } from "../lib/settings.js"
 import { limitProblem, titleFacts, titleProblem } from "../lib/titleFacts.js"
-import { blockedWordProblem } from "../lib/wording.js"
+import { blockedWordProblem, shortNameProblem } from "../lib/wording.js"
 import { USER_ROW, activeUser, forgetUnusedUser, requireUser, saveUser, signedInUser } from "./accounts.js"
 import { nextDay, returnSlot, takeSlot, today } from "./daily.js"
 import { SITE_NAME, pageImage, pageWithDetails } from "./head.js"
@@ -269,6 +269,8 @@ async function checkedSubmission(context, body) {
   const unknown = await unpublishedName(context, decodeTitle(body.code).lines)
   if (unknown) throw new Refusal(400, `This title can't be shared: ${unknown}.`)
   const name = textField(body, "name", "name", LIMITS.name) || capitalWords(facts.text)
+  const short = shortNameProblem(name)
+  if (short) throw new Refusal(400, short)
   checkWords("title", facts.all)
   checkWords("name", name)
   const fingerprint = await titleFingerprint(body.code)
@@ -345,6 +347,8 @@ export const renamePreset = guarded(async context => {
   const { id } = await ownedPreset(context)
   const name = textField(await jsonBody(request), "name", "name", LIMITS.name)
   if (!name) throw new Refusal(400, "The name can't be empty.")
+  const short = shortNameProblem(name)
+  if (short) throw new Refusal(400, short)
   checkWords("name", name)
   const preset = await env.DB.prepare(`UPDATE presets SET name = ? WHERE id = ? RETURNING ${COLUMNS}`).bind(name, id).first()
   await forgetCached(request, id)
