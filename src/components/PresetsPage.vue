@@ -369,7 +369,7 @@
 <template>
   <div ref="root" class="page">
     <SiteHeader v-if="!presetsPage.fromEditor" />
-    <header class="top">
+    <header class="top" :class="{ heading: !presetsPage.fromEditor }">
       <Button v-if="presetsPage.fromEditor" class="back" @click="closePresetsPage()"><template #icon><Icon name="back" :size="18" /></template><span>Back to editor</span></Button>
       <h1>Presets</h1>
       <SubmissionUsage v-if="tab === 'mine'" class="usage" />
@@ -460,6 +460,17 @@
     padding: 0 16px;
     background: var(--surface);
     border-bottom: 1px solid var(--line);
+  }
+
+  .top.heading {
+    height: auto;
+    padding: 20px 20px 4px;
+    background: none;
+    border-bottom: none;
+  }
+
+  .top.heading h1 {
+    font-size: 28px;
   }
 
   .back {
@@ -659,6 +670,15 @@
     .back span,
     h1 {
       display: none;
+    }
+
+    .top.heading {
+      padding: 12px 12px 0;
+    }
+
+    .top.heading h1 {
+      display: block;
+      flex-basis: 100%;
     }
 
     .tabs {
