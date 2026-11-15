@@ -4,12 +4,34 @@
       "authors": ["Miffen Kop", "Ewan Howell", "oakar258"],
       "border": "#000000"
     },
-    "wiki_old": {
-      "type": "strip",
-      "name": "Wiki (Old)",
-      "authors": ["ewanhowell5195"],
-      "border": "#000000"
+    "wiki": {
+      "name": "Wiki",
+      "authors": ["Ewan Howell"],
+      "border": "#000000",
+      "overlays": [
+        [
+          { "overlay": "two_tone_outline", "blend": "source-over", "colours": ["#c2c2c2", "#242424"], "thickness": 0.5 }
+        ],
+        [
+          { "overlay": "two_tone_outline", "blend": "source-over", "colours": ["#4e4e4e", "#0e0e0e"], "thickness": 0.5 },
+          { "overlay": "extrusion_outline", "blend": "source-over", "colours": ["#1a1a1a"] }
+        ]
+      ],
+      "inner": ["#3f3f3f", "#141414"],
+      "sides": ["#575757", "#242424"],
+      "variants": {
+        "wiki_old": {
+          "type": "strip",
+          "name": "Wiki (Old)",
+          "authors": ["ewanhowell5195"],
+          "border": "#000000",
+          "overlays": null,
+          "inner": null,
+          "sides": null
+        }
+      }
     }
   },
-  "overlays": {}
+  "overlays": {},
+  "primary": "wiki"
 }
