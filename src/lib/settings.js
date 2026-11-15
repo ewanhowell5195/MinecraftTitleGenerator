@@ -10,16 +10,16 @@ export const TYPES = {
 }
 
 const BLENDS = {
-  multiply: "Multiply",
-  color: "Colour",
-  lighter: "Lighter",
-  screen: "Screen",
+  "source-over": "Normal",
   overlay: "Overlay",
   "soft-light": "Soft Light",
+  multiply: "Multiply",
+  screen: "Screen",
+  lighter: "Add",
+  color: "Colour",
   hue: "Hue",
   saturation: "Saturation",
-  difference: "Difference",
-  "source-over": "Source Over"
+  difference: "Difference"
 }
 
 export const BLEND_OPTIONS = Object.entries(BLENDS).map(([value, label]) => ({ value, label }))
