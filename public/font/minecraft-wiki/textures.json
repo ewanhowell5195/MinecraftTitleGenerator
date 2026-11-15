@@ -11,10 +11,5 @@
       "border": "#000000"
     }
   },
-  "overlays": {
-    "extrusion_outline": {
-      "authors": ["Ewan Howell"],
-      "layers": [1]
-    }
-  }
+  "overlays": {}
 }

@@ -49,6 +49,7 @@ export const GENERATED_SETTINGS = {
   wave,
   wave_inverted: wave,
   cracks,
+  extrusion_outline: [outline],
   edge_outline: [outline],
   edge_outline_open: [outline],
   edge_outline_fade: [outline],
@@ -80,7 +81,8 @@ const GENERATED_OVERLAYS = {
   wave: { generated: "wave", default: { blend: "source-over", sideWrap: true, edgeWrap: true } },
   wave_inverted: { generated: "wave_inverted", name: "Wave (Inverted)", default: { blend: "source-over", sideWrap: true, edgeWrap: true } },
   cracked_edges: { generated: "cracks", default: { colours: ["#000000"], blend: "source-over" } },
-  layer_shadow: { generated: "shadow", name: "Shadow", layered: true, default: { colours: ["#000000"], blend: "source-over", opacity: 60 } }
+  layer_shadow: { generated: "shadow", name: "Shadow", layered: true, default: { colours: ["#000000"], blend: "source-over", opacity: 60 } },
+  extrusion_outline: { generated: "extrusion_outline", name: "Extrusion Outline", layered: true }
 }
 
 export function withGenerated(overlays) {
@@ -804,9 +806,38 @@ function shadow(glyph, settings, target) {
   return out
 }
 
+function extrusionOutline(glyph, settings, scale) {
+  const { width, height, mask, caster } = glyph
+  const columns = width * scale
+  const rows = height * scale
+  const out = new Float32Array(columns * rows)
+  if (!caster) return out
+  const cell = (sx, sy) => Math.floor(sy / scale) * width + Math.floor(sx / scale)
+  const dist = new Float32Array(columns * rows).fill(Infinity)
+  for (let sy = 0; sy < rows; sy++) {
+    for (let sx = 0; sx < columns; sx++) if (caster[cell(sx, sy)]) dist[sy * columns + sx] = 0
+  }
+  const get = (sx, sy) => sx >= 0 && sy >= 0 && sx < columns && sy < rows ? dist[sy * columns + sx] : Infinity
+  for (let sy = 0; sy < rows; sy++) {
+    for (let sx = 0; sx < columns; sx++) dist[sy * columns + sx] = Math.min(dist[sy * columns + sx], get(sx - 1, sy) + 1, get(sx - 1, sy - 1) + 1, get(sx, sy - 1) + 1, get(sx + 1, sy - 1) + 1)
+  }
+  for (let sy = rows - 1; sy >= 0; sy--) {
+    for (let sx = columns - 1; sx >= 0; sx--) dist[sy * columns + sx] = Math.min(dist[sy * columns + sx], get(sx + 1, sy) + 1, get(sx + 1, sy + 1) + 1, get(sx, sy + 1) + 1, get(sx - 1, sy + 1) + 1)
+  }
+  const reach = settings.thickness * scale
+  for (let sy = 0; sy < rows; sy++) {
+    for (let sx = 0; sx < columns; sx++) {
+      const own = dist[sy * columns + sx]
+      if (mask[cell(sx, sy)] && own > 0 && own <= reach) out[(rows - 1 - sy) * columns + sx] = 1
+    }
+  }
+  return out
+}
+
 export function generatedAlpha(glyph, kind, layer, capHeight, scale, soft = false) {
   const settings = { ...settingsOf(kind, layer), capHeight }
   if (kind === "shadow") return shadow(glyph, settings, scale)
+  if (kind === "extrusion_outline") return extrusionOutline(glyph, settings, scale)
   const fine = glyph.fine?.(scale) ?? null
   if (kind === "shine" || kind === "shine_random") return shine(glyph, kind, settings, scale, fine)
   if (kind === "wave" || kind === "wave_inverted") return waveFill(glyph, kind, settings, scale, fine)
