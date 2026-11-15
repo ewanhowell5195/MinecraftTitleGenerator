@@ -28,7 +28,8 @@
         "authors": ["xllifi"],
         "terminatorSpace": true,
         "order": "😳0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣ёєіїабвгдежзийклмнопрстуфхцчшщъыьэюяґғқңүұәө₽",
-        "preview": "абв"
+        "preview": "абв",
+        "editor": { "width": 28, "grid": 4 }
       },
       {
         "id": "minecraft-ten-simlish",
@@ -45,9 +46,11 @@
           "12": ["df", "gf", "lf", "wf"],
           "14": ["sf", "@f"],
           "16": ["//", "\\\\"]
-        }
+        },
+        "editor": { "width": 28, "grid": 4 }
       }
-    ]
+    ],
+    "editor": { "width": 28, "grid": 4 }
   },
   {
     "id": "minecraft-five-bold",
@@ -62,9 +65,11 @@
         "depth": 16,
         "terminatorSpace": true,
         "order": "😳0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣ёіїабвгдежзийклмнопрстуфхцчшщъыьэюяґғқңүұһәө₽",
-        "preview": "абв"
+        "preview": "абв",
+        "editor": { "width": 32, "grid": 2 }
       }
-    ]
+    ],
+    "editor": { "width": 32, "grid": 2 }
   },
   {
     "id": "minecraft-five-bold-block",
@@ -75,7 +80,8 @@
     "border": 2,
     "forcedTerminators": true,
     "autoBorder": true,
-    "overlay": true
+    "overlay": true,
+    "editor": { "width": 36, "grid": 6 }
   },
   {
     "id": "minecraft-ten-outline",
@@ -84,12 +90,14 @@
     "depth": 0,
     "border": 0,
     "forcedTerminators": true,
-    "flat": true
+    "flat": true,
+    "editor": { "width": 32, "grid": 4 }
   },
   {
     "id": "minecraft-dungeons",
     "authors": ["ShrimpSnail", "Ewan Howell"],
-    "strips": ["minecraft-ten"]
+    "strips": ["minecraft-ten"],
+    "editor": { "width": 28, "grid": 2 }
   },
   {
     "id": "minecraft-gui",
@@ -101,19 +109,22 @@
     "forcedTerminators": true,
     "autoBorder": true,
     "flat": true,
-    "overlay": true
+    "overlay": true,
+    "editor": { "width": 36, "grid": 6 }
   },
   {
     "id": "minecraft-seven",
     "authors": ["Ewan Howell"],
     "depth": 16,
-    "terminatorSpace": true
+    "terminatorSpace": true,
+    "editor": { "width": 30, "grid": 6 }
   },
   {
     "id": "minecraft-five",
     "authors": ["Ewan Howell"],
     "depth": 16,
-    "terminatorSpace": true
+    "terminatorSpace": true,
+    "editor": { "width": 30, "grid": 6 }
   },
   {
     "id": "minecraft-sga",
@@ -121,7 +132,8 @@
     "authors": ["Westbot"],
     "characterSpacing": 5,
     "order": "abcdefghijklmnopqrstuvwxyz",
-    "preview": "abh"
+    "preview": "abh",
+    "editor": { "width": 30, "grid": 6 }
   },
   {
     "id": "minecraft-ten-serif",
@@ -135,7 +147,8 @@
       "8": ["1t", "1v", "1y", "7j", "lt", "lv", "ly", "t4", "tj", "vj", "y4", "yj", "l-", "l\\", "l'", "/j", "f.", "f,", "f_", "f/", "p.", "p,", "p_", "v_", "_v", "7_"],
       "12": ["fj", "pj"],
       "16": ["//", "\\\\"]
-    }
+    },
+    "editor": { "width": 28, "grid": 4 }
   },
   {
     "id": "minecraft-ten-rounded",
@@ -147,7 +160,8 @@
       "4": ["41", "47", "74", "{{", "}}", "}]", "[{", "4t", "4y", "7j", "l7", "lv", "p4", "pj", "q1", "q7", "qt", "qv", "qy", "y4", "l?", "&t", "q?", "t-", "-t", "t.", ".t", "t,", ",t", "t_", "_t", "t/", "\\t", "p/", "v.", ".v", "v,", ",v", "v/", "\\v", "y.", ".y", "y,", ",y", "y_", "_y", "y/", "\\y", "7.", "7,", "7/"],
       "8": ["l1", "lt", "ly", "t4", "tj", "yj", "l-", "l\\", "l'", "/j", "f.", "f,", "f_", "f/", "p.", "p,", "p_", "v_", "_v", "7_"],
       "16": ["//", "\\\\"]
-    }
+    },
+    "editor": { "width": 28, "grid": 4 }
   },
   {
     "id": "block-serif",
@@ -159,13 +173,15 @@
     "kerning": {
       "8": ["😳w", "aw", "w😳", "wa", "😳7", "a7", "7😳", "7a", "f😳", "fa", "fj", "lt", "tj", "ly", "yj", "lv", "vj", "t-", "-t", "t.", ".t", "t,", ",t", "t_", "_t", "y-", "-y", "y.", ".y", "y,", ",y", "y_", "_y", "w/", "\\w"],
       "12": ["//", "\\\\", "😳v", "av", "v😳", "va", "l-", "l?", "v/", "\\v", "/a", "/😳", "a\\", "😳\\"]
-    }
+    },
+    "editor": { "width": 32, "grid": 4 }
   },
   {
     "id": "minecraft-legends",
     "authors": ["Ewan Howell"],
     "height": 34,
-    "spaceWidth": 16
+    "spaceWidth": 16,
+    "editor": { "width": 32, "grid": 4 }
   },
   {
     "id": "geo-squares",
@@ -178,7 +194,8 @@
       "4": ["kv", "lv", "vj", "1v", "({", "(€", "[{", "[€", "{{", "{€", "})", "}]", "}}", "}1", "}3", "}7", "}b", "}d", "}i", "}t", "}v", "\\7", "\\t", "\\v", "£{", "£€", "€{", "€€", "1{", "1\\", "1€", "c{", "c€", "e{", "e€", "f{", "f/", "f£", "f€", "i{", "i€", "l{", "l\\", "l€", "t{", "t/", "t£", "t€", "v{", "v/", "v£", "v€", "}?", "\\?", "k?", ",v", ".v", "v_", "v,", "v.", "_v"],
       "8": ["14", "fj", "kt", "1t", "k7", "_?", "_t", ",?", ",7", ",t", ".?", ".7", ".t", "&7", "&t", "1?", "1'", "1*", "1^", "1😩", "f,", "f.", "f_", "c-", "l?", "l'", "l*", "l^", "l😩", "t_", "t,", "t.", "_7"],
       "12": ["17", "lt", "tj", "l4", "l7"]
-    }
+    },
+    "editor": { "width": 32, "grid": 8 }
   },
   {
     "id": "f8thful",
@@ -189,14 +206,16 @@
     "kerning": {
       "6": ["fj", "(€", "[€", "{€", "//", "\\?", "\\\\", "\\7", "\\t", "£€", "€€", "1?", "1\\", "1€", "c€", "e€", "f/", "f£", "f€", "i€", "l?", "l\\", "l€", "t/", "t£", "t€", "_?", "_t", ",7", ".7", ",t", ".t", "t_", "t,", "t.", ",?", ".?"],
       "12": ["17", "lt", "ly", "tj", "1t", "1y", "l7", "_\\", "_7", "/_"]
-    }
+    },
+    "editor": { "width": 30, "grid": 6 }
   },
   {
     "id": "minecraft-earth",
     "authors": ["PopitTart"],
     "depth": 30,
     "terminatorSpace": true,
-    "terminatorSpaceWidth": 4
+    "terminatorSpaceWidth": 4,
+    "editor": { "width": 34, "grid": 2 }
   },
   {
     "id": "minecraft-ten-light",
@@ -209,7 +228,8 @@
       "6": ["yj"],
       "8": ["tj", "lt", "ly", "l-", "/j", "l\\", "l1", "t4", "_\\", "_4", ",\\", ".\\", "/_", "/,", "/.", "\\'", "\\^", "\\~", "^/", "^j", "~/", "~j", "7_", "f_", "l'", "l*", "l^", "l~", "l😩", "p_", "p,", "p.", "'j", "😩j"],
       "16": ["//", "\\\\"]
-    }
+    },
+    "editor": { "width": 28, "grid": 4 }
   },
   {
     "id": "minecraft-wiki",
