@@ -11,7 +11,8 @@ const bandOffset = { key: "offset", label: "Offset", min: 0, max: 63, fallback: 
 const angle = { key: "angle", label: "Angle", min: 0, max: 180, fallback: 45 }
 const wave = [{ key: "level", label: "Level", min: 0, max: 100, fallback: 45 }, { key: "amplitude", label: "Wave height", min: 0, max: 24, fallback: 7 }, { key: "length", label: "Wave length", min: 8, max: 160, fallback: 40 }, { key: "offset", label: "Offset", min: 0, max: 200, fallback: 0 }, { key: "randomness", label: "Randomness", min: 0, max: 100, fallback: 60 }, seed]
 const cracks = [{ key: "amount", label: "Amount", min: 1, max: 100, fallback: 30 }, { key: "length", label: "Length", min: 1, max: 24, fallback: 5 }, { key: "width", label: "Width", min: 1, max: 6, step: 0.25, fallback: 2 }, seed]
-const twoTone = [{ key: "inset", label: "Inset", min: 0, max: 8, fallback: 0 }, outline]
+const twoTone = [outline, { key: "direction", label: "Direction", min: 0, max: 270, steps: [0, 90, 180, 270], fallback: 0 }]
+const LIGHT_SIDES = { 0: [-1, 1], 90: [1, 1], 180: [1, -1], 270: [-1, -1] }
 const TONES = { two_tone_outline: ["two_tone_outline_light", "two_tone_outline_dark"] }
 const CRACK_SPACING = 1800
 const CRACK_BLEND = 0.5
@@ -162,16 +163,17 @@ function twoTonePixels(glyph, kind, settings) {
   const { width, height, mask } = glyph
   const out = new Float32Array(width * height)
   const at = (i, j) => i >= 0 && j >= 0 && i < width && j < height && mask[j * width + i] === 1
-  const from = settings.inset + 1
-  const reach = settings.inset + Math.ceil(settings.thickness)
+  const from = 1
+  const reach = Math.ceil(settings.thickness)
   const dist = distances(mask, width, height)
   function ray(i, j, dx, dy) {
     for (let step = 1; step <= reach; step++) if (!at(i + dx * step, j + dy * step)) return true
     return false
   }
+  const [h, v] = LIGHT_SIDES[settings.direction] ?? LIGHT_SIDES[0]
   function corner(i, j, radius) {
     for (let dy = -radius; dy <= radius; dy++) {
-      for (let dx = -radius; dx <= radius; dx++) if ((dy > 0 || dx < 0) && !at(i + dx, j + dy)) return true
+      for (let dx = -radius; dx <= radius; dx++) if ((dy * v > 0 || dx * h > 0) && !at(i + dx, j + dy)) return true
     }
     return false
   }
@@ -179,7 +181,7 @@ function twoTonePixels(glyph, kind, settings) {
     for (let i = 0; i < width; i++) {
       const own = dist[j * width + i]
       if (own < from || own >= from + settings.thickness) continue
-      const light = ray(i, j, 0, 1) || ray(i, j, -1, 0) || !ray(i, j, 0, -1) && !ray(i, j, 1, 0) && corner(i, j, own)
+      const light = ray(i, j, 0, v) || ray(i, j, h, 0) || !ray(i, j, 0, -v) && !ray(i, j, -h, 0) && corner(i, j, own)
       out[j * width + i] = kind === "two_tone_outline" || light === (kind === "two_tone_outline_light") ? 1 : 0
     }
   }

@@ -192,15 +192,17 @@ describe("two-tone outline", () => {
 
   test("covers the same ring as the plain outline", () => {
     const glyph = glyphOf(["111000", "111000", "111000", "111111", "111111", "111111"])
-    for (const layer of [{}, { thickness: 2 }, { inset: 1 }]) assert.deepEqual(picture(generatedAlpha(glyph, "two_tone_outline", layer, 6, 1), 6), picture(generatedAlpha(glyph, "outline", layer, 6, 1), 6))
+    for (const layer of [{}, { thickness: 2 }]) assert.deepEqual(picture(generatedAlpha(glyph, "two_tone_outline", layer, 6, 1), 6), picture(generatedAlpha(glyph, "outline", layer, 6, 1), 6))
+  })
+
+  test("direction turns which sides are light", () => {
+    assert.deepEqual(toned(solid(5, 5), { direction: 90 }, 5), ["LLLLL", "D000L", "D000L", "D000L", "DDDDL"])
+    assert.deepEqual(toned(solid(5, 5), { direction: 180 }, 5), ["DDDDL", "D000L", "D000L", "D000L", "LLLLL"])
+    assert.deepEqual(toned(solid(5, 5), { direction: 270 }, 5), ["LDDDD", "L000D", "L000D", "L000D", "LLLLL"])
   })
 
   test("thickness widens each side and the overlapping corners stay light", () => {
     assert.deepEqual(toned(solid(5, 5), { thickness: 2 }, 5), ["LLLLL", "LLLLL", "LL0DD", "LLDDD", "LLDDD"])
-  })
-
-  test("inset moves the ring inward", () => {
-    assert.deepEqual(toned(solid(5, 5), { inset: 1 }, 5), ["00000", "0LLL0", "0L0D0", "0LDD0", "00000"])
   })
 
   test("an inner corner counts as top", () => {

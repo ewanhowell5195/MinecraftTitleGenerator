@@ -390,7 +390,8 @@ const KEYS = [
   ["blur", NUMBER],
   ["colours", list(isColour, writeColour, readColour)],
   ["tint", COLOUR],
-  ["tintBlend", BLEND]
+  ["tintBlend", BLEND],
+  ["direction", NUMBER]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))
