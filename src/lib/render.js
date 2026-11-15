@@ -48,7 +48,7 @@ export function screenBounds(scene, camera) {
   const vertex = new THREE.Vector3()
   cullOutlines(scene, camera)
   scene.traverseVisible(object => {
-    const position = object.isMesh && object.geometry.attributes.position
+    const position = object.isMesh && (object.userData.extent ?? object.geometry.attributes.position)
     if (!position) return
     matrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse).multiply(object.matrixWorld)
     for (let i = 0; i < position.count; i++) {

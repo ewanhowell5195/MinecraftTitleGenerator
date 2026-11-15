@@ -332,6 +332,12 @@ describe("titleFraming", () => {
     assert.equal(corners.some(corner => corner.y > 3 && corner.z > 1), false)
   })
 
+  test("frames a model by its opaque pixels, not its whole faces", () => {
+    const runs = [{ corners: [[1, 1, 0], [2, 1, 0], [2, 2, 0], [1, 2, 0]] }]
+    const { corners } = titleFraming([{ type: "top", built: { ...flat, runs }, transform: transform() }])
+    assert.deepEqual(corners.map(corner => corner.toArray()), runs[0].corners)
+  })
+
   test("frames every distinct vertex of each usable item", () => {
     const items = [{ type: "top", built: flat, transform: transform() }, { type: "bottom", built: null, transform: transform() }, { type: "bottom", built: flat, transform: transform() }]
     assert.equal(titleFraming(items).corners.length, 4)

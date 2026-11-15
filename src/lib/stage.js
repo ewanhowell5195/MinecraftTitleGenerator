@@ -72,6 +72,7 @@ function fill(entry, built) {
   entry.border.map = entry.textures[0] ?? null
   entry.border.needsUpdate = true
   entry.solid = built.body.triangles ? mesh(built.body, entry.materials) : null
+  if (entry.solid && built.runs) entry.solid.userData.extent = new THREE.BufferAttribute(new Float32Array(opaquePoints(built.runs).flatMap(point => point.toArray())), 3)
   if (entry.solid) entry.group.add(entry.solid)
 }
 
@@ -252,11 +253,16 @@ function pointsOf(buffers) {
   return points.get(buffers)
 }
 
+function opaquePoints(runs) {
+  if (!points.has(runs)) points.set(runs, runs.flatMap(run => run.corners.map(([x, y, z]) => new THREE.Vector3(x, y, z))))
+  return points.get(runs)
+}
+
 function placedPoints(item, transform) {
   const matrix = objectMatrix(transform, item.built)
   const shell = item.halo?.triangles ? item.halo : item.outline
   const outline = shell?.triangles ? pointsOf(shell).map(point => point.clone().divide(new THREE.Vector3(...shell.scale))) : []
-  return pointsOf(item.built.body).concat(outline).map(point => point.clone().applyMatrix4(matrix))
+  return (item.built.runs ? opaquePoints(item.built.runs) : pointsOf(item.built.body)).concat(outline).map(point => point.clone().applyMatrix4(matrix))
 }
 
 function restBounds(item) {
