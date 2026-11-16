@@ -105,13 +105,13 @@
       <div class="site-gap"></div>
     </template>
     <TopBar v-else class="top">
-      <template v-if="font && view === 'editor'">
+      <template v-if="font">
         <MenuStrip :menus="menus" />
         <NavTabs class="main-tabs divided" v-model="tab" :tabs="TABS" />
       </template>
       <template #end>
-        <Button v-if="font && view === 'editor' && editingSubmission" primary class="update" v-tooltip="'Save your submission with this font as its file'" @click="saveSubmission"><template #icon><Icon name="upload" :size="16" /></template>Save submission</Button>
-        <Button v-else-if="font && view === 'editor'" primary v-tooltip="'Send this font to be added to the title generator'" @click="submitFont"><template #icon><Icon name="upload" :size="16" /></template>Submit</Button>
+        <Button v-if="font && editingSubmission" primary class="update" v-tooltip="'Save your submission with this font as its file'" @click="saveSubmission"><template #icon><Icon name="upload" :size="16" /></template>Save submission</Button>
+        <Button v-else-if="font" primary v-tooltip="'Send this font to be added to the title generator'" @click="submitFont"><template #icon><Icon name="upload" :size="16" /></template>Submit</Button>
       </template>
     </TopBar>
 

@@ -126,7 +126,7 @@
     </div>
 
     <div class="layout">
-      <section class="choice settings">
+      <section class="choice">
         <div class="numbers">
           <Field group label="Height" label-for="import-height">
             <template v-if="changed('height')" #label><ResetButton :title="`Reset to ${defaults.height}`" @reset="reset('height')" /></template>
@@ -206,7 +206,6 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
   }
-
 
   .confirm {
     margin-top: auto;

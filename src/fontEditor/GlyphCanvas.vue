@@ -205,7 +205,6 @@
     font-variant-numeric: tabular-nums;
   }
 
-
   .zoom:disabled:hover {
     background: transparent;
   }

@@ -95,5 +95,4 @@
     align-items: end;
     gap: 10px;
   }
-
 </style>

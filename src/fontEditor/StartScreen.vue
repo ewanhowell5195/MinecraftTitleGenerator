@@ -238,11 +238,6 @@
     gap: 10px;
   }
 
-  .numbers .checkbox {
-    align-self: end;
-    padding-bottom: 9px;
-  }
-
   @media (max-width: 800px) {
     .choices {
       grid-template-columns: minmax(0, 1fr);

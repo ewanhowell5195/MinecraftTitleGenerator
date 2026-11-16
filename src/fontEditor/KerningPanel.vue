@@ -3,7 +3,7 @@
 </script>
 
 <script setup>
-  import { computed, ref, toRaw } from "vue"
+  import { computed, ref } from "vue"
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
   import { collisionAmount, pairRank, suggestKerning } from "../lib/font/kerning.js"
@@ -25,7 +25,7 @@
   const customError = ref("")
   const search = ref("")
 
-  const parsed = computed(() => unkernedFont(toRaw(font.value)))
+  const parsed = computed(() => unkernedFont(font.value))
   const unit = computed(() => font.value.grid * font.value.density)
   const limits = computed(() => {
     const { glyphs, border } = parsed.value
@@ -91,7 +91,7 @@
     }
     customError.value = ""
     custom.value = ""
-    if (!(pair in font.value.kerning)) setKerning({ [pair]: allSuggestions.value.find(item => item.pair === pair)?.amount ?? unit.value })
+    if (!(pair in font.value.kerning)) setKerning({ [pair]: suggestedAmounts.value.get(pair) ?? unit.value })
   }
 
   function addAll() {
@@ -117,7 +117,7 @@
         <p v-else-if="!pairs.length" class="hint">None of your pairs match this search.</p>
         <div v-else class="rows list">
           <div v-for="{ pair, amount, max, past } of pairs" :key="pair" class="pair-row">
-            <div class="picture big"><PairView :parsed="parsed" :pair="pair" :amount="amount" :width="200" :height="88" :max-scale="6" /></div>
+            <div class="picture"><PairView :parsed="parsed" :pair="pair" :amount="amount" :width="200" :height="88" :max-scale="6" /></div>
             <div class="tools">
               <div class="head">
                 <span class="pair-name">{{ pairLabel(pair) }}</span>
@@ -191,10 +191,12 @@
   }
 
   .picture {
+    flex: none;
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 64px;
+    width: 216px;
+    height: 104px;
     background: var(--checker);
   }
 
@@ -209,12 +211,6 @@
     gap: 14px;
     padding: 10px;
     background: var(--card);
-  }
-
-  .picture.big {
-    flex: none;
-    width: 216px;
-    height: 104px;
   }
 
   .tools {
@@ -259,7 +255,7 @@
       gap: 10px;
     }
 
-    .picture.big {
+    .picture {
       width: 100%;
     }
   }
