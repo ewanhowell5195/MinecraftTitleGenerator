@@ -1,7 +1,7 @@
 import { providerLabel } from "../../lib/core/providers.js"
 import { SUBMISSION_KINDS } from "../../lib/submissions/kinds/index.js"
 import { SUBMISSION_LIMITS, assetId } from "../../lib/submissions/submissions.js"
-import { USER_ROW, accountKey, forgetEmail, forgetUnusedUser, isAdmin, rememberUser, requireUser, saveUser, signedInUser } from "../accounts.js"
+import { USER_ROW, accountKey, currentUser, forgetEmail, forgetUnusedUser, isAdmin, rememberUser, requireUser, saveUser } from "../accounts.js"
 import { returnSlot, takeSlot } from "../daily.js"
 import { github } from "../github.js"
 import { Refusal, cachedAtEdge, canonical, guarded, idParam, reply } from "../http.js"
@@ -144,7 +144,7 @@ export const listSubmissions = guarded(async context => {
 export const submissionDetails = guarded(async context => {
   const { env } = context
   const row = await findSubmission(env, idParam(context.params, MISSING))
-  const user = await signedInUser(context)
+  const user = await currentUser(context)
   return reply(200, { submission: shown(env, row, user), comments: await cachedThread(context, row), reviewer: await isAdmin(env, user) })
 })
 

@@ -126,7 +126,7 @@ function shownUser(user) {
 
 export const USER_ROW = "(SELECT id FROM users WHERE provider = ? AND provider_id = ?)"
 
-export async function signedInUser({ request, env }) {
+async function signedInUser({ request, env }) {
   const session = await verified(env, "session", cookieValue(request, SESSION_COOKIE))
   return session && { id: session.id, name: session.name, provider: session.provider, avatar: session.avatar ?? null, email: session.email, issued: session.issued ?? 0, providerId: session.id.slice(session.provider.length + 1) }
 }
@@ -143,6 +143,12 @@ async function deletedSince(env, user) {
 export async function activeUser(context) {
   const user = await signedInUser(context)
   if (user && await deletedSince(context.env, user)) throw new Refusal(401, "This account has been deleted. Sign in again to make a new one.", { "Set-Cookie": clearedSession() })
+  return user
+}
+
+export async function currentUser(context) {
+  const user = await signedInUser(context)
+  if (user && await deletedSince(context.env, user)) return null
   return user
 }
 

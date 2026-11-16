@@ -6,11 +6,11 @@ import { TEXTURES, send } from "../helpers/submissionServer.js"
 
 const { accountDetails } = await import("../../src/server/accounts.js")
 const { deleteAccount } = await import("../../src/server/accountDeletion.js")
-const { claimPresets, deletePreset, submitPreset } = await import("../../src/server/presets.js")
+const { claimPresets, deletePreset, submissionUsage, submitPreset } = await import("../../src/server/presets.js")
 const { votePreset } = await import("../../src/server/presetScores.js")
 const { addSaved, listSaved, removeSaved } = await import("../../src/server/saved.js")
 const { addComment } = await import("../../src/server/submissions/comments.js")
-const { createSubmission } = await import("../../src/server/submissions/index.js")
+const { createSubmission, submissionDetails } = await import("../../src/server/submissions/index.js")
 const { encodeTitle } = await import("../../src/lib/link/linkformat.js")
 const { FILE_VERSION } = await import("../../src/lib/settings/upgrades.js")
 
@@ -178,6 +178,32 @@ describe("sessions from before an account was deleted", () => {
     assert.equal(count("SELECT COUNT(*) AS total FROM presets"), 2)
     assert.equal(count("SELECT COUNT(*) AS total FROM preset_votes"), 0)
     assert.equal(count("SELECT COUNT(*) AS total FROM users"), 1)
+  })
+
+  test("see what a signed out visitor sees of an account that was made again", async () => {
+    const elsewhere = await leave()
+    await wait(5)
+    const back = await signIn("1", "leaving")
+    const other = await signIn("2", "staying")
+    const theirs = await share(other, "theirs")
+    await share(back, "again")
+    await vote(back, theirs.id, 1)
+    const submission = await submit(back)
+    db.prepare("UPDATE users SET admin = 1 WHERE provider_id = '1'").run()
+    async function seen(cookie) {
+      const found = await submissionDetails(context(`/api/submissions/${submission}`, { cookie, params: { id: String(submission) } }))
+      const usage = await submissionUsage(context("/api/presets/usage", { cookie }))
+      assert.equal(found.status, 200)
+      assert.equal(usage.status, 200)
+      const { resetsAt, ...counts } = await usage.json()
+      return { details: await found.json(), usage: counts }
+    }
+    const mine = await seen(back)
+    assert.equal(mine.details.submission.mine, true)
+    assert.equal(mine.details.reviewer, true)
+    assert.equal(mine.usage.owned.length, 1)
+    assert.equal(Object.keys(mine.usage.votes).length, 1)
+    assert.deepEqual(await seen(elsewhere), await seen(null))
   })
 
   test("leave other accounts alone", async () => {

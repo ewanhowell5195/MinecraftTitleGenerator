@@ -5,7 +5,7 @@ import { capitalWords } from "../lib/core/names.js"
 import { parseSearch } from "../lib/link/presetSearch.js"
 import { shareableTitle } from "../lib/link/titleFacts.js"
 import { blockedWordProblem, shortNameProblem } from "../lib/core/wording.js"
-import { USER_ROW, activeUser, forgetUnusedUser, requireUser, saveUser, signedInUser } from "./accounts.js"
+import { USER_ROW, activeUser, currentUser, forgetUnusedUser, requireUser, saveUser } from "./accounts.js"
 import { nextDay, returnSlot, takeSlot, today } from "./daily.js"
 import { INVALID, Refusal, cachedAtEdge, canonical, guarded, hashed, idParam, jsonBody, randomToken, reply, setting, textField, unpublishedName } from "./http.js"
 
@@ -328,7 +328,7 @@ export const claimPresets = guarded(async context => {
 })
 
 export const submissionUsage = guarded(async context => {
-  const user = await signedInUser(context)
+  const user = await currentUser(context)
   const ip = await hashedIp(context)
   const { env } = context
   const ids = user ? (await env.DB.prepare(`SELECT id FROM presets WHERE user_id = ${USER_ROW} AND shared = 1`).bind(user.provider, user.providerId).all()).results.map(preset => preset.id) : []
