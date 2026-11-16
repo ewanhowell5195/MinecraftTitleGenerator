@@ -1,4 +1,4 @@
-import { computed, onBeforeUnmount, shallowRef, toRef, watch } from "vue"
+import { computed, onBeforeUnmount, shallowRef, watch } from "vue"
 import { fontTextures, preload, shapeFont, sheetFor } from "../lib/texture/assets.js"
 import { arcAssets, arcLayout } from "../lib/geometry/arc.js"
 import { buildOutline, buildText } from "../lib/geometry/build.js"
@@ -66,7 +66,6 @@ export default {
     let paintedKey = null
     let builtFrom = null
     const { sweepPaints, remembered } = createPaintCache()
-    const sources = { font, list, sheet, tileables: toRef(props, "tileables") }
 
     const layerCount = computed(() => font.value?.layers?.length ?? 1)
     const targets = computed(() => Array.from({ length: layerCount.value }, (_, layer) => layerTarget(object, layer)))
@@ -135,13 +134,14 @@ export default {
       const key = lookKey(values)
       if (key === paintedKey) return
       const token = ++paintRequest
+      const sources = { font: font.value, list: list.value, sheet: sheet.value, tileables: props.tileables }
       try {
         const loaded = await Promise.all(values.map((value, layer) => loadAssets(sources, value, layer, targets.value[layer])))
         if (token !== paintRequest) return
         const [assets] = loaded
-        shaped.value = assets.base && !font.value.mesh && !font.value.layers ? shapeFont(font.value, sheet.value, assets.base) : font.value
+        shaped.value = assets.base && !sources.font.mesh && !sources.font.layers ? shapeFont(sources.font, sources.sheet, assets.base) : sources.font
         const layers = values.map((value, layer) => paintedLayer(value, loaded[layer]))
-        painted.value = { font: values[0].font, ...layers[0], layers: font.value.layers ? layers : null }
+        painted.value = { font: values[0].font, ...layers[0], layers: sources.font.layers ? layers : null }
         paintedKey = key
         paintError.value = null
       } catch (err) {
