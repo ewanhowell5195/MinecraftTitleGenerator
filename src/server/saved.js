@@ -47,6 +47,7 @@ export const addSaved = guarded(async context => {
   const existing = new Set(results.map(row => row.code))
   let hidden = results.filter(row => !row.shared).length
   const statements = []
+  const adding = []
   const kept = []
   for (const preset of presets) {
     const fits = await savable(context, preset)
@@ -57,10 +58,14 @@ export const addSaved = guarded(async context => {
     }
     existing.add(preset.code)
     hidden++
-    statements.push(env.DB.prepare(`INSERT INTO presets (id, user_id, code, name) VALUES (${NEXT_ID}, ${USER_ROW}, ?, ?) ON CONFLICT (user_id, code) DO NOTHING`).bind(user.provider, user.providerId, preset.code, preset.name.trim()))
+    adding.push(preset.code)
+    statements.push(env.DB.prepare(`INSERT INTO presets (id, user_id, code, name) SELECT ${NEXT_ID}, ${USER_ROW}, ?, ? WHERE (SELECT COUNT(*) FROM presets WHERE user_id = ${USER_ROW} AND shared = 0) < ? ON CONFLICT (user_id, code) DO NOTHING`).bind(user.provider, user.providerId, preset.code, preset.name.trim(), user.provider, user.providerId, LIMITS.savedPresets))
   }
-  if (statements.length) await env.DB.batch([saveUser(env, user)].concat(statements))
-  return reply(200, { kept })
+  if (!statements.length) return reply(200, { kept })
+  await env.DB.batch([saveUser(env, user)].concat(statements))
+  const { results: now } = await env.DB.prepare(`SELECT code FROM presets WHERE user_id = ${USER_ROW}`).bind(user.provider, user.providerId).all()
+  const stored = new Set(now.map(row => row.code))
+  return reply(200, { kept: kept.concat(adding.filter(code => !stored.has(code))) })
 })
 
 export const changeSaved = guarded(async context => {

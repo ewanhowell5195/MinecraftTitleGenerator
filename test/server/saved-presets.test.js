@@ -185,6 +185,20 @@ describe("saved presets", () => {
     assert.equal((await savedList(cookie)).length, LIMITS.savedPresets)
   })
 
+  test("two batches at once can't go over the account's limit", async () => {
+    const cookie = await signIn()
+    const room = LIMITS.savedPresets - LIMITS.savedBatch
+    for (let index = 0; index < room; index += LIMITS.savedBatch) await save(cookie, Array.from({ length: LIMITS.savedBatch }, (_, offset) => saved(`title ${index + offset}`)))
+    const batches = ["first", "second"].map(label => Array.from({ length: LIMITS.savedBatch }, (_, offset) => saved(`${label} ${offset}`)))
+    batchesTogether()
+    const results = await Promise.all(batches.map(item => save(cookie, item)))
+    const listed = await savedList(cookie)
+    assert.equal(listed.length, LIMITS.savedPresets)
+    const codes = new Set(listed.map(item => item.code))
+    assert.deepEqual(results.flatMap(result => result.kept).sort(), batches.flat().map(item => item.code).filter(item => !codes.has(item)).sort())
+    assert.equal(results.flatMap(result => result.kept).length, LIMITS.savedBatch)
+  })
+
   test("renames only on that account", async () => {
     const cookie = await signIn("discord", { id: "1", username: "a" })
     const other = await signIn("discord", { id: "2", username: "b" })
