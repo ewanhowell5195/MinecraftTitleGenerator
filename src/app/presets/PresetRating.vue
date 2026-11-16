@@ -2,6 +2,7 @@
   import { computed } from "vue"
   import { LIMITS } from "../../lib/core/limits.js"
   import Button from "../../components/Button.vue"
+  import GoldStar from "./GoldStar.vue"
   import Icon from "../../components/Icon.vue"
 
   const STARS = [1, 2, 3, 4, 5]
@@ -32,7 +33,7 @@
       <span class="stars" aria-hidden="true">
         <span v-for="star of STARS" :key="star" class="star">
           <Icon class="outline" name="star" :size="16" />
-          <span class="filled" :style="{ width: fill(star) }"><Icon name="star" :size="16" /></span>
+          <span class="filled" :style="{ width: fill(star) }"><GoldStar :size="16" /></span>
         </span>
       </span>
       <strong>{{ rating.toFixed(1) }}</strong>
@@ -99,11 +100,6 @@
     display: block;
     height: 16px;
     overflow: hidden;
-  }
-
-  .filled :deep(path) {
-    fill: #f2c14e;
-    stroke: none;
   }
 
   .unrated {

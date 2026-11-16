@@ -16,6 +16,7 @@
   import Notice from "../../components/Notice.vue"
   import DeletePresetDialog from "./DeletePresetDialog.vue"
   import Dropdown from "../../components/Dropdown.vue"
+  import GoldStar from "./GoldStar.vue"
   import Icon from "../../components/Icon.vue"
   import PresetDetail from "./PresetDetail.vue"
   import PresetTile from "./PresetTile.vue"
@@ -282,7 +283,7 @@
             <PresetTile v-for="preset of results" :key="preset.id" :code="preset.code" :fingerprint="preset.fingerprint" :selected="selected?.id === preset.id" @pick="selectCommunity(preset)">
               <a class="name ellipsis" :href="`/app/presets/${preset.id}`" @click="followed">{{ preset.name }}</a>
               <span v-if="preset.rating !== null" class="stats">
-                <span v-tooltip="`From ${preset.votes} votes`"><Icon class="gold" name="star" :size="13" />{{ preset.rating.toFixed(1) }}</span>
+                <span v-tooltip="`From ${preset.votes} votes`"><GoldStar :size="13" />{{ preset.rating.toFixed(1) }}</span>
               </span>
               <Badge v-if="isMine(preset) && !preset.author" tone="accent">Shared by you</Badge>
               <AuthorLink v-else-if="preset.author" class="author" :class="{ yours: isMine(preset) }" :name="preset.author" :provider="preset.authorProvider" :size="13" :searched="searchesUser(presetsPage.search, preset.author, preset.authorProvider)" @click.stop="filterByUser(preset.author, preset.authorProvider)" />
@@ -297,7 +298,7 @@
                   <Badge v-if="preset.inBrowser" v-tooltip="'Your account is full, so this is only saved in this browser'">This browser only</Badge>
                   <span v-if="stats[preset.shared]" class="stats">
                     <span v-tooltip="'Uses'"><Icon name="download" :size="13" />{{ stats[preset.shared].downloads }}</span>
-                    <span v-if="stats[preset.shared].rating !== null"><Icon class="gold" name="star" :size="13" />{{ stats[preset.shared].rating.toFixed(1) }}</span>
+                    <span v-if="stats[preset.shared].rating !== null"><GoldStar :size="13" />{{ stats[preset.shared].rating.toFixed(1) }}</span>
                   </span>
                 </PresetTile>
               </div>
@@ -433,11 +434,6 @@
     display: flex;
     align-items: center;
     gap: 4px;
-  }
-
-  .gold :deep(path) {
-    fill: #f2c14e;
-    stroke: none;
   }
 
   .author {
