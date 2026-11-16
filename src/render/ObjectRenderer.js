@@ -250,7 +250,7 @@ export default {
     }
 
     function previewFor(source, options, placed, sheet) {
-      const key = JSON.stringify([placed.map(item => [item.glyph.char, item.glyph.width, item.x, item.spaces]), ownDepth.value, Object.entries(options).filter(([name]) => !LAYOUT.has(name))])
+      const key = JSON.stringify([placed.map(item => [item.glyph.char, item.glyph.width, item.x, item.spaces]), ownDepth.value, Object.entries(options).filter(([name]) => !LAYOUT.has(name)), layerFaces.value])
       const final = finalShadowed.value
       if (shown?.source === source && shown.sheet === sheet && shown.painted === painted.value && shown.final === final && shown.key === key) return shown.value
       const value = buildText(source, { ...options, twist: null, depth: ownDepth.value, placed, sheet, paint: painter(source), layers: layerOptions(), textureLimit: textureLimit() })
