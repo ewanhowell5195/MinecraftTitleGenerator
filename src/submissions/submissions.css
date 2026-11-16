@@ -37,6 +37,10 @@ textarea {
   gap: 8px;
 }
 
+.required {
+  color: var(--danger);
+}
+
 .sign-in {
   display: flex;
   flex-direction: column;

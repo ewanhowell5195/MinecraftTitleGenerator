@@ -13,7 +13,7 @@
   import { flatTexture } from "../../lib/font/editor/export.js"
   import { popular } from "../../lib/state/stats.js"
   import { EXTRA_KINDS, fontParents, submittedFontId } from "../../lib/submissions/kinds/font.js"
-  import { STRIP_LIMITS, stripHeights as heightsOf, stripSnap } from "../../lib/submissions/kinds/stripFit.js"
+  import { STRIP_LIMITS, heightList, stripHeights as heightsOf, stripSnap } from "../../lib/submissions/kinds/stripFit.js"
   import { ownFont, submittedFont } from "../../lib/submissions/kinds/fontBuild.js"
   import { SUBMISSION_LIMITS, pngProblem } from "../../lib/submissions/submissions.js"
   import { DEFAULT_FONT } from "../../lib/settings/defaults.js"
@@ -92,10 +92,6 @@
     return list.length > 1 ? `${list.slice(0, -1).join(", ")} and ${list.at(-1)}` : list[0]
   }
 
-  function either(list) {
-    return list.length > 1 ? `${list.slice(0, -1).join(", ")} or ${list.at(-1)}` : String(list[0])
-  }
-
   watch(() => props.target, target => {
     if (target) variant.value = true
   })
@@ -149,7 +145,7 @@
     <code class="font-id">{{ fontId || "None" }}</code>
   </Field>
   <Field group class="wide" label="Textures, overlays and strips for this font" :error="problems.extras">
-    <p class="hint">Optional. A flat texture replaces the plain one the font gets otherwise. Paint flat textures, textures and overlays over the font's <a v-if="blankTexture" :href="blankTexture" :download="`${fontId || 'font'}-template.png`">blank texture</a><template v-else>blank texture, from the Textures tab of the font editor</template>, at its size or a whole number of times bigger.<template v-if="stripHeights"> Strips can be {{ either(stripHeights) }} pixels tall.</template> Up to {{ SUBMISSION_LIMITS.extraFiles }} files.</p>
+    <p class="hint">Optional. A flat texture replaces the plain one the font gets otherwise. Paint flat textures, textures and overlays over the font's <a v-if="blankTexture" :href="blankTexture" :download="`${fontId || 'font'}-template.png`">blank texture</a><template v-else>blank texture, from the Textures tab of the font editor</template>, at its size or a whole number of times bigger.<template v-if="stripHeights"> Strips can be {{ heightList(stripHeights) }} pixels tall.</template> Up to {{ SUBMISSION_LIMITS.extraFiles }} files.</p>
     <p class="hint">The primary texture is what top and small lines start with, and the secondary is what bottom lines start with. Without a secondary, bottom lines use the primary, and without a primary, every line starts flat. Set one texture as both to keep the bottom line on the primary.</p>
     <div v-for="item of extras" :key="item.key" class="extra">
       <UploadField class="extra-image" accept="image/png" :label="imageOf(item.key) ? 'Replace' : 'Choose'" empty="PNG" :image="imageOf(item.key)" @change="pick(item.key, $event)" />
@@ -222,10 +218,6 @@
   .extra-kind {
     flex: 1;
     font-weight: 600;
-  }
-
-  .required {
-    color: var(--danger);
   }
 
   .buttons {

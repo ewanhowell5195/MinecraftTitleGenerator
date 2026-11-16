@@ -452,10 +452,6 @@
     margin: 0;
   }
 
-  .required {
-    color: var(--danger);
-  }
-
   .finish {
     display: flex;
     flex-wrap: wrap;
