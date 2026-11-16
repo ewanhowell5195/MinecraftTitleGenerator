@@ -1,5 +1,5 @@
 import * as THREE from "three"
-import { analyse, contains, maskOf } from "./analyse.js"
+import { analyse, contains, maskOf } from "./regions.js"
 import { boxOfPolygons, boxesOverlap, signedArea } from "./polygons.js"
 
 export const EPSILON = 1e-4

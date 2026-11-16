@@ -1,6 +1,6 @@
 import { packed } from "../../lib/core/colour.js"
 import { clamp } from "../../lib/core/maths.js"
-import { BASE } from "./analyse.js"
+import { BASE } from "./regions.js"
 import { jump, near } from "./colours.js"
 import { EPSILON, PLANE_ERROR, worldMap } from "./faces.js"
 
