@@ -5,7 +5,7 @@ import { quietStorage } from "../helpers/browser.js"
 quietStorage()
 
 const { arcLayout } = await import("../../src/lib/geometry/arc.js")
-const { lookKey, paintKey } = await import("../../src/lib/texture/paint/keys.js")
+const { baseKey, lookKey, paintKey } = await import("../../src/lib/texture/paint/keys.js")
 const { stripDetail } = await import("../../src/lib/texture/paint/strip.js")
 
 const CAP = 8
@@ -86,6 +86,39 @@ describe("lookKey", () => {
 
   test("other values are keyed as they are", () => {
     assert.equal(lookKey({ texture: "cracked", stops: [{ colour: "#ffffff", position: 0 }] }), JSON.stringify({ texture: "cracked", stops: [{ colour: "#ffffff", position: 0 }] }))
+  })
+})
+
+describe("baseKey", () => {
+  const shape = { width: 16 }
+  const tile = { width: 8 }
+  const look = { font: "minecraft-ten", source: "tile", tileableScale: 1, edgeBrightness: 35, overlays: [], hue: 0, fade: false, customBorder: false }
+  const assets = { shape, tile, border: "#000000", overlays: [], edgeOverlays: [] }
+
+  test("overlay, colour and fade changes keep the base", () => {
+    const changed = { ...look, overlays: [{ overlay: "cracks", opacity: 40 }], edgeOverlays: [{ overlay: "edge_outline" }], hue: 90, fade: true, customBorder: true }
+    assert.equal(baseKey(changed, { ...assets, overlays: [{ layer: {}, source: { width: 16 } }] }), baseKey(look, assets))
+  })
+
+  test("a base setting changes the base", () => {
+    assert.notEqual(baseKey({ ...look, tileableScale: 2 }, assets), baseKey(look, assets))
+    assert.notEqual(baseKey({ ...look, edgeBrightness: 50 }, assets), baseKey(look, assets))
+    assert.notEqual(baseKey({ ...look, font: "minecraft-five" }, assets), baseKey(look, assets))
+  })
+
+  test("another picture or border changes the base", () => {
+    assert.notEqual(baseKey(look, { ...assets, tile: { width: 8 } }), baseKey(look, assets))
+    assert.notEqual(baseKey(look, { ...assets, shape: { width: 16 } }), baseKey(look, assets))
+    assert.notEqual(baseKey(look, { ...assets, fontOverlay: { width: 16 } }), baseKey(look, assets))
+    assert.notEqual(baseKey(look, { ...assets, border: "#ffffff" }), baseKey(look, assets))
+  })
+
+  test("a strip keys on its picture and its layout", () => {
+    const strip = { image: { width: 4 }, density: 1, snap: 1, top: 2, bottom: 2, depth: 22, tiling: "line", scale: false, slice: null, band: null, independent: false }
+    const striped = { ...assets, tile: undefined, strip }
+    assert.equal(baseKey(look, { ...striped, strip: { ...strip } }), baseKey(look, striped))
+    assert.notEqual(baseKey(look, { ...striped, strip: { ...strip, image: { width: 4 } } }), baseKey(look, striped))
+    assert.notEqual(baseKey(look, { ...striped, strip: { ...strip, slice: { from: 0, size: 2 } } }), baseKey(look, striped))
   })
 })
 

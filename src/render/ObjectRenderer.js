@@ -15,7 +15,7 @@ import { loadAssets, paintedLayer } from "./objectAssets.js"
 import { createPaintCache } from "./paintCache.js"
 import { regionDetails } from "./regionDetails.js"
 import { applyFontDefaults } from "./fontDefaults.js"
-import { idOf, lookKey, paintKey } from "../lib/texture/paint/keys.js"
+import { baseKey, idOf, lookKey, paintKey } from "../lib/texture/paint/keys.js"
 import { paintBase, paintSheet } from "../lib/texture/paint/sheet.js"
 import { platform } from "../lib/core/platform.js"
 import { quietly } from "../lib/state/history.js"
@@ -24,8 +24,6 @@ import { editorTitle, finalShadows, words } from "../lib/state/scene.js"
 import { defaultDepth } from "../lib/settings/defaults.js"
 import { isSeparate, layerTarget } from "../lib/settings/layers.js"
 import { effectiveScale, isCustomFont } from "../lib/settings/settings.js"
-
-const BASE = ["font", "source", "textureSource", "texture", "textureVariant", "tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "customTexture", "stops", "smooth", "gradientAngle", "arcGradient", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "tileablePerCharacter", "disableFontOverlay", "edgeBrightness"]
 
 const REST = 0.5
 const SHARPEN_DELAY = 250
@@ -188,7 +186,7 @@ export default {
         const pageKey = paintKey(page, assets, look)
         const own = remembered(JSON.stringify(["page", id, index, final, pageKey, sharp]), () => ({ page }), sharp).page
         const remapped = arcAssets(assets, own, sheet.value)
-        const base = remembered(JSON.stringify(["base", id, index, lookKey(BASE.map(name => look[name])), pageKey, sharp]), () => paintBase(own, look, remapped, source.capHeight), sharp)
+        const base = remembered(JSON.stringify(["base", index, baseKey(look, assets), idOf(sheet.value), source.capHeight, pageKey, sharp]), () => paintBase(own, look, remapped, source.capHeight), sharp)
         return remembered(JSON.stringify(["paint", id, index, final, pageKey, sharp]), () => ({ ...painted.value, ...layer, ...paintSheet(own, look, remapped, source.capHeight, base) }), sharp)
       }
       return layouts => {
