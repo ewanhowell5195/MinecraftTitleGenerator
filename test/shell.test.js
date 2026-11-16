@@ -2,7 +2,9 @@ import assert from "node:assert/strict"
 import fs from "node:fs"
 import { describe, test } from "node:test"
 import { PAGES, SITE } from "../src/pages.js"
-import { shellHtml, shellPage } from "../src/site/shell.js"
+import { pageAt, pageFiles, shellHtml } from "../src/site/shell.js"
+
+const SHELL = fs.readFileSync("index.html", "utf8")
 
 function count(html, pattern) {
   return Array.from(html.matchAll(pattern)).length
@@ -14,7 +16,7 @@ function unescaped(text) {
 
 describe("page shells", () => {
   for (const page of PAGES) {
-    const html = shellHtml(fs.readFileSync(page.file, "utf8"), page)
+    const html = shellHtml(SHELL, page)
     const head = html.slice(html.indexOf("<head>"), html.indexOf("</head>"))
 
     test(`${page.file} has one title, description and canonical link`, () => {
@@ -41,7 +43,7 @@ describe("page shells", () => {
 
   test("text in the head is escaped", () => {
     const page = { ...PAGES[0], title: "Blocks & \"Items\" <new>", description: "Fonts & \"textures\"" }
-    const html = shellHtml(fs.readFileSync(page.file, "utf8"), page)
+    const html = shellHtml(SHELL, page)
     assert.equal(count(html, /<title>/g), 1)
     assert.equal(unescaped(html.match(/<title>([^<]*)<\/title>/)[1]), page.title)
     assert.equal(unescaped(html.match(/<meta name="description" content="([^"]*)">/)[1]), page.description)
@@ -50,30 +52,34 @@ describe("page shells", () => {
 
   test("the homepage describes the site and the generator as structured data", () => {
     const page = PAGES.find(item => item.name === "home")
-    const html = shellHtml(fs.readFileSync(page.file, "utf8"), page)
+    const html = shellHtml(SHELL, page)
     const data = JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/)[1])
     assert.deepEqual(data["@graph"].map(item => item["@type"]), ["WebSite", "WebApplication"])
     assert.equal(data["@graph"][1].url, `${SITE}/app/`)
     assert.equal(PAGES.filter(item => item.data).length, 1)
   })
 
-  test("a page is found by its file", () => {
-    for (const page of PAGES) assert.equal(shellPage(page.file), page)
-    assert.equal(shellPage("missing/index.html"), null)
+  test("a page is found by its address", () => {
+    assert.equal(pageAt("/").name, "home")
+    assert.equal(pageAt("/app/").name, "app")
+    assert.equal(pageAt("/app/presets").name, "app")
+    assert.equal(pageAt("/app/presets/12").name, "app")
+    assert.equal(pageAt("/font-editor/import").name, "font-editor")
+    assert.equal(pageAt("/submissions/4/edit/").name, "submissions")
+    assert.equal(pageAt("/terms/").name, "terms")
+    assert.equal(pageAt("/nothing/here").name, "not-found")
   })
 
-  test("a page's extra files exist and get the same head as its own file", () => {
-    for (const page of PAGES.filter(page => page.extraFiles)) {
-      for (const file of page.extraFiles) {
-        assert.equal(shellPage(file), page)
-        assert.equal(shellHtml(fs.readFileSync(file, "utf8"), page), shellHtml(fs.readFileSync(page.file, "utf8"), page))
-      }
-    }
+  test("every page's files are written from the one shell, with nothing else to keep in sync", () => {
+    const files = PAGES.flatMap(pageFiles)
+    assert.equal(new Set(files).size, files.length)
+    assert.ok(files.includes("index.html") && files.includes("404.html"))
+    for (const file of files.filter(file => file !== "index.html")) assert.equal(fs.existsSync(file), false, file)
   })
 
   test("the canonical link of a page with a fixed path is that path", () => {
     for (const page of PAGES.filter(page => !page.paths[0].includes(":"))) {
-      assert.ok(shellHtml(fs.readFileSync(page.file, "utf8"), page).includes(`<link rel="canonical" href="${SITE}${page.paths[0]}">`))
+      assert.ok(shellHtml(SHELL, page).includes(`<link rel="canonical" href="${SITE}${page.paths[0]}">`))
     }
   })
 })

@@ -7,7 +7,7 @@ import { creditPeople, creditsHtml } from "./src/server/credits.js"
 import { escaped } from "./src/server/http.js"
 import { shareTags, withoutShareTags } from "./src/server/head.js"
 import { linkedCode, linkedTitleDetails, presetDetails } from "./src/server/presets.js"
-import { shellHtml, shellPage } from "./src/site/shell.js"
+import { pageAt, pageFiles, shellHtml } from "./src/site/shell.js"
 
 const LIVE = "https://mctitlegenerator.com"
 const CREDITS = "virtual:credits"
@@ -22,7 +22,6 @@ const STYLE_SCOPES = {
 }
 const PRESET_PAGE = /^\/app\/presets(?:\/(\d+))?\/?$/
 const APP_PAGE = /^\/app\/(index\.html)?$/
-const SUBMISSION_PAGE = /^\/submissions\/\d+(\/edit)?\/?$/
 
 async function pageDetails(url) {
   const preset = url.pathname.match(PRESET_PAGE)
@@ -53,9 +52,9 @@ const presetPages = {
         const host = request.headers["x-forwarded-host"]?.split(",")[0] ?? request.headers.host
         const details = await pageDetails(new URL(request.url, `${request.headers["x-forwarded-proto"]?.split(",")[0] ?? "http"}://${host}`))
         if (!details) return next()
-        const page = await fs.promises.readFile(path.join(server.config.root, "app/index.html"), "utf8")
+        const page = await fs.promises.readFile(path.join(server.config.root, "index.html"), "utf8")
         response.setHeader("Content-Type", "text/html; charset=utf-8")
-        response.end(withDetails(await server.transformIndexHtml("/app/index.html", page, request.originalUrl), details))
+        response.end(withDetails(await server.transformIndexHtml("/index.html", page, request.originalUrl), details))
       } catch (err) {
         next(err)
       }
@@ -66,7 +65,7 @@ const presetPages = {
 function slashFolders(server) {
   server.middlewares.use((request, response, next) => {
     const url = new URL(request.url, "http://localhost")
-    if (url.pathname.endsWith("/") || !fs.existsSync(path.join(server.config.root, url.pathname, "index.html"))) return next()
+    if (url.pathname.endsWith("/") || !PAGES.some(page => page.paths.includes(`${url.pathname}/`))) return next()
     response.statusCode = 308
     response.setHeader("Location", `${url.pathname}/${url.search}`)
     response.end()
@@ -77,16 +76,6 @@ const folderSlashes = {
   name: "folder-slashes",
   configureServer: slashFolders,
   configurePreviewServer: slashFolders
-}
-
-const submissionPages = {
-  name: "submission-pages",
-  configureServer(server) {
-    server.middlewares.use((request, response, next) => {
-      if (SUBMISSION_PAGE.test(new URL(request.url, "http://localhost").pathname)) request.url = "/submissions/"
-      next()
-    })
-  }
 }
 
 const creditsModule = {
@@ -102,11 +91,23 @@ const creditsModule = {
 
 const shellPages = {
   name: "shell-pages",
+  enforce: "post",
   transformIndexHtml: {
     order: "pre",
     handler(html, context) {
-      const page = shellPage(context.path.replace(/^\//, ""))
-      return page ? shellHtml(html, page) : html
+      if (!context.server) return html
+      return shellHtml(html, pageAt(new URL(context.originalUrl ?? context.path, "http://localhost").pathname))
+    }
+  },
+  generateBundle(_, bundle) {
+    const shell = bundle["index.html"]
+    if (!shell) throw new Error("the build has no index.html to make the pages from")
+    const source = String(shell.source)
+    for (const page of PAGES) {
+      for (const file of pageFiles(page)) {
+        if (file === "index.html") shell.source = shellHtml(source, page)
+        else this.emitFile({ type: "asset", fileName: file, source: shellHtml(source, page) })
+      }
     }
   }
 }
@@ -140,8 +141,8 @@ function allowCookiesOverHttp(proxy) {
 }
 
 export default defineConfig({
-  plugins: [vue(), submissionPages, folderSlashes, presetPages, creditsModule, shellPages],
+  plugins: [vue(), folderSlashes, presetPages, creditsModule, shellPages],
   css: { postcss: { plugins: [scopedStyles()] } },
-  build: { rolldownOptions: { input: PAGES.flatMap(page => [page.file].concat(page.extraFiles ?? [])) } },
+  build: { rolldownOptions: { input: "index.html" } },
   server: { host: "127.0.0.1", port: 9123, strictPort: true, proxy: { "/api": { target: LIVE, changeOrigin: true, configure: allowCookiesOverHttp } } }
 })

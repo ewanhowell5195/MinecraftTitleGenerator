@@ -1,14 +1,22 @@
+import { createMemoryHistory, createRouter } from "vue-router"
 import { escaped } from "../server/http.js"
 import { SHARE_IMAGE, pageImage, shareTags } from "../server/head.js"
 import { PAGES, SITE } from "../pages.js"
+import { pageRoutes } from "./routes.js"
+
+const matcher = createRouter({ history: createMemoryHistory(), routes: pageRoutes(Object.fromEntries(PAGES.map(page => [page.name, {}]))) })
 
 function imageOf(page) {
   const { path, ...image } = page.image ? pageImage(page.name, page.image) : SHARE_IMAGE
   return { ...image, image: `${SITE}${path}` }
 }
 
-export function shellPage(file) {
-  return PAGES.find(page => page.file === file || page.extraFiles?.includes(file)) ?? null
+export function pageAt(path) {
+  return matcher.resolve(path).meta
+}
+
+export function pageFiles(page) {
+  return [page.file].concat(page.extraFiles ?? [])
 }
 
 export function shellHtml(html, page) {
@@ -32,5 +40,5 @@ export function shellHtml(html, page) {
   ], page.hidden ? [] : shareTags({ title: page.title, description: page.description, url, ...imageOf(page), buttons: page.buttons }), page.data ? `<script type="application/ld+json">${JSON.stringify(page.data).replace(/</g, "\\u003c")}</script>` : [], page.head ?? [])
   return html
     .replace("<html lang=\"en\">", `<html lang="en" data-styles="${page.styles}">`)
-    .replace("<head></head>", `<head>\n    ${head.join("\n    ")}\n  </head>`)
+    .replace("<head>", `<head>\n    ${head.join("\n    ")}`)
 }

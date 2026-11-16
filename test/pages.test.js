@@ -10,12 +10,10 @@ describe("pages", () => {
     assert.equal(new Set(PAGES.map(page => page.file)).size, PAGES.length)
   })
 
-  test("every page file exists with an empty head to fill", () => {
-    for (const page of PAGES) {
-      const html = fs.readFileSync(page.file, "utf8")
-      assert.ok(html.includes("<html lang=\"en\">"), page.file)
-      assert.ok(html.includes("<head></head>"), page.file)
-    }
+  test("the shell every page is made from has an empty head to fill", () => {
+    const html = fs.readFileSync("index.html", "utf8")
+    assert.ok(html.includes("<html lang=\"en\">"))
+    assert.ok(html.includes("<head></head>"))
   })
 
   test("every page has a title, a description, styles and a path", () => {
