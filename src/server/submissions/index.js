@@ -4,7 +4,7 @@ import { SUBMISSION_LIMITS, assetId } from "../../lib/submissions/submissions.js
 import { USER_ROW, accountKey, forgetEmail, forgetUnusedUser, isAdmin, rememberUser, requireUser, saveUser, signedInUser } from "../accounts.js"
 import { returnSlot, takeSlot } from "../daily.js"
 import { github } from "../github.js"
-import { Refusal, cachedAtEdge, guarded, idParam, reply } from "../http.js"
+import { Refusal, cachedAtEdge, canonical, guarded, idParam, reply } from "../http.js"
 import { anonymiseComments, cacheKey, cachedThread, forgetFresh, noteEdit } from "./comments.js"
 import { readForm } from "./form.js"
 import { emailing, notify } from "./notifications.js"
@@ -54,16 +54,10 @@ export const createSubmission = guarded(async context => {
   return reply(201, { id: row.id, pull: row.pull })
 })
 
-function sorted(value) {
-  if (Array.isArray(value)) return value.map(sorted)
-  if (value === null || typeof value !== "object") return value
-  return Object.fromEntries(Object.keys(value).sort().map(key => [key, sorted(value[key])]))
-}
-
 function sameSubmission(before, after) {
   return EDITABLE.every(key => {
     const read = row => key === "details" ? JSON.parse(row.details) : row[key]
-    return JSON.stringify(sorted(read(before))) === JSON.stringify(sorted(read(after)))
+    return JSON.stringify(canonical(read(before))) === JSON.stringify(canonical(read(after)))
   })
 }
 

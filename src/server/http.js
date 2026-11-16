@@ -56,6 +56,12 @@ export function idParam(params, missing) {
   return id
 }
 
+export function canonical(value) {
+  if (Array.isArray(value)) return value.map(canonical)
+  if (value === null || typeof value !== "object") return value
+  return Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])]))
+}
+
 export function hex(bytes) {
   return Array.from(new Uint8Array(bytes), byte => byte.toString(16).padStart(2, "0")).join("")
 }

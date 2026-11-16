@@ -7,7 +7,7 @@ import { shareableTitle } from "../lib/link/titleFacts.js"
 import { blockedWordProblem, shortNameProblem } from "../lib/core/wording.js"
 import { USER_ROW, activeUser, forgetUnusedUser, requireUser, saveUser, signedInUser } from "./accounts.js"
 import { nextDay, returnSlot, takeSlot, today } from "./daily.js"
-import { INVALID, Refusal, cachedAtEdge, guarded, hashed, idParam, jsonBody, randomToken, reply, setting, textField, unpublishedName } from "./http.js"
+import { INVALID, Refusal, cachedAtEdge, canonical, guarded, hashed, idParam, jsonBody, randomToken, reply, setting, textField, unpublishedName } from "./http.js"
 
 const SORTS = { week: "week DESC, downloads DESC, id DESC", popular: "downloads DESC, id DESC", top: "rating DESC, votes DESC, id DESC", new: "created_at DESC, id DESC", needs: "votes, id" }
 const MATCHES = "lower(name) LIKE ?1 ESCAPE '\\' OR lower(text) LIKE ?1 ESCAPE '\\'"
@@ -24,12 +24,6 @@ const SCORES_RESET = ", downloads = 0, ups = 0, votes = 0, rating = -1"
 const UPS = "(SELECT COUNT(*) FROM preset_votes WHERE preset_id = presets.id AND value = 1)"
 const VOTES = "(SELECT COUNT(*) FROM preset_votes WHERE preset_id = presets.id)"
 export const SCORES_COUNTED = `ups = ${UPS}, votes = ${VOTES}, rating = CASE WHEN ${VOTES} >= ${LIMITS.minVotes} THEN ${UPS} * 5.0 / ${VOTES} ELSE -1 END`
-
-function canonical(value) {
-  if (Array.isArray(value)) return value.map(canonical)
-  if (value === null || typeof value !== "object") return value
-  return Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])]))
-}
 
 function titleFingerprint(code) {
   const { lines, camera } = decodeTitle(code)
