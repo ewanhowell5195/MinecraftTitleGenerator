@@ -1,37 +1,31 @@
-import { computed, onBeforeUnmount, shallowRef, watch } from "vue"
-import { bandOf, filePalette, fontTextures, image, preload, shapeFont, sheetFor, stripBand, stripLayout, tileableUrl } from "../lib/texture/assets.js"
-import { definitionPalette } from "../lib/texture/overlayColours.js"
+import { computed, onBeforeUnmount, shallowRef, toRef, watch } from "vue"
+import { fontTextures, preload, shapeFont, sheetFor } from "../lib/texture/assets.js"
 import { arcAssets, arcLayout } from "../lib/geometry/arc.js"
 import { buildOutline, buildText } from "../lib/geometry/build.js"
-import { MAX_DETAIL } from "../lib/texture/atlas/scales.js"
 import { textureLimit } from "../lib/texture/canvas.js"
 import { customFontEntry, customFontId } from "../lib/font/customFonts.js"
 import { EulaDeclined } from "../lib/minecraft/eula.js"
-import { FADE_KINDS, SMOOTH_KINDS, WRAPPED_KINDS } from "../lib/texture/overlays/settings.js"
 import { withDraftShadows, withFinalShadows } from "../lib/texture/overlays/shadows.js"
 import { CUSTOM_SHAPE, SILHOUETTE_TEXT, shapeOf } from "../lib/geometry/shapes.js"
 import { hasMarks, loadFont, sheetFolder } from "../lib/font/font.js"
-import { bandEntry, layerSlice } from "../lib/font/strips.js"
-import { independentLayers } from "../lib/font/flatSheet.js"
 import { thumbnailItems } from "../lib/geometry/layout.js"
-import { blockTextureImage } from "../lib/minecraft/minecraft.js"
 import { setHeights, usePlacement, usePublished } from "./objectState.js"
-import { faceDepth } from "../lib/texture/material.js"
+import { faceOptions, lookOf } from "./objectLook.js"
+import { loadAssets, paintedLayer } from "./objectAssets.js"
+import { createPaintCache } from "./paintCache.js"
+import { regionDetails } from "./regionDetails.js"
+import { applyFontDefaults } from "./fontDefaults.js"
 import { idOf, lookKey, paintKey } from "../lib/texture/paint/keys.js"
 import { paintBase, paintSheet } from "../lib/texture/paint/sheet.js"
-import { stripDetail } from "../lib/texture/paint/strip.js"
 import { platform } from "../lib/core/platform.js"
 import { quietly } from "../lib/state/history.js"
 import { DEFAULT_CAP_HEIGHT, DEFAULT_HEIGHT, NO_ARC } from "../lib/geometry/rows.js"
-import { editorTitle, finalShadows, keepTexture, loadedFont, words } from "../lib/state/scene.js"
-import { defaultBorder, defaultDepth, defaultSpacing, fontFaces } from "../lib/settings/defaults.js"
-import { applyFontFaces, isSeparate, layerTarget } from "../lib/settings/layers.js"
-import { activeOverlays, defaultTexture, effectiveScale, isCustomFont, sameValue, separateForDefaults, setTexture, textureEntry } from "../lib/settings/settings.js"
+import { editorTitle, finalShadows, words } from "../lib/state/scene.js"
+import { defaultDepth } from "../lib/settings/defaults.js"
+import { isSeparate, layerTarget } from "../lib/settings/layers.js"
+import { effectiveScale, isCustomFont } from "../lib/settings/settings.js"
 
 const BASE = ["font", "source", "textureSource", "texture", "textureVariant", "tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "customTexture", "stops", "smooth", "gradientAngle", "arcGradient", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "tileablePerCharacter", "disableFontOverlay", "edgeBrightness"]
-
-const CUSTOM_SOURCES = { standard: "texture", tileable: "tile", strip: "strip" }
-const loadedFaces = new WeakMap()
 
 const REST = 0.5
 const SHARPEN_DELAY = 250
@@ -73,73 +67,12 @@ export default {
     let shown = null
     let paintedKey = null
     let builtFrom = null
-    const paintCache = new Map()
-    let paintUsed = new Set()
-    let paintKept = new Set()
-
-    function sourceOf(object) {
-      if (object.textureSource === "gradient") return "gradient"
-      if (object.textureSource === "tileable") return "tile"
-      if (object.textureSource === "custom") return object.customTexture ? CUSTOM_SOURCES[object.customTextureMode] : "texture"
-      if (list.value && textureEntry(list.value, object)?.type === "strip") return "strip"
-      return "texture"
-    }
-
-    function plainStops(stops) {
-      return stops.map(stop => ({ colour: stop.colour, position: stop.position }))
-    }
+    const { sweepPaints, remembered } = createPaintCache()
+    const sources = { font, list, sheet, tileables: toRef(props, "tileables") }
 
     const layerCount = computed(() => font.value?.layers?.length ?? 1)
     const targets = computed(() => Array.from({ length: layerCount.value }, (_, layer) => layerTarget(object, layer)))
-    const looks = computed(() => targets.value.map((target, layer) => lookOf(target, isSeparate(object, "overlays") ? layer : 0)))
-
-    function lookOf(object, layer = 0) {
-      return {
-        font: font.value?.id,
-        source: sourceOf(object),
-        textureSource: object.textureSource,
-        texture: object.texture,
-        textureVariant: object.textureVariant,
-        tileable: object.tileable,
-        tileableVariant: object.tileableVariant,
-        tileableSource: object.tileableSource,
-        minecraftTexture: object.minecraftTexture,
-        minecraftVersion: object.minecraftVersion,
-        customTexture: object.customTexture,
-        stops: plainStops(object.stops),
-        smooth: object.smooth,
-        gradientAngle: object.gradientAngle,
-        arcGradient: object.arcGradient,
-        overlays: activeOverlays(list.value, object, "overlays", layer).map(entry => ({ ...entry })),
-        edgeOverlays: activeOverlays(list.value, object, "edgeOverlays", layer).map(entry => ({ ...entry })),
-        tileableScale: object.tileableScale,
-        tileableXOffset: object.tileableXOffset,
-        tileableYOffset: object.tileableYOffset,
-        tileableRandomRotations: object.tileableRandomRotations,
-        tileableRandomMirroring: object.tileableRandomMirroring,
-        tileableTileEdges: object.tileableTileEdges,
-        tileablePerCharacter: object.tileablePerCharacter,
-        disableFontOverlay: object.disableFontOverlay,
-        hue: object.hue,
-        saturation: object.saturation,
-        brightness: object.brightness,
-        contrast: object.contrast,
-        colour: object.colour,
-        blend: object.blend,
-        colourOpacity: object.colourOpacity,
-        customBorder: object.customBorder,
-        borderColour: object.borderColour,
-        fade: object.fade,
-        outerFade: object.outerFade,
-        customEdge: object.customEdge,
-        edgeColour: object.edgeColour,
-        edgeBrightness: object.edgeBrightness,
-        edgeFill: object.edgeFill,
-        edgeStops: plainStops(object.edgeStops),
-        edgeSmooth: object.edgeSmooth,
-        wordedFaces: object.customEdge && object.edgeFill === "gradient" || object.customInternal && object.internalFill === "gradient" && object.internalDirection === "along" || object.customSide && object.sideFill === "gradient" && object.sideDirection === "along"
-      }
-    }
+    const looks = computed(() => targets.value.map((target, layer) => lookOf(target, isSeparate(object, "overlays") ? layer : 0, font.value, list.value)))
 
     function typeDepth(value) {
       return object.type === "bottom" && !font.value?.flat ? value + 30 : value
@@ -190,34 +123,6 @@ export default {
 
     const layerFaces = computed(() => targets.value.map(faceOptions))
 
-    function faceOptions(target) {
-      return {
-        internalFaces: target.internalFaces,
-        internalFade: target.fadeInternal ? target.internalFade / 100 : null,
-        customInternal: target.customInternal,
-        internalColour: target.internalColour,
-        internalBrightness: target.internalBrightness,
-        internalFill: target.internalFill,
-        internalStops: plainStops(target.internalStops),
-        internalSmooth: target.internalSmooth,
-        internalDirection: target.internalDirection,
-        sideFaces: target.sideFaces,
-        sideFade: target.fadeSides ? target.sideFade / 100 : null,
-        customSide: target.customSide,
-        sideColour: target.sideColour,
-        sideBrightness: target.sideBrightness,
-        sideFill: target.sideFill,
-        sideStops: plainStops(target.sideStops),
-        sideSmooth: target.sideSmooth,
-        sideDirection: target.sideDirection,
-        customEdge: target.customEdge,
-        edgeColour: target.edgeColour,
-        edgeFill: target.edgeFill,
-        edgeStops: plainStops(target.edgeStops),
-        edgeSmooth: target.edgeSmooth
-      }
-    }
-
     function size() {
       return { height: font.value?.height ?? DEFAULT_HEIGHT, capHeight: font.value?.capHeight ?? DEFAULT_CAP_HEIGHT }
     }
@@ -227,89 +132,13 @@ export default {
     const previewOutline = outlineOf(preview, buildOutline)
     const halo = haloOf(built, buildOutline)
 
-    function sheetImage(path) {
-      return image(`${font.value.sheetFolder}/${path}`)
-    }
-
-    async function loadAssets(value, band = 0, target = object) {
-      const assets = { shape: sheetImage("textures/flat.png"), border: list.value.textures.flat?.border ?? "#000000", densities: [], band: font.value.layers ? band : null, independent: independentLayers(font.value) }
-      if (value.source === "gradient") assets.densities.push(1)
-      if (value.source === "texture" && target.textureSource === "custom") {
-        assets.base = target.customTexture ? image(target.customTexture) : sheetImage("textures/flat.png")
-      } else if (value.source === "texture") {
-        const premade = textureEntry(list.value, target)
-        const id = premade ? target.textureVariant ?? target.texture : "flat"
-        assets.base = sheetImage(`textures/${id}.png`)
-        if (premade?.border) assets.border = premade.border
-        assets.densities.push((premade || list.value.textures.flat)?.density ?? 1)
-      }
-      if (value.source === "strip") {
-        const custom = target.textureSource === "custom"
-        const entry = custom ? {} : bandEntry(textureEntry(list.value, target), band)
-        const id = custom ? "custom" : target.textureVariant ?? target.texture
-        const loaded = await image(custom ? target.customTexture : `${entry.folder ?? font.value.sheetFolder}/textures/${id}.png`)
-        const layers = font.value.layers
-        const layout = stripLayout(entry, font.value, defaultDepth(font.value), band)
-        const { depth, top, bottom, rows, scale } = layout.shape
-        const density = loaded.height / layout.total
-        const strip = layout.stacked ? stripBand(loaded, layout.offset * density, rows * density) : loaded
-        const tiling = entry.tiling ?? "line"
-        if (tiling !== "line" && tiling !== "character") throw new Error(`${id} has tiling "${tiling}", strips tile by "line" or "character"`)
-        const slice = layers && (layout.stacked || entry.stripLayer != null) ? layerSlice(layers, band, independentLayers(font.value)) : null
-        assets.strip = { image: strip, density, snap: (entry.snap ?? 1) / density, top, bottom, depth, tiling, scale, slice, band: assets.band, independent: assets.independent }
-        if (entry.border) assets.border = entry.border
-        assets.densities.push(Math.max(1, density))
-      }
-      if (value.source === "tile") {
-        assets.tile = target.textureSource === "custom" ? image(target.customTexture) : target.tileableSource === "minecraft" ? blockTextureImage(target.minecraftVersion, target.minecraftTexture) : image(tileableUrl(props.tileables, target.tileable, target.tileableVariant))
-        assets.densities.push(1 / target.tileableScale)
-      }
-      if (value.source !== "texture" && font.value.overlay && (target.textureSource === "premade" || !target.disableFontOverlay)) {
-        assets.fontOverlay = sheetImage("overlay.png")
-        assets.densities.push(1)
-      }
-      assets.overlays = []
-      const files = []
-      for (const layer of value.overlays) {
-        if (layer.source === "file") {
-          if (!layer.file) continue
-          const file = image(layer.file)
-          assets.overlays.push({ layer: filePalette(layer.file).then(({ anchors }) => ({ ...layer, palette: anchors })), source: file })
-          files.push(file)
-          continue
-        }
-        const entry = list.value.overlays[layer.overlay]
-        if (!entry || entry.layers && assets.band !== null && !entry.layers.includes(assets.band)) continue
-        if (entry.generated) {
-          assets.overlays.push({ layer: { ...layer, palette: definitionPalette(entry) }, source: { generated: entry.generated } })
-          assets.densities.push(1)
-        } else {
-          assets.overlays.push({ layer: { ...layer, palette: definitionPalette(entry) }, source: sheetImage(`overlays/${layer.overlay}.png`) })
-          assets.densities.push(entry.density ?? 1)
-        }
-      }
-      const keys = ["shape", "base", "tile", "fontOverlay"].filter(key => key in assets)
-      const [loaded, overlays, sizes] = await Promise.all([Promise.all(keys.map(key => assets[key])), Promise.all(assets.overlays.map(async ({ layer, source }) => ({ layer: await layer, source: await source }))), Promise.all(files)])
-      const fromFont = new Set(["shape", "fontOverlay"].concat(value.source === "texture" ? ["base"] : []))
-      for (const [index, key] of keys.entries()) assets[key] = fromFont.has(key) ? bandOf(loaded[index], band, font.value) : loaded[index]
-      assets.overlays = overlays.map(({ layer, source }) => source.generated ? { layer, source } : { layer, source: bandOf(source, band, font.value) })
-      for (const file of sizes) assets.densities.push(bandOf(file, band, font.value).width / sheet.value.width)
-      if (value.source === "texture" && target.textureSource === "custom") assets.densities.push(assets.base.width / sheet.value.width)
-      assets.edgeOverlays = value.edgeOverlays.flatMap(layer => list.value.edgeOverlays[layer.overlay] ? [{ layer, generated: list.value.edgeOverlays[layer.overlay].generated }] : [])
-      return assets
-    }
-
-    function paintedLayer(value, assets) {
-      return { edge: 1 / Math.min(...assets.densities, 4), edgeOnly: value.source === "tile", look: value, assets }
-    }
-
     async function paint() {
       const values = looks.value
       const key = lookKey(values)
       if (key === paintedKey) return
       const token = ++paintRequest
       try {
-        const loaded = await Promise.all(values.map((value, layer) => loadAssets(value, layer, targets.value[layer])))
+        const loaded = await Promise.all(values.map((value, layer) => loadAssets(sources, value, layer, targets.value[layer])))
         if (token !== paintRequest) return
         const [assets] = loaded
         shaped.value = assets.base && !font.value.mesh && !font.value.layers ? shapeFont(font.value, sheet.value, assets.base) : font.value
@@ -348,20 +177,6 @@ export default {
       return line
     }
 
-    function sweepPaints() {
-      for (const key of paintCache.keys()) if (!paintUsed.has(key) && !paintKept.has(key)) paintCache.delete(key)
-      paintKept = paintUsed
-      paintUsed = new Set()
-    }
-
-    function remembered(key, make, sharp) {
-      paintUsed.add(key)
-      if (paintCache.has(key)) return paintCache.get(key)
-      const made = make()
-      if (!sharp) paintCache.set(key, made)
-      return made
-    }
-
     function painter(source, sharp = false) {
       const final = finalShadowed.value
       const layers = painted.value.layers ?? [painted.value]
@@ -385,30 +200,6 @@ export default {
 
     function layerOptions() {
       return painted.value.layers ? layerFaces.value.map(options => ({ options })) : null
-    }
-
-    function smoothDetail(base, smooth) {
-      return smooth ? base * Math.ceil(MAX_DETAIL / base) : base
-    }
-
-    function regionDetails(options) {
-      const depth = faceDepth(options.depth)
-      return (painted.value.layers ?? [painted.value]).map(({ look, assets }, layer) => {
-        const faces = painted.value.layers ? faceOptions(targets.value[layer]) : options
-        const smooth = assets.overlays.filter(({ layer, source }) => (SMOOTH_KINDS.has(source.generated) || FADE_KINDS.has(source.generated)) && layer.opacity > 0)
-        const edgeFaded = assets.edgeOverlays.some(({ layer, generated }) => FADE_KINDS.has(generated) && layer.opacity > 0)
-        const strip = look.source === "strip" ? stripDetail(assets.strip, depth) : 1
-        const base = Number.isFinite(strip) ? strip : MAX_DETAIL
-        const edgeGradient = look.customEdge && look.edgeFill === "gradient"
-        const sideWrapped = smooth.some(({ layer }) => layer.sideWrap)
-        const cracked = smooth.some(({ source }) => WRAPPED_KINDS.has(source.generated))
-        return {
-          front: smoothDetail(1, look.source === "gradient" || smooth.length > 0),
-          edge: { along: smoothDetail(base, look.source === "gradient" || edgeGradient || cracked || smooth.some(({ layer }) => layer.edgeWrap)), deep: smoothDetail(base, cracked || edgeFaded) },
-          internal: { along: smoothDetail(1, faces.internalFaces && (sideWrapped || (faces.customInternal ? faces.internalFill === "gradient" && faces.internalDirection !== "up" : edgeGradient))), deep: 1 },
-          side: { along: smoothDetail(1, faces.sideFaces && (sideWrapped || faces.customSide && faces.sideFill === "gradient" && faces.sideDirection !== "along")), deep: 1 }
-        }
-      })
     }
 
     function shadowed() {
@@ -485,7 +276,7 @@ export default {
           sharpen(null)
           return
         }
-        built.value = buildText(source, { ...options, lineDepth, placed: laid.placed, line: laid.line, ends: laid.ends, sheet: laid.sheet, paint: painter(source), layers: layerOptions(), details: regionDetails(options), redraw: !finalShadowed.value && shadowed(), textureLimit: textureLimit() })
+        built.value = buildText(source, { ...options, lineDepth, placed: laid.placed, line: laid.line, ends: laid.ends, sheet: laid.sheet, paint: painter(source), layers: layerOptions(), details: regionDetails(painted.value, targets.value, options), redraw: !finalShadowed.value && shadowed(), textureLimit: textureLimit() })
         reach = twistedReach(built.value, laid.reach)
         const thumbnail = view.previews === false ? [] : thumbnailItems(source, laid.placed)
         preview.value = thumbnail.length ? previewFor(source, options, thumbnail, laid.sheet) : null
@@ -534,27 +325,7 @@ export default {
       const loaded = await loadFont(data, fonts)
       const [layout, textures] = await Promise.all([sheetFor(loaded), fontTextures(loaded.sheetFolder, loaded.strips)])
       if (token !== fontRequest) return
-      if (!keepTexture.has(object) && loadedFont.get(object) !== loaded.id) {
-        quietly(() => {
-          const values = { texture: defaultTexture(textures, object.type), textureVariant: null }
-          if (object.textureSource === "premade") setTexture(object, values, { before: list.value, after: textures })
-          else Object.assign(object, values)
-          object.overlays = object.overlays.filter(layer => layer.source === "file" || textures.overlays[layer.overlay])
-          object.spacing = defaultSpacing(object.type, loaded)
-          object.depth = defaultDepth(loaded)
-          object.border = defaultBorder(object.type, loaded)
-          object.wordDepth = null
-          object.wordBorder = null
-          const faces = fontFaces(object.type, loaded)
-          if (!sameValue(faces, loadedFaces.get(object) ?? fontFaces(object.type, null))) applyFontFaces(object, faces)
-        })
-      } else if (object.texture === null) quietly(() => (object.texture = defaultTexture(textures, object.type)))
-      if (object.textureVariant && !textures.textures[object.texture]?.variants?.[object.textureVariant]) quietly(() => (object.textureVariant = null))
-      if (loaded.mesh && object.textureSource === "custom") quietly(() => setTexture(object, { textureSource: "premade" }))
-      quietly(() => separateForDefaults(object, textures))
-      keepTexture.delete(object)
-      loadedFont.set(object, loaded.id)
-      loadedFaces.set(object, fontFaces(object.type, loaded))
+      applyFontDefaults(object, loaded, textures, list.value)
       font.value = loaded
       sheet.value = layout
       list.value = textures
