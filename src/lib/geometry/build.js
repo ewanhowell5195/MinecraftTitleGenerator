@@ -70,7 +70,7 @@ function stripFaces(body, glyph, original, capHeight) {
   const tops = levels.filter(({ face }) => face.kind === "top").map(({ level }) => level)
   const bottoms = levels.filter(({ face }) => face.kind === "bottom").map(({ level }) => level)
   const { topline, baseline } = stripLimits(tops, bottoms, capHeight)
-  for (const { face, level } of levels) face.internal = face.kind === "top" ? level < topline : level > baseline
+  for (const { face, level } of levels) face.internal &&= face.kind === "top" ? level < topline : level > baseline
 }
 
 function sliceFaces(glyph, x, depth, layers, independent) {

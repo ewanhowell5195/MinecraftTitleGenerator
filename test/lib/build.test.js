@@ -496,7 +496,7 @@ describe("mesh walls", () => {
 
   function meshed(arc) {
     const cell = glyph("c", 4, 10)
-    const faces = [wall([0, 10], [2, 10], false), wall([0, 5.5], [1, 5], true)]
+    const faces = [wall([0, 10], [2, 10], false), wall([0, 5.5], [1, 5], true), wall([2, 10], [4, 9.5], false), wall([3, 9.5], [4, 8.5], false)]
     const font = { capHeight: 10, glyphs: { c: cell }, mesh: { glyphs: { c: {} }, tools: { meshFaces: () => ({ faces, rings: [[[0, 0], [0, 10], [4, 10], [4, 0]]] }) } } }
     text([place(arc ? { ...cell, arc } : cell, 0)], {}, font)
     return faces.map(face => face.internal)
@@ -504,6 +504,10 @@ describe("mesh walls", () => {
 
   test("a slanted wall reads its level the same through an arc that moves nothing", () => {
     assert.deepEqual(meshed({ map: Array.from({ length: 10 }, (_, row) => row) }), meshed(null))
+  })
+
+  test("a wall the mesh keeps on its curve near the top stays outside, and one deep below goes inside", () => {
+    assert.deepEqual(meshed(null), [false, true, false, false])
   })
 })
 
