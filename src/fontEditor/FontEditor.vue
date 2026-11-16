@@ -9,6 +9,8 @@
   import MenuStrip from "../components/MenuStrip.vue"
   import RenderDialog from "../components/RenderDialog.vue"
   import Spinner from "../components/Spinner.vue"
+  import SiteFooter from "../site/SiteFooter.vue"
+  import SiteHeader from "../site/SiteHeader.vue"
   import TopBar from "../components/TopBar.vue"
   import CharacterList from "./CharacterList.vue"
   import CharacterPanel from "./CharacterPanel.vue"
@@ -98,7 +100,11 @@
 
 <template>
   <div class="editor-page">
-    <TopBar class="top">
+    <template v-if="view !== 'editor'">
+      <SiteHeader />
+      <div class="site-gap"></div>
+    </template>
+    <TopBar v-else class="top">
       <template v-if="font && view === 'editor'">
         <MenuStrip :menus="menus" />
         <NavTabs class="main-tabs divided" v-model="tab" :tabs="TABS" />
@@ -115,15 +121,18 @@
     <StartScreen v-if="view === 'start'" />
 
     <div v-else-if="view === 'import'" class="import-page">
-      <ImportScreen v-if="importing?.suggested" :key="importing.name" :picked="importing" />
-      <div v-else-if="importing" class="import-waiting">
-        <h1>Import {{ importing.name }}</h1>
-        <Notice v-if="importing.error" class="error">{{ importing.error }}</Notice>
-        <div v-else class="reading">
-          <Spinner />
-          <p class="hint">Reading the font...</p>
+      <div class="import-content">
+        <ImportScreen v-if="importing?.suggested" :key="importing.name" :picked="importing" />
+        <div v-else-if="importing" class="import-waiting">
+          <h1>Import {{ importing.name }}</h1>
+          <Notice v-if="importing.error" class="error">{{ importing.error }}</Notice>
+          <div v-else class="reading">
+            <Spinner />
+            <p class="hint">Reading the font...</p>
+          </div>
         </div>
       </div>
+      <SiteFooter />
     </div>
 
     <template v-else-if="!font"></template>
@@ -182,9 +191,21 @@
     flex: none;
   }
 
+  .site-gap {
+    flex: none;
+    height: 64px;
+  }
+
   .import-page {
     flex: 1;
+    display: flex;
+    flex-direction: column;
     overflow-y: auto;
+  }
+
+  .import-content {
+    flex: none;
+    min-height: 100%;
     padding: 28px 16px 40px;
   }
 

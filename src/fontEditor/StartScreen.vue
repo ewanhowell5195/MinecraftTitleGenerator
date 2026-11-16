@@ -162,7 +162,8 @@
   }
 
   .content {
-    flex: 1 0 auto;
+    flex: none;
+    min-height: 100%;
     padding: 28px 16px 40px;
   }
 
