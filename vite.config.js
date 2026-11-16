@@ -13,7 +13,7 @@ const LIVE = "https://mctitlegenerator.com"
 const CREDITS = "virtual:credits"
 const PEOPLE = "virtual:people"
 const STYLE_SCOPES = {
-  "src/style.css": "tool",
+  "src/styles/tool.css": "tool",
   "src/fontEditor/editor.css": "editor",
   "src/submissions/submissions.css": "submissions",
   "src/site/home/home.css": "site",
