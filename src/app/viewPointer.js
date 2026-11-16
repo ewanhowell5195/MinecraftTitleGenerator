@@ -24,7 +24,7 @@ export function useViewPointer(rig, { orbit, orbiting, navigable, isFramed, zoom
     if (!navigable.value || !isFramed()) return
     event.preventDefault()
     const lines = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? LINE_HEIGHT : 1
-    zoomBy(Math.exp(-event.deltaY * lines * (event.ctrlKey ? PINCH_WHEEL_ZOOM : WHEEL_ZOOM)))
+    zoomBy(Math.exp(-event.deltaY * lines * (event.ctrlKey ? PINCH_WHEEL_ZOOM : WHEEL_ZOOM)), clipPoint(event))
   }
 
   function grabView(event) {
@@ -47,7 +47,7 @@ export function useViewPointer(rig, { orbit, orbiting, navigable, isFramed, zoom
       else panBy(point.x - last.x, point.y - last.y)
       return
     }
-    zoomBy(Math.hypot(point.x - other.x, point.y - other.y) / Math.hypot(last.x - other.x, last.y - other.y))
+    zoomBy(Math.hypot(point.x - other.x, point.y - other.y) / Math.hypot(last.x - other.x, last.y - other.y), { x: (last.x + other.x) / 2, y: (last.y + other.y) / 2 })
     panBy((point.x - last.x) / 2, (point.y - last.y) / 2)
   }
 

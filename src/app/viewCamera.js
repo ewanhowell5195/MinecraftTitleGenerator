@@ -86,9 +86,9 @@ export function useViewCamera(rig, { props, entries, invalidate }) {
     invalidate()
   }
 
-  function zoomBy(factor) {
+  function zoomBy(factor, { x, y }) {
     if (orbiting.value) orbit.value = orbitDollied(orbit.value, factor)
-    else pan.value = zoomedAt(pan.value, factor, 0, 0, panView())
+    else pan.value = zoomedAt(pan.value, factor, x, y, panView())
   }
 
   function panBy(dx, dy) {
