@@ -23,12 +23,6 @@
     vertical-align: bottom;
   }
 
-  .ellipsis {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
-
   .user-name > :deep(svg) {
     flex: none;
     translate: 0 0.1em;

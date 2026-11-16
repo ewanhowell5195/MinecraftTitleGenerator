@@ -102,7 +102,7 @@
     <div v-if="font" class="saved">
       <div class="saved-text">
         <span class="saved-label">Your saved font</span>
-        <strong class="saved-name">{{ font.name }}</strong>
+        <strong class="ellipsis">{{ font.name }}</strong>
       </div>
       <Button primary @click="navigate(EDITOR_PATH)"><template #icon><Icon name="open" :size="16" /></template>Open font</Button>
     </div>
@@ -173,12 +173,6 @@
   .saved-label {
     font-size: var(--font-sm);
     color: var(--muted);
-  }
-
-  .saved-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   .intro {

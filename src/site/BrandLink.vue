@@ -7,7 +7,7 @@
 </script>
 
 <template>
-  <component :is="to ? RouterLink : 'a'" class="brand" v-bind="to ? { to } : { href: '/' }" aria-label="Minecraft Title Generator"><img src="/favicon.svg" alt="" width="24" height="24"><span>Minecraft Title Generator</span></component>
+  <component :is="to ? RouterLink : 'a'" class="brand" v-bind="to ? { to } : { href: '/' }" aria-label="Minecraft Title Generator"><img src="/favicon.svg" alt="" width="24" height="24"><span class="ellipsis">Minecraft Title Generator</span></component>
 </template>
 
 <style scoped>
@@ -27,12 +27,6 @@
   .brand img {
     flex: none;
     translate: 0 7%;
-  }
-
-  .brand span {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
   }
 
   @media (max-width: 800px) {
