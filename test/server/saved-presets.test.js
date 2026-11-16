@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { code, context, db, freshServer, list, restoreFetch, rowsEverywhere, shareAs, signIn, usageOf, vote, voteAll, withCookie } from "../helpers/presets.js"
+import { batchesTogether, code, context, db, freshServer, list, restoreFetch, rowsEverywhere, shareAs, signIn, usageOf, vote, voteAll, withCookie } from "../helpers/presets.js"
 
 const { LIMITS } = await import("../../src/lib/core/limits.js")
 const { getPreset, replacePreset, submissionUsage, unsharePreset } = await import("../../src/server/presets.js")
@@ -137,6 +137,17 @@ describe("saved presets", () => {
     const response = await replacePreset(withCookie(`/api/presets/${preset.id}`, cookie, { method: "PUT", body: { code: copy.code, name: "Merged" }, params: { id: String(preset.id) } }))
     assert.equal(response.status, 200)
     assert.deepEqual(await savedList(cookie), [{ name: "Merged", code: copy.code, shared: preset.id }])
+  })
+
+  test("two shares replaced with the same title at once only take it once", async () => {
+    const cookie = await signIn()
+    const shares = [(await shareAs(cookie, "first title")).preset, (await shareAs(cookie, "second title")).preset]
+    const wanted = code([{ text: "same title" }])
+    batchesTogether()
+    const responses = await Promise.all(shares.map(preset => replacePreset(withCookie(`/api/presets/${preset.id}`, cookie, { method: "PUT", body: { code: wanted }, params: { id: String(preset.id) } }))))
+    assert.deepEqual(responses.map(response => response.status).sort(), [200, 409])
+    const winner = shares[responses.findIndex(response => response.status === 200)]
+    assert.equal((await responses.find(response => response.status === 409).json()).id, winner.id)
   })
 
   test("a deleted hidden preset's id is never used again", async () => {

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, mock, test } from "node:test"
 import assert from "node:assert/strict"
-import { code, context, db, download, env, freshServer, list, post, share, usageOf, vote, voteAll } from "../helpers/presets.js"
+import { batchesTogether, code, context, db, download, env, freshServer, list, post, share, usageOf, vote, voteAll } from "../helpers/presets.js"
 
 const { LIMITS } = await import("../../src/lib/core/limits.js")
 const { checkTitle, getPreset, listPresets, submitPreset } = await import("../../src/server/presets.js")
@@ -145,6 +145,15 @@ describe("submitting", () => {
   test("the name defaults to the text", async () => {
     assert.equal((await post({ code: code([{ text: "STONE wall" }]) })).preset.name, "Stone Wall")
     assert.equal((await post({ code: code([{ text: "dirt" }]), name: "   " })).preset.name, "Dirt")
+  })
+
+  test("the same title shared twice at once is refused once, and the refusal says which preset", async () => {
+    batchesTogether()
+    const sent = await Promise.all([post({ code: code([{ text: "stone" }]) }), post({ code: code([{ text: "stone" }]), name: "other" }, "2.2.2.2")])
+    assert.deepEqual(sent.map(item => item.status).sort(), [201, 409])
+    const made = sent.find(item => item.status === 201)
+    assert.equal(sent.find(item => item.status === 409).id, made.preset.id)
+    assert.equal((await usageOf("2.2.2.2")).used + (await usageOf()).used, 1)
   })
 
   test("refuses a duplicate and says which preset it is", async () => {

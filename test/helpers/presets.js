@@ -18,6 +18,21 @@ export function freshServer() {
   env = { DB: d1(db), ASSETS: { fetch: url => assets(String(url)) }, IP_SALT: "salt", SESSION_SECRET: "session-secret", DISCORD_CLIENT_ID: "discord-id", DISCORD_CLIENT_SECRET: "discord-secret", GITHUB_CLIENT_ID: "github-id", GITHUB_CLIENT_SECRET: "github-secret" }
 }
 
+export function batchesTogether() {
+  const batch = env.DB.batch
+  let release
+  const both = new Promise(resolve => (release = resolve))
+  let started = 0
+  env.DB.batch = async statements => {
+    if (++started === 2) {
+      release()
+      env.DB.batch = batch
+    }
+    await both
+    return batch(statements)
+  }
+}
+
 export function restoreFetch() {
   globalThis.fetch = realFetch
 }

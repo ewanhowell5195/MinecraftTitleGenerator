@@ -200,8 +200,17 @@ async function checkedSubmission(context, body) {
   checkWords("title", facts.all)
   checkWords("name", name)
   const fingerprint = await titleFingerprint(body.code)
-  const existing = await env.DB.prepare("SELECT id FROM presets WHERE fingerprint = ? AND shared = 1").bind(fingerprint).first()
-  return { facts, name, fingerprint, existing }
+  return { facts, name, fingerprint, existing: await sharedWith(env, fingerprint) }
+}
+
+function sharedWith(env, fingerprint) {
+  return env.DB.prepare("SELECT id FROM presets WHERE fingerprint = ? AND shared = 1").bind(fingerprint).first()
+}
+
+async function sharedMeanwhile(env, fingerprint, id, err) {
+  const existing = await sharedWith(env, fingerprint)
+  if (!existing || existing.id === id) throw err
+  return existing
 }
 
 function alreadyShared(existing) {
@@ -230,10 +239,11 @@ export const submitPreset = guarded(async context => {
   const ip = await hashedIp(context)
   const slot = await takeSlot(env, await submissionCounter(env, user, ip), await hasUnlimitedShares(env, user) ? null : LIMITS.perDay)
   if (!slot) throw new Refusal(429, `You can share up to ${LIMITS.perDay} titles a day. Try again tomorrow.`)
-  const { hidden, token, preset } = await savedShare(context, body, user, checked).catch(async err => {
+  const { hidden, token, preset, existing } = await savedShare(context, body, user, checked).catch(async err => {
     await returnSlot(env, slot)
-    throw err
+    return { existing: await sharedMeanwhile(env, checked.fingerprint, null, err) }
   })
+  if (existing) return alreadyShared(existing)
   await forgetCached(request, ...(hidden ? [hidden.id] : []))
   return reply(hidden ? 200 : 201, { preset: rated(preset), onAccount: !!user, ...(token && { token }) })
 })
@@ -288,7 +298,12 @@ export const replacePreset = guarded(async context => {
   const { facts, name, fingerprint, existing } = await checkedSubmission(context, body)
   if (existing && existing.id !== id) return alreadyShared(existing)
   const before = (user ? forgetHiddenCopy(env, user, body.code, id) : []).concat(existing ? [] : scoreResets(env, id))
-  const results = await env.DB.batch(before.concat(env.DB.prepare(`UPDATE presets SET code = ?, fingerprint = ?, name = ?, text = ?${existing ? "" : SCORES_RESET} WHERE id = ? RETURNING ${COLUMNS}`).bind(body.code, fingerprint, name, facts.text, id)))
+  let results
+  try {
+    results = await env.DB.batch(before.concat(env.DB.prepare(`UPDATE presets SET code = ?, fingerprint = ?, name = ?, text = ?${existing ? "" : SCORES_RESET} WHERE id = ? RETURNING ${COLUMNS}`).bind(body.code, fingerprint, name, facts.text, id)))
+  } catch (err) {
+    return alreadyShared(await sharedMeanwhile(env, fingerprint, id, err))
+  }
   await forgetCached(request, id)
   return reply(200, { preset: rated(results.at(-1).results[0]) })
 })
