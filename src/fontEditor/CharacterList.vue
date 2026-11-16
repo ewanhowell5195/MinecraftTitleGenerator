@@ -199,6 +199,9 @@
   }
 
   .add {
+    align-self: stretch;
+    width: 100%;
+    aspect-ratio: 1;
     padding: 0;
     color: var(--muted);
     background: transparent;
