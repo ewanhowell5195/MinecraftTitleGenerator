@@ -1,6 +1,6 @@
 import { PANELS } from "./defaults.js"
 
-export const LAYER_GROUPS = {
+const LAYER_GROUPS = {
   texture: Object.keys(PANELS.texture()),
   overlays: Object.keys(PANELS.overlays()).concat(Object.keys(PANELS.edgeOverlays())),
   colour: Object.keys(PANELS.colour()).concat(Object.keys(PANELS.outline()), Object.keys(PANELS.faces()), Object.keys(PANELS.inner()), Object.keys(PANELS.sides()))

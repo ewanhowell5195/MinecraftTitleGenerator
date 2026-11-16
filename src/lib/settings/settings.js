@@ -113,7 +113,7 @@ export function textureEntry(list, object) {
 
 export const FACE_PANELS = ["faces", "inner", "sides"]
 
-export const TEXTURE_DEFAULTS = LAYERS.concat(FACE_PANELS)
+const TEXTURE_DEFAULTS = LAYERS.concat(FACE_PANELS)
 
 export function perLayerDefault(value, key) {
   if (!Array.isArray(value)) return false

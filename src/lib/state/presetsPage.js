@@ -3,13 +3,12 @@ import { navigate, onNavigated } from "./navigation.js"
 import { TITLE_PARAM } from "./scene.js"
 
 export const PRESETS_PATH = "/app/presets"
-const PATH = PRESETS_PATH
 const EDITOR = "/app/"
 
 const FROM_EDITOR = "minecraft-title-presets-from-editor"
 const SORT_PARAM = "sort"
 const SEARCH_PARAM = "search"
-export const PRESET_SORTS = ["week", "popular", "top", "new", "needs"]
+const PRESET_SORTS = ["week", "popular", "top", "new", "needs"]
 const DEFAULT_SORT = PRESET_SORTS[0]
 
 function rememberedFromEditor() {
@@ -40,7 +39,7 @@ export function readPresetPath(path) {
 }
 
 export function presetLink(id) {
-  return `${location.origin}${PATH}/${id}`
+  return `${location.origin}${PRESETS_PATH}/${id}`
 }
 
 function syncTo(url) {
@@ -97,7 +96,7 @@ export function setPresetSearch(search) {
 export function openPresetsPage() {
   returnTo = `${location.pathname}${location.search}${location.hash}`
   setFromEditor(true)
-  go(PATH, false)
+  go(PRESETS_PATH, false)
 }
 
 function showAddress(path, replace = presetsPage.id !== null || presetsPage.code !== null) {
@@ -105,11 +104,11 @@ function showAddress(path, replace = presetsPage.id !== null || presetsPage.code
 }
 
 export function showPreset(id, { replace } = {}) {
-  showAddress(id === null ? PATH : `${PATH}/${id}`, replace)
+  showAddress(id === null ? PRESETS_PATH : `${PRESETS_PATH}/${id}`, replace)
 }
 
 export function showOwnPreset(code) {
-  showAddress(`${PATH}?${TITLE_PARAM}=${code}`)
+  showAddress(`${PRESETS_PATH}?${TITLE_PARAM}=${code}`)
 }
 
 export function openLinkInEditor(code) {
