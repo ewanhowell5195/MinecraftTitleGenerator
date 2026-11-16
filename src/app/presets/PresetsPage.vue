@@ -126,6 +126,7 @@
     if (preset.vote === value) return
     try {
       Object.assign(preset, await voteOn(preset.id, value))
+      if (sort.value === "needs") results.value = results.value.filter(item => item.id !== preset.id)
     } catch (err) {
       showNotice(err.message)
     }
