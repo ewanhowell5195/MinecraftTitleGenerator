@@ -13,7 +13,5 @@ import "./home/home.css"
 import "./legal/legal.css"
 import "./credits/credits.css"
 
-indexedDB.deleteDatabase("minecraft-title-pictures")
-
 followLinks(document)
 createApp(Root).use(router).directive("tooltip", vTooltip).mount("#app")

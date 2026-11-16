@@ -799,24 +799,62 @@ describe("importing a font file", () => {
     assert.deepEqual(TARGET_PIXEL_HEIGHT, [heights[Math.floor(heights.length * 0.1)], heights[Math.floor(heights.length * 0.9)]])
   })
 
-  test("real fonts suggest the size they're published at, and smooth ones enough rows for their thin strokes", { skip: !["MINECRAFTTEN.TTF", "MINECRAFTFIVE-BOLD.TTF", "RasleyHeights_PERSONAL_USE_ONLY.otf"].every(name => fs.existsSync(`C:/Users/ewanh/Downloads/${name}`)) }, async () => {
-    async function suggested(name) {
-      const data = fs.readFileSync(`C:/Users/ewanh/Downloads/${name}`)
-      return suggestedSize(await parseFontFile(data.buffer.slice(data.byteOffset, data.byteOffset + data.length)))
-    }
-    assert.deepEqual(await suggested("MINECRAFTTEN.TTF"), { rows: 10, square: 4, pixel: true })
-    assert.deepEqual(await suggested("MINECRAFTFIVE-BOLD.TTF"), { rows: 16, square: 2, pixel: true })
-    const smooth = await suggested("RasleyHeights_PERSONAL_USE_ONLY.otf")
+  function pixelArtFont(letters, { rows, nudge = 0 }) {
+    const unit = 700 / rows
+    let turn = 0
+    const at = value => value * unit + (nudge ? (turn++ % 3 - 1) * nudge : 0)
+    const notdef = new opentype.Glyph({ name: ".notdef", unicode: 0, advanceWidth: 500, path: new opentype.Path() })
+    const glyphs = Object.entries(letters).map(([char, art]) => {
+      const path = new opentype.Path()
+      art.forEach((line, index) => Array.from(line).forEach((cell, x) => {
+        if (cell !== "#") return
+        const y = art.length - 1 - index
+        path.moveTo(at(x), at(y))
+        path.lineTo(at(x + 1), at(y))
+        path.lineTo(at(x + 1), at(y + 1))
+        path.lineTo(at(x), at(y + 1))
+        path.close()
+      }))
+      return new opentype.Glyph({ name: char, unicode: char.codePointAt(0), advanceWidth: (art[0].length + 1) * unit, path })
+    })
+    return opentype.parse(new opentype.Font({ familyName: "Pixels", styleName: "Regular", unitsPerEm: 1000, ascender: 800, descender: -200, glyphs: [notdef].concat(glyphs) }).toArrayBuffer())
+  }
+
+  function blockLetters(rows) {
+    const bar = "#".repeat(6)
+    const sides = `##${".".repeat(2)}##`
+    const tall = Array.from({ length: rows }, (_, row) => row === Math.floor(rows / 2) ? bar : sides)
+    const short = Array.from({ length: rows }, (_, row) => row < rows / 2 ? "......" : row === Math.ceil(rows / 2) ? bar : sides)
+    return { H: tall, M: tall.map((line, row) => row === 1 ? "##..##".replace("..", "##") : line), m: short, n: short }
+  }
+
+  test("a pixel art font suggests its rows at the square size nearest 40 pixels, even with loosely rounded points", () => {
+    assert.deepEqual(suggestedSize(pixelArtFont(blockLetters(10), { rows: 10 })), { rows: 10, square: 4, pixel: true })
+    assert.deepEqual(suggestedSize(pixelArtFont(blockLetters(16), { rows: 16, nudge: 2 })), { rows: 16, square: 2, pixel: true })
+  })
+
+  test("a smooth font suggests enough rows for its thin strokes", () => {
+    const notdef = new opentype.Glyph({ name: ".notdef", unicode: 0, advanceWidth: 500, path: new opentype.Path() })
+    const thin = Array.from("HIL").map(char => {
+      const path = new opentype.Path()
+      path.moveTo(0, 0)
+      path.lineTo(40, 0)
+      path.quadraticCurveTo(60, 350, 40, 700)
+      path.lineTo(0, 700)
+      path.quadraticCurveTo(20, 350, 0, 0)
+      path.close()
+      return new opentype.Glyph({ name: char, unicode: char.codePointAt(0), advanceWidth: 200, path })
+    })
+    const smooth = suggestedSize(opentype.parse(new opentype.Font({ familyName: "Thin", styleName: "Regular", unitsPerEm: 1000, ascender: 800, descender: -200, glyphs: [notdef].concat(thin) }).toArrayBuffer()))
     assert.ok(!smooth.pixel && smooth.rows > 20)
   })
 
-  test("a real font file lands on its pixel grid with stretch marks", { skip: !fs.existsSync("C:/Users/ewanh/Downloads/MINECRAFTTEN.TTF") }, async () => {
-    const data = fs.readFileSync("C:/Users/ewanh/Downloads/MINECRAFTTEN.TTF")
-    const font = fontFromOutlines(await parseFontFile(data.buffer.slice(data.byteOffset, data.byteOffset + data.length)), { height: 40 })
+  test("a pixel art font lands on its own grid with stretch marks", () => {
+    const font = fontFromOutlines(pixelArtFont(blockLetters(10), { rows: 10 }), { height: 40 })
     assert.equal(font.height, 40)
     assert.equal(font.grid, 4)
     assert.ok(!isBlank(glyphOf(font, "m")))
-    assert.ok(glyphOf(font, "m").stretch.length > 0)
+    assert.ok(glyphOf(font, "H").stretch.length > 0)
   })
 
   test("the cap height comes from the H, not a font's own cap height setting", async () => {
