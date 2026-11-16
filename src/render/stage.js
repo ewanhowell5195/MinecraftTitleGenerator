@@ -83,6 +83,7 @@ function cullUnseen(target, { positions, uvs, facing }) {
       mapped.set(uvs.subarray(start * 2, (start + count) * 2), at * 2)
       at += count
     }
+    target.geometry.dispose()
     target.geometry.setAttribute("position", new THREE.BufferAttribute(visible, 3))
     target.geometry.setAttribute("uv", new THREE.BufferAttribute(mapped, 2))
   }
