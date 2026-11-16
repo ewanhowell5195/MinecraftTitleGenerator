@@ -28,6 +28,7 @@
     gap: 12px;
     min-height: var(--control);
     cursor: pointer;
+    user-select: none;
   }
 
   .text {

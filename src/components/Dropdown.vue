@@ -162,6 +162,7 @@
     padding: 0 8px;
     font-size: var(--font-base);
     cursor: pointer;
+    user-select: none;
   }
 
   li.active {

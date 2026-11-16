@@ -137,14 +137,11 @@ input[type="file"] {
   display: none;
 }
 
-.toggle-switch,
-.toggle,
 .card,
 .layer,
 .head,
 .grip,
 .track,
-.dropdown-menu li,
 .label {
   user-select: none;
 }
@@ -161,8 +158,7 @@ input[type="file"] {
   color: var(--text);
 }
 
-.card:focus-visible,
-.toggle-switch:has(input:focus-visible) span {
+.card:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -204,52 +200,6 @@ input[type="file"] {
 .input-row > span {
   display: flex;
   align-items: center;
-}
-
-.toggle-switch {
-  position: relative;
-  flex: none;
-  display: inline-block;
-  width: 40px;
-  height: 24px;
-  cursor: pointer;
-}
-
-.toggle-switch input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.toggle-switch span {
-  position: absolute;
-  inset: 0;
-  background: var(--line-strong);
-  transition: background var(--duration);
-}
-
-.toggle-switch span::after {
-  content: "";
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 18px;
-  height: 18px;
-  background: var(--knob);
-  transition: transform var(--duration);
-}
-
-.toggle-switch input:checked + span {
-  background: var(--accent);
-}
-
-.toggle-switch input:checked + span::after {
-  transform: translateX(16px);
-}
-
-.toggle-switch:has(input:disabled) {
-  opacity: 0.35;
-  cursor: not-allowed;
 }
 
 .tab-bar .tab-bar-button {
@@ -419,7 +369,6 @@ input[type="file"] {
   font-weight: 600;
   color: var(--text);
 }
-
 
 .dialog-actions {
   display: flex;
