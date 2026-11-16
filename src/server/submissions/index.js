@@ -14,6 +14,7 @@ import { CLOSED, MISSING, OWNER, SHOWN, SIGN_IN, claim, findSubmission, ownSubmi
 const LASTING_SECONDS = 31536000
 const NEXT_ID = "MAX(COALESCE((SELECT MAX(id) FROM submissions), 0), COALESCE((SELECT MAX(id) FROM deleted_submissions), 0)) + 1"
 const EDITABLE = ["kind", "target", "name", "credit", "notes", "details", "file"]
+const CHANGED = "This submission was changed after you opened it, by someone else or in another tab. Reload the page to see the latest version."
 
 async function openedSubmission(context, user, { clean, fonts, bytes, files }) {
   const { env } = context
@@ -66,13 +67,18 @@ export const editSubmission = guarded(async context => {
   const { user, row, role } = await ownSubmission(context, true)
   const mine = role === "submitter"
   const { clean, fonts, bytes, files, revision } = await readForm(context, row)
-  if (revision !== row.updatedAt) throw new Refusal(409, "This submission was changed after you opened it, by someone else or in another tab. Reload the page to see the latest version.")
+  if (revision !== row.updatedAt) throw new Refusal(409, CHANGED)
   const file = bytes ? await onGitHub(() => uploadFile(env, bytes)) : row.file
   const changed = { ...row, ...await onGitHub(() => withFiles(env, clean, files)), file, notes: mine ? clean.notes : row.notes }
   if (sameSubmission(row, changed)) return reply(200, { submission: shown(env, row, user) })
+  const claimed = await env.DB.prepare("UPDATE submissions SET updated_at = MAX(?, updated_at + 1) WHERE id = ? AND status = 'open' AND updated_at = ? RETURNING updated_at AS updatedAt").bind(Date.now(), row.id, revision).first()
+  if (!claimed) throw new Refusal(409, CHANGED)
   await onGitHub(async () => {
     await syncSubmission(context, changed, fonts)
     await noteEdit(env, changed, user, role)
+  }).catch(async err => {
+    await env.DB.prepare("UPDATE submissions SET updated_at = ? WHERE id = ? AND updated_at = ?").bind(revision, row.id, claimed.updatedAt).run()
+    throw err
   })
   await forgetFresh(context.request, changed)
   await env.DB.batch([

@@ -293,6 +293,43 @@ describe("a sent submission", () => {
     assert.equal(gh.pulls.get(1).title, "Shiny Gold texture for Minecraft Ten")
   })
 
+  test("two saves of the same version at once only let one through", async () => {
+    const cookie = await signIn()
+    const { id } = await send(cookie)
+    const pushes = () => gh.calls.filter(call => call.method === "POST" && call.route.endsWith("/git/commits")).length
+    const before = pushes()
+    const handle = gh.handle
+    let held = 0
+    let release
+    const gate = new Promise(resolve => (release = resolve))
+    gh.handle = async (url, options = {}) => {
+      if (options.method === "POST" && url.endsWith("/git/commits") && ++held === 2) release()
+      if (options.method === "POST" && url.endsWith("/git/commits")) await gate
+      return handle(url, options)
+    }
+    const saves = await Promise.all([edit(cookie, id, { name: "Shiny Gold" }), edit(cookie, id, { name: "Dull Gold" })].map(save => save.finally(release)))
+    assert.deepEqual(saves.map(save => save.status).sort(), [200, 409])
+    assert.match(saves.find(save => save.status === 409).error, /changed after you opened it/)
+    const winner = saves.find(save => save.status === 200).submission
+    assert.equal(pushes(), before + 1)
+    assert.equal(gh.pulls.get(1).title, `${winner.name} texture for Minecraft Ten`)
+    assert.equal(db.prepare("SELECT updated_at FROM submissions WHERE id = ?").get(id).updated_at, winner.updatedAt)
+  })
+
+  test("a save that GitHub refuses can be tried again from the same page", async () => {
+    const cookie = await signIn()
+    const { id } = await send(cookie)
+    const opened = String(db.prepare("SELECT updated_at FROM submissions WHERE id = ?").get(id).updated_at)
+    gh.failing.add("POST /repos/owner/repo/git/commits")
+    const broken = form({ name: "Shiny Gold" }, null)
+    broken.set("revision", opened)
+    assert.equal((await editForm(cookie, id, broken)).status, 502)
+    gh.failing.clear()
+    const retry = form({ name: "Shiny Gold" }, null)
+    retry.set("revision", opened)
+    assert.equal((await editForm(cookie, id, retry)).status, 200)
+  })
+
   test("saving without changing anything leaves the branch, pull request and notifications alone", async () => {
     const cookie = await signIn()
     const { id } = await send(cookie)
