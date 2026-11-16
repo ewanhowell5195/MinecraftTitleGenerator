@@ -101,12 +101,16 @@
 </template>
 
 <style scoped>
-  .context-menu {
+  .context-menu,
+  .submenu {
     display: flex;
     flex-direction: column;
     width: max-content;
     min-width: 170px;
     padding: 4px;
+  }
+
+  .context-menu {
     line-height: 1.4;
   }
 
@@ -151,7 +155,6 @@
 
   button.danger {
     color: var(--danger);
-    background: transparent;
   }
 
   button.danger svg {
@@ -173,11 +176,6 @@
     position: absolute;
     top: -4px;
     left: 100%;
-    display: flex;
-    flex-direction: column;
-    width: max-content;
-    min-width: 170px;
-    padding: 4px;
   }
 
   .divider {
