@@ -4,6 +4,7 @@ import { crackList, crackTriangle, crackWrap } from "../../src/lib/texture/overl
 import { edgeAlpha } from "../../src/lib/texture/overlays/edges.js"
 import { generatedAlpha } from "../../src/lib/texture/overlays/faces.js"
 import { layerGlyph } from "../../src/lib/font/flatSheet.js"
+import { joinNeighbours } from "../../src/lib/geometry/joins.js"
 import { columnOf, glyphOf, near, picture, rowsOf, solid } from "../helpers/overlays.js"
 
 describe("edge overlays", () => {
@@ -407,6 +408,16 @@ describe("cracks on layered glyphs", () => {
         assert.ok(!onInner(crack), `${crack.side} ${crack.line}`)
         for (const [x, y] of crackTriangle(crack)) assert.ok(!(x > 10.5 && x < 29.5 && y > 10.5 && y < 29.5), `${crack.side} ${crack.line} reaches under the front layer`)
       }
+    })
+
+    test(`a back layer never cracks where it meets the next letter's front layer, ${mode}`, () => {
+      const back = { ...solid(40, 40), depths: new Uint8Array(1600).fill(1) }
+      const front = { ...solid(40, 40, { placedX: 40 }), depths: new Uint8Array(1600) }
+      const chain = [back, front].map(glyph => layerGlyph(glyph, 1, independent))
+      joinNeighbours(chain)
+      const list = seeds.flatMap(settings => crackList(chain[0], settings))
+      assert.ok(list.length)
+      assert.deepEqual(list.filter(crack => crack.side === "right"), [])
     })
   }
 })

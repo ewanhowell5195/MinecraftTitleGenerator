@@ -30,13 +30,15 @@ function joinedSolid(glyph) {
 
 const crackSolids = new WeakMap()
 
+function blockingOf(glyph) {
+  if (!glyph?.own) return glyph
+  return { ...glyph, mask: glyph.caster ? glyph.own.map((solid, at) => solid || glyph.caster[at] ? 1 : 0) : glyph.own }
+}
+
 function solidsOf(glyph) {
   if (!crackSolids.has(glyph)) {
-    if (!glyph.own) crackSolids.set(glyph, { solid: solidOf(glyph), filled: joinedSolid(glyph) })
-    else {
-      const blocking = glyph.caster ? glyph.own.map((solid, at) => solid || glyph.caster[at] ? 1 : 0) : glyph.own
-      crackSolids.set(glyph, { solid: solidOf({ ...glyph, mask: glyph.own }), filled: joinedSolid({ ...glyph, mask: blocking, previous: glyph.previous, next: glyph.next }) })
-    }
+    const solid = solidOf(glyph.own ? { ...glyph, mask: glyph.own } : glyph)
+    crackSolids.set(glyph, { solid, filled: joinedSolid({ ...blockingOf(glyph), previous: blockingOf(glyph.previous), next: blockingOf(glyph.next) }) })
   }
   return crackSolids.get(glyph)
 }
