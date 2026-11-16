@@ -20,7 +20,8 @@
   const props = defineProps({
     lines: { type: Array, default: () => [] },
     fonts: { type: Array, required: true },
-    message: { type: String, default: "" }
+    message: { type: String, default: "" },
+    loading: { type: Boolean, default: false }
   })
 
   const emit = defineEmits(["settled"])
@@ -160,7 +161,7 @@
       <ObjectRenderer v-else :object="object" :fonts="fonts" :tileables="NO_TILEABLES" :title="title" />
     </template>
     <p v-if="error" class="message bad">{{ error }}</p>
-    <p v-else-if="!shown" class="message empty-state">{{ busy ? "Rendering..." : message }}</p>
+    <p v-else-if="!shown" class="message empty-state">{{ busy || loading ? "Rendering..." : message }}</p>
   </div>
 </template>
 

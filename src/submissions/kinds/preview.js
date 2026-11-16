@@ -8,10 +8,12 @@ export function fontDefaults(font) {
 export function useLoaded(inputs, load, empty = null) {
   const value = shallowRef(empty)
   const problem = ref("")
+  const pending = ref(false)
   let asked = 0
 
   async function run() {
     const token = ++asked
+    pending.value = true
     try {
       const loaded = await load()
       if (token !== asked) return
@@ -22,13 +24,14 @@ export function useLoaded(inputs, load, empty = null) {
       value.value = empty
       problem.value = err.message
     }
+    pending.value = false
   }
 
   watch(inputs, run, { immediate: true })
-  return { value, problem }
+  return { value, problem, pending }
 }
 
 export function usePreviewLine(inputs, build) {
-  const { value: line, problem } = useLoaded(inputs, build)
-  return { line, problem }
+  const { value: line, problem, pending } = useLoaded(inputs, build)
+  return { line, problem, pending }
 }

@@ -42,7 +42,7 @@
       emit("update:trial", picked ? { strip: strips.value.find(item => stripUse(item).id === picked.set), texture: picked.texture, variant: picked.variant } : null)
     }
   })
-  const { line, problem } = usePreviewLine(() => [props.kind, props.url, props.files.texture?.url, texture.value, JSON.stringify(strips.value)], build)
+  const { line, problem, pending } = usePreviewLine(() => [props.kind, props.url, props.files.texture?.url, texture.value, JSON.stringify(strips.value)], build)
 
   function keyOf(set, id, variant) {
     return [set, id, variant ?? ""].join("/")
@@ -76,5 +76,5 @@
 <template>
   <Dropdown v-if="kind === 'shapeImage' && url" v-model="texture" :options="textures" label="Preview texture" searchable />
   <p v-if="listProblem" class="hint bad">The strip textures couldn't be listed: {{ listProblem }}</p>
-  <LiveTitle :fonts="fonts" :lines="line ? [line] : []" :message="problem || (kind === 'shapeModel' ? 'Choose the model and its texture to preview it' : 'Choose a PNG to preview it')" />
+  <LiveTitle :fonts="fonts" :lines="line ? [line] : []" :loading="pending" :message="problem || (kind === 'shapeModel' ? 'Choose the model and its texture to preview it' : 'Choose a PNG to preview it')" />
 </template>

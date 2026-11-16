@@ -30,7 +30,7 @@
     if (!fonts.some(entry => entry.id === font.value)) font.value = fonts[0]?.id ?? ""
   }, { immediate: true })
 
-  const { line, problem } = usePreviewLine(() => [font.value, props.url, props.text], build)
+  const { line, problem, pending } = usePreviewLine(() => [font.value, props.url, props.text], build)
 
   async function build() {
     const entry = props.fonts.find(item => item.id === font.value)
@@ -42,5 +42,5 @@
 
 <template>
   <Dropdown v-if="options.length" v-model="font" :options="options" label="Preview font" searchable />
-  <LiveTitle :fonts="fonts" :lines="line ? [line] : []" :message="problem || (url ? 'Type some text to preview it' : 'Choose a PNG to preview it')" />
+  <LiveTitle :fonts="fonts" :lines="line ? [line] : []" :loading="pending" :message="problem || (!url ? 'Choose a PNG to preview it' : !text.trim() ? 'Type some text to preview it' : '')" />
 </template>

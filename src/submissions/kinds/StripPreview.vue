@@ -24,7 +24,7 @@
   const options = computed(() => previewFonts({ target: props.target, details: props.details }, props.fonts).map(font => ({ value: font.id, label: fullName(font, props.fonts), image: fontThumbnail(font) })))
   const font = computed(() => options.value.some(option => option.value === chosen.value) ? chosen.value : options.value[0]?.value ?? "")
 
-  const { line, problem } = usePreviewLine(() => [props.target, JSON.stringify(props.details), props.url, props.text, font.value], build)
+  const { line, problem, pending } = usePreviewLine(() => [props.target, JSON.stringify(props.details), props.url, props.text, font.value], build)
 
   async function build() {
     if (!props.url || !font.value || !props.text.trim()) return null
@@ -34,5 +34,5 @@
 
 <template>
   <Dropdown v-if="options.length > 1" :model-value="font" @update:model-value="chosen = $event" :options="options" label="Preview font" searchable />
-  <LiveTitle :fonts="fonts" :lines="line ? [line] : []" :message="problem || (!font ? 'Pick a font to preview it on' : url ? 'Type some text to preview it' : 'Choose a PNG to preview it')" />
+  <LiveTitle :fonts="fonts" :lines="line ? [line] : []" :loading="pending" :message="problem || (!font ? 'Pick a font to preview it on' : !url ? 'Choose a PNG to preview it' : !text.trim() ? 'Type some text to preview it' : '')" />
 </template>

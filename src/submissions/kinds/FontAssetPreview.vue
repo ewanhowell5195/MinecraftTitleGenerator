@@ -15,7 +15,7 @@
     text: { type: String, required: true }
   })
 
-  const { line, problem } = usePreviewLine(() => [props.kind, props.target, props.details.border, JSON.stringify([props.details.overlays, props.details.edgeOverlays]), props.url, props.text], build)
+  const { line, problem, pending } = usePreviewLine(() => [props.kind, props.target, props.details.border, JSON.stringify([props.details.overlays, props.details.edgeOverlays]), props.url, props.text], build)
 
   async function build() {
     const entry = props.fonts.find(font => font.id === props.target)
@@ -26,5 +26,5 @@
 </script>
 
 <template>
-  <LiveTitle :fonts="fonts" :lines="line ? [line] : []" :message="problem || (url ? 'Type some text to preview it' : 'Choose a PNG to preview it')" />
+  <LiveTitle :fonts="fonts" :lines="line ? [line] : []" :loading="pending" :message="problem || (!url ? 'Choose a PNG to preview it' : !text.trim() ? 'Type some text to preview it' : '')" />
 </template>
