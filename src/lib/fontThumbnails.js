@@ -2,7 +2,7 @@ import { stripLayout, stripRange } from "./assets.js"
 import { rgbOf } from "./colour.js"
 import { expandBands, independentLayers, layerLeft, layerMask } from "./flatSheet.js"
 import { sheetLayout, solidMask } from "./font.js"
-import { GENERATED_EDGE_OVERLAYS, SMOOTH_KINDS, edgeAlpha, generatedAlpha, thumbnailLayer, toneKinds, withGenerated } from "./generated.js"
+import { FADE_KINDS, GENERATED_EDGE_OVERLAYS, SMOOTH_KINDS, edgeAlpha, generatedAlpha, thumbnailLayer, toneKinds, withGenerated } from "./generated.js"
 import { joinNeighbours, keptAt } from "./joins.js"
 import { layout } from "./layout.js"
 import { WHITE, definitionPalette } from "./overlayColours.js"
@@ -67,7 +67,7 @@ function depthAlpha(scene, index, scale, alphaOf) {
 
 function drawGenerated(image, scene, { density: d, generated, palette = [WHITE] }) {
   const { placed, capHeight } = scene
-  const fine = SMOOTH_KINDS.has(generated) ? SUPERSAMPLE : 1
+  const fine = SMOOTH_KINDS.has(generated) || FADE_KINDS.has(generated) ? SUPERSAMPLE : 1
   for (const [index, { glyph, x, y }] of placed.entries()) {
     const columns = glyph.width * d * fine
     for (const [tone, kind] of toneKinds(generated).entries()) {

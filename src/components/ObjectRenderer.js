@@ -7,7 +7,7 @@ import { MAX_DETAIL } from "../lib/atlas.js"
 import { textureLimit } from "../lib/canvas.js"
 import { customFontEntry, customFontId } from "../lib/customFonts.js"
 import { EulaDeclined } from "../lib/eula.js"
-import { SMOOTH_KINDS, WRAPPED_KINDS, withDraftShadows, withFinalShadows } from "../lib/generated.js"
+import { FADE_KINDS, SMOOTH_KINDS, WRAPPED_KINDS, withDraftShadows, withFinalShadows } from "../lib/generated.js"
 import { CUSTOM_SHAPE, SILHOUETTE_TEXT, shapeOf } from "../lib/shapes.js"
 import { hasMarks, loadFont, sheetFolder } from "../lib/font.js"
 import { bandEntry, layerSlice } from "../lib/strips.js"
@@ -390,7 +390,8 @@ export default {
       const depth = faceDepth(options.depth)
       return (painted.value.layers ?? [painted.value]).map(({ look, assets }, layer) => {
         const faces = painted.value.layers ? faceOptions(targets.value[layer]) : options
-        const smooth = assets.overlays.filter(({ layer, source }) => SMOOTH_KINDS.has(source.generated) && layer.opacity > 0)
+        const smooth = assets.overlays.filter(({ layer, source }) => (SMOOTH_KINDS.has(source.generated) || FADE_KINDS.has(source.generated)) && layer.opacity > 0)
+        const edgeFaded = assets.edgeOverlays.some(({ layer, generated }) => FADE_KINDS.has(generated) && layer.opacity > 0)
         const strip = look.source === "strip" ? stripDetail(assets.strip, depth) : 1
         const base = Number.isFinite(strip) ? strip : MAX_DETAIL
         const edgeGradient = look.customEdge && look.edgeFill === "gradient"
@@ -398,7 +399,7 @@ export default {
         const cracked = smooth.some(({ source }) => WRAPPED_KINDS.has(source.generated))
         return {
           front: smoothDetail(1, look.source === "gradient" || smooth.length > 0),
-          edge: { along: smoothDetail(base, look.source === "gradient" || edgeGradient || cracked || smooth.some(({ layer }) => layer.edgeWrap)), deep: smoothDetail(base, cracked) },
+          edge: { along: smoothDetail(base, look.source === "gradient" || edgeGradient || cracked || smooth.some(({ layer }) => layer.edgeWrap)), deep: smoothDetail(base, cracked || edgeFaded) },
           internal: { along: smoothDetail(1, faces.internalFaces && (sideWrapped || (faces.customInternal ? faces.internalFill === "gradient" && faces.internalDirection !== "up" : edgeGradient))), deep: 1 },
           side: { along: smoothDetail(1, faces.sideFaces && (sideWrapped || faces.customSide && faces.sideFill === "gradient" && faces.sideDirection !== "along")), deep: 1 }
         }

@@ -291,6 +291,15 @@ describe("inverted outline fade", () => {
     const strength = columnOf(generatedAlpha(solid(3, 10), "outline_fade_inverted", { spread: 20 }, 10, 1), 3, 0)
     nearAll(strength, [0.5, 0, 0, 0, 0, 0, 0, 0, 0, 0.5])
   })
+
+  test("fades smoothly inside each letter pixel at higher detail", () => {
+    for (const kind of ["outline_fade", "outline_fade_inverted"]) {
+      const coarse = columnOf(generatedAlpha(solid(3, 10), kind, { spread: 100 }, 10, 1), 3, 0)
+      const fine = columnOf(generatedAlpha(solid(3, 10), kind, { spread: 100 }, 10, 4), 12, 0)
+      assert.equal(new Set(fine.slice(4, 8)).size, 4, kind)
+      for (let row = 0; row < 10; row++) near((fine[row * 4 + 1] + fine[row * 4 + 2]) / 2, coarse[row], 0.06)
+    }
+  })
 })
 
 describe("corner dots", () => {
@@ -647,6 +656,12 @@ describe("edge overlays", () => {
   test("fading outline grows from nothing at the front to full at the back", () => {
     const rows = rowsOf(edgeAlpha(glyph, "up", "edge_outline_fade", {}, 3, 1), 7)
     assert.deepEqual(rows, [[1, 1, 1, 1, 1, 1, 1], [0.5, 0, 0, 0, 0, 0, 0.5], [0, 0, 0, 0, 0, 0, 0]])
+  })
+
+  test("the fading outline grows smoothly at higher detail", () => {
+    const column = columnOf(edgeAlpha(glyph, "up", "edge_outline_fade", {}, 3, 4), 28, 0)
+    assert.equal(new Set(column).size > 6, true)
+    for (let row = 1; row < column.length; row++) assert.ok(column[row] <= column[row - 1])
   })
 
   test("upscales each pixel into a block", () => {

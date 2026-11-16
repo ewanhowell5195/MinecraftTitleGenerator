@@ -34,6 +34,7 @@ const CRACK_SIDES = ["up", "down", "left", "right"]
 export const PLACED_KINDS = new Set(["shine", "shine_random", "wave", "cracks"])
 export const WRAPPED_KINDS = new Set(["cracks"])
 export const SMOOTH_KINDS = new Set(["wave", "cracks", "shadow"])
+export const FADE_KINDS = new Set(["outline_fade", "outline_fade_inverted", "edge_outline_fade"])
 
 export const GENERATED_SETTINGS = {
   top: [highlight],
@@ -951,7 +952,7 @@ export function generatedAlpha(glyph, kind, layer, capHeight, scale, soft = fals
   if (kind === "wave") return waveFill(glyph, settings, scale, fine)
   if (kind === "cracks") return crackFaces(glyph, layer, scale, fine, soft)
   if (fine && kind !== "corners") return finePixels(glyph, fine, kind, settings, scale)
-  if (!Number.isInteger(settings.thickness ?? 1)) return blockPixels(glyph, kind, settings, scale)
+  if (!Number.isInteger(settings.thickness ?? 1) || FADE_KINDS.has(kind) && scale > 1) return blockPixels(glyph, kind, settings, scale)
   const alpha = upscale(joinedPixels(glyph, kind, settings), glyph.width, glyph.height, scale, true)
   if (fine) {
     const columns = glyph.width * scale
@@ -1023,7 +1024,7 @@ export function edgeAlpha(glyph, side, kind, layer, depth, scale, soft = false) 
   for (const [start, end, leftJoined, rightJoined] of edgeRuns(glyph, side)) {
     for (let sd = 0; sd < rows; sd++) {
       const d = (sd + 0.5) / scale
-      const strength = kind === "edge_outline_fade" ? Math.floor(d) / Math.max(1, depth - 1) : 1
+      const strength = kind === "edge_outline_fade" ? clamp((d - 0.5) / Math.max(1, depth - 1), 0, 1) : 1
       const sy = side === "up" ? rows - 1 - sd : sd
       const far = d >= depth - thickness && kind !== "edge_front"
       const front = d < thickness && (kind === "edge_outline" || kind === "edge_front")
