@@ -1,4 +1,4 @@
-import assert from "node:assert/strict"
+import { close } from "./assert.js"
 
 export function glyphOf(rows, extra = {}) {
   const height = rows.length
@@ -24,6 +24,4 @@ export function columnOf(alpha, columns, index) {
   return rowsOf(alpha, columns).map(row => row[index])
 }
 
-export function near(actual, expected, tolerance = 0.001) {
-  assert.ok(Math.abs(actual - expected) <= tolerance, `${actual} is not near ${expected}`)
-}
+export const near = (actual, expected, tolerance = 0.001) => close(actual, expected, tolerance)

@@ -1,23 +1,19 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import fs from "node:fs"
 import zlib from "node:zlib"
 import { PNG } from "pngjs"
 import { templateProblem } from "../../src/lib/submissions/kinds/fontAsset.js"
 import { decodePng } from "../../src/lib/submissions/kinds/png.js"
 import { SUBMISSION_LIMITS, opaqueCells, pngProblem, templateScore, textureDensity } from "../../src/lib/submissions/submissions.js"
-
-function read(file) {
-  return PNG.sync.read(fs.readFileSync(file))
-}
+import { readPngFile } from "../helpers/png.js"
 
 function template(font) {
-  const flat = read(`public/fonts/${font}/textures/flat.png`)
+  const flat = readPngFile(`public/fonts/${font}/textures/flat.png`)
   return { width: flat.width, height: flat.height, cells: opaqueCells(flat.data, flat.width, flat.height, 1, 128) }
 }
 
 function score(kind, file, font) {
-  const image = read(file)
+  const image = readPngFile(file)
   const flat = template(font)
   return templateScore(kind, opaqueCells(image.data, image.width, image.height, textureDensity(image, flat), 1), flat.cells)
 }

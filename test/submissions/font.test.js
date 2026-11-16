@@ -22,7 +22,7 @@ import { drawnCells, fontJsonFields, ownFont, submittedFont } from "../../src/li
 import { decodePng, encodePng } from "../../src/lib/submissions/kinds/png.js"
 import { font as client } from "../../src/submissions/kinds/font.js"
 import { defaultBorder, defaultDepth } from "../../src/lib/settings/defaults.js"
-import { pngOf } from "../helpers/png.js"
+import { pngOf, readPngFile } from "../helpers/png.js"
 import { context, sendForm, serverEnv, signIn } from "../helpers/server.js"
 import { publicContext } from "../helpers/site.js"
 
@@ -321,10 +321,6 @@ function hold(root, id, bytes) {
   fs.mkdirSync(path.join(root, "submissions/fonts"), { recursive: true })
   fs.writeFileSync(path.join(root, `submissions/fonts/${id}.json`), bytes)
   return `submissions/fonts/${id}.json`
-}
-
-function readPngFile(file) {
-  return PNG.sync.read(fs.readFileSync(file))
 }
 
 function assertPublishable(root, id) {

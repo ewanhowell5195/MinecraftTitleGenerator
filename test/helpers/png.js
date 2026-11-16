@@ -1,3 +1,4 @@
+import fs from "node:fs"
 import { PNG } from "pngjs"
 
 export function pngOf(width, height, pixel = [200, 200, 200, 200]) {
@@ -8,4 +9,8 @@ export function pngOf(width, height, pixel = [200, 200, 200, 200]) {
     }
   } else image.data.fill(Uint8Array.from(pixel))
   return PNG.sync.write(image)
+}
+
+export function readPngFile(file) {
+  return PNG.sync.read(fs.readFileSync(file))
 }

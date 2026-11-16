@@ -1,10 +1,8 @@
 import { afterEach, beforeEach, describe, test } from "node:test"
 import assert from "node:assert/strict"
-import fs from "node:fs"
 import { setTimeout as wait } from "node:timers/promises"
-import { PNG } from "pngjs"
-import { pngOf } from "../helpers/png.js"
-import { context, hook, sendForm, serverEnv, signIn as signInAs } from "../helpers/server.js"
+import { context, hook, serverEnv, signIn as signInAs } from "../helpers/server.js"
+import { TEXTURES, send } from "../helpers/submissionServer.js"
 
 const { accountDetails } = await import("../../src/server/accounts.js")
 const { deleteAccount } = await import("../../src/server/accountDeletion.js")
@@ -15,9 +13,6 @@ const { addComment } = await import("../../src/server/submissions/comments.js")
 const { createSubmission } = await import("../../src/server/submissions/index.js")
 const { encodeTitle } = await import("../../src/lib/link/linkformat.js")
 const { FILE_VERSION } = await import("../../src/lib/settings/upgrades.js")
-
-const TEXTURES = "public/fonts/minecraft-ten/textures.json"
-const FLAT = PNG.sync.read(fs.readFileSync("public/fonts/minecraft-ten/textures/flat.png"))
 
 let db
 let gh
@@ -40,10 +35,7 @@ async function vote(cookie, id, value) {
 }
 
 async function submit(cookie) {
-  const data = new FormData()
-  for (const [key, value] of Object.entries({ kind: "texture", target: "minecraft-ten", name: "Gold Bricks", credit: JSON.stringify(["Someone"]), notes: "", agree: "true", details: JSON.stringify({ border: "#000000" }) })) data.set(key, value)
-  data.set("file", new Blob([pngOf(FLAT.width, FLAT.height)], { type: "image/png" }), "texture.png")
-  return (await sendForm(cookie, data)).id
+  return (await send(cookie, { border: "#000000" })).id
 }
 
 async function remove(cookie, mode) {
