@@ -15,6 +15,7 @@ const DAY = 86400000
 const WEEK_DAYS = 7
 const FIRST_PAGES = Object.keys(SORTS).map(sort => `?sort=${sort}&offset=0`)
 export const MISSING = "This preset doesn't exist."
+const NOT_YOURS = "You can't change this preset."
 export const STAT_COLUMNS = "downloads, votes, rating, created_at AS createdAt, (SELECT users.name FROM users WHERE users.id = presets.user_id) AS author, (SELECT users.provider FROM users WHERE users.id = presets.user_id) AS authorProvider"
 const COLUMNS = `id, code, fingerprint, name, text, ${STAT_COLUMNS}`
 
@@ -177,16 +178,16 @@ async function hiddenPreset({ request, env }, body, user) {
   return env.DB.prepare("SELECT id, fingerprint FROM presets WHERE id = ? AND token_hash = ? AND shared = 0").bind(body.id, await hashed(token)).first()
 }
 
-function scoreResets(env, id) {
-  return ["preset_votes", "preset_downloads", "preset_daily_downloads"].map(table => env.DB.prepare(`DELETE FROM ${table} WHERE preset_id = ?`).bind(id))
+function scoreResets(env, id, guard = { sql: "1", values: [] }) {
+  return ["preset_votes", "preset_downloads", "preset_daily_downloads"].map(table => env.DB.prepare(`DELETE FROM ${table} WHERE preset_id = ? AND ${guard.sql}`).bind(id, ...guard.values))
 }
 
 export function deletingPresets(env, where, ...values) {
   return [env.DB.prepare(`INSERT INTO deleted_presets (id) SELECT id FROM presets WHERE ${where}`).bind(...values), env.DB.prepare(`DELETE FROM presets WHERE ${where}`).bind(...values)]
 }
 
-function forgetHiddenCopy(env, user, code, id) {
-  return deletingPresets(env, `user_id = ${USER_ROW} AND code = ? AND shared = 0 AND id != ?`, user.provider, user.providerId, code, id)
+function forgetHiddenCopy(env, user, code, id, guard) {
+  return deletingPresets(env, `user_id = ${USER_ROW} AND code = ? AND shared = 0 AND id != ? AND ${guard.sql}`, user.provider, user.providerId, code, id, ...guard.values)
 }
 
 async function checkedSubmission(context, body) {
@@ -273,53 +274,69 @@ async function ownedPreset(context) {
   const token = context.request.headers.get("X-Preset-Token")
   if (!user && !token) throw new Refusal(401, "Sign in to change this preset.")
   const { owner, token_hash: tokenHash } = await requirePreset(context.env, id)
-  if (user && owner === user.id) return { id, user }
-  if (token && tokenHash && await hashed(token) === tokenHash) return { id, user: null }
-  throw new Refusal(403, "You can't change this preset.")
+  if (user && owner === user.id) return { id, user, where: `user_id = ${USER_ROW}`, values: [user.provider, user.providerId] }
+  if (token && tokenHash && await hashed(token) === tokenHash) return { id, user: null, where: "token_hash = ?", values: [tokenHash] }
+  throw new Refusal(403, NOT_YOURS)
+}
+
+function stillOwned({ id, where, values }) {
+  return { sql: `EXISTS (SELECT 1 FROM presets WHERE id = ? AND ${where})`, values: [id].concat(values) }
+}
+
+async function refuseChange(env, id) {
+  await requirePreset(env, id)
+  throw new Refusal(403, NOT_YOURS)
 }
 
 export const renamePreset = guarded(async context => {
   const { request, env } = context
-  const { id } = await ownedPreset(context)
+  const { id, where, values } = await ownedPreset(context)
   const name = textField(await jsonBody(request), "name", "name", LIMITS.name)
   if (!name) throw new Refusal(400, "The name can't be empty.")
   const short = shortNameProblem(name)
   if (short) throw new Refusal(400, short)
   checkWords("name", name)
-  const preset = await env.DB.prepare(`UPDATE presets SET name = ? WHERE id = ? RETURNING ${COLUMNS}`).bind(name, id).first()
+  const preset = await env.DB.prepare(`UPDATE presets SET name = ? WHERE id = ? AND ${where} RETURNING ${COLUMNS}`).bind(name, id, ...values).first()
+  if (!preset) await refuseChange(env, id)
   await forgetCached(request, id)
   return reply(200, { preset: rated(preset) })
 })
 
 export const replacePreset = guarded(async context => {
   const { request, env } = context
-  const { id, user } = await ownedPreset(context)
+  const owned = await ownedPreset(context)
+  const { id, user, where, values } = owned
   const body = await jsonBody(request)
   const { facts, name, fingerprint, existing } = await checkedSubmission(context, body)
   if (existing && existing.id !== id) return alreadyShared(existing)
-  const before = (user ? forgetHiddenCopy(env, user, body.code, id) : []).concat(existing ? [] : scoreResets(env, id))
+  const guard = stillOwned(owned)
+  const before = (user ? forgetHiddenCopy(env, user, body.code, id, guard) : []).concat(existing ? [] : scoreResets(env, id, guard))
   let results
   try {
-    results = await env.DB.batch(before.concat(env.DB.prepare(`UPDATE presets SET code = ?, fingerprint = ?, name = ?, text = ?${existing ? "" : SCORES_RESET} WHERE id = ? RETURNING ${COLUMNS}`).bind(body.code, fingerprint, name, facts.text, id)))
+    results = await env.DB.batch(before.concat(env.DB.prepare(`UPDATE presets SET code = ?, fingerprint = ?, name = ?, text = ?${existing ? "" : SCORES_RESET} WHERE id = ? AND ${where} RETURNING ${COLUMNS}`).bind(body.code, fingerprint, name, facts.text, id, ...values)))
   } catch (err) {
     return alreadyShared(await sharedMeanwhile(env, fingerprint, id, err))
   }
+  const preset = results.at(-1).results[0]
+  if (!preset) await refuseChange(env, id)
   await forgetCached(request, id)
-  return reply(200, { preset: rated(results.at(-1).results[0]) })
+  return reply(200, { preset: rated(preset) })
 })
 
 export const unsharePreset = guarded(async context => {
   const { request, env } = context
-  const { id } = await ownedPreset(context)
-  const preset = await env.DB.prepare("UPDATE presets SET shared = 0 WHERE id = ? RETURNING name, code").bind(id).first()
+  const { id, where, values } = await ownedPreset(context)
+  const preset = await env.DB.prepare(`UPDATE presets SET shared = 0 WHERE id = ? AND ${where} RETURNING name, code`).bind(id, ...values).first()
+  if (!preset) await refuseChange(env, id)
   await forgetCached(request, id)
   return reply(200, { preset })
 })
 
 export const deletePreset = guarded(async context => {
   const { request, env } = context
-  const { id, user } = await ownedPreset(context)
-  await env.DB.batch(deletingPresets(env, "id = ?", id).concat(forgetOldCounts(env), user ? forgetUnusedUser(env, user) : []))
+  const { id, user, where, values } = await ownedPreset(context)
+  const [, deleted] = await env.DB.batch(deletingPresets(env, `id = ? AND ${where}`, id, ...values).concat(forgetOldCounts(env), user ? forgetUnusedUser(env, user) : []))
+  if (!deleted.meta.changes) await refuseChange(env, id)
   await forgetCached(request, id)
   return reply(200, { deleted: true })
 })

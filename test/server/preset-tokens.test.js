@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { code, context, db, download, freshServer, list, post, rename, restoreFetch, shareAs, signIn, usageAs, usageOf, vote, voteAll, withCookie } from "../helpers/presets.js"
+import { code, context, db, download, env, freshServer, list, post, rename, restoreFetch, shareAs, signIn, usageAs, usageOf, vote, voteAll, withCookie } from "../helpers/presets.js"
+import { holdQuery } from "../helpers/server.js"
 
 const { LIMITS } = await import("../../src/lib/core/limits.js")
 const { claimPresets, deletePreset, getPreset, renamePreset, replacePreset, submitPreset, unsharePreset } = await import("../../src/server/presets.js")
-const { presetStats } = await import("../../src/server/presetScores.js")
+const { presetStats, votePreset } = await import("../../src/server/presetScores.js")
 const { addSaved, listSaved } = await import("../../src/server/saved.js")
 
 beforeEach(freshServer)
@@ -285,6 +286,40 @@ describe("tokens", () => {
     assert.deepEqual((await claim(cookie, [{ id: preset.id, token: "wrong" }, { id: 999, token: "none" }])).moved, [])
     assert.equal(db.prepare("SELECT COUNT(*) AS total FROM users").get().total, 0)
     assert.notEqual(db.prepare("SELECT token_hash FROM presets").get().token_hash, null)
+  })
+
+  const MOVED_MEANWHILE = [
+    ["rename", /SET name = /, (token, id) => renamePreset(withToken(`/api/presets/${id}`, token, { method: "PATCH", body: { name: "renamed" }, params: { id: String(id) } }))],
+    ["replace", /SET code = /, (token, id) => replacePreset(withToken(`/api/presets/${id}`, token, { method: "PUT", body: { code: code([{ text: "replaced" }]) }, params: { id: String(id) } }))],
+    ["unshare", /SET shared = 0/, (token, id) => unsharePreset(withToken(`/api/presets/${id}/unshare`, token, { method: "POST", params: { id: String(id) } }))],
+    ["delete", /DELETE FROM presets/, (token, id) => deletePreset(withToken(`/api/presets/${id}`, token, { method: "DELETE", params: { id: String(id) } }))]
+  ]
+  for (const [label, pattern, send] of MOVED_MEANWHILE) {
+    test(`a token can't ${label} a preset that moved to an account while it was sent`, async () => {
+      const { token, preset } = await shared()
+      await vote(preset.id, 1, "voter")
+      const cookie = await signIn()
+      const hold = holdQuery(env, pattern)
+      const sending = send(token, preset.id)
+      await hold.arrived
+      assert.deepEqual((await claim(cookie, [{ id: preset.id, token }])).moved, [preset.id])
+      hold.release()
+      assert.equal((await sending).status, 403)
+      assert.deepEqual({ ...db.prepare("SELECT name, shared, votes FROM presets WHERE id = ?").get(preset.id) }, { name: preset.name, shared: 1, votes: 1 })
+    })
+  }
+
+  test("a vote is refused if the preset moved to the voter's account while it was sent", async () => {
+    const { token, preset } = await shared()
+    const cookie = await signIn()
+    const hold = holdQuery(env, /preset_votes/)
+    const voting = votePreset(withCookie(`/api/presets/${preset.id}/vote`, cookie, { method: "POST", body: { value: 1 }, params: { id: String(preset.id) } }))
+    await hold.arrived
+    assert.deepEqual((await claim(cookie, [{ id: preset.id, token }])).moved, [preset.id])
+    hold.release()
+    assert.equal((await voting).status, 403)
+    assert.equal(db.prepare("SELECT COUNT(*) AS total FROM preset_votes").get().total, 0)
+    assert.equal((await votePreset(withCookie(`/api/presets/${preset.id}/vote`, cookie, { method: "POST", body: { value: 1 }, params: { id: String(preset.id) } }))).status, 403)
   })
 
   test("moving needs a session, a tidy request and an allowed username", async () => {
