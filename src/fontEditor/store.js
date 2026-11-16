@@ -114,6 +114,7 @@ export function moveSelected(dx, dy) {
 
 export function reshapeSelected(change, key = null) {
   const { font: next, outside } = reshapeGlyph(font.value, selected.value, change, offCanvas.get(glyph.value))
+  if (sameGlyph(glyphOf(next, selected.value), glyph.value)) return
   update(next, key)
   offCanvas.set(glyph.value, outside)
 }

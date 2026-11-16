@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
-import { beginStroke, canRedo, canUndo, cancelStroke, endStroke, font, glyph, openFont, redo, strokeTo, undo, updateGlyph } from "../../src/fontEditor/store.js"
+import { beginStroke, canRedo, canUndo, cancelStroke, endStroke, font, glyph, openFont, redo, reshapeSelected, strokeTo, undo, updateGlyph } from "../../src/fontEditor/store.js"
 import { createFont } from "../../src/lib/font/editor/defaults.js"
 import { glyphOf, setGlyph } from "../../src/lib/font/editor/glyph.js"
 import { paint } from "../../src/lib/font/editor/painting.js"
@@ -78,5 +78,17 @@ describe("strokes and undo", () => {
     undo()
     assert.equal(canUndo.value, false)
     assert.equal(glyph.value.rows[0], "0000")
+  })
+
+  test("setting a character to the size it already is leaves no undo step", () => {
+    open()
+    reshapeSelected({ width: 4, above: 0, below: 0 }, "a.width")
+    reshapeSelected({ above: 0 }, "a.above")
+    assert.equal(canUndo.value, false)
+    reshapeSelected({ width: 5 }, "a.width")
+    reshapeSelected({ width: 5 })
+    undo()
+    assert.equal(canUndo.value, false)
+    assert.equal(glyph.value.rows[0].length, 4)
   })
 })
