@@ -1,7 +1,6 @@
 import { DEFAULT_FONT } from "../../lib/settings/defaults.js"
 import { tileableName } from "../../lib/submissions/kinds/tileable.js"
 
-
 export const tileable = {
   file: "PNG",
   line(item, file, text) {

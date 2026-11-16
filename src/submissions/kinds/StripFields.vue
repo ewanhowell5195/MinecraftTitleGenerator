@@ -35,7 +35,7 @@
     defaultFont: { type: String, default: "" }
   })
 
-  const emit = defineEmits(["update:target", "update:details", "problem", "preview"])
+  const emit = defineEmits(["update:target", "update:details", "preview"])
 
   const ctx = props.context ?? submissionContext(props.fonts, path => fetched(path, path))
   const owners = computed(() => stripOwners(props.fonts))

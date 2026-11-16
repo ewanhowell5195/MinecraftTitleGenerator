@@ -11,16 +11,12 @@
   defineOptions({ inheritAttrs: false })
 
   const props = defineProps({
-    fonts: { type: Array, required: true },
-    kind: { type: String, required: true },
     target: { type: String, default: "" },
-    details: { type: Object, required: true },
-    file: { type: Object, default: null },
     problems: { type: Object, required: true },
     tried: { type: Boolean, default: false }
   })
 
-  const emit = defineEmits(["update:target", "update:details"])
+  const emit = defineEmits(["update:target"])
 
   const list = ref(null)
   const loadError = ref("")
@@ -55,7 +51,6 @@
   watch(() => props.target, target => {
     if (target) variant.value = true
   })
-
 </script>
 
 <template>

@@ -14,7 +14,6 @@
 
   const props = defineProps({
     fonts: { type: Array, required: true },
-    kind: { type: String, required: true },
     target: { type: String, default: "" },
     details: { type: Object, required: true },
     url: { type: String, default: null },

@@ -41,7 +41,7 @@
     tried: { type: Boolean, default: false }
   })
 
-  const emit = defineEmits(["update:target", "update:details", "update:files", "problem"])
+  const emit = defineEmits(["update:target", "update:details", "update:files"])
 
   const variant = ref(!!props.target)
   let lastParent = props.target || DEFAULT_FONT
