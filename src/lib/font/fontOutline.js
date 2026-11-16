@@ -83,15 +83,19 @@ export function gridShift(glyph, unit, scale) {
   return (Math.round(left) + (Math.round(width) - width) / 2 - left) / scale
 }
 
+export function ringEdges(rings) {
+  return rings.flatMap(ring => ring.map((point, index) => point.concat(ring[(index + 1) % ring.length])))
+}
+
 function flatEdges(glyph) {
-  const edges = flatten(glyph).flatMap(points => points.map((point, index) => [point, points[(index + 1) % points.length]]))
-  const crossing = edges.map(([a, b]) => [a[0], a[1], b[0], b[1]]).filter(([, y0, , y1]) => y0 !== y1)
+  const edges = ringEdges(flatten(glyph))
+  const crossing = edges.filter(([, y0, , y1]) => y0 !== y1)
   const inside = (x, y) => fillSpans(crossing, y).some(([from, to]) => x >= from && x < to)
-  return edges.filter(([a, b]) => a[1] === b[1] && a[0] !== b[0]).map(([a, b]) => {
-    const middle = (a[0] + b[0]) / 2
-    const below = inside(middle, a[1] - EDGE_PROBE)
-    const above = inside(middle, a[1] + EDGE_PROBE)
-    return { y: Math.round(a[1]), length: Math.abs(b[0] - a[0]), top: below && !above, bottom: above && !below }
+  return edges.filter(([x0, y0, x1, y1]) => y0 === y1 && x0 !== x1).map(([x0, y, x1]) => {
+    const middle = (x0 + x1) / 2
+    const below = inside(middle, y - EDGE_PROBE)
+    const above = inside(middle, y + EDGE_PROBE)
+    return { y: Math.round(y), length: Math.abs(x1 - x0), top: below && !above, bottom: above && !below }
   })
 }
 
@@ -142,7 +146,7 @@ export function fillSpans(edges, y, scale = 1) {
 }
 
 export function rasterise(glyph, scale, shift, base = 0) {
-  const edges = flatten(glyph).flatMap(points => points.map((point, index) => [point, points[(index + 1) % points.length]])).map(([a, b]) => [(a[0] + shift) * scale, (a[1] - base) * scale, (b[0] + shift) * scale, (b[1] - base) * scale]).filter(([, y0, , y1]) => y0 !== y1)
+  const edges = ringEdges(flatten(glyph)).map(([x0, y0, x1, y1]) => [(x0 + shift) * scale, (y0 - base) * scale, (x1 + shift) * scale, (y1 - base) * scale]).filter(([, y0, , y1]) => y0 !== y1)
   if (!edges.length) return null
   const ys = edges.flatMap(edge => [edge[1], edge[3]])
   const minY = Math.floor(lowest(ys))

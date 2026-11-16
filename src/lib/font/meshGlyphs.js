@@ -1,6 +1,6 @@
 import { ClipType, EndType, FillRule, JoinType, PolyTreeD, booleanOpDWithPolyTree, inflatePathsD } from "@countertype/clipper2-ts"
 import { ShapeUtils, Vector2 } from "three"
-import { fillSpans } from "./fontOutline.js"
+import { fillSpans, ringEdges } from "./fontOutline.js"
 import { signedArea } from "../../render/vector/polygons.js"
 
 const PRECISION = 4
@@ -151,7 +151,7 @@ function scanFill(rings, width, height, scale, bottom) {
   const columns = width * scale
   const rows = height * scale
   const mask = new Uint8Array(columns * rows)
-  const edges = rings.flatMap(ring => ring.map((point, index) => point.concat(ring[(index + 1) % ring.length])))
+  const edges = ringEdges(rings)
   for (let row = 0; row < rows; row++) {
     for (const [left, right] of fillSpans(edges, bottom + (row + 0.5) / scale, scale)) {
       const from = Math.max(0, left)
