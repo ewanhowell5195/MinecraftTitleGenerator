@@ -16,7 +16,7 @@ button,
   box-shadow: var(--shadow);
 }
 
-button:where(:not(.button, .field-button)) {
+button:where(:not(.button, .field-button, .link-button)) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -33,20 +33,20 @@ button:where(:not(.button, .field-button)) {
   transition: background var(--duration), color var(--duration), border-color var(--duration), transform 0.08s;
 }
 
-button:where(:not(.button, .field-button)):hover {
+button:where(:not(.button, .field-button, .link-button)):hover {
   background: var(--card-hover);
 }
 
-button:where(:not(.button, .field-button)):active:not(:disabled) {
+button:where(:not(.button, .field-button, .link-button)):active:not(:disabled) {
   transform: translateY(1px);
 }
 
-button:where(:not(.button, .field-button)):disabled {
+button:where(:not(.button, .field-button, .link-button)):disabled {
   opacity: 0.35;
   cursor: not-allowed;
 }
 
-button:where(:not(.button, .field-button)):disabled:hover {
+button:where(:not(.button, .field-button, .link-button)):disabled:hover {
   background: var(--card);
 }
 
@@ -174,36 +174,37 @@ label > input[type="file"] {
   box-shadow: inset 0 0 0 1px var(--danger);
 }
 
-.link-button,
-.field-button,
-.tab-bar .tab-bar-button {
-  box-shadow: none;
-}
-
-.link-button:hover:not(:disabled),
-.field-button:hover:not(:disabled),
-.tab-bar .tab-bar-button:hover:not(:disabled) {
-  filter: none;
-}
-
 .button.icon-only {
   width: var(--control);
   padding: 0;
 }
 
 .link-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   gap: 4px;
-  min-height: 0;
   padding: 0;
   font: inherit;
   color: inherit;
   background: none;
   border: 0;
+  cursor: pointer;
+  transition: color var(--duration), transform 0.08s;
 }
 
 .link-button:hover {
   color: inherit;
   text-decoration: underline;
+}
+
+.link-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.link-button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .empty-state {
@@ -220,6 +221,7 @@ label > input[type="file"] {
   font-weight: 500;
   background: var(--card);
   border: 1px solid transparent;
+  box-shadow: none;
 }
 
 .field-button:hover:not(:disabled) {
@@ -229,7 +231,6 @@ label > input[type="file"] {
 .field-button.active {
   background: var(--card);
   border-color: var(--accent);
-  box-shadow: none;
 }
 
 input[type="checkbox"] {
