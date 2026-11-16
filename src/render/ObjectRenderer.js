@@ -55,7 +55,7 @@ export default {
     const buildError = shallowRef(null)
     const sharp = shallowRef(true)
     const error = computed(() => fontError.value ?? paintError.value ?? buildError.value)
-    const finalShadowed = computed(() => finalShadows.value && !!painted.value && (painted.value.layers ?? [painted.value]).some(({ assets }) => assets.overlays.some(({ layer, source }) => source.generated === "shadow" && layer.opacity > 0)))
+    const finalShadowed = computed(() => finalShadows.value && !!painted.value && shadowed())
     let fontRequest = 0
     let paintRequest = 0
     let painting = false
