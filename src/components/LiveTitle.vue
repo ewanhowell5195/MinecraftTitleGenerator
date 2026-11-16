@@ -1,8 +1,8 @@
 <script setup>
   import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, toRaw, watch } from "vue"
   import * as THREE from "three"
-  import ModelRenderer from "./ModelRenderer.js"
-  import ObjectRenderer from "./ObjectRenderer.js"
+  import ModelRenderer from "../render/ModelRenderer.js"
+  import ObjectRenderer from "../render/ObjectRenderer.js"
   import { readTitleObjects } from "../lib/file.js"
   import { createTitleItems } from "../lib/items.js"
   import { keepMatched } from "../lib/match.js"

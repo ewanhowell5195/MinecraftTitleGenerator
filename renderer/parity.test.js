@@ -128,7 +128,7 @@ describe("node and browser renderers", () => {
 
   async function browserRender(title) {
     const url = await page.evaluate(async title => {
-      const { titleCanvas } = await import("/src/lib/titlePicture.js")
+      const { titleCanvas } = await import("/src/render/titlePicture.js")
       return (await titleCanvas(title))?.toDataURL("image/png") ?? null
     }, title)
     return url && Buffer.from(url.split(",")[1], "base64")
