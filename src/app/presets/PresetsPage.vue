@@ -1,13 +1,14 @@
 <script setup>
   import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, watchEffect } from "vue"
-  import { account, accountChanges, communityPreset, countDownload, listCommunity, managedPresets, ownPresets, presetStats, randomCommunityPreset, refreshAccount, refreshUsage, signInProviders, voteOn } from "../../lib/state/community.js"
+  import { account, accountChanges, countDownload, managedPresets, ownPresets, presetStats, randomCommunityPreset, refreshAccount, refreshUsage, signInProviders, voteOn } from "../../lib/state/community.js"
   import { useWindowEvents } from "../../components/composables/events.js"
   import { titleBody } from "../../lib/link/linkformat.js"
   import { notice, showNotice } from "../../lib/state/notices.js"
-  import { addPreset, deleteSharedPreset, loadPreset, presets, presetsError, presetsLoaded, presetsLoading, removePreset, renamePreset, renameSharedPreset, unmarkShared, unsharePreset } from "../../lib/state/presets.js"
+  import { addPreset, deleteSharedPreset, loadPreset, presets, presetsError, presetsLoading, removePreset, renamePreset, renameSharedPreset, unsharePreset } from "../../lib/state/presets.js"
   import { searchWithUser } from "../../lib/link/presetSearch.js"
-  import { closePresetsPage, leavePresetsForEditor, openLinkInEditor, addressHasFilters, presetsPage, setPresetSearch, setPresetSort, showOwnPreset, showPresetFilters, showPreset, takeLanding } from "../../lib/state/presetsPage.js"
-  import { openSharedLink } from "../../lib/link/share.js"
+  import { closePresetsPage, leavePresetsForEditor, presetsPage, setPresetSearch, setPresetSort, showPresetFilters, showPreset, takeLanding } from "../../lib/state/presetsPage.js"
+  import { rememberTab, startingTab, usePresetAddress } from "./presetAddress.js"
+  import { usePresetPaging } from "./presetPaging.js"
   import AuthorLink from "./AuthorLink.vue"
   import Badge from "../../components/Badge.vue"
   import Button from "../../components/Button.vue"
@@ -16,30 +17,24 @@
   import Dropdown from "../../components/Dropdown.vue"
   import Icon from "../../components/Icon.vue"
   import PresetDetail from "./PresetDetail.vue"
+  import PresetTile from "./PresetTile.vue"
   import Segments from "../../components/Segments.vue"
   import SharePresetDialog from "./SharePresetDialog.vue"
   import ShareUsage from "./ShareUsage.vue"
-  import TitlePicture from "./TitlePicture.vue"
   import TopBar from "../../site/TopBar.vue"
   import { router } from "../../router.js"
 
   const TABS = [{ value: "community", label: "Community" }, { value: "mine", label: "My presets" }]
   const SORTS = [{ value: "week", label: "Popular this week" }, { value: "popular", label: "Popular all time" }, { value: "top", label: "Top rated" }, { value: "new", label: "Newest" }, { value: "needs", label: "Needs votes" }]
-  const SEARCH_DELAY = 500
   const EDITOR_TITLE = "Minecraft Title Generator"
-  const TAB_STORAGE = "minecraft-title-presets-tab"
 
   const landed = takeLanding()
-  const tab = ref(startingTab())
+  const tab = ref(startingTab(landed))
   const sort = computed({ get: () => presetsPage.sort, set: setPresetSort })
   const mineSearch = ref("")
   const search = computed({ get: () => tab.value === "community" ? presetsPage.search : mineSearch.value, set: value => tab.value === "community" ? setPresetSearch(value) : mineSearch.value = value })
-  const results = ref([])
-  const more = ref(false)
-  const loading = ref(false)
-  const error = ref("")
+  const { results, loading, error, sentinel, load, searchNow } = usePresetPaging({ sort, search, active: () => tab.value === "community", loaded: refreshSelection })
   const root = ref(null)
-  const sentinel = ref(null)
   const sharing = ref(null)
   const removing = ref(null)
   const stats = ref({})
@@ -58,57 +53,14 @@
     if (term.value) return "No presets match this search."
     return sort.value === "needs" ? "You have voted on everything that needs votes. Thank you!" : "Nobody has shared a preset yet. Be the first from My presets!"
   })
-  let request = 0
-  let next = 0
-  let searching = null
-  let observer = null
-
-  function storedTab(storage) {
-    return storage.getItem(TAB_STORAGE) === "mine" ? "mine" : "community"
-  }
-
-  function startingTab() {
-    if (presetsPage.code !== null) return "mine"
-    if (addressHasFilters()) return "community"
-    if (!landed) return presetsPage.id === null ? storedTab(localStorage) : "community"
-    return performance.getEntriesByType("navigation")[0]?.type === "reload" ? storedTab(sessionStorage) : "community"
-  }
-
-  function rememberTab(value) {
-    localStorage.setItem(TAB_STORAGE, value)
-    sessionStorage.setItem(TAB_STORAGE, value)
-  }
-
-  async function followOwnShared(id) {
-    await refreshAccount()
-    await presetsLoaded()
-    const own = presets.value.find(preset => preset.shared === id)
-    if (presetsPage.id !== id) return
-    if (own) selectedLocalCode.value = own.code
-    else followAddress()
-  }
+  const { followAddress, followOwnShared } = usePresetAddress({ tab, results, error, selectedCommunity, selectedLocalCode, selectedLocal, clearSelection })
 
   function isMine(preset) {
     return ownPresets.value.includes(preset.id)
   }
 
-  async function load(offset) {
-    const current = ++request
-    loading.value = true
-    error.value = ""
-    try {
-      const page = await listCommunity({ sort: sort.value, search: search.value, offset })
-      if (current !== request) return
-      const listed = new Set(offset ? results.value.map(preset => preset.id) : [])
-      results.value = (offset ? results.value : []).concat(page.presets.filter(preset => !listed.has(preset.id)))
-      more.value = page.more
-      next = page.next
-      if (selectedCommunity.value) selectedCommunity.value = results.value.find(preset => preset.id === selectedCommunity.value.id) ?? selectedCommunity.value
-    } catch (err) {
-      if (current === request) error.value = err.message
-    } finally {
-      if (current === request) loading.value = false
-    }
+  function refreshSelection() {
+    if (selectedCommunity.value) selectedCommunity.value = results.value.find(preset => preset.id === selectedCommunity.value.id) ?? selectedCommunity.value
   }
 
   function selectCommunity(preset) {
@@ -134,52 +86,12 @@
     selectedLocalCode.value = preset.code
   }
 
-  async function followOwnLink(code) {
-    await refreshAccount()
-    await presetsLoaded()
-    if (presetsPage.code !== code) return
-    const own = presets.value.find(preset => titleBody(preset.code) === titleBody(code))
-    if (!own) {
-      openLinkInEditor(code)
-      openSharedLink()
-      return
-    }
-    tab.value = "mine"
-    await nextTick()
-    selectedLocalCode.value = own.code
-  }
-
-  async function followAddress() {
-    const { id, code } = presetsPage
-    if (code !== null) {
-      if (selectedLocal.value?.code !== code) await followOwnLink(code)
-      return
-    }
-    if (id === null) {
-      selectedCommunity.value = null
-      selectedLocalCode.value = null
-      return
-    }
-    if (selectedLocal.value?.shared === id || selectedCommunity.value?.id === id) return
-    tab.value = "community"
-    error.value = ""
-    try {
-      const found = results.value.find(preset => preset.id === id) ?? await communityPreset(id)
-      if (presetsPage.id === id) selectedCommunity.value = found
-    } catch (err) {
-      if (err.status === 404) unmarkShared(id)
-      error.value = err.message
-      clearSelection()
-    }
-  }
-
   async function filterByUser(name, provider) {
     tab.value = "community"
     await nextTick()
     search.value = searchWithUser(search.value, name, provider)
     await nextTick()
-    clearTimeout(searching)
-    load(0)
+    searchNow()
   }
 
   async function loadStats() {
@@ -311,23 +223,11 @@
       if (presetsPage.id !== null) showPreset(null)
     }
   })
-  watch(selectedLocal, (preset, before) => {
-    if (tab.value !== "mine") return
-    if (preset?.shared) showPreset(preset.shared)
-    else if (preset) showOwnPreset(preset.code)
-    else if (before && (presetsPage.id !== null || presetsPage.code !== null)) showPreset(null)
-  })
   watch(sort, () => load(0))
   watch([tab, sharedIds], loadStats, { immediate: true })
   watch(accountChanges, () => {
     if (tab.value === "community") load(0)
   })
-  watch(search, () => {
-    clearTimeout(searching)
-    if (tab.value !== "community") return
-    searching = setTimeout(() => load(0), SEARCH_DELAY)
-  })
-  watch(() => [presetsPage.id, presetsPage.code], followAddress)
   watchEffect(() => {
     const name = tab.value === "community" ? selectedCommunity.value?.name : null
     document.title = `${name ?? "Presets"} | ${EDITOR_TITLE}`
@@ -345,23 +245,10 @@
     rememberTab(tab.value)
     if (landed && tab.value === "mine" && presetsPage.id !== null) followOwnShared(presetsPage.id)
     else followAddress()
-    observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting && tab.value === "community" && more.value && !loading.value) load(next)
-    }, { rootMargin: "300px" })
-    observer.observe(sentinel.value)
-  })
-
-  watch(more, value => {
-    if (value && sentinel.value) {
-      observer.unobserve(sentinel.value)
-      observer.observe(sentinel.value)
-    }
   })
 
   onBeforeUnmount(() => {
     if (router.currentRoute.value.meta.name === "app") document.title = EDITOR_TITLE
-    clearTimeout(searching)
-    observer.disconnect()
   })
 </script>
 
@@ -388,33 +275,27 @@
           <p v-else-if="tab === 'community' ? !results.length && !loading : !localShown.length" class="message empty-state">{{ emptyMessage }}</p>
           <p v-if="tab === 'mine' && !account && signInProviders.length" class="message empty-state">Sign in to keep your presets under your account. The presets saved in this browser, and anything shared from it, move to your account when you do.</p>
           <div v-if="tab === 'community'" class="grid">
-            <div v-for="preset of results" :key="preset.id" class="card" :class="{ selected: selected?.id === preset.id }" @click="selectCommunity(preset)">
-              <TitlePicture :code="preset.code" :fingerprint="preset.fingerprint" @open="selectCommunity(preset)" />
-              <div class="details">
-                <a class="name ellipsis" :href="`/app/presets/${preset.id}`" v-tooltip="preset.name" @click="followed">{{ preset.name }}</a>
-                <span v-if="preset.rating !== null" class="stats">
-                  <span v-tooltip="`From ${preset.votes} votes`"><Icon class="gold" name="star" :size="13" />{{ preset.rating.toFixed(1) }}</span>
-                </span>
-                <Badge v-if="isMine(preset) && !preset.author" tone="accent">Shared by you</Badge>
-                <AuthorLink v-else-if="preset.author" class="author" :class="{ yours: isMine(preset) }" :name="preset.author" :provider="preset.authorProvider" :size="13" @click.stop="filterByUser(preset.author, preset.authorProvider)" />
-              </div>
-            </div>
+            <PresetTile v-for="preset of results" :key="preset.id" :code="preset.code" :fingerprint="preset.fingerprint" :selected="selected?.id === preset.id" @pick="selectCommunity(preset)">
+              <a class="name ellipsis" :href="`/app/presets/${preset.id}`" v-tooltip="preset.name" @click="followed">{{ preset.name }}</a>
+              <span v-if="preset.rating !== null" class="stats">
+                <span v-tooltip="`From ${preset.votes} votes`"><Icon class="gold" name="star" :size="13" />{{ preset.rating.toFixed(1) }}</span>
+              </span>
+              <Badge v-if="isMine(preset) && !preset.author" tone="accent">Shared by you</Badge>
+              <AuthorLink v-else-if="preset.author" class="author" :class="{ yours: isMine(preset) }" :name="preset.author" :provider="preset.authorProvider" :size="13" @click.stop="filterByUser(preset.author, preset.authorProvider)" />
+            </PresetTile>
           </div>
           <template v-else>
             <section v-for="group of localGroups" :key="group.label" class="group">
               <h2>{{ group.label }}</h2>
               <div class="grid">
-                <div v-for="preset of group.presets" :key="preset.code" class="card" :class="{ selected: selectedLocalCode === preset.code }" @click="selectLocal(preset)">
-                  <TitlePicture :code="preset.code" @open="selectLocal(preset)" />
-                  <div class="details">
-                    <strong class="ellipsis" v-tooltip="preset.name">{{ preset.name }}</strong>
-                    <Badge v-if="preset.inBrowser" v-tooltip="'Your account is full, so this is only saved in this browser'">This browser only</Badge>
-                    <span v-if="stats[preset.shared]" class="stats">
-                      <span v-tooltip="'Uses'"><Icon name="download" :size="13" />{{ stats[preset.shared].downloads }}</span>
-                      <span v-if="stats[preset.shared].rating !== null"><Icon class="gold" name="star" :size="13" />{{ stats[preset.shared].rating.toFixed(1) }}</span>
-                    </span>
-                  </div>
-                </div>
+                <PresetTile v-for="preset of group.presets" :key="preset.code" :code="preset.code" :selected="selectedLocalCode === preset.code" @pick="selectLocal(preset)">
+                  <strong class="ellipsis" v-tooltip="preset.name">{{ preset.name }}</strong>
+                  <Badge v-if="preset.inBrowser" v-tooltip="'Your account is full, so this is only saved in this browser'">This browser only</Badge>
+                  <span v-if="stats[preset.shared]" class="stats">
+                    <span v-tooltip="'Uses'"><Icon name="download" :size="13" />{{ stats[preset.shared].downloads }}</span>
+                    <span v-if="stats[preset.shared].rating !== null"><Icon class="gold" name="star" :size="13" />{{ stats[preset.shared].rating.toFixed(1) }}</span>
+                  </span>
+                </PresetTile>
               </div>
             </section>
           </template>
@@ -534,22 +415,6 @@
     font-weight: 700;
     color: inherit;
     text-decoration: none;
-  }
-
-  .card {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    min-width: 0;
-    padding: 8px;
-    font-size: var(--font-sm);
-  }
-
-  .details {
-    display: flex;
-    justify-content: space-between;
-    gap: 8px;
-    min-width: 0;
   }
 
   .stats {
