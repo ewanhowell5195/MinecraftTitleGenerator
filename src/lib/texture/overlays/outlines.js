@@ -155,16 +155,25 @@ export function blockPixels(glyph, kind, settings, scale) {
   return out
 }
 
+function casterOf(glyph) {
+  return glyph?.caster ? { ...glyph, mask: glyph.caster } : null
+}
+
 export function extrusionOutline(glyph, settings, scale) {
   const { width, height, mask, caster } = glyph
-  const columns = width * scale
-  const rows = height * scale
-  const out = new Float32Array(columns * rows)
+  const wide = width * scale
+  const tall = height * scale
+  const out = new Float32Array(wide * tall)
   if (!caster) return out
-  const cell = (sx, sy) => Math.floor(sy / scale) * width + Math.floor(sx / scale)
+  const pad = Math.ceil(settings.thickness) + 1
+  const joined = joinedMask({ ...glyph, mask: caster, previous: casterOf(glyph.previous), next: casterOf(glyph.next) }, pad)
+  const source = joined ?? { ...glyph, mask: caster }
+  const shift = joined ? pad * scale : 0
+  const columns = source.width * scale
+  const rows = source.height * scale
   const dist = new Float32Array(columns * rows).fill(Infinity)
   for (let sy = 0; sy < rows; sy++) {
-    for (let sx = 0; sx < columns; sx++) if (caster[cell(sx, sy)]) dist[sy * columns + sx] = 0
+    for (let sx = 0; sx < columns; sx++) if (source.mask[Math.floor(sy / scale) * source.width + Math.floor(sx / scale)]) dist[sy * columns + sx] = 0
   }
   const get = (sx, sy) => sx >= 0 && sy >= 0 && sx < columns && sy < rows ? dist[sy * columns + sx] : Infinity
   for (let sy = 0; sy < rows; sy++) {
@@ -174,10 +183,10 @@ export function extrusionOutline(glyph, settings, scale) {
     for (let sx = columns - 1; sx >= 0; sx--) dist[sy * columns + sx] = Math.min(dist[sy * columns + sx], get(sx + 1, sy) + 1, get(sx + 1, sy + 1) + 1, get(sx, sy + 1) + 1, get(sx - 1, sy + 1) + 1)
   }
   const reach = settings.thickness * scale
-  for (let sy = 0; sy < rows; sy++) {
-    for (let sx = 0; sx < columns; sx++) {
-      const own = dist[sy * columns + sx]
-      if (mask[cell(sx, sy)] && own > 0 && own <= reach) out[(rows - 1 - sy) * columns + sx] = 1
+  for (let sy = 0; sy < tall; sy++) {
+    for (let sx = 0; sx < wide; sx++) {
+      const own = dist[(sy + shift) * columns + sx + shift]
+      if (mask[Math.floor(sy / scale) * width + Math.floor(sx / scale)] && own > 0 && own <= reach) out[(tall - 1 - sy) * wide + sx] = 1
     }
   }
   return out
