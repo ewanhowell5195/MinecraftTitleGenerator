@@ -164,8 +164,8 @@
       <ReviewPanel v-if="reviewing" :key="item.updatedAt" :item="item" :failed-url="processing?.state === 'failed' ? processing.url : ''" @done="reviewed" />
       <div class="submission-view">
         <div class="preview flow">
-          <component :is="KIND_COMPONENTS[item.kind].Preview" v-model:texture="textureKey" :fonts="fonts" :kind="item.kind" :target="item.target" :details="item.details" :initial="item" :url="submissionFileUrl(item)" :text="text || item.name" />
-          <input v-if="SUBMISSION_KINDS[item.kind].noun !== 'shape'" type="text" v-model="text" :placeholder="item.name" spellcheck="false" aria-label="Preview text">
+          <component :is="KIND_COMPONENTS[item.kind].Preview" v-model:texture="textureKey" :fonts="fonts" :kind="item.kind" :target="item.target" :details="item.details" :initial="item" :url="submissionFileUrl(item)" :text="text || title" />
+          <input v-if="SUBMISSION_KINDS[item.kind].noun !== 'shape'" type="text" v-model="text" :placeholder="title" spellcheck="false" aria-label="Preview text">
         </div>
         <div class="details flow">
           <dl>

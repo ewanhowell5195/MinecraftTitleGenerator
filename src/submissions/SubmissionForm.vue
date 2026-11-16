@@ -52,6 +52,7 @@
   const sentDetails = computed(() => sourced.value && type.value.sourced ? { ...details.value, source: source.value, licence: licence.value } : details.value)
   const name = ref(props.initial?.name ?? prefillName ?? "")
   const shownName = computed(() => submissionTitle({ kind: kind.value, target: target.value, name: name.value.trim() || "…" }, props.fonts))
+  const previewName = computed(() => name.value.trim() ? shownName.value : "Minecraft")
   const credit = ref(props.initial ? authorList(props.initial.credit) : prefillCredit ? authorList(prefillCredit) : account.value ? [account.value.name] : [])
   const notes = ref(props.initial?.notes ?? "")
   const agree = ref(!!props.initial)
@@ -292,9 +293,9 @@
     <Segments v-if="group === 'shape'" v-model="kind" :options="SHAPE_KINDS" label="Kind of shape" :hint="ABOUT[kind]" />
     <div class="stage-area" :class="{ dragging, loaded: fileUrl || chosen }" @dragover.prevent="dragging = true" @dragleave.self="dragging = false" @drop.prevent="drop">
       <template v-if="fileUrl || chosen">
-        <component :is="parts.Preview" v-bind="linked.preview" :fonts="fonts" :kind="kind" :target="target" :details="details" :files="extras" :initial="initial" :url="fileUrl" :text="previewText || name || 'Minecraft'" />
+        <component :is="parts.Preview" v-bind="linked.preview" :fonts="fonts" :kind="kind" :target="target" :details="details" :files="extras" :initial="initial" :url="fileUrl" :text="previewText || previewName" />
         <div class="stage-bar">
-          <input v-if="group !== 'shape'" type="text" v-model="previewText" :placeholder="name || 'Minecraft'" spellcheck="false" aria-label="Preview text">
+          <input v-if="group !== 'shape'" type="text" v-model="previewText" :placeholder="previewName" spellcheck="false" aria-label="Preview text">
           <p v-if="problemInBar && fileProblem && (tried || chosen)" class="hint bad">{{ fileProblem }}</p>
           <Button v-if="initial && kind === 'font' && fileUrl" v-tooltip="'Open this font in the font editor. It replaces the font saved there'" @click="editFont"><template #icon><Icon name="pencil" :size="16" /></template>Edit font</Button>
           <Button file :accept="isImage ? 'image/png' : '.json,application/json'" @change="pick"><template #icon><Icon name="open" :size="16" /></template>

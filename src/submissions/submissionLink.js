@@ -1,4 +1,5 @@
-import { CLIENT_KINDS } from "./kinds/index.js"
+import { CLIENT_KINDS, submissionTitle } from "./kinds/index.js"
+import { loadFontList } from "../lib/font/font.js"
 import { fontDefaults } from "./kinds/preview.js"
 import { fetched } from "../lib/submissions/api.js"
 import { customFontEntry } from "../lib/font/customFonts.js"
@@ -45,10 +46,11 @@ export async function openSubmissionLink() {
   try {
     const item = await submission(id)
     const type = CLIENT_KINDS[item.kind]
-    const own = await type.line(item, await embedded(submissionFileUrl(item)), item.name)
+    const title = submissionTitle(item, await loadFontList())
+    const own = await type.line(item, await embedded(submissionFileUrl(item)), title)
     const line = own.customFont ? { ...own, ...fontDefaults(await customFontEntry(own.customFont)) } : own
     const extra = type.extra?.(item)
-    if (!isPreviewHost(location.hostname) && !await untouchedTitle() && !confirm(`Replace your current title with ${item.name}?`)) return
+    if (!isPreviewHost(location.hostname) && !await untouchedTitle() && !confirm(`Replace your current title with ${title}?`)) return
     openTitleData({ version: FILE_VERSION, lines: [extra ? type.dressed(line, extra, await embedded(submissionExtraUrl(item, extra.key))) : line] })
   } catch (err) {
     fileError.value = `Couldn't open this submission: ${err.message}`
