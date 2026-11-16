@@ -1,5 +1,5 @@
-import { navigate } from "../lib/navigation.js"
-import { WEEK_STATS, titleStats } from "../site/stats.js"
+import { navigate } from "../../lib/navigation.js"
+import { WEEK_STATS, titleStats } from "../stats.js"
 
 const ID_FILTER = "id:"
 

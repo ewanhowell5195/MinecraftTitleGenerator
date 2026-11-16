@@ -1,9 +1,9 @@
 <script setup>
   import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
   import { useRoute } from "vue-router"
-  import BrandLink from "../components/BrandLink.vue"
+  import BrandLink from "./BrandLink.vue"
   import Button from "../components/Button.vue"
-  import TopBar from "../components/TopBar.vue"
+  import TopBar from "./TopBar.vue"
   import { useWindowEvents } from "../lib/events.js"
 
   const LINKS = [{ to: "/app/presets", label: "Presets" }, { to: "/font-editor/", label: "Font editor" }, { to: "/submit/", label: "Submit" }]

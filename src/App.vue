@@ -14,7 +14,7 @@
   import RenderFrame from "./components/RenderFrame.vue"
   import Segments from "./components/Segments.vue"
   import ShareButton from "./components/ShareButton.vue"
-  import TopBar from "./components/TopBar.vue"
+  import TopBar from "./site/TopBar.vue"
   import Viewport from "./components/Viewport.vue"
   import ArcPanel from "./components/panels/ArcPanel.vue"
   import TwistPanel from "./components/panels/TwistPanel.vue"

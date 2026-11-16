@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import fs from "node:fs"
 import { describe, test } from "node:test"
-import { MAX_LETTERS, checkLetters } from "../src/home/baked.js"
+import { MAX_LETTERS, checkLetters } from "../src/site/home/baked.js"
 
 const typing = JSON.parse(fs.readFileSync("public/home/typing.json", "utf8"))
 const MODELS = [{ name: "logo", ...JSON.parse(fs.readFileSync("public/home/logo.json", "utf8")) }].concat(typing.phrases.map(phrase => ({ ...phrase, name: `typing/${phrase.name}` })))

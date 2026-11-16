@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import fs from "node:fs"
 import { describe, test } from "node:test"
-import { PAGES, SITE } from "../src/pages.js"
+import { PAGES, SITE } from "../src/site/pages.js"
 import { sitemap, sitemapXml } from "../src/server/sitemap.js"
 
 describe("pages", () => {

@@ -1,5 +1,5 @@
 <script setup>
-  import { TAGLINE } from "../pages.js"
+  import { TAGLINE } from "./pages.js"
 
   const year = new Date().getFullYear()
 </script>

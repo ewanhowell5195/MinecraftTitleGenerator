@@ -1,7 +1,7 @@
 <script setup>
   import { onBeforeUnmount, onMounted, ref } from "vue"
   import html from "virtual:credits"
-  import { startCredits } from "../credits/credits.js"
+  import { startCredits } from "./credits.js"
 
   const root = ref(null)
   const leaving = new AbortController()

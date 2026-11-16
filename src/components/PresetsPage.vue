@@ -20,7 +20,7 @@
   import SharePresetDialog from "./SharePresetDialog.vue"
   import SubmissionUsage from "./SubmissionUsage.vue"
   import TitlePicture from "./TitlePicture.vue"
-  import TopBar from "./TopBar.vue"
+  import TopBar from "../site/TopBar.vue"
   import { router } from "../router.js"
 
   const TABS = [{ value: "community", label: "Community" }, { value: "mine", label: "My presets" }]

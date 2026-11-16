@@ -3,8 +3,8 @@
   import { account, refreshAccount, signIn, signInProviders, signOut } from "../lib/community.js"
   import { providerLabel } from "../lib/providers.js"
   import { router } from "../router.js"
-  import Icon from "./Icon.vue"
-  import MenuButton from "./MenuButton.vue"
+  import Icon from "../components/Icon.vue"
+  import MenuButton from "../components/MenuButton.vue"
 
   const broken = ref(null)
   const avatar = computed(() => account.value?.avatar && account.value.avatar !== broken.value ? account.value.avatar : null)

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import path from "node:path"
 import { test } from "node:test"
-import { creditsHtml, sourceHtml } from "../src/server/credits.js"
+import { creditsHtml, sourceHtml } from "../src/site/credits/build.js"
 
 test("the credits page builds from the published fonts and textures, splitting shared credits", () => {
   const html = creditsHtml(path.resolve(import.meta.dirname, ".."))

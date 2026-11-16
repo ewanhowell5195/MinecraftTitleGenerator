@@ -4,9 +4,9 @@
   import { dateTime } from "../lib/dates.js"
   import { useWindowEvents } from "../lib/events.js"
   import { clearNotifications, markNotificationsSeen, notifications, submissionPage } from "../lib/submissionsApi.js"
-  import Button from "./Button.vue"
-  import Icon from "./Icon.vue"
-  import Notice from "./Notice.vue"
+  import Button from "../components/Button.vue"
+  import Icon from "../components/Icon.vue"
+  import Notice from "../components/Notice.vue"
 
   const ACTIONS = {
     submitted: "sent",

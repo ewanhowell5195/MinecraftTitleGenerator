@@ -11,7 +11,7 @@
   import Spinner from "../components/Spinner.vue"
   import SiteFooter from "../site/SiteFooter.vue"
   import SiteHeader from "../site/SiteHeader.vue"
-  import TopBar from "../components/TopBar.vue"
+  import TopBar from "../site/TopBar.vue"
   import CharacterList from "./CharacterList.vue"
   import CharacterPanel from "./CharacterPanel.vue"
   import FontPanel from "./FontPanel.vue"

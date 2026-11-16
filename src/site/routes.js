@@ -1,4 +1,4 @@
-import { PAGES } from "../pages.js"
+import { PAGES } from "./pages.js"
 
 export function pageRoutes(components) {
   return PAGES.flatMap(page => page.paths.map((path, index) => ({ path, name: index ? `${page.name}-${index}` : page.name, component: components[page.name], meta: page })))

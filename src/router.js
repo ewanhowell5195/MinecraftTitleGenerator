@@ -1,21 +1,21 @@
 import { nextTick } from "vue"
 import { START_LOCATION, createRouter, createWebHistory } from "vue-router"
 import { navigated, setNavigator } from "./lib/navigation.js"
-import { SITE } from "./pages.js"
+import { SITE } from "./site/pages.js"
 import { pageKey, pageRoutes, routed } from "./site/routes.js"
 
 const CAPTURE_WAIT = 200
 const COMPONENTS = {
-  home: () => import("./pages/HomePage.vue"),
+  home: () => import("./site/home/HomePage.vue"),
   app: () => import("./App.vue"),
   "font-editor": () => import("./fontEditor/FontEditor.vue"),
-  credits: () => import("./pages/CreditsPage.vue"),
+  credits: () => import("./site/credits/CreditsPage.vue"),
   submit: () => import("./submissions/SubmissionsApp.vue"),
   submissions: () => import("./submissions/SubmissionsApp.vue"),
   account: () => import("./submissions/SubmissionsApp.vue"),
-  terms: () => import("./pages/TermsPage.vue"),
-  privacy: () => import("./pages/PrivacyPage.vue"),
-  "not-found": () => import("./pages/NotFound.vue")
+  terms: () => import("./site/legal/TermsPage.vue"),
+  privacy: () => import("./site/legal/PrivacyPage.vue"),
+  "not-found": () => import("./site/NotFound.vue")
 }
 
 export const router = createRouter({

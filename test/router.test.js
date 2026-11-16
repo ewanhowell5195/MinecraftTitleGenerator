@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
 import { createMemoryHistory, createRouter } from "vue-router"
-import { PAGES } from "../src/pages.js"
+import { PAGES } from "../src/site/pages.js"
 import { pageKey, pageRoutes, routed } from "../src/site/routes.js"
 
 const HERE = new URL("https://mctitlegenerator.com/credits/?search=oak")

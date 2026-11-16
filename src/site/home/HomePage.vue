@@ -1,14 +1,14 @@
 <script setup>
   import { onBeforeUnmount, onMounted, ref } from "vue"
   import people from "virtual:people"
-  import { startHero } from "../home/hero.js"
-  import Button from "../components/Button.vue"
-  import { pictureUrl } from "../lib/pictures.js"
-  import Strips from "../home/Strips.vue"
-  import UserName from "../components/UserName.vue"
-  import { startTyping } from "../home/typing.js"
+  import { startHero } from "./hero.js"
+  import Button from "../../components/Button.vue"
+  import { pictureUrl } from "../../lib/pictures.js"
+  import Strips from "./Strips.vue"
+  import UserName from "../../components/UserName.vue"
+  import { startTyping } from "./typing.js"
   import { TAGLINE } from "../pages.js"
-  import { ALL_STATS, WEEK_STATS, titleStats } from "../site/stats.js"
+  import { ALL_STATS, WEEK_STATS, titleStats } from "../stats.js"
 
   const POPULAR_COUNT = 6
   const MAKERS_SHOWN = 30

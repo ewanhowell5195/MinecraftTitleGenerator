@@ -2,8 +2,8 @@ import vue from "@vitejs/plugin-vue"
 import fs from "node:fs"
 import path from "node:path"
 import { defineConfig } from "vite"
-import { PAGES } from "./src/pages.js"
-import { creditPeople, creditsHtml } from "./src/server/credits.js"
+import { PAGES } from "./src/site/pages.js"
+import { creditPeople, creditsHtml } from "./src/site/credits/build.js"
 import { escaped } from "./src/server/http.js"
 import { shareTags, withoutShareTags } from "./src/server/head.js"
 import { linkedCode, linkedTitleDetails, presetDetails } from "./src/server/presets.js"
@@ -16,9 +16,9 @@ const STYLE_SCOPES = {
   "src/style.css": "tool",
   "src/fontEditor/editor.css": "editor",
   "src/submissions/submissions.css": "submissions",
-  "src/home/home.css": "site",
-  "src/legal/legal.css": "site",
-  "src/credits/credits.css": "site"
+  "src/site/home/home.css": "site",
+  "src/site/legal/legal.css": "site",
+  "src/site/credits/credits.css": "site"
 }
 const PRESET_PAGE = /^\/app\/presets(?:\/(\d+))?\/?$/
 const APP_PAGE = /^\/app\/(index\.html)?$/

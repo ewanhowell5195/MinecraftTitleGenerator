@@ -1,4 +1,4 @@
-import { PAGES, SITE } from "../pages.js"
+import { PAGES, SITE } from "../site/pages.js"
 import { cachedAtEdge } from "./http.js"
 
 const SECONDS = 3600

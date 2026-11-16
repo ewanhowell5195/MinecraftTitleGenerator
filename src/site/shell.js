@@ -1,7 +1,7 @@
 import { createMemoryHistory, createRouter } from "vue-router"
 import { escaped } from "../server/http.js"
 import { SHARE_IMAGE, pageImage, shareTags } from "../server/head.js"
-import { PAGES, SITE } from "../pages.js"
+import { PAGES, SITE } from "./pages.js"
 import { pageRoutes } from "./routes.js"
 
 const matcher = createRouter({ history: createMemoryHistory(), routes: pageRoutes(Object.fromEntries(PAGES.map(page => [page.name, {}]))) })

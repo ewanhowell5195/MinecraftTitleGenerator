@@ -9,9 +9,9 @@ import "./controls.css"
 import "./style.css"
 import "./fontEditor/editor.css"
 import "./submissions/submissions.css"
-import "./home/home.css"
-import "./legal/legal.css"
-import "./credits/credits.css"
+import "./site/home/home.css"
+import "./site/legal/legal.css"
+import "./site/credits/credits.css"
 
 followLinks(document)
 createApp(Root).use(router).directive("tooltip", vTooltip).mount("#app")
