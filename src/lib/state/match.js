@@ -5,7 +5,8 @@ import { quietly } from "./history.js"
 import { round } from "../core/maths.js"
 import { editorTitle, words } from "./scene.js"
 import { effectiveScale } from "../settings/settings.js"
-import { frameCamera, lineBounds, placementMatrix, titleFraming } from "../../render/stage.js"
+import { lineBounds, placementMatrix } from "../../render/placement.js"
+import { frameCamera, titleFraming } from "../../render/titleFraming.js"
 
 export const problems = editorTitle.problems
 

@@ -7,7 +7,11 @@ import { quietStorage } from "./helpers/browser.js"
 quietStorage()
 globalThis.devicePixelRatio = 1
 
-const { ORBIT_FOV, UNZOOMED, cornersOf, frameCamera, gizmoPose, keptPan, lineBounds, movedBy, orbitDollied, orbitPanned, orbitStart, orbitTurned, panMatrix, pannedBy, pickEntry, placeOrbit, placementMatrix, rotatedTo, screenExtent, sortEntries, titleFraming, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } = await import("../src/render/stage.js")
+const { pickEntry, sortEntries } = await import("../src/render/stage.js")
+const { gizmoPose, lineBounds, movedBy, placementMatrix, rotatedTo, wordMovedBy, wordPose, wordRotatedTo } = await import("../src/render/placement.js")
+const { cornersOf, frameCamera, titleFraming } = await import("../src/render/titleFraming.js")
+const { UNZOOMED, keptPan, panMatrix, pannedBy, screenExtent, zoomedAt } = await import("../src/render/pan.js")
+const { ORBIT_FOV, orbitDollied, orbitPanned, orbitStart, orbitTurned, placeOrbit } = await import("../src/render/orbit.js")
 
 const BOUNDS = new THREE.Box3(new THREE.Vector3(0, 0, 0), new THREE.Vector3(10, 4, 2))
 const WIDE = new THREE.Box3(new THREE.Vector3(-30, 0, 0), new THREE.Vector3(30, 20, 10))

@@ -11,7 +11,8 @@
   import { FILE_VERSION } from "../lib/settings/upgrades.js"
   import { loadKey } from "../lib/geometry/shapes.js"
   import { createSmoothing } from "./composables/smoothing.js"
-  import { createStage, frameCamera, titleFraming } from "../render/stage.js"
+  import { createStage } from "../render/stage.js"
+  import { frameCamera, titleFraming } from "../render/titleFraming.js"
   import { OFFSCREEN_VIEW, createTitle, firstError } from "../lib/state/title.js"
 
   const NO_TILEABLES = {}

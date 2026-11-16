@@ -1,7 +1,8 @@
 import { reactive } from "vue"
 import * as THREE from "three"
 import { platform } from "../lib/core/platform.js"
-import { cornersOf, createStage, frameCamera } from "../render/stage.js"
+import { createStage } from "../render/stage.js"
+import { cornersOf, frameCamera } from "../render/titleFraming.js"
 
 const SIZE = 128
 const FOV = 8

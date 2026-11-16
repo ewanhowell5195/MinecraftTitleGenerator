@@ -11,7 +11,11 @@
   import { current, currentWord, finalShadows, scene as title, select, setScale, shapingWord } from "../lib/state/scene.js"
   import { TRANSFORM_LIMITS } from "../lib/settings/settings.js"
   import { createSmoothing } from "../components/composables/smoothing.js"
-  import { ORBIT_FOV, UNZOOMED, createStage, frameCamera, gizmoPose, keptPan, lineBounds, movedBy, orbitDollied, orbitPanned, orbitStart, orbitTurned, panMatrix, pannedBy, pickEntry, placeOrbit, rotatedTo, screenExtent, titleFraming, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } from "../render/stage.js"
+  import { createStage, pickEntry } from "../render/stage.js"
+  import { gizmoPose, lineBounds, movedBy, rotatedTo, wordMovedBy, wordPose, wordRotatedTo } from "../render/placement.js"
+  import { frameCamera, titleFraming } from "../render/titleFraming.js"
+  import { UNZOOMED, keptPan, panMatrix, pannedBy, screenExtent, zoomedAt } from "../render/pan.js"
+  import { ORBIT_FOV, orbitDollied, orbitPanned, orbitStart, orbitTurned, placeOrbit } from "../render/orbit.js"
   import { vectorTitle } from "../render/vector/title.js"
   import { FORM_SECTIONS, titleLoads, view, viewport, viewportChanges } from "../lib/state/view.js"
 

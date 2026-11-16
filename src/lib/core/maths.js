@@ -15,6 +15,10 @@ export function round(value, places) {
   return Math.round(value * factor) / factor
 }
 
+export function radians(degrees) {
+  return degrees * Math.PI / 180
+}
+
 export function mostCommon(values) {
   const tally = new Map()
   for (const value of values) tally.set(value, (tally.get(value) ?? 0) + 1)
