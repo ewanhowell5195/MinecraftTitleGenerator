@@ -27,9 +27,9 @@ async function openedSubmission(context, user, { clean, fonts, bytes, files }) {
     env.DB.prepare(`INSERT INTO submissions (id, user_id, kind, target, asset, name, credit, notes, details, file, created_at, updated_at) VALUES (${NEXT_ID}, ${USER_ROW}, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`).bind(user.provider, user.providerId, clean.kind, clean.target, placeholder, clean.name, JSON.stringify(clean.credit), clean.notes, details, file, now, now),
     rememberUser(env, user)
   ])
-  const row = { id: inserted.results[0].id, ...clean, asset: placeholder, details, file, pull: null, ownerName: user.name, ownerProvider: user.provider }
+  const row = { id: inserted.results[0].id, ...clean, asset: placeholder, details, file, pull: null, updatedAt: now, ownerName: user.name, ownerProvider: user.provider }
   try {
-    await onGitHub(() => syncSubmission(context, row, fonts))
+    if (!await onGitHub(() => syncSubmission(context, row, fonts))) throw new Error(`submission ${row.id} changed while it was being opened`)
   } catch (err) {
     await env.DB.prepare("DELETE FROM submissions WHERE id = ? AND pull IS NULL").bind(row.id).run()
     if (!row.pull) await deleteBranch(env, row.id).catch(problem => console.error(problem))
@@ -71,14 +71,9 @@ export const editSubmission = guarded(async context => {
   const file = bytes ? await onGitHub(() => uploadFile(env, bytes)) : row.file
   const changed = { ...row, ...await onGitHub(() => withFiles(env, clean, files)), file, notes: mine ? clean.notes : row.notes }
   if (sameSubmission(row, changed)) return reply(200, { submission: shown(env, row, user) })
-  const claimed = await env.DB.prepare("UPDATE submissions SET updated_at = MAX(?, updated_at + 1) WHERE id = ? AND status = 'open' AND updated_at = ? RETURNING updated_at AS updatedAt").bind(Date.now(), row.id, revision).first()
-  if (!claimed) throw new Refusal(409, CHANGED)
   await onGitHub(async () => {
-    await syncSubmission(context, changed, fonts)
+    if (!await syncSubmission(context, changed, fonts)) throw new Refusal(409, CHANGED)
     await noteEdit(env, changed, user, role)
-  }).catch(async err => {
-    await env.DB.prepare("UPDATE submissions SET updated_at = ? WHERE id = ? AND updated_at = ?").bind(revision, row.id, claimed.updatedAt).run()
-    throw err
   })
   await forgetFresh(context.request, changed)
   await env.DB.batch([

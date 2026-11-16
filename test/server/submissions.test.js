@@ -4,7 +4,7 @@ import fs from "node:fs"
 import { PNG } from "pngjs"
 import { pngOf } from "../helpers/png.js"
 import { REPO, context, details, editForm, hook, signIn } from "../helpers/server.js"
-import { FLAT, LEGENDS, TEXTURES, WIKI, closed, db, edit, form, gh, restore, send, textureServer, waiting } from "../helpers/submissionServer.js"
+import { FLAT, LEGENDS, TEXTURES, WIKI, closed, db, edit, form, gh, holdGitHub, restore, send, textureServer, waiting } from "../helpers/submissionServer.js"
 
 const { accountDetails } = await import("../../src/server/accounts.js")
 const { createSubmission, listSubmissions, submissionDetails, submissionFile, withdrawSubmission } = await import("../../src/server/submissions/index.js")
@@ -573,6 +573,35 @@ describe("the GitHub webhook", () => {
     const list = branchList(id)
     assert.deepEqual(list.textures.gold_bricks.authors, ["Earlier"])
     assert.deepEqual(list.textures.gold_bricks_2, { name: "Gold Bricks", authors: ["Someone"], border: "#3d1f0a" })
+  })
+
+  test("a rebuild that read a submission before an edit leaves the edit alone", async () => {
+    const { cookie, id } = await sent()
+    const hold = holdGitHub((method, url) => method === "GET" && url.endsWith("/pulls/1"))
+    const rebuilding = hook("push", { ref: "refs/heads/main", commits: [{ added: [], modified: [TEXTURES], removed: [] }] })
+    await hold.arrived
+    assert.equal((await edit(cookie, id, { name: "Shiny Gold" })).status, 200)
+    const head = gh.refs.get(`heads/submission/${id}`)
+    hold.release()
+    await rebuilding
+    assert.equal(db.prepare("SELECT name FROM submissions WHERE id = ?").get(id).name, "Shiny Gold")
+    assert.equal(gh.refs.get(`heads/submission/${id}`), head)
+    assert.equal(gh.pulls.get(1).title, "Shiny Gold texture for Minecraft Ten")
+  })
+
+  test("an edit while a rebuild is pushing is refused, then works once it's done", async () => {
+    const { cookie, id } = await sent()
+    const hold = holdGitHub((method, url) => method === "POST" && url.endsWith("/git/commits"))
+    const rebuilding = hook("push", { ref: "refs/heads/main", commits: [{ added: [], modified: [TEXTURES], removed: [] }] })
+    await hold.arrived
+    const during = await edit(cookie, id, { name: "Shiny Gold" })
+    assert.equal(during.status, 409)
+    assert.match(during.error, /changed after you opened it/)
+    hold.release()
+    await rebuilding
+    assert.equal(db.prepare("SELECT name FROM submissions WHERE id = ?").get(id).name, "Gold Bricks")
+    assert.equal((await edit(cookie, id, { name: "Shiny Gold" })).status, 200)
+    assert.equal(gh.pulls.get(1).title, "Shiny Gold texture for Minecraft Ten")
   })
 
   test("leaves submissions alone when main changes elsewhere", async () => {

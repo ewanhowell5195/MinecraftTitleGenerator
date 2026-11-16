@@ -101,6 +101,23 @@ function takenIds(row, details, fonts, open) {
 }
 
 export async function syncSubmission(context, row, fonts, open = null) {
+  const { env } = context
+  const revision = row.updatedAt
+  const claimed = await env.DB.prepare("UPDATE submissions SET updated_at = ? WHERE id = ? AND status = 'open' AND updated_at = ? AND updated_at > 0 RETURNING updated_at AS updatedAt").bind(-(revision + 1), row.id, revision).first()
+  if (!claimed) return false
+  try {
+    await pushSubmission(context, row, fonts, open)
+  } catch (err) {
+    await env.DB.prepare("UPDATE submissions SET updated_at = ? WHERE id = ? AND updated_at = ?").bind(revision, row.id, claimed.updatedAt).run()
+    throw err
+  }
+  const saved = await env.DB.prepare("UPDATE submissions SET kind = ?, target = ?, asset = ?, name = ?, credit = ?, notes = ?, details = ?, file = ?, pull = ?, updated_at = MAX(?, -updated_at) WHERE id = ? AND status = 'open' AND updated_at = ? RETURNING updated_at AS updatedAt").bind(row.kind, row.target, row.asset, row.name, JSON.stringify(row.credit), row.notes, row.details, row.file, row.pull, Date.now(), row.id, claimed.updatedAt).first()
+  if (!saved) return false
+  row.updatedAt = saved.updatedAt
+  return true
+}
+
+async function pushSubmission(context, row, fonts, open) {
   const { env, request } = context
   const type = SERVER_KINDS[row.kind]
   const details = JSON.parse(row.details)
@@ -115,8 +132,6 @@ export async function syncSubmission(context, row, fonts, open = null) {
   const text = pullText(env, new URL(request.url).origin, row, described, written.preview, made.sha)
   if (row.pull) await github(env, `pulls/${row.pull}`, { method: "PATCH", body: text })
   else row.pull = (await github(env, "pulls", { method: "POST", body: { ...text, head: branchOf(row.id), base: BASE, maintainer_can_modify: true } })).number
-  row.updatedAt = Date.now()
-  await env.DB.prepare("UPDATE submissions SET kind = ?, target = ?, asset = ?, name = ?, credit = ?, notes = ?, details = ?, file = ?, pull = ?, updated_at = ? WHERE id = ?").bind(row.kind, row.target, row.asset, row.name, JSON.stringify(row.credit), row.notes, row.details, row.file, row.pull, row.updatedAt, row.id).run()
 }
 
 export async function uploadFile(env, bytes) {

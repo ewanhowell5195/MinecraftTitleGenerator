@@ -32,6 +32,24 @@ export function form(fields = {}, image = pngOf(FLAT.width, FLAT.height)) {
 export const send = (cookie, fields, image) => sendForm(cookie, form(fields, image))
 export const edit = (cookie, id, fields, image = null) => editForm(cookie, id, form(fields, image))
 
+export function holdGitHub(matches) {
+  const handle = gh.handle
+  let held = false
+  let reached
+  let release
+  const arrived = new Promise(resolve => (reached = resolve))
+  const opened = new Promise(resolve => (release = resolve))
+  gh.handle = async (url, options = {}) => {
+    if (!held && matches(options.method ?? "GET", url)) {
+      held = true
+      reached()
+      await opened
+    }
+    return handle(url, options)
+  }
+  return { arrived, release }
+}
+
 export function closed(number, merged, id) {
   return { action: "closed", sender: { login: "ewan" }, pull_request: { number, merged, html_url: `https://github.com/${REPO}/pull/${number}`, head: { ref: `submission/${id}` } } }
 }
