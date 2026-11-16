@@ -1,7 +1,7 @@
 <script setup>
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
-  import SharedStrips from "./SharedStrips.vue"
+  import SharedStrips from "../components/SharedStrips.vue"
   import { downloadFlatTexture, downloadStripTexture, font, previewText as text, update } from "./store.js"
 
   function setStrips(strips, group = null) {

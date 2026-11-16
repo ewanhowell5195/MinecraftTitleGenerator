@@ -87,7 +87,7 @@ function plainStrip(rows, colour) {
 }
 
 async function meshThumbnails(font, mesh, list) {
-  const { stripThumbnail, thumbnailScene } = await import("../fontEditor/stripThumbs.js")
+  const { stripThumbnail, thumbnailScene } = await import("./stripThumbs.js")
   const scene = thumbnailScene(font, mesh)
   if (!scene) return {}
   const rows = stripRows({}, scene.stripRange, scene.depth, scene.capHeight).rows

@@ -1,4 +1,4 @@
-import { forgetEmbedded } from "../lib/submissionLink.js"
+import { forgetEmbedded } from "./submissionLink.js"
 
 export async function pickedFile(file) {
   return { blob: file, bytes: new Uint8Array(await file.arrayBuffer()), url: URL.createObjectURL(file), name: file.name }

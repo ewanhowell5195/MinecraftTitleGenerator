@@ -3,7 +3,7 @@
   import Dropdown from "../../components/Dropdown.vue"
   import LiveTitle from "../../components/LiveTitle.vue"
   import { customFontEntry } from "../../lib/customFonts.js"
-  import { embedded } from "../../lib/submissionLink.js"
+  import { embedded } from "../submissionLink.js"
   import { submissionExtraUrl } from "../../lib/submissionsApi.js"
   import { CLIENT_KINDS } from "./index.js"
   import { fontDefaults, usePreviewLine } from "./preview.js"

@@ -11,7 +11,7 @@
   import { account } from "../lib/community.js"
   import { SUBMISSION_KINDS } from "../lib/submissionKinds/index.js"
   import { publishedTitle } from "../lib/submissionKinds/published.js"
-  import { SUBMISSION_PARAM } from "../lib/submissionLink.js"
+  import { SUBMISSION_PARAM } from "./submissionLink.js"
   import { markNotificationsSeen, notifications, submissionExtraUrl, submissionFileUrl, submissionPage, submissionProcessing, submissionThread, withdrawSubmission } from "../lib/submissionsApi.js"
   import CommentThread from "./CommentThread.vue"
   import { KIND_COMPONENTS } from "./kinds/components.js"

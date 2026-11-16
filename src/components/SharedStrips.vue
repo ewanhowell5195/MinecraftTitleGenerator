@@ -4,15 +4,15 @@
 
 <script setup>
   import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, toRaw, watch } from "vue"
-  import Badge from "../components/Badge.vue"
-  import Button from "../components/Button.vue"
-  import Field from "../components/Field.vue"
-  import LiveTitle from "../components/LiveTitle.vue"
-  import Notice from "../components/Notice.vue"
-  import NumberInput from "../components/NumberInput.vue"
-  import Segments from "../components/Segments.vue"
-  import Tile from "../components/Tile.vue"
-  import TileGrid from "../components/TileGrid.vue"
+  import Badge from "./Badge.vue"
+  import Button from "./Button.vue"
+  import Field from "./Field.vue"
+  import LiveTitle from "./LiveTitle.vue"
+  import Notice from "./Notice.vue"
+  import NumberInput from "./NumberInput.vue"
+  import Segments from "./Segments.vue"
+  import Tile from "./Tile.vue"
+  import TileGrid from "./TileGrid.vue"
   import { image, stripRange } from "../lib/assets.js"
   import { loadFontList, stripsOf } from "../lib/font.js"
   import { characterName, parsedSheet } from "../lib/fontEditor.js"
@@ -20,9 +20,9 @@
   import { loadStats, usage } from "../lib/stats.js"
   import { centredOffset, placedStrips, stripFolder, stripItem, stripPlacements, stripTag, stripUse } from "../lib/strips.js"
   import { layerDepth, nearestOffset, reachProblems, setShape, stripFit } from "../lib/submissionKinds/stripFit.js"
-  import { editorLine, useServedFont } from "./editorLine.js"
-  import { typedNumber } from "./fields.js"
-  import { stripThumbnail, thumbnailScene } from "./stripThumbs.js"
+  import { editorLine, useServedFont } from "../fontEditor/editorLine.js"
+  import { typedNumber } from "../fontEditor/fields.js"
+  import { stripThumbnail, thumbnailScene } from "../lib/stripThumbs.js"
 
   const CHECK_DELAY = 300
   const WORDS = {

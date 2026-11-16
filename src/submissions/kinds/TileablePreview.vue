@@ -5,7 +5,7 @@
   import LiveTitle from "../../components/LiveTitle.vue"
   import { popular } from "../../lib/stats.js"
   import { DEFAULT_FONT } from "../../lib/settings.js"
-  import { embedded } from "../../lib/submissionLink.js"
+  import { embedded } from "../submissionLink.js"
   import { fontThumbnail } from "../../lib/ui.js"
   import { fontDefaults, usePreviewLine } from "./preview.js"
   import { tileable } from "./tileable.js"

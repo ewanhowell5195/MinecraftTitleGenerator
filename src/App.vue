@@ -45,7 +45,7 @@
   import { presetsPage } from "./lib/presetsPage.js"
   import { active, addObject, addShape, currentWord, library, saveError, scene, selection, shapingWord, wordTabs, words } from "./lib/scene.js"
   import { openSharedLink } from "./lib/share.js"
-  import { openSubmissionLink } from "./lib/submissionLink.js"
+  import { openSubmissionLink } from "./submissions/submissionLink.js"
   import { loadStats } from "./lib/stats.js"
   import { SECTIONS, FORM_SECTIONS, view } from "./lib/view.js"
 

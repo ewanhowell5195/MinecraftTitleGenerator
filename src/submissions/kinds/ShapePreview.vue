@@ -6,7 +6,7 @@
   import { titleCase } from "../../lib/names.js"
   import { stripFolder, stripUse } from "../../lib/strips.js"
   import { cleanModel } from "../../lib/submissionKinds/shape.js"
-  import { embedded } from "../../lib/submissionLink.js"
+  import { embedded } from "../submissionLink.js"
   import { submissionExtraUrl, submissionFileUrl } from "../../lib/submissionsApi.js"
   import { useLoaded, usePreviewLine } from "./preview.js"
   import { shapeImage, shapeModel } from "./shape.js"

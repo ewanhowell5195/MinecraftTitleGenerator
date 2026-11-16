@@ -4,7 +4,7 @@
   import Icon from "../../components/Icon.vue"
   import Notice from "../../components/Notice.vue"
   import UploadField from "../../components/UploadField.vue"
-  import SharedStrips from "../../fontEditor/SharedStrips.vue"
+  import SharedStrips from "../../components/SharedStrips.vue"
   import { silhouetteFont } from "../../lib/customFonts.js"
   import { SILHOUETTE_TEXT } from "../../lib/shapes.js"
   import { MODEL_LIMITS, SHAPE_STRIP_LIMITS, SILHOUETTE_LIMITS } from "../../lib/submissionKinds/shape.js"
