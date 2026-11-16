@@ -15,7 +15,8 @@
     mine: { type: Boolean, default: false },
     owned: { type: Boolean, default: false },
     stats: { type: Object, default: null },
-    saved: { type: Boolean, default: false }
+    saved: { type: Boolean, default: false },
+    searched: { type: Boolean, default: false }
   })
 
   const COPY_MESSAGE_TIME = 2000
@@ -90,7 +91,7 @@
       </div>
       <template v-if="figures">
         <PresetRating :rating="figures.rating" :votes="figures.votes" :mine="preset.vote" :own="mine || local" @vote="emit('vote', $event)" />
-        <p class="facts"><span>{{ uses }}</span><span>Shared {{ sharedOn }}</span><span v-if="figures.author" class="author">By <AuthorLink class="strong" :name="figures.author" :provider="figures.authorProvider" @click="emit('user', figures.author, figures.authorProvider)" /></span></p>
+        <p class="facts"><span>{{ uses }}</span><span>Shared {{ sharedOn }}</span><span v-if="figures.author" class="author">By <AuthorLink class="strong" :name="figures.author" :provider="figures.authorProvider" :searched="searched" @click="emit('user', figures.author, figures.authorProvider)" /></span></p>
       </template>
       <div class="actions">
         <Button primary @click="emit('open')">Open in editor</Button>

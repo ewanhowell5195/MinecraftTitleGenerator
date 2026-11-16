@@ -6,7 +6,7 @@
   import { notice, showNotice } from "../../lib/state/notices.js"
   import { addPreset, deleteSharedPreset, loadPreset, presets, presetsError, presetsLoading, removePreset, renamePreset, renameSharedPreset, unsharePreset } from "../../lib/state/presets.js"
   import { askConfirm } from "../../lib/state/confirm.js"
-  import { searchWithUser } from "../../lib/link/presetSearch.js"
+  import { searchWithUser, searchesUser, toggleUserSearch } from "../../lib/link/presetSearch.js"
   import { closePresetsPage, leavePresetsForEditor, presetsPage, setPresetSearch, setPresetSort, showPresetFilters, showPreset, takeLanding } from "../../lib/state/presetsPage.js"
   import { rememberTab, startingTab, usePresetAddress } from "./presetAddress.js"
   import { usePresetPaging } from "./presetPaging.js"
@@ -49,6 +49,7 @@
   const sharedIds = computed(() => presets.value.filter(preset => preset.shared).map(preset => preset.shared).join(","))
   const selectedLocal = computed(() => presets.value.find(preset => preset.code === selectedLocalCode.value) ?? null)
   const selected = computed(() => tab.value === "mine" ? selectedLocal.value : selectedCommunity.value)
+  const authorSearched = computed(() => tab.value === "community" && !!selected.value?.author && searchesUser(presetsPage.search, selected.value.author, selected.value.authorProvider))
   const emptyMessage = computed(() => {
     if (tab.value === "mine") return term.value ? "None of your presets match this search." : "You have no presets yet. Use File > Save preset to save the current title here."
     if (term.value) return "No presets match this search."
@@ -88,9 +89,10 @@
   }
 
   async function filterByUser(name, provider) {
+    const toggling = tab.value === "community"
     tab.value = "community"
     await nextTick()
-    search.value = searchWithUser(search.value, name, provider)
+    search.value = toggling ? toggleUserSearch(search.value, name, provider) : searchWithUser(search.value, name, provider)
     await nextTick()
     searchNow()
   }
@@ -283,7 +285,7 @@
                 <span v-tooltip="`From ${preset.votes} votes`"><Icon class="gold" name="star" :size="13" />{{ preset.rating.toFixed(1) }}</span>
               </span>
               <Badge v-if="isMine(preset) && !preset.author" tone="accent">Shared by you</Badge>
-              <AuthorLink v-else-if="preset.author" class="author" :class="{ yours: isMine(preset) }" :name="preset.author" :provider="preset.authorProvider" :size="13" @click.stop="filterByUser(preset.author, preset.authorProvider)" />
+              <AuthorLink v-else-if="preset.author" class="author" :class="{ yours: isMine(preset) }" :name="preset.author" :provider="preset.authorProvider" :size="13" :searched="searchesUser(presetsPage.search, preset.author, preset.authorProvider)" @click.stop="filterByUser(preset.author, preset.authorProvider)" />
             </PresetTile>
           </div>
           <template v-else>
@@ -305,7 +307,7 @@
           <div ref="sentinel" class="sentinel"></div>
         </div>
       </main>
-      <PresetDetail v-if="selected && tab === 'community'" class="side" :preset="selected" :mine="isMine(selected)" :owned="managedPresets.includes(selected.id)" :saved="saved.has(titleBody(selected.code))" @close="clearSelection" @user="filterByUser" @open="open(selected)" @save="save(selected)" @vote="vote(selected, $event)" @rename="renameCommunity(selected, $event)" @remove="removeCommunity(selected)" />
+      <PresetDetail v-if="selected && tab === 'community'" class="side" :preset="selected" :searched="authorSearched" :mine="isMine(selected)" :owned="managedPresets.includes(selected.id)" :saved="saved.has(titleBody(selected.code))" @close="clearSelection" @user="filterByUser" @open="open(selected)" @save="save(selected)" @vote="vote(selected, $event)" @rename="renameCommunity(selected, $event)" @remove="removeCommunity(selected)" />
       <PresetDetail v-else-if="selected" class="side" :preset="selected" :stats="stats[selected.shared]" local @close="clearSelection" @user="filterByUser" @open="open(selected)" @rename="renameLocal(selected, $event)" @remove="remove(selected)" @share="sharing = selected" @view="viewInCommunity(selected.shared)" />
     </div>
     <SharePresetDialog v-if="sharing" :preset="sharing" @close="sharing = null" @shared="shared" />

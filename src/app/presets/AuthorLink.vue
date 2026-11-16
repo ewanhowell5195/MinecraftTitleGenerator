@@ -5,10 +5,11 @@
   defineProps({
     name: { type: String, required: true },
     provider: { type: String, required: true },
-    size: { type: Number, default: 14 }
+    size: { type: Number, default: 14 },
+    searched: { type: Boolean, default: false }
   })
 </script>
 
 <template>
-  <button type="button" class="link-button" v-tooltip="{ text: `Show presets by ${name} on ${providerLabel(provider)}`, tooltipClass: 'slow' }"><UserName :name="name" :provider="provider" :size="size" /></button>
+  <button type="button" class="link-button" v-tooltip="{ text: searched ? 'Show presets by everyone' : `Show presets by ${name} on ${providerLabel(provider)}`, tooltipClass: 'slow' }"><UserName :name="name" :provider="provider" :size="size" /></button>
 </template>

@@ -18,3 +18,12 @@ export function searchWithUser(search, name, provider) {
   const { prefix } = PROVIDERS.find(({ id }) => id === provider)
   return [parseSearch(search).text, `user:${prefix}:${name}`].filter(Boolean).join(" ")
 }
+
+export function searchesUser(search, name, provider) {
+  const parsed = parseSearch(search)
+  return parsed.user === name.toLowerCase() && (parsed.provider === null || parsed.provider === provider)
+}
+
+export function toggleUserSearch(search, name, provider) {
+  return searchesUser(search, name, provider) ? parseSearch(search).text : searchWithUser(search, name, provider)
+}

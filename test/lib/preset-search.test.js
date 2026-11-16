@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { parseSearch, searchWithUser } from "../../src/lib/link/presetSearch.js"
+import { parseSearch, searchWithUser, searchesUser, toggleUserSearch } from "../../src/lib/link/presetSearch.js"
 
 describe("parseSearch", () => {
   test("plain text has no user", () => {
@@ -54,5 +54,22 @@ describe("searchWithUser", () => {
 
   test("clicking the same user again changes nothing", () => {
     assert.equal(searchWithUser("nether user:d:someone", "someone", "discord"), "nether user:d:someone")
+  })
+})
+
+describe("toggleUserSearch", () => {
+  test("searches for a user who isn't searched yet", () => {
+    assert.equal(toggleUserSearch("nether", "someone", "discord"), "nether user:d:someone")
+    assert.equal(toggleUserSearch("user:g:someone", "someone", "discord"), "user:d:someone")
+  })
+
+  test("clicking the searched user again clears them and keeps the text", () => {
+    assert.equal(toggleUserSearch("nether user:d:someone", "someone", "discord"), "nether")
+    assert.equal(toggleUserSearch("user:d:SomeOne", "someone", "discord"), "")
+  })
+
+  test("a typed user without a provider counts as that user", () => {
+    assert.ok(searchesUser("user:someone", "Someone", "github"))
+    assert.equal(toggleUserSearch("user:someone", "someone", "github"), "")
   })
 })
