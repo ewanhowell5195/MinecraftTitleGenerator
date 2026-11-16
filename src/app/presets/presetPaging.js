@@ -63,5 +63,5 @@ export function usePresetPaging({ sort, search, active, loaded }) {
     observer.disconnect()
   })
 
-  return { results, more, loading, error, sentinel, load, searchNow }
+  return { results, loading, error, sentinel, load, searchNow }
 }

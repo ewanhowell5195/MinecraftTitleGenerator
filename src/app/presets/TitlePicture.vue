@@ -76,5 +76,4 @@
   .picture img {
     display: block;
   }
-
 </style>

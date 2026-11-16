@@ -48,6 +48,7 @@
   function tileableMenu(id, variant = null) {
     return [{ label: "Download tileable", icon: "download", action: () => saveImage(tileableUrl(library.tileables, id, variant), `${variant ?? id}.png`) }]
   }
+
   const tiling = usePanel("tiling")
   const sources = computed(() => {
     if (font.value?.model) return SOURCES.filter(source => source.value === "premade")
@@ -240,7 +241,7 @@
           <Tile v-for="item of foundTextures" :key="`${item.id}/${item.variant ?? ''}`" :label="item.data.name ?? titleCase(item.variant ?? item.id)" :unit="thumbnailHeight(font)" :image="thumbnail(font, item.variant ?? item.id, shownLayer)" :author="item.variant ? credit(item.data, font?.id, library.fonts, item.parent) : credit(item.data, font?.id, library.fonts)" :selected="object.texture === item.id && (object.textureVariant ?? null) === item.variant" :menu="textureMenu(item.variant ?? item.id, item.variant ? { ...item.parent, ...item.data } : item.data)" @pick="setTexture(object, { texture: item.id, textureVariant: item.variant }, { before: list })" />
         </TileGrid>
         <TileGrid v-else class="scroll" :class="{ kept: textureVariants.length }" :style="{ '--least': leastRows(textures) }">
-          <Tile v-for="[id, data] of textures":key="id" :label="label(id, data)" :unit="thumbnailHeight(font)" :image="thumbnail(font, id, shownLayer)" :author="credit(data, font?.id, library.fonts)" :badge="variantBadge(data)" :selected="object.texture === id" :menu="textureMenu(id, data)" @pick="setTexture(object, { texture: id, textureVariant: null }, { before: list })" />
+          <Tile v-for="[id, data] of textures" :key="id" :label="label(id, data)" :unit="thumbnailHeight(font)" :image="thumbnail(font, id, shownLayer)" :author="credit(data, font?.id, library.fonts)" :badge="variantBadge(data)" :selected="object.texture === id" :menu="textureMenu(id, data)" @pick="setTexture(object, { texture: id, textureVariant: null }, { before: list })" />
         </TileGrid>
         <template v-if="textureVariants.length && !searchingTextures">
           <h3>Variants</h3>
@@ -271,7 +272,7 @@
           <Tile v-for="item of foundTileables" :key="`${item.id}/${item.variant ?? ''}`" :label="item.data.name ?? titleCase(item.variant ?? item.id)" aspect="2 / 1" :pattern="tilePreview(library.tileables, item.id, item.variant ?? undefined)" :author="item.data.authors ?? item.parent.authors" :selected="object.tileable === item.id && (object.tileableVariant ?? null) === item.variant" :menu="item.variant ? tileableMenu(item.id, item.variant) : tileableMenu(item.id)" @pick="object.tileable = item.id; object.tileableVariant = item.variant" />
         </TileGrid>
         <TileGrid v-else class="scroll patterns" :class="{ kept: tileableVariants.length }" :style="{ '--least': leastRows(tileables) }">
-          <Tile v-for="[id, data] of tileables":key="id" :label="label(id, data)" aspect="2 / 1" :pattern="tilePreview(library.tileables, id)" :author="data.authors" :badge="variantBadge(data)" :selected="object.tileable === id" :menu="tileableMenu(id)" @pick="object.tileable = id; object.tileableVariant = null" />
+          <Tile v-for="[id, data] of tileables" :key="id" :label="label(id, data)" aspect="2 / 1" :pattern="tilePreview(library.tileables, id)" :author="data.authors" :badge="variantBadge(data)" :selected="object.tileable === id" :menu="tileableMenu(id)" @pick="object.tileable = id; object.tileableVariant = null" />
         </TileGrid>
         <template v-if="tileableVariants.length && !searchingTileables">
           <h3>Variants</h3>
