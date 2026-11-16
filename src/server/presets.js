@@ -22,9 +22,13 @@ const COLUMNS = `id, code, fingerprint, name, text, ${STAT_COLUMNS}`
 // sqlite reuses the rowid of a deleted newest row, which would repoint old links and browsers' vote records
 export const NEXT_ID = "MAX(COALESCE((SELECT MAX(id) FROM presets), 0), COALESCE((SELECT MAX(id) FROM deleted_presets), 0)) + 1"
 const SCORES_RESET = ", downloads = 0, ups = 0, votes = 0, rating = -1"
-const UPS = "(SELECT COUNT(*) FROM preset_votes WHERE preset_id = presets.id AND value = 1)"
-const VOTES = "(SELECT COUNT(*) FROM preset_votes WHERE preset_id = presets.id)"
-export const SCORES_COUNTED = `ups = ${UPS}, votes = ${VOTES}, rating = CASE WHEN ${VOTES} >= ${LIMITS.minVotes} THEN ${UPS} * 5.0 / ${VOTES} ELSE -1 END`
+function scoresCounted(voters = "") {
+  const ups = `(SELECT COUNT(*) FROM preset_votes WHERE preset_id = presets.id AND value = 1${voters})`
+  const votes = `(SELECT COUNT(*) FROM preset_votes WHERE preset_id = presets.id${voters})`
+  return `ups = ${ups}, votes = ${votes}, rating = CASE WHEN ${votes} >= ${LIMITS.minVotes} THEN ${ups} * 5.0 / ${votes} ELSE -1 END`
+}
+
+export const SCORES_COUNTED = scoresCounted()
 
 function titleFingerprint(code) {
   const { lines, camera } = decodeTitle(code)
@@ -252,15 +256,16 @@ export const submitPreset = guarded(async context => {
 export async function presetsForDeletion(env, user, keep) {
   const voter = await accountHash(env, user)
   const owner = [user.provider, user.providerId]
-  const voted = (await env.DB.prepare("SELECT preset_id AS id FROM preset_votes WHERE ip_hash = ?").bind(voter).all()).results.map(row => row.id)
-  const removed = (await env.DB.prepare(`SELECT id FROM presets WHERE user_id = ${USER_ROW}${keep ? " AND shared = 0" : ""}`).bind(...owner).all()).results.map(row => row.id)
+  const theirs = `user_id = ${USER_ROW}${keep ? " AND shared = 0" : ""}`
   const statements = [
+    env.DB.prepare(`UPDATE presets SET ${scoresCounted(" AND ip_hash != ?1")} WHERE id IN (SELECT preset_id FROM preset_votes WHERE ip_hash = ?1) RETURNING id`).bind(voter),
     env.DB.prepare("DELETE FROM preset_votes WHERE ip_hash = ?").bind(voter),
-    env.DB.prepare(`UPDATE presets SET ${SCORES_COUNTED} WHERE id IN (SELECT value FROM json_each(?))`).bind(JSON.stringify(voted)),
-    env.DB.prepare("DELETE FROM account_submissions WHERE account_hash = ?").bind(voter)
-  ].concat(deletingPresets(env, "id IN (SELECT value FROM json_each(?))", JSON.stringify(removed)))
+    env.DB.prepare("DELETE FROM account_submissions WHERE account_hash = ?").bind(voter),
+    env.DB.prepare(`INSERT INTO deleted_presets (id) SELECT id FROM presets WHERE ${theirs} RETURNING id`).bind(...owner),
+    env.DB.prepare(`DELETE FROM presets WHERE ${theirs}`).bind(...owner)
+  ]
   if (keep) statements.push(env.DB.prepare(`UPDATE presets SET user_id = NULL WHERE user_id = ${USER_ROW}`).bind(...owner))
-  return { statements, changed: removed.concat(voted.filter(id => !removed.includes(id))) }
+  return { statements, changed: results => Array.from(new Set(results[0].results.concat(results[3].results).map(row => row.id))) }
 }
 
 export async function forgetCached(request, ...ids) {

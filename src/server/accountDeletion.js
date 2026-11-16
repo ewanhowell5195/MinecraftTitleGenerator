@@ -1,7 +1,7 @@
 import { clearedSession, forgetSessions, requireUser } from "./accounts.js"
 import { Refusal, guarded, jsonBody, reply } from "./http.js"
 import { forgetCached, presetsForDeletion } from "./presets.js"
-import { releaseSubmissions } from "./submissions/index.js"
+import { releaseSubmissions, unhandledSubmission } from "./submissions/index.js"
 
 const MODES = { anonymise: true, remove: false }
 
@@ -13,7 +13,10 @@ export const deleteAccount = guarded(async context => {
   const keep = MODES[mode]
   const submissions = await releaseSubmissions(context, user, keep)
   const { statements, changed } = await presetsForDeletion(env, user, keep)
-  await env.DB.batch(statements.concat(submissions, env.DB.prepare("DELETE FROM users WHERE provider = ? AND provider_id = ?").bind(user.provider, user.providerId), await forgetSessions(env, user)))
-  await forgetCached(request, ...changed)
+  const results = await env.DB.batch(statements.concat(submissions.statements, env.DB.prepare("DELETE FROM users WHERE provider = ? AND provider_id = ?").bind(user.provider, user.providerId), await forgetSessions(env, user))).catch(async err => {
+    if (await unhandledSubmission(env, user, submissions.handled)) throw new Refusal(409, "A submission was sent from your account while it was being deleted. Try again.")
+    throw err
+  })
+  await forgetCached(request, ...changed(results))
   return reply(200, { deleted: true }, { "Set-Cookie": clearedSession() })
 })

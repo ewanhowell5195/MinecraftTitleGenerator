@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, test } from "node:test"
 import assert from "node:assert/strict"
 import { setTimeout as wait } from "node:timers/promises"
-import { context, hook, serverEnv, signIn as signInAs } from "../helpers/server.js"
+import { context, holdQuery, hook, serverEnv, signIn as signInAs } from "../helpers/server.js"
 import { TEXTURES, send } from "../helpers/submissionServer.js"
 
 const { accountDetails } = await import("../../src/server/accounts.js")
@@ -220,4 +220,58 @@ describe("sessions from before an account was deleted", () => {
     assert.equal(rows[0], "recent")
     assert.match(rows[1], /^[0-9a-f]{64}$/)
   })
+})
+
+describe("deleting an account while something else happens on it", () => {
+  function holdDeletion() {
+    return holdQuery(context("/").env, /^DELETE FROM users WHERE provider = \? AND provider_id = \?$/)
+  }
+
+  test("a vote cast meanwhile comes off the preset's count", async () => {
+    const owner = await signIn("1", "leaving")
+    const theirs = await share(await signIn("2", "staying"), "theirs")
+    const hold = holdDeletion()
+    const removing = remove(owner, "remove")
+    await hold.arrived
+    assert.equal((await vote(owner, theirs.id, 1)).status, 200)
+    hold.release()
+    assert.equal((await removing).status, 200)
+    assert.equal(count("SELECT COUNT(*) AS total FROM preset_votes"), 0)
+    assert.equal(count("SELECT votes AS total FROM presets WHERE id = ?", theirs.id), 0)
+  })
+
+  test("a preset shared meanwhile goes with it", async () => {
+    const owner = await signIn("1", "leaving")
+    const hold = holdDeletion()
+    const removing = remove(owner, "remove")
+    await hold.arrived
+    const late = await share(owner, "late")
+    hold.release()
+    assert.equal((await removing).status, 200)
+    assert.equal(count("SELECT COUNT(*) AS total FROM presets"), 0)
+    assert.equal(count("SELECT COUNT(*) AS total FROM deleted_presets WHERE id = ?", late.id), 1)
+    assert.equal(count("SELECT COUNT(*) AS total FROM users"), 0)
+  })
+
+  for (const mode of ["remove", "anonymise"]) {
+    test(`a submission sent meanwhile stops it, and trying again finishes the job (${mode})`, async () => {
+      const owner = await signIn("1", "leaving")
+      await submit(owner)
+      const hold = holdDeletion()
+      const removing = remove(owner, mode)
+      await hold.arrived
+      const late = await submit(owner)
+      hold.release()
+      const refused = await removing
+      assert.equal(refused.status, 409)
+      assert.match((await refused.json()).error, /Try again/)
+      assert.equal(count("SELECT COUNT(*) AS total FROM submissions WHERE id = ? AND user_id IS NOT NULL", late), 1)
+      assert.equal(count("SELECT COUNT(*) AS total FROM users WHERE name = 'leaving'"), 1)
+      assert.equal((await remove(owner, mode)).status, 200)
+      assert.doesNotMatch(gh.pulls.get(2).body, /leaving/)
+      assert.equal(gh.pulls.get(2).state, mode === "remove" ? "closed" : "open")
+      assert.equal(count("SELECT COUNT(*) AS total FROM submissions WHERE user_id IS NOT NULL"), 0)
+      assert.equal(count("SELECT COUNT(*) AS total FROM users"), 0)
+    })
+  }
 })

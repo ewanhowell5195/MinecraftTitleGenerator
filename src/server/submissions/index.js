@@ -102,8 +102,9 @@ export async function releaseSubmissions(context, user, keep) {
   const { env } = context
   const { results } = await env.DB.prepare(`SELECT id, status, pull FROM submissions WHERE user_id = ${USER_ROW}`).bind(user.provider, user.providerId).all()
   const reviewing = await isAdmin(env, user) ? (await env.DB.prepare(`SELECT pull FROM submissions WHERE pull IS NOT NULL AND (user_id IS NULL OR user_id != ${USER_ROW})`).bind(user.provider, user.providerId).all()).results : []
-  const withdrawing = keep ? [] : results.filter(row => row.status === "open")
-  if (withdrawing.length) await env.DB.prepare(`UPDATE submissions SET status = 'withdrawn', updated_at = ? WHERE status = 'open' AND user_id = ${USER_ROW}`).bind(Date.now(), user.provider, user.providerId).run()
+  const open = keep ? [] : results.filter(row => row.status === "open")
+  const withdrawn = open.length ? new Set((await env.DB.prepare("UPDATE submissions SET status = 'withdrawn', updated_at = ? WHERE status = 'open' AND id IN (SELECT value FROM json_each(?)) RETURNING id").bind(Date.now(), JSON.stringify(open.map(row => row.id))).all()).results.map(row => row.id)) : new Set()
+  const withdrawing = open.filter(row => withdrawn.has(row.id))
   try {
     await onGitHub(async () => {
       for (const row of results.filter(item => item.pull)) {
@@ -117,16 +118,24 @@ export async function releaseSubmissions(context, user, keep) {
     if (withdrawing.length) await env.DB.prepare(`UPDATE submissions SET status = 'open' WHERE status = 'withdrawn' AND id IN (SELECT value FROM json_each(?))`).bind(JSON.stringify(withdrawing.map(row => row.id))).run()
     throw err
   }
-  const theirs = `SELECT id FROM submissions WHERE user_id = ${USER_ROW}`
-  const mine = statement => env.DB.prepare(statement).bind(user.provider, user.providerId)
-  return [
-    mine(`DELETE FROM notifications WHERE user_id = ${USER_ROW}`),
-    env.DB.prepare(`UPDATE notifications SET author = '' WHERE author = ? AND submission_id IN (${theirs})`).bind(user.name, user.provider, user.providerId)
-  ].concat(keep ? mine(`UPDATE submissions SET user_id = NULL WHERE user_id = ${USER_ROW}`) : [
-    mine(`DELETE FROM notifications WHERE submission_id IN (${theirs})`),
-    mine(`INSERT OR IGNORE INTO deleted_submissions (id) SELECT id FROM submissions WHERE user_id = ${USER_ROW}`),
-    mine(`DELETE FROM submissions WHERE user_id = ${USER_ROW}`)
-  ])
+  const handled = JSON.stringify(results.map(row => row.id))
+  const theirs = `SELECT id FROM submissions WHERE user_id = ${USER_ROW} AND id IN (SELECT value FROM json_each(?))`
+  const mine = statement => env.DB.prepare(statement).bind(user.provider, user.providerId, handled)
+  return {
+    handled,
+    statements: [
+      env.DB.prepare(`DELETE FROM notifications WHERE user_id = ${USER_ROW}`).bind(user.provider, user.providerId),
+      env.DB.prepare(`UPDATE notifications SET author = '' WHERE author = ? AND submission_id IN (${theirs})`).bind(user.name, user.provider, user.providerId, handled)
+    ].concat(keep ? mine(`UPDATE submissions SET user_id = NULL WHERE id IN (${theirs})`) : [
+      mine(`DELETE FROM notifications WHERE submission_id IN (${theirs})`),
+      mine(`INSERT OR IGNORE INTO deleted_submissions (id) ${theirs}`),
+      mine(`DELETE FROM submissions WHERE id IN (${theirs})`)
+    ])
+  }
+}
+
+export async function unhandledSubmission(env, user, handled) {
+  return !!await env.DB.prepare(`SELECT 1 FROM submissions WHERE user_id = ${USER_ROW} AND id NOT IN (SELECT value FROM json_each(?))`).bind(user.provider, user.providerId, handled).first()
 }
 
 export const listSubmissions = guarded(async context => {
