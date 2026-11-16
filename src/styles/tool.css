@@ -170,6 +170,7 @@ input[type="file"] {
 }
 
 .row > input[type="text"],
+.input-row > input[type="text"],
 .grow {
   flex: 1;
   min-width: 0;
@@ -181,11 +182,6 @@ input[type="file"] {
   gap: 8px;
 }
 
-.input-row > input[type="text"] {
-  flex: 1;
-  min-width: 0;
-}
-
 .input-row > button,
 .input-row > .button,
 .input-row > input {
@@ -194,7 +190,6 @@ input[type="file"] {
 
 .input-row > .icon-only {
   flex: none;
-  height: auto;
 }
 
 .input-row > span {

@@ -41,11 +41,6 @@ button:where(:not(.button, .field-button, .link-button)):active:not(:disabled) {
   transform: translateY(1px);
 }
 
-button:where(:not(.button, .field-button, .link-button)):disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
 button:where(:not(.button, .field-button, .link-button)):disabled:hover {
   background: var(--card);
 }
@@ -89,16 +84,20 @@ button:where(:not(.button, .field-button, .link-button)):disabled:hover {
   transition: none;
 }
 
+button:where(:not(.button, .field-button, .link-button)):disabled,
 .button:disabled,
 .button.disabled,
-.field-button:disabled {
+.field-button:disabled,
+.link-button:disabled,
+input[type="checkbox"]:disabled {
   opacity: 0.35;
   cursor: not-allowed;
 }
 
 .button:focus-visible,
 .field-button:focus-visible,
-label:has(> input[type="file"]:focus-visible) {
+label:has(> input[type="file"]:focus-visible),
+input[type="checkbox"]:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -202,11 +201,6 @@ label > input[type="file"] {
   transform: translateY(1px);
 }
 
-.link-button:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
 .empty-state {
   font-size: var(--font-md);
   line-height: 1.45;
@@ -247,16 +241,6 @@ input[type="checkbox"] {
 input[type="checkbox"]:checked {
   background-color: var(--accent);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230d1a07' stroke-width='3.5' stroke-linecap='square'%3E%3Cpath d='m5 12 5 5 9-10'/%3E%3C/svg%3E");
-}
-
-input[type="checkbox"]:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-input[type="checkbox"]:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
 }
 
 :root {
