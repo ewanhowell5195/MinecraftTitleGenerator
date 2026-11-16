@@ -9,7 +9,7 @@ import { anonymiseComments, cacheKey, cachedThread, forgetFresh, noteEdit } from
 import { readForm } from "./form.js"
 import { emailing, notify } from "./notifications.js"
 import { anonymisePull, closePull, deleteBranch, onGitHub, syncSubmission, uploadFile, withFiles } from "./pulls.js"
-import { MISSING, OWNER, SHOWN, SIGN_IN, claim, findSubmission, ownSubmission, removing, reopen, reviewerOf, shown, withCredit } from "./store.js"
+import { CLOSED, MISSING, OWNER, SHOWN, SIGN_IN, claim, findSubmission, ownSubmission, removing, reopen, reviewerOf, shown, withCredit } from "./store.js"
 
 const LASTING_SECONDS = 31536000
 const NEXT_ID = "MAX(COALESCE((SELECT MAX(id) FROM submissions), 0), COALESCE((SELECT MAX(id) FROM deleted_submissions), 0)) + 1"
@@ -93,13 +93,14 @@ export const withdrawSubmission = guarded(async context => {
   const { env } = context
   const { user, row } = await ownSubmission(context)
   const withdrawn = await claim(env, row.id, "withdrawn")
+  if (!withdrawn) throw new Refusal(409, CLOSED)
   try {
     if (row.pull) await onGitHub(() => closePull(env, row.pull, "Withdrawn by the person who sent it. Reopen this pull request to accept it anyway."))
   } catch (err) {
     await reopen(env, row.id)
     throw err
   }
-  await env.DB.batch(removing(env, row.id).concat(forgetEmail(env, withdrawn?.userId ?? null), forgetUnusedUser(env, user)))
+  await env.DB.batch(removing(env, row.id).concat(forgetEmail(env, withdrawn.userId), forgetUnusedUser(env, user)))
   return reply(200, { id: row.id })
 })
 

@@ -8,6 +8,7 @@ import { branchOf, pullLink } from "./pulls.js"
 
 export const MISSING = "This submission doesn't exist."
 export const SIGN_IN = "Sign in to send submissions."
+export const CLOSED = "This submission has already been reviewed, so it can't be changed."
 const PREVIEW_HOST = "minecrafttitlegenerator.pages.dev"
 export const SHOWN = "id, kind, target, asset, name, credit, notes, details, file, status, pull, created_at AS createdAt, updated_at AS updatedAt"
 export const OWNER = "(SELECT users.provider || ':' || users.provider_id FROM users WHERE users.id = submissions.user_id) AS owner, (SELECT users.name FROM users WHERE users.id = submissions.user_id) AS ownerName, (SELECT users.provider FROM users WHERE users.id = submissions.user_id) AS ownerProvider"
@@ -45,7 +46,7 @@ export async function ownSubmission(context, reviewers = false) {
   const row = await findSubmission(context.env, idParam(context.params, MISSING))
   const mine = row.owner === user.id
   if (!mine && !(reviewers && await isAdmin(context.env, user))) throw new Refusal(404, MISSING)
-  if (row.status !== "open") throw new Refusal(409, "This submission has already been reviewed, so it can't be changed.")
+  if (row.status !== "open") throw new Refusal(409, CLOSED)
   return { user, row, role: mine ? "submitter" : "reviewer" }
 }
 

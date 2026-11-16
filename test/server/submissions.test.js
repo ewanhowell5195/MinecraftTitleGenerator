@@ -437,6 +437,21 @@ describe("a sent submission", () => {
     assert.deepEqual((await (await listNotifications(context("/api/notifications", { cookie }))).json()).notifications, [])
     assert.equal((await edit(cookie, id, { name: "Again" })).status, 404)
   })
+
+  test("isn't withdrawn when it is reviewed while being withdrawn", async () => {
+    const cookie = await signIn()
+    const { id } = await send(cookie)
+    const sending = context(`/api/submissions/${id}`, { method: "DELETE", cookie, params: { id: String(id) } })
+    const prepare = sending.env.DB.prepare
+    sending.env = { ...sending.env, DB: { ...sending.env.DB, prepare: sql => {
+      if (sql.startsWith("UPDATE submissions SET status = ?")) db.prepare("UPDATE submissions SET status = 'published' WHERE id = ?").run(id)
+      return prepare(sql)
+    } } }
+    assert.equal((await withdrawSubmission(sending)).status, 409)
+    assert.equal(gh.pulls.get(1).state, "open")
+    assert.equal(gh.comments.length, 0)
+    assert.equal(db.prepare("SELECT status FROM submissions WHERE id = ?").get(id).status, "published")
+  })
 })
 
 describe("the GitHub webhook", () => {
