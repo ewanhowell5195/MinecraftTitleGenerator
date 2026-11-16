@@ -81,7 +81,7 @@ function shrunk(data, width, height) {
   return view
 }
 
-export function angledView(model, texture, ring = [0, 0, 0]) {
+function angledView(model, texture, ring = [0, 0, 0]) {
   const seen = placed(modelQuads(model, texture)).faces.map(face => ({ face, points: face.points.map(turned), shade: SHADES[sideOf(face)] })).filter(({ points }) => normalOf(points)[2] > 0)
   if (!seen.length) throw new Error("the model has no faces to show")
   const xs = seen.flatMap(({ points }) => points.map(point => point[0]))
