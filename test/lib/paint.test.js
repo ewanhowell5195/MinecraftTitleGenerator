@@ -130,12 +130,19 @@ describe("strip depth", () => {
   })
 
   test("a stretched strip asks for the lowest detail that gives every row the same height", () => {
-    assert.equal(stripDetail({ depth: 22, density: 1 }, 24), 11)
-    assert.equal(stripDetail({ depth: 16, density: 4 }, 24), 2)
-    assert.equal(stripDetail({ depth: 22, density: 1, slice: { size: 0.75 } }, 32), 11)
+    assert.equal(stripDetail({ depth: 16, density: 1 }, 18), 2)
+    assert.equal(stripDetail({ depth: 16, density: 2 }, 24), 1)
+    assert.equal(stripDetail({ depth: 16, density: 1, slice: { size: 0.5 } }, 36), 2)
+  })
+
+  test("a stretched strip never asks for more detail than its own density makes up", () => {
+    assert.equal(stripDetail({ depth: 22, density: 1 }, 24), 4)
+    assert.equal(stripDetail({ depth: 16, density: 4 }, 24), 1)
+    assert.equal(stripDetail({ depth: 22, density: 4 }, 52), 1)
+    assert.equal(stripDetail({ depth: 22, density: 3 }, 52), 2)
   })
 
   test("a stretch no detail evens out asks for the most there is", () => {
-    assert.equal(stripDetail({ depth: 22, density: 1 }, 24.0001), Infinity)
+    assert.equal(stripDetail({ depth: 22, density: 1 }, 24.0001), 4)
   })
 })

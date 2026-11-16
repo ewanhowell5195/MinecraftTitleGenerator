@@ -14,8 +14,7 @@ export function regionDetails(painted, targets, options) {
     const faces = painted.layers ? faceOptions(targets[layer]) : options
     const smooth = assets.overlays.filter(({ layer, source }) => (SMOOTH_KINDS.has(source.generated) || FADE_KINDS.has(source.generated)) && layer.opacity > 0)
     const edgeFaded = assets.edgeOverlays.some(({ layer, generated }) => FADE_KINDS.has(generated) && layer.opacity > 0)
-    const strip = look.source === "strip" ? stripDetail(assets.strip, depth) : 1
-    const base = Number.isFinite(strip) ? strip : MAX_DETAIL
+    const base = look.source === "strip" ? stripDetail(assets.strip, depth) : 1
     const edgeGradient = look.customEdge && look.edgeFill === "gradient"
     const sideWrapped = smooth.some(({ layer }) => layer.sideWrap)
     const cracked = smooth.some(({ source }) => WRAPPED_KINDS.has(source.generated))

@@ -1,10 +1,9 @@
 import { fillPattern, surface } from "../canvas.js"
+import { MAX_DETAIL } from "../atlas/scales.js"
 import { layerCell, layerLeft } from "../../font/flatSheet.js"
 import { remember } from "../../core/maths.js"
 import { MISSING, stripHasRow, stripY } from "../../font/strips.js"
 import { CACHED_OVERLAYS, R, fillRect, into, plain } from "./draw.js"
-
-const MAX_STRIP_DETAIL = 64
 
 const stretchedStrips = new WeakMap()
 
@@ -127,11 +126,12 @@ export function stripDetail(strip, depth) {
   const size = strip.slice ? depth * strip.slice.size : depth
   if (Math.round(size) <= strip.depth) return 1
   const rows = strip.depth * strip.density
-  for (let detail = 1; detail <= MAX_STRIP_DETAIL; detail++) {
+  const most = Math.ceil(MAX_DETAIL / strip.density)
+  for (let detail = 1; detail < most; detail++) {
     const step = size * R * detail / rows
     if (Math.abs(step - Math.round(step)) < 1e-9) return detail
   }
-  return Infinity
+  return most
 }
 
 function stretchRow(ctx, strip, origin, row, rect) {
