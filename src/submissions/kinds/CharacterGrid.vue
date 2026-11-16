@@ -24,6 +24,7 @@
   const drawn = shallowRef(null)
   const sheet = shallowRef(null)
   const problem = shallowRef("")
+  const textureProblem = shallowRef("")
 
   const span = computed(() => {
     if (!drawn.value?.cells.length) return null
@@ -120,6 +121,7 @@
   }, { immediate: true })
 
   watch(() => props.texture, async texture => {
+    textureProblem.value = ""
     if (!texture) {
       sheet.value = null
       return
@@ -128,14 +130,14 @@
       const image = await loadImage(texture.url)
       if (texture === props.texture) sheet.value = { kind: texture.kind, width: image.width, height: image.height, data: pixelsOf(image) }
     } catch (err) {
-      problem.value = `The texture couldn't be loaded: ${err.message}`
+      if (texture === props.texture) textureProblem.value = `The texture couldn't be loaded: ${err.message}`
     }
   }, { immediate: true })
 </script>
 
 <template>
   <div class="flow">
-    <Notice v-if="problem">{{ problem }}</Notice>
+    <Notice v-if="problem || textureProblem">{{ problem || textureProblem }}</Notice>
     <p v-else-if="!drawn" class="hint">Loading the characters...</p>
     <template v-else>
       <p class="hint">{{ drawn.cells.length }} characters.</p>
