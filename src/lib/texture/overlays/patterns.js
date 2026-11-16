@@ -149,14 +149,18 @@ export function waveFill(glyph, settings, scale, fine) {
   const solid = (sx, sy) => fine ? fine[(rows - 1 - sy) * columns + sx] : mask[(height - 1 - Math.floor(sy / scale)) * width + Math.floor(sx / scale)]
   if (!block) {
     const points = wavePoints(Math.min(...corners) - 1, Math.max(...corners) + 1, settings)
+    function surface(x, down) {
+      const at = along(x, down)
+      const index = waveSegment(points, at)
+      return level + waveHeight(settings.waveShape, points[index], points[index + 1], at)
+    }
+    const columnSurface = sin ? null : Array.from({ length: columns }, (_, sx) => surface(glyph.placedX + (sx + 0.5) / scale, middle))
     for (let sy = 0; sy < rows; sy++) {
       const down = capTop + (sy + 0.5) / scale
       for (let sx = 0; sx < columns; sx++) {
         if (!solid(sx, sy)) continue
         const x = glyph.placedX + (sx + 0.5) / scale
-        const at = along(x, down)
-        const index = waveSegment(points, at)
-        out[sy * columns + sx] = clamp((level + waveHeight(settings.waveShape, points[index], points[index + 1], at) - across(x, down)) * scale + 0.5, 0, 1)
+        out[sy * columns + sx] = clamp(((columnSurface ? columnSurface[sx] : surface(x, down)) - across(x, down)) * scale + 0.5, 0, 1)
       }
     }
     return out

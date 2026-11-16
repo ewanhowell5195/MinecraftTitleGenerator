@@ -1,5 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
+import { createHash } from "node:crypto"
 import { GENERATED_EDGE_OVERLAYS, GENERATED_SETTINGS, PLACED_KINDS, generatedSetting, thumbnailLayer, toneKinds, withGenerated } from "../../src/lib/texture/overlays/settings.js"
 import { generatedAlpha } from "../../src/lib/texture/overlays/faces.js"
 import { withFinalShadows } from "../../src/lib/texture/overlays/shadows.js"
@@ -595,6 +596,17 @@ describe("wave", () => {
   test("no pixelation leaves the wave smooth", () => {
     const layer = { level: 50, amplitude: 7, length: 40, randomness: 0 }
     assert.deepEqual(generatedAlpha(solid(60, 40), "wave", { ...layer, pixelation: 0 }, 40, 2), generatedAlpha(solid(60, 40), "wave", layer, 40, 2))
+  })
+
+  test("a smooth wave draws exactly the same unturned, turned over and turned at an angle", () => {
+    const glyph = solid(30, 20, { placedX: 7, lineSpan: [0, 60] })
+    const layer = { randomness: 40, seed: 3, amplitude: 5, length: 17, offset: 3, horizontalOffset: 2, level: 40 }
+    const digest = (angle, waveShape) => createHash("sha1").update(generatedAlpha(glyph, "wave", { ...layer, angle, waveShape }, 20, 3)).digest("hex").slice(0, 16)
+    assert.deepEqual([0, 180, 35].map(angle => ["sine", "square", "triangle"].map(waveShape => digest(angle, waveShape))), [
+      ["e84540fd2500b72c", "99d3d96ff86aaa45", "286ccf9a12e88ecd"],
+      ["2ebb0247ccae57db", "9fb862accd4abcf8", "a9c52e9fbcaf9e88"],
+      ["cb6e720c0ed981c9", "c69a8a00eb7efd68", "67df6fd9e9984e67"]
+    ])
   })
 })
 
