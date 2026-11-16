@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
-import { layoutPages, pageGroups, regionScales } from "../src/lib/texture/atlas.js"
+import { layoutPages, pageGroups } from "../src/lib/texture/atlas/pages.js"
+import { regionScales } from "../src/lib/texture/atlas/scales.js"
 
 function plan(count, width, height, depth) {
   const blocks = Array.from({ length: count }, (_, glyph) => ({ glyph, char: `g${glyph}`, own: { minX: 0, maxX: width, minY: 0, maxY: height, width, height }, rect: { minX: 0, maxY: height }, spaces: 0 }))

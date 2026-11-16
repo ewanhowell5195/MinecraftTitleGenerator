@@ -1,5 +1,5 @@
 import { surface } from "../texture/canvas.js"
-import { adjusted } from "../texture/paint.js"
+import { adjusted } from "../texture/paint/adjust.js"
 import { swatchUvs } from "./build.js"
 import { MINECRAFT_SCALE, MODEL_BASELINE, rotated } from "./shapes.js"
 

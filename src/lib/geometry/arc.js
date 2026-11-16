@@ -4,7 +4,7 @@ import { joinNeighbours } from "./joins.js"
 import { faceDepth } from "../texture/material.js"
 import { remember } from "../core/maths.js"
 import { glyphKey } from "../font/order.js"
-import { idOf } from "../texture/paint.js"
+import { idOf } from "../texture/paint/keys.js"
 
 const GAP = 2
 const CACHED_REMAPS = 32
