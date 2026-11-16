@@ -1,19 +1,26 @@
 import { quietly } from "../lib/state/history.js"
 import { keepTexture, loadedFont } from "../lib/state/scene.js"
 import { defaultBorder, defaultDepth, defaultSpacing, fontFaces } from "../lib/settings/defaults.js"
-import { applyFontFaces } from "../lib/settings/layers.js"
+import { applyFontFaces, isSeparate, layerView } from "../lib/settings/layers.js"
 import { defaultTexture, sameValue, separateForDefaults, setTexture } from "../lib/settings/settings.js"
 
 const loadedFaces = new WeakMap()
+
+function layerViews(object, group) {
+  const count = isSeparate(object, group) ? object.layerSettings.length + 1 : 1
+  return Array.from({ length: count }, (_, layer) => layerView(object, layer, group))
+}
 
 export function applyFontDefaults(object, loaded, textures, before) {
   if (!keepTexture.has(object) && loadedFont.get(object) !== loaded.id) {
     quietly(() => {
       const values = { texture: defaultTexture(textures, object.type), textureVariant: null }
-      const unfitting = object.textureSource === "custom" && !!object.customTexture && object.customTextureMode !== "tileable"
-      if (object.textureSource === "premade" || unfitting) setTexture(object, unfitting ? { ...values, textureSource: "premade" } : values, { before, after: textures })
-      else Object.assign(object, values)
-      object.overlays = object.overlays.filter(layer => layer.source === "file" || textures.overlays[layer.overlay])
+      for (const target of layerViews(object, "texture")) {
+        const unfitting = target.textureSource === "custom" && !!target.customTexture && target.customTextureMode !== "tileable"
+        if (target.textureSource === "premade" || unfitting) setTexture(target, unfitting ? { ...values, textureSource: "premade" } : values, { before, after: textures })
+        else Object.assign(target, values)
+      }
+      for (const target of layerViews(object, "overlays")) target.overlays = target.overlays.filter(layer => layer.source === "file" || textures.overlays[layer.overlay])
       object.spacing = defaultSpacing(object.type, loaded)
       object.depth = defaultDepth(loaded)
       object.border = defaultBorder(object.type, loaded)
