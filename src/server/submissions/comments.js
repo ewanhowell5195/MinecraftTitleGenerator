@@ -2,7 +2,7 @@ import { SUBMISSION_LIMITS } from "../../lib/submissions/submissions.js"
 import { accountKey, isAdmin, requireUser, saveUser } from "../accounts.js"
 import { returnSlot, takeSlot } from "../daily.js"
 import { GitHubError, github } from "../github.js"
-import { Refusal, cachedAtEdge, guarded, idParam, jsonBody, reply } from "../http.js"
+import { Refusal, cachedAtEdge, guarded, idParam, jsonBody, reply, setting } from "../http.js"
 import { emailing, notify } from "./notifications.js"
 import { block, inline, onGitHub } from "./pulls.js"
 import { MISSING, findSubmission } from "./store.js"
@@ -23,7 +23,7 @@ function siteComment(text) {
 }
 
 function fromApp(env, entry) {
-  return !!entry.performed_via_github_app && String(entry.performed_via_github_app.id) === String(env.GITHUB_APP_ID)
+  return !!entry.performed_via_github_app && String(entry.performed_via_github_app.id) === setting(env, "GITHUB_APP_ID")
 }
 
 function fromReviewer(entry) {

@@ -75,7 +75,7 @@ export function rated(row) {
 }
 
 export function accountHash(env, user) {
-  return hashed(`${env.IP_SALT}:${user.id}`)
+  return hashed(`${setting(env, "IP_SALT")}:${user.id}`)
 }
 
 async function submissionCounter(env, user, ip) {
