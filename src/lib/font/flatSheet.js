@@ -35,6 +35,10 @@ export function layerMask(glyph, layer, independent = false) {
   return glyph.depths ? glyph.mask.map((solid, at) => solid && (independent ? glyph.depths[at] === layer : glyph.depths[at] <= layer) ? 1 : 0) : glyph.mask
 }
 
+export function layerGlyph(glyph, layer, independent = false) {
+  return { ...glyph, mask: layerMask(glyph, layer, independent), caster: glyph.depths && layer > 0 ? layerMask(glyph, layer - 1) : null, clips: undefined }
+}
+
 export function layerCell(glyph, layer, independent = false) {
   const mask = layerMask(glyph, layer, independent)
   let low = glyph.height

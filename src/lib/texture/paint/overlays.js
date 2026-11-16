@@ -5,7 +5,7 @@ import { crackList, crackTriangle, crackWrap, wrapTriangles } from "../overlays/
 import { edgeAlpha } from "../overlays/edges.js"
 import { generatedAlpha } from "../overlays/faces.js"
 import { shadowQualityName } from "../overlays/shadows.js"
-import { layerMask } from "../../font/flatSheet.js"
+import { layerGlyph, layerMask } from "../../font/flatSheet.js"
 import { joinNeighbours } from "../../geometry/joins.js"
 import { clamp, remember } from "../../core/maths.js"
 import { WHITE, chosenColours, recolour } from "../overlayColours.js"
@@ -98,7 +98,7 @@ function layeredGlyphs(sheet, band, independent) {
   if (!bands.has(key)) {
     const copies = new Map()
     function own(glyph) {
-      if (!copies.has(glyph)) copies.set(glyph, { ...glyph, mask: glyph.depths ? layerMask(glyph, band, independent) : glyph.mask, caster: glyph.depths && band > 0 ? layerMask(glyph, band - 1) : null, clips: undefined })
+      if (!copies.has(glyph)) copies.set(glyph, layerGlyph(glyph, band, independent))
       return copies.get(glyph)
     }
     const entries = Object.values(sheet.glyphs)

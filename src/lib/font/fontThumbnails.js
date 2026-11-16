@@ -1,6 +1,6 @@
 import { stripLayout, stripRange } from "../texture/assets.js"
 import { rgbOf } from "../core/colour.js"
-import { expandBands, independentLayers, layerLeft, layerMask } from "./flatSheet.js"
+import { expandBands, independentLayers, layerGlyph, layerLeft } from "./flatSheet.js"
 import { sheetLayout, solidMask } from "./font.js"
 import { FADE_KINDS, GENERATED_EDGE_OVERLAYS, SMOOTH_KINDS, thumbnailLayer, toneKinds, withGenerated } from "../texture/overlays/settings.js"
 import { edgeAlpha } from "../texture/overlays/edges.js"
@@ -126,7 +126,7 @@ function exposed(placed, layer, independent) {
 export function layerScene(scene, layer) {
   const copies = new Map()
   function copy(glyph) {
-    if (!copies.has(glyph)) copies.set(glyph, { ...glyph, mask: layerMask(glyph, layer, independentLayers(scene)), caster: glyph.depths && layer > 0 ? layerMask(glyph, layer - 1) : null, depths: new Uint8Array(glyph.mask.length).fill(layer), clips: undefined })
+    if (!copies.has(glyph)) copies.set(glyph, { ...layerGlyph(glyph, layer, independentLayers(scene)), depths: new Uint8Array(glyph.mask.length).fill(layer) })
     return copies.get(glyph)
   }
   const placed = scene.placed.map(item => ({ ...item, glyph: copy(item.glyph) }))
