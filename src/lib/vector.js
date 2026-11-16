@@ -1,6 +1,6 @@
 import { FillRule, difference, intersectD, union, unionD } from "@countertype/clipper2-ts"
 import * as THREE from "three"
-import { packed } from "./colour.js"
+import { hexOfPacked, packed } from "./colour.js"
 import { clamp } from "./maths.js"
 import { SAMPLES, placement, titleShot } from "./render.js"
 import { near, jump, mixed, within, brightness, simplifyStops, colourAlong, colourTotals, analyse, contains, maskOf, BASE } from "./vectorTexture.js"
@@ -49,10 +49,6 @@ function split(points, normal, constant) {
 
 function toViewer(view, point) {
   return view.perspective ? view.eye.clone().sub(point) : view.direction.clone().negate()
-}
-
-function hexOf(colour) {
-  return `#${[colour & 255, colour >> 8 & 255, colour >> 16 & 255].map(value => value.toString(16).padStart(2, "0")).join("")}`
 }
 
 function imageOf(texture, cache) {
@@ -552,7 +548,7 @@ class Output {
         flat = middle
         flats.push(flat)
       }
-      flattened.set(`url(#${entry.id})`, hexOf(flat))
+      flattened.set(`url(#${entry.id})`, hexOfPacked(flat))
       this.gradients.delete(entry.key)
     }
     for (const [from, to] of merged) merged.set(from, flattened.get(to) ?? to)
@@ -565,7 +561,7 @@ class Output {
     return Array.from(this.gradients.values(), ({ id, gradient }) => {
       const { upright, level } = alignment(gradient)
       const line = `x1="${upright ? 0 : tenth(gradient.x1 - left)}" y1="${level ? 0 : tenth(gradient.y1 - top)}" x2="${upright ? 0 : tenth(gradient.x2 - left)}" y2="${level ? 0 : tenth(gradient.y2 - top)}"`
-      const stops = gradient.stops.map(([offset, colour]) => `<stop offset="${offsetOf(offset)}" stop-color="${hexOf(colour)}"/>`).join("")
+      const stops = gradient.stops.map(([offset, colour]) => `<stop offset="${offsetOf(offset)}" stop-color="${hexOfPacked(colour)}"/>`).join("")
       if (owners.has(stops)) return `<linearGradient id="${id}" xlink:href="#${owners.get(stops)}" ${line}/>`
       owners.set(stops, id)
       return `<linearGradient id="${id}" gradientUnits="userSpaceOnUse" ${line}>${stops}</linearGradient>`
@@ -769,7 +765,7 @@ function fillTotals(cache, bandFills) {
   const totals = new Map()
   for (const image of cache.values()) {
     for (const [colour, count] of colourTotals(image)) {
-      const fill = hexOf(colour)
+      const fill = hexOfPacked(colour)
       totals.set(fill, (totals.get(fill) ?? 0) + count)
     }
   }
@@ -826,7 +822,7 @@ export function vectorTitle(scene, camera, size, resolution) {
   }
 
   function bandFill(colour) {
-    const fill = hexOf(colour)
+    const fill = hexOfPacked(colour)
     bandFills.add(fill)
     return fill
   }
@@ -844,7 +840,7 @@ export function vectorTitle(scene, camera, size, resolution) {
   }
 
   function fillFor(model, gradient) {
-    return gradient ? output.fill(gradient) : hexOf(model.stops ? middleOf(model.stops).colour : model.colour)
+    return gradient ? output.fill(gradient) : hexOfPacked(model.stops ? middleOf(model.stops).colour : model.colour)
   }
 
   function fillBase(face, model, rect, pieces, groups, depth) {

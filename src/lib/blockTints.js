@@ -1,3 +1,6 @@
+import { hexOf, hexOfNumber } from "./colour.js"
+import { clamp } from "./maths.js"
+
 const ITEM_FILE = /^assets\/minecraft\/items\/[^/]+\.json$/
 const COLORMAP_SIZE = 256
 
@@ -30,13 +33,9 @@ function resolved(textures, ref, seen = new Set()) {
 }
 
 export function grassColormapPixel(temperature, downfall) {
-  const heat = Math.min(1, Math.max(0, temperature))
-  const rain = Math.min(1, Math.max(0, downfall)) * heat
+  const heat = clamp(temperature, 0, 1)
+  const rain = clamp(downfall, 0, 1) * heat
   return { x: Math.floor((1 - heat) * (COLORMAP_SIZE - 1)), y: Math.floor((1 - rain) * (COLORMAP_SIZE - 1)) }
-}
-
-function hex(rgb) {
-  return `#${rgb.map(value => value.toString(16).padStart(2, "0")).join("")}`
 }
 
 export async function blockTints(paths, readJson, grassColour) {
@@ -58,8 +57,8 @@ export async function blockTints(paths, readJson, grassColour) {
 
   async function colour(tint) {
     const type = typeOf(tint)
-    if (type === "constant") return hex([tint.value >> 16 & 255, tint.value >> 8 & 255, tint.value & 255])
-    if (type === "grass") return hex(await grassColour(tint.temperature, tint.downfall))
+    if (type === "constant") return hexOfNumber(tint.value)
+    if (type === "grass") return hexOf(await grassColour(tint.temperature, tint.downfall))
     return null
   }
 

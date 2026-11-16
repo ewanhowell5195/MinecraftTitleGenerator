@@ -48,7 +48,7 @@
   const hasCreeper = computed(() => !!font.value?.glyphs["\u{1F633}"])
   const entry = computed(() => library.fonts.find(item => item.id === object.value.font))
   const baseId = computed(() => entry.value?.variant ?? object.value.font)
-  const baseFonts = computed(() => popular(library.fonts.filter(item => !item.variant), item => item.id, item => item.name, ["minecraft-ten"]))
+  const baseFonts = computed(() => popular(library.fonts.filter(item => !item.variant), item => item.id, item => item.name, [DEFAULT_FONT]))
   const variants = computed(() => popular(library.fonts.filter(item => item.variant === baseId.value), item => item.id, item => item.name))
   const search = ref("")
   const { picker, floor } = usePickFloor(() => [tab.value, variants.value.length, search.value])

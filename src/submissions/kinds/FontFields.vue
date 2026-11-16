@@ -16,12 +16,12 @@
   import { STRIP_LIMITS, stripHeights as heightsOf, stripSnap } from "../../lib/submissionKinds/stripFit.js"
   import { ownFont, submittedFont } from "../../lib/submissionKinds/fontBuild.js"
   import { SUBMISSION_LIMITS, pngProblem } from "../../lib/submissions.js"
+  import { DEFAULT_FONT } from "../../lib/settings.js"
   import { submissionExtraUrl } from "../../lib/submissionsApi.js"
   import { fontThumbnail } from "../../lib/ui.js"
   import { pngUrl } from "../../lib/virtualFiles.js"
   import { pickedFile } from "../files.js"
 
-  const DEFAULT_PARENT = "minecraft-ten"
   const NEW_EXAMPLES = ["f8thful", "block-serif", "minecraft-earth"]
   const MODES = [{ value: "new", label: "A new font" }, { value: "variant", label: "A variant" }]
   const KIND_LABELS = { flat: "Flat texture", texture: "Texture", overlay: "Overlay", strip: "Strip" }
@@ -44,9 +44,9 @@
   const emit = defineEmits(["update:target", "update:details", "update:files", "problem"])
 
   const variant = ref(!!props.target)
-  let lastParent = props.target || DEFAULT_PARENT
+  let lastParent = props.target || DEFAULT_FONT
 
-  const parents = computed(() => popular(fontParents(props.fonts), font => font.id, font => font.name, [DEFAULT_PARENT]).map(font => ({ value: font.id, label: font.name, image: fontThumbnail(props.fonts, font.id) })))
+  const parents = computed(() => popular(fontParents(props.fonts), font => font.id, font => font.name, [DEFAULT_FONT]).map(font => ({ value: font.id, label: font.name, image: fontThumbnail(props.fonts, font.id) })))
   const extras = computed(() => Array.isArray(props.details.extras) ? props.details.extras : [])
   const addable = computed(() => EXTRA_KINDS.filter(kind => kind !== "flat" || !extras.value.some(item => item.kind === "flat")))
   const newExamples = computed(() => NEW_EXAMPLES.map(id => props.fonts.find(font => font.id === id && !font.variant)?.name).filter(Boolean))

@@ -1,3 +1,4 @@
+import { hexOfNumber } from "./colour.js"
 import { titleCase } from "./names.js"
 
 const NAMES = { using_item: "Using", broken: "Broken", "fishing_rod/cast": "Cast", "bundle/has_selected_item": "Item selected", lodestone_tracker: "Lodestone", dyed_color: "Dyed", trim_material: "Trim", charge_type: "Loaded", use_duration: "Pull", "crossbow/pull": "Pull", use_cycle: "Brushing", compass: "Angle", time: "Time", context_dimension: "Dimension", local_time: "Date" }
@@ -19,10 +20,6 @@ function valueLabel(value) {
 
 function modelName(def) {
   return bare(def?.type) === "model" ? titleCase(bare(def.model).split("/").at(-1)) : null
-}
-
-function hexOf(colour) {
-  return `#${((colour >>> 0) & 0xffffff).toString(16).padStart(6, "0")}`
 }
 
 function getPath(components, path) {
@@ -98,7 +95,7 @@ function walkDefinition(definition, components, potions, all) {
       const type = bare(tint.type)
       if (type === "dye") {
         const access = pathAccess(["dyed_color"])
-        add({ key: "dye", type: "colour", label: "Dye colour", keys: access.keys, value: access.get(components) ?? hexOf(tint.default ?? 0), choose: value => access.set(components, value) })
+        add({ key: "dye", type: "colour", label: "Dye colour", keys: access.keys, value: access.get(components) ?? hexOfNumber(tint.default ?? 0), choose: value => access.set(components, value) })
       } else if (type === "potion" && potions.length) {
         const access = pathAccess(["potion_contents", "potion"])
         const options = [{ value: 0, label: "Water" }].concat(potions.map((id, index) => ({ value: index + 1, label: titleCase(id) })))

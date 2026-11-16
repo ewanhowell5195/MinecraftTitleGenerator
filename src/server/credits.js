@@ -5,12 +5,11 @@ import { basedOnParts } from "../lib/credits.js"
 import { flattenFonts, fontFolder, fullName, linkText } from "../lib/font.js"
 import { encodeTitle } from "../lib/linkformat.js"
 import { titleCase } from "../lib/names.js"
-import { FILE_VERSION, overlayLayer } from "../lib/settings.js"
+import { DEFAULT_FONT, FILE_VERSION, overlayLayer } from "../lib/settings.js"
 import { stripUse } from "../lib/strips.js"
 import { escaped } from "./http.js"
 
 const STRIPS = "strips."
-const PREVIEW_FONT = "minecraft-ten"
 const KINDS = { font: ["font", "fonts"], texture: ["texture", "textures"], overlay: ["overlay", "overlays"], tileable: ["tileable", "tileables"], shape: ["shape", "shapes"] }
 const LIBRARIES = [
   { name: "three.js", url: "https://github.com/mrdoob/three.js", by: "mrdoob", licence: "MIT" },
@@ -121,9 +120,9 @@ function peopleOf(root) {
 
   for (const [id, tileable] of Object.entries(tileables)) {
     const stats = [`tileable.${id}`]
-    if (!byMojang(tileable.authors)) add(tileable, { kind: "tileable", name: tileable.name ?? titleCase(id), image: `tileables/${tileable.path ?? "minecraft"}/${id}.png`, where: "Tileable texture", stats, id: `tileable.${id}`, line: { font: PREVIEW_FONT, textureSource: "tileable", tileableSource: "premade", tileable: id } })
+    if (!byMojang(tileable.authors)) add(tileable, { kind: "tileable", name: tileable.name ?? titleCase(id), image: `tileables/${tileable.path ?? "minecraft"}/${id}.png`, where: "Tileable texture", stats, id: `tileable.${id}`, line: { font: DEFAULT_FONT, textureSource: "tileable", tileableSource: "premade", tileable: id } })
     for (const [variantId, variant] of Object.entries(tileable.variants ?? {})) {
-      if (!byMojang(variant.authors)) add(variant, { kind: "tileable", name: variant.name ?? titleCase(variantId), image: `tileables/${variant.path ?? tileable.path ?? "minecraft"}/${variantId}.png`, where: "Tileable texture", stats: [], id: `tileable.${variantId}`, line: { font: PREVIEW_FONT, textureSource: "tileable", tileableSource: "premade", tileable: id, tileableVariant: variantId } })
+      if (!byMojang(variant.authors)) add(variant, { kind: "tileable", name: variant.name ?? titleCase(variantId), image: `tileables/${variant.path ?? tileable.path ?? "minecraft"}/${variantId}.png`, where: "Tileable texture", stats: [], id: `tileable.${variantId}`, line: { font: DEFAULT_FONT, textureSource: "tileable", tileableSource: "premade", tileable: id, tileableVariant: variantId } })
     }
   }
 

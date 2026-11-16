@@ -11,12 +11,12 @@
   import { popular } from "../../lib/stats.js"
   import { texturesList } from "../../lib/submissionKinds/fontAsset.js"
   import { submissionContext } from "../../lib/submissionKinds/index.js"
+  import { DEFAULT_FONT } from "../../lib/settings.js"
   import { STRIP_LIMITS, fitOffset, fitProblems, fontMeasure, heightList, setIdOf, setIds, setName, setUsers, sharedHeights, stripOwners, stripSnap, stripTarget, targetRows } from "../../lib/submissionKinds/stripFit.js"
   import { SUBMISSION_LIMITS, pngProblem } from "../../lib/submissions.js"
   import { fontThumbnail } from "../../lib/ui.js"
   import VariantOf from "./VariantOf.vue"
 
-  const DEFAULT_FONT = "minecraft-ten"
   const DEFAULT_SET = "minecraft-ten"
   const NEW_SHAPE = { depth: 22, baseline: 30, height: 40 }
   const MODES = [{ value: "set", label: "Strip type" }, { value: "font", label: "Font" }, { value: "new", label: "New strip type" }]

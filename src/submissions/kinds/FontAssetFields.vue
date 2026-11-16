@@ -8,7 +8,7 @@
   import Toggle from "../../components/Toggle.vue"
   import { fetched } from "../../lib/api.js"
   import { fontFolder, fullName } from "../../lib/font.js"
-  import { FACE_PANELS, fontFaces, overlayLayer } from "../../lib/settings.js"
+  import { DEFAULT_FONT, FACE_PANELS, fontFaces, overlayLayer } from "../../lib/settings.js"
   import { popular } from "../../lib/stats.js"
   import { DEFAULT_OVERLAY_LIMIT, fontLayerCount, fontOwners, overlayChoices, texturesList } from "../../lib/submissionKinds/fontAsset.js"
   import { submissionContext } from "../../lib/submissionKinds/index.js"
@@ -17,7 +17,6 @@
   import { detectFont } from "./detectFont.js"
   import VariantOf from "./VariantOf.vue"
 
-  const DEFAULT_FONT = "minecraft-ten"
 
   defineOptions({ inheritAttrs: false })
 

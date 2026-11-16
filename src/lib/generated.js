@@ -351,7 +351,7 @@ function waveStairs(points, shape, block) {
 }
 
 function cleanBlocks(grid, across, down) {
-  const at = (x, y) => grid[Math.min(down - 1, Math.max(0, y)) * across + Math.min(across - 1, Math.max(0, x))]
+  const at = (x, y) => grid[clamp(y, 0, down - 1) * across + clamp(x, 0, across - 1)]
   return grid.map((value, index) => {
     const x = index % across
     const y = Math.floor(index / across)

@@ -4,10 +4,11 @@
   import { fullName } from "../../lib/font.js"
   import LiveTitle from "../../components/LiveTitle.vue"
   import { popular } from "../../lib/stats.js"
+  import { DEFAULT_FONT } from "../../lib/settings.js"
   import { embedded } from "../../lib/submissionLink.js"
   import { fontThumbnail } from "../../lib/ui.js"
   import { fontDefaults, usePreviewLine } from "./preview.js"
-  import { TILEABLE_PREVIEW_FONT, tileable } from "./tileable.js"
+  import { tileable } from "./tileable.js"
 
   defineOptions({ inheritAttrs: false })
 
@@ -20,10 +21,10 @@
     text: { type: String, required: true }
   })
 
-  const font = ref(TILEABLE_PREVIEW_FONT)
+  const font = ref(DEFAULT_FONT)
 
   const usable = computed(() => props.fonts.filter(entry => !entry.mesh))
-  const options = computed(() => popular(usable.value, entry => entry.id, entry => fullName(entry, props.fonts), [TILEABLE_PREVIEW_FONT]).map(entry => ({ value: entry.id, label: fullName(entry, props.fonts), image: fontThumbnail(props.fonts, entry.id) })))
+  const options = computed(() => popular(usable.value, entry => entry.id, entry => fullName(entry, props.fonts), [DEFAULT_FONT]).map(entry => ({ value: entry.id, label: fullName(entry, props.fonts), image: fontThumbnail(props.fonts, entry.id) })))
 
   watch(usable, fonts => {
     if (!fonts.some(entry => entry.id === font.value)) font.value = fonts[0]?.id ?? ""

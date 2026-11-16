@@ -3,7 +3,7 @@ import { independentLayers, layerMask, stripLimits } from "./flatSheet.js"
 import { clippedBoxes } from "./joins.js"
 import { SPACE } from "./layout.js"
 import { REGION_KINDS, detailOf, finishAtlas, layoutPages, pageGroups, planAtlas, regionScales } from "./atlas.js"
-import { remember } from "./maths.js"
+import { clamp, remember } from "./maths.js"
 import { baseChar } from "./order.js"
 
 const EDGE_SHARE = 0.1
@@ -41,7 +41,7 @@ function gentleAt(contours, x, y) {
       const [x1, y1] = points[(i + 1) % points.length]
       const dx = x1 - x0
       const dy = y1 - y0
-      const t = dx || dy ? Math.max(0, Math.min(1, ((x - x0) * dx + (y - y0) * dy) / (dx * dx + dy * dy))) : 0
+      const t = dx || dy ? clamp(((x - x0) * dx + (y - y0) * dy) / (dx * dx + dy * dy), 0, 1) : 0
       const distance = Math.hypot(x0 + t * dx - x, y0 + t * dy - y)
       if (distance >= nearest) continue
       nearest = distance
@@ -53,7 +53,7 @@ function gentleAt(contours, x, y) {
 
 function sourceRow(glyph, original, row) {
   const map = glyph.arc?.map
-  return original.bottom + (map ? map[Math.max(0, Math.min(map.length - 1, row))] : row)
+  return original.bottom + (map ? map[clamp(row, 0, map.length - 1)] : row)
 }
 
 function stripFaces(body, glyph, original, capHeight) {

@@ -12,8 +12,8 @@ export { CREEPER }
 
 export const SPACE_CHAR = " "
 export const DEFAULT_SPACE_WIDTH = 8
-export const DEFAULT_DEPTH = 22
-export const DEFAULT_BORDER = 2
+export const DEFAULT_DEPTH = defaultDepth(null)
+export const DEFAULT_BORDER = defaultBorder("top", null)
 export const REQUIRED_CHARACTERS = Array.from(DEFAULT_ORDER).filter(char => char !== CREEPER)
 export const ALWAYS_REQUIRED = [TERMINATOR_OPEN, TERMINATOR_CLOSE]
 

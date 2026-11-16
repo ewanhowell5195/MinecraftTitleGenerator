@@ -3,11 +3,11 @@
   import { useRoute } from "vue-router"
   import { encodeTitle } from "../lib/linkformat.js"
   import { pictureUrl } from "../lib/pictures.js"
-  import { FILE_VERSION } from "../lib/settings.js"
+  import { DEFAULT_FONT, FILE_VERSION } from "../lib/settings.js"
   import Button from "../components/Button.vue"
 
   const route = useRoute()
-  const code = encodeTitle({ version: FILE_VERSION, lines: [{ text: "404", font: "minecraft-ten", textureSource: "premade", texture: "smooth" }] }).code
+  const code = encodeTitle({ version: FILE_VERSION, lines: [{ text: "404", font: DEFAULT_FONT, textureSource: "premade", texture: "smooth" }] }).code
   const failed = ref(false)
 </script>
 
