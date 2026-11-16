@@ -325,13 +325,6 @@ export function writeLines(lines, camera = null) {
   return new Uint8Array(out)
 }
 
-export function readLines(bytes) {
-  const reader = { bytes, at: 0 }
-  const lines = OBJECTS.read(reader)
-  if (reader.at !== bytes.length) throw new Error("the link has extra data on the end")
-  return lines
-}
-
 export function readTitleBytes(bytes) {
   const reader = { bytes, at: 0 }
   const lines = OBJECTS.read(reader)

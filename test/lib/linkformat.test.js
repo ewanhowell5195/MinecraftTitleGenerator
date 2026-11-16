@@ -3,7 +3,7 @@ import fs from "node:fs"
 import { describe, test } from "node:test"
 import { GENERATED_SETTINGS } from "../../src/lib/texture/overlays/settings.js"
 import { decodeTitle, encodeTitle, openableTitle, titleBody } from "../../src/lib/link/linkformat.js"
-import { readLines, unknownSetting, writeLines } from "../../src/lib/link/linkKeys.js"
+import { readTitleBytes, unknownSetting, writeLines } from "../../src/lib/link/linkKeys.js"
 import { UPLOAD_KEYS } from "../../src/lib/link/uploads.js"
 import { typeDefaults } from "../../src/lib/settings/defaults.js"
 import { LAYER } from "../../src/lib/settings/settings.js"
@@ -12,7 +12,7 @@ import { FILE_VERSION } from "../../src/lib/settings/upgrades.js"
 const fixtures = JSON.parse(fs.readFileSync(new URL("../fixtures/links.json", import.meta.url), "utf8"))
 
 function roundTrip(lines) {
-  return readLines(writeLines(lines))
+  return readTitleBytes(writeLines(lines)).lines
 }
 
 function isCompact(key, value) {
@@ -318,28 +318,28 @@ describe("damaged links", () => {
   test("every cut off length is rejected", () => {
     const bytes = writeLines(decodeTitle(code).lines)
     for (let length = 0; length < bytes.length; length++) {
-      assert.throws(() => readLines(bytes.subarray(0, length)))
+      assert.throws(() => readTitleBytes(bytes.subarray(0, length)))
     }
   })
 
   test("extra data is rejected", () => {
-    assert.throws(() => readLines(new Uint8Array(Array.from(writeLines([{}])).concat(0))))
+    assert.throws(() => readTitleBytes(new Uint8Array(Array.from(writeLines([{}])).concat(0, 0))))
   })
 
   test("an unknown setting id is rejected", () => {
-    assert.throws(() => readLines(new Uint8Array([1, 1, 254, 127])))
+    assert.throws(() => readTitleBytes(new Uint8Array([1, 1, 254, 127])))
   })
 
   test("an unknown choice is rejected", () => {
-    assert.throws(() => readLines(new Uint8Array([1, 1, 6, 99])))
+    assert.throws(() => readTitleBytes(new Uint8Array([1, 1, 6, 99])))
   })
 
   test("broken text is rejected", () => {
-    assert.throws(() => readLines(new Uint8Array([1, 1, 2, 1, 255])))
+    assert.throws(() => readTitleBytes(new Uint8Array([1, 1, 2, 1, 255])))
   })
 
   test("an endless number is rejected", () => {
-    assert.throws(() => readLines(new Uint8Array(Array(20).fill(255))))
+    assert.throws(() => readTitleBytes(new Uint8Array(Array(20).fill(255))))
   })
 
   for (const [name, bad] of Object.entries({ "nothing": "", "no version": "!abc", "bad characters": "1!!!!", "only a version": "1" })) {
