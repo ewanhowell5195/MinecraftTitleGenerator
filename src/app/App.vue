@@ -40,6 +40,7 @@
   import { isMinecraftShape, isModelShape, loadShapeList } from "../lib/geometry/shapes.js"
   import { titleItems } from "../lib/state/items.js"
   import { redo, undo } from "../lib/state/history.js"
+  import { shortcutFor } from "./shortcuts.js"
   import { keepMatched } from "../lib/state/match.js"
   import { fileError, notice } from "../lib/state/notices.js"
   import { presetsPage } from "../lib/state/presetsPage.js"
@@ -87,15 +88,12 @@
     if (value && GAME_TEXTURED.has(view.section)) view.section = "shape"
   }, { immediate: true })
 
+  const SHORTCUTS = { undo, redo, save: saveTitle, open: () => menuBar.value.openPicker() }
+
   function shortcut(event) {
-    if (!(event.ctrlKey || event.metaKey) || event.altKey || presetsPage.open) return
-    if (event.target.matches("input[type=text], textarea")) return
-    const key = event.key.toLowerCase()
-    if (key === "z" && !event.shiftKey) undo()
-    else if (key === "y" || key === "z" && event.shiftKey) redo()
-    else if (key === "s") saveTitle()
-    else if (key === "o") menuBar.value.openPicker()
-    else return
+    const action = !presetsPage.open && shortcutFor(event)
+    if (!action) return
+    SHORTCUTS[action]()
     event.preventDefault()
   }
 
