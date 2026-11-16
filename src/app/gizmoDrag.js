@@ -6,6 +6,12 @@ import { TRANSFORM_LIMITS } from "../lib/settings/settings.js"
 import { view } from "../lib/state/view.js"
 import { gizmoPose, lineBounds, movedBy, rotatedTo, wordMovedBy, wordPose, wordRotatedTo } from "../render/placement.js"
 
+const AXES = ["X", "Y", "Z"]
+
+function axes(prefix, values) {
+  return Object.fromEntries(values.map((value, index) => [`${prefix}${AXES[index]}`, value]))
+}
+
 export function useGizmoDrag(rig, { props, invalidate }) {
   const proxy = new THREE.Object3D()
   let grabbed = null
@@ -51,20 +57,19 @@ export function useGizmoDrag(rig, { props, invalidate }) {
     if (rig.controls.mode === "translate") {
       const { translate, position } = wordMovedBy(transform, built, proxy.position.clone().sub(grabbed.position))
       proxy.position.copy(position)
-      Object.assign(object, { wordTranslateX: translate[0], wordTranslateY: translate[1], wordTranslateZ: translate[2] })
+      Object.assign(object, axes("wordTranslate", translate))
     } else if (rig.controls.mode === "rotate") {
-      const rotate = wordRotatedTo(transform, proxy.quaternion)
-      Object.assign(object, { wordRotationX: rotate[0], wordRotationY: rotate[1], wordRotationZ: rotate[2] })
+      Object.assign(object, axes("wordRotation", wordRotatedTo(transform, proxy.quaternion)))
     } else {
-      applyScale(object, ["wordScaleX", "wordScaleY", "wordScaleZ"])
+      applyScale(object, "wordScale")
     }
   }
 
-  function applyScale(object, keys) {
+  function applyScale(object, prefix) {
     const scale = proxy.scale.toArray().map(axis => Math.max(round(axis, 4), TRANSFORM_LIMITS.scale[0]))
     proxy.scale.fromArray(scale)
-    for (const [index, key] of keys.entries()) {
-      if (rig.controls.axis.includes("XYZ"[index])) setScale(object, key, scale[index])
+    for (const [index, axis] of AXES.entries()) {
+      if (rig.controls.axis.includes(axis)) setScale(object, `${prefix}${axis}`, scale[index])
     }
   }
 
@@ -76,12 +81,12 @@ export function useGizmoDrag(rig, { props, invalidate }) {
     if (rig.controls.mode === "translate") {
       const { translate, offset } = movedBy(transform, proxy.position.clone().sub(grabbed.position))
       proxy.position.copy(grabbed.position).add(offset)
-      Object.assign(object, { translateX: translate[0], translateY: translate[1], translateZ: translate[2] })
+      Object.assign(object, axes("translate", translate))
     } else if (rig.controls.mode === "rotate") {
       const { rotate, translate } = rotatedTo(transform, proxy.quaternion)
-      Object.assign(object, { rotationX: rotate[0], rotationY: rotate[1], rotationZ: rotate[2], translateX: translate[0], translateY: translate[1], translateZ: translate[2] })
+      Object.assign(object, axes("rotation", rotate), axes("translate", translate))
     } else {
-      applyScale(object, ["scaleX", "scaleY", "scaleZ"])
+      applyScale(object, "scale")
     }
   }
 
