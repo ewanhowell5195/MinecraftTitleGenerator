@@ -11,7 +11,6 @@
   import { SPACE_CHAR, addCharacters, canDelete, characterLabel, characterName, removeCharacter } from "../lib/font/editor/characters.js"
   import { glyphOf, isBlank, setGlyph } from "../lib/font/editor/glyph.js"
   import { CREEPER } from "../lib/font/order.js"
-  import { casedCharacters, drawnCharacters } from "../lib/font/editor/coverage.js"
   import CharacterBrowser from "./CharacterBrowser.vue"
   import GlyphThumb from "./GlyphThumb.vue"
   import { arrowsMove, characters, clipboard, copyGlyph, font, pasteGlyph, selected, typing, update } from "./store.js"
@@ -43,7 +42,10 @@
   const blanks = computed(() => characters.value.filter(char => isBlank(glyphOf(font.value, char))).length)
 
   const browsing = ref(null)
-  const inFont = computed(() => browsing.value ? casedCharacters(drawnCharacters(browsing.value.source), font.value.letterCase).filter(char => !addCharacters(font.value, char).added.length) : [])
+
+  function inFont(char) {
+    return !addCharacters(font.value, char).added.length
+  }
 
   async function openBrowser() {
     const template = font.value.template

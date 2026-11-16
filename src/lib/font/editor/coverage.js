@@ -25,18 +25,31 @@ const GROUPS = [
   { id: "other", label: "Other letters", test: /./u }
 ]
 
+const SLICE_MS = 12
+
 const drawn = new WeakMap()
 
-export function drawnCharacters(source) {
-  if (!drawn.has(source)) {
-    const chars = []
-    for (const [code, index] of Object.entries(source.tables.cmap.glyphIndexMap)) {
-      const char = String.fromCodePoint(Number(code))
-      if (index && DRAWABLE.test(char) && !EMOJI.test(char) && source.glyphs.get(index).path.commands.length) chars.push(char)
+function pause() {
+  return new Promise(resolve => setTimeout(resolve))
+}
+
+async function listDrawn(source) {
+  const chars = []
+  let until = performance.now() + SLICE_MS
+  for (const [code, index] of Object.entries(source.tables.cmap.glyphIndexMap)) {
+    if (performance.now() > until) {
+      await pause()
+      until = performance.now() + SLICE_MS
     }
-    if (!chars.includes("'") && chars.includes(CLOSING_QUOTE)) chars.push("'")
-    drawn.set(source, chars.filter(char => !UNUSED.has(char)).sort((a, b) => a.codePointAt(0) - b.codePointAt(0)))
+    const char = String.fromCodePoint(Number(code))
+    if (index && DRAWABLE.test(char) && !EMOJI.test(char) && source.glyphs.get(index).path.commands.length) chars.push(char)
   }
+  if (!chars.includes("'") && chars.includes(CLOSING_QUOTE)) chars.push("'")
+  return chars.filter(char => !UNUSED.has(char)).sort((a, b) => a.codePointAt(0) - b.codePointAt(0))
+}
+
+export function drawnCharacters(source) {
+  if (!drawn.has(source)) drawn.set(source, listDrawn(source))
   return drawn.get(source)
 }
 

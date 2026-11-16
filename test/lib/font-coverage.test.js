@@ -24,27 +24,27 @@ function fontOf(glyphs) {
 describe("characters a font draws", () => {
   test("lists the characters with a drawn glyph in code point order", async () => {
     const source = await fontOf(["b", "a", "é", "Ж"].map(char => glyph(char)).concat(glyph("c", false)))
-    assert.deepEqual(drawnCharacters(source), ["a", "b", "é", "Ж"])
+    assert.deepEqual(await drawnCharacters(source), ["a", "b", "é", "Ж"])
   })
 
   test("leaves out spaces, combining marks and control characters", async () => {
     const source = await fontOf([" ", "́", "‍", "\u0007", "x"].map(char => glyph(char)))
-    assert.deepEqual(drawnCharacters(source), ["x"])
+    assert.deepEqual(await drawnCharacters(source), ["x"])
   })
 
   test("hides emoji but keeps text symbols", async () => {
     const source = await fontOf(["😀", "⌚", "©", "™", "x"].map(char => glyph(char)))
-    assert.deepEqual(drawnCharacters(source), ["x", "©", "™"])
+    assert.deepEqual(await drawnCharacters(source), ["x", "©", "™"])
   })
 
   test("hides double and curly quotes, which titles never use", async () => {
     const source = await fontOf(["'", "\"", "‘", "’", "“", "”", "x"].map(char => glyph(char)))
-    assert.deepEqual(drawnCharacters(source), ["'", "x"])
+    assert.deepEqual(await drawnCharacters(source), ["'", "x"])
   })
 
   test("a closing curly quote stands in for a missing straight one", async () => {
     const source = await fontOf(["’", "x"].map(char => glyph(char)))
-    assert.deepEqual(drawnCharacters(source), ["'", "x"])
+    assert.deepEqual(await drawnCharacters(source), ["'", "x"])
     assert.equal(glyphFor(source, "'").unicode, 0x2019)
   })
 

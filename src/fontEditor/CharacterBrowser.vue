@@ -1,10 +1,15 @@
 <script setup>
-  import { computed, ref } from "vue"
+  import { computed, onBeforeUnmount, reactive, ref, shallowRef, watch } from "vue"
   import Button from "../components/Button.vue"
   import Checkbox from "../components/Checkbox.vue"
   import Dialog from "../components/Dialog.vue"
   import { hasCase } from "../lib/font/editor/characters.js"
   import { casedCharacters, characterGroups, codeOf, drawnCharacters, matchesSearch } from "../lib/font/editor/coverage.js"
+  import CharacterChunk from "./CharacterChunk.vue"
+
+  const CHUNK = 128
+  const FIRST_CHUNKS = 4
+  const MORE_CHUNKS = 1
 
   const props = defineProps({
     title: { type: String, required: true },
@@ -12,7 +17,7 @@
     family: { type: String, required: true },
     letterCase: { type: String, required: true },
     selected: { type: Array, default: () => [] },
-    locked: { type: Array, default: () => [] },
+    locked: { type: Function, default: () => false },
     required: { type: Array, default: null },
     requiring: { type: Boolean, default: false },
     action: { type: String, required: true }
@@ -25,40 +30,73 @@
     return props.letterCase === "upper" ? char.toUpperCase() : char.toLowerCase()
   }
 
-  const chosen = ref(new Set(props.selected.map(keyOf)))
+  const chosen = reactive(new Set(props.selected.map(keyOf)))
   const requireAll = ref(props.requiring)
   const search = ref("")
   const hovered = ref(null)
+  const drawn = shallowRef(null)
+  const shown = ref(FIRST_CHUNKS)
+  let timer = 0
 
-  const kept = computed(() => new Set(props.locked))
+  drawnCharacters(props.source).then(chars => drawn.value = chars)
+
+  const all = computed(() => drawn.value ? casedCharacters(drawn.value, props.letterCase) : [])
+  const kept = computed(() => new Set(all.value.filter(char => props.locked(char))))
   const requiredKeys = computed(() => new Set((props.required ?? []).map(keyOf)))
-  const picked = computed(() => requireAll.value ? new Set(Array.from(chosen.value).concat(Array.from(requiredKeys.value))) : chosen.value)
-  const all = computed(() => casedCharacters(drawnCharacters(props.source), props.letterCase))
-  const groups = computed(() => characterGroups(all.value.filter(char => matchesSearch(char, search.value))))
+  const picked = computed(() => requireAll.value ? new Set(Array.from(chosen).concat(Array.from(requiredKeys.value))) : new Set(chosen))
+  const groups = computed(() => {
+    let order = 0
+    return characterGroups(all.value.filter(char => matchesSearch(char, search.value))).map(group => {
+      const chunks = []
+      for (let start = 0; start < group.chars.length; start += CHUNK) chunks.push({ order: order++, chars: group.chars.slice(start, start + CHUNK) })
+      return { ...group, chunks }
+    })
+  })
+  const chunkCount = computed(() => groups.value.reduce((count, group) => count + group.chunks.length, 0))
+  const visibleGroups = computed(() => groups.value.filter(group => group.chunks[0].order < shown.value).map(group => ({ ...group, chunks: group.chunks.filter(chunk => chunk.order < shown.value) })))
   const fontFamily = computed(() => `"${props.family}", var(--font-ui)`)
   const status = computed(() => {
     if (hovered.value) return `${hovered.value} ${codeOf(hovered.value)}${kept.value.has(hovered.value) ? ", already in your font" : forced(hovered.value) ? ", required" : ""}`
     return picked.value.size === 1 ? "1 character chosen" : `${picked.value.size} characters chosen`
   })
 
-  function on(char) {
-    return picked.value.has(keyOf(char))
-  }
-
   function forced(char) {
-    return requireAll.value && requiredKeys.value.has(keyOf(char))
+    return requiredKeys.value.has(keyOf(char)) && requireAll.value
   }
 
-  function toggle(char) {
-    const next = new Set(chosen.value)
-    if (next.has(keyOf(char))) next.delete(keyOf(char))
-    else next.add(keyOf(char))
-    chosen.value = next
+  function tile(char) {
+    const isKept = kept.value.has(char)
+    const isForced = forced(char)
+    const on = isForced || chosen.has(keyOf(char))
+    return { class: { on, kept: isKept, forced: isForced }, disabled: isKept || isForced, "aria-pressed": on || isKept }
+  }
+
+  function toggle(event) {
+    const button = event.target.closest?.("[data-char]")
+    if (!button || button.disabled) return
+    const key = keyOf(button.dataset.char)
+    if (chosen.has(key)) chosen.delete(key)
+    else chosen.add(key)
   }
 
   function hover(event) {
     hovered.value = event.target.closest?.("[data-char]")?.dataset.char ?? null
   }
+
+  function showMore() {
+    timer = 0
+    if (shown.value >= chunkCount.value) return
+    shown.value += MORE_CHUNKS
+    timer = setTimeout(showMore)
+  }
+
+  watch(groups, () => {
+    clearTimeout(timer)
+    shown.value = FIRST_CHUNKS
+    timer = setTimeout(showMore)
+  })
+
+  onBeforeUnmount(() => clearTimeout(timer))
 </script>
 
 <template>
@@ -66,20 +104,21 @@
     <div class="browser">
       <div class="tools">
         <input v-model="search" type="text" placeholder="Search, eg é or U+00E9" aria-label="Search characters">
-        <span class="hint">{{ all.length }} characters in this font{{ kept.size ? `, ${kept.size} already in yours` : "" }}</span>
+        <span v-if="drawn" class="hint">{{ all.length }} characters in this font{{ kept.size ? `, ${kept.size} already in yours` : "" }}</span>
         <Checkbox v-if="required" v-model="requireAll" label="Required characters" />
       </div>
-      <div class="scroll" @pointerover="hover" @pointerleave="hovered = null">
-        <section v-for="group of groups" :key="group.id" class="group">
+      <div class="scroll" @pointerover="hover" @pointerleave="hovered = null" @click="toggle">
+        <section v-for="group of visibleGroups" :key="group.id" class="group">
           <header>
             <h3>{{ group.label }}</h3>
             <span class="hint">{{ group.chars.length }}</span>
           </header>
           <div class="grid" :style="{ fontFamily }">
-            <button v-for="char of group.chars" :key="char" type="button" class="char" :class="{ on: on(char), kept: kept.has(char), forced: forced(char) }" :data-char="char" :disabled="kept.has(char) || forced(char)" :aria-pressed="on(char) || kept.has(char)" :aria-label="`${char} ${codeOf(char)}`" @click="toggle(char)">{{ char }}</button>
+            <CharacterChunk v-for="chunk of group.chunks" :key="chunk.chars[0]" :chars="chunk.chars" :tile="tile" />
           </div>
         </section>
-        <p v-if="!groups.length" class="empty-state">No characters match.</p>
+        <p v-if="!drawn" class="empty-state">Reading the font...</p>
+        <p v-else-if="!groups.length" class="empty-state">No characters match.</p>
       </div>
       <footer class="dialog-actions">
         <span class="status hint">{{ status }}</span>
@@ -140,41 +179,6 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
     gap: 4px;
-  }
-
-  .char {
-    height: 44px;
-    padding: 0;
-    font: inherit;
-    font-size: 24px;
-    line-height: 1;
-    color: var(--text);
-    background: var(--card);
-    border: 1px solid var(--line);
-    user-select: none;
-  }
-
-  .char:hover {
-    background: var(--card-hover);
-  }
-
-  .char.on {
-    background: var(--accent-soft);
-    border-color: var(--accent);
-  }
-
-  .char.forced {
-    color: var(--muted);
-    cursor: default;
-    opacity: 0.55;
-  }
-
-  .char.kept {
-    color: var(--muted);
-    background: transparent;
-    border-style: dashed;
-    cursor: default;
-    opacity: 1;
   }
 
   footer {
