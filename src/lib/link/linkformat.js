@@ -52,8 +52,8 @@ export function decodeTitle(code) {
     const bytes = fromBase64Url(code.slice(1))
     const { lines, camera } = readTitleBytes(prefix % 2 ? inflateSync(bytes) : bytes)
     return { version: prefix >> 1, lines: lines.map(lowered), ...(camera && { camera }) }
-  } catch {
-    throw new Error("it is incomplete or damaged")
+  } catch (err) {
+    throw new Error("it is incomplete or damaged", { cause: err })
   }
 }
 
