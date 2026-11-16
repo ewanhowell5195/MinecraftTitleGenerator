@@ -7,7 +7,7 @@ import { pageKey, pageRoutes, routed } from "./site/routes.js"
 const CAPTURE_WAIT = 200
 const COMPONENTS = {
   home: () => import("./site/home/HomePage.vue"),
-  app: () => import("./App.vue"),
+  app: () => import("./app/App.vue"),
   "font-editor": () => import("./fontEditor/FontEditor.vue"),
   credits: () => import("./site/credits/CreditsPage.vue"),
   submit: () => import("./submissions/SubmissionsApp.vue"),
