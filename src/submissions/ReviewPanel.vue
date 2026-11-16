@@ -9,6 +9,7 @@
 
   const props = defineProps({
     item: { type: Object, required: true },
+    title: { type: String, required: true },
     failedUrl: { type: String, default: "" }
   })
 
@@ -44,7 +45,7 @@
   }
 
   async function act(action) {
-    if (action === "merge" && !await askConfirm({ title: "Merge submission", message: `Merge ${props.item.name}? It's published in the generator.`, action: "Merge" })) return
+    if (action === "merge" && !await askConfirm({ title: "Merge submission", message: `Merge ${props.title}? It's published in the generator.`, action: "Merge" })) return
     busy.value = true
     error.value = ""
     try {

@@ -162,7 +162,7 @@
     <template v-else-if="!editing && known">
       <Notice v-if="processing?.state === 'failed' && !reviewing"><p>Processing this submission failed on GitHub. <a :href="processing.url" target="_blank" rel="noopener">See what went wrong</a>.</p></Notice>
       <MessageDialog v-if="outcome" :title="outcome === 'published' ? 'Submission merged' : 'Submission declined'" @close="leave">{{ outcome === "published" ? `${title} was merged, and is now part of the generator.` : `${title} was declined.` }}</MessageDialog>
-      <ReviewPanel v-if="reviewing" :key="item.updatedAt" :item="item" :failed-url="processing?.state === 'failed' ? processing.url : ''" @done="reviewed" />
+      <ReviewPanel v-if="reviewing" :key="item.updatedAt" :item="item" :title="title" :failed-url="processing?.state === 'failed' ? processing.url : ''" @done="reviewed" />
       <div class="submission-view">
         <div class="preview flow">
           <component :is="KIND_COMPONENTS[item.kind].Preview" v-model:texture="textureKey" :fonts="fonts" :kind="item.kind" :target="item.target" :details="item.details" :initial="item" :url="submissionFileUrl(item)" :text="text || title" />
