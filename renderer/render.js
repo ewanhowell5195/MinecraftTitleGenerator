@@ -1,7 +1,7 @@
 import { forgetImages } from "../src/lib/assets.js"
 import { usePlatform } from "../src/lib/platform.js"
 import { titleCanvas } from "../src/lib/titlePicture.js"
-import { checkTitle } from "../src/server/presets.js"
+import { shareableTitle } from "../src/lib/titleFacts.js"
 import { useNode } from "./platform.js"
 
 await useNode()
@@ -64,7 +64,8 @@ function parentAnsweredAsset({ asset, error, ...answer }) {
 }
 
 async function renderRequested(code, { check, ...options }) {
-  if (check) checkTitle(code)
+  const problem = check && shareableTitle(code).problem
+  if (problem) throw new Error(problem)
   const picture = await renderTitle(code, options)
   if (!picture) throw new Error("the title has nothing to draw")
   return picture

@@ -1,11 +1,10 @@
-import { CAMERA_KEYS, cameraChanges, fullCamera } from "../lib/camera.js"
+import { cameraChanges, fullCamera } from "../lib/camera.js"
 import { LIMITS } from "../lib/limits.js"
-import { decodeTitle, unknownSetting } from "../lib/linkformat.js"
+import { decodeTitle } from "../lib/linkformat.js"
 import { capitalWords } from "../lib/names.js"
 import { pictureUrl } from "../lib/pictures.js"
 import { parseSearch } from "../lib/presetSearch.js"
-import { FILE_VERSION } from "../lib/settings.js"
-import { limitProblem, titleFacts, titleProblem } from "../lib/titleFacts.js"
+import { shareableTitle } from "../lib/titleFacts.js"
 import { blockedWordProblem, shortNameProblem } from "../lib/wording.js"
 import { USER_ROW, activeUser, forgetUnusedUser, requireUser, saveUser, signedInUser } from "./accounts.js"
 import { nextDay, returnSlot, takeSlot, today } from "./daily.js"
@@ -57,23 +56,8 @@ async function hashedIp({ request, env }) {
 }
 
 export function checkTitle(code) {
-  if (typeof code !== "string" || !code) throw new Refusal(400, "There is no title in this preset.")
-  if (code.length > LIMITS.code) throw new Refusal(400, "This title has too many settings to share.")
-  let title
-  try {
-    title = decodeTitle(code)
-  } catch {
-    throw new Refusal(400, "This title is damaged, so it can't be shared.")
-  }
-  if (title.version > FILE_VERSION) throw new Refusal(400, "This title was made by a newer version of the generator. Reload the page and try again.")
-  const unknown = unknownSetting(title.lines) ?? Object.keys(title.camera ?? {}).find(key => !CAMERA_KEYS.includes(key))
-  if (unknown) throw new Refusal(400, `This title has a setting that can't be shared: ${unknown}.`)
-  const problem = titleProblem(title.lines)
-  if (problem) throw new Refusal(400, `This title can't be shared: ${problem}.`)
-  const facts = titleFacts(title.lines)
-  const over = limitProblem(title.lines, facts)
-  if (over) throw new Refusal(400, over)
-  if (!facts.text && !facts.shapes) throw new Refusal(400, "This title has no text or shapes in it.")
+  const { facts, problem } = shareableTitle(code)
+  if (problem) throw new Refusal(400, problem)
   return facts
 }
 

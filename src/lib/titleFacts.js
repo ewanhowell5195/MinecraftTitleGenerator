@@ -1,4 +1,6 @@
+import { CAMERA_KEYS } from "./camera.js"
 import { LIMITS } from "./limits.js"
+import { decodeTitle, unknownSetting } from "./linkformat.js"
 import { CUSTOM_FONT_KINDS, FILE_VERSION, LAYER, LAYERS, LAYER_KEYS, LINE, sameValue, snapshot, typeDefaults, upgradeLine } from "./settings.js"
 
 export function lineWords({ words, ...line }) {
@@ -68,6 +70,27 @@ function trimLayer(layer) {
 
 function trimLayerSettings(settings, base) {
   return settings.map(layer => Object.fromEntries(Object.entries(layer).filter(([key, value]) => !sameValue(value, base[key])).map(([key, value]) => [key, LAYERS.includes(key) ? value.map(trimLayer) : value])))
+}
+
+export function shareableTitle(code) {
+  if (typeof code !== "string" || !code) return { problem: "There is no title in this preset." }
+  if (code.length > LIMITS.code) return { problem: "This title has too many settings to share." }
+  let title
+  try {
+    title = decodeTitle(code)
+  } catch {
+    return { problem: "This title is damaged, so it can't be shared." }
+  }
+  if (title.version > FILE_VERSION) return { problem: "This title was made by a newer version of the generator. Reload the page and try again." }
+  const unknown = unknownSetting(title.lines) ?? Object.keys(title.camera ?? {}).find(key => !CAMERA_KEYS.includes(key))
+  if (unknown) return { problem: `This title has a setting that can't be shared: ${unknown}.` }
+  const problem = titleProblem(title.lines)
+  if (problem) return { problem: `This title can't be shared: ${problem}.` }
+  const facts = titleFacts(title.lines)
+  const over = limitProblem(title.lines, facts)
+  if (over) return { problem: over }
+  if (!facts.text && !facts.shapes) return { problem: "This title has no text or shapes in it." }
+  return { facts }
 }
 
 export function trimmed(object, unused = new Set()) {
