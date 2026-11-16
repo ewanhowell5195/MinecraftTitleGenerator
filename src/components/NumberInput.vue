@@ -56,6 +56,12 @@
     field.dispatchEvent(new Event("change", { bubbles: true }))
   }
 
+  function atLimit(direction) {
+    const value = Number(model.value === undefined ? attrs.value : model.value)
+    if (Number.isNaN(value)) return false
+    return direction > 0 ? value >= limit("max", Infinity) : value <= limit("min", -Infinity)
+  }
+
   function step(direction) {
     const field = input.value
     if (direction > 0) field.stepUp()
@@ -70,8 +76,8 @@
     <input ref="input" type="number" v-bind="inputAttrs" :value="model === undefined ? attrs.value : model" @beforeinput="filter" @input="typed" @blur="correct" @keydown.enter="input.blur()">
     <span v-if="$slots.action" class="action"><slot name="action"></slot></span>
     <span v-if="!bare" class="steps">
-      <button type="button" tabindex="-1" :disabled="disabled" aria-label="Increase" @click="step(1)"><Icon name="up" :size="12" /></button>
-      <button type="button" tabindex="-1" :disabled="disabled" aria-label="Decrease" @click="step(-1)"><Icon name="down" :size="12" /></button>
+      <button type="button" tabindex="-1" :class="{ spent: atLimit(1) }" :disabled="disabled || atLimit(1)" aria-label="Increase" @click="step(1)"><Icon name="up" :size="12" /></button>
+      <button type="button" tabindex="-1" :class="{ spent: atLimit(-1) }" :disabled="disabled || atLimit(-1)" aria-label="Decrease" @click="step(-1)"><Icon name="down" :size="12" /></button>
     </span>
   </span>
 </template>
@@ -124,6 +130,10 @@
     color: var(--faint);
     background: transparent;
     border: 0;
+  }
+
+  .steps .spent {
+    opacity: 0.5;
   }
 
   .steps button:hover:not(:disabled) {
