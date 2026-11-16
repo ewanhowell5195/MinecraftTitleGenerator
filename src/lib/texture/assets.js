@@ -147,13 +147,14 @@ const stripBands = new WeakMap()
 export function stripBand(source, top, height) {
   if (!stripBands.has(source)) stripBands.set(source, new Map())
   const cropped = stripBands.get(source)
-  if (!cropped.has(top)) {
+  const key = `${top}:${height}`
+  if (!cropped.has(key)) {
     if (!Number.isInteger(top) || !Number.isInteger(height) || top + height > source.height) throw new Error(`a strip ${source.height}px tall has no layer band at ${top}px that is ${height}px tall`)
     const { canvas, ctx } = surface(source.width, height)
     ctx.drawImage(source, 0, top, source.width, height, 0, 0, source.width, height)
-    cropped.set(top, canvas)
+    cropped.set(key, canvas)
   }
-  return cropped.get(top)
+  return cropped.get(key)
 }
 
 function layerExtent(glyph, layer, independent) {
