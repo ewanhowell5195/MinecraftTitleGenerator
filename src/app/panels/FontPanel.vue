@@ -67,6 +67,11 @@
     return Object.keys(font.value.glyphs).filter(char => !/[\u{1F629}\u{1F633}]/u.test(char)).sort((a, b) => rank(a) - rank(b) || a.localeCompare(b)).join(" ")
   })
 
+  function entryThumbnail(entry) {
+    const detailed = customThumbnail(entry.id, "preview")
+    return { image: detailed ?? customThumbnail(entry.id, "flat"), detailed: !!detailed }
+  }
+
   async function applyCustom(source) {
     const target = object.value
     loading.value = true
@@ -128,8 +133,7 @@
     try {
       const entry = await customFontEntry(source)
       customName.value = entry.name
-      const detailed = customThumbnail(entry.id, "preview")
-      const image = detailed ?? customThumbnail(entry.id, "flat")
+      const { image, detailed } = entryThumbnail(entry)
       customUnit.value = image && (await loadImage(image)).height * (detailed ? 1 : PREVIEW_DETAIL)
       customImage.value = image
     } catch (err) {
@@ -148,7 +152,7 @@
     const token = ++reuseToken
     const shown = await Promise.all(items.map(async item => {
       const entry = await customFontEntry(item.value)
-      return { ...item, label: entry.name, image: customThumbnail(entry.id, "preview") ?? customThumbnail(entry.id, "flat") }
+      return { ...item, label: entry.name, image: entryThumbnail(entry).image }
     }))
     if (token === reuseToken) reusable.value = shown
   }, { immediate: true })
