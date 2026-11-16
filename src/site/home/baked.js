@@ -49,6 +49,12 @@ function program(gl, vertex, fragment) {
   return made
 }
 
+export async function fetchedFile(url, signal) {
+  const response = await fetch(url, { signal })
+  if (!response.ok) throw new Error(`failed to load ${url}: ${response.status}`)
+  return response
+}
+
 export async function image(url) {
   const loaded = new Image()
   loaded.src = url

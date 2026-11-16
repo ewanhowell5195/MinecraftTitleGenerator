@@ -1,4 +1,4 @@
-import { MAX_LETTERS, checkLetters, clamped, context, frames, image, multiply, overshoot, renderer, restBounds, turned } from "./baked.js"
+import { MAX_LETTERS, checkLetters, clamped, context, fetchedFile, frames, image, multiply, overshoot, renderer, restBounds, turned } from "./baked.js"
 
 const SCENE_VERTEX = `
 attribute vec3 position;
@@ -56,8 +56,8 @@ function landing(progress) {
 export async function startHero(canvas, stage, signal, lost) {
   const gl = context(canvas, "hero", signal)
   const [meta, buffer, sheet] = await Promise.all([
-    fetch("/home/logo.json", { signal }).then(response => response.json()),
-    fetch("/home/logo.bin", { signal }).then(response => response.arrayBuffer()),
+    fetchedFile("/home/logo.json", signal).then(response => response.json()),
+    fetchedFile("/home/logo.bin", signal).then(response => response.arrayBuffer()),
     image("/home/logo.png")
   ])
   if (signal.aborted) return

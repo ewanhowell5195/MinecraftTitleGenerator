@@ -1,4 +1,4 @@
-import { MAX_LETTERS, checkLetters, clamped, context, frames, image, multiply, overshoot, renderer, restBounds } from "./baked.js"
+import { MAX_LETTERS, checkLetters, clamped, context, fetchedFile, frames, image, multiply, overshoot, renderer, restBounds } from "./baked.js"
 
 const VERTEX = `
 attribute vec3 position;
@@ -43,11 +43,8 @@ const FIT = 0.94
 export async function startTyping(holder, signal) {
   const canvas = holder.querySelector("canvas")
   const gl = context(canvas, "the typing title", signal)
-  const meta = await fetch("/home/typing.json", { signal }).then(response => {
-    if (!response.ok) throw new Error(`failed to load the typing title: ${response.status}`)
-    return response.json()
-  })
-  const loaded = await Promise.all(meta.phrases.map(phrase => Promise.all([fetch(`/home/typing/${phrase.name}.bin`, { signal }).then(response => response.arrayBuffer()), image(`/home/typing/${phrase.name}.png`)])))
+  const meta = await fetchedFile("/home/typing.json", signal).then(response => response.json())
+  const loaded = await Promise.all(meta.phrases.map(phrase => Promise.all([fetchedFile(`/home/typing/${phrase.name}.bin`, signal).then(response => response.arrayBuffer()), image(`/home/typing/${phrase.name}.png`)])))
   if (signal.aborted) return
 
   const scene = renderer(gl, canvas, VERTEX, FRAGMENT, ["matrix", "poses", "centres"])
