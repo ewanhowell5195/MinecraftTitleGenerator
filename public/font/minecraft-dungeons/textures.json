@@ -1,8 +1,7 @@
 {
   "textures": {
     "flat": {
-      "authors": ["ShrimpSnail", "Ewan Howell"],
-      "border": "#000000"
+      "authors": ["ShrimpSnail", "Ewan Howell"]
     },
     "gradient": {
       "type": "strip",
@@ -10,7 +9,6 @@
         { "overlay": "highlights_bottom", "blend": "screen", "colours": ["#00f162"], "opacity": 73 }
       ],
       "basedOn": "strips.minecraft-ten.gradient",
-      "border": "#000000",
       "variants": {
         "gradient_prerelease": {
           "overlays": [
@@ -27,9 +25,7 @@
       "basedOn": "minecraft-ten.neon_glow",
       "border": "#18041a",
       "variants": {
-        "neon": {
-          "border": "#18041a"
-        }
+        "neon": {}
       }
     }
   },

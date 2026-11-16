@@ -14,6 +14,10 @@ export const HEX_COLOUR = /^#[0-9a-f]{6}$/i
 
 export const DEFAULT_ROLES = ["primary", "secondary"]
 
+export function ownBorder(border, inherited = "#000000") {
+  return border && border !== inherited ? { border } : {}
+}
+
 function length(text) {
   return Array.from(text).length
 }

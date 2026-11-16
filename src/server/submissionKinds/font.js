@@ -4,7 +4,7 @@ import { jsonText } from "../../lib/jsonText.js"
 import { titleCase } from "../../lib/names.js"
 import { fontParent } from "../../lib/submissionKinds/font.js"
 import { holdingPath } from "../../lib/submissionKinds/fontBuild.js"
-import { DEFAULT_ROLES, assetId, sourceOf } from "../../lib/submissions.js"
+import { DEFAULT_ROLES, assetId, ownBorder, sourceOf } from "../../lib/submissions.js"
 import { usedIds } from "./fontAsset.js"
 
 const LIST = "public/font/fonts.json"
@@ -25,7 +25,8 @@ function freeId(wanted, used) {
 function bundle(row, details, folder) {
   const extras = details.extras ?? []
   if (!extras.length) return []
-  const list = { textures: { flat: { border: "#000000" } }, overlays: {} }
+  const list = { textures: { flat: {} }, overlays: {} }
+  const flatBorder = extras.find(item => item.kind === "flat")?.border
   const used = new Set(usedIds(list))
   const files = []
   const roles = {}
@@ -33,7 +34,7 @@ function bundle(row, details, folder) {
     const sha = details.files?.[item.key]
     if (!sha) throw new Error(`submission ${row.id} has no file for its ${item.kind} ${item.key}`)
     if (item.kind === "flat") {
-      list.textures.flat = { authors: authorList(item.credit).length ? authorList(item.credit) : row.credit, ...(item.density > 1 && { density: item.density }), border: item.border }
+      list.textures.flat = { authors: authorList(item.credit).length ? authorList(item.credit) : row.credit, ...(item.density > 1 && { density: item.density }), ...ownBorder(item.border) }
       files.push({ path: `public/${folder}/textures/flat.png`, sha })
       for (const role of DEFAULT_ROLES) if (item[role]) roles[role] = "flat"
       continue
@@ -41,7 +42,7 @@ function bundle(row, details, folder) {
     const id = assetId(item.name, used)
     used.add(id)
     if (item.kind !== "overlay") for (const role of DEFAULT_ROLES) if (item[role]) roles[role] = id
-    const entry = { ...(item.kind === "strip" && { type: "strip" }), ...(item.name !== titleCase(id) && { name: item.name }), authors: authorList(item.credit).length ? authorList(item.credit) : row.credit, ...(item.density > 1 && { density: item.density }), ...(item.kind !== "overlay" && { border: item.border }), ...(item.snap > 1 && { snap: item.snap }), ...(item.palette && { palette: item.palette }) }
+    const entry = { ...(item.kind === "strip" && { type: "strip" }), ...(item.name !== titleCase(id) && { name: item.name }), authors: authorList(item.credit).length ? authorList(item.credit) : row.credit, ...(item.density > 1 && { density: item.density }), ...(item.kind !== "overlay" && ownBorder(item.border, flatBorder)), ...(item.snap > 1 && { snap: item.snap }), ...(item.palette && { palette: item.palette }) }
     const section = item.kind === "overlay" ? "overlays" : "textures"
     list[section][id] = entry
     files.push({ path: `public/${folder}/${section}/${id}.png`, sha })

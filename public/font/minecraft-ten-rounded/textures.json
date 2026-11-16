@@ -1,13 +1,10 @@
 {
   "textures": {
-    "flat": {
-      "border": "#000000"
-    },
+    "flat": {},
     "cracked": {
       "authors": ["loganroman"],
       "basedOn": "minecraft-ten.cracked",
-      "density": 3,
-      "border": "#000000"
+      "density": 3
     }
   },
   "overlays": {},

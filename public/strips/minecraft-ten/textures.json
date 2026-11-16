@@ -9,8 +9,7 @@
       "overlays": [
         { "overlay": "highlights_top", "blend": "screen", "colours": ["#1ec877"], "opacity": 70 }
       ],
-      "authors": ["Ewan Howell"],
-      "border": "#000000"
+      "authors": ["Ewan Howell"]
     },
     "smooth": {
       "type": "strip",
@@ -19,35 +18,30 @@
         { "overlay": "highlights_bottom", "blend": "lighter", "colours": ["#4a4a4a"], "opacity": 47 }
       ],
       "authors": ["Ewan Howell"],
-      "border": "#000000",
       "variants": {
         "smooth_inverted": {
           "overlays": [
             { "overlay": "highlights_top", "blend": "lighter", "colours": ["#393939"], "opacity": 56 }
           ],
-          "name": "Smooth (Inverted Highlight)",
-          "border": "#000000"
+          "name": "Smooth (Inverted Highlight)"
         },
         "smooth_old": {
           "overlays": [
             { "overlay": "highlights_bottom", "blend": "soft-light", "colours": ["#ffe3e4"], "opacity": 98 }
           ],
-          "name": "Smooth (Old)",
-          "border": "#000000"
+          "name": "Smooth (Old)"
         },
         "smooth_inverted_old": {
           "overlays": [
             { "overlay": "highlights_top", "blend": "soft-light", "colours": ["#ffe1de"], "opacity": 99 }
           ],
-          "name": "Smooth (Old) (Inverted Highlight)",
-          "border": "#000000"
+          "name": "Smooth (Old) (Inverted Highlight)"
         }
       }
     },
     "flat_coloured": {
       "type": "strip",
-      "authors": ["Ewan Howell"],
-      "border": "#000000"
+      "authors": ["Ewan Howell"]
     },
     "story_mode": {
       "type": "strip",
@@ -58,14 +52,12 @@
       "name": "Story Mode (Season 2)",
       "category": "Story Mode",
       "authors": ["Ewan Howell"],
-      "border": "#000000",
       "variants": {
         "story_mode1": {
           "overlays": [
             { "overlay": "highlights_top", "blend": "source-over", "colours": ["#b08d4a"], "opacity": 100 }
           ],
-          "name": "Story Mode (Season 1)",
-          "border": "#000000"
+          "name": "Story Mode (Season 1)"
         }
       }
     },
@@ -86,7 +78,6 @@
       ],
       "name": "Deep Dark (Wild Update)",
       "authors": ["Banjoei", "ShrimpSnail"],
-      "border": "#000000",
       "snap": 4
     },
     "fruit": {
@@ -111,32 +102,27 @@
           "overlays": [
             { "overlay": "outline", "blend": "overlay", "colours": ["#f9f9f8"], "opacity": 45 }
           ],
-          "authors": ["Magminer", "Ewan Howell"],
-          "border": "#2b040c"
+          "authors": ["Magminer", "Ewan Howell"]
         },
         "podzol": {
           "overlays": [
             { "overlay": "outline", "blend": "overlay", "colours": ["#eae5fd"], "opacity": 24 }
-          ],
-          "border": "#2b040c"
+          ]
         },
         "mycelium": {
           "overlays": [
             { "overlay": "outline", "blend": "overlay", "colours": ["#f2f4f3"], "opacity": 13 }
-          ],
-          "border": "#2b040c"
+          ]
         },
         "crimson_nylium": {
           "overlays": [
             { "overlay": "outline", "blend": "lighter", "colours": ["#1e0a0a"], "opacity": 65 }
-          ],
-          "border": "#2b040c"
+          ]
         },
         "warped_nylium": {
           "overlays": [
             { "overlay": "outline", "blend": "soft-light", "colours": ["#baf5dd"], "opacity": 36 }
-          ],
-          "border": "#2b040c"
+          ]
         }
       }
     },
@@ -200,8 +186,7 @@
     },
     "amethyst": {
       "type": "strip",
-      "authors": ["Bold_Muddy"],
-      "border": "#000000"
+      "authors": ["Bold_Muddy"]
     },
     "beach": {
       "type": "strip",
@@ -210,8 +195,7 @@
       "snap": 2,
       "variants": {
         "sand": {
-          "authors": ["Magminer"],
-          "border": "#45362a"
+          "authors": ["Magminer"]
         }
       }
     },
@@ -221,66 +205,39 @@
         { "overlay": "outline", "blend": "source-over", "opacity": 100 }
       ],
       "authors": ["RyanCR"],
-      "border": "#000000",
       "variants": {
         "dock_clear": {
-          "name": "Dock (Clear)",
-          "border": "#000000"
+          "name": "Dock (Clear)"
         }
       }
     },
     "dungeons_terracotta": {
       "type": "strip",
-      "authors": ["HARYA_"],
-      "border": "#000000"
+      "authors": ["HARYA_"]
     },
     "pride": {
       "type": "strip",
       "stretch": true,
       "authors": ["Snuzzle"],
-      "border": "#000000",
       "variants": {
-        "aroace": {
-          "border": "#000000"
-        },
-        "aromantic": {
-          "border": "#000000"
-        },
-        "asexual": {
-          "border": "#000000"
-        },
-        "bisexual": {
-          "border": "#000000"
-        },
-        "enby": {
-          "border": "#000000"
-        },
+        "aroace": {},
+        "aromantic": {},
+        "asexual": {},
+        "bisexual": {},
+        "enby": {},
         "femboy": {
-          "authors": ["0Szysza"],
-          "border": "#000000"
+          "authors": ["0Szysza"]
         },
-        "fluid": {
-          "border": "#000000"
-        },
-        "gay": {
-          "border": "#000000"
-        },
-        "lesbian": {
-          "border": "#000000"
-        },
-        "pansexual": {
-          "border": "#000000"
-        },
-        "trans": {
-          "border": "#000000"
-        },
+        "fluid": {},
+        "gay": {},
+        "lesbian": {},
+        "pansexual": {},
+        "trans": {},
         "transfeminine": {
-          "authors": ["0Szysza"],
-          "border": "#000000"
+          "authors": ["0Szysza"]
         },
         "transmasculine": {
-          "authors": ["0Szysza"],
-          "border": "#000000"
+          "authors": ["0Szysza"]
         }
       }
     },
@@ -318,31 +275,26 @@
       "type": "strip",
       "tiling": "character",
       "authors": ["WassMan"],
-      "border": "#000000",
       "snap": 2
     },
     "creeper": {
       "type": "strip",
       "authors": ["Andre_601"],
-      "border": "#000000",
       "snap": 2
     },
     "flames": {
       "type": "strip",
       "authors": ["RyanCR"],
-      "border": "#000000",
       "snap": 4,
       "variants": {
         "flames_soul": {
-          "name": "Soul Flames",
-          "border": "#000000"
+          "name": "Soul Flames"
         }
       }
     },
     "sniffer": {
       "type": "strip",
-      "authors": ["SmarterCob"],
-      "border": "#000000"
+      "authors": ["SmarterCob"]
     },
     "atmosphere": {
       "type": "strip",
@@ -362,8 +314,7 @@
       "snap": 2,
       "variants": {
         "glow_squid_old": {
-          "name": "Glow Squid (Old)",
-          "border": "#00302c"
+          "name": "Glow Squid (Old)"
         }
       }
     },
@@ -409,7 +360,6 @@
     "enderman": {
       "type": "strip",
       "authors": ["B1tseK"],
-      "border": "#000000",
       "snap": 2
     }
   }

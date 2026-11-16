@@ -1,16 +1,14 @@
 {
   "textures": {
     "flat": {
-      "authors": ["xllifi"],
-      "border": "#000000"
+      "authors": ["xllifi"]
     },
     "edition": {
       "type": "strip",
       "overlays": [
         { "overlay": "highlights_bottom", "blend": "source-over", "colours": ["#fff9f7"], "opacity": 61 }
       ],
-      "basedOn": "minecraft-five-bold.edition",
-      "border": "#000000"
+      "basedOn": "minecraft-five-bold.edition"
     },
     "oak_planks": {
       "type": "strip",
@@ -53,60 +51,34 @@
     },
     "flat_coloured": {
       "type": "strip",
-      "authors": ["Ewan Howell"],
-      "border": "#000000"
+      "authors": ["Ewan Howell"]
     },
     "pride": {
       "type": "strip",
       "authors": ["Yozhenka"],
       "basedOn": "minecraft-five-bold.pride",
-      "border": "#000000",
       "variants": {
-        "aroace": {
-          "border": "#000000"
-        },
-        "aromantic": {
-          "border": "#000000"
-        },
-        "asexual": {
-          "border": "#000000"
-        },
-        "bisexual": {
-          "border": "#000000"
-        },
-        "enby": {
-          "border": "#000000"
-        },
+        "aroace": {},
+        "aromantic": {},
+        "asexual": {},
+        "bisexual": {},
+        "enby": {},
         "femboy": {
-          "basedOn": "minecraft-five-bold.femboy",
-          "border": "#000000"
+          "basedOn": "minecraft-five-bold.femboy"
         },
-        "fluid": {
-          "border": "#000000"
-        },
-        "gay": {
-          "border": "#000000"
-        },
+        "fluid": {},
+        "gay": {},
         "intersex": {
-          "type": "sheet",
-          "border": "#000000"
+          "type": "sheet"
         },
-        "lesbian": {
-          "border": "#000000"
-        },
-        "pansexual": {
-          "border": "#000000"
-        },
-        "trans": {
-          "border": "#000000"
-        },
+        "lesbian": {},
+        "pansexual": {},
+        "trans": {},
         "transfeminine": {
-          "basedOn": "minecraft-five-bold.transfeminine",
-          "border": "#000000"
+          "basedOn": "minecraft-five-bold.transfeminine"
         },
         "transmasculine": {
-          "basedOn": "minecraft-five-bold.transmasculine",
-          "border": "#000000"
+          "basedOn": "minecraft-five-bold.transmasculine"
         }
       }
     }

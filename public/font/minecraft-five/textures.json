@@ -1,16 +1,14 @@
 {
   "textures": {
     "flat": {
-      "authors": ["Ewan Howell"],
-      "border": "#000000"
+      "authors": ["Ewan Howell"]
     },
     "edition": {
       "type": "strip",
       "overlays": [
         { "overlay": "highlights_bottom", "blend": "source-over", "colours": ["#fff9f7"], "opacity": 61 }
       ],
-      "basedOn": "minecraft-five-bold.edition",
-      "border": "#000000"
+      "basedOn": "minecraft-five-bold.edition"
     }
   },
   "overlays": {},

@@ -1,12 +1,9 @@
 {
   "textures": {
-    "flat": {
-      "border": "#000000"
-    },
+    "flat": {},
     "cracked": {
       "authors": ["Logan2020"],
-      "density": 3,
-      "border": "#000000"
+      "density": 3
     }
   },
   "overlays": {}

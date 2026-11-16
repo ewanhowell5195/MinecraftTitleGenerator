@@ -1,20 +1,17 @@
 {
   "textures": {
     "flat": {
-      "authors": ["xllifi"],
-      "border": "#000000"
+      "authors": ["xllifi"]
     },
     "cracked": {
       "authors": ["xllifi"],
       "basedOn": "minecraft-ten.cracked",
       "density": 3,
-      "border": "#000000",
       "variants": {
         "cracked_old": {
           "authors": ["Yozhenka"],
           "basedOn": "minecraft-ten.cracked_old",
-          "density": 4,
-          "border": "#000000"
+          "density": 4
         }
       }
     },
@@ -31,8 +28,7 @@
     },
     "pixel": {
       "authors": ["Sawiq"],
-      "basedOn": "minecraft-ten.pixel",
-      "border": "#000000"
+      "basedOn": "minecraft-ten.pixel"
     },
     "neon_glow": {
       "category": "Neon",
@@ -40,9 +36,7 @@
       "basedOn": "minecraft-ten.neon_glow",
       "border": "#18041a",
       "variants": {
-        "neon": {
-          "border": "#18041a"
-        }
+        "neon": {}
       }
     },
     "atmosphere": {
@@ -54,53 +48,28 @@
       "type": "strip",
       "authors": ["Yozhenka"],
       "basedOn": "strips.minecraft-ten.pride",
-      "border": "#000000",
       "variants": {
-        "aroace": {
-          "border": "#000000"
-        },
-        "aromantic": {
-          "border": "#000000"
-        },
-        "asexual": {
-          "border": "#000000"
-        },
-        "bisexual": {
-          "border": "#000000"
-        },
-        "enby": {
-          "border": "#000000"
-        },
+        "aroace": {},
+        "aromantic": {},
+        "asexual": {},
+        "bisexual": {},
+        "enby": {},
         "femboy": {
-          "basedOn": "strips.minecraft-ten.femboy",
-          "border": "#000000"
+          "basedOn": "strips.minecraft-ten.femboy"
         },
-        "fluid": {
-          "border": "#000000"
-        },
-        "gay": {
-          "border": "#000000"
-        },
+        "fluid": {},
+        "gay": {},
         "intersex": {
-          "type": "sheet",
-          "border": "#000000"
+          "type": "sheet"
         },
-        "lesbian": {
-          "border": "#000000"
-        },
-        "pansexual": {
-          "border": "#000000"
-        },
-        "trans": {
-          "border": "#000000"
-        },
+        "lesbian": {},
+        "pansexual": {},
+        "trans": {},
         "transfeminine": {
-          "basedOn": "strips.minecraft-ten.transfeminine",
-          "border": "#000000"
+          "basedOn": "strips.minecraft-ten.transfeminine"
         },
         "transmasculine": {
-          "basedOn": "strips.minecraft-ten.transmasculine",
-          "border": "#000000"
+          "basedOn": "strips.minecraft-ten.transmasculine"
         }
       }
     },
@@ -155,8 +124,7 @@
     "flat_coloured": {
       "type": "strip",
       "name": "Flat (Coloured)",
-      "authors": ["Ewan Howell"],
-      "border": "#000000"
+      "authors": ["Ewan Howell"]
     },
     "lagoona": {
       "basedOn": "strips.minecraft-ten.lagoona",
@@ -168,8 +136,7 @@
     },
     "enderman": {
       "type": "strip",
-      "basedOn": "strips.minecraft-ten.enderman",
-      "border": "#000000"
+      "basedOn": "strips.minecraft-ten.enderman"
     }
   },
   "overlays": {

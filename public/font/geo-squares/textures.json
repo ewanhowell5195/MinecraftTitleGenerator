@@ -1,8 +1,6 @@
 {
   "textures": {
-    "flat": {
-      "border": "#000000"
-    }
+    "flat": {}
   },
   "overlays": {},
   "primary": "smooth",

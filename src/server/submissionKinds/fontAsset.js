@@ -4,7 +4,7 @@ import { jsonText } from "../../lib/jsonText.js"
 import { titleCase } from "../../lib/names.js"
 import { FACE_PANELS, overlayLayer } from "../../lib/settings.js"
 import { textureName } from "../../lib/submissionKinds/fontAsset.js"
-import { DEFAULT_ROLES, assetId } from "../../lib/submissions.js"
+import { DEFAULT_ROLES, assetId, ownBorder } from "../../lib/submissions.js"
 
 const SECTIONS = { texture: "textures", overlay: "overlays" }
 
@@ -52,7 +52,7 @@ function fontAsset(kind) {
         ...(row.name !== titleCase(asset) && { name: row.name }),
         authors: row.credit,
         ...((density > 1 || (parent?.density ?? 1) > 1) && { density }),
-        ...(kind === "texture" && { border: details.border }),
+        ...(kind === "texture" && ownBorder(details.border, parent ? parent.border ?? list.textures?.flat?.border : list.textures?.flat?.border)),
         ...(kind === "overlay" && details.palette && { palette: details.palette })
       }
       const choices = { overlays: withGenerated(list.overlays ?? {}), edgeOverlays: GENERATED_EDGE_OVERLAYS }

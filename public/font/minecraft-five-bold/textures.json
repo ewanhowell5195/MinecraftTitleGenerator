@@ -1,26 +1,22 @@
 {
   "textures": {
     "flat": {
-      "authors": ["Ewan Howell"],
-      "border": "#000000"
+      "authors": ["Ewan Howell"]
     },
     "edition": {
       "type": "strip",
       "overlays": [
         { "overlay": "highlights_bottom", "blend": "source-over", "colours": ["#fff9f7"], "opacity": 61 }
       ],
-      "authors": ["Ewan Howell"],
-      "border": "#000000"
+      "authors": ["Ewan Howell"]
     },
     "gradient": {
       "authors": ["Cubeoidal"],
-      "basedOn": "strips.minecraft-ten.gradient",
-      "border": "#000000"
+      "basedOn": "strips.minecraft-ten.gradient"
     },
     "flat_coloured": {
       "type": "strip",
-      "authors": ["Ewan Howell"],
-      "border": "#000000"
+      "authors": ["Ewan Howell"]
     },
     "bubbles": {
       "authors": ["Cubeoidal"],
@@ -30,8 +26,7 @@
     "mangrove": {
       "name": "Mangrove (Wild Update)",
       "authors": ["Cubeoidal"],
-      "basedOn": "minecraft-ten.mangrove",
-      "border": "#000000"
+      "basedOn": "minecraft-ten.mangrove"
     },
     "oak_planks": {
       "type": "strip",
@@ -72,8 +67,7 @@
       }
     },
     "dots": {
-      "authors": ["Ewan Howell"],
-      "border": "#000000"
+      "authors": ["Ewan Howell"]
     },
     "bevelled_gold": {
       "authors": ["PopitTart"],
@@ -84,53 +78,28 @@
     "pride": {
       "type": "strip",
       "basedOn": "strips.minecraft-ten.pride",
-      "border": "#000000",
       "variants": {
-        "aroace": {
-          "border": "#000000"
-        },
-        "aromantic": {
-          "border": "#000000"
-        },
-        "asexual": {
-          "border": "#000000"
-        },
-        "bisexual": {
-          "border": "#000000"
-        },
-        "enby": {
-          "border": "#000000"
-        },
+        "aroace": {},
+        "aromantic": {},
+        "asexual": {},
+        "bisexual": {},
+        "enby": {},
         "femboy": {
-          "basedOn": "strips.minecraft-ten.femboy",
-          "border": "#000000"
+          "basedOn": "strips.minecraft-ten.femboy"
         },
-        "fluid": {
-          "border": "#000000"
-        },
-        "gay": {
-          "border": "#000000"
-        },
+        "fluid": {},
+        "gay": {},
         "intersex": {
-          "type": "sheet",
-          "border": "#000000"
+          "type": "sheet"
         },
-        "lesbian": {
-          "border": "#000000"
-        },
-        "pansexual": {
-          "border": "#000000"
-        },
-        "trans": {
-          "border": "#000000"
-        },
+        "lesbian": {},
+        "pansexual": {},
+        "trans": {},
         "transfeminine": {
-          "basedOn": "strips.minecraft-ten.transfeminine",
-          "border": "#000000"
+          "basedOn": "strips.minecraft-ten.transfeminine"
         },
         "transmasculine": {
-          "basedOn": "strips.minecraft-ten.transmasculine",
-          "border": "#000000"
+          "basedOn": "strips.minecraft-ten.transmasculine"
         }
       }
     },
@@ -140,14 +109,11 @@
       "basedOn": "minecraft-ten.neon_glow",
       "border": "#18041a",
       "variants": {
-        "neon": {
-          "border": "#18041a"
-        }
+        "neon": {}
       }
     },
     "midnight": {
-      "basedOn": "minecraft-ten.midnight",
-      "border": "#000000"
+      "basedOn": "minecraft-ten.midnight"
     },
     "mob_vote": {
       "type": "strip",
@@ -155,12 +121,10 @@
         { "overlay": "outline", "blend": "source-over", "colours": ["#f37eff"], "opacity": 68 }
       ],
       "authors": ["Ewan Howell"],
-      "border": "#000000",
       "variants": {
         "mob_vote_gold": {
           "type": "sheet",
-          "overlays": null,
-          "border": "#000000"
+          "overlays": null
         }
       }
     }

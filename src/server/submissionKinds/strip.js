@@ -4,7 +4,7 @@ import { titleCase } from "../../lib/names.js"
 import { mergeStrips, stripFolder, stripUse } from "../../lib/strips.js"
 import { textureName } from "../../lib/submissionKinds/fontAsset.js"
 import { setName, setUsers, stripTarget } from "../../lib/submissionKinds/stripFit.js"
-import { assetId } from "../../lib/submissions.js"
+import { assetId, ownBorder } from "../../lib/submissions.js"
 import { texturesPath, usedIds } from "./fontAsset.js"
 
 const FONTS = "public/font/fonts.json"
@@ -36,16 +36,15 @@ async function freeAsset(read, row, fonts, extra, taken) {
   return assetId(row.name, new Set(used.flat().concat(extra, taken)))
 }
 
-function entryFor(row, details, asset) {
-  return { type: "strip", ...(details.stretch && { stretch: true }), ...(row.name !== titleCase(asset) && { name: row.name }), authors: row.credit, border: details.border, ...(details.snap > 1 && { snap: details.snap }) }
+function entryFor(row, details, asset, inherited) {
+  return { type: "strip", ...(details.stretch && { stretch: true }), ...(row.name !== titleCase(asset) && { name: row.name }), authors: row.credit, ...ownBorder(details.border, inherited), ...(details.snap > 1 && { snap: details.snap }) }
 }
 
 function added(textures, row, details, asset, where) {
-  const entry = entryFor(row, details, asset)
-  if (!details.variantOf) return { ...textures, [asset]: entry }
+  if (!details.variantOf) return { ...textures, [asset]: entryFor(row, details, asset) }
   const parent = textures?.[details.variantOf]
   if (parent?.type !== "strip") throw new Error(`submission ${row.id} is a variant of ${details.variantOf}, which isn't a published strip of ${where}`)
-  const { type, stretch, snap = 1, ...own } = entry
+  const { type, stretch, snap = 1, ...own } = entryFor(row, details, asset, parent.border)
   const variant = { ...(!!stretch !== !!parent.stretch && { stretch: !!stretch }), ...own, ...(snap > 1 && snap !== parent.snap && { snap }) }
   return { ...textures, [details.variantOf]: { ...parent, variants: { ...parent.variants, [asset]: variant } } }
 }

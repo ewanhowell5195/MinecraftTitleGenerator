@@ -10,5 +10,5 @@ export function flatSheet(cells, capHeight, depth, density = 1, layers = null, i
 
 export function writeStarterTextures(folder) {
   const file = path.join(folder, "textures.json")
-  if (!fs.existsSync(file)) writeJson(file, { textures: { flat: { border: "#000000" } }, overlays: {} })
+  if (!fs.existsSync(file)) writeJson(file, { textures: { flat: {} }, overlays: {} })
 }

@@ -1,31 +1,25 @@
 {
   "textures": {
     "flat": {
-      "authors": ["Ewan Howell"],
-      "border": "#000000"
+      "authors": ["Ewan Howell"]
     },
     "cracked": {
       "authors": ["Ewan Howell"],
       "variants": {
         "cracked_left": {
-          "density": 3,
-          "border": "#000000"
+          "density": 3
         },
         "cracked_right": {
-          "density": 3,
-          "border": "#000000"
+          "density": 3
         },
         "cracked_old": {
-          "density": 4,
-          "border": "#000000"
+          "density": 4
         },
         "cracked_old_pixelated": {
-          "border": "#000000",
           "density": 1
         }
       },
-      "density": 3,
-      "border": "#000000"
+      "density": 3
     },
     "atmosphere": {
       "authors": ["Ewan Howell"],
@@ -57,77 +51,41 @@
       "authors": ["B1tseK", "Ewan Howell"],
       "variants": {
         "bee_entity": {
-          "name": "Bee (Entity)",
-          "border": "#000000"
+          "name": "Bee (Entity)"
         },
-        "bogged": {
-          "border": "#000000"
-        },
-        "creaking": {
-          "border": "#000000"
-        },
-        "drowned": {
-          "border": "#000000"
-        },
+        "bogged": {},
+        "creaking": {},
+        "drowned": {},
         "enderman_entity": {
-          "name": "Enderman (Entity)",
-          "border": "#000000"
+          "name": "Enderman (Entity)"
         },
-        "fox": {
-          "border": "#000000"
-        },
+        "fox": {},
         "snow_fox": {
-          "name": "Fox (Snow)",
-          "border": "#000000"
+          "name": "Fox (Snow)"
         },
         "cold_frog": {
-          "name": "Frog (Cold)",
-          "border": "#000000"
+          "name": "Frog (Cold)"
         },
         "temperate_frog": {
-          "name": "Frog (Temperate)",
-          "border": "#000000"
+          "name": "Frog (Temperate)"
         },
         "warm_frog": {
-          "name": "Frog (Warm)",
-          "border": "#000000"
+          "name": "Frog (Warm)"
         },
         "glow_squid_entity": {
-          "name": "Glow Squid (Entity)",
-          "border": "#000000"
+          "name": "Glow Squid (Entity)"
         },
-        "husk": {
-          "border": "#000000"
-        },
-        "iron_golem": {
-          "border": "#000000"
-        },
-        "magma_cube": {
-          "border": "#000000"
-        },
-        "skeleton": {
-          "border": "#000000"
-        },
-        "slime": {
-          "border": "#000000"
-        },
-        "villager": {
-          "border": "#000000"
-        },
-        "vindicator": {
-          "border": "#000000"
-        },
-        "witch": {
-          "border": "#000000"
-        },
-        "zombie": {
-          "border": "#000000"
-        },
-        "zombie_villager": {
-          "border": "#000000"
-        }
-      },
-      "border": "#000000"
+        "husk": {},
+        "iron_golem": {},
+        "magma_cube": {},
+        "skeleton": {},
+        "slime": {},
+        "villager": {},
+        "vindicator": {},
+        "witch": {},
+        "zombie": {},
+        "zombie_villager": {}
+      }
     },
     "fired": {
       "authors": ["Ewan Howell"],

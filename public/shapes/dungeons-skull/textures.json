@@ -1,8 +1,7 @@
 {
   "textures": {
     "flat": {
-      "authors": ["Ewan Howell"],
-      "border": "#000000"
+      "authors": ["Ewan Howell"]
     },
     "dungeons": {
       "authors": ["Ewan Howell"],

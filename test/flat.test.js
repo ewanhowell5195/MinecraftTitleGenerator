@@ -100,7 +100,7 @@ describe("writeStarterTextures", () => {
     assert.equal(write.mock.callCount(), 1)
     const [file, text] = write.mock.calls[0].arguments
     assert.equal(file, path.join("some/folder", "textures.json"))
-    assert.deepEqual(JSON.parse(text), { textures: { flat: { border: "#000000" } }, overlays: {} })
+    assert.deepEqual(JSON.parse(text), { textures: { flat: {} }, overlays: {} })
   })
 
   test("leaves an existing file alone", t => {

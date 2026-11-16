@@ -1,31 +1,25 @@
 {
   "textures": {
     "flat": {
-      "authors": ["Ewan Howell"],
-      "border": "#000000"
+      "authors": ["Ewan Howell"]
     },
     "cracked": {
       "authors": ["ShrimpSnail", "Ewan Howell", "MrBrose"],
       "density": 3,
-      "border": "#000000",
       "variants": {
         "cracked_left": {
-          "density": 3,
-          "border": "#000000"
+          "density": 3
         },
         "cracked_right": {
-          "density": 3,
-          "border": "#000000"
+          "density": 3
         },
         "cracked_old": {
           "authors": ["Yanuar Mohendra", "MrBrose", "ShrimpSnail"],
-          "density": 4,
-          "border": "#000000"
+          "density": 4
         },
         "cracked_old_pixelated": {
           "name": "Cracked Old (Pixelated)",
-          "authors": ["Yanuar Mohendra", "ShrimpSnail"],
-          "border": "#000000"
+          "authors": ["Yanuar Mohendra", "ShrimpSnail"]
         }
       }
     },
@@ -39,17 +33,14 @@
         { "overlay": "highlights_top", "blend": "overlay", "colours": ["#f5f3ef"], "opacity": 69 }
       ],
       "name": "Mangrove (Wild Update)",
-      "authors": ["Narrator2", "TheAnnoying"],
-      "border": "#000000"
+      "authors": ["Narrator2", "TheAnnoying"]
     },
     "neon_glow": {
       "category": "Neon",
       "authors": ["Ewan Howell"],
       "border": "#18041a",
       "variants": {
-        "neon": {
-          "border": "#18041a"
-        }
+        "neon": {}
       }
     },
     "grass": {
@@ -81,13 +72,11 @@
     },
     "inner_shadow": {
       "authors": ["justwilly"],
-      "density": 4,
-      "border": "#000000"
+      "density": 4
     },
     "smooth_bevelled": {
       "authors": ["justwilly"],
-      "density": 4,
-      "border": "#000000"
+      "density": 4
     },
     "copper": {
       "authors": ["Ewan Howell"],
@@ -108,13 +97,11 @@
       "variants": {
         "cake_no_drops": {
           "name": "Cake (No Drops)",
-          "density": 2,
-          "border": "#261212"
+          "density": 2
         },
         "cake_plain": {
           "name": "Cake (Plain)",
-          "density": 2,
-          "border": "#261212"
+          "density": 2
         },
         "cake_minecraft": {
           "name": "Cake (Minecraft)",
@@ -139,16 +126,14 @@
       "border": "#021935"
     },
     "pixel": {
-      "authors": ["MrBrose"],
-      "border": "#000000"
+      "authors": ["MrBrose"]
     },
     "ice": {
       "authors": ["Feby Kah", "Ewan Howell"],
       "border": "#1a112c"
     },
     "midnight": {
-      "authors": ["Ninjaabdullah"],
-      "border": "#000000"
+      "authors": ["Ninjaabdullah"]
     },
     "create": {
       "name": "Create Mod",
@@ -160,8 +145,7 @@
       "strip": "minecraft-ten",
       "variants": {
         "intersex": {
-          "type": "sheet",
-          "border": "#000000"
+          "type": "sheet"
         }
       }
     },
@@ -178,34 +162,28 @@
       }
     },
     "simplacity": {
-      "authors": ["ShinyDragon96", "ShiNeaL"],
-      "border": "#000000"
+      "authors": ["ShinyDragon96", "ShiNeaL"]
     },
     "trails_and_tales": {
-      "authors": ["Abe"],
-      "border": "#000000"
+      "authors": ["Abe"]
     },
     "earth": {
       "authors": ["HARYA_"],
-      "density": 4,
-      "border": "#000000"
+      "density": 4
     },
     "haunted": {
       "authors": ["Ninjaabdullah"],
       "border": "#00021f"
     },
     "iron_block": {
-      "authors": ["Andre_601"],
-      "border": "#000000"
+      "authors": ["Andre_601"]
     },
     "crystal": {
       "name": "Crystal (Caves & Cliffs)",
-      "authors": ["blank3times"],
-      "border": "#000000"
+      "authors": ["blank3times"]
     },
     "end_crystal": {
-      "authors": ["blank3times"],
-      "border": "#000000"
+      "authors": ["blank3times"]
     },
     "barrel": {
       "authors": ["Klayv"],
@@ -215,28 +193,22 @@
       "authors": ["Klayv"],
       "border": "#121503",
       "variants": {
-        "stripped_bamboo": {
-          "border": "#121503"
-        }
+        "stripped_bamboo": {}
       }
     },
     "create_andesite_casing": {
       "name": "Andesite Casing",
       "category": "Create Casing",
       "authors": ["MoonArts"],
-      "border": "#000000",
       "variants": {
         "create_brass_casing": {
-          "name": "Brass Casing",
-          "border": "#000000"
+          "name": "Brass Casing"
         },
         "create_copper_casing": {
-          "name": "Copper Casing",
-          "border": "#000000"
+          "name": "Copper Casing"
         },
         "create_train_casing": {
-          "name": "Train Casing",
-          "border": "#000000"
+          "name": "Train Casing"
         }
       }
     },

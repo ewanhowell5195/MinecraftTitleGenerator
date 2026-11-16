@@ -1,8 +1,7 @@
 {
   "textures": {
     "flat": {
-      "authors": ["Ewan Howell"],
-      "border": "#000000"
+      "authors": ["Ewan Howell"]
     },
     "steve": {
       "category": "Skins",
@@ -45,33 +44,15 @@
       "category": "Emojis",
       "authors": ["B1tseK"],
       "variants": {
-        "for_me": {
-          "border": "#2e2a26"
-        },
-        "grinning": {
-          "border": "#2e2a26"
-        },
-        "nauseated": {
-          "border": "#2e2a26"
-        },
-        "scream": {
-          "border": "#2e2a26"
-        },
-        "devil": {
-          "border": "#2e2a26"
-        },
-        "frown": {
-          "border": "#2e2a26"
-        },
-        "cool": {
-          "border": "#2e2a26"
-        },
-        "smile": {
-          "border": "#2e2a26"
-        },
-        "heart_eyes": {
-          "border": "#2e2a26"
-        }
+        "for_me": {},
+        "grinning": {},
+        "nauseated": {},
+        "scream": {},
+        "devil": {},
+        "frown": {},
+        "cool": {},
+        "smile": {},
+        "heart_eyes": {}
       },
       "border": "#2e2a26"
     },
@@ -79,77 +60,36 @@
       "category": "Entities",
       "authors": ["Ewan Howell"],
       "variants": {
-        "blaze": {
-          "border": "#000000"
-        },
-        "bogged": {
-          "border": "#000000"
-        },
-        "breeze": {
-          "border": "#000000"
-        },
-        "cave_spider": {
-          "border": "#000000"
-        },
-        "creeper": {
-          "border": "#000000"
-        },
-        "drowned": {
-          "border": "#000000"
-        },
+        "blaze": {},
+        "bogged": {},
+        "breeze": {},
+        "cave_spider": {},
+        "creeper": {},
+        "drowned": {},
         "drowned_baby": {
           "border": "#277500"
         },
-        "enderman": {
-          "border": "#000000"
-        },
-        "ghast": {
-          "border": "#000000"
-        },
-        "ghast_shooting": {
-          "border": "#000000"
-        },
-        "happy_ghast": {
-          "border": "#000000"
-        },
-        "ghastling": {
-          "border": "#000000"
-        },
-        "husk": {
-          "border": "#000000"
-        },
+        "enderman": {},
+        "ghast": {},
+        "ghast_shooting": {},
+        "happy_ghast": {},
+        "ghastling": {},
+        "husk": {},
         "husk_baby": {
           "border": "#40382a"
         },
-        "parched": {
-          "border": "#000000"
-        },
-        "skeleton": {
-          "border": "#000000"
-        },
-        "snow_golem": {
-          "border": "#000000"
-        },
-        "spider": {
-          "border": "#000000"
-        },
-        "stray": {
-          "border": "#000000"
-        },
-        "wither": {
-          "border": "#000000"
-        },
-        "wither_invulnerable": {
-          "border": "#000000"
-        },
-        "wither_skeleton": {
-          "border": "#000000"
-        },
+        "parched": {},
+        "skeleton": {},
+        "snow_golem": {},
+        "spider": {},
+        "stray": {},
+        "wither": {},
+        "wither_invulnerable": {},
+        "wither_skeleton": {},
         "zombie_baby": {
           "border": "#315223"
         }
-      },
-      "border": "#000000"
+      }
     }
   },
   "overlays": {

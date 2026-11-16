@@ -2,8 +2,7 @@
   "textures": {
     "flat": {
       "name": "Flat",
-      "authors": ["Dragonslayr15001"],
-      "border": "#000000"
+      "authors": ["Dragonslayr15001"]
     },
     "brass": {
       "name": "Brass",
@@ -12,8 +11,7 @@
     },
     "colourful": {
       "name": "Colourful",
-      "authors": ["Dragonslayr15001"],
-      "border": "#000000"
+      "authors": ["Dragonslayr15001"]
     }
   },
   "overlays": {

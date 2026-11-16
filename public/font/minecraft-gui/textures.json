@@ -1,16 +1,13 @@
 {
   "textures": {
     "flat": {
-      "authors": ["Ewan Howell"],
-      "border": "#000000"
+      "authors": ["Ewan Howell"]
     },
     "diamond": {
-      "authors": ["Ewan Howell"],
-      "border": "#000000"
+      "authors": ["Ewan Howell"]
     },
     "achievement": {
-      "authors": ["B1tseK"],
-      "border": "#000000"
+      "authors": ["B1tseK"]
     },
     "chambered": {
       "authors": ["blank3times"],
@@ -23,8 +20,7 @@
     },
     "oled": {
       "name": "OLED",
-      "authors": ["Ewan Howell"],
-      "border": "#000000"
+      "authors": ["Ewan Howell"]
     },
     "map": {
       "authors": ["B1tseK"],
@@ -39,12 +35,10 @@
       "border": "#edffef"
     },
     "menu_button": {
-      "authors": ["B1tseK"],
-      "border": "#000000"
+      "authors": ["B1tseK"]
     },
     "hotbar": {
-      "authors": ["B1tseK"],
-      "border": "#000000"
+      "authors": ["B1tseK"]
     }
   },
   "overlays": {

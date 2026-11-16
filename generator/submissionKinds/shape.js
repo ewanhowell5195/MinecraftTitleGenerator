@@ -39,7 +39,7 @@ function convertSilhouette(root, id) {
   const folder = fontDir(entry, root)
   const image = readPng(holding)
   writePng(path.join(folder, "font.png"), sheetOf(image))
-  writeJson(path.join(folder, "textures.json"), { primary: SHAPE_TEXTURE, secondary: SHAPE_TEXTURE, textures: { [SHAPE_TEXTURE]: { border: BORDER }, flat: { border: BORDER } }, overlays: {} })
+  writeJson(path.join(folder, "textures.json"), { primary: SHAPE_TEXTURE, secondary: SHAPE_TEXTURE, textures: { [SHAPE_TEXTURE]: {}, flat: {} }, overlays: {} })
   const { cells, capHeight } = readMask(entry, list, root)
   const depth = defaultDepth(entry)
   writePng(path.join(folder, "textures", "flat.png"), flatSheet(cells, capHeight, depth).sheet)

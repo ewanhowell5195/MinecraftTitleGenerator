@@ -1,107 +1,78 @@
 {
   "textures": {
     "flat": {
-      "authors": ["Ewan Howell"],
-      "border": "#000000"
+      "authors": ["Ewan Howell"]
     },
     "red": {
       "authors": ["Ewan Howell"],
       "variants": {
-        "yellow": {
-          "border": "#000000"
-        },
+        "yellow": {},
         "poisoned": {
-          "authors": ["B1tseK"],
-          "border": "#000000"
+          "authors": ["B1tseK"]
         },
         "withered": {
-          "authors": ["B1tseK"],
-          "border": "#000000"
+          "authors": ["B1tseK"]
         },
         "frozen": {
-          "authors": ["B1tseK"],
-          "border": "#000000"
+          "authors": ["B1tseK"]
         },
         "heartless": {
-          "authors": ["B1tseK"],
-          "border": "#000000"
+          "authors": ["B1tseK"]
         },
         "vehicle": {
-          "authors": ["B1tseK"],
-          "border": "#000000"
+          "authors": ["B1tseK"]
         }
-      },
-      "border": "#000000"
+      }
     },
     "hardcore": {
       "authors": ["Ewan Howell"],
       "variants": {
         "yellow_hardcore": {
-          "authors": ["B1tseK"],
-          "border": "#000000"
+          "authors": ["B1tseK"]
         },
         "poisoned_hardcore": {
-          "authors": ["B1tseK"],
-          "border": "#000000"
+          "authors": ["B1tseK"]
         },
         "withered_hardcore": {
-          "authors": ["B1tseK"],
-          "border": "#000000"
+          "authors": ["B1tseK"]
         },
         "frozen_hardcore": {
-          "authors": ["B1tseK"],
-          "border": "#000000"
+          "authors": ["B1tseK"]
         },
         "heartless_hardcore": {
-          "authors": ["B1tseK"],
-          "border": "#000000"
+          "authors": ["B1tseK"]
         },
         "vehicle_hardcore": {
-          "authors": ["B1tseK"],
-          "border": "#000000"
+          "authors": ["B1tseK"]
         }
-      },
-      "border": "#000000"
+      }
     },
     "sea_heart": {
       "authors": ["B1tseK"],
       "variants": {
-        "sea_heart_hardcore": {
-          "border": "#000000"
-        }
-      },
-      "border": "#000000"
+        "sea_heart_hardcore": {}
+      }
     },
     "mineimator": {
       "authors": ["Ewan Howell", "B1tseK"],
       "variants": {
-        "mineimator_hardcore": {
-          "border": "#121833"
-        }
+        "mineimator_hardcore": {}
       },
       "border": "#121833"
     },
     "neon": {
       "authors": ["Ewan Howell", "B1tseK"],
       "variants": {
-        "neon_hardcore": {
-          "border": "#18041a"
-        }
+        "neon_hardcore": {}
       },
       "border": "#18041a"
     },
     "bedrock_button_unpressed": {
       "authors": ["Klayv", "B1tseK"],
       "variants": {
-        "bedrock_button_unpressed_hardcore": {
-          "border": "#1e1e1f"
-        },
-        "bedrock_button": {
-          "border": "#1e1e1f"
-        },
-        "bedrock_button_hardcore": {
-          "border": "#1e1e1f"
-        }
+        "bedrock_button_unpressed_hardcore": {},
+        "bedrock_button": {},
+        "bedrock_button_hardcore": {}
       },
       "border": "#1e1e1f"
     }

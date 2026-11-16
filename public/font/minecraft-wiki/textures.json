@@ -1,13 +1,11 @@
 {
   "textures": {
     "flat": {
-      "authors": ["Miffen Kop", "Ewan Howell", "oakar258"],
-      "border": "#000000"
+      "authors": ["Miffen Kop", "Ewan Howell", "oakar258"]
     },
     "wiki": {
       "name": "Wiki",
       "authors": ["Ewan Howell"],
-      "border": "#000000",
       "overlays": [
         [
           { "overlay": "two_tone_outline", "blend": "source-over", "colours": ["#c2c2c2", "#242424"], "thickness": 0.5 }
@@ -24,7 +22,6 @@
           "type": "strip",
           "name": "Wiki (Old)",
           "authors": ["ewanhowell5195"],
-          "border": "#000000",
           "snap": 8,
           "overlays": null,
           "inner": ["#424242", "#151515"],
