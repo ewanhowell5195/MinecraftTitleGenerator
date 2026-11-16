@@ -96,6 +96,7 @@
     "authors": ["Ewan Howell"],
     "characterSpacing": -8,
     "terminatorSpace": true,
+    "allFaces": "fade",
     "editor": { "width": 36, "grid": 4 }
   },
   {

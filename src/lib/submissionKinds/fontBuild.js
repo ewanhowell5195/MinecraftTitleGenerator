@@ -43,6 +43,7 @@ export function fontJsonFields(entry) {
   const authors = authorList(entry.authors ?? entry.author)
   if (authors.length) clean.authors = authors
   if (Array.isArray(entry.strips)) clean.strips = entry.strips.map(stripField).filter(Boolean)
+  if (entry.allFaces === "fade") clean.allFaces = "fade"
   if (isRecord(entry.kerning)) clean.kerning = Object.fromEntries(Object.entries(entry.kerning).filter(([amount, pairs]) => Number.isFinite(Number(amount)) && Array.isArray(pairs)).map(([amount, pairs]) => [amount, pairs.filter(pair => typeof pair === "string")]))
   if (entry.layerDepth === "independent") clean.layerDepth = "independent"
   if (isRecord(entry.editor)) clean.editor = { ...picked(entry.editor, EDITOR_NUMBERS, "number"), ...picked(entry.editor, ["letterCase", "texture"], "string") }

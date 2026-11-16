@@ -752,7 +752,8 @@ export function exportJson(font, texture, characters = charactersOf(font)) {
   if (font.depth !== DEFAULT_DEPTH) entry.depth = font.depth
   if (font.border !== DEFAULT_BORDER) entry.border = font.border
   if (font.characterSpacing) entry.characterSpacing = font.characterSpacing
-  for (const key of ["terminatorSpace", "forcedTerminators", "autoBorder", "flat", "overlay", "allFaces"]) if (font[key]) entry[key] = true
+  for (const key of ["terminatorSpace", "forcedTerminators", "autoBorder", "flat", "overlay"]) if (font[key]) entry[key] = true
+  if (font.allFaces) entry.allFaces = font.allFaces === "fade" ? "fade" : true
   if (font.layerDepth === "independent" && fontLayers(font)) entry.layerDepth = "independent"
   if (font.terminatorSpace && !font.defineSpace && (font.terminatorSpaceWidth ?? font.spaceWidth) !== font.spaceWidth) entry.terminatorSpaceWidth = font.terminatorSpaceWidth
   const kerning = Object.fromEntries(Object.entries(font.kerning).filter(([, amount]) => amount))

@@ -343,10 +343,11 @@ const TYPE_KEYS = {
 
 const TYPED_KEYS = Object.values(TYPE_KEYS).flat()
 const FACE_KEYS = TYPE_KEYS.inner.concat(TYPE_KEYS.sides)
-const ALL_FACES = { internalFaces: true, fadeInternal: false, sideFaces: true, fadeSides: false }
+const ALL_FACES = { internalFaces: true, sideFaces: true }
+const UNFADED_FACES = { fadeInternal: false, fadeSides: false }
 
 function typed(type, font) {
-  return { ...TYPES[type], ...(font?.allFaces && ALL_FACES) }
+  return { ...TYPES[type], ...(font?.allFaces && ALL_FACES), ...(font?.allFaces && font.allFaces !== "fade" && UNFADED_FACES) }
 }
 
 export function fontFaces(type, font) {

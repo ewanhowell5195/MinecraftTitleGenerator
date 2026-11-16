@@ -719,6 +719,11 @@ describe("font defaults", () => {
     assert.equal(defaultBorder("small"), 3)
     assert.equal(defaultBorder("small", { border: 0 }), 0)
   })
+  test("all faces turns the fade off unless the font keeps it", () => {
+    assert.deepEqual(fontFaces("top", { allFaces: true }), { ...fontFaces("top"), internalFaces: true, sideFaces: true, fadeInternal: false, fadeSides: false })
+    assert.deepEqual(fontFaces("top", { allFaces: "fade" }), { ...fontFaces("top"), internalFaces: true, sideFaces: true })
+  })
+
   test("a font's faces reach every colour layer", () => {
     const object = createObject()
     separateLayers(object, "colour", true, 2)

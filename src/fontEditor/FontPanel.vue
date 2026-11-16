@@ -230,6 +230,7 @@
       <h3>Options</h3>
       <div v-for="flag of FLAGS" :key="flag.key" class="option">
         <Checkbox :label="flag.label" :hint="flag.hint" :model-value="font[flag.key]" @update:model-value="setField(flag.key, $event, false)" />
+        <Checkbox v-if="flag.key === 'allFaces' && font.allFaces" class="nested" label="Keep the fade" hint="The inner and side faces keep the text type's fade instead of turning it off." :model-value="font.allFaces === 'fade'" @update:model-value="setField('allFaces', $event ? 'fade' : true, false)" />
         <Field v-if="flag.key === 'terminatorSpace' && font.terminatorSpace" class="nested" label="Terminator space width" :hint="font.defineSpace ? 'Your font draws its own space character, which is always used beside the terminators.' : `In pixels. Leave empty to use the normal space width of ${font.spaceWidth}.`">
           <NumberInput min="0" :value="font.defineSpace ? '' : font.terminatorSpaceWidth ?? ''" :placeholder="font.defineSpace ? '' : String(font.spaceWidth)" :disabled="font.defineSpace" @input="setTerminatorWidth" @change="setTerminatorWidth" />
         </Field>
