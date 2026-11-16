@@ -8,7 +8,7 @@
   import NameList from "../../components/NameList.vue"
   import NumberInput from "../../components/NumberInput.vue"
   import Segments from "../../components/Segments.vue"
-  import Toggle from "../../components/Toggle.vue"
+  import Checkbox from "../../components/Checkbox.vue"
   import UploadField from "../../components/UploadField.vue"
   import { flatTexture } from "../../lib/font/editor/export.js"
   import { popular } from "../../lib/state/stats.js"
@@ -171,9 +171,10 @@
           <span class="hint">Snap</span>
           <NumberInput min="1" :max="STRIP_LIMITS.snap" :value="item.snap ?? 1" v-tooltip="'How many pixels wide each pixel of the strip is'" @input="update(item.key, { snap: $event.target.value === '' ? null : Number($event.target.value) })" />
         </div>
-        <div v-if="item.kind !== 'overlay'" class="row defaults">
-          <Toggle label="Primary" :model-value="!!item.primary" @update:model-value="setDefault(item.key, 'primary', $event)" />
-          <Toggle label="Secondary" :model-value="!!item.secondary" @update:model-value="setDefault(item.key, 'secondary', $event)" />
+        <div v-if="item.kind !== 'overlay' && item.kind !== 'flat'" class="row defaults">
+          <span class="hint">Default</span>
+          <Checkbox label="Primary" :model-value="!!item.primary" @update:model-value="setDefault(item.key, 'primary', $event)" />
+          <Checkbox label="Secondary" :model-value="!!item.secondary" @update:model-value="setDefault(item.key, 'secondary', $event)" />
         </div>
       </Field>
     </div>
@@ -216,10 +217,6 @@
 
   .defaults {
     gap: 16px;
-  }
-
-  .defaults > * {
-    flex: 1;
   }
 
   .extra-kind {

@@ -488,7 +488,7 @@ describe("sending a font", () => {
     assert.equal(status, 201)
     const list = JSON.parse(branchFile(id, "public/fonts/test-font/textures.json").toString())
     assert.equal(list.primary, "gold_bricks")
-    assert.equal(list.secondary, "flat")
+    assert.equal(list.secondary, undefined)
     const both = await send(cookie, { details: { id: "test-font-2", extras: [{ ...details.extras[1], secondary: true }] }, extras: { gold: extras.gold } })
     const single = JSON.parse(branchFile(both.id, "public/fonts/test-font-2/textures.json").toString())
     assert.deepEqual([single.primary, single.secondary], ["gold_bricks", "gold_bricks"])

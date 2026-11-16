@@ -36,7 +36,6 @@ function bundle(row, details, folder) {
     if (item.kind === "flat") {
       list.textures.flat = { authors: authorList(item.credit).length ? authorList(item.credit) : row.credit, ...(item.density > 1 && { density: item.density }), ...ownBorder(item.border) }
       files.push({ path: `public/${folder}/textures/flat.png`, sha })
-      for (const role of DEFAULT_ROLES) if (item[role]) roles[role] = "flat"
       continue
     }
     const id = assetId(item.name, used)

@@ -232,7 +232,7 @@ function extrasOf(list, files, stored, template, problems) {
     else if (!files[item.key] && typeof stored?.[item.key] !== "string") problems[key] = `Choose a PNG for ${name}.`
     else if (file.problem) problems[key] = files[item.key] ? file.problem : `${file.problem} Choose a new one that fits the font.`
     else if (coloured?.problem) problems[key] = coloured.problem
-    const roles = bordered ? DEFAULT_ROLES.filter(role => item[role] === true) : []
+    const roles = bordered && item.kind !== "flat" ? DEFAULT_ROLES.filter(role => item[role] === true) : []
     const repeated = roles.find(role => clean.some(other => other[role]))
     if (repeated && !problems[key]) problems[key] = `Only one texture can be the ${repeated}.`
     if (id) ids.set(id, name)
