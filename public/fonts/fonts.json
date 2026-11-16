@@ -248,6 +248,13 @@
     "border": 0,
     "characterSpacing": -5,
     "allFaces": true,
-    "editor": { "width": 40, "grid": 2 }
+    "editor": { "width": 40, "grid": 2 },
+    "variants": [
+      {
+        "id": "minecraft-wiki-nine",
+        "name": "Short",
+        "authors": ["Miffen Kop"]
+      }
+    ]
   }
 ]
