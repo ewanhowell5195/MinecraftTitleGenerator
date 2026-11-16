@@ -15,6 +15,7 @@
   const sizes = ref({})
   const problem = ref("")
   const made = []
+  let loads = 0
 
   function forget() {
     for (const url of made.splice(0)) URL.revokeObjectURL(url)
@@ -30,6 +31,7 @@
   }
 
   async function load() {
+    const token = ++loads
     forget()
     problem.value = ""
     const item = props.item
@@ -39,9 +41,10 @@
     files.value = own.concat(extras)
     if (item.kind !== "font") return
     try {
-      files.value = (await fontSheet()).concat(files.value)
+      const sheet = await fontSheet()
+      if (token === loads) files.value = sheet.concat(files.value)
     } catch (err) {
-      problem.value = `The font sheet couldn't be read: ${err.message}`
+      if (token === loads) problem.value = `The font sheet couldn't be read: ${err.message}`
     }
   }
 
