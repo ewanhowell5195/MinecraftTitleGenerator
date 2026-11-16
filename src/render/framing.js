@@ -3,7 +3,7 @@ import { image } from "../lib/texture/assets.js"
 import { canvasLimit } from "../lib/texture/canvas.js"
 import { clamp } from "../lib/core/maths.js"
 import { EXACT, aspectOf, compose, drawnTitle, fromAspect, minecraftLayout, placement } from "./render.js"
-import { composeVector } from "./vector.js"
+import { composeVector } from "./vector/svg.js"
 import { view, viewport } from "../lib/state/view.js"
 
 export const FRAMINGS = [{ value: "normal", label: "Normal" }, { value: "square", label: "Square" }, { value: "custom", label: "Custom" }, { value: "minecraft", label: "Minecraft" }]

@@ -12,7 +12,7 @@
   import { TRANSFORM_LIMITS } from "../lib/settings/settings.js"
   import { createSmoothing } from "../components/composables/smoothing.js"
   import { ORBIT_FOV, UNZOOMED, createStage, frameCamera, gizmoPose, keptPan, lineBounds, movedBy, orbitDollied, orbitPanned, orbitStart, orbitTurned, panMatrix, pannedBy, pickEntry, placeOrbit, rotatedTo, screenExtent, titleFraming, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } from "../render/stage.js"
-  import { vectorTitle } from "../render/vector.js"
+  import { vectorTitle } from "../render/vector/title.js"
   import { FORM_SECTIONS, titleLoads, view, viewport, viewportChanges } from "../lib/state/view.js"
 
   const TOOLS = [[null, "pointer", "No gizmo"], ["translate", "move", "Move"], ["rotate", "rotate", "Rotate"], ["scale", "scale", "Scale"]]

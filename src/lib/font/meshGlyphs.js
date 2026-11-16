@@ -1,7 +1,7 @@
 import { ClipType, EndType, FillRule, JoinType, PolyTreeD, booleanOpDWithPolyTree, inflatePathsD } from "@countertype/clipper2-ts"
 import { ShapeUtils, Vector2 } from "three"
 import { fillSpans } from "./fontOutline.js"
-import { signedArea } from "../../render/vectorPaths.js"
+import { signedArea } from "../../render/vector/polygons.js"
 
 const PRECISION = 4
 const ARC_TOLERANCE = 0.05

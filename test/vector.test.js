@@ -1,8 +1,10 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import * as THREE from "three"
-import { composeVector, vectorTitle } from "../src/render/vector.js"
-import { mergedByFill, unionOf } from "../src/render/vectorPaths.js"
+import { composeVector } from "../src/render/vector/svg.js"
+import { vectorTitle } from "../src/render/vector/title.js"
+import { mergedByFill } from "../src/render/vector/polygons.js"
+import { unionOf } from "../src/render/vector/union.js"
 import { close } from "./helpers/assert.js"
 
 const RED = [255, 0, 0]
