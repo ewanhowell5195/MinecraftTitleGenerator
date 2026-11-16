@@ -61,7 +61,7 @@ export function useViewCamera(rig, { props, entries, invalidate }) {
   }
 
   function holdPan() {
-    if (orbiting.value || !navigable.value) return
+    if (orbiting.value || !navigable.value || pan.value === UNZOOMED) return
     const held = keptPan(pan.value, panView())
     if (held.x === pan.value.x && held.y === pan.value.y) return
     pan.value = held

@@ -1,27 +1,32 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
 import * as THREE from "three"
+import { builtOf, transform } from "../helpers/stage.js"
 
 globalThis.devicePixelRatio = 1
 globalThis.WheelEvent ??= { DOM_DELTA_PIXEL: 0, DOM_DELTA_LINE: 1 }
 
 const { useViewCamera } = await import("../../src/app/viewCamera.js")
 const { useViewPointer } = await import("../../src/app/viewPointer.js")
-const { keptPan, panMatrix } = await import("../../src/render/pan.js")
+const { UNZOOMED, keptPan, panMatrix } =await import("../../src/render/pan.js")
 
 const WIDTH = 800
 const HEIGHT = 400
 
-function setup() {
+function setup(items = []) {
   const element = Object.assign(new EventTarget(), { setPointerCapture() {}, getBoundingClientRect: () => ({ left: 0, top: 0, width: WIDTH, height: HEIGHT }) })
-  const rig = { renderer: { domElement: element }, camera: null, controls: { dragging: false, axis: null }, frameSize: { width: WIDTH, height: HEIGHT } }
-  const camera = useViewCamera(rig, { props: { items: [] }, entries: new Map(), invalidate() {} })
+  const rig = { renderer: { domElement: element }, camera: new THREE.PerspectiveCamera(), controls: { dragging: false, axis: null }, frameSize: { width: WIDTH, height: HEIGHT } }
+  const camera = useViewCamera(rig, { props: { items }, entries: new Map(), invalidate() {} })
   const { listen } = useViewPointer(rig, { ...camera, isFramed: () => true }, new Map())
   listen(element)
   function fire(type, fields) {
     element.dispatchEvent(Object.assign(new Event(type, { cancelable: true }), fields))
   }
-  return { pan: camera.pan, fire }
+  return { camera, pan: camera.pan, fire }
+}
+
+function lopsided() {
+  return [{ type: "top", settled: true, transform: transform(), built: builtOf([-1.3, -0.5, 0], [0.9, 0.3, 0]) }]
 }
 
 function clip(clientX, clientY) {
@@ -75,5 +80,24 @@ describe("viewport zoom", () => {
       near(onScreen(pan.value, point), clip((fingers[0][0] + fingers[1][0]) / 2, (fingers[0][1] + fingers[1][1]) / 2))
     }
     assert.ok(pan.value.scale > 1)
+  })
+})
+
+describe("viewport pan limit", () => {
+  test("a title hanging off one side leaves an untouched view where it is", () => {
+    const { camera } = setup(lopsided())
+    camera.holdPan()
+    assert.equal(camera.pan.value, UNZOOMED)
+    assert.equal(camera.moved.value, false)
+  })
+
+  test("a moved view is still pulled back inside the limits", () => {
+    const { camera, fire } = setup(lopsided())
+    fire("wheel", { deltaY: -100, deltaMode: 0, clientX: 400, clientY: 200 })
+    camera.pan.value = { ...camera.pan.value, x: -5 }
+    camera.holdPan()
+    const view = { extent: { left: -1.3, right: 0.9, bottom: -0.5, top: 0.3 }, aspect: WIDTH / HEIGHT }
+    assert.ok(camera.pan.value.x > -5)
+    assert.deepEqual(camera.pan.value, keptPan(camera.pan.value, view))
   })
 })
