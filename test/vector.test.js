@@ -546,6 +546,19 @@ describe("vectorTitle gradient smoothing", () => {
     assert.deepEqual([gradients[0].y1, gradients[0].y2], [0, 64])
   })
 
+  test("an overlay's stepped bands become a gradient too", () => {
+    const ring = (x, y) => x >= 4 && x < 60 && y >= 4 && y < 60 && !(x >= 6 && x < 58 && y >= 6 && y < 58)
+    const data = new Uint8Array(64 * 64 * 4)
+    for (let y = 0; y < 64; y++) {
+      for (let x = 0; x < 64; x++) if (ring(x, y)) data[(y * 64 + x) * 4] = 1
+    }
+    const texture = textureOf(64, 64, (x, y) => ring(x, y) ? [255, 160 + Math.floor(y / 4) * 5, 0] : [0, 0, y * 4])
+    texture.userData.labels = () => data
+    const markup = titleOf(whole(texture)).markup
+    assert.equal(pathsOf(markup).filter(path => !path.fill.startsWith("url")).length, 0)
+    assert.equal(gradientsOf(markup).length, 2)
+  })
+
   test("gradients of different colours on one axis stay apart", () => {
     const uv = (left, right) => [left / 64, 0, right / 64, 1]
     const texture = textureOf(64, 64, (x, y) => x < 24 ? [y * 4, 0, 0] : [0, y * 4, 0])

@@ -640,13 +640,13 @@ export function analyse(image, rect, mask = null) {
     return parts
   }
 
-  function decompose(region, exact, known = null) {
+  function decompose(region, exact, label, known = null) {
     let free = region
     function take(matched) {
       free = without(free, matched)
     }
     const layers = []
-    let fitted = known ?? modelOf(free, colours, width, height, BASE_SHARE, exact, exact ? null : bandsOf(main[0])) ?? flatOf(free, colours)
+    let fitted = known ?? modelOf(free, colours, width, height, BASE_SHARE, exact, bandsOf(label)) ?? flatOf(free, colours)
     if (!known && fitted.stops?.some((stop, index) => index && stop.t === fitted.stops[index - 1].t)) {
       const peeled = flatOf(free, colours)
       const remainder = without(free, peeled.matched)
@@ -698,7 +698,7 @@ export function analyse(image, rect, mask = null) {
     if (source) return paintedModel(source, rect, region, colours, width, overlaid)
     return fade ? fadedModel(fade, rect, region, colours, width) : null
   }
-  const { base, layers: painted } = decompose(main[1], false, knownModel(main[1], false))
+  const { base, layers: painted } = decompose(main[1], false, main[0], knownModel(main[1], false))
   function exactCut(label, region) {
     const bits = image.crackShapes ? Array.from(image.crackShapes.keys()).filter(bit => label & 1 << bit) : []
     if (!bits.length) return null
@@ -710,7 +710,7 @@ export function analyse(image, rect, mask = null) {
   }
 
   for (const [label, region] of overlaid) {
-    const part = decompose(region, true, knownModel(region, true))
+    const part = decompose(region, true, label, knownModel(region, true))
     const cut = exactCut(label, region)
     if (cut) painted.push({ ...part.base, pixels: region, smooth: false, cut })
     else painted.push({ ...part.base, pixels: part.base.matched, smooth: anySoft }, ...part.layers)
