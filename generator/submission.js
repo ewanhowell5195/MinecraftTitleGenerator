@@ -6,9 +6,8 @@ import * as font from "./submissionKinds/font.js"
 import * as fontAsset from "./submissionKinds/fontAsset.js"
 import * as shape from "./submissionKinds/shape.js"
 import * as strip from "./submissionKinds/strip.js"
-import * as tileable from "./submissionKinds/tileable.js"
 
-const STEPS = [font, fontAsset, strip, tileable, shape]
+const STEPS = [font, fontAsset, strip, shape]
 
 export function imagesToCompress(root, files) {
   return Array.from(new Set(files.filter(file => file.startsWith("public/") && file.endsWith(".png") && fs.existsSync(path.join(root, file)))))
