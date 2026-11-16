@@ -396,7 +396,7 @@ describe("sheetFolder", () => {
   })
 
   test("nests a standalone variant under its parent", () => {
-    assert.equal(sheetFolder(own, list), "fonts/own")
+    assert.equal(sheetFolder(own, list), "fonts/parent/variants/own")
   })
 
   test("uses the parent's folder for an inheriting variant", () => {
@@ -404,7 +404,7 @@ describe("sheetFolder", () => {
   })
 
   test("falls back to the variant's folder when the parent is missing", () => {
-    assert.equal(sheetFolder(partial, [partial]), "fonts/partial")
+    assert.equal(sheetFolder(partial, [partial]), "fonts/parent/variants/partial")
   })
 })
 

@@ -51,8 +51,8 @@ export async function readImage(event, apply) {
 
 export const SEARCH_ABOVE = 9
 
-export function fontThumbnail(id) {
-  return `${fontFolder({ id })}/thumbnails/flat.png`
+export function fontThumbnail(font) {
+  return `${fontFolder(font)}/thumbnails/flat.png`
 }
 
 export function thumbnail(font, id, layer = null) {

@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, test } from "node:test"
 import { PNG } from "pngjs"
 import { publishedFonts, readMask } from "../../generator/fonts.js"
 import { prepare } from "../../generator/submissionSteps/font.js"
-import { flattenFonts, fullOrder, parseMask, sheetLayout, solidMask, splitCells } from "../../src/lib/font/font.js"
+import { flattenFonts, fontFolder, fullOrder, parseMask, sheetLayout, solidMask, splitCells } from "../../src/lib/font/font.js"
 import { addCharacters, setLetterCase } from "../../src/lib/font/editor/characters.js"
 import { depthCode } from "../../src/lib/font/editor/depths.js"
 import { exportJson, stripTexture } from "../../src/lib/font/editor/export.js"
@@ -326,7 +326,7 @@ function hold(root, id, bytes) {
 function assertPublishable(root, id) {
   const list = flattenFonts(JSON.parse(fs.readFileSync(path.join(root, LIST), "utf8")))
   const entry = list.find(item => item.id === id)
-  const folder = path.join(root, "public/fonts", entry.id)
+  const folder = path.join(root, "public", fontFolder(entry))
   const png = readPngFile(path.join(folder, "font.png"))
   const { list: cells, capHeight } = parseMask(png.data, png.width, png.height, fullOrder(entry, list), defaultBorder("top", entry))
   assert.equal(cells.length, Array.from(fullOrder(entry, list)).length)

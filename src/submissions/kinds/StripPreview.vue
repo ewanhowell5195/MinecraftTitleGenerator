@@ -21,7 +21,7 @@
 
   const chosen = defineModel("font", { type: String, default: "" })
 
-  const options = computed(() => previewFonts({ target: props.target, details: props.details }, props.fonts).map(font => ({ value: font.id, label: fullName(font, props.fonts), image: fontThumbnail(font.id) })))
+  const options = computed(() => previewFonts({ target: props.target, details: props.details }, props.fonts).map(font => ({ value: font.id, label: fullName(font, props.fonts), image: fontThumbnail(font) })))
   const font = computed(() => options.value.some(option => option.value === chosen.value) ? chosen.value : options.value[0]?.value ?? "")
 
   const { line, problem } = usePreviewLine(() => [props.target, JSON.stringify(props.details), props.url, props.text, font.value], build)

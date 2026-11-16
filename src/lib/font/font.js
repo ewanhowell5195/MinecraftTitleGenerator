@@ -286,7 +286,7 @@ const META = ["authors", "description", "multicase", "strips", "height", "depth"
 
 export function fontFolder(data) {
   if (data.folder) return data.folder
-  return `${FOLDER}/${data.id}`
+  return data.variant ? `${FOLDER}/${data.variant}/variants/${data.id}` : `${FOLDER}/${data.id}`
 }
 
 export function sheetOwner(data, list) {

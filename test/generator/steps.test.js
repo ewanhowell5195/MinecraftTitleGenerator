@@ -51,7 +51,7 @@ describe("the font asset step", () => {
     const sharing = fonts.filter(font => sheetOwner(font, fonts).id === "minecraft-ten").map(font => ["generator/thumbnails.js", font.id])
     assert.ok(sharing.length > 1)
     assert.deepEqual(asked(fontAssetStep, HERE, ["public/fonts/minecraft-ten/textures.json", "public/fonts/minecraft-ten/textures/gold.png"]), sharing)
-    assert.deepEqual(asked(fontAssetStep, HERE, ["public/fonts/minecraft-ten-cyrillic/textures.json"]), [["generator/thumbnails.js", "minecraft-ten-cyrillic"]])
+    assert.deepEqual(asked(fontAssetStep, HERE, ["public/fonts/minecraft-ten/variants/minecraft-ten-cyrillic/textures.json"]), [["generator/thumbnails.js", "minecraft-ten-cyrillic"]])
   })
 
   test("asks for nothing when no font's textures.json changed", () => {

@@ -143,7 +143,7 @@
         <h2>Start from a font</h2>
         <p class="hint">Copies its characters and settings into a new font of your own.</p>
         <TileGrid :min="170">
-          <Tile v-for="entry of startable" :key="entry.id" :label="fullName(entry, fonts)" :image="fontThumbnail(entry.id)" :author="fontCredit(entry, fonts)" @pick="startFrom(entry)" />
+          <Tile v-for="entry of startable" :key="entry.id" :label="fullName(entry, fonts)" :image="fontThumbnail(entry)" :author="fontCredit(entry, fonts)" @pick="startFrom(entry)" />
         </TileGrid>
       </section>
     </div>

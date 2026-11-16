@@ -211,16 +211,16 @@
       <Segments :options="TABS" :model-value="tab" @update:model-value="chooseTab" />
       <input v-if="searchable" type="text" v-model="search" placeholder="Search fonts" aria-label="Search fonts">
       <TileGrid v-if="searching" class="scroll">
-        <Tile v-for="data of foundFonts" :key="data.id" :label="fullName(data, library.fonts)" :image="fontThumbnail(data.id)" :author="fontCredit(data, library.fonts)" :selected="object.font === data.id" @pick="object.font = data.id" />
+        <Tile v-for="data of foundFonts" :key="data.id" :label="fullName(data, library.fonts)" :image="fontThumbnail(data)" :author="fontCredit(data, library.fonts)" :selected="object.font === data.id" @pick="object.font = data.id" />
       </TileGrid>
       <TileGrid v-else class="scroll" :class="{ kept: variants.length }" :style="{ '--least': leastRows(baseFonts) }">
-        <Tile v-for="data of baseFonts" :key="data.id" :label="data.name" :image="fontThumbnail(data.id)" :author="fontCredit(data, library.fonts)" :badge="variantBadges[data.id]" :selected="baseId === data.id" @pick="object.font = data.id" />
+        <Tile v-for="data of baseFonts" :key="data.id" :label="data.name" :image="fontThumbnail(data)" :author="fontCredit(data, library.fonts)" :badge="variantBadges[data.id]" :selected="baseId === data.id" @pick="object.font = data.id" />
       </TileGrid>
       <template v-if="variants.length && !searching">
         <h3>Variants</h3>
         <TileGrid class="scroll variants" :style="{ '--rows': variantRows(variants) }">
-          <Tile label="Default" :image="fontThumbnail(baseId)" :selected="object.font === baseId" @pick="object.font = baseId" />
-          <Tile v-for="data of variants" :key="data.id" :label="data.name" :image="fontThumbnail(data.id)" :author="fontCredit(data, library.fonts)" :selected="object.font === data.id" @pick="object.font = data.id" />
+          <Tile label="Default" :image="fontThumbnail(library.fonts.find(item => item.id === baseId) ?? { id: baseId })" :selected="object.font === baseId" @pick="object.font = baseId" />
+          <Tile v-for="data of variants" :key="data.id" :label="data.name" :image="fontThumbnail(data)" :author="fontCredit(data, library.fonts)" :selected="object.font === data.id" @pick="object.font = data.id" />
         </TileGrid>
       </template>
     </div>
