@@ -56,7 +56,9 @@ function gentleAt(contours, x, y) {
 
 function sourceRow(glyph, original, row) {
   const map = glyph.arc?.map
-  return original.bottom + (map ? map[clamp(row, 0, map.length - 1)] : row)
+  if (!map) return original.bottom + row
+  const whole = clamp(Math.floor(row), 0, map.length - 1)
+  return original.bottom + map[whole] + row - whole
 }
 
 function stripFaces(body, glyph, original, capHeight) {
