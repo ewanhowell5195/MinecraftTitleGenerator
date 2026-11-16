@@ -1,7 +1,8 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import { LIMITS } from "../src/lib/limits.js"
-import { FILE_VERSION, createObject, layerValues } from "../src/lib/settings.js"
+import { FILE_VERSION, layerValues } from "../src/lib/settings.js"
+import { createObject } from "../src/lib/objects.js"
 import { joinWords, limitProblem, lineWords, titleFacts, titleProblem, titleValues, trimmed } from "../src/lib/titleFacts.js"
 
 describe("lineWords", () => {

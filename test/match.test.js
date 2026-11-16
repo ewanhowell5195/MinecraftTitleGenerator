@@ -7,7 +7,7 @@ quietStorage()
 forbidFetch()
 fakeTimeouts()
 
-const { createObject } = await import("../src/lib/settings.js")
+const { createObject } = await import("../src/lib/objects.js")
 const { runtime, scene } = await import("../src/lib/scene.js")
 const { history } = await import("../src/lib/history.js")
 const { keepMatched, leadsTo, matchSolved, problems } = await import("../src/lib/match.js")

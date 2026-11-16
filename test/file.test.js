@@ -15,7 +15,8 @@ globalThis.fetch = countFetch
 quietStorage()
 fakeTimeouts()
 
-const { LAYER, createObject, snapshot, typeDefaults } = await import("../src/lib/settings.js")
+const { LAYER, snapshot, typeDefaults } = await import("../src/lib/settings.js")
+const { createObject } = await import("../src/lib/objects.js")
 const { keepTexture, runtime, scene } = await import("../src/lib/scene.js")
 const { fileError, isDefaultTitle, openTitle, resetTitle, saveTitle } = await import("../src/lib/file.js")
 const { setTitle: setScene } = await import("./helpers/scene.js")

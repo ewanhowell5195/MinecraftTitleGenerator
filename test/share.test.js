@@ -16,7 +16,8 @@ quietStorage()
 globalThis.location = { href: "https://example.test/app/", origin: "https://example.test", pathname: "/app/", search: "" }
 fakeTimeouts()
 
-const { FILE_VERSION, createObject } = await import("../src/lib/settings.js")
+const { FILE_VERSION } = await import("../src/lib/settings.js")
+const { createObject } = await import("../src/lib/objects.js")
 const { scene, sharedLink } = await import("../src/lib/scene.js")
 const { fileError } = await import("../src/lib/file.js")
 const { encodeTitle } = await import("../src/lib/linkformat.js")

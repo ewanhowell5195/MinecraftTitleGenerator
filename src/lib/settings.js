@@ -1,4 +1,3 @@
-import { reactive, toRaw } from "vue"
 
 export const FILE_VERSION = 7
 const OLD_WAVE = { level: 45, randomness: 60 }
@@ -238,8 +237,15 @@ export const SEPARATE_KEYS = { texture: "separateTexture", overlays: "separateOv
 
 export const LAYER_KEYS = Object.values(LAYER_GROUPS).flat()
 
+export function copied(value) {
+  if (ArrayBuffer.isView(value)) return value.slice()
+  if (Array.isArray(value)) return value.map(copied)
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, copied(item)]))
+  return value
+}
+
 export function layerValues(object) {
-  return Object.fromEntries(LAYER_KEYS.map(key => [key, structuredClone(toRaw(object[key]))]))
+  return Object.fromEntries(LAYER_KEYS.map(key => [key, copied(object[key])]))
 }
 
 export function isSeparate(object, group) {
@@ -280,7 +286,7 @@ export function separateLayers(object, group, on, count, fits = null) {
   const keys = LAYER_GROUPS[group]
   const kept = (value, key, layer) => fits && key === "overlays" && Array.isArray(value) ? value.filter(item => fits(layer, item)) : value
   if (on) {
-    object.layerSettings = Array.from({ length: count - 1 }, (_, index) => ({ ...object.layerSettings[index], ...Object.fromEntries(keys.map(key => [key, kept(structuredClone(toRaw(object[key])), key, index + 1)])) }))
+    object.layerSettings = Array.from({ length: count - 1 }, (_, index) => ({ ...object.layerSettings[index], ...Object.fromEntries(keys.map(key => [key, kept(copied(object[key]), key, index + 1)])) }))
     for (const key of keys) object[key] = kept(object[key], key, 0)
   } else object.layerSettings = object.layerSettings.map(layer => Object.fromEntries(Object.entries(layer).filter(([key]) => !keys.includes(key))))
   object[SEPARATE_KEYS[group]] = on
@@ -293,17 +299,17 @@ export function layerTarget(object, layer) {
   return { ...object, ...Object.fromEntries(Array.from(separatedKeys(object)).filter(key => key in own).map(key => [key, own[key]])) }
 }
 
-function defaults() {
+export function objectDefaults() {
   return Object.assign({ hidden: false, group: null }, ...Object.values(PANELS).map(panel => panel()))
 }
 
-const KEYS = Object.keys(defaults())
+const KEYS = Object.keys(objectDefaults())
 
 let next = 1
 
-export function createObject(values = {}, id = next) {
+export function buildObject(values = {}, id = next, wrap = value => value) {
   next = Math.max(next, id + 1)
-  const object = reactive({ ...defaults(), id })
+  const object = wrap({ ...objectDefaults(), id })
   restore(object, values)
   for (const key of TYPED_KEYS) {
     if (!(key in values)) object[key] = TYPES[object.type][key]
@@ -568,7 +574,7 @@ export function defaultBorder(type, font) {
 }
 
 export function typeDefaults(type) {
-  const object = { ...defaults(), type }
+  const object = { ...objectDefaults(), type }
   applyType(object, type)
   return object
 }

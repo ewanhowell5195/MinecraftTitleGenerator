@@ -7,7 +7,7 @@ quietStorage()
 const { reactive } = await import("vue")
 const { heights, rowStart } = await import("../src/lib/rows.js")
 const { editorTitle, scene, words } = await import("../src/lib/scene.js")
-const { createObject } = await import("../src/lib/settings.js")
+const { createObject } = await import("../src/lib/objects.js")
 const { createTitle } = await import("../src/lib/title.js")
 
 function separate(objects) {

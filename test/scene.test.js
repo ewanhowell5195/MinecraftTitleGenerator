@@ -15,7 +15,8 @@ globalThis.localStorage = { getItem: key => store.get(key) ?? null, setItem: wri
 forbidFetch()
 fakeTimeouts()
 
-const { FILE_VERSION, createObject, snapshot, typeDefaults } = await import("../src/lib/settings.js")
+const { FILE_VERSION, snapshot, typeDefaults } = await import("../src/lib/settings.js")
+const { createObject } = await import("../src/lib/objects.js")
 const { view } = await import("../src/lib/view.js")
 const { addObject, addShape, addWord, freeRow, noteType, bakeMatch, chooseMatch, current, currentWord, duplicateLine, insertWord, keepTexture, lineHidden, lineText, removeLine, removeObject, runtime, saveError, scene, select, selectGroup, selection, setScale, shapingWord, titleFileName, toggleLine, validSelection, wordTabs, words } = await import("../src/lib/scene.js")
 

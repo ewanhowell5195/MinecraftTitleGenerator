@@ -6,7 +6,7 @@ quietStorage()
 
 const { paintLine } = await import("../src/lib/items.js")
 const { decodeTitle, encodeTitle, unknownSetting } = await import("../src/lib/linkformat.js")
-const { createObject } = await import("../src/lib/settings.js")
+const { createObject } = await import("../src/lib/objects.js")
 
 function word(values) {
   return createObject({ text: "word", group: 7, ...values })
