@@ -39,6 +39,10 @@ function cellShape(image, index, { cellWidth, cellHeight, ascent, grid }) {
   return { width, height, top: (ascent - first) * grid, bottom: (ascent - last - 1) * grid, mask }
 }
 
+export function asciiRows(image) {
+  return image.height / CELLS / 8 * 7
+}
+
 export function fontFromAscii(image, { height = 40 } = {}) {
   if (image.width % CELLS || image.height % CELLS) throw new Error(`an ascii.png is a 16 by 16 grid of characters, and ${image.width} by ${image.height} doesn't divide into one`)
   const cellWidth = image.width / CELLS

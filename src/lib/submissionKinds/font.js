@@ -18,7 +18,6 @@ const FONT_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/
 const FONT_ID_LENGTH = 40
 const RESERVED = ["textures", "overlays", "thumbnails"]
 const RESERVED_PREFIXES = ["custom-", "editor-preview-"]
-const LATIN = Array.from("abcdefghijklmnopqrstuvwxyz")
 export const EXTRA_KINDS = ["flat", "texture", "overlay", "strip"]
 export const FLAT_NAME = "Flat"
 const RESERVED_ASSETS = new Set(["flat"].concat(Object.keys(withGenerated({})), Object.keys(GENERATED_EDGE_OVERLAYS)))
@@ -123,15 +122,6 @@ function blankProblem(drawn, letterCase) {
   return blank.length ? `A new font has to have every default character drawn. These are blank: ${listed(blank.map(char => characterName(char, letterCase)))}.` : null
 }
 
-function lettersProblem(drawn, letterCase) {
-  const latin = letterCase === "both" ? LATIN.map(char => char.toUpperCase()).concat(LATIN) : LATIN
-  const blank = latin.filter(char => !drawn.includes(char))
-  if (!blank.length) return null
-  const others = drawn.filter(char => /^\p{L}$/u.test(char) && !latin.includes(char))
-  if (others.length >= FONT_LIMITS.letters) return null
-  return `Draw every letter from a to z, or at least ${FONT_LIMITS.letters} letters of another alphabet. These are blank: ${listed(blank.map(char => characterName(char, letterCase)))}.`
-}
-
 function caseProblem(drawn, letterCase) {
   if (letterCase !== "both") return null
   const blank = drawn.filter(hasCase).map(char => char === char.toUpperCase() ? char.toLowerCase() : char.toUpperCase()).filter(char => !drawn.includes(char))
@@ -149,7 +139,7 @@ async function ownFontProblem(font, parent, ctx) {
   if (!drawnCells(font).cells.length) return "None of the characters are drawn yet."
   const own = builtFont(font, parent?.id ?? null)
   const drawn = own.cells.map(cell => cell.char)
-  const problem = sizeProblem(own.capHeight, drawn.length) ?? (parent ? lettersProblem(drawn, font.letterCase) : blankProblem(drawn, font.letterCase)) ?? caseProblem(drawn, font.letterCase)
+  const problem = sizeProblem(own.capHeight, drawn.length) ?? (parent ? null : blankProblem(drawn, font.letterCase)) ?? caseProblem(drawn, font.letterCase)
   if (problem) return problem
   const entry = own.entry
   if (entry.basedOn && !ctx.fonts.some(item => item.id === entry.basedOn)) return `It says it's based on ${entry.basedOn}, which isn't one of the fonts here. Change Based on in the font editor's Font tab.`

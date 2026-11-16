@@ -5,33 +5,39 @@
   import Icon from "../components/Icon.vue"
   import Notice from "../components/Notice.vue"
   import NumberInput from "../components/NumberInput.vue"
-  import Segments from "../components/Segments.vue"
   import SiteFooter from "../site/SiteFooter.vue"
   import Tile from "../components/Tile.vue"
   import TileGrid from "../components/TileGrid.vue"
   import UploadField from "../components/UploadField.vue"
   import { fullName, loadFontList } from "../lib/font.js"
-  import { LETTER_CASES, createFont, setLetterCase } from "../lib/fontEditor.js"
+  import { createFont } from "../lib/fontEditor.js"
   import { fontCredit } from "../lib/credits.js"
   import { fontThumbnail } from "../lib/ui.js"
   import { fontFromList, fontFromUploads, imageOf } from "./loaders.js"
+  import ImportScreen from "./ImportScreen.vue"
+  import SizeStats from "./SizeStats.vue"
+  import ResetIcon from "./ResetIcon.vue"
+  import { limitSize, resettable } from "./sizeLimit.js"
   import { openFont } from "./store.js"
   import { loadTemplate } from "./template.js"
 
-  const height = ref(10)
-  const width = ref(6)
-  const grid = ref(4)
-  const importHeight = ref(40)
-  const importDensity = ref(1)
-  const letterCase = ref("both")
+  const BLANK_SIZE = { height: 10, width: 6, grid: 4 }
+  const SIZE_FIELDS = [{ key: "height", label: "Height" }, { key: "width", label: "Default width" }, { key: "grid", label: "Square size" }]
+
+  const height = ref(BLANK_SIZE.height)
+  const width = ref(BLANK_SIZE.width)
+  const grid = ref(BLANK_SIZE.grid)
+  const { mostRows, mostSquare } = limitSize(height, grid)
+  const picked = shallowRef(null)
   const fonts = shallowRef([])
   const error = ref("")
   const busy = ref("")
 
   const final = computed(() => `${height.value * grid.value} pixels tall and ${width.value * grid.value} wide`)
   const startable = computed(() => fonts.value.filter(entry => !entry.inherits))
+  const sizes = { height, width, grid }
+  const { changed, reset } = resettable(sizes, BLANK_SIZE, ["height", "grid"])
   const valid = computed(() => [height.value, width.value, grid.value].every(value => Number.isInteger(value) && value >= 1))
-  const importable = computed(() => [importHeight.value, importDensity.value].every(value => Number.isInteger(value) && value >= 1))
 
   onMounted(async () => {
     try {
@@ -66,23 +72,38 @@
     attempt("Opening your files...", () => fontFromUploads(files)).finally(() => event.target.value = "")
   }
 
-  function importFile(event) {
+  async function readImport(file) {
+    if (/\.png$/i.test(file.name)) {
+      const [{ asciiRows, fontFromAscii }, image] = await Promise.all([import("../lib/asciiImport.js"), imageOf(file)])
+      const rows = asciiRows(image)
+      return { kind: "ascii", name: file.name, image, suggested: { rows, square: Math.max(1, Math.ceil(40 / rows - 0.5)) }, build: fontFromAscii }
+    }
+    const [{ fontFromOutlines, outlineShape, suggestedSize }, { template, source }] = await Promise.all([import("../lib/fontImport.js"), loadTemplate(file)])
+    return { kind: "outline", name: file.name, source, template, suggested: suggestedSize(source), build: fontFromOutlines, outlineShape }
+  }
+
+  async function importFile(event) {
     const file = event.target.files[0]
     if (!file) return
-    attempt(`Importing ${file.name}...`, async () => {
-      if (/\.png$/i.test(file.name)) {
-        const [{ fontFromAscii }, image] = await Promise.all([import("../lib/asciiImport.js"), imageOf(file)])
-        return setLetterCase(fontFromAscii(image, { height: importHeight.value }), letterCase.value)
-      }
-      const [{ fontFromOutlines }, { template, source }] = await Promise.all([import("../lib/fontImport.js"), loadTemplate(file, importDensity.value)])
-      return setLetterCase({ ...fontFromOutlines(source, { height: importHeight.value, density: importDensity.value }), template }, letterCase.value)
-    }).finally(() => event.target.value = "")
+    error.value = ""
+    busy.value = `Reading ${file.name}...`
+    try {
+      picked.value = await readImport(file)
+    } catch (err) {
+      error.value = err.message
+    } finally {
+      busy.value = ""
+      event.target.value = ""
+    }
   }
 </script>
 
 <template>
   <div class="start">
-    <div class="content">
+    <div v-if="picked" class="content">
+      <ImportScreen :picked="picked" @back="picked = null" />
+    </div>
+    <div v-else class="content">
       <div class="intro">
         <h1>Make a font</h1>
         <p>Draw every character yourself, or start from something that already exists. Your font stays in this browser until you download it.</p>
@@ -94,9 +115,13 @@
         <section class="choice">
           <h2>Blank font</h2>
           <div class="numbers">
-            <Field label="Height"><NumberInput min="1" v-model.number="height" /></Field>
-            <Field label="Default width"><NumberInput min="1" v-model.number="width" /></Field>
-            <Field label="Square size"><NumberInput min="1" v-model.number="grid" /></Field>
+            <Field v-for="item of SIZE_FIELDS" :key="item.key" group :label="item.label" :label-for="`blank-${item.key}`">
+              <template v-if="changed(item.key)" #label><ResetIcon :title="`Reset to ${BLANK_SIZE[item.key]}`" @reset="reset(item.key)" /></template>
+              <NumberInput :id="`blank-${item.key}`" min="1" :max="item.key === 'height' ? mostRows : item.key === 'grid' ? mostSquare : null" :model-value="sizes[item.key].value" @update:model-value="sizes[item.key].value = $event" />
+            </Field>
+          </div>
+          <div class="stats">
+            <SizeStats :pixels="valid ? height * grid : ''" />
           </div>
           <p class="hint">Height and width count squares, and one click paints one square. Square size is how many pixels each square is. Each character is {{ final }}.</p>
           <Button primary wide :disabled="!valid" @click="startBlank"><template #icon><Icon name="plus" /></template>Start drawing</Button>
@@ -108,13 +133,8 @@
           <UploadField multiple accept=".png,.json,image/png,application/json" label="Choose files" empty="Drop a font JSON, a font.png, or both" @change="upload" />
 
           <h2 class="second">Import a font file</h2>
-          <p class="hint">Turns a .ttf, .otf, .woff or .woff2, or a Minecraft ascii.png, into pixels at this height, ready for you to edit. Square size is how many pixels each square is, for font files that aren't already drawn on a pixel grid. The font file is kept as its template, so each character can go back to its imported shape and characters you add start from it.</p>
-          <div class="numbers import">
-            <Field label="Height in pixels"><NumberInput min="1" v-model.number="importHeight" /></Field>
-            <Field label="Square size"><NumberInput min="1" v-model.number="importDensity" /></Field>
-          </div>
-          <Segments label="Letter case" :options="LETTER_CASES" v-model="letterCase" />
-          <UploadField :disabled="!importable" accept=".ttf,.otf,.woff,.woff2,.png,font/ttf,font/otf,font/woff,font/woff2,image/png" label="Choose font file" empty="Drop a font file or an ascii.png" @change="importFile" />
+          <p class="hint">Turns a .ttf, .otf, .woff or .woff2, or a Minecraft ascii.png, into pixels ready for you to edit. You choose the size next, with a preview. The font file is kept as its template, so each character can go back to its imported shape and characters you add start from it.</p>
+          <UploadField accept=".ttf,.otf,.woff,.woff2,.png,font/ttf,font/otf,font/woff,font/woff2,image/png" label="Choose font file" empty="Drop a font file or an ascii.png" @change="importFile" />
         </section>
 
         <section class="choice wide-choice">
@@ -200,8 +220,10 @@
     gap: 10px;
   }
 
-  .numbers.import {
-    align-items: end;
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
   }
 
   .numbers .checkbox {

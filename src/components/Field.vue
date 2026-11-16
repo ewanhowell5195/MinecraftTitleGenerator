@@ -11,7 +11,7 @@
 
 <template>
   <component :is="group ? 'div' : 'label'" class="field">
-    <component :is="group && labelFor ? 'label' : 'span'" v-if="label" class="label" :for="group ? labelFor : null">{{ label }}<span v-if="required" class="required" aria-hidden="true"> *</span></component>
+    <component :is="group && labelFor ? 'label' : 'span'" v-if="label" class="label" :for="group ? labelFor : null">{{ label }}<span v-if="required" class="required" aria-hidden="true"> *</span><slot name="label"></slot></component>
     <slot></slot>
     <span v-if="error" class="hint bad">{{ error }}</span>
     <span v-else-if="hint || $slots.hint" class="hint"><slot name="hint">{{ hint }}</slot></span>

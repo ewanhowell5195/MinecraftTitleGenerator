@@ -15,8 +15,11 @@ export const DEFAULT_SPACE_WIDTH = 8
 export const DEFAULT_DEPTH = 22
 export const DEFAULT_BORDER = 2
 export const REQUIRED_CHARACTERS = Array.from(DEFAULT_ORDER).filter(char => char !== CREEPER)
+export const ALWAYS_REQUIRED = [TERMINATOR_OPEN, TERMINATOR_CLOSE]
 
 export const DEFAULT_ID = "my-font"
+export const TARGET_PIXEL_HEIGHT = [32, 50]
+export const PIXEL_HEIGHT_LIMIT = 64
 export const LETTER_CASES = [{ value: "both", label: "Both cases" }, { value: "upper", label: "Uppercase" }, { value: "lower", label: "Lowercase" }]
 
 const GRID_SIZES = [8, 6, 5, 4, 3, 2]
@@ -62,21 +65,33 @@ export function fontId(font) {
 }
 
 export function createFont({ height = 40, width = 24, grid = 4, density = 1, letterCase = "upper" } = {}) {
-  return { name: "My Font", id: "", authors: [], description: "", basedOn: "", height, width, grid, density, letterCase, creeper: false, extras: [], defineSpace: false, spaceWidth: DEFAULT_SPACE_WIDTH, depth: DEFAULT_DEPTH, border: DEFAULT_BORDER, characterSpacing: 0, terminatorSpace: true, terminatorSpaceWidth: null, forcedTerminators: false, autoBorder: false, flat: false, overlay: false, allFaces: false, layerDepth: "stacked", strips: [], kerning: {}, glyphs: {}, imported: null }
+  return { name: "My Font", id: "", authors: [], description: "", basedOn: "", height, width, grid, density, letterCase, creeper: false, extras: [], defineSpace: false, spaceWidth: DEFAULT_SPACE_WIDTH, depth: DEFAULT_DEPTH, border: DEFAULT_BORDER, characterSpacing: 0, terminatorSpace: true, terminatorSpaceWidth: null, forcedTerminators: false, autoBorder: false, flat: false, overlay: false, allFaces: false, layerDepth: "stacked", strips: [], kerning: {}, glyphs: {}, imported: null, requireCharacters: true, omitted: [] }
 }
 
 function withCases(font, list) {
   return font.letterCase === "both" ? list.flatMap(char => hasCase(char) ? [char.toUpperCase(), char] : [char]) : list
 }
 
+function requiredOf(font) {
+  return font.requireCharacters === false ? REQUIRED_CHARACTERS.filter(char => !font.omitted?.includes(char)) : REQUIRED_CHARACTERS
+}
+
 export function charactersOf(font) {
-  return (font.creeper ? [CREEPER] : []).concat(withCases(font, REQUIRED_CHARACTERS), withCases(font, font.extras), font.defineSpace ? [SPACE_CHAR] : [])
+  return (font.creeper ? [CREEPER] : []).concat(withCases(font, requiredOf(font)), withCases(font, font.extras), font.defineSpace ? [SPACE_CHAR] : [])
 }
 
 export const MULTICASE_CHARACTERS = withCases({ letterCase: "both" }, REQUIRED_CHARACTERS)
 
 export function isOptional(char) {
   return !REQUIRED_CHARACTERS.includes(canonical(char))
+}
+
+export function canDelete(font, char) {
+  return isOptional(char) || font.requireCharacters === false && !ALWAYS_REQUIRED.includes(char)
+}
+
+export function setRequireCharacters(font, on) {
+  return { ...font, requireCharacters: on, omitted: on ? [] : font.omitted ?? [] }
 }
 
 function extrasOf(chars) {
@@ -95,6 +110,7 @@ export function addCharacters(font, text) {
       continue
     }
     if (char === CREEPER) next = { ...next, creeper: true }
+    else if (!isOptional(char)) next = { ...next, omitted: (next.omitted ?? []).filter(item => item !== char) }
     else if (char === SPACE_CHAR) next = { ...next, defineSpace: true }
     else if (char.trim()) next = { ...next, extras: next.extras.concat(char) }
     else continue
@@ -111,7 +127,17 @@ export function removeCharacter(font, char) {
   if (font.hidden) next.hidden = { ...font.hidden, glyphs: kept(font.hidden.glyphs), kerning: kept(font.hidden.kerning) }
   if (char === CREEPER) next.creeper = false
   if (char === SPACE_CHAR) next.defineSpace = false
+  if (!isOptional(base)) next.omitted = (font.omitted ?? []).concat(base)
   return next
+}
+
+export function chooseCharacters(font, typed) {
+  const text = (typed.includes("'") ? typed + OPENING_QUOTE : typed) + ALWAYS_REQUIRED.join("")
+  const chosen = new Set(Array.from(text.normalize("NFC")).map(canonical))
+  const omitted = REQUIRED_CHARACTERS.filter(char => !chosen.has(char))
+  const trimmed = omitted.reduce((result, char) => removeCharacter(result, char), { ...font, requireCharacters: false })
+  const { font: next, added } = addCharacters(trimmed, text.replace(/\s/g, ""))
+  return { font: { ...next, requireCharacters: !omitted.length }, added }
 }
 
 function trueKey(char, letterCase) {
@@ -675,6 +701,7 @@ export function fontFromFiles({ sheet = null, json = null }) {
   let font = createFont({ height, width: editor.width ?? 24, grid: editor.grid ?? 4, density, letterCase: json?.multicase ? "both" : editor.letterCase === "lower" ? "lower" : "upper" })
   if (json) font = metaFrom({ ...font, name: json.name ?? (json.id ? titleCase(json.id) : font.name), id: json.id ?? "" }, json)
   if (editor.template) font = { ...font, template: templateFrom(editor.template) }
+  if (editor.requireCharacters === false) font = { ...font, requireCharacters: false, omitted: Array.from(editor.omitted ?? "").filter(char => !isOptional(char) && !ALWAYS_REQUIRED.includes(char)) }
   if (json?.order) {
     const listed = Array.from(json.order)
     font = { ...font, creeper: listed.includes(CREEPER), defineSpace: listed.includes(SPACE_CHAR), extras: extrasOf(listed) }
@@ -762,6 +789,6 @@ export function exportJson(font, texture, characters = charactersOf(font)) {
     const saved = font.glyphs[char] && canvasOf(font, font.glyphs[char])
     return saved ? [[char, saved]] : []
   }))
-  entry.editor = { height: font.height, width: font.width, grid: font.grid, density: font.density, ...(font.letterCase === "lower" && { letterCase: "lower" }), ...(Object.keys(canvas).length && { canvas }), texture, ...(font.template && { template: font.template }) }
+  entry.editor = { height: font.height, width: font.width, grid: font.grid, density: font.density, ...(font.letterCase === "lower" && { letterCase: "lower" }), ...(Object.keys(canvas).length && { canvas }), texture, ...(font.template && { template: font.template }), ...(font.requireCharacters === false && { requireCharacters: false, ...(font.omitted?.length && { omitted: font.omitted.join("") }) }) }
   return entry
 }

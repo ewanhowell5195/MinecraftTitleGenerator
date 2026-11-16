@@ -29,14 +29,21 @@ export async function loadTemplate(file, square = 1) {
   return { template: { name: file.name, data, square }, source }
 }
 
-export async function templateGlyphs(font, chars) {
-  const wanted = chars.filter(char => char !== SPACE_CHAR && char !== CREEPER)
-  if (!font.template || !wanted.length) return {}
-  const [{ outlineShape }, source] = await Promise.all([fontImport(), sourceOf(font.template)])
-  return Object.fromEntries(wanted.flatMap(char => {
-    const found = outlineShape(source, shownAs(char, font.letterCase), { height: font.height, density: font.template.square })
+function drawable(chars) {
+  return chars.filter(char => char !== SPACE_CHAR && char !== CREEPER)
+}
+
+export function glyphsFromSource(outlineShape, source, font, chars, square) {
+  return Object.fromEntries(drawable(chars).flatMap(char => {
+    const found = outlineShape(source, shownAs(char, font.letterCase), { height: font.height, density: square })
     return found ? [[char, glyphFromTemplate(font, found.shape, found.capHeight)]] : []
   }))
+}
+
+export async function templateGlyphs(font, chars) {
+  if (!font.template || !drawable(chars).length) return {}
+  const [{ outlineShape }, source] = await Promise.all([fontImport(), sourceOf(font.template)])
+  return glyphsFromSource(outlineShape, source, font, chars, font.template.square)
 }
 
 export function withTemplateGlyphs(font, glyphs) {

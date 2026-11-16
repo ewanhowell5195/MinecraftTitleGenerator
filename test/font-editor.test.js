@@ -5,10 +5,10 @@ import opentype from "opentype.js"
 import { compress } from "woff2-encoder"
 import { publishedFonts, readMask } from "../generator/fonts.js"
 import { parseMask, splitCells } from "../src/lib/font.js"
-import { DEFAULT_ORDER } from "../src/lib/order.js"
-import { CREEPER, MULTICASE_CHARACTERS, REQUIRED_CHARACTERS, SPACE_CHAR, addCharacters, autoStretch, blankGlyph, blockAt, buildSheet, changeGlyph, characterLabel, charactersOf, depthCode, depthOf, fontLayers, sameCharacter, setLetterCase, createFont, exportJson, fillCells, fitGlyph, fontFromFiles, fontFromPublished, glyphOf, isBlank, isOptional, lineCells, lostPixels, moveGlyph, paint, parseFontJson, rectangleCells, removeCharacter, reshapeGlyph, resizeFont, rowOfY, savedCharacters, savedJson, savedSheet, setGlyph, setSquareSize, setStretch, sheetOrder, slug, squareSizeLoss, squaresOf, trimGlyph, widthOf, yOfRow } from "../src/lib/fontEditor.js"
-import { fontFromAscii } from "../src/lib/asciiImport.js"
-import { fontFromOutlines, parseFontFile } from "../src/lib/fontImport.js"
+import { DEFAULT_ORDER, OPENING_QUOTE } from "../src/lib/order.js"
+import { CREEPER, MULTICASE_CHARACTERS, REQUIRED_CHARACTERS, SPACE_CHAR, addCharacters, autoStretch, TARGET_PIXEL_HEIGHT, blankGlyph, blockAt, buildSheet, canDelete, changeGlyph, chooseCharacters, setRequireCharacters, characterLabel, charactersOf, depthCode, depthOf, fontLayers, sameCharacter, setLetterCase, createFont, exportJson, fillCells, fitGlyph, fontFromFiles, fontFromPublished, glyphOf, isBlank, isOptional, lineCells, lostPixels, moveGlyph, paint, parseFontJson, rectangleCells, removeCharacter, reshapeGlyph, resizeFont, rowOfY, savedCharacters, savedJson, savedSheet, setGlyph, setSquareSize, setStretch, sheetOrder, slug, squareSizeLoss, squaresOf, trimGlyph, widthOf, yOfRow } from "../src/lib/fontEditor.js"
+import { asciiRows, fontFromAscii } from "../src/lib/asciiImport.js"
+import { fontFromOutlines, parseFontFile, suggestedSize } from "../src/lib/fontImport.js"
 import { templateGlyphs, withTemplateGlyphs } from "../src/fontEditor/template.js"
 import { gridShift, lineUnits, rasterise } from "../src/lib/fontOutline.js"
 import { jsonText } from "../src/lib/jsonText.js"
@@ -65,6 +65,34 @@ describe("characters", () => {
     assert.ok(!charactersOf(font).includes("б") && !font.creeper && !font.glyphs["б"])
     assert.deepEqual(font.kerning, { av: 1 })
     assert.ok(isOptional(" ") && isOptional(CREEPER) && !isOptional("a"))
+  })
+
+  test("default characters can only be deleted once they're no longer required", () => {
+    const font = setLetterCase(createFont(), "both")
+    assert.ok(!canDelete(font, "a"))
+    const loose = setRequireCharacters(font, false)
+    assert.ok(canDelete(loose, "A"))
+    const removed = removeCharacter(strokeCell(loose, "a", 0, 0), "a")
+    assert.ok(!charactersOf(removed).includes("a") && !charactersOf(removed).includes("A") && !removed.glyphs.a)
+    assert.deepEqual(removed.omitted, ["a"])
+    const back = addCharacters(removed, "A")
+    assert.deepEqual([back.added, back.font.omitted, back.font.extras], [["A", "a"], [], []])
+    const required = setRequireCharacters(removed, true)
+    assert.ok(charactersOf(required).includes("a") && !required.omitted.length)
+  })
+
+  test("a custom character set leaves out the defaults it doesn't list", () => {
+    const { font, added } = chooseCharacters(createFont(), "abc\nбб 0")
+    assert.deepEqual(charactersOf(font), ["a", "b", "c", "0", "┫", "┣", "б"])
+    assert.deepEqual([added, font.requireCharacters], [["б"], false])
+    assert.ok(!canDelete(font, "┫") && !canDelete(font, "┣") && canDelete(font, "a"))
+    const both = chooseCharacters(setLetterCase(createFont(), "both"), "Ab")
+    assert.deepEqual(charactersOf(both.font), ["A", "a", "B", "b", "┫", "┣"])
+    const quotes = charactersOf(chooseCharacters(createFont(), "a'").font)
+    assert.ok(quotes.includes("'") && quotes.includes(OPENING_QUOTE))
+    assert.ok(!charactersOf(chooseCharacters(createFont(), "a").font).includes(OPENING_QUOTE))
+    const all = chooseCharacters(createFont(), REQUIRED_CHARACTERS.join("") + "é")
+    assert.deepEqual([all.added, all.font.requireCharacters, all.font.omitted], [["é"], true, []])
   })
 })
 
@@ -455,6 +483,16 @@ describe("saving and reopening", () => {
     assert.deepEqual(entry.kerning, { 4: ["av"] })
   })
 
+  test("deleted default characters stay deleted when the font is reopened", () => {
+    const font = removeCharacter(removeCharacter(setRequireCharacters(original, false), "b"), "'")
+    const entry = exportJson(font, "t")
+    assert.deepEqual([entry.editor.requireCharacters, entry.editor.omitted], [false, "b'"])
+    const reopened = roundTrip(font, ["sheet", "json"])
+    assert.deepEqual([reopened.requireCharacters, reopened.omitted], [false, ["b", "'"]])
+    assert.ok(!charactersOf(reopened).includes("b") && charactersOf(reopened).includes("a"))
+    assert.equal(exportJson(original, "t").editor.requireCharacters, undefined)
+  })
+
   test("kerning pairs set to 0 are left out of the JSON", () => {
     assert.deepEqual(exportJson({ ...createFont(), kerning: { av: 4, lt: 0 } }, "t").kerning, { 4: ["av"] })
     assert.equal(exportJson({ ...createFont(), kerning: { lt: 0 } }, "t").kerning, undefined)
@@ -736,6 +774,42 @@ describe("importing a font file", () => {
     assert.equal(sheetOf(font).capHeight, 21)
   })
 
+  test("a pixel art font suggests its own rows, at a square size near 40 pixels tall", async () => {
+    const notdef = new opentype.Glyph({ name: ".notdef", unicode: 0, advanceWidth: 500, path: new opentype.Path() })
+    const pixel = (char, rects) => {
+      const path = new opentype.Path()
+      for (const [x, y, w, h] of rects) {
+        path.moveTo(x * 100, y * 100)
+        path.lineTo((x + w) * 100, y * 100)
+        path.lineTo((x + w) * 100, (y + h) * 100)
+        path.lineTo(x * 100, (y + h) * 100)
+        path.close()
+      }
+      return new opentype.Glyph({ name: char, unicode: char.codePointAt(0), advanceWidth: 600, path })
+    }
+    const built = new opentype.Font({ familyName: "Px", styleName: "Regular", unitsPerEm: 1000, ascender: 800, descender: -200, glyphs: [notdef, pixel("H", [[0, 0, 1, 7], [4, 0, 1, 7], [1, 3, 3, 1]]), pixel("A", [[0, 0, 1, 6], [4, 0, 1, 6], [1, 6, 3, 1], [1, 3, 3, 1]])] })
+    const source = await parseFontFile(built.toArrayBuffer())
+    const suggested = suggestedSize(source)
+    assert.ok(suggested.pixel && suggested.rows > 1)
+    assert.equal(suggested.square, Math.round(40 / suggested.rows))
+  })
+  test("the target pixel height spans the middle of the published fonts' cap heights", () => {
+    const fonts = publishedFonts()
+    const heights = fonts.filter(entry => !entry.inherits).map(entry => readMask(entry, fonts).capHeight).sort((a, b) => a - b)
+    assert.deepEqual(TARGET_PIXEL_HEIGHT, [heights[Math.floor(heights.length * 0.1)], heights[Math.floor(heights.length * 0.9)]])
+  })
+
+  test("real fonts suggest the size they're published at, and smooth ones enough rows for their thin strokes", { skip: !["MINECRAFTTEN.TTF", "MINECRAFTFIVE-BOLD.TTF", "RasleyHeights_PERSONAL_USE_ONLY.otf"].every(name => fs.existsSync(`C:/Users/ewanh/Downloads/${name}`)) }, async () => {
+    async function suggested(name) {
+      const data = fs.readFileSync(`C:/Users/ewanh/Downloads/${name}`)
+      return suggestedSize(await parseFontFile(data.buffer.slice(data.byteOffset, data.byteOffset + data.length)))
+    }
+    assert.deepEqual(await suggested("MINECRAFTTEN.TTF"), { rows: 10, square: 4, pixel: true })
+    assert.deepEqual(await suggested("MINECRAFTFIVE-BOLD.TTF"), { rows: 16, square: 2, pixel: true })
+    const smooth = await suggested("RasleyHeights_PERSONAL_USE_ONLY.otf")
+    assert.ok(!smooth.pixel && smooth.rows > 20)
+  })
+
   test("a real font file lands on its pixel grid with stretch marks", { skip: !fs.existsSync("C:/Users/ewanh/Downloads/MINECRAFTTEN.TTF") }, async () => {
     const data = fs.readFileSync("C:/Users/ewanh/Downloads/MINECRAFTTEN.TTF")
     const font = fontFromOutlines(await parseFontFile(data.buffer.slice(data.byteOffset, data.byteOffset + data.length)), { height: 40 })
@@ -989,6 +1063,10 @@ describe("ascii.png import", () => {
     assert.equal(font.glyphs.A.rows[0].length, 12)
     assert.equal(font.glyphs.A.rows.length, 42)
     assert.ok(isBlank(glyphOf(font, "b")) && isBlank(glyphOf(font, "B")))
+  })
+
+  test("the row count is the texture's cap height in pixels", () => {
+    assert.equal(asciiRows(image), 7)
   })
 
   test("both cases come from their own cells, and descenders go below the baseline", () => {

@@ -122,9 +122,9 @@ describe("checking a font", () => {
     assert.ok(Buffer.from(read.data).equals(Buffer.from(sheet.data)))
   })
 
-  test("a variant only needs its letters", async () => {
+  test("a variant doesn't need the default characters", async () => {
     assert.equal((await check({ target: "minecraft-ten", bytes: without(Array.from("0123456789&#$")) })).problems.file, null)
-    assert.match((await check({ target: "minecraft-ten", bytes: without(["q"]) })).problems.file, /Draw every letter from a to z, or at least 20 letters of another alphabet\. These are blank: Q\./)
+    assert.equal((await check({ target: "minecraft-ten", bytes: without(Array.from("abcdefghijklmnopqrstuvwxy")) })).problems.file, null)
   })
 
   test("a font with both cases needs a capital and a lowercase version of every letter", async () => {

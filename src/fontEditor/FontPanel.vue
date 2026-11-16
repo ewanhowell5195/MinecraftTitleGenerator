@@ -11,7 +11,7 @@
   import Segments from "../components/Segments.vue"
   import UploadField from "../components/UploadField.vue"
   import { fullName, loadFontList } from "../lib/font.js"
-  import { DEFAULT_BORDER, DEFAULT_DEPTH, DEFAULT_ID, DEFAULT_SPACE_WIDTH, LETTER_CASES, autoStretch, fontId, fontLayers, lostPixels, resizeFont, setSquareSize, slug, squareSizeLoss, squaresOf } from "../lib/fontEditor.js"
+  import { DEFAULT_BORDER, DEFAULT_DEPTH, DEFAULT_ID, DEFAULT_SPACE_WIDTH, LETTER_CASES, autoStretch, setRequireCharacters, fontId, fontLayers, lostPixels, resizeFont, setSquareSize, slug, squareSizeLoss, squaresOf } from "../lib/fontEditor.js"
   import { fontThumbnail } from "../lib/ui.js"
   import { typedNumber } from "./fields.js"
   import { changeLetterCase, font, update } from "./store.js"
@@ -52,6 +52,11 @@
     both: "Titles keep the case they're typed in, so every letter needs a capital and a lowercase version.",
     upper: "Titles use one case, drawn with capital letters.",
     lower: "Titles use one case, drawn with lowercase letters."
+  }
+
+  const REQUIRE_HINTS = {
+    true: "Every letter, number and symbol a new font needs is always in the list, and can't be deleted.",
+    false: "Any character can be deleted, for variants that only change some characters. A new font still needs every default character drawn to be submitted. Turning this on brings deleted ones back."
   }
 
   const warning = ref(null)
@@ -206,6 +211,11 @@
       <h3>Letter case</h3>
       <Segments :options="LETTER_CASES" :model-value="font.letterCase" @update:model-value="changeLetterCase" />
       <p class="hint">{{ CASE_HINTS[font.letterCase] }} Switching keeps the letters you hide, so switching back brings them back, but only the letters you can see are downloaded or submitted.</p>
+    </section>
+
+    <section class="flow">
+      <h3>Characters</h3>
+      <Checkbox label="Require the default characters" :hint="REQUIRE_HINTS[font.requireCharacters !== false]" :model-value="font.requireCharacters !== false" @update:model-value="update(setRequireCharacters(font, $event))" />
     </section>
 
     <section class="flow">

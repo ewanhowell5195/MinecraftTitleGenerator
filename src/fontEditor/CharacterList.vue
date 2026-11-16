@@ -8,7 +8,7 @@
   import Tile from "../components/Tile.vue"
   import TileGrid from "../components/TileGrid.vue"
   import { vLongPress } from "../lib/events.js"
-  import { CREEPER, SPACE_CHAR, addCharacters, characterLabel, characterName, glyphOf, isBlank, isOptional, removeCharacter, setGlyph } from "../lib/fontEditor.js"
+  import { CREEPER, SPACE_CHAR, addCharacters, canDelete, characterLabel, characterName, glyphOf, isBlank, removeCharacter, setGlyph } from "../lib/fontEditor.js"
   import GlyphThumb from "./GlyphThumb.vue"
   import { arrowsMove, characters, clipboard, copyGlyph, font, pasteGlyph, selected, typing, update } from "./store.js"
   import { templateGlyphs, withTemplateGlyphs } from "./template.js"
@@ -44,13 +44,14 @@
       { icon: "copy", label: "Copy", action: () => copyGlyph(char) },
       { icon: "paste", label: "Paste", disabled: !clipboard.value, action: () => pasteGlyph(char) }
     ]
-    if (isOptional(char)) items.push({ divider: true }, { icon: "trash", label: "Delete", danger: true, action: () => remove(char) })
+    if (canDelete(font.value, char) && characters.value.length > 1) items.push({ divider: true }, { icon: "trash", label: "Delete", danger: true, action: () => remove(char) })
     context.value = { at: { x: event.clientX, y: event.clientY }, items }
   }
 
   function remove(char) {
+    const index = characters.value.indexOf(char)
     update(removeCharacter(font.value, char))
-    if (selected.value === char) selected.value = "a"
+    if (selected.value === char) selected.value = characters.value[Math.min(index, characters.value.length - 1)]
   }
 
   async function add(text) {
