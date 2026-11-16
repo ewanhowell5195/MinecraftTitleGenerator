@@ -9,16 +9,18 @@
   import { ALWAYS_REQUIRED, REQUIRED_CHARACTERS, charactersOf, chooseCharacters, hasCase, setLetterCase } from "../lib/font/editor/characters.js"
   import { LETTER_CASES } from "../lib/font/editor/defaults.js"
   import { glyphOf, isBlank } from "../lib/font/editor/glyph.js"
+  import CharacterBrowser from "./CharacterBrowser.vue"
   import SizeStats from "./SizeStats.vue"
   import ResetButton from "./ResetButton.vue"
   import { limitSize, resettable } from "./sizeLimit.js"
   import { CREEPER, OPENING_QUOTE } from "../lib/font/order.js"
   import { startFont } from "./store.js"
-  import { glyphsFromSource, withTemplateGlyphs } from "./template.js"
+  import { glyphsFromSource, templateFamily, withTemplateGlyphs } from "./template.js"
   import { drawTiles, fitCell, tileLine } from "./glyphTiles.js"
 
   const GAP = 12
   const CHARACTER_SETS = [{ value: "default", label: "Default characters" }, { value: "custom", label: "Custom" }]
+  const DEFAULT_CHOSEN = REQUIRED_CHARACTERS.filter(char => char !== OPENING_QUOTE && !ALWAYS_REQUIRED.includes(char))
 
   const props = defineProps({
     picked: { type: Object, required: true }
@@ -31,7 +33,8 @@
   const { changed, reset } = resettable({ height, square }, defaults, ["height", "square"])
   const letterCase = ref("both")
   const characterSet = ref("default")
-  const chosen = ref(REQUIRED_CHARACTERS.filter(char => char !== OPENING_QUOTE && !ALWAYS_REQUIRED.includes(char)).join(""))
+  const chosen = ref(DEFAULT_CHOSEN.join(""))
+  const browsing = ref(false)
   const canvases = []
   const holder = ref(null)
   const empty = ref(false)
@@ -63,6 +66,8 @@
     return found.length ? found : [drawn.slice(0, 3)].filter(line => line.length)
   })
   const count = computed(() => built.value.font ? `${charactersOf(built.value.font).length} characters.` : "")
+  const chosenLower = computed(() => Array.from(chosen.value.toLowerCase()))
+  const hasRequired = computed(() => characterSet.value === "default" || DEFAULT_CHOSEN.every(char => chosenLower.value.includes(char)))
 
   function draw() {
     const font = built.value.font
@@ -84,6 +89,12 @@
 
   function confirm() {
     if (built.value.font) startFont(built.value.font)
+  }
+
+  function pickCharacters(chars, requiring) {
+    chosen.value = chars.join("")
+    characterSet.value = requiring && chars.every(char => DEFAULT_CHOSEN.includes(char.toLowerCase())) ? "default" : "custom"
+    browsing.value = false
   }
 
   onMounted(() => {
@@ -133,6 +144,7 @@
         <Field v-if="characterSet === 'custom'" label="Characters to include">
           <textarea v-model="chosen" rows="4" spellcheck="false"></textarea>
         </Field>
+        <Button v-if="outline" @click="browsing = true"><template #icon><Icon name="font" /></template>See the characters in this font</Button>
         <p v-if="count" class="hint">{{ count }}</p>
         <Button primary wide class="confirm" :disabled="!built.font" @click="confirm"><template #icon><Icon name="check" /></template>Import</Button>
       </section>
@@ -149,6 +161,7 @@
         </div>
       </section>
     </div>
+    <CharacterBrowser v-if="browsing" :title="`Characters in ${picked.name}`" :source="picked.source" :family="templateFamily(picked.template)" :letter-case="letterCase" :selected="characterSet === 'default' ? DEFAULT_CHOSEN : Array.from(chosen).filter(char => char.trim())" :required="DEFAULT_CHOSEN" :requiring="hasRequired" action="Use these characters" @pick="pickCharacters" @close="browsing = false" />
   </div>
 </template>
 

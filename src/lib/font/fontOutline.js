@@ -7,6 +7,7 @@ const EDGE_PROBE = 1
 
 function sourceChars(char) {
   if (char === OPENING_QUOTE) return ["\u2018", "'"]
+  if (char === "'") return ["'", "\u2019"]
   const letter = char === CREEPER ? "A" : char
   if (/^[a-z]$/i.test(letter)) return [letter, letter === letter.toUpperCase() ? letter.toLowerCase() : letter.toUpperCase()]
   return [char]

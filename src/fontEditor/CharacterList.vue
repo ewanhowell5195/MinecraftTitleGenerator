@@ -11,9 +11,11 @@
   import { SPACE_CHAR, addCharacters, canDelete, characterLabel, characterName, removeCharacter } from "../lib/font/editor/characters.js"
   import { glyphOf, isBlank, setGlyph } from "../lib/font/editor/glyph.js"
   import { CREEPER } from "../lib/font/order.js"
+  import { casedCharacters, drawnCharacters } from "../lib/font/editor/coverage.js"
+  import CharacterBrowser from "./CharacterBrowser.vue"
   import GlyphThumb from "./GlyphThumb.vue"
   import { arrowsMove, characters, clipboard, copyGlyph, font, pasteGlyph, selected, typing, update } from "./store.js"
-  import { templateGlyphs, withTemplateGlyphs } from "./template.js"
+  import { templateFamily, templateGlyphs, templateSource, withTemplateGlyphs } from "./template.js"
 
   const ARROWS = { ArrowLeft: -1, ArrowRight: 1 }
 
@@ -39,6 +41,19 @@
   })
 
   const blanks = computed(() => characters.value.filter(char => isBlank(glyphOf(font.value, char))).length)
+
+  const browsing = ref(null)
+  const inFont = computed(() => browsing.value ? casedCharacters(drawnCharacters(browsing.value.source), font.value.letterCase).filter(char => !addCharacters(font.value, char).added.length) : [])
+
+  async function openBrowser() {
+    const template = font.value.template
+    browsing.value = { template, source: await templateSource(template) }
+  }
+
+  function pickFromTemplate(chars) {
+    browsing.value = null
+    add(chars.join(""))
+  }
 
   function menu(event, char) {
     selected.value = char
@@ -123,8 +138,11 @@
     const items = []
     if (!font.value.creeper) items.push({ icon: "creeper", label: "Creeper face", action: () => add(CREEPER) })
     if (!font.value.defineSpace) items.push({ icon: "space", label: "Space", action: () => add(SPACE_CHAR) })
-    if (!items.length) return openAdding()
-    items.push({ divider: true }, { icon: "text", label: "Other character", action: openAdding })
+    const others = [{ icon: "text", label: "Type characters", action: openAdding }]
+    if (font.value.template) others.unshift({ icon: "font", label: `From ${font.value.template.name}`, action: openBrowser })
+    if (!items.length && others.length === 1) return openAdding()
+    if (items.length) items.push({ divider: true })
+    items.push(...others)
     context.value = { at: { x: box.left, y: box.bottom + 4 }, items }
   }
 </script>
@@ -154,6 +172,7 @@
         </div>
       </form>
     </Dialog>
+    <CharacterBrowser v-if="browsing" :title="`Add from ${browsing.template.name}`" :source="browsing.source" :family="templateFamily(browsing.template)" :letter-case="font.letterCase" :locked="inFont" action="Add characters" @pick="pickFromTemplate" @close="browsing = null" />
   </section>
 </template>
 

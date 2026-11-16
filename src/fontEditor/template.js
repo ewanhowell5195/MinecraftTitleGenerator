@@ -5,14 +5,26 @@ import { glyphFromTemplate } from "../lib/font/editor/import.js"
 import { autoStretch } from "../lib/font/editor/sheet.js"
 
 const sources = new Map()
+const families = new Map()
 
 function fontImport() {
   return import("../lib/font/fontImport.js")
 }
 
-function sourceOf(template) {
+export function templateSource(template) {
   if (!sources.has(template.data)) sources.set(template.data, Promise.all([fontImport(), fetch(template.data).then(response => response.arrayBuffer())]).then(([{ parseFontFile }, buffer]) => parseFontFile(buffer)))
   return sources.get(template.data)
+}
+
+export function templateFamily(template) {
+  if (!families.has(template.data)) {
+    const family = `font-template-${families.size}`
+    const face = new FontFace(family, `url(${template.data})`)
+    document.fonts.add(face)
+    face.load()
+    families.set(template.data, family)
+  }
+  return families.get(template.data)
 }
 
 function dataUrl(file) {
@@ -45,7 +57,7 @@ export function glyphsFromSource(outlineShape, source, font, chars, square) {
 
 export async function templateGlyphs(font, chars) {
   if (!font.template || !drawable(chars).length) return {}
-  const [{ outlineShape }, source] = await Promise.all([fontImport(), sourceOf(font.template)])
+  const [{ outlineShape }, source] = await Promise.all([fontImport(), templateSource(font.template)])
   return glyphsFromSource(outlineShape, source, font, chars, font.template.square)
 }
 
