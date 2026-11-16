@@ -117,11 +117,6 @@
     flex: none;
   }
 
-  .bar .bar-toggle.open {
-    --button-text: var(--text);
-    background: var(--card);
-  }
-
   .bar .bar-list {
     position: absolute;
     top: calc(100% + 4px);

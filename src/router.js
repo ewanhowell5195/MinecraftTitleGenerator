@@ -1,5 +1,6 @@
 import { nextTick } from "vue"
 import { START_LOCATION, createRouter, createWebHistory } from "vue-router"
+import { isPlainClick } from "./components/composables/events.js"
 import { navigated, setNavigator } from "./lib/state/navigation.js"
 import { SITE } from "./site/pages.js"
 import { pageKey, pageRoutes, routed } from "./site/routes.js"
@@ -112,7 +113,7 @@ router.afterEach((to, from, failure) => {
 
 export function followLinks(root) {
   root.addEventListener("click", event => {
-    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    if (event.defaultPrevented || !isPlainClick(event)) return
     const anchor = event.target.closest("a[href]")
     const target = anchor && routed(anchor, location, path => router.resolve(path))
     if (!target) return

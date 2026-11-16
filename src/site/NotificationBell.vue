@@ -121,11 +121,6 @@
     position: relative;
   }
 
-  .bell.open {
-    --button-text: var(--text);
-    background: var(--card);
-  }
-
   .dot {
     position: absolute;
     top: 6px;

@@ -12,7 +12,7 @@
 
 <style scoped>
   .gold-star :deep(path) {
-    fill: #f2c14e;
+    fill: var(--gold);
     stroke: none;
   }
 </style>

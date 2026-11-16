@@ -1,7 +1,7 @@
 <script setup>
   import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, watchEffect } from "vue"
   import { account, accountChanges, countDownload, managedPresets, ownPresets, presetStats, randomCommunityPreset, refreshAccount, refreshUsage, signInProviders, voteOn } from "../../lib/state/community.js"
-  import { useWindowEvents } from "../../components/composables/events.js"
+  import { isPlainClick, useWindowEvents } from "../../components/composables/events.js"
   import { titleBody } from "../../lib/link/linkformat.js"
   import { notice, showNotice } from "../../lib/state/notices.js"
   import { addPreset, deleteSharedPreset, loadPreset, presets, presetsError, presetsLoading, removePreset, renamePreset, renameSharedPreset, unsharePreset } from "../../lib/state/presets.js"
@@ -74,7 +74,7 @@
   }
 
   function followed(event) {
-    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) event.stopPropagation()
+    if (!isPlainClick(event)) event.stopPropagation()
     else event.preventDefault()
   }
 

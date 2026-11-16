@@ -1,6 +1,6 @@
 <script setup>
   import { computed, onBeforeUnmount, ref, watch } from "vue"
-  import { vLongPress } from "../components/composables/events.js"
+  import { isPlainClick, vLongPress } from "../components/composables/events.js"
   import { namingForShare, namingPreset } from "../lib/state/presets.js"
   import { PRESETS_PATH, openPresetsPage } from "../lib/state/presetsPage.js"
   import { dropPreview, previews, renderPreview } from "./previews.js"
@@ -206,7 +206,7 @@
   }
 
   function openPresets(event) {
-    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    if (!isPlainClick(event)) return
     event.preventDefault()
     openPresetsPage()
   }
