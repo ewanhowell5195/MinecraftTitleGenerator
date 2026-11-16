@@ -1,7 +1,7 @@
 import { providerLabel } from "../../lib/core/providers.js"
 import { SUBMISSION_KINDS } from "../../lib/submissions/kinds/index.js"
 import { SUBMISSION_LIMITS, assetId } from "../../lib/submissions/submissions.js"
-import { USER_ROW, accountKey, activeUser, forgetEmail, forgetUnusedUser, isAdmin, rememberUser, requireUser, saveUser, signedInUser } from "../accounts.js"
+import { USER_ROW, accountKey, forgetEmail, forgetUnusedUser, isAdmin, rememberUser, requireUser, saveUser, signedInUser } from "../accounts.js"
 import { returnSlot, takeSlot } from "../daily.js"
 import { github } from "../github.js"
 import { Refusal, cachedAtEdge, guarded, idParam, reply } from "../http.js"
@@ -39,7 +39,7 @@ async function openedSubmission(context, user, { clean, fonts, bytes, files }) {
 
 export const createSubmission = guarded(async context => {
   const { env } = context
-  const user = await requireUser(context, SIGN_IN, activeUser)
+  const user = await requireUser(context, SIGN_IN)
   if (user.email === undefined) throw new Refusal(403, "Sign in again so you can be emailed about your submission.")
   if (!user.email) throw new Refusal(403, `Add an email address to your ${providerLabel(user.provider)} account, then sign in again. You'll be emailed about your submission there.`)
   const form = await readForm(context)

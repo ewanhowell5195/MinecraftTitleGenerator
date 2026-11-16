@@ -265,7 +265,7 @@ export async function forgetCached(request, ...ids) {
 
 async function ownedPreset(context) {
   const id = idParam(context.params, MISSING)
-  const user = await signedInUser(context)
+  const user = await activeUser(context)
   const token = context.request.headers.get("X-Preset-Token")
   if (!user && !token) throw new Refusal(401, "Sign in to change this preset.")
   const { owner, token_hash: tokenHash } = await requirePreset(context.env, id)
@@ -317,7 +317,7 @@ export const deletePreset = guarded(async context => {
 
 export const claimPresets = guarded(async context => {
   const { request, env } = context
-  const user = await requireUser(context, "Sign in to move these presets to your account.", activeUser)
+  const user = await requireUser(context, "Sign in to move these presets to your account.")
   checkWords("username", user.name)
   const { tokens } = await jsonBody(request)
   if (!Array.isArray(tokens) || tokens.length > LIMITS.claimBatch || tokens.some(item => !Number.isSafeInteger(item?.id) || typeof item.token !== "string")) throw new Refusal(400, INVALID)

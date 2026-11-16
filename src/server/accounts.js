@@ -146,8 +146,8 @@ export async function activeUser(context) {
   return user
 }
 
-export async function requireUser(context, message, find = signedInUser) {
-  const user = await find(context)
+export async function requireUser(context, message) {
+  const user = await activeUser(context)
   if (!user) throw new Refusal(401, message)
   return user
 }

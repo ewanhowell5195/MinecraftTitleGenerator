@@ -1,5 +1,5 @@
 import { LIMITS } from "../lib/core/limits.js"
-import { signedInUser } from "./accounts.js"
+import { activeUser } from "./accounts.js"
 import { INVALID, Refusal, guarded, idParam, jsonBody, reply } from "./http.js"
 import { MISSING, SCORES_COUNTED, STAT_COLUMNS, accountHash, dayNumber, hashedIp, rated, requirePreset } from "./presets.js"
 
@@ -18,7 +18,7 @@ export const votePreset = guarded(async context => {
   if (value !== 1 && value !== -1) throw new Refusal(400, "That isn't a valid vote.")
   const { owner } = await requirePreset(env, id, " AND shared = 1")
   const ip = await hashedIp(context)
-  const user = await signedInUser(context)
+  const user = await activeUser(context)
   if (user && owner === user.id) throw new Refusal(403, "You can't vote on a preset you shared.")
   const voter = user ? await accountHash(env, user) : ip
   const [, updated] = await env.DB.batch([

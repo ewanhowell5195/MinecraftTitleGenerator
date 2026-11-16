@@ -1,6 +1,6 @@
 import { LIMITS } from "../lib/core/limits.js"
 import { decodeTitle } from "../lib/link/linkformat.js"
-import { USER_ROW, activeUser, forgetUnusedUser, requireUser, saveUser } from "./accounts.js"
+import { USER_ROW, forgetUnusedUser, requireUser, saveUser } from "./accounts.js"
 import { INVALID, Refusal, guarded, jsonBody, reply, textField, unpublishedName } from "./http.js"
 import { NEXT_ID, deletingPresets } from "./presets.js"
 
@@ -40,7 +40,7 @@ export const listSaved = guarded(async context => {
 
 export const addSaved = guarded(async context => {
   const { request, env } = context
-  const user = await requireUser(context, SIGNED_OUT, activeUser)
+  const user = await requireUser(context, SIGNED_OUT)
   const { presets } = await jsonBody(request, BATCH_BODY)
   if (!Array.isArray(presets) || presets.length > LIMITS.savedBatch) throw new Refusal(400, INVALID)
   const { results } = await env.DB.prepare(`SELECT code, shared FROM presets WHERE user_id = ${USER_ROW}`).bind(user.provider, user.providerId).all()

@@ -1,5 +1,5 @@
 import { SUBMISSION_LIMITS } from "../../lib/submissions/submissions.js"
-import { accountKey, activeUser, isAdmin, requireUser, saveUser } from "../accounts.js"
+import { accountKey, isAdmin, requireUser, saveUser } from "../accounts.js"
 import { returnSlot, takeSlot } from "../daily.js"
 import { GitHubError, github } from "../github.js"
 import { Refusal, cachedAtEdge, guarded, idParam, jsonBody, reply } from "../http.js"
@@ -115,7 +115,7 @@ export async function anonymiseComments(env, pull, theirs) {
 
 export const addComment = guarded(async context => {
   const { env, request } = context
-  const user = await requireUser(context, "Sign in to comment.", activeUser)
+  const user = await requireUser(context, "Sign in to comment.")
   const row = await findSubmission(env, idParam(context.params, MISSING))
   const role = row.owner === user.id ? "submitter" : "reviewer"
   if (role === "reviewer" && !await isAdmin(env, user)) throw new Refusal(403, "Only the person who sent this and reviewers can comment on it.")
