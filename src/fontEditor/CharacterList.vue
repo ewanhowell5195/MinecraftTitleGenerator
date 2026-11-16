@@ -157,7 +157,7 @@
       <Tile v-for="char of characters" :key="char" small :label="characterLabel(char, font.letterCase)" aspect="auto" :selected="selected === char" :tooltip="characterName(char, font.letterCase) === characterLabel(char, font.letterCase) ? null : characterName(char, font.letterCase)" @pick="selected = char" v-long-press @contextmenu.prevent="menu($event, char)">
         <template #picture><GlyphThumb :font="font" :glyph="glyphOf(font, char)" /></template>
       </Tile>
-      <button class="add" v-tooltip="'Add a character'" aria-label="Add a character" @click="addMenu"><Icon name="plus" :size="20" /></button>
+      <button type="button" class="add" v-tooltip="'Add a character'" aria-label="Add a character" @click="addMenu"><Icon name="plus" :size="20" /></button>
     </TileGrid>
     <ContextMenu :items="context?.items" :at="context?.at" @close="context = null" />
     <Dialog v-if="adding" title="Add characters" close-title="Cancel" dismissable @close="adding = false">
@@ -206,6 +206,7 @@
     color: var(--muted);
     background: transparent;
     border: 2px dashed var(--line-strong);
+    user-select: none;
   }
 
   .add:hover {
