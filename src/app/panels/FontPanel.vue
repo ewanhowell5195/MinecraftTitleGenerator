@@ -125,19 +125,24 @@
     else event.target.value = object.value.customFont[key] ?? fallback
   }
 
-  watch(() => object.value.customFont, async source => {
+  watch(() => object.value.customFont, async (source, _, onCleanup) => {
+    let stale = false
+    onCleanup(() => (stale = true))
     customName.value = ""
     customImage.value = null
     customUnit.value = null
     if (!source) return
     try {
       const entry = await customFontEntry(source)
+      if (stale) return
       customName.value = entry.name
       const { image, detailed } = entryThumbnail(entry)
-      customUnit.value = image && (await loadImage(image)).height * (detailed ? 1 : PREVIEW_DETAIL)
+      const unit = image && (await loadImage(image)).height * (detailed ? 1 : PREVIEW_DETAIL)
+      if (stale) return
+      customUnit.value = unit
       customImage.value = image
     } catch (err) {
-      customError.value = `Couldn't use this font: ${err.message}`
+      if (!stale) customError.value = `Couldn't use this font: ${err.message}`
     }
   }, { immediate: true })
 
