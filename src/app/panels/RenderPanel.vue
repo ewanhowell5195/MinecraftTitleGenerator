@@ -37,7 +37,7 @@
   const result = shallowRef(null)
 
   const max = canvasLimit()
-  const presets = computed(() => PRESETS.filter(({ value }) => value <= canvasLimit()).map(preset => ({ ...preset, title: `Around ${preset.value} pixels` })).concat([{ value: "custom", label: "Custom", title: "Custom size" }]))
+  const presets = computed(() => PRESETS.filter(({ value }) => value <= canvasLimit()).map(preset => ({ ...preset, title: `Around ${preset.value} pixels` })).concat([{ value: "custom", label: "Custom" }]))
   const sizes = computed(() => textureSizes().map(size => ({ value: size, label: String(size), title: `${size} pixel texture` })))
   const padding = computed({
     get: () => Math.round(framing.padding * paddingScale()),
@@ -105,17 +105,17 @@
     <template v-if="framing.tab === 'custom'">
       <Field group label="Size">
         <div class="input-row">
-          <NumberInput :value="framing.width" min="1" :max="max" v-tooltip="'Width'" aria-label="Width" @input="setResolution('width', $event.target.value)" @change="$event.target.value = framing.width" />
+          <NumberInput :value="framing.width" min="1" :max="max" aria-label="Width" @input="setResolution('width', $event.target.value)" @change="$event.target.value = framing.width" />
           <span class="times">&times;</span>
-          <NumberInput :value="framing.height" min="1" :max="max" v-tooltip="'Height'" aria-label="Height" @input="setResolution('height', $event.target.value)" @change="$event.target.value = framing.height" />
+          <NumberInput :value="framing.height" min="1" :max="max" aria-label="Height" @input="setResolution('height', $event.target.value)" @change="$event.target.value = framing.height" />
           <Button ghost :active="framing.linked" icon="link" title="Link width and height" :aria-pressed="framing.linked" @click="framing.linked = !framing.linked" />
         </div>
       </Field>
       <Field group label="Aspect ratio">
         <div class="input-row">
-          <NumberInput :value="framing.aspectWidth" min="1" :max="max" v-tooltip="'Aspect width'" aria-label="Aspect width" @input="setAspect('aspectWidth', $event.target.value)" @change="$event.target.value = framing.aspectWidth" />
+          <NumberInput :value="framing.aspectWidth" min="1" :max="max" aria-label="Aspect width" @input="setAspect('aspectWidth', $event.target.value)" @change="$event.target.value = framing.aspectWidth" />
           <span class="times">:</span>
-          <NumberInput :value="framing.aspectHeight" min="1" :max="max" v-tooltip="'Aspect height'" aria-label="Aspect height" @input="setAspect('aspectHeight', $event.target.value)" @change="$event.target.value = framing.aspectHeight" />
+          <NumberInput :value="framing.aspectHeight" min="1" :max="max" aria-label="Aspect height" @input="setAspect('aspectHeight', $event.target.value)" @change="$event.target.value = framing.aspectHeight" />
         </div>
       </Field>
     </template>
