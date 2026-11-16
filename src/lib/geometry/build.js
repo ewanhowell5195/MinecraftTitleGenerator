@@ -212,10 +212,10 @@ export function rowBottom(boxLists) {
 }
 
 export function buildText(font, options) {
-  const { placed } = options
+  const { placed, depth, border } = options
   if (!placed.length) return null
-  const depth = options.depth
-  const border = options.border
+  const reach = font.capHeight * EDGE_SHARE
+  const independent = independentLayers(font)
   const bounds = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity }
   const glyphs = []
   for (const item of placed) {
@@ -223,10 +223,8 @@ export function buildText(font, options) {
     const boxes = clippedBoxes(boxesFor(glyph.mask, glyph.width, glyph.height, item.x, glyph.bottom), glyph, item.x)
     const char = baseChar(glyph.char)
     const mesh = font.mesh?.glyphs[char]
-    const reach = font.capHeight * EDGE_SHARE
     const shaped = mesh ? font.mesh.tools.meshFaces(mesh, glyph, font.glyphs[char], item.x, depth, reach) : null
     const sliced = !shaped && glyph.depths && font.layers
-    const independent = independentLayers(font)
     const body = shaped ? shaped.faces : sliced ? sliceFaces(glyph, item.x, depth, font.layers, independent) : boxFaces(boxes, -depth / 2, depth / 2)
     if (sliced) {
       for (const slice of Map.groupBy(body, face => face.layer).values()) stripFaces(slice, glyph, font.glyphs[char], font.capHeight)
@@ -314,7 +312,7 @@ export function buildText(font, options) {
     frame: font.autoBorder ? frameRects(glyphs.flatMap(glyph => glyph.boxes)) : null,
     slabs: font.layers && !font.autoBorder ? font.layers.map((_, layer) => glyphs.flatMap(glyph => flatRects(glyph.slabs?.[layer] ?? glyph.boxes))) : null,
     layerDepths: font.layers ?? null,
-    independent: independentLayers(font),
+    independent,
     shapes: font.mesh ? glyphs.flatMap(glyphRings) : null,
     tools: font.mesh?.tools ?? null,
     twist,
