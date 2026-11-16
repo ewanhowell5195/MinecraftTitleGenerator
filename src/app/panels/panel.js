@@ -19,22 +19,19 @@ export function layerShown(group) {
   return computed(() => isSeparate(current.value, group) && usedLayers.value.length > 1 ? editingLayer.value : null)
 }
 
-function context() {
-  return { font: font.value, list: list.value }
-}
-
 export function usePanel(name, word = false) {
   const base = word ? currentWord : current
   const group = GROUPS[name]
   const layer = computed(() => group && isSeparate(base.value, group) ? editingLayer.value : 0)
   const object = group ? computed(() => layerView(base.value, layer.value, group)) : base
+  const options = () => ({ font: font.value, list: list.value, layer: layer.value })
   return {
     object,
     font,
     list,
     layer,
-    modified: computed(() => isModified(object.value, name, { ...context(), layer: layer.value })),
-    reset: () => resetPanel(object.value, name, { ...context(), layer: layer.value }),
+    modified: computed(() => isModified(object.value, name, options())),
+    reset: () => resetPanel(object.value, name, options()),
     k: key => word ? wordKey(key) : key
   }
 }
