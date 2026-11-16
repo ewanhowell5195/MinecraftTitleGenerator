@@ -1,5 +1,4 @@
 :root {
-  --background: #111214;
   --gutter: 16px;
   --footer-gap: clamp(56px, 8vw, 96px);
 }
@@ -15,7 +14,7 @@
 }
 
 html {
-  background: var(--background);
+  background: var(--bg);
 }
 
 body {
@@ -23,7 +22,7 @@ body {
   overflow-x: hidden;
   font: 17px/1.55 var(--font-ui);
   color: var(--muted);
-  background: var(--background);
+  background: var(--bg);
 }
 
 img {
@@ -278,7 +277,7 @@ section + section {
 .preset-name {
   padding: 12px 16px 0;
   overflow: hidden;
-  font-size: 18px;
+  font-size: var(--font-xl);
   font-weight: 700;
   color: var(--text);
   text-overflow: ellipsis;
@@ -289,7 +288,7 @@ section + section {
   display: flex;
   padding: 2px 16px 14px;
   overflow: hidden;
-  font-size: 14px;
+  font-size: var(--font-base);
   text-overflow: ellipsis;
   white-space: pre;
 }
@@ -336,7 +335,7 @@ section + section {
 
 .makers li {
   padding: 6px 12px;
-  font-size: 15px;
+  font-size: var(--font-lg);
   font-weight: 600;
   color: var(--muted);
   background: var(--surface);
@@ -401,7 +400,7 @@ section + section {
 }
 
 .stats dt {
-  font-size: 14px;
+  font-size: var(--font-base);
   font-weight: 600;
 }
 
@@ -474,7 +473,7 @@ section + section {
   }
 
   .button.big {
-    font-size: 18px;
+    font-size: var(--font-xl);
   }
 
   .actions {
