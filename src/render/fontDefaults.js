@@ -10,7 +10,8 @@ export function applyFontDefaults(object, loaded, textures, before) {
   if (!keepTexture.has(object) && loadedFont.get(object) !== loaded.id) {
     quietly(() => {
       const values = { texture: defaultTexture(textures, object.type), textureVariant: null }
-      if (object.textureSource === "premade") setTexture(object, values, { before, after: textures })
+      const unfitting = object.textureSource === "custom" && !!object.customTexture && object.customTextureMode !== "tileable"
+      if (object.textureSource === "premade" || unfitting) setTexture(object, unfitting ? { ...values, textureSource: "premade" } : values, { before, after: textures })
       else Object.assign(object, values)
       object.overlays = object.overlays.filter(layer => layer.source === "file" || textures.overlays[layer.overlay])
       object.spacing = defaultSpacing(object.type, loaded)
