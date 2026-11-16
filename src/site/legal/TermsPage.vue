@@ -1,11 +1,9 @@
 <script setup>
-  import Contact from "./Contact.vue"
+  import LegalPage from "./LegalPage.vue"
 </script>
 
 <template>
-  <main class="legal wrap">
-    <h1 class="page-title">Terms of Service</h1>
-    <p class="updated">Last updated: 9 November 2026</p>
+  <LegalPage title="Terms of Service" updated="9 November 2026" about="these terms">
     <p>By using the Minecraft Title Generator, you agree that you have read and agree to these terms. If you do not agree to them, do not use the title generator.</p>
     <p>The <a href="/privacy/">Privacy Policy</a> explains what data the title generator stores and how it is used.</p>
 
@@ -72,7 +70,5 @@
     <p>The title generator is provided as it is, with no guarantees. I do not guarantee that it will always be available, that it will work without errors, or that your saved and shared presets will never be lost.</p>
     <p>You use the title generator at your own risk. As far as the law allows, I am not liable for any loss or damage that comes from using it, or from being unable to use it.</p>
     <p>These terms are governed by the laws of the United Kingdom.</p>
-
-    <Contact about="these terms" />
-  </main>
+  </LegalPage>
 </template>

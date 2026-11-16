@@ -1,11 +1,9 @@
 <script setup>
-  import Contact from "./Contact.vue"
+  import LegalPage from "./LegalPage.vue"
 </script>
 
 <template>
-  <main class="legal wrap">
-    <h1 class="page-title">Privacy Policy</h1>
-    <p class="updated">Last updated: 10 November 2026</p>
+  <LegalPage title="Privacy Policy" updated="10 November 2026" about="this policy">
     <p>By using the Minecraft Title Generator, you agree that you have read and agree to this policy.</p>
     <p>This policy describes what data the title generator stores, why, how long it is kept, and how to remove it.</p>
 
@@ -117,7 +115,5 @@
 
     <h2>Children's privacy</h2>
     <p>Discord and GitHub do not provide accounts to children under the age of 13, so signing in to the title generator is not for children under 13 either. Everything else can be used without an account. If you are a parent or guardian and you are aware that your child has given me personal data, please contact me so that I can remove it.</p>
-
-    <Contact about="this policy" />
-  </main>
+  </LegalPage>
 </template>
