@@ -18,7 +18,7 @@
   import { editSubmission, sendSubmission, submissionFileUrl } from "../lib/submissions/submissionsApi.js"
   import { pickedFile, releaseFile } from "./files.js"
   import { KIND_COMPONENTS } from "./kinds/components.js"
-  import { CLIENT_KINDS } from "./kinds/index.js"
+  import { CLIENT_KINDS, submissionTitle } from "./kinds/index.js"
 
   const props = defineProps({
     fonts: { type: Array, required: true },
@@ -51,6 +51,7 @@
   const licence = ref(props.initial?.details.licence ?? "")
   const sentDetails = computed(() => sourced.value && type.value.sourced ? { ...details.value, source: source.value, licence: licence.value } : details.value)
   const name = ref(props.initial?.name ?? prefillName ?? "")
+  const shownName = computed(() => submissionTitle({ kind: kind.value, target: target.value, name: name.value.trim() || "…" }, props.fonts))
   const credit = ref(props.initial ? authorList(props.initial.credit) : prefillCredit ? authorList(prefillCredit) : account.value ? [account.value.name] : [])
   const notes = ref(props.initial?.notes ?? "")
   const agree = ref(!!props.initial)
@@ -280,7 +281,7 @@
   <form class="submission-form" @submit.prevent="send">
     <NavTabs v-if="GROUPS.length > 1" v-model="group" :tabs="GROUPS" />
     <div class="columns">
-      <Field label="Name" required :error="shown.name" :hint="`Shown as the ${type.noun}'s name in the generator.`">
+      <Field label="Name" required :error="shown.name" :hint="shownName === (name.trim() || '…') ? `Shown as the ${type.noun}'s name in the generator.` : `Shown in the generator as ${shownName}, so leave out the ${type.noun} it's a variant of.`">
         <input type="text" v-model="name" :maxlength="SUBMISSION_LIMITS.name" spellcheck="false" required>
       </Field>
       <Field group label="Credit" required :error="shown.credit" :hint="`Shown as the ${type.noun}'s authors. List everyone who worked on it. If you're porting someone else's work with their permission, list both yourself and them.`">

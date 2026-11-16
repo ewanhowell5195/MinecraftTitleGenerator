@@ -15,7 +15,7 @@
   import { markNotificationsSeen, notifications, submissionExtraUrl, submissionFileUrl, submissionPage, submissionProcessing, submissionThread, withdrawSubmission } from "../lib/submissions/submissionsApi.js"
   import CommentThread from "./CommentThread.vue"
   import { KIND_COMPONENTS } from "./kinds/components.js"
-  import { CLIENT_KINDS } from "./kinds/index.js"
+  import { CLIENT_KINDS, submissionTitle } from "./kinds/index.js"
   import CharacterGrid from "./kinds/CharacterGrid.vue"
   import ReviewPanel from "./ReviewPanel.vue"
   import SubmissionFiles from "./SubmissionFiles.vue"
@@ -47,6 +47,7 @@
   let pollTimer = null
 
   const client = computed(() => CLIENT_KINDS[item.value?.kind])
+  const title = computed(() => item.value && submissionTitle(item.value, props.fonts))
   const tabs = computed(() => item.value?.kind === "font" ? TABS : TABS.filter(entry => entry.id !== "characters"))
   const gridTexture = computed(() => {
     const extras = item.value?.details.extras ?? []
@@ -105,7 +106,7 @@
   }
 
   async function withdraw() {
-    if (!confirm(`Withdraw ${item.value.name}? It's removed from this site, but it can still be accepted.`)) return
+    if (!confirm(`Withdraw ${title.value}? It's removed from this site, but it can still be accepted.`)) return
     busy.value = true
     try {
       await withdrawSubmission(props.id)
@@ -133,7 +134,7 @@
 
   onMounted(() => Promise.all([load(), checkProcessing()]))
   onBeforeUnmount(() => clearTimeout(pollTimer))
-  watch(() => item.value?.name, name => {
+  watch(title, name => {
     if (name) document.title = `${props.editing ? "Edit " : ""}${name} | Submissions | Minecraft Title Generator`
   })
   watch(() => [item.value?.mine, reviewer.value, account.value?.id], () => markSeen().catch(err => console.error(err)))
@@ -147,7 +148,7 @@
   <template v-else-if="item">
     <section class="intro">
       <a class="hint" href="/submissions/">Submissions</a>
-      <h1>{{ item.name }}</h1>
+      <h1>{{ title }}</h1>
       <p>{{ client.summary(item, fonts) }}, made by {{ authorText(item.credit) }}.</p>
       <blockquote v-if="item.notes" class="notes">{{ item.notes }}</blockquote>
     </section>
@@ -159,7 +160,7 @@
     </section>
     <template v-else-if="!editing && known">
       <Notice v-if="processing?.state === 'failed' && !reviewing"><p>Processing this submission failed on GitHub. <a :href="processing.url" target="_blank" rel="noopener">See what went wrong</a>.</p></Notice>
-      <MessageDialog v-if="outcome" :title="outcome === 'published' ? 'Submission merged' : 'Submission declined'" @close="leave">{{ outcome === "published" ? `${item.name} was merged, and is now part of the generator.` : `${item.name} was declined.` }}</MessageDialog>
+      <MessageDialog v-if="outcome" :title="outcome === 'published' ? 'Submission merged' : 'Submission declined'" @close="leave">{{ outcome === "published" ? `${title} was merged, and is now part of the generator.` : `${title} was declined.` }}</MessageDialog>
       <ReviewPanel v-if="reviewing" :key="item.updatedAt" :item="item" :failed-url="processing?.state === 'failed' ? processing.url : ''" @done="reviewed" />
       <div class="submission-view">
         <div class="preview flow">

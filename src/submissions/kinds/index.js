@@ -5,3 +5,7 @@ import { shapeImage, shapeModel } from "./shape.js"
 import { tileable } from "./tileable.js"
 
 export const CLIENT_KINDS = { texture, overlay, strip, tileable, font, shapeImage, shapeModel }
+
+export function submissionTitle(item, fonts) {
+  return CLIENT_KINDS[item.kind].title?.(item, fonts) ?? item.name
+}

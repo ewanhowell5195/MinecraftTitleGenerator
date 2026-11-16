@@ -5,7 +5,7 @@
   import UserName from "../components/UserName.vue"
   import { THUMBNAIL_KINDS, thumbnailPath } from "../lib/submissions/kinds/published.js"
   import { submissionExtraUrl, submissionFileUrl, submissionPage } from "../lib/submissions/submissionsApi.js"
-  import { CLIENT_KINDS } from "./kinds/index.js"
+  import { CLIENT_KINDS, submissionTitle } from "./kinds/index.js"
 
   const props = defineProps({
     items: { type: Array, required: true },
@@ -26,7 +26,7 @@
 
 <template>
   <TileGrid :min="240">
-    <Tile v-for="item of items" :key="item.id" :label="item.name" :href="submissionPage(item.id)">
+    <Tile v-for="item of items" :key="item.id" :label="submissionTitle(item, fonts)" :href="submissionPage(item.id)">
       <template #picture>
         <img v-if="imageOf(item)" class="shot" :src="imageOf(item)" alt="" loading="lazy" @error="missing.add(item.id)">
         <span v-else class="empty-state">No thumbnail yet</span>

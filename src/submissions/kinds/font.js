@@ -28,6 +28,9 @@ export const font = {
     if (extra.kind === "overlay") return { ...line, overlayMode: "custom", overlays: [{ ...overlayLayer(null), source: "file", file: image }] }
     return { ...line, textureSource: "custom", customTexture: image, customTextureMode: extra.kind === "strip" ? "strip" : "standard", customBorder: true, borderColour: extra.border ?? "#000000" }
   },
+  title(item, fonts) {
+    return item.target ? `${parentName(item, fonts)}: ${item.name}` : item.name
+  },
   summary(item, fonts) {
     if (!item.target) return "A new font"
     return `A font listed under ${parentName(item, fonts)}`
