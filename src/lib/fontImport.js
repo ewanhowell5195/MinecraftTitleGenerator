@@ -17,7 +17,13 @@ export async function parseFontFile(buffer) {
   if (buffer.byteLength < 4) throw new Error("that file is empty or too short to be a font")
   const start = String.fromCharCode(...new Uint8Array(buffer, 0, 4))
   if (start === "ttcf") throw new Error("font collections (.ttc) can't be imported, use a single .ttf or .otf")
-  if (start !== "wOF2") return opentype.parse(buffer)
+  if (start !== "wOF2") {
+    try {
+      return opentype.parse(buffer)
+    } catch (err) {
+      throw new Error(`that file isn't a font this editor can read (${err.message})`)
+    }
+  }
   const { default: decompress } = await import("woff2-encoder/decompress")
   const font = await decompress(buffer)
   return opentype.parse(font.buffer.slice(font.byteOffset, font.byteOffset + font.byteLength))

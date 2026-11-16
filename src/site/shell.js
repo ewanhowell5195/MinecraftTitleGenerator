@@ -8,7 +8,7 @@ function imageOf(page) {
 }
 
 export function shellPage(file) {
-  return PAGES.find(page => page.file === file) ?? null
+  return PAGES.find(page => page.file === file || page.extraFiles?.includes(file)) ?? null
 }
 
 export function shellHtml(html, page) {

@@ -1,11 +1,14 @@
 <script setup>
   import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
+  import { useRoute } from "vue-router"
+  import { navigate } from "../lib/navigation.js"
   import Button from "../components/Button.vue"
   import Notice from "../components/Notice.vue"
   import NavTabs from "../components/NavTabs.vue"
   import Icon from "../components/Icon.vue"
   import MenuStrip from "../components/MenuStrip.vue"
   import RenderDialog from "../components/RenderDialog.vue"
+  import Spinner from "../components/Spinner.vue"
   import TopBar from "../components/TopBar.vue"
   import CharacterList from "./CharacterList.vue"
   import CharacterPanel from "./CharacterPanel.vue"
@@ -14,8 +17,9 @@
   import KerningPanel from "./KerningPanel.vue"
   import PreviewPanel from "./PreviewPanel.vue"
   import TexturesPanel from "./TexturesPanel.vue"
+  import ImportScreen from "./ImportScreen.vue"
   import StartScreen from "./StartScreen.vue"
-  import { canRedo, canUndo, closeFont, downloadFlatTexture, downloadJson, downloadStripTexture, downloadTexture, flushSave, font, redo, editingSubmission, restoreFont, saveError, saveSubmission, submitFont, takeSubmissionFont, typing, undo } from "./store.js"
+  import { EDITOR_PATH, IMPORT_PATH, START_PATH, canRedo, canUndo, downloadFlatTexture, downloadJson, downloadStripTexture, downloadTexture, flushSave, font, importing, opened, pendingFont, redo, editingSubmission, replaceFont, restoreFont, saveError, saveSubmission, submitFont, takeSubmissionFont, typing, undo } from "./store.js"
 
   const TABS = [{ id: "font", label: "Font" }, { id: "characters", label: "Characters" }, { id: "textures", label: "Textures" }, { id: "kerning", label: "Kerning" }]
 
@@ -28,12 +32,15 @@
     return TABS.some(item => item.id === saved) ? saved : "characters"
   }
 
-  const asking = ref(false)
+  const VIEWS = { [EDITOR_PATH]: "editor", [IMPORT_PATH]: "import" }
+
+  const route = useRoute()
   const loadError = ref("")
+  const view = computed(() => VIEWS[route.path.replace(/\/$/, "")] ?? "start")
 
   const menus = computed(() => ({
     File: [
-      { label: "New font...", icon: "plus", action: () => asking.value = true },
+      { label: "New font", icon: "plus", action: () => navigate(START_PATH) },
       { label: "Save", icon: "download", action: downloadJson },
       { label: "Export", icon: "texture", items: [
         { label: "Font sheet (font.png)", icon: "download", action: downloadTexture },
@@ -49,27 +56,33 @@
 
   watch(tab, value => localStorage.setItem(TAB_KEY, value))
 
-  try {
-    restoreFont()
-  } catch (err) {
-    loadError.value = `Your saved font couldn't be opened: ${err.message}`
+  if (!font.value) {
+    try {
+      restoreFont()
+    } catch (err) {
+      loadError.value = `Your saved font couldn't be opened: ${err.message}`
+    }
   }
 
   takeSubmissionFont().catch(err => loadError.value = `The submission's font couldn't be opened: ${err.message}`)
 
   function key(event) {
     const letter = event.key.toLowerCase()
-    if (!font.value || !(event.ctrlKey || event.metaKey) || !["y", "z"].includes(letter) || typing(event.target)) return
+    if (!font.value || view.value !== "editor" || !(event.ctrlKey || event.metaKey) || !["y", "z"].includes(letter) || typing(event.target)) return
     event.preventDefault()
     if (letter === "z" && !event.shiftKey) undo()
     else redo()
   }
 
-  function startAgain() {
-    asking.value = false
-    closeFont()
-    tab.value = "characters"
+  function cancelReplace() {
+    pendingFont.value = null
   }
+
+  watch(opened, () => tab.value = "characters")
+
+  watch(() => [view.value, !!font.value, !!importing.value], ([current, hasFont, hasImport]) => {
+    if (current === "editor" && !hasFont || current === "import" && !hasImport) navigate(START_PATH, { replace: true })
+  }, { immediate: true })
 
   onMounted(() => {
     addEventListener("keydown", key)
@@ -79,26 +92,41 @@
   onBeforeUnmount(() => {
     removeEventListener("keydown", key)
     removeEventListener("pagehide", flushSave)
+    flushSave()
   })
 </script>
 
 <template>
   <div class="editor-page">
     <TopBar class="top">
-      <template v-if="font">
+      <template v-if="font && view === 'editor'">
         <MenuStrip :menus="menus" />
         <NavTabs class="main-tabs divided" v-model="tab" :tabs="TABS" />
       </template>
       <template #end>
-        <Button v-if="font && editingSubmission" primary class="update" v-tooltip="'Save your submission with this font as its file'" @click="saveSubmission"><template #icon><Icon name="upload" :size="16" /></template>Save submission</Button>
-        <Button v-else-if="font" primary v-tooltip="'Send this font to be added to the title generator'" @click="submitFont"><template #icon><Icon name="upload" :size="16" /></template>Submit</Button>
+        <Button v-if="font && view === 'editor' && editingSubmission" primary class="update" v-tooltip="'Save your submission with this font as its file'" @click="saveSubmission"><template #icon><Icon name="upload" :size="16" /></template>Save submission</Button>
+        <Button v-else-if="font && view === 'editor'" primary v-tooltip="'Send this font to be added to the title generator'" @click="submitFont"><template #icon><Icon name="upload" :size="16" /></template>Submit</Button>
       </template>
     </TopBar>
 
     <Notice v-if="loadError" class="top-notice">{{ loadError }}</Notice>
     <Notice v-if="saveError" class="top-notice">{{ saveError }}</Notice>
 
-    <StartScreen v-if="!font" />
+    <StartScreen v-if="view === 'start'" />
+
+    <div v-else-if="view === 'import'" class="import-page">
+      <ImportScreen v-if="importing?.suggested" :key="importing.name" :picked="importing" />
+      <div v-else-if="importing" class="import-waiting">
+        <h1>Import {{ importing.name }}</h1>
+        <Notice v-if="importing.error" class="error">{{ importing.error }}</Notice>
+        <div v-else class="reading">
+          <Spinner />
+          <p class="hint">Reading the font...</p>
+        </div>
+      </div>
+    </div>
+
+    <template v-else-if="!font"></template>
 
     <main v-else-if="tab === 'characters'" class="workspace">
       <CharacterList class="left" />
@@ -120,14 +148,14 @@
       <PreviewPanel v-if="tab !== 'textures'" />
     </main>
 
-    <RenderDialog v-if="asking" title="Start a new font?" close-title="Cancel" dismissable @close="asking = false">
+    <RenderDialog v-if="pendingFont && font" title="Replace your saved font?" close-title="Cancel" dismissable @close="cancelReplace">
       <div class="dialog-body">
-        <p>This browser only remembers one font, so <strong>{{ font.name }}</strong> will be removed. Download its JSON first if you want to keep it.</p>
+        <p>This browser only remembers one font, so <strong>{{ font.name }}</strong> will be replaced. Download its JSON first if you want to keep it.</p>
         <div class="dialog-actions">
           <Button @click="downloadJson"><template #icon><Icon name="download" :size="14" /></template>Download JSON</Button>
           <div class="spacer"></div>
-          <Button @click="asking = false">Cancel</Button>
-          <Button danger @click="startAgain">Start new font</Button>
+          <Button @click="cancelReplace">Cancel</Button>
+          <Button danger @click="replaceFont">Replace it</Button>
         </div>
       </div>
     </RenderDialog>
@@ -152,6 +180,33 @@
 
   .top-notice {
     flex: none;
+  }
+
+  .import-page {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px 16px 40px;
+  }
+
+  .import-waiting {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .import-waiting h1 {
+    margin: 0 0 22px;
+    font-size: 28px;
+    overflow-wrap: anywhere;
+  }
+
+  .reading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 64px 16px;
+    background: var(--surface);
+    border: 1px solid var(--line);
   }
 
   .workspace {

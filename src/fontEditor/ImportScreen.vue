@@ -11,7 +11,7 @@
   import ResetIcon from "./ResetIcon.vue"
   import { limitSize, resettable } from "./sizeLimit.js"
   import { OPENING_QUOTE } from "../lib/order.js"
-  import { openFont } from "./store.js"
+  import { startFont } from "./store.js"
   import { glyphsFromSource, withTemplateGlyphs } from "./template.js"
   import { drawTiles, fitCell, tileLine } from "./glyphTiles.js"
 
@@ -21,8 +21,6 @@
   const props = defineProps({
     picked: { type: Object, required: true }
   })
-
-  const emit = defineEmits(["back"])
 
   const height = ref(props.picked.suggested.rows)
   const square = ref(props.picked.suggested.square)
@@ -83,7 +81,7 @@
   }
 
   function confirm() {
-    if (built.value.font) openFont(built.value.font)
+    if (built.value.font) startFont(built.value.font)
   }
 
   onMounted(() => {
@@ -110,7 +108,6 @@
 <template>
   <div class="import">
     <div class="intro">
-      <Button ghost class="back" @click="emit('back')"><template #icon><Icon name="back" :size="16" /></template>Back</Button>
       <h1>Import {{ picked.name }}</h1>
       <p>Choose how it's turned into pixels. The preview updates as you go.</p>
     </div>
@@ -161,10 +158,6 @@
 
   .intro {
     margin-bottom: 22px;
-  }
-
-  .back {
-    margin: 0 0 10px -8px;
   }
 
   h1 {

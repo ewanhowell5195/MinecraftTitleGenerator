@@ -14,11 +14,11 @@
   import { fontCredit } from "../lib/credits.js"
   import { fontThumbnail } from "../lib/ui.js"
   import { fontFromList, fontFromUploads, imageOf } from "./loaders.js"
-  import ImportScreen from "./ImportScreen.vue"
   import SizeStats from "./SizeStats.vue"
   import ResetIcon from "./ResetIcon.vue"
   import { limitSize, resettable } from "./sizeLimit.js"
-  import { openFont } from "./store.js"
+  import { navigate } from "../lib/navigation.js"
+  import { EDITOR_PATH, IMPORT_PATH, font, importing, startFont } from "./store.js"
   import { loadTemplate } from "./template.js"
 
   const BLANK_SIZE = { height: 10, width: 6, grid: 4 }
@@ -28,7 +28,6 @@
   const width = ref(BLANK_SIZE.width)
   const grid = ref(BLANK_SIZE.grid)
   const { mostRows, mostSquare } = limitSize(height, grid)
-  const picked = shallowRef(null)
   const fonts = shallowRef([])
   const error = ref("")
   const busy = ref("")
@@ -51,7 +50,7 @@
     error.value = ""
     busy.value = label
     try {
-      openFont(await task())
+      startFont(await task())
     } catch (err) {
       error.value = err.message
     } finally {
@@ -60,7 +59,7 @@
   }
 
   function startBlank() {
-    openFont(createFont({ height: height.value * grid.value, width: width.value * grid.value, grid: grid.value }))
+    startFont(createFont({ height: height.value * grid.value, width: width.value * grid.value, grid: grid.value }))
   }
 
   function startFrom(entry) {
@@ -84,26 +83,30 @@
 
   async function importFile(event) {
     const file = event.target.files[0]
+    event.target.value = ""
     if (!file) return
-    error.value = ""
-    busy.value = `Reading ${file.name}...`
+    const reading = { name: file.name }
+    importing.value = reading
+    navigate(IMPORT_PATH)
     try {
-      picked.value = await readImport(file)
+      const read = await readImport(file)
+      if (importing.value === reading) importing.value = read
     } catch (err) {
-      error.value = err.message
-    } finally {
-      busy.value = ""
-      event.target.value = ""
+      if (importing.value === reading) importing.value = { ...reading, error: err.message }
     }
   }
 </script>
 
 <template>
   <div class="start">
-    <div v-if="picked" class="content">
-      <ImportScreen :picked="picked" @back="picked = null" />
-    </div>
-    <div v-else class="content">
+    <div class="content">
+      <div v-if="font" class="saved">
+        <div class="saved-text">
+          <span class="saved-label">Your saved font</span>
+          <strong class="saved-name">{{ font.name }}</strong>
+        </div>
+        <Button primary @click="navigate(EDITOR_PATH)"><template #icon><Icon name="open" :size="16" /></template>Open font</Button>
+      </div>
       <div class="intro">
         <h1>Make a font</h1>
         <p>Draw every character yourself, or start from something that already exists. Your font stays in this browser until you download it.</p>
@@ -161,6 +164,36 @@
   .content {
     flex: 1 0 auto;
     padding: 28px 16px 40px;
+  }
+
+  .saved {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    max-width: 1100px;
+    margin: 0 auto 22px;
+    padding: 14px 18px;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+  }
+
+  .saved-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .saved-label {
+    font-size: var(--font-sm);
+    color: var(--muted);
+  }
+
+  .saved-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .intro {

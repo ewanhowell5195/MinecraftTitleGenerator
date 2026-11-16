@@ -62,6 +62,15 @@ describe("page shells", () => {
     assert.equal(shellPage("missing/index.html"), null)
   })
 
+  test("a page's extra files exist and get the same head as its own file", () => {
+    for (const page of PAGES.filter(page => page.extraFiles)) {
+      for (const file of page.extraFiles) {
+        assert.equal(shellPage(file), page)
+        assert.equal(shellHtml(fs.readFileSync(file, "utf8"), page), shellHtml(fs.readFileSync(page.file, "utf8"), page))
+      }
+    }
+  })
+
   test("the canonical link of a page with a fixed path is that path", () => {
     for (const page of PAGES.filter(page => !page.paths[0].includes(":"))) {
       assert.ok(shellHtml(fs.readFileSync(page.file, "utf8"), page).includes(`<link rel="canonical" href="${SITE}${page.paths[0]}">`))

@@ -10,6 +10,9 @@ import { pngUrl } from "../lib/virtualFiles.js"
 import { navigate } from "../lib/navigation.js"
 
 const STORAGE_KEY = "minecraft-title-font-editor"
+export const START_PATH = "/font-editor/"
+export const EDITOR_PATH = "/font-editor/editor"
+export const IMPORT_PATH = "/font-editor/import"
 const HISTORY_LIMIT = 200
 const SAVE_DELAY = 300
 
@@ -24,6 +27,9 @@ export const previewStretch = ref(0)
 export const pencilDepth = ref(100)
 export const previewMode = ref("2d")
 export const editingSubmission = ref(null)
+export const importing = shallowRef(null)
+export const pendingFont = shallowRef(null)
+export const opened = ref(0)
 
 const undoStack = shallowRef([])
 const redoStack = shallowRef([])
@@ -150,17 +156,6 @@ export function openFont(next, submission = null) {
   redoStack.value = []
   group = null
   strokeStart = null
-  selected.value = charactersOf(next).find(char => /[a-z]/i.test(char)) ?? charactersOf(next)[0]
-}
-
-export function closeFont() {
-  font.value = null
-  editingSubmission.value = null
-  undoStack.value = []
-  redoStack.value = []
-  group = null
-  strokeStart = null
-  localStorage.removeItem(STORAGE_KEY)
   saveError.value = ""
   arrowsMove.value = "drawing"
   previewText.value = "Minecraft"
@@ -168,6 +163,24 @@ export function closeFont() {
   previewStretch.value = 0
   pencilDepth.value = 100
   previewMode.value = "2d"
+  selected.value = charactersOf(next).find(char => /[a-z]/i.test(char)) ?? charactersOf(next)[0]
+  opened.value++
+}
+
+function showFont(next, submission = null) {
+  openFont(next, submission)
+  navigate(EDITOR_PATH)
+}
+
+export function startFont(next) {
+  if (font.value) pendingFont.value = next
+  else showFont(next)
+}
+
+export function replaceFont() {
+  const next = pendingFont.value
+  pendingFont.value = null
+  showFont(next)
 }
 
 function save() {
@@ -196,7 +209,7 @@ export async function takeSubmissionFont() {
   if (!saved) return
   sessionStorage.removeItem(EDITOR_EDIT)
   const { submission, text } = JSON.parse(saved)
-  openFont(await fontFromUploads([new File([text], "font.json", { type: "application/json" })]), submission)
+  showFont(await fontFromUploads([new File([text], "font.json", { type: "application/json" })]), submission)
 }
 
 watch([font, selected], () => {

@@ -5,6 +5,7 @@
   import MessageDialog from "../components/MessageDialog.vue"
   import NavTabs from "../components/NavTabs.vue"
   import Notice from "../components/Notice.vue"
+  import Spinner from "../components/Spinner.vue"
   import UserName from "../components/UserName.vue"
   import { authorText } from "../lib/authors.js"
   import { account } from "../lib/community.js"
@@ -152,7 +153,7 @@
     </section>
     <SubmissionForm v-if="editing" v-show="!saving" :fonts="fonts" :initial="item" @done="saved" @cancel="cancel" @saving="saving = $event" />
     <section v-if="saving || !editing && processing?.state === 'processing'" class="processing">
-      <span class="spinner" aria-hidden="true"></span>
+      <Spinner />
       <h2>Processing submission</h2>
       <p class="hint">GitHub is building its files. This usually takes a minute or two, and this page updates when it's done.</p>
     </section>
@@ -236,21 +237,6 @@
 
   .processing .hint {
     max-width: 46ch;
-  }
-
-  .spinner {
-    width: 36px;
-    height: 36px;
-    border: 4px solid var(--line-strong);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.9s linear infinite;
-  }
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
   }
 
   @media (max-width: 760px) {
