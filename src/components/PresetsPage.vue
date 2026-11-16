@@ -2,11 +2,10 @@
   import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, watchEffect } from "vue"
   import { account, accountChanges, communityPreset, countDownload, listCommunity, managedPresets, ownPresets, presetStats, randomCommunityPreset, refreshAccount, refreshUsage, signInProviders, voteOn } from "../lib/community.js"
   import { useWindowEvents } from "../lib/events.js"
-  import { LIMITS } from "../lib/limits.js"
   import { titleBody } from "../lib/linkformat.js"
   import { notice, showNotice } from "../lib/notices.js"
   import { addPreset, deleteSharedPreset, loadPreset, presets, presetsError, presetsLoaded, presetsLoading, removePreset, renamePreset, renameSharedPreset, unmarkShared, unsharePreset } from "../lib/presets.js"
-  import { parseSearch, searchWithUser } from "../lib/presetSearch.js"
+  import { searchWithUser } from "../lib/presetSearch.js"
   import { closePresetsPage, leavePresetsForEditor, openLinkInEditor, addressHasFilters, presetsPage, setPresetSearch, setPresetSort, showOwnPreset, showPresetFilters, showPreset, takeLanding } from "../lib/presetsPage.js"
   import { openSharedLink } from "../lib/share.js"
   import AuthorLink from "./AuthorLink.vue"
@@ -48,8 +47,6 @@
   const selectedLocalCode = ref(null)
 
   const term = computed(() => search.value.trim())
-  const searchText = computed(() => parseSearch(term.value).text)
-  const tooShort = computed(() => tab.value === "community" && searchText.value.length > 0 && Array.from(searchText.value).length < LIMITS.searchMinimum)
   const saved = computed(() => new Set(presets.value.map(preset => titleBody(preset.code))))
   const localShown = computed(() => presets.value.filter(preset => preset.name.toLowerCase().includes(term.value.toLowerCase())))
   const localGroups = computed(() => [{ label: "Shared", presets: localShown.value.filter(preset => preset.shared) }, { label: "Local", presets: localShown.value.filter(preset => !preset.shared) }].filter(group => group.presets.length))
@@ -69,10 +66,10 @@
   function storedTab(storage) {
     return storage.getItem(TAB_STORAGE) === "mine" ? "mine" : "community"
   }
-    if (addressHasFilters()) return "community"
 
   function startingTab() {
     if (presetsPage.code !== null) return "mine"
+    if (addressHasFilters()) return "community"
     if (!landed) return presetsPage.id === null ? storedTab(localStorage) : "community"
     return performance.getEntriesByType("navigation")[0]?.type === "reload" ? storedTab(sessionStorage) : "community"
   }
@@ -100,7 +97,7 @@
     loading.value = true
     error.value = ""
     try {
-      const page = await listCommunity({ sort: sort.value, search: tooShort.value ? "" : search.value, offset })
+      const page = await listCommunity({ sort: sort.value, search: search.value, offset })
       if (current !== request) return
       const listed = new Set(offset ? results.value.map(preset => preset.id) : [])
       results.value = (offset ? results.value : []).concat(page.presets.filter(preset => !listed.has(preset.id)))
@@ -327,7 +324,7 @@
   })
   watch(search, () => {
     clearTimeout(searching)
-    if (tab.value !== "community" || tooShort.value) return
+    if (tab.value !== "community") return
     searching = setTimeout(() => load(0), SEARCH_DELAY)
   })
   watch(() => [presetsPage.id, presetsPage.code], followAddress)
@@ -340,10 +337,10 @@
     root.value?.querySelector(".card.selected")?.scrollIntoView({ block: "nearest" })
   })
 
-    showPresetFilters(tab.value === "community")
   onMounted(() => {
     refreshUsage()
     refreshAccount()
+    showPresetFilters(tab.value === "community")
     if (tab.value === "community") load(0)
     rememberTab(tab.value)
     if (landed && tab.value === "mine" && presetsPage.id !== null) followOwnShared(presetsPage.id)
@@ -385,8 +382,7 @@
           </template>
         </div>
         <div class="list">
-          <p v-if="tooShort" class="message empty-state">Keep typing to search.</p>
-          <Notice v-else-if="error" class="spaced">{{ error }}</Notice>
+          <Notice v-if="error" class="spaced">{{ error }}</Notice>
           <Notice v-else-if="tab === 'mine' && presetsError" class="spaced">{{ presetsError }}</Notice>
           <p v-else-if="tab === 'mine' && presetsLoading" class="message empty-state">Loading your presets</p>
           <p v-else-if="tab === 'community' ? !results.length && !loading : !localShown.length" class="message empty-state">{{ emptyMessage }}</p>

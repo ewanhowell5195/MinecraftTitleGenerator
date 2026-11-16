@@ -411,10 +411,10 @@ describe("listing", () => {
     assert.equal((await listPresets({ request: new Request("https://example.test/api/presets"), env, params: {} })).status, 200)
   })
 
-  test("refuses a search shorter than 2 characters", async () => {
+  test("a single letter searches", async () => {
     await share("stone")
-    assert.match((await list("?q=s")).error, /at least 2/)
-    assert.equal((await list("?q=st")).presets.length, 1)
+    await share("dirt")
+    assert.deepEqual((await list("?q=s")).presets.map(preset => preset.text), ["stone"])
   })
 
   describe("edge cache", () => {
@@ -463,7 +463,7 @@ describe("listing", () => {
     })
 
     test("refusals aren't cached", async () => {
-      await list("?q=x")
+      await list("?sort=nope")
       assert.equal(entries.size, 0)
     })
 
@@ -1381,11 +1381,7 @@ describe("accounts", () => {
       assert.deepEqual(await names("?sort=new&q=user:nobody"), [])
     })
 
-    test("short text with a user is still refused", async () => {
-      assert.equal((await list("?sort=new&q=a%20user:someone")).status, 400)
-    })
-
-    test("a user on its own needs no minimum length", async () => {
+    test("a user on its own searches", async () => {
       assert.equal((await list("?sort=new&q=user:a")).status, 200)
     })
 

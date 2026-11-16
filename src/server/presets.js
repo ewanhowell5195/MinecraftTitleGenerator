@@ -137,7 +137,6 @@ function randomIds(highest, count) {
 function searchFilter(search) {
   const { user, provider, text } = parseSearch(search)
   const term = text.toLowerCase().slice(0, LIMITS.name)
-  if (term && Array.from(term).length < LIMITS.searchMinimum) throw new Refusal(400, `Search for at least ${LIMITS.searchMinimum} characters.`)
   const conditions = term ? [`(${MATCHES})`] : []
   const values = term ? [likePattern(term)] : []
   if (user) {
