@@ -2,16 +2,3 @@
 /submissions/:id/edit /submissions/ 200
 /submissions/:id/ /submissions/ 200
 /submissions/:id /submissions/ 200
-/font/minecraft-ten/minecraft-ten-cyrillic/* /fonts/minecraft-ten-cyrillic/:splat 301
-/font/minecraft-ten/minecraft-ten-simlish/* /fonts/minecraft-ten-simlish/:splat 301
-/font/minecraft-ten/minecraft-ten-v2/* /fonts/minecraft-ten-v2/:splat 301
-/font/minecraft-five-bold/minecraft-five-bold-cyrillic/* /fonts/minecraft-five-bold-cyrillic/:splat 301
-/font/* /fonts/:splat 301
-/home/og.jpg /share/site.jpg 301
-/home/og-credits.jpg /share/credits.jpg 301
-/home/og-font-editor.jpg /share/font-editor.jpg 301
-/home/og-presets.jpg /share/presets.jpg 301
-/home/og-privacy.jpg /share/privacy.jpg 301
-/home/og-submit.jpg /share/submit.jpg 301
-/home/og-terms.jpg /share/terms.jpg 301
-/fonts/:font/overlay.png /fonts/:font/forced-overlay.png 301
