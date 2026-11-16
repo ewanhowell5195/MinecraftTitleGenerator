@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, mock, test } from "node:test"
 import assert from "node:assert/strict"
 import { batchesTogether, code, context, db, download, env, freshServer, list, post, share, usageOf, vote, voteAll } from "../helpers/presets.js"
+import { holdQuery } from "../helpers/server.js"
 
 const { LIMITS } = await import("../../src/lib/core/limits.js")
 const { checkTitle, getPreset, listPresets, submitPreset } = await import("../../src/server/presets.js")
@@ -555,6 +556,22 @@ describe("voting and rating", () => {
     assert.equal((await vote(999, 1, "a")).status, 404)
     assert.equal((await vote("abc", 1, "a")).status, 404)
   })
+
+  for (const [label, gone] of [["unshared", "UPDATE presets SET shared = 0 WHERE id = ?"], ["deleted", "DELETE FROM presets WHERE id = ?"]]) {
+    test(`a vote or download on a preset ${label} while it was being sent is refused`, async () => {
+      for (const [send, pattern] of [[id => vote(id, 1, "a"), /preset_votes/], [id => download(id, "a"), /preset_downloads/]]) {
+        const { id } = await share(`gone ${send.length} ${pattern.source}`)
+        const hold = holdQuery(env, pattern)
+        const sending = send(id)
+        await hold.arrived
+        db.prepare(gone).run(id)
+        hold.release()
+        assert.equal((await sending).status, 404)
+        assert.equal(db.prepare("SELECT COUNT(*) AS total FROM preset_votes").get().total + db.prepare("SELECT COUNT(*) AS total FROM preset_downloads").get().total, 0)
+        assert.equal(db.prepare("SELECT COALESCE(SUM(downloads + votes), 0) AS total FROM presets").get().total, 0)
+      }
+    })
+  }
 })
 
 describe("requests from other websites", () => {

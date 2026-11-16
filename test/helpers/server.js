@@ -18,6 +18,7 @@ let server
 export function d1(sqlite) {
   function statement(sql, values = []) {
     return {
+      sql,
       bind: (...next) => statement(sql, next),
       all: async () => ({ results: sqlite.prepare(sql).all(...values) }),
       first: async () => sqlite.prepare(sql).get(...values) ?? null,
@@ -41,6 +42,34 @@ export function d1(sqlite) {
       }
     }
   }
+}
+
+export function holdQuery(env, pattern) {
+  const { prepare, batch } = env.DB
+  let held = false
+  let reached
+  let release
+  const arrived = new Promise(resolve => (reached = resolve))
+  const opened = new Promise(resolve => (release = resolve))
+  async function wait() {
+    held = true
+    Object.assign(env.DB, { prepare, batch })
+    reached()
+    await opened
+  }
+  function gated(statement) {
+    const later = name => async () => {
+      if (!held && pattern.test(statement.sql)) await wait()
+      return statement[name]()
+    }
+    return { ...statement, bind: (...values) => gated(statement.bind(...values)), all: later("all"), first: later("first"), run: later("run") }
+  }
+  env.DB.prepare = sql => gated(prepare(sql))
+  env.DB.batch = async statements => {
+    if (!held && statements.some(item => pattern.test(item.sql))) await wait()
+    return batch(statements)
+  }
+  return { arrived, release }
 }
 
 export function database() {
