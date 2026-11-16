@@ -4,10 +4,10 @@
 
 <script setup>
   import { computed, reactive, toRaw, watch } from "vue"
-  import { layerShown, usePanel, usedLayers } from "../../lib/panel.js"
-  import { library } from "../../lib/scene.js"
-  import { OVERLAY_KINDS, activeOverlays, defaultOverlays, overlayFits } from "../../lib/settings.js"
-  import { usedOverlayFiles } from "../../lib/uploads.js"
+  import { layerShown, usePanel, usedLayers } from "./panel.js"
+  import { library } from "../../lib/state/scene.js"
+  import { OVERLAY_KINDS, activeOverlays, defaultOverlays, overlayFits } from "../../lib/settings/settings.js"
+  import { usedOverlayFiles } from "./uploads.js"
   import OverlayLayers from "../../components/OverlayLayers.vue"
   import Panel from "../Panel.vue"
   import Segments from "../../components/Segments.vue"

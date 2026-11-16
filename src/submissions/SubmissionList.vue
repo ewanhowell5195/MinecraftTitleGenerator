@@ -3,8 +3,8 @@
   import Tile from "../components/Tile.vue"
   import TileGrid from "../components/TileGrid.vue"
   import UserName from "../components/UserName.vue"
-  import { THUMBNAIL_KINDS, thumbnailPath } from "../lib/submissionKinds/published.js"
-  import { submissionExtraUrl, submissionFileUrl, submissionPage } from "../lib/submissionsApi.js"
+  import { THUMBNAIL_KINDS, thumbnailPath } from "../lib/submissions/kinds/published.js"
+  import { submissionExtraUrl, submissionFileUrl, submissionPage } from "../lib/submissions/submissionsApi.js"
   import { CLIENT_KINDS } from "./kinds/index.js"
 
   const props = defineProps({

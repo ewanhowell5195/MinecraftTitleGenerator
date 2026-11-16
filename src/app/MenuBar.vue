@@ -1,12 +1,12 @@
 <script setup>
   import { computed, ref } from "vue"
-  import { useWindowEvents } from "../lib/events.js"
-  import { EXTENSION, isDefaultTitle, openTitle, resetTitle, saveTitle } from "../lib/file.js"
-  import { history, redo, undo } from "../lib/history.js"
-  import { startSavingPreset } from "../lib/presets.js"
-  import { scene } from "../lib/scene.js"
-  import { droppedOnField } from "../lib/fileDrop.js"
-  import { takeFile } from "../lib/ui.js"
+  import { useWindowEvents } from "../components/composables/events.js"
+  import { EXTENSION, isDefaultTitle, openTitle, resetTitle, saveTitle } from "../lib/state/titleFile.js"
+  import { history, redo, undo } from "../lib/state/history.js"
+  import { startSavingPreset } from "../lib/state/presets.js"
+  import { scene } from "../lib/state/scene.js"
+  import { droppedOnField } from "../components/composables/fileDrop.js"
+  import { takeFile } from "../lib/state/ui.js"
   import MenuStrip from "../components/MenuStrip.vue"
 
   const picker = ref(null)

@@ -1,5 +1,5 @@
-import { LIMITS } from "../lib/limits.js"
-import { decodeTitle } from "../lib/linkformat.js"
+import { LIMITS } from "../lib/core/limits.js"
+import { decodeTitle } from "../lib/link/linkformat.js"
 import { USER_ROW, activeUser, forgetUnusedUser, requireUser, saveUser } from "./accounts.js"
 import { INVALID, Refusal, guarded, jsonBody, reply, textField, unpublishedName } from "./http.js"
 import { NEXT_ID, deletingPresets } from "./presets.js"

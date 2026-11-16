@@ -1,7 +1,7 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { blend, cssGradient, gradientLine, gradientStops, movedStopPositions, stopColour } from "../src/lib/material.js"
-import { rgbOf } from "../src/lib/colour.js"
+import { blend, cssGradient, gradientLine, gradientStops, movedStopPositions, stopColour } from "../src/lib/texture/material.js"
+import { rgbOf } from "../src/lib/core/colour.js"
 import { close } from "./helpers/assert.js"
 
 const near = (actual, expected, tolerance = 1e-9) => close(actual, expected, tolerance)

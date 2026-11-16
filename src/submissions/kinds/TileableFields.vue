@@ -3,8 +3,8 @@
   import Dropdown from "../../components/Dropdown.vue"
   import Field from "../../components/Field.vue"
   import Segments from "../../components/Segments.vue"
-  import { fetched } from "../../lib/api.js"
-  import { TILEABLES_LIST, TILEABLE_SIDES, tileableName } from "../../lib/submissionKinds/tileable.js"
+  import { fetched } from "../../lib/submissions/api.js"
+  import { TILEABLES_LIST, TILEABLE_SIDES, tileableName } from "../../lib/submissions/kinds/tileable.js"
 
   const MODES = [{ value: "new", label: "A new tileable" }, { value: "variant", label: "A variant" }]
 

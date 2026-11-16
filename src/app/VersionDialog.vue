@@ -1,6 +1,6 @@
 <script setup>
   import { computed, onMounted, ref } from "vue"
-  import { listVersions } from "../lib/minecraft.js"
+  import { listVersions } from "../lib/minecraft/minecraft.js"
   import Badge from "../components/Badge.vue"
   import Notice from "../components/Notice.vue"
   import Dialog from "../components/Dialog.vue"

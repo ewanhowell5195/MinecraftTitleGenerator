@@ -1,9 +1,9 @@
 <script setup>
   import { onMounted, ref } from "vue"
   import { useRoute } from "vue-router"
-  import { refreshAccount } from "../lib/community.js"
-  import { loadFontList } from "../lib/font.js"
-  import { loadStats } from "../lib/stats.js"
+  import { refreshAccount } from "../lib/state/community.js"
+  import { loadFontList } from "../lib/font/font.js"
+  import { loadStats } from "../lib/state/stats.js"
   import Notice from "../components/Notice.vue"
   import AccountPage from "./AccountPage.vue"
   import SubmissionsHome from "./SubmissionsHome.vue"

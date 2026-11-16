@@ -1,7 +1,7 @@
 <script setup>
-  import { usePanel } from "../../lib/panel.js"
-  import { TYPES, applyType, defaultTexture, setTexture } from "../../lib/settings.js"
-  import { freeRow, noteType, selection, words } from "../../lib/scene.js"
+  import { usePanel } from "./panel.js"
+  import { TYPES, applyType, defaultTexture, setTexture } from "../../lib/settings/settings.js"
+  import { freeRow, noteType, selection, words } from "../../lib/state/scene.js"
   import Panel from "../Panel.vue"
   import Slider from "../../components/Slider.vue"
   import Tile from "../../components/Tile.vue"

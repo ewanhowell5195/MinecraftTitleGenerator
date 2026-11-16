@@ -1,6 +1,6 @@
 <script setup>
-  import { signIn, signInProviders } from "../lib/community.js"
-  import { providerLabel } from "../lib/providers.js"
+  import { signIn, signInProviders } from "../lib/state/community.js"
+  import { providerLabel } from "../lib/core/providers.js"
   import Button from "./Button.vue"
   import Icon from "./Icon.vue"
 </script>

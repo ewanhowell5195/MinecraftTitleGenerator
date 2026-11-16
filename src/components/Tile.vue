@@ -1,6 +1,6 @@
 <script setup>
   import { ref } from "vue"
-  import { authorText } from "../lib/authors.js"
+  import { authorText } from "../lib/core/authors.js"
   import ContextMenu from "./ContextMenu.vue"
 
   const props = defineProps({

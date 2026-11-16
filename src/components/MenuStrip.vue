@@ -1,6 +1,6 @@
 <script setup>
   import { ref } from "vue"
-  import { reopenGuard } from "../lib/popover.js"
+  import { reopenGuard } from "./composables/popover.js"
   import ContextMenu from "./ContextMenu.vue"
 
   const props = defineProps({

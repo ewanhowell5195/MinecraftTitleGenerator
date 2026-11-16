@@ -1,6 +1,6 @@
 <script setup>
   import { computed, nextTick, ref } from "vue"
-  import { usePopover } from "../lib/popover.js"
+  import { usePopover } from "./composables/popover.js"
   import Field from "./Field.vue"
   import Icon from "./Icon.vue"
 

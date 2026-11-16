@@ -1,7 +1,7 @@
 <script setup>
   import { nextTick, ref, watch } from "vue"
-  import { useWindowEvents } from "../lib/events.js"
-  import { usePopover } from "../lib/popover.js"
+  import { useWindowEvents } from "./composables/events.js"
+  import { usePopover } from "./composables/popover.js"
   import Icon from "./Icon.vue"
 
   const props = defineProps({

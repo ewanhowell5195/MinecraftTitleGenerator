@@ -1,9 +1,9 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
 import { fontTextureList, publishedFonts, readStripSet } from "../generator/fonts.js"
-import { basedOnParts, credit, findEntry, fontCredit } from "../src/lib/credits.js"
-import { usePlatform } from "../src/lib/platform.js"
-import { mergeStrips } from "../src/lib/strips.js"
+import { basedOnParts, credit, findEntry, fontCredit } from "../src/lib/font/credits.js"
+import { usePlatform } from "../src/lib/core/platform.js"
+import { mergeStrips } from "../src/lib/font/strips.js"
 
 const FONTS = [{ id: "base", name: "Base Font" }, { id: "port", name: "Port Font" }]
 const LISTS = {

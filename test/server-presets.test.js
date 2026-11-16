@@ -3,13 +3,13 @@ import assert from "node:assert/strict"
 import { d1, database } from "./helpers/server.js"
 import { assets } from "./helpers/site.js"
 
-const { LIMITS } = await import("../src/lib/limits.js")
+const { LIMITS } = await import("../src/lib/core/limits.js")
 const { checkTitle, claimPresets, countDownload, deletePreset, getPreset, listPresets, presetPageDetails, presetStats, renamePreset, replacePreset, submissionUsage, submitPreset, unsharePreset, votePreset } = await import("../src/server/presets.js")
-const { titleFacts } = await import("../src/lib/titleFacts.js")
+const { titleFacts } = await import("../src/lib/link/titleFacts.js")
 const { accountDetails, finishSignIn, receiveSignIn, signOut, startSignIn } = await import("../src/server/accounts.js")
 const { addSaved, changeSaved, listSaved, removeSaved } = await import("../src/server/saved.js")
-const { encodeTitle } = await import("../src/lib/linkformat.js")
-const { FILE_VERSION } = await import("../src/lib/settings.js")
+const { encodeTitle } = await import("../src/lib/link/linkformat.js")
+const { FILE_VERSION } = await import("../src/lib/settings/settings.js")
 
 let db
 let env

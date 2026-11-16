@@ -1,9 +1,9 @@
 <script setup>
   import Notice from "../components/Notice.vue"
   import { onBeforeUnmount, ref, watch } from "vue"
-  import { fetched } from "../lib/api.js"
-  import { SUBMISSION_KINDS } from "../lib/submissionKinds/index.js"
-  import { submissionExtraUrl, submissionFileUrl } from "../lib/submissionsApi.js"
+  import { fetched } from "../lib/submissions/api.js"
+  import { SUBMISSION_KINDS } from "../lib/submissions/kinds/index.js"
+  import { submissionExtraUrl, submissionFileUrl } from "../lib/submissions/submissionsApi.js"
 
   const EXTRA_LABELS = { flat: "Flat texture", texture: "Texture", overlay: "Overlay", strip: "Strip" }
 

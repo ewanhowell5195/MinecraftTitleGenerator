@@ -4,8 +4,8 @@
 
 <script setup>
   import { computed, watch } from "vue"
-  import { CAMERA_PRESETS, DEFAULT_CAMERA, cameraChanges, cameraPreset, setCamera } from "../../lib/camera.js"
-  import { scene } from "../../lib/scene.js"
+  import { CAMERA_PRESETS, DEFAULT_CAMERA, cameraChanges, cameraPreset, setCamera } from "../../lib/settings/camera.js"
+  import { scene } from "../../lib/state/scene.js"
   import Panel from "../Panel.vue"
   import Segments from "../../components/Segments.vue"
   import Slider from "../../components/Slider.vue"

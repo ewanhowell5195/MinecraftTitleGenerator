@@ -1,6 +1,6 @@
 <script setup>
   import { computed, onUpdated, ref } from "vue"
-  import { clamp } from "../lib/maths.js"
+  import { clamp } from "../lib/core/maths.js"
   import NumberInput from "./NumberInput.vue"
 
   const props = defineProps({

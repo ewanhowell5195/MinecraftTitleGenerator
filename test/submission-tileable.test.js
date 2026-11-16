@@ -7,8 +7,8 @@ import { pngOf } from "./helpers/png.js"
 import { details, editForm, hook, sendForm, serverEnv, signIn } from "./helpers/server.js"
 import { publicContext } from "./helpers/site.js"
 
-const { jsonText } = await import("../src/lib/jsonText.js")
-const { TILEABLE_SIDES, seeThrough, tileable, tileableImage, tileableSizeProblem } = await import("../src/lib/submissionKinds/tileable.js")
+const { jsonText } = await import("../src/lib/core/jsonText.js")
+const { TILEABLE_SIDES, seeThrough, tileable, tileableImage, tileableSizeProblem } = await import("../src/lib/submissions/kinds/tileable.js")
 const { tileable: client } = await import("../src/submissions/kinds/tileable.js")
 
 const LIST = "public/tileables/tileables.json"

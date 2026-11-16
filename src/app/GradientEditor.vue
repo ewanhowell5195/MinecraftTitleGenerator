@@ -1,9 +1,9 @@
 <script setup>
   import { computed, onBeforeUnmount, ref, watch } from "vue"
-  import { trackPointer } from "../lib/events.js"
-  import { cssGradient, movedStopPositions, stopColour } from "../lib/material.js"
-  import { clamp } from "../lib/maths.js"
-  import { useListReorder } from "../lib/reorder.js"
+  import { trackPointer } from "../components/composables/events.js"
+  import { cssGradient, movedStopPositions, stopColour } from "../lib/texture/material.js"
+  import { clamp } from "../lib/core/maths.js"
+  import { useListReorder } from "../components/composables/reorder.js"
   import Button from "../components/Button.vue"
   import ColourPicker from "../components/ColourPicker.vue"
   import Icon from "../components/Icon.vue"

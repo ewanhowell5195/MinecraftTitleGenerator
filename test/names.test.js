@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { titleCase } from "../src/lib/names.js"
+import { titleCase } from "../src/lib/core/names.js"
 
 describe("titleCase", () => {
   test("turns underscores into spaces", () => {

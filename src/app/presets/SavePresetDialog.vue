@@ -1,6 +1,6 @@
 <script setup>
-  import { confirmReplacing, confirmSharing, namingCode, namingShared, namingSharedId, saveOver, savePreset, sharePreset } from "../../lib/presets.js"
-  import { openPresetsPage, showPreset } from "../../lib/presetsPage.js"
+  import { confirmReplacing, confirmSharing, namingCode, namingShared, namingSharedId, saveOver, savePreset, sharePreset } from "../../lib/state/presets.js"
+  import { openPresetsPage, showPreset } from "../../lib/state/presetsPage.js"
   import Button from "../../components/Button.vue"
   import Dialog from "../../components/Dialog.vue"
   import ShareFields from "./ShareFields.vue"

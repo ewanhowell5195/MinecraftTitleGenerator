@@ -1,7 +1,7 @@
 <script setup>
   import { computed, onMounted } from "vue"
-  import { refreshAccount, refreshUsage } from "../../lib/community.js"
-  import { replaceTargets } from "../../lib/presets.js"
+  import { refreshAccount, refreshUsage } from "../../lib/state/community.js"
+  import { replaceTargets } from "../../lib/state/presets.js"
   import Dropdown from "../../components/Dropdown.vue"
   import Notice from "../../components/Notice.vue"
 

@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { arcLayout } from "../src/lib/arc.js"
+import { arcLayout } from "../src/lib/geometry/arc.js"
 
 const CAP = 8
 const OPEN = "┫"

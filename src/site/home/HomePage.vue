@@ -3,7 +3,7 @@
   import people from "virtual:people"
   import { startHero } from "./hero.js"
   import Button from "../../components/Button.vue"
-  import { pictureUrl } from "../../lib/pictures.js"
+  import { pictureUrl } from "../../lib/core/pictures.js"
   import Strips from "./Strips.vue"
   import UserName from "../../components/UserName.vue"
   import { startTyping } from "./typing.js"

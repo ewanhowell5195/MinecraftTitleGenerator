@@ -2,9 +2,9 @@
   import { computed } from "vue"
   import Dropdown from "../../components/Dropdown.vue"
   import LiveTitle from "../../components/LiveTitle.vue"
-  import { fullName } from "../../lib/font.js"
+  import { fullName } from "../../lib/font/font.js"
   import { embedded } from "../submissionLink.js"
-  import { fontThumbnail } from "../../lib/ui.js"
+  import { fontThumbnail } from "../../lib/state/ui.js"
   import { usePreviewLine } from "./preview.js"
   import { previewFonts, stripLine } from "./strip.js"
 

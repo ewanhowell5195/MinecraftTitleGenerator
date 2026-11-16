@@ -5,11 +5,11 @@
   import Notice from "../../components/Notice.vue"
   import UploadField from "../../components/UploadField.vue"
   import SharedStrips from "../../components/SharedStrips.vue"
-  import { silhouetteFont } from "../../lib/customFonts.js"
-  import { SILHOUETTE_TEXT } from "../../lib/shapes.js"
-  import { MODEL_LIMITS, SHAPE_STRIP_LIMITS, SILHOUETTE_LIMITS } from "../../lib/submissionKinds/shape.js"
-  import { SUBMISSION_LIMITS } from "../../lib/submissions.js"
-  import { submissionExtraUrl, submissionFileUrl } from "../../lib/submissionsApi.js"
+  import { silhouetteFont } from "../../lib/font/customFonts.js"
+  import { SILHOUETTE_TEXT } from "../../lib/geometry/shapes.js"
+  import { MODEL_LIMITS, SHAPE_STRIP_LIMITS, SILHOUETTE_LIMITS } from "../../lib/submissions/kinds/shape.js"
+  import { SUBMISSION_LIMITS } from "../../lib/submissions/submissions.js"
+  import { submissionExtraUrl, submissionFileUrl } from "../../lib/submissions/submissionsApi.js"
   import { pickedFile } from "../files.js"
 
   defineOptions({ inheritAttrs: false })

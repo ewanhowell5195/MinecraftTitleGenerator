@@ -1,7 +1,7 @@
 import path from "node:path"
-import { flattenFonts, fontFolder, fullOrder, parseMask, sheetOwner, stripsOf } from "../src/lib/font.js"
-import { defaultBorder } from "../src/lib/settings.js"
-import { mergeStrips, stripFolder, stripUse } from "../src/lib/strips.js"
+import { flattenFonts, fontFolder, fullOrder, parseMask, sheetOwner, stripsOf } from "../src/lib/font/font.js"
+import { defaultBorder } from "../src/lib/settings/settings.js"
+import { mergeStrips, stripFolder, stripUse } from "../src/lib/font/strips.js"
 import { readJson, readPng } from "./common.js"
 
 export const ROOT = path.join(import.meta.dirname, "..")

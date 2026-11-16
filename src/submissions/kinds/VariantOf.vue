@@ -3,8 +3,8 @@
   import Dropdown from "../../components/Dropdown.vue"
   import Field from "../../components/Field.vue"
   import Segments from "../../components/Segments.vue"
-  import { fetched } from "../../lib/api.js"
-  import { textureName } from "../../lib/submissionKinds/fontAsset.js"
+  import { fetched } from "../../lib/submissions/api.js"
+  import { textureName } from "../../lib/submissions/kinds/fontAsset.js"
 
   defineOptions({ inheritAttrs: false })
 

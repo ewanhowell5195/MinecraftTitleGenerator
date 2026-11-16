@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 import { pixelHash } from "../generator/common.js"
 import { publishedFonts, readMask } from "../generator/fonts.js"
 import { markSheet } from "../generator/marks.js"
-import { parseMask } from "../src/lib/font.js"
+import { parseMask } from "../src/lib/font/font.js"
 
 const WHITE = [255, 255, 255]
 const BLACK = [0, 0, 0]

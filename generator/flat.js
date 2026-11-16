@@ -1,6 +1,6 @@
 import fs from "node:fs"
 import path from "node:path"
-import { flatLayers } from "../src/lib/flatSheet.js"
+import { flatLayers } from "../src/lib/font/flatSheet.js"
 import { pngOf, writeJson } from "./common.js"
 
 export function flatSheet(cells, capHeight, depth, density = 1, layers = null, independent = false) {

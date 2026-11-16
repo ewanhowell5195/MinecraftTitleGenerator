@@ -2,7 +2,7 @@
   import { computed, ref } from "vue"
   import { useRoute } from "vue-router"
   import Icon from "../components/Icon.vue"
-  import { PREVIEW_NOTICE, isPreviewHost } from "../lib/previewSite.js"
+  import { PREVIEW_NOTICE, isPreviewHost } from "../lib/core/previewSite.js"
 
   const KEY = "minecraft-title-preview-notice"
 

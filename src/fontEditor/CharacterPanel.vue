@@ -4,7 +4,7 @@
   import Field from "../components/Field.vue"
   import Icon from "../components/Icon.vue"
   import NumberInput from "../components/NumberInput.vue"
-  import { autoStretch, changeGlyph, characterName, inkCount, setGlyph, squaresOf, widthOf } from "../lib/fontEditor.js"
+  import { autoStretch, changeGlyph, characterName, inkCount, setGlyph, squaresOf, widthOf } from "../lib/font/fontEditor.js"
   import { typedNumber } from "./fields.js"
   import { font, glyph, reshapeSelected, selected, update, updateGlyph } from "./store.js"
   import { templateGlyphs } from "./template.js"

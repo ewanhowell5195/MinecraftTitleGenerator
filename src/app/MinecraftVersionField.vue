@@ -1,6 +1,6 @@
 <script setup>
   import { computed, ref } from "vue"
-  import { jar } from "../lib/minecraft.js"
+  import { jar } from "../lib/minecraft/minecraft.js"
   import Icon from "../components/Icon.vue"
   import ProgressBar from "./ProgressBar.vue"
   import VersionDialog from "./VersionDialog.vue"

@@ -1,5 +1,5 @@
 <script setup>
-  import { confirmReplacing, confirmSharing, replaceWith, sharePreset } from "../../lib/presets.js"
+  import { confirmReplacing, confirmSharing, replaceWith, sharePreset } from "../../lib/state/presets.js"
   import Button from "../../components/Button.vue"
   import Dialog from "../../components/Dialog.vue"
   import ShareFields from "./ShareFields.vue"

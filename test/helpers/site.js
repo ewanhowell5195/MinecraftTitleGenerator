@@ -1,6 +1,6 @@
 import fs from "node:fs"
 import path from "node:path"
-import { submissionContext } from "../../src/lib/submissionKinds/index.js"
+import { submissionContext } from "../../src/lib/submissions/kinds/index.js"
 
 export function assets(url, base) {
   const file = path.join("public", decodeURIComponent(new URL(url, base).pathname))

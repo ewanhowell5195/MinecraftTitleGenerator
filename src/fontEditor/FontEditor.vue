@@ -1,7 +1,7 @@
 <script setup>
   import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
   import { useRoute } from "vue-router"
-  import { navigate } from "../lib/navigation.js"
+  import { navigate } from "../lib/state/navigation.js"
   import Button from "../components/Button.vue"
   import Notice from "../components/Notice.vue"
   import NavTabs from "../components/NavTabs.vue"

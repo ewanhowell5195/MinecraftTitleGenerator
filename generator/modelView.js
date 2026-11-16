@@ -1,9 +1,9 @@
 import fs from "node:fs"
 import path from "node:path"
 import { PNG } from "pngjs"
-import { rgbOf } from "../src/lib/colour.js"
-import { modelQuads, normalOf, placed, sideOf } from "../src/lib/modelShape.js"
-import { over } from "../src/lib/thumbnails.js"
+import { rgbOf } from "../src/lib/core/colour.js"
+import { modelQuads, normalOf, placed, sideOf } from "../src/lib/geometry/modelShape.js"
+import { over } from "../src/lib/font/thumbnails.js"
 import { readJson, readPng, writePng } from "./common.js"
 import { publicDir } from "./fonts.js"
 

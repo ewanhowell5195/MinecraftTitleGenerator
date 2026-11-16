@@ -1,7 +1,7 @@
 <script setup>
   import { computed, onMounted, ref } from "vue"
-  import { account, refreshAccount, signIn, signInProviders, signOut } from "../lib/community.js"
-  import { providerLabel } from "../lib/providers.js"
+  import { account, refreshAccount, signIn, signInProviders, signOut } from "../lib/state/community.js"
+  import { providerLabel } from "../lib/core/providers.js"
   import { router } from "../router.js"
   import Icon from "../components/Icon.vue"
   import MenuButton from "../components/MenuButton.vue"

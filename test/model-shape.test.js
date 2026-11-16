@@ -4,7 +4,7 @@ import { quietStorage } from "./helpers/browser.js"
 
 quietStorage()
 
-const { bodyOf, faceOutline, footprint, minecraftPlaced, modelQuads, packing, placed, solidRuns, wholeCubes } = await import("../src/lib/modelShape.js")
+const { bodyOf, faceOutline, footprint, minecraftPlaced, modelQuads, packing, placed, solidRuns, wholeCubes } = await import("../src/lib/geometry/modelShape.js")
 
 const SIZE = 16
 const SIDES = ["north", "south", "east", "west", "up", "down"]

@@ -1,0 +1,835 @@
+import { fadeStops, fillPattern, linearGradient, surface } from "./canvas.js"
+import { hexOf, packed } from "../core/colour.js"
+import { PLACED_KINDS, SMOOTH_KINDS, WRAPPED_KINDS, crackList, crackTriangle, crackWrap, edgeAlpha, generatedAlpha, shadowQualityName, toneKinds, wrapTriangles } from "./generatedOverlays.js"
+import { layerCell, layerLeft, layerMask } from "../font/flatSheet.js"
+import { joinNeighbours } from "../geometry/joins.js"
+import { gradientLine, gradientStops } from "./material.js"
+import { clamp, remember } from "../core/maths.js"
+import { WHITE, chosenColours, recolour } from "./overlayColours.js"
+import { MISSING, stripHasRow, stripY } from "../font/strips.js"
+
+export const R = 4
+
+const CACHED_OVERLAYS = 32
+const CACHED_TILES = 8
+const CACHED_URLS = 64
+const SOFT_LABEL = 16
+const MAX_STRIP_DETAIL = 64
+
+function fract(n) {
+  return n - Math.floor(n)
+}
+
+function random(x, y, z) {
+  x = fract(x * 0.1031)
+  y = fract(y * 0.1031)
+  z = fract(z * 0.1031)
+  const res = x * (z + 31.32) + y * (y + 31.32) + z * (x + 31.32)
+  return fract((x + y + res * 2) * (z + res))
+}
+
+function into(ctx, entry, part) {
+  const region = entry.regions[part]
+  ctx.setTransform(region.sx / R, 0, 0, region.sy / R, region.x - region.u0 * region.sx, region.y - region.v0 * region.sy)
+}
+
+function plain(ctx) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0)
+}
+
+function pixelAt(entry, part, u, v) {
+  const region = entry.regions[part]
+  return [region.x + (u - region.u0) * region.sx, region.y + (v - region.v0) * region.sy]
+}
+
+function stripParts(entry) {
+  return [["up", [entry.x, entry.up, entry.width, entry.upHeight]], ["down", [entry.x, entry.down, entry.width, entry.downHeight]]].filter(([, rect]) => rect[3] > 0)
+}
+
+function stripPixels(entry) {
+  return stripParts(entry).map(([part, [x, y, w, h]]) => {
+    const [px, py] = pixelAt(entry, part, x, y)
+    const { sx, sy } = entry.regions[part]
+    return [px, py, w * sx, h * sy]
+  })
+}
+
+function fillStrips(ctx, entries) {
+  for (const entry of entries) {
+    for (const [part, rect] of stripParts(entry)) {
+      into(ctx, entry, part)
+      fillRect(ctx, rect)
+    }
+  }
+  plain(ctx)
+}
+
+function averageColour(image, rects) {
+  const sum = [0, 0, 0]
+  let count = 0
+  for (const [x, y, w, h] of rects) {
+    for (let row = y; row < y + h; row++) {
+      for (let column = x; column < x + w; column++) {
+        const at = (row * image.width + column) * 4
+        if (image.data[at + 3] < 128) continue
+        sum[0] += image.data[at]
+        sum[1] += image.data[at + 1]
+        sum[2] += image.data[at + 2]
+        count++
+      }
+    }
+  }
+  return count ? hexOf(sum.map(value => value / count)) : "#000000"
+}
+
+function fillRect(ctx, [x, y, w, h]) {
+  ctx.fillRect(x * R, y * R, w * R, h * R)
+}
+
+function fillRects(ctx, rects) {
+  ctx.beginPath()
+  for (const [x, y, w, h] of rects) ctx.rect(x * R, y * R, w * R, h * R)
+  ctx.fill()
+}
+
+function gradientFill(ctx, [x0, y0], [x1, y1], stops) {
+  return linearGradient(ctx, x0 * R, y0 * R, x1 * R, y1 * R, stops)
+}
+
+function edgeFill(ctx, [x0, y0], [x1, y1], y, stops) {
+  const dx = x1 - x0
+  const dy = y1 - y0
+  const length = dx * dx + dy * dy
+  const offset = ((y - y0) * dy - x0 * dx) / length
+  if (Math.abs(dx) < 1e-9) return offset < 0.5 ? stops[0].colour : stops[stops.length - 1].colour
+  const slope = dx / length
+  return gradientFill(ctx, [-offset / slope, 0], [(1 - offset) / slope, 0], stops)
+}
+
+function gradientEnds(entry, look, capHeight, sheet) {
+  const baseline = entry.top + entry.glyph.top
+  const arc = look.arcGradient ? entry.glyph.arc : sheet.tallest
+  const top = baseline - capHeight - arc.top
+  const bottom = baseline + arc.bottom
+  const [from, to] = gradientLine(entry.x - entry.glyph.wordX, top, sheet.wordWidth, bottom - top, look.gradientAngle)
+  return { from, to, top, bottom }
+}
+
+function adjustmentsOf(look) {
+  return [look.hue, look.saturation, look.brightness, look.contrast, look.blend, look.colour, look.colourOpacity]
+}
+
+function paintedStops(look) {
+  const stops = gradientStops(look.stops, look.smooth)
+  const data = remember(adjustedColours, JSON.stringify([stops, adjustmentsOf(look)]), () => {
+    const row = surface(stops.length, 1)
+    for (const [index, stop] of stops.entries()) {
+      row.ctx.fillStyle = stop.colour
+      row.ctx.fillRect(index, 0, 1, 1)
+    }
+    return adjusted(row.canvas, look, { willReadFrequently: true }).ctx.getImageData(0, 0, stops.length, 1).data
+  }, CACHED_OVERLAYS)
+  return stops.map((stop, index) => ({ position: stop.position, colour: packed(data, index * 4) }))
+}
+
+function paintGradient(ctx, entries, look, capHeight, sheet) {
+  const stops = gradientStops(look.stops, look.smooth)
+  for (const entry of entries) {
+    const { from, to, top, bottom } = gradientEnds(entry, look, capHeight, sheet)
+    into(ctx, entry, "front")
+    ctx.fillStyle = gradientFill(ctx, from, to, stops)
+    fillRect(ctx, [entry.x, entry.top, entry.width, entry.height])
+    if (entry.upHeight) {
+      into(ctx, entry, "up")
+      ctx.fillStyle = edgeFill(ctx, from, to, top, stops)
+      fillRect(ctx, [entry.x, entry.up, entry.width, entry.upHeight])
+    }
+    if (entry.downHeight) {
+      into(ctx, entry, "down")
+      ctx.fillStyle = edgeFill(ctx, from, to, bottom, stops)
+      fillRect(ctx, [entry.x, entry.down, entry.width, entry.downHeight])
+    }
+  }
+  plain(ctx)
+}
+
+function drawTile(ctx, tile, x, y, w, h, rotation, mirror) {
+  ctx.save()
+  ctx.translate(x + w / 2, y + h / 2)
+  ctx.rotate(rotation * Math.PI / 180)
+  if (mirror) ctx.scale(-1, 1)
+  ctx.drawImage(tile, -w / 2, -h / 2, w, h)
+  ctx.restore()
+}
+
+function tiling(look, image) {
+  const shifted = surface(image.width, image.height)
+  const ox = look.tileableXOffset % image.width
+  const oy = look.tileableYOffset % image.height
+  shifted.ctx.drawImage(image, -ox, -oy)
+  if (ox) shifted.ctx.drawImage(image, image.width - ox, -oy)
+  if (oy) shifted.ctx.drawImage(image, -ox, image.height - oy)
+  if (ox && oy) shifted.ctx.drawImage(image, image.width - ox, image.height - oy)
+  return { tile: shifted.canvas, tw: Math.max(1, Math.round(image.width * look.tileableScale * R)), th: Math.max(1, Math.round(image.height * look.tileableScale * R)) }
+}
+
+function drawRandomTile(ctx, look, tile, x, y, w, h, seed, keyX = x, keyY = y) {
+  const rotation = look.tileableRandomRotations ? Math.floor(random(seed, keyX, keyY) * 4) * 90 : 0
+  const mirror = look.tileableRandomMirroring && random(seed + 400, keyX, keyY) < 0.5
+  drawTile(ctx, tile, x, y, w, h, rotation, mirror)
+}
+
+export function firstTile(x, origin, size) {
+  return origin + Math.floor((x - origin) / size) * size
+}
+
+function tileBlock(look, image) {
+  const { tile, tw, th } = tiling(look, image)
+  const block = surface(Math.ceil(64 * R / tw) * tw, Math.ceil(64 * R / th) * th)
+  for (let ty = 0; ty < block.canvas.height; ty += th) {
+    for (let tx = 0; tx < block.canvas.width; tx += tw) drawRandomTile(block.ctx, look, tile, tx, ty, tw, th, 7)
+  }
+  return block.canvas
+}
+
+function adjustedTiles(look, image) {
+  if (!tileBlocks.has(image)) tileBlocks.set(image, new Map())
+  const key = JSON.stringify([look.tileableScale, look.tileableXOffset, look.tileableYOffset, look.tileableRandomRotations, look.tileableRandomMirroring, adjustmentsOf(look)])
+  return remember(tileBlocks.get(image), key, () => adjusted(tileBlock(look, image), look).canvas, CACHED_TILES)
+}
+
+function paintTiles(ctx, entries, look, image, capHeight) {
+  const { tile, tw, th } = tiling(look, image)
+  const randomised = look.tileableRandomRotations || look.tileableRandomMirroring
+
+  function originOf(entry) {
+    return look.tileablePerCharacter ? entry.x : entry.x - entry.glyph.lineX
+  }
+
+  function region([x, y, w, h], anchor, seed, origin) {
+    const left = origin * R
+    ctx.save()
+    ctx.beginPath()
+    ctx.rect(x * R, y * R, w * R, h * R)
+    ctx.clip()
+    ctx.fillStyle = "#ffffff"
+    fillRect(ctx, [x, y, w, h])
+    const start = anchor - Math.ceil((anchor - y * R) / th) * th
+    if (!randomised) {
+      fillPattern(ctx, tile, new DOMMatrix().translate(left, start).scale(tw / tile.width, th / tile.height))
+      fillRect(ctx, [x, y, w, h])
+    } else {
+      for (let ty = start; ty < (y + h) * R; ty += th) {
+        for (let tx = firstTile(x * R, left, tw); tx < (x + w) * R; tx += tw) {
+          if (look.tileablePerCharacter) drawRandomTile(ctx, look, tile, tx, ty, tw, th, seed)
+          else drawRandomTile(ctx, look, tile, tx, ty, tw, th, seed, tx - left, ty - anchor)
+        }
+      }
+    }
+    ctx.restore()
+  }
+
+  function seedOf(index, kind) {
+    return look.tileablePerCharacter ? index + entries.length * kind : kind
+  }
+
+  for (const [index, entry] of entries.entries()) {
+    into(ctx, entry, "front")
+    region([entry.x, entry.top, entry.width, entry.height], (entry.top + entry.glyph.top - capHeight) * R, seedOf(index, 0), originOf(entry))
+  }
+  if (look.tileableTileEdges) {
+    for (const [index, entry] of entries.entries()) {
+      if (entry.upHeight) {
+        into(ctx, entry, "up")
+        region([entry.x, entry.up, entry.width, entry.upHeight], entry.up * R, seedOf(index, 1), originOf(entry))
+      }
+      if (entry.downHeight) {
+        into(ctx, entry, "down")
+        region([entry.x, entry.down, entry.width, entry.downHeight], entry.down * R, seedOf(index, 2), originOf(entry))
+      }
+    }
+    plain(ctx)
+    return
+  }
+  plain(ctx)
+  const faces = surface(ctx.canvas.width, ctx.canvas.height)
+  faces.ctx.drawImage(ctx.canvas, 0, 0)
+  for (const entry of entries) {
+    const scale = entry.regions.front.sx
+    const [left, top] = pixelAt(entry, "front", entry.x, entry.top)
+    const bottom = pixelAt(entry, "front", entry.x, entry.top + entry.height)[1] - 1
+    for (const [part, [x, y, width, height]] of stripParts(entry)) {
+      const [px, py] = pixelAt(entry, part, x, y)
+      const { sx, sy } = entry.regions[part]
+      ctx.drawImage(faces.canvas, left, part === "up" ? top : bottom, entry.width * scale, 1, px, py, width * sx, height * sy)
+    }
+  }
+}
+
+function stripRuns(map) {
+  const runs = []
+  for (const [row, from] of map.entries()) {
+    const last = runs.at(-1)
+    if (last && row === last.row + last.height && from - row === last.from - last.row) last.height++
+    else runs.push({ row, from, height: 1 })
+  }
+  return runs
+}
+
+function stretchedStrip(strip, low, high) {
+  const { image, density } = strip
+  if (!stretchedStrips.has(image)) stretchedStrips.set(image, new Map())
+  return remember(stretchedStrips.get(image), JSON.stringify([strip.scale, density, strip.depth, strip.top, low, high]), () => {
+    const out = surface(image.width, (high - low + 1) * density)
+    for (let at = low; at <= high; at++) {
+      const from = ((strip.depth + strip.top - 1 - stripY(strip, at)) * density % image.height + image.height) % image.height
+      const to = (high - at) * density
+      const first = Math.min(density, image.height - from)
+      out.ctx.drawImage(image, 0, from, image.width, first, 0, to, image.width, first)
+      if (first < density) out.ctx.drawImage(image, 0, 0, image.width, density - first, 0, to + first, image.width, density - first)
+    }
+    return out.canvas
+  }, CACHED_OVERLAYS)
+}
+
+function bandExtent(glyph, band, independent) {
+  if (band === null || !glyph.depths) return { left: 0, right: glyph.width }
+  const cell = layerCell(glyph, band, independent)
+  return cell.width ? { left: cell.left, right: cell.left + cell.width } : null
+}
+
+function stripShift(glyph, strip, shifts) {
+  if (shifts.has(glyph)) return shifts.get(glyph)
+  const own = bandExtent(glyph, strip.band, strip.independent)
+  const before = glyph.previous && bandExtent(glyph.previous, strip.band, strip.independent)
+  let shift = 0
+  if (own && before && glyph.previous.lineX + before.right >= glyph.lineX + own.left) shift = stripShift(glyph.previous, strip, shifts)
+  else if (own) {
+    const pixel = strip.snap ?? 1 / strip.density
+    const phase = ((glyph.lineX + own.left - layerLeft(glyph.lineFirst ?? glyph, strip.band, strip.independent)) % pixel + pixel) % pixel
+    shift = phase <= pixel / 2 ? phase : phase - pixel
+  }
+  shifts.set(glyph, shift)
+  return shift
+}
+
+function paintStrip(ctx, entries, strip) {
+  const shifts = new Map()
+  const runs = new Map(entries.map(entry => [entry, stripRuns(entry.glyph.arc.map)]))
+  const spans = Array.from(runs).flatMap(([entry, list]) => list.flatMap(run => [entry.source.glyph.bottom + run.from, entry.source.glyph.bottom + run.from + run.height - 1]))
+  const high = Math.max(...spans)
+  const stretched = strip.scale && Number.isInteger(strip.density) && spans.length ? stretchedStrip(strip, Math.min(...spans), high) : null
+  for (const [entry, list] of runs) {
+    const { glyph, source } = entry
+    const origin = strip.tiling === "character" ? entry.x + layerLeft(glyph, strip.band, strip.independent) : entry.x - glyph.lineX + layerLeft(glyph.lineFirst ?? glyph, strip.band, strip.independent) + stripShift(glyph, strip, shifts)
+    into(ctx, entry, "front")
+    for (const { row, from, height } of list) {
+      if (stretched) {
+        const y = entry.top + glyph.height - 1 - row
+        fillPattern(ctx, stretched, new DOMMatrix().translate(origin * R, (y - high + source.glyph.bottom + from) * R).scale(R / strip.density))
+        fillRect(ctx, [entry.x, y - height + 1, entry.width, height])
+        continue
+      }
+      const rows = strip.scale ? Array.from({ length: height }, (_, step) => [row + step, from + step, 1]) : [[row, from, height]]
+      for (const [first, start, count] of rows) {
+        const band = strip.depth + strip.top - 1 - stripY(strip, source.glyph.bottom + start)
+        const y = entry.top + glyph.height - 1 - first
+        fillPattern(ctx, strip.image, new DOMMatrix().translate(origin * R, (y - band) * R).scale(R / strip.density))
+        fillRect(ctx, [entry.x, y - count + 1, entry.width, count])
+      }
+    }
+    for (const [y, from, depth, behind, up] of [[entry.up, 0, entry.upHeight, strip.slice?.from, true], [entry.down, strip.depth + strip.top - strip.bottom, entry.downHeight, strip.slice && 1 - strip.slice.from - strip.slice.size, false]]) {
+      into(ctx, entry, up ? "up" : "down")
+      const start = strip.slice ? depth * behind : 0
+      const size = strip.slice ? depth * strip.slice.size : depth
+      const shallow = Math.round(size) < strip.depth
+      const stretch = shallow ? 1 : size / strip.depth
+      const first = shallow && up ? from + strip.depth - Math.round(size) : from
+      const last = shallow ? first + Math.round(size) - 1 : from + strip.depth - 1
+      fillPattern(ctx, strip.image, new DOMMatrix().translate(origin * R, (y + start - first * stretch) * R).scale(R / strip.density, R / strip.density * stretch))
+      fillRect(ctx, [entry.x, y + start, entry.width, size])
+      if (!strip.slice) continue
+      stretchRow(ctx, strip, origin, first, [entry.x, y, entry.width, start])
+      stretchRow(ctx, strip, origin, last, [entry.x, y + start + size, entry.width, depth - start - size])
+    }
+    const missing = list.flatMap(({ row, from, height }) => Array.from({ length: height }, (_, step) => [row + step, source.glyph.bottom + from + step])).filter(([, at]) => !stripHasRow(strip, at))
+    if (!missing.length) continue
+    into(ctx, entry, "front")
+    fillPattern(ctx, missingTexture(), new DOMMatrix())
+    fillRects(ctx, missing.map(([row]) => [entry.x, entry.top + glyph.height - 1 - row, entry.width, 1]))
+  }
+  plain(ctx)
+}
+
+let checker = null
+
+function missingTexture() {
+  if (checker) return checker
+  const { canvas, ctx } = surface(R * 2, R * 2)
+  const [pink, black] = MISSING.map(([r, g, b]) => `rgb(${r}, ${g}, ${b})`)
+  ctx.fillStyle = black
+  ctx.fillRect(0, 0, R * 2, R * 2)
+  ctx.fillStyle = pink
+  ctx.fillRect(0, 0, R, R)
+  ctx.fillRect(R, R, R, R)
+  return checker = canvas
+}
+
+export function stripDetail(strip, depth) {
+  const size = strip.slice ? depth * strip.slice.size : depth
+  if (Math.round(size) <= strip.depth) return 1
+  const rows = strip.depth * strip.density
+  for (let detail = 1; detail <= MAX_STRIP_DETAIL; detail++) {
+    const step = size * R * detail / rows
+    if (Math.abs(step - Math.round(step)) < 1e-9) return detail
+  }
+  return Infinity
+}
+
+function stretchRow(ctx, strip, origin, row, rect) {
+  if (rect[3] <= 0) return
+  fillPattern(ctx, strip.image, new DOMMatrix().translate(origin * R, (rect[1] - row * rect[3]) * R).scale(R / strip.density, R / strip.density * rect[3]))
+  fillRect(ctx, rect)
+}
+
+function putAlpha(ctx, tones, palette, width, height, [x, y], scale) {
+  const image = ctx.createImageData(width * scale, height * scale)
+  image.data.fill(255)
+  for (const [tone, alpha] of tones.entries()) {
+    for (let index = 0; index < alpha.length; index++) {
+      if (tone && !alpha[index]) continue
+      if (tones.length > 1) image.data.set(palette[tone], index * 4)
+      image.data[index * 4 + 3] = Math.round(alpha[index] * 255)
+    }
+  }
+  ctx.putImageData(image, x, y)
+}
+
+function generate(ctx, entries, kind, layer, capHeight) {
+  for (const entry of entries) {
+    const { glyph } = entry
+    const scale = entry.regions.front.sx
+    if (glyph.width && glyph.height) putAlpha(ctx, toneKinds(kind).map(tone => generatedAlpha(glyph, tone, layer, capHeight, scale, scale > R)), layer.palette ?? [WHITE], glyph.width, glyph.height, pixelAt(entry, "front", entry.x, entry.top), scale)
+  }
+}
+
+function generateEdges(ctx, entries, kind, layer) {
+  for (const entry of entries) {
+    if (!entry.glyph.width || !entry.glyph.height) continue
+    for (const [side, y, depth] of [["up", entry.up, entry.upHeight], ["down", entry.down, entry.downHeight]]) {
+      if (!depth) continue
+      const { sx, sy } = entry.regions[side]
+      const scale = Math.max(sx, sy)
+      const at = pixelAt(entry, side, entry.x, y)
+      const tones = [edgeAlpha(entry.glyph, side, kind, layer, depth, scale, scale > R)]
+      if (sx === sy) {
+        putAlpha(ctx, tones, [WHITE], entry.glyph.width, depth, at, scale)
+        continue
+      }
+      const square = surface(entry.glyph.width * scale, depth * scale)
+      putAlpha(square.ctx, tones, [WHITE], entry.glyph.width, depth, [0, 0], scale)
+      ctx.drawImage(square.canvas, at[0], at[1], entry.glyph.width * sx, depth * sy)
+    }
+  }
+}
+
+function pageSurface(sheet, options) {
+  return surface(sheet.width, sheet.height, options)
+}
+
+function wrapEdges(overlay, entries, band, independent) {
+  const { width, height } = overlay.canvas
+  const image = overlay.ctx.getImageData(0, 0, width, height)
+  const { data } = image
+  for (const entry of entries) {
+    const { glyph, x, top, up, upHeight, down, downHeight } = entry
+    const mask = band === null || !glyph.depths ? glyph.mask : layerMask(glyph, band, independent)
+    const scale = entry.regions.front.sx
+    for (let column = 0; column < glyph.width; column++) {
+      let first = -1
+      let last = -1
+      for (let row = 0; row < glyph.height; row++) {
+        if (!mask[(glyph.height - 1 - row) * glyph.width + column]) continue
+        if (first < 0) first = row
+        last = row
+      }
+      if (first < 0) continue
+      const [left, high] = pixelAt(entry, "front", x + column, top + first)
+      const low = pixelAt(entry, "front", x + column, top + last + 1)[1] - 1
+      for (const [from, part, y, depth] of [[high, "up", up, upHeight], [low, "down", down, downHeight]]) {
+        const [start, to] = pixelAt(entry, part, x + column, y)
+        const { sx, sy } = entry.regions[part]
+        for (let step = 0; step < sx; step++) {
+          const source = (from * width + left + Math.floor(step * scale / sx)) * 4
+          for (let row = 0; row < depth * sy; row++) data.copyWithin(((to + row) * width + start + step) * 4, source, source + 4)
+        }
+      }
+    }
+  }
+  overlay.ctx.putImageData(image, 0, 0)
+}
+
+const layeredSheets = new WeakMap()
+
+function layeredGlyphs(sheet, band, independent) {
+  if (band === null) return null
+  if (!layeredSheets.has(sheet)) layeredSheets.set(sheet, new Map())
+  const bands = layeredSheets.get(sheet)
+  const key = `${band}:${!!independent}`
+  if (!bands.has(key)) {
+    const copies = new Map()
+    function own(glyph) {
+      if (!copies.has(glyph)) copies.set(glyph, { ...glyph, mask: glyph.depths ? layerMask(glyph, band, independent) : glyph.mask, caster: glyph.depths && band > 0 ? layerMask(glyph, band - 1) : null, clips: undefined })
+      return copies.get(glyph)
+    }
+    const entries = Object.values(sheet.glyphs)
+    for (const { glyph } of entries) {
+      let head = glyph
+      while (head.previous) head = head.previous
+      if (copies.has(head)) continue
+      const chain = []
+      for (let item = head; item; item = item.next) chain.push(own(item))
+      joinNeighbours(chain)
+    }
+    bands.set(key, new Map(entries.map(({ glyph }) => [glyph.char, own(glyph)])))
+  }
+  return bands.get(key)
+}
+
+function layeredEntries(sheet, band, independent) {
+  const layered = layeredGlyphs(sheet, band, independent)
+  return Object.values(sheet.glyphs).map(entry => layered ? { ...entry, glyph: layered.get(entry.glyph.char) } : entry)
+}
+
+function drawOverlay(sheet, layer, source, capHeight, band, independent) {
+  const overlay = pageSurface(sheet)
+  const entries = layeredEntries(sheet, band, independent)
+  if (source.edge) generateEdges(overlay.ctx, entries, source.edge, layer)
+  else if (source.generated) generate(overlay.ctx, entries, source.generated, layer, capHeight)
+  else overlay.ctx.drawImage(source, 0, 0)
+  if (WRAPPED_KINDS.has(source.generated)) generateEdges(overlay.ctx, entries, source.generated, layer)
+  else if (layer.edgeWrap && !source.edge) wrapEdges(overlay, entries.filter(entry => entry.glyph.width && entry.glyph.height), band, independent)
+  return overlay
+}
+
+function labelIndexes(layers) {
+  const indexes = new Map()
+  let hard = 0
+  let soft = SOFT_LABEL
+  for (const { layer, source } of layers) {
+    if (!layer.opacity) continue
+    const index = PLACED_KINDS.has(source.generated) ? soft++ : hard++
+    if (index < SOFT_LABEL * 1.5 && hard <= SOFT_LABEL) indexes.set(layer, index)
+  }
+  return indexes
+}
+
+function wrapsOf(sheet, layers, indexes, band, independent) {
+  const layered = layeredGlyphs(sheet, band, independent)
+  const own = glyph => layered?.get(glyph.char) ?? glyph
+  return layers.filter(({ layer, source }) => WRAPPED_KINDS.has(source.generated) && layer.opacity).map(({ layer }) => ({
+    blend: layer.blend,
+    opacity: layer.opacity / 100,
+    label: indexes.get(layer) ?? null,
+    alpha: (glyph, side, line, from, width, depth, scale) => crackWrap(own(glyph), layer, side, line, from, width, depth, scale, scale > R),
+    triangles: (glyph, side, line, from, width, depth) => wrapTriangles(own(glyph), layer, side, line, from, width, depth),
+    front: glyph => crackList(own(glyph), layer).map(crackTriangle),
+    face(glyph, side, line, from, width, depth, scale) {
+      const alpha = crackWrap(own(glyph), layer, side, line, from, width, depth, scale, scale > R)
+      if (!alpha) return null
+      const mask = surface(width * scale, depth * scale)
+      const image = mask.ctx.createImageData(width * scale, depth * scale)
+      image.data.fill(255)
+      for (let index = 0; index < alpha.length; index++) image.data[index * 4 + 3] = alpha[index] * 255
+      mask.ctx.putImageData(image, 0, 0)
+      return colourOverlay(mask, layer).canvas
+    }
+  }))
+}
+
+function sideWrapsOf(sheet, layers, capHeight, band, independent) {
+  const entries = new Map(Object.values(sheet.glyphs).map(entry => [entry.glyph.char, entry]))
+  return layers.filter(({ layer, source }) => layer.sideWrap && layer.opacity && !source.edge && !WRAPPED_KINDS.has(source.generated)).map(({ layer, source }) => {
+    let pixels = null
+    function read() {
+      if (!pixels) {
+        const overlay = overlayLayer(sheet, layer, source, capHeight, band, independent)
+        pixels = overlay.ctx.getImageData(0, 0, overlay.canvas.width, overlay.canvas.height)
+      }
+      return pixels
+    }
+    return {
+      blend: layer.blend,
+      opacity: layer.opacity / 100,
+      face(glyph, side, line, from, width, height, scale) {
+        const entry = entries.get(glyph.char)
+        if (!entry) return null
+        const { data, width: columns } = read()
+        const vertical = side === "left" || side === "right"
+        const out = surface(width * scale, height * scale)
+        const image = out.ctx.createImageData(width * scale, height * scale)
+        const across = vertical ? height * scale : width * scale
+        const along = vertical ? width * scale : height * scale
+        const r = entry.regions.front.sx
+        const [left, top] = pixelAt(entry, "front", entry.x, entry.top)
+        const [lineX, lineY] = pixelAt(entry, "front", entry.x + line, entry.top + line)
+        const low = vertical ? top : left
+        const high = vertical ? top + entry.height * r - 1 : left + entry.width * r - 1
+        const edge = vertical ? lineX - (side === "right" ? 1 : 0) : lineY - (side === "down" ? 1 : 0)
+        let any = false
+        for (let i = 0; i < across; i++) {
+          const at = clamp((vertical ? top : left) + from * r + Math.floor(i * r / scale), low, high)
+          const texel = ((vertical ? at : edge) * columns + (vertical ? edge : at)) * 4
+          if (!data[texel + 3]) continue
+          any = true
+          for (let j = 0; j < along; j++) image.data.set(data.subarray(texel, texel + 4), ((vertical ? i : j) * width * scale + (vertical ? j : i)) * 4)
+        }
+        if (!any) return null
+        out.ctx.putImageData(image, 0, 0)
+        return out.canvas
+      }
+    }
+  })
+}
+
+export function colourOverlay(mask, layer) {
+  const { width, height } = mask.canvas
+  const overlay = surface(width, height)
+  overlay.ctx.drawImage(mask.canvas, 0, 0)
+  const anchors = layer.palette ?? [WHITE]
+  const colours = chosenColours(layer, anchors)
+  if (!colours && layer.tint) {
+    overlay.ctx.globalCompositeOperation = layer.tintBlend
+    overlay.ctx.fillStyle = layer.tint
+    overlay.ctx.fillRect(0, 0, width, height)
+    overlay.ctx.globalCompositeOperation = "destination-in"
+    overlay.ctx.drawImage(mask.canvas, 0, 0)
+    return overlay
+  }
+  if (!colours) return overlay
+  if (anchors.length === 1) {
+    overlay.ctx.globalCompositeOperation = "source-in"
+    overlay.ctx.fillStyle = hexOf(colours[0])
+    overlay.ctx.fillRect(0, 0, width, height)
+    return overlay
+  }
+  const pixels = overlay.ctx.getImageData(0, 0, width, height)
+  recolour(pixels.data, anchors, colours)
+  overlay.ctx.putImageData(pixels, 0, 0)
+  return overlay
+}
+
+const ids = new WeakMap()
+const overlays = new WeakMap()
+const stretchedStrips = new WeakMap()
+const tileBlocks = new WeakMap()
+const adjustedColours = new Map()
+const urlIds = new Map()
+let nextId = 0
+
+export function idOf(value) {
+  if (!ids.has(value)) ids.set(value, ++nextId)
+  return ids.get(value)
+}
+
+export function lookKey(value) {
+  return JSON.stringify(value, (name, item) => typeof item === "string" && item.startsWith("data:") ? remember(urlIds, item, () => ++nextId, CACHED_URLS) : item)
+}
+
+function overlayLayer(sheet, layer, source, capHeight, band = null, independent = false) {
+  if (sheet.sharp) return colourOverlay(drawOverlay(sheet, layer, source, capHeight, band, independent), layer)
+  if (!overlays.has(sheet)) overlays.set(sheet, { shapes: new Map(), coloured: new Map() })
+  const { shapes, coloured } = overlays.get(sheet)
+  const shapeKey = JSON.stringify([source.edge ? `edge:${source.edge}` : source.generated ?? idOf(source), capHeight, Object.entries(layer).filter(([name]) => !["file", "blend", "opacity", "colours", "palette", "tint", "tintBlend", "sideWrap"].includes(name)), band, independent, source.generated === "shadow" && shadowQualityName()])
+  return remember(coloured, JSON.stringify([shapeKey, layer.colours, layer.palette, layer.tint, layer.tintBlend]), () => colourOverlay(remember(shapes, shapeKey, () => drawOverlay(sheet, layer, source, capHeight, band, independent), CACHED_OVERLAYS), layer), CACHED_OVERLAYS)
+}
+
+export function paintKey(sheet, assets, look) {
+  const placed = assets.overlays.some(overlay => PLACED_KINDS.has(overlay.source.generated))
+  const lined = assets.strip?.tiling === "line" || look.source === "tile" && !look.tileablePerCharacter
+  const worded = look.wordedFaces || look.source === "gradient" && look.gradientAngle % 180 !== 0
+  return JSON.stringify([sheet.width, sheet.height, sheet.swatch, sheet.tallest, worded ? sheet.wordWidth : null, Object.values(sheet.glyphs).map(entry => [entry.char, entry.regions, entry.x, entry.top, entry.up, entry.upHeight, entry.down, entry.downHeight, entry.width, entry.height, entry.glyph.bottom, entry.glyph.top, entry.glyph.arc, placed ? [entry.glyph.placedX, entry.glyph.lineSpan] : null, lined ? [entry.glyph.lineX, entry.glyph.lineFirst?.char] : null, worded ? entry.glyph.wordX : null])])
+}
+
+function fillSwatch(ctx, sheet, colour) {
+  ctx.fillStyle = colour
+  ctx.fillRect(sheet.swatch.x, sheet.swatch.y, sheet.swatch.scale, sheet.swatch.scale)
+}
+
+export function paintBase(sheet, look, assets, capHeight) {
+  const entries = Object.values(sheet.glyphs)
+  const base = pageSurface(sheet)
+  if (look.source === "texture") {
+    base.ctx.drawImage(assets.base, 0, 0)
+  } else {
+    if (look.source === "gradient") paintGradient(base.ctx, entries, look, capHeight, sheet)
+    else if (look.source === "strip") paintStrip(base.ctx, entries, assets.strip)
+    else paintTiles(base.ctx, entries, look, assets.tile, capHeight)
+    if (look.source !== "strip") {
+      base.ctx.fillStyle = `rgba(0, 0, 0, ${(100 - look.edgeBrightness) / 100})`
+      fillStrips(base.ctx, entries)
+    }
+    if (assets.fontOverlay) base.ctx.drawImage(assets.fontOverlay, 0, 0)
+    base.ctx.globalCompositeOperation = "destination-in"
+    base.ctx.drawImage(assets.shape, 0, 0)
+    base.ctx.globalCompositeOperation = "source-over"
+  }
+  fillSwatch(base.ctx, sheet, assets.border)
+  return base
+}
+
+function copyOf(source, options) {
+  const copy = surface(source.width, source.height, options)
+  copy.ctx.drawImage(source, 0, 0)
+  return copy
+}
+
+function readLater(target) {
+  let pixels = null
+  return () => pixels ??= target.ctx.getImageData(0, 0, target.canvas.width, target.canvas.height)
+}
+
+export function adjusted(source, look, options) {
+  const out = surface(source.width, source.height, options)
+  out.ctx.filter = `hue-rotate(${look.hue}deg) saturate(${look.saturation}%) brightness(${look.brightness}%) contrast(${look.contrast}%)`
+  out.ctx.drawImage(source, 0, 0)
+  out.ctx.filter = "none"
+  out.ctx.globalCompositeOperation = look.blend
+  out.ctx.globalAlpha = look.colourOpacity / 100
+  out.ctx.fillStyle = look.colour
+  out.ctx.fillRect(0, 0, source.width, source.height)
+  out.ctx.globalAlpha = 1
+  out.ctx.globalCompositeOperation = "destination-in"
+  out.ctx.drawImage(source, 0, 0)
+  out.ctx.globalCompositeOperation = "source-over"
+  return out
+}
+
+function overlayLabels(sheet, layers, capHeight, width, height, band, independent) {
+  const { ctx } = surface(width, height, { willReadFrequently: true })
+  const image = ctx.createImageData(width, height)
+  for (let at = 3; at < image.data.length; at += 4) image.data[at] = 255
+  const reader = surface(width, height, { willReadFrequently: true })
+  const indexes = labelIndexes(layers)
+  for (const { layer, source } of layers) {
+    if (!indexes.has(layer)) continue
+    const index = indexes.get(layer)
+    const threshold = SMOOTH_KINDS.has(source.generated) ? 128 : 1
+    reader.ctx.clearRect(0, 0, width, height)
+    reader.ctx.drawImage(overlayLayer(sheet, layer, source, capHeight, band, independent).canvas, 0, 0)
+    const alpha = reader.ctx.getImageData(0, 0, width, height).data
+    for (let at = 0; at < alpha.length; at += 4) {
+      if (alpha[at + 3] >= threshold) image.data[at + (index >> 3)] |= 1 << (index & 7)
+    }
+  }
+  ctx.putImageData(image, 0, 0)
+  return ctx.canvas
+}
+
+export function borderOf(look, assets) {
+  return remember(adjustedColours, JSON.stringify(look.customBorder ? look.borderColour : [assets.border, adjustmentsOf(look)]), () => {
+    const pixel = surface(1, 1, { willReadFrequently: true })
+    pixel.ctx.fillStyle = look.customBorder ? look.borderColour : assets.border
+    pixel.ctx.fillRect(0, 0, 1, 1)
+    return (look.customBorder ? pixel : adjusted(pixel.canvas, look, { willReadFrequently: true })).ctx.getImageData(0, 0, 1, 1).data
+  }, CACHED_OVERLAYS)
+}
+
+const preparedSheets = new WeakMap()
+
+function preparedSheet(sheet, look, base, reads) {
+  const key = lookKey([look.hue, look.saturation, look.brightness, look.contrast, look.blend, look.colourOpacity, look.colour, look.customEdge, look.edgeFill, look.edgeColour, look.edgeStops, look.edgeSmooth, !!reads])
+  if (!preparedSheets.has(base.canvas)) preparedSheets.set(base.canvas, new Map())
+  const known = preparedSheets.get(base.canvas)
+  if (known.has(key)) return known.get(key)
+  const entries = Object.values(sheet.glyphs)
+  const work = adjusted(base.canvas, look, reads)
+  if (look.customEdge) {
+    work.ctx.globalCompositeOperation = "source-atop"
+    const stops = look.edgeFill === "gradient" ? gradientStops(look.edgeStops, look.edgeSmooth) : null
+    work.ctx.fillStyle = look.edgeColour
+    if (stops) {
+      for (const entry of entries) {
+        for (const [part, rect] of stripParts(entry)) {
+          into(work.ctx, entry, part)
+          work.ctx.fillStyle = gradientFill(work.ctx, [entry.x - entry.glyph.wordX, 0], [entry.x - entry.glyph.wordX + sheet.wordWidth, 0], stops)
+          fillRect(work.ctx, rect)
+        }
+      }
+      plain(work.ctx)
+    } else fillStrips(work.ctx, entries)
+  }
+  work.ctx.globalCompositeOperation = "source-over"
+  known.clear()
+  known.set(key, { canvas: work.canvas, read: readLater(work) })
+  return known.get(key)
+}
+
+export function paintSheet(sheet, look, assets, capHeight, base) {
+  const { width, height } = sheet
+  const entries = Object.values(sheet.glyphs)
+  const band = assets.band ?? null
+  const independent = !!assets.independent
+
+  const layered = assets.overlays.length || assets.edgeOverlays.length || look.customBorder
+  const reads = layered ? { willReadFrequently: true } : undefined
+  const ready = preparedSheet(sheet, look, base, reads)
+  const work = copyOf(ready.canvas, reads)
+
+  // layered sheets must be faded in software, and reading this canvas back twice is what makes Chrome do that
+  const eager = layered && look.fade
+  const faces = eager ? ready.read() : null
+
+  const overlayLayers = assets.overlays.concat(assets.edgeOverlays.map(({ layer, generated }) => ({ layer, source: { edge: generated } })))
+  function shadedEdges(overlay) {
+    const copy = copyOf(overlay.canvas)
+    copy.ctx.globalCompositeOperation = "source-atop"
+    copy.ctx.fillStyle = `rgba(0, 0, 0, ${(100 - look.edgeBrightness) / 100})`
+    fillStrips(copy.ctx, entries)
+    return copy
+  }
+
+  for (const { layer, source } of overlayLayers) {
+    const own = overlayLayer(sheet, layer, source, capHeight, band, independent)
+    const overlay = layer.edgeWrap && !source.edge && !look.customEdge && look.edgeBrightness < 100 && ["source-over", "lighter"].includes(layer.blend) ? shadedEdges(own) : own
+    work.ctx.globalCompositeOperation = layer.blend
+    work.ctx.globalAlpha = layer.opacity / 100
+    work.ctx.drawImage(overlay.canvas, 0, 0)
+    work.ctx.globalAlpha = 1
+    work.ctx.globalCompositeOperation = "source-over"
+  }
+
+  if (look.customBorder) fillSwatch(work.ctx, sheet, look.borderColour)
+  const final = eager ? work.ctx.getImageData(0, 0, width, height) : null
+  const at = (sheet.swatch.y * width + sheet.swatch.x) * 4
+  const rgb = final ? final.data.subarray(at, at + 3) : borderOf(look, assets)
+  const [r, g, b] = rgb
+  const border = `rgb(${r}, ${g}, ${b})`
+
+  const finalPixels = final ? () => final : layered ? readLater(look.fade ? copyOf(work.canvas) : work) : ready.read
+  const facePixels = eager ? () => faces : layered ? ready.read : finalPixels
+  let average = null
+  const edgeAverage = () => average ??= averageColour(finalPixels(), entries.flatMap(stripPixels))
+
+  const fade = look.fade ? clamp(look.outerFade / 100, 0, 1) : null
+  if (look.fade) {
+    work.ctx.globalCompositeOperation = "source-atop"
+    const stops = fadeStops(border, `rgba(${r}, ${g}, ${b}, 0)`, fade)
+    for (const entry of entries) {
+      for (const [part, rect] of stripParts(entry)) {
+        const [, y, , h] = rect
+        const far = part === "up" ? y : y + h
+        const near = part === "up" ? y + h : y
+        into(work.ctx, entry, part)
+        work.ctx.fillStyle = linearGradient(work.ctx, 0, near * R, 0, far * R, stops)
+        fillRect(work.ctx, rect)
+      }
+    }
+    plain(work.ctx)
+    work.ctx.globalCompositeOperation = "source-over"
+  }
+
+  const tiles = look.source === "tile" && look.tileableTileEdges ? adjustedTiles(look, assets.tile) : null
+  const gradient = look.source === "gradient" ? { stops: paintedStops(look), ends: entry => gradientEnds(entry, look, capHeight, sheet) } : null
+  return { canvas: work.canvas, facePixels, border, edgeAverage, tiles, tilesAcrossLine: !look.tileablePerCharacter, gradient, fade, borderColour: packed(rgb, 0), labels: () => overlayLabels(sheet, overlayLayers, capHeight, width, height, band, independent), wraps: wrapsOf(sheet, assets.overlays, labelIndexes(overlayLayers), band, independent), sideWraps: sideWrapsOf(sheet, assets.overlays, capHeight, band, independent), tileScale: R }
+}

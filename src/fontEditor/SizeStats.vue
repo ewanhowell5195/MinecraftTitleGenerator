@@ -1,5 +1,5 @@
 <script setup>
-  import { TARGET_PIXEL_HEIGHT } from "../lib/fontEditor.js"
+  import { TARGET_PIXEL_HEIGHT } from "../lib/font/fontEditor.js"
 
   defineProps({
     pixels: { type: [Number, String], default: "" }

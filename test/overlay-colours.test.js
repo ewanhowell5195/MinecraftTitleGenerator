@@ -3,8 +3,8 @@ import fs from "node:fs"
 import path from "node:path"
 import { test } from "node:test"
 import { PNG } from "pngjs"
-import { decodeTitle, encodeTitle } from "../src/lib/linkformat.js"
-import { MAX_ANCHORS, chosenColours, mapColour, paletteHexes, paletteOf, recolour } from "../src/lib/overlayColours.js"
+import { decodeTitle, encodeTitle } from "../src/lib/link/linkformat.js"
+import { MAX_ANCHORS, chosenColours, mapColour, paletteHexes, paletteOf, recolour } from "../src/lib/texture/overlayColours.js"
 
 function pixels(colours, alpha = 255) {
   return Uint8ClampedArray.from(colours.flatMap(rgb => rgb.concat(alpha)))

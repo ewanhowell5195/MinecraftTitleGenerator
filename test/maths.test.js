@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { clamp, mostCommon, remember, round } from "../src/lib/maths.js"
+import { clamp, mostCommon, remember, round } from "../src/lib/core/maths.js"
 
 describe("clamp", () => {
   test("keeps a value inside the range", () => {

@@ -1,5 +1,5 @@
 <script setup>
-  import { submissionPage } from "../lib/submissionsApi.js"
+  import { submissionPage } from "../lib/submissions/submissionsApi.js"
   import { router } from "../router.js"
   import SubmissionForm from "./SubmissionForm.vue"
 

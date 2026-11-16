@@ -1,10 +1,10 @@
-import { CREEPER } from "../lib/order.js"
-import { SPACE_CHAR, autoStretch, glyphFromTemplate, setGlyph, shownAs } from "../lib/fontEditor.js"
+import { CREEPER } from "../lib/font/order.js"
+import { SPACE_CHAR, autoStretch, glyphFromTemplate, setGlyph, shownAs } from "../lib/font/fontEditor.js"
 
 const sources = new Map()
 
 function fontImport() {
-  return import("../lib/fontImport.js")
+  return import("../lib/font/fontImport.js")
 }
 
 function sourceOf(template) {

@@ -1,7 +1,7 @@
 <script setup>
   import { computed } from "vue"
-  import { hasMarks } from "../../lib/font.js"
-  import { usePanel } from "../../lib/panel.js"
+  import { hasMarks } from "../../lib/font/font.js"
+  import { usePanel } from "./panel.js"
   import Panel from "../Panel.vue"
   import Segments from "../../components/Segments.vue"
   import Slider from "../../components/Slider.vue"

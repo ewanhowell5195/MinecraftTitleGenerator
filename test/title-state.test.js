@@ -5,10 +5,10 @@ import { quietStorage } from "./helpers/browser.js"
 quietStorage()
 
 const { reactive } = await import("vue")
-const { heights, rowStart } = await import("../src/lib/rows.js")
-const { editorTitle, scene, words } = await import("../src/lib/scene.js")
-const { createObject } = await import("../src/lib/objects.js")
-const { createTitle } = await import("../src/lib/title.js")
+const { heights, rowStart } = await import("../src/lib/geometry/rows.js")
+const { editorTitle, scene, words } = await import("../src/lib/state/scene.js")
+const { createObject } = await import("../src/lib/settings/objects.js")
+const { createTitle } = await import("../src/lib/state/title.js")
 
 function separate(objects) {
   return createTitle(reactive(objects), { render: false, fov: 43, fixedDistance: false })

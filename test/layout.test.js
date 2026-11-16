@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { SPACE, layout, lineLayout, thumbnailItem, thumbnailItems } from "../src/lib/layout.js"
+import { SPACE, layout, lineLayout, thumbnailItem, thumbnailItems } from "../src/lib/geometry/layout.js"
 
 const SMILE = "\u{1F633}"
 const QUOTE = "\u{1F629}"

@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { hexOf, rgbOf } from "../src/lib/colour.js"
+import { hexOf, rgbOf } from "../src/lib/core/colour.js"
 
 describe("rgbOf", () => {
   test("reads each channel from a hex colour", () => {

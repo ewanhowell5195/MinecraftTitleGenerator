@@ -1,8 +1,8 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { decodeTitle } from "../src/lib/linkformat.js"
-import { SUBMISSION_KINDS } from "../src/lib/submissionKinds/index.js"
-import { publishedTitle, thumbnailPath } from "../src/lib/submissionKinds/published.js"
+import { decodeTitle } from "../src/lib/link/linkformat.js"
+import { SUBMISSION_KINDS } from "../src/lib/submissions/kinds/index.js"
+import { publishedTitle, thumbnailPath } from "../src/lib/submissions/kinds/published.js"
 
 const fonts = [{ id: "minecraft-ten", strips: ["minecraft-ten"] }, { id: "block-serif", strips: ["block-serif"] }]
 

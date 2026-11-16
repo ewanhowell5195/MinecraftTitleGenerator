@@ -3,11 +3,11 @@ import path from "node:path"
 import { describe, test } from "node:test"
 import { readJson, readPng } from "../generator/common.js"
 import { fontDir, fontTextureList, publishedFonts, readMask, readStripSet } from "../generator/fonts.js"
-import { stripRange } from "../src/lib/assets.js"
-import { stripsOf } from "../src/lib/font.js"
-import { withGenerated } from "../src/lib/generated.js"
-import { defaultDepth } from "../src/lib/settings.js"
-import { bandEntry, centredOffset, layerSlice, mergeStrips, placedStrips, stripCovers, stripPlacements, stackedStrip, stripHasRow, stripItem, stripRows, stripUse, stripY } from "../src/lib/strips.js"
+import { stripRange } from "../src/lib/texture/assets.js"
+import { stripsOf } from "../src/lib/font/font.js"
+import { withGenerated } from "../src/lib/texture/generatedOverlays.js"
+import { defaultDepth } from "../src/lib/settings/settings.js"
+import { bandEntry, centredOffset, layerSlice, mergeStrips, placedStrips, stripCovers, stripPlacements, stackedStrip, stripHasRow, stripItem, stripRows, stripUse, stripY } from "../src/lib/font/strips.js"
 
 const SET = { id: "set", depth: 22, baseline: 30, textures: { shared: { authors: "a", variants: { kid: { authors: "b" } } }, other: { authors: "c" } } }
 

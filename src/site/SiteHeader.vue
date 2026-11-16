@@ -4,7 +4,7 @@
   import BrandLink from "./BrandLink.vue"
   import Button from "../components/Button.vue"
   import TopBar from "./TopBar.vue"
-  import { useWindowEvents } from "../lib/events.js"
+  import { useWindowEvents } from "../components/composables/events.js"
 
   const LINKS = [{ to: "/app/presets", label: "Presets" }, { to: "/font-editor/", label: "Font editor" }, { to: "/submit/", label: "Submit" }]
 

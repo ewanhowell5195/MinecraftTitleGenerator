@@ -1,8 +1,8 @@
 <script setup>
   import { computed } from "vue"
-  import { usePanel } from "../../lib/panel.js"
-  import { words } from "../../lib/scene.js"
-  import { defaultBorder, isModified } from "../../lib/settings.js"
+  import { usePanel } from "./panel.js"
+  import { words } from "../../lib/state/scene.js"
+  import { defaultBorder, isModified } from "../../lib/settings/settings.js"
   import Panel from "../Panel.vue"
   import Slider from "../../components/Slider.vue"
   import Toggle from "../../components/Toggle.vue"

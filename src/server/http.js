@@ -1,7 +1,7 @@
-import { LIMITS } from "../lib/limits.js"
-import { usePlatform } from "../lib/platform.js"
-import { PREVIEW_NOTICE, isPreviewHost } from "../lib/previewSite.js"
-import { titleNameProblem } from "../lib/titleNames.js"
+import { LIMITS } from "../lib/core/limits.js"
+import { usePlatform } from "../lib/core/platform.js"
+import { PREVIEW_NOTICE, isPreviewHost } from "../lib/core/previewSite.js"
+import { titleNameProblem } from "../lib/link/titleNames.js"
 
 export const USER_AGENT = "MinecraftTitleGenerator"
 export const APP_ORIGINS = [/^https:\/\/mctitlegenerator\.com$/, /^https:\/\/dev\.ewanhowell\.com$/, /^http:\/\/(localhost|127\.0\.0\.1):\d+$/]

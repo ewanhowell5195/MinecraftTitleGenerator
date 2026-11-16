@@ -3,7 +3,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { PNG } from "pngjs"
-import { jsonText } from "../src/lib/jsonText.js"
+import { jsonText } from "../src/lib/core/jsonText.js"
 
 export function readJson(file) {
   return JSON.parse(fs.readFileSync(file, "utf8"))

@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { parseSearch, searchWithUser } from "../src/lib/presetSearch.js"
+import { parseSearch, searchWithUser } from "../src/lib/link/presetSearch.js"
 
 describe("parseSearch", () => {
   test("plain text has no user", () => {

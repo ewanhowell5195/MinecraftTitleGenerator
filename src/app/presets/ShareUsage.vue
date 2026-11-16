@@ -1,6 +1,6 @@
 <script setup>
   import { computed, onMounted } from "vue"
-  import { refreshUsage, usage } from "../../lib/community.js"
+  import { refreshUsage, usage } from "../../lib/state/community.js"
 
   const left = computed(() => usage.value && Math.max(0, usage.value.limit - usage.value.used))
   const full = computed(() => usage.value && !left.value)

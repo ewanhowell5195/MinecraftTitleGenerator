@@ -1,8 +1,8 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
-import { boxesFor } from "../src/lib/boxes.js"
-import { crackList, edgeAlpha, generatedAlpha } from "../src/lib/generated.js"
-import { clippedBoxes, joinNeighbours } from "../src/lib/joins.js"
+import { boxesFor } from "../src/lib/geometry/boxes.js"
+import { crackList, edgeAlpha, generatedAlpha } from "../src/lib/texture/generatedOverlays.js"
+import { clippedBoxes, joinNeighbours } from "../src/lib/geometry/joins.js"
 
 function glyph(rows, placedX) {
   const width = rows[0].length

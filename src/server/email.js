@@ -1,5 +1,5 @@
 import { forgetSpareEmails } from "./accounts.js"
-import { escaped } from "../lib/html.js"
+import { escaped } from "../lib/core/html.js"
 import { setting } from "./http.js"
 
 const SITE = "https://mctitlegenerator.com"

@@ -3,14 +3,14 @@
   import Notice from "../../components/Notice.vue"
   import Tile from "../../components/Tile.vue"
   import TileGrid from "../../components/TileGrid.vue"
-  import { fetched } from "../../lib/api.js"
-  import { pixelsOf } from "../../lib/canvas.js"
-  import { bandLayouts } from "../../lib/flatSheet.js"
-  import { loadImage, sheetLayout } from "../../lib/font.js"
-  import { characterName, exportJson, flatTexture, parsedSheet } from "../../lib/fontEditor.js"
-  import { defaultBorder, defaultDepth } from "../../lib/settings.js"
-  import { stackedStrip } from "../../lib/strips.js"
-  import { submittedFont } from "../../lib/submissionKinds/fontBuild.js"
+  import { fetched } from "../../lib/submissions/api.js"
+  import { pixelsOf } from "../../lib/texture/canvas.js"
+  import { bandLayouts } from "../../lib/font/flatSheet.js"
+  import { loadImage, sheetLayout } from "../../lib/font/font.js"
+  import { characterName, exportJson, flatTexture, parsedSheet } from "../../lib/font/fontEditor.js"
+  import { defaultBorder, defaultDepth } from "../../lib/settings/settings.js"
+  import { stackedStrip } from "../../lib/font/strips.js"
+  import { submittedFont } from "../../lib/submissions/kinds/fontBuild.js"
 
   const TILE_HEIGHT = 72
 

@@ -1,5 +1,5 @@
 import path from "node:path"
-import { sheetOwner } from "../../src/lib/font.js"
+import { sheetOwner } from "../../src/lib/font/font.js"
 import { fontDir, publishedFonts } from "../fonts.js"
 
 export function prepare({ root, changed, node }) {

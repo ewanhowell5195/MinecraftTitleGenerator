@@ -4,8 +4,8 @@ import { quietStorage } from "./helpers/browser.js"
 
 quietStorage()
 
-const { arcLayout } = await import("../src/lib/arc.js")
-const { lookKey, paintKey, stripDetail } = await import("../src/lib/paint.js")
+const { arcLayout } = await import("../src/lib/geometry/arc.js")
+const { lookKey, paintKey, stripDetail } = await import("../src/lib/texture/paint.js")
 
 const CAP = 8
 const PLAIN = { source: "texture", gradientAngle: 0, tileablePerCharacter: false, wordedFaces: false }

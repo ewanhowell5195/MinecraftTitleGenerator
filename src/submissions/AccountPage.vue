@@ -5,8 +5,8 @@
   import Notice from "../components/Notice.vue"
   import Dialog from "../components/Dialog.vue"
   import SignInButtons from "../components/SignInButtons.vue"
-  import { account, deleteAccount } from "../lib/community.js"
-  import { providerLabel } from "../lib/providers.js"
+  import { account, deleteAccount } from "../lib/state/community.js"
+  import { providerLabel } from "../lib/core/providers.js"
 
   const choosing = ref(false)
   const busy = ref(false)

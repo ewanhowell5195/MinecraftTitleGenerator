@@ -1,5 +1,5 @@
-import { DEFAULT_FONT } from "../../lib/settings.js"
-import { tileableName } from "../../lib/submissionKinds/tileable.js"
+import { DEFAULT_FONT } from "../../lib/settings/settings.js"
+import { tileableName } from "../../lib/submissions/kinds/tileable.js"
 
 
 export const tileable = {

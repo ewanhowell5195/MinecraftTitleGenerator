@@ -1,6 +1,6 @@
 <script setup>
   import { onBeforeUnmount, onMounted, ref, watch } from "vue"
-  import { pictureUrl } from "../../lib/pictures.js"
+  import { pictureUrl } from "../../lib/core/pictures.js"
 
   const props = defineProps({
     code: { type: String, required: true },

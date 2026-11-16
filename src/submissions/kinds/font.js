@@ -1,5 +1,5 @@
-import { customFontId } from "../../lib/customFonts.js"
-import { overlayLayer } from "../../lib/settings.js"
+import { customFontId } from "../../lib/font/customFonts.js"
+import { overlayLayer } from "../../lib/settings/settings.js"
 
 const IMPORT_HEIGHT = 40
 const KIND_NAMES = { flat: "Flat texture", texture: "Textures", overlay: "Overlays", strip: "Strips" }

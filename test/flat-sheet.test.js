@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
-import { expandBands, flatLayers, flatPixels, layerLeft, layerMask, layerSlices, stripLimits } from "../src/lib/flatSheet.js"
+import { expandBands, flatLayers, flatPixels, layerLeft, layerMask, layerSlices, stripLimits } from "../src/lib/font/flatSheet.js"
 
 function cellOf(rows, bottom) {
   const width = rows[0].length

@@ -8,7 +8,7 @@ const { requests, replies, reset } = fakeReplies({ record: (method, url) => `${m
 mock.timers.enable({ apis: ["Date"], now: Date.parse("2026-11-05T12:00:00Z") })
 
 async function fresh() {
-  return await import(`../src/lib/community.js?run=${Math.random()}`)
+  return await import(`../src/lib/state/community.js?run=${Math.random()}`)
 }
 
 function page(ids, more = false) {

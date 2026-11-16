@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
-import { largestTexture } from "../src/lib/canvas.js"
+import { largestTexture } from "../src/lib/texture/canvas.js"
 
 describe("largestTexture", () => {
   test("stops at 8192 even when the GPU and canvas go further", () => {

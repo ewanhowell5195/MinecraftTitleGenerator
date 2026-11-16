@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { buildHoles, buildOutline, buildText, rowBottom } from "../src/lib/build.js"
+import { buildHoles, buildOutline, buildText, rowBottom } from "../src/lib/geometry/build.js"
 
 describe("rowBottom", () => {
   const box = (x0, y0, x1, y1) => ({ from: [x0, y0], to: [x1, y1] })

@@ -1,7 +1,7 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { blend } from "../src/lib/material.js"
-import { refitStops, splitGradients } from "../src/lib/wordGradients.js"
+import { blend } from "../src/lib/texture/material.js"
+import { refitStops, splitGradients } from "../src/lib/texture/wordGradients.js"
 
 const BLACK_WHITE = [{ colour: "#000000", position: 0 }, { colour: "#ffffff", position: 100 }]
 const glyph = { width: 10, height: 10, advance: 12, originX: 0, mask: new Uint8Array(100) }

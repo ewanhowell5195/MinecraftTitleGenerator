@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { GENERATED_EDGE_OVERLAYS, GENERATED_SETTINGS, PLACED_KINDS, crackList, crackTriangle, crackWrap, edgeAlpha, generatedAlpha, generatedSetting, thumbnailLayer, toneKinds, withFinalShadows, withGenerated } from "../src/lib/generated.js"
+import { GENERATED_EDGE_OVERLAYS, GENERATED_SETTINGS, PLACED_KINDS, crackList, crackTriangle, crackWrap, edgeAlpha, generatedAlpha, generatedSetting, thumbnailLayer, toneKinds, withFinalShadows, withGenerated } from "../src/lib/texture/generatedOverlays.js"
 
 function glyphOf(rows, extra = {}) {
   const height = rows.length

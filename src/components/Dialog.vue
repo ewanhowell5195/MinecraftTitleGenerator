@@ -1,6 +1,6 @@
 <script setup>
   import { onBeforeUnmount, ref } from "vue"
-  import { useWindowEvents } from "../lib/events.js"
+  import { useWindowEvents } from "./composables/events.js"
   import Button from "./Button.vue"
 
   defineProps({

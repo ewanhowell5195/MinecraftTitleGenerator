@@ -1,6 +1,6 @@
 <script setup>
   import { computed, onMounted, ref } from "vue"
-  import { NAME_LIMIT } from "../../lib/presets.js"
+  import { NAME_LIMIT } from "../../lib/state/presets.js"
   import Checkbox from "../../components/Checkbox.vue"
   import Field from "../../components/Field.vue"
   import Notice from "../../components/Notice.vue"

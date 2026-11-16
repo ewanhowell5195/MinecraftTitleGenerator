@@ -42,7 +42,7 @@ export function fakeReplies({ record = (method, url, body) => ({ method, url, bo
 export function viteEnv({ DEV }) {
   function load(url, context, nextLoad) {
     const result = nextLoad(url, context)
-    if (!url.endsWith("/src/lib/stats.js")) return result
+    if (!url.endsWith("/src/lib/state/stats.js")) return result
     return { ...result, source: `import.meta.env = { DEV: ${DEV} }\n${result.source}` }
   }
   registerHooks({ load })

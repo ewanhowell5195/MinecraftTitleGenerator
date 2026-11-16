@@ -1,5 +1,5 @@
 <script setup>
-  import { vFileDrop } from "../lib/fileDrop.js"
+  import { vFileDrop } from "./composables/fileDrop.js"
   import Button from "./Button.vue"
   import Icon from "./Icon.vue"
 

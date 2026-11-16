@@ -1,6 +1,6 @@
 <script setup>
   import { computed } from "vue"
-  import { LIMITS } from "../../lib/limits.js"
+  import { LIMITS } from "../../lib/core/limits.js"
   import Button from "../../components/Button.vue"
   import Icon from "../../components/Icon.vue"
 

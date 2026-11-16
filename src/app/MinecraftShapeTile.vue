@@ -1,7 +1,7 @@
 <script setup>
   import { onBeforeUnmount, onMounted, ref } from "vue"
-  import { dropThumbnail, modelThumbnail } from "../lib/minecraftModels.js"
-  import { titleCase } from "../lib/names.js"
+  import { dropThumbnail, modelThumbnail } from "../lib/minecraft/minecraftModels.js"
+  import { titleCase } from "../lib/core/names.js"
   import Tile from "../components/Tile.vue"
 
   const props = defineProps({

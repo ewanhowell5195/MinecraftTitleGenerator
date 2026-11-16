@@ -1,0 +1,27 @@
+import { openTitleData, titleData } from "../state/titleFile.js"
+import { fileError } from "../state/notices.js"
+import { encodeTitle, openableTitle } from "./linkformat.js"
+import { presetsPage } from "../state/presetsPage.js"
+import { TITLE_PARAM, clearSharedLink, sharedLink } from "../state/scene.js"
+import { submitStats } from "../state/stats.js"
+
+export function shareLink() {
+  const { code, skipped } = encodeTitle(titleData())
+  submitStats()
+  const url = new URL(location.href)
+  url.hash = ""
+  url.searchParams.set(TITLE_PARAM, code)
+  return { link: url.href, skipped }
+}
+
+export function openSharedLink() {
+  const code = new URLSearchParams(location.search).get(TITLE_PARAM)
+  if (!code || presetsPage.open) return
+  try {
+    openTitleData(openableTitle(code))
+    sharedLink.open = true
+  } catch (err) {
+    fileError.value = `Couldn't open this link: ${err.message}`
+    clearSharedLink()
+  }
+}

@@ -1,9 +1,9 @@
 import assert from "node:assert/strict"
 import fs from "node:fs"
 import { describe, test } from "node:test"
-import { GENERATED_SETTINGS } from "../src/lib/generated.js"
-import { UPLOAD_KEYS, decodeTitle, encodeTitle, openableTitle, readLines, titleBody, unknownSetting, writeLines } from "../src/lib/linkformat.js"
-import { FILE_VERSION, LAYER, typeDefaults } from "../src/lib/settings.js"
+import { GENERATED_SETTINGS } from "../src/lib/texture/generatedOverlays.js"
+import { UPLOAD_KEYS, decodeTitle, encodeTitle, openableTitle, readLines, titleBody, unknownSetting, writeLines } from "../src/lib/link/linkformat.js"
+import { FILE_VERSION, LAYER, typeDefaults } from "../src/lib/settings/settings.js"
 
 const fixtures = JSON.parse(fs.readFileSync(new URL("links.json", import.meta.url), "utf8"))
 

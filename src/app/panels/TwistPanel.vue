@@ -1,5 +1,5 @@
 <script setup>
-  import { usePanel } from "../../lib/panel.js"
+  import { usePanel } from "./panel.js"
   import Panel from "../Panel.vue"
   import Slider from "../../components/Slider.vue"
   import Toggle from "../../components/Toggle.vue"

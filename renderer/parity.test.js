@@ -6,10 +6,10 @@ import { fileURLToPath } from "node:url"
 import { chromium } from "playwright"
 import { Canvas, loadImage } from "skia-canvas"
 import { createServer } from "vite"
-import { encodeTitle } from "../src/lib/linkformat.js"
+import { encodeTitle } from "../src/lib/link/linkformat.js"
 import { answerMinecraftAssets, renderTitle } from "./index.js"
 
-const { platform } = await import("../src/lib/platform.js")
+const { platform } = await import("../src/lib/core/platform.js")
 
 const MAX_MEAN_DIFFERENCE = 1.5
 const MAX_DIFFERING_PIXELS = 0.01

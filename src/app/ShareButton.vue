@@ -1,9 +1,9 @@
 <script setup>
   import { ref } from "vue"
-  import { showNotice } from "../lib/notices.js"
-  import { startSavingPreset } from "../lib/presets.js"
-  import { scene } from "../lib/scene.js"
-  import { shareLink } from "../lib/share.js"
+  import { showNotice } from "../lib/state/notices.js"
+  import { startSavingPreset } from "../lib/state/presets.js"
+  import { scene } from "../lib/state/scene.js"
+  import { shareLink } from "../lib/link/share.js"
   import Icon from "../components/Icon.vue"
   import MenuButton from "../components/MenuButton.vue"
   import MessageDialog from "../components/MessageDialog.vue"

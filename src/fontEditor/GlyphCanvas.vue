@@ -2,9 +2,9 @@
   import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
-  import { CREEPER, NOTHING_OUTSIDE, SPACE_CHAR, blockAt, characterLabel, depthOf, fillCells, lineCells, paint, rectangleCells, rowOfY, setGlyph, setStretch, widthOf, yOfRow } from "../lib/fontEditor.js"
-  import { depthShade } from "../lib/font.js"
-  import { clamp } from "../lib/maths.js"
+  import { CREEPER, NOTHING_OUTSIDE, SPACE_CHAR, blockAt, characterLabel, depthOf, fillCells, lineCells, paint, rectangleCells, rowOfY, setGlyph, setStretch, widthOf, yOfRow } from "../lib/font/fontEditor.js"
+  import { depthShade } from "../lib/font/font.js"
+  import { clamp } from "../lib/core/maths.js"
   import Slider from "../components/Slider.vue"
   import { arrowsMove, beginStroke, cancelStroke, endStroke, font, glyph, inkCode, moveSelected, pencilDepth, selected, strokeTo, typing, updateGlyph } from "./store.js"
 

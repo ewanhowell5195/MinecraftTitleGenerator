@@ -3,8 +3,8 @@
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
   import Notice from "../components/Notice.vue"
-  import { SUBMISSION_LIMITS } from "../lib/submissions.js"
-  import { reviewState, reviewSubmission } from "../lib/submissionsApi.js"
+  import { SUBMISSION_LIMITS } from "../lib/submissions/submissions.js"
+  import { reviewState, reviewSubmission } from "../lib/submissions/submissionsApi.js"
 
   const props = defineProps({
     item: { type: Object, required: true },

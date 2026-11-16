@@ -1,6 +1,6 @@
 import { nextTick } from "vue"
 import { START_LOCATION, createRouter, createWebHistory } from "vue-router"
-import { navigated, setNavigator } from "./lib/navigation.js"
+import { navigated, setNavigator } from "./lib/state/navigation.js"
 import { SITE } from "./site/pages.js"
 import { pageKey, pageRoutes, routed } from "./site/routes.js"
 

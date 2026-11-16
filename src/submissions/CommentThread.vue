@@ -4,9 +4,9 @@
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
   import Notice from "../components/Notice.vue"
-  import { dateTime } from "../lib/dates.js"
-  import { SUBMISSION_LIMITS } from "../lib/submissions.js"
-  import { postComment } from "../lib/submissionsApi.js"
+  import { dateTime } from "../lib/core/dates.js"
+  import { SUBMISSION_LIMITS } from "../lib/submissions/submissions.js"
+  import { postComment } from "../lib/submissions/submissionsApi.js"
 
   const props = defineProps({
     id: { type: Number, required: true },

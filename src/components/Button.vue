@@ -1,6 +1,6 @@
 <script setup>
   import { computed, ref, useSlots } from "vue"
-  import { vFileDrop } from "../lib/fileDrop.js"
+  import { vFileDrop } from "./composables/fileDrop.js"
   import Icon from "./Icon.vue"
 
   const props = defineProps({

@@ -1,9 +1,9 @@
 <script setup>
   import { computed, nextTick, ref } from "vue"
-  import { followPointer, useReorderDrag } from "../../lib/reorder.js"
-  import { addWord, insertWord, removeObject, runtime, scene, select, selection, words } from "../../lib/scene.js"
-  import { resetPanel } from "../../lib/settings.js"
-  import { splitGradients } from "../../lib/wordGradients.js"
+  import { followPointer, useReorderDrag } from "../../components/composables/reorder.js"
+  import { addWord, insertWord, removeObject, runtime, scene, select, selection, words } from "../../lib/state/scene.js"
+  import { resetPanel } from "../../lib/settings/settings.js"
+  import { splitGradients } from "../../lib/texture/wordGradients.js"
   import Button from "../../components/Button.vue"
   import Icon from "../../components/Icon.vue"
   import Panel from "../Panel.vue"

@@ -1,7 +1,7 @@
-import { forgetImages } from "../src/lib/assets.js"
-import { usePlatform } from "../src/lib/platform.js"
+import { forgetImages } from "../src/lib/texture/assets.js"
+import { usePlatform } from "../src/lib/core/platform.js"
 import { titleCanvas } from "../src/render/titlePicture.js"
-import { shareableTitle } from "../src/lib/titleFacts.js"
+import { shareableTitle } from "../src/lib/link/titleFacts.js"
 import { useNode } from "./platform.js"
 
 await useNode()

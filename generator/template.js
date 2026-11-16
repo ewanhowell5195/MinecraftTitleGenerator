@@ -1,6 +1,6 @@
 import fs from "node:fs"
 import path from "node:path"
-import { defaultDepth } from "../src/lib/settings.js"
+import { defaultDepth } from "../src/lib/settings/settings.js"
 import { cli, readPng, writePng } from "./common.js"
 import { flatSheet, writeStarterTextures } from "./flat.js"
 import { publishedFonts, readMask } from "./fonts.js"

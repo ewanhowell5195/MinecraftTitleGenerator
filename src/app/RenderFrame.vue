@@ -1,8 +1,8 @@
 <script setup>
   import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue"
-  import { frameRect, frameSplit, framing } from "../lib/framing.js"
-  import { cssGradient } from "../lib/material.js"
-  import { view, viewport, viewportChanges } from "../lib/view.js"
+  import { frameRect, frameSplit, framing } from "../render/framing.js"
+  import { cssGradient } from "../lib/texture/material.js"
+  import { view, viewport, viewportChanges } from "../lib/state/view.js"
 
   const title = shallowRef(null)
   const mirror = ref(null)

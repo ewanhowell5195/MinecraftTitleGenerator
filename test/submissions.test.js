@@ -3,9 +3,9 @@ import assert from "node:assert/strict"
 import fs from "node:fs"
 import zlib from "node:zlib"
 import { PNG } from "pngjs"
-import { templateProblem } from "../src/lib/submissionKinds/fontAsset.js"
-import { decodePng } from "../src/lib/submissionKinds/png.js"
-import { SUBMISSION_LIMITS, opaqueCells, pngProblem, templateScore, textureDensity } from "../src/lib/submissions.js"
+import { templateProblem } from "../src/lib/submissions/kinds/fontAsset.js"
+import { decodePng } from "../src/lib/submissions/kinds/png.js"
+import { SUBMISSION_LIMITS, opaqueCells, pngProblem, templateScore, textureDensity } from "../src/lib/submissions/submissions.js"
 
 function read(file) {
   return PNG.sync.read(fs.readFileSync(file))

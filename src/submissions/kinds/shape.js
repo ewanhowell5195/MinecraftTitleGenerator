@@ -1,4 +1,4 @@
-import { CUSTOM_SHAPE } from "../../lib/shapes.js"
+import { CUSTOM_SHAPE } from "../../lib/geometry/shapes.js"
 
 function silhouetteSource(file, strips = []) {
   return { kind: "silhouette", fileName: "shape.png", data: file, ...(strips.length && { strips: strips.map(item => typeof item === "string" ? item : { ...item }) }) }

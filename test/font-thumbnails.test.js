@@ -1,9 +1,9 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
-import { flatLayers } from "../src/lib/flatSheet.js"
-import { blankImage, fontScene, fontThumbnails, render } from "../src/lib/fontThumbnails.js"
-import { MISSING } from "../src/lib/strips.js"
-import { drawStrip } from "../src/lib/thumbnails.js"
+import { flatLayers } from "../src/lib/font/flatSheet.js"
+import { blankImage, fontScene, fontThumbnails, render } from "../src/lib/font/fontThumbnails.js"
+import { MISSING } from "../src/lib/font/strips.js"
+import { drawStrip } from "../src/lib/font/thumbnails.js"
 
 describe("font thumbnails", () => {
   const cell = { char: "a", width: 2, height: 2, bottom: 0, top: 2, advance: 2, originX: 0, mask: Uint8Array.from([1, 1, 1, 1]), depths: Uint8Array.from([0, 0, 1, 1]) }

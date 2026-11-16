@@ -11,8 +11,8 @@ const { deleteAccount } = await import("../src/server/accountDeletion.js")
 const { claimPresets, submitPreset, votePreset } = await import("../src/server/presets.js")
 const { addSaved } = await import("../src/server/saved.js")
 const { addComment, createSubmission } = await import("../src/server/submissions.js")
-const { encodeTitle } = await import("../src/lib/linkformat.js")
-const { FILE_VERSION } = await import("../src/lib/settings.js")
+const { encodeTitle } = await import("../src/lib/link/linkformat.js")
+const { FILE_VERSION } = await import("../src/lib/settings/settings.js")
 
 const TEXTURES = "public/font/minecraft-ten/textures.json"
 const FLAT = PNG.sync.read(fs.readFileSync("public/font/minecraft-ten/textures/flat.png"))

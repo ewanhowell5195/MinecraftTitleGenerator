@@ -5,8 +5,8 @@ import { PNG } from "pngjs"
 import { pngOf } from "./helpers/png.js"
 import { publicContext } from "./helpers/site.js"
 
-const { cleanModel, cleanModelFile, sampleGlyph, samplePixels, shapeImage, shapeModel, silhouetteGlyph, silhouettePixels, silhouetteSample, silhouetteScale } = await import("../src/lib/submissionKinds/shape.js")
-const { elementCorners, modelHeight } = await import("../src/lib/shapes.js")
+const { cleanModel, cleanModelFile, sampleGlyph, samplePixels, shapeImage, shapeModel, silhouetteGlyph, silhouettePixels, silhouetteSample, silhouetteScale } = await import("../src/lib/submissions/kinds/shape.js")
+const { elementCorners, modelHeight } = await import("../src/lib/geometry/shapes.js")
 const { shapeImage: serverImage, shapeModel: serverModel } = await import("../src/server/submissionKinds/shape.js")
 const { frontView } = await import("../generator/modelView.js")
 
@@ -182,7 +182,7 @@ describe("publishing shapes", () => {
 
 describe("silhouettePixels", () => {
   test("paints the front from the PNG and the edges from the pixels next to them", async () => {
-    const { sheetLayout } = await import("../src/lib/font.js")
+    const { sheetLayout } = await import("../src/lib/font/font.js")
     const image = PNG.sync.read(Buffer.from(silhouette(2, 3, () => true)))
     image.data.set([10, 20, 30, 255], 0)
     image.data.set([40, 50, 60, 200], (2 * 2 + 1) * 4)
@@ -200,7 +200,7 @@ describe("silhouettePixels", () => {
 
 describe("big custom shapes", () => {
   test("shrink the shape but keep every pixel in the texture", async () => {
-    const { sheetLayout } = await import("../src/lib/font.js")
+    const { sheetLayout } = await import("../src/lib/font/font.js")
     const image = PNG.sync.read(Buffer.from(silhouette(2048, 476)))
     const scale = silhouetteScale(image)
     assert.equal(scale, 8)
@@ -215,7 +215,7 @@ describe("big custom shapes", () => {
   })
 
   test("fill the see-through pixels inside a solid block", async () => {
-    const { sheetLayout } = await import("../src/lib/font.js")
+    const { sheetLayout } = await import("../src/lib/font/font.js")
     const image = PNG.sync.read(Buffer.from(silhouette(2, 2, (x, y) => !(x === 1 && y === 0))))
     const glyph = silhouetteGlyph(image, 2)
     assert.deepEqual(Array.from(glyph.mask), [1])

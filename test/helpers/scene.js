@@ -1,4 +1,4 @@
-import { scene, validSelection } from "../../src/lib/scene.js"
+import { scene, validSelection } from "../../src/lib/state/scene.js"
 
 export function setTitle(...objects) {
   scene.objects.splice(0, scene.objects.length, ...objects)

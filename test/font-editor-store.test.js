@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
 import { beginStroke, canRedo, canUndo, cancelStroke, endStroke, font, glyph, openFont, redo, strokeTo, undo, updateGlyph } from "../src/fontEditor/store.js"
-import { createFont, glyphOf, paint, setGlyph } from "../src/lib/fontEditor.js"
+import { createFont, glyphOf, paint, setGlyph } from "../src/lib/font/fontEditor.js"
 
 function open() {
   openFont(createFont({ height: 4, width: 4, grid: 1 }))

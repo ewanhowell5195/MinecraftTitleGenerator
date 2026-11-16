@@ -1,9 +1,9 @@
 <script setup>
   import { ref } from "vue"
-  import { EULA_URL, answerEula, eula } from "../lib/eula.js"
-  import { library, scene } from "../lib/scene.js"
-  import { isMinecraftShape } from "../lib/shapes.js"
-  import { setTexture } from "../lib/settings.js"
+  import { EULA_URL, answerEula, eula } from "../lib/minecraft/eula.js"
+  import { library, scene } from "../lib/state/scene.js"
+  import { isMinecraftShape } from "../lib/geometry/shapes.js"
+  import { setTexture } from "../lib/settings/settings.js"
   import Button from "../components/Button.vue"
   import Checkbox from "../components/Checkbox.vue"
   import Dialog from "../components/Dialog.vue"

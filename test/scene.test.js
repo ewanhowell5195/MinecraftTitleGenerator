@@ -15,10 +15,10 @@ globalThis.localStorage = { getItem: key => store.get(key) ?? null, setItem: wri
 forbidFetch()
 fakeTimeouts()
 
-const { FILE_VERSION, snapshot, typeDefaults } = await import("../src/lib/settings.js")
-const { createObject } = await import("../src/lib/objects.js")
-const { view } = await import("../src/lib/view.js")
-const { addObject, addShape, addWord, freeRow, noteType, bakeMatch, chooseMatch, current, currentWord, duplicateLine, insertWord, keepTexture, lineHidden, lineText, removeLine, removeObject, runtime, saveError, scene, select, selectGroup, selection, setScale, shapingWord, titleFileName, toggleLine, validSelection, wordTabs, words } = await import("../src/lib/scene.js")
+const { FILE_VERSION, snapshot, typeDefaults } = await import("../src/lib/settings/settings.js")
+const { createObject } = await import("../src/lib/settings/objects.js")
+const { view } = await import("../src/lib/state/view.js")
+const { addObject, addShape, addWord, freeRow, noteType, bakeMatch, chooseMatch, current, currentWord, duplicateLine, insertWord, keepTexture, lineHidden, lineText, removeLine, removeObject, runtime, saveError, scene, select, selectGroup, selection, setScale, shapingWord, titleFileName, toggleLine, validSelection, wordTabs, words } = await import("../src/lib/state/scene.js")
 
 function setScene(...objects) {
   scene.objects = objects
@@ -890,7 +890,7 @@ describe("autosave", () => {
 describe("restoring the saved scene", () => {
   async function loadWith(saved, tag) {
     store.set("minecraft-title-scene", saved)
-    const module = await import(`../src/lib/scene.js?${tag}`)
+    const module = await import(`../src/lib/state/scene.js?${tag}`)
     store.delete("minecraft-title-scene")
     return module
   }
@@ -999,7 +999,7 @@ describe("restoring the saved scene", () => {
   })
 
   test("starts fresh when nothing is saved", async () => {
-    const module = await import("../src/lib/scene.js?nothing")
+    const module = await import("../src/lib/state/scene.js?nothing")
     assert.equal(module.scene.objects.length, 1)
     assert.equal(module.scene.selected, module.scene.objects[0].id)
   })

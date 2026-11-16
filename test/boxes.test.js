@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { boxFaces, boxesFor } from "../src/lib/boxes.js"
+import { boxFaces, boxesFor } from "../src/lib/geometry/boxes.js"
 
 function maskOf(rows) {
   return Uint8Array.from(rows.toReversed().join(""), char => Number(char))

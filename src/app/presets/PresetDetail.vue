@@ -1,7 +1,7 @@
 <script setup>
   import { computed, onBeforeUnmount, ref, watch } from "vue"
-  import { NAME_LIMIT } from "../../lib/presets.js"
-  import { presetLink } from "../../lib/presetsPage.js"
+  import { NAME_LIMIT } from "../../lib/state/presets.js"
+  import { presetLink } from "../../lib/state/presetsPage.js"
   import AuthorLink from "./AuthorLink.vue"
   import Badge from "../../components/Badge.vue"
   import Button from "../../components/Button.vue"

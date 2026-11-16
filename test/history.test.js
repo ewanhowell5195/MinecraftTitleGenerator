@@ -7,11 +7,11 @@ quietStorage()
 forbidFetch()
 fakeTimeouts()
 
-const { LAYER } = await import("../src/lib/settings.js")
-const { createObject } = await import("../src/lib/objects.js")
-const { addObject, keepTexture, scene, select } = await import("../src/lib/scene.js")
-const { history, holdHistory, quietly, redo, undo } = await import("../src/lib/history.js")
-const { openTitle } = await import("../src/lib/file.js")
+const { LAYER } = await import("../src/lib/settings/settings.js")
+const { createObject } = await import("../src/lib/settings/objects.js")
+const { addObject, keepTexture, scene, select } = await import("../src/lib/state/scene.js")
+const { history, holdHistory, quietly, redo, undo } = await import("../src/lib/state/history.js")
+const { openTitle } = await import("../src/lib/state/titleFile.js")
 
 async function settle() {
   await nextTick()

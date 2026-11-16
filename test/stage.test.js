@@ -7,11 +7,11 @@ import { quietStorage } from "./helpers/browser.js"
 quietStorage()
 globalThis.devicePixelRatio = 1
 
-const { ORBIT_FOV, UNZOOMED, cornersOf, frameCamera, gizmoPose, keptPan, lineBounds, movedBy, orbitDollied, orbitPanned, orbitStart, orbitTurned, panMatrix, pannedBy, pickEntry, placeOrbit, placementMatrix, rotatedTo, screenExtent, sortEntries, titleFraming, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } = await import("../src/lib/stage.js")
+const { ORBIT_FOV, UNZOOMED, cornersOf, frameCamera, gizmoPose, keptPan, lineBounds, movedBy, orbitDollied, orbitPanned, orbitStart, orbitTurned, panMatrix, pannedBy, pickEntry, placeOrbit, placementMatrix, rotatedTo, screenExtent, sortEntries, titleFraming, wordMovedBy, wordPose, wordRotatedTo, zoomedAt } = await import("../src/render/stage.js")
 
 const BOUNDS = new THREE.Box3(new THREE.Vector3(0, 0, 0), new THREE.Vector3(10, 4, 2))
 const WIDE = new THREE.Box3(new THREE.Vector3(-30, 0, 0), new THREE.Vector3(30, 20, 10))
-const { CAMERA_PRESETS, DEFAULT_CAMERA } = await import("../src/lib/camera.js")
+const { CAMERA_PRESETS, DEFAULT_CAMERA } = await import("../src/lib/settings/camera.js")
 const DIRECTION = new THREE.Vector3(0, -Math.sin(radians(DEFAULT_CAMERA.pitch)), Math.cos(radians(DEFAULT_CAMERA.pitch)))
 
 function closeList(actual, expected, tolerance = 1e-6) {

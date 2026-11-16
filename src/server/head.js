@@ -1,4 +1,4 @@
-import { shareTags } from "../lib/head.js"
+import { shareTags } from "../lib/core/head.js"
 
 export function pageWithDetails(page, details) {
   const { title, description, url, canonical = url } = details

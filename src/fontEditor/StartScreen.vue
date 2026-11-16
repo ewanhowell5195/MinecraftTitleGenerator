@@ -9,15 +9,15 @@
   import Tile from "../components/Tile.vue"
   import TileGrid from "../components/TileGrid.vue"
   import UploadField from "../components/UploadField.vue"
-  import { fullName, loadFontList } from "../lib/font.js"
-  import { createFont } from "../lib/fontEditor.js"
-  import { fontCredit } from "../lib/credits.js"
-  import { fontThumbnail } from "../lib/ui.js"
+  import { fullName, loadFontList } from "../lib/font/font.js"
+  import { createFont } from "../lib/font/fontEditor.js"
+  import { fontCredit } from "../lib/font/credits.js"
+  import { fontThumbnail } from "../lib/state/ui.js"
   import { fontFromList, fontFromUploads, imageOf } from "./loaders.js"
   import SizeStats from "./SizeStats.vue"
   import ResetButton from "./ResetButton.vue"
   import { limitSize, resettable } from "./sizeLimit.js"
-  import { navigate } from "../lib/navigation.js"
+  import { navigate } from "../lib/state/navigation.js"
   import { EDITOR_PATH, IMPORT_PATH, font, importing, startFont } from "./store.js"
   import { loadTemplate } from "./template.js"
 
@@ -73,11 +73,11 @@
 
   async function readImport(file) {
     if (/\.png$/i.test(file.name)) {
-      const [{ asciiRows, fontFromAscii }, image] = await Promise.all([import("../lib/asciiImport.js"), imageOf(file)])
+      const [{ asciiRows, fontFromAscii }, image] = await Promise.all([import("../lib/font/asciiImport.js"), imageOf(file)])
       const rows = asciiRows(image)
       return { kind: "ascii", name: file.name, image, suggested: { rows, square: Math.max(1, Math.ceil(40 / rows - 0.5)) }, build: fontFromAscii }
     }
-    const [{ fontFromOutlines, outlineShape, suggestedSize }, { template, source }] = await Promise.all([import("../lib/fontImport.js"), loadTemplate(file)])
+    const [{ fontFromOutlines, outlineShape, suggestedSize }, { template, source }] = await Promise.all([import("../lib/font/fontImport.js"), loadTemplate(file)])
     return { kind: "outline", name: file.name, source, template, suggested: suggestedSize(source), build: fontFromOutlines, outlineShape }
   }
 

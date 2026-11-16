@@ -1,12 +1,12 @@
 <script setup>
   import { computed, ref, watch } from "vue"
   import Dropdown from "../../components/Dropdown.vue"
-  import { fullName } from "../../lib/font.js"
+  import { fullName } from "../../lib/font/font.js"
   import LiveTitle from "../../components/LiveTitle.vue"
-  import { popular } from "../../lib/stats.js"
-  import { DEFAULT_FONT } from "../../lib/settings.js"
+  import { popular } from "../../lib/state/stats.js"
+  import { DEFAULT_FONT } from "../../lib/settings/settings.js"
   import { embedded } from "../submissionLink.js"
-  import { fontThumbnail } from "../../lib/ui.js"
+  import { fontThumbnail } from "../../lib/state/ui.js"
   import { fontDefaults, usePreviewLine } from "./preview.js"
   import { tileable } from "./tileable.js"
 

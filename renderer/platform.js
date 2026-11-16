@@ -4,8 +4,8 @@ import { fileURLToPath } from "node:url"
 import createContext from "gl"
 import getTHREE from "headless-three"
 import { Canvas, DOMMatrix, Image, ImageData, loadImage } from "skia-canvas"
-import { usePlatform } from "../src/lib/platform.js"
-import { writeFlipped } from "../src/lib/render.js"
+import { usePlatform } from "../src/lib/core/platform.js"
+import { writeFlipped } from "../src/render/render.js"
 
 const PUBLIC = fileURLToPath(new URL("../public/", import.meta.url))
 

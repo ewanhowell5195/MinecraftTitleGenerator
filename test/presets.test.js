@@ -15,16 +15,16 @@ globalThis.fetch = async (url, options) => {
 globalThis.confirm = () => answer
 fakeTimeouts()
 
-const { FILE_VERSION, LAYER } = await import("../src/lib/settings.js")
-const { createObject } = await import("../src/lib/objects.js")
-const { scene } = await import("../src/lib/scene.js")
-const { fileError } = await import("../src/lib/notices.js")
-const { notice } = await import("../src/lib/notices.js")
-const { decodeTitle, encodeTitle } = await import("../src/lib/linkformat.js")
-const { NAME_LIMIT, addPreset, loadPreset, markShared, namingPreset, namingShared, presets, removePreset, renamePreset, savePreset, startSavingPreset } = await import("../src/lib/presets.js")
+const { FILE_VERSION, LAYER } = await import("../src/lib/settings/settings.js")
+const { createObject } = await import("../src/lib/settings/objects.js")
+const { scene } = await import("../src/lib/state/scene.js")
+const { fileError } = await import("../src/lib/state/notices.js")
+const { notice } = await import("../src/lib/state/notices.js")
+const { decodeTitle, encodeTitle } = await import("../src/lib/link/linkformat.js")
+const { NAME_LIMIT, addPreset, loadPreset, markShared, namingPreset, namingShared, presets, removePreset, renamePreset, savePreset, startSavingPreset } = await import("../src/lib/state/presets.js")
 const { setTitle } = await import("./helpers/scene.js")
-const { accountPresets } = await import("../src/lib/community.js")
-const { sharingProblem } = await import("../src/lib/sharing.js")
+const { accountPresets } = await import("../src/lib/state/community.js")
+const { sharingProblem } = await import("../src/lib/link/shareChecks.js")
 
 const STORAGE = "minecraft-title-presets"
 

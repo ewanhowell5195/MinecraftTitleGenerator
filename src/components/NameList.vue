@@ -1,8 +1,8 @@
 <script setup>
   import { computed, nextTick, ref } from "vue"
   import people from "virtual:people"
-  import { AUTHOR_LIMITS, authorList } from "../lib/authors.js"
-  import { usePopover } from "../lib/popover.js"
+  import { AUTHOR_LIMITS, authorList } from "../lib/core/authors.js"
+  import { usePopover } from "./composables/popover.js"
   import Icon from "./Icon.vue"
 
   const SHOWN = 8

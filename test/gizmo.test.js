@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
 import * as THREE from "three"
-import { Gizmo, spreadAxes, worldPerPixel } from "../src/lib/gizmo.js"
+import { Gizmo, spreadAxes, worldPerPixel } from "../src/app/gizmo.js"
 
 const SIZE = 400
 

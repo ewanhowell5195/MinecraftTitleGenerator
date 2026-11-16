@@ -1,9 +1,9 @@
 <script setup>
   import { computed, nextTick, ref, watch } from "vue"
-  import { hexOf, rgbOf } from "../lib/colour.js"
-  import { trackPointer } from "../lib/events.js"
-  import { clamp } from "../lib/maths.js"
-  import { usePopover } from "../lib/popover.js"
+  import { hexOf, rgbOf } from "../lib/core/colour.js"
+  import { trackPointer } from "./composables/events.js"
+  import { clamp } from "../lib/core/maths.js"
+  import { usePopover } from "./composables/popover.js"
 
   const colour = defineModel({ type: String, required: true })
 

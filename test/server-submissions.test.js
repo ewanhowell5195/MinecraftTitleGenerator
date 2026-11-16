@@ -7,8 +7,8 @@ import { REPO, context, details, editForm, hook, sendForm, serverEnv, signIn } f
 
 const { accountDetails } = await import("../src/server/accounts.js")
 const { addComment, clearNotifications, createSubmission, listNotifications, listSubmissions, markNotificationsSeen, reviewState, reviewSubmission, submissionDetails, submissionFile, submissionProcessing, withdrawSubmission } = await import("../src/server/submissions.js")
-const { jsonText } = await import("../src/lib/jsonText.js")
-const { decodeTitle } = await import("../src/lib/linkformat.js")
+const { jsonText } = await import("../src/lib/core/jsonText.js")
+const { decodeTitle } = await import("../src/lib/link/linkformat.js")
 
 const TEXTURES = "public/font/minecraft-ten/textures.json"
 const LEGENDS = "public/font/minecraft-legends/textures.json"

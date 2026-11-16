@@ -1,5 +1,5 @@
 <script setup>
-  import { providerLabel } from "../lib/providers.js"
+  import { providerLabel } from "../lib/core/providers.js"
   import Icon from "./Icon.vue"
 
   defineProps({

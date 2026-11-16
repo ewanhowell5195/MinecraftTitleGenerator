@@ -10,9 +10,9 @@ globalThis.BroadcastChannel = class {
 const { requests, replies, reset } = fakeReplies({ missing: () => ({ body: { kept: [] } }) })
 fakeTimeouts()
 
-const { account, refreshAccount, refreshUsage } = await import("../src/lib/community.js")
-const { notice } = await import("../src/lib/notices.js")
-const { addPreset, deleteSharedPreset, markShared, presets, presetsError, presetsLoading, removePreset, renamePreset, replaceTargets, replaceWith, sharePreset, unmarkShared, unsharePreset } = await import("../src/lib/presets.js")
+const { account, refreshAccount, refreshUsage } = await import("../src/lib/state/community.js")
+const { notice } = await import("../src/lib/state/notices.js")
+const { addPreset, deleteSharedPreset, markShared, presets, presetsError, presetsLoading, removePreset, renamePreset, replaceTargets, replaceWith, sharePreset, unmarkShared, unsharePreset } = await import("../src/lib/state/presets.js")
 
 const STORAGE = "minecraft-title-presets"
 const SOMEONE = { id: "discord:1", name: "someone", provider: "discord" }

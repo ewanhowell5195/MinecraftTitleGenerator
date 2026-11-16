@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { generatedAlpha } from "../src/lib/generated.js"
+import { generatedAlpha } from "../src/lib/texture/generatedOverlays.js"
 
 function glyph(caster) {
   return { width: 5, height: 5, bottom: 0, mask: new Uint8Array(25).fill(1), caster }
