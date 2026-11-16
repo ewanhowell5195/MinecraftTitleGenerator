@@ -17,10 +17,10 @@
   import { usedFonts } from "./uploads.js"
   import Button from "../../components/Button.vue"
   import Field from "../../components/Field.vue"
+  import FontInfoDialog from "./FontInfoDialog.vue"
   import Notice from "../../components/Notice.vue"
   import NumberInput from "../../components/NumberInput.vue"
   import Panel from "../Panel.vue"
-  import Dialog from "../../components/Dialog.vue"
   import Segments from "../../components/Segments.vue"
   import Tile from "../../components/Tile.vue"
   import TileGrid from "../../components/TileGrid.vue"
@@ -59,12 +59,6 @@
     if (!searching.value) return []
     const term = search.value.trim().toLowerCase()
     return baseFonts.value.flatMap(base => [base].concat(popular(library.fonts.filter(item => item.variant === base.id), item => item.id, item => item.name))).filter(item => [item.id, fullName(item, library.fonts)].some(text => text.toLowerCase().includes(term)))
-  })
-
-  const characters = computed(() => {
-    if (!font.value) return ""
-    const rank = char => /[a-z]/i.test(char) ? 0 : /\d/.test(char) ? 1 : 2
-    return Object.keys(font.value.glyphs).filter(char => !/[\u{1F629}\u{1F633}]/u.test(char)).sort((a, b) => rank(a) - rank(b) || a.localeCompare(b)).join(" ")
   })
 
   function entryThumbnail(entry) {
@@ -181,13 +175,7 @@
     <template #actions>
       <Button ghost icon="info" title="Font info and characters" :disabled="!font" @click="info = true" />
     </template>
-    <Dialog v-if="info && font" :title="entry?.name || customName || 'Font'" close-title="Close" wide dismissable @close="info = false">
-      <div class="dialog-body">
-        <p v-if="font.description">{{ font.description }}</p>
-        <span class="label">Characters</span>
-        <div class="code">{{ characters }}</div>
-      </div>
-    </Dialog>
+    <FontInfoDialog v-if="info && font" :font="font" :title="entry?.name || customName || 'Font'" @close="info = false" />
     <Segments v-if="tab === 'custom'" :options="TABS" :model-value="tab" @update:model-value="chooseTab" />
     <template v-if="tab === 'custom'">
       <UploadField accept=".json,.png,.ttf,.otf,.woff,.woff2,application/json,image/png,font/ttf,font/otf,font/woff,font/woff2" :label="loading ? 'Loading...' : object.customFont ? 'Replace font' : 'Choose a font file'" empty="No font uploaded" :disabled="loading" :clearable="!!object.customFont" @change="upload" @clear="clearCustom">
@@ -268,15 +256,5 @@
     font-size: var(--font-sm);
     font-weight: 600;
     color: var(--text);
-  }
-
-  .code {
-    padding: 10px;
-    font-family: var(--mono);
-    font-size: var(--font-md);
-    line-height: 1.7;
-    word-break: break-all;
-    color: var(--text);
-    background: var(--field);
   }
 </style>
