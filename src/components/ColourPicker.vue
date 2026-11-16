@@ -108,7 +108,7 @@
 
 <template>
   <div class="field-colour">
-    <button ref="swatch" class="colour field-button" :class="{ active: open }" @click="toggle">
+    <button ref="swatch" type="button" class="colour field-button" :class="{ active: open }" @click="toggle">
       <span class="chip" :style="{ background: colour }"></span>
       <span class="hex">{{ colour }}</span>
     </button>

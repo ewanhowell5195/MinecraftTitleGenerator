@@ -36,7 +36,7 @@
 
 <template>
   <nav class="menus divided">
-    <button v-for="(items, name) of props.menus" :key="name" class="menu" :class="{ active: open === name }" aria-haspopup="menu" :aria-expanded="open === name" @click="show($event, name)" @pointerenter="hover($event, name)">{{ name }}</button>
+    <button v-for="(items, name) of props.menus" :key="name" type="button" class="menu" :class="{ active: open === name }" aria-haspopup="menu" :aria-expanded="open === name" @click="show($event, name)" @pointerenter="hover($event, name)">{{ name }}</button>
     <ContextMenu :items="open ? props.menus[open] : []" :at="at" @close="close" />
     <slot></slot>
   </nav>
