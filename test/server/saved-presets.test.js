@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { batchesTogether, code, context, db, freshServer, list, restoreFetch, rowsEverywhere, shareAs, signIn, usageOf, vote, voteAll, withCookie } from "../helpers/presets.js"
+import { batchesTogether, code, context, db, env, freshServer, list, restoreFetch, rowsEverywhere, shareAs, signIn, usageOf, vote, voteAll, withCookie } from "../helpers/presets.js"
+import { holdQuery } from "../helpers/server.js"
 
 const { LIMITS } = await import("../../src/lib/core/limits.js")
 const { getPreset, replacePreset, submissionUsage, unsharePreset } = await import("../../src/server/presets.js")
@@ -207,6 +208,22 @@ describe("saved presets", () => {
     await savedCall(changeSaved, other, "PATCH", { code: preset.code, name: "stolen" })
     await savedCall(changeSaved, cookie, "PATCH", { code: preset.code, name: " new name " })
     assert.deepEqual(await savedList(cookie), [{ name: "new name", code: preset.code }])
+  })
+
+  test("two saves changed to the same title at once only change one", async () => {
+    const cookie = await signIn()
+    const [one, two] = [saved("one"), saved("two")]
+    await save(cookie, [one, two])
+    const after = code([{ text: "after" }])
+    const hold = holdQuery(env, /SET code = /)
+    const first = savedCall(changeSaved, cookie, "PATCH", { code: one.code, replacement: after })
+    await hold.arrived
+    assert.equal((await savedCall(changeSaved, cookie, "PATCH", { code: two.code, replacement: after })).status, 200)
+    hold.release()
+    const refused = await first
+    assert.equal(refused.status, 409)
+    assert.match((await refused.json()).error, /already have a preset with this title/)
+    assert.deepEqual(await savedList(cookie), [one, { name: two.name, code: after }])
   })
 
   test("replaces the title in place, keeping its order", async () => {

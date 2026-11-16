@@ -5,7 +5,8 @@ import { INVALID, Refusal, guarded, jsonBody, reply, textField, unpublishedName 
 import { NEXT_ID, deletingPresets } from "./presets.js"
 
 const BATCH_BODY = LIMITS.savedBatch * (LIMITS.savedCode + 512)
-const SIGNED_OUT = "You've been signed out. Sign in again to use the presets on your account."
+const TAKEN = "You already have a preset with this title."
+const SIGNED_OUT ="You've been signed out. Sign in again to use the presets on your account."
 
 function shown({ id, name, code, shared }) {
   return shared ? { name, code, shared: id } : { name, code }
@@ -25,6 +26,10 @@ async function savableCode(context, code) {
 async function savable(context, preset) {
   if (typeof preset?.name !== "string" || !preset.name.trim() || Array.from(preset.name.trim()).length > LIMITS.name) return false
   return savableCode(context, preset.code)
+}
+
+function titleTaken(env, user, code) {
+  return env.DB.prepare(`SELECT id FROM presets WHERE user_id = ${USER_ROW} AND code = ?`).bind(user.provider, user.providerId, code).first()
 }
 
 function requireCode(body) {
@@ -77,8 +82,7 @@ export const changeSaved = guarded(async context => {
   const values = []
   if (Object.hasOwn(body, "replacement")) {
     if (!await savableCode(context, body.replacement)) throw new Refusal(400, INVALID)
-    const taken = await env.DB.prepare(`SELECT id FROM presets WHERE user_id = ${USER_ROW} AND code = ?`).bind(user.provider, user.providerId, body.replacement).first()
-    if (taken) throw new Refusal(409, "You already have a preset with this title.")
+    if (await titleTaken(env, user, body.replacement)) throw new Refusal(409, TAKEN)
     sets.push("code = ?")
     values.push(body.replacement)
   }
@@ -89,7 +93,10 @@ export const changeSaved = guarded(async context => {
     values.push(name)
   }
   if (!sets.length) throw new Refusal(400, INVALID)
-  const { meta } = await env.DB.prepare(`UPDATE presets SET ${sets.join(", ")} WHERE user_id = ${USER_ROW} AND code = ? AND shared = 0`).bind(...values, user.provider, user.providerId, code).run()
+  const { meta } = await env.DB.prepare(`UPDATE presets SET ${sets.join(", ")} WHERE user_id = ${USER_ROW} AND code = ? AND shared = 0`).bind(...values, user.provider, user.providerId, code).run().catch(async err => {
+    if (Object.hasOwn(body, "replacement") && await titleTaken(env, user, body.replacement)) throw new Refusal(409, TAKEN)
+    throw err
+  })
   if (!meta.changes) throw new Refusal(404, "This preset isn't on your account any more.")
   return reply(200, { changed: true })
 })
