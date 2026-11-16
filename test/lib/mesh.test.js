@@ -183,6 +183,14 @@ describe("mesh glyphs", () => {
     const solid = rings[0].map(point => point[0])
     assert.ok(Math.abs(Math.min(...solid) - Math.min(...xs) - 1) < 0.02)
   })
+
+  test("a border grows round a long line of curved letters", async () => {
+    const mesh = glyphMeshes(meshOutlines(await testFont(), { height: 30 })).c
+    const rings = Array.from({ length: 80 }, (_, index) => meshFaces(mesh, { bottom: 0, height: 30 }, { bottom: 0, height: 30 }, index * 30, 6, 3).rings).flat()
+    const shell = outlineShell([{ rings }], [1, 1], [2, 2], 4)
+    assert.equal(shell.shapes.length, 80)
+    assert.equal(shell.sizes.reduce((sum, size) => sum + size, 0) * 3, shell.positions.length)
+  })
 })
 
 describe("fillSpans", () => {

@@ -205,15 +205,15 @@ function prism(shapes, z, turn) {
 }
 
 export function outlineShell(groups, scale, radius, z) {
-  const positions = []
-  const sizes = []
-  const shapes = []
+  let positions = []
+  let sizes = []
+  let shapes = []
   for (const { rings, turn } of groups) {
     const shell = grown(rings, scale, radius)
     const solid = prism(shell, z, turn)
-    positions.push(...solid.positions)
-    sizes.push(...solid.sizes)
-    if (!turn) shapes.push(...shell)
+    positions = positions.concat(solid.positions)
+    sizes = sizes.concat(solid.sizes)
+    if (!turn) shapes = shapes.concat(shell)
   }
   return { positions, sizes, shapes }
 }
