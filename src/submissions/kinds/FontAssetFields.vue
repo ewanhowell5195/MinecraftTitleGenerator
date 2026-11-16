@@ -7,15 +7,14 @@
   import Segments from "../../components/Segments.vue"
   import Toggle from "../../components/Toggle.vue"
   import { fetched } from "../../lib/submissions/api.js"
-  import { fontFolder, fullName } from "../../lib/font/font.js"
+  import { fontFolder } from "../../lib/font/font.js"
   import { DEFAULT_FONT, fontFaces } from "../../lib/settings/defaults.js"
   import { FACE_PANELS, overlayLayer } from "../../lib/settings/settings.js"
-  import { popular } from "../../lib/state/stats.js"
   import { DEFAULT_OVERLAY_LIMIT, fontLayerCount, fontOwners, overlayChoices, texturesList } from "../../lib/submissions/kinds/fontAsset.js"
   import { submissionContext } from "../../lib/submissions/kinds/index.js"
   import { DEFAULT_ROLES, SUBMISSION_LIMITS, pngProblem, pngSize } from "../../lib/submissions/submissions.js"
-  import { fontThumbnail } from "../../lib/state/ui.js"
   import { detectFont } from "./detectFont.js"
+  import { popularFontOptions } from "./fontOptions.js"
   import VariantOf from "./VariantOf.vue"
 
 
@@ -35,7 +34,7 @@
   const emit = defineEmits(["update:target", "update:details", "problem"])
 
   const owners = computed(() => fontOwners(props.fonts))
-  const options = computed(() => popular(owners.value, font => font.id, font => fullName(font, props.fonts), [DEFAULT_FONT]).map(font => ({ value: font.id, label: fullName(font, props.fonts), image: fontThumbnail(font) })))
+  const options = computed(() => popularFontOptions(owners.value, props.fonts))
   const entry = computed(() => props.fonts.find(font => font.id === props.target))
   const template = computed(() => entry.value ? `/${fontFolder(entry.value)}/textures/flat.png` : null)
   const noun = computed(() => props.kind === "overlay" ? "overlay" : "texture")

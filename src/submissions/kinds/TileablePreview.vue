@@ -1,12 +1,10 @@
 <script setup>
   import { computed, ref, watch } from "vue"
   import Dropdown from "../../components/Dropdown.vue"
-  import { fullName } from "../../lib/font/font.js"
   import LiveTitle from "../../components/LiveTitle.vue"
-  import { popular } from "../../lib/state/stats.js"
   import { DEFAULT_FONT } from "../../lib/settings/defaults.js"
   import { embedded } from "../submissionLink.js"
-  import { fontThumbnail } from "../../lib/state/ui.js"
+  import { popularFontOptions } from "./fontOptions.js"
   import { fontDefaults, usePreviewLine } from "./preview.js"
   import { tileable } from "./tileable.js"
 
@@ -23,7 +21,7 @@
   const font = ref(DEFAULT_FONT)
 
   const usable = computed(() => props.fonts.filter(entry => !entry.mesh))
-  const options = computed(() => popular(usable.value, entry => entry.id, entry => fullName(entry, props.fonts), [DEFAULT_FONT]).map(entry => ({ value: entry.id, label: fullName(entry, props.fonts), image: fontThumbnail(entry) })))
+  const options = computed(() => popularFontOptions(usable.value, props.fonts))
 
   watch(usable, fonts => {
     if (!fonts.some(entry => entry.id === font.value)) font.value = fonts[0]?.id ?? ""

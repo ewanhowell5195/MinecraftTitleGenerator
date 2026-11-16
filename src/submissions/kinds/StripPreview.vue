@@ -2,9 +2,8 @@
   import { computed } from "vue"
   import Dropdown from "../../components/Dropdown.vue"
   import LiveTitle from "../../components/LiveTitle.vue"
-  import { fullName } from "../../lib/font/font.js"
   import { embedded } from "../submissionLink.js"
-  import { fontThumbnail } from "../../lib/state/ui.js"
+  import { fontOptions } from "./fontOptions.js"
   import { usePreviewLine } from "./preview.js"
   import { previewFonts, stripLine } from "./strip.js"
 
@@ -20,7 +19,7 @@
 
   const chosen = defineModel("font", { type: String, default: "" })
 
-  const options = computed(() => previewFonts({ target: props.target, details: props.details }, props.fonts).map(font => ({ value: font.id, label: fullName(font, props.fonts), image: fontThumbnail(font) })))
+  const options = computed(() => fontOptions(previewFonts({ target: props.target, details: props.details }, props.fonts), props.fonts))
   const font = computed(() => options.value.some(option => option.value === chosen.value) ? chosen.value : options.value[0]?.value ?? "")
 
   const { line, problem, pending } = usePreviewLine(() => [props.target, JSON.stringify(props.details), props.url, props.text, font.value], build)

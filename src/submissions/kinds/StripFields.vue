@@ -8,13 +8,13 @@
   import Segments from "../../components/Segments.vue"
   import { fetched } from "../../lib/submissions/api.js"
   import { fontFolder, fullName, sheetOwner } from "../../lib/font/font.js"
-  import { popular } from "../../lib/state/stats.js"
   import { texturesList } from "../../lib/submissions/kinds/fontAsset.js"
   import { submissionContext } from "../../lib/submissions/kinds/index.js"
   import { DEFAULT_FONT } from "../../lib/settings/defaults.js"
   import { STRIP_LIMITS, fitOffset, fitProblems, fontMeasure, heightList, setIdOf, setIds, setName, setUsers, sharedHeights, stripOwners, stripSnap, stripTarget, targetRows } from "../../lib/submissions/kinds/stripFit.js"
   import { SUBMISSION_LIMITS, pngProblem } from "../../lib/submissions/submissions.js"
   import { fontThumbnail } from "../../lib/state/ui.js"
+  import { popularFontOptions } from "./fontOptions.js"
   import VariantOf from "./VariantOf.vue"
 
   const DEFAULT_SET = "minecraft-ten"
@@ -41,7 +41,7 @@
   const owners = computed(() => stripOwners(props.fonts))
   const sets = computed(() => setIds(props.fonts))
   const chosen = computed(() => stripTarget(props.target))
-  const fontOptions = computed(() => popular(owners.value, font => font.id, font => fullName(font, props.fonts), [DEFAULT_FONT]).map(font => ({ value: font.id, label: fullName(font, props.fonts), image: fontThumbnail(font) })))
+  const fontOptions = computed(() => popularFontOptions(owners.value, props.fonts))
   const setOptions = computed(() => sets.value.map(id => ({ value: id, label: setName(id) })))
   const users = computed(() => chosen.value.kind === "set" ? setUsers(props.fonts, chosen.value.id).map(use => fullName(use.font, props.fonts)) : [])
   const shownOn = computed(() => chosen.value.kind === "set" ? setUsers(props.fonts, chosen.value.id)[0]?.font : owners.value.find(item => item.id === chosen.value.id))
