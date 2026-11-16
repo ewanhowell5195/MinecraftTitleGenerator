@@ -5,7 +5,7 @@ import { depthShade, flattenFonts, fullOrder, hasMarks, parseMask, scanMask, sha
 import { drawSheet } from "../../src/lib/font/sheet.js"
 import { DEFAULT_ORDER } from "../../src/lib/font/order.js"
 import { defaultDepth } from "../../src/lib/settings/defaults.js"
-import { bandLayouts, layerCell } from "../../src/lib/font/flatSheet.js"
+import { bandLayouts, independentLayers, layerCell } from "../../src/lib/font/flatSheet.js"
 import { readJson, readPng } from "../../generator/common.js"
 import { publishedFonts, readMask } from "../../generator/fonts.js"
 
@@ -434,10 +434,11 @@ describe("published fonts", () => {
       const depth = defaultDepth(entry)
       const density = readJson(path.join(folder, "textures.json")).textures.flat?.density ?? 1
       const flat = readPng(path.join(folder, "textures", "flat.png"))
-      const bands = layers ? bandLayouts(cells, capHeight, depth, layers) : [{ layout: sheetLayout(cells, capHeight, depth), offset: 0 }]
+      const independent = independentLayers(entry)
+      const bands = layers ? bandLayouts(cells, capHeight, depth, layers, independent) : [{ layout: sheetLayout(cells, capHeight, depth), offset: 0 }]
       for (const [layer, band] of bands.entries()) {
         for (const [glyph, at] of band.layout) {
-          const own = layers ? layerCell(glyph, layer) : glyph
+          const own = layers ? layerCell(glyph, layer, independent) : glyph
           assert.deepEqual(solidMask(flat.data, flat.width, density, at.x + (own.left ?? 0), at.top + glyph.top - own.top + band.offset, own.width, own.height), own.mask, `${entry.id} ${glyph.char} layer ${layer + 1}`)
         }
       }

@@ -100,6 +100,15 @@
     "editor": { "width": 36, "grid": 4 }
   },
   {
+    "id": "minecraft-ten-inset",
+    "authors": ["Ewan Howell"],
+    "characterSpacing": -8,
+    "terminatorSpace": true,
+    "allFaces": true,
+    "layerDepth": "independent",
+    "editor": { "width": 36, "grid": 4 }
+  },
+  {
     "id": "minecraft-dungeons",
     "authors": ["ShrimpSnail", "Ewan Howell"],
     "strips": ["minecraft-ten"],

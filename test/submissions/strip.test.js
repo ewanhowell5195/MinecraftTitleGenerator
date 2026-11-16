@@ -52,7 +52,7 @@ describe("strip shapes", () => {
     const ctx = siteContext()
     for (const font of published.filter(item => !item.inherits)) {
       const { cells, capHeight, layers } = readMask(font, published)
-      const stacked = layers?.length > 1 ? stripLayout({}, { cells, capHeight, layers }, defaultDepth(font), 0).total : null
+      const stacked = layers?.length > 1 ? stripLayout({}, { ...font, cells, capHeight, layers }, defaultDepth(font), 0).total : null
       assert.deepEqual(await fontMeasure(ctx, font), { range: stripRange({ cells, capHeight }), capHeight, depth: defaultDepth(font), stacked })
     }
   })
