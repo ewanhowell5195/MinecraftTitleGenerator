@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, test } from "node:test"
 import assert from "node:assert/strict"
 import { context, details, hook, signIn } from "../helpers/server.js"
-import { closed, db, edit, emails, gh, resend, restore, send, textureServer, waiting } from "../helpers/submissionServer.js"
+import { closed, db, edit, emails, gh, holdGitHub, resend, restore, revisionOf, send, textureServer, waiting } from "../helpers/submissionServer.js"
 
 const { accountDetails } = await import("../../src/server/accounts.js")
 const { listSubmissions, submissionDetails, withdrawSubmission } = await import("../../src/server/submissions/index.js")
@@ -28,8 +28,8 @@ describe("reviewing on the site", () => {
     return { status: response.status, ...await response.json() }
   }
 
-  async function review(cookie, id, action, text) {
-    const response = await reviewSubmission(context(`/api/submissions/${id}/review`, { method: "POST", body: JSON.stringify({ action, comment: text }), cookie, params: { id: String(id) } }))
+  async function review(cookie, id, action, text, revision = revisionOf(id)) {
+    const response = await reviewSubmission(context(`/api/submissions/${id}/review`, { method: "POST", body: JSON.stringify({ action, comment: text, revision }), cookie, params: { id: String(id) } }))
     return { status: response.status, ...await response.json() }
   }
 
@@ -198,12 +198,13 @@ describe("reviewing on the site", () => {
     assert.equal((await review(cookie, id, "merge")).status, 403)
     assert.equal((await (await reviewState(context(`/api/submissions/${id}/review`, { cookie: reviewer, params: { id: String(id) } }))).json()).state, "clean")
     gh.pulls.get(1).mergeable_state = "unstable"
-    const early = await review(reviewer, id, "merge")
+    const seen = (await details(id, reviewer)).updatedAt
+    const early = await review(reviewer, id, "merge", undefined, seen)
     assert.equal(early.status, 409)
     assert.match(early.error, /Wait for its checks to finish/)
     assert.equal((await details(id)).status, "open")
     gh.pulls.get(1).mergeable_state = "clean"
-    const merged = await review(reviewer, id, "merge")
+    const merged = await review(reviewer, id, "merge", undefined, seen)
     assert.equal(merged.status, 200)
     assert.equal(merged.outcome, "published")
     assert.equal(await details(id), undefined)
@@ -282,6 +283,47 @@ describe("reviewing on the site", () => {
     assert.deepEqual(await news(cookie), [])
     gh.failing.clear()
     assert.equal((await review(reviewer, id, "decline")).status, 200)
+  })
+
+  test("a merge of a version the reviewer didn't see is refused", async () => {
+    const reviewer = await admin()
+    const cookie = await signIn()
+    const { id } = await send(cookie)
+    const seen = (await details(id, reviewer)).updatedAt
+    assert.equal((await edit(cookie, id, { name: "Shiny Gold" })).status, 200)
+    const merged = await review(reviewer, id, "merge", undefined, seen)
+    assert.equal(merged.status, 409)
+    assert.match(merged.error, /changed after you opened it/)
+    assert.equal(gh.pulls.get(1).state, "open")
+    assert.equal((await details(id)).status, "open")
+    assert.equal((await review(reviewer, id, "merge")).status, 200)
+  })
+
+  test("a merge while an edit is being pushed is refused", async () => {
+    const reviewer = await admin()
+    const cookie = await signIn()
+    const { id } = await send(cookie)
+    const hold = holdGitHub((method, url) => method === "POST" && url.endsWith("/git/commits"))
+    const editing = edit(cookie, id, { name: "Shiny Gold" })
+    await hold.arrived
+    const seen = (await details(id, reviewer)).updatedAt
+    const merged = await review(reviewer, id, "merge", undefined, seen)
+    assert.equal(merged.status, 409)
+    assert.match(merged.error, /changed after you opened it/)
+    hold.release()
+    assert.equal((await editing).status, 200)
+    assert.equal(gh.pulls.get(1).state, "open")
+    assert.equal((await review(reviewer, id, "merge", undefined, seen)).status, 409)
+    assert.equal((await review(reviewer, id, "merge")).status, 200)
+    assert.equal(gh.pulls.get(1).title, "Shiny Gold texture for Minecraft Ten")
+  })
+
+  test("a review has to say which version it was made on", async () => {
+    const reviewer = await admin()
+    const cookie = await signIn()
+    const { id } = await send(cookie)
+    assert.equal((await review(reviewer, id, "decline", "No", null)).status, 400)
+    assert.equal(gh.pulls.get(1).state, "open")
   })
 
   test("two reviews at once only close it once", async () => {
@@ -473,7 +515,7 @@ describe("emailing notifications", () => {
   })
 
   async function review(cookie, id) {
-    await reviewSubmission(context(`/api/submissions/${id}/review`, { method: "POST", body: JSON.stringify({ action: "merge" }), cookie, params: { id: String(id) } }))
+    await reviewSubmission(context(`/api/submissions/${id}/review`, { method: "POST", body: JSON.stringify({ action: "merge", revision: revisionOf(id) }), cookie, params: { id: String(id) } }))
     await Promise.all(waiting)
   }
 })

@@ -49,7 +49,7 @@
     busy.value = true
     error.value = ""
     try {
-      emit("done", await reviewSubmission(props.item.id, action, reason.value))
+      emit("done", await reviewSubmission(props.item.id, action, reason.value, props.item.updatedAt))
     } catch (err) {
       await check()
       error.value = err.message

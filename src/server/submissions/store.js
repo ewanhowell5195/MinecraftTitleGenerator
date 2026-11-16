@@ -9,6 +9,7 @@ import { branchOf, pullLink } from "./pulls.js"
 export const MISSING = "This submission doesn't exist."
 export const SIGN_IN = "Sign in to send submissions."
 export const CLOSED = "This submission has already been reviewed, so it can't be changed."
+export const CHANGED = "This submission was changed after you opened it, by someone else or in another tab. Reload the page to see the latest version."
 const PREVIEW_HOST = "minecrafttitlegenerator.pages.dev"
 export const SHOWN = "id, kind, target, asset, name, credit, notes, details, file, status, pull, created_at AS createdAt, updated_at AS updatedAt"
 export const OWNER = "(SELECT users.provider || ':' || users.provider_id FROM users WHERE users.id = submissions.user_id) AS owner, (SELECT users.name FROM users WHERE users.id = submissions.user_id) AS ownerName, (SELECT users.provider FROM users WHERE users.id = submissions.user_id) AS ownerProvider"
@@ -62,12 +63,12 @@ export function shown(env, row, user) {
   return { ...rest, details: JSON.parse(details), pullUrl: row.pull ? pullLink(env, row) : null, previewUrl: building ? `https://${branchOf(row.id).replace(/\//g, "-")}.${PREVIEW_HOST}` : null, filesUrl: building ? `https://raw.githubusercontent.com/${repository(env)}/refs/heads/${branchOf(row.id)}/public/` : null, mine: !!user && user.id === owner }
 }
 
-export function claim(env, id, status) {
-  return env.DB.prepare("UPDATE submissions SET status = ?, updated_at = ? WHERE id = ? AND status = 'open' RETURNING user_id AS userId").bind(status, Date.now(), id).first()
+export function claim(env, id, status, revision = null) {
+  return env.DB.prepare("UPDATE submissions SET status = ?1, updated_at = ?2 WHERE id = ?3 AND status = 'open' AND (?4 IS NULL OR updated_at = ?4) RETURNING user_id AS userId").bind(status, Date.now(), id, revision).first()
 }
 
-export function reopen(env, id) {
-  return env.DB.prepare("UPDATE submissions SET status = 'open' WHERE id = ?").bind(id).run()
+export function reopen(env, row) {
+  return env.DB.prepare("UPDATE submissions SET status = 'open', updated_at = ABS(?) WHERE id = ?").bind(row.updatedAt, row.id).run()
 }
 
 export function removing(env, id) {

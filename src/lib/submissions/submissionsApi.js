@@ -56,8 +56,8 @@ export async function reviewState(id) {
   return (await called(`${API}/${id}/review`)).state
 }
 
-export function reviewSubmission(id, action, comment = "") {
-  return called(`${API}/${id}/review`, jsonOptions("POST", { action, comment }))
+export function reviewSubmission(id, action, comment, revision) {
+  return called(`${API}/${id}/review`, jsonOptions("POST", { action, comment, revision }))
 }
 
 export async function reviewQueue() {

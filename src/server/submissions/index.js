@@ -9,12 +9,11 @@ import { anonymiseComments, cacheKey, cachedThread, forgetFresh, noteEdit } from
 import { readForm } from "./form.js"
 import { emailing, notify } from "./notifications.js"
 import { anonymisePull, closePull, deleteBranch, onGitHub, syncSubmission, uploadFile, withFiles } from "./pulls.js"
-import { CLOSED, MISSING, OWNER, SHOWN, SIGN_IN, claim, findSubmission, ownSubmission, removing, reopen, reviewerOf, shown, withCredit } from "./store.js"
+import { CHANGED, CLOSED, MISSING, OWNER, SHOWN, SIGN_IN, claim, findSubmission, ownSubmission, removing, reopen, reviewerOf, shown, withCredit } from "./store.js"
 
 const LASTING_SECONDS = 31536000
 const NEXT_ID = "MAX(COALESCE((SELECT MAX(id) FROM submissions), 0), COALESCE((SELECT MAX(id) FROM deleted_submissions), 0)) + 1"
 const EDITABLE = ["kind", "target", "name", "credit", "notes", "details", "file"]
-const CHANGED = "This submission was changed after you opened it, by someone else or in another tab. Reload the page to see the latest version."
 
 async function openedSubmission(context, user, { clean, fonts, bytes, files }) {
   const { env } = context
@@ -92,7 +91,7 @@ export const withdrawSubmission = guarded(async context => {
   try {
     if (row.pull) await onGitHub(() => closePull(env, row.pull, "Withdrawn by the person who sent it. Reopen this pull request to accept it anyway."))
   } catch (err) {
-    await reopen(env, row.id)
+    await reopen(env, row)
     throw err
   }
   await env.DB.batch(removing(env, row.id).concat(forgetEmail(env, withdrawn.userId), forgetUnusedUser(env, user)))

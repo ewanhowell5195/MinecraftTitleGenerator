@@ -32,6 +32,10 @@ export function form(fields = {}, image = pngOf(FLAT.width, FLAT.height)) {
 export const send = (cookie, fields, image) => sendForm(cookie, form(fields, image))
 export const edit = (cookie, id, fields, image = null) => editForm(cookie, id, form(fields, image))
 
+export function revisionOf(id) {
+  return db.prepare("SELECT updated_at FROM submissions WHERE id = ?").get(id)?.updated_at
+}
+
 export function holdGitHub(matches) {
   const handle = gh.handle
   let held = false

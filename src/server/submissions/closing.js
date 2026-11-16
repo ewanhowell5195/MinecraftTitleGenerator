@@ -4,10 +4,10 @@ import { NOTE_LENGTH, clipped, emailing } from "./notifications.js"
 import { deleteBranch, pullLink } from "./pulls.js"
 import { claim, publishedFonts, removing } from "./store.js"
 
-export async function startClosing(context, row, merged) {
+export async function startClosing(context, row, merged, revision = null) {
   const status = merged ? "published" : "rejected"
   const link = merged ? publishedTitle({ ...row, details: JSON.parse(row.details) }, await publishedFonts(context)) : pullLink(context.env, row)
-  const closed = await claim(context.env, row.id, status)
+  const closed = await claim(context.env, row.id, status, revision)
   return closed && { status, link, userId: closed.userId }
 }
 
