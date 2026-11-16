@@ -1,5 +1,6 @@
 <script setup>
   import Button from "../components/Button.vue"
+  import ToggleSwitch from "../components/ToggleSwitch.vue"
 
   defineProps({
     title: { type: String, default: "" },
@@ -18,10 +19,7 @@
       <div class="spacer"></div>
       <Button ghost v-if="modified" @click="$emit('reset')">Reset</Button>
       <slot name="actions"></slot>
-      <label v-if="enabled !== null" class="toggle-switch">
-        <input type="checkbox" v-model="enabled" :aria-label="title">
-        <span></span>
-      </label>
+      <ToggleSwitch v-if="enabled !== null" tag="label" :label="title" v-model="enabled" />
     </header>
     <div class="flow" v-if="enabled !== false">
       <slot></slot>

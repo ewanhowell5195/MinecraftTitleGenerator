@@ -1,4 +1,6 @@
 <script setup>
+  import ToggleSwitch from "./ToggleSwitch.vue"
+
   defineProps({
     label: { type: String, required: true },
     hint: { type: String, default: "" }
@@ -15,10 +17,7 @@
       <span class="label">{{ label }}</span>
       <span v-if="hint" class="hint">{{ hint }}</span>
     </span>
-    <span class="toggle-switch">
-      <input type="checkbox" v-model="value" @change="$emit('change')">
-      <span></span>
-    </span>
+    <ToggleSwitch v-model="value" @change="$emit('change')" />
   </label>
 </template>
 
