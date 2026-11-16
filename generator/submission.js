@@ -2,10 +2,10 @@ import { execFileSync } from "node:child_process"
 import fs from "node:fs"
 import path from "node:path"
 import { ROOT } from "./fonts.js"
-import * as font from "./submissionKinds/font.js"
-import * as fontAsset from "./submissionKinds/fontAsset.js"
-import * as shape from "./submissionKinds/shape.js"
-import * as strip from "./submissionKinds/strip.js"
+import * as font from "./submissionSteps/font.js"
+import * as fontAsset from "./submissionSteps/fontAsset.js"
+import * as shape from "./submissionSteps/shape.js"
+import * as strip from "./submissionSteps/strip.js"
 
 const STEPS = [font, fontAsset, strip, shape]
 

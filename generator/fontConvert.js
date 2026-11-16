@@ -1,14 +1,14 @@
 import fs from "node:fs"
 import path from "node:path"
-import { flattenFonts } from "../../src/lib/font.js"
-import { titleCase } from "../../src/lib/names.js"
-import { defaultDepth } from "../../src/lib/settings.js"
-import { font as fontKind } from "../../src/lib/submissionKinds/font.js"
-import { HOLDING_FOLDER, finalEntry, holdingPath, ownFont, submittedFont } from "../../src/lib/submissionKinds/fontBuild.js"
-import { submissionContext } from "../../src/lib/submissionKinds/index.js"
-import { pngOf, readJson, readPng, writeJson, writePng } from "../common.js"
-import { flatSheet, writeStarterTextures } from "../flat.js"
-import { fontDir, publicDir } from "../fonts.js"
+import { flattenFonts } from "../src/lib/font.js"
+import { titleCase } from "../src/lib/names.js"
+import { defaultDepth } from "../src/lib/settings.js"
+import { font as fontKind } from "../src/lib/submissionKinds/font.js"
+import { HOLDING_FOLDER, finalEntry, holdingPath, ownFont, submittedFont } from "../src/lib/submissionKinds/fontBuild.js"
+import { submissionContext } from "../src/lib/submissionKinds/index.js"
+import { pngOf, readJson, readPng, writeJson, writePng } from "./common.js"
+import { flatSheet, writeStarterTextures } from "./flat.js"
+import { fontDir, publicDir } from "./fonts.js"
 
 function rawEntry(list, id) {
   for (const entry of list) {

@@ -7,7 +7,7 @@ import { fontScene, fontThumbnails } from "../src/lib/fontThumbnails.js"
 import { defaultDepth } from "../src/lib/settings.js"
 import { cli, inParallel, readPng, writePng } from "./common.js"
 import { ROOT, fontDir, fontTextureList, publicDir, publishedFonts, publishedModels, publishedShapes, readMask } from "./fonts.js"
-import { modelThumbnails } from "./submissionKinds/shape.js"
+import { modelThumbnails } from "./modelView.js"
 
 function premultiply(image) {
   const png = new PNG({ width: image.width, height: image.height })
