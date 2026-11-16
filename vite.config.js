@@ -16,7 +16,7 @@ const STYLE_SCOPES = {
   "src/styles/tool.css": "tool",
   "src/fontEditor/editor.css": "editor",
   "src/submissions/submissions.css": "submissions",
-  "src/site/home/home.css": "site",
+  "src/styles/site.css": "site",
   "src/site/legal/legal.css": "site",
   "src/site/credits/credits.css": "site"
 }

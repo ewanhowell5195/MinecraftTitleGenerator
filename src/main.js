@@ -9,7 +9,7 @@ import "./styles/controls.css"
 import "./styles/tool.css"
 import "./fontEditor/editor.css"
 import "./submissions/submissions.css"
-import "./site/home/home.css"
+import "./styles/site.css"
 import "./site/legal/legal.css"
 import "./site/credits/credits.css"
 
