@@ -2,14 +2,11 @@ import { cameraChanges, fullCamera } from "../lib/settings/camera.js"
 import { LIMITS } from "../lib/core/limits.js"
 import { decodeTitle } from "../lib/link/linkformat.js"
 import { capitalWords } from "../lib/core/names.js"
-import { pictureUrl } from "../lib/core/pictures.js"
 import { parseSearch } from "../lib/link/presetSearch.js"
 import { shareableTitle } from "../lib/link/titleFacts.js"
 import { blockedWordProblem, shortNameProblem } from "../lib/core/wording.js"
 import { USER_ROW, activeUser, forgetUnusedUser, requireUser, saveUser, signedInUser } from "./accounts.js"
 import { nextDay, returnSlot, takeSlot, today } from "./daily.js"
-import { SITE_NAME, pageImage } from "../lib/core/head.js"
-import { pageWithDetails } from "./head.js"
 import { INVALID, Refusal, cachedAtEdge, guarded, hashed, idParam, jsonBody, randomToken, reply, setting, textField, unpublishedName } from "./http.js"
 
 const SORTS = { week: "week DESC, downloads DESC, id DESC", popular: "downloads DESC, id DESC", top: "rating DESC, votes DESC, id DESC", new: "created_at DESC, id DESC", needs: "votes, id" }
@@ -17,8 +14,8 @@ const MATCHES = "lower(name) LIKE ?1 ESCAPE '\\' OR lower(text) LIKE ?1 ESCAPE '
 const DAY = 86400000
 const WEEK_DAYS = 7
 const FIRST_PAGES = Object.keys(SORTS).map(sort => `?sort=${sort}&offset=0`)
-const MISSING = "This preset doesn't exist."
-const STAT_COLUMNS = "downloads, votes, rating, created_at AS createdAt, (SELECT users.name FROM users WHERE users.id = presets.user_id) AS author, (SELECT users.provider FROM users WHERE users.id = presets.user_id) AS authorProvider"
+export const MISSING = "This preset doesn't exist."
+export const STAT_COLUMNS = "downloads, votes, rating, created_at AS createdAt, (SELECT users.name FROM users WHERE users.id = presets.user_id) AS author, (SELECT users.provider FROM users WHERE users.id = presets.user_id) AS authorProvider"
 const COLUMNS = `id, code, fingerprint, name, text, ${STAT_COLUMNS}`
 
 // sqlite reuses the rowid of a deleted newest row, which would repoint old links and browsers' vote records
@@ -26,7 +23,7 @@ export const NEXT_ID = "MAX(COALESCE((SELECT MAX(id) FROM presets), 0), COALESCE
 const SCORES_RESET = ", downloads = 0, ups = 0, votes = 0, rating = -1"
 const UPS = "(SELECT COUNT(*) FROM preset_votes WHERE preset_id = presets.id AND value = 1)"
 const VOTES = "(SELECT COUNT(*) FROM preset_votes WHERE preset_id = presets.id)"
-const SCORES_COUNTED = `ups = ${UPS}, votes = ${VOTES}, rating = CASE WHEN ${VOTES} >= ${LIMITS.minVotes} THEN ${UPS} * 5.0 / ${VOTES} ELSE -1 END`
+export const SCORES_COUNTED = `ups = ${UPS}, votes = ${VOTES}, rating = CASE WHEN ${VOTES} >= ${LIMITS.minVotes} THEN ${UPS} * 5.0 / ${VOTES} ELSE -1 END`
 
 function canonical(value) {
   if (Array.isArray(value)) return value.map(canonical)
@@ -49,7 +46,7 @@ function network(ip) {
   return `${start.concat(gap, end).slice(0, 4).map(group => parseInt(group, 16).toString(16)).join(":")}::/64`
 }
 
-async function hashedIp({ request, env }) {
+export async function hashedIp({ request, env }) {
   const salt = setting(env, "IP_SALT")
   const ip = request.headers.get("CF-Connecting-IP")
   if (!ip) throw new Error("the request has no CF-Connecting-IP header")
@@ -67,17 +64,17 @@ function checkWords(label, text) {
   if (problem) throw new Refusal(400, problem)
 }
 
-async function requirePreset(env, id, condition = "") {
+export async function requirePreset(env, id, condition = "") {
   const found = await env.DB.prepare(`SELECT token_hash, (SELECT users.provider || ':' || users.provider_id FROM users WHERE users.id = presets.user_id) AS owner FROM presets WHERE id = ?${condition}`).bind(id).first()
   if (!found) throw new Refusal(404, MISSING)
   return found
 }
 
-function rated(row) {
+export function rated(row) {
   return { ...row, rating: row.rating < 0 ? null : row.rating }
 }
 
-function accountHash(env, user) {
+export function accountHash(env, user) {
   return hashed(`${env.IP_SALT}:${user.id}`)
 }
 
@@ -144,7 +141,7 @@ async function randomPresets({ env }, { conditions, values }) {
   return (await env.DB.prepare(`${select} ORDER BY RANDOM() LIMIT ${LIMITS.page}`).all()).results
 }
 
-function dayNumber() {
+export function dayNumber() {
   return Math.floor(Date.now() / DAY)
 }
 
@@ -178,55 +175,6 @@ export const getPreset = guarded(async context => {
     return reply(200, { preset: rated(preset) })
   })
 })
-
-export function presetPageDetails(name, id) {
-  if (name === null) return { title: `Presets | ${SITE_NAME}`, description: "Browse Minecraft style titles other people have shared, and open any of them in the generator to make your own!", path: "/app/presets" }
-  return { title: `${name} | ${SITE_NAME}`, description: `Open this title in the ${SITE_NAME} to change it and make your own!`, path: `/app/presets/${id}` }
-}
-
-export function linkedCode(url) {
-  const code = url.searchParams.get("title")
-  return code && /^[0-9A-Za-z_-]+$/.test(code) && code.length <= LIMITS.code ? code : null
-}
-
-export function linkedTitleDetails(url, code, canonical) {
-  return { title: SITE_NAME, description: `Open this title in the ${SITE_NAME} to change it and make your own!`, url: url.href, canonical: `${url.origin}${canonical}`, image: pictureUrl({ code }, "png"), spaced: true }
-}
-
-export function presetDetails(origin, preset, id) {
-  const { title, description, path } = presetPageDetails(preset?.name ?? null, id)
-  if (preset?.fingerprint) return { title, description, url: `${origin}${path}`, image: pictureUrl(preset, "png"), spaced: true }
-  const { path: image, ...size } = pageImage("presets", "Presets")
-  return { title, description, url: `${origin}${path}`, ...size, image: `${origin}${image}` }
-}
-
-function linkedTitlePage(page, url, code, canonical) {
-  return pageWithDetails(page, linkedTitleDetails(url, code, canonical))
-}
-
-function appShell({ env, request }) {
-  return env.ASSETS.fetch(new URL("/app/", request.url))
-}
-
-export async function presetPage(context) {
-  const { env, params, request } = context
-  const page = await appShell(context)
-  const address = new URL(request.url)
-  const code = params.id?.length ? null : linkedCode(address)
-  if (code) return linkedTitlePage(page, address, code, "/app/presets")
-  const id = Number(params.id?.[0])
-  const known = params.id?.length === 1 && Number.isSafeInteger(id) && id > 0
-  const preset = known ? await env.DB.prepare("SELECT name, fingerprint FROM presets WHERE id = ? AND shared = 1").bind(id).first() : null
-  return pageWithDetails(page, presetDetails(address.origin, preset, id))
-}
-
-export async function appPage(context) {
-  const { next, request } = context
-  const url = new URL(request.url)
-  const code = linkedCode(url)
-  if (!code) return next()
-  return linkedTitlePage(await appShell(context), url, code, "/app/")
-}
 
 async function hiddenPreset({ request, env }, body, user) {
   if (user) return env.DB.prepare(`SELECT id, fingerprint FROM presets WHERE user_id = ${USER_ROW} AND code = ? AND shared = 0`).bind(user.provider, user.providerId, body.code).first()
@@ -367,14 +315,6 @@ export const deletePreset = guarded(async context => {
   return reply(200, { deleted: true })
 })
 
-export const presetStats = guarded(async ({ request, env }) => {
-  const ids = (new URL(request.url).searchParams.get("ids") ?? "").split(",").filter(Boolean).map(Number)
-  if (ids.length > LIMITS.savedPresets || ids.some(id => !Number.isSafeInteger(id) || id < 1)) throw new Refusal(400, INVALID)
-  if (!ids.length) return reply(200, { stats: {} })
-  const { results } = await env.DB.prepare(`SELECT id, ${STAT_COLUMNS} FROM presets WHERE shared = 1 AND id IN (${ids.join(", ")})`).all()
-  return reply(200, { stats: Object.fromEntries(results.map(row => [row.id, rated(row)])) })
-})
-
 export const claimPresets = guarded(async context => {
   const { request, env } = context
   const user = await requireUser(context, "Sign in to move these presets to your account.", activeUser)
@@ -400,36 +340,4 @@ export const submissionUsage = guarded(async context => {
   const ids = user ? (await env.DB.prepare(`SELECT id FROM presets WHERE user_id = ${USER_ROW} AND shared = 1`).bind(user.provider, user.providerId).all()).results.map(preset => preset.id) : []
   const votes = (await env.DB.prepare("SELECT preset_id, value FROM preset_votes WHERE ip_hash = ?").bind(user ? await accountHash(env, user) : ip).all()).results
   return reply(200, { used: await usedToday(env, user, ip), limit: LIMITS.perDay, unlimited: await hasUnlimitedShares(env, user), resetsAt: nextDay(), shared: ids, owned: user ? ids : [], votes: Object.fromEntries(votes.map(vote => [vote.preset_id, vote.value])) })
-})
-
-export const votePreset = guarded(async context => {
-  const { request, env, params } = context
-  const id = idParam(params, MISSING)
-  const { value } = await jsonBody(request)
-  if (value !== 1 && value !== -1) throw new Refusal(400, "That isn't a valid vote.")
-  const { owner } = await requirePreset(env, id, " AND shared = 1")
-  const ip = await hashedIp(context)
-  const user = await signedInUser(context)
-  if (user && owner === user.id) throw new Refusal(403, "You can't vote on a preset you shared.")
-  const voter = user ? await accountHash(env, user) : ip
-  const [, updated] = await env.DB.batch([
-    env.DB.prepare("INSERT INTO preset_votes (preset_id, ip_hash, value) VALUES (?, ?, ?) ON CONFLICT (preset_id, ip_hash) DO UPDATE SET value = excluded.value").bind(id, voter, value),
-    env.DB.prepare(`UPDATE presets SET ${SCORES_COUNTED} WHERE id = ? RETURNING votes, rating`).bind(id)
-  ])
-  return reply(200, { ...rated(updated.results[0]), vote: value })
-})
-
-export const countDownload = guarded(async context => {
-  const { env, params } = context
-  const id = idParam(params, MISSING)
-  await requirePreset(env, id, " AND shared = 1")
-  const ip = await hashedIp(context)
-  const { meta } = await env.DB.prepare("INSERT OR IGNORE INTO preset_downloads (preset_id, ip_hash) VALUES (?, ?)").bind(id, ip).run()
-  if (meta.changes) {
-    await env.DB.batch([
-      env.DB.prepare("UPDATE presets SET downloads = downloads + 1 WHERE id = ?").bind(id),
-      env.DB.prepare("INSERT INTO preset_daily_downloads (day, preset_id, count) VALUES (?, ?, 1) ON CONFLICT (day, preset_id) DO UPDATE SET count = count + 1").bind(dayNumber(), id)
-    ])
-  }
-  return reply(200, { counted: meta.changes > 0 })
 })

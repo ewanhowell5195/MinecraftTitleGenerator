@@ -6,7 +6,7 @@ import { PAGES } from "./src/site/pages.js"
 import { creditPeople, creditsHtml } from "./src/site/credits/build.js"
 import { escaped } from "./src/lib/core/html.js"
 import { shareTags, withoutShareTags } from "./src/lib/core/head.js"
-import { linkedCode, linkedTitleDetails, presetDetails } from "./src/server/presets.js"
+import { linkedCode, linkedTitleDetails, presetDetails } from "./src/server/presetPages.js"
 import { pageAt, pageFiles, shellHtml } from "./src/site/shell.js"
 
 const LIVE = "https://mctitlegenerator.com"

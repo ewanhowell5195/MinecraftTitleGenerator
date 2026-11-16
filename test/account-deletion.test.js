@@ -8,7 +8,8 @@ import { context, hook, sendForm, serverEnv, signIn as signInAs } from "./helper
 
 const { accountDetails } = await import("../src/server/accounts.js")
 const { deleteAccount } = await import("../src/server/accountDeletion.js")
-const { claimPresets, submitPreset, votePreset } = await import("../src/server/presets.js")
+const { claimPresets, submitPreset } = await import("../src/server/presets.js")
+const { votePreset } = await import("../src/server/presetScores.js")
 const { addSaved } = await import("../src/server/saved.js")
 const { addComment } = await import("../src/server/submissions/comments.js")
 const { createSubmission } = await import("../src/server/submissions/index.js")

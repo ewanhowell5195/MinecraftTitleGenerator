@@ -4,7 +4,9 @@ import { d1, database } from "./helpers/server.js"
 import { assets } from "./helpers/site.js"
 
 const { LIMITS } = await import("../src/lib/core/limits.js")
-const { checkTitle, claimPresets, countDownload, deletePreset, getPreset, listPresets, presetPageDetails, presetStats, renamePreset, replacePreset, submissionUsage, submitPreset, unsharePreset, votePreset } = await import("../src/server/presets.js")
+const { checkTitle, claimPresets, deletePreset, getPreset, listPresets, renamePreset, replacePreset, submissionUsage, submitPreset, unsharePreset } = await import("../src/server/presets.js")
+const { countDownload, presetStats, votePreset } = await import("../src/server/presetScores.js")
+const { presetPageDetails } = await import("../src/server/presetPages.js")
 const { titleFacts } = await import("../src/lib/link/titleFacts.js")
 const { accountDetails, finishSignIn, receiveSignIn, signOut, startSignIn } = await import("../src/server/accounts.js")
 const { addSaved, changeSaved, listSaved, removeSaved } = await import("../src/server/saved.js")

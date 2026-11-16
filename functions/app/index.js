@@ -1,3 +1,3 @@
-import { appPage } from "../../src/server/presets.js"
+import { appPage } from "../../src/server/presetPages.js"
 
 export const onRequestGet = appPage

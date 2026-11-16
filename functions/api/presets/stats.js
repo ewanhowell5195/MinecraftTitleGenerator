@@ -1,3 +1,3 @@
-import { presetStats } from "../../../src/server/presets.js"
+import { presetStats } from "../../../src/server/presetScores.js"
 
 export const onRequestGet = presetStats

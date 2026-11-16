@@ -1,3 +1,3 @@
-import { votePreset } from "../../../../src/server/presets.js"
+import { votePreset } from "../../../../src/server/presetScores.js"
 
 export const onRequestPost = votePreset

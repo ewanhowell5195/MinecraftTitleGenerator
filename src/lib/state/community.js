@@ -11,7 +11,7 @@ const STORAGE = "minecraft-title-community"
 const PAGE_LIFE = 30 * 60000
 const POOL_RETRY = 60000
 const PAGES_KEPT = 60
-// must cover EDGE_SECONDS in src/server/presets.js plus PAGE_LIFE
+// must cover EDGE_SECONDS in src/server/http.js plus PAGE_LIFE
 const CHANGE_LIFE = 60 * 60000
 
 export const usage = ref(null)
