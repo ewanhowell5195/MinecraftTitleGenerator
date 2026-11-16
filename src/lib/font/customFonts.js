@@ -1,7 +1,7 @@
 import { fontTextures } from "../texture/assets.js"
 import { pixelsOf } from "../texture/canvas.js"
 import { defaultBorder, defaultDepth } from "../settings/defaults.js"
-import { loadImage } from "./font.js"
+import { fontFolder, loadImage } from "./font.js"
 import { GENERATED_EDGE_OVERLAYS, withGenerated } from "../texture/overlays/settings.js"
 import { CUSTOM_FONT } from "../settings/settings.js"
 import { SILHOUETTE_TEXT } from "../geometry/shapes.js"
@@ -129,7 +129,7 @@ async function build(id, source) {
     const tools = await import("./meshGlyphs.js")
     entry.mesh = { glyphs: tools.glyphMeshes(outlines), tools }
   }
-  const folder = `font/${id}`
+  const folder = fontFolder({ id })
   serveFile(`${folder}/font.png`, pngUrl(buildSheet(font)))
   serveFile(`${folder}/textures/flat.png`, pngUrl(flatTexture(font, mesh ? "all" : outlines ? "strips" : null)))
   const own = sample ? "image" : "flat"
