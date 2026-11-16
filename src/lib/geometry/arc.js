@@ -127,7 +127,7 @@ export function arcLayout(font, sheet, words, word, options) {
   const width = Math.max(1, x)
   const entries = Object.values(glyphs)
   const wordStart = Math.min(...entries.map(entry => entry.glyph.placedX))
-  const wordWidth = Math.max(...entries.map(entry => entry.glyph.placedX + entry.width)) - wordStart
+  const wordWidth = entries.length ? Math.max(...entries.map(entry => entry.glyph.placedX + entry.width)) - wordStart : 0
   for (const entry of entries) entry.glyph.wordX = entry.glyph.placedX - wordStart
   return {
     placed: items,

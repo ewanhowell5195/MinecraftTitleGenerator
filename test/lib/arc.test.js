@@ -393,6 +393,7 @@ describe("special glyphs", () => {
     assert.deepEqual(laid.reach, { top: 0, bottom: 0 })
     assert.deepEqual(laid.sheet.tallest, { top: 0, bottom: 0 })
     assert.equal(laid.sheet.width, 1)
+    assert.equal(laid.sheet.wordWidth, 0)
     assert.deepEqual(laid.line, { minX: 0, maxX: 4, minY: 0, maxY: CAP })
   })
 
