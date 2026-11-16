@@ -1,7 +1,3 @@
-<script>
-  const kerningFilter = ref("all")
-</script>
-
 <script setup>
   import { computed, ref } from "vue"
   import Button from "../components/Button.vue"
@@ -16,12 +12,11 @@
   import { CREEPER } from "../lib/font/order.js"
   import PairView from "./PairView.vue"
   import { unkernedFont } from "./textCanvas.js"
-  import { font, update } from "./store.js"
+  import { font, kerningFilter as filter, update } from "./store.js"
 
   const FILTERS = [{ id: "all", label: "Everything", ranks: [0, 1, 2, 3, 4] }, { id: "letters", label: "Letters", ranks: [0] }, { id: "numbers", label: "Numbers", ranks: [1, 2] }, { id: "symbols", label: "Symbols", ranks: [3, 4] }]
 
   const custom = ref("")
-  const filter = kerningFilter
   const customError = ref("")
   const search = ref("")
 
@@ -225,7 +220,6 @@
   .head {
     display: flex;
     align-items: center;
-    justify-content: space-between;
   }
 
   .pair-name {
