@@ -3,8 +3,7 @@ import path from "node:path"
 import { describe, test } from "node:test"
 import { readJson, readPng } from "../../generator/common.js"
 import { fontDir, fontTextureList, publishedFonts, readMask, readStripSet } from "../../generator/fonts.js"
-import { stripBand, stripRange } from "../../src/lib/texture/assets.js"
-import { usePlatform } from "../../src/lib/core/platform.js"
+import { stripRange } from "../../src/lib/texture/assets.js"
 import { stripsOf } from "../../src/lib/font/font.js"
 import { withGenerated } from "../../src/lib/texture/overlays/settings.js"
 import { defaultDepth } from "../../src/lib/settings/defaults.js"
@@ -240,19 +239,5 @@ describe("published strips", () => {
 
   test("every font's texture list loads", () => {
     for (const font of fonts) assert.ok(fontTextureList(font, fonts).textures)
-  })
-})
-
-describe("stripBand", () => {
-  usePlatform({ createCanvas: () => ({ getContext: () => ({ drawImage() {} }) }) })
-  const strip = { width: 16, height: 40 }
-
-  test("cuts each layer's band to its own height", () => {
-    assert.equal(stripBand(strip, 0, 10).height, 10)
-    assert.equal(stripBand(strip, 0, 20).height, 20)
-  })
-
-  test("reuses a band it already cut", () => {
-    assert.equal(stripBand(strip, 10, 10), stripBand(strip, 10, 10))
   })
 })

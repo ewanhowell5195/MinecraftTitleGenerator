@@ -127,11 +127,13 @@ const bands = new WeakMap()
 export function bandOf(source, band, font) {
   const count = font.layers?.length ?? 1
   if (count < 2) return source
-  if (!bands.has(source)) {
+  if (!bands.has(source)) bands.set(source, new WeakMap())
+  const split = bands.get(source)
+  if (!split.has(font)) {
     const expanded = expandBands(pixelsOf(source), source.width, font.cells, font.capHeight, defaultDepth(font), font.layers, independentLayers(font))
     const height = expanded.height / count
     const size = expanded.width * height * 4
-    bands.set(source, Array.from({ length: count }, (_, index) => {
+    split.set(font, Array.from({ length: count }, (_, index) => {
       const { canvas, ctx } = surface(expanded.width, height)
       const pixels = ctx.createImageData(expanded.width, height)
       pixels.data.set(expanded.data.subarray(index * size, (index + 1) * size))
@@ -139,7 +141,7 @@ export function bandOf(source, band, font) {
       return canvas
     }))
   }
-  return bands.get(source)[band]
+  return split.get(font)[band]
 }
 
 const stripBands = new WeakMap()
