@@ -2,16 +2,12 @@
   import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
-  import { SPACE_CHAR, characterLabel } from "../lib/font/editor/characters.js"
-  import { depthOf } from "../lib/font/editor/depths.js"
-  import { rowOfY, setGlyph, widthOf, yOfRow } from "../lib/font/editor/glyph.js"
   import { NOTHING_OUTSIDE } from "../lib/font/editor/glyphEditing.js"
-  import { blockAt, fillCells, lineCells, paint, rectangleCells, setStretch } from "../lib/font/editor/painting.js"
-  import { CREEPER } from "../lib/font/order.js"
-  import { depthShade } from "../lib/font/font.js"
-  import { clamp } from "../lib/core/maths.js"
   import Slider from "../components/Slider.vue"
-  import { arrowsMove, beginStroke, cancelStroke, endStroke, font, glyph, inkCode, moveSelected, pencilDepth, selected, strokeTo, typing, updateGlyph } from "./store.js"
+  import { BASELINE_COLOUR, STRETCH_COLOUR, TOPLINE_COLOUR, useGlyphDrawing } from "./glyphDrawing.js"
+  import { PICKER_CURSOR, useGlyphPointer } from "./glyphPointer.js"
+  import { useGlyphView } from "./glyphView.js"
+  import { arrowsMove, endStroke, font, glyph, moveSelected, pencilDepth, typing, updateGlyph } from "./store.js"
 
   const TOOLS = [
     { id: "pencil", icon: "pencil", label: "Pencil", key: "b", hint: "Shift-click draws a line from the last point, holding Shift while drawing keeps it horizontal or vertical" },
@@ -19,24 +15,10 @@
     { id: "rectangle", icon: "rectangle", label: "Rectangle", key: "r", hint: "Hold Shift for a square" },
     { id: "fill", icon: "fill", label: "Fill", key: "f" }
   ]
-  const GUTTER_GAP = 6
-  const GUTTER = 18
-  const FIT_MARGIN = 12
-  const MAX_CELL = 40
-  const MIN_CELL = 3
-  const MAX_ZOOM_CELL = 160
-  const PAN_KEEP = 48
   const KEY_ZOOM = 1.25
   const TOOLTIP_GAP = 10
-  const TOPLINE_COLOUR = "#2f7cf6"
-  const BASELINE_COLOUR = "#2dbb4f"
-  const STRETCH_COLOUR = "#f59e0b"
-  const GUIDE_FONT = "Arial, sans-serif"
   const ARROWS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }
   const KEY_ZOOMS = { "+": KEY_ZOOM, "=": KEY_ZOOM, "-": 1 / KEY_ZOOM }
-  const UNGUIDED = [CREEPER, SPACE_CHAR]
-  const PICKER_PATHS = ["M3 21l2.5-2.5", "M5.5 18.5v-2l7.5-7.5 2 2-7.5 7.5z", "M11.5 7.5l5 5", "M14 7l2.5-2.5a2.1 2.1 0 0 1 3 3L17 10"]
-  const PICKER_CURSOR = `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">${["#fff", "#000"].map((colour, index) => PICKER_PATHS.map(path => `<path d="${path}" stroke="${colour}" stroke-width="${index ? 1.5 : 3.5}"/>`).join("")).join("")}</svg>`)}") 3 21, crosshair`
 
   const tool = ref("pencil")
   const holder = ref(null)
@@ -52,449 +34,17 @@
   function toolTip(text) {
     return { text, tooltipClass: "slow", prefer: "below", tooltipStyle: { "--easy-tooltip-distance": `${toolGap.value}px` } }
   }
-  const available = ref({ width: 300, height: 300 })
-  const hover = ref(null)
   const chosenBrush = ref(null)
-  const zoomed = ref(null)
-  const spaceHeld = ref(false)
-  const altHeld = ref(false)
-  const panning = ref(false)
-  const outside = ref(false)
-  const touches = new Map()
-  let stroke = null
-  let anchor = null
-  let lastAt = null
   let observer = null
-  let gesture = null
-  let pendingFill = null
-  let blockingMenu = false
-  let beforeEraser = "pencil"
-  let over = false
-  let backdrop = "#000"
-  let gutterColour = "#000"
-  let hoverColour = "#fff"
 
   const brushes = computed(() => Array.from({ length: font.value.grid }, (_, index) => font.value.grid - index).filter(size => font.value.grid % size === 0))
   const brush = computed(() => brushes.value.includes(chosenBrush.value) ? chosenBrush.value : font.value.grid)
   const drawFont = computed(() => ({ ...font.value, grid: brush.value }))
-  const columns = computed(() => widthOf(font.value, glyph.value))
-  const rows = computed(() => glyph.value.rows.length)
-  const fitted = computed(() => {
-    const { width, height } = available.value
-    const room = (across, down) => Math.min((width - FIT_MARGIN * 2 - GUTTER - GUTTER_GAP) / across, (height - FIT_MARGIN * 2) / down)
-    const cell = clamp(Math.floor(Math.min(room(font.value.width, font.value.height), room(columns.value, rows.value))), MIN_CELL, MAX_CELL)
-    return { cell, x: Math.round((width - columns.value * cell - GUTTER_GAP - GUTTER) / 2), y: Math.round((height - rows.value * cell) / 2) }
-  })
-  const view = computed(() => zoomed.value ?? fitted.value)
-  const zoomPercent = computed(() => Math.round(view.value.cell / fitted.value.cell * 100))
-  const board = computed(() => {
-    const right = xAt(columns.value)
-    return { left: xAt(0), top: yAt(0), right, bottom: yAt(rows.value), gutter: Math.min(right + GUTTER_GAP, available.value.width - GUTTER) }
-  })
 
-  function xAt(column) {
-    return Math.round(view.value.x + column * view.value.cell)
-  }
-
-  function yAt(row) {
-    return Math.round(view.value.y + row * view.value.cell)
-  }
-
-  function inkColour(code) {
-    const shade = depthShade(depthOf(font.value, code))
-    return `rgb(${shade}, ${shade}, ${shade})`
-  }
-
-  function line(ctx, fromX, fromY, toX, toY) {
-    ctx.moveTo(fromX, fromY)
-    ctx.lineTo(toX, toY)
-  }
-
-  function drawGuide(ctx, centre, baseline, capHeight, width, room) {
-    if (UNGUIDED.includes(selected.value)) return
-    const text = characterLabel(selected.value, font.value.letterCase)
-    if (!text.trim()) return
-    ctx.save()
-    ctx.font = `bold 100px ${GUIDE_FONT}`
-    const capRatio = ctx.measureText("H").actualBoundingBoxAscent / 100
-    ctx.font = `bold ${capHeight / capRatio}px ${GUIDE_FONT}`
-    const measured = ctx.measureText(text)
-    const textWidth = measured.actualBoundingBoxLeft + measured.actualBoundingBoxRight
-    const below = Math.max(0, measured.actualBoundingBoxDescent)
-    const tall = Math.min(1, capHeight / (measured.actualBoundingBoxAscent + below))
-    const even = Math.min(tall, width * 0.9 / textWidth)
-    const letter = /^[\p{L}\p{N}]+$/u.test(text)
-    const seated = Math.min(1, room.above / measured.actualBoundingBoxAscent, below ? room.below / below : 1)
-    const lower = letter && text !== text.toUpperCase() && seated >= tall
-    const upright = lower ? seated : letter ? tall : even
-    ctx.translate(centre, baseline - (lower ? 0 : below * upright))
-    ctx.scale(letter ? width / textWidth : even, upright)
-    ctx.fillStyle = `${TOPLINE_COLOUR}59`
-    ctx.fillText(text, (measured.actualBoundingBoxLeft - measured.actualBoundingBoxRight) / 2, 0)
-    ctx.restore()
-  }
-
-  function draw() {
-    const element = canvas.value
-    if (!element) return
-    const { width, height } = available.value
-    const ratio = devicePixelRatio || 1
-    const ctx = element.getContext("2d")
-    ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
-    ctx.clearRect(0, 0, width, height)
-    const current = glyph.value
-    const currentFont = font.value
-    const { left, top, right, bottom, gutter } = board.value
-    const topline = yAt(current.above)
-    const baseline = yAt(current.above + currentFont.height)
-    ctx.fillStyle = "#fff"
-    ctx.fillRect(left, top, right - left, bottom - top)
-    ctx.fillStyle = "#dfe8f2"
-    if (current.above) ctx.fillRect(left, top, right - left, topline - top)
-    if (current.below) ctx.fillRect(left, baseline, right - left, bottom - baseline)
-    drawGuide(ctx, (left + right) / 2, baseline, baseline - topline, right - left, { above: baseline - top, below: bottom - baseline })
-    current.rows.forEach((text, row) => {
-      for (let x = 0; x < text.length; x++) {
-        if (text[x] === "0") continue
-        ctx.fillStyle = inkColour(text[x])
-        ctx.fillRect(xAt(x), yAt(row), xAt(x + 1) - xAt(x), yAt(row + 1) - yAt(row))
-      }
-    })
-    ctx.lineWidth = 1
-    if (view.value.cell >= 8) {
-      ctx.strokeStyle = "#8888882e"
-      ctx.beginPath()
-      for (let x = 1; x < columns.value; x++) line(ctx, xAt(x) + 0.5, top, xAt(x) + 0.5, bottom)
-      for (let row = 1; row < rows.value; row++) line(ctx, left, yAt(row) + 0.5, right, yAt(row) + 0.5)
-      ctx.stroke()
-    }
-    if (currentFont.grid > 1) {
-      ctx.strokeStyle = "#7a7f8a80"
-      ctx.beginPath()
-      for (let x = currentFont.grid; x < columns.value; x += currentFont.grid) line(ctx, xAt(x) + 0.5, top, xAt(x) + 0.5, bottom)
-      for (let row = 1; row <= rows.value; row++) {
-        const y = yOfRow(currentFont, current, row)
-        if (((y % currentFont.grid) + currentFont.grid) % currentFont.grid === currentFont.grid - 1) line(ctx, left, yAt(row) + 0.5, right, yAt(row) + 0.5)
-      }
-      ctx.stroke()
-    }
-    ctx.lineWidth = 2
-    ctx.strokeStyle = TOPLINE_COLOUR
-    ctx.beginPath()
-    line(ctx, left, topline, right, topline)
-    ctx.stroke()
-    ctx.strokeStyle = BASELINE_COLOUR
-    ctx.beginPath()
-    line(ctx, left, baseline, right, baseline)
-    ctx.stroke()
-    if (gutter < right + GUTTER_GAP) {
-      ctx.fillStyle = backdrop
-      ctx.fillRect(gutter - GUTTER_GAP, top, GUTTER_GAP, bottom - top)
-    }
-    ctx.fillStyle = gutterColour
-    ctx.fillRect(gutter, top, GUTTER, bottom - top)
-    ctx.fillStyle = STRETCH_COLOUR
-    for (const y of current.stretch) {
-      const row = rowOfY(currentFont, current, y)
-      ctx.fillRect(gutter, yAt(row), GUTTER, yAt(row + 1) - yAt(row))
-    }
-    if (hover.value) {
-      const { column, row, across, down } = hover.value
-      const x = hover.value.gutter ? gutter : xAt(column)
-      ctx.strokeStyle = hoverColour
-      ctx.lineWidth = 2
-      ctx.strokeRect(x, yAt(row), hover.value.gutter ? GUTTER : xAt(column + across) - x, yAt(row + down) - yAt(row))
-    }
-  }
-
-  function local(event) {
-    const box = canvas.value.getBoundingClientRect()
-    return { x: event.clientX - box.left, y: event.clientY - box.top }
-  }
-
-  function locate(event) {
-    const { x: px, y: py } = local(event)
-    const { cell, x, y } = view.value
-    const { left, top, right, bottom, gutter } = board.value
-    const across = py >= top && py < bottom
-    return { gutter: across && px >= gutter - GUTTER_GAP && px < gutter + GUTTER + GUTTER_GAP, inside: across && px >= left && px < right, x: Math.floor((px - x) / cell), row: Math.floor((py - y) / cell) }
-  }
-
-  function clampRow(row) {
-    return clamp(row, 0, rows.value - 1)
-  }
-
-  function clampX(x) {
-    return clamp(x, 0, columns.value - 1)
-  }
-
-  function clampView({ cell, x, y }) {
-    const across = columns.value * cell
-    const down = rows.value * cell
-    const keepX = Math.min(PAN_KEEP, across)
-    const keepY = Math.min(PAN_KEEP, down)
-    return { cell, x: clamp(x, keepX - across, available.value.width - keepX), y: clamp(y, keepY - down, available.value.height - keepY) }
-  }
-
-  function zoomTo(from, wanted, at, to = at) {
-    const fit = fitted.value.cell
-    const cell = clamp(wanted, Math.min(fit, Math.max(MIN_CELL, fit / 2)), Math.max(fit, MAX_ZOOM_CELL))
-    const scale = cell / from.cell
-    zoomed.value = clampView({ cell, x: to.x - (at.x - from.x) * scale, y: to.y - (at.y - from.y) * scale })
-  }
-
-  function fit() {
-    zoomed.value = null
-  }
-
-  function middle() {
-    return { x: available.value.width / 2, y: available.value.height / 2 }
-  }
-
-  function wheel(event) {
-    event.preventDefault()
-    const lines = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? available.value.height : 1
-    zoomTo(view.value, view.value.cell * Math.exp(-event.deltaY * lines * (event.ctrlKey ? 0.01 : 0.0015)), local(event))
-  }
-
-  function applyStretch(row) {
-    const at = clampRow(row)
-    if (stroke.row === at) return
-    stroke.row = at
-    const next = setStretch(drawFont.value, stroke.base, at, stroke.value)
-    stroke.base = next
-    strokeTo(setGlyph(font.value, selected.value, next))
-  }
-
-  function sameSquare(a, b) {
-    const [first] = blockAt(drawFont.value, stroke.base, a.x, a.row)
-    const [second] = blockAt(drawFont.value, stroke.base, b.x, b.row)
-    return first.x === second.x && first.row === second.row
-  }
-
-  function diagonal(from, to) {
-    const reach = Math.max(Math.abs(to.x - from.x), Math.abs(to.row - from.row))
-    return { x: clampX(from.x + Math.sign(to.x - from.x) * reach), row: clampRow(from.row + Math.sign(to.row - from.row) * reach) }
-  }
-
-  function applyPaint(at, shift) {
-    lastAt = at
-    const point = { x: clampX(at.x), row: clampRow(at.row) }
-    const base = stroke.base
-    if (stroke.shape === "rectangle") {
-      const end = shift ? diagonal(stroke.from, point) : point
-      const drawn = stroke.end && sameSquare(stroke.end, end)
-      stroke.end = end
-      if (drawn) return
-      const cells = rectangleCells(drawFont.value, base, stroke.from, end)
-      strokeTo(setGlyph(font.value, selected.value, paint(base, cells, stroke.value)))
-      return
-    }
-    if (shift && !stroke.constrain) Object.assign(stroke, { constrain: true, origin: stroke.last ?? stroke.from, axis: null })
-    if (!shift) stroke.constrain = false
-    const target = stroke.constrain ? constrained(point) : point
-    const from = stroke.last ?? target
-    const drawn = stroke.drawn && sameSquare(from, target)
-    stroke.last = target
-    if (drawn) return
-    stroke.drawn = true
-    stroke.latest = paint(stroke.latest, lineCells(drawFont.value, stroke.latest, from, target), stroke.value)
-    strokeTo(setGlyph(font.value, selected.value, stroke.latest))
-  }
-
-  function constrained(point) {
-    const { origin } = stroke
-    const dx = Math.abs(point.x - origin.x)
-    const dy = Math.abs(point.row - origin.row)
-    if (!stroke.axis && Math.max(dx, dy) >= brush.value && dx !== dy) stroke.axis = dx > dy ? "x" : "row"
-    if (stroke.axis === "x") return { x: point.x, row: origin.row }
-    if (stroke.axis === "row") return { x: origin.x, row: point.row }
-    return origin
-  }
-
-  function startPinch() {
-    if (stroke) cancelStroke()
-    stroke = null
-    pendingFill = null
-    hover.value = null
-    const [first, second] = Array.from(touches.values())
-    gesture = { kind: "pinch", centre: { x: (first.x + second.x) / 2, y: (first.y + second.y) / 2 }, distance: Math.hypot(first.x - second.x, first.y - second.y) || 1, view: view.value }
-  }
-
-  function pinch() {
-    const [first, second] = Array.from(touches.values())
-    const box = canvas.value.getBoundingClientRect()
-    const centre = { x: (first.x + second.x) / 2 - box.left, y: (first.y + second.y) / 2 - box.top }
-    const scale = Math.hypot(first.x - second.x, first.y - second.y) / gesture.distance
-    zoomTo(gesture.view, gesture.view.cell * scale, { x: gesture.centre.x - box.left, y: gesture.centre.y - box.top }, centre)
-  }
-
-  function startPan(event) {
-    gesture = { kind: "pan", pointerId: event.pointerId, from: { x: event.clientX, y: event.clientY }, view: view.value }
-    panning.value = true
-    hover.value = null
-  }
-
-  function pan(event) {
-    const { from, view: start } = gesture
-    zoomed.value = clampView({ ...start, x: start.x + event.clientX - from.x, y: start.y + event.clientY - from.y })
-  }
-
-  function down(event) {
-    if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
-    canvas.value.setPointerCapture(event.pointerId)
-    if (event.pointerType === "touch") {
-      touches.set(event.pointerId, { x: event.clientX, y: event.clientY })
-      if (touches.size > 1) return startPinch()
-    }
-    if (gesture) return
-    const at = locate(event)
-    if (event.button === 1 || (event.button === 0 && (spaceHeld.value || (!at.inside && !at.gutter)))) {
-      event.preventDefault()
-      return startPan(event)
-    }
-    if (event.button !== 0 && event.button !== 2) return
-    event.preventDefault()
-    if (event.altKey && event.button === 0 && at.inside) {
-      stroke = { kind: "pick" }
-      pick(at)
-      return
-    }
-    if (event.button === 2 && !blockingMenu) {
-      blockingMenu = true
-      addEventListener("contextmenu", blockMenu, true)
-    }
-    const erasing = event.button === 2 || tool.value === "eraser"
-    if (at.gutter) {
-      const row = clampRow(at.row)
-      const y = yOfRow(font.value, glyph.value, row)
-      beginStroke()
-      stroke = { kind: "stretch", base: glyph.value, value: event.button === 2 ? false : !glyph.value.stretch.includes(y) }
-      applyStretch(row)
-      return
-    }
-    const point = { x: clampX(at.x), row: clampRow(at.row) }
-    if (tool.value === "fill") {
-      const code = erasing ? false : inkCode()
-      const fill = () => updateGlyph(paint(glyph.value, fillCells(glyph.value, point.x, point.row), code))
-      if (event.pointerType === "touch") pendingFill = { pointerId: event.pointerId, fill }
-      else fill()
-      return
-    }
-    beginStroke()
-    const shape = tool.value === "rectangle" ? "rectangle" : "pencil"
-    stroke = { kind: "paint", base: glyph.value, latest: glyph.value, value: erasing ? false : inkCode(), from: point, last: null, end: null, shape, constrain: shape === "pencil" && event.shiftKey, origin: point, axis: null }
-    if (stroke.constrain && anchor) {
-      stroke.latest = paint(glyph.value, lineCells(drawFont.value, glyph.value, anchor, point), stroke.value)
-      stroke.last = point
-    }
-    applyPaint(at, event.shiftKey)
-  }
-
-  function move(event) {
-    if (touches.has(event.pointerId)) touches.set(event.pointerId, { x: event.clientX, y: event.clientY })
-    if (gesture) {
-      if (gesture.kind === "pinch") pinch()
-      else if (event.pointerId === gesture.pointerId) pan(event)
-      return
-    }
-    altHeld.value = event.altKey
-    const at = locate(event)
-    if (stroke?.kind === "stretch") applyStretch(at.row)
-    else if (stroke?.kind === "pick") pick(at)
-    else if (stroke) applyPaint(at, event.shiftKey)
-    updateHover(at)
-  }
-
-  function pick(at) {
-    if (!at.inside) return
-    const code = glyph.value.rows[clampRow(at.row)][clampX(at.x)]
-    if (code === "0") {
-      tool.value = "eraser"
-      return
-    }
-    pencilDepth.value = depthOf(font.value, code) * 100
-    if (tool.value === "eraser") tool.value = beforeEraser
-  }
-
-  function updateHover(at) {
-    outside.value = !at.inside && !at.gutter
-    if (stroke || spaceHeld.value || outside.value) {
-      hover.value = null
-      return
-    }
-    const block = blockAt(drawFont.value, glyph.value, at.gutter ? 0 : clampX(at.x), clampRow(at.row))
-    const row = Math.min(...block.map(item => item.row))
-    const next = at.gutter ? { gutter: true, column: 0, row, across: 1, down: Math.max(...block.map(item => item.row)) - row + 1 } : { gutter: false, column: Math.min(...block.map(item => item.x)), row, across: brush.value, down: brush.value }
-    if (!hover.value || Object.keys(next).some(key => hover.value[key] !== next[key])) hover.value = next
-  }
-
-  function up(event) {
-    touches.delete(event.pointerId)
-    if (gesture) {
-      if (gesture.kind === "pinch" ? touches.size < 2 : event.pointerId === gesture.pointerId) {
-        gesture = null
-        panning.value = false
-      }
-      return
-    }
-    if (pendingFill?.pointerId === event.pointerId) {
-      if (event.type === "pointerup") pendingFill.fill()
-      pendingFill = null
-    }
-    if (stroke?.kind === "paint" && stroke.shape !== "rectangle") anchor = stroke.end ?? stroke.last
-    if (stroke && stroke.kind !== "pick") endStroke()
-    stroke = null
-    if (blockingMenu) setTimeout(unblockMenu)
-  }
-
-  function blockMenu(event) {
-    event.preventDefault()
-  }
-
-  function unblockMenu() {
-    blockingMenu = false
-    removeEventListener("contextmenu", blockMenu, true)
-  }
-
-  function enter() {
-    over = true
-  }
-
-  function leave() {
-    over = false
-    outside.value = false
-    if (!stroke) hover.value = null
-  }
-
-  function noAutoscroll(event) {
-    if (event.button === 1) event.preventDefault()
-  }
-
-  function shiftChanged(event) {
-    if (event.key !== "Shift" || stroke?.kind !== "paint" || !lastAt) return
-    applyPaint(lastAt, event.type === "keydown")
-  }
-
-  function spaceChanged(event) {
-    if (event.key !== " " || typing(event.target)) return
-    const holding = event.type === "keydown"
-    if (holding && !over && !panning.value) return
-    if (holding || spaceHeld.value) event.preventDefault()
-    spaceHeld.value = holding
-    if (holding) hover.value = null
-  }
-
-  function altChanged(event) {
-    if (event.key !== "Alt") return
-    altHeld.value = event.type === "keydown"
-    if (over) event.preventDefault()
-  }
-
-  function release() {
-    spaceHeld.value = false
-    altHeld.value = false
-  }
+  const glyphView = useGlyphView()
+  const { available, zoomed, view, zoomPercent, clampView, zoomTo, fit, middle } = glyphView
+  const { hover, spaceHeld, altHeld, panning, outside, down, move, up, enter, leave, noAutoscroll, wheel, shiftChanged, spaceChanged, altChanged, release, unblockMenu } = useGlyphPointer({ canvas, tool, brush, drawFont }, glyphView)
+  const { draw, readTheme } = useGlyphDrawing(canvas, hover, glyphView)
 
   function key(event) {
     const target = event.target
@@ -537,10 +87,7 @@
   }
 
   onMounted(() => {
-    const theme = getComputedStyle(holder.value)
-    backdrop = theme.getPropertyValue("--bg").trim() || backdrop
-    gutterColour = theme.getPropertyValue("--line").trim() || gutterColour
-    hoverColour = theme.getPropertyValue("--accent").trim() || hoverColour
+    readTheme(holder.value)
     observer = new ResizeObserver(measure)
     observer.observe(holder.value)
     measure()
@@ -568,13 +115,6 @@
     unblockMenu()
   })
 
-  watch(tool, (next, previous) => {
-    if (next === "eraser") beforeEraser = previous
-  }, { flush: "sync" })
-  watch(selected, () => {
-    anchor = null
-    zoomed.value = null
-  })
   watch([font, glyph, view, hover], draw, { flush: "post" })
 </script>
 
