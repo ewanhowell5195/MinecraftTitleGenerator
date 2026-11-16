@@ -239,6 +239,7 @@
     min-height: 0;
     container-type: size;
     overflow-y: auto;
+    scrollbar-gutter: stable;
     background: var(--surface);
     border-right: 1px solid var(--line);
   }
