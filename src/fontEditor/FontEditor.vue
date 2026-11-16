@@ -8,7 +8,6 @@
   import Icon from "../components/Icon.vue"
   import MenuStrip from "../components/MenuStrip.vue"
   import Dialog from "../components/Dialog.vue"
-  import Spinner from "../components/Spinner.vue"
   import SiteHeader from "../site/SiteHeader.vue"
   import TopBar from "../site/TopBar.vue"
   import CharacterList from "./CharacterList.vue"
@@ -19,6 +18,7 @@
   import PreviewPanel from "./PreviewPanel.vue"
   import TexturesPanel from "./TexturesPanel.vue"
   import ImportScreen from "./ImportScreen.vue"
+  import ImportWaiting from "./ImportWaiting.vue"
   import ScrollPage from "./ScrollPage.vue"
   import StartScreen from "./StartScreen.vue"
   import { EDITOR_PATH, IMPORT_PATH, START_PATH, canRedo, canUndo, downloadFlatTexture, downloadJson, downloadStripTexture, downloadTexture, flushSave, font, importing, opened, pendingFont, redo, editingSubmission, replaceFont, restoreFont, saveError, saveSubmission, submitFont, takeSubmissionFont, typing, undo } from "./store.js"
@@ -122,14 +122,7 @@
 
     <ScrollPage v-else-if="view === 'import'">
       <ImportScreen v-if="importing?.suggested" :key="importing.name" :picked="importing" />
-      <div v-else-if="importing" class="import-waiting">
-        <h1>Import {{ importing.name }}</h1>
-        <Notice v-if="importing.error" class="error">{{ importing.error }}</Notice>
-        <div v-else class="reading">
-          <Spinner />
-          <p class="hint">Reading the font...</p>
-        </div>
-      </div>
+      <ImportWaiting v-else-if="importing" :name="importing.name" :error="importing.error" />
     </ScrollPage>
 
     <template v-else-if="!font"></template>
@@ -191,27 +184,6 @@
   .site-gap {
     flex: none;
     height: 64px;
-  }
-
-  .import-waiting {
-    max-width: 1100px;
-    margin: 0 auto;
-  }
-
-  .import-waiting h1 {
-    margin: 0 0 22px;
-    font-size: 28px;
-    overflow-wrap: anywhere;
-  }
-
-  .reading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    padding: 64px 16px;
-    background: var(--surface);
-    border: 1px solid var(--line);
   }
 
   .workspace {

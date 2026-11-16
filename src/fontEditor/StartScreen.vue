@@ -13,6 +13,7 @@
   import { fontCredit } from "../lib/font/credits.js"
   import { fontThumbnail } from "../lib/state/ui.js"
   import { fontFromList, fontFromUploads, imageOf } from "./loaders.js"
+  import EditorIntro from "./EditorIntro.vue"
   import SizeStats from "./SizeStats.vue"
   import ResetButton from "./ResetButton.vue"
   import ScrollPage from "./ScrollPage.vue"
@@ -106,12 +107,10 @@
       </div>
       <Button primary @click="navigate(EDITOR_PATH)"><template #icon><Icon name="open" :size="16" /></template>Open font</Button>
     </div>
-    <div class="intro">
-      <h1>Make a font</h1>
-      <p>Draw every character yourself, or start from something that already exists. Your font stays in this browser until you download it.</p>
+    <EditorIntro title="Make a font" text="Draw every character yourself, or start from something that already exists. Your font stays in this browser until you download it.">
       <Notice v-if="error" class="error">{{ error }}</Notice>
       <p v-if="busy" class="busy">{{ busy }}</p>
-    </div>
+    </EditorIntro>
 
     <div class="choices">
       <section class="editor-card">
@@ -180,22 +179,12 @@
     margin: 0 auto 22px;
   }
 
-  h1 {
-    margin: 0 0 6px;
-    font-size: 28px;
-  }
-
-  .intro p {
-    margin: 0;
-    color: var(--muted);
-  }
-
   .intro .error {
     margin-top: 10px;
   }
 
   .intro .busy {
-    margin-top: 10px;
+    margin: 10px 0 0;
     color: var(--accent);
   }
 

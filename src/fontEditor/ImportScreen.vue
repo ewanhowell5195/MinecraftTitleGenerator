@@ -10,6 +10,7 @@
   import { LETTER_CASES } from "../lib/font/editor/defaults.js"
   import { glyphOf, isBlank } from "../lib/font/editor/glyph.js"
   import CharacterBrowser from "./CharacterBrowser.vue"
+  import EditorIntro from "./EditorIntro.vue"
   import SizeStats from "./SizeStats.vue"
   import ResetButton from "./ResetButton.vue"
   import { limitSize, resettable } from "./sizeLimit.js"
@@ -120,10 +121,7 @@
 
 <template>
   <div class="import">
-    <div class="intro">
-      <h1>Import {{ picked.name }}</h1>
-      <p>Choose how it's turned into pixels. The preview updates as you go.</p>
-    </div>
+    <EditorIntro :title="`Import ${picked.name}`" text="Choose how it's turned into pixels. The preview updates as you go." />
 
     <div class="layout">
       <section class="editor-card">
@@ -169,21 +167,6 @@
   .import {
     max-width: 1100px;
     margin: 0 auto;
-  }
-
-  .intro {
-    margin-bottom: 22px;
-  }
-
-  h1 {
-    margin: 0 0 6px;
-    font-size: 28px;
-    overflow-wrap: anywhere;
-  }
-
-  .intro p {
-    margin: 0;
-    color: var(--muted);
   }
 
   .layout {
