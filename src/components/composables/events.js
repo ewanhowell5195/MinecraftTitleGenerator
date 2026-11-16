@@ -3,6 +3,10 @@ import { onBeforeUnmount, watch } from "vue"
 const DRAG_DISTANCE = 6
 const LONG_PRESS = 500
 
+export function isPlainClick(event) {
+  return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey
+}
+
 export function trackPointer(move, end) {
   function stop(event) {
     window.removeEventListener("pointermove", move)
