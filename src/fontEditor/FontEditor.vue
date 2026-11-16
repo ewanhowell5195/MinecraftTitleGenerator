@@ -9,7 +9,6 @@
   import MenuStrip from "../components/MenuStrip.vue"
   import Dialog from "../components/Dialog.vue"
   import Spinner from "../components/Spinner.vue"
-  import SiteFooter from "../site/SiteFooter.vue"
   import SiteHeader from "../site/SiteHeader.vue"
   import TopBar from "../site/TopBar.vue"
   import CharacterList from "./CharacterList.vue"
@@ -20,6 +19,7 @@
   import PreviewPanel from "./PreviewPanel.vue"
   import TexturesPanel from "./TexturesPanel.vue"
   import ImportScreen from "./ImportScreen.vue"
+  import ScrollPage from "./ScrollPage.vue"
   import StartScreen from "./StartScreen.vue"
   import { EDITOR_PATH, IMPORT_PATH, START_PATH, canRedo, canUndo, downloadFlatTexture, downloadJson, downloadStripTexture, downloadTexture, flushSave, font, importing, opened, pendingFont, redo, editingSubmission, replaceFont, restoreFont, saveError, saveSubmission, submitFont, takeSubmissionFont, typing, undo } from "./store.js"
 
@@ -120,20 +120,17 @@
 
     <StartScreen v-if="view === 'start'" />
 
-    <div v-else-if="view === 'import'" class="import-page">
-      <div class="import-content">
-        <ImportScreen v-if="importing?.suggested" :key="importing.name" :picked="importing" />
-        <div v-else-if="importing" class="import-waiting">
-          <h1>Import {{ importing.name }}</h1>
-          <Notice v-if="importing.error" class="error">{{ importing.error }}</Notice>
-          <div v-else class="reading">
-            <Spinner />
-            <p class="hint">Reading the font...</p>
-          </div>
+    <ScrollPage v-else-if="view === 'import'">
+      <ImportScreen v-if="importing?.suggested" :key="importing.name" :picked="importing" />
+      <div v-else-if="importing" class="import-waiting">
+        <h1>Import {{ importing.name }}</h1>
+        <Notice v-if="importing.error" class="error">{{ importing.error }}</Notice>
+        <div v-else class="reading">
+          <Spinner />
+          <p class="hint">Reading the font...</p>
         </div>
       </div>
-      <SiteFooter />
-    </div>
+    </ScrollPage>
 
     <template v-else-if="!font"></template>
 
@@ -194,19 +191,6 @@
   .site-gap {
     flex: none;
     height: 64px;
-  }
-
-  .import-page {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
-  }
-
-  .import-content {
-    flex: none;
-    min-height: 100%;
-    padding: 28px 16px 40px;
   }
 
   .import-waiting {

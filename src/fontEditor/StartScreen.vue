@@ -5,7 +5,6 @@
   import Icon from "../components/Icon.vue"
   import Notice from "../components/Notice.vue"
   import NumberInput from "../components/NumberInput.vue"
-  import SiteFooter from "../site/SiteFooter.vue"
   import Tile from "../components/Tile.vue"
   import TileGrid from "../components/TileGrid.vue"
   import UploadField from "../components/UploadField.vue"
@@ -16,6 +15,7 @@
   import { fontFromList, fontFromUploads, imageOf } from "./loaders.js"
   import SizeStats from "./SizeStats.vue"
   import ResetButton from "./ResetButton.vue"
+  import ScrollPage from "./ScrollPage.vue"
   import { limitSize, resettable } from "./sizeLimit.js"
   import { navigate } from "../lib/state/navigation.js"
   import { EDITOR_PATH, IMPORT_PATH, font, importing, startFont } from "./store.js"
@@ -98,75 +98,59 @@
 </script>
 
 <template>
-  <div class="start">
-    <div class="content">
-      <div v-if="font" class="saved">
-        <div class="saved-text">
-          <span class="saved-label">Your saved font</span>
-          <strong class="saved-name">{{ font.name }}</strong>
-        </div>
-        <Button primary @click="navigate(EDITOR_PATH)"><template #icon><Icon name="open" :size="16" /></template>Open font</Button>
+  <ScrollPage>
+    <div v-if="font" class="saved">
+      <div class="saved-text">
+        <span class="saved-label">Your saved font</span>
+        <strong class="saved-name">{{ font.name }}</strong>
       </div>
-      <div class="intro">
-        <h1>Make a font</h1>
-        <p>Draw every character yourself, or start from something that already exists. Your font stays in this browser until you download it.</p>
-        <Notice v-if="error" class="error">{{ error }}</Notice>
-        <p v-if="busy" class="busy">{{ busy }}</p>
-      </div>
-
-      <div class="choices">
-        <section class="choice">
-          <h2>Blank font</h2>
-          <div class="numbers">
-            <Field v-for="item of SIZE_FIELDS" :key="item.key" group :label="item.label" :label-for="`blank-${item.key}`">
-              <template v-if="changed(item.key)" #label><ResetButton :title="`Reset to ${BLANK_SIZE[item.key]}`" @reset="reset(item.key)" /></template>
-              <NumberInput :id="`blank-${item.key}`" min="1" :max="item.key === 'height' ? mostRows : item.key === 'grid' ? mostSquare : null" :model-value="sizes[item.key].value" @update:model-value="sizes[item.key].value = $event" />
-            </Field>
-          </div>
-          <div class="stats">
-            <SizeStats :pixels="valid ? height * grid : ''" />
-          </div>
-          <p class="hint">Height and width count squares, and one click paints one square. Square size is how many pixels each square is. Each character is {{ final }}.</p>
-          <Button primary wide :disabled="!valid" @click="startBlank"><template #icon><Icon name="plus" /></template>Start drawing</Button>
-        </section>
-
-        <section class="choice">
-          <h2>Open a saved font</h2>
-          <p class="hint">Choose a JSON from this editor, a font.png, or both. Whatever's missing is worked out or left at its default.</p>
-          <UploadField multiple accept=".png,.json,image/png,application/json" label="Choose files" empty="Drop a font JSON, a font.png, or both" @change="upload" />
-
-          <h2 class="second">Import a font file</h2>
-          <p class="hint">Turns a .ttf, .otf, .woff or .woff2, or a Minecraft ascii.png, into pixels ready for you to edit. You choose the size next, with a preview. The font file is kept as its template, so each character can go back to its imported shape and characters you add start from it.</p>
-          <UploadField accept=".ttf,.otf,.woff,.woff2,.png,font/ttf,font/otf,font/woff,font/woff2,image/png" label="Choose font file" empty="Drop a font file or an ascii.png" @change="importFile" />
-        </section>
-
-        <section class="choice wide-choice">
-          <h2>Start from a font</h2>
-          <p class="hint">Copies its characters and settings into a new font of your own.</p>
-          <TileGrid :min="170">
-            <Tile v-for="entry of startable" :key="entry.id" :label="fullName(entry, fonts)" :image="fontThumbnail(entry.id)" :author="fontCredit(entry, fonts)" @pick="startFrom(entry)" />
-          </TileGrid>
-        </section>
-      </div>
+      <Button primary @click="navigate(EDITOR_PATH)"><template #icon><Icon name="open" :size="16" /></template>Open font</Button>
     </div>
-    <SiteFooter />
-  </div>
+    <div class="intro">
+      <h1>Make a font</h1>
+      <p>Draw every character yourself, or start from something that already exists. Your font stays in this browser until you download it.</p>
+      <Notice v-if="error" class="error">{{ error }}</Notice>
+      <p v-if="busy" class="busy">{{ busy }}</p>
+    </div>
+
+    <div class="choices">
+      <section class="choice">
+        <h2>Blank font</h2>
+        <div class="numbers">
+          <Field v-for="item of SIZE_FIELDS" :key="item.key" group :label="item.label" :label-for="`blank-${item.key}`">
+            <template v-if="changed(item.key)" #label><ResetButton :title="`Reset to ${BLANK_SIZE[item.key]}`" @reset="reset(item.key)" /></template>
+            <NumberInput :id="`blank-${item.key}`" min="1" :max="item.key === 'height' ? mostRows : item.key === 'grid' ? mostSquare : null" :model-value="sizes[item.key].value" @update:model-value="sizes[item.key].value = $event" />
+          </Field>
+        </div>
+        <div class="stats">
+          <SizeStats :pixels="valid ? height * grid : ''" />
+        </div>
+        <p class="hint">Height and width count squares, and one click paints one square. Square size is how many pixels each square is. Each character is {{ final }}.</p>
+        <Button primary wide :disabled="!valid" @click="startBlank"><template #icon><Icon name="plus" /></template>Start drawing</Button>
+      </section>
+
+      <section class="choice">
+        <h2>Open a saved font</h2>
+        <p class="hint">Choose a JSON from this editor, a font.png, or both. Whatever's missing is worked out or left at its default.</p>
+        <UploadField multiple accept=".png,.json,image/png,application/json" label="Choose files" empty="Drop a font JSON, a font.png, or both" @change="upload" />
+
+        <h2 class="second">Import a font file</h2>
+        <p class="hint">Turns a .ttf, .otf, .woff or .woff2, or a Minecraft ascii.png, into pixels ready for you to edit. You choose the size next, with a preview. The font file is kept as its template, so each character can go back to its imported shape and characters you add start from it.</p>
+        <UploadField accept=".ttf,.otf,.woff,.woff2,.png,font/ttf,font/otf,font/woff,font/woff2,image/png" label="Choose font file" empty="Drop a font file or an ascii.png" @change="importFile" />
+      </section>
+
+      <section class="choice wide-choice">
+        <h2>Start from a font</h2>
+        <p class="hint">Copies its characters and settings into a new font of your own.</p>
+        <TileGrid :min="170">
+          <Tile v-for="entry of startable" :key="entry.id" :label="fullName(entry, fonts)" :image="fontThumbnail(entry.id)" :author="fontCredit(entry, fonts)" @pick="startFrom(entry)" />
+        </TileGrid>
+      </section>
+    </div>
+  </ScrollPage>
 </template>
 
 <style scoped>
-  .start {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
-  }
-
-  .content {
-    flex: none;
-    min-height: 100%;
-    padding: 28px 16px 40px;
-  }
-
   .saved {
     display: flex;
     align-items: center;
