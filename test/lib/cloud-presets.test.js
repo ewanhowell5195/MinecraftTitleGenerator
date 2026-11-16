@@ -3,7 +3,6 @@ import assert from "node:assert/strict"
 import { fakeReplies, fakeTimeouts, stubStorage } from "../helpers/browser.js"
 
 const stored = stubStorage()
-globalThis.confirm = () => true
 globalThis.BroadcastChannel = class {
   postMessage() {}
 }

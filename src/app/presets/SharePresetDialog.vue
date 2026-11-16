@@ -17,8 +17,8 @@
     emit("shared", target.value ? (await replaceWith(target.value, props.preset.code, name.value)).online : await sharePreset(props.preset, name.value))
   }
 
-  function send() {
-    if (target.value ? confirmReplacing(target.value) : confirmSharing(name.value.trim() || props.preset.name)) attempt(publish)
+  async function send() {
+    if (await (target.value ? confirmReplacing(target.value) : confirmSharing(name.value.trim() || props.preset.name))) attempt(publish)
   }
 </script>
 

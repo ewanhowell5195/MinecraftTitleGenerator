@@ -16,6 +16,7 @@
   import CommentThread from "./CommentThread.vue"
   import { KIND_COMPONENTS } from "./kinds/components.js"
   import { CLIENT_KINDS, submissionTitle } from "./kinds/index.js"
+  import { askConfirm } from "../lib/state/confirm.js"
   import CharacterGrid from "./kinds/CharacterGrid.vue"
   import ReviewPanel from "./ReviewPanel.vue"
   import SubmissionFiles from "./SubmissionFiles.vue"
@@ -106,7 +107,7 @@
   }
 
   async function withdraw() {
-    if (!confirm(`Withdraw ${title.value}? It's removed from this site, but it can still be accepted.`)) return
+    if (!await askConfirm({ title: "Withdraw submission", message: `Withdraw ${title.value}? It's removed from this site, but it can still be accepted.`, action: "Withdraw", danger: true })) return
     busy.value = true
     try {
       await withdrawSubmission(props.id)

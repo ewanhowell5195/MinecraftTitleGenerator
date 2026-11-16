@@ -5,6 +5,7 @@
   import Notice from "../components/Notice.vue"
   import { SUBMISSION_LIMITS } from "../lib/submissions/submissions.js"
   import { reviewState, reviewSubmission } from "../lib/submissions/submissionsApi.js"
+  import { askConfirm } from "../lib/state/confirm.js"
 
   const props = defineProps({
     item: { type: Object, required: true },
@@ -43,7 +44,7 @@
   }
 
   async function act(action) {
-    if (action === "merge" && !confirm(`Merge ${props.item.name}? It's published in the generator.`)) return
+    if (action === "merge" && !await askConfirm({ title: "Merge submission", message: `Merge ${props.item.name}? It's published in the generator.`, action: "Merge" })) return
     busy.value = true
     error.value = ""
     try {

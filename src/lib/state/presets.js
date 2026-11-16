@@ -4,6 +4,7 @@ import { isDefaultTitle, openTitleData, titleData } from "./titleFile.js"
 import { LIMITS } from "../core/limits.js"
 import { encodeTitle, openableTitle, titleBody } from "../link/linkformat.js"
 import { capitalWords } from "../core/names.js"
+import { askConfirm } from "./confirm.js"
 import { fileError, showNotice } from "./notices.js"
 import { casedTitle, titleText } from "./scene.js"
 import { submitStats } from "./stats.js"
@@ -296,13 +297,13 @@ export function startSavingPreset({ share = false } = {}) {
 }
 
 export function confirmSharing(name) {
-  if (account.value) return confirm(`Share ${name} publicly as ${account.value.name}?\n\nAnyone will be able to see and use this title, and your username will show on it. You can rename or delete it later.`)
-  return confirm(`Share ${name} without an account?\n\nAnyone will be able to see and use this title. You can only rename or delete it from this browser. If this browser's saved data is cleared, including automatically, or you use another device or a private window, you lose that access for good.\n\nIf you sign in on this browser later, this title moves to your account and shows your username.`)
+  if (account.value) return askConfirm({ title: "Share publicly", message: `Share ${name} publicly as ${account.value.name}?\n\nAnyone will be able to see and use this title, and your username will show on it. You can rename or delete it later.`, action: "Share" })
+  return askConfirm({ title: "Share without an account", message: `Share ${name} without an account?\n\nAnyone will be able to see and use this title. You can only rename or delete it from this browser. If this browser's saved data is cleared, including automatically, or you use another device or a private window, you lose that access for good.\n\nIf you sign in on this browser later, this title moves to your account and shows your username.`, action: "Share" })
 }
 
 export function confirmReplacing(target) {
-  if (target.online) return confirm(`Replace ${target.name} in Community with this title?\n\nIts votes, rating and uses are reset, and that cannot be undone. Its link stays the same.`)
-  return confirm(`Replace ${target.name} with this title?`)
+  if (target.online) return askConfirm({ title: "Replace shared title", message: `Replace ${target.name} in Community with this title?\n\nIts votes, rating and uses are reset, and that cannot be undone. Its link stays the same.`, action: "Replace", danger: true })
+  return askConfirm({ title: "Replace preset", message: `Replace ${target.name} with this title?`, action: "Replace" })
 }
 
 export async function sharePreset(preset, name) {
@@ -341,8 +342,8 @@ export function savePreset(name = "", { keepOpen = false } = {}) {
   }
 }
 
-export function loadPreset(preset) {
-  if (!isDefaultTitle() && !showingCode(preset.code) && !confirm(`Replace your current title with ${preset.name}?`)) return false
+export async function loadPreset(preset) {
+  if (!isDefaultTitle() && !showingCode(preset.code) && !await askConfirm({ title: "Open preset", message: `Replace your current title with ${preset.name}?`, action: "Replace" })) return false
   try {
     openTitleData(openableTitle(preset.code))
   } catch (err) {

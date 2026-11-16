@@ -12,8 +12,11 @@ globalThis.fetch = async (url, options) => {
   posts.push(JSON.parse(options.body).ids)
   return { ok: true }
 }
-globalThis.confirm = () => answer
 fakeTimeouts()
+
+const { watch } = await import("vue")
+const { confirming } = await import("../../src/lib/state/confirm.js")
+watch(confirming, request => request?.answer(answer), { flush: "sync" })
 
 const { LAYER } = await import("../../src/lib/settings/settings.js")
 const { FILE_VERSION } = await import("../../src/lib/settings/upgrades.js")
@@ -304,7 +307,7 @@ describe("presets", () => {
     await savePreset()
     const [preset] = presets.value
     setTitle(createObject({ text: "something else" }))
-    assert.equal(loadPreset(preset), true)
+    assert.equal(await loadPreset(preset), true)
     assert.deepEqual(scene.objects.map(object => object.text), ["kept", "below"])
     assert.equal(scene.objects[0].hue, 42)
   })
@@ -315,20 +318,20 @@ describe("presets", () => {
     const [preset] = presets.value
     setTitle(createObject({ text: "current" }))
     answer = false
-    assert.equal(loadPreset(preset), false)
+    assert.equal(await loadPreset(preset), false)
     assert.equal(scene.objects[0].text, "current")
   })
 
-  test("a damaged preset reports the problem and leaves the title", () => {
+  test("a damaged preset reports the problem and leaves the title", async () => {
     setTitle(createObject({ text: "current" }))
-    assert.equal(loadPreset({ name: "broken", code: "1!!!" }), true)
+    assert.equal(await loadPreset({ name: "broken", code: "1!!!" }), true)
     assert.equal(scene.objects[0].text, "current")
     assert.match(fileError.value, /^Couldn't open broken: /)
   })
 
-  test("a preset with a setting that can't be read names it and leaves the title", () => {
+  test("a preset with a setting that can't be read names it and leaves the title", async () => {
     setTitle(createObject({ text: "current" }))
-    assert.equal(loadPreset({ name: "odd", code: encodeTitle({ version: FILE_VERSION, lines: [{ text: 5 }] }).code }), true)
+    assert.equal(await loadPreset({ name: "odd", code: encodeTitle({ version: FILE_VERSION, lines: [{ text: 5 }] }).code }), true)
     assert.equal(scene.objects[0].text, "current")
     assert.equal(fileError.value, "Couldn't open odd: it has a setting that can't be read: text")
   })

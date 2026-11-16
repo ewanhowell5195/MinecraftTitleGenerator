@@ -137,7 +137,7 @@ export function openTitleData(data) {
 export async function openTitle(file, allow = () => true) {
   try {
     const { values, camera } = readTitle(await file.text())
-    if (!allow()) return
+    if (!await allow()) return
     showObjects(titleObjects(values), camera)
   } catch (err) {
     fileError.value = `Couldn't open ${file.name}: ${err.message}`

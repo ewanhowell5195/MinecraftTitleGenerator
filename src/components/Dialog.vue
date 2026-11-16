@@ -1,3 +1,7 @@
+<script>
+  const open = []
+</script>
+
 <script setup>
   import { onBeforeUnmount, ref } from "vue"
   import { useWindowEvents } from "./composables/events.js"
@@ -13,8 +17,12 @@
 
   const emit = defineEmits(["close"])
 
+  const self = {}
+  open.push(self)
+  onBeforeUnmount(() => open.splice(open.indexOf(self), 1))
+
   function key(event) {
-    if (event.key === "Escape") emit("close")
+    if (event.key === "Escape" && open[open.length - 1] === self) emit("close")
   }
 
   useWindowEvents(() => true, { keydown: key })

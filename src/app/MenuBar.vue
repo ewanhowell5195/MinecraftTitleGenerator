@@ -4,6 +4,7 @@
   import { EXTENSION, isDefaultTitle, openTitle, resetTitle, saveTitle } from "../lib/state/titleFile.js"
   import { history, redo, undo } from "../lib/state/history.js"
   import { startSavingPreset } from "../lib/state/presets.js"
+  import { askConfirm } from "../lib/state/confirm.js"
   import { scene } from "../lib/state/scene.js"
   import { droppedOnField } from "../components/composables/fileDrop.js"
   import { takeFile } from "../lib/state/ui.js"
@@ -28,12 +29,12 @@
     ]
   }))
 
-  function startNew() {
-    if (confirm("Start a new title? This replaces your current one.")) resetTitle()
+  async function startNew() {
+    if (await askConfirm({ title: "New title", message: "Start a new title? This replaces your current one.", action: "Start new" })) resetTitle()
   }
 
   function request(file) {
-    openTitle(file, () => isDefaultTitle() || confirm(`Replace your current title with ${file.name}?`))
+    openTitle(file, () => isDefaultTitle() || askConfirm({ title: "Open title", message: `Replace your current title with ${file.name}?`, action: "Replace" }))
   }
 
   function picked(event) {

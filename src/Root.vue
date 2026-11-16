@@ -1,6 +1,7 @@
 <script setup>
   import { computed } from "vue"
   import { useRoute } from "vue-router"
+  import ConfirmDialog from "./components/ConfirmDialog.vue"
   import PreviewNotice from "./site/PreviewNotice.vue"
   import SiteFooter from "./site/SiteFooter.vue"
   import SiteHeader from "./site/SiteHeader.vue"
@@ -16,4 +17,5 @@
   <RouterView :key="key" />
   <SiteFooter v-if="page.footer" />
   <PreviewNotice />
+  <ConfirmDialog />
 </template>

@@ -5,6 +5,7 @@
   import { titleBody } from "../../lib/link/linkformat.js"
   import { notice, showNotice } from "../../lib/state/notices.js"
   import { addPreset, deleteSharedPreset, loadPreset, presets, presetsError, presetsLoading, removePreset, renamePreset, renameSharedPreset, unsharePreset } from "../../lib/state/presets.js"
+  import { askConfirm } from "../../lib/state/confirm.js"
   import { searchWithUser } from "../../lib/link/presetSearch.js"
   import { closePresetsPage, leavePresetsForEditor, presetsPage, setPresetSearch, setPresetSort, showPresetFilters, showPreset, takeLanding } from "../../lib/state/presetsPage.js"
   import { rememberTab, startingTab, usePresetAddress } from "./presetAddress.js"
@@ -111,8 +112,8 @@
     }
   }
 
-  function open(preset) {
-    if (!loadPreset(preset)) return
+  async function open(preset) {
+    if (!await loadPreset(preset)) return
     if (tab.value === "community") counted(preset)
     leavePresetsForEditor()
   }
@@ -143,12 +144,12 @@
     }
   }
 
-  function remove(preset) {
+  async function remove(preset) {
     if (preset.shared) {
       removing.value = preset
       return
     }
-    if (!confirm(`Delete the preset ${preset.name}?`)) return
+    if (!await askConfirm({ title: "Delete preset", message: `Delete the preset ${preset.name}?`, action: "Delete", danger: true })) return
     removePreset(preset)
     selectedLocalCode.value = null
   }

@@ -27,9 +27,9 @@
     else emit("close")
   }
 
-  function save() {
+  async function save() {
     if (!target.value) savePreset(name.value)
-    else if (confirmReplacing(target.value)) attempt(replace)
+    else if (await confirmReplacing(target.value)) attempt(replace)
   }
 
   async function shareSaved(preset) {
@@ -46,8 +46,8 @@
     else emit("close")
   }
 
-  function saveAndShare() {
-    if (confirmSharing(name.value.trim() || props.suggested)) attempt(saveThenShare)
+  async function saveAndShare() {
+    if (await confirmSharing(name.value.trim() || props.suggested)) attempt(saveThenShare)
   }
 
   function submit() {
