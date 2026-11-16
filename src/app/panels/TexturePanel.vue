@@ -1,20 +1,20 @@
 <script setup>
   import { computed, ref, shallowRef, watch } from "vue"
-  import { image, tileableUrl } from "../../lib/texture/assets.js"
+  import { tileableUrl } from "../../lib/texture/assets.js"
   import { credit } from "../../lib/font/credits.js"
-  import { blockName, blockTextureImage, blockTextures, latestRelease } from "../../lib/minecraft/minecraft.js"
+  import { blockName, blockTextures, latestRelease } from "../../lib/minecraft/minecraft.js"
   import { keepVersions } from "../../lib/minecraft/minecraftModels.js"
   import { titleCase } from "../../lib/core/names.js"
   import { layerShown, usePanel } from "./panel.js"
   import { leastRows, usePickFloor, variantRows } from "./pickFloor.js"
   import { gameVersions, library } from "../../lib/state/scene.js"
-  import { EulaDeclined, eulaDeclined } from "../../lib/minecraft/eula.js"
+  import { eulaDeclined } from "../../lib/minecraft/eula.js"
   import { pinnedTextures, setTexture, untouchedTileable } from "../../lib/settings/settings.js"
   import { minecraftStatId, popular } from "../../lib/state/stats.js"
   import { stripCovers } from "../../lib/font/strips.js"
-  import { SEARCH_ABOVE, readImage, saveImage, thumbnail, thumbnailHeight, tilePreview } from "../../lib/state/ui.js"
-  import { usedTextures } from "./uploads.js"
+  import { SEARCH_ABOVE, saveImage, thumbnail, thumbnailHeight, tilePreview } from "../../lib/state/ui.js"
   import Button from "../../components/Button.vue"
+  import CustomTexture from "./CustomTexture.vue"
   import GradientEditor from "../GradientEditor.vue"
   import MinecraftVersionField from "../MinecraftVersionField.vue"
   import Notice from "../../components/Notice.vue"
@@ -23,14 +23,10 @@
   import Slider from "../../components/Slider.vue"
   import Tile from "../../components/Tile.vue"
   import TileGrid from "../../components/TileGrid.vue"
-  import UploadField from "../../components/UploadField.vue"
-  import UploadReuse from "../../components/UploadReuse.vue"
+  import TilingPanel from "./TilingPanel.vue"
   import Toggle from "../../components/Toggle.vue"
 
-  const TILE_SCALES = [1 / 4, 1 / 3, 1 / 2, 1, 2, 3, 4, 5, 6, 7, 8]
   const SOURCES = [{ value: "premade", label: "Textures" }, { value: "tileable", label: "Tileables" }, { value: "gradient", label: "Gradient" }, { value: "custom", label: "Custom" }]
-  const CUSTOM_MODES = [{ value: "standard", label: "Standard" }, { value: "tileable", label: "Tileable" }, { value: "strip", label: "Strip" }]
-  const SAME_SHAPE = 0.01
   const TILEABLE_SOURCES = [{ value: "minecraft", label: "Minecraft textures" }, { value: "premade", label: "Premade" }]
   const WHITE = "#ffffff"
 
@@ -49,28 +45,16 @@
     return [{ label: "Download tileable", icon: "download", action: () => saveImage(tileableUrl(library.tileables, id, variant), `${variant ?? id}.png`) }]
   }
 
-  const tiling = usePanel("tiling")
   const sources = computed(() => {
     if (font.value?.model) return SOURCES.filter(source => source.value === "premade")
     return font.value?.mesh ? SOURCES.filter(source => source.value !== "custom") : SOURCES
   })
   const search = ref("")
-  const tileSize = ref({ width: 16, height: 16 })
   const blocks = shallowRef(null)
   const blocksError = ref("")
-  const flatSize = ref(null)
-  const customSize = ref(null)
   let blocksRequest = 0
-  let sizeRequest = 0
 
   const usingMinecraft = computed(() => object.value.textureSource === "tileable" && object.value.tileableSource === "minecraft")
-  const tiled = computed(() => object.value.textureSource === "tileable" || object.value.textureSource === "custom" && !!object.value.customTexture && object.value.customTextureMode === "tileable")
-  const fitsFont = computed(() => !customSize.value || !flatSize.value || sameShape(customSize.value, flatSize.value))
-  const modeHint = computed(() => ({
-    standard: fitsFont.value ? "Painted onto the letters using the same layout as this font's flat texture." : "This image isn't the shape of this font's flat texture, so it won't line up with the letters.",
-    tileable: "Repeated across the letters. The tiling settings are below.",
-    strip: font.value?.layers?.length > 1 ? "Read from top to bottom as the top edge, the front and the bottom edge of each layer in turn, starting with layer 1, then repeated along the line." : "Read from top to bottom as the top edge, the front and the bottom edge, then repeated along the line."
-  })[object.value.customTextureMode])
   const textures = computed(() => {
     const entries = Object.entries(list.value?.textures ?? {}).filter(([, data]) => stripCovers(data, shownLayer.value, font.value?.layers?.length ?? 1))
     const statId = id => `${font.value?.id}.${id}`
@@ -116,19 +100,6 @@
 
   function variantBadge(data) {
     return data.variants ? Object.keys(data.variants).length + 1 : 0
-  }
-
-  function sameShape(a, b) {
-    return Math.abs(a.width / a.height - b.width / b.height) < SAME_SHAPE
-  }
-
-  const reusable = computed(() => usedTextures().filter(item => item.value !== object.value.customTexture).map(item => ({ ...item, image: item.value })))
-
-  async function pickCustom(data) {
-    const target = object.value
-    const [upload, flat] = await Promise.all([image(data), image(`${font.value.sheetFolder}/textures/flat.png`)])
-    target.customTexture = data
-    target.customTextureMode = sameShape(upload, flat) ? "standard" : "tileable"
   }
 
   function blockTint(id) {
@@ -203,31 +174,6 @@
       if (request === blocksRequest) blocksError.value = `Could not load Minecraft ${object.value.minecraftVersion}: ${err.message}`
     }
   }, { immediate: true })
-
-  watch(() => [tiled.value, object.value.textureSource, object.value.customTexture, object.value.tileableSource, object.value.tileable, object.value.tileableVariant, object.value.minecraftTexture, object.value.minecraftVersion, library.tileables], async () => {
-    const target = object.value
-    if (!tiled.value) return
-    if (target.textureSource === "tileable" && target.tileableSource !== "minecraft" && !library.tileables[target.tileable]) return
-    const request = ++sizeRequest
-    let img
-    try {
-      img = await (target.textureSource === "custom" ? image(target.customTexture) : target.tileableSource === "minecraft" ? blockTextureImage(target.minecraftVersion, target.minecraftTexture) : image(tileableUrl(library.tileables, target.tileable, target.tileableVariant)))
-    } catch (err) {
-      if (err instanceof EulaDeclined) return
-      throw err
-    }
-    if (request === sizeRequest) tileSize.value = { width: img.width, height: img.height }
-  }, { immediate: true })
-
-  watch(() => [object.value.customTexture, font.value?.sheetFolder], async ([data, folder]) => {
-    customSize.value = null
-    flatSize.value = null
-    if (!data || !folder) return
-    const [upload, flat] = await Promise.all([image(data), image(`${folder}/textures/flat.png`)])
-    if (data !== object.value.customTexture) return
-    customSize.value = { width: upload.width, height: upload.height }
-    flatSize.value = { width: flat.width, height: flat.height }
-  }, { immediate: true })
 </script>
 
 <template>
@@ -284,15 +230,7 @@
       </template>
     </div>
 
-    <template v-if="object.textureSource === 'custom'">
-      <UploadField accept="image/*" :label="object.customTexture ? 'Replace texture' : 'Choose an image'" empty="No texture uploaded" :image="object.customTexture" :clearable="!!object.customTexture" @change="readImage($event, pickCustom)" @clear="object.customTexture = null" />
-      <template v-if="object.customTexture">
-        <Segments label="Use as" :options="CUSTOM_MODES" v-model="object.customTextureMode" />
-        <p class="hint" :class="{ bad: object.customTextureMode === 'standard' && !fitsFont }">{{ modeHint }}</p>
-      </template>
-      <p v-else class="hint">An image the shape of this font's flat texture is painted onto the letters. Anything else is tiled, or you can use it as a strip.</p>
-      <UploadReuse :items="reusable" @pick="pickCustom" />
-    </template>
+    <CustomTexture v-if="object.textureSource === 'custom'" />
 
     <template v-if="object.textureSource === 'gradient'">
       <GradientEditor v-model="object.stops" :smooth="object.smooth" :angle="object.gradientAngle" :key="object.id" />
@@ -302,13 +240,5 @@
     </template>
   </Panel>
 
-  <Panel v-if="tiled" title="Tiling" :modified="tiling.modified.value" @reset="tiling.reset">
-    <Slider label="Scale" v-model="object.tileableScale" :min="0.25" :max="8" :steps="TILE_SCALES" />
-    <Slider label="X offset" v-model="object.tileableXOffset" :min="0" :max="tileSize.width" />
-    <Slider label="Y offset" v-model="object.tileableYOffset" :min="0" :max="tileSize.height" />
-    <Toggle label="Random rotations" v-model="object.tileableRandomRotations" />
-    <Toggle label="Random mirroring" v-model="object.tileableRandomMirroring" />
-    <Toggle label="Tile the edges" hint="Repeats the texture on the top, bottom, side and inner faces" v-model="object.tileableTileEdges" />
-    <Toggle label="Restart on each character" hint="Starts the texture again from the left of every character" v-model="object.tileablePerCharacter" />
-  </Panel>
+  <TilingPanel />
 </template>
