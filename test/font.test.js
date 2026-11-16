@@ -392,19 +392,19 @@ describe("sheetFolder", () => {
   const list = [parent, own, partial]
 
   test("is the font's own folder for a top level font", () => {
-    assert.equal(sheetFolder(parent, list), "font/parent")
+    assert.equal(sheetFolder(parent, list), "fonts/parent")
   })
 
   test("nests a standalone variant under its parent", () => {
-    assert.equal(sheetFolder(own, list), "font/parent/own")
+    assert.equal(sheetFolder(own, list), "fonts/own")
   })
 
   test("uses the parent's folder for an inheriting variant", () => {
-    assert.equal(sheetFolder(partial, list), "font/parent")
+    assert.equal(sheetFolder(partial, list), "fonts/parent")
   })
 
   test("falls back to the variant's folder when the parent is missing", () => {
-    assert.equal(sheetFolder(partial, [partial]), "font/parent/partial")
+    assert.equal(sheetFolder(partial, [partial]), "fonts/partial")
   })
 })
 
@@ -451,6 +451,6 @@ describe("published fonts", () => {
     const { glyphs, alternates } = splitCells(entry, fonts, cells)
     assert.deepEqual(Object.keys(alternates[variant.id]).sort(), Array.from(variant.order).sort())
     assert.notEqual(alternates[variant.id].e, glyphs.e)
-    assert.equal(sheetFolder(variant, fonts), "font/minecraft-ten")
+    assert.equal(sheetFolder(variant, fonts), "fonts/minecraft-ten")
   })
 })

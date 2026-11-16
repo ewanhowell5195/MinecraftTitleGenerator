@@ -70,7 +70,7 @@ test("links carry overlay colours, tints and tint modes", () => {
 })
 
 test("every stored overlay palette matches its image, and no overlay is complex", () => {
-  for (const base of ["public/font"]) {
+  for (const base of ["public/fonts"]) {
     for (const file of fs.readdirSync(base, { recursive: true }).filter(name => name.endsWith("textures.json"))) {
       const folder = path.join(base, path.dirname(file))
       const list = JSON.parse(fs.readFileSync(path.join(base, file), "utf8"))

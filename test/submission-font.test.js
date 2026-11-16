@@ -23,7 +23,7 @@ import { publicContext } from "./helpers/site.js"
 
 const { editSubmission } = await import("../src/server/submissions/index.js")
 
-const LIST = "public/font/fonts.json"
+const LIST = "public/fonts/fonts.json"
 const published = publishedFonts()
 const fonts = published.map(entry => ({ ...entry, name: entry.name ?? titleCase(entry.id) }))
 
@@ -68,7 +68,7 @@ function without(chars) {
 
 describe("checking a font", () => {
   test("decodes the PNGs the repo uses, palette, grey and colour key ones included", () => {
-    for (const file of ["public/font/minecraft-ten/font.png", "public/font/minecraft-ten/textures/haunted.png", "public/font/f8thful/textures/flat.png"]) {
+    for (const file of ["public/fonts/minecraft-ten/font.png", "public/fonts/minecraft-ten/textures/haunted.png", "public/fonts/f8thful/textures/flat.png"]) {
       const bytes = fs.readFileSync(file)
       assert.ok(Buffer.from(decodePng(new Uint8Array(bytes)).data).equals(PNG.sync.read(bytes).data), file)
     }
@@ -300,7 +300,7 @@ function tempRoot() {
   roots.push(root)
   const skip = file => !file.split(/[\\/]/).includes("thumbnails")
   fs.cpSync(LIST, path.join(root, LIST))
-  fs.cpSync("public/font/minecraft-ten", path.join(root, "public/font/minecraft-ten"), { recursive: true, filter: skip })
+  fs.cpSync("public/fonts/minecraft-ten", path.join(root, "public/fonts/minecraft-ten"), { recursive: true, filter: skip })
   fs.cpSync("public/strips", path.join(root, "public/strips"), { recursive: true })
   return root
 }
@@ -325,7 +325,7 @@ function readPngFile(file) {
 function assertPublishable(root, id) {
   const list = flattenFonts(JSON.parse(fs.readFileSync(path.join(root, LIST), "utf8")))
   const entry = list.find(item => item.id === id)
-  const folder = path.join(root, "public/font", ...(entry.variant ? [entry.variant, entry.id] : [entry.id]))
+  const folder = path.join(root, "public/fonts", entry.id)
   const png = readPngFile(path.join(folder, "font.png"))
   const { list: cells, capHeight } = parseMask(png.data, png.width, png.height, fullOrder(entry, list), defaultBorder("top", entry))
   assert.equal(cells.length, Array.from(fullOrder(entry, list)).length)
@@ -343,12 +343,12 @@ describe("the workflow step", () => {
     const root = tempRoot()
     addEntry(root, { id: "test-font", name: "Testing", authors: ["Someone"] })
     const held = hold(root, "test-font", f8thful)
-    const folder = path.join(root, "public/font/test-font")
+    const folder = path.join(root, "public/fonts/test-font")
     fs.mkdirSync(path.join(folder, "textures"), { recursive: true })
     fs.writeFileSync(path.join(folder, "textures.json"), `${jsonText({ textures: { flat: { border: "#000000" }, gold: { authors: ["Someone"], density: 2, border: "#000000" } }, overlays: {} })}\n`)
     fs.writeFileSync(path.join(folder, "textures/gold.png"), plainPng(566 * 2, 356 * 2))
     const ran = []
-    await prepare({ root, changed: [LIST, held, "public/font/test-font/textures.json"], node: (...args) => ran.push(args) })
+    await prepare({ root, changed: [LIST, held, "public/fonts/test-font/textures.json"], node: (...args) => ran.push(args) })
     assert.deepEqual(ran, [["generator/thumbnails.js", "test-font"]])
     assert.ok(!fs.existsSync(path.join(root, held)))
     const { entry, flat } = assertPublishable(root, "test-font")
@@ -365,7 +365,7 @@ describe("the workflow step", () => {
     const root = tempRoot()
     addEntry(root, { id: "test-font", authors: ["Someone"] })
     const held = hold(root, "test-font", f8thful)
-    const folder = path.join(root, "public/font/test-font")
+    const folder = path.join(root, "public/fonts/test-font")
     fs.mkdirSync(path.join(folder, "textures"), { recursive: true })
     fs.writeFileSync(path.join(folder, "textures.json"), `${jsonText({ textures: { flat: { authors: ["Someone"], density: 2, border: "#123456" } }, overlays: {} })}\n`)
     const painted = plainPng(566 * 2, 356 * 2)
@@ -381,7 +381,7 @@ describe("the workflow step", () => {
     const root = tempRoot()
     addEntry(root, { id: "test-font", authors: ["Someone"] })
     const held = hold(root, "test-font", f8thful)
-    const folder = path.join(root, "public/font/test-font")
+    const folder = path.join(root, "public/fonts/test-font")
     fs.mkdirSync(path.join(folder, "textures"), { recursive: true })
     fs.writeFileSync(path.join(folder, "textures.json"), `${jsonText({ textures: { flat: { border: "#000000" }, gold: { authors: ["Someone"], border: "#000000" } }, overlays: {} })}\n`)
     fs.writeFileSync(path.join(folder, "textures/gold.png"), plainPng(500, 300))
@@ -472,9 +472,9 @@ describe("sending a font", () => {
     const list = JSON.parse(branchFile(id, LIST).toString())
     assert.deepEqual(list.at(-1), { id: "test-font", authors: ["Someone"] })
     assert.deepEqual(branchFile(id, "submissions/fonts/test-font.json"), Buffer.from(f8thful))
-    assert.deepEqual(JSON.parse(branchFile(id, "public/font/test-font/textures.json").toString()), { textures: { flat: {}, gold_bricks: { authors: ["Someone"], border: "#3d1f0a" } }, overlays: { sparkle: { authors: ["Helper", "Someone"], density: 2, palette: ["#c8c8c8"] } } })
-    assert.equal(sha1(branchFile(id, "public/font/test-font/overlays/sparkle.png")), sha1(extras.sparkle))
-    assert.ok(branchFile(id, "public/font/test-font/textures/gold_bricks.png"))
+    assert.deepEqual(JSON.parse(branchFile(id, "public/fonts/test-font/textures.json").toString()), { textures: { flat: {}, gold_bricks: { authors: ["Someone"], border: "#3d1f0a" } }, overlays: { sparkle: { authors: ["Helper", "Someone"], density: 2, palette: ["#c8c8c8"] } } })
+    assert.equal(sha1(branchFile(id, "public/fonts/test-font/overlays/sparkle.png")), sha1(extras.sparkle))
+    assert.ok(branchFile(id, "public/fonts/test-font/textures/gold_bricks.png"))
     assert.equal(gh.pulls.get(1).title, "Test Font font")
     assert.equal(gh.commits.get(gh.refs.get(`heads/submission/${id}`)).message, "[CF-Pages-Skip] add Test Font font")
   })
@@ -485,11 +485,11 @@ describe("sending a font", () => {
     const details = { id: "test-font", extras: [{ key: "base", kind: "flat", border: "#000000", secondary: true }, { key: "gold", kind: "texture", name: "Gold Bricks", border: "#3d1f0a", primary: true }] }
     const { status, id } = await send(cookie, { details, extras })
     assert.equal(status, 201)
-    const list = JSON.parse(branchFile(id, "public/font/test-font/textures.json").toString())
+    const list = JSON.parse(branchFile(id, "public/fonts/test-font/textures.json").toString())
     assert.equal(list.primary, "gold_bricks")
     assert.equal(list.secondary, "flat")
     const both = await send(cookie, { details: { id: "test-font-2", extras: [{ ...details.extras[1], secondary: true }] }, extras: { gold: extras.gold } })
-    const single = JSON.parse(branchFile(both.id, "public/font/test-font-2/textures.json").toString())
+    const single = JSON.parse(branchFile(both.id, "public/fonts/test-font-2/textures.json").toString())
     assert.deepEqual([single.primary, single.secondary], ["gold_bricks", "gold_bricks"])
   })
 
@@ -498,8 +498,8 @@ describe("sending a font", () => {
     const painted = plainPng(566, 356)
     const { status, id } = await send(cookie, { details: { id: "test-font", extras: [{ key: "base", kind: "flat", border: "#123456" }] }, extras: { base: painted } })
     assert.equal(status, 201)
-    assert.deepEqual(JSON.parse(branchFile(id, "public/font/test-font/textures.json").toString()), { textures: { flat: { authors: ["Someone"], border: "#123456" } }, overlays: {} })
-    assert.equal(sha1(branchFile(id, "public/font/test-font/textures/flat.png")), sha1(painted))
+    assert.deepEqual(JSON.parse(branchFile(id, "public/fonts/test-font/textures.json").toString()), { textures: { flat: { authors: ["Someone"], border: "#123456" } }, overlays: {} })
+    assert.equal(sha1(branchFile(id, "public/fonts/test-font/textures/flat.png")), sha1(painted))
   })
 
   test("refuses a bundled file that wasn't sent", async () => {
@@ -532,7 +532,7 @@ describe("sending a font", () => {
     body.set("revision", String(row.updated_at))
     const response = await editSubmission(context(`/api/submissions/${id}`, { method: "PATCH", body, cookie, params: { id: String(id) } }))
     assert.equal(response.status, 200)
-    assert.ok(branchFile(id, "public/font/test-font/textures/golden.png"))
+    assert.ok(branchFile(id, "public/fonts/test-font/textures/golden.png"))
     assert.equal(gh.pulls.get(1).title, "Renamed Font font")
   })
 })

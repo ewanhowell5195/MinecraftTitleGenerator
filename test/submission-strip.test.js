@@ -20,9 +20,9 @@ import { pngOf } from "./helpers/png.js"
 import { details, editForm, hook, sendForm, serverEnv, signIn } from "./helpers/server.js"
 import { publicContext } from "./helpers/site.js"
 
-const FONTS = "public/font/fonts.json"
+const FONTS = "public/fonts/fonts.json"
 const SET = "public/strips/minecraft-ten/textures.json"
-const SEEDED = [FONTS, SET].concat(fs.readdirSync("public/font", { recursive: true }).filter(file => file.endsWith("textures.json")).map(file => `public/font/${file.replaceAll("\\", "/")}`))
+const SEEDED = [FONTS, SET].concat(fs.readdirSync("public/fonts", { recursive: true }).filter(file => file.endsWith("textures.json")).map(file => `public/fonts/${file.replaceAll("\\", "/")}`))
 const NEW_SHAPE = { depth: 16, baseline: 24, height: 40 }
 const published = flattenFonts(JSON.parse(fs.readFileSync(FONTS, "utf8")))
 
@@ -41,7 +41,7 @@ async function checked(target, details, image) {
 
 describe("strip shapes", () => {
   test("reads every font sheet the same as pngjs", async () => {
-    for (const file of SEEDED.filter(item => item.startsWith("public/font/") && item !== FONTS).map(item => path.join(path.dirname(item), "font.png")).filter(item => fs.existsSync(item))) {
+    for (const file of SEEDED.filter(item => item.startsWith("public/fonts/") && item !== FONTS).map(item => path.join(path.dirname(item), "font.png")).filter(item => fs.existsSync(item))) {
       const bytes = fs.readFileSync(file)
       const mine = await decodePng(new Uint8Array(bytes))
       assert.deepEqual(Buffer.from(mine.data), PNG.sync.read(bytes).data, file)
@@ -253,9 +253,9 @@ describe("sending a strip", () => {
 
   test("a font's own strip takes variants, and its other textures don't", async () => {
     const cookie = await signIn()
-    const main = onMain("public/font/minecraft-five/textures.json")
+    const main = onMain("public/fonts/minecraft-five/textures.json")
     const { id } = await send(cookie, { target: "font:minecraft-five", details: { variantOf: "edition" } }, png(1, 76))
-    assert.deepEqual(branchJson(id, "public/font/minecraft-five/textures.json").textures.edition, { ...main.textures.edition, variants: { ...main.textures.edition.variants, pale_dawn: { authors: ["Someone"], border: "#3d1f0a" } } })
+    assert.deepEqual(branchJson(id, "public/fonts/minecraft-five/textures.json").textures.edition, { ...main.textures.edition, variants: { ...main.textures.edition.variants, pale_dawn: { authors: ["Someone"], border: "#3d1f0a" } } })
     assert.equal(gh.pulls.get(1).title, "Pale Dawn strip for Minecraft Five as a variant of Edition")
     const plain = Object.keys(main.textures).find(name => main.textures[name].type !== "strip")
     assert.match((await send(cookie, { target: "font:minecraft-five", name: "Lost", details: { variantOf: plain } }, png(1, 76))).error, /Pick the strip this is a variant of/)
@@ -264,9 +264,9 @@ describe("sending a strip", () => {
   test("to a font adds it to the font's own textures", async () => {
     const cookie = await signIn()
     const { id } = await send(cookie, { target: "font:minecraft-five", name: "Edition" }, png(1, 76))
-    const list = branchJson(id, "public/font/minecraft-five/textures.json")
+    const list = branchJson(id, "public/fonts/minecraft-five/textures.json")
     assert.deepEqual(list.textures.edition_2, { type: "strip", name: "Edition", authors: ["Someone"], border: "#3d1f0a" })
-    assert.ok(gh.filesAt(`submission/${id}`).has("public/font/minecraft-five/textures/edition_2.png"))
+    assert.ok(gh.filesAt(`submission/${id}`).has("public/fonts/minecraft-five/textures/edition_2.png"))
     assert.equal(gh.pulls.get(1).title, "Edition strip for Minecraft Five")
   })
 
@@ -302,11 +302,11 @@ describe("sending a strip", () => {
     const again = await send(cookie, { name: "Gradient" })
     assert.ok(branchJson(again.id, SET).textures.gradient_3)
     const own = await send(cookie, { target: "font:minecraft-ten", name: "Gradient" })
-    assert.ok(branchJson(own.id, "public/font/minecraft-ten/textures.json").textures.gradient_4)
+    assert.ok(branchJson(own.id, "public/fonts/minecraft-ten/textures.json").textures.gradient_4)
     const fresh = await send(cookie, { target: "new", name: "Gradient", details: { set: "Soft Edge", ...NEW_SHAPE, fonts: ["minecraft-five", "geo-squares"] } }, png(1, 80))
     assert.ok(branchJson(fresh.id, "public/strips/soft-edge/textures.json").textures.gradient_4)
     const shared = await send(cookie, { target: "font:minecraft-dungeons", name: "Gradient" }, png(1, 92))
-    assert.ok(branchJson(shared.id, "public/font/minecraft-dungeons/textures.json").textures.gradient_4)
+    assert.ok(branchJson(shared.id, "public/fonts/minecraft-dungeons/textures.json").textures.gradient_4)
   })
 
   test("is refused when the strip doesn't fit what it's for", async () => {
@@ -346,9 +346,9 @@ describe("the strip writer", () => {
 
   test("watches every list the strip's id depends on", () => {
     const set = writer.watches({ row: { target: "set:minecraft-ten" }, details: {}, fonts })
-    assert.ok(set.includes(SET) && set.includes(FONTS) && set.includes("public/font/geo-squares/textures.json"))
-    assert.deepEqual(writer.watches({ row: { target: "font:minecraft-five" }, details: {}, fonts }), ["public/font/minecraft-five/textures.json"])
-    assert.deepEqual(writer.watches({ row: { target: "new" }, details: { set: "soft", fonts: ["minecraft-five"] }, fonts }).sort(), [FONTS, "public/font/minecraft-five/textures.json", "public/strips/soft/textures.json"])
+    assert.ok(set.includes(SET) && set.includes(FONTS) && set.includes("public/fonts/geo-squares/textures.json"))
+    assert.deepEqual(writer.watches({ row: { target: "font:minecraft-five" }, details: {}, fonts }), ["public/fonts/minecraft-five/textures.json"])
+    assert.deepEqual(writer.watches({ row: { target: "new" }, details: { set: "soft", fonts: ["minecraft-five"] }, fonts }).sort(), [FONTS, "public/fonts/minecraft-five/textures.json", "public/strips/soft/textures.json"])
   })
 
   test("shares id scopes with the fonts the strip lands in", () => {
@@ -374,7 +374,7 @@ describe("the workflow step", () => {
   })
 
   test("leaves a font's own textures to the font asset step", () => {
-    const file = "public/font/minecraft-five/textures.json"
+    const file = "public/fonts/minecraft-five/textures.json"
     const calls = []
     prepareAsset({ root: path.resolve("."), changed: [file], node: (...args) => calls.push(args[1]) })
     assert.deepEqual(calls, ["minecraft-five"])

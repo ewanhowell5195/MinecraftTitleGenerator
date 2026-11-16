@@ -24,7 +24,7 @@
   const font = ref(DEFAULT_FONT)
 
   const usable = computed(() => props.fonts.filter(entry => !entry.mesh))
-  const options = computed(() => popular(usable.value, entry => entry.id, entry => fullName(entry, props.fonts), [DEFAULT_FONT]).map(entry => ({ value: entry.id, label: fullName(entry, props.fonts), image: fontThumbnail(props.fonts, entry.id) })))
+  const options = computed(() => popular(usable.value, entry => entry.id, entry => fullName(entry, props.fonts), [DEFAULT_FONT]).map(entry => ({ value: entry.id, label: fullName(entry, props.fonts), image: fontThumbnail(entry.id) })))
 
   watch(usable, fonts => {
     if (!fonts.some(entry => entry.id === font.value)) font.value = fonts[0]?.id ?? ""

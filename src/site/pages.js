@@ -7,7 +7,7 @@ const APP = {
   "@context": "https://schema.org",
   "@graph": [
     { "@type": "WebSite", name: "Minecraft Title Generator", url: `${SITE}/` },
-    { "@type": "WebApplication", name: "Minecraft Title Generator", url: `${SITE}/app/`, description: TAGLINE, image: `${SITE}/home/og.jpg`, applicationCategory: "DesignApplication", operatingSystem: "Any", browserRequirements: "Requires JavaScript and WebGL", isAccessibleForFree: true, offers: { "@type": "Offer", price: "0", priceCurrency: "USD" }, author: { "@type": "Person", name: "Ewan Howell", url: "https://ewanhowell.com" } }
+    { "@type": "WebApplication", name: "Minecraft Title Generator", url: `${SITE}/app/`, description: TAGLINE, image: `${SITE}/share/site.jpg`, applicationCategory: "DesignApplication", operatingSystem: "Any", browserRequirements: "Requires JavaScript and WebGL", isAccessibleForFree: true, offers: { "@type": "Offer", price: "0", priceCurrency: "USD" }, author: { "@type": "Person", name: "Ewan Howell", url: "https://ewanhowell.com" } }
   ]
 }
 

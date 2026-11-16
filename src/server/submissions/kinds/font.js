@@ -7,7 +7,7 @@ import { holdingPath } from "../../../lib/submissions/kinds/fontBuild.js"
 import { DEFAULT_ROLES, assetId, ownBorder, sourceOf } from "../../../lib/submissions/submissions.js"
 import { usedIds } from "./fontAsset.js"
 
-const LIST = "public/font/fonts.json"
+const LIST = "public/fonts/fonts.json"
 
 function parentOf(row, fonts) {
   if (!row.target) return null

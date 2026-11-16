@@ -280,13 +280,13 @@ export function loadImage(src) {
   return platform.loadImage(src)
 }
 
-const FOLDER = "font"
+const FOLDER = "fonts"
 
 const META = ["authors", "description", "multicase", "strips", "height", "depth", "border", "characterSpacing", "spaceWidth", "terminatorSpace", "terminatorSpaceWidth", "forcedTerminators", "autoBorder", "flat", "overlay", "allFaces", "layerDepth", "mesh", "outlines"]
 
 export function fontFolder(data) {
   if (data.folder) return data.folder
-  return data.variant ? `${FOLDER}/${data.variant}/${data.id}` : `${FOLDER}/${data.id}`
+  return `${FOLDER}/${data.id}`
 }
 
 export function sheetOwner(data, list) {

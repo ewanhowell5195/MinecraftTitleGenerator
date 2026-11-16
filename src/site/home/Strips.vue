@@ -2,7 +2,7 @@
   import { shallowRef } from "vue"
   import FluidMarquee from "fluid-marquee-vue"
 
-  const FOLDER = "/font/minecraft-ten"
+  const FOLDER = "/fonts/minecraft-ten"
   const LISTS = [FOLDER, "/strips/minecraft-ten"]
 
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches

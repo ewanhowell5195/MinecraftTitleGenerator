@@ -16,8 +16,8 @@ const { createSubmission } = await import("../src/server/submissions/index.js")
 const { encodeTitle } = await import("../src/lib/link/linkformat.js")
 const { FILE_VERSION } = await import("../src/lib/settings/settings.js")
 
-const TEXTURES = "public/font/minecraft-ten/textures.json"
-const FLAT = PNG.sync.read(fs.readFileSync("public/font/minecraft-ten/textures/flat.png"))
+const TEXTURES = "public/fonts/minecraft-ten/textures.json"
+const FLAT = PNG.sync.read(fs.readFileSync("public/fonts/minecraft-ten/textures/flat.png"))
 
 let db
 let gh

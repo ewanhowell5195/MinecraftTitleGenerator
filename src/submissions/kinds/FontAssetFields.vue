@@ -34,7 +34,7 @@
   const emit = defineEmits(["update:target", "update:details", "problem"])
 
   const owners = computed(() => fontOwners(props.fonts))
-  const options = computed(() => popular(owners.value, font => font.id, font => fullName(font, props.fonts), [DEFAULT_FONT]).map(font => ({ value: font.id, label: fullName(font, props.fonts), image: fontThumbnail(props.fonts, font.id) })))
+  const options = computed(() => popular(owners.value, font => font.id, font => fullName(font, props.fonts), [DEFAULT_FONT]).map(font => ({ value: font.id, label: fullName(font, props.fonts), image: fontThumbnail(font.id) })))
   const entry = computed(() => props.fonts.find(font => font.id === props.target))
   const template = computed(() => entry.value ? `/${fontFolder(entry.value)}/textures/flat.png` : null)
   const noun = computed(() => props.kind === "overlay" ? "overlay" : "texture")

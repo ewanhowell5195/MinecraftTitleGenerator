@@ -46,7 +46,7 @@
   const variant = ref(!!props.target)
   let lastParent = props.target || DEFAULT_FONT
 
-  const parents = computed(() => popular(fontParents(props.fonts), font => font.id, font => font.name, [DEFAULT_FONT]).map(font => ({ value: font.id, label: font.name, image: fontThumbnail(props.fonts, font.id) })))
+  const parents = computed(() => popular(fontParents(props.fonts), font => font.id, font => font.name, [DEFAULT_FONT]).map(font => ({ value: font.id, label: font.name, image: fontThumbnail(font.id) })))
   const extras = computed(() => Array.isArray(props.details.extras) ? props.details.extras : [])
   const addable = computed(() => EXTRA_KINDS.filter(kind => kind !== "flat" || !extras.value.some(item => item.kind === "flat")))
   const newExamples = computed(() => NEW_EXAMPLES.map(id => props.fonts.find(font => font.id === id && !font.variant)?.name).filter(Boolean))

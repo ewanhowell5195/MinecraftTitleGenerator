@@ -41,7 +41,7 @@
   const owners = computed(() => stripOwners(props.fonts))
   const sets = computed(() => setIds(props.fonts))
   const chosen = computed(() => stripTarget(props.target))
-  const fontOptions = computed(() => popular(owners.value, font => font.id, font => fullName(font, props.fonts), [DEFAULT_FONT]).map(font => ({ value: font.id, label: fullName(font, props.fonts), image: fontThumbnail(props.fonts, font.id) })))
+  const fontOptions = computed(() => popular(owners.value, font => font.id, font => fullName(font, props.fonts), [DEFAULT_FONT]).map(font => ({ value: font.id, label: fullName(font, props.fonts), image: fontThumbnail(font.id) })))
   const setOptions = computed(() => sets.value.map(id => ({ value: id, label: setName(id) })))
   const users = computed(() => chosen.value.kind === "set" ? setUsers(props.fonts, chosen.value.id).map(use => fullName(use.font, props.fonts)) : [])
   const shownOn = computed(() => chosen.value.kind === "set" ? setUsers(props.fonts, chosen.value.id)[0]?.font : owners.value.find(item => item.id === chosen.value.id))
@@ -194,7 +194,7 @@
         <li v-for="item of fits" :key="item.id">
           <label class="font card card-row" :class="{ selected: picked.includes(item.id), faded: item.offset === null && !picked.includes(item.id) }" v-tooltip="item.offset === null ? `Won't fit: ${item.problems.join(', and ')}.` : null">
             <input type="checkbox" :checked="picked.includes(item.id)" :disabled="item.offset === null && !picked.includes(item.id)" @change="toggleFont(item.id, $event.target.checked)">
-            <img :src="fontThumbnail(fonts, item.id)" alt="" loading="lazy">
+            <img :src="fontThumbnail(item.id)" alt="" loading="lazy">
             <span class="font-text">
               <span class="ellipsis">{{ item.name }}</span>
               <span class="note">{{ fitNote(item) }}</span>

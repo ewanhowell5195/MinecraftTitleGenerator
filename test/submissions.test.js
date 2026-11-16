@@ -12,7 +12,7 @@ function read(file) {
 }
 
 function template(font) {
-  const flat = read(`public/font/${font}/textures/flat.png`)
+  const flat = read(`public/fonts/${font}/textures/flat.png`)
   return { width: flat.width, height: flat.height, cells: opaqueCells(flat.data, flat.width, flat.height, 1, 128) }
 }
 
@@ -27,13 +27,13 @@ describe("template matching", () => {
     const dungeons = template("minecraft-dungeons")
     const serif = template("minecraft-ten-serif")
     assert.deepEqual([dungeons.width, dungeons.height], [serif.width, serif.height])
-    for (const [file, right, wrong] of [["public/font/minecraft-dungeons/textures/flat.png", "minecraft-dungeons", "minecraft-ten-serif"], ["public/font/minecraft-ten-serif/textures/flat.png", "minecraft-ten-serif", "minecraft-dungeons"]]) {
+    for (const [file, right, wrong] of [["public/fonts/minecraft-dungeons/textures/flat.png", "minecraft-dungeons", "minecraft-ten-serif"], ["public/fonts/minecraft-ten-serif/textures/flat.png", "minecraft-ten-serif", "minecraft-dungeons"]]) {
       assert.ok(score("texture", file, right) > score("texture", file, wrong))
     }
   })
 
   test("scores an overlay by how much of it sits on the letters", () => {
-    assert.ok(score("overlay", "public/font/minecraft-ten/overlays/cracks.png", "minecraft-ten") > 0.9)
+    assert.ok(score("overlay", "public/fonts/minecraft-ten/overlays/cracks.png", "minecraft-ten") > 0.9)
     const empty = new Uint8Array(4)
     assert.equal(templateScore("overlay", empty, Uint8Array.of(1, 1, 0, 0)), 0)
   })

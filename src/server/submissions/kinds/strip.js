@@ -7,7 +7,7 @@ import { setName, setUsers, stripTarget } from "../../../lib/submissions/kinds/s
 import { assetId, ownBorder } from "../../../lib/submissions/submissions.js"
 import { texturesPath, usedIds } from "./fontAsset.js"
 
-const FONTS = "public/font/fonts.json"
+const FONTS = "public/fonts/fonts.json"
 const LEADING = new Set(["id", "name", "authors", "description", "basedOn", "inherits"])
 
 function setPath(id) {

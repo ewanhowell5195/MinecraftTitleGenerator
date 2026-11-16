@@ -1,10 +1,10 @@
 import { escaped } from "./html.js"
 
 export const SITE_NAME = "Minecraft Title Generator"
-export const SHARE_IMAGE = { path: "/home/og.jpg", width: 1200, height: 630, alt: "The Minecraft Title Generator logo" }
+export const SHARE_IMAGE = { path: "/share/site.jpg", width: 1200, height: 630, alt: "The Minecraft Title Generator logo" }
 
 export function pageImage(name, label) {
-  return { ...SHARE_IMAGE, path: `/home/og-${name}.jpg`, alt: `The Minecraft Title Generator logo, with ${label} under it` }
+  return { ...SHARE_IMAGE, path: `/share/${name}.jpg`, alt: `The Minecraft Title Generator logo, with ${label} under it` }
 }
 
 const EMBED_COLOUR = 0xF1822C

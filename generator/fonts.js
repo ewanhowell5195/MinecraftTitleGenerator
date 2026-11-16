@@ -25,7 +25,7 @@ export function fontDir(font, root = ROOT) {
 }
 
 export function publishedFonts(root = ROOT) {
-  return flattenFonts(readJson(path.join(publicDir(root), "font/fonts.json")))
+  return flattenFonts(readJson(path.join(publicDir(root), "fonts/fonts.json")))
 }
 
 export function publishedShapes(root = ROOT) {

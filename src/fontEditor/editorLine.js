@@ -1,6 +1,6 @@
 import { computed, shallowRef, toRaw, watch } from "vue"
 import { forgetFolder } from "../lib/texture/assets.js"
-import { forgetFont } from "../lib/font/font.js"
+import { fontFolder, forgetFont } from "../lib/font/font.js"
 import { buildSheet, exportJson, flatTexture } from "../lib/font/fontEditor.js"
 import { defaultBorder, defaultDepth, defaultSpacing, fontFaces } from "../lib/settings/settings.js"
 import { forgetFiles, pngUrl, serveFile } from "../lib/core/virtualFiles.js"
@@ -9,7 +9,7 @@ const served = new Map()
 let count = 0
 
 function forget(id) {
-  const folder = `font/${id}`
+  const folder = fontFolder({ id })
   forgetFont(id)
   forgetFolder(folder)
   forgetFiles(folder)
@@ -21,7 +21,7 @@ function servedFont(slot, font, strip) {
   if (current && current.font === font && current.key === key) return current.entry
   if (current) forget(current.entry.id)
   const id = `editor-preview-${++count}`
-  const folder = `font/${id}`
+  const folder = fontFolder({ id })
   const { editor, strips, ...entry } = { ...exportJson(font, ""), id, name: font.name || "My Font" }
   if (strip) entry.strips = [strip]
   serveFile(`${folder}/font.png`, pngUrl(buildSheet(font)))

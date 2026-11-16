@@ -56,7 +56,7 @@ function checkBundle(folder, template, submittedFlat) {
 }
 
 export async function convertFont(root, id) {
-  const listFile = path.join(publicDir(root), "font", "fonts.json")
+  const listFile = path.join(publicDir(root), "fonts", "fonts.json")
   const holding = path.join(root, holdingPath(id))
   const list = readJson(listFile)
   const bytes = new Uint8Array(fs.readFileSync(holding))

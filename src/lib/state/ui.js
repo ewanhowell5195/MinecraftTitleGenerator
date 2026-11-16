@@ -2,7 +2,7 @@ import { reactive } from "vue"
 import { image, tileableUrl } from "../texture/assets.js"
 import { surface } from "../texture/canvas.js"
 import { customThumbnail } from "../font/customFonts.js"
-import { loadImage } from "../font/font.js"
+import { fontFolder, loadImage } from "../font/font.js"
 import { fileError } from "./notices.js"
 
 const heights = reactive({})
@@ -51,9 +51,8 @@ export async function readImage(event, apply) {
 
 export const SEARCH_ABOVE = 9
 
-export function fontThumbnail(fonts, id) {
-  const entry = fonts.find(item => item.id === id)
-  return `font/${entry?.variant ? `${entry.variant}/` : ""}${id}/thumbnails/flat.png`
+export function fontThumbnail(id) {
+  return `${fontFolder({ id })}/thumbnails/flat.png`
 }
 
 export function thumbnail(font, id, layer = null) {

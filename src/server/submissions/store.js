@@ -19,7 +19,7 @@ export async function asset({ request, env }, path) {
 }
 
 export async function publishedFonts(context) {
-  return flattenFonts(await (await asset(context, "/font/fonts.json")).json()).map(font => ({ ...font, name: font.name ?? titleCase(font.id) }))
+  return flattenFonts(await (await asset(context, "/fonts/fonts.json")).json()).map(font => ({ ...font, name: font.name ?? titleCase(font.id) }))
 }
 
 function storedCredit(text) {

@@ -29,10 +29,10 @@ test("every kind of submission has a published link", () => {
 })
 
 test("thumbnails point at the image the workflow renders for each kind", () => {
-  assert.equal(thumbnailPath({ kind: "font", target: "", asset: "ten-light" }, fonts), "font/ten-light/thumbnails/flat.png")
-  assert.equal(thumbnailPath({ kind: "font", target: "minecraft-ten", asset: "ten-greek" }, fonts), "font/minecraft-ten/ten-greek/thumbnails/flat.png")
-  assert.equal(thumbnailPath({ kind: "texture", target: "block-serif", asset: "gold" }, fonts), "font/block-serif/thumbnails/gold.png")
-  assert.equal(thumbnailPath({ kind: "strip", target: "set:block-serif", asset: "bands", details: {} }, fonts), "font/block-serif/thumbnails/bands.png")
+  assert.equal(thumbnailPath({ kind: "font", target: "", asset: "ten-light" }, fonts), "fonts/ten-light/thumbnails/flat.png")
+  assert.equal(thumbnailPath({ kind: "font", target: "minecraft-ten", asset: "ten-greek" }, fonts), "fonts/ten-greek/thumbnails/flat.png")
+  assert.equal(thumbnailPath({ kind: "texture", target: "block-serif", asset: "gold" }, fonts), "fonts/block-serif/thumbnails/gold.png")
+  assert.equal(thumbnailPath({ kind: "strip", target: "set:block-serif", asset: "bands", details: {} }, fonts), "fonts/block-serif/thumbnails/bands.png")
   assert.equal(thumbnailPath({ kind: "tileable", target: "", asset: "mossy" }, fonts), null)
   assert.equal(thumbnailPath({ kind: "texture", target: "block-serif", asset: "" }, fonts), null)
 })

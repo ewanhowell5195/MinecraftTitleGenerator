@@ -64,7 +64,7 @@ function pieceHtml(piece) {
 
 function peopleOf(root) {
   const folder = path.join(root, "public")
-  const fonts = flattenFonts(readJson(path.join(folder, "font/fonts.json"))).map(data => ({ ...data, name: data.name ?? titleCase(data.id) }))
+  const fonts = flattenFonts(readJson(path.join(folder, "fonts/fonts.json"))).map(data => ({ ...data, name: data.name ?? titleCase(data.id) }))
   const fontOf = id => fonts.find(font => font.id === id)
   const lists = new Map()
   for (const font of fonts) {

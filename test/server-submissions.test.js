@@ -13,11 +13,11 @@ const { reviewState, reviewSubmission, submissionProcessing } = await import("..
 const { jsonText } = await import("../src/lib/core/jsonText.js")
 const { decodeTitle } = await import("../src/lib/link/linkformat.js")
 
-const TEXTURES = "public/font/minecraft-ten/textures.json"
-const LEGENDS = "public/font/minecraft-legends/textures.json"
-const WIKI = "public/font/minecraft-wiki/textures.json"
-const FLAT = PNG.sync.read(fs.readFileSync("public/font/minecraft-ten/textures/flat.png"))
-const WIKI_FLAT = PNG.sync.read(fs.readFileSync("public/font/minecraft-wiki/textures/flat.png"))
+const TEXTURES = "public/fonts/minecraft-ten/textures.json"
+const LEGENDS = "public/fonts/minecraft-legends/textures.json"
+const WIKI = "public/fonts/minecraft-wiki/textures.json"
+const FLAT = PNG.sync.read(fs.readFileSync("public/fonts/minecraft-ten/textures/flat.png"))
+const WIKI_FLAT = PNG.sync.read(fs.readFileSync("public/fonts/minecraft-wiki/textures/flat.png"))
 
 let gh
 let waiting
@@ -69,7 +69,7 @@ describe("sending a submission", () => {
     const main = JSON.parse(fs.readFileSync(TEXTURES, "utf8"))
     const text = Buffer.from(gh.blobs.get(gh.filesAt(`submission/${id}`).get(TEXTURES))).toString()
     assert.equal(text, `${jsonText({ ...main, textures: { ...main.textures, gold_bricks: { authors: ["Someone"], border: "#3d1f0a" } } })}\n`)
-    assert.ok(gh.filesAt(`submission/${id}`).has("public/font/minecraft-ten/textures/gold_bricks.png"))
+    assert.ok(gh.filesAt(`submission/${id}`).has("public/fonts/minecraft-ten/textures/gold_bricks.png"))
     const opened = gh.pulls.get(1)
     assert.equal(opened.head, `submission/${id}`)
     assert.equal(opened.title, "Gold Bricks texture for Minecraft Ten")
@@ -112,7 +112,7 @@ describe("sending a submission", () => {
     const list = branchList(id)
     assert.deepEqual(list.textures.cracked, { ...main.textures.cracked, variants: { ...main.textures.cracked.variants, cracked_gold: { authors: ["Someone"], density: 1, border: "#3d1f0a" } } })
     assert.equal(list.textures.cracked_gold, undefined)
-    assert.ok(gh.filesAt(`submission/${id}`).has("public/font/minecraft-ten/textures/cracked_gold.png"))
+    assert.ok(gh.filesAt(`submission/${id}`).has("public/fonts/minecraft-ten/textures/cracked_gold.png"))
     assert.equal(gh.pulls.get(1).title, "Cracked Gold texture for Minecraft Ten as a variant of Cracked")
     assert.equal(gh.commits.get(gh.refs.get(`heads/submission/${id}`)).message, "[CF-Pages-Skip] add Cracked Gold texture to Minecraft Ten as a variant of Cracked")
     assert.equal((await details(id)).details.variantOf, "cracked")
@@ -129,7 +129,7 @@ describe("sending a submission", () => {
 
   test("makes a texture the font's primary or secondary only while the font has none", async () => {
     const cookie = await signIn()
-    const legends = PNG.sync.read(fs.readFileSync("public/font/minecraft-legends/textures/flat.png"))
+    const legends = PNG.sync.read(fs.readFileSync("public/fonts/minecraft-legends/textures/flat.png"))
     const roles = JSON.stringify({ border: "#3D1F0A", primary: true, secondary: true })
     const { status, id } = await send(cookie, { font: "minecraft-legends", details: roles }, pngOf(legends.width, legends.height))
     assert.equal(status, 201)
@@ -189,7 +189,7 @@ describe("sending a submission", () => {
     const list = branchList(id)
     assert.deepEqual(list.overlays.soft_shading, { authors: ["Someone"], density: 2, palette: ["#c8c8c8"] })
     assert.equal(list.textures.soft_shading, undefined)
-    assert.ok(gh.filesAt(`submission/${id}`).has("public/font/minecraft-ten/overlays/soft_shading.png"))
+    assert.ok(gh.filesAt(`submission/${id}`).has("public/fonts/minecraft-ten/overlays/soft_shading.png"))
     assert.equal(gh.pulls.get(1).title, "Soft Shading overlay for Minecraft Ten")
     assert.equal(gh.commits.get(gh.refs.get(`heads/submission/${id}`)).message, "[CF-Pages-Skip] add Soft Shading overlay to Minecraft Ten")
     assert.equal((await details(id)).details.border, undefined)
@@ -224,9 +224,9 @@ describe("sending a submission", () => {
   })
 
   test("goes to the font that owns the textures when a variant is picked", async () => {
-    const fonts = JSON.parse(fs.readFileSync("public/font/fonts.json", "utf8"))
+    const fonts = JSON.parse(fs.readFileSync("public/fonts/fonts.json", "utf8"))
     const inherited = fonts.flatMap(font => (font.variants ?? []).filter(variant => variant.inherits).map(variant => ({ variant, owner: font })))[0]
-    const flat = PNG.sync.read(fs.readFileSync(`public/font/${inherited.owner.id}/textures/flat.png`))
+    const flat = PNG.sync.read(fs.readFileSync(`public/fonts/${inherited.owner.id}/textures/flat.png`))
     const { id } = await send(await signIn(), { font: inherited.variant.id }, pngOf(flat.width, flat.height))
     assert.equal((await details(id)).target, inherited.owner.id)
   })
@@ -301,8 +301,8 @@ describe("a sent submission", () => {
     const list = branchList(id)
     assert.equal(list.textures.gold_bricks, undefined)
     assert.deepEqual(list.textures.shiny_gold, { authors: ["Someone"] })
-    assert.ok(gh.filesAt(`submission/${id}`).has("public/font/minecraft-ten/textures/shiny_gold.png"))
-    assert.equal(gh.filesAt(`submission/${id}`).has("public/font/minecraft-ten/textures/gold_bricks.png"), false)
+    assert.ok(gh.filesAt(`submission/${id}`).has("public/fonts/minecraft-ten/textures/shiny_gold.png"))
+    assert.equal(gh.filesAt(`submission/${id}`).has("public/fonts/minecraft-ten/textures/gold_bricks.png"), false)
     assert.equal(gh.pulls.get(1).title, "Shiny Gold texture for Minecraft Ten")
     assert.equal(gh.pulls.size, 1)
   })

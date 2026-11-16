@@ -50,29 +50,29 @@ describe("the font asset step", () => {
   test("asks for thumbnails of the font whose textures changed and every font sharing its sheet", () => {
     const sharing = fonts.filter(font => sheetOwner(font, fonts).id === "minecraft-ten").map(font => ["generator/thumbnails.js", font.id])
     assert.ok(sharing.length > 1)
-    assert.deepEqual(asked(fontAssetStep, HERE, ["public/font/minecraft-ten/textures.json", "public/font/minecraft-ten/textures/gold.png"]), sharing)
-    assert.deepEqual(asked(fontAssetStep, HERE, ["public/font/minecraft-ten/minecraft-ten-cyrillic/textures.json"]), [["generator/thumbnails.js", "minecraft-ten-cyrillic"]])
+    assert.deepEqual(asked(fontAssetStep, HERE, ["public/fonts/minecraft-ten/textures.json", "public/fonts/minecraft-ten/textures/gold.png"]), sharing)
+    assert.deepEqual(asked(fontAssetStep, HERE, ["public/fonts/minecraft-ten-cyrillic/textures.json"]), [["generator/thumbnails.js", "minecraft-ten-cyrillic"]])
   })
 
   test("asks for nothing when no font's textures.json changed", () => {
-    assert.deepEqual(asked(fontAssetStep, HERE, ["public/font/minecraft-ten/textures/gold.png", "public/strips/minecraft-ten/textures.json", "README.md"]), [])
+    assert.deepEqual(asked(fontAssetStep, HERE, ["public/fonts/minecraft-ten/textures/gold.png", "public/strips/minecraft-ten/textures.json", "README.md"]), [])
   })
 
   test("reads the fonts of the root it is given", () => {
     const root = tempRoot()
-    writeJson(root, "public/font/fonts.json", [{ id: "only-here", authors: ["Someone"] }])
-    assert.deepEqual(asked(fontAssetStep, root, ["public/font/only-here/textures.json"]), [["generator/thumbnails.js", "only-here"]])
-    assert.deepEqual(asked(fontAssetStep, root, ["public/font/minecraft-ten/textures.json"]), [])
+    writeJson(root, "public/fonts/fonts.json", [{ id: "only-here", authors: ["Someone"] }])
+    assert.deepEqual(asked(fontAssetStep, root, ["public/fonts/only-here/textures.json"]), [["generator/thumbnails.js", "only-here"]])
+    assert.deepEqual(asked(fontAssetStep, root, ["public/fonts/minecraft-ten/textures.json"]), [])
   })
 })
 
 describe("the strip step", () => {
   test("reads the fonts and shapes of the root it is given", () => {
     const root = tempRoot()
-    writeJson(root, "public/font/fonts.json", [{ id: "plain" }, { id: "striped", strips: ["soft"] }])
+    writeJson(root, "public/fonts/fonts.json", [{ id: "plain" }, { id: "striped", strips: ["soft"] }])
     writeJson(root, "public/shapes/shapes.json", [{ id: "star", kind: "png", order: "x", strips: [{ id: "soft", offset: 2 }] }, { id: "cube", kind: "model", height: 16 }])
     assert.deepEqual(asked(stripStep, root, ["public/strips/soft/textures.json"]), [["generator/thumbnails.js", "striped"], ["generator/thumbnails.js", "star"]])
-    assert.deepEqual(asked(stripStep, root, ["public/strips/other/textures.json", "public/font/striped/textures.json"]), [])
+    assert.deepEqual(asked(stripStep, root, ["public/strips/other/textures.json", "public/fonts/striped/textures.json"]), [])
   })
 })
 
@@ -157,15 +157,15 @@ describe("thumbnails", () => {
 
   test("draws a font's thumbnails into the root it is given, and nothing changes on a second run", async () => {
     const root = tempRoot()
-    fs.cpSync("public/font/fonts.json", path.join(root, "public/font/fonts.json"))
-    fs.cpSync("public/font/minecraft-five", path.join(root, "public/font/minecraft-five"), { recursive: true, filter: file => !file.split(/[\\/]/).includes("thumbnails") })
+    fs.cpSync("public/fonts/fonts.json", path.join(root, "public/fonts/fonts.json"))
+    fs.cpSync("public/fonts/minecraft-five", path.join(root, "public/fonts/minecraft-five"), { recursive: true, filter: file => !file.split(/[\\/]/).includes("thumbnails") })
     fs.cpSync("public/strips", path.join(root, "public/strips"), { recursive: true })
     fs.cpSync("public/shapes/shapes.json", path.join(root, "public/shapes/shapes.json"))
     const list = thumbnailList(root)
     const first = await drawThumbnails(thumbnailEntry(list, "minecraft-five"), list, root)
     assert.equal(first.changed, first.count)
-    assert.equal(fs.readdirSync(path.join(root, "public/font/minecraft-five/thumbnails")).length, first.count)
-    assert.ok(fs.existsSync(path.join(root, "public/font/minecraft-five/thumbnails/flat.png")))
+    assert.equal(fs.readdirSync(path.join(root, "public/fonts/minecraft-five/thumbnails")).length, first.count)
+    assert.ok(fs.existsSync(path.join(root, "public/fonts/minecraft-five/thumbnails/flat.png")))
     assert.equal((await drawThumbnails(thumbnailEntry(list, "minecraft-five"), list, root)).changed, 0)
   })
 })
@@ -173,9 +173,9 @@ describe("thumbnails", () => {
 describe("the compress step's image list", () => {
   test("names each changed PNG under public once, and leaves out deleted ones and other files", () => {
     const root = tempRoot()
-    writeImage(root, "public/font/a/textures/gold.png", 1, 1)
+    writeImage(root, "public/fonts/a/textures/gold.png", 1, 1)
     writeImage(root, "src/logo.png", 1, 1)
-    writeJson(root, "public/font/a/textures.json", {})
-    assert.deepEqual(imagesToCompress(root, ["public/font/a/textures/gold.png", "public/font/a/textures/deleted.png", "public/font/a/textures.json", "src/logo.png", "public/font/a/textures/gold.png"]), ["public/font/a/textures/gold.png"])
+    writeJson(root, "public/fonts/a/textures.json", {})
+    assert.deepEqual(imagesToCompress(root, ["public/fonts/a/textures/gold.png", "public/fonts/a/textures/deleted.png", "public/fonts/a/textures.json", "src/logo.png", "public/fonts/a/textures/gold.png"]), ["public/fonts/a/textures/gold.png"])
   })
 })
