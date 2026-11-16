@@ -18,7 +18,8 @@ fakeTimeouts()
 const { LAYER, snapshot, typeDefaults } = await import("../src/lib/settings.js")
 const { createObject } = await import("../src/lib/objects.js")
 const { keepTexture, runtime, scene } = await import("../src/lib/scene.js")
-const { fileError, isDefaultTitle, openTitle, resetTitle, saveTitle } = await import("../src/lib/file.js")
+const { isDefaultTitle, openTitle, resetTitle, saveTitle } = await import("../src/lib/file.js")
+const { fileError } = await import("../src/lib/notices.js")
 const { setTitle: setScene } = await import("./helpers/scene.js")
 
 const REAL_FILE = { format: "minecraft-title", version: 1, lines: [{ texture: "cracked" }, { type: "bottom", matchWidth: 0, scaleX: 0.7977, words: [{ text: "title", texture: "fired", hue: 359, customBorder: true, borderColour: "#230f00" }, { text: "generator", texture: "fired", hue: 180, customBorder: true, borderColour: "#001329", customEdge: true, edgeColour: "#11467d" }] }] }

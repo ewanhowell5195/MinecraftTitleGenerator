@@ -1,4 +1,5 @@
-import { fileError, openTitleData, titleData } from "./file.js"
+import { openTitleData, titleData } from "./file.js"
+import { fileError } from "./notices.js"
 import { encodeTitle, openableTitle } from "./linkformat.js"
 import { presetsPage } from "./presetsPage.js"
 import { TITLE_PARAM, clearSharedLink, sharedLink } from "./scene.js"

@@ -3,6 +3,7 @@ import { image, tileableUrl } from "./assets.js"
 import { surface } from "./canvas.js"
 import { customThumbnail } from "./customFonts.js"
 import { loadImage } from "./font.js"
+import { fileError } from "./notices.js"
 
 const heights = reactive({})
 
@@ -42,7 +43,6 @@ export async function readImage(event, apply) {
     ctx.drawImage(loaded, 0, 0)
     apply(canvas.toDataURL("image/png"))
   } catch {
-    const { fileError } = await import("./file.js")
     fileError.value = `Couldn't open ${file.name}: this browser can't read it as an image`
   } finally {
     URL.revokeObjectURL(url)

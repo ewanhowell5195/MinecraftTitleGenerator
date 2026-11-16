@@ -3,6 +3,7 @@ import { ref } from "vue"
 const NOTICE_TIME = 3000
 
 export const notice = ref("")
+export const fileError = ref(null)
 
 let noticing = null
 

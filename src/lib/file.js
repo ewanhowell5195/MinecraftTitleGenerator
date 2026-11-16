@@ -1,11 +1,11 @@
-import { ref } from "vue"
 import { fontTextures } from "./assets.js"
 import { cameraChanges, setCamera } from "./camera.js"
 import { loadFont, loadFontList } from "./font.js"
 import { matchSolved } from "./match.js"
+import { fileError } from "./notices.js"
+import { createObject } from "./objects.js"
 import { lines, runtime, scene, titleFileName, titleObjects, validSelection } from "./scene.js"
 import { FILE_VERSION, TEXTURE_TABS, TILING_KEYS, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, fontFaces, isCustomFont, sameValue, typeDefaults } from "./settings.js"
-import { createObject } from "./objects.js"
 import { CUSTOM_SHAPE, isMinecraftShape } from "./shapes.js"
 import { submitStats } from "./stats.js"
 import { titleLines, titleValues, trimmed } from "./titleFacts.js"
@@ -53,7 +53,6 @@ const UNUSED = Object.entries(TEXTURE_TABS).map(([source, keys]) => [object => o
   [object => object.matchWidth === null, ["matchScaleY"]]
 ])
 
-export const fileError = ref(null)
 
 function trim(object) {
   return trimmed(object, new Set(UNUSED.filter(([skip]) => skip(object)).flatMap(([, keys]) => keys)))
