@@ -9,9 +9,9 @@ function parseUser(value) {
 
 export function parseSearch(search) {
   const words = search.trim().split(/\s+/).filter(Boolean)
-  const filter = words.findLast(word => USER_FILTER.test(word))
+  const filter = words.filter(word => USER_FILTER.test(word)).map(word => parseUser(word.match(USER_FILTER)[1])).findLast(({ user }) => user)
   const text = words.filter(word => !USER_FILTER.test(word)).join(" ")
-  return filter ? { ...parseUser(filter.match(USER_FILTER)[1]), text } : { user: null, provider: null, text }
+  return { ...(filter ?? { user: null, provider: null }), text }
 }
 
 export function searchWithUser(search, name, provider) {

@@ -25,6 +25,11 @@ describe("parseSearch", () => {
     assert.deepEqual(parseSearch("user:dave"), { user: "dave", provider: null, text: "" })
   })
 
+  test("a provider with no name after it is ignored", () => {
+    assert.deepEqual(parseSearch("nether user:d:"), { user: null, provider: null, text: "nether" })
+    assert.deepEqual(parseSearch("user:one user:G:"), { user: "one", provider: null, text: "" })
+  })
+
   test("the last user wins", () => {
     assert.equal(parseSearch("user:one user:g:two").user, "two")
   })
