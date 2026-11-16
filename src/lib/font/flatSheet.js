@@ -24,7 +24,7 @@ function stripColumns(glyph, capHeight) {
 }
 
 export function layerShade(layers, layer) {
-  return layers?.[layer] ?? 1
+  return layers?.length > 1 ? 1 - layer / layers.length : 1
 }
 
 export function independentLayers(font) {
