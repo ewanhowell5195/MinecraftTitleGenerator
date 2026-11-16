@@ -81,9 +81,6 @@
         "gay": {
           "border": "#000000"
         },
-        "heterosexual": {
-          "border": "#000000"
-        },
         "intersex": {
           "type": "sheet",
           "border": "#000000"

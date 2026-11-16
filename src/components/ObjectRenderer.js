@@ -544,6 +544,7 @@ export default {
           if (!sameValue(faces, loadedFaces.get(object) ?? fontFaces(object.type, null))) applyFontFaces(object, faces)
         })
       } else if (object.texture === null) quietly(() => (object.texture = defaultTexture(textures, object.type)))
+      if (object.textureVariant && !textures.textures[object.texture]?.variants?.[object.textureVariant]) quietly(() => (object.textureVariant = null))
       if (loaded.mesh && object.textureSource === "custom") quietly(() => setTexture(object, { textureSource: "premade" }))
       quietly(() => separateForDefaults(object, textures))
       keepTexture.delete(object)
