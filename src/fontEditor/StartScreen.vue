@@ -114,7 +114,7 @@
     </div>
 
     <div class="choices">
-      <section class="choice">
+      <section class="editor-card">
         <h2>Blank font</h2>
         <div class="numbers">
           <Field v-for="item of SIZE_FIELDS" :key="item.key" group :label="item.label" :label-for="`blank-${item.key}`">
@@ -129,7 +129,7 @@
         <Button primary wide :disabled="!valid" @click="startBlank"><template #icon><Icon name="plus" /></template>Start drawing</Button>
       </section>
 
-      <section class="choice">
+      <section class="editor-card">
         <h2>Open a saved font</h2>
         <p class="hint">Choose a JSON from this editor, a font.png, or both. Whatever's missing is worked out or left at its default.</p>
         <UploadField multiple accept=".png,.json,image/png,application/json" label="Choose files" empty="Drop a font JSON, a font.png, or both" @change="upload" />
@@ -139,7 +139,7 @@
         <UploadField accept=".ttf,.otf,.woff,.woff2,.png,font/ttf,font/otf,font/woff,font/woff2,image/png" label="Choose font file" empty="Drop a font file or an ascii.png" @change="importFile" />
       </section>
 
-      <section class="choice wide-choice">
+      <section class="editor-card wide-choice">
         <h2>Start from a font</h2>
         <p class="hint">Copies its characters and settings into a new font of your own.</p>
         <TileGrid :min="170">
@@ -205,15 +205,6 @@
     gap: 14px;
     max-width: 1100px;
     margin: 0 auto;
-  }
-
-  .choice {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 18px;
-    background: var(--surface);
-    border: 1px solid var(--line);
   }
 
   .wide-choice {

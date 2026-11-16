@@ -15,3 +15,11 @@ body,
   border-top: 1px solid var(--line);
 }
 
+.editor-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}

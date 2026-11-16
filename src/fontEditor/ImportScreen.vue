@@ -126,7 +126,7 @@
     </div>
 
     <div class="layout">
-      <section class="choice">
+      <section class="editor-card">
         <div class="numbers">
           <Field group label="Height" label-for="import-height">
             <template v-if="changed('height')" #label><ResetButton :title="`Reset to ${defaults.height}`" @reset="reset('height')" /></template>
@@ -149,7 +149,7 @@
         <Button primary wide class="confirm" :disabled="!built.font" @click="confirm"><template #icon><Icon name="check" /></template>Import</Button>
       </section>
 
-      <section class="choice preview">
+      <section class="editor-card preview">
         <div ref="holder" class="view">
           <div class="tiles">
             <Notice v-if="built.error" class="error">{{ built.error }}</Notice>
@@ -192,15 +192,6 @@
     gap: 14px;
   }
 
-  .choice {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 18px;
-    background: var(--surface);
-    border: 1px solid var(--line);
-  }
-
   .numbers {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -211,7 +202,7 @@
     margin-top: auto;
   }
 
-  .choice.preview {
+  .editor-card.preview {
     background: #fff;
   }
 
