@@ -184,7 +184,7 @@ export function pageGroups(plan, scales, limit) {
   return groups.length ? groups : [[]]
 }
 
-export function layoutPage(plan, indexes, scales, sheet, limit = Infinity) {
+function layoutPage(plan, indexes, scales, sheet, limit = Infinity) {
   const items = itemsOf(plan, indexes, scales)
   const size = arrange(items, squarest(items, limit).shelf)
   const glyphs = {}

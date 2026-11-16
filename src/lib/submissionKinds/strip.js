@@ -74,7 +74,7 @@ async function forNew(details, ctx) {
   return { problems, clean, target: "new", what: "this strip type" }
 }
 
-export async function stripParents(ctx, target) {
+async function stripParents(ctx, target) {
   const { kind, id } = stripTarget(target)
   if (kind === "set") return (await ctx.json(`/strips/${id}/textures.json`)).textures ?? {}
   const font = kind === "font" ? submissionFont(ctx.fonts, id) : null

@@ -4,7 +4,7 @@ export const EMPTY = [255, 255, 255]
 export const GLYPH = [0, 0, 0]
 export const GRID = [255, 0, 0]
 export const BASELINE = [0, 255, 0]
-export const TOPLINE = [0, 0, 255]
+const TOPLINE = [0, 0, 255]
 
 export function setPixel({ data, width }, x, y, colour) {
   const at = (y * width + x) * 4
@@ -14,7 +14,7 @@ export function setPixel({ data, width }, x, y, colour) {
   data[at + 3] = colour[3] ?? 255
 }
 
-export function sheetRows(cells, capHeight, { maxWidth = SHEET_MAX_WIDTH, flatWidth = Infinity, keepRows = false } = {}) {
+function sheetRows(cells, capHeight, { maxWidth = SHEET_MAX_WIDTH, flatWidth = Infinity, keepRows = false } = {}) {
   const rows = []
   for (const cell of cells) {
     const row = rows.at(-1)

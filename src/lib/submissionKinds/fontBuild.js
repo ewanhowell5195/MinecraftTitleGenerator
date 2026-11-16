@@ -120,7 +120,7 @@ function ownKerning(font, drawn) {
   return Object.fromEntries(Object.entries(font.kerning).filter(([pair, amount]) => amount && Array.from(pair).every(char => drawn.includes(char))))
 }
 
-export function exported(font) {
+function exported(font) {
   const { id, name, authors, editor, ...entry } = exportJson(font, "")
   return entry
 }

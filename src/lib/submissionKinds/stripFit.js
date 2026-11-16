@@ -61,11 +61,11 @@ export function stripSet(ctx, id) {
   return ctx.memo(`strip-set:${id}`, async () => setShape(id, await ctx.json(`/strips/${id}/textures.json`)))
 }
 
-export function fontRows(measure) {
+function fontRows(measure) {
   return measure.stacked ?? measure.depth * 2 + measure.range.top - measure.range.bottom
 }
 
-export function setRows(set, measure, offset) {
+function setRows(set, measure, offset) {
   return set.baseline + set.depth + (set.height ?? measure.range.top + offset)
 }
 
@@ -120,10 +120,6 @@ export function nearestOffset({ range, offsets }, wanted) {
   if (!range) return null
   if (!offsets) return clamp(wanted, range.low, range.high)
   return offsets.reduce((best, value) => best === null || Math.abs(value - wanted) < Math.abs(best - wanted) ? value : best, null)
-}
-
-export function offsetRange(set, measure, stretched) {
-  return stripFit(set, measure, 0, { stretched }).range
 }
 
 export function fitOffset(set, measure, stretched) {

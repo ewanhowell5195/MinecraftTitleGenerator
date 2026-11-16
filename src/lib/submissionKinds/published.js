@@ -4,7 +4,7 @@ import { FILE_VERSION, overlayLayer } from "../settings.js"
 import { stripUse } from "../strips.js"
 import { stripTarget } from "./stripFit.js"
 
-export const PREVIEW_FONT = "minecraft-ten"
+const PREVIEW_FONT = "minecraft-ten"
 export const THUMBNAIL_KINDS = ["font", "texture", "overlay", "strip"]
 
 export function stripFonts(item, fonts) {

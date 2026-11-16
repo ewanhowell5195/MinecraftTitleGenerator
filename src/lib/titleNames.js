@@ -32,7 +32,7 @@ async function listOf(object, fonts, shapes) {
   return { owner: font, list: await fontTextures(sheetFolder(font, fonts), stripsOf(font, fonts)) }
 }
 
-export async function objectNameProblem(object, [fonts, tileables, shapes]) {
+async function objectNameProblem(object, [fonts, tileables, shapes]) {
   if (isMinecraftShape(object.shape)) return null
   const { problem, owner, list } = await listOf(object, fonts, shapes)
   if (problem) return problem

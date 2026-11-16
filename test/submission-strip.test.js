@@ -13,7 +13,7 @@ import { titleCase } from "../src/lib/names.js"
 import { defaultDepth } from "../src/lib/settings.js"
 import { centredOffset, stripUse } from "../src/lib/strips.js"
 import { strip as checker } from "../src/lib/submissionKinds/strip.js"
-import { fitOffset, fitProblems, fontMeasure, heightList, offsetRange, remapStrip, setEntry, stripHeights, stripSnap, stripTarget } from "../src/lib/submissionKinds/stripFit.js"
+import { fitOffset, fitProblems, fontMeasure, heightList, remapStrip, setEntry, stripFit, stripHeights, stripSnap, stripTarget } from "../src/lib/submissionKinds/stripFit.js"
 import { decodePng } from "../src/lib/submissionKinds/png.js"
 import { strip as writer } from "../src/server/submissionKinds/strip.js"
 import { pngOf } from "./helpers/png.js"
@@ -81,7 +81,7 @@ describe("strip shapes", () => {
   test("the offset is the one nearest centred that keeps the letters inside", () => {
     const measure = { range: { top: 36, bottom: -8 }, capHeight: 30, depth: 16 }
     const set = { id: "s", ...NEW_SHAPE }
-    assert.deepEqual(offsetRange(set, measure, false), { low: -5, high: -1 })
+    assert.deepEqual(stripFit(set, measure, 0, { stretched: false }).range, { low: -5, high: -1 })
     assert.equal(fitOffset(set, measure, false), -1)
     assert.deepEqual(fitProblems(set, measure, -1, false), [])
     assert.equal(fitProblems(set, measure, 0, false).length, 1)

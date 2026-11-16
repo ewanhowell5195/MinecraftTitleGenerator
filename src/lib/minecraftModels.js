@@ -144,7 +144,7 @@ function addValues(found, name, value) {
   }
 }
 
-export function stateValues(json) {
+function stateValues(json) {
   const found = new Map()
   for (const key of Object.keys(json.variants ?? {})) {
     for (const pair of key.split(",")) {
@@ -172,7 +172,7 @@ function ruleDefaults(table, id) {
   return table.blocks?.find(rule => rule.match?.split("|").some(pattern => new RegExp(`^${pattern.replaceAll("*", ".*")}$`).test(id)))?.defaults ?? {}
 }
 
-export function stateDefault(tables, id, name, values) {
+function stateDefault(tables, id, name, values) {
   const candidates = tables.map(table => ruleDefaults(table, id)[name]).concat(tables.map(table => table.properties?.[name])).flat()
   return candidates.map(String).find(value => values.includes(value)) ?? values[0]
 }

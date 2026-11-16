@@ -19,7 +19,7 @@ const FONT_ID_LENGTH = 40
 const RESERVED = ["textures", "overlays", "thumbnails"]
 const RESERVED_PREFIXES = ["custom-", "editor-preview-"]
 export const EXTRA_KINDS = ["flat", "texture", "overlay", "strip"]
-export const FLAT_NAME = "Flat"
+const FLAT_NAME = "Flat"
 const RESERVED_ASSETS = new Set(["flat"].concat(Object.keys(withGenerated({})), Object.keys(GENERATED_EDGE_OVERLAYS)))
 const built = new WeakMap()
 

@@ -23,7 +23,7 @@ export function textureName(id, data) {
   return data?.name ?? titleCase(id)
 }
 
-export function flatSize(ctx, font) {
+function flatSize(ctx, font) {
   return ctx.memo(`flat:${font.id}`, async () => {
     const path = `/${fontFolder(font)}/textures/flat.png`
     const size = pngSize(await ctx.bytes(path))

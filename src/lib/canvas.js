@@ -50,7 +50,7 @@ export function canvasLimit() {
   return largest
 }
 
-export const TEXTURE_CEILING = 8192
+const TEXTURE_CEILING = 8192
 let textureSide = 0
 
 export function largestTexture(gpu, draws) {

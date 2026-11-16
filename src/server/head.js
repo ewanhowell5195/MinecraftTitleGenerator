@@ -7,14 +7,14 @@ export function pageImage(name, label) {
   return { ...SHARE_IMAGE, path: `/home/og-${name}.jpg`, alt: `The Minecraft Title Generator logo, with ${label} under it` }
 }
 
-export const EMBED_COLOUR = 0xF1822C
-export const EMBED_LIMITS = { bytes: 3000, buttonUrl: 512 }
+const EMBED_COLOUR = 0xF1822C
+const EMBED_LIMITS = { bytes: 3000, buttonUrl: 512 }
 
 function markdownText(text) {
   return text.replace(/[\\*_~`|#>[\]()-]/g, "\\$&")
 }
 
-export function componentEmbed({ title, description, url, image = null, spaced = false, buttons = [{ label: "Open", url }] }) {
+function componentEmbed({ title, description, url, image = null, spaced = false, buttons = [{ label: "Open", url }] }) {
   const components = [{ type: 10, content: `## ${markdownText(title.replace(` | ${SITE_NAME}`, ""))}\n${description}` }]
   if (image && spaced) components.push({ type: 14, divider: false, spacing: 1 })
   if (image) components.push({ type: 12, items: [{ media: { url: image } }] })

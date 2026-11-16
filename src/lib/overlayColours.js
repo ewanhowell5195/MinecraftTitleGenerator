@@ -15,7 +15,7 @@ function luminance(rgb) {
   return 0.3 * rgb[0] + 0.59 * rgb[1] + 0.11 * rgb[2]
 }
 
-export function represent(rgb, anchors) {
+function represent(rgb, anchors) {
   let i = 0
   let j = -1
   for (let k = 1; k < anchors.length; k++) {
