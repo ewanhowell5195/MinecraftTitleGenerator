@@ -1,7 +1,8 @@
 import { computed, shallowRef, toRaw, watch } from "vue"
 import { forgetFolder } from "../lib/texture/assets.js"
 import { fontFolder, forgetFont } from "../lib/font/font.js"
-import { buildSheet, exportJson, flatTexture } from "../lib/font/fontEditor.js"
+import { exportJson, flatTexture } from "../lib/font/editor/export.js"
+import { buildSheet } from "../lib/font/editor/sheet.js"
 import { defaultBorder, defaultDepth, defaultSpacing, fontFaces } from "../lib/settings/settings.js"
 import { forgetFiles, pngUrl, serveFile } from "../lib/core/virtualFiles.js"
 

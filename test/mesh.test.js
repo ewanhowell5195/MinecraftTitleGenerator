@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
 import opentype from "opentype.js"
-import { parsedSheet } from "../src/lib/font/fontEditor.js"
+import { parsedSheet } from "../src/lib/font/editor/sheet.js"
 import { fontFromOutlines, meshOutlines, parseFontFile } from "../src/lib/font/fontImport.js"
 import { generatedAlpha } from "../src/lib/texture/overlays/faces.js"
 import { fillSpans } from "../src/lib/font/fontOutline.js"

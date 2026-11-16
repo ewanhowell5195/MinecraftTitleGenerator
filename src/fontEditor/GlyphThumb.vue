@@ -1,6 +1,7 @@
 <script setup>
   import { onMounted, ref, watch } from "vue"
-  import { depthOf, widthOf } from "../lib/font/fontEditor.js"
+  import { depthOf } from "../lib/font/editor/depths.js"
+  import { widthOf } from "../lib/font/editor/glyph.js"
 
   const WIDTH = 44
   const HEIGHT = 40

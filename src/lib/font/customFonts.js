@@ -51,13 +51,13 @@ async function pixels(url) {
 
 async function editorFont({ kind, data, height, mesh, density }) {
   if (kind === "json") {
-    const { fontFromFiles, parseFontJson } = await import("./fontEditor.js")
+    const { fontFromFiles, parseFontJson } = await import("./editor/import.js")
     const json = parseFontJson(await (await fetch(data)).text())
     if (!json.editor?.texture) throw new Error("this JSON has no font sheet in it. Download the JSON from the font editor")
     return { font: fontFromFiles({ sheet: await pixels(json.editor.texture), json }) }
   }
   if (kind === "silhouette") {
-    const [{ fontFromShapes }, { sampleGlyph, silhouetteSample }] = await Promise.all([import("./fontEditor.js"), import("../submissions/kinds/shape.js")])
+    const [{ fontFromShapes }, { sampleGlyph, silhouetteSample }] = await Promise.all([import("./editor/import.js"), import("../submissions/kinds/shape.js")])
     const sample = silhouetteSample(await pixels(data))
     const glyph = sampleGlyph(sample)
     return { font: fontFromShapes(new Map([[SILHOUETTE_TEXT, glyph]]), { name: "Shape", capHeight: glyph.height, grid: 1, spaceWidth: Math.round(glyph.height / 2), letterCase: "upper" }), sample }
@@ -105,7 +105,7 @@ async function meshThumbnails(font, mesh, list) {
 async function drawThumbnails(font, folder, entry) {
   const list = await fontTextures(folder, entry.strips)
   if (entry.mesh) return meshThumbnails(font, entry.mesh, list)
-  const [{ parsedSheet }, { fontScene, fontThumbnails }] = await Promise.all([import("./fontEditor.js"), import("./fontThumbnails.js")])
+  const [{ parsedSheet }, { fontScene, fontThumbnails }] = await Promise.all([import("./editor/sheet.js"), import("./fontThumbnails.js")])
   const { glyphs, list: cells, capHeight, layers } = parsedSheet(font, defaultBorder("top", entry))
   const scene = fontScene(entry, { glyphs, cells, capHeight, layers, kerning: font.kerning, depth: defaultDepth(entry) })
   if (!scene) return {}
@@ -114,13 +114,13 @@ async function drawThumbnails(font, folder, entry) {
 }
 
 async function silhouetteTexture(font, entry, sample) {
-  const [{ parsedSheet }, { samplePixels }] = await Promise.all([import("./fontEditor.js"), import("../submissions/kinds/shape.js")])
+  const [{ parsedSheet }, { samplePixels }] = await Promise.all([import("./editor/sheet.js"), import("../submissions/kinds/shape.js")])
   const { list, capHeight } = parsedSheet(font, defaultBorder("top", entry))
   return { ...samplePixels(list, capHeight, defaultDepth(entry), sample), scale: sample.scale }
 }
 
 async function build(id, source) {
-  const { buildSheet, exportJson, flatTexture } = await import("./fontEditor.js")
+  const [{ buildSheet }, { exportJson, flatTexture }] = await Promise.all([import("./editor/sheet.js"), import("./editor/export.js")])
   const { font, outlines, mesh, sample } = await editorFont(source)
   const { editor, ...entry } = { ...exportJson(font, ""), id, name: font.name || "Custom font", ...(source.strips?.length && { strips: source.strips }) }
   if (outlines) entry.outlines = outlines

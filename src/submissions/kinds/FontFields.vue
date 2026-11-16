@@ -10,7 +10,7 @@
   import Segments from "../../components/Segments.vue"
   import Toggle from "../../components/Toggle.vue"
   import UploadField from "../../components/UploadField.vue"
-  import { flatTexture } from "../../lib/font/fontEditor.js"
+  import { flatTexture } from "../../lib/font/editor/export.js"
   import { popular } from "../../lib/state/stats.js"
   import { EXTRA_KINDS, fontParents, submittedFontId } from "../../lib/submissions/kinds/font.js"
   import { STRIP_LIMITS, stripHeights as heightsOf, stripSnap } from "../../lib/submissions/kinds/stripFit.js"

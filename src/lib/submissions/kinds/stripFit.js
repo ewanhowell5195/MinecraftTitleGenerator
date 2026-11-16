@@ -1,7 +1,7 @@
 import { stripRange } from "../../texture/assets.js"
 import { independentLayers, layerSlices } from "../../font/flatSheet.js"
 import { fontFolder, fullOrder, parseMask, sheetOwner } from "../../font/font.js"
-import { characterName } from "../../font/fontEditor.js"
+import { characterName } from "../../font/editor/characters.js"
 import { clamp } from "../../core/maths.js"
 import { titleCase } from "../../core/names.js"
 import { defaultBorder, defaultDepth } from "../../settings/settings.js"

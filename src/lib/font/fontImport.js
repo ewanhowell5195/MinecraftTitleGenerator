@@ -1,5 +1,7 @@
 import opentype from "opentype.js"
-import { DEFAULT_SPACE_WIDTH, MULTICASE_CHARACTERS, fontFromShapes } from "./fontEditor.js"
+import { MULTICASE_CHARACTERS } from "./editor/characters.js"
+import { DEFAULT_SPACE_WIDTH } from "./editor/defaults.js"
+import { fontFromShapes } from "./editor/import.js"
 import { flatten, glyphFor, gridShift, lineUnits, pixelGrid, rasterise } from "./fontOutline.js"
 
 const SAMPLE_LETTERS = Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")

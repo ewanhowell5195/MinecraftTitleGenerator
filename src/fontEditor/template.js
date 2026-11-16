@@ -1,5 +1,8 @@
 import { CREEPER } from "../lib/font/order.js"
-import { SPACE_CHAR, autoStretch, glyphFromTemplate, setGlyph, shownAs } from "../lib/font/fontEditor.js"
+import { SPACE_CHAR, shownAs } from "../lib/font/editor/characters.js"
+import { setGlyph } from "../lib/font/editor/glyph.js"
+import { glyphFromTemplate } from "../lib/font/editor/import.js"
+import { autoStretch } from "../lib/font/editor/sheet.js"
 
 const sources = new Map()
 

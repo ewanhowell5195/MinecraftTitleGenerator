@@ -1,7 +1,7 @@
 import { stretched } from "../lib/geometry/arc.js"
 import { layerShade } from "../lib/font/flatSheet.js"
 import { lineLayout } from "../lib/geometry/layout.js"
-import { parsedSheet } from "../lib/font/fontEditor.js"
+import { parsedSheet } from "../lib/font/editor/sheet.js"
 
 const METRICS = ["spaceWidth", "terminatorSpace", "terminatorSpaceWidth", "forcedTerminators", "border", "characterSpacing"]
 let unkerned = null

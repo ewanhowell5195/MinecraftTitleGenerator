@@ -1,4 +1,5 @@
-import { MULTICASE_CHARACTERS, fontFromShapes } from "./fontEditor.js"
+import { MULTICASE_CHARACTERS } from "./editor/characters.js"
+import { fontFromShapes } from "./editor/import.js"
 import { OPENING_QUOTE } from "./order.js"
 
 const CELLS = 16

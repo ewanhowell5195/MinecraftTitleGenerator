@@ -1,5 +1,6 @@
 import { depthShade } from "../lib/font/font.js"
-import { depthOf, glyphOf, widthOf } from "../lib/font/fontEditor.js"
+import { depthOf } from "../lib/font/editor/depths.js"
+import { glyphOf, widthOf } from "../lib/font/editor/glyph.js"
 
 const SQUARE_LINE = "#6b7280"
 const CELL_LINE = "rgba(140, 147, 160, 0.6)"

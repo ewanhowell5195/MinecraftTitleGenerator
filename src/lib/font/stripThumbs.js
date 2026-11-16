@@ -1,5 +1,5 @@
 import { pixelsOf } from "../texture/canvas.js"
-import { parsedSheet } from "./fontEditor.js"
+import { parsedSheet } from "./editor/sheet.js"
 import { rgbOf } from "../core/colour.js"
 import { fontScene, layerScene, opaque, render, sceneStrip } from "./fontThumbnails.js"
 import { generatedAlpha } from "../texture/overlays/faces.js"

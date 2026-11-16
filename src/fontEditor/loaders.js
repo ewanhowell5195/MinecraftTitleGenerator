@@ -1,5 +1,5 @@
 import { pixelsOf } from "../lib/texture/canvas.js"
-import { fontFromFiles, fontFromPublished, parseFontJson } from "../lib/font/fontEditor.js"
+import { fontFromFiles, fontFromPublished, parseFontJson } from "../lib/font/editor/import.js"
 import { fullName, loadImage, parseMask, sheetFolder, sheetOwner, splitCells, fullOrder } from "../lib/font/font.js"
 
 function sheetFromImage(image) {
