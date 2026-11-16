@@ -13,7 +13,7 @@
   import { filePalette } from "../lib/texture/assets.js"
   import { hexOf } from "../lib/core/colour.js"
   import { credit } from "../lib/font/credits.js"
-  import { GENERATED_SETTINGS, WRAPPED_KINDS, generatedSetting } from "../lib/texture/generatedOverlays.js"
+  import { GENERATED_SETTINGS, WRAPPED_KINDS, generatedSetting } from "../lib/texture/overlays/settings.js"
   import { titleCase } from "../lib/core/names.js"
   import { MAX_ANCHORS, WHITE, definitionPalette, paletteHexes } from "../lib/texture/overlayColours.js"
   import { useListReorder } from "./composables/reorder.js"

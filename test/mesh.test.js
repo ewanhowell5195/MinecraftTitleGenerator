@@ -3,7 +3,7 @@ import { describe, test } from "node:test"
 import opentype from "opentype.js"
 import { parsedSheet } from "../src/lib/font/fontEditor.js"
 import { fontFromOutlines, meshOutlines, parseFontFile } from "../src/lib/font/fontImport.js"
-import { generatedAlpha } from "../src/lib/texture/generatedOverlays.js"
+import { generatedAlpha } from "../src/lib/texture/overlays/faces.js"
 import { fillSpans } from "../src/lib/font/fontOutline.js"
 import { fineMasks, glyphMeshes, holeFill, meshFaces, outlineShell } from "../src/lib/font/meshGlyphs.js"
 

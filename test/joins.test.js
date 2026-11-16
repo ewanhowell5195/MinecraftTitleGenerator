@@ -1,7 +1,9 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
 import { boxesFor } from "../src/lib/geometry/boxes.js"
-import { crackList, edgeAlpha, generatedAlpha } from "../src/lib/texture/generatedOverlays.js"
+import { crackList } from "../src/lib/texture/overlays/cracks.js"
+import { edgeAlpha } from "../src/lib/texture/overlays/edges.js"
+import { generatedAlpha } from "../src/lib/texture/overlays/faces.js"
 import { clippedBoxes, joinNeighbours } from "../src/lib/geometry/joins.js"
 
 function glyph(rows, placedX) {

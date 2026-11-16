@@ -1,7 +1,7 @@
 import { fontTextures } from "../texture/assets.js"
 import { pixelsOf } from "../texture/canvas.js"
 import { loadImage } from "./font.js"
-import { GENERATED_EDGE_OVERLAYS, withGenerated } from "../texture/generatedOverlays.js"
+import { GENERATED_EDGE_OVERLAYS, withGenerated } from "../texture/overlays/settings.js"
 import { CUSTOM_FONT, defaultBorder, defaultDepth } from "../settings/settings.js"
 import { SILHOUETTE_TEXT } from "../geometry/shapes.js"
 import { stripRows } from "./strips.js"

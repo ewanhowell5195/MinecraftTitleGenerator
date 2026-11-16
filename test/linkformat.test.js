@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import fs from "node:fs"
 import { describe, test } from "node:test"
-import { GENERATED_SETTINGS } from "../src/lib/texture/generatedOverlays.js"
+import { GENERATED_SETTINGS } from "../src/lib/texture/overlays/settings.js"
 import { UPLOAD_KEYS, decodeTitle, encodeTitle, openableTitle, readLines, titleBody, unknownSetting, writeLines } from "../src/lib/link/linkformat.js"
 import { FILE_VERSION, LAYER, typeDefaults } from "../src/lib/settings/settings.js"
 

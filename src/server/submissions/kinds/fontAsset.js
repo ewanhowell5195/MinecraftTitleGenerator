@@ -1,5 +1,5 @@
 import { fontFolder, fullName } from "../../../lib/font/font.js"
-import { GENERATED_EDGE_OVERLAYS, GENERATED_SETTINGS, withGenerated } from "../../../lib/texture/generatedOverlays.js"
+import { GENERATED_EDGE_OVERLAYS, GENERATED_SETTINGS, withGenerated } from "../../../lib/texture/overlays/settings.js"
 import { jsonText } from "../../../lib/core/jsonText.js"
 import { titleCase } from "../../../lib/core/names.js"
 import { FACE_PANELS, overlayLayer } from "../../../lib/settings/settings.js"

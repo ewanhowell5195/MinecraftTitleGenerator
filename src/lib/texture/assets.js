@@ -1,7 +1,7 @@
 import { pixelsOf, surface } from "./canvas.js"
 import { expandBands, independentLayers } from "../font/flatSheet.js"
 import { loadImage, sheetLayout, solidMask } from "../font/font.js"
-import { GENERATED_EDGE_OVERLAYS, withGenerated } from "./generatedOverlays.js"
+import { GENERATED_EDGE_OVERLAYS, withGenerated } from "./overlays/settings.js"
 import { mostCommon } from "../core/maths.js"
 import { paletteOf } from "./overlayColours.js"
 import { decodePng } from "../submissions/kinds/png.js"
