@@ -55,22 +55,33 @@
     return scene.selectedGroup === null ? scene.selected === object.id : object.group === scene.selectedGroup
   }
 
+  function groupSelected(row) {
+    return !view.render && !view.camera && scene.selectedGroup === row.group
+  }
+
   function label(object) {
     return wordText(object) || "(empty)"
+  }
+
+  function lineLabel(row) {
+    return lineText(row.words[0]) || "(empty)"
+  }
+
+  function showEditor() {
+    view.render = false
+    view.camera = false
   }
 
   function pick(object) {
     if (dropped) return
     select(object)
-    view.render = false
-    view.camera = false
+    showEditor()
   }
 
   function pickGroup(group) {
     if (dropped) return
     selectGroup(group)
-    view.render = false
-    view.camera = false
+    showEditor()
   }
 
   const list = ref(null)
@@ -158,14 +169,12 @@
 
   function add() {
     addObject()
-    view.render = false
-    view.camera = false
+    showEditor()
   }
 
   function addShapeLine() {
     addShape()
-    view.render = false
-    view.camera = false
+    showEditor()
   }
 
   const context = ref(null)
@@ -213,8 +222,8 @@
     </a>
     <div class="divider"></div>
     <div ref="list" class="list" :class="{ dragging: dragged !== null }" @dragstart.prevent>
-      <div v-for="row of rows" :key="row.key" :data-row="row.key" :class="row.group === null ? 'single' : { group: true, selected: !view.render && !view.camera && scene.selectedGroup === row.group, hidden: lineHidden(row.words[0]), dragged: dragged === row.key }">
-        <div v-if="row.group !== null" class="head" tabindex="0" role="button" :aria-label="`${lineText(row.words[0]) || '(empty)'} line`" :aria-pressed="!view.render && !view.camera && scene.selectedGroup === row.group" @pointerdown="press($event, row, null)" @click="pickGroup(row.group)" v-long-press @contextmenu.prevent="menu($event, row, null)" @keydown.enter="pickGroup(row.group)" @keydown.space.prevent="pickGroup(row.group)" v-tooltip="{ text: `${lineText(row.words[0]) || '(empty)'} (${TYPES[row.words[0].type].name})`, prefer: 'right', tooltipClass: 'rail-tip rail-head' }">
+      <div v-for="row of rows" :key="row.key" :data-row="row.key" :class="row.group === null ? 'single' : { group: true, selected: groupSelected(row), hidden: lineHidden(row.words[0]), dragged: dragged === row.key }">
+        <div v-if="row.group !== null" class="head" tabindex="0" role="button" :aria-label="`${lineLabel(row)} line`" :aria-pressed="groupSelected(row)" @pointerdown="press($event, row, null)" @click="pickGroup(row.group)" v-long-press @contextmenu.prevent="menu($event, row, null)" @keydown.enter="pickGroup(row.group)" @keydown.space.prevent="pickGroup(row.group)" v-tooltip="{ text: `${lineLabel(row)} (${TYPES[row.words[0].type].name})`, prefer: 'right', tooltipClass: 'rail-tip rail-head' }">
           <Icon name="layers" :size="14" />
         </div>
         <div class="layer" v-for="object of row.words" :key="object.id" tabindex="0" role="button" :aria-pressed="selected(object)" @pointerdown="press($event, row, row.group === null ? null : object)" @click="pick(object)" v-long-press @contextmenu.prevent="menu($event, row, row.group === null ? null : object)" @keydown.enter="pick(object)" @keydown.space.prevent="pick(object)" :class="{ selected: selected(object), hidden: object.hidden, error: runtime[object.id]?.error, dragged: dragged === object.id || dragged === row.key && row.group === null }" v-tooltip="{ text: `${label(object)} (${TYPES[object.type].name})`, prefer: 'right', tooltipClass: row.group === null ? 'rail-tip thumb-tip' : 'rail-tip thumb-tip rail-word' }">
