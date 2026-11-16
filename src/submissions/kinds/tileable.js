@@ -1,4 +1,4 @@
-import { DEFAULT_FONT } from "../../lib/settings/settings.js"
+import { DEFAULT_FONT } from "../../lib/settings/defaults.js"
 import { tileableName } from "../../lib/submissions/kinds/tileable.js"
 
 

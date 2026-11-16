@@ -1,6 +1,6 @@
 <script setup>
   import { computed } from "vue"
-  import { TYPES } from "../lib/settings/settings.js"
+  import { TYPES } from "../lib/settings/defaults.js"
   import { duplicateLine, lineHidden, lineText, removeLine, selection, toggleLine, words } from "../lib/state/scene.js"
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"

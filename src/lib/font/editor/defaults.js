@@ -1,4 +1,4 @@
-import { defaultBorder, defaultDepth } from "../../settings/settings.js"
+import { defaultBorder, defaultDepth } from "../../settings/defaults.js"
 
 export const DEFAULT_SPACE_WIDTH = 8
 export const DEFAULT_DEPTH = defaultDepth(null)

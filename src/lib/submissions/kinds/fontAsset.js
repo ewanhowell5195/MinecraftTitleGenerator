@@ -3,7 +3,9 @@ import { GENERATED_EDGE_OVERLAYS, GENERATED_SETTINGS, withGenerated } from "../.
 import { titleCase } from "../../core/names.js"
 import { MAX_ANCHORS, paletteHexes, paletteOf } from "../../texture/overlayColours.js"
 import { decodePng } from "./png.js"
-import { BLEND_OPTIONS, FACE_PANELS, defaultBorder, overlayFits, overlayLayer } from "../../settings/settings.js"
+import { BLEND_OPTIONS, defaultBorder } from "../../settings/defaults.js"
+import { overlayFits } from "../../settings/layers.js"
+import { FACE_PANELS, overlayLayer } from "../../settings/settings.js"
 import { DEFAULT_ROLES, HEX_COLOUR, pngProblem, pngSize, textureDensity } from "../submissions.js"
 
 export function submissionFont(fonts, id) {

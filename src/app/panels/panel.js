@@ -1,5 +1,6 @@
 import { computed } from "vue"
-import { isModified, isSeparate, layerView, resetPanel, wordKey } from "../../lib/settings/settings.js"
+import { isSeparate, layerView } from "../../lib/settings/layers.js"
+import { isModified, resetPanel, wordKey } from "../../lib/settings/settings.js"
 import { active, current, currentWord } from "../../lib/state/scene.js"
 import { view } from "../../lib/state/view.js"
 

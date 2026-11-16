@@ -1,6 +1,6 @@
 <script setup>
+  import { BLEND_OPTIONS } from "../../lib/settings/defaults.js"
   import { usePanel } from "./panel.js"
-  import { BLEND_OPTIONS } from "../../lib/settings/settings.js"
   import ColourPicker from "../../components/ColourPicker.vue"
   import ColourToggle from "../ColourToggle.vue"
   import Dropdown from "../../components/Dropdown.vue"

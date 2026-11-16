@@ -1,9 +1,11 @@
 import { deflateSync, inflateSync } from "three/addons/libs/fflate.module.js"
 import { cameraChanges } from "../settings/camera.js"
 import { hexOf, rgbOf } from "../core/colour.js"
+import { typeDefaults } from "../settings/defaults.js"
 import { DEFAULT_ORDER } from "../font/order.js"
-import { FILE_VERSION, LAYERS, LINE, isCustomFont, sameValue, typeDefaults, upgradeLine } from "../settings/settings.js"
+import { LAYERS, LINE, isCustomFont, sameValue } from "../settings/settings.js"
 import { CUSTOM_SHAPE, FALLBACK_SHAPE } from "../geometry/shapes.js"
+import { FILE_VERSION, upgradeLine } from "../settings/upgrades.js"
 
 // older titles keep the twist anchors on the line
 const LINE_ONLY = new Set(["words", "matchWidth", "twistRibbonAnchor", "twistDoorAnchor"])

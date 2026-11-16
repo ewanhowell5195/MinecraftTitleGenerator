@@ -15,7 +15,8 @@ globalThis.fetch = async (url, options) => {
 globalThis.confirm = () => answer
 fakeTimeouts()
 
-const { FILE_VERSION, LAYER } = await import("../src/lib/settings/settings.js")
+const { LAYER } = await import("../src/lib/settings/settings.js")
+const { FILE_VERSION } = await import("../src/lib/settings/upgrades.js")
 const { createObject } = await import("../src/lib/settings/objects.js")
 const { scene } = await import("../src/lib/state/scene.js")
 const { fileError } = await import("../src/lib/state/notices.js")

@@ -10,7 +10,7 @@
   import { characterName } from "../../lib/font/editor/characters.js"
   import { exportJson, flatTexture } from "../../lib/font/editor/export.js"
   import { parsedSheet } from "../../lib/font/editor/sheet.js"
-  import { defaultBorder, defaultDepth } from "../../lib/settings/settings.js"
+  import { defaultBorder, defaultDepth } from "../../lib/settings/defaults.js"
   import { stackedStrip } from "../../lib/font/strips.js"
   import { submittedFont } from "../../lib/submissions/kinds/fontBuild.js"
 

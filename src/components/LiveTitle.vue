@@ -8,7 +8,7 @@
   import { keepMatched } from "../lib/state/match.js"
   import { platform } from "../lib/core/platform.js"
   import { keepTexture } from "../lib/state/scene.js"
-  import { FILE_VERSION } from "../lib/settings/settings.js"
+  import { FILE_VERSION } from "../lib/settings/upgrades.js"
   import { loadKey } from "../lib/geometry/shapes.js"
   import { createSmoothing } from "./composables/smoothing.js"
   import { createStage, frameCamera, titleFraming } from "../render/stage.js"

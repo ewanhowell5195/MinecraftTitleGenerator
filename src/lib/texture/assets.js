@@ -7,7 +7,7 @@ import { paletteOf } from "./overlayColours.js"
 import { decodePng } from "../submissions/kinds/png.js"
 import { titleCase } from "../core/names.js"
 import { platform } from "../core/platform.js"
-import { defaultDepth } from "../settings/settings.js"
+import { defaultDepth } from "../settings/defaults.js"
 import { mergeStrips, stackedStrip, stripFolder, stripRows, stripUse } from "../font/strips.js"
 
 const json = new Map()

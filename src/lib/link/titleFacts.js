@@ -1,7 +1,10 @@
 import { CAMERA_KEYS } from "../settings/camera.js"
+import { typeDefaults } from "../settings/defaults.js"
+import { LAYER_KEYS } from "../settings/layers.js"
 import { LIMITS } from "../core/limits.js"
 import { decodeTitle, unknownSetting } from "./linkformat.js"
-import { CUSTOM_FONT_KINDS, FILE_VERSION, LAYER, LAYERS, LAYER_KEYS, LINE, sameValue, snapshot, typeDefaults, upgradeLine } from "../settings/settings.js"
+import { CUSTOM_FONT_KINDS, LAYER, LAYERS, LINE, sameValue, snapshot } from "../settings/settings.js"
+import { FILE_VERSION, upgradeLine } from "../settings/upgrades.js"
 
 export function lineWords({ words, ...line }) {
   return words ? words.map(word => ({ ...line, ...word })) : [line]

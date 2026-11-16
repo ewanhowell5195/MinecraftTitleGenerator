@@ -1,7 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import { PNG } from "pngjs"
-import { defaultDepth } from "../../src/lib/settings/settings.js"
+import { defaultDepth } from "../../src/lib/settings/defaults.js"
 import { SHAPE_TEXTURE } from "../../src/lib/geometry/shapes.js"
 import { EMPTY, GLYPH, GRID, setPixel } from "../../src/lib/font/sheet.js"
 import { SHAPE_HOLDING_FOLDER, silhouetteBounds, silhouettePixels } from "../../src/lib/submissions/kinds/shape.js"

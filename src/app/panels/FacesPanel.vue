@@ -1,7 +1,7 @@
 <script setup>
+  import { faceStops } from "../../lib/settings/defaults.js"
   import { usePanel } from "./panel.js"
   import { active } from "../../lib/state/scene.js"
-  import { faceStops } from "../../lib/settings/settings.js"
   import ColourPicker from "../../components/ColourPicker.vue"
   import ColourToggle from "../ColourToggle.vue"
   import GradientEditor from "../GradientEditor.vue"

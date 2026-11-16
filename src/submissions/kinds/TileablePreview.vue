@@ -4,7 +4,7 @@
   import { fullName } from "../../lib/font/font.js"
   import LiveTitle from "../../components/LiveTitle.vue"
   import { popular } from "../../lib/state/stats.js"
-  import { DEFAULT_FONT } from "../../lib/settings/settings.js"
+  import { DEFAULT_FONT } from "../../lib/settings/defaults.js"
   import { embedded } from "../submissionLink.js"
   import { fontThumbnail } from "../../lib/state/ui.js"
   import { fontDefaults, usePreviewLine } from "./preview.js"

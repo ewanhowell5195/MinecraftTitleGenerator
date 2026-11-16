@@ -11,7 +11,7 @@ const { titleFacts } = await import("../src/lib/link/titleFacts.js")
 const { accountDetails, finishSignIn, receiveSignIn, signOut, startSignIn } = await import("../src/server/accounts.js")
 const { addSaved, changeSaved, listSaved, removeSaved } = await import("../src/server/saved.js")
 const { encodeTitle } = await import("../src/lib/link/linkformat.js")
-const { FILE_VERSION } = await import("../src/lib/settings/settings.js")
+const { FILE_VERSION } = await import("../src/lib/settings/upgrades.js")
 
 let db
 let env

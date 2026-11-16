@@ -16,7 +16,7 @@
   import { STRIP_LIMITS, stripHeights as heightsOf, stripSnap } from "../../lib/submissions/kinds/stripFit.js"
   import { ownFont, submittedFont } from "../../lib/submissions/kinds/fontBuild.js"
   import { SUBMISSION_LIMITS, pngProblem } from "../../lib/submissions/submissions.js"
-  import { DEFAULT_FONT } from "../../lib/settings/settings.js"
+  import { DEFAULT_FONT } from "../../lib/settings/defaults.js"
   import { submissionExtraUrl } from "../../lib/submissions/submissionsApi.js"
   import { fontThumbnail } from "../../lib/state/ui.js"
   import { pngUrl } from "../../lib/core/virtualFiles.js"

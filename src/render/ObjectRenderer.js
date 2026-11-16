@@ -24,7 +24,9 @@ import { platform } from "../lib/core/platform.js"
 import { quietly } from "../lib/state/history.js"
 import { DEFAULT_CAP_HEIGHT, DEFAULT_HEIGHT, NO_ARC } from "../lib/geometry/rows.js"
 import { editorTitle, finalShadows, keepTexture, loadedFont, words } from "../lib/state/scene.js"
-import { activeOverlays, applyFontFaces, defaultBorder, defaultDepth, defaultSpacing, defaultTexture, effectiveScale, fontFaces, isCustomFont, isSeparate, layerTarget, sameValue, separateForDefaults, setTexture, textureEntry } from "../lib/settings/settings.js"
+import { defaultBorder, defaultDepth, defaultSpacing, fontFaces } from "../lib/settings/defaults.js"
+import { applyFontFaces, isSeparate, layerTarget } from "../lib/settings/layers.js"
+import { activeOverlays, defaultTexture, effectiveScale, isCustomFont, sameValue, separateForDefaults, setTexture, textureEntry } from "../lib/settings/settings.js"
 
 const BASE = ["font", "source", "textureSource", "texture", "textureVariant", "tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "customTexture", "stops", "smooth", "gradientAngle", "arcGradient", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "tileablePerCharacter", "disableFontOverlay", "edgeBrightness"]
 

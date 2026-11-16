@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import { describe, test } from "node:test"
 import { publishedFonts, readMask } from "../generator/fonts.js"
 import { splitCells } from "../src/lib/font/font.js"
-import { defaultBorder } from "../src/lib/settings/settings.js"
+import { defaultBorder } from "../src/lib/settings/defaults.js"
 import { collisionAmount, pairRank, suggestKerning } from "../src/lib/font/kerning.js"
 
 describe("kerning suggestions", () => {

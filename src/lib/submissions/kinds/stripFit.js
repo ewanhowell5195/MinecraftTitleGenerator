@@ -4,7 +4,7 @@ import { fontFolder, fullOrder, parseMask, sheetOwner } from "../../font/font.js
 import { characterName } from "../../font/editor/characters.js"
 import { clamp } from "../../core/maths.js"
 import { titleCase } from "../../core/names.js"
-import { defaultBorder, defaultDepth } from "../../settings/settings.js"
+import { defaultBorder, defaultDepth } from "../../settings/defaults.js"
 import { centredOffset, stackedStrip, stripRows, stripTag, stripUse, stripY } from "../../font/strips.js"
 import { SUBMISSION_LIMITS } from "../submissions.js"
 import { submissionFont } from "./fontAsset.js"

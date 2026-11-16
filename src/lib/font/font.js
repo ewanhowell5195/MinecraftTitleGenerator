@@ -1,8 +1,8 @@
 import { pixelsOf } from "../texture/canvas.js"
+import { defaultBorder } from "../settings/defaults.js"
 import { titleCase } from "../core/names.js"
 import { DEFAULT_ORDER } from "./order.js"
 import { platform } from "../core/platform.js"
-import { defaultBorder } from "../settings/settings.js"
 
 export const SHEET_MAX_WIDTH = 560
 

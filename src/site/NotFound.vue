@@ -1,9 +1,10 @@
 <script setup>
   import { ref } from "vue"
   import { useRoute } from "vue-router"
+  import { DEFAULT_FONT } from "../lib/settings/defaults.js"
   import { encodeTitle } from "../lib/link/linkformat.js"
   import { pictureUrl } from "../lib/core/pictures.js"
-  import { DEFAULT_FONT, FILE_VERSION } from "../lib/settings/settings.js"
+  import { FILE_VERSION } from "../lib/settings/upgrades.js"
   import Button from "../components/Button.vue"
 
   const route = useRoute()

@@ -3,7 +3,9 @@ import fs from "node:fs"
 import { describe, test } from "node:test"
 import { GENERATED_SETTINGS } from "../src/lib/texture/overlays/settings.js"
 import { UPLOAD_KEYS, decodeTitle, encodeTitle, openableTitle, readLines, titleBody, unknownSetting, writeLines } from "../src/lib/link/linkformat.js"
-import { FILE_VERSION, LAYER, typeDefaults } from "../src/lib/settings/settings.js"
+import { typeDefaults } from "../src/lib/settings/defaults.js"
+import { LAYER } from "../src/lib/settings/settings.js"
+import { FILE_VERSION } from "../src/lib/settings/upgrades.js"
 
 const fixtures = JSON.parse(fs.readFileSync(new URL("links.json", import.meta.url), "utf8"))
 

@@ -5,7 +5,7 @@
   import { PRESETS_PATH, openPresetsPage } from "../lib/state/presetsPage.js"
   import { dropPreview, previews, renderPreview } from "./previews.js"
   import { clampedSpot, followPointer, useReorderDrag } from "../components/composables/reorder.js"
-  import { TYPES } from "../lib/settings/settings.js"
+  import { TYPES } from "../lib/settings/defaults.js"
   import { addObject, addShape, duplicateLine, lineHidden, lineText, lines, removeLine, removeObject, runtime, scene, select, selectGroup, toggleLine, wordText } from "../lib/state/scene.js"
   import { view } from "../lib/state/view.js"
   import ContextMenu from "../components/ContextMenu.vue"

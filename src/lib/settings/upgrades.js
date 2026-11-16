@@ -1,0 +1,54 @@
+import { typeDefaults } from "./defaults.js"
+
+export const FILE_VERSION = 7
+const OLD_WAVE = { level: 45, randomness: 60 }
+
+function restartTilesPerCharacter(entry) {
+  return entry.textureSource === "tileable" ? { tileablePerCharacter: true, ...entry } : entry
+}
+
+function restartLineTiles(line) {
+  const restarted = restartTilesPerCharacter(line)
+  return Array.isArray(line.words) ? { ...restarted, words: line.words.map(restartTilesPerCharacter) } : restarted
+}
+
+function separateMatchScale(line) {
+  if (line.matchWidth === undefined || line.matchWidth === null) return line
+  const { scaleX, linkScale, ...upgraded } = line
+  if (scaleX !== undefined) upgraded.matchScale = scaleX
+  if (linkScale === undefined || linkScale === null) return upgraded
+  return { ...upgraded, matchScaleY: true, scaleY: linkScale }
+}
+
+function widenBlockSerif(line) {
+  if (line.font !== "block-serif") return line
+  return { ...line, spacing: (line.spacing ?? typeDefaults(line.type ?? "top").spacing) + 2 }
+}
+
+function anchorDepthAtFront(line) {
+  if ((line.type ?? "top") === "bottom" || "depthAnchor" in line) return line
+  const deepened = "depth" in line || "wordDepth" in line || Array.isArray(line.words) && line.words.some(word => "wordDepth" in word)
+  return deepened ? { ...line, depthAnchor: "front" } : line
+}
+
+function turnDoorsInPlace(line) {
+  return line.twistDoor && !("twistDoorRoll" in line) ? { ...line, twistDoorRoll: false } : line
+}
+
+function oldWave(layer) {
+  if (layer.overlay === "wave") return { randomness: OLD_WAVE.randomness, ...layer }
+  if (layer.overlay === "wave_inverted") return { randomness: OLD_WAVE.randomness, ...layer, overlay: "wave", angle: 180, level: 100 - (layer.level ?? OLD_WAVE.level) }
+  return layer
+}
+
+function turnInvertedWaves(value) {
+  if (Array.isArray(value)) return value.map(turnInvertedWaves)
+  if (!value || typeof value !== "object") return value
+  return oldWave(Object.fromEntries(Object.entries(value).map(([key, item]) => [key, turnInvertedWaves(item)])))
+}
+
+const UPGRADES = [[2, restartLineTiles], [3, separateMatchScale], [4, widenBlockSerif], [5, anchorDepthAtFront], [6, turnDoorsInPlace], [7, turnInvertedWaves]]
+
+export function upgradeLine(line, version) {
+  return UPGRADES.reduce((upgraded, [to, upgrade]) => version < to ? upgrade(upgraded) : upgraded, line)
+}

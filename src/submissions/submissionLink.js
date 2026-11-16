@@ -5,7 +5,7 @@ import { customFontEntry } from "../lib/font/customFonts.js"
 import { isPreviewHost } from "../lib/core/previewSite.js"
 import { openTitleData, untouchedTitle } from "../lib/state/titleFile.js"
 import { fileError } from "../lib/state/notices.js"
-import { FILE_VERSION } from "../lib/settings/settings.js"
+import { FILE_VERSION } from "../lib/settings/upgrades.js"
 import { submission, submissionExtraUrl, submissionFileUrl } from "../lib/submissions/submissionsApi.js"
 
 export const SUBMISSION_PARAM = "submission"

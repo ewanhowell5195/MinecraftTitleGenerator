@@ -1,7 +1,9 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import { isReactive } from "vue"
-import { LAYER, activeOverlays, applyFontFaces, applyType, layerTarget, layerView, separateLayers, defaultBorder, defaultDepth, defaultOverlays, defaultSpacing, defaultTexture, effectiveScale, fontFaces, isModified, overlayFits, overlayLayer, pinnedTextures, resetPanel, resetTransform, restore, setTexture, snapshot, textureEntry, transformKeys, typeDefaults } from "../src/lib/settings/settings.js"
+import { applyType, defaultBorder, defaultDepth, defaultSpacing, fontFaces, typeDefaults } from "../src/lib/settings/defaults.js"
+import { applyFontFaces, layerTarget, layerView, overlayFits, separateLayers } from "../src/lib/settings/layers.js"
+import { LAYER, activeOverlays, defaultOverlays, defaultTexture, effectiveScale, isModified, overlayLayer, pinnedTextures, resetPanel, resetTransform, restore, setTexture, snapshot, textureEntry, transformKeys } from "../src/lib/settings/settings.js"
 import { createObject } from "../src/lib/settings/objects.js"
 
 const TOP_DEFAULTS = {

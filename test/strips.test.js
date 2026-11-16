@@ -6,7 +6,7 @@ import { fontDir, fontTextureList, publishedFonts, readMask, readStripSet } from
 import { stripRange } from "../src/lib/texture/assets.js"
 import { stripsOf } from "../src/lib/font/font.js"
 import { withGenerated } from "../src/lib/texture/overlays/settings.js"
-import { defaultDepth } from "../src/lib/settings/settings.js"
+import { defaultDepth } from "../src/lib/settings/defaults.js"
 import { bandEntry, centredOffset, layerSlice, mergeStrips, placedStrips, stripCovers, stripPlacements, stackedStrip, stripHasRow, stripItem, stripRows, stripUse, stripY } from "../src/lib/font/strips.js"
 
 const SET = { id: "set", depth: 22, baseline: 30, textures: { shared: { authors: "a", variants: { kid: { authors: "b" } } }, other: { authors: "c" } } }

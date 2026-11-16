@@ -4,9 +4,10 @@
 
 <script setup>
   import { computed, reactive, toRaw, watch } from "vue"
+  import { overlayFits } from "../../lib/settings/layers.js"
   import { layerShown, usePanel, usedLayers } from "./panel.js"
   import { library } from "../../lib/state/scene.js"
-  import { OVERLAY_KINDS, activeOverlays, defaultOverlays, overlayFits } from "../../lib/settings/settings.js"
+  import { OVERLAY_KINDS, activeOverlays, defaultOverlays } from "../../lib/settings/settings.js"
   import { usedOverlayFiles } from "./uploads.js"
   import OverlayLayers from "../../components/OverlayLayers.vue"
   import Panel from "../Panel.vue"

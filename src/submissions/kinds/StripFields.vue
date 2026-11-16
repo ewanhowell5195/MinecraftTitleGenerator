@@ -11,7 +11,7 @@
   import { popular } from "../../lib/state/stats.js"
   import { texturesList } from "../../lib/submissions/kinds/fontAsset.js"
   import { submissionContext } from "../../lib/submissions/kinds/index.js"
-  import { DEFAULT_FONT } from "../../lib/settings/settings.js"
+  import { DEFAULT_FONT } from "../../lib/settings/defaults.js"
   import { STRIP_LIMITS, fitOffset, fitProblems, fontMeasure, heightList, setIdOf, setIds, setName, setUsers, sharedHeights, stripOwners, stripSnap, stripTarget, targetRows } from "../../lib/submissions/kinds/stripFit.js"
   import { SUBMISSION_LIMITS, pngProblem } from "../../lib/submissions/submissions.js"
   import { fontThumbnail } from "../../lib/state/ui.js"

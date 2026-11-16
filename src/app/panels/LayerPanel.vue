@@ -1,8 +1,8 @@
 <script setup>
   import { computed } from "vue"
+  import { SEPARATE_KEYS, overlayFits, separateLayers } from "../../lib/settings/layers.js"
   import { editingLayer, usedLayers } from "./panel.js"
   import { active, current } from "../../lib/state/scene.js"
-  import { SEPARATE_KEYS, overlayFits, separateLayers } from "../../lib/settings/settings.js"
   import { view } from "../../lib/state/view.js"
   import Panel from "../Panel.vue"
   import Segments from "../../components/Segments.vue"
