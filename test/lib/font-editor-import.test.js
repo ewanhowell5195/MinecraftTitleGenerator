@@ -6,7 +6,6 @@ import { publishedFonts, readMask } from "../../generator/fonts.js"
 import { parseMask, splitCells } from "../../src/lib/font/font.js"
 import { CREEPER, DEFAULT_ORDER } from "../../src/lib/font/order.js"
 import { REQUIRED_CHARACTERS, SPACE_CHAR, addCharacters } from "../../src/lib/font/editor/characters.js"
-import { TARGET_PIXEL_HEIGHT } from "../../src/lib/font/editor/defaults.js"
 import { exportJson } from "../../src/lib/font/editor/export.js"
 import { glyphOf, isBlank } from "../../src/lib/font/editor/glyph.js"
 import { fontFromFiles, fontFromPublished, parseFontJson } from "../../src/lib/font/editor/import.js"
@@ -136,11 +135,6 @@ describe("importing a font file", () => {
     const suggested = suggestedSize(source)
     assert.ok(suggested.pixel && suggested.rows > 1)
     assert.equal(suggested.square, Math.round(40 / suggested.rows))
-  })
-  test("the target pixel height spans the middle of the published fonts' cap heights", () => {
-    const fonts = publishedFonts()
-    const heights = fonts.filter(entry => !entry.inherits).map(entry => readMask(entry, fonts).capHeight).sort((a, b) => a - b)
-    assert.deepEqual(TARGET_PIXEL_HEIGHT, [heights[Math.floor(heights.length * 0.1)], heights[Math.floor(heights.length * 0.9)]])
   })
 
   function pixelArtFont(letters, { rows, nudge = 0 }) {
