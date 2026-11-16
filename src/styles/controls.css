@@ -152,6 +152,7 @@ label > input[type="file"] {
   box-shadow: none;
 }
 
+.button.ghost.open,
 .button.ghost:hover:not(:disabled, .disabled) {
   --button-text: var(--text);
   background: var(--card);
