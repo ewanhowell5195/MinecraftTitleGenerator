@@ -280,7 +280,7 @@
           <p v-if="tab === 'mine' && !account && signInProviders.length" class="message empty-state">Sign in to keep your presets under your account. The presets saved in this browser, and anything shared from it, move to your account when you do.</p>
           <div v-if="tab === 'community'" class="grid">
             <PresetTile v-for="preset of results" :key="preset.id" :code="preset.code" :fingerprint="preset.fingerprint" :selected="selected?.id === preset.id" @pick="selectCommunity(preset)">
-              <a class="name ellipsis" :href="`/app/presets/${preset.id}`" v-tooltip="preset.name" @click="followed">{{ preset.name }}</a>
+              <a class="name ellipsis" :href="`/app/presets/${preset.id}`" @click="followed">{{ preset.name }}</a>
               <span v-if="preset.rating !== null" class="stats">
                 <span v-tooltip="`From ${preset.votes} votes`"><Icon class="gold" name="star" :size="13" />{{ preset.rating.toFixed(1) }}</span>
               </span>
@@ -293,7 +293,7 @@
               <h2>{{ group.label }}</h2>
               <div class="grid">
                 <PresetTile v-for="preset of group.presets" :key="preset.code" :code="preset.code" :selected="selectedLocalCode === preset.code" @pick="selectLocal(preset)">
-                  <strong class="ellipsis" v-tooltip="preset.name">{{ preset.name }}</strong>
+                  <strong class="ellipsis">{{ preset.name }}</strong>
                   <Badge v-if="preset.inBrowser" v-tooltip="'Your account is full, so this is only saved in this browser'">This browser only</Badge>
                   <span v-if="stats[preset.shared]" class="stats">
                     <span v-tooltip="'Uses'"><Icon name="download" :size="13" />{{ stats[preset.shared].downloads }}</span>
