@@ -1,15 +1,22 @@
 <script setup>
   import FluidTabs from "fluid-tabs-vue"
+  import Icon from "./Icon.vue"
 
   defineProps({
-    tabs: { type: Array, required: true }
+    tabs: { type: Array, required: true },
+    icons: { type: Boolean, default: false }
   })
 
   const model = defineModel({ type: String, required: true })
 </script>
 
 <template>
-  <FluidTabs v-model="model" :tabs="tabs" tab-style="nav" class="nav-tabs" wrap />
+  <FluidTabs v-model="model" :tabs="tabs" tab-style="nav" class="nav-tabs" :class="{ icons }" wrap>
+    <template v-if="icons" #label="{ tab }">
+      <Icon :name="tab.icon" :size="20" />
+      <span>{{ tab.label }}</span>
+    </template>
+  </FluidTabs>
 </template>
 
 <style scoped>
@@ -18,20 +25,33 @@
   }
 
   .nav-tabs :deep(.tab-bar) {
-    justify-content: flex-start;
-    gap: 24px;
     box-shadow: none;
   }
 
+  .nav-tabs:where(:not(.icons)) :deep(.tab-bar) {
+    justify-content: flex-start;
+    gap: 24px;
+  }
+
   .nav-tabs :deep(.tab-bar-button) {
-    flex: none;
-    padding: 10px 2px;
-    font-size: var(--font-base);
     font-weight: 600;
     color: var(--faint);
   }
 
-  .nav-tabs :deep(.tab-bar-button)::before {
+  .nav-tabs:where(:not(.icons)) :deep(.tab-bar-button) {
+    flex: none;
+    padding: 10px 2px;
+    font-size: var(--font-base);
+  }
+
+  .nav-tabs:where(.icons) :deep(.tab-bar-button) {
+    gap: 4px;
+    min-width: 0;
+    padding: 10px 0 9px;
+    font-size: var(--font-xs);
+  }
+
+  .nav-tabs:where(:not(.icons)) :deep(.tab-bar-button)::before {
     content: "";
     position: absolute;
     top: 0;
@@ -40,17 +60,26 @@
     left: -12px;
   }
 
-  .nav-tabs :deep(.tab-bar-button:first-of-type)::before {
+  .nav-tabs:where(:not(.icons)) :deep(.tab-bar-button:first-of-type)::before {
     left: 0;
   }
 
-  .nav-tabs :deep(.tab-bar-button:last-of-type)::before {
+  .nav-tabs:where(:not(.icons)) :deep(.tab-bar-button:last-of-type)::before {
     right: 0;
   }
 
   .nav-tabs :deep(.tab-bar-button:hover),
   .nav-tabs :deep(.tab-bar-button.active) {
     color: var(--text);
+  }
+
+  .nav-tabs:where(.icons) :deep(.tab-bar-button.active) {
+    color: var(--accent);
+  }
+
+  .nav-tabs:where(.icons) :deep(.tab-bar-button svg) {
+    width: 20px;
+    height: 20px;
   }
 
   .nav-tabs :deep(.tab-bar-active) {

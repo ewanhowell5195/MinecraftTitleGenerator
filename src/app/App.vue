@@ -1,7 +1,6 @@
 <script setup>
   import { computed, onMounted, ref, watch } from "vue"
   import Button from "../components/Button.vue"
-  import FluidTabs from "fluid-tabs-vue"
   import EulaDialog from "./EulaDialog.vue"
   import Notice from "../components/Notice.vue"
   import Icon from "../components/Icon.vue"
@@ -9,6 +8,7 @@
   import Panel from "./Panel.vue"
   import LayerList from "./LayerList.vue"
   import MenuBar from "./MenuBar.vue"
+  import NavTabs from "../components/NavTabs.vue"
   import PresetsPage from "./presets/PresetsPage.vue"
   import ObjectRenderer from "../render/ObjectRenderer.js"
   import RenderFrame from "./RenderFrame.vue"
@@ -130,12 +130,7 @@
 
     <LayerActions v-if="editing" />
 
-    <FluidTabs v-if="editing" class="tabs" v-model="view.section" :tabs="tabs" tab-style="nav" wrap>
-      <template #label="{ tab }">
-        <Icon :name="tab.icon" :size="20" />
-        <span>{{ tab.label }}</span>
-      </template>
-    </FluidTabs>
+    <NavTabs v-if="editing" class="tabs" v-model="view.section" :tabs="tabs" icons />
 
     <aside ref="drawer" class="drawer">
       <div v-if="!editing" class="intro row">
@@ -233,39 +228,6 @@
     padding: 0 8px;
     background: var(--surface);
     border-right: 1px solid var(--line);
-    border-bottom: 1px solid var(--line);
-  }
-
-  .tabs :deep(.tab-bar) {
-    box-shadow: none;
-  }
-
-  .tabs :deep(.tab-bar-button) {
-    gap: 4px;
-    min-width: 0;
-    padding: 10px 0 9px;
-    font-size: var(--font-xs);
-    font-weight: 600;
-    color: var(--faint);
-  }
-
-  .tabs :deep(.tab-bar-button:hover) {
-    color: var(--text);
-  }
-
-  .tabs :deep(.tab-bar-button.active) {
-    color: var(--accent);
-  }
-
-  .tabs :deep(.tab-bar-button svg) {
-    width: 20px;
-    height: 20px;
-  }
-
-  .tabs :deep(.tab-bar-active) {
-    bottom: 0;
-    border-top: none;
-    border-bottom: 2px solid var(--accent);
   }
 
   .drawer {
@@ -336,19 +298,19 @@
       grid-template-areas: "bar" "stage" "layers" "actions" "drawer" "tabs";
     }
 
-    .tabs {
+    .tabs.nav-tabs {
       padding: 0 6px env(safe-area-inset-bottom);
       border-right: none;
       border-bottom: none;
       border-top: 1px solid var(--line);
     }
 
-    .tabs :deep(.tab-bar-button) {
+    .tabs.nav-tabs :deep(.tab-bar-button) {
       padding: 9px 0 8px;
       font-size: var(--font-xxs);
     }
 
-    .tabs :deep(.tab-bar-active) {
+    .tabs.nav-tabs :deep(.tab-bar-active) {
       top: 0;
       bottom: auto;
       border-top: 2px solid var(--accent);
