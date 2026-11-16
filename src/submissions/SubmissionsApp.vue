@@ -34,7 +34,7 @@
     <AccountPage v-if="managing" />
     <Notice v-else-if="error">Couldn't load the fonts: {{ error }}</Notice>
     <template v-else-if="fonts">
-      <SubmissionView v-if="viewed" :id="Number(viewed)" :fonts="fonts" :editing="!!editing" />
+      <SubmissionView v-if="viewed" :id="Number(viewed)" :fonts="fonts" :editing="editing" />
       <SubmissionsHome v-else-if="listing" :fonts="fonts" />
       <SubmitPage v-else :fonts="fonts" />
     </template>

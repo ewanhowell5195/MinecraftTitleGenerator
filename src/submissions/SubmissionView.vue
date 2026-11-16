@@ -111,7 +111,7 @@
     busy.value = true
     try {
       await withdrawSubmission(props.id)
-      router.push("/submissions/")
+      leave()
     } catch (err) {
       error.value = err.message
       busy.value = false
