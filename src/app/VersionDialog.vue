@@ -3,7 +3,7 @@
   import { listVersions } from "../lib/minecraft.js"
   import Badge from "../components/Badge.vue"
   import Notice from "../components/Notice.vue"
-  import RenderDialog from "../components/RenderDialog.vue"
+  import Dialog from "../components/Dialog.vue"
   import Segments from "../components/Segments.vue"
 
   const KINDS = [{ value: "release", label: "Releases" }, { value: "snapshot", label: "Snapshots" }]
@@ -43,7 +43,7 @@
 </script>
 
 <template>
-  <RenderDialog title="Minecraft version" close-title="Close" dismissable @close="emit('close')">
+  <Dialog title="Minecraft version" close-title="Close" dismissable @close="emit('close')">
     <div class="body">
       <Segments :options="KINDS" v-model="kind" />
       <input type="text" v-model="query" placeholder="Search versions" aria-label="Search versions" spellcheck="false">
@@ -58,7 +58,7 @@
         </button>
       </div>
     </div>
-  </RenderDialog>
+  </Dialog>
 </template>
 
 <style scoped>

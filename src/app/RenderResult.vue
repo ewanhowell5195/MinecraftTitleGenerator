@@ -3,7 +3,7 @@
   import { downloadBlob } from "../lib/ui.js"
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
-  import RenderDialog from "../components/RenderDialog.vue"
+  import Dialog from "../components/Dialog.vue"
 
   const props = defineProps({
     image: { type: Object, required: true },
@@ -51,7 +51,7 @@
 </script>
 
 <template>
-  <RenderDialog title="Render" close-title="Close" large dismissable @close="emit('close')">
+  <Dialog title="Render" close-title="Close" large dismissable @close="emit('close')">
     <div class="output">
       <div class="preview">
         <div ref="holder" class="holder"></div>
@@ -70,7 +70,7 @@
         </Button>
       </div>
     </div>
-  </RenderDialog>
+  </Dialog>
 </template>
 
 <style scoped>

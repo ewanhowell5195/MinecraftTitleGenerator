@@ -3,7 +3,7 @@
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
   import Notice from "../components/Notice.vue"
-  import RenderDialog from "../components/RenderDialog.vue"
+  import Dialog from "../components/Dialog.vue"
   import SignInButtons from "../components/SignInButtons.vue"
   import { account, deleteAccount } from "../lib/community.js"
   import { providerLabel } from "../lib/providers.js"
@@ -52,7 +52,7 @@
       <Button danger @click="open"><template #icon><Icon name="trash" :size="16" /></template>Delete account</Button>
     </div>
   </section>
-  <RenderDialog v-if="choosing" title="Delete account" close-title="Cancel" wide dismissable @close="close">
+  <Dialog v-if="choosing" title="Delete account" close-title="Cancel" wide dismissable @close="close">
     <div class="dialog-body">
       <p>Choose what happens to the presets you have shared and the things you have submitted. This can't be undone.</p>
       <div class="choice">
@@ -67,7 +67,7 @@
       </div>
       <Notice v-if="error">{{ error }}</Notice>
     </div>
-  </RenderDialog>
+  </Dialog>
 </template>
 
 <style scoped>

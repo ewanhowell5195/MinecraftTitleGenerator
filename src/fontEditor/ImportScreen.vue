@@ -8,7 +8,7 @@
   import Segments from "../components/Segments.vue"
   import { ALWAYS_REQUIRED, LETTER_CASES, REQUIRED_CHARACTERS, CREEPER, charactersOf, chooseCharacters, glyphOf, hasCase, isBlank, setLetterCase } from "../lib/fontEditor.js"
   import SizeStats from "./SizeStats.vue"
-  import ResetIcon from "./ResetIcon.vue"
+  import ResetButton from "./ResetButton.vue"
   import { limitSize, resettable } from "./sizeLimit.js"
   import { OPENING_QUOTE } from "../lib/order.js"
   import { startFont } from "./store.js"
@@ -116,11 +116,11 @@
       <section class="choice settings">
         <div class="numbers">
           <Field group label="Height" label-for="import-height">
-            <template v-if="changed('height')" #label><ResetIcon :title="`Reset to ${defaults.height}`" @reset="reset('height')" /></template>
+            <template v-if="changed('height')" #label><ResetButton :title="`Reset to ${defaults.height}`" @reset="reset('height')" /></template>
             <NumberInput id="import-height" min="1" :max="mostRows" v-model.number="height" />
           </Field>
           <Field group label="Square size" label-for="import-square">
-            <template v-if="changed('square')" #label><ResetIcon :title="`Reset to ${defaults.square}`" @reset="reset('square')" /></template>
+            <template v-if="changed('square')" #label><ResetButton :title="`Reset to ${defaults.square}`" @reset="reset('square')" /></template>
             <NumberInput id="import-square" min="1" :max="mostSquare" v-model.number="square" />
           </Field>
           <SizeStats :pixels="built.font?.height ?? ''" />

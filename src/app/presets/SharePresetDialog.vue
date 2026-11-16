@@ -1,7 +1,7 @@
 <script setup>
   import { confirmReplacing, confirmSharing, replaceWith, sharePreset } from "../../lib/presets.js"
   import Button from "../../components/Button.vue"
-  import RenderDialog from "../../components/RenderDialog.vue"
+  import Dialog from "../../components/Dialog.vue"
   import ShareFields from "./ShareFields.vue"
   import { useShareForm } from "./shareForm.js"
 
@@ -23,11 +23,11 @@
 </script>
 
 <template>
-  <RenderDialog title="Share publicly" close-title="Cancel" wide dismissable @close="emit('close')">
+  <Dialog title="Share publicly" close-title="Cancel" wide dismissable @close="emit('close')">
     <form class="dialog-body" @submit.prevent="send">
       <ShareFields v-model:name="name" v-model:target="target" v-model:agreed="agreed" :code="preset.code" label="Share as" :notice="error || problem">
         <Button primary type="submit" :disabled="blocked">{{ target ? replaceLabel : sending ? "Sharing" : "Share" }}</Button>
       </ShareFields>
     </form>
-  </RenderDialog>
+  </Dialog>
 </template>

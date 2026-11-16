@@ -1,7 +1,7 @@
 <script setup>
   import { onMounted, ref } from "vue"
   import Button from "../../components/Button.vue"
-  import RenderDialog from "../../components/RenderDialog.vue"
+  import Dialog from "../../components/Dialog.vue"
 
   defineProps({
     preset: { type: Object, required: true },
@@ -16,7 +16,7 @@
 </script>
 
 <template>
-  <RenderDialog title="Delete preset" close-title="Cancel" wide dismissable @close="emit('close')">
+  <Dialog title="Delete preset" close-title="Cancel" wide dismissable @close="emit('close')">
     <div class="dialog-body">
       <template v-if="canDeleteShared">
         <p><strong>{{ preset.name }}</strong> is shared publicly. Deleting it from Community moves it back to your presets, and it keeps its votes and uses if you share it again. Fully deleting it removes it for good.</p>
@@ -32,7 +32,7 @@
         </div>
       </template>
     </div>
-  </RenderDialog>
+  </Dialog>
 </template>
 
 <style scoped>

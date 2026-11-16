@@ -18,7 +18,7 @@
   import PresetDetail from "./PresetDetail.vue"
   import Segments from "../../components/Segments.vue"
   import SharePresetDialog from "./SharePresetDialog.vue"
-  import SubmissionUsage from "./SubmissionUsage.vue"
+  import ShareUsage from "./ShareUsage.vue"
   import TitlePicture from "./TitlePicture.vue"
   import TopBar from "../../site/TopBar.vue"
   import { router } from "../../router.js"
@@ -369,7 +369,7 @@
   <div ref="root" class="page">
     <TopBar class="top" title="Presets">
       <template v-if="presetsPage.fromEditor" #start><Button class="back" @click="closePresetsPage()"><template #icon><Icon name="back" :size="18" /></template><span>Back to editor</span></Button></template>
-      <SubmissionUsage v-if="tab === 'mine'" class="usage divided" />
+      <ShareUsage v-if="tab === 'mine'" class="usage divided" />
       <template #end><Segments class="tabs" :options="TABS" v-model="tab" /></template>
     </TopBar>
     <div class="body" :class="{ open: selected }">

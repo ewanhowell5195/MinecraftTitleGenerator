@@ -15,7 +15,7 @@
   import { fontThumbnail } from "../lib/ui.js"
   import { fontFromList, fontFromUploads, imageOf } from "./loaders.js"
   import SizeStats from "./SizeStats.vue"
-  import ResetIcon from "./ResetIcon.vue"
+  import ResetButton from "./ResetButton.vue"
   import { limitSize, resettable } from "./sizeLimit.js"
   import { navigate } from "../lib/navigation.js"
   import { EDITOR_PATH, IMPORT_PATH, font, importing, startFont } from "./store.js"
@@ -119,7 +119,7 @@
           <h2>Blank font</h2>
           <div class="numbers">
             <Field v-for="item of SIZE_FIELDS" :key="item.key" group :label="item.label" :label-for="`blank-${item.key}`">
-              <template v-if="changed(item.key)" #label><ResetIcon :title="`Reset to ${BLANK_SIZE[item.key]}`" @reset="reset(item.key)" /></template>
+              <template v-if="changed(item.key)" #label><ResetButton :title="`Reset to ${BLANK_SIZE[item.key]}`" @reset="reset(item.key)" /></template>
               <NumberInput :id="`blank-${item.key}`" min="1" :max="item.key === 'height' ? mostRows : item.key === 'grid' ? mostSquare : null" :model-value="sizes[item.key].value" @update:model-value="sizes[item.key].value = $event" />
             </Field>
           </div>

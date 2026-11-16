@@ -2,7 +2,7 @@
   import { confirmReplacing, confirmSharing, namingCode, namingShared, namingSharedId, saveOver, savePreset, sharePreset } from "../../lib/presets.js"
   import { openPresetsPage, showPreset } from "../../lib/presetsPage.js"
   import Button from "../../components/Button.vue"
-  import RenderDialog from "../../components/RenderDialog.vue"
+  import Dialog from "../../components/Dialog.vue"
   import ShareFields from "./ShareFields.vue"
   import { useShareForm } from "./shareForm.js"
 
@@ -58,20 +58,20 @@
 </script>
 
 <template>
-  <RenderDialog v-if="shareOnly && namingShared" title="Share publicly" close-title="Cancel" dismissable @close="emit('close')">
+  <Dialog v-if="shareOnly && namingShared" title="Share publicly" close-title="Cancel" dismissable @close="emit('close')">
     <form class="dialog-body" @submit.prevent="submit">
       <p class="hint">This title is already shared as {{ suggested }}.</p>
       <div class="dialog-actions">
         <Button primary type="submit">View in Community</Button>
       </div>
     </form>
-  </RenderDialog>
-  <RenderDialog v-else :title="shareOnly ? 'Share publicly' : 'Save preset'" close-title="Cancel" :wide="!namingShared" dismissable @close="emit('close')">
+  </Dialog>
+  <Dialog v-else :title="shareOnly ? 'Share publicly' : 'Save preset'" close-title="Cancel" :wide="!namingShared" dismissable @close="emit('close')">
     <form class="dialog-body" @submit.prevent="submit">
       <ShareFields v-model:name="name" v-model:target="target" v-model:agreed="agreed" :code="namingCode" :label="shareOnly ? 'Share as' : 'Save as'" :placeholder="target?.name ?? suggested" :shareable="!namingShared" :notice="error || problem" intro>
         <Button v-if="!shareOnly || target?.online" type="submit" :primary="namingShared || target?.online" :disabled="sending || target?.online && blocked">{{ target ? replaceLabel : "Save" }}</Button>
         <Button v-if="!namingShared && !target?.online" primary :disabled="blocked" @click="saveAndShare">{{ sending ? "Sharing" : target ? "Replace and share" : shareOnly ? "Share" : "Save and share" }}</Button>
       </ShareFields>
     </form>
-  </RenderDialog>
+  </Dialog>
 </template>

@@ -4,7 +4,7 @@
   import ContextMenu from "../components/ContextMenu.vue"
   import Field from "../components/Field.vue"
   import Icon from "../components/Icon.vue"
-  import RenderDialog from "../components/RenderDialog.vue"
+  import Dialog from "../components/Dialog.vue"
   import Tile from "../components/Tile.vue"
   import TileGrid from "../components/TileGrid.vue"
   import { vLongPress } from "../lib/events.js"
@@ -140,7 +140,7 @@
       <button class="add" v-tooltip="'Add a character'" aria-label="Add a character" @click="addMenu"><Icon name="plus" :size="20" /></button>
     </TileGrid>
     <ContextMenu :items="context?.items" :at="context?.at" @close="context = null" />
-    <RenderDialog v-if="adding" title="Add characters" close-title="Cancel" dismissable @close="adding = false">
+    <Dialog v-if="adding" title="Add characters" close-title="Cancel" dismissable @close="adding = false">
       <form class="dialog-body" @submit.prevent="confirmAdding">
         <Field label="Characters">
           <input ref="field" v-model="typed" type="text" placeholder="eg ä ö ü" aria-label="Characters to add">
@@ -151,7 +151,7 @@
           <Button primary type="submit" :disabled="!newCharacters.length">Add</Button>
         </div>
       </form>
-    </RenderDialog>
+    </Dialog>
   </section>
 </template>
 

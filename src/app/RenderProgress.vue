@@ -1,6 +1,6 @@
 <script setup>
   import ProgressBar from "./ProgressBar.vue"
-  import RenderDialog from "../components/RenderDialog.vue"
+  import Dialog from "../components/Dialog.vue"
 
   defineProps({
     progress: { type: Number, required: true }
@@ -10,12 +10,12 @@
 </script>
 
 <template>
-  <RenderDialog title="Rendering" close-title="Cancel" @close="emit('close')">
+  <Dialog title="Rendering" close-title="Cancel" @close="emit('close')">
     <div class="dialog-body body">
       <ProgressBar class="grow" :value="progress" />
       <span class="percent">{{ Math.floor(progress * 100) }}%</span>
     </div>
-  </RenderDialog>
+  </Dialog>
 </template>
 
 <style scoped>

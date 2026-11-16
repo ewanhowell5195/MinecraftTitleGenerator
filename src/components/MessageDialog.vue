@@ -1,6 +1,6 @@
 <script setup>
   import Button from "./Button.vue"
-  import RenderDialog from "./RenderDialog.vue"
+  import Dialog from "./Dialog.vue"
 
   defineProps({
     title: { type: String, required: true }
@@ -10,12 +10,12 @@
 </script>
 
 <template>
-  <RenderDialog :title="title" close-title="Close" dismissable @close="emit('close')">
+  <Dialog :title="title" close-title="Close" dismissable @close="emit('close')">
     <div class="dialog-body">
       <p><slot></slot></p>
       <div class="dialog-actions">
         <Button primary @click="emit('close')">OK</Button>
       </div>
     </div>
-  </RenderDialog>
+  </Dialog>
 </template>

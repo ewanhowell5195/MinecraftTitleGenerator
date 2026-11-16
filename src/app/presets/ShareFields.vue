@@ -6,7 +6,7 @@
   import Notice from "../../components/Notice.vue"
   import ReplaceSelect from "./ReplaceSelect.vue"
   import ShareAccount from "./ShareAccount.vue"
-  import SubmissionUsage from "./SubmissionUsage.vue"
+  import ShareUsage from "./ShareUsage.vue"
 
   const props = defineProps({
     code: { type: String, required: true },
@@ -42,7 +42,7 @@
   <Checkbox v-if="shareable" v-model="agreed">I agree to the <a href="/terms/" target="_blank" rel="noopener">Terms of Service</a></Checkbox>
   <Notice v-if="notice">{{ notice }}</Notice>
   <div class="dialog-actions">
-    <SubmissionUsage v-if="fresh" class="usage" />
+    <ShareUsage v-if="fresh" class="usage" />
     <div class="buttons">
       <slot></slot>
     </div>

@@ -7,14 +7,14 @@
   import NavTabs from "../components/NavTabs.vue"
   import Icon from "../components/Icon.vue"
   import MenuStrip from "../components/MenuStrip.vue"
-  import RenderDialog from "../components/RenderDialog.vue"
+  import Dialog from "../components/Dialog.vue"
   import Spinner from "../components/Spinner.vue"
   import SiteFooter from "../site/SiteFooter.vue"
   import SiteHeader from "../site/SiteHeader.vue"
   import TopBar from "../site/TopBar.vue"
   import CharacterList from "./CharacterList.vue"
   import CharacterPanel from "./CharacterPanel.vue"
-  import FontPanel from "./FontPanel.vue"
+  import FontSettingsPanel from "./FontSettingsPanel.vue"
   import GlyphCanvas from "./GlyphCanvas.vue"
   import KerningPanel from "./KerningPanel.vue"
   import PreviewPanel from "./PreviewPanel.vue"
@@ -150,14 +150,14 @@
 
     <main v-else class="page">
       <div class="page-body">
-        <FontPanel v-if="tab === 'font'" class="page-column" />
+        <FontSettingsPanel v-if="tab === 'font'" class="page-column" />
         <TexturesPanel v-else-if="tab === 'textures'" class="page-column wide" />
         <KerningPanel v-else class="page-column wide" />
       </div>
       <PreviewPanel v-if="tab !== 'textures'" />
     </main>
 
-    <RenderDialog v-if="pendingFont && font" title="Replace your saved font?" close-title="Cancel" dismissable @close="cancelReplace">
+    <Dialog v-if="pendingFont && font" title="Replace your saved font?" close-title="Cancel" dismissable @close="cancelReplace">
       <div class="dialog-body">
         <p>This browser only remembers one font, so <strong>{{ font.name }}</strong> will be replaced. Download its JSON first if you want to keep it.</p>
         <div class="dialog-actions">
@@ -167,7 +167,7 @@
           <Button danger @click="replaceFont">Replace it</Button>
         </div>
       </div>
-    </RenderDialog>
+    </Dialog>
   </div>
 </template>
 

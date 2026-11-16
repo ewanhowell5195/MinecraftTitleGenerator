@@ -19,7 +19,7 @@
   import Notice from "../../components/Notice.vue"
   import NumberInput from "../../components/NumberInput.vue"
   import Panel from "../Panel.vue"
-  import RenderDialog from "../../components/RenderDialog.vue"
+  import Dialog from "../../components/Dialog.vue"
   import Segments from "../../components/Segments.vue"
   import Tile from "../../components/Tile.vue"
   import TileGrid from "../../components/TileGrid.vue"
@@ -171,13 +171,13 @@
     <template #actions>
       <Button ghost icon="info" title="Font info and characters" :disabled="!font" @click="info = true" />
     </template>
-    <RenderDialog v-if="info && font" :title="entry?.name || customName || 'Font'" close-title="Close" wide dismissable @close="info = false">
+    <Dialog v-if="info && font" :title="entry?.name || customName || 'Font'" close-title="Close" wide dismissable @close="info = false">
       <div class="dialog-body">
         <p v-if="font.description">{{ font.description }}</p>
         <span class="label">Characters</span>
         <div class="code">{{ characters }}</div>
       </div>
-    </RenderDialog>
+    </Dialog>
     <Segments v-if="tab === 'custom'" :options="TABS" :model-value="tab" @update:model-value="chooseTab" />
     <template v-if="tab === 'custom'">
       <UploadField accept=".json,.png,.ttf,.otf,.woff,.woff2,application/json,image/png,font/ttf,font/otf,font/woff,font/woff2" :label="loading ? 'Loading...' : object.customFont ? 'Replace font' : 'Choose a font file'" empty="No font uploaded" :disabled="loading" :clearable="!!object.customFont" @change="upload" @clear="clearCustom">
