@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
-import { shareTags, withoutShareTags } from "../src/server/head.js"
+import { shareTags, withoutShareTags } from "../src/lib/head.js"
 
 function properties(html) {
   return Object.fromEntries(Array.from(html.matchAll(/<meta property="([^"]+)" content="([^"]*)">/g), match => [match[1], match[2]]))

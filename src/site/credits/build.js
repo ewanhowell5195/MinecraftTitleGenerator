@@ -7,7 +7,7 @@ import { encodeTitle } from "../../lib/linkformat.js"
 import { titleCase } from "../../lib/names.js"
 import { DEFAULT_FONT, FILE_VERSION, overlayLayer } from "../../lib/settings.js"
 import { stripUse } from "../../lib/strips.js"
-import { escaped } from "../../server/http.js"
+import { escaped } from "../../lib/html.js"
 
 const STRIPS = "strips."
 const KINDS = { font: ["font", "fonts"], texture: ["texture", "textures"], overlay: ["overlay", "overlays"], tileable: ["tileable", "tileables"], shape: ["shape", "shapes"] }

@@ -68,10 +68,6 @@ export async function hashed(text) {
   return hex(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)))
 }
 
-export function escaped(text) {
-  return text.replace(/[&<>"]/g, character => `&#${character.charCodeAt(0)};`)
-}
-
 export function textField(body, key, label, limit) {
   const value = body[key] ?? ""
   if (typeof value !== "string") throw new Refusal(400, `The ${label} has to be text.`)

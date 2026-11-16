@@ -1,6 +1,6 @@
 import { createMemoryHistory, createRouter } from "vue-router"
-import { escaped } from "../server/http.js"
-import { SHARE_IMAGE, pageImage, shareTags } from "../server/head.js"
+import { escaped } from "../lib/html.js"
+import { SHARE_IMAGE, pageImage, shareTags } from "../lib/head.js"
 import { PAGES, SITE } from "./pages.js"
 import { pageRoutes } from "./routes.js"
 

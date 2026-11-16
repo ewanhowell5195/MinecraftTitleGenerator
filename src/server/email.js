@@ -1,5 +1,6 @@
 import { forgetSpareEmails } from "./accounts.js"
-import { escaped, setting } from "./http.js"
+import { escaped } from "../lib/html.js"
+import { setting } from "./http.js"
 
 const SITE = "https://mctitlegenerator.com"
 const FROM = "Minecraft Title Generator <notifications@mctitlegenerator.com>"

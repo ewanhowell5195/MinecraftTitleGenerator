@@ -1,6 +1,7 @@
 import { LIMITS } from "../lib/limits.js"
 import { ACCOUNT_CHANNEL, PROVIDERS, SIGN_IN_RETURN } from "../lib/providers.js"
-import { APP_ORIGINS, Refusal, USER_AGENT, escaped, guarded, hashed, hex, randomToken, reply, setting } from "./http.js"
+import { escaped } from "../lib/html.js"
+import { APP_ORIGINS, Refusal, USER_AGENT, guarded, hashed, hex, randomToken, reply, setting } from "./http.js"
 
 const SESSION_COOKIE = "session"
 const SESSION_PATH = "/api"

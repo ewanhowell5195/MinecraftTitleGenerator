@@ -8,7 +8,8 @@ import { shareableTitle } from "../lib/titleFacts.js"
 import { blockedWordProblem, shortNameProblem } from "../lib/wording.js"
 import { USER_ROW, activeUser, forgetUnusedUser, requireUser, saveUser, signedInUser } from "./accounts.js"
 import { nextDay, returnSlot, takeSlot, today } from "./daily.js"
-import { SITE_NAME, pageImage, pageWithDetails } from "./head.js"
+import { SITE_NAME, pageImage } from "../lib/head.js"
+import { pageWithDetails } from "./head.js"
 import { INVALID, Refusal, cachedAtEdge, guarded, hashed, idParam, jsonBody, randomToken, reply, setting, textField, unpublishedName } from "./http.js"
 
 const SORTS = { week: "week DESC, downloads DESC, id DESC", popular: "downloads DESC, id DESC", top: "rating DESC, votes DESC, id DESC", new: "created_at DESC, id DESC", needs: "votes, id" }
