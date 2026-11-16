@@ -3,6 +3,7 @@ import assert from "node:assert/strict"
 import { crackList, crackTriangle, crackWrap } from "../../src/lib/texture/overlays/cracks.js"
 import { edgeAlpha } from "../../src/lib/texture/overlays/edges.js"
 import { generatedAlpha } from "../../src/lib/texture/overlays/faces.js"
+import { layerGlyph } from "../../src/lib/font/flatSheet.js"
 import { columnOf, glyphOf, near, picture, rowsOf, solid } from "../helpers/overlays.js"
 
 describe("edge overlays", () => {
@@ -367,4 +368,45 @@ describe("cracks", () => {
     const downed = crackedOn(block, "down", 40)
     assert.deepEqual(edgeAlpha(solid(40, 40), "down", "cracks", downed, 6, scale), crackWrap(block, downed, "down", 40, 0, 40, 6, scale))
   })
+})
+
+describe("cracks on layered glyphs", () => {
+  const seeds = Array.from({ length: 24 }, (_, seed) => ({ amount: 100, seed }))
+  const inner = (column, row) => column >= 10 && column < 30 && row >= 10 && row < 30
+
+  function layered(innerLayer, outerLayer) {
+    const glyph = solid(40, 40)
+    return { ...glyph, depths: Uint8Array.from(glyph.mask, (_, at) => inner(at % 40, Math.floor(at / 40)) ? innerLayer : outerLayer) }
+  }
+
+  function cracksOn(glyph, band, independent) {
+    return seeds.flatMap(settings => crackList(layerGlyph(glyph, band, independent), settings))
+  }
+
+  function onInner(crack) {
+    return crack.line > 0 && crack.line < 40
+  }
+
+  for (const independent of [false, true]) {
+    const mode = independent ? "independent" : "stacked"
+
+    test(`an inset layer gets no cracks, as all its edges are flush against the layer in front, ${mode}`, () => {
+      assert.deepEqual(cracksOn(layered(1, 0), 1, independent), [])
+    })
+
+    test(`the front layer still cracks its outer edges and its edges over the inset, ${mode}`, () => {
+      const list = cracksOn(layered(1, 0), 0, independent)
+      assert.ok(list.some(crack => !onInner(crack)))
+      assert.ok(list.some(onInner))
+    })
+
+    test(`a back layer cracks its open edges but not where it meets the layer in front, and never under it, ${mode}`, () => {
+      const list = cracksOn(layered(0, 1), 1, independent)
+      assert.ok(list.length)
+      for (const crack of list) {
+        assert.ok(!onInner(crack), `${crack.side} ${crack.line}`)
+        for (const [x, y] of crackTriangle(crack)) assert.ok(!(x > 10.5 && x < 29.5 && y > 10.5 && y < 29.5), `${crack.side} ${crack.line} reaches under the front layer`)
+      }
+    })
+  }
 })

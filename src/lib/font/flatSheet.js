@@ -36,7 +36,7 @@ export function layerMask(glyph, layer, independent = false) {
 }
 
 export function layerGlyph(glyph, layer, independent = false) {
-  return { ...glyph, mask: layerMask(glyph, layer, independent), caster: glyph.depths && layer > 0 ? layerMask(glyph, layer - 1) : null, clips: undefined }
+  return { ...glyph, mask: layerMask(glyph, layer, independent), own: glyph.depths ? layerMask(glyph, layer, true) : null, caster: glyph.depths && layer > 0 ? layerMask(glyph, layer - 1) : null, clips: undefined }
 }
 
 export function layerCell(glyph, layer, independent = false) {

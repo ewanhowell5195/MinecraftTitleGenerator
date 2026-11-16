@@ -28,10 +28,22 @@ function joinedSolid(glyph) {
   return (column, row) => solid(column + 1, row + 1)
 }
 
+const crackSolids = new WeakMap()
+
+function solidsOf(glyph) {
+  if (!crackSolids.has(glyph)) {
+    if (!glyph.own) crackSolids.set(glyph, { solid: solidOf(glyph), filled: joinedSolid(glyph) })
+    else {
+      const blocking = glyph.caster ? glyph.own.map((solid, at) => solid || glyph.caster[at] ? 1 : 0) : glyph.own
+      crackSolids.set(glyph, { solid: solidOf({ ...glyph, mask: glyph.own }), filled: joinedSolid({ ...glyph, mask: blocking, previous: glyph.previous, next: glyph.next }) })
+    }
+  }
+  return crackSolids.get(glyph)
+}
+
 function crackEdges(glyph) {
   const { width, height } = glyph
-  const solid = solidOf(glyph)
-  const filled = joinedSolid(glyph)
+  const { solid, filled } = solidsOf(glyph)
   const edges = []
   function runs(side, lines, length, open) {
     for (let line = 0; line <= lines; line++) {
@@ -182,7 +194,7 @@ function fittedCrack(crack, solid) {
 }
 
 export function crackList(glyph, layer) {
-  const solid = solidOf(glyph)
+  const { solid } = solidsOf(glyph)
   const settings = settingsOf("cracks", layer)
   const ordered = orderedCracks(glyph, settings)
   const chosen = ordered.slice(0, Math.round(ordered.length * settings.amount / 100))
