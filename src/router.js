@@ -5,6 +5,9 @@ import { SITE } from "./site/pages.js"
 import { pageKey, pageRoutes, routed } from "./site/routes.js"
 
 const CAPTURE_WAIT = 200
+const RELOADED = "stale-chunk-reload"
+const RELOAD_GAP = 10000
+const STALE_CHUNK = /dynamically imported module|module script failed|unable to preload css/i
 const COMPONENTS = {
   home: () => import("./site/home/HomePage.vue"),
   app: () => import("./app/App.vue"),
@@ -56,6 +59,32 @@ function crossfaded(to, from, failure) {
   if (!failure && to.path !== from.path) scrollTo({ top: 0, behavior: "instant" })
   nextTick().then(() => setTimeout(done))
 }
+
+function reloadFresh(url) {
+  let last = 0
+  try {
+    last = Number(sessionStorage.getItem(RELOADED)) || 0
+    sessionStorage.setItem(RELOADED, String(Date.now()))
+  } catch {}
+  if (Date.now() - last < RELOAD_GAP) return false
+  location.assign(url)
+  return true
+}
+
+let navigating = false
+router.beforeEach(() => {
+  navigating = true
+})
+router.afterEach(() => {
+  navigating = false
+})
+router.onError((error, to) => {
+  navigating = false
+  if (STALE_CHUNK.test(error?.message ?? "") && to) reloadFresh(router.resolve(to).href)
+})
+addEventListener("vite:preloadError", () => {
+  if (!navigating) reloadFresh(location.href)
+})
 
 setNavigator(router)
 router.beforeResolve(crossfade)
