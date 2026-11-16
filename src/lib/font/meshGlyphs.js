@@ -120,11 +120,15 @@ function wall(p, q, zFront, zBack, top, bottom, reach) {
   return { points, kind, name: kind === "top" ? "up" : "down", internal, mesh: true }
 }
 
+function liftedRings(shapes, { lift, breaks }, x = 0) {
+  return ringsOf(shapes).map(ring => divided(ring, breaks).map(([px, py]) => [x + px, lift(py)]))
+}
+
 export function meshFaces(mesh, glyph, original, x, depth, reach) {
-  const { lift, breaks, identity } = rowMapping(glyph, original)
-  const place = ([px, py]) => [x + px, lift(py)]
-  const triangles = identity ? mesh.triangles : bandTriangles(mesh.shapes, breaks)
-  const rings = ringsOf(mesh.shapes).map(ring => divided(ring, breaks).map(place))
+  const mapping = rowMapping(glyph, original)
+  const place = ([px, py]) => [x + px, mapping.lift(py)]
+  const triangles = mapping.identity ? mesh.triangles : bandTriangles(mesh.shapes, mapping.breaks)
+  const rings = liftedRings(mesh.shapes, mapping, x)
   const zFront = -depth / 2
   const zBack = depth / 2
   const top = glyph.bottom + glyph.height
@@ -164,10 +168,10 @@ function scanFill(rings, width, height, scale, bottom) {
 
 export function fineMasks(mesh, glyph, original) {
   const masks = new Map()
+  let rings = null
   return scale => {
     if (!masks.has(scale)) {
-      const { lift, breaks } = rowMapping(glyph, original)
-      const rings = ringsOf(mesh.shapes).map(ring => divided(ring, breaks).map(([px, py]) => [px, lift(py)]))
+      rings ??= liftedRings(mesh.shapes, rowMapping(glyph, original))
       masks.set(scale, scanFill(rings, glyph.width, glyph.height, scale, glyph.bottom))
     }
     return masks.get(scale)
