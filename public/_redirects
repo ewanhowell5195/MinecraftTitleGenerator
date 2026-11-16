@@ -14,3 +14,4 @@
 /home/og-privacy.jpg /share/privacy.jpg 301
 /home/og-submit.jpg /share/submit.jpg 301
 /home/og-terms.jpg /share/terms.jpg 301
+/fonts/:font/overlay.png /fonts/:font/forced-overlay.png 301

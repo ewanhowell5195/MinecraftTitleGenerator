@@ -44,7 +44,7 @@ export async function loadAssets({ font, list, sheet, tileables }, value, band, 
     assets.densities.push(1 / target.tileableScale)
   }
   if (value.source !== "texture" && font.value.overlay && (target.textureSource === "premade" || !target.disableFontOverlay)) {
-    assets.fontOverlay = sheetImage("overlay.png")
+    assets.fontOverlay = sheetImage("forced-overlay.png")
     assets.densities.push(1)
   }
   assets.overlays = []

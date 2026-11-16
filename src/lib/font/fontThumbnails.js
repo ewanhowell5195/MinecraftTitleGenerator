@@ -228,7 +228,7 @@ async function textureThumbnail(context, name, data, variant) {
   let png
   if (merged.type === "strip") {
     const strip = merged.stripBands ? bandedStrip(scene, { ...merged, id: name }, image) : sceneStrip(scene, { ...merged, id: name }, image)
-    png = render(scene, null, { density: Math.max(1, Math.ceil(strip.density)), border, width, ring: scene.ring, strip, layers: overlays, fontOverlay: entry.overlay ? await sheet(".", "overlay") : null })
+    png = render(scene, null, { density: Math.max(1, Math.ceil(strip.density)), border, width, ring: scene.ring, strip, layers: overlays, fontOverlay: entry.overlay ? await sheet(".", "forced-overlay") : null })
   } else {
     png = render(scene, image, { density: densityOf(image), border, width, ring: scene.ring, ownShape: true, layers: overlays })
   }
