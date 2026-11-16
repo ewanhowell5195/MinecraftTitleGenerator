@@ -69,6 +69,7 @@
   const loadingTemplate = ref(false)
   const layered = computed(() => !!fontLayers(font.value))
   const published = shallowRef([])
+  const listError = ref("")
 
   const basedOnOptions = computed(() => {
     const own = fontId(font.value)
@@ -90,7 +91,11 @@
   })
 
   onMounted(async () => {
-    published.value = await loadFontList()
+    try {
+      published.value = await loadFontList()
+    } catch (err) {
+      listError.value = `The published fonts couldn't be loaded, so names, IDs and based on fonts can't be checked against them: ${err.message}`
+    }
   })
 
   function setField(key, value, group = true) {
@@ -174,6 +179,7 @@
   <div class="settings">
     <section class="flow">
       <h3>About</h3>
+      <Notice v-if="listError">{{ listError }}</Notice>
       <div class="about">
         <Field v-for="item of ABOUT" :key="item.key" :label="item.label" :required="item.required" :hint="item.hint" :error="clashes[item.key]" :group="item.choice || item.names" :class="{ full: item.full }">
           <Dropdown v-if="item.choice" searchable :options="basedOnOptions" :model-value="font[item.key]" @update:model-value="setField(item.key, $event, false)" />
