@@ -7,6 +7,10 @@ const PATH = PRESETS_PATH
 const EDITOR = "/app/"
 
 const FROM_EDITOR = "minecraft-title-presets-from-editor"
+const SORT_PARAM = "sort"
+const SEARCH_PARAM = "search"
+export const PRESET_SORTS = ["week", "popular", "top", "new", "needs"]
+const DEFAULT_SORT = PRESET_SORTS[0]
 
 function rememberedFromEditor() {
   try {
@@ -16,7 +20,7 @@ function rememberedFromEditor() {
   }
 }
 
-export const presetsPage = reactive({ open: false, id: null, code: null, fromEditor: rememberedFromEditor() })
+export const presetsPage = reactive({ open: false, id: null, code: null, sort: DEFAULT_SORT, search: "", filtersShown: true, fromEditor: rememberedFromEditor() })
 
 function setFromEditor(on) {
   presetsPage.fromEditor = on
@@ -42,7 +46,18 @@ export function presetLink(id) {
 function syncTo(url) {
   const { open, id } = readPresetPath(url.pathname)
   const code = open && id === null ? url.searchParams.get(TITLE_PARAM) : null
-  Object.assign(presetsPage, { open, id, code })
+  const sort = url.searchParams.get(SORT_PARAM)
+  Object.assign(presetsPage, { open, id, code }, open && presetsPage.filtersShown && { sort: PRESET_SORTS.includes(sort) ? sort : DEFAULT_SORT, search: url.searchParams.get(SEARCH_PARAM) ?? "" })
+}
+
+function filtered(path) {
+  const url = new URL(path, location.origin)
+  if (!readPresetPath(url.pathname).open) return path
+  if (presetsPage.filtersShown && presetsPage.sort !== DEFAULT_SORT) url.searchParams.set(SORT_PARAM, presetsPage.sort)
+  else url.searchParams.delete(SORT_PARAM)
+  if (presetsPage.filtersShown && presetsPage.search) url.searchParams.set(SEARCH_PARAM, presetsPage.search)
+  else url.searchParams.delete(SEARCH_PARAM)
+  return `${url.pathname}${url.search}${url.hash}`
 }
 
 function syncPresetsPage() {
@@ -50,8 +65,33 @@ function syncPresetsPage() {
 }
 
 function go(path, replace) {
-  syncTo(new URL(path, location.origin))
-  navigate(path, { replace })
+  const address = filtered(path)
+  syncTo(new URL(address, location.origin))
+  navigate(address, { replace })
+}
+
+export function setPresetSort(sort) {
+  if (!PRESET_SORTS.includes(sort)) throw new Error(`there is no preset sort called ${sort}`)
+  if (sort === presetsPage.sort) return
+  presetsPage.sort = sort
+  go(`${location.pathname}${location.search}`, true)
+}
+
+export function addressHasFilters(search = location.search) {
+  const params = new URLSearchParams(search)
+  return params.has(SORT_PARAM) || params.has(SEARCH_PARAM)
+}
+
+export function showPresetFilters(on) {
+  if (on === presetsPage.filtersShown) return
+  presetsPage.filtersShown = on
+  go(`${location.pathname}${location.search}`, true)
+}
+
+export function setPresetSearch(search) {
+  if (search === presetsPage.search) return
+  presetsPage.search = search
+  go(`${location.pathname}${location.search}`, true)
 }
 
 export function openPresetsPage() {

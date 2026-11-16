@@ -7,7 +7,7 @@
   import { notice, showNotice } from "../lib/notices.js"
   import { addPreset, deleteSharedPreset, loadPreset, presets, presetsError, presetsLoaded, presetsLoading, removePreset, renamePreset, renameSharedPreset, unmarkShared, unsharePreset } from "../lib/presets.js"
   import { parseSearch, searchWithUser } from "../lib/presetSearch.js"
-  import { closePresetsPage, leavePresetsForEditor, openLinkInEditor, presetsPage, showOwnPreset, showPreset, takeLanding } from "../lib/presetsPage.js"
+  import { closePresetsPage, leavePresetsForEditor, openLinkInEditor, addressHasFilters, presetsPage, setPresetSearch, setPresetSort, showOwnPreset, showPresetFilters, showPreset, takeLanding } from "../lib/presetsPage.js"
   import { openSharedLink } from "../lib/share.js"
   import AuthorLink from "./AuthorLink.vue"
   import Badge from "./Badge.vue"
@@ -32,8 +32,9 @@
 
   const landed = takeLanding()
   const tab = ref(startingTab())
-  const sort = ref("week")
-  const search = ref("")
+  const sort = computed({ get: () => presetsPage.sort, set: setPresetSort })
+  const mineSearch = ref("")
+  const search = computed({ get: () => tab.value === "community" ? presetsPage.search : mineSearch.value, set: value => tab.value === "community" ? setPresetSearch(value) : mineSearch.value = value })
   const results = ref([])
   const more = ref(false)
   const loading = ref(false)
@@ -68,6 +69,7 @@
   function storedTab(storage) {
     return storage.getItem(TAB_STORAGE) === "mine" ? "mine" : "community"
   }
+    if (addressHasFilters()) return "community"
 
   function startingTab() {
     if (presetsPage.code !== null) return "mine"
@@ -300,7 +302,8 @@
 
   watch(tab, value => {
     rememberTab(value)
-    search.value = ""
+    mineSearch.value = ""
+    showPresetFilters(value === "community")
     selectedLocalCode.value = null
     if (value === "community") {
       load(0)
@@ -337,6 +340,7 @@
     root.value?.querySelector(".card.selected")?.scrollIntoView({ block: "nearest" })
   })
 
+    showPresetFilters(tab.value === "community")
   onMounted(() => {
     refreshUsage()
     refreshAccount()
