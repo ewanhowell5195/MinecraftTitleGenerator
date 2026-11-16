@@ -1,0 +1,4 @@
+/submissions/:id/edit/ /submissions/ 200
+/submissions/:id/edit /submissions/ 200
+/submissions/:id/ /submissions/ 200
+/submissions/:id /submissions/ 200

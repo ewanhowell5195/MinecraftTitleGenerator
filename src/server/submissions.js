@@ -739,10 +739,6 @@ async function rebuildAfterPush(context, payload) {
   }
 }
 
-export function submissionPage({ request, env }) {
-  return env.ASSETS.fetch(new URL("/submissions/", request.url))
-}
-
 export const receiveWebhook = guarded(async context => {
   const { request, env } = context
   const payload = await verifiedWebhook(env, request)
