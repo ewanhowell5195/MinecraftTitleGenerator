@@ -7,7 +7,7 @@ import { publicContext } from "./helpers/site.js"
 
 const { cleanModel, cleanModelFile, sampleGlyph, samplePixels, shapeImage, shapeModel, silhouetteGlyph, silhouettePixels, silhouetteSample, silhouetteScale } = await import("../src/lib/submissions/kinds/shape.js")
 const { elementCorners, modelHeight } = await import("../src/lib/geometry/shapes.js")
-const { shapeImage: serverImage, shapeModel: serverModel } = await import("../src/server/submissionKinds/shape.js")
+const { shapeImage: serverImage, shapeModel: serverModel } = await import("../src/server/submissions/kinds/shape.js")
 const { frontView } = await import("../generator/modelView.js")
 
 const context = publicContext()

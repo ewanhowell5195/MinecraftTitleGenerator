@@ -1,3 +1,3 @@
-import { submissionExtraFile } from "../../../../../src/server/submissions.js"
+import { submissionExtraFile } from "../../../../../src/server/submissions/index.js"
 
 export const onRequestGet = submissionExtraFile

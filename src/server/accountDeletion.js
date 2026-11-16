@@ -1,7 +1,7 @@
 import { clearedSession, forgetSessions, requireUser } from "./accounts.js"
 import { Refusal, guarded, jsonBody, reply } from "./http.js"
 import { forgetCached, presetsForDeletion } from "./presets.js"
-import { releaseSubmissions } from "./submissions.js"
+import { releaseSubmissions } from "./submissions/index.js"
 
 const MODES = { anonymise: true, remove: false }
 

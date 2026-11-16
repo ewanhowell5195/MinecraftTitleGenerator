@@ -1,8 +1,8 @@
-import { jsonText } from "../../lib/core/jsonText.js"
-import { titleCase } from "../../lib/core/names.js"
-import { SHAPE_TEXTURE } from "../../lib/geometry/shapes.js"
-import { SHAPES_LIST, shapeHoldingPath } from "../../lib/submissions/kinds/shape.js"
-import { assetId } from "../../lib/submissions/submissions.js"
+import { jsonText } from "../../../lib/core/jsonText.js"
+import { titleCase } from "../../../lib/core/names.js"
+import { SHAPE_TEXTURE } from "../../../lib/geometry/shapes.js"
+import { SHAPES_LIST, shapeHoldingPath } from "../../../lib/submissions/kinds/shape.js"
+import { assetId } from "../../../lib/submissions/submissions.js"
 
 const LIST = `public${SHAPES_LIST}`
 const BORDER = "#000000"

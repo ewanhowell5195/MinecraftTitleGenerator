@@ -21,7 +21,7 @@ import { pngOf } from "./helpers/png.js"
 import { context, sendForm, serverEnv, signIn } from "./helpers/server.js"
 import { publicContext } from "./helpers/site.js"
 
-const { editSubmission } = await import("../src/server/submissions.js")
+const { editSubmission } = await import("../src/server/submissions/index.js")
 
 const LIST = "public/font/fonts.json"
 const published = publishedFonts()

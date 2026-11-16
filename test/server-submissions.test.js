@@ -6,7 +6,10 @@ import { pngOf } from "./helpers/png.js"
 import { REPO, context, details, editForm, hook, sendForm, serverEnv, signIn } from "./helpers/server.js"
 
 const { accountDetails } = await import("../src/server/accounts.js")
-const { addComment, clearNotifications, createSubmission, listNotifications, listSubmissions, markNotificationsSeen, reviewState, reviewSubmission, submissionDetails, submissionFile, submissionProcessing, withdrawSubmission } = await import("../src/server/submissions.js")
+const { createSubmission, listSubmissions, submissionDetails, submissionFile, withdrawSubmission } = await import("../src/server/submissions/index.js")
+const { addComment } = await import("../src/server/submissions/comments.js")
+const { clearNotifications, listNotifications, markNotificationsSeen } = await import("../src/server/submissions/notifications.js")
+const { reviewState, reviewSubmission, submissionProcessing } = await import("../src/server/submissions/review.js")
 const { jsonText } = await import("../src/lib/core/jsonText.js")
 const { decodeTitle } = await import("../src/lib/link/linkformat.js")
 
