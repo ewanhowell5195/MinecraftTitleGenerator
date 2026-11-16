@@ -161,9 +161,8 @@
       "border": "#000000",
       "variants": {
         "mob_vote_gold": {
-          "overlays": [
-            { "overlay": "outline", "blend": "source-over", "colours": ["#b98130"], "opacity": 100 }
-          ],
+          "type": "sheet",
+          "overlays": null,
           "border": "#000000"
         }
       }
