@@ -312,6 +312,10 @@
   {
     "id": "mini-2",
     "name": "MINI",
-    "authors": ["ALIMANO"]
+    "authors": ["ALIMANO"],
+    "description": "MINI FONT",
+    "terminatorSpace": true,
+    "order": "abcdefghijklmnopqrstuvwxyz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣",
+    "editor": { "width": 28, "grid": 4 }
   }
 ]
