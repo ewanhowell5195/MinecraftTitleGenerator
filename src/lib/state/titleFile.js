@@ -26,6 +26,8 @@ const UNUSED = Object.entries(TEXTURE_TABS).map(([source, keys]) => [object => o
   [object => object.tileableSource !== "minecraft", ["minecraftTexture", "minecraftVersion"]],
   [object => object.tileableSource === "minecraft", ["tileable", "tileableVariant"]],
   [object => object.textureSource !== "gradient", ["arcGradient"]],
+  [object => object.customTextureMode !== "cover", ["customCoverAlign", "customCoverX", "customCoverY", "customCoverSpan"]],
+  [object => object.customCoverAlign !== "camera", ["customCoverSpan"]],
   [object => object.textureSource === "premade", ["disableFontOverlay"]],
   [object => object.matchWidth === null, ["matchBottom"]],
   [object => object.overlayMode !== "custom", ["overlays"]],

@@ -16,7 +16,7 @@ export function applyFontDefaults(object, loaded, textures, before) {
     quietly(() => {
       const values = { texture: defaultTexture(textures, object.type), textureVariant: null }
       for (const target of layerViews(object, "texture")) {
-        const unfitting = target.textureSource === "custom" && !!target.customTexture && target.customTextureMode !== "tileable"
+        const unfitting = target.textureSource === "custom" && !!target.customTexture && !["tileable", "cover"].includes(target.customTextureMode)
         if (target.textureSource === "premade" || unfitting) setTexture(target, unfitting ? { ...values, textureSource: "premade" } : values, { before, after: textures })
         else Object.assign(target, values)
       }

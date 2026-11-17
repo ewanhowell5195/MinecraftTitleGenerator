@@ -18,11 +18,12 @@ export function regionDetails(painted, targets, options) {
     const edgeGradient = look.customEdge && look.edgeFill === "gradient"
     const sideWrapped = smooth.some(({ layer }) => layer.sideWrap)
     const cracked = smooth.some(({ source }) => WRAPPED_KINDS.has(source.generated))
+    const camera = look.source === "cover" && look.customCoverAlign === "camera"
     return {
-      front: smoothDetail(1, look.source === "gradient" || smooth.length > 0),
-      edge: { along: smoothDetail(base, look.source === "gradient" || edgeGradient || cracked || smooth.some(({ layer }) => layer.edgeWrap)), deep: smoothDetail(base, cracked || edgeFaded) },
-      internal: { along: smoothDetail(1, faces.internalFaces && (sideWrapped || (faces.customInternal ? faces.internalFill === "gradient" && faces.internalDirection !== "up" : edgeGradient))), deep: 1 },
-      side: { along: smoothDetail(1, faces.sideFaces && (sideWrapped || faces.customSide && faces.sideFill === "gradient" && faces.sideDirection !== "along")), deep: 1 }
+      front: smoothDetail(1, look.source === "gradient" || look.source === "cover" || smooth.length > 0),
+      edge: { along: smoothDetail(base, look.source === "gradient" || look.source === "cover" || edgeGradient || cracked || smooth.some(({ layer }) => layer.edgeWrap)), deep: smoothDetail(base, camera || cracked || edgeFaded) },
+      internal: { along: smoothDetail(1, faces.internalFaces && (camera || sideWrapped || (faces.customInternal ? faces.internalFill === "gradient" && faces.internalDirection !== "up" : edgeGradient))), deep: smoothDetail(1, faces.internalFaces && camera) },
+      side: { along: smoothDetail(1, faces.sideFaces && (camera || sideWrapped || faces.customSide && faces.sideFill === "gradient" && faces.sideDirection !== "along")), deep: smoothDetail(1, faces.sideFaces && camera) }
     }
   })
 }

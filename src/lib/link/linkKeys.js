@@ -266,7 +266,11 @@ const KEYS = [
   ["fixedDistance", BOOLEAN],
   ["pixelation", NUMBER],
   ["waveShape", choice("sine", "square", "triangle")],
-  ["horizontalOffset", NUMBER]
+  ["horizontalOffset", NUMBER],
+  ["customCoverX", NUMBER],
+  ["customCoverY", NUMBER],
+  ["customCoverAlign", choice("title", "camera")],
+  ["customCoverSpan", BOOLEAN]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))

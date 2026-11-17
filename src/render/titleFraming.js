@@ -65,10 +65,9 @@ function cameraDirection({ pitch, yaw }) {
   return new THREE.Vector3(Math.sin(around) * Math.cos(up), -Math.sin(up), Math.cos(around) * Math.cos(up))
 }
 
-export function frameCamera(camera, { anchor, corners, size, angle = DEFAULT_CAMERA, fov = angle.fov, width, height, frame, maxScale = Infinity, reach }) {
+export function cameraPose(camera, { anchor, corners, size, angle = DEFAULT_CAMERA, fov = angle.fov, reach }) {
   const target = anchor.getCenter(new THREE.Vector3())
   const direction = cameraDirection(angle)
-  const aspect = width / height
   const orthographic = camera.isOrthographicCamera
   const right = new THREE.Vector3(0, 1, 0).cross(direction).normalize()
   let widest = 0
@@ -83,19 +82,26 @@ export function frameCamera(camera, { anchor, corners, size, angle = DEFAULT_CAM
   camera.position.copy(target).addScaledVector(direction, distance)
   camera.lookAt(target)
   if (!orthographic) camera.rotateX(radians(angle.tilt))
-  const lens = orthographic ? Math.cos(radians(angle.tilt)) : 1
   camera.updateMatrixWorld(true)
-  const inverse = camera.matrixWorld.clone().invert()
+  return { distance, orthographic, lens: orthographic ? Math.cos(radians(angle.tilt)) : 1, inverse: camera.matrixWorld.clone().invert() }
+}
+
+export function cameraPoint({ orthographic, lens }, local) {
+  const depth = -local.z
+  return { x: orthographic ? local.x / lens : local.x / depth, y: orthographic ? local.y / lens ** 2 : local.y / depth, depth }
+}
+
+export function frameCamera(camera, { anchor, corners, size, angle = DEFAULT_CAMERA, fov = angle.fov, width, height, frame, maxScale = Infinity, reach }) {
+  const aspect = width / height
+  const pose = cameraPose(camera, { anchor, corners, size, angle, fov, reach })
+  const { distance, orthographic, lens, inverse } = pose
   let minX = Infinity
   let maxX = -Infinity
   let minY = Infinity
   let maxY = -Infinity
   let near = Infinity
   for (const corner of corners) {
-    const local = corner.clone().applyMatrix4(inverse)
-    const depth = -local.z
-    const x = orthographic ? local.x / lens : local.x / depth
-    const y = orthographic ? local.y / lens ** 2 : local.y / depth
+    const { x, y, depth } = cameraPoint(pose, corner.clone().applyMatrix4(inverse))
     minX = Math.min(minX, x)
     maxX = Math.max(maxX, x)
     minY = Math.min(minY, y)

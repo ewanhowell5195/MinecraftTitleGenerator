@@ -1,6 +1,6 @@
 import { activeOverlays, textureEntry } from "../lib/settings/settings.js"
 
-const CUSTOM_SOURCES = { standard: "texture", tileable: "tile", strip: "strip" }
+const CUSTOM_SOURCES = { standard: "texture", tileable: "tile", strip: "strip", cover: "cover" }
 
 function sourceOf(object, list) {
   if (object.textureSource === "gradient") return "gradient"
@@ -41,6 +41,9 @@ export function lookOf(object, layer, font, list) {
     tileableTileEdges: object.tileableTileEdges,
     tileablePerCharacter: object.tileablePerCharacter,
     disableFontOverlay: object.disableFontOverlay,
+    customCoverX: object.customCoverAlign === "camera" ? 50 : object.customCoverX,
+    customCoverY: object.customCoverAlign === "camera" ? 50 : object.customCoverY,
+    customCoverAlign: object.customCoverAlign,
     hue: object.hue,
     saturation: object.saturation,
     brightness: object.brightness,

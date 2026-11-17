@@ -7,6 +7,8 @@ import { adjusted, borderOf, paintedStops } from "./adjust.js"
 import { gradientEnds, paintGradient } from "./gradient.js"
 import { adjustedTiles, paintTiles } from "./tiles.js"
 import { paintStrip } from "./strip.js"
+import { paintCover } from "./cover.js"
+import { paintBakedCover, paintBakedRuns } from "./coverBake.js"
 import { labelIndexes, overlayLabels, overlayLayer, sideWrapsOf, wrapsOf } from "./overlays.js"
 import { lookKey } from "./keys.js"
 
@@ -60,6 +62,8 @@ export function paintBase(sheet, look, assets, capHeight) {
     base.ctx.drawImage(assets.base, 0, 0)
   } else {
     if (look.source === "gradient") paintGradient(base.ctx, entries, look, capHeight, sheet)
+    else if (look.source === "cover" && assets.coverBase) paintBakedCover(base.ctx, assets.coverBase)
+    else if (look.source === "cover") paintCover(base.ctx, entries, look, assets.cover, capHeight, sheet)
     else if (look.source === "strip") paintStrip(base.ctx, entries, assets.strip)
     else paintTiles(base.ctx, entries, look, assets.tile, capHeight)
     if (look.source !== "strip") {
@@ -70,6 +74,7 @@ export function paintBase(sheet, look, assets, capHeight) {
     base.ctx.globalCompositeOperation = "destination-in"
     base.ctx.drawImage(assets.shape, 0, 0)
     base.ctx.globalCompositeOperation = "source-over"
+    if (look.source === "cover" && assets.coverBase) paintBakedRuns(base.ctx, sheet, assets.coverBase, look.edgeBrightness)
   }
   fillSwatch(base.ctx, sheet, assets.border)
   return base
@@ -180,5 +185,5 @@ export function paintSheet(sheet, look, assets, capHeight, base) {
 
   const tiles = look.source === "tile" && look.tileableTileEdges ? adjustedTiles(look, assets.tile) : null
   const gradient = look.source === "gradient" ? { stops: paintedStops(look), ends: entry => gradientEnds(entry, look, capHeight, sheet) } : null
-  return { canvas: work.canvas, facePixels, border, edgeAverage, tiles, tilesAcrossLine: !look.tileablePerCharacter, gradient, fade, borderColour: packed(rgb, 0), labels: () => overlayLabels(sheet, overlayLayers, capHeight, width, height, band, independent), wraps: wrapsOf(sheet, assets.overlays, labelIndexes(overlayLayers), band, independent), sideWraps: sideWrapsOf(sheet, assets.overlays, capHeight, band, independent), tileScale: R }
+  return { canvas: work.canvas, coverRuns: assets.coverBase ? ready.canvas : null, facePixels, border, edgeAverage, tiles, tilesAcrossLine: !look.tileablePerCharacter, gradient, fade, borderColour: packed(rgb, 0), labels: () => overlayLabels(sheet, overlayLayers, capHeight, width, height, band, independent), wraps: wrapsOf(sheet, assets.overlays, labelIndexes(overlayLayers), band, independent), sideWraps: sideWrapsOf(sheet, assets.overlays, capHeight, band, independent), tileScale: R }
 }

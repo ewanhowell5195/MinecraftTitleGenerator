@@ -17,8 +17,11 @@ import { regionDetails } from "./regionDetails.js"
 import { applyFontDefaults } from "./fontDefaults.js"
 import { baseKey, idOf, lookKey, paintKey } from "../lib/texture/paint/keys.js"
 import { paintBase, paintSheet } from "../lib/texture/paint/sheet.js"
+import { bakeCover, bakesAside, coverBases } from "../lib/texture/paint/coverBake.js"
+import { cameraCover, coverProjection } from "./coverProjection.js"
 import { platform } from "../lib/core/platform.js"
 import { quietly } from "../lib/state/history.js"
+import { userBusy } from "../lib/state/activity.js"
 import { DEFAULT_CAP_HEIGHT, DEFAULT_HEIGHT, NO_ARC } from "../lib/geometry/rows.js"
 import { editorTitle, finalShadows, words } from "../lib/state/scene.js"
 import { defaultDepth } from "../lib/settings/defaults.js"
@@ -52,6 +55,8 @@ export default {
     const paintError = shallowRef(null)
     const buildError = shallowRef(null)
     const sharp = shallowRef(true)
+    const baking = shallowRef(0)
+    const bakes = new WeakMap()
     const error = computed(() => fontError.value ?? paintError.value ?? buildError.value)
     const finalShadowed = computed(() => finalShadows.value && !!painted.value && shadowed())
     let fontRequest = 0
@@ -65,6 +70,9 @@ export default {
     let shown = null
     let paintedKey = null
     let builtFrom = null
+    let waitingSharp = null
+    let gone = false
+    let drafted = null
     const { sweepPaints, remembered } = createPaintCache()
 
     const layerCount = computed(() => font.value?.layers?.length ?? 1)
@@ -126,6 +134,11 @@ export default {
 
     const { transform, outlineOf, haloOf } = usePlacement(object, props.title, { scale: meshScale, wordScale, measures: () => ({ ...size(), depth: depth.value, reference: typeDepth(defaultDepth(font.value)) }) })
     const outline = outlineOf(built, buildOutline)
+    const coverKey = computed(() => {
+      if (!cameraCover(object)) return null
+      const projection = coverProjection(object, props.title, props.title.runtime[object.id]?.built ?? null, transform.value)
+      return projection && JSON.stringify(projection)
+    })
     const previewOutline = outlineOf(preview, buildOutline)
     const halo = haloOf(built, buildOutline)
 
@@ -175,22 +188,25 @@ export default {
       return line
     }
 
-    function painter(source, sharp = false) {
+    function painter(source, sharp = false, cover = null) {
       const final = finalShadowed.value
       const layers = painted.value.layers ?? [painted.value]
       const id = idOf(painted.value)
-      function paintPage(page) {
+      function paintPage(page, number) {
         const index = layers.length > 1 ? page.layer : 0
         const layer = layers[index]
         const { look, assets } = layer
         const pageKey = paintKey(page, assets, look)
+        const baked = cover?.bases[number] ?? null
+        const tag = baked ? cover.key : null
         const own = remembered(JSON.stringify(["page", id, index, final, pageKey, sharp]), () => ({ page }), sharp).page
-        const remapped = arcAssets(assets, own, sheet.value)
-        const base = remembered(JSON.stringify(["base", index, baseKey(look, assets), idOf(sheet.value), source.capHeight, pageKey, sharp]), () => paintBase(own, look, remapped, source.capHeight), sharp)
-        return remembered(JSON.stringify(["paint", id, index, final, pageKey, sharp]), () => ({ ...painted.value, ...layer, ...paintSheet(own, look, remapped, source.capHeight, base) }), sharp)
+        const remapped = { ...arcAssets(assets, own, sheet.value), ...(baked && { coverBase: baked }) }
+        const base = remembered(JSON.stringify(["base", index, baseKey(look, assets), idOf(sheet.value), source.capHeight, pageKey, sharp, tag]), () => paintBase(own, look, remapped, source.capHeight), sharp)
+        return remembered(JSON.stringify(["paint", id, index, final, pageKey, sharp, tag]), () => ({ ...painted.value, ...layer, ...paintSheet(own, look, remapped, source.capHeight, base) }), sharp)
       }
       return layouts => {
-        const run = () => layouts.map(pages => pages.map(paintPage))
+        let number = 0
+        const run = () => layouts.map(pages => pages.map(page => paintPage(page, number++)))
         if (final) return withFinalShadows(run)
         return sharp ? run() : withDraftShadows(run)
       }
@@ -200,18 +216,83 @@ export default {
       return painted.value.layers ? layerFaces.value.map(options => ({ options })) : null
     }
 
+    function faded() {
+      return (painted.value.layers ?? [painted.value]).map(({ look }) => !!look.fade)
+    }
+
     function shadowed() {
       return (painted.value.layers ?? [painted.value]).some(({ assets }) => assets.overlays.some(({ layer, source }) => source.generated === "shadow" && layer.opacity > 0))
     }
 
+    function coverFor(text) {
+      if (!cameraCover(object) || !text || !painted.value.assets.cover) return null
+      const projection = coverProjection(object, props.title, text, transform.value)
+      return projection && { projection, key: JSON.stringify(projection) }
+    }
+
+    function bakeDone() {
+      if (gone) return
+      schedule()
+      const waited = waitingSharp
+      if (waited && built.value === waited.text) sharpen(waited.text, waited.source, 0)
+    }
+
+    function startBake(geometry, state) {
+      const cover = state.wanted
+      state.wanted = null
+      state.inflight = cover.key
+      baking.value++
+      bakeCover(geometry, cover.projection, painted.value.assets.cover).then(bases => {
+        state.key = cover.key
+        state.bases = bases
+      }, err => {
+        buildError.value = err.message
+      }).finally(() => {
+        state.inflight = null
+        baking.value--
+        if (state.wanted && state.wanted.key !== state.key) startBake(geometry, state)
+        else bakeDone()
+      })
+    }
+
+    function bakedBases(geometry, cover) {
+      if (!bakes.has(geometry)) bakes.set(geometry, { key: null, bases: null, inflight: null, wanted: null })
+      const state = bakes.get(geometry)
+      if (state.key === cover.key) return state.bases
+      if (view.eager || !bakesAside()) {
+        state.key = cover.key
+        state.bases = coverBases(geometry, cover.projection, painted.value.assets.cover)
+        return state.bases
+      }
+      state.wanted = cover
+      if (!state.inflight) startBake(geometry, state)
+      return null
+    }
+
+    function coverPainter(source, sharp, cover, bases) {
+      return painter(source, sharp, { key: cover.key, bases })
+    }
+
     function sharpened(text, source) {
-      const sharp = text.refine(painter(source, true))
+      if (!text.cover) {
+        const draft = text.refine(painter(source, true))
+        sweepPaints()
+        return { ...text, ...draft, refine: null }
+      }
+      const draft = text.first.sharp ??= text.first.refine(null)
+      const bases = bakedBases(draft, text.cover)
+      if (!bases) {
+        waitingSharp = { text, source }
+        return null
+      }
+      const sharp = text.refine(coverPainter(source, true, text.cover, bases))
       sweepPaints()
       return { ...text, ...sharp, refine: null }
     }
 
-    function sharpen(text, source) {
+    function sharpen(text, source, delay = SHARPEN_DELAY) {
       clearTimeout(sharpening)
+      waitingSharp = null
       sharp.value = !text?.refine
       if (sharp.value) return
       if (view.eager) {
@@ -219,15 +300,22 @@ export default {
         sharp.value = true
         return
       }
-      sharpening = setTimeout(() => {
+      function attempt() {
         if (built.value !== text) return
+        if (userBusy()) {
+          sharpening = setTimeout(attempt, SHARPEN_DELAY)
+          return
+        }
         try {
-          built.value = sharpened(text, source)
+          const next = sharpened(text, source)
+          if (!next) return
+          built.value = next
         } catch (err) {
           buildError.value = err.message
         }
         sharp.value = true
-      }, SHARPEN_DELAY)
+      }
+      sharpening = setTimeout(attempt, delay)
     }
 
     function measure(arc) {
@@ -261,8 +349,8 @@ export default {
       const { words: list, word, lineDepth, ...options } = inputs.value
       const source = shaped.value?.id === font.value.id ? shaped.value : font.value
       const inputsKey = JSON.stringify([inputs.value, layerFaces.value])
-      if (builtFrom?.painted === painted.value && builtFrom.source === source && builtFrom.inputsKey === inputsKey && builtFrom.final === finalShadowed.value) return
-      builtFrom = { painted: painted.value, source, inputsKey, final: finalShadowed.value }
+      if (builtFrom?.painted === painted.value && builtFrom.source === source && builtFrom.inputsKey === inputsKey && builtFrom.final === finalShadowed.value && builtFrom.cover === coverKey.value) return
+      builtFrom = { painted: painted.value, source, inputsKey, final: finalShadowed.value, cover: coverKey.value }
       let reach = null
       try {
         const { laid } = lineFor(source, list, word, options)
@@ -274,7 +362,22 @@ export default {
           sharpen(null)
           return
         }
-        built.value = buildText(source, { ...options, lineDepth, placed: laid.placed, line: laid.line, ends: laid.ends, sheet: laid.sheet, paint: painter(source), layers: layerOptions(), details: regionDetails(painted.value, targets.value, options), redraw: !finalShadowed.value && shadowed(), textureLimit: textureLimit() })
+        const settings = { ...options, lineDepth, placed: laid.placed, line: laid.line, ends: laid.ends, sheet: laid.sheet, layers: layerOptions(), details: regionDetails(painted.value, targets.value, options), redraw: !finalShadowed.value && shadowed(), textureLimit: textureLimit() }
+        const firstKey = [builtFrom.painted, source, inputsKey, builtFrom.final]
+        if (!drafted || drafted.key.some((part, at) => part !== firstKey[at])) drafted = { key: firstKey, value: buildText(source, cameraCover(object) ? { ...settings, paint: null, faded: faded() } : { ...settings, paint: painter(source) }) }
+        const first = drafted.value
+        const cover = coverFor(first)
+        const bases = cover && bakedBases(first, cover)
+        if (cover && !bases) {
+          builtFrom = null
+          clearTimeout(sharpening)
+          sharp.value = false
+          if (built.value?.cover) return
+          built.value = buildText(source, { ...settings, paint: painter(source) })
+        } else {
+          built.value = cover ? { ...buildText(source, { ...settings, paint: coverPainter(source, false, cover, bases) }), cover, first } : cameraCover(object) ? buildText(source, { ...settings, paint: painter(source) }) : first
+          builtFrom.cover = cover?.key ?? null
+        }
         reach = twistedReach(built.value, laid.reach)
         const thumbnail = view.previews === false ? [] : thumbnailItems(source, laid.placed)
         preview.value = thumbnail.length ? previewFor(source, options, thumbnail, laid.sheet) : null
@@ -332,7 +435,7 @@ export default {
     }
 
     watch(looks, repaint)
-    watch([inputs, painted, layerFaces], schedule)
+    watch([inputs, painted, layerFaces, coverKey], schedule)
     watch(finalShadowed, () => {
       sharp.value = false
       schedule()
@@ -358,10 +461,11 @@ export default {
     usePublished(object, props.title, {
       size,
       scaleY: () => meshScale.value[1],
-      entry: () => ({ font: font.value, list: list.value, built: built.value, error: error.value, transform: transform.value, outline: outline.value, halo: halo.value, preview: preview.value && { built: preview.value, outline: previewOutline.value }, settled: painted.value?.font === wanted.value || !!error.value, sharp: sharp.value })
+      entry: () => ({ font: font.value, list: list.value, built: built.value, error: error.value, transform: transform.value, outline: outline.value, halo: halo.value, preview: preview.value && { built: preview.value, outline: previewOutline.value }, settled: painted.value?.font === wanted.value && !baking.value || !!error.value, sharp: sharp.value })
     })
 
     onBeforeUnmount(() => {
+      gone = true
       platform.cancelFrame(frame)
       clearTimeout(sharpening)
     })

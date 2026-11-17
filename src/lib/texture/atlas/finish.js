@@ -4,6 +4,7 @@ import { gradientStops, stopColour } from "../material.js"
 import { clamp } from "../../core/maths.js"
 import { extent } from "./plan.js"
 import { SWATCH } from "./pages.js"
+import { drawRuns } from "../paint/coverBake.js"
 
 const INSET = 0.125
 const CORNER_SAMPLE = 3
@@ -85,9 +86,46 @@ function areaOf({ x, y, width, height }) {
   return { left: x, top: y, right: x + width, bottom: y + height }
 }
 
+export function mapFaces(plan, page, options, faded) {
+  const half = plan.depth / 2
+  const chosen = new Set(page.indexes)
+  const swatch = page.swatch
+  for (const block of plan.blocks) {
+    if (!chosen.has(block.glyph)) continue
+    const { up, front, down } = page.regions.get(block.glyph)
+    const { own: bounds } = block
+    for (const face of block.group) {
+      if (face.extra) continue
+      face.page = page
+      const points = face.mesh ? face.points.map(point => [clamp(point[0], bounds.minX + INSET, bounds.maxX - INSET), clamp(point[1], bounds.minY + INSET, bounds.maxY - INSET), clamp(point[2], INSET - half, half - INSET)]) : face.points
+      if (face.kind === "top") face.uvs = points.map(point => [up.x + (point[0] - bounds.minX) * up.sx, up.y + (half + point[2]) * up.sy])
+      else if (face.kind === "bottom") face.uvs = points.map(point => [down.x + (point[0] - bounds.minX) * down.sx, down.y + (half - point[2]) * down.sy])
+      else face.uvs = points.map(point => [front.x + (point[0] - bounds.minX) * front.sx, front.y + (bounds.maxY - point[1]) * front.sy])
+    }
+  }
+  for (const run of plan.runs) {
+    if (!chosen.has(run.glyph)) continue
+    const span = extent(run.points, run.kind === "side" ? 1 : 0)
+    const { x, y, sx, sy } = page.runs.get(run)
+    const width = run.width
+    const height = run.height
+    const within = run.faces[0].mesh ? (value, size) => clamp(value, INSET, size - INSET) : value => value
+    for (const face of run.faces) {
+      face.page = page
+      if (run.kind === "side") face.uvs = face.points.map(point => [x + within(half + point[2], width) * sx, y + within(span.max - point[1], height) * sy])
+      else face.uvs = face.points.map(point => [x + within(point[0] - span.min, width) * sx, y + within(run.kind === "top" ? half + point[2] : half - point[2], height) * sy])
+    }
+  }
+  const edges = plan.faces.filter(face => chosen.has(face.glyph) && (face.kind === "side" ? !options.sideFaces : face.kind === "front" ? faded : face.internal && !options.internalFaces))
+  for (const face of edges) {
+    face.page = page
+    face.uvs = [[swatch.x, swatch.y], [swatch.x, swatch.y + SWATCH * swatch.scale], [swatch.x + SWATCH * swatch.scale, swatch.y + SWATCH * swatch.scale], [swatch.x + SWATCH * swatch.scale, swatch.y]]
+  }
+  return edges.length > 0
+}
+
 export function finishAtlas(plan, page, painted, options) {
   const { depth, blocks, runs, shared } = plan
-  const half = depth / 2
   const canvas = painted.canvas
   const ctx = canvas.getContext("2d")
   ctx.setTransform(1, 0, 0, 1, 0, 0)
@@ -103,6 +141,8 @@ export function finishAtlas(plan, page, painted, options) {
     }
   }
   clearRuns(ctx)
+  const covered = painted.coverRuns
+  if (covered) drawRuns(ctx, packed.map(run => page.runs.get(run)), covered)
   const blockOf = new Map(own.map(block => [block.glyph, block]))
   const entryOf = block => page.glyphs[block.char] ?? null
   const swatch = page.swatch
@@ -112,37 +152,7 @@ export function finishAtlas(plan, page, painted, options) {
     return [region.x + (block.rect.minX - block.own.minX) * region.sx, region.y + (block.own.maxY - block.rect.maxY) * region.sy]
   }
 
-  for (const block of own) {
-    const { up, front, down } = page.regions.get(block.glyph)
-    const { own: bounds } = block
-    for (const face of block.group) {
-      if (face.extra) continue
-      face.page = page
-      const points = face.mesh ? face.points.map(point => [clamp(point[0], bounds.minX + INSET, bounds.maxX - INSET), clamp(point[1], bounds.minY + INSET, bounds.maxY - INSET), clamp(point[2], INSET - half, half - INSET)]) : face.points
-      if (face.kind === "top") face.uvs = points.map(point => [up.x + (point[0] - bounds.minX) * up.sx, up.y + (half + point[2]) * up.sy])
-      else if (face.kind === "bottom") face.uvs = points.map(point => [down.x + (point[0] - bounds.minX) * down.sx, down.y + (half - point[2]) * down.sy])
-      else face.uvs = points.map(point => [front.x + (point[0] - bounds.minX) * front.sx, front.y + (bounds.maxY - point[1]) * front.sy])
-    }
-  }
-
-  for (const run of packed) {
-    const span = extent(run.points, run.kind === "side" ? 1 : 0)
-    const { x, y, sx, sy } = page.runs.get(run)
-    const width = run.width
-    const height = run.height
-    const within = run.faces[0].mesh ? (value, size) => clamp(value, INSET, size - INSET) : value => value
-    for (const face of run.faces) {
-      face.page = page
-      if (run.kind === "side") face.uvs = face.points.map(point => [x + within(half + point[2], width) * sx, y + within(span.max - point[1], height) * sy])
-      else face.uvs = face.points.map(point => [x + within(point[0] - span.min, width) * sx, y + within(run.kind === "top" ? half + point[2] : half - point[2], height) * sy])
-    }
-  }
-
-  const edges = plan.faces.filter(face => chosen.has(face.glyph) && (face.kind === "side" ? !options.sideFaces : face.kind === "front" ? painted.fade !== null : face.internal && !options.internalFaces))
-  for (const face of edges) {
-    face.page = page
-    face.uvs = [[swatch.x, swatch.y], [swatch.x, swatch.y + SWATCH * swatch.scale], [swatch.x + SWATCH * swatch.scale, swatch.y + SWATCH * swatch.scale], [swatch.x + SWATCH * swatch.scale, swatch.y]]
-  }
+  const swatched = mapFaces(plan, page, options, painted.fade !== null)
 
   function sourceStrip(block, kind) {
     const regions = page.regions.get(block.glyph)
@@ -353,7 +363,7 @@ export function finishAtlas(plan, page, painted, options) {
       const west = run.name === "west"
       const column = inside(Math.round(run.points[0][0] - block.own.minX) - (west ? 0 : 1), 0, entry.width)
       const row = inside(Math.round(block.own.maxY - span.max), 0, entry.height)
-      if (painted.tiles) {
+      if (painted.tiles && !covered) {
         tile(rect, sx, sy)
         const totals = totalsOf(painted.tiles)
         const tileWidth = Math.round(run.width * painted.tileScale)
@@ -363,7 +373,7 @@ export function finishAtlas(plan, page, painted, options) {
           const start = (py % totals.height) * (totals.width + 1) * 4
           for (let channel = 0; channel < 4; channel++) sideSum[channel] += whole * totals.sums[start + totals.width * 4 + channel] + totals.sums[start + rest * 4 + channel]
         }
-      } else lineDraws.push({ from: [west ? fx + column * f : fx + (column + 1) * f - 1, fy + row * f, run.height * f, true, west ? 1 : -1, f], rect, repeat: rect.width * rect.height / (run.height * f) })
+      } else if (!covered) lineDraws.push({ from: [west ? fx + column * f : fx + (column + 1) * f - 1, fy + row * f, run.height * f, true, west ? 1 : -1, f], rect, repeat: rect.width * rect.height / (run.height * f) })
       shades.push([rect, sideFill(run, rect, sy, block, span), options.sideFade, rect.x, rect.x + rect.width, true])
       wrapped.push({ rect, scale, sx, sy, width: run.width, height: run.height, glyph: entry.glyph, side: west ? "left" : "right", line: Math.round(run.points[0][0] - block.own.minX), from: Math.round(block.own.maxY - span.max) })
       if (options.sideFade === null && sideGradient && sideGradient.direction !== "along") addGradient(rect, [0, rect.y + (span.max - shared.minY) * sy], [0, rect.y + (span.max - shared.maxY) * sy], sideGradient.stops)
@@ -384,8 +394,8 @@ export function finishAtlas(plan, page, painted, options) {
     }
     const row = inside(Math.round(block.own.maxY - level) - (run.kind === "top" ? 0 : 1), 0, entry.height)
     const edge = run.kind === "top" ? fy + row * f : fy + (row + 1) * f - 1
-    if (painted.tiles) tile(rect, sx, sy, painted.tilesAcrossLine ? column + entry.glyph.lineX : 0)
-    else lineDraws.push({ from: [fx + column * f, edge, run.width * f, false, run.kind === "top" ? 1 : -1, f], rect, repeat: 0 })
+    if (painted.tiles && !covered) tile(rect, sx, sy, painted.tilesAcrossLine ? column + entry.glyph.lineX : 0)
+    else if (!covered) lineDraws.push({ from: [fx + column * f, edge, run.width * f, false, run.kind === "top" ? 1 : -1, f], rect, repeat: 0 })
     shades.push([rect, innerFill(rect, sx, block, span, level), options.internalFade, far, near, false])
     wrapped.push(strip)
     if (options.internalFade === null && innerGradient && innerGradient.direction !== "up") {
@@ -399,7 +409,7 @@ export function finishAtlas(plan, page, painted, options) {
     for (let channel = 0; channel < 4; channel++) sideSum[channel] += drawn.sideSum[channel]
     for (const { image, rect } of drawn.lines) ctx.putImageData(image, rect.x, rect.y)
   }
-  copyStrips(ctx, canvas)
+  if (!covered || options.customEdge) copyStrips(ctx, canvas)
   for (const wrap of painted.sideWraps) {
     ctx.globalCompositeOperation = wrap.blend
     ctx.globalAlpha = wrap.opacity
@@ -446,5 +456,5 @@ export function finishAtlas(plan, page, painted, options) {
     }
   }
   const gradient = frontFaces.length || gradientFaces.length ? { faces: frontFaces.concat(gradientFaces) } : null
-  return { canvas, swatch, swatched: edges.length > 0, side, labels, crackShapes, gradient, fades, panels }
+  return { canvas, swatch, swatched, side, labels, crackShapes, gradient, fades, panels }
 }

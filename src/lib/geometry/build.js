@@ -2,7 +2,7 @@ import { boxFaces, boxesFor } from "./boxes.js"
 import { independentLayers, layerMask, stripLimits } from "../font/flatSheet.js"
 import { clippedBoxes } from "./joins.js"
 import { SPACE } from "./layout.js"
-import { finishAtlas } from "../texture/atlas/finish.js"
+import { finishAtlas, mapFaces } from "../texture/atlas/finish.js"
 import { layoutPages, pageGroups } from "../texture/atlas/pages.js"
 import { planAtlas } from "../texture/atlas/plan.js"
 import { REGION_KINDS, detailOf, regionScales } from "../texture/atlas/scales.js"
@@ -262,6 +262,12 @@ export function buildText(font, options) {
   const sharpened = parts.some(part => REGION_KINDS.some(kind => Math.max(...Object.values(detailOf(part.details?.[kind]))) > 1))
   function textured(paint, sharp) {
     const layouts = parts.map(part => layoutPages(part.plan, part.groups, regionScales(sharp ? part.details : null), options.sheet, limit).map(page => ({ ...page, sharp, layer: part.layer })))
+    if (!paint) {
+      for (const [index, part] of parts.entries()) {
+        for (const page of layouts[index]) mapFaces(part.plan, page, part.options, options.faded?.[part.layer] ?? false)
+      }
+      return { layouts: layouts.flat(), pages: [], swatch: null, side: null, edge: () => null }
+    }
     const painted = paint(layouts)
     const pages = []
     const finished = []
@@ -285,7 +291,7 @@ export function buildText(font, options) {
   let drafted = null
   function refine(paint) {
     const sharp = textured(paint, true)
-    return { body: { ...toBuffers(body, flat, sharp.layouts), plainUvs: drafted.uvs }, pages: sharp.pages.map((page, index) => ({ ...page, plain: texture.pages[index] })), swatch: sharp.swatch }
+    return { body: { ...toBuffers(body, flat, sharp.layouts), plainUvs: drafted.uvs }, pages: sharp.pages.map((page, index) => ({ ...page, plain: texture.pages[index] })), layouts: sharp.layouts, swatch: sharp.swatch }
   }
   for (const [index, item] of placed.entries()) {
     if (item.glyph.lift) shift(glyphs[index], 1, item.glyph.lift)
@@ -302,6 +308,7 @@ export function buildText(font, options) {
   return {
     body: drafted,
     pages: texture.pages,
+    layouts: texture.layouts,
     refine: sharpened || options.redraw ? refine : null,
     layers: Array.from(new Set(body.map(face => face.layer ?? 0))).sort((a, b) => a - b),
     depth,

@@ -39,6 +39,10 @@ export async function loadAssets({ font, list, sheet, tileables }, value, band, 
     if (entry.border) assets.border = entry.border
     assets.densities.push(Math.max(1, density))
   }
+  if (value.source === "cover") {
+    assets.cover = image(target.customTexture)
+    assets.densities.push(1)
+  }
   if (value.source === "tile") {
     assets.tile = target.textureSource === "custom" ? image(target.customTexture) : target.tileableSource === "minecraft" ? blockTextureImage(target.minecraftVersion, target.minecraftTexture) : image(tileableUrl(tileables, target.tileable, target.tileableVariant))
     assets.densities.push(1 / target.tileableScale)
@@ -67,7 +71,7 @@ export async function loadAssets({ font, list, sheet, tileables }, value, band, 
       assets.densities.push(entry.density ?? 1)
     }
   }
-  const keys = ["shape", "base", "tile", "fontOverlay"].filter(key => key in assets)
+  const keys = ["shape", "base", "tile", "cover", "fontOverlay"].filter(key => key in assets)
   const [loaded, overlays, sizes] = await Promise.all([Promise.all(keys.map(key => assets[key])), Promise.all(assets.overlays.map(async ({ layer, source }) => ({ layer: await layer, source: await source }))), Promise.all(files)])
   const fromFont = new Set(["shape", "fontOverlay"].concat(value.source === "texture" ? ["base"] : []))
   for (const [index, key] of keys.entries()) assets[key] = fromFont.has(key) ? bandOf(loaded[index], band, font) : loaded[index]
