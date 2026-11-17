@@ -1,5 +1,22 @@
+.credits .tabs {
+  margin-top: 28px;
+}
+
 .search {
   margin-top: 28px;
+}
+
+.search + .people {
+  margin-top: 28px;
+}
+
+.fonts {
+  margin-top: 28px;
+}
+
+.fonts .note {
+  margin-bottom: 20px;
+  color: var(--faint);
 }
 
 .search[hidden],

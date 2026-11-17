@@ -287,3 +287,57 @@ input[type="checkbox"]:checked {
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+
+.tab-bar .tab-bar-button {
+  min-height: 0;
+}
+
+.tab-bar .tab-bar-button:hover {
+  background: transparent;
+}
+
+.tab-bar .tab-bar-button:active {
+  transform: none;
+}
+
+.tab-bar .tab-bar-button:focus-visible {
+  outline-color: var(--accent);
+}
+
+.tab-bar .tab-bar-button.active {
+  background: transparent;
+  cursor: default;
+}
+
+.tab-bar.tab-style-slide {
+  width: 100%;
+  gap: 2px;
+  margin-bottom: 0;
+  padding: 3px;
+  background: var(--card);
+  border-radius: 0;
+}
+
+.tab-bar.tab-style-slide > .tab-bar-active {
+  top: 3px;
+  bottom: 3px;
+  background: var(--line-strong);
+  border-radius: 0;
+}
+
+.tab-bar.tab-style-slide > .tab-bar-button {
+  height: calc(var(--control) - 6px);
+  padding: 0 6px;
+  font-size: var(--font-md);
+  color: var(--faint);
+}
+
+.tab-bar.tab-style-slide > .tab-bar-button:hover,
+.tab-bar.tab-style-slide > .tab-bar-button.active,
+.tab-bar.tab-style-slide > .tab-bar-button > .tab-bar-button-reveal {
+  color: var(--text);
+}
+
+.tab-bar.tab-style-slide > .tab-bar-button:focus-visible {
+  border-radius: 0;
+}

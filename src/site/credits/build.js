@@ -151,6 +151,19 @@ export function creditPeople(root) {
   return peopleOf(root).map(([person]) => person)
 }
 
+function fontsHtml(root) {
+  const fonts = flattenFonts(readJson(path.join(root, "public/fonts/fonts.json")))
+  const licensed = fonts.filter(font => font.source)
+  if (!licensed.length) return `<section class="fonts wrap"><p class="note">None of the fonts are shared under their own licence right now.</p></section>`
+  const pieces = licensed.map(font => {
+    const name = fullName(font, fonts)
+    const authors = authorList(font.authors)
+    const based = font.basedOn ? fullName(fonts.find(item => item.id === font.basedOn), fonts) : null
+    return pieceHtml({ id: font.id, name, text: linkText(name, font.id, fonts), line: { font: font.id }, image: `/${fontFolder(font)}/thumbnails/flat.png`, where: authors.length ? `By ${listed(authors)}` : "", based, source: font.source ?? null, licence: font.licence ?? null, stats: [font.id], people: [], person: null })
+  })
+  return `<section class="fonts wrap"><p class="note">These fonts are adapted from someone else's work and shared under their own licence. Check a font's licence before using a title made with it.</p><ul class="pieces">${pieces.join("")}</ul></section>`
+}
+
 export function creditsHtml(root) {
   const order = Object.keys(KINDS)
   const sorted = peopleOf(root)
@@ -159,5 +172,10 @@ export function creditsHtml(root) {
     return `<article class="person"><header><h2>${escaped(person)}</h2><p>${counted(made)}</p></header><ul class="pieces">${listed.map(piece => ({ ...piece, image: `/${piece.image}` })).map(pieceHtml).join("")}</ul></article>`
   })
   const libraries = LIBRARIES.map(library => `<li><a href="${library.url}" target="_blank" rel="noopener">${escaped(library.name)}</a> by ${escaped(library.by)}, ${library.licence} licence</li>`)
-  return `<section class="intro wrap"><h1 class="page-title">Credits</h1><p>${sorted.length} people have made the fonts, textures and shapes in the generator. Thank you to every one of them!</p><div class="search" hidden><input type="search" placeholder="Search people, fonts, textures and shapes" aria-label="Search the credits" spellcheck="false"><p class="empty" hidden>Nothing matches this search.</p></div></section><section class="people wrap">${sections.join("")}</section><section class="libraries wrap"><h2>Built with</h2><ul>${libraries.join("")}</ul></section>`
+  return {
+    intro: `<h1 class="page-title">Credits</h1><p>${sorted.length} people have made the fonts, textures and shapes in the generator. Thank you to every one of them!</p>`,
+    contributors: `<div class="search wrap" hidden><input type="search" placeholder="Search people, fonts, textures and shapes" aria-label="Search the credits" spellcheck="false"><p class="empty" hidden>Nothing matches this search.</p></div><section class="people wrap">${sections.join("")}</section>`,
+    fonts: fontsHtml(root),
+    libraries: `<section class="libraries wrap"><h2>Built with</h2><ul>${libraries.join("")}</ul></section>`
+  }
 }

@@ -4,7 +4,7 @@ import { test } from "node:test"
 import { creditsHtml, sourceHtml } from "../../src/site/credits/build.js"
 
 test("the credits page builds from the published fonts and textures, splitting shared credits", () => {
-  const html = creditsHtml(path.resolve(import.meta.dirname, "../.."))
+  const html = creditsHtml(path.resolve(import.meta.dirname, "../..")).contributors
   const people = Array.from(html.matchAll(/<h2>([^<]+)<\/h2><p>/g), match => match[1])
   assert.ok(people.length > 1)
   assert.equal(new Set(people).size, people.length)
