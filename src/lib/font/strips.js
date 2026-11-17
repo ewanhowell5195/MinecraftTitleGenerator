@@ -119,17 +119,7 @@ export function stripRows(entry, range, fontDepth, capHeight = null) {
   return { depth, top: range.top, bottom, rows: depth * 2 + range.top - bottom }
 }
 
-export const MISSING = [[248, 0, 248], [0, 0, 0]]
-
-export function stripHasRow(shape, y) {
-  const at = stripY(shape, y)
-  return at >= shape.bottom && at < shape.top
-}
-
-export function stripY({ scale }, y) {
-  if (!scale) return y
-  const at = y - (scale.base ?? 0)
-  if (at < 0) return at
-  if (at >= scale.from) return at - scale.from + scale.to
-  return Math.floor(at * scale.to / scale.from)
+export function stripY({ scale, top, bottom }, y) {
+  const at = scale ? Math.floor((y - (scale.base ?? 0)) * scale.to / scale.from) : y
+  return Math.min(Math.max(at, bottom), top - 1)
 }

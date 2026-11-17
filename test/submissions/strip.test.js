@@ -11,9 +11,9 @@ import { flattenFonts, stripsOf } from "../../src/lib/font/font.js"
 import { jsonText } from "../../src/lib/core/jsonText.js"
 import { titleCase } from "../../src/lib/core/names.js"
 import { defaultDepth } from "../../src/lib/settings/defaults.js"
-import { centredOffset, stripUse } from "../../src/lib/font/strips.js"
+import { stripUse } from "../../src/lib/font/strips.js"
 import { strip as checker } from "../../src/lib/submissions/kinds/strip.js"
-import { fitOffset, fitProblems, fontMeasure, heightList, remapStrip, setEntry, stripFit, stripHeights, stripSnap, stripTarget } from "../../src/lib/submissions/kinds/stripFit.js"
+import { fontMeasure, heightList, remapStrip, setEntry, stripHeights, stripSnap, stripTarget } from "../../src/lib/submissions/kinds/stripFit.js"
 import { decodePng } from "../../src/lib/submissions/kinds/png.js"
 import { strip as writer } from "../../src/server/submissions/kinds/strip.js"
 import { pngOf } from "../helpers/png.js"
@@ -78,18 +78,6 @@ describe("strip shapes", () => {
     assert.deepEqual(stripTarget("minecraft-five"), { kind: "font", id: "minecraft-five" })
   })
 
-  test("the offset is the one nearest centred that keeps the letters inside", () => {
-    const measure = { range: { top: 36, bottom: -8 }, capHeight: 30, depth: 16 }
-    const set = { id: "s", ...NEW_SHAPE }
-    assert.deepEqual(stripFit(set, measure, 0, { stretched: false }).range, { low: -5, high: -1 })
-    assert.equal(fitOffset(set, measure, false), -1)
-    assert.deepEqual(fitProblems(set, measure, -1, false), [])
-    assert.equal(fitProblems(set, measure, 0, false).length, 1)
-    assert.equal(fitOffset({ ...set, depth: 8, baseline: 16 }, measure, false), -1)
-    assert.equal(fitOffset({ ...set, height: 20 }, measure, false), null)
-    assert.equal(fitOffset({ ...set, height: 20 }, measure, true), 5)
-  })
-
   test("a strip type's strip is redrawn in the font's own rows for the custom strip mode", () => {
     const measure = { range: { top: 36, bottom: -8 }, capHeight: 36, depth: 16 }
     const set = { id: "s", depth: 22, baseline: 30, height: 40 }
@@ -143,12 +131,11 @@ describe("checking a strip", () => {
     assert.equal((await checked("font:minecraft-five", { stretch: true }, png(1, 76))).details.stretch, undefined)
   })
 
-  test("a new strip type needs fonts that fit it, and moves them off centre when that helps", async () => {
-    const good = await checked("new", { set: "Soft Edge", ...NEW_SHAPE, fonts: ["minecraft-five", "geo-squares"] }, png(1, 80))
+  test("a new strip type takes any font, centred on its letters", async () => {
+    const good = await checked("new", { set: "Soft Edge", ...NEW_SHAPE, fonts: ["minecraft-five", "geo-squares", "minecraft-earth"] }, png(1, 80))
     assert.deepEqual(good.problems, {})
-    assert.deepEqual(good.details, { border: "#000000", size: { width: 1, height: 80 }, set: "soft-edge", ...NEW_SHAPE, fonts: ["minecraft-five", "geo-squares"], offsets: { "minecraft-five": -1 }, density: 1 })
+    assert.deepEqual(good.details, { border: "#000000", size: { width: 1, height: 80 }, set: "soft-edge", ...NEW_SHAPE, fonts: ["minecraft-five", "geo-squares", "minecraft-earth"], density: 1 })
     const bad = await checked("new", { set: "Soft Edge", ...NEW_SHAPE, fonts: ["minecraft-earth"] }, png(1, 92))
-    assert.match(bad.problems.fonts, /Minecraft Earth won't fit: its "\$" goes 3 pixels too low and 11 pixels too high/)
     assert.match(bad.problems.file, /this strip type have to be 5, 10, 20, 40, 80/)
   })
 
@@ -166,12 +153,7 @@ describe("checking a strip", () => {
     const { details } = await checked("new", { set: "Soft Edge", ...NEW_SHAPE, fonts: ["minecraft-five", "geo-squares", "minecraft-seven"] }, png(1, 80))
     for (const id of details.fonts) {
       const font = published.find(item => item.id === id)
-      const { cells, capHeight } = readMask(font, published)
-      const range = stripRange({ cells, capHeight })
-      const offset = centredOffset(details.height, capHeight) + (details.offsets?.[id] ?? 0)
       assert.ok(defaultDepth(font) <= details.depth)
-      assert.ok(-range.bottom <= details.baseline - details.depth + offset)
-      assert.ok(range.top + offset <= details.height)
       assert.ok(Number.isInteger(Math.log2(80 / (details.baseline + details.height + details.depth))))
     }
   })
@@ -281,7 +263,7 @@ describe("sending a strip", () => {
     const fonts = branchJson(id, FONTS)
     const five = fonts.find(font => font.id === "minecraft-five")
     assert.deepEqual(Object.keys(five).slice(0, 3), ["id", "authors", "strips"])
-    assert.deepEqual(five.strips, [{ id: "soft-edge", offset: -1 }])
+    assert.deepEqual(five.strips, ["soft-edge"])
     assert.deepEqual(fonts.find(font => font.id === "geo-squares").strips, ["minecraft-ten", "soft-edge"])
     const flat = flattenFonts(fonts)
     assert.deepEqual(flat.filter(font => stripsOf(font, flat).some(item => stripUse(item).id === "soft-edge")).map(font => font.id), ["minecraft-five", "geo-squares"])
@@ -294,7 +276,7 @@ describe("sending a strip", () => {
     assert.equal(status, 201, error)
     const ten = branchJson(id, FONTS).find(font => font.id === "minecraft-ten")
     assert.deepEqual(ten.strips, ["minecraft-ten"])
-    assert.deepEqual(ten.variants.find(variant => variant.id === "minecraft-ten-cyrillic").strips, [{ id: "wide", offset: -5 }])
+    assert.deepEqual(ten.variants.find(variant => variant.id === "minecraft-ten-cyrillic").strips, ["wide"])
   })
 
   test("keeps ids clear of every font that will list the strip and of other open strips", async () => {
@@ -311,10 +293,9 @@ describe("sending a strip", () => {
     assert.ok(branchJson(shared.id, "public/fonts/minecraft-dungeons/textures.json").textures.gradient_4)
   })
 
-  test("is refused when the strip doesn't fit what it's for", async () => {
+  test("is refused when the strip is the wrong height for what it's for", async () => {
     const cookie = await signIn()
     assert.match((await send(cookie, {}, png(1, 90))).error, /have to be 23, 46, 92/)
-    assert.match((await send(cookie, { target: "new", details: { set: "Soft Edge", ...NEW_SHAPE, fonts: ["minecraft-earth"] } }, png(1, 80))).error, /Minecraft Earth won't fit/)
     assert.equal(gh.calls.length, 0)
   })
 
@@ -349,7 +330,7 @@ describe("the strip writer", () => {
   test("watches every list the strip's id depends on", () => {
     const set = writer.watches({ row: { target: "set:minecraft-ten" }, details: {}, fonts })
     assert.ok(set.includes(SET) && set.includes(FONTS) && set.includes("public/fonts/geo-squares/textures.json"))
-    assert.deepEqual(writer.watches({ row: { target: "font:minecraft-five" }, details: {}, fonts }), ["public/fonts/minecraft-five/textures.json"])
+    assert.deepEqual(writer.watches({ row: { target: "font:minecraft-five" }, details: {}, fonts }).sort(), ["public/fonts/minecraft-five/textures.json"])
     assert.deepEqual(writer.watches({ row: { target: "new" }, details: { set: "soft", fonts: ["minecraft-five"] }, fonts }).sort(), [FONTS, "public/fonts/minecraft-five/textures.json", "public/strips/soft/textures.json"])
   })
 

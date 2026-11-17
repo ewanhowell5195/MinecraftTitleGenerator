@@ -1,11 +1,9 @@
 import { stripRange } from "../../texture/assets.js"
 import { independentLayers, layerSlices } from "../../font/flatSheet.js"
 import { fontFolder, fullOrder, parseMask, sheetOwner } from "../../font/font.js"
-import { characterName } from "../../font/editor/characters.js"
-import { clamp } from "../../core/maths.js"
 import { titleCase } from "../../core/names.js"
 import { defaultBorder, defaultDepth } from "../../settings/defaults.js"
-import { centredOffset, stackedStrip, stripRows, stripTag, stripUse, stripY } from "../../font/strips.js"
+import { stackedStrip, stripRows, stripTag, stripUse, stripY } from "../../font/strips.js"
 import { SUBMISSION_LIMITS } from "../submissions.js"
 import { submissionFont } from "./fontAsset.js"
 import { decodePng } from "./png.js"
@@ -99,53 +97,15 @@ export async function targetRows(ctx, target, details) {
   return Promise.all(setUsers(ctx.fonts, id).map(async ({ font, offset, layer }) => setRows(set, await fontMeasure(ctx, font, layer), offset)))
 }
 
-function lowestRow(measure, stretched) {
-  return measure.range.bottom - (stretched ? measure.range.lines?.base ?? 0 : 0)
-}
-
-export function stripFit(set, measure, offset, { stretched = false, heights = [] } = {}) {
-  const centred = centredOffset(set.height, measure.capHeight)
+export function stripFit(set, measure, offset, heights = []) {
   const base = set.baseline + set.depth + measure.range.top
-  const low = -lowestRow(measure, stretched) - (set.baseline - set.depth) - centred
-  const high = set.height && !stretched ? set.height - measure.range.top - centred : Infinity
-  const problems = []
-  if (offset < low) problems.push("below")
-  if (offset > high) problems.push("above")
-  if (!set.height && heights.some(height => !Number.isInteger(Math.log2(height / (base + offset))))) problems.push("height")
-  const range = low <= high ? { low, high } : null
-  return { problems, range, offsets: range && !set.height && heights.length ? sharedHeights(heights).map(rows => rows - base).filter(value => value >= low) : null }
+  const problems = !set.height && heights.some(height => !Number.isInteger(Math.log2(height / (base + offset)))) ? ["height"] : []
+  return { problems, offsets: !set.height && heights.length ? sharedHeights(heights).filter(rows => rows > set.depth * 2).map(rows => rows - base) : null }
 }
 
-export function nearestOffset({ range, offsets }, wanted) {
-  if (!range) return null
-  if (!offsets) return clamp(wanted, range.low, range.high)
+export function nearestOffset({ offsets }, wanted) {
+  if (!offsets) return wanted
   return offsets.reduce((best, value) => best === null || Math.abs(value - wanted) < Math.abs(best - wanted) ? value : best, null)
-}
-
-export function fitOffset(set, measure, stretched) {
-  return nearestOffset(stripFit(set, measure, 0, { stretched }), 0)
-}
-
-function pixels(count) {
-  return `${count} pixel${count === 1 ? "" : "s"}`
-}
-
-export function reachProblems(set, measure, offset, codes, { named = char => `"${characterName(char, null)}"`, plain = "its letters go", stretched = false } = {}) {
-  const shift = centredOffset(set.height, measure.capHeight) + offset
-  const parts = []
-  if (codes.includes("below")) parts.push({ char: measure.range.lowest, text: `${pixels(-lowestRow(measure, stretched) - (set.baseline - set.depth + shift))} too low` })
-  if (codes.includes("above")) parts.push({ char: measure.range.highest, text: `${pixels(measure.range.top + shift - set.height)} too high` })
-  function lead(char) {
-    const name = char && named(char)
-    return name ? `${name} goes` : plain
-  }
-  if (parts.length === 2 && parts[0].char === parts[1].char) return [`${lead(parts[0].char)} ${parts[0].text} and ${parts[1].text}`]
-  return parts.map(part => `${lead(part.char)} ${part.text}`)
-}
-
-export function fitProblems(set, measure, offset, stretched) {
-  const { problems } = stripFit(set, measure, offset, { stretched })
-  return reachProblems(set, measure, offset, problems, { named: char => `its "${characterName(char, null)}"`, stretched })
 }
 
 function sameColumn({ width, height, data }, a, b) {

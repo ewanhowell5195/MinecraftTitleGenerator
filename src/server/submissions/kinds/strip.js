@@ -124,10 +124,7 @@ export const strip = {
     const asset = await freeAsset(read, row, chosen, [], taken)
     const set = { depth: details.depth, baseline: details.baseline, height: details.height, textures: { [asset]: entryFor(row, details, asset) } }
     let list = await readJson(read, FONTS)
-    for (const font of chosen) {
-      const offset = details.offsets?.[font.id] ?? 0
-      list = assigned(list, font.id, offset ? { id, offset } : id)
-    }
+    for (const font of chosen) list = assigned(list, font.id, id)
     return { asset, files: [{ path: FONTS, content: `${jsonText(list)}\n` }, { path: setPath(id), content: `${jsonText(set)}\n` }, { path: `public/${stripFolder(id)}/textures/${asset}.png`, sha: row.file }] }
   },
   describe({ row, details, fonts }) {

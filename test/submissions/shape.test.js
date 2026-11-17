@@ -140,9 +140,9 @@ describe("shape checks", () => {
     assert.deepEqual((await shapeImage.check({ details: { strips: ["minecraft-ten"] }, bytes: silhouette(20, 20) }, context)).details.strips, ["minecraft-ten"])
   })
 
-  test("refuses strips that don't exist, don't fit or aren't valid", async () => {
+  test("refuses strips that don't exist or aren't valid", async () => {
     assert.match((await shapeImage.check({ details: { strips: ["nothing-here"] }, bytes: silhouette(20, 20) }, context)).problems.strips, /no strips called that/)
-    assert.match((await shapeImage.check({ details: { strips: ["minecraft-ten"] }, bytes: silhouette(20, 64) }, context)).problems.strips, /The shape goes \d+ pixels? too (low|high).* for the minecraft-ten strips\. Change its offset, or stop using the minecraft-ten strips/)
+    assert.equal((await shapeImage.check({ details: { strips: ["minecraft-ten"] }, bytes: silhouette(20, 64) }, context)).problems.strips, null)
     assert.match((await shapeImage.check({ details: { strips: ["minecraft-ten", "minecraft-ten"] }, bytes: silhouette(20, 20) }, context)).problems.strips, /strips aren't valid/)
     assert.match((await shapeImage.check({ details: { strips: [{ id: "minecraft-ten", offset: 1.5 }] }, bytes: silhouette(20, 20) }, context)).problems.strips, /strips aren't valid/)
   })

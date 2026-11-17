@@ -15,20 +15,19 @@
   import TileGrid from "./TileGrid.vue"
   import { image, stripRange } from "../lib/texture/assets.js"
   import { loadFontList, stripsOf } from "../lib/font/font.js"
-  import { characterName } from "../lib/font/editor/characters.js"
   import { parsedSheet } from "../lib/font/editor/sheet.js"
   import { titleCase } from "../lib/core/names.js"
   import { loadStats, usage } from "../lib/state/stats.js"
   import { centredOffset, placedStrips, stripFolder, stripItem, stripPlacements, stripTag, stripUse } from "../lib/font/strips.js"
-  import { layerDepth, nearestOffset, reachProblems, setShape, stripFit } from "../lib/submissions/kinds/stripFit.js"
+  import { layerDepth, nearestOffset, setShape, stripFit } from "../lib/submissions/kinds/stripFit.js"
   import { editorLine, useServedFont } from "../fontEditor/editorLine.js"
   import { typedNumber } from "../fontEditor/fields.js"
   import { stripThumbnail, thumbnailScene } from "../lib/font/stripThumbs.js"
 
   const CHECK_DELAY = 300
   const WORDS = {
-    font: { yours: "your font", parts: "your letters", them: "them", fit: "Your letters fit", goes: "its letters go", is: "its letters are", empty: "Nothing to show yet. Draw the characters in your text." },
-    shape: { yours: "your shape", parts: "your shape", them: "it", fit: "Your shape fits", goes: "it goes", is: "it is", empty: "Nothing to show yet." }
+    font: { yours: "your font", parts: "your letters", them: "them", fit: "Your letters fit", is: "its letters are", empty: "Nothing to show yet. Draw the characters in your text." },
+    shape: { yours: "your shape", parts: "your shape", them: "it", fit: "Your shape fits", is: "it is", empty: "Nothing to show yet." }
   }
 
   const props = defineProps({
@@ -141,21 +140,23 @@
 
   function bounds(id) {
     if (!canFit(id)) return { low: null, high: null }
-    const { range, offsets } = fitting.value[id]
-    const { low, high } = offsets ? { low: offsets[0], high: offsets.at(-1) } : range
+    const { offsets } = fitting.value[id]
     const limit = props.maxOffset ?? Infinity
-    return { low: Math.max(low, -limit), high: Number.isFinite(Math.min(high, limit)) ? Math.min(high, limit) : null }
+    const low = Math.max(offsets ? offsets[0] : -Infinity, -limit)
+    const high = Math.min(offsets ? offsets.at(-1) : Infinity, limit)
+    return { low: Number.isFinite(low) ? low : null, high: Number.isFinite(high) ? high : null }
   }
 
   function adjustable(set) {
     if (set.shape.stretched || !canFit(set.id)) return false
     const { low, high } = bounds(set.id)
-    return low !== high
+    return low === null || low !== high
   }
 
   function boundsNote(id) {
     if (!canFit(id)) return `No offset makes ${words.value.parts} fit these strips`
     const { low, high } = bounds(id)
+    if (low === null) return high === null ? null : `${words.value.fit} up to ${high}`
     return high === null ? `${words.value.fit} from ${low} up` : `${words.value.fit} from ${low} to ${high}`
   }
 
@@ -233,14 +234,12 @@
   }
 
   function fitOf(set, measure, offset) {
-    return stripFit(set.shape, measure, offset, { stretched: set.shape.stretched, heights: set.heights })
+    return stripFit(set.shape, measure, offset, set.heights)
   }
 
   function problemTexts(codes, set, measure, offset) {
     const shift = centredOffset(set.height, measure.capHeight) + offset
-    const named = char => props.subject === "font" ? `"${characterName(char, props.font.letterCase)}"` : null
-    const height = codes.includes("height") ? [`${words.value.is} ${measure.range.top} pixels tall above the baseline${shift ? ` with an offset of ${shift}` : ""}, which doesn't line up with the strips`] : []
-    return reachProblems(set, measure, offset, codes, { named, plain: words.value.goes, stretched: set.stretched }).concat(height)
+    return codes.includes("height") ? [`${words.value.is} ${measure.range.top} pixels tall above the baseline${shift ? ` with an offset of ${shift}` : ""}, which doesn't line up with the strips`] : []
   }
 
   function check() {

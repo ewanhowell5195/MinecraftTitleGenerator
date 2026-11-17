@@ -13,7 +13,7 @@ import { fontId } from "../../font/editor/export.js"
 import { MAX_ANCHORS } from "../../texture/overlayColours.js"
 import { overlayPalette } from "./fontAsset.js"
 import { FONT_LIMITS, drawnCells, ownFont, storedFont, submittedFont } from "./fontBuild.js"
-import { STRIP_LIMITS, heightList, layerDepth, reachProblems, stripFit, stripHeights, stripSet } from "./stripFit.js"
+import { STRIP_LIMITS, heightList, layerDepth, stripFit, stripHeights, stripSet } from "./stripFit.js"
 
 const FONT_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/
 const FONT_ID_LENGTH = 40
@@ -89,7 +89,7 @@ function kerningProblem(entry, sheet, square) {
   return null
 }
 
-const LETTERS = { subject: "Its letters", goes: "go", is: "are", fix: "Change the offset in the Textures tab" }
+const LETTERS = { subject: "Its letters", is: "are", fix: "Change the offset in the Textures tab" }
 
 export async function stripProblem(entry, cells, capHeight, ctx, words = LETTERS, layers = null) {
   for (const use of (entry.strips ?? []).map(stripUse)) {
@@ -102,10 +102,8 @@ export async function stripProblem(entry, cells, capHeight, ctx, words = LETTERS
       return `It uses the ${use.id} strips, and there are no strips called that.`
     }
     const heights = set.height ? [] : await Promise.all(set.names.map(async name => pngSize(await ctx.bytes(`/strips/${use.id}/textures/${name}.png`)).height))
-    const { problems } = stripFit(set, measure, use.offset, { stretched: set.stretched, heights })
+    const { problems } = stripFit(set, measure, use.offset, heights)
     const what = `the ${use.id} strips`
-    const reach = reachProblems(set, measure, use.offset, problems, { named: char => words === LETTERS ? `"${characterName(char, entry.letterCase)}"` : null, plain: `${words.subject} ${words.goes}`, stretched: set.stretched })
-    if (reach.length) return `${reach.join(", and ")} for ${what}. ${words.fix}, or stop using ${what}.`
     if (problems.includes("height")) return `${words.subject} ${words.is} the wrong height for ${what}. ${words.fix}, or stop using ${what}.`
   }
   return null

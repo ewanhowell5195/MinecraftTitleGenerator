@@ -8,7 +8,7 @@ import { clamp } from "../core/maths.js"
 import { definitionPalette } from "../texture/overlayColours.js"
 import { defaultBorder, defaultDepth } from "../settings/defaults.js"
 import { overlayLayer } from "../settings/settings.js"
-import { MISSING, stripHasRow, stripY } from "./strips.js"
+import { stripY } from "./strips.js"
 import { MARGIN, drawLayer, over } from "./thumbnails.js"
 import { pngUrl } from "../core/virtualFiles.js"
 
@@ -85,10 +85,6 @@ function meshPixels(scene, entry, image, detail) {
       const across = (px + 0.5) / scale - x
       const down = clamp((py + 0.5) / scale - y, 0, glyph.height - 0.001)
       const glyphRow = glyph.top - 1 - Math.floor(down)
-      if (!stripHasRow(shape, glyphRow)) {
-        over(target, px, py, MISSING[(Math.floor(x + across) + Math.floor(y + down)) % 2].concat(solid[at]))
-        continue
-      }
       const row = top - 1 - stripY(shape, glyphRow)
       const sx = ((Math.floor((origin + across) * density) % image.width) + image.width) % image.width
       const sy = clamp(Math.floor((row + down % 1) * density), 0, image.height - 1)

@@ -11,7 +11,7 @@
   import { texturesList } from "../../lib/submissions/kinds/fontAsset.js"
   import { submissionContext } from "../../lib/submissions/kinds/index.js"
   import { DEFAULT_FONT } from "../../lib/settings/defaults.js"
-  import { STRIP_LIMITS, fitOffset, fitProblems, fontMeasure, heightList, setIdOf, setIds, setName, setUsers, sharedHeights, stripOwners, stripSnap, stripTarget, targetRows } from "../../lib/submissions/kinds/stripFit.js"
+  import { STRIP_LIMITS, heightList, setIdOf, setIds, setName, setUsers, sharedHeights, stripOwners, stripSnap, stripTarget, targetRows } from "../../lib/submissions/kinds/stripFit.js"
   import { SUBMISSION_LIMITS, pngProblem } from "../../lib/submissions/submissions.js"
   import { fontThumbnail } from "../../lib/state/ui.js"
   import { popularFontOptions } from "./fontOptions.js"
@@ -47,7 +47,7 @@
   const shownOn = computed(() => chosen.value.kind === "set" ? setUsers(props.fonts, chosen.value.id)[0]?.font : owners.value.find(item => item.id === chosen.value.id))
   const variantList = computed(() => chosen.value.kind === "set" ? `/strips/${chosen.value.id}/textures.json` : shownOn.value ? texturesList(shownOn.value) : null)
   const heights = ref(null)
-  const fits = ref([])
+  const fontList = computed(() => owners.value.map(item => ({ id: item.id, font: item, name: fullName(item, props.fonts) })))
 
   const mode = computed({
     get: () => chosen.value.kind,
@@ -98,30 +98,13 @@
     if (on) emit("preview", id)
   }
 
-  function pickFitting() {
-    change({ fonts: picked.value.concat(fits.value.filter(item => item.offset !== null && !picked.value.includes(item.id)).map(item => item.id)) })
-  }
-
-  function fitNote(item) {
-    if (item.offset === null) return "Won't fit"
-    if (!item.offset) return "Fits"
-    return `Fits, ${Math.abs(item.offset)} ${Math.abs(item.offset) === 1 ? "row" : "rows"} ${item.offset > 0 ? "higher" : "lower"}`
+  function pickAll() {
+    change({ fonts: picked.value.concat(owners.value.map(item => item.id).filter(id => !picked.value.includes(id))) })
   }
 
   async function heightsOf(target) {
     const rows = await targetRows(ctx, target, props.details)
     return rows && sharedHeights(rows)
-  }
-
-  async function findFits() {
-    const shape = { id: "new", depth: props.details.depth, baseline: props.details.baseline, height: props.details.height }
-    if (![shape.depth, shape.baseline, shape.height].every(Number.isInteger)) return []
-    const found = await Promise.all(owners.value.map(async item => {
-      const measure = await fontMeasure(ctx, item)
-      const offset = fitOffset(shape, measure, stretch.value)
-      return { id: item.id, font: item, name: fullName(item, props.fonts), offset, problems: offset === null ? fitProblems(shape, measure, 0, stretch.value) : [] }
-    }))
-    return found.sort((a, b) => (a.offset === null) - (b.offset === null))
   }
 
   watch(() => props.target, () => {
@@ -151,14 +134,12 @@
     if (Object.keys(missing).length) change(missing)
   }, { immediate: true })
 
-  watch(() => [props.target, props.details.depth, props.details.baseline, props.details.height, props.details.stretch], async () => {
+  watch(() => [props.target, props.details.depth, props.details.baseline, props.details.height], async () => {
     const target = props.target
     try {
       const found = await heightsOf(target)
-      const fitting = chosen.value.kind === "new" ? await findFits() : []
       if (target !== props.target) return
       heights.value = found
-      fits.value = fitting
     } catch (err) {
       console.error(err)
       heights.value = null
@@ -188,21 +169,17 @@
     <div class="field wide">
       <div class="fonts-head">
         <span class="label">Fonts ({{ picked.length }} picked)</span>
-        <button type="button" class="link-button" @click="pickFitting">Pick all that fit</button>
+        <button type="button" class="link-button" @click="pickAll">Pick all</button>
       </div>
       <ul class="fonts">
-        <li v-for="item of fits" :key="item.id">
-          <label class="font card card-row" :class="{ selected: picked.includes(item.id), faded: item.offset === null && !picked.includes(item.id) }" v-tooltip="item.offset === null ? `Won't fit: ${item.problems.join(', and ')}.` : null">
-            <input type="checkbox" :checked="picked.includes(item.id)" :disabled="item.offset === null && !picked.includes(item.id)" @change="toggleFont(item.id, $event.target.checked)">
+        <li v-for="item of fontList" :key="item.id">
+          <label class="font card card-row" :class="{ selected: picked.includes(item.id) }">
+            <input type="checkbox" :checked="picked.includes(item.id)" @change="toggleFont(item.id, $event.target.checked)">
             <img :src="fontThumbnail(item.font)" alt="" loading="lazy">
-            <span class="font-text">
-              <span class="ellipsis">{{ item.name }}</span>
-              <span class="note">{{ fitNote(item) }}</span>
-            </span>
+            <span class="font-text ellipsis">{{ item.name }}</span>
           </label>
         </li>
       </ul>
-      <p class="hint">Rows higher or lower are how far the strip sits from the middle of that font's letters.</p>
       <span v-if="problems.fonts && (tried || picked.length)" class="hint bad">{{ problems.fonts }}</span>
     </div>
   </template>
@@ -255,14 +232,6 @@
     user-select: none;
   }
 
-  .font.faded {
-    cursor: not-allowed;
-  }
-
-  .font.faded:hover {
-    background: var(--card);
-  }
-
   .font input {
     display: none;
   }
@@ -276,14 +245,7 @@
   }
 
   .font-text {
-    display: flex;
-    flex-direction: column;
     min-width: 0;
     font-size: var(--font-md);
-  }
-
-  .note {
-    font-size: var(--font-xs);
-    color: var(--faint);
   }
 </style>

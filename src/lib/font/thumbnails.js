@@ -2,7 +2,7 @@ import { blend } from "../texture/blend.js"
 import { rgbOf } from "../core/colour.js"
 import { keptAt } from "../geometry/joins.js"
 import { WHITE, chosenColours, mapColour } from "../texture/overlayColours.js"
-import { MISSING, stripHasRow, stripY } from "./strips.js"
+import { stripY } from "./strips.js"
 
 export const MARGIN = 2
 
@@ -83,10 +83,6 @@ export function drawStrip(image, placed, d, { image: strip, density, snap = 1 / 
       for (let px = 0; px < glyph.width * d; px++) {
         if (!glyph.mask[(glyph.height - 1 - Math.floor(py / d)) * glyph.width + Math.floor(px / d)] || !keptAt(glyph, glyph.height - 1 - Math.floor(py / d), (px + 0.5) / d)) continue
         const at = glyph.top - 1 - Math.floor(py / d)
-        if (!stripHasRow(shape, at)) {
-          over(image, x * d + px, y * d + py, MISSING[(x + Math.floor(px / d) + y + Math.floor(py / d)) % 2].concat(255))
-          continue
-        }
         const row = top - 1 - stripY(shape, at)
         const sx = (Math.floor((origin * d + px) * density / d) % strip.width + strip.width) % strip.width
         const sy = Math.floor((row * d + py % d) * density / d)

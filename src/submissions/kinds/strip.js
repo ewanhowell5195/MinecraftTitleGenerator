@@ -1,7 +1,7 @@
 import { fetched } from "../../lib/submissions/api.js"
 import { stripRange } from "../../lib/texture/assets.js"
 import { pixelsOf } from "../../lib/texture/canvas.js"
-import { fullName, loadFont, loadFontList, loadImage, sheetOwner, stripsOf } from "../../lib/font/font.js"
+import { fullName, loadFont, loadFontList, loadImage, stripsOf } from "../../lib/font/font.js"
 import { defaultDepth } from "../../lib/settings/defaults.js"
 import { stripFolder, stripRows, stripUse } from "../../lib/font/strips.js"
 import { textureName } from "../../lib/submissions/kinds/fontAsset.js"
@@ -31,14 +31,13 @@ export const previewFonts = stripFonts
 
 async function placedSet(item, font, fonts) {
   const target = stripTarget(item.target)
-  const owner = sheetOwner(font, fonts)
   if (target.kind === "set") {
     const use = stripsOf(font, fonts).map(stripUse).find(entry => entry.id === target.id)
     return { set: await loadSet(target.id), offset: use?.offset ?? 0, layer: use?.layer ? use.layer - 1 : null }
   }
   const { depth, baseline, height } = item.details
   if (![depth, baseline, height].every(Number.isInteger) || depth < 1 || height < 1 || baseline < depth) throw new Error("Fill in the new strip type's shape to preview it")
-  return { set: { id: "new", depth, baseline, height }, offset: item.details.offsets?.[owner.id] ?? 0, layer: null }
+  return { set: { id: "new", depth, baseline, height }, offset: 0, layer: null }
 }
 
 function measureOf(loaded, band) {

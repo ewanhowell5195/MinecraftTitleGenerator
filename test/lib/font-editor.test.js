@@ -710,47 +710,36 @@ describe("helpers", () => {
 
   test("strip problems", () => {
     const set = { depth: 22, baseline: 30, height: null }
-    const problems = (range, depth, height) => stripFit(set, { range, capHeight: 40, depth }, 0, { heights: [height] }).problems
+    const problems = (range, depth, height) => stripFit(set, { range, capHeight: 40, depth }, 0, [height]).problems
     assert.deepEqual(problems({ top: 40, bottom: -8 }, 22, 92), [])
     assert.deepEqual(problems({ top: 40, bottom: 0 }, 16, 46), [])
     assert.deepEqual(problems({ top: 44, bottom: 0 }, 22, 92), ["height"])
-    assert.deepEqual(problems({ top: 40, bottom: -12 }, 22, 92), ["below"])
+    assert.deepEqual(problems({ top: 40, bottom: -12 }, 22, 92), [])
     assert.deepEqual(problems({ top: 40, bottom: 0 }, 30, 92), [])
   })
 
-  test("strips with a height fit any font that stays inside them", () => {
+  test("strips with a height fit any font at any offset", () => {
     const set = { depth: 22, baseline: 30, height: 40 }
-    const short = { range: { top: 32, bottom: 0 }, capHeight: 32, depth: 22 }
-    const tall = { range: { top: 44, bottom: 0 }, capHeight: 40, depth: 22 }
-    for (const offset of [-4, 0, 4]) assert.deepEqual(stripFit(set, short, offset).problems, [])
-    assert.deepEqual(stripFit(set, short, 5).problems, ["above"])
-    assert.deepEqual(stripFit(set, short, 0).range, { low: -12, high: 4 })
-    assert.deepEqual(stripFit(set, tall, 0).problems, ["above"])
-    assert.deepEqual(stripFit(set, tall, 0).range, { low: -8, high: -4 })
-  })
-
-  test("strips that all stretch fit a font taller than them", () => {
-    const set = { depth: 22, baseline: 30, height: 40 }
-    const tall = { range: { top: 44, bottom: 0 }, capHeight: 40, depth: 22 }
-    assert.deepEqual(stripFit(set, tall, 0, { stretched: true }), { problems: [], range: { low: -8, high: Infinity }, offsets: null })
-    assert.equal(nearestOffset(stripFit(set, tall, 0, { stretched: true }), -20), -8)
+    const tall = { range: { top: 44, bottom: -12 }, capHeight: 40, depth: 22 }
+    for (const offset of [-40, 0, 40]) assert.deepEqual(stripFit(set, tall, offset), { problems: [], offsets: null })
+    assert.equal(nearestOffset(stripFit(set, tall, 0), -20), -20)
   })
 
   test("an offset lets a shorter font fit the strips", () => {
     const set = { depth: 22, baseline: 30, height: null }
     const short = { range: { top: 32, bottom: 0 }, capHeight: 32, depth: 22 }
-    assert.deepEqual(stripFit(set, short, 0, { heights: [92] }).problems, ["height"])
-    assert.deepEqual(stripFit(set, short, 8, { heights: [92] }).problems, [])
-    assert.deepEqual(stripFit(set, { ...short, range: { top: 32, bottom: -16 } }, 8, { heights: [92] }).problems, [])
+    assert.deepEqual(stripFit(set, short, 0, [92]).problems, ["height"])
+    assert.deepEqual(stripFit(set, short, 8, [92]).problems, [])
+    assert.deepEqual(stripFit(set, { ...short, range: { top: 32, bottom: -16 } }, 8, [92]).problems, [])
   })
 
   test("strips without a height only fit the offsets that suit every image", () => {
     const set = { depth: 22, baseline: 30, height: null }
     const short = { range: { top: 32, bottom: 0 }, capHeight: 32, depth: 22 }
-    const fit = stripFit(set, short, 0, { heights: [92, 184] })
-    assert.deepEqual(fit.offsets.slice(0, 2), [8, 100])
+    const fit = stripFit(set, short, 0, [92, 184])
+    assert.deepEqual(fit.offsets.slice(0, 3), [-38, 8, 100])
     assert.equal(nearestOffset(fit, 0), 8)
-    assert.deepEqual(stripFit(set, short, 0, { heights: [92, 100] }).offsets, [])
-    assert.equal(nearestOffset(stripFit(set, { ...short, depth: 30 }, 0, { heights: [92] }), 0), 8)
+    assert.deepEqual(stripFit(set, short, 0, [92, 100]).offsets, [])
+    assert.equal(nearestOffset(stripFit(set, { ...short, depth: 30 }, 0, [92]), 0), 8)
   })
 })

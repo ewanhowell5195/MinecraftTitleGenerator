@@ -2,7 +2,6 @@ import assert from "node:assert/strict"
 import { describe, test } from "node:test"
 import { flatLayers } from "../../src/lib/font/flatSheet.js"
 import { blankImage, fontScene, fontThumbnails, render } from "../../src/lib/font/fontThumbnails.js"
-import { MISSING } from "../../src/lib/font/strips.js"
 import { drawStrip } from "../../src/lib/font/thumbnails.js"
 
 describe("font thumbnails", () => {
@@ -58,14 +57,14 @@ describe("font thumbnails", () => {
     assert.ok(alpha(0, 0) > 0)
   })
 
-  test("a strip starts at the first column its layer uses and shows missing texture where it runs out", () => {
+  test("a strip starts at the first column its layer uses and repeats its last row where it runs out", () => {
     const glyph = { char: "a", width: 4, height: 2, bottom: 0, top: 2, mask: new Uint8Array(8).fill(1) }
     const strip = { width: 4, height: 1, data: Uint8ClampedArray.from([10, 0, 0, 255, 20, 0, 0, 255, 30, 0, 0, 255, 40, 0, 0, 255]) }
     const image = blankImage(4, 2)
     drawStrip(image, [{ glyph, x: 0, y: 0, lineX: 0, trim: 1 }], 1, { image: strip, density: 1, top: 1, tiling: "character", shape: { depth: 0, top: 1, bottom: 0, rows: 1 } })
     const red = (x, y) => image.data[(y * image.width + x) * 4]
     assert.deepEqual([0, 1, 2, 3].map(x => red(x, 1)), [40, 10, 20, 30])
-    assert.deepEqual([0, 1].map(x => red(x, 0)), [MISSING[0][0], MISSING[1][0]])
+    assert.deepEqual([0, 1, 2, 3].map(x => red(x, 0)), [40, 10, 20, 30])
   })
 
   test("each layer's flat thumbnail shows only that layer's shade", async () => {

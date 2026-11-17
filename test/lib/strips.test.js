@@ -7,7 +7,7 @@ import { stripRange } from "../../src/lib/texture/assets.js"
 import { stripsOf } from "../../src/lib/font/font.js"
 import { withGenerated } from "../../src/lib/texture/overlays/settings.js"
 import { defaultDepth } from "../../src/lib/settings/defaults.js"
-import { bandEntry, centredOffset, layerSlice, mergeStrips, placedStrips, stripCovers, stripPlacements, stackedStrip, stripHasRow, stripItem, stripRows, stripUse, stripY } from "../../src/lib/font/strips.js"
+import { bandEntry, centredOffset, layerSlice, mergeStrips, placedStrips, stripCovers, stripPlacements, stackedStrip, stripItem, stripRows, stripUse, stripY } from "../../src/lib/font/strips.js"
 
 const SET = { id: "set", depth: 22, baseline: 30, textures: { shared: { authors: "a", variants: { kid: { authors: "b" } } }, other: { authors: "c" } } }
 
@@ -140,11 +140,11 @@ describe("stripRows", () => {
     assert.deepEqual(stripRows({ ...textures.a, stripOffset: 8 }, { top: 32, bottom: 0 }, 22), { depth: 22, top: 32, bottom: -16, rows: 92 })
   })
 
-  test("a stretching strip fits its face between the font's baseline and topline", () => {
+  test("a stretching strip fits its face between the font's baseline and topline, and repeats its last rows past its own", () => {
     const { textures } = mergeStrips({ textures: {} }, [{ id: "set", depth: 22, baseline: 30, height: 40, offset: 6, textures: { a: { stretch: true } } }])
     const rows = stripRows(textures.a, { top: 22, bottom: -4 }, 22, 20)
     assert.deepEqual(rows, { depth: 22, top: 40, bottom: -8, rows: 92, scale: { from: 20, to: 40, base: 0 } })
-    assert.deepEqual([-4, -1, 0, 1, 10, 19, 20, 21].map(y => stripY(rows, y)), [-4, -1, 0, 2, 20, 38, 40, 41])
+    assert.deepEqual([-12, -9, -8, -4, -1, 0, 1, 10, 19, 20, 21].map(y => stripY(rows, y)), [-8, -8, -8, -8, -2, 0, 2, 20, 38, 39, 39])
     assert.throws(() => stripRows({ stretch: true, stripSet: "set", stripDepth: 22, stripBaseline: 30 }, { top: 20, bottom: 0 }, 22, 20), /need a height/)
   })
 
@@ -152,7 +152,7 @@ describe("stripRows", () => {
     const { textures } = mergeStrips({ textures: {} }, [{ id: "set", depth: 22, baseline: 30, height: 40, textures: { a: { stretch: true } } }])
     const rows = stripRows(textures.a, { top: 22, bottom: -4, lines: { base: 2, top: 22 } }, 22, 24)
     assert.deepEqual(rows.scale, { from: 20, to: 40, base: 2 })
-    assert.deepEqual([1, 2, 12, 21, 22].map(y => stripY(rows, y)), [-1, 0, 20, 38, 40])
+    assert.deepEqual([1, 2, 12, 21, 22].map(y => stripY(rows, y)), [-2, 0, 20, 38, 39])
   })
 
   test("a layer's baseline and topline come from its ordinary letters", () => {
@@ -193,11 +193,8 @@ describe("published strips", () => {
         const { id } = use
         const set = setOf(id)
         const range = stripRange({ cells, capHeight }, use.layer && layers ? use.layer - 1 : null)
-        const stretched = set.heights.every(([, , stretch]) => stretch)
         const offset = centredOffset(set.height, capHeight) + use.offset
         const baseline = set.baseline ?? set.depth
-        assert.ok(-(range.bottom - (stretched ? range.lines.base : 0)) <= baseline - set.depth + offset, `${font.id} goes further below the baseline than the ${id} strips`)
-        if (set.height) assert.ok(range.top + offset <= set.height || stretched, `${font.id} reaches above the ${id} strips' topline`)
         for (const [name, height, stretch] of set.heights) {
           const resolution = height / (baseline + (set.height ?? range.top + offset) + set.depth)
           assert.ok(Number.isInteger(Math.log2(resolution)), `${font.id} is the wrong height for ${id}.${name}: resolution ${resolution}`)
@@ -231,10 +228,8 @@ describe("published strips", () => {
     }
   })
 
-  test("a strip only has the rows between its bottom and top", () => {
-    const shape = { top: 4, bottom: -1 }
-    assert.deepEqual([-2, -1, 3, 4].map(y => stripHasRow(shape, y)), [false, true, true, false])
-    assert.deepEqual([3, 5].map(y => stripHasRow({ top: 6, bottom: 0, scale: { from: 4, to: 6 } }, y)), [true, false])
+  test("a strip repeats its top and bottom rows past its own", () => {
+    assert.deepEqual([-3, -1, 3, 4, 9].map(y => stripY({ top: 4, bottom: -1 }, y)), [-1, -1, 3, 3, 3])
   })
 
   test("every font's texture list loads", () => {

@@ -2,16 +2,10 @@ import { fillPattern, surface } from "../canvas.js"
 import { MAX_DETAIL } from "../atlas/scales.js"
 import { layerCell, layerLeft } from "../../font/flatSheet.js"
 import { remember } from "../../core/maths.js"
-import { MISSING, stripHasRow, stripY } from "../../font/strips.js"
+import { stripY } from "../../font/strips.js"
 import { CACHED_OVERLAYS, R, fillRect, into, plain } from "./draw.js"
 
 const stretchedStrips = new WeakMap()
-
-function fillRects(ctx, rects) {
-  ctx.beginPath()
-  for (const [x, y, w, h] of rects) ctx.rect(x * R, y * R, w * R, h * R)
-  ctx.fill()
-}
 
 function stripRuns(map) {
   const runs = []
@@ -26,7 +20,7 @@ function stripRuns(map) {
 function stretchedStrip(strip, low, high) {
   const { image, density } = strip
   if (!stretchedStrips.has(image)) stretchedStrips.set(image, new Map())
-  return remember(stretchedStrips.get(image), JSON.stringify([strip.scale, density, strip.depth, strip.top, low, high]), () => {
+  return remember(stretchedStrips.get(image), JSON.stringify([strip.scale, density, strip.depth, strip.top, strip.bottom, low, high]), () => {
     const out = surface(image.width, (high - low + 1) * density)
     for (let at = low; at <= high; at++) {
       const from = ((strip.depth + strip.top - 1 - stripY(strip, at)) * density % image.height + image.height) % image.height
@@ -65,7 +59,9 @@ export function paintStrip(ctx, entries, strip) {
   const runs = new Map(entries.map(entry => [entry, stripRuns(entry.glyph.arc.map)]))
   const spans = Array.from(runs).flatMap(([entry, list]) => list.flatMap(run => [entry.source.glyph.bottom + run.from, entry.source.glyph.bottom + run.from + run.height - 1]))
   const high = Math.max(...spans)
-  const stretched = strip.scale && Number.isInteger(strip.density) && spans.length ? stretchedStrip(strip, Math.min(...spans), high) : null
+  const low = Math.min(...spans)
+  const remapped = strip.scale || low < strip.bottom || high >= strip.top
+  const stretched = remapped && Number.isInteger(strip.density) && spans.length ? stretchedStrip(strip, low, high) : null
   for (const [entry, list] of runs) {
     const { glyph, source } = entry
     const origin = strip.tiling === "character" ? entry.x + layerLeft(glyph, strip.band, strip.independent) : entry.x - glyph.lineX + layerLeft(glyph.lineFirst ?? glyph, strip.band, strip.independent) + stripShift(glyph, strip, shifts)
@@ -77,7 +73,7 @@ export function paintStrip(ctx, entries, strip) {
         fillRect(ctx, [entry.x, y - height + 1, entry.width, height])
         continue
       }
-      const rows = strip.scale ? Array.from({ length: height }, (_, step) => [row + step, from + step, 1]) : [[row, from, height]]
+      const rows = remapped ? Array.from({ length: height }, (_, step) => [row + step, from + step, 1]) : [[row, from, height]]
       for (const [first, start, count] of rows) {
         const band = strip.depth + strip.top - 1 - stripY(strip, source.glyph.bottom + start)
         const y = entry.top + glyph.height - 1 - first
@@ -99,27 +95,8 @@ export function paintStrip(ctx, entries, strip) {
       stretchRow(ctx, strip, origin, first, [entry.x, y, entry.width, start])
       stretchRow(ctx, strip, origin, last, [entry.x, y + start + size, entry.width, depth - start - size])
     }
-    const missing = list.flatMap(({ row, from, height }) => Array.from({ length: height }, (_, step) => [row + step, source.glyph.bottom + from + step])).filter(([, at]) => !stripHasRow(strip, at))
-    if (!missing.length) continue
-    into(ctx, entry, "front")
-    fillPattern(ctx, missingTexture(), new DOMMatrix())
-    fillRects(ctx, missing.map(([row]) => [entry.x, entry.top + glyph.height - 1 - row, entry.width, 1]))
   }
   plain(ctx)
-}
-
-let checker = null
-
-function missingTexture() {
-  if (checker) return checker
-  const { canvas, ctx } = surface(R * 2, R * 2)
-  const [pink, black] = MISSING.map(([r, g, b]) => `rgb(${r}, ${g}, ${b})`)
-  ctx.fillStyle = black
-  ctx.fillRect(0, 0, R * 2, R * 2)
-  ctx.fillStyle = pink
-  ctx.fillRect(0, 0, R, R)
-  ctx.fillRect(R, R, R, R)
-  return checker = canvas
 }
 
 export function stripDetail(strip, depth) {
