@@ -29,7 +29,7 @@ Submitting does not give anyone permission to take it and use it outside of the 
 
 ## Fonts shared under their own licence
 
-Some fonts in this project are based on other people's fonts, shared under their own licence, such as a Creative Commons licence. Each one links to its original and its licence on the [credits page](https://mctitlegenerator.com/credits/), and in its entry in `public/font/fonts.json`.
+Some fonts in this project are based on other people's fonts, shared under their own licence, such as a Creative Commons licence. Each one links to its original and its licence on the [credits page](https://mctitlegenerator.com/credits/), and in its entry in `public/fonts/fonts.json`.
 
 These font files are covered by their own licence, not by this one. They have been adapted to work in the title generator.
 
@@ -43,8 +43,8 @@ By downloading any of the following files, you agree to the [Minecraft End User 
 
 Any of these specific textures
 
-- public/font/minecraft-ten/textures/dungeons_terracotta.png
-- public/font/minecraft-ten/textures/iron_block.png
+- public/strips/minecraft-ten/textures/dungeons_terracotta.png
+- public/fonts/minecraft-ten/textures/iron_block.png
 - public/render/legacy-title.png
 
 ### Directories
@@ -52,12 +52,9 @@ Any of these specific textures
 Any textures within the following directories
 
 - public/tileables/minecraft
-- shapes/cube/textures
+- public/shapes/cube/textures
   - Except:
     - flat.png
-- shapes/sword/textures
-  - Except:
-    - flat.png
-- shapes/heart/textures
+- public/shapes/heart/textures
   - Except:
     - flat.png
