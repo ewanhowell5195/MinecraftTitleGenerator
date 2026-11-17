@@ -51,11 +51,15 @@ export function lines(objects = scene.objects) {
   return list
 }
 
-function stored(objects, { selected, selectedGroup, camera }, version, values) {
+export function presetSource(value) {
+  return Number.isInteger(value?.id) && typeof value.name === "string" ? { id: value.id, name: value.name } : null
+}
+
+function stored(objects, { selected, selectedGroup, camera, preset = null }, version, values) {
   const list = lines(objects)
   const group = list.findIndex(line => line[0].group !== null && line[0].group === selectedGroup)
   const changes = cameraChanges(camera)
-  return { version, lines: titleLines(list, values).map(hoisted), ...(Object.keys(changes).length && { camera: changes }), selected: objects.findIndex(object => object.id === selected), selectedGroup: group < 0 ? null : group }
+  return { version, lines: titleLines(list, values).map(hoisted), ...(Object.keys(changes).length && { camera: changes }), selected: objects.findIndex(object => object.id === selected), selectedGroup: group < 0 ? null : group, ...(preset && { preset }) }
 }
 
 function unversioned(saved) {
@@ -63,7 +67,7 @@ function unversioned(saved) {
 }
 
 function fresh(error = null) {
-  return { objects: [createObject()], selected: null, selectedGroup: null, error }
+  return { objects: [createObject()], selected: null, selectedGroup: null, preset: null, error }
 }
 
 function load() {
@@ -73,7 +77,7 @@ function load() {
     if (!data?.lines?.length) return fresh()
     const objects = titleObjects(titleValues({ ...data, lines: data.lines.map(lowered) }))
     if (!objects.some(object => object.shape !== null || object.text.trim())) return fresh()
-    return { objects, camera: data.camera, selected: objects[data.selected]?.id ?? null, selectedGroup: lines(objects)[data.selectedGroup]?.[0].group ?? null, error: null }
+    return { objects, camera: data.camera, selected: objects[data.selected]?.id ?? null, selectedGroup: lines(objects)[data.selectedGroup]?.[0].group ?? null, preset: presetSource(data.preset), error: null }
   } catch (err) {
     return fresh(err.message)
   }
@@ -81,7 +85,7 @@ function load() {
 
 const initial = load()
 
-export const scene = reactive({ objects: initial.objects, camera: fullCamera(initial.camera), ...validSelection(initial.objects, initial.selected, initial.selectedGroup) })
+export const scene = reactive({ objects: initial.objects, camera: fullCamera(initial.camera), preset: initial.preset, ...validSelection(initial.objects, initial.selected, initial.selectedGroup) })
 
 export const editorTitle = {
   ...createTitle(scene.objects, view, scene.camera),

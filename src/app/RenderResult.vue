@@ -4,6 +4,7 @@
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
   import Dialog from "../components/Dialog.vue"
+  import PresetVotePrompt from "./presets/PresetVotePrompt.vue"
 
   const props = defineProps({
     image: { type: Object, required: true },
@@ -61,6 +62,7 @@
         <span class="notice">{{ notice }}</span>
         <span>{{ size }}</span>
       </div>
+      <PresetVotePrompt />
       <div class="buttons">
         <Button @click="copy"><template #icon><Icon name="copy" :size="16" /></template>
           <span>Copy render</span>

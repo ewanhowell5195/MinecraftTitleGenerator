@@ -17,6 +17,7 @@
   const emit = defineEmits(["vote"])
 
   const summary = computed(() => `${Math.round(props.rating * 20)}% upvoted`)
+  const toGo = computed(() => Math.max(1, LIMITS.minVotes - props.votes))
 
   function fill(star) {
     return `${Math.min(1, Math.max(0, props.rating - star + 1)) * 100}%`
@@ -39,7 +40,7 @@
       <strong>{{ rating.toFixed(1) }}</strong>
       <span>from {{ votes }} votes</span>
     </div>
-    <p v-else class="unrated">{{ votes }} of {{ LIMITS.minVotes }} votes needed for a rating</p>
+    <p v-else class="unrated">{{ toGo }} more {{ toGo === 1 ? "vote" : "votes" }} and it gets a rating</p>
   </div>
 </template>
 
@@ -100,6 +101,13 @@
     display: block;
     height: 16px;
     overflow: hidden;
+    transition: width 0.4s ease-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .filled {
+      transition: none;
+    }
   }
 
   .unrated {

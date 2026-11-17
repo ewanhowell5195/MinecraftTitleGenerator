@@ -386,6 +386,10 @@ async function fetchUsage() {
   }
 }
 
+export function presetToAsk(source) {
+  return source && !store.votes[source.id] && !store.own.includes(source.id) ? source : null
+}
+
 export async function countDownload({ id, downloads, week }) {
   if (store.downloads.includes(id)) return null
   store.downloads.push(id)

@@ -3,6 +3,7 @@
   import { openPresetsPage, showPreset } from "../../lib/state/presetsPage.js"
   import Button from "../../components/Button.vue"
   import Dialog from "../../components/Dialog.vue"
+  import PresetVotePrompt from "./PresetVotePrompt.vue"
   import ShareFields from "./ShareFields.vue"
   import { useShareForm } from "./shareForm.js"
 
@@ -68,6 +69,7 @@
   </Dialog>
   <Dialog v-else :title="shareOnly ? 'Share publicly' : 'Save preset'" close-title="Cancel" :wide="!namingShared" dismissable @close="emit('close')">
     <form class="dialog-body" @submit.prevent="submit">
+      <PresetVotePrompt />
       <ShareFields v-model:name="name" v-model:target="target" v-model:agreed="agreed" :code="namingCode" :label="shareOnly ? 'Share as' : 'Save as'" :placeholder="target?.name ?? suggested" :shareable="!namingShared" :notice="error || problem" intro>
         <Button v-if="!shareOnly || target?.online" type="submit" :primary="namingShared || target?.online" :disabled="sending || target?.online && blocked">{{ target ? replaceLabel : "Save" }}</Button>
         <Button v-if="!namingShared && !target?.online" primary :disabled="blocked" @click="saveAndShare">{{ sending ? "Sharing" : target ? "Replace and share" : shareOnly ? "Share" : "Save and share" }}</Button>

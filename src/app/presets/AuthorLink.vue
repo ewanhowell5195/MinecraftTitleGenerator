@@ -11,5 +11,5 @@
 </script>
 
 <template>
-  <button type="button" class="link-button" v-tooltip="{ text: searched ? 'Show presets by everyone' : `Show presets by ${name} on ${providerLabel(provider)}`, tooltipClass: 'slow' }"><UserName :name="name" :provider="provider" :size="size" /></button>
+  <button type="button" class="link-button" v-tooltip="searched ? null : { text: `Show presets by ${name} on ${providerLabel(provider)}`, tooltipClass: 'slow' }"><UserName :name="name" :provider="provider" :size="size" /></button>
 </template>

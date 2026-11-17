@@ -3,9 +3,11 @@
   import { account, accountChanges, countDownload, managedPresets, ownPresets, presetStats, randomCommunityPreset, refreshAccount, refreshUsage, signInProviders, voteOn } from "../../lib/state/community.js"
   import { isPlainClick, useWindowEvents } from "../../components/composables/events.js"
   import { titleBody } from "../../lib/link/linkformat.js"
+  import { LIMITS } from "../../lib/core/limits.js"
   import { notice, showNotice } from "../../lib/state/notices.js"
   import { addPreset, deleteSharedPreset, loadPreset, presets, presetsError, presetsLoading, removePreset, renamePreset, renameSharedPreset, unsharePreset } from "../../lib/state/presets.js"
   import { askConfirm } from "../../lib/state/confirm.js"
+  import { scene } from "../../lib/state/scene.js"
   import { searchWithUser, searchesUser, toggleUserSearch } from "../../lib/link/presetSearch.js"
   import { closePresetsPage, leavePresetsForEditor, presetsPage, setPresetSearch, setPresetSort, showPresetFilters, showPreset, takeLanding } from "../../lib/state/presetsPage.js"
   import { rememberTab, startingTab, usePresetAddress } from "./presetAddress.js"
@@ -22,11 +24,13 @@
   import PresetTile from "./PresetTile.vue"
   import Segments from "../../components/Segments.vue"
   import SharePresetDialog from "./SharePresetDialog.vue"
+  import TileVote from "./TileVote.vue"
   import ShareUsage from "./ShareUsage.vue"
   import TopBar from "../../site/TopBar.vue"
   import { router } from "../../router.js"
 
   const TABS = [{ value: "community", label: "Community" }, { value: "mine", label: "My presets" }]
+  const VOTED_LINGER = 700
   const SORTS = [{ value: "week", label: "Popular this week" }, { value: "popular", label: "Popular all time" }, { value: "top", label: "Top rated" }, { value: "new", label: "Newest" }, { value: "needs", label: "Needs votes" }]
   const EDITOR_TITLE = "Minecraft Title Generator"
 
@@ -60,6 +64,10 @@
 
   function isMine(preset) {
     return ownPresets.value.includes(preset.id)
+  }
+
+  function votesToGo(preset) {
+    return Math.max(1, LIMITS.minVotes - preset.votes)
   }
 
   function refreshSelection() {
@@ -117,7 +125,10 @@
 
   async function open(preset) {
     if (!await loadPreset(preset)) return
-    if (tab.value === "community") counted(preset)
+    if (tab.value === "community") {
+      counted(preset)
+      scene.preset = { id: preset.id, name: preset.name }
+    }
     leavePresetsForEditor()
   }
 
@@ -130,7 +141,7 @@
     if (preset.vote === value) return
     try {
       Object.assign(preset, await voteOn(preset.id, value))
-      if (sort.value === "needs") results.value = results.value.filter(item => item.id !== preset.id)
+      if (sort.value === "needs") setTimeout(() => results.value = results.value.filter(item => item.id !== preset.id), VOTED_LINGER)
     } catch (err) {
       showNotice(err.message)
     }
@@ -281,12 +292,17 @@
           <p v-if="tab === 'mine' && !account && signInProviders.length" class="message empty-state">Sign in to keep your presets under your account. The presets saved in this browser, and anything shared from it, move to your account when you do.</p>
           <div v-if="tab === 'community'" class="grid">
             <PresetTile v-for="preset of results" :key="preset.id" :code="preset.code" :fingerprint="preset.fingerprint" :selected="selected?.id === preset.id" @pick="selectCommunity(preset)">
-              <a class="name ellipsis" :href="`/app/presets/${preset.id}`" @click="followed">{{ preset.name }}</a>
-              <span v-if="preset.rating !== null" class="stats">
-                <span v-tooltip="`From ${preset.votes} votes`"><GoldStar :size="13" />{{ preset.rating.toFixed(1) }}</span>
+              <div class="info">
+                <a class="name big ellipsis" :href="`/app/presets/${preset.id}`" @click="followed">{{ preset.name }}</a>
+                <Badge v-if="isMine(preset) && !preset.author" tone="accent">Shared by you</Badge>
+                <AuthorLink v-else-if="preset.author" class="author" :class="{ yours: isMine(preset) }" :name="preset.author" :provider="preset.authorProvider" :size="13" :searched="searchesUser(presetsPage.search, preset.author, preset.authorProvider)" @click.stop="filterByUser(preset.author, preset.authorProvider)" />
+                <span v-else class="anonymous"><Icon name="community" :size="13" />Community</span>
+              </div>
+              <span v-if="preset.rating !== null" class="stats rated">
+                <span v-tooltip="`From ${preset.votes} votes`"><GoldStar :size="18" />{{ preset.rating.toFixed(1) }}</span>
               </span>
-              <Badge v-if="isMine(preset) && !preset.author" tone="accent">Shared by you</Badge>
-              <AuthorLink v-else-if="preset.author" class="author" :class="{ yours: isMine(preset) }" :name="preset.author" :provider="preset.authorProvider" :size="13" :searched="searchesUser(presetsPage.search, preset.author, preset.authorProvider)" @click.stop="filterByUser(preset.author, preset.authorProvider)" />
+              <span v-else class="stats needs" v-tooltip="`${votesToGo(preset)} more ${votesToGo(preset) === 1 ? 'vote' : 'votes'} and it gets a rating`">Needs votes</span>
+              <TileVote v-if="!isMine(preset)" :mine="preset.vote" @vote="vote(preset, $event)" />
             </PresetTile>
           </div>
           <template v-else>
@@ -436,11 +452,43 @@
     gap: 4px;
   }
 
+  .rated {
+    font-size: var(--font-lg);
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .needs {
+    color: var(--faint);
+  }
+
+  .info {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 0;
+    min-height: calc((var(--font-base) + var(--font-sm)) * 1.4 + 2px);
+  }
+
+  .name.big {
+    max-width: 100%;
+    font-size: var(--font-base);
+  }
+
   .author {
     flex: 0 1 auto;
     min-width: 0;
-    max-width: 50%;
+    max-width: 100%;
     color: var(--muted);
+  }
+
+  .anonymous {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--faint);
   }
 
   .author:hover {

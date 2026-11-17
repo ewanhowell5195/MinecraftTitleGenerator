@@ -5,7 +5,7 @@ import { loadFont, loadFontList } from "../font/font.js"
 import { matchSolved } from "./match.js"
 import { fileError } from "./notices.js"
 import { createObject } from "../settings/objects.js"
-import { lines, runtime, scene, titleFileName, titleObjects, validSelection } from "./scene.js"
+import { lines, presetSource, runtime, scene, titleFileName, titleObjects, validSelection } from "./scene.js"
 import { TEXTURE_TABS, defaultTexture, isCustomFont, sameValue } from "../settings/settings.js"
 import { CUSTOM_SHAPE, isMinecraftShape } from "../geometry/shapes.js"
 import { submitStats } from "./stats.js"
@@ -68,7 +68,8 @@ export function titleData() {
 export function saveTitle() {
   if (!scene.objects.length) return
   submitStats()
-  downloadBlob(`${titleFileName()}.${EXTENSION}`, new Blob([JSON.stringify(titleData(), null, 2)], { type: "application/json" }))
+  const data = { ...titleData(), ...(scene.preset && { preset: scene.preset }) }
+  downloadBlob(`${titleFileName()}.${EXTENSION}`, new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }))
   fileError.value = null
 }
 
@@ -83,7 +84,7 @@ function parse(text) {
 function readTitle(text) {
   const data = parse(text)
   if (data?.format !== FORMAT) throw new Error("this isn't a Minecraft title file")
-  return { values: titleValues(data), camera: data.camera }
+  return { values: titleValues(data), camera: data.camera, preset: presetSource(data.preset) }
 }
 
 function titleReference(list, font) {
@@ -114,9 +115,10 @@ export async function untouchedTitle() {
   return sameValue(trim(object), trim(titleReference(await fontTextures(font.sheetFolder, font.strips), font)))
 }
 
-function showObjects(objects, camera) {
+function showObjects(objects, camera, preset = null) {
   scene.objects.splice(0, scene.objects.length, ...objects)
   setCamera(scene.camera, camera)
+  scene.preset = preset
   Object.assign(scene, validSelection(objects, null, null))
   fileError.value = null
   titleLoads.value++
@@ -136,9 +138,9 @@ export function openTitleData(data) {
 
 export async function openTitle(file, allow = () => true) {
   try {
-    const { values, camera } = readTitle(await file.text())
+    const { values, camera, preset } = readTitle(await file.text())
     if (!await allow()) return
-    showObjects(titleObjects(values), camera)
+    showObjects(titleObjects(values), camera, preset)
   } catch (err) {
     fileError.value = `Couldn't open ${file.name}: ${err.message}`
   }
