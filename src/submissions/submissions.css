@@ -65,12 +65,14 @@ textarea {
 
 .details dt {
   color: var(--faint);
+  white-space: nowrap;
 }
 
 .details dd {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
   margin: 0;
   overflow-wrap: anywhere;
 }
