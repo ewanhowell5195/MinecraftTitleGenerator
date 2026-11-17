@@ -290,6 +290,24 @@ describe("stretch marks", () => {
     assert.deepEqual(arc.stretchable, [false, false, false, true, true, false, false, false])
   })
 
+  test("an unmarked character in a marked font keeps its shape and stays centred on the line", () => {
+    const font = fontOf({ a: glyphOf("a", { stretch: [3, 4] }), b: glyphOf("b") })
+    const [a, b] = arced("ab", { stretch: 1.5 }, font).placed.map(item => item.glyph)
+    assert.equal(a.height, 12)
+    assert.equal(b.height, 8)
+    assert.equal(b.bottom, 2)
+    assert.equal(b.top, 10)
+    assert.deepEqual(b.arc.map, range(0, 8))
+  })
+
+  test("a marked arc moves an unmarked character by half its raise, and an unmarked arc still stretches it", () => {
+    const font = fontOf({ a: glyphOf("a", { stretch: [3, 4] }), b: glyphOf("b") })
+    const end = arced("bab", { arcTop: 0.5 }, font).placed[0].glyph
+    assert.equal(end.height, 8)
+    assert.equal(end.bottom, 2)
+    assert.equal(arced("bab", { arcTop: 0.5, arcMarked: false }, font).placed[0].glyph.height, 12)
+  })
+
   test("marks can be turned off for the arc", () => {
     const { arc } = arced("aaa", { arcTop: 0.5, arcMarked: false }, marked).placed[0].glyph
     assert.deepEqual(arc.map, [0, 1, 1, 2, 3, 3, 4, 5, 5, 6, 7, 7])

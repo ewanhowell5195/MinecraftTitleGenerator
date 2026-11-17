@@ -1,4 +1,5 @@
 import { stretched } from "../lib/geometry/arc.js"
+import { hasMarks } from "../lib/font/font.js"
 import { layerShade } from "../lib/font/flatSheet.js"
 import { lineLayout } from "../lib/geometry/layout.js"
 import { parsedSheet } from "../lib/font/editor/sheet.js"
@@ -18,7 +19,8 @@ export function previewFont(font) {
 
 export function drawText(canvas, parsed, text, { maxWidth, maxHeight, maxScale = 8, terminators = false, raw = false, stretch = 1 }) {
   const grow = Math.round((stretch - 1) * parsed.capHeight)
-  const placed = lineLayout(parsed, [{ text, space: false, creeper: true }], { spacing: parsed.characterSpacing, terminators, raw }).map(item => grow && item.glyph.mask ? { ...item, glyph: stretched(item.glyph, item.glyph.char, [], grow) } : item)
+  const marked = hasMarks(parsed)
+  const placed = lineLayout(parsed, [{ text, space: false, creeper: true }], { spacing: parsed.characterSpacing, terminators, raw }).map(item => grow && item.glyph.mask ? { ...item, glyph: stretched(item.glyph, item.glyph.char, [], grow, marked) } : item)
   const ctx = canvas.getContext("2d")
   const border = parsed.border
   if (!placed.length) {

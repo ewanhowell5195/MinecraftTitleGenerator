@@ -4,6 +4,7 @@ import { joinNeighbours } from "./joins.js"
 import { faceDepth } from "../texture/material.js"
 import { remember } from "../core/maths.js"
 import { glyphKey } from "../font/order.js"
+import { hasMarks } from "../font/font.js"
 import { idOf } from "../texture/paint/keys.js"
 
 const GAP = 2
@@ -25,10 +26,11 @@ function spread(rows, extra, length) {
   return added
 }
 
-export function stretched(glyph, key, arcs, grow) {
-  const marks = glyph.stretch && (grow || arcs.some(arc => arc.marked)) ? new Set(glyph.stretch) : null
-  const low = Math.min(glyph.bottom, ...(marks ? glyph.stretch : []))
-  const high = Math.max(glyph.top, ...(marks ? glyph.stretch.map(y => y + 1) : []))
+export function stretched(glyph, key, arcs, grow, marked = true) {
+  const marks = marked && (grow || arcs.some(arc => arc.marked)) ? new Set(glyph.stretch ?? []) : null
+  const low = Math.min(glyph.bottom, ...(marks ? marks : []))
+  const high = Math.max(glyph.top, ...(marks ? Array.from(marks, y => y + 1) : []))
+  const shift = marks && !marks.size ? Math.round(arcs.reduce((sum, arc) => arc.marked ? sum + arc.raise - arc.drop : sum, grow) / 2) : 0
   const span = Array.from({ length: high - low }, (_, index) => low + index)
   const inside = y => y >= glyph.bottom && y < glyph.top
   const rowsFor = marked => span.flatMap((y, index) => (marked && marks ? marks.has(y) : inside(y)) ? [index] : [])
@@ -39,8 +41,8 @@ export function stretched(glyph, key, arcs, grow) {
   const growAdded = spread(growRows, Math.max(grow, kept ? -growRows.length : 1 - growRows.length), span.length)
   const counts = span.map((y, index) => arcAdded.reduce((sum, added) => sum + added[index], 1 + growAdded[index]))
   const stretchable = span.map((y, index) => arcRows.some(rows => rows.includes(index)) || growRows.includes(index))
-  const raise = arcs.reduce((sum, arc) => sum + arc.raise, 0)
-  const drop = arcs.reduce((sum, arc) => sum + arc.drop, 0)
+  const raise = arcs.reduce((sum, arc, index) => arcRows[index].length ? sum + arc.raise : sum, 0)
+  const drop = arcs.reduce((sum, arc, index) => arcRows[index].length ? sum + arc.drop : sum, 0)
   const grown = growAdded.reduce((sum, count) => sum + count, 0)
   const below = growAdded.reduce((sum, count, index) => span[index] < 0 ? sum + count : sum, 0)
   const sequence = counts.flatMap((count, index) => new Array(count).fill(span[index]))
@@ -54,8 +56,8 @@ export function stretched(glyph, key, arcs, grow) {
     depths?.set(glyph.depths.subarray(source * glyph.width, (source + 1) * glyph.width), row * glyph.width)
   }
   const own = span.flatMap((y, index) => inside(y) ? [index] : [])
-  const bottom = low - drop - below + first
-  return { ...glyph, char: key, mask, ...(depths ? { depths } : {}), height: map.length, bottom, top: bottom + map.length, stretch: null, arc: { top: raise + grown - below, bottom: drop + below, map, counts: own.map(index => counts[index]), stretchable: own.map(index => stretchable[index]) } }
+  const bottom = low - drop - below + first + shift
+  return { ...glyph, char: key, mask, ...(depths ? { depths } : {}), height: map.length, bottom, top: bottom + map.length, stretch: null, arc: { top: raise + grown - below + shift, bottom: drop + below - shift, map, counts: own.map(index => counts[index]), stretchable: own.map(index => stretchable[index]) } }
 }
 
 export function arcLayout(font, sheet, words, word, options) {
@@ -76,6 +78,7 @@ export function arcLayout(font, sheet, words, word, options) {
   const reach = { top: -Infinity, bottom: -Infinity }
   const lineSpan = [Math.min(...placed.map(item => item.x)), Math.max(...placed.map(item => item.x + item.glyph.width))]
   const moving = options.arcMode === "move"
+  const marked = hasMarks(font)
   const bend = (amount, strength) => Math.round(Math.abs(amount) * (amount < 0 ? 1 - strength : strength) * font.capHeight)
   const curve = (mode, top, bottom, marked, strength) => mode === "move" ? { raise: 0, drop: 0, marked } : { raise: bend(top, strength), drop: bend(bottom, strength), marked }
   let x = 0
@@ -103,7 +106,7 @@ export function arcLayout(font, sheet, words, word, options) {
     const lift = (moving ? Math.round(options.arcMove * amounts[index] * font.capHeight) : 0) + (arc.mode === "move" ? Math.round(arc.move * wordAmounts[index] * font.capHeight) : 0)
     const grow = Math.round(((options.stretch ?? 1) * (shape.stretch ?? 1) - 1) * font.capHeight)
     const key = glyphKey(item.glyph.char, index)
-    const glyph = { ...stretched(item.glyph, key, arcs, grow), placedX: item.x, lineSpan, lineX: item.x - placed[0].x, lineFirst: placed[0].glyph, lift }
+    const glyph = { ...stretched(item.glyph, key, arcs, grow, marked), placedX: item.x, lineSpan, lineX: item.x - placed[0].x, lineFirst: placed[0].glyph, lift }
     chain.push(glyph)
     const mesh = font.mesh?.glyphs[item.glyph.char]
     if (mesh) glyph.fine = font.mesh.tools.fineMasks(mesh, glyph, item.glyph)
