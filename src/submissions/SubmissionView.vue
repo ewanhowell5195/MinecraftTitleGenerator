@@ -153,7 +153,9 @@
       <p>{{ client.summary(item, fonts) }}, made by {{ authorText(item.credit) }}.</p>
       <blockquote v-if="item.notes" class="notes">{{ item.notes }}</blockquote>
     </section>
-    <SubmissionForm v-if="editing" v-show="!saving" :fonts="fonts" :initial="item" @done="saved" @cancel="cancel" @saving="saving = $event" />
+    <div v-if="editing" v-show="!saving">
+      <SubmissionForm :fonts="fonts" :initial="item" @done="saved" @cancel="cancel" @saving="saving = $event" />
+    </div>
     <section v-if="saving || !editing && processing?.state === 'processing'" class="processing">
       <Spinner />
       <h2>Processing submission</h2>
