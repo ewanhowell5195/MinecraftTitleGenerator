@@ -12,10 +12,9 @@ import { MISSING, stripHasRow, stripY } from "./strips.js"
 import { MARGIN, drawLayer, over } from "./thumbnails.js"
 import { pngUrl } from "../core/virtualFiles.js"
 
-const TEXT = "abc"
 const OVERLAYS = withGenerated({})
 
-export function thumbnailScene(font, mesh = null, text = TEXT, layer = null) {
+export function thumbnailScene(font, mesh = null, text = undefined, layer = null) {
   const { glyphs, list: cells, capHeight, layers } = parsedSheet(font, defaultBorder("top", font))
   const scene = fontScene({ ...font, multicase: font.letterCase === "both" }, { glyphs, cells, capHeight, layers: mesh ? null : layers, kerning: font.kerning, depth: defaultDepth(font) }, text)
   if (!scene) return null

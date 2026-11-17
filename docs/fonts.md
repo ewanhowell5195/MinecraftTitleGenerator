@@ -76,7 +76,7 @@ There are two kinds of variant folder:
 | `overlay` | `false` | The font has a `forced-overlay.png` |
 | `allFaces` | `false` | Shows the inner and side faces. `"fade"` shows them faded |
 | `layerDepth` | Stacked | `"independent"` makes each depth layer its own slab |
-| `preview` | `"abc"` | The text in the thumbnails |
+| `preview` | `"abc"`, or `"ABC"` with `multicase` | The text in the thumbnails |
 | `inherits` | `false` | For variants, see above |
 | `editor` | | Settings the font editor uses when opening the font |
 
