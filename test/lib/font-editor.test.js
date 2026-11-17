@@ -9,7 +9,7 @@ import { exportJson, savedJson, slug } from "../../src/lib/font/editor/export.js
 import { blankGlyph, glyphOf, isBlank, rowOfY, setGlyph, widthOf, yOfRow } from "../../src/lib/font/editor/glyph.js"
 import { changeGlyph, moveGlyph, reshapeGlyph, trimGlyph } from "../../src/lib/font/editor/glyphEditing.js"
 import { fontFromFiles, parseFontJson } from "../../src/lib/font/editor/import.js"
-import { blockAt, fillCells, lineCells, paint, rectangleCells, setStretch } from "../../src/lib/font/editor/painting.js"
+import { blockAt, fillCells, lineCells, mirroredCells, paint, rectangleCells, setStretch, setStretchRange } from "../../src/lib/font/editor/painting.js"
 import { autoStretch, buildSheet, savedCharacters, savedSheet, sheetOrder } from "../../src/lib/font/editor/sheet.js"
 import { fitGlyph, lostPixels, resizeFont, setSquareSize, squareSizeLoss, squaresOf } from "../../src/lib/font/editor/sizes.js"
 import { jsonText } from "../../src/lib/core/jsonText.js"
@@ -237,6 +237,19 @@ describe("drawing", () => {
     const marked = setStretch(font, glyph, rowOfY(font, glyph, 3), true)
     assert.deepEqual(marked.stretch, [2, 3])
     assert.deepEqual(setStretch(font, marked, rowOfY(font, marked, 2), false).stretch, [])
+  })
+
+  test("a run of stretch marks covers every block between its ends, either way round", () => {
+    const glyph = blankGlyph(font)
+    const marked = setStretchRange(font, glyph, rowOfY(font, glyph, 1), rowOfY(font, glyph, 6), true)
+    assert.deepEqual(marked.stretch, [0, 1, 2, 3, 4, 5, 6, 7])
+    assert.deepEqual(setStretchRange(font, marked, rowOfY(font, marked, 5), rowOfY(font, marked, 2), false).stretch, [0, 1, 6, 7])
+  })
+
+  test("mirroring paints the matching cells on the other side", () => {
+    const glyph = blankGlyph(font)
+    const painted = paint(glyph, mirroredCells(glyph, rectangleCells(font, glyph, { x: 0, row: 0 }, { x: 1, row: 1 })), true)
+    assert.deepEqual(painted.rows.slice(0, 2), ["11000011", "11000011"])
   })
 })
 

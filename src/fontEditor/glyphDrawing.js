@@ -46,7 +46,7 @@ function drawGuide(ctx, centre, baseline, capHeight, width, room) {
   ctx.restore()
 }
 
-export function useGlyphDrawing(canvas, hover, { available, view, board, columns, rows, xAt, yAt }) {
+export function useGlyphDrawing(canvas, hover, mirror, { available, view, board, columns, rows, xAt, yAt }) {
   let backdrop = "#000"
   let gutterColour = "#000"
   let hoverColour = "#fff"
@@ -111,6 +111,15 @@ export function useGlyphDrawing(canvas, hover, { available, view, board, columns
     ctx.beginPath()
     line(ctx, left, baseline, right, baseline)
     ctx.stroke()
+    if (mirror.value) {
+      const axis = xAt(columns.value / 2)
+      ctx.strokeStyle = hoverColour
+      ctx.setLineDash([6, 6])
+      ctx.beginPath()
+      line(ctx, axis, top, axis, bottom)
+      ctx.stroke()
+      ctx.setLineDash([])
+    }
     if (gutter < right + GUTTER_GAP) {
       ctx.fillStyle = backdrop
       ctx.fillRect(gutter - GUTTER_GAP, top, GUTTER_GAP, bottom - top)
@@ -128,6 +137,7 @@ export function useGlyphDrawing(canvas, hover, { available, view, board, columns
       ctx.strokeStyle = hoverColour
       ctx.lineWidth = 2
       ctx.strokeRect(x, yAt(row), hover.value.gutter ? GUTTER : xAt(column + across) - x, yAt(row + down) - yAt(row))
+      if (hover.value.mirror !== null && hover.value.mirror !== column) ctx.strokeRect(xAt(hover.value.mirror), yAt(row), xAt(hover.value.mirror + across) - xAt(hover.value.mirror), yAt(row + down) - yAt(row))
     }
   }
 

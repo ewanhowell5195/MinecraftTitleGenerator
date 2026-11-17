@@ -1,14 +1,14 @@
 import { ref, watch } from "vue"
 import { depthOf } from "../lib/font/editor/depths.js"
 import { setGlyph, yOfRow } from "../lib/font/editor/glyph.js"
-import { blockAt, fillCells, lineCells, paint, rectangleCells, setStretch } from "../lib/font/editor/painting.js"
+import { blockAt, fillCells, lineCells, mirroredCells, paint, rectangleCells, setStretchRange } from "../lib/font/editor/painting.js"
 import { GUTTER, GUTTER_GAP } from "./glyphView.js"
 import { beginStroke, cancelStroke, endStroke, font, glyph, inkCode, pencilDepth, selected, strokeTo, typing, updateGlyph } from "./store.js"
 
 const PICKER_PATHS = ["M3 21l2.5-2.5", "M5.5 18.5v-2l7.5-7.5 2 2-7.5 7.5z", "M11.5 7.5l5 5", "M14 7l2.5-2.5a2.1 2.1 0 0 1 3 3L17 10"]
 export const PICKER_CURSOR = `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">${["#fff", "#000"].map((colour, index) => PICKER_PATHS.map(path => `<path d="${path}" stroke="${colour}" stroke-width="${index ? 1.5 : 3.5}"/>`).join("")).join("")}</svg>`)}") 3 21, crosshair`
 
-export function useGlyphPointer({ canvas, tool, brush, drawFont }, { available, view, board, zoomed, clampRow, clampX, clampView, zoomTo }) {
+export function useGlyphPointer({ canvas, tool, brush, drawFont, mirror }, { available, view, board, zoomed, clampRow, clampX, clampView, zoomTo }) {
   const hover = ref(null)
   const spaceHeld = ref(false)
   const altHeld = ref(false)
@@ -17,6 +17,7 @@ export function useGlyphPointer({ canvas, tool, brush, drawFont }, { available, 
   const touches = new Map()
   let stroke = null
   let anchor = null
+  let stretchAnchor = null
   let lastAt = null
   let gesture = null
   let pendingFill = null
@@ -46,10 +47,20 @@ export function useGlyphPointer({ canvas, tool, brush, drawFont }, { available, 
   function applyStretch(row) {
     const at = clampRow(row)
     if (stroke.row === at) return
+    const next = setStretchRange(drawFont.value, stroke.base, stroke.row ?? at, at, stroke.value)
     stroke.row = at
-    const next = setStretch(drawFont.value, stroke.base, at, stroke.value)
     stroke.base = next
+    stretchAnchor = { row: at, value: stroke.value }
     strokeTo(setGlyph(font.value, selected.value, next))
+  }
+
+  function mirrored(base, cells) {
+    return mirror.value ? mirroredCells(base, cells) : cells
+  }
+
+  function fillTargets(base, point) {
+    const cells = fillCells(base, point.x, point.row)
+    return mirror.value ? cells.concat(fillCells(base, base.rows[0].length - 1 - point.x, point.row)) : cells
   }
 
   function sameSquare(a, b) {
@@ -73,7 +84,7 @@ export function useGlyphPointer({ canvas, tool, brush, drawFont }, { available, 
       stroke.end = end
       if (drawn) return
       const cells = rectangleCells(drawFont.value, base, stroke.from, end)
-      strokeTo(setGlyph(font.value, selected.value, paint(base, cells, stroke.value)))
+      strokeTo(setGlyph(font.value, selected.value, paint(base, mirrored(base, cells), stroke.value)))
       return
     }
     if (shift && !stroke.constrain) Object.assign(stroke, { constrain: true, origin: stroke.last ?? stroke.from, axis: null })
@@ -84,7 +95,7 @@ export function useGlyphPointer({ canvas, tool, brush, drawFont }, { available, 
     stroke.last = target
     if (drawn) return
     stroke.drawn = true
-    stroke.latest = paint(stroke.latest, lineCells(drawFont.value, stroke.latest, from, target), stroke.value)
+    stroke.latest = paint(stroke.latest, mirrored(stroke.latest, lineCells(drawFont.value, stroke.latest, from, target)), stroke.value)
     strokeTo(setGlyph(font.value, selected.value, stroke.latest))
   }
 
@@ -155,14 +166,15 @@ export function useGlyphPointer({ canvas, tool, brush, drawFont }, { available, 
       const row = clampRow(at.row)
       const y = yOfRow(font.value, glyph.value, row)
       beginStroke()
-      stroke = { kind: "stretch", base: glyph.value, value: event.button === 2 ? false : !glyph.value.stretch.includes(y) }
+      const ranged = event.shiftKey && stretchAnchor
+      stroke = { kind: "stretch", base: glyph.value, value: ranged ? stretchAnchor.value : event.button === 2 ? false : !glyph.value.stretch.includes(y), row: ranged ? stretchAnchor.row : null }
       applyStretch(row)
       return
     }
     const point = { x: clampX(at.x), row: clampRow(at.row) }
     if (tool.value === "fill") {
       const code = erasing ? false : inkCode()
-      const fill = () => updateGlyph(paint(glyph.value, fillCells(glyph.value, point.x, point.row), code))
+      const fill = () => updateGlyph(paint(glyph.value, fillTargets(glyph.value, point), code))
       if (event.pointerType === "touch") pendingFill = { pointerId: event.pointerId, fill }
       else fill()
       return
@@ -171,7 +183,7 @@ export function useGlyphPointer({ canvas, tool, brush, drawFont }, { available, 
     const shape = tool.value === "rectangle" ? "rectangle" : "pencil"
     stroke = { kind: "paint", base: glyph.value, latest: glyph.value, value: erasing ? false : inkCode(), from: point, last: null, end: null, shape, constrain: shape === "pencil" && event.shiftKey, origin: point, axis: null }
     if (stroke.constrain && anchor) {
-      stroke.latest = paint(glyph.value, lineCells(drawFont.value, glyph.value, anchor, point), stroke.value)
+      stroke.latest = paint(glyph.value, mirrored(glyph.value, lineCells(drawFont.value, glyph.value, anchor, point)), stroke.value)
       stroke.last = point
     }
     applyPaint(at, event.shiftKey)
@@ -211,7 +223,8 @@ export function useGlyphPointer({ canvas, tool, brush, drawFont }, { available, 
     }
     const block = blockAt(drawFont.value, glyph.value, at.gutter ? 0 : clampX(at.x), clampRow(at.row))
     const row = Math.min(...block.map(item => item.row))
-    const next = at.gutter ? { gutter: true, column: 0, row, across: 1, down: Math.max(...block.map(item => item.row)) - row + 1 } : { gutter: false, column: Math.min(...block.map(item => item.x)), row, across: brush.value, down: brush.value }
+    const column = Math.min(...block.map(item => item.x))
+    const next = at.gutter ? { gutter: true, column: 0, row, across: 1, down: Math.max(...block.map(item => item.row)) - row + 1, mirror: null } : { gutter: false, column, row, across: brush.value, down: brush.value, mirror: mirror.value ? glyph.value.rows[0].length - column - brush.value : null }
     if (!hover.value || Object.keys(next).some(key => hover.value[key] !== next[key])) hover.value = next
   }
 
@@ -287,6 +300,7 @@ export function useGlyphPointer({ canvas, tool, brush, drawFont }, { available, 
   }, { flush: "sync" })
   watch(selected, () => {
     anchor = null
+    stretchAnchor = null
   })
 
   return { hover, spaceHeld, altHeld, panning, outside, down, move, up, enter, leave, noAutoscroll, wheel, shiftChanged, spaceChanged, altChanged, release, unblockMenu }

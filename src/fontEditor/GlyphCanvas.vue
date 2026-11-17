@@ -21,6 +21,7 @@
   const KEY_ZOOMS = { "+": KEY_ZOOM, "=": KEY_ZOOM, "-": 1 / KEY_ZOOM }
 
   const tool = ref("pencil")
+  const mirror = ref(false)
   const holder = ref(null)
   const canvas = ref(null)
   const tools = ref(null)
@@ -43,8 +44,8 @@
 
   const glyphView = useGlyphView()
   const { available, zoomed, view, zoomPercent, clampView, zoomTo, fit, middle } = glyphView
-  const { hover, spaceHeld, altHeld, panning, outside, down, move, up, enter, leave, noAutoscroll, wheel, shiftChanged, spaceChanged, altChanged, release, unblockMenu } = useGlyphPointer({ canvas, tool, brush, drawFont }, glyphView)
-  const { draw, readTheme } = useGlyphDrawing(canvas, hover, glyphView)
+  const { hover, spaceHeld, altHeld, panning, outside, down, move, up, enter, leave, noAutoscroll, wheel, shiftChanged, spaceChanged, altChanged, release, unblockMenu } = useGlyphPointer({ canvas, tool, brush, drawFont, mirror }, glyphView)
+  const { draw, readTheme } = useGlyphDrawing(canvas, hover, mirror, glyphView)
 
   function key(event) {
     const target = event.target
@@ -57,6 +58,10 @@
     }
     if (event.key === "0") return fit()
     if (KEY_ZOOMS[event.key]) return zoomTo(view.value, view.value.cell * KEY_ZOOMS[event.key], middle())
+    if (event.key.toLowerCase() === "m") {
+      mirror.value = !mirror.value
+      return
+    }
     const found = TOOLS.find(item => item.key === event.key.toLowerCase())
     if (found) tool.value = found.id
   }
@@ -115,7 +120,7 @@
     unblockMenu()
   })
 
-  watch([font, glyph, view, hover], draw, { flush: "post" })
+  watch([font, glyph, view, hover, mirror], draw, { flush: "post" })
 </script>
 
 <template>
@@ -123,6 +128,9 @@
     <div ref="tools" class="tools" @pointerover="measureGap" @focusin="measureGap">
       <span class="group">
         <Button ghost :active="tool === item.id" v-for="item of TOOLS" :key="item.id" v-tooltip="toolTip(`${item.label} (${item.key.toUpperCase()})${item.hint ? `. ${item.hint}` : ''}`)" :aria-label="item.label" :aria-pressed="tool === item.id" @click="tool = item.id"><template #icon><Icon :name="item.icon" :size="16" /></template></Button>
+      </span>
+      <span class="group">
+        <Button ghost :active="mirror" v-tooltip="toolTip('Mirror (M). Paints the other side of the character at the same time')" aria-label="Mirror" :aria-pressed="mirror" @click="mirror = !mirror"><template #icon><Icon name="mirror" :size="16" /></template></Button>
       </span>
       <span v-if="brushes.length > 1" class="group density">
         <span class="group-label">Density</span>

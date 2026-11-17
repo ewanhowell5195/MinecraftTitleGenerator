@@ -88,6 +88,17 @@ export function fillCells(glyph, x, row) {
   return cells
 }
 
+export function mirroredCells(glyph, cells) {
+  const width = glyph.rows[0]?.length ?? 0
+  return cells.concat(cells.map(({ x, row }) => ({ x: width - 1 - x, row })))
+}
+
+export function setStretchRange(font, glyph, from, to, value) {
+  let next = glyph
+  for (let row = Math.min(from, to); row <= Math.max(from, to); row++) next = setStretch(font, next, row, value)
+  return next
+}
+
 export function setStretch(font, glyph, row, value) {
   const { by } = blockIndex(font, glyph, 0, row)
   const rows = Array.from({ length: font.grid }, (_, index) => by * font.grid + index).filter(inRows(shapeOf(font, glyph)))

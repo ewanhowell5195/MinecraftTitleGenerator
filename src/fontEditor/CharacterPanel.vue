@@ -75,7 +75,7 @@
     <p class="hint">Height is set for the whole font. For tall or hanging characters, add rows here instead.</p>
 
     <h3>Stretch zones</h3>
-    <p class="hint">Marked rows are the ones that stretch when text is arced, so choose straight parts that won't look odd taller. {{ glyph.stretch.length ? `${glyph.stretch.length} ${glyph.stretch.length === 1 ? "row" : "rows"} marked.` : "No rows marked, so they're marked automatically when you submit the font." }}</p>
+    <p class="hint">Marked rows are the ones that stretch when text is arced, so choose straight parts that won't look odd taller. Shift-click marks every row from the last one you clicked. {{ glyph.stretch.length ? `${glyph.stretch.length} ${glyph.stretch.length === 1 ? "row" : "rows"} marked.` : "No rows marked, so they're marked automatically when you submit the font." }}</p>
     <div class="row">
       <Button @click="mark"><template #icon><Icon name="wand" :size="14" /></template>Mark automatically</Button>
       <Button :disabled="!glyph.stretch.length" @click="clearMarks">Clear</Button>
