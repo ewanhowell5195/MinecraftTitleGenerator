@@ -3,7 +3,7 @@
 </script>
 
 <template>
-  <LegalPage title="Terms of Service" updated="9 November 2026" about="these terms">
+  <LegalPage title="Terms of Service" updated="17 November 2026" about="these terms">
     <p>By using the Minecraft Title Generator, you agree that you have read and agree to these terms. If you do not agree to them, do not use the title generator.</p>
     <p>The <a href="/privacy/">Privacy Policy</a> explains what data the title generator stores and how it is used.</p>
 
@@ -23,6 +23,7 @@
 
     <h2>Your titles</h2>
     <p>You own the titles you make with the title generator, apart from anything in them owned by Mojang. You do not need to credit me, or anyone whose work is in the title generator, when you use your titles. You use them at your own risk, and I accept no liability for how you use them.</p>
+    <p>Some fonts are shared under their own licence, which is linked under <a href="/credits/?tab=fonts">Licensed Fonts</a> on the credits page. Check that licence before using a title made with one of them.</p>
     <p>It is your responsibility to check that your use of a title is allowed, including under Mojang's <a href="https://www.minecraft.net/en-us/usage-guidelines" target="_blank" rel="noopener">Usage Guidelines</a>.</p>
 
     <h2>Accounts</h2>
