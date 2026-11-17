@@ -50,10 +50,26 @@
     cursor: not-allowed;
   }
 
+  .upload-field :deep(*) {
+    pointer-events: none;
+  }
+
+  .upload-field:hover:not(.disabled) > span.button {
+    color: var(--button-text);
+    filter: brightness(1.1);
+  }
+
+  .upload-field:active:not(.disabled) > span.button {
+    --button-top: var(--button-dark);
+    --button-bottom: var(--button-light);
+    transition: none;
+  }
+
   .upload-clear {
     position: absolute;
     top: 4px;
     right: 4px;
+    pointer-events: auto;
   }
 
   .upload-image {
