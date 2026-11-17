@@ -291,5 +291,12 @@
       "16": ["//"]
     },
     "editor": { "width": 28, "grid": 4 }
+  },
+  {
+    "id": "blocparty",
+    "name": "BlocParty",
+    "authors": ["garphynk", "Ewan Howell"],
+    "source": "https://fontstruct.com/fontstructions/show/143/blocparty",
+    "licence": "http://creativecommons.org/licenses/by-sa/3.0/"
   }
 ]
