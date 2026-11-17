@@ -249,7 +249,8 @@
       "variants": {
         "bricks_minecraft": {
           "name": "Bricks (Minecraft)",
-          "border": "#22130f"
+          "border": "#22130f",
+          "snap": 1
         },
         "bricks_bare_bones": {
           "name": "Bricks (Bare Bones)",
@@ -300,7 +301,7 @@
       "type": "strip",
       "authors": ["Zodiuss"],
       "border": "#36005d",
-      "snap": 4
+      "snap": 8
     },
     "gurgles": {
       "type": "strip",
@@ -311,12 +312,7 @@
       "type": "strip",
       "authors": ["B1tseK"],
       "border": "#00302c",
-      "snap": 2,
-      "variants": {
-        "glow_squid_old": {
-          "name": "Glow Squid (Old)"
-        }
-      }
+      "snap": 2
     },
     "cherry_blossom": {
       "type": "strip",
@@ -327,7 +323,8 @@
         "cherry_blossom_small": {
           "name": "Cherry Blossom (Small)",
           "authors": ["NotAGanesh"],
-          "border": "#3c0233"
+          "border": "#3c0233",
+          "snap": 1
         }
       }
     },

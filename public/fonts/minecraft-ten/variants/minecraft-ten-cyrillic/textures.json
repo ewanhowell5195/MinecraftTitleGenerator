@@ -136,7 +136,8 @@
     },
     "enderman": {
       "type": "strip",
-      "basedOn": "strips.minecraft-ten.enderman"
+      "basedOn": "strips.minecraft-ten.enderman",
+      "snap": 4
     }
   },
   "overlays": {
