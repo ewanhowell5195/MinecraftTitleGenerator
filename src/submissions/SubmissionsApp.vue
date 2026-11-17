@@ -1,5 +1,5 @@
 <script setup>
-  import { onMounted, ref } from "vue"
+  import { computed, onMounted, ref } from "vue"
   import { useRoute } from "vue-router"
   import { refreshAccount } from "../lib/state/community.js"
   import { loadFontList } from "../lib/font/font.js"
@@ -12,7 +12,7 @@
 
   const route = useRoute()
   const viewed = route.params.id ?? null
-  const editing = route.path.replace(/\/$/, "").endsWith("/edit")
+  const editing = computed(() => route.path.replace(/\/$/, "").endsWith("/edit"))
   const managing = route.meta.name === "account"
   const listing = route.meta.name === "submissions" && !viewed
   const fonts = ref(null)

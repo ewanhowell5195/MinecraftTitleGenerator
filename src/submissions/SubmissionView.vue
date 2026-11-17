@@ -121,11 +121,12 @@
   function saved(submission) {
     item.value = submission
     processing.value = { state: "processing" }
-    saving.value = false
     known.value = true
-    router.replace(page)
     clearTimeout(pollTimer)
-    pollTimer = setTimeout(checkProcessing)
+    router.replace(page).finally(() => {
+      saving.value = false
+      checkProcessing()
+    })
   }
 
   function cancel() {
@@ -135,8 +136,11 @@
 
   onMounted(() => Promise.all([load(), checkProcessing()]))
   onBeforeUnmount(() => clearTimeout(pollTimer))
-  watch(title, name => {
-    if (name) document.title = `${props.editing ? "Edit " : ""}${name} | Submissions | Minecraft Title Generator`
+  watch(() => props.editing, editing => {
+    if (!editing && !saving.value) checkProcessing()
+  })
+  watch(() => [title.value, props.editing], ([name, editing]) => {
+    if (name) document.title = `${editing ? "Edit " : ""}${name} | Submissions | Minecraft Title Generator`
   })
   watch(() => [item.value?.mine, reviewer.value, account.value?.id], () => markSeen().catch(err => console.error(err)))
   watch(() => account.value?.id, () => {

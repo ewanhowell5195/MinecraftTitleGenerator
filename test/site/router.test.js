@@ -34,9 +34,13 @@ describe("pageKey", () => {
     assert.equal(pageKey(router.resolve("/app/presets")), "app")
   })
 
-  test("other pages get a key per path and query", () => {
+  test("a submission keeps one key between viewing and editing it", () => {
+    assert.equal(pageKey(router.resolve("/submissions/7/")), pageKey(router.resolve("/submissions/7/edit/")))
+    assert.notEqual(pageKey(router.resolve("/submissions/7/")), pageKey(router.resolve("/submissions/8/")))
     assert.notEqual(pageKey(router.resolve("/submissions/")), pageKey(router.resolve("/submissions/7/")))
-    assert.notEqual(pageKey(router.resolve("/submissions/7/")), pageKey(router.resolve("/submissions/7/edit/")))
+  })
+
+  test("other pages get a key per path and query", () => {
     assert.notEqual(pageKey(router.resolve("/credits/")), pageKey(router.resolve("/credits/?search=oak")))
     assert.notEqual(pageKey(router.resolve("/terms/")), pageKey(router.resolve("/privacy/")))
   })

@@ -5,7 +5,9 @@ export function pageRoutes(components) {
 }
 
 export function pageKey(route) {
-  return route.meta.stays ? route.meta.name : route.fullPath.split("#")[0]
+  if (route.meta.stays) return route.meta.name
+  if (route.meta.keyedById && route.params.id) return `${route.meta.name}/${route.params.id}`
+  return route.fullPath.split("#")[0]
 }
 
 export function routed(anchor, here, resolve) {
