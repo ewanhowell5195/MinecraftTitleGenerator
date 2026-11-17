@@ -194,7 +194,8 @@ export function replaceFont() {
 function save() {
   if (!font.value) return
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, font: font.value, selected: selected.value, ...(editingSubmission.value && { submission: editingSubmission.value }) }))
+    const kerning = Object.fromEntries(Object.entries(font.value.kerning).filter(([, amount]) => amount))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, font: { ...font.value, kerning }, selected: selected.value, ...(editingSubmission.value && { submission: editingSubmission.value }) }))
     saveError.value = ""
   } catch (err) {
     saveError.value = `This browser couldn't remember your font (${err.message}). Download it so you don't lose it.`

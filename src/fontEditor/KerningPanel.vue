@@ -36,7 +36,7 @@
 
   function pairRow([pair, amount]) {
     const limit = limits.value(pair)
-    return { pair, amount, max: limit ?? 0, past: limit !== null && amount > limit }
+    return { pair, amount, max: limit ?? 0, top: Math.max(limit ?? 0, amount), past: limit !== null && amount > limit }
   }
 
   function matches(pair) {
@@ -86,7 +86,7 @@
     }
     customError.value = ""
     custom.value = ""
-    if (!(pair in font.value.kerning)) setKerning({ [pair]: suggestedAmounts.value.get(pair) ?? unit.value })
+    if (!(pair in font.value.kerning)) update({ ...font.value, kerning: { ...font.value.kerning, [pair]: Math.min(suggestedAmounts.value.get(pair) ?? unit.value, limits.value(pair) ?? 0) } })
   }
 
   function addAll() {
@@ -111,16 +111,17 @@
         <p v-if="!allPairs.length" class="hint">None yet. Add some from the suggestions, or type your own.</p>
         <p v-else-if="!pairs.length" class="hint">None of your pairs match this search.</p>
         <div v-else class="rows list">
-          <div v-for="{ pair, amount, max, past } of pairs" :key="pair" class="pair-row">
+          <div v-for="{ pair, amount, max, top, past } of pairs" :key="pair" class="pair-row">
             <div class="picture"><PairView :parsed="parsed" :pair="pair" :amount="amount" :width="200" :height="88" :max-scale="6" /></div>
             <div class="tools">
               <div class="head">
                 <span class="pair-name">{{ pairLabel(pair) }}</span>
                 <div class="spacer"></div>
-                <Button ghost v-if="suggestedAmounts.has(pair) && suggestedAmounts.get(pair) !== amount" v-tooltip="`Reset to the suggested ${suggestedAmounts.get(pair)}`" :aria-label="`Reset ${pairLabel(pair)} to the suggested ${suggestedAmounts.get(pair)}`" @click="setAmount(pair, suggestedAmounts.get(pair), max)"><template #icon><Icon name="reset" :size="16" /></template></Button>
+                <Button ghost v-if="suggestedAmounts.has(pair) && suggestedAmounts.get(pair) !== amount" v-tooltip="`Reset to the suggested ${suggestedAmounts.get(pair)}`" :aria-label="`Reset ${pairLabel(pair)} to the suggested ${suggestedAmounts.get(pair)}`" @click="setAmount(pair, suggestedAmounts.get(pair), top)"><template #icon><Icon name="reset" :size="16" /></template></Button>
                 <Button ghost v-tooltip="`Remove ${pairLabel(pair)}`" :aria-label="`Remove ${pairLabel(pair)}`" @click="remove(pair)"><template #icon><Icon name="close" :size="16" /></template></Button>
               </div>
-              <Slider label="Closer by" :min="0" :max="max" :model-value="amount" @update:model-value="setAmount(pair, $event, max)" />
+              <Slider v-if="top" label="Closer by" :min="0" :max="top" :model-value="amount" @update:model-value="setAmount(pair, $event, top)" />
+              <span v-else class="hint">These characters already touch, so they can't move any closer. Pairs at 0 aren't saved.</span>
               <span v-if="past" class="hint bad">Pushes these characters into each other, so the font can't be submitted. Use {{ max }} or less.</span>
             </div>
           </div>
