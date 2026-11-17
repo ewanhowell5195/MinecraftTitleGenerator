@@ -308,5 +308,20 @@
       "6": ["LT"]
     },
     "editor": { "width": 18, "grid": 2 }
+  },
+  {
+    "id": "mini",
+    "name": "MINI",
+    "authors": ["ALIMANO"],
+    "description": "MINI FONT",
+    "strips": ["minecraft-ten"],
+    "terminatorSpace": true,
+    "order": "abcdefghijklmnopqrstuvwxyz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣",
+    "kerning": {
+      "4": ["fj", "lv", "tj", "1v", "({", "[{", "{{", "})", "}]", "}}", "}7", "}i", "}t", "//", "\\?", "\\\\", "\\7", "\\t", "\\v", "£{", "€{", "1?", "1{", "1\\", "e{", "f{", "f/", "f£", "i{", "l?", "l{", "l\\", "t{", "t/", "t£", "v/", "_\\", "_7", "_t", "_v", "t_", ",t", ".t", "t,", "t.", ",7", ".7"],
+      "8": ["14", "17", "lt", "1t", "l7", "f_", "l'", "l😩"],
+      "12": ["l4"]
+    },
+    "editor": { "width": 28, "grid": 4 }
   }
 ]
