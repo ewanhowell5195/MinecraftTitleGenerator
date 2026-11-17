@@ -12,7 +12,7 @@ import { submitStats } from "./stats.js"
 import { titleLines, titleValues, trimmed } from "../link/titleFacts.js"
 import { downloadBlob } from "./ui.js"
 import { FILE_VERSION } from "../settings/upgrades.js"
-import { titleLoads } from "./view.js"
+import { resetTabs, titleLoads } from "./view.js"
 
 const FORMAT = "minecraft-title"
 export const EXTENSION = "mctitle"
@@ -125,6 +125,7 @@ function showObjects(objects, camera, preset = null) {
 }
 
 export function resetTitle() {
+  resetTabs()
   showObjects([createObject()])
 }
 

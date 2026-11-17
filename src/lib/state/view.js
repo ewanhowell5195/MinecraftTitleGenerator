@@ -26,6 +26,12 @@ const DEFAULTS = {
   antialias: true
 }
 
+const TABS = ["section", "shapeTab", "layer", "render", "camera", "gizmo"]
+
+export function resetTabs() {
+  for (const key of TABS) view[key] = DEFAULTS[key]
+}
+
 export function readStored(key) {
   try {
     return JSON.parse(localStorage.getItem(key))
