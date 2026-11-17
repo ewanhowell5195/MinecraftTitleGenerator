@@ -297,6 +297,16 @@
     "name": "BlocParty",
     "authors": ["garphynk", "Ewan Howell"],
     "source": "https://fontstruct.com/fontstructions/show/143/blocparty",
-    "licence": "http://creativecommons.org/licenses/by-sa/3.0/"
+    "licence": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "strips": ["minecraft-ten"],
+    "multicase": true,
+    "characterSpacing": -2,
+    "terminatorSpace": true,
+    "order": "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣",
+    "kerning": {
+      "2": ["{{", "}}", "//", "\\\\"],
+      "6": ["LT"]
+    },
+    "editor": { "width": 18, "grid": 2 }
   }
 ]
