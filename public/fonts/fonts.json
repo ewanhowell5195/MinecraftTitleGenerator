@@ -326,6 +326,17 @@
   },
   {
     "id": "grand-theft-auto",
-    "authors": ["SaikoKyunno"]
+    "authors": ["SaikoKyunno"],
+    "strips": ["minecraft-ten"],
+    "multicase": true,
+    "spaceWidth": 15,
+    "terminatorSpace": true,
+    "order": "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣",
+    "kerning": {
+      "3": ["47", "4t", "4v", "4w", "4x", "7j", "l7", "lt", "lv", "vj", "wj"],
+      "6": ["lw", "({", "{{", "[{", "})", "}]", "}}"],
+      "12": ["//", "\\\\"]
+    },
+    "editor": { "width": 33, "grid": 3 }
   }
 ]
