@@ -4,6 +4,7 @@
   import { usePanel } from "./panel.js"
   import { readImage } from "../../lib/state/ui.js"
   import { usedTextures } from "./uploads.js"
+  import { TEXTURE_TABS } from "../../lib/settings/settings.js"
   import { editorTitle } from "../../lib/state/scene.js"
   import { boxOf } from "../../render/bufferPoints.js"
   import { cameraCover, coverMembers, coverProjection } from "../../render/coverProjection.js"
@@ -58,7 +59,7 @@
       for (const member of members.value) member.customCoverY = value
     }
   })
-  const reusable = computed(() => usedTextures().filter(item => item.value !== object.value.customTexture).map(item => ({ ...item, image: item.value })))
+  const reusable = computed(() => usedTextures().filter(item => item.value !== object.value.customTexture).map(item => ({ ...item, image: item.value, value: item.source })))
 
   function sameShape(a, b) {
     return Math.abs(a.width / a.height - b.width / b.height) < SAME_SHAPE
@@ -69,6 +70,10 @@
     const [upload, flat] = await Promise.all([image(data), image(`${font.value.sheetFolder}/textures/flat.png`)])
     target.customTexture = data
     target.customTextureMode = sameShape(upload, flat) ? "standard" : "tileable"
+  }
+
+  function reuse(source) {
+    for (const key of TEXTURE_TABS.custom) object.value[key] = source[key]
   }
 
   watch(() => [object.value.customTexture, font.value?.sheetFolder], async ([data, folder]) => {
@@ -95,5 +100,5 @@
     </template>
   </template>
   <p v-else class="hint">An image the shape of this font's flat texture is painted onto the letters. Anything else is tiled, or you can use it as a strip or stretch it over the line.</p>
-  <UploadReuse :items="reusable" @pick="pickCustom" />
+  <UploadReuse :items="reusable" @pick="reuse" />
 </template>

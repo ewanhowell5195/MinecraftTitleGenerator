@@ -16,7 +16,7 @@ function used(collect, keyOf = value => value) {
 }
 
 export function usedTextures() {
-  return used(object => settingsOf(object).map(settings => settings.customTexture).filter(Boolean))
+  return used(object => settingsOf(object).filter(settings => settings.customTexture), settings => settings.customTexture).map(item => ({ ...item, value: item.value.customTexture, source: item.value }))
 }
 
 export function usedOverlayFiles() {
