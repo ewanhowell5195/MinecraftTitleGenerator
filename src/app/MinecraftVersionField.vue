@@ -1,8 +1,7 @@
 <script setup>
-  import { computed, ref } from "vue"
-  import { jar } from "../lib/minecraft/minecraft.js"
+  import { ref } from "vue"
   import Icon from "../components/Icon.vue"
-  import ProgressBar from "./ProgressBar.vue"
+  import MinecraftDownload from "./MinecraftDownload.vue"
   import VersionDialog from "./VersionDialog.vue"
 
   defineProps({
@@ -12,7 +11,6 @@
   const emit = defineEmits(["pick"])
 
   const choosing = ref(false)
-  const progress = computed(() => jar.total ? jar.done / jar.total : 0)
 
   function pick(version) {
     choosing.value = false
@@ -25,10 +23,7 @@
     <span>Minecraft {{ version }}</span>
     <Icon class="chevron" name="down" :size="14" />
   </button>
-  <div v-if="jar.version" class="download">
-    <span>Downloading Minecraft {{ jar.version }}</span>
-    <ProgressBar :value="progress" />
-  </div>
+  <MinecraftDownload />
   <VersionDialog v-if="choosing" :current="version" @pick="pick" @close="choosing = false" />
 </template>
 
@@ -41,14 +36,5 @@
   .version .chevron {
     margin-left: auto;
     color: var(--faint);
-  }
-
-  .download {
-    display: flex;
-    flex: none;
-    flex-direction: column;
-    gap: 6px;
-    font-size: var(--font-sm);
-    color: var(--muted);
   }
 </style>

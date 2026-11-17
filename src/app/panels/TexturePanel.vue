@@ -8,14 +8,16 @@
   import { layerShown, usePanel } from "./panel.js"
   import { leastRows, usePickFloor, variantRows } from "./pickFloor.js"
   import { gameVersions, library } from "../../lib/state/scene.js"
-  import { eulaDeclined } from "../../lib/minecraft/eula.js"
+  import { EulaDeclined, eulaDeclined } from "../../lib/minecraft/eula.js"
   import { pinnedTextures, setTexture, untouchedTileable } from "../../lib/settings/settings.js"
+  import { viewed } from "../../lib/settings/layers.js"
   import { minecraftStatId, popular } from "../../lib/state/stats.js"
   import { stripCovers } from "../../lib/font/strips.js"
   import { SEARCH_ABOVE, saveImage, thumbnail, thumbnailHeight, tilePreview } from "../../lib/state/ui.js"
   import Button from "../../components/Button.vue"
   import CustomTexture from "./CustomTexture.vue"
   import GradientEditor from "../GradientEditor.vue"
+  import MinecraftDownload from "../MinecraftDownload.vue"
   import MinecraftVersionField from "../MinecraftVersionField.vue"
   import Notice from "../../components/Notice.vue"
   import Panel from "../Panel.vue"
@@ -52,9 +54,11 @@
   const search = ref("")
   const blocks = shallowRef(null)
   const blocksError = ref("")
+  const pending = shallowRef(null)
   let blocksRequest = 0
 
   const usingMinecraft = computed(() => object.value.textureSource === "tileable" && object.value.tileableSource === "minecraft")
+  const waiting = computed(() => pending.value?.target === viewed(object.value) ? pending.value.values : null)
   const textures = computed(() => {
     const entries = Object.entries(list.value?.textures ?? {}).filter(([, data]) => stripCovers(data, shownLayer.value, font.value?.layers?.length ?? 1))
     const statId = id => `${font.value?.id}.${id}`
@@ -106,9 +110,8 @@
     return blocks.value?.get(id)?.tint ?? null
   }
 
-  function retint(next) {
-    const target = object.value
-    const current = usingMinecraft.value ? blockTint(target.minecraftTexture) : null
+  function retint(next, target = object.value) {
+    const current = target.textureSource === "tileable" && target.tileableSource === "minecraft" ? blockTint(target.minecraftTexture) : null
     if (target.colour.toLowerCase() === WHITE || target.colour.toLowerCase() === current) target.colour = next ?? WHITE
   }
 
@@ -117,31 +120,60 @@
     object.value.minecraftTexture = id
   }
 
-  function chooseSource(source) {
-    search.value = ""
-    if (source !== "tileable") retint(null)
-    const fresh = source === "tileable" && untouchedTileable(object.value) && !eulaDeclined()
-    setTexture(object.value, { textureSource: source }, { before: list.value })
-    if (fresh) chooseTileables("minecraft")
-    else if (usingMinecraft.value) retint(blockTint(object.value.minecraftTexture))
+  async function minecraftTint(target) {
+    let version = target.minecraftVersion
+    try {
+      version ??= await latestRelease()
+    } catch (err) {
+      blocksError.value = `Could not load the Minecraft versions: ${err.message}`
+      return { version, tint: null }
+    }
+    try {
+      return { version, tint: (await blockTextures(version)).get(target.minecraftTexture)?.tint ?? null }
+    } catch (err) {
+      if (err instanceof EulaDeclined) throw err
+      blocksError.value = `Could not load Minecraft ${version}: ${err.message}`
+      return { version, tint: null }
+    }
   }
 
-  async function chooseTileables(source) {
-    search.value = ""
-    if (source !== "minecraft") retint(null)
-    const target = object.value
-    if (source === "minecraft" && !target.minecraftVersion) {
-      try {
-        target.minecraftVersion = await latestRelease()
-      } catch (err) {
-        blocksError.value = `Could not load the Minecraft versions: ${err.message}`
-      }
+  async function switchToMinecraft(target, values = {}) {
+    const request = { target: viewed(target), values: { ...values, tileableSource: "minecraft" } }
+    const before = list.value
+    pending.value = request
+    blocksError.value = ""
+    try {
+      const { version, tint } = await minecraftTint(target)
+      if (pending.value !== request) return
+      retint(tint, target)
+      setTexture(target, { ...request.values, minecraftVersion: version }, { before })
+    } catch (err) {
+      if (!(err instanceof EulaDeclined)) throw err
+      if (pending.value === request) setTexture(target, { ...request.values, tileableSource: "premade", tileable: "checkerboard", tileableVariant: null }, { before })
+    } finally {
+      if (pending.value === request) pending.value = null
     }
-    target.tileableSource = source
-    if (usingMinecraft.value) retint(blockTint(target.minecraftTexture))
+  }
+
+  function chooseSource(source) {
+    search.value = ""
+    const target = object.value
+    if (source === "tileable" && (target.tileableSource === "minecraft" || untouchedTileable(target) && !eulaDeclined())) return switchToMinecraft(target, { textureSource: source })
+    pending.value = null
+    if (source !== "tileable") retint(null)
+    setTexture(target, { textureSource: source }, { before: list.value })
+  }
+
+  function chooseTileables(source) {
+    search.value = ""
+    if (source === "minecraft") return switchToMinecraft(object.value)
+    pending.value = null
+    retint(null)
+    object.value.tileableSource = source
   }
 
   function resetSource() {
+    pending.value = null
     retint(null)
     reset()
   }
@@ -179,7 +211,8 @@
 <template>
   <Panel title="Source" :modified="modified" @reset="resetSource">
     <div ref="picker" class="flow" :class="{ pick: object.textureSource === 'premade' || object.textureSource === 'tileable', peek: object.textureSource === 'tileable' }" :style="{ minHeight: `${floor}px` }">
-      <Segments v-if="sources.length > 1" :options="sources" :model-value="object.textureSource" @update:model-value="chooseSource" />
+      <Segments v-if="sources.length > 1" :options="sources" :model-value="waiting?.textureSource ?? object.textureSource" @update:model-value="chooseSource" />
+      <MinecraftDownload v-if="waiting" />
 
       <template v-if="object.textureSource === 'premade'">
         <input v-if="searchable(textures)" type="text" v-model="search" placeholder="Search textures" aria-label="Search textures">
@@ -198,7 +231,7 @@
         </template>
       </template>
 
-      <Segments v-if="object.textureSource === 'tileable'" :options="TILEABLE_SOURCES" :model-value="object.tileableSource" @update:model-value="chooseTileables" />
+      <Segments v-if="object.textureSource === 'tileable'" :options="TILEABLE_SOURCES" :model-value="waiting?.tileableSource ?? object.tileableSource" @update:model-value="chooseTileables" />
 
       <template v-if="usingMinecraft">
         <MinecraftVersionField :version="object.minecraftVersion" @pick="chooseVersion" />
