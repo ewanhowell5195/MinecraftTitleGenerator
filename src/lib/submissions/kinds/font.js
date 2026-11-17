@@ -1,6 +1,6 @@
 import { fullName, kerningPairs, parseMask } from "../../font/font.js"
 import { authorList } from "../../core/authors.js"
-import { collisionAmount, suggestKerning } from "../../font/kerning.js"
+import { collisionAmount } from "../../font/kerning.js"
 import { jsonText } from "../../core/jsonText.js"
 import { DEFAULT_ORDER } from "../../font/order.js"
 import { defaultBorder } from "../../settings/defaults.js"
@@ -54,38 +54,19 @@ export function submittedFontId(bytes) {
   }
 }
 
-function kerningStep(pairs, square) {
-  const amounts = Object.values(pairs)
-  return [square, 8, 6, 4, 2].find(step => amounts.filter(amount => amount % step === 0).length >= amounts.length * 0.9) ?? 1
-}
-
 function listed(items) {
   const shown = items.slice(0, 8).map(item => item === " " ? "space" : item)
   return items.length > shown.length ? `${shown.join(", ")} and ${items.length - shown.length} more` : shown.join(", ")
 }
 
-function kerningProblem(entry, sheet, square) {
+function kerningProblem(entry, sheet) {
   if (!entry.kerning) return null
   const pairs = kerningPairs(entry.kerning, "the font")
   const border = defaultBorder("top", entry)
-  const { list, capHeight } = parseMask(sheet.data, sheet.width, sheet.height, entry.order ?? DEFAULT_ORDER, border)
+  const { list } = parseMask(sheet.data, sheet.width, sheet.height, entry.order ?? DEFAULT_ORDER, border)
   const glyphs = Object.fromEntries(list.map(glyph => [glyph.char, glyph]))
-  const unit = kerningStep(pairs, square)
-  const suggested = new Map(suggestKerning(glyphs, { capHeight, unit, border }).map(item => [item.pair, item.amount]))
-  const past = []
-  const loose = []
-  let exact = 0
-  for (const [pair, amount] of Object.entries(pairs)) {
-    const got = suggested.get(pair) ?? 0
-    if (got === amount) exact++
-    if (got > amount + unit) loose.push(pair)
-    if (!(amount <= collisionAmount(glyphs, pair, border))) past.push(pair)
-  }
-  if (past.length) return `Some kerned pairs push their characters into each other: ${listed(past)}. Kern them less, so they stop where they touch.`
-  if (loose.length) return `Some kerned pairs are kerned a lot less than the font editor suggests: ${listed(loose)}. Use the suggested amounts from the Kerning tab.`
-  const total = Object.keys(pairs).length
-  if (exact / total <= 0.85) return `Most kerned pairs have to use the amounts the font editor suggests, and ${exact} of ${total} do. Reset the others to their suggestions in the Kerning tab.`
-  return null
+  const past = Object.entries(pairs).filter(([pair, amount]) => !(amount <= collisionAmount(glyphs, pair, border))).map(([pair]) => pair)
+  return past.length ? `Some kerned pairs push their characters into each other: ${listed(past)}. Kern them less, so they stop where they touch.` : null
 }
 
 export async function stripProblem(entry, ctx) {
@@ -140,7 +121,7 @@ async function ownFontProblem(font, parent, ctx) {
   const preview = previewProblem(entry.preview ?? "", drawn)
   if (preview) return preview
   if (entry.basedOn && !ctx.fonts.some(item => item.id === entry.basedOn)) return `It says it's based on ${entry.basedOn}, which isn't one of the fonts here. Change Based on in the font editor's Font tab.`
-  return await stripProblem(entry, ctx) ?? kerningProblem(entry, own.sheet, font.grid * font.density)
+  return await stripProblem(entry, ctx) ?? kerningProblem(entry, own.sheet)
 }
 
 async function readFile(bytes, parent, ctx) {

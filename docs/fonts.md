@@ -14,7 +14,7 @@ Set the name, ID, authors and description in the editor's Font tab. If your font
 - A font with both cases needs a capital and a lowercase version of every letter.
 - Fonts are 8 to 128 pixels tall, with up to 400 characters.
 - The ID is up to 40 lowercase letters and numbers, with single hyphens between words, like `my-font`. It cannot be used by another font.
-- Kerning has to stay close to what the editor's Kerning tab suggests. Kerned pairs cannot push their characters into each other.
+- Kerned pairs cannot push their characters into each other.
 - A font made from someone else's files, like a font downloaded from another site, needs links to the original and to its licence. A font that only looks like something else, like a logo, does not.
 
 ### Variants
