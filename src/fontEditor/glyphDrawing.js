@@ -10,7 +10,7 @@ export const TOPLINE_COLOUR = "#2f7cf6"
 export const BASELINE_COLOUR = "#2dbb4f"
 export const STRETCH_COLOUR = "#f59e0b"
 const GUIDE_FONT = "Arial, sans-serif"
-const UNGUIDED = [CREEPER, SPACE_CHAR]
+const UNGUIDED = [SPACE_CHAR]
 
 function inkColour(code) {
   const shade = depthShade(depthOf(font.value, code))
@@ -24,7 +24,7 @@ function line(ctx, fromX, fromY, toX, toY) {
 
 function drawGuide(ctx, centre, baseline, capHeight, width, room) {
   if (UNGUIDED.includes(selected.value)) return
-  const text = characterLabel(selected.value, font.value.letterCase)
+  const text = characterLabel(selected.value === CREEPER ? font.value.letterCase === "both" ? "A" : "a" : selected.value, font.value.letterCase)
   if (!text.trim()) return
   ctx.save()
   ctx.font = `bold 100px ${GUIDE_FONT}`
