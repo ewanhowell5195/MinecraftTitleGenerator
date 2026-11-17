@@ -51,7 +51,7 @@ describe("kerning suggestions", () => {
   })
 
   test("letters come first, then numbers, then numbers with letters, then currency, brackets, slashes and question marks, then other symbols", () => {
-    assert.deepEqual(["a-", "a/", "$4", "(]", "t?", "4a", "44", "lt", "\u{1F633}v"].map(pairRank), [4, 3, 3, 3, 3, 2, 1, 0, 0])
+    assert.deepEqual(["a-", "a/", "$4", "(]", "t?", "4a", "44", "lt", "\u{1F633}v", "AV", "Mi", "жЯ", "A?"].map(pairRank), [4, 3, 3, 3, 3, 2, 1, 0, 0, 0, 0, 0, 3])
     const ranks = Array.from(suggested.keys(), pairRank)
     assert.deepEqual(ranks, ranks.slice().sort((a, b) => a - b))
   })

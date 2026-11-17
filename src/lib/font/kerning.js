@@ -2,7 +2,7 @@ import { mostCommon } from "../core/maths.js"
 import { CREEPER, TERMINATOR_CLOSE, TERMINATOR_OPEN } from "./order.js"
 
 const SKIPPED = new Set([" ", TERMINATOR_OPEN, TERMINATOR_CLOSE])
-const LETTER = /^[a-z]$/
+const LETTER = /^\p{L}$/u
 const DIGIT = /^[0-9]$/
 const MAIN_SYMBOL = /^[$£€()[\]{}/\\?]$/
 
