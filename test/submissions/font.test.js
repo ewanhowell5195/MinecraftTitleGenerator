@@ -161,9 +161,9 @@ describe("checking a font", () => {
     const font = copyOf("f8thful")
     assert.equal(ownFont({ ...font, preview: " Hey " }).entry.preview, "hey")
     assert.equal(ownFont(font).entry.preview, undefined)
-    assert.equal((await check({ bytes: jsonOf({ ...font, preview: "hi" }) })).problems.file, null)
+    assert.equal((await check({ bytes: jsonOf({ ...font, preview: "hiy" }) })).problems.file, null)
     assert.match((await check({ bytes: jsonOf({ ...font, preview: "hi™" }) })).problems.file, /doesn't draw: ™/)
-    assert.match((await check({ bytes: jsonOf({ ...font, preview: "abcdefghijk" }) })).problems.file, /up to 10 characters/)
+    for (const preview of ["hi", "abcd"]) assert.match((await check({ bytes: jsonOf({ ...font, preview }) })).problems.file, /has to be 3 characters/)
   })
 
   test("a file that isn't from the font editor says so", async () => {

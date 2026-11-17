@@ -29,7 +29,7 @@
     { key: "authors", label: "Authors", required: true, names: true, hint: "Everyone who worked on the font, shown in the credits. If you're porting someone else's font with their permission, list both yourself and them." },
     { key: "basedOn", label: "Based on font", choice: true, hint: "The font yours was made from, so its authors are credited too." },
     { key: "description", label: "Description", full: true, hint: "A short line shown under the font's name in the generator." },
-    { key: "preview", label: "Thumbnail text", full: true, preview: true, hint: `The characters drawn on the font's thumbnails, up to ${PREVIEW_LENGTH}. Leave it empty to use the text shown in the box.` }
+    { key: "preview", label: "Thumbnail text", full: true, preview: true, hint: `The ${PREVIEW_LENGTH} characters drawn on the font's thumbnails. Leave it empty to use the text shown in the box, and only change it when that doesn't show the font well.` }
   ]
 
   const SPACING = [
@@ -94,8 +94,10 @@
   const drawn = computed(() => charactersOf(font.value).filter(char => !isBlank(glyphOf(font.value, char))))
   const automaticThumbnail = computed(() => Array.from(automaticPreview(drawn.value) ?? (font.value.letterCase === "both" ? "ABC" : "abc"), char => shownAs(char, font.value.letterCase)).join(""))
   const errors = computed(() => {
-    const missing = undrawnPreview(previewText(font.value), drawn.value)
-    return { ...clashes.value, preview: missing.length ? `This font doesn't draw ${missing.map(char => characterName(char, font.value.letterCase)).join(", ")} yet, so the thumbnails can't show it.` : null }
+    const text = previewText(font.value)
+    const missing = undrawnPreview(text, drawn.value)
+    const short = text && Array.from(text).length !== PREVIEW_LENGTH ? `The thumbnail text has to be ${PREVIEW_LENGTH} characters.` : null
+    return { ...clashes.value, preview: short ?? (missing.length ? `This font doesn't draw ${missing.map(char => characterName(char, font.value.letterCase)).join(", ")} yet, so the thumbnails can't show it.` : null) }
   })
 
   onMounted(async () => {

@@ -9,7 +9,7 @@ const LABELS = { [CREEPER]: "Creeper", [OPENING_QUOTE]: String.fromCodePoint(0x2
 const NOTHING_TO_DRAW = /^[\p{M}\p{Cf}]$/u
 const NOT_PREVIEWED = new Set([SPACE_CHAR, TERMINATOR_OPEN, TERMINATOR_CLOSE, "'"])
 
-export const PREVIEW_LENGTH = 10
+export const PREVIEW_LENGTH = 3
 
 export function previewText(font) {
   const text = (font.preview ?? "").trim()
@@ -18,10 +18,10 @@ export function previewText(font) {
 
 export function automaticPreview(drawn) {
   if (["a", "b", "c"].every(char => drawn.includes(char))) return null
-  const letters = drawn.filter(char => /^\p{L}$/u.test(char))
-  const chars = letters.length ? letters : drawn
+  const letter = char => /^\p{L}$/u.test(char)
+  const chars = drawn.filter(letter).concat(drawn.filter(char => !letter(char)))
   const shown = chars.filter(char => !NOT_PREVIEWED.has(char))
-  return (shown.length ? shown : chars).slice(0, 3).join("")
+  return (shown.length ? shown : chars).slice(0, PREVIEW_LENGTH).join("")
 }
 
 export function undrawnPreview(text, drawn) {
