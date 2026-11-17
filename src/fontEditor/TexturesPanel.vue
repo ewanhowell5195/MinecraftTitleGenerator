@@ -2,7 +2,7 @@
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
   import SharedStrips from "../components/SharedStrips.vue"
-  import { downloadFlatTexture, downloadStripTexture, font, previewText as text, update } from "./store.js"
+  import { downloadFlatTexture, downloadStripTexture, font, previewText as text, update, DEFAULT_PREVIEW } from "./store.js"
 
   function setStrips(strips, group = null) {
     update({ ...font.value, strips }, group)
@@ -20,7 +20,7 @@
       </div>
     </section>
 
-    <SharedStrips v-model:text="text" :font="font" :strips="font.strips" @update:strips="setStrips" />
+    <SharedStrips v-model:text="text" :fallback="DEFAULT_PREVIEW" :font="font" :strips="font.strips" @update:strips="setStrips" />
   </div>
 </template>
 

@@ -37,7 +37,8 @@
     titled: { type: Boolean, default: true },
     preview: { type: Boolean, default: true },
     selected: { type: Object, default: undefined },
-    maxSets: { type: Number, default: null }
+    maxSets: { type: Number, default: null },
+    fallback: { type: String, default: "" }
   })
 
   const emit = defineEmits(["update:strips", "select"])
@@ -59,7 +60,7 @@
   let flatToken = 0
 
   const words = computed(() => WORDS[props.subject])
-  const shown = computed(() => props.sample ?? text.value)
+  const shown = computed(() => props.sample ?? (text.value.trim() ? text.value : props.fallback))
   const chosen = computed(() => sets.value.find(set => set.id === chosenSet.value) ?? null)
   const textures = computed(() => {
     if (!chosen.value) return []
@@ -279,7 +280,7 @@
     <template v-if="preview">
       <Field v-if="sample === null" label="Text">
         <div class="input-row">
-          <input v-model="text" type="text" aria-label="Test text">
+          <input v-model="text" type="text" :placeholder="fallback" aria-label="Test text">
           <Button v-if="worst" v-tooltip="`The characters that reach furthest above the topline or below the baseline: ${worst}`" @click="text = worst">Worst characters</Button>
           <Segments v-model="view" :options="VIEWS" />
         </div>

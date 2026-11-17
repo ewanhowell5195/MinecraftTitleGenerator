@@ -6,7 +6,7 @@
   import Slider from "../components/Slider.vue"
   import { editorLine, useServedFont } from "./editorLine.js"
   import { previewFont, drawText } from "./textCanvas.js"
-  import { font, previewMode as mode, previewStretch as stretch, previewTerminators as terminators, previewText as text } from "./store.js"
+  import { font, previewMode as mode, previewStretch as stretch, previewTerminators as terminators, previewText as text, previewShown as shown, DEFAULT_PREVIEW } from "./store.js"
 
   const SPLIT_WIDTH = 640
   const EMPTY = "Nothing to show yet. Draw the characters in your preview text."
@@ -19,7 +19,7 @@
   const wide = ref(true)
   const live = computed(() => wide.value || mode.value === "3d")
   const { entry, settled } = useServedFont("preview", () => live.value ? { font: font.value } : null)
-  const lines = computed(() => entry.value && text.value.trim() ? [editorLine(entry.value, text.value, { terminators: terminators.value, stretch: 1 + stretch.value / 100 })] : [])
+  const lines = computed(() => entry.value ? [editorLine(entry.value, shown.value, { terminators: terminators.value, stretch: 1 + stretch.value / 100 })] : [])
   let observer = null
   let frame = 0
 
@@ -31,7 +31,7 @@
   function draw() {
     if (!canvas.value || !holder.value) return
     try {
-      empty.value = !drawText(canvas.value, previewFont(font.value), text.value, { maxWidth: holder.value.clientWidth - 16, maxHeight: holder.value.clientHeight - 16, terminators: terminators.value, stretch: 1 + stretch.value / 100 })
+      empty.value = !drawText(canvas.value, previewFont(font.value), shown.value, { maxWidth: holder.value.clientWidth - 16, maxHeight: holder.value.clientHeight - 16, terminators: terminators.value, stretch: 1 + stretch.value / 100 })
       error.value = ""
     } catch (err) {
       error.value = err.message
@@ -58,7 +58,7 @@
     cancelAnimationFrame(frame)
   })
 
-  watch([font, text, terminators, mode, stretch], schedule)
+  watch([font, shown, terminators, mode, stretch], schedule)
 </script>
 
 <template>
@@ -66,7 +66,7 @@
     <div class="bar">
       <label class="text">
         <span class="label">Preview</span>
-        <input v-model="text" type="text" :class="{ single: font.letterCase !== 'both' }" placeholder="Type something" aria-label="Preview text">
+        <input v-model="text" type="text" :class="{ single: font.letterCase !== 'both' }" :placeholder="DEFAULT_PREVIEW" aria-label="Preview text">
       </label>
       <div class="stretch" v-tooltip="'Makes the preview up to twice as tall, using only the marked stretch zones'">
         <Slider inline label="Stretch" :min="0" :max="100" v-model="stretch" />
