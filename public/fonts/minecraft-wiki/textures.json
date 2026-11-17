@@ -22,7 +22,7 @@
           "type": "strip",
           "name": "Wiki (Old)",
           "authors": ["ewanhowell5195"],
-          "snap": 8,
+          "snap": 4,
           "overlays": null,
           "inner": ["#424242", "#151515"],
           "sides": ["#5b5b5b", "#262626"]

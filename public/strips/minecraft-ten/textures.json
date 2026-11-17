@@ -87,7 +87,7 @@
       ],
       "authors": ["Ewan Howell", "DamienBrittan"],
       "border": "#260b28",
-      "snap": 2
+      "snap": 4
     },
     "grass": {
       "type": "strip",
@@ -96,7 +96,7 @@
       ],
       "authors": ["ShrimpSnail", "DamienBrittan", "blank3times"],
       "border": "#2b040c",
-      "snap": 2,
+      "snap": 4,
       "variants": {
         "grass_side": {
           "overlays": [
@@ -192,7 +192,7 @@
       "type": "strip",
       "authors": ["Ewan Howell"],
       "border": "#45362a",
-      "snap": 2,
+      "snap": 4,
       "variants": {
         "sand": {
           "authors": ["Magminer"]
@@ -245,7 +245,7 @@
       "type": "strip",
       "authors": ["IAmMaker"],
       "border": "#3e0e14",
-      "snap": 4,
+      "snap": 2,
       "variants": {
         "bricks_minecraft": {
           "name": "Bricks (Minecraft)",
@@ -256,7 +256,7 @@
           "name": "Bricks (Bare Bones)",
           "authors": ["Klayv"],
           "border": "#190f0f",
-          "snap": 2
+          "snap": 4
         }
       }
     },
@@ -281,7 +281,7 @@
     "creeper": {
       "type": "strip",
       "authors": ["Andre_601"],
-      "snap": 2
+      "snap": 4
     },
     "flames": {
       "type": "strip",
@@ -301,7 +301,7 @@
       "type": "strip",
       "authors": ["Zodiuss"],
       "border": "#36005d",
-      "snap": 8
+      "snap": 4
     },
     "gurgles": {
       "type": "strip",
@@ -312,13 +312,13 @@
       "type": "strip",
       "authors": ["B1tseK"],
       "border": "#00302c",
-      "snap": 2
+      "snap": 4
     },
     "cherry_blossom": {
       "type": "strip",
       "authors": ["Klayv"],
       "border": "#441b39",
-      "snap": 2,
+      "snap": 4,
       "variants": {
         "cherry_blossom_small": {
           "name": "Cherry Blossom (Small)",
@@ -332,7 +332,7 @@
       "type": "strip",
       "authors": ["Klayv"],
       "border": "#1c0d06",
-      "snap": 2
+      "snap": 4
     },
     "winter": {
       "type": "strip",
@@ -341,13 +341,13 @@
       ],
       "authors": ["Klayv"],
       "border": "#1d193d",
-      "snap": 2
+      "snap": 4
     },
     "terracotta": {
       "type": "strip",
       "authors": ["Klayv"],
       "border": "#2a1c16",
-      "snap": 2
+      "snap": 4
     },
     "lagoona": {
       "type": "strip",
@@ -357,7 +357,7 @@
     "enderman": {
       "type": "strip",
       "authors": ["B1tseK"],
-      "snap": 2
+      "snap": 4
     }
   }
 }

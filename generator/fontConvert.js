@@ -44,15 +44,21 @@ function writeOwn(root, entry, built) {
 function checkBundle(folder, template, submittedFlat) {
   const list = readJson(path.join(folder, "textures.json"))
   const images = Object.entries(list.textures).filter(([id]) => submittedFlat || id !== "flat").map(([id, data]) => ["textures", id, data]).concat(Object.entries(list.overlays ?? {}).map(([id, data]) => ["overlays", id, data]))
+  let snapped = false
   for (const [section, id, data] of images) {
     const image = readPng(path.join(folder, section, `${id}.png`))
     if (data.type === "strip") {
       if (!Number.isInteger(Math.log2(image.height / template.rows))) throw new Error(`the strip ${id} is ${image.height} pixels tall, which doesn't fit the font's ${template.rows} strip rows`)
+      if (data.snap !== undefined) {
+        data.snap /= image.height / template.rows
+        snapped = true
+      }
       continue
     }
     const density = data.density ?? 1
     if (image.width !== template.width * density || image.height !== template.height * density) throw new Error(`${section}/${id}.png is ${image.width}x${image.height}, and the font's template at density ${density} is ${template.width * density}x${template.height * density}`)
   }
+  if (snapped) writeJson(path.join(folder, "textures.json"), list)
 }
 
 export async function convertFont(root, id) {

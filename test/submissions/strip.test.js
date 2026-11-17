@@ -120,7 +120,7 @@ describe("strip shapes", () => {
 describe("checking a strip", () => {
   test("a strip type's strips are its depth, baseline and height tall", async () => {
     assert.deepEqual((await checked("set:minecraft-ten", {}, png(1, 92))).problems, {})
-    assert.deepEqual((await checked("set:minecraft-ten", {}, png(16, 46))).details, { border: "#000000", size: { width: 16, height: 46 } })
+    assert.deepEqual((await checked("set:minecraft-ten", {}, png(16, 46))).details, { border: "#000000", size: { width: 16, height: 46 }, density: 0.5 })
     assert.match((await checked("set:minecraft-ten", {}, png(1, 90))).problems.file, /Minecraft Ten strip type have to be 23, 46, 92, 184/)
   })
 
@@ -146,7 +146,7 @@ describe("checking a strip", () => {
   test("a new strip type needs fonts that fit it, and moves them off centre when that helps", async () => {
     const good = await checked("new", { set: "Soft Edge", ...NEW_SHAPE, fonts: ["minecraft-five", "geo-squares"] }, png(1, 80))
     assert.deepEqual(good.problems, {})
-    assert.deepEqual(good.details, { border: "#000000", size: { width: 1, height: 80 }, set: "soft-edge", ...NEW_SHAPE, fonts: ["minecraft-five", "geo-squares"], offsets: { "minecraft-five": -1 } })
+    assert.deepEqual(good.details, { border: "#000000", size: { width: 1, height: 80 }, set: "soft-edge", ...NEW_SHAPE, fonts: ["minecraft-five", "geo-squares"], offsets: { "minecraft-five": -1 }, density: 1 })
     const bad = await checked("new", { set: "Soft Edge", ...NEW_SHAPE, fonts: ["minecraft-earth"] }, png(1, 92))
     assert.match(bad.problems.fonts, /Minecraft Earth won't fit: its "\$" goes 3 pixels too low and 11 pixels too high/)
     assert.match(bad.problems.file, /this strip type have to be 5, 10, 20, 40, 80/)
@@ -221,7 +221,7 @@ describe("sending a strip", () => {
     assert.equal(gh.pulls.get(1).title, "Pale Dawn strip for the Minecraft Ten strip type")
     assert.equal(gh.commits.get(gh.refs.get(`heads/submission/${id}`)).message, "[CF-Pages-Skip] add Pale Dawn strip to the Minecraft Ten strip type")
     assert.equal(branchFile(id, FONTS), fs.readFileSync(FONTS, "utf8"))
-    assert.deepEqual((await details(id)).details, { border: "#3d1f0a", stretch: true, size: { width: 16, height: 46 } })
+    assert.deepEqual((await details(id)).details, { border: "#3d1f0a", stretch: true, size: { width: 16, height: 46 }, density: 0.5 })
   })
 
   test("as a variant goes under its strip, saying so only where it stretches differently", async () => {
@@ -242,12 +242,14 @@ describe("sending a strip", () => {
   test("keeps its snap, and a variant only says so where it snaps differently from its strip", async () => {
     const cookie = await signIn()
     const { id } = await send(cookie, { details: { snap: 2 } }, png(16, 46))
-    assert.deepEqual(branchJson(id, SET).textures.pale_dawn, { type: "strip", authors: ["Someone"], border: "#3d1f0a", snap: 2 })
+    assert.deepEqual(branchJson(id, SET).textures.pale_dawn, { type: "strip", authors: ["Someone"], border: "#3d1f0a", snap: 4 })
     assert.equal((await details(id)).details.snap, 2)
-    const same = await send(cookie, { name: "Same", details: { variantOf: "bricks", snap: 4 } }, png(16, 46))
+    const same = await send(cookie, { name: "Same", details: { variantOf: "bricks", snap: 2 } }, png(16, 92))
     assert.deepEqual(branchJson(same.id, SET).textures.bricks.variants.same, { authors: ["Someone"], border: "#3d1f0a" })
     const plain = await send(cookie, { name: "Plain", details: { variantOf: "bricks" } }, png(16, 46))
     assert.deepEqual(branchJson(plain.id, SET).textures.bricks.variants.plain, { authors: ["Someone"], border: "#3d1f0a" })
+    const finer = await send(cookie, { name: "Finer", details: { variantOf: "bricks" } }, png(16, 184))
+    assert.deepEqual(branchJson(finer.id, SET).textures.bricks.variants.finer, { authors: ["Someone"], border: "#3d1f0a", snap: 0.5 })
     assert.match((await send(cookie, { name: "Odd", details: { snap: 1.5 } }, png(16, 46))).error, /snap has to be a whole number/)
   })
 

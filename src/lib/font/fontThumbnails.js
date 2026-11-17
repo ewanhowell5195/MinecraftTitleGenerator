@@ -140,7 +140,7 @@ export function sceneStrip(scene, entry, image) {
   if (tiling !== "line" && tiling !== "character") throw new Error(`${entry.id ?? "a strip"} has tiling "${tiling}", strips tile by "line" or "character"`)
   const first = stripLayout(entry, scene, scene.depth, 0)
   const density = image.height / first.total
-  const placed = ({ shape, offset }) => ({ image, shape, density, snap: (entry.snap ?? 1) / density, top: offset + shape.depth + shape.top, tiling })
+  const placed = ({ shape, offset }) => ({ image, shape, density, snap: entry.snap ?? 1 / density, top: offset + shape.depth + shape.top, tiling })
   if (!first.stacked) return placed(first)
   return { ...placed(first), layers: scene.layers.map((_, layer) => placed(stripLayout(entry, scene, scene.depth, layer))) }
 }

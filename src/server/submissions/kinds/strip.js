@@ -37,15 +37,16 @@ async function freeAsset(read, row, fonts, extra, taken) {
 }
 
 function entryFor(row, details, asset, inherited) {
-  return { type: "strip", ...(details.stretch && { stretch: true }), ...(row.name !== titleCase(asset) && { name: row.name }), authors: row.credit, ...ownBorder(details.border, inherited), ...(details.snap > 1 && { snap: details.snap }) }
+  return { type: "strip", ...(details.stretch && { stretch: true }), ...(row.name !== titleCase(asset) && { name: row.name }), authors: row.credit, ...ownBorder(details.border, inherited), ...(details.snap > 1 && { snap: details.snap / (details.density ?? 1) }) }
 }
 
 function added(textures, row, details, asset, where) {
   if (!details.variantOf) return { ...textures, [asset]: entryFor(row, details, asset) }
   const parent = textures?.[details.variantOf]
   if (parent?.type !== "strip") throw new Error(`submission ${row.id} is a variant of ${details.variantOf}, which isn't a published strip of ${where}`)
-  const { type, stretch, snap = 1, ...own } = entryFor(row, details, asset, parent.border)
-  const variant = { ...(!!stretch !== !!parent.stretch && { stretch: !!stretch }), ...own, ...(snap > 1 && snap !== parent.snap && { snap }) }
+  const { type, stretch, snap: chosen, ...own } = entryFor(row, details, asset, parent.border)
+  const snap = chosen ?? (parent.snap === undefined ? undefined : 1 / (details.density ?? 1))
+  const variant = { ...(!!stretch !== !!parent.stretch && { stretch: !!stretch }), ...own, ...(snap !== undefined && snap !== parent.snap && { snap }) }
   return { ...textures, [details.variantOf]: { ...parent, variants: { ...parent.variants, [asset]: variant } } }
 }
 

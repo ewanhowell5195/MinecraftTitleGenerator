@@ -35,7 +35,7 @@ export async function loadAssets({ font, list, sheet, tileables }, value, band, 
     const tiling = entry.tiling ?? "line"
     if (tiling !== "line" && tiling !== "character") throw new Error(`${id} has tiling "${tiling}", strips tile by "line" or "character"`)
     const slice = layers && (layout.stacked || entry.stripLayer != null) ? layerSlice(layers, band, independentLayers(font)) : null
-    assets.strip = { image: strip, density, snap: (entry.snap ?? 1) / density, top, bottom, depth, tiling, scale, slice, band: assets.band, independent: assets.independent }
+    assets.strip = { image: strip, density, snap: entry.snap ?? 1 / density, top, bottom, depth, tiling, scale, slice, band: assets.band, independent: assets.independent }
     if (entry.border) assets.border = entry.border
     assets.densities.push(Math.max(1, density))
   }

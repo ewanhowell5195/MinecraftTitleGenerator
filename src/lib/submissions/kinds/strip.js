@@ -88,7 +88,7 @@ export const strip = {
   noun: "strip",
   available: true,
   accept: "image/png",
-  derived: ["size"],
+  derived: ["size", "density"],
   async check({ target, details, bytes }, ctx) {
     const clean = {}
     const problems = {}
@@ -111,6 +111,7 @@ export const strip = {
     if (rows) {
       const heights = sharedHeights(rows)
       if (!heights.includes(size.height)) problems.file = heights.length ? `Strips for ${result.what} have to be ${heightList(heights)} pixels tall, and this one is ${size.height}.` : `The fonts using ${result.what} don't agree on a strip height, so it can't take new strips.`
+      else clean.density = size.height / rows[0]
     }
     return { problems, target: result.target, details: clean }
   }

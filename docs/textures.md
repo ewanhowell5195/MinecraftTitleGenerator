@@ -127,7 +127,7 @@ Strips take the texture keys, plus:
 | --- | --- | --- |
 | `type` | | `"strip"` |
 | `stretch` | `false` | Stretches the front between each font's baseline and top |
-| `snap` | | How many pixels wide each of the strip's own pixels are |
+| `snap` | One of the strip's pixels | How many of the font's pixels wide each of the strip's own pixels are |
 | `tiling` | `"line"` | `"character"` restarts the strip on each letter |
 
 #### Overlay keys
