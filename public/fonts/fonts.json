@@ -275,5 +275,16 @@
         "editor": { "width": 44, "grid": 2 }
       }
     ]
+  },
+  {
+    "id": "minecraft-ten-drip",
+    "authors": ["FloideN_", "Ewan Howell"],
+    "source": "https://fontstruct.com/fontstructions/show/2275860/modified-mc-ten-drip",
+    "licence": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "basedOn": "minecraft-ten",
+    "multicase": true,
+    "terminatorSpace": true,
+    "order": "😳AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣",
+    "editor": { "width": 28, "grid": 4 }
   }
 ]
