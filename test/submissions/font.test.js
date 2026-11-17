@@ -157,6 +157,15 @@ describe("checking a font", () => {
     assert.match((await check({ bytes: jsonOf({ ...font, kerning: { ...font.kerning, lt: 60 } }) })).problems.file, /push their characters into each other: lt/)
   })
 
+  test("thumbnail text is kept, and can only use drawn characters", async () => {
+    const font = copyOf("f8thful")
+    assert.equal(ownFont({ ...font, preview: " Hey " }).entry.preview, "hey")
+    assert.equal(ownFont(font).entry.preview, undefined)
+    assert.equal((await check({ bytes: jsonOf({ ...font, preview: "hi" }) })).problems.file, null)
+    assert.match((await check({ bytes: jsonOf({ ...font, preview: "hi™" }) })).problems.file, /doesn't draw: ™/)
+    assert.match((await check({ bytes: jsonOf({ ...font, preview: "abcdefghijk" }) })).problems.file, /up to 10 characters/)
+  })
+
   test("a file that isn't from the font editor says so", async () => {
     assert.match((await check({ bytes: new TextEncoder().encode("{ \"id\": \"x\" }") })).problems.file, /no font sheet in it/)
     assert.match((await check({ bytes: new TextEncoder().encode("nope") })).problems.file, /isn't a font editor JSON file/)

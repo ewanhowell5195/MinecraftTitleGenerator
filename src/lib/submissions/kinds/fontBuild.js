@@ -1,11 +1,11 @@
 import { authorList } from "../../core/authors.js"
 import { SHEET_MAX_WIDTH, groupedKerning, parseMask, sheetLayout } from "../../font/font.js"
-import { charactersOf } from "../../font/editor/characters.js"
+import { automaticPreview, charactersOf } from "../../font/editor/characters.js"
 import { exportJson, savedJson } from "../../font/editor/export.js"
 import { glyphOf, isBlank } from "../../font/editor/glyph.js"
 import { fontFromFiles, parseFontJson } from "../../font/editor/import.js"
 import { autoStretch, parsedSheet } from "../../font/editor/sheet.js"
-import { DEFAULT_ORDER, TERMINATOR_CLOSE, TERMINATOR_OPEN } from "../../font/order.js"
+import { DEFAULT_ORDER } from "../../font/order.js"
 import { defaultBorder, defaultDepth } from "../../settings/defaults.js"
 import { flatLayers, independentLayers, layerRange, layerSlices } from "../../font/flatSheet.js"
 import { drawSheet } from "../../font/sheet.js"
@@ -15,10 +15,9 @@ import { decodePng, encodePng } from "./png.js"
 export const FONT_LIMITS = { capHeight: [8, 128], characters: 400 }
 export const HOLDING_FOLDER = "submissions/fonts"
 
-const NOT_PREVIEWED = new Set([" ", TERMINATOR_OPEN, TERMINATOR_CLOSE, "'"])
 const read = new WeakMap()
 
-const TEXT_FIELDS = ["id", "name", "description", "basedOn", "order"]
+const TEXT_FIELDS = ["id", "name", "description", "basedOn", "order", "preview"]
 const NUMBER_FIELDS = ["spaceWidth", "depth", "border", "characterSpacing", "terminatorSpaceWidth"]
 const FLAG_FIELDS = ["multicase", "terminatorSpace", "forcedTerminators", "autoBorder", "flat", "overlay", "allFaces"]
 const EDITOR_NUMBERS = ["height", "width", "grid", "density"]
@@ -109,16 +108,6 @@ export function drawnCells(font) {
   return { cells: list.filter(cell => cell.width), capHeight, layers }
 }
 
-function previewOf(chars) {
-  const shown = chars.filter(char => !NOT_PREVIEWED.has(char))
-  return (shown.length ? shown : chars).slice(0, 3).join("")
-}
-
-function previewFor(drawn) {
-  if (["a", "b", "c"].every(char => drawn.includes(char))) return null
-  const letters = drawn.filter(char => /^\p{L}$/u.test(char))
-  return previewOf(letters.length ? letters : drawn)
-}
 
 function ownKerning(font, drawn) {
   return Object.fromEntries(Object.entries(font.kerning).filter(([pair, amount]) => amount && Array.from(pair).every(char => drawn.includes(char))))
@@ -152,7 +141,7 @@ export function ownFont(font, parentId = null) {
   const pairs = ownKerning(font, drawn)
   const entry = { ...settings }
   if (drawn.join("") !== DEFAULT_ORDER) entry.order = drawn.join("")
-  const preview = previewFor(drawn)
+  const preview = entry.preview ?? automaticPreview(drawn)
   if (preview) entry.preview = preview
   if (Object.keys(pairs).length) entry.kerning = groupedKerning(pairs)
   entry.editor = { width: font.width, grid: font.grid, ...(font.density > 1 && { density: font.density }) }

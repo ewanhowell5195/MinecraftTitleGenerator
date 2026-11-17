@@ -7,7 +7,7 @@ import { defaultBorder } from "../../settings/defaults.js"
 import { stripUse } from "../../font/strips.js"
 import { GENERATED_EDGE_OVERLAYS, withGenerated } from "../../texture/overlays/settings.js"
 import { DEFAULT_ROLES, EXTRA_FILE, HEX_COLOUR, SUBMISSION_LIMITS, assetId, creditProblem, pngProblem, pngSize, sizedProblem, textProblem, textureDensity } from "../submissions.js"
-import { MULTICASE_CHARACTERS, REQUIRED_CHARACTERS, characterName, hasCase } from "../../font/editor/characters.js"
+import { MULTICASE_CHARACTERS, PREVIEW_LENGTH, REQUIRED_CHARACTERS, characterName, hasCase, undrawnPreview } from "../../font/editor/characters.js"
 import { fontId } from "../../font/editor/export.js"
 import { MAX_ANCHORS } from "../../texture/overlayColours.js"
 import { overlayPalette } from "./fontAsset.js"
@@ -117,6 +117,12 @@ function caseProblem(drawn, letterCase) {
   return blank.length ? `A font with both cases needs a capital and a lowercase version of every letter. These are blank: ${listed(blank)}.` : null
 }
 
+function previewProblem(text, drawn) {
+  if (Array.from(text).length > PREVIEW_LENGTH) return `The thumbnail text can be up to ${PREVIEW_LENGTH} characters. Change it in the font editor's Font tab.`
+  const missing = undrawnPreview(text, drawn)
+  return missing.length ? `The thumbnail text uses characters the font doesn't draw: ${listed(missing)}. Change it in the font editor's Font tab.` : null
+}
+
 function builtFont(font, parentId) {
   if (!built.has(font)) built.set(font, new Map())
   const cache = built.get(font)
@@ -131,6 +137,8 @@ async function ownFontProblem(font, parent, ctx) {
   const problem = sizeProblem(own.capHeight, drawn.length) ?? (parent ? null : blankProblem(drawn, font.letterCase)) ?? caseProblem(drawn, font.letterCase)
   if (problem) return problem
   const entry = own.entry
+  const preview = previewProblem(entry.preview ?? "", drawn)
+  if (preview) return preview
   if (entry.basedOn && !ctx.fonts.some(item => item.id === entry.basedOn)) return `It says it's based on ${entry.basedOn}, which isn't one of the fonts here. Change Based on in the font editor's Font tab.`
   return await stripProblem(entry, ctx) ?? kerningProblem(entry, own.sheet, font.grid * font.density)
 }

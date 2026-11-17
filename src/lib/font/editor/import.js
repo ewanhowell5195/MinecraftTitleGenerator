@@ -12,7 +12,7 @@ import { autoStretch } from "./sheet.js"
 import { resizeFont } from "./sizes.js"
 
 const GRID_SIZES = [8, 6, 5, 4, 3, 2]
-const META_KEYS = ["authors", "description", "basedOn", "spaceWidth", "depth", "border", "characterSpacing", "terminatorSpace", "terminatorSpaceWidth", "forcedTerminators", "autoBorder", "flat", "overlay", "allFaces", "layerDepth", "strips", "kerning"]
+const META_KEYS = ["authors", "description", "preview", "basedOn", "spaceWidth", "depth", "border", "characterSpacing", "terminatorSpace", "terminatorSpaceWidth", "forcedTerminators", "autoBorder", "flat", "overlay", "allFaces", "layerDepth", "strips", "kerning"]
 
 function maskCells({ width, height, mask }) {
   const cells = []
@@ -135,7 +135,7 @@ export function fontFromPublished(entry, cells, capHeight, layers = null) {
   const { width, grid, density = 1 } = entry.editor ?? {}
   const height = exactDivide(capHeight, density, "the cap height")
   const copy = metaFrom({ ...createFont({ height, letterCase: entry.multicase ? "both" : "upper" }), name: `${entry.name} Copy` }, entry)
-  let font = applyCells({ ...copy, authors: [], description: "", basedOn: entry.id, flat: !!entry.flat, overlay: false, strips: entry.strips ?? [] }, cells, height, density, layers)
+  let font = applyCells({ ...copy, authors: [], description: "", preview: "", basedOn: entry.id, flat: !!entry.flat, overlay: false, strips: entry.strips ?? [] }, cells, height, density, layers)
   if (width) font = resizeDefaultWidth(font, width)
   return { ...font, grid: grid ?? detectGrid(font.glyphs) }
 }

@@ -11,10 +11,11 @@
   import Segments from "../components/Segments.vue"
   import UploadField from "../components/UploadField.vue"
   import { fullName, loadFontList } from "../lib/font/font.js"
-  import { setRequireCharacters } from "../lib/font/editor/characters.js"
+  import { PREVIEW_LENGTH, automaticPreview, characterName, charactersOf, previewText, setRequireCharacters, shownAs, undrawnPreview } from "../lib/font/editor/characters.js"
   import { DEFAULT_BORDER, DEFAULT_DEPTH, DEFAULT_ID, DEFAULT_SPACE_WIDTH, LETTER_CASES } from "../lib/font/editor/defaults.js"
   import { fontLayers } from "../lib/font/editor/depths.js"
   import { fontId, slug } from "../lib/font/editor/export.js"
+  import { glyphOf, isBlank } from "../lib/font/editor/glyph.js"
   import { autoStretch } from "../lib/font/editor/sheet.js"
   import { lostPixels, resizeFont, setSquareSize, squareSizeLoss, squaresOf } from "../lib/font/editor/sizes.js"
   import { fontThumbnail } from "../lib/state/ui.js"
@@ -27,7 +28,8 @@
     { key: "id", label: "ID", required: true, slug: true, hint: "Lowercase letters, numbers and dashes. Made from the name until you change it." },
     { key: "authors", label: "Authors", required: true, names: true, hint: "Everyone who worked on the font, shown in the credits. If you're porting someone else's font with their permission, list both yourself and them." },
     { key: "basedOn", label: "Based on font", choice: true, hint: "The font yours was made from, so its authors are credited too." },
-    { key: "description", label: "Description", full: true, hint: "A short line shown under the font's name in the generator." }
+    { key: "description", label: "Description", full: true, hint: "A short line shown under the font's name in the generator." },
+    { key: "preview", label: "Thumbnail text", full: true, preview: true, hint: `The characters drawn on the font's thumbnails, up to ${PREVIEW_LENGTH}. Leave it empty to use the text shown in the box.` }
   ]
 
   const SPACING = [
@@ -88,6 +90,12 @@
       name: sameName ? `${fullName(sameName, published.value)} already uses this name. Pick another so the two aren't mixed up.` : null,
       id: sameId ? `${fullName(sameId, published.value)} already uses this ID, so the generator would treat your font as that one.` : null
     }
+  })
+  const drawn = computed(() => charactersOf(font.value).filter(char => !isBlank(glyphOf(font.value, char))))
+  const automaticThumbnail = computed(() => Array.from(automaticPreview(drawn.value) ?? (font.value.letterCase === "both" ? "ABC" : "abc"), char => shownAs(char, font.value.letterCase)).join(""))
+  const errors = computed(() => {
+    const missing = undrawnPreview(previewText(font.value), drawn.value)
+    return { ...clashes.value, preview: missing.length ? `This font doesn't draw ${missing.map(char => characterName(char, font.value.letterCase)).join(", ")} yet, so the thumbnails can't show it.` : null }
   })
 
   onMounted(async () => {
@@ -181,10 +189,11 @@
       <h3>About</h3>
       <Notice v-if="listError">{{ listError }}</Notice>
       <div class="about">
-        <Field v-for="item of ABOUT" :key="item.key" :label="item.label" :required="item.required" :hint="item.hint" :error="clashes[item.key]" :group="item.choice || item.names" :class="{ full: item.full }">
+        <Field v-for="item of ABOUT" :key="item.key" :label="item.label" :required="item.required" :hint="item.hint" :error="errors[item.key]" :group="item.choice || item.names" :class="{ full: item.full }">
           <Dropdown v-if="item.choice" searchable :options="basedOnOptions" :model-value="font[item.key]" @update:model-value="setField(item.key, $event, false)" />
           <NameList v-else-if="item.names" :model-value="font[item.key]" @update:model-value="setField(item.key, $event, false)" />
           <input v-else-if="item.slug" type="text" :class="{ clashing: clashes[item.key] }" :value="font[item.key]" :placeholder="previewId" spellcheck="false" @change="setField(item.key, slug($event.target.value), false)">
+          <input v-else-if="item.preview" type="text" :class="{ clashing: errors.preview, upper: font.letterCase === 'upper', lower: font.letterCase === 'lower' }" :value="font.preview ?? ''" :placeholder="automaticThumbnail" :maxlength="PREVIEW_LENGTH" spellcheck="false" @input="setText(item.key, $event)">
           <input v-else type="text" :class="{ clashing: clashes[item.key] }" :value="font[item.key]" @input="setText(item.key, $event)">
         </Field>
       </div>
@@ -284,6 +293,14 @@
 
   input.clashing {
     border-color: var(--danger);
+  }
+
+  input.upper {
+    text-transform: uppercase;
+  }
+
+  input.lower {
+    text-transform: lowercase;
   }
 
   .numbers {

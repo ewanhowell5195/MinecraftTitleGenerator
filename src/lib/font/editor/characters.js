@@ -7,6 +7,26 @@ export const ALWAYS_REQUIRED = [TERMINATOR_OPEN, TERMINATOR_CLOSE]
 const NAMES = { [CREEPER]: "Creeper A", [OPENING_QUOTE]: "Opening quote", "'": "Closing quote", [TERMINATOR_OPEN]: "Left line terminator", [TERMINATOR_CLOSE]: "Right line terminator", [SPACE_CHAR]: "Space" }
 const LABELS = { [CREEPER]: "Creeper", [OPENING_QUOTE]: String.fromCodePoint(0x2018), "'": String.fromCodePoint(0x2019), [SPACE_CHAR]: "Space" }
 const NOTHING_TO_DRAW = /^[\p{M}\p{Cf}]$/u
+const NOT_PREVIEWED = new Set([SPACE_CHAR, TERMINATOR_OPEN, TERMINATOR_CLOSE, "'"])
+
+export const PREVIEW_LENGTH = 10
+
+export function previewText(font) {
+  const text = (font.preview ?? "").trim()
+  return font.letterCase === "both" ? text : text.toLowerCase()
+}
+
+export function automaticPreview(drawn) {
+  if (["a", "b", "c"].every(char => drawn.includes(char))) return null
+  const letters = drawn.filter(char => /^\p{L}$/u.test(char))
+  const chars = letters.length ? letters : drawn
+  const shown = chars.filter(char => !NOT_PREVIEWED.has(char))
+  return (shown.length ? shown : chars).slice(0, 3).join("")
+}
+
+export function undrawnPreview(text, drawn) {
+  return Array.from(new Set(Array.from(text).filter(char => char !== SPACE_CHAR && !drawn.includes(char))))
+}
 
 export function hasCase(char) {
   const upper = char.toUpperCase()

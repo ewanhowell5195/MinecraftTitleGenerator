@@ -3,7 +3,7 @@ import { blankStrip, flatLayers, flatPixels, independentLayers } from "../flatSh
 import { groupedKerning } from "../font.js"
 import { DEFAULT_ORDER } from "../order.js"
 import { defaultBorder, defaultDepth } from "../../settings/defaults.js"
-import { SPACE_CHAR, charactersOf } from "./characters.js"
+import { SPACE_CHAR, charactersOf, previewText } from "./characters.js"
 import { DEFAULT_BORDER, DEFAULT_DEPTH, DEFAULT_ID, DEFAULT_SPACE_WIDTH } from "./defaults.js"
 import { fontLayers } from "./depths.js"
 import { inkLeft, isBlank, trimmed, widthOf } from "./glyph.js"
@@ -49,6 +49,7 @@ export function exportJson(font, texture, characters = charactersOf(font)) {
   const authors = authorList(font.authors)
   if (authors.length) entry.authors = authors
   if (font.description) entry.description = font.description
+  if (previewText(font)) entry.preview = previewText(font)
   if (font.basedOn) entry.basedOn = font.basedOn
   if (font.strips.length) entry.strips = font.strips
   if (order !== DEFAULT_ORDER && order !== `${DEFAULT_ORDER}${SPACE_CHAR}`) entry.order = order
