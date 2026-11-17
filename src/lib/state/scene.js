@@ -10,8 +10,10 @@ import { createTitle } from "./title.js"
 import { joinWords, titleLines, titleValues, trimmed } from "../link/titleFacts.js"
 import { FILE_VERSION } from "../settings/upgrades.js"
 import { readStored, view } from "./view.js"
+import { readLarge, removeLarge, writeLarge } from "./largeStore.js"
 
 const STORAGE = "minecraft-title-scene"
+const LARGE = "large"
 const UNVERSIONED = 4
 const FILE_NAME_LIMIT = 64
 
@@ -70,9 +72,15 @@ function fresh(error = null) {
   return { objects: [createObject()], selected: null, selectedGroup: null, preset: null, error }
 }
 
-function load() {
+async function savedTitle() {
   const saved = readStored(STORAGE)
+  if (saved?.saved !== LARGE) return saved
+  return JSON.parse(await readLarge(STORAGE) ?? "null")
+}
+
+async function load() {
   try {
+    const saved = await savedTitle()
     const data = Array.isArray(saved?.objects) ? unversioned(saved) : saved
     if (!data?.lines?.length) return fresh()
     const objects = titleObjects(titleValues({ ...data, lines: data.lines.map(lowered) }))
@@ -83,7 +91,7 @@ function load() {
   }
 }
 
-const initial = load()
+const initial = await load()
 
 export const scene = reactive({ objects: initial.objects, camera: fullCamera(initial.camera), preset: initial.preset, ...validSelection(initial.objects, initial.selected, initial.selectedGroup) })
 
@@ -107,6 +115,39 @@ export const TITLE_PARAM = "title"
 export const sharedLink = { open: false }
 
 let saving = null
+let saves = 0
+let large = readStored(STORAGE)?.saved === LARGE
+
+function failed(err) {
+  saveError.value = `Your title couldn't be saved, so changes will be lost if you reload: ${err.message}`
+}
+
+async function saveLarge(text, save) {
+  try {
+    await writeLarge(STORAGE, text)
+    if (save !== saves) return
+    localStorage.setItem(STORAGE, JSON.stringify({ saved: LARGE }))
+    large = true
+    saveError.value = null
+  } catch (err) {
+    if (save === saves) failed(err)
+  }
+}
+
+function save(text) {
+  const current = ++saves
+  try {
+    localStorage.setItem(STORAGE, text)
+  } catch (err) {
+    if (err.name === "QuotaExceededError") saveLarge(text, current)
+    else failed(err)
+    return
+  }
+  saveError.value = null
+  if (!large) return
+  large = false
+  removeLarge(STORAGE).catch(failed)
+}
 
 export function clearSharedLink() {
   const url = new URL(location.href)
@@ -124,12 +165,7 @@ watch(scene, () => {
   clearTimeout(saving)
   saving = setTimeout(() => {
     if (sharedLink.open) return
-    try {
-      localStorage.setItem(STORAGE, JSON.stringify(stored(scene.objects, scene, FILE_VERSION, trimmed)))
-      saveError.value = null
-    } catch (err) {
-      saveError.value = `Your title couldn't be saved, so changes will be lost if you reload: ${err.message}`
-    }
+    save(JSON.stringify(stored(scene.objects, scene, FILE_VERSION, trimmed)))
   }, 300)
 }, { deep: true })
 
