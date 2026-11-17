@@ -6,7 +6,7 @@ import { holdQuery } from "../helpers/server.js"
 const { LIMITS } = await import("../../src/lib/core/limits.js")
 const { checkTitle, getPreset, listPresets, submitPreset } = await import("../../src/server/presets.js")
 const { countDownload, presetStats, votePreset } = await import("../../src/server/presetScores.js")
-const { presetPageDetails } = await import("../../src/server/presetPages.js")
+const { presetDetails, presetPageDetails } = await import("../../src/server/presetPages.js")
 const { titleFacts } = await import("../../src/lib/link/titleFacts.js")
 const { encodeTitle } = await import("../../src/lib/link/linkformat.js")
 const { FILE_VERSION } = await import("../../src/lib/settings/upgrades.js")
@@ -896,11 +896,22 @@ describe("preset page details", () => {
     assert.equal(path, "/app/presets")
   })
 
-  test("a preset has its name in the title and its own address", () => {
-    const { title, description, path } = presetPageDetails("Iron and Ember", 12)
+  test("a preset has its name in the title, its own description and its own address", () => {
+    const { title, description, path } = presetPageDetails("Iron and Ember", 12, "steve")
     assert.equal(title, "Iron and Ember | Minecraft Title Generator")
-    assert.equal(description, "Open this title in the Minecraft Title Generator to change it and make your own!")
+    assert.equal(description, "Iron and Ember, a Minecraft style title by steve. Open it in the Minecraft Title Generator to change it and make your own!")
     assert.equal(path, "/app/presets/12")
+    assert.match(presetPageDetails("Iron and Ember", 12).description, /^Iron and Ember, a Minecraft style title shared by the community\./)
+  })
+
+  test("a preset page describes the title and where it sits as structured data", () => {
+    const details = presetDetails("https://mctitlegenerator.com", { name: "Iron and Ember", fingerprint: "abc", author: "steve", createdAt: Date.UTC(2026, 10, 5) }, 12)
+    const [, , work, trail] = details.data["@graph"]
+    assert.equal(details.heading, "Iron and Ember")
+    assert.equal(details.alt, "A preview of the Iron and Ember title")
+    assert.deepEqual([work["@type"], work.name, work.url, work.image, work.author.name, work.datePublished], ["CreativeWork", "Iron and Ember", "https://mctitlegenerator.com/app/presets/12", details.image, "steve", "2026-11-05T00:00:00.000Z"])
+    assert.deepEqual(trail.itemListElement.map(step => step.name), ["Minecraft Title Generator", "Presets", "Iron and Ember"])
+    assert.equal(presetDetails("https://mctitlegenerator.com", null, 4).data["@graph"][2]["@type"], "CollectionPage")
   })
 })
 

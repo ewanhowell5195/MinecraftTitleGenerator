@@ -1,6 +1,6 @@
 import { createMemoryHistory, createRouter } from "vue-router"
 import { escaped } from "../lib/core/html.js"
-import { SHARE_IMAGE, pageImage, shareTags } from "../lib/core/head.js"
+import { SHARE_IMAGE, SPLASH_STYLE, dataScript, pageImage, shareTags, splashHtml } from "../lib/core/head.js"
 import { PAGES, SITE } from "./pages.js"
 import { pageRoutes } from "./routes.js"
 
@@ -37,8 +37,9 @@ export function shellHtml(html, page) {
     "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">",
     "<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>",
     "<link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Gabarito:wght@400..900&display=swap\">"
-  ], page.hidden ? [] : shareTags({ title: page.title, description: page.description, url, ...imageOf(page), buttons: page.buttons }), page.data ? `<script type="application/ld+json">${JSON.stringify(page.data).replace(/</g, "\\u003c")}</script>` : [], page.head ?? [])
+  ], page.hidden ? [] : shareTags({ title: page.title, description: page.description, url, ...imageOf(page), buttons: page.buttons }), page.data ? dataScript(page.data) : [], SPLASH_STYLE, page.head ?? [])
   return html
     .replace("<html lang=\"en\">", `<html lang="en" data-styles="${page.styles}">`)
     .replace("<head>", `<head>\n    ${head.join("\n    ")}`)
+    .replace("<div id=\"app\"></div>", `<div id="app">${splashHtml(page.title.replace(/ [|-] .*$/, ""), page.description)}</div>`)
 }

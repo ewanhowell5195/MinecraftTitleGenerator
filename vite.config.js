@@ -5,7 +5,7 @@ import { defineConfig } from "vite"
 import { PAGES } from "./src/site/pages.js"
 import { creditPeople, creditsHtml } from "./src/site/credits/build.js"
 import { escaped } from "./src/lib/core/html.js"
-import { shareTags, withoutShareTags } from "./src/lib/core/head.js"
+import { dataScript, shareTags, withoutShareTags } from "./src/lib/core/head.js"
 import { linkedCode, linkedTitleDetails, presetDetails } from "./src/server/presetPages.js"
 import { pageAt, pageFiles, shellHtml } from "./src/site/shell.js"
 
@@ -36,12 +36,14 @@ async function pageDetails(url) {
 }
 
 function withDetails(html, details) {
-  const { title, description, url, canonical = url } = details
-  return withoutShareTags(html)
+  const { title, description, url, canonical = url, heading = null, data = null } = details
+  const page = withoutShareTags(data ? html.replace(/<script type="application\/ld\+json">.*?<\/script>/s, "") : html)
     .replace(/<title>[^<]*<\/title>/, () => `<title>${escaped(title)}</title>`)
     .replace(/(<meta name="description" content=")[^"]*/, (_, start) => start + escaped(description))
     .replace(/(<link rel="canonical" href=")[^"]*/, (_, start) => start + escaped(canonical))
-    .replace("</head>", () => `${shareTags(details)}</head>`)
+    .replace(/(<div class="splash">.*?<p>)[^<]*/s, (_, start) => start + escaped(description))
+    .replace("</head>", () => `${shareTags(details)}${data ? dataScript(data) : ""}</head>`)
+  return heading ? page.replace(/(<div class="splash"><h1>)[^<]*/, (_, start) => start + escaped(heading)) : page
 }
 
 const presetPages = {

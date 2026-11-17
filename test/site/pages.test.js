@@ -23,10 +23,10 @@ describe("pages", () => {
     }
   })
 
-  test("the sitemap lists every page that is not hidden, then every shared preset", () => {
+  test("the sitemap lists the canonical address of every page that is not hidden, then every shared preset", () => {
     const listed = Array.from(sitemapXml([{ id: 3 }, { id: 18 }]).matchAll(/<loc>([^<]+)<\/loc>/g), match => match[1])
-    const expected = PAGES.filter(page => !page.hidden).flatMap(page => page.paths.map(path => `${SITE}${path.replace(/\/:.*$/, "")}`))
-    assert.deepEqual(listed, expected.concat(`${SITE}/app/presets/3`, `${SITE}/app/presets/18`))
+    const pages = ["/", "/app/", "/app/presets", "/font-editor/", "/credits/", "/submit/", "/terms/", "/privacy/"].map(path => `${SITE}${path}`)
+    assert.deepEqual(listed, pages.concat(`${SITE}/app/presets/3`, `${SITE}/app/presets/18`))
     assert.ok(sitemapXml([]).startsWith('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'))
   })
 

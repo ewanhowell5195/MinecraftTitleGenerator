@@ -32,6 +32,19 @@ export function shareTags({ title, description, url, image = null, alt = title, 
   return page.concat(picture).map(([property, content]) => `<meta property="${property}" content="${escaped(content)}">`).join("") + card + componentEmbed({ title, description, url, image, spaced, buttons })
 }
 
+const SPLASH_LINKS = [["Make a title", "/app/"], ["Presets", "/app/presets"], ["Font editor", "/font-editor/"], ["Submit", "/submit/"], ["Credits", "/credits/"]]
+
+export const SPLASH_STYLE = "<style>.splash{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;font-family:Gabarito,system-ui,sans-serif;text-align:center;color:var(--muted,#b0b4bd);opacity:0;animation:splash-in .4s ease .5s forwards}.splash h1{margin:0;font-size:28px;color:var(--text,#f1f2f4)}.splash p{max-width:48ch;margin:0}.splash nav{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 16px}.splash a{color:var(--accent,#6cc04a)}@keyframes splash-in{to{opacity:1}}</style>"
+
+export function splashHtml(heading, description) {
+  const links = SPLASH_LINKS.map(([label, path]) => `<a href="${path}">${label}</a>`).join("")
+  return `<div class="splash"><h1>${escaped(heading)}</h1><p>${escaped(description)}</p><nav>${links}</nav></div>`
+}
+
+export function dataScript(data) {
+  return `<script type="application/ld+json">${JSON.stringify(data).replace(/</g, "\\u003c")}</script>`
+}
+
 export function withoutShareTags(html) {
   return html.replace(/<meta (?:property="og:|name="twitter:)[^>]*>/g, "").replace(/<script id="discord:component-embed"[^>]*>[^<]*<\/script>/g, "")
 }

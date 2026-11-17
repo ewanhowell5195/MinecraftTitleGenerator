@@ -50,13 +50,25 @@ describe("page shells", () => {
     assert.equal(unescaped(html.match(/<meta property="og:title" content="([^"]*)">/)[1]), page.title)
   })
 
-  test("the homepage describes the site and the generator as structured data", () => {
-    const page = PAGES.find(item => item.name === "home")
-    const html = shellHtml(SHELL, page)
-    const data = JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/)[1])
-    assert.deepEqual(data["@graph"].map(item => item["@type"]), ["WebSite", "WebApplication"])
-    assert.equal(data["@graph"][1].url, `${SITE}/app/`)
-    assert.equal(PAGES.filter(item => item.data).length, 1)
+  test("the homepage, generator and font editor describe themselves as linked structured data", () => {
+    const graphs = Object.fromEntries(PAGES.filter(item => item.data).map(page => [page.name, JSON.parse(shellHtml(SHELL, page).match(/<script type="application\/ld\+json">(.*?)<\/script>/)[1])["@graph"]]))
+    assert.deepEqual(Object.keys(graphs), ["home", "app", "font-editor"])
+    assert.deepEqual(graphs.home.map(item => item["@type"]), ["WebSite", "Person", "WebApplication", "WebApplication"])
+    assert.deepEqual(graphs.app.map(item => item.url), [`${SITE}/`, "https://ewanhowell.com/", `${SITE}/app/`])
+    assert.equal(graphs["font-editor"][2].url, `${SITE}/font-editor/`)
+    const ids = new Set(Object.values(graphs).flat().map(item => item["@id"]))
+    for (const item of Object.values(graphs).flat()) {
+      for (const link of [item.publisher, item.author, item.isPartOf].filter(Boolean)) assert.ok(ids.has(link["@id"]), link["@id"])
+    }
+  })
+
+  test("every page holds its heading, description and links for crawlers until the app mounts", () => {
+    for (const page of PAGES) {
+      const body = shellHtml(SHELL, page).match(/<div id="app">(.*?)<\/div>\s*<script/s)[1]
+      assert.ok(body.startsWith('<div class="splash"><h1>'), page.name)
+      assert.ok(unescaped(body).includes(`<p>${page.description}</p>`), page.name)
+      assert.ok(body.includes('<a href="/app/">'), page.name)
+    }
   })
 
   test("a page is found by its address", () => {
