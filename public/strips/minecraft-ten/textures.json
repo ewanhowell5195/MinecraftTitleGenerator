@@ -3,10 +3,6 @@
   "baseline": 30,
   "height": 40,
   "textures": {
-    "flat_coloured": {
-      "type": "strip",
-      "authors": ["Ewan Howell"]
-    },
     "mineimator": {
       "type": "strip",
       "overlays": [
@@ -71,11 +67,6 @@
           ]
         }
       }
-    },
-    "minecon": {
-      "type": "strip",
-      "authors": ["Ewan Howell"],
-      "border": "#2a2c30"
     },
     "oak_planks": {
       "type": "strip",

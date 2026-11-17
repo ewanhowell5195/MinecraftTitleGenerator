@@ -39,6 +39,17 @@
         }
       }
     },
+    "flat_coloured": {
+      "type": "strip",
+      "stretch": true,
+      "authors": ["Ewan Howell"]
+    },
+    "minecon": {
+      "type": "strip",
+      "stretch": true,
+      "authors": ["Ewan Howell"],
+      "border": "#2a2c30"
+    },
     "story_mode": {
       "type": "strip",
       "stretch": true,
