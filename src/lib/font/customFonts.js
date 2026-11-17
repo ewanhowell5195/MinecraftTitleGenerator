@@ -1,7 +1,7 @@
 import { fontTextures } from "../texture/assets.js"
 import { pixelsOf } from "../texture/canvas.js"
 import { defaultBorder, defaultDepth } from "../settings/defaults.js"
-import { fontFolder, loadImage } from "./font.js"
+import { fontFolder, kerningPairs, loadImage } from "./font.js"
 import { GENERATED_EDGE_OVERLAYS, withGenerated } from "../texture/overlays/settings.js"
 import { CUSTOM_FONT } from "../settings/settings.js"
 import { SILHOUETTE_TEXT } from "../geometry/shapes.js"
@@ -124,6 +124,7 @@ async function build(id, source) {
   const [{ buildSheet }, { exportJson, flatTexture }] = await Promise.all([import("./editor/sheet.js"), import("./editor/export.js")])
   const { font, outlines, mesh, sample } = await editorFont(source)
   const { editor, ...entry } = { ...exportJson(font, ""), id, name: font.name || "Custom font", ...(source.strips?.length && { strips: source.strips }) }
+  entry.kerning = kerningPairs(entry.kerning, id)
   if (outlines) entry.outlines = outlines
   if (mesh) {
     const tools = await import("./meshGlyphs.js")

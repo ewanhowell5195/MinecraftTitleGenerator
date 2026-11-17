@@ -1,7 +1,7 @@
 import { computed, shallowRef, toRaw, watch } from "vue"
 import { forgetFolder } from "../lib/texture/assets.js"
 import { defaultBorder, defaultDepth, defaultSpacing, fontFaces } from "../lib/settings/defaults.js"
-import { fontFolder, forgetFont } from "../lib/font/font.js"
+import { fontFolder, forgetFont, kerningPairs } from "../lib/font/font.js"
 import { exportJson, flatTexture } from "../lib/font/editor/export.js"
 import { buildSheet } from "../lib/font/editor/sheet.js"
 import { forgetFiles, pngUrl, serveFile } from "../lib/core/virtualFiles.js"
@@ -24,6 +24,7 @@ function servedFont(slot, font, strip) {
   const id = `editor-preview-${++count}`
   const folder = fontFolder({ id })
   const { editor, strips, ...entry } = { ...exportJson(font, ""), id, name: font.name || "My Font" }
+  entry.kerning = kerningPairs(entry.kerning, id)
   if (strip) entry.strips = [strip]
   serveFile(`${folder}/font.png`, pngUrl(buildSheet(font)))
   serveFile(`${folder}/textures/flat.png`, pngUrl(flatTexture(font)))
