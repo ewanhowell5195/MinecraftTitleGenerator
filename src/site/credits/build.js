@@ -151,8 +151,8 @@ export function creditPeople(root) {
   return peopleOf(root).map(([person]) => person)
 }
 
-function fontsHtml(root) {
-  const fonts = flattenFonts(readJson(path.join(root, "public/fonts/fonts.json")))
+export function licensedFontsHtml(list) {
+  const fonts = flattenFonts(list).map(data => ({ ...data, name: data.name ?? titleCase(data.id) }))
   const licensed = fonts.filter(font => font.source)
   if (!licensed.length) return `<section class="fonts wrap"><p class="note">None of the fonts are shared under their own licence right now.</p></section>`
   const pieces = licensed.map(font => {
@@ -175,7 +175,7 @@ export function creditsHtml(root) {
   return {
     intro: `<h1 class="page-title">Credits</h1><p>${sorted.length} people have made the fonts, textures and shapes in the generator. Thank you to every one of them!</p>`,
     contributors: `<div class="search wrap" hidden><input type="search" placeholder="Search people, fonts, textures and shapes" aria-label="Search the credits" spellcheck="false"><p class="empty" hidden>Nothing matches this search.</p></div><section class="people wrap">${sections.join("")}</section>`,
-    fonts: fontsHtml(root),
+    fonts: licensedFontsHtml(readJson(path.join(root, "public/fonts/fonts.json"))),
     libraries: `<section class="libraries wrap"><h2>Built with</h2><ul>${libraries.join("")}</ul></section>`
   }
 }
