@@ -3,14 +3,16 @@
   import Icon from "./Icon.vue"
 
   defineProps({
-    name: { type: String, required: true },
-    provider: { type: String, required: true },
-    size: { type: Number, default: 14 }
+    name: { type: String, default: "" },
+    provider: { type: String, default: "" },
+    size: { type: Number, default: 14 },
+    community: { type: Boolean, default: false }
   })
 </script>
 
 <template>
-  <span class="user-name"><Icon :name="provider" :size="size" v-tooltip="providerLabel(provider)" /><span class="ellipsis">{{ name }}</span></span>
+  <span v-if="community" class="user-name"><Icon name="community" :size="size" /><span class="ellipsis">Community</span></span>
+  <span v-else class="user-name"><Icon :name="provider" :size="size" v-tooltip="providerLabel(provider)" /><span class="ellipsis">{{ name }}</span></span>
 </template>
 
 <style scoped>

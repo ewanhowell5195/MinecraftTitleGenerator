@@ -25,6 +25,7 @@
   import Segments from "../../components/Segments.vue"
   import SharePresetDialog from "./SharePresetDialog.vue"
   import TileVote from "./TileVote.vue"
+  import UserName from "../../components/UserName.vue"
   import ShareUsage from "./ShareUsage.vue"
   import TopBar from "../../site/TopBar.vue"
   import { router } from "../../router.js"
@@ -296,7 +297,7 @@
                 <a class="name big ellipsis" :href="`/app/presets/${preset.id}`" @click="followed">{{ preset.name }}</a>
                 <Badge v-if="isMine(preset) && !preset.author" tone="accent">Shared by you</Badge>
                 <AuthorLink v-else-if="preset.author" class="author" :class="{ yours: isMine(preset) }" :name="preset.author" :provider="preset.authorProvider" :size="13" :searched="searchesUser(presetsPage.search, preset.author, preset.authorProvider)" @click.stop="filterByUser(preset.author, preset.authorProvider)" />
-                <span v-else class="anonymous"><Icon name="community" :size="13" />Community</span>
+                <UserName v-else class="author" community :size="13" />
               </div>
               <span v-if="preset.rating !== null" class="stats rated">
                 <span v-tooltip="`From ${preset.votes} votes`"><GoldStar :size="18" />{{ preset.rating.toFixed(1) }}</span>
@@ -484,14 +485,7 @@
     color: var(--muted);
   }
 
-  .anonymous {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    color: var(--faint);
-  }
-
-  .author:hover {
+  button.author:hover {
     color: var(--text);
   }
 
