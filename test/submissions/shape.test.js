@@ -226,6 +226,24 @@ describe("big custom shapes", () => {
     assert.deepEqual(Array.from(painted.data.subarray(at4, at4 + 4)), [200, 40, 40, 255])
   })
 
+  test("paint a shape whose thin edge blocks are left out inside its trimmed cell", async () => {
+    const { fontFromShapes } = await import("../../src/lib/font/editor/import.js")
+    const { parsedSheet } = await import("../../src/lib/font/editor/sheet.js")
+    const { sheetLayout } = await import("../../src/lib/font/font.js")
+    const image = PNG.sync.read(Buffer.from(silhouette(600, 150, (x, y) => x === 0 || x >= 3)))
+    const sample = silhouetteSample(image)
+    assert.equal(sample.scale, 3)
+    const glyph = sampleGlyph(sample)
+    assert.equal(glyph.mask[0], 0)
+    const font = fontFromShapes(new Map([["x", glyph]]), { name: "Shape", capHeight: glyph.height, grid: 1, spaceWidth: 1, letterCase: "upper" })
+    const { list, capHeight } = parsedSheet(font, 2)
+    const cells = list.filter(cell => cell.width)
+    const painted = samplePixels(cells, capHeight, 22, sample)
+    const [, at] = Array.from(sheetLayout(cells, capHeight, 22))[0]
+    const at4 = (at.top * 3 * painted.width + at.x * 3) * 4
+    assert.deepEqual(Array.from(painted.data.subarray(at4, at4 + 4)), [200, 40, 40, 255])
+  })
+
   test("leave shapes that fit at one pixel per unit", () => {
     assert.equal(silhouetteScale(PNG.sync.read(Buffer.from(silhouette(200, 60)))), 1)
   })

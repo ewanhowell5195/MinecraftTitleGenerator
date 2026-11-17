@@ -190,6 +190,20 @@ function unitMask({ scale, bounds, width, height, lift, solid }) {
   return mask
 }
 
+export function inkBox({ width, height, mask }) {
+  const box = { left: width, top: height, right: -1, bottom: -1 }
+  for (let row = 0; row < height; row++) {
+    for (let column = 0; column < width; column++) {
+      if (!mask[row * width + column]) continue
+      box.left = Math.min(box.left, column)
+      box.right = Math.max(box.right, column)
+      box.top = Math.min(box.top, row)
+      box.bottom = Math.max(box.bottom, row)
+    }
+  }
+  return box
+}
+
 export function sampleGlyph({ width, height, mask }) {
   return { width, height, top: height, bottom: 0, mask }
 }
@@ -214,15 +228,21 @@ export function samplePixels(cells, capHeight, depth, shape) {
   const width = units * scale
   const height = rows * scale
   const data = new Uint8ClampedArray(width * height * 4)
+  const ink = inkBox(shape)
+  const left = ink.left * scale
+  const top = ink.top * scale - lift
+  const across = x => x >= left && x < (ink.right + 1) * scale
+  const down = y => y >= top && y < (ink.bottom + 1) * scale - lift
   const copy = (x, y, toX, toY) => data.set(image.data.subarray(source(x, y), source(x, y) + 4), (toY * width + toX) * 4)
   for (const [, at] of layout) {
     for (let x = 0; x < bounds.width; x++) {
-      const filled = Array.from({ length: bounds.height }, (row, y) => y).filter(y => solid(x, y))
+      if (!across(x)) continue
+      const filled = Array.from({ length: bounds.height }, (row, y) => y).filter(y => down(y) && solid(x, y))
       if (!filled.length) continue
-      for (const y of filled) copy(x, y, at.x * scale + x, at.top * scale + lift + y)
+      for (const y of filled) copy(x, y, at.x * scale + x - left, at.top * scale + y - top)
       for (let row = 0; row < depth * scale; row++) {
-        copy(x, filled[0], at.x * scale + x, at.up * scale + row)
-        copy(x, filled.at(-1), at.x * scale + x, at.down * scale + row)
+        copy(x, filled[0], at.x * scale + x - left, at.up * scale + row)
+        copy(x, filled.at(-1), at.x * scale + x - left, at.down * scale + row)
       }
     }
     for (let row = 0; row < shape.height; row++) {
@@ -235,7 +255,7 @@ export function samplePixels(cells, capHeight, depth, shape) {
         for (const [x, y] of block) {
           if (within([x, y])) continue
           const [nx, ny] = opaque.reduce((best, pixel) => (pixel[0] - x) ** 2 + (pixel[1] - y) ** 2 < (best[0] - x) ** 2 + (best[1] - y) ** 2 ? pixel : best)
-          const at4 = ((at.top * scale + lift + y) * width + at.x * scale + x) * 4
+          const at4 = ((at.top * scale + y - top) * width + at.x * scale + x - left) * 4
           data.set(image.data.subarray(source(nx, ny), source(nx, ny) + 3), at4)
           data[at4 + 3] = 255
         }
