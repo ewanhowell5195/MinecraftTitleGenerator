@@ -205,6 +205,14 @@ export function fontScene(entry, { glyphs, cells, capHeight, layers, kerning, de
   }
 }
 
+export function flatThumbnail(entry, scene, flat) {
+  const image = expanded(scene, flat)
+  const border = opaque("#000000")
+  const png = render(scene, image, { density: 1, border, width: image.width, ring: scene.ring, ownShape: true, layers: [] })
+  if (entry.autoBorder) frameFill(png, border)
+  return png
+}
+
 function bandedStrip(scene, entry, image) {
   if (scene.layer != null) return sceneStrip(scene, bandEntry(entry, scene.layer), image)
   const layers = scene.layers.map((_, band) => sceneStrip(scene, bandEntry(entry, band), image))

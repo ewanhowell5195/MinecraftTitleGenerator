@@ -14,9 +14,12 @@
   import { PREVIEW_LENGTH, automaticPreview, characterName, charactersOf, previewText, setRequireCharacters, shownAs, undrawnPreview } from "../lib/font/editor/characters.js"
   import { DEFAULT_BORDER, DEFAULT_DEPTH, DEFAULT_ID, DEFAULT_SPACE_WIDTH, LETTER_CASES } from "../lib/font/editor/defaults.js"
   import { fontLayers } from "../lib/font/editor/depths.js"
-  import { fontId, slug } from "../lib/font/editor/export.js"
+  import { exportJson, flatTexture, fontId, slug } from "../lib/font/editor/export.js"
   import { glyphOf, isBlank } from "../lib/font/editor/glyph.js"
-  import { autoStretch } from "../lib/font/editor/sheet.js"
+  import { autoStretch, parsedSheet } from "../lib/font/editor/sheet.js"
+  import { flatThumbnail, fontScene } from "../lib/font/fontThumbnails.js"
+  import { pngUrl } from "../lib/core/virtualFiles.js"
+  import { defaultBorder, defaultDepth } from "../lib/settings/defaults.js"
   import { lostPixels, resizeFont, setSquareSize, squareSizeLoss, squaresOf } from "../lib/font/editor/sizes.js"
   import { fontThumbnail } from "../lib/state/ui.js"
   import { typedNumber } from "./fields.js"
@@ -93,6 +96,13 @@
   })
   const drawn = computed(() => charactersOf(font.value).filter(char => !isBlank(glyphOf(font.value, char))))
   const automaticThumbnail = computed(() => Array.from(automaticPreview(drawn.value) ?? (font.value.letterCase === "both" ? "ABC" : "abc"), char => shownAs(char, font.value.letterCase)).join(""))
+  const thumbnailPicture = computed(() => {
+    const entry = exportJson(font.value, "")
+    const { glyphs, list, capHeight, layers } = parsedSheet(font.value, defaultBorder("top", entry))
+    const text = previewText(font.value) || automaticPreview(drawn.value) || (entry.multicase ? "ABC" : "abc")
+    const scene = fontScene(entry, { glyphs, cells: list, capHeight, layers, kerning: font.value.kerning, depth: defaultDepth(entry) }, text)
+    return scene && pngUrl(flatThumbnail(entry, scene, flatTexture(font.value)))
+  })
   const errors = computed(() => {
     const text = previewText(font.value)
     const missing = undrawnPreview(text, drawn.value)
@@ -195,7 +205,10 @@
           <Dropdown v-if="item.choice" searchable :options="basedOnOptions" :model-value="font[item.key]" @update:model-value="setField(item.key, $event, false)" />
           <NameList v-else-if="item.names" :model-value="font[item.key]" @update:model-value="setField(item.key, $event, false)" />
           <input v-else-if="item.slug" type="text" :class="{ clashing: clashes[item.key] }" :value="font[item.key]" :placeholder="previewId" spellcheck="false" @change="setField(item.key, slug($event.target.value), false)">
-          <input v-else-if="item.preview" type="text" :class="{ clashing: errors.preview, upper: font.letterCase === 'upper', lower: font.letterCase === 'lower' }" :value="font.preview ?? ''" :placeholder="automaticThumbnail" :maxlength="PREVIEW_LENGTH" spellcheck="false" @input="setText(item.key, $event)">
+          <div v-else-if="item.preview" class="thumbnail-row">
+            <input type="text" :class="{ clashing: errors.preview, upper: font.letterCase === 'upper', lower: font.letterCase === 'lower' }" :value="font.preview ?? ''" :placeholder="automaticThumbnail" :maxlength="PREVIEW_LENGTH" spellcheck="false" @input="setText(item.key, $event)">
+            <img v-if="thumbnailPicture" class="thumbnail" :src="thumbnailPicture" alt="">
+          </div>
           <input v-else type="text" :class="{ clashing: clashes[item.key] }" :value="font[item.key]" @input="setText(item.key, $event)">
         </Field>
       </div>
@@ -295,6 +308,24 @@
 
   input.clashing {
     border-color: var(--danger);
+  }
+
+  .thumbnail-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .thumbnail-row input {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .thumbnail {
+    height: 56px;
+    padding: 6px;
+    background: var(--checker);
+    image-rendering: pixelated;
   }
 
   input.upper {
