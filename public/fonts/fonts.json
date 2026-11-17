@@ -308,5 +308,10 @@
       "6": ["LT"]
     },
     "editor": { "width": 18, "grid": 2 }
+  },
+  {
+    "id": "mini-2",
+    "name": "MINI",
+    "authors": ["ALIMANO"]
   }
 ]
