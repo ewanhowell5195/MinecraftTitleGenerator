@@ -291,7 +291,11 @@ export function buildText(font, options) {
   let drafted = null
   function refine(paint) {
     const sharp = textured(paint, true)
-    return { body: { ...toBuffers(body, flat, sharp.layouts), plainUvs: drafted.uvs }, pages: sharp.pages.map((page, index) => ({ ...page, plain: texture.pages[index] })), layouts: sharp.layouts, swatch: sharp.swatch }
+    return { body: { ...toBuffers(body, flat, sharp.layouts), plainUvs: drafted.uvs }, pages: sharp.pages.map((page, index) => ({ ...page, plain: texture.pages[index] })), layouts: sharp.layouts, swatch: sharp.swatch, averages: { side: sharp.side, get edge() { return sharp.edge() } } }
+  }
+  function repaint(paint) {
+    const { pages, swatch } = textured(paint, false)
+    return { pages, swatch }
   }
   for (const [index, item] of placed.entries()) {
     if (item.glyph.lift) shift(glyphs[index], 1, item.glyph.lift)
@@ -310,6 +314,7 @@ export function buildText(font, options) {
     pages: texture.pages,
     layouts: texture.layouts,
     refine: sharpened || options.redraw ? refine : null,
+    repaint,
     layers: Array.from(new Set(body.map(face => face.layer ?? 0))).sort((a, b) => a - b),
     depth,
     border,

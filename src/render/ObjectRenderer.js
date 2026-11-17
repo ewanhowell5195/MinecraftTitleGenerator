@@ -17,8 +17,10 @@ import { regionDetails } from "./regionDetails.js"
 import { applyFontDefaults } from "./fontDefaults.js"
 import { baseKey, idOf, lookKey, paintKey } from "../lib/texture/paint/keys.js"
 import { paintBase, paintSheet } from "../lib/texture/paint/sheet.js"
-import { bakeCover, bakesAside, coverBases } from "../lib/texture/paint/coverBake.js"
+import { bakeCover, bakesAside, coverBases, coverShading } from "../lib/texture/paint/coverBake.js"
+import { MAX_DETAIL } from "../lib/texture/atlas/scales.js"
 import { cameraCover, coverProjection } from "./coverProjection.js"
+import { hueMatrix } from "./coverMaterial.js"
 import { platform } from "../lib/core/platform.js"
 import { quietly } from "../lib/state/history.js"
 import { userBusy } from "../lib/state/activity.js"
@@ -56,6 +58,7 @@ export default {
     const buildError = shallowRef(null)
     const sharp = shallowRef(true)
     const baking = shallowRef(0)
+    const shading = shallowRef(null)
     const bakes = new WeakMap()
     const error = computed(() => fontError.value ?? paintError.value ?? buildError.value)
     const finalShadowed = computed(() => finalShadows.value && !!painted.value && shadowed())
@@ -73,6 +76,7 @@ export default {
     let waitingSharp = null
     let gone = false
     let drafted = null
+    let shadingFrom = null
     const { sweepPaints, remembered } = createPaintCache()
 
     const layerCount = computed(() => font.value?.layers?.length ?? 1)
@@ -197,7 +201,7 @@ export default {
         const layer = layers[index]
         const { look, assets } = layer
         const pageKey = paintKey(page, assets, look)
-        const baked = cover?.bases[number] ?? null
+        const baked = cover?.fill ?? cover?.bases[number] ?? null
         const tag = baked ? cover.key : null
         const own = remembered(JSON.stringify(["page", id, index, final, pageKey, sharp]), () => ({ page }), sharp).page
         const remapped = { ...arcAssets(assets, own, sheet.value), ...(baked && { coverBase: baked }) }
@@ -273,7 +277,39 @@ export default {
       return painter(source, sharp, { key: cover.key, bases })
     }
 
+    function shaded(first, source) {
+      if (first.shaded) return first.shaded
+      const layers = painted.value.layers ?? [painted.value]
+      const [dark, light] = ["#000000", "#ffffff"].map(fill => first.repaint(painter(source, false, { key: fill, fill })))
+      first.shaded = { ...first, pages: dark.pages, swatch: dark.swatch, averages: { side: null, edge: null }, first, shader: { light: light.pages.map(page => page.texture), hues: dark.pages.map(page => hueMatrix(layers[layers.length > 1 ? page.layer : 0].look)) } }
+      return first.shaded
+    }
+
+    function shadeWith(first, cover) {
+      shadingFrom = { first, cover }
+      shading.value = { ...coverShading(first, cover.projection, painted.value.assets.cover, MAX_DETAIL, levelReady), matrix: cover.projection.matrix, detail: MAX_DETAIL }
+    }
+
+    function levelReady() {
+      if (!gone && shadingFrom && built.value?.shader) shadeWith(shadingFrom.first, shadingFrom.cover)
+    }
+
+    function shadedSharp(text, source) {
+      const cover = coverFor(text.first)
+      if (!cover) return null
+      const draft = text.first.sharp ??= text.first.refine(null)
+      const bases = bakedBases(draft, cover)
+      if (!bases) {
+        waitingSharp = { text, source }
+        return null
+      }
+      const sharp = text.first.refine(coverPainter(source, true, cover, bases))
+      sweepPaints()
+      return { ...text.first, ...sharp, refine: null, cover, first: text.first }
+    }
+
     function sharpened(text, source) {
+      if (text.shader) return shadedSharp(text, source)
       if (!text.cover) {
         const draft = text.refine(painter(source, true))
         sweepPaints()
@@ -367,17 +403,14 @@ export default {
         if (!drafted || drafted.key.some((part, at) => part !== firstKey[at])) drafted = { key: firstKey, value: buildText(source, cameraCover(object) ? { ...settings, paint: null, faded: faded() } : { ...settings, paint: painter(source) }) }
         const first = drafted.value
         const cover = coverFor(first)
-        const bases = cover && bakedBases(first, cover)
-        if (cover && !bases) {
-          builtFrom = null
-          clearTimeout(sharpening)
-          sharp.value = false
-          if (built.value?.cover) return
-          built.value = buildText(source, { ...settings, paint: painter(source) })
+        if (cover && !view.eager && bakesAside()) {
+          built.value = shaded(first, source)
+          shadeWith(first, cover)
         } else {
-          built.value = cover ? { ...buildText(source, { ...settings, paint: coverPainter(source, false, cover, bases) }), cover, first } : cameraCover(object) ? buildText(source, { ...settings, paint: painter(source) }) : first
-          builtFrom.cover = cover?.key ?? null
+          shading.value = null
+          built.value = cover ? { ...buildText(source, { ...settings, paint: coverPainter(source, false, cover, bakedBases(first, cover)) }), cover, first } : cameraCover(object) ? buildText(source, { ...settings, paint: painter(source) }) : first
         }
+        builtFrom.cover = cover?.key ?? null
         reach = twistedReach(built.value, laid.reach)
         const thumbnail = view.previews === false ? [] : thumbnailItems(source, laid.placed)
         preview.value = thumbnail.length ? previewFor(source, options, thumbnail, laid.sheet) : null
@@ -461,7 +494,7 @@ export default {
     usePublished(object, props.title, {
       size,
       scaleY: () => meshScale.value[1],
-      entry: () => ({ font: font.value, list: list.value, built: built.value, error: error.value, transform: transform.value, outline: outline.value, halo: halo.value, preview: preview.value && { built: preview.value, outline: previewOutline.value }, settled: painted.value?.font === wanted.value && !baking.value || !!error.value, sharp: sharp.value })
+      entry: () => ({ font: font.value, list: list.value, built: built.value, cover: shading.value, error: error.value, transform: transform.value, outline: outline.value, halo: halo.value, preview: preview.value && { built: preview.value, outline: previewOutline.value }, settled: painted.value?.font === wanted.value && !baking.value || !!error.value, sharp: sharp.value })
     })
 
     onBeforeUnmount(() => {

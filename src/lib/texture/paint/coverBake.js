@@ -5,53 +5,147 @@ import { runBake, STRIDE } from "./coverRaster.js"
 import { plain } from "./draw.js"
 
 const DENSITY_PERCENTILE = 0.9
-const levelCache = new WeakMap()
+const PREVIEW_SIZE = 512
+const levelImages = new WeakMap()
+const levelPixels = new WeakMap()
+const levelBitmaps = new WeakMap()
+const bitmapPixels = new WeakMap()
 const waiting = new Map()
 const sent = new Set()
 let worker = null
 let sources = 0
 let jobs = 0
 
-function levelOf(image, level) {
-  if (!levelCache.has(image)) levelCache.set(image, new Map())
-  const levels = levelCache.get(image)
-  if (!levels.has(level)) {
-    const width = Math.max(1, Math.ceil(image.width / 2 ** level))
-    const height = Math.max(1, Math.ceil(image.height / 2 ** level))
-    let source = image
-    if (level) {
-      const { canvas, ctx } = surface(width, height)
-      ctx.imageSmoothingEnabled = true
-      ctx.imageSmoothingQuality = "high"
-      ctx.drawImage(image, 0, 0, width, height)
-      source = canvas
-    }
-    const pixels = pixelsOf(source)
-    levels.set(level, { id: ++sources, width, height, pixels: new Uint32Array(pixels.buffer, pixels.byteOffset, width * height) })
-  }
+function cached(store, image, level, make) {
+  if (!store.has(image)) store.set(image, new Map())
+  const levels = store.get(image)
+  if (!levels.has(level)) levels.set(level, make())
   return levels.get(level)
+}
+
+function levelSize(image, level) {
+  return [Math.max(1, Math.ceil(image.width / 2 ** level)), Math.max(1, Math.ceil(image.height / 2 ** level))]
+}
+
+function levelImage(image, level) {
+  return cached(levelImages, image, level, () => {
+    if (!level) return image
+    const { canvas, ctx } = surface(...levelSize(image, level))
+    ctx.imageSmoothingEnabled = true
+    ctx.imageSmoothingQuality = "high"
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
+    return canvas
+  })
+}
+
+function pixelSource(source) {
+  const pixels = pixelsOf(source)
+  return { id: ++sources, width: source.width, height: source.height, pixels: new Uint32Array(pixels.buffer, pixels.byteOffset, source.width * source.height) }
+}
+
+function levelOf(image, level) {
+  return cached(levelPixels, image, level, () => pixelSource(levelImage(image, level)))
+}
+
+function bitmapOf(image, level) {
+  return cached(levelBitmaps, image, level, () => {
+    const [width, height] = levelSize(image, level)
+    const entry = { bitmap: null, waiters: new Set() }
+    entry.ready = createImageBitmap(image, { ...(level && { resizeWidth: width, resizeHeight: height, resizeQuality: "high" }), premultiplyAlpha: "none", colorSpaceConversion: "none" }).then(bitmap => {
+      entry.bitmap = bitmap
+      for (const waiter of entry.waiters) waiter()
+      entry.waiters.clear()
+      return bitmap
+    })
+    return entry
+  })
+}
+
+async function bitmapLevelOf(image, level) {
+  const bitmap = await bitmapOf(image, level).ready
+  return cached(bitmapPixels, image, level, () => pixelSource(bitmap))
+}
+
+function previewLevel(image) {
+  let level = 0
+  while (Math.max(...levelSize(image, level)) > PREVIEW_SIZE) level++
+  return level
+}
+
+function shownLevel(image, level, refresh) {
+  const wanted = bitmapOf(image, level)
+  if (wanted.bitmap) return wanted.bitmap
+  wanted.waiters.add(refresh)
+  const ready = Array.from(levelBitmaps.get(image)).filter(([, entry]) => entry.bitmap).sort(([a], [b]) => (a < level) - (b < level) || Math.abs(a - level) - Math.abs(b - level))
+  return ready[0]?.[1].bitmap ?? levelImage(image, Math.max(level, previewLevel(image)))
 }
 
 function screenOf({ x, y, z }, { orthographic, lens }) {
   return orthographic ? [x / lens, y / lens ** 2] : [x / z, y / z]
 }
 
-function densityOf([a, b, c], projection) {
-  const uvArea = Math.abs((b.u - a.u) * (c.v - a.v) - (c.u - a.u) * (b.v - a.v))
-  const [ax, ay] = screenOf(a, projection)
-  const [bx, by] = screenOf(b, projection)
-  const [cx, cy] = screenOf(c, projection)
-  const screenArea = Math.abs((bx - ax) * (cy - ay) - (cx - ax) * (by - ay))
-  return screenArea > 0 ? Math.sqrt(uvArea / screenArea) : 0
+function fitOf(projection, image) {
+  const { minX, maxX, minY, maxY } = projection.box
+  return coverFit({ x: minX, y: -maxY, width: maxX - minX, height: maxY - minY }, image, ...projection.position)
 }
 
-function levelFor(image, fit, triangles, projection) {
-  const densities = triangles.map(({ corners }) => densityOf(corners, projection)).filter(Boolean).sort((a, b) => a - b)
+function levelFor(image, fit, { positions, uvs, sizes, groups }, layouts, projection, detail) {
+  const e = projection.matrix
+  const { orthographic, lens } = projection
+  const mirrored = mirrors(e)
+  const corners = new Float64Array(12)
+  const densities = []
+  let vertex = 0
+  for (let face = 0; vertex < positions.length / 3; face++) {
+    const count = sizes ? sizes[face] : 6
+    const page = layouts[pageOf(groups, vertex)]
+    const { x: sx, y: sy, scale } = page.swatch
+    const size = SWATCH * scale
+    for (let start = vertex; start < vertex + count; start += 3) {
+      let swatched = true
+      for (let corner = 0; corner < 3; corner++) {
+        const at = start + corner
+        const x = positions[at * 3]
+        const y = positions[at * 3 + 1]
+        const z = positions[at * 3 + 2]
+        const cx = e[0] * x + e[4] * y + e[8] * z + e[12]
+        const cy = e[1] * x + e[5] * y + e[9] * z + e[13]
+        const depth = -(e[2] * x + e[6] * y + e[10] * z + e[14])
+        const u = uvs[at * 2] * page.width
+        const v = (1 - uvs[at * 2 + 1]) * page.height
+        corners.set([u, v, orthographic ? cx / lens : cx / depth, orthographic ? cy / lens ** 2 : cy / depth], corner * 4)
+        swatched &&= u >= sx - 0.01 && u <= sx + size + 0.01 && v >= sy - 0.01 && v <= sy + size + 0.01
+      }
+      if (swatched) continue
+      const screenArea = (corners[6] - corners[2]) * (corners[11] - corners[3]) - (corners[10] - corners[2]) * (corners[7] - corners[3])
+      if (mirrored ? screenArea >= 0 : screenArea <= 0) continue
+      const uvArea = Math.abs((corners[4] - corners[0]) * (corners[9] - corners[1]) - (corners[8] - corners[0]) * (corners[5] - corners[1]))
+      if (uvArea) densities.push(Math.sqrt(uvArea / Math.abs(screenArea)) * detail)
+    }
+    vertex += count
+  }
   if (!densities.length) return 0
-  const needed = densities[Math.min(densities.length - 1, Math.floor(densities.length * DENSITY_PERCENTILE))]
+  const sorted = Float64Array.from(densities).sort()
+  const needed = sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * DENSITY_PERCENTILE))]
   let level = 0
   while (Math.min(image.width, image.height) / 2 ** (level + 1) >= 1 && 1 / fit.scale / 2 ** (level + 1) >= needed) level++
   return level
+}
+
+function viewOf(projection, fit, image, [width, height]) {
+  return { orthographic: projection.orthographic, lens: projection.lens, fitX: fit.x, fitY: fit.y, scale: fit.scale * image.width / width, imageWidth: width, imageHeight: height }
+}
+
+function coverView(built, projection, image) {
+  const fit = fitOf(projection, image)
+  const level = levelFor(image, fit, built.body, built.layouts, projection, 1)
+  return { level, view: viewOf(projection, fit, image, levelSize(image, level)) }
+}
+
+export function coverShading(built, projection, image, detail, refresh) {
+  const fit = fitOf(projection, image)
+  const source = shownLevel(image, levelFor(image, fit, built.body, built.layouts, projection, detail), refresh)
+  return { source, view: viewOf(projection, fit, image, [source.width, source.height]) }
 }
 
 function onTexelEdge(value) {
@@ -122,12 +216,8 @@ function packed(triangles) {
 }
 
 function prepareBake(built, projection, image) {
-  const { minX, maxX, minY, maxY } = projection.box
-  const fit = coverFit({ x: minX, y: -maxY, width: maxX - minX, height: maxY - minY }, image, ...projection.position)
-  const triangles = trianglesOf(built.body, built.layouts, projection)
-  const source = levelOf(image, levelFor(image, fit, triangles, projection))
-  const view = { orthographic: projection.orthographic, lens: projection.lens, fitX: fit.x, fitY: fit.y, scale: fit.scale * image.width / source.width, imageWidth: source.width, imageHeight: source.height }
-  return { source, job: { pages: built.layouts.map(page => [page.width, page.height]), triangles: packed(triangles), view } }
+  const { level, view } = coverView(built, projection, image)
+  return { level, job: { pages: built.layouts.map(page => [page.width, page.height]), triangles: packed(trianglesOf(built.body, built.layouts, projection)), view } }
 }
 
 function basesFrom(results, pages) {
@@ -143,8 +233,8 @@ function basesFrom(results, pages) {
 }
 
 export function coverBases(built, projection, image) {
-  const { source, job } = prepareBake(built, projection, image)
-  return basesFrom(runBake(job, source.pixels), job.pages)
+  const { level, job } = prepareBake(built, projection, image)
+  return basesFrom(runBake(job, levelOf(image, level).pixels), job.pages)
 }
 
 export function bakesAside() {
@@ -177,8 +267,9 @@ function workerOf() {
   return worker
 }
 
-export function bakeCover(built, projection, image) {
-  const { source, job } = prepareBake(built, projection, image)
+export async function bakeCover(built, projection, image) {
+  const { level, job } = prepareBake(built, projection, image)
+  const source = await bitmapLevelOf(image, level)
   workerOf()
   const id = ++jobs
   return new Promise((resolve, reject) => {
@@ -187,9 +278,18 @@ export function bakeCover(built, projection, image) {
   })
 }
 
+function cover(ctx, baked) {
+  if (typeof baked !== "string") {
+    ctx.drawImage(baked, 0, 0)
+    return
+  }
+  ctx.fillStyle = baked
+  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
+}
+
 export function paintBakedCover(ctx, baked) {
   plain(ctx)
-  ctx.drawImage(baked, 0, 0)
+  cover(ctx, baked)
 }
 
 function traceRuns(ctx, rects) {
@@ -203,7 +303,7 @@ export function drawRuns(ctx, rects, source) {
   plain(ctx)
   traceRuns(ctx, rects)
   ctx.clip()
-  ctx.drawImage(source, 0, 0)
+  cover(ctx, source)
   ctx.restore()
 }
 

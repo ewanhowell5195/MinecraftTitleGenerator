@@ -1,8 +1,10 @@
 import * as THREE from "three"
 import { opaquePoints } from "./bufferPoints.js"
 import { lineBounds, objectMatrix, placementMatrix } from "./placement.js"
+import { coverMaterial } from "./coverMaterial.js"
 
 const FAR_EYE = 1e6
+const coverTextures = new Map()
 
 function mesh(buffers, material) {
   const geometry = new THREE.BufferGeometry()
@@ -26,36 +28,88 @@ function clear(entry) {
   discard(entry, "outline")
   discard(entry, "solid")
   discard(entry, "holes")
-  for (const texture of entry.textures ?? []) texture.dispose()
+  for (const texture of (entry.textures ?? []).concat(entry.lights ?? [])) texture.dispose()
   for (const material of entry.materials ?? []) material.dispose()
   entry.textures = []
+  entry.lights = []
   entry.materials = []
 }
 
+function pageTexture(canvas) {
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.magFilter = THREE.NearestFilter
+  texture.minFilter = THREE.NearestFilter
+  texture.generateMipmaps = false
+  texture.colorSpace = THREE.SRGBColorSpace
+  return texture
+}
+
+function holdCover(source) {
+  if (!coverTextures.has(source)) {
+    const texture = pageTexture(source)
+    texture.flipY = false
+    coverTextures.set(source, { texture, users: 0 })
+  }
+  const held = coverTextures.get(source)
+  held.users++
+  return held.texture
+}
+
+function releaseCover(entry) {
+  const source = entry.coverSource
+  const held = coverTextures.get(source)
+  entry.coverSource = null
+  entry.coverTexture = null
+  if (!held || --held.users) return
+  held.texture.dispose()
+  coverTextures.delete(source)
+}
+
+function shade(entry, cover) {
+  if (!cover || !entry.built?.shader) return
+  if (entry.coverSource !== cover.source) {
+    releaseCover(entry)
+    entry.coverTexture = holdCover(cover.source)
+    entry.coverSource = cover.source
+  }
+  const { view } = cover
+  for (const { uniforms } of entry.materials) {
+    uniforms.cover.value = entry.coverTexture
+    uniforms.coverMatrix.value.fromArray(cover.matrix)
+    uniforms.orthographic.value = view.orthographic
+    uniforms.lens.value = view.lens
+    uniforms.fit.value.set(view.fitX, view.fitY, view.scale)
+    uniforms.imageSize.value.set(view.imageWidth, view.imageHeight)
+    uniforms.detail.value = cover.detail
+  }
+}
+
 function fill(entry, built) {
-  const kept = entry.materials ?? []
+  const shader = built?.shader ?? null
+  for (const material of entry.materials) entry.pool[material.isShaderMaterial ? "shaded" : "plain"].push(material)
   entry.materials = []
   clear(entry)
   entry.built = built
-  if (!built) {
-    for (const material of kept) material.dispose()
-    return
-  }
+  if (!built) return
   entry.textures = built.pages.map(page => {
-    const texture = new THREE.CanvasTexture(page.texture)
-    texture.magFilter = THREE.NearestFilter
-    texture.minFilter = THREE.NearestFilter
-    texture.generateMipmaps = false
-    texture.colorSpace = THREE.SRGBColorSpace
+    const texture = pageTexture(page.texture)
     Object.assign(texture.userData, { labels: page.labels, crackShapes: page.crackShapes, gradient: page.gradient, fades: page.fades, panels: page.panels, plain: page.plain ? { image: page.plain.texture, labels: page.plain.labels, crackShapes: page.plain.crackShapes, gradient: page.plain.gradient, fades: page.plain.fades, panels: page.plain.panels } : null })
     return texture
   })
+  entry.lights = shader ? shader.light.map(pageTexture) : []
   entry.materials = entry.textures.map((texture, index) => {
-    const material = kept[index] ?? entry.body.clone()
-    material.map = texture
+    if (!shader) {
+      const material = entry.pool.plain.shift() ?? entry.body.clone()
+      material.map = texture
+      return material
+    }
+    const material = entry.pool.shaded.shift() ?? coverMaterial()
+    material.uniforms.dark.value = texture
+    material.uniforms.light.value = entry.lights[index]
+    material.uniforms.pageSize.value.set(texture.image.width, texture.image.height)
+    material.uniforms.hue.value.copy(shader.hues[index])
     return material
   })
-  for (const material of kept.slice(entry.textures.length)) material.dispose()
   entry.border.map = entry.textures[0] ?? null
   entry.border.needsUpdate = true
   entry.solid = built.body.triangles ? mesh(built.body, entry.materials.length === 1 ? entry.materials[0] : entry.materials) : null
@@ -128,6 +182,10 @@ function createEntry() {
     border: new THREE.MeshBasicMaterial({ side: THREE.BackSide, depthWrite: false }),
     rim: new THREE.MeshBasicMaterial({ side: THREE.BackSide, depthWrite: false }),
     clip: new THREE.MeshBasicMaterial({ colorWrite: false }),
+    coverSource: null,
+    coverTexture: null,
+    materials: [],
+    pool: { plain: [], shaded: [] },
     built: null,
     base: new THREE.Matrix4(),
     lines: null,
@@ -144,6 +202,7 @@ function updateEntry(entry, item) {
     entry.rings = null
     entry.gaps = null
   }
+  shade(entry, item.cover)
   if (entry.gaps !== (item.holes ?? null)) {
     entry.gaps = item.holes ?? null
     attachShell(entry, "holes", entry.gaps, entry.clip)
@@ -163,6 +222,8 @@ function updateEntry(entry, item) {
 
 function destroyEntry(entry) {
   clear(entry)
+  releaseCover(entry)
+  for (const material of entry.pool.plain.concat(entry.pool.shaded)) material.dispose()
   entry.body.dispose()
   entry.border.dispose()
   entry.rim.dispose()
