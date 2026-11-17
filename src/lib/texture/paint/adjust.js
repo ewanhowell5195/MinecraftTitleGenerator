@@ -23,11 +23,20 @@ export function paintedStops(look) {
   return stops.map((stop, index) => ({ position: stop.position, colour: packed(data, index * 4) }))
 }
 
+function filtered(look) {
+  return look.hue % 360 !== 0 || look.saturation !== 100 || look.brightness !== 100 || look.contrast !== 100
+}
+
+function tinted(look) {
+  return look.colourOpacity > 0 && !(look.blend === "multiply" && /^#f{3}(f{3})?$/i.test(look.colour))
+}
+
 export function adjusted(source, look, options) {
   const out = surface(source.width, source.height, options)
-  out.ctx.filter = `hue-rotate(${look.hue}deg) saturate(${look.saturation}%) brightness(${look.brightness}%) contrast(${look.contrast}%)`
+  if (filtered(look)) out.ctx.filter = `hue-rotate(${look.hue}deg) saturate(${look.saturation}%) brightness(${look.brightness}%) contrast(${look.contrast}%)`
   out.ctx.drawImage(source, 0, 0)
   out.ctx.filter = "none"
+  if (!tinted(look)) return out
   out.ctx.globalCompositeOperation = look.blend
   out.ctx.globalAlpha = look.colourOpacity / 100
   out.ctx.fillStyle = look.colour

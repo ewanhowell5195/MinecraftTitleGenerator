@@ -8,6 +8,7 @@
   import { TYPES } from "../lib/settings/defaults.js"
   import { addObject, addShape, duplicateLine, lineHidden, lineText, lines, removeLine, removeObject, runtime, scene, select, selectGroup, toggleLine, wordText } from "../lib/state/scene.js"
   import { view } from "../lib/state/view.js"
+  import { userBusy } from "../lib/state/activity.js"
   import ContextMenu from "../components/ContextMenu.vue"
   import Icon from "../components/Icon.vue"
   import SavePresetDialog from "./presets/SavePresetDialog.vue"
@@ -19,6 +20,10 @@
   let timer = null
 
   function flush() {
+    if (userBusy()) {
+      timer = setTimeout(flush, SETTLE)
+      return
+    }
     timer = null
     for (const id of queued) {
       const state = runtime[id]
@@ -31,9 +36,9 @@
   watch(() => scene.objects.map(object => [object.id, runtime[object.id]]), list => {
     const ids = new Set(list.map(([id]) => id))
     for (const [id, state] of list) {
-      const key = state && [state.preview, state.transform]
+      const key = state && [state.preview?.built, state.preview?.outline, state.transform]
       const last = rendered.get(id)
-      if (key && last && key[0] === last[0] && key[1] === last[1]) continue
+      if (key && last && key.every((part, at) => part === last[at])) continue
       rendered.set(id, key)
       if (!key) continue
       queued.add(id)

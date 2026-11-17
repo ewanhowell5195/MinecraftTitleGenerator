@@ -62,6 +62,10 @@ function trim(object) {
   return trimmed(object, new Set(UNUSED.filter(([skip]) => skip(object)).flatMap(([, keys]) => keys)))
 }
 
+function sameSettings(a, b) {
+  return Array.from(new Set(Object.keys(a).concat(Object.keys(b)))).every(key => sameValue(a[key], b[key]))
+}
+
 export function titleData() {
   const camera = cameraChanges(scene.camera)
   return { format: FORMAT, version: FILE_VERSION, lines: titleLines(lines(), trim), ...(Object.keys(camera).length && { camera }) }
@@ -102,7 +106,7 @@ export function isDefaultTitle() {
   const object = scene.objects[0]
   const { list, font } = runtime[object.id] ?? {}
   if (!list || !font) return false
-  return sameValue(trim(object), trim(titleReference(list, font)))
+  return sameSettings(trim(object), trim(titleReference(list, font)))
 }
 
 export async function untouchedTitle() {
@@ -114,7 +118,7 @@ export async function untouchedTitle() {
   const entry = fonts.find(item => item.id === object.font)
   if (!entry) return false
   const font = await loadFont(entry, fonts)
-  return sameValue(trim(object), trim(titleReference(await fontTextures(font.sheetFolder, font.strips), font)))
+  return sameSettings(trim(object), trim(titleReference(await fontTextures(font.sheetFolder, font.strips), font)))
 }
 
 function showObjects(objects, camera, preset = null) {

@@ -6,6 +6,7 @@ import { fontFolder, loadImage } from "../font/font.js"
 import { fileError } from "./notices.js"
 
 const heights = reactive({})
+const KEPT_TYPES = ["image/png", "image/jpeg"]
 
 export function download(name, url) {
   const link = document.createElement("a")
@@ -35,13 +36,13 @@ export function readDataUrl(file, apply) {
 export async function readImage(event, apply) {
   const file = takeFile(event)
   if (!file) return
-  if (file.type === "image/png") return readDataUrl(file, apply)
+  if (KEPT_TYPES.includes(file.type)) return readDataUrl(file, apply)
   const url = URL.createObjectURL(file)
   try {
     const loaded = await loadImage(url)
     const { canvas, ctx } = surface(loaded.width, loaded.height)
     ctx.drawImage(loaded, 0, 0)
-    apply(canvas.toDataURL("image/png"))
+    readDataUrl(await new Promise(resolve => canvas.toBlob(resolve, "image/png")), apply)
   } catch {
     fileError.value = `Couldn't open ${file.name}: this browser can't read it as an image`
   } finally {

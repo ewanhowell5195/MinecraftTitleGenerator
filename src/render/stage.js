@@ -33,9 +33,14 @@ function clear(entry) {
 }
 
 function fill(entry, built) {
+  const kept = entry.materials ?? []
+  entry.materials = []
   clear(entry)
   entry.built = built
-  if (!built) return
+  if (!built) {
+    for (const material of kept) material.dispose()
+    return
+  }
   entry.textures = built.pages.map(page => {
     const texture = new THREE.CanvasTexture(page.texture)
     texture.magFilter = THREE.NearestFilter
@@ -45,11 +50,12 @@ function fill(entry, built) {
     Object.assign(texture.userData, { labels: page.labels, crackShapes: page.crackShapes, gradient: page.gradient, fades: page.fades, panels: page.panels, plain: page.plain ? { image: page.plain.texture, labels: page.plain.labels, crackShapes: page.plain.crackShapes, gradient: page.plain.gradient, fades: page.plain.fades, panels: page.plain.panels } : null })
     return texture
   })
-  entry.materials = entry.textures.map(texture => {
-    const material = entry.body.clone()
+  entry.materials = entry.textures.map((texture, index) => {
+    const material = kept[index] ?? entry.body.clone()
     material.map = texture
     return material
   })
+  for (const material of kept.slice(entry.textures.length)) material.dispose()
   entry.border.map = entry.textures[0] ?? null
   entry.border.needsUpdate = true
   entry.solid = built.body.triangles ? mesh(built.body, entry.materials.length === 1 ? entry.materials[0] : entry.materials) : null

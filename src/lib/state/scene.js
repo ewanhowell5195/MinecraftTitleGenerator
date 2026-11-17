@@ -4,7 +4,7 @@ import { applyType } from "../settings/defaults.js"
 import { hoisted, lowered } from "../link/linkformat.js"
 import { round } from "../core/maths.js"
 import { createObject } from "../settings/objects.js"
-import { LINE, isModified, snapshot } from "../settings/settings.js"
+import { LINE, isModified, plainCopy, snapshot } from "../settings/settings.js"
 import { shapeName } from "../geometry/shapes.js"
 import { createTitle } from "./title.js"
 import { joinWords, titleLines, titleValues, trimmed } from "../link/titleFacts.js"
@@ -203,7 +203,7 @@ export function titleFileName() {
 }
 
 function clone(value) {
-  return value === undefined ? value : JSON.parse(JSON.stringify(value))
+  return plainCopy(value)
 }
 
 function broadcast(object, targets) {
