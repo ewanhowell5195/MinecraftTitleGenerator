@@ -1,5 +1,6 @@
 import { apiCall, jsonOptions } from "./api.js"
 import { refreshAccount } from "../state/community.js"
+import { askConfirm } from "../state/confirm.js"
 
 const API = "/api/submissions"
 const NOTIFICATIONS_API = "/api/notifications"
@@ -66,6 +67,10 @@ export async function reviewQueue() {
 
 export function sendSubmission(fields, file, agree, extras) {
   return called(API, { method: "POST", body: form(fields, file, agree, extras) })
+}
+
+export function askOverwrite() {
+  return askConfirm({ title: "Someone else changed this submission", message: "It was changed after you opened it, by someone else or in another tab. Saving now replaces their changes with yours.", action: "Save anyway", danger: true })
 }
 
 export async function editSubmission(id, fields, file, extras, revision) {

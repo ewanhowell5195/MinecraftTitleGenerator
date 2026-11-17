@@ -9,7 +9,8 @@ import { moveGlyph, reshapeGlyph } from "../lib/font/editor/glyphEditing.js"
 import { buildSheet } from "../lib/font/editor/sheet.js"
 import { fitGlyph } from "../lib/font/editor/sizes.js"
 import { jsonText } from "../lib/core/jsonText.js"
-import { EDITOR_EDIT, EDITOR_SUBMISSION } from "../lib/submissions/submissions.js"
+import { EDITOR_EDIT, EDITOR_REVISION, EDITOR_SUBMISSION } from "../lib/submissions/submissions.js"
+import { askOverwrite, submission } from "../lib/submissions/submissionsApi.js"
 import { fontFromUploads } from "./loaders.js"
 import { download, downloadBlob } from "../lib/state/ui.js"
 import { pngUrl } from "../lib/core/virtualFiles.js"
@@ -257,10 +258,27 @@ export function downloadJson() {
   downloadBlob(name, new Blob([text], { type: "application/json" }))
 }
 
-export function saveSubmission() {
+async function overwriteAllowed(id) {
+  const opened = JSON.parse(sessionStorage.getItem(EDITOR_REVISION) ?? "null")
+  if (opened?.submission !== id) return true
+  const latest = (await submission(id)).updatedAt
+  if (latest === opened.revision) return true
+  if (!await askOverwrite()) return false
+  sessionStorage.setItem(EDITOR_REVISION, JSON.stringify({ submission: id, revision: latest }))
+  return true
+}
+
+export async function saveSubmission() {
   flushSave()
-  sessionStorage.setItem(EDITOR_SUBMISSION, JSON.stringify({ ...jsonFile(), submission: editingSubmission.value, save: true }))
-  navigate(`/submissions/${editingSubmission.value}/edit`)
+  const id = editingSubmission.value
+  try {
+    if (!await overwriteAllowed(id)) return
+  } catch (err) {
+    saveError.value = `Your submission couldn't be checked before saving: ${err.message}`
+    return
+  }
+  sessionStorage.setItem(EDITOR_SUBMISSION, JSON.stringify({ ...jsonFile(), submission: id, save: true }))
+  navigate(`/submissions/${id}/edit`)
 }
 
 export function submitFont() {

@@ -15,7 +15,7 @@
   import { SUBMISSION_KINDS, checkSubmission, submissionContext } from "../lib/submissions/kinds/index.js"
   import { navigate } from "../lib/state/navigation.js"
   import { EDITOR_EDIT, EDITOR_REVISION, EDITOR_SUBMISSION, SUBMISSION_LIMITS } from "../lib/submissions/submissions.js"
-  import { editSubmission, sendSubmission, submissionFileUrl } from "../lib/submissions/submissionsApi.js"
+  import { askOverwrite, editSubmission, sendSubmission, submission, submissionFileUrl } from "../lib/submissions/submissionsApi.js"
   import { pickedFile, releaseFile } from "./files.js"
   import { KIND_COMPONENTS } from "./kinds/components.js"
   import { CLIENT_KINDS, submissionTitle } from "./kinds/index.js"
@@ -265,10 +265,20 @@
     } catch (err) {
       error.value = err.message
       conflict.value = err.status === 409 && !!props.initial
-      return false
+      if (!conflict.value) return false
     } finally {
       sending.value = false
     }
+    let latest = null
+    try {
+      latest = await submission(props.initial.id)
+    } catch (err) {
+      error.value = err.message
+      return false
+    }
+    if (latest.status !== "open" || latest.updatedAt === revision.value || !await askOverwrite()) return false
+    revision.value = latest.updatedAt
+    return send()
   }
 
   onBeforeUnmount(release)
