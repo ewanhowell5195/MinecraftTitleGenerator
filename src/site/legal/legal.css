@@ -5,6 +5,7 @@
 .legal h2 {
   margin-top: 44px;
   font-size: clamp(22px, 3vw, 28px);
+  scroll-margin-top: 96px;
 }
 
 .legal p,
@@ -28,4 +29,64 @@
 .legal .updated {
   font-size: 15px;
   color: var(--faint);
+}
+
+.legal-head {
+  margin-bottom: 32px;
+}
+
+.legal .contents {
+  display: none;
+}
+
+@media (min-width: 1100px) {
+  .legal {
+    display: grid;
+    grid-template-columns: 200px minmax(0, 760px);
+    column-gap: 56px;
+    max-width: 1016px;
+  }
+
+  .legal-head {
+    grid-column: 1 / -1;
+  }
+
+  .legal .contents {
+    position: sticky;
+    top: 96px;
+    display: block;
+    align-self: start;
+    margin-top: 16px;
+  }
+
+  .legal .contents > p {
+    margin: 0 0 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--faint);
+  }
+
+  .legal .contents .tab-bar {
+    max-height: calc(100vh - 150px);
+    box-shadow: inset 2px 0 0 var(--line);
+  }
+
+  .legal .contents .tab-bar-active {
+    border: none;
+    border-left: 2px solid var(--accent);
+  }
+
+  .legal .contents .tab-bar-button {
+    justify-content: flex-start;
+    padding: 5px 0 5px 12px;
+    font-size: 14px;
+    font-weight: 400;
+    text-align: left;
+    color: var(--muted);
+  }
+
+  .legal .contents .tab-bar-button:hover,
+  .legal .contents .tab-bar-button.active {
+    color: var(--text);
+  }
 }
