@@ -53,6 +53,7 @@
 
 <style scoped>
   .picture {
+    position: relative;
     padding: 12px;
     width: 100%;
     aspect-ratio: 2;
@@ -74,6 +75,10 @@
   }
 
   .picture img {
-    display: block;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    padding: inherit;
   }
 </style>
