@@ -3,7 +3,7 @@
 </script>
 
 <template>
-  <LegalPage title="Privacy Policy" updated="10 November 2026" about="this policy">
+  <LegalPage title="Privacy Policy" updated="17 November 2026" about="this policy">
     <p>By using the Minecraft Title Generator, you agree that you have read and agree to this policy.</p>
     <p>This policy describes what data the title generator stores, why, how long it is kept, and how to remove it.</p>
 
@@ -38,10 +38,10 @@
     <p>When you are signed in, votes and the daily share limit use a salted hash of your account id instead.</p>
 
     <h2>Submissions</h2>
-    <p>Submissions can be sent from the website, where you need to be signed in, or as a pull request on GitHub. The Blockbench plugin cannot send them. A submission sent from the website stores the file you send, its name, the credit, any notes and settings you give it, its review status, and which account sent it.</p>
+    <p>A submission sent from the website stores the file you send, its name, the credit, any notes and settings you give it, its review status, and which account sent it.</p>
     <p>Submissions are public. Each one is opened as a pull request on the title generator's public <a href="https://github.com/ewanhowell5195/MinecraftTitleGenerator" target="_blank" rel="noopener">GitHub repository</a>, which shows the file, its name, the credit, your notes, your username, and whether you use Discord or GitHub. Anyone with the link can also see the submission's page on the title generator.</p>
-    <p>Withdrawing a submission removes it from my server and closes its pull request, but the pull request stays on GitHub, and I can still accept it. If a submission is accepted, it becomes part of the title generator, and the credit is shown on the <a href="/credits/">credits page</a>.</p>
-    <p>You and reviewers can comment on your submission, on its page or on its pull request. Comments are public and are kept on the pull request on GitHub, not on my server. Comments written on the site are posted there with your username, and the submission's page shows them from there.</p>
+    <p>Withdrawing a submission removes it from my server and closes its pull request, but the pull request stays on GitHub. If a submission is accepted, it becomes part of the title generator, and the credit is shown on the <a href="/credits/">credits page</a>.</p>
+    <p>You and reviewers can comment on your submission, on its page or on its pull request. Comments are public and are kept on the pull request on GitHub, not on my server. Comments written on the site are posted there with your username.</p>
     <p>When someone comments on your submission, or it is accepted or turned down, a notification is saved to your account. This stores their username, their comment, and a link to it. Reviewers are also notified when you send, change or comment on a submission, which shows them your username.</p>
     <p>Each notification is also emailed to you, with the same details. Sending a submission needs an email address on your Discord or GitHub account for this.</p>
 
@@ -58,6 +58,7 @@
       <li>Your votes, downloads, the presets you have shared and their keys, and your account's username and profile picture link, so the title generator can remember them.</li>
       <li>Recently loaded preset pages, so they load faster.</li>
       <li>Minecraft files the title generator has downloaded from Mojang, so they do not need downloading again.</li>
+      <li>Whether you accepted the Minecraft End User License Agreement.</li>
     </ul>
     <p>Clearing your browser's site data, or the plugin's data in Blockbench, removes all of these. Keys for presets you shared without signing in cannot be recovered, so you will not be able to change or delete those presets afterwards.</p>
 
@@ -76,7 +77,7 @@
       <li>Vote and download records are kept until the preset is deleted. Changing a shared preset's title resets them. Your own votes are deleted when you delete your account.</li>
       <li>Daily share counts are deleted after the day ends.</li>
       <li>Submissions are removed from my server once they are accepted, turned down or withdrawn, along with their notifications. When one is accepted or turned down, you are left one notification saying so, which is kept until you clear it. Deleting your account removes all of your notifications.</li>
-      <li>Your email address is removed from my server once you have no submissions waiting for review, unless you are a reviewer.</li>
+      <li>Your email address is removed from my server once you have no submissions waiting for review and no notification emails left to send, unless you are a reviewer.</li>
       <li>Deleted data can remain in Cloudflare's database history for up to 30 days.</li>
       <li>Resend keeps a copy of each notification email for 30 days after it is sent.</li>
     </ul>
@@ -86,11 +87,11 @@
     <ul>
       <li><strong><a href="https://www.cloudflare.com/" target="_blank" rel="noopener">Cloudflare</a></strong> hosts the title generator and its database. Every request to the title generator goes through Cloudflare, including your IP address.</li>
       <li><strong><a href="https://discord.com/" target="_blank" rel="noopener">Discord</a></strong> and <strong><a href="https://github.com/" target="_blank" rel="noopener">GitHub</a></strong> handle signing in, and show your profile picture.</li>
-      <li><strong><a href="https://www.blockbench.net/" target="_blank" rel="noopener">Blockbench</a></strong> runs the plugin.</li>
       <li><strong><a href="https://github.com/" target="_blank" rel="noopener">GitHub</a></strong> hosts submissions as public pull requests, as described above.</li>
       <li><strong><a href="https://resend.com/" target="_blank" rel="noopener">Resend</a></strong> sends notification emails, so it receives your email address and each notification.</li>
       <li><strong><a href="https://fonts.google.com/" target="_blank" rel="noopener">Google Fonts</a></strong> provides the fonts the title generator's pages use. Your browser downloads them from Google's servers, so Google receives your IP address.</li>
       <li><strong><a href="https://www.mojang.com/" target="_blank" rel="noopener">Mojang</a></strong>: when you use a Minecraft block texture, your browser downloads the game's files directly from Mojang's servers.</li>
+      <li><strong><a href="https://www.jsdelivr.com/" target="_blank" rel="noopener">jsDelivr</a></strong>: when you use a Minecraft block or item shape, your browser downloads the code that draws it from jsDelivr's servers, so jsDelivr receives your IP address.</li>
     </ul>
     <p>These services have their own privacy policies, and any data they collect is not governed by this policy. Links to other websites are not covered by this policy either.</p>
 
@@ -109,8 +110,6 @@
     <ul>
       <li>Accepted submissions stay in the title generator, under the submission terms in the <a href="https://github.com/ewanhowell5195/MinecraftTitleGenerator/blob/main/LICENSE.md" target="_blank" rel="noopener">licence</a>.</li>
       <li>Pull requests and their comments cannot be deleted from GitHub. Deleting your account removes your username from them, and I can remove your notes on request.</li>
-      <li>Deleted data can remain in Cloudflare's database history for up to 30 days.</li>
-      <li>Notification emails already sent stay with Resend for 30 days after they are sent.</li>
     </ul>
 
     <h2>Children's privacy</h2>

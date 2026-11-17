@@ -50,8 +50,8 @@
     <h2>Acceptable use</h2>
     <p>When using the title generator, do not:</p>
     <ul>
-      <li>Share or submit anything offensive, hateful, sexual, or illegal.</li>
-      <li>Share or submit anything that is not yours to share.</li>
+      <li>Share, submit, or post anything offensive, hateful, sexual, or illegal, including in names, credits, and comments.</li>
+      <li>Share, submit, or post anything that is not yours to share.</li>
       <li>Pretend to be someone else, eg in a preset name or a submission credit.</li>
       <li>Spam presets, votes, or submissions, or get around any limits.</li>
       <li>Try to break, overload, or get unauthorised access to the title generator or its servers.</li>
