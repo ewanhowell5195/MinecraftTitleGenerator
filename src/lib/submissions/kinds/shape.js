@@ -204,6 +204,15 @@ export function inkBox({ width, height, mask }) {
   return box
 }
 
+export function cubesMatch({ bounds, scale, lift, width, mask, solid }) {
+  for (let y = 0; y < bounds.height; y++) {
+    for (let x = 0; x < bounds.width; x++) {
+      if (solid(x, y) !== !!mask[Math.floor((y + lift) / scale) * width + Math.floor(x / scale)]) return false
+    }
+  }
+  return true
+}
+
 export function sampleGlyph({ width, height, mask }) {
   return { width, height, top: height, bottom: 0, mask }
 }

@@ -58,10 +58,11 @@ async function editorFont({ kind, data, height, mesh, density }) {
     return { font: fontFromFiles({ sheet: await pixels(json.editor.texture), json }) }
   }
   if (kind === "silhouette") {
-    const [{ fontFromShapes }, { sampleGlyph, silhouetteSample }] = await Promise.all([import("./editor/import.js"), import("../submissions/kinds/shape.js")])
+    const [{ fontFromShapes }, { sampleGlyph, silhouetteSample }, { traceSilhouette }] = await Promise.all([import("./editor/import.js"), import("../submissions/kinds/shape.js"), import("./silhouetteTrace.js")])
     const sample = silhouetteSample(await pixels(data))
     const glyph = sampleGlyph(sample)
-    return { font: fontFromShapes(new Map([[SILHOUETTE_TEXT, glyph]]), { name: "Shape", capHeight: glyph.height, grid: 1, spaceWidth: Math.round(glyph.height / 2), letterCase: "upper" }), sample }
+    const font = fontFromShapes(new Map([[SILHOUETTE_TEXT, glyph]]), { name: "Shape", capHeight: glyph.height, grid: 1, spaceWidth: Math.round(glyph.height / 2), letterCase: "upper" })
+    return mesh ? { font, sample, outlines: { [SILHOUETTE_TEXT]: traceSilhouette(sample) }, mesh } : { font, sample }
   }
   if (kind === "ascii") {
     const { fontFromAscii } = await import("./asciiImport.js")
@@ -71,6 +72,11 @@ async function editorFont({ kind, data, height, mesh, density }) {
   const source = await parseFontFile(await (await fetch(data)).arrayBuffer())
   const options = { height, density: squareSize({ kind, mesh, density }) }
   return { font: fontFromOutlines(source, options), outlines: meshOutlines(source, options), mesh }
+}
+
+export async function silhouetteMesh(data) {
+  const { cubesMatch, silhouetteSample } = await import("../submissions/kinds/shape.js")
+  return !cubesMatch(silhouetteSample(await pixels(data)))
 }
 
 export async function silhouetteFont(data) {

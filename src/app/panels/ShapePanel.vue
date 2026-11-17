@@ -9,6 +9,7 @@
   import { gameVersions, library } from "../../lib/state/scene.js"
   import { CUSTOM_SHAPE, isMinecraftShape, minecraftShape, minecraftShapeParts } from "../../lib/geometry/shapes.js"
   import { readImage } from "../../lib/state/ui.js"
+  import { silhouetteMesh } from "../../lib/font/customFonts.js"
   import { usedShapes } from "./uploads.js"
   import ColourPicker from "../../components/ColourPicker.vue"
   import Dropdown from "../../components/Dropdown.vue"
@@ -27,6 +28,7 @@
   const SOURCES = [{ value: "premade", label: "Premade" }, { value: "minecraft", label: "Minecraft" }, { value: "custom", label: "Custom" }]
   const KINDS = [{ value: "block", label: "Blocks" }, { value: "item", label: "Items" }]
   const STARTING_SHAPES = { block: "cobblestone", item: "diamond_sword" }
+  const BUILDS = [{ value: false, label: "Cubes" }, { value: true, label: "Mesh" }]
 
   const { object } = usePanel("shape")
   const minecraft = isMinecraftShape(object.value.shape)
@@ -91,8 +93,14 @@
     setShape(minecraftShape(kind.value, id), version.value)
   }
 
-  function pickPng(data) {
-    Object.assign(object.value, { shape: CUSTOM_SHAPE, customFont: { kind: "silhouette", fileName: "shape.png", data } })
+  async function pickPng(data) {
+    const target = object.value
+    const mesh = await silhouetteMesh(data)
+    Object.assign(target, { shape: CUSTOM_SHAPE, customFont: { kind: "silhouette", fileName: "shape.png", data, mesh } })
+  }
+
+  function setBuild(mesh) {
+    object.value.customFont = { ...object.value.customFont, mesh }
   }
 
   const reusable = computed(() => usedShapes().filter(item => object.value.shape !== CUSTOM_SHAPE || item.value !== object.value.customFont?.data).map(item => ({ ...item, image: item.value })))
@@ -165,6 +173,7 @@
       <template v-else-if="source === 'custom'">
         <UploadField accept="image/*" :label="object.shape === CUSTOM_SHAPE ? 'Replace image' : 'Choose an image'" empty="No image chosen" :image="object.shape === CUSTOM_SHAPE ? object.customFont?.data : null" :clearable="object.shape === CUSTOM_SHAPE" @change="readImage($event, pickPng)" @clear="clearPng" />
         <p class="hint">The solid pixels make the shape, pushed out like a letter, and the image paints its front.</p>
+        <Segments v-if="object.shape === CUSTOM_SHAPE && object.customFont" label="Build from" :options="BUILDS" :model-value="!!object.customFont.mesh" :hint="object.customFont.mesh ? 'Smooth edges that follow the outline of the image.' : 'Pixel cubes, like the letters.'" @update:model-value="setBuild" />
         <UploadReuse :items="reusable" @pick="pickPng" />
       </template>
       <template v-else>
