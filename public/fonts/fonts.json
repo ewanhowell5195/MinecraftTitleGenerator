@@ -323,5 +323,9 @@
       "12": ["l4"]
     },
     "editor": { "width": 28, "grid": 4 }
+  },
+  {
+    "id": "grand-theft-auto",
+    "authors": ["SaikoKyunno"]
   }
 ]
