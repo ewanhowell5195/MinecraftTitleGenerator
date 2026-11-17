@@ -1,15 +1,15 @@
 import { after, describe, test } from "node:test"
 import assert from "node:assert/strict"
 
-await import("../../renderer/index.js")
+await import("./index.js")
 const { createRenderer, reactive, watch } = await import("vue")
-const { platform } = await import("../../src/lib/core/platform.js")
-const { default: ObjectRenderer } = await import("../../src/render/ObjectRenderer.js")
-const { createTitle, OFFSCREEN_VIEW } = await import("../../src/lib/state/title.js")
-const { loadLibrary } = await import("../../src/lib/link/titleNames.js")
-const { loadFont } = await import("../../src/lib/font/font.js")
-const { fontTextures, sheetFor } = await import("../../src/lib/texture/assets.js")
-const { createObject } = await import("../../src/lib/settings/objects.js")
+const { platform } = await import("../src/lib/core/platform.js")
+const { default: ObjectRenderer } = await import("../src/render/ObjectRenderer.js")
+const { createTitle, OFFSCREEN_VIEW } = await import("../src/lib/state/title.js")
+const { loadLibrary } = await import("../src/lib/link/titleNames.js")
+const { loadFont } = await import("../src/lib/font/font.js")
+const { fontTextures, sheetFor } = await import("../src/lib/texture/assets.js")
+const { createObject } = await import("../src/lib/settings/objects.js")
 
 const NOTHING_RENDERED = createRenderer({ insert() {}, remove() {}, createElement: () => ({}), createText: () => ({}), createComment: () => ({}), setText() {}, setElementText() {}, parentNode: () => null, nextSibling: () => null, patchProp() {} })
 const [fonts, tileables, shapes] = await loadLibrary()
