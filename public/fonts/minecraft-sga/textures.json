@@ -8,7 +8,7 @@
       "overlays": [
         { "overlay": "highlights_bottom", "blend": "source-over", "colours": ["#faedea"], "opacity": 46 }
       ],
-      "basedOn": "strips.minecraft-ten.smooth"
+      "basedOn": "strips.default.smooth"
     }
   },
   "overlays": {},

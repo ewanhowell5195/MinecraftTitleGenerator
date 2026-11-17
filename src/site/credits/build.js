@@ -8,7 +8,7 @@ import { titleCase } from "../../lib/core/names.js"
 import { DEFAULT_FONT } from "../../lib/settings/defaults.js"
 import { overlayLayer } from "../../lib/settings/settings.js"
 import { FILE_VERSION } from "../../lib/settings/upgrades.js"
-import { stripUse } from "../../lib/font/strips.js"
+import { stripUse, withDefaultStrips } from "../../lib/font/strips.js"
 import { escaped } from "../../lib/core/html.js"
 
 const STRIPS = "strips."
@@ -87,7 +87,7 @@ function peopleOf(root) {
   function basedOnLabel(basedOn, owner) {
     if (!basedOn) return null
     const { owner: target, id } = basedOnParts(basedOn, owner)
-    const sets = target.startsWith(STRIPS) ? [] : (fontOf(target)?.strips ?? []).map(item => `${STRIPS}${stripUse(item).id}`)
+    const sets = target.startsWith(STRIPS) ? [] : withDefaultStrips(fontOf(target)?.strips).map(item => `${STRIPS}${stripUse(item).id}`)
     const name = [target].concat(sets).filter(key => lists.has(key)).map(key => nameIn(lists.get(key), id)).find(Boolean)
     if (name) return target === owner || target.startsWith(STRIPS) ? name : `${fullName(fontOf(target), fonts)}: ${name}`
     const tileable = tileables[id] ?? Object.values(tileables).find(entry => entry.variants?.[id])?.variants[id]
@@ -107,7 +107,7 @@ function peopleOf(root) {
 
   for (const [owner, list] of lists) {
     const strips = owner.startsWith(STRIPS)
-    const users = strips ? fonts.filter(font => (font.strips ?? []).some(item => stripUse(item).id === owner.slice(STRIPS.length))) : [fontOf(owner)]
+    const users = strips ? fonts.filter(font => withDefaultStrips(font.strips).some(item => stripUse(item).id === owner.slice(STRIPS.length))) : [fontOf(owner)]
     if (!users.length) throw new Error(`no font uses the ${owner} strips, so their thumbnails can't be found`)
     const thumbnails = `${fontFolder(users[0])}/thumbnails`
     for (const [group, kind] of [["textures", "texture"], ["overlays", "overlay"]]) {

@@ -8,6 +8,12 @@ export function stripUse(item) {
   return typeof item === "string" ? { id: item, offset: 0, layer: null } : { offset: 0, layer: null, ...item }
 }
 
+export const DEFAULT_STRIPS = "default"
+
+export function withDefaultStrips(strips = []) {
+  return strips.some(item => stripUse(item).id === DEFAULT_STRIPS) ? strips : [DEFAULT_STRIPS].concat(strips)
+}
+
 export function stripItem(id, offset = 0, layer = null) {
   return offset || layer ? { id, ...(offset && { offset }), ...(layer && { layer }) } : id
 }

@@ -18,7 +18,7 @@
   import { parsedSheet } from "../lib/font/editor/sheet.js"
   import { titleCase } from "../lib/core/names.js"
   import { loadStats, usage } from "../lib/state/stats.js"
-  import { centredOffset, placedStrips, stripFolder, stripItem, stripPlacements, stripTag, stripUse } from "../lib/font/strips.js"
+  import { DEFAULT_STRIPS, centredOffset, placedStrips, stripFolder, stripItem, stripPlacements, stripTag, stripUse, withDefaultStrips } from "../lib/font/strips.js"
   import { layerDepth, nearestOffset, setShape, stripFit } from "../lib/submissions/kinds/stripFit.js"
   import { editorLine, useServedFont } from "../fontEditor/editorLine.js"
   import { typedNumber } from "../fontEditor/fields.js"
@@ -85,7 +85,7 @@
   const lines = computed(() => entry.value && shown.value.trim() ? [editorLine(entry.value, shown.value, { texture: chosenTexture.value, variant: chosenVariant.value, layer: chosenSet.value && layerOf(chosenSet.value) ? layerOf(chosenSet.value) - 1 : null, layers: layerCount.value })] : [])
 
   function used(id) {
-    return uses.value.some(use => use.id === id)
+    return id === DEFAULT_STRIPS || uses.value.some(use => use.id === id)
   }
 
   function here() {
@@ -288,7 +288,7 @@
         }
       }
       setUsers.value = users
-      const published = Array.from(new Set(fonts.flatMap(item => item.strips ?? []).map(item => stripUse(item).id)))
+      const published = Array.from(new Set(fonts.flatMap(item => withDefaultStrips(item.strips)).map(item => stripUse(item).id)))
       const own = uses.value.map(use => use.id).filter(id => !published.includes(id))
       const [shared, extra] = await Promise.all([Promise.all(published.map(loadSet)), Promise.all(own.map(id => loadSet(id).catch(err => ({ id, error: err.message }))))])
       const loaded = shared.concat(extra).sort((a, b) => a.id < b.id ? -1 : 1)
@@ -334,7 +334,8 @@
           <span v-tooltip="`0 centres ${words.parts} on the strips, higher moves ${words.them} up, lower moves ${words.them} down`">Offset</span>
           <NumberInput :value="chosenOffset(set.id)" :min="bounds(set.id).low" :max="bounds(set.id).high" v-tooltip="boundsNote(set.id)" :aria-label="`Offset for ${titleCase(set.id)}`" @input="setOffset(set.id, $event)" @change="setOffset(set.id, $event)" />
         </template>
-        <Button v-if="usedHere(set.id)" @click.stop="toggle(set.id)">Stop using</Button>
+        <span v-if="set.id === DEFAULT_STRIPS">Always used</span>
+        <Button v-else-if="usedHere(set.id)" @click.stop="toggle(set.id)">Stop using</Button>
         <Button :primary="fits(set.id)" v-else :disabled="!fits(set.id) || full && !used(set.id)" @click.stop="toggle(set.id)">Use</Button>
       </div>
     </div>

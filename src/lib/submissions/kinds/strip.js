@@ -1,4 +1,5 @@
 import { fullName } from "../../font/font.js"
+import { DEFAULT_STRIPS } from "../../font/strips.js"
 import { HEX_COLOUR, SUBMISSION_LIMITS, pngProblem, pngSize, textProblem } from "../submissions.js"
 import { submissionFont, texturesList } from "./fontAsset.js"
 import { STRIP_LIMITS, heightList, setIdOf, setIds, setName, sharedHeights, stripOwners, stripSet, stripTarget, targetRows } from "./stripFit.js"
@@ -25,6 +26,8 @@ async function forSet(id, details, ctx) {
   if (details.stretch === true) {
     if (set.height) clean.stretch = true
     else problems.stretch = `The ${setName(id)} strip type has no height, so its strips can't stretch.`
+  } else if (id === DEFAULT_STRIPS) {
+    problems.stretch = `Every font uses the ${setName(id)} strip type, so its strips have to stretch.`
   }
   return { problems, clean, target: `set:${id}`, what: `the ${setName(id)} strip type` }
 }

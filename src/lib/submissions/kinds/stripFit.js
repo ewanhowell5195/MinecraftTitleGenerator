@@ -3,7 +3,7 @@ import { independentLayers, layerSlices } from "../../font/flatSheet.js"
 import { fontFolder, fullOrder, parseMask, sheetOwner } from "../../font/font.js"
 import { titleCase } from "../../core/names.js"
 import { defaultBorder, defaultDepth } from "../../settings/defaults.js"
-import { stackedStrip, stripRows, stripTag, stripUse, stripY } from "../../font/strips.js"
+import { stackedStrip, stripRows, stripTag, stripUse, stripY, withDefaultStrips } from "../../font/strips.js"
 import { SUBMISSION_LIMITS } from "../submissions.js"
 import { submissionFont } from "./fontAsset.js"
 import { decodePng } from "./png.js"
@@ -29,11 +29,11 @@ export function stripOwners(fonts) {
 }
 
 export function setUsers(fonts, id) {
-  return stripOwners(fonts).flatMap(font => (font.strips ?? []).map(stripUse).filter(use => use.id === id).map(use => ({ font, offset: use.offset, layer: use.layer ? use.layer - 1 : null })))
+  return stripOwners(fonts).flatMap(font => withDefaultStrips(font.strips).map(stripUse).filter(use => use.id === id).map(use => ({ font, offset: use.offset, layer: use.layer ? use.layer - 1 : null })))
 }
 
 export function setIds(fonts) {
-  return Array.from(new Set(stripOwners(fonts).flatMap(font => (font.strips ?? []).map(item => stripUse(item).id))))
+  return Array.from(new Set(stripOwners(fonts).flatMap(font => withDefaultStrips(font.strips).map(item => stripUse(item).id))))
 }
 
 export function layerDepth(depth, layers, layer, independent = false) {

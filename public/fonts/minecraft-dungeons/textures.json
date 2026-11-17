@@ -8,7 +8,7 @@
       "overlays": [
         { "overlay": "highlights_bottom", "blend": "screen", "colours": ["#00f162"], "opacity": 73 }
       ],
-      "basedOn": "strips.minecraft-ten.gradient",
+      "basedOn": "strips.default.gradient",
       "variants": {
         "gradient_prerelease": {
           "overlays": [

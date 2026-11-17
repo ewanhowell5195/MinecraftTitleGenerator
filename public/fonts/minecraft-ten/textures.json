@@ -142,7 +142,7 @@
     },
     "pride": {
       "type": "strip",
-      "strip": "minecraft-ten",
+      "strip": "default",
       "variants": {
         "intersex": {
           "type": "sheet"
@@ -151,7 +151,7 @@
     },
     "netherite": {
       "type": "strip",
-      "strip": "minecraft-ten",
+      "strip": "default",
       "variants": {
         "gilded_netherite": {
           "type": "sheet",

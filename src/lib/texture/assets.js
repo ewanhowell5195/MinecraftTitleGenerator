@@ -8,7 +8,7 @@ import { decodePng } from "../submissions/kinds/png.js"
 import { titleCase } from "../core/names.js"
 import { platform } from "../core/platform.js"
 import { defaultDepth } from "../settings/defaults.js"
-import { mergeStrips, stackedStrip, stripFolder, stripRows, stripUse } from "../font/strips.js"
+import { mergeStrips, stackedStrip, stripFolder, stripRows, stripUse, withDefaultStrips } from "../font/strips.js"
 
 const json = new Map()
 const images = new Map()
@@ -74,7 +74,7 @@ function stripSet(item) {
 }
 
 export async function fontTextures(folder, strips = []) {
-  const [own, sets] = await Promise.all([textureList(folder), Promise.all(strips.map(stripSet))])
+  const [own, sets] = await Promise.all([textureList(folder), Promise.all(withDefaultStrips(strips).map(stripSet))])
   return mergeStrips(own, sets)
 }
 

@@ -22,7 +22,7 @@ import { publicContext } from "../helpers/site.js"
 
 const FONTS = "public/fonts/fonts.json"
 const SET = "public/strips/minecraft-ten/textures.json"
-const SEEDED = [FONTS, SET].concat(fs.readdirSync("public/fonts", { recursive: true }).filter(file => file.endsWith("textures.json")).map(file => `public/fonts/${file.replaceAll("\\", "/")}`))
+const SEEDED = [FONTS, SET, "public/strips/default/textures.json"].concat(fs.readdirSync("public/fonts", { recursive: true }).filter(file => file.endsWith("textures.json")).map(file => `public/fonts/${file.replaceAll("\\", "/")}`))
 const NEW_SHAPE = { depth: 16, baseline: 24, height: 40 }
 const published = flattenFonts(JSON.parse(fs.readFileSync(FONTS, "utf8")))
 
@@ -209,16 +209,16 @@ describe("sending a strip", () => {
   test("as a variant goes under its strip, saying so only where it stretches differently", async () => {
     const cookie = await signIn()
     const set = onMain(SET)
-    const { status, id } = await send(cookie, { details: { variantOf: "smooth" } }, png(16, 92))
+    const { status, id } = await send(cookie, { details: { variantOf: "bricks", stretch: true } }, png(16, 46))
     assert.equal(status, 201)
-    assert.deepEqual(branchJson(id, SET).textures.smooth, { ...set.textures.smooth, variants: { ...set.textures.smooth.variants, pale_dawn: { stretch: false, authors: ["Someone"], border: "#3d1f0a" } } })
+    assert.deepEqual(branchJson(id, SET).textures.bricks, { ...set.textures.bricks, variants: { ...set.textures.bricks.variants, pale_dawn: { stretch: true, authors: ["Someone"], border: "#3d1f0a" } } })
     assert.equal(branchJson(id, SET).textures.pale_dawn, undefined)
     assert.ok(gh.filesAt(`submission/${id}`).has("public/strips/minecraft-ten/textures/pale_dawn.png"))
-    assert.equal(gh.pulls.get(1).title, "Pale Dawn strip for the Minecraft Ten strip type as a variant of Smooth")
-    assert.equal((await details(id)).details.variantOf, "smooth")
-    const stretched = await send(cookie, { name: "Paler Dawn", details: { variantOf: "smooth", stretch: true } }, png(16, 46))
-    assert.deepEqual(branchJson(stretched.id, SET).textures.smooth.variants.paler_dawn, { authors: ["Someone"], border: "#3d1f0a" })
-    assert.match((await send(cookie, { name: "Lost", details: { variantOf: "smooth_inverted" } })).error, /Pick the strip this is a variant of/)
+    assert.equal(gh.pulls.get(1).title, "Pale Dawn strip for the Minecraft Ten strip type as a variant of Bricks")
+    assert.equal((await details(id)).details.variantOf, "bricks")
+    const plain = await send(cookie, { name: "Paler Dawn", details: { variantOf: "bricks" } }, png(16, 46))
+    assert.deepEqual(branchJson(plain.id, SET).textures.bricks.variants.paler_dawn, { authors: ["Someone"], border: "#3d1f0a" })
+    assert.match((await send(cookie, { name: "Lost", details: { variantOf: "bricks_minecraft" } })).error, /Pick the strip this is a variant of/)
   })
 
   test("keeps its snap, and a variant only says so where it snaps differently from its strip", async () => {
@@ -330,8 +330,8 @@ describe("the strip writer", () => {
   test("watches every list the strip's id depends on", () => {
     const set = writer.watches({ row: { target: "set:minecraft-ten" }, details: {}, fonts })
     assert.ok(set.includes(SET) && set.includes(FONTS) && set.includes("public/fonts/geo-squares/textures.json"))
-    assert.deepEqual(writer.watches({ row: { target: "font:minecraft-five" }, details: {}, fonts }).sort(), ["public/fonts/minecraft-five/textures.json"])
-    assert.deepEqual(writer.watches({ row: { target: "new" }, details: { set: "soft", fonts: ["minecraft-five"] }, fonts }).sort(), [FONTS, "public/fonts/minecraft-five/textures.json", "public/strips/soft/textures.json"])
+    assert.deepEqual(writer.watches({ row: { target: "font:minecraft-five" }, details: {}, fonts }).sort(), ["public/fonts/minecraft-five/textures.json", "public/strips/default/textures.json"])
+    assert.deepEqual(writer.watches({ row: { target: "new" }, details: { set: "soft", fonts: ["minecraft-five"] }, fonts }).sort(), [FONTS, "public/fonts/minecraft-five/textures.json", "public/strips/default/textures.json", "public/strips/soft/textures.json"])
   })
 
   test("shares id scopes with the fonts the strip lands in", () => {

@@ -3,6 +3,7 @@ import { defaultBorder } from "../settings/defaults.js"
 import { titleCase } from "../core/names.js"
 import { DEFAULT_ORDER } from "./order.js"
 import { platform } from "../core/platform.js"
+import { withDefaultStrips } from "./strips.js"
 
 export const SHEET_MAX_WIDTH = 560
 
@@ -303,7 +304,7 @@ export function linkText(text, id, list) {
 }
 
 export function stripsOf(data, list) {
-  return sheetOwner(data, list).strips ?? []
+  return withDefaultStrips(sheetOwner(data, list).strips)
 }
 
 export function fullName(entry, fonts) {

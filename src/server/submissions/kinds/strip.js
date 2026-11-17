@@ -1,7 +1,7 @@
 import { flattenFonts, fontFolder, fullName, sheetOwner } from "../../../lib/font/font.js"
 import { jsonText } from "../../../lib/core/jsonText.js"
 import { titleCase } from "../../../lib/core/names.js"
-import { mergeStrips, stripFolder, stripUse } from "../../../lib/font/strips.js"
+import { mergeStrips, stripFolder, stripUse, withDefaultStrips } from "../../../lib/font/strips.js"
 import { textureName } from "../../../lib/submissions/kinds/fontAsset.js"
 import { setName, setUsers, stripTarget } from "../../../lib/submissions/kinds/stripFit.js"
 import { assetId, ownBorder } from "../../../lib/submissions/submissions.js"
@@ -27,7 +27,7 @@ function ownerOf(fonts, id) {
 }
 
 async function mergedIds(read, font) {
-  const sets = await Promise.all((font.strips ?? []).map(async item => ({ ...await readJson(read, setPath(stripUse(item).id)), ...stripUse(item) })))
+  const sets = await Promise.all(withDefaultStrips(font.strips).map(async item => ({ ...await readJson(read, setPath(stripUse(item).id)), ...stripUse(item) })))
   return usedIds(mergeStrips(await readJson(read, texturesPath(font)), sets))
 }
 
@@ -139,7 +139,7 @@ export const strip = {
   watches({ row, details, fonts }) {
     const target = stripTarget(row.target)
     const affected = target.kind === "font" ? [fontTarget(row, fonts)] : target.kind === "set" ? usersOf(fonts, target.id) : (details.fonts ?? []).flatMap(id => fonts.filter(font => font.id === id))
-    const sets = affected.flatMap(font => (font.strips ?? []).map(item => setPath(stripUse(item).id)))
+    const sets = affected.flatMap(font => withDefaultStrips(font.strips).map(item => setPath(stripUse(item).id)))
     const own = target.kind === "font" ? [] : [FONTS, setPath(target.kind === "set" ? target.id : details.set)]
     return Array.from(new Set(affected.map(texturesPath).concat(sets, own)))
   },

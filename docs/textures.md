@@ -45,6 +45,8 @@ A strip type is a set of strips any font of the right shape can use. Its shape i
 
 Minecraft Ten's strips are 22, 40 and 30, making them 92 rows tall: 22 for the top edge, 40 for the front above the baseline, 8 below it, and 22 for the bottom edge.
 
+Every font uses the `default` type without listing it, so every strip in it has to stretch.
+
 On the submit page you can send a strip to an existing type, to one font, or start a new type and pick the fonts that use it.
 
 ### Sizes

@@ -11,6 +11,7 @@
   import { texturesList } from "../../lib/submissions/kinds/fontAsset.js"
   import { submissionContext } from "../../lib/submissions/kinds/index.js"
   import { DEFAULT_FONT } from "../../lib/settings/defaults.js"
+  import { DEFAULT_STRIPS } from "../../lib/font/strips.js"
   import { STRIP_LIMITS, heightList, setIdOf, setIds, setName, setUsers, sharedHeights, stripOwners, stripSnap, stripTarget, targetRows } from "../../lib/submissions/kinds/stripFit.js"
   import { SUBMISSION_LIMITS, pngProblem } from "../../lib/submissions/submissions.js"
   import { fontThumbnail } from "../../lib/state/ui.js"
@@ -41,6 +42,7 @@
   const owners = computed(() => stripOwners(props.fonts))
   const sets = computed(() => setIds(props.fonts))
   const chosen = computed(() => stripTarget(props.target))
+  const forDefault = computed(() => chosen.value.kind === "set" && chosen.value.id === DEFAULT_STRIPS)
   const fontOptions = computed(() => popularFontOptions(owners.value, props.fonts))
   const setOptions = computed(() => sets.value.map(id => ({ value: id, label: setName(id) })))
   const users = computed(() => chosen.value.kind === "set" ? setUsers(props.fonts, chosen.value.id).map(use => fullName(use.font, props.fonts)) : [])
@@ -131,6 +133,7 @@
       for (const [key, value] of Object.entries(NEW_SHAPE)) if (props.details[key] === undefined) missing[key] = value
       if (!Array.isArray(props.details.fonts)) missing.fonts = []
     }
+    if (forDefault.value && props.details.stretch !== true) missing.stretch = true
     if (Object.keys(missing).length) change(missing)
   }, { immediate: true })
 
@@ -149,7 +152,7 @@
 
 <template>
   <Segments v-model="mode" :options="MODES" label="Strip for" hint="A strip is read from top to bottom: the top edge of the letters, their front, then the bottom edge. It repeats along the line, so it can be any width." />
-  <Field group v-if="mode === 'set'" label="Strip type" :error="tried ? problems.target : ''" :hint="users.length ? `Shared by ${users.join(', ')}.` : ''">
+  <Field group v-if="mode === 'set'" label="Strip type" :error="tried ? problems.target : ''" :hint="forDefault ? 'Every font uses this strip type, so its strips have to stretch.' : users.length ? `Shared by ${users.join(', ')}.` : ''">
     <Dropdown v-model="set" :options="setOptions" />
   </Field>
   <Field group v-else-if="mode === 'font'" label="Font" :error="tried ? problems.target : ''" hint="Only this font gets the strip.">
@@ -184,7 +187,7 @@
     </div>
   </template>
   <VariantOf v-if="mode !== 'new'" noun="strip" :details="details" :list="variantList" :folder="shownOn ? fontFolder(shownOn) : null" :problem="tried ? problems.variantOf ?? '' : ''" @update:details="emit('update:details', $event)" />
-  <Checkbox v-if="mode !== 'font'" v-model="stretch" label="Stretch the front between each font's baseline and top, instead of lining it up row by row" />
+  <Checkbox v-if="mode !== 'font' && !forDefault" v-model="stretch" label="Stretch the front between each font's baseline and top, instead of lining it up row by row" />
   <span v-if="problems.stretch" class="hint bad">{{ problems.stretch }}</span>
   <Field group label="Snap" :error="problems.snap" hint="How many pixels wide each of the strip's own pixels are. Letters that don't touch start their strip on a whole one of these, so the pattern lines up from letter to letter.">
     <NumberInput min="1" :max="STRIP_LIMITS.snap" :value="details.snap ?? 1" @input="number('snap', $event.target.value)" />

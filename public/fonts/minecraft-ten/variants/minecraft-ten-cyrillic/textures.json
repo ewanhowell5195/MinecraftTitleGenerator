@@ -47,7 +47,7 @@
     "pride": {
       "type": "strip",
       "authors": ["Yozhenka"],
-      "basedOn": "strips.minecraft-ten.pride",
+      "basedOn": "strips.default.pride",
       "variants": {
         "aroace": {},
         "aromantic": {},
@@ -55,7 +55,7 @@
         "bisexual": {},
         "enby": {},
         "femboy": {
-          "basedOn": "strips.minecraft-ten.femboy"
+          "basedOn": "strips.default.femboy"
         },
         "fluid": {},
         "gay": {},
@@ -66,10 +66,10 @@
         "pansexual": {},
         "trans": {},
         "transfeminine": {
-          "basedOn": "strips.minecraft-ten.transfeminine"
+          "basedOn": "strips.default.transfeminine"
         },
         "transmasculine": {
-          "basedOn": "strips.minecraft-ten.transmasculine"
+          "basedOn": "strips.default.transmasculine"
         }
       }
     },

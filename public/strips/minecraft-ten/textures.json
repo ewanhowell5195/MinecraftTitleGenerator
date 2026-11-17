@@ -3,63 +3,9 @@
   "baseline": 30,
   "height": 40,
   "textures": {
-    "gradient": {
-      "type": "strip",
-      "stretch": true,
-      "overlays": [
-        { "overlay": "highlights_top", "blend": "screen", "colours": ["#1ec877"], "opacity": 70 }
-      ],
-      "authors": ["Ewan Howell"]
-    },
-    "smooth": {
-      "type": "strip",
-      "stretch": true,
-      "overlays": [
-        { "overlay": "highlights_bottom", "blend": "lighter", "colours": ["#4a4a4a"], "opacity": 47 }
-      ],
-      "authors": ["Ewan Howell"],
-      "variants": {
-        "smooth_inverted": {
-          "overlays": [
-            { "overlay": "highlights_top", "blend": "lighter", "colours": ["#393939"], "opacity": 56 }
-          ],
-          "name": "Smooth (Inverted Highlight)"
-        },
-        "smooth_old": {
-          "overlays": [
-            { "overlay": "highlights_bottom", "blend": "soft-light", "colours": ["#ffe3e4"], "opacity": 98 }
-          ],
-          "name": "Smooth (Old)"
-        },
-        "smooth_inverted_old": {
-          "overlays": [
-            { "overlay": "highlights_top", "blend": "soft-light", "colours": ["#ffe1de"], "opacity": 99 }
-          ],
-          "name": "Smooth (Old) (Inverted Highlight)"
-        }
-      }
-    },
     "flat_coloured": {
       "type": "strip",
       "authors": ["Ewan Howell"]
-    },
-    "story_mode": {
-      "type": "strip",
-      "stretch": true,
-      "overlays": [
-        { "overlay": "highlights_top", "blend": "screen", "colours": ["#dfc184"], "opacity": 76 }
-      ],
-      "name": "Story Mode (Season 2)",
-      "category": "Story Mode",
-      "authors": ["Ewan Howell"],
-      "variants": {
-        "story_mode1": {
-          "overlays": [
-            { "overlay": "highlights_top", "blend": "source-over", "colours": ["#b08d4a"], "opacity": 100 }
-          ],
-          "name": "Story Mode (Season 1)"
-        }
-      }
     },
     "mineimator": {
       "type": "strip",
@@ -215,32 +161,6 @@
       "type": "strip",
       "authors": ["HARYA_"]
     },
-    "pride": {
-      "type": "strip",
-      "stretch": true,
-      "authors": ["Snuzzle"],
-      "variants": {
-        "aroace": {},
-        "aromantic": {},
-        "asexual": {},
-        "bisexual": {},
-        "enby": {},
-        "femboy": {
-          "authors": ["0Szysza"]
-        },
-        "fluid": {},
-        "gay": {},
-        "lesbian": {},
-        "pansexual": {},
-        "trans": {},
-        "transfeminine": {
-          "authors": ["0Szysza"]
-        },
-        "transmasculine": {
-          "authors": ["0Szysza"]
-        }
-      }
-    },
     "bricks": {
       "type": "strip",
       "authors": ["IAmMaker"],
@@ -259,18 +179,6 @@
           "snap": 4
         }
       }
-    },
-    "netherite": {
-      "type": "strip",
-      "stretch": true,
-      "overlays": [
-        { "overlay": "highlights_left", "blend": "source-over", "colours": ["#4a474a"], "opacity": 100 },
-        { "overlay": "highlights_right", "blend": "source-over", "colours": ["#4a474a"], "opacity": 100 },
-        { "overlay": "highlights_top", "blend": "source-over", "colours": ["#5a575a"], "opacity": 100 },
-        { "overlay": "highlights_bottom", "blend": "source-over", "colours": ["#3b393b"], "opacity": 100 }
-      ],
-      "authors": ["Ewan Howell"],
-      "border": "#1f1a1d"
     },
     "blueprint": {
       "type": "strip",
