@@ -1,4 +1,6 @@
-# [Minecraft Title Generator](https://mctitlegenerator.com)
+<h1 align="center"><a href="https://mctitlegenerator.com"><img src="public/home/logo.webp" alt="Minecraft Title Generator" width="600"></a></h1>
+
+<p align="center"><a href="https://mctitlegenerator.com/app/"><b>Open the generator</b></a> · <a href="https://mctitlegenerator.com/app/presets">Presets</a> · <a href="https://mctitlegenerator.com/submit/">Submit</a> · <a href="https://mctitlegenerator.com/font-editor/">Font editor</a> · <a href="https://mctitlegenerator.com/credits/">Credits</a></p>
 
 Make Minecraft styled titles at [mctitlegenerator.com](https://mctitlegenerator.com). Anyone can submit fonts, textures and shapes to the generator, and once accepted they are there for everyone to use.
 

@@ -2,6 +2,8 @@
 
 ## Making a font
 
+![The font editor](../public/home/font-editor.webp)
+
 Fonts are made in the [font editor](https://mctitlegenerator.com/font-editor/). Start from scratch, or import a TTF, OTF or WOFF font, or an `ascii.png` from any resource pack. Draw the characters, set the kerning, then press Submit in the top bar. You can also download the font's JSON and send it on the [submit page](https://mctitlegenerator.com/submit/).
 
 Set the name, ID, authors and description in the editor's Font tab. If your font is made from another font in the generator, set it as Based on so its authors are credited too.
