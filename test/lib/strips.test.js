@@ -7,7 +7,7 @@ import { stripRange } from "../../src/lib/texture/assets.js"
 import { stripsOf } from "../../src/lib/font/font.js"
 import { withGenerated } from "../../src/lib/texture/overlays/settings.js"
 import { defaultDepth } from "../../src/lib/settings/defaults.js"
-import { bandEntry, centredOffset, layerSlice, mergeStrips, placedStrips, stripCovers, stripPlacements, stackedStrip, stripItem, stripRows, stripUse, stripY } from "../../src/lib/font/strips.js"
+import { STRIP_ANCHORS, anchorShift, bandEntry, layerSlice, mergeStrips, placedStrips, stripCovers, stripPlacements, stackedStrip, stripItem, stripRows, stripUse, stripY } from "../../src/lib/font/strips.js"
 
 const SET = { id: "set", depth: 22, baseline: 30, textures: { shared: { authors: "a", variants: { kid: { authors: "b" } } }, other: { authors: "c" } } }
 
@@ -30,36 +30,30 @@ describe("mergeStrips", () => {
     assert.deepEqual(Object.keys(textures), ["entities", "kid", "other"])
   })
 
-  test("strips listed once per layer keep each layer's own offset", () => {
-    const { textures } = mergeStrips({ textures: {} }, [{ ...SET, layer: 1, offset: 2 }, { ...SET, layer: 2, offset: -3 }])
+  test("strips listed once per layer keep a band for each layer", () => {
+    const { textures } = mergeStrips({ textures: {} }, [{ ...SET, layer: 1 }, { ...SET, layer: 2 }])
     assert.equal(textures.shared.stripLayer, null)
-    assert.deepEqual([textures.shared.stripBands[0].stripOffset, textures.shared.stripBands[1].stripOffset], [2, -3])
-    assert.equal(bandEntry(textures.shared, 1).stripOffset, -3)
+    assert.deepEqual(Object.keys(textures.shared.stripBands), ["0", "1"])
     assert.equal(bandEntry(textures.shared, 1).stripLayer, 1)
-    assert.equal(textures.shared.variants.kid.stripBands[0].stripOffset, 2)
+    assert.deepEqual(Object.keys(textures.shared.variants.kid.stripBands), ["0", "1"])
     assert.ok(stripCovers(textures.shared, null, 2))
     assert.ok(stripCovers(textures.shared, 0, 2))
   })
 
-  test("using strips on every layer with one offset lists them once for all layers", () => {
-    const placed = new Map([[1, 4], [2, 4]])
-    assert.deepEqual(placedStrips(["other"], "set", placed, 2), ["other", { id: "set", offset: 4 }])
-    assert.deepEqual(stripPlacements([{ id: "set", offset: 4 }], "set", 2), placed)
+  test("using strips on every layer lists them once for all layers", () => {
+    const placed = new Set([1, 2])
+    assert.deepEqual(placedStrips(["other"], "set", placed, 2), ["other", "set"])
+    assert.deepEqual(stripPlacements(["set"], "set", 2), placed)
   })
 
-  test("different offsets per layer list the strips once per layer", () => {
-    const placed = new Map([[2, -3], [1, 2]])
-    const strips = placedStrips(["set", "other"], "set", placed, 2)
-    assert.deepEqual(strips, [{ id: "set", offset: 2, layer: 1 }, { id: "set", offset: -3, layer: 2 }, "other"])
-    assert.deepEqual(Array.from(stripPlacements(strips, "set", 2)).sort(), [[1, 2], [2, -3]])
-  })
-
-  test("strips that only fit each layer on its own stay listed per layer", () => {
-    assert.deepEqual(placedStrips([], "set", new Map([[1, 0], [2, 0]]), 2, false), [{ id: "set", layer: 1 }, { id: "set", layer: 2 }])
+  test("strips on some layers are listed once per layer", () => {
+    const strips = placedStrips(["set", "other"], "set", new Set([2]), 3)
+    assert.deepEqual(strips, [{ id: "set", layer: 2 }, "other"])
+    assert.deepEqual(Array.from(stripPlacements(strips, "set", 3)), [2])
   })
 
   test("a single layer font lists strips without a layer", () => {
-    assert.deepEqual(placedStrips([], "set", new Map([[1, 3]]), 1, false), [{ id: "set", offset: 3 }])
+    assert.deepEqual(placedStrips([], "set", new Set([1]), 1), ["set"])
   })
 
   test("strips on one layer only cover that layer", () => {
@@ -100,17 +94,17 @@ describe("stripRows", () => {
   })
 
   test("a shared strip uses its own depth and baseline", () => {
-    assert.deepEqual(stripRows({ stripSet: "set", stripDepth: 22, stripBaseline: 30 }, { top: 40, bottom: 0 }, 16), { depth: 22, top: 40, bottom: -8, rows: 92 })
+    assert.deepEqual(stripRows({ stripSet: "set", stripDepth: 22, stripBaseline: 30, stripHeight: 40 }, { top: 40, bottom: 0 }, 16), { depth: 22, top: 40, bottom: -8, rows: 92 })
   })
 
-  test("a strip can be listed by id or as an object with an offset", () => {
-    assert.deepEqual(stripUse("set"), { id: "set", offset: 0, layer: null })
-    assert.deepEqual(stripUse({ id: "set", offset: 4 }), { id: "set", offset: 4, layer: null })
+  test("a strip can be listed by id or as an object", () => {
+    assert.deepEqual(stripUse({ id: "set" }), { id: "set", layer: null })
+    assert.deepEqual(stripUse("set"), { id: "set", layer: null })
   })
 
   test("a strip set can be tied to one layer of the font", () => {
-    assert.deepEqual(stripUse({ id: "set", layer: 2 }), { id: "set", offset: 0, layer: 2 })
-    assert.deepEqual([stripItem("set"), stripItem("set", 3), stripItem("set", 0, 2)], ["set", { id: "set", offset: 3 }, { id: "set", layer: 2 }])
+    assert.deepEqual(stripUse({ id: "set", layer: 2 }), { id: "set", layer: 2 })
+    assert.deepEqual([stripItem("set"), stripItem("set", 2)], ["set", { id: "set", layer: 2 }])
     const { textures } = mergeStrips({ textures: {} }, [{ id: "set", depth: 22, layer: 2, textures: { a: {} } }])
     assert.equal(textures.a.stripLayer, 1)
   })
@@ -125,23 +119,36 @@ describe("stripRows", () => {
     assert.deepEqual(layerSlice(layers, 1), { from: 0, size: 0.8 })
   })
 
-  test("an offset lifts the font's baseline above the strip's", () => {
-    const { textures } = mergeStrips({ textures: {} }, [{ id: "set", depth: 22, baseline: 30, offset: 8, textures: { a: {} } }])
-    assert.equal(textures.a.stripOffset, 8)
-    assert.deepEqual(stripRows(textures.a, { top: 32, bottom: 0 }, 22), { depth: 22, top: 32, bottom: -16, rows: 92 })
-  })
-
-  test("a strip with a height keeps its own size, and the offset picks which rows a shorter font uses", () => {
+  test("a strip keeps its own size and centres a shorter font by default", () => {
     const { textures } = mergeStrips({ textures: {} }, [{ id: "set", depth: 22, baseline: 30, height: 40, textures: { a: {} } }])
     assert.deepEqual(stripRows(textures.a, { top: 32, bottom: 0 }, 22), { depth: 22, top: 40, bottom: -8, rows: 92 })
     assert.deepEqual(stripRows(textures.a, { top: 32, bottom: 0 }, 22, 32), { depth: 22, top: 36, bottom: -12, rows: 92 })
     assert.deepEqual(stripRows(textures.a, { top: 40, bottom: 0 }, 22, 40), { depth: 22, top: 40, bottom: -8, rows: 92 })
-    assert.deepEqual(stripRows({ ...textures.a, stripOffset: 2 }, { top: 32, bottom: 0 }, 22, 32), { depth: 22, top: 34, bottom: -14, rows: 92 })
-    assert.deepEqual(stripRows({ ...textures.a, stripOffset: 8 }, { top: 32, bottom: 0 }, 22), { depth: 22, top: 32, bottom: -16, rows: 92 })
+  })
+
+  test("a strip's anchor lines up the font's topline, middle or baseline with its own", () => {
+    const { textures } = mergeStrips({ textures: {} }, [{ id: "set", depth: 22, baseline: 30, height: 40, textures: { top: { anchor: "top" }, middle: {}, base: { anchor: "base" } } }])
+    const rows = name => stripRows(textures[name], { top: 32, bottom: 0 }, 22, 32)
+    assert.deepEqual(["top", "middle", "base"].map(name => [rows(name).top, rows(name).bottom]), [[32, -16], [36, -12], [40, -8]])
+    assert.deepEqual(STRIP_ANCHORS.map(anchor => anchorShift({ anchor, stripHeight: 40 }, 48)), [-8, -4, 0])
+  })
+
+  test("a centred strip snaps the font to the nearest whole one of its pixels, down on a tie", () => {
+    assert.equal(anchorShift({ stripHeight: 40 }, 34), 3)
+    assert.equal(anchorShift({ stripHeight: 40, snap: 4 }, 34), 4)
+    assert.equal(anchorShift({ stripHeight: 40, snap: 2 }, 34), 2)
+    assert.equal(anchorShift({ stripHeight: 40 }, 33), 3)
+    assert.equal(anchorShift({ stripHeight: 40, snap: 3 }, 48), -3)
+    assert.equal(anchorShift({ anchor: "top", stripHeight: 40, snap: 4 }, 34), 6)
+  })
+
+  test("strip types need a height", () => {
+    const { textures } = mergeStrips({ textures: {} }, [{ id: "set", depth: 22, baseline: 30, textures: { a: {} } }])
+    assert.throws(() => stripRows(textures.a, { top: 32, bottom: 0 }, 22, 32), /need a height/)
   })
 
   test("a stretching strip fits its face between the font's baseline and topline, and repeats its last rows past its own", () => {
-    const { textures } = mergeStrips({ textures: {} }, [{ id: "set", depth: 22, baseline: 30, height: 40, offset: 6, textures: { a: { stretch: true } } }])
+    const { textures } = mergeStrips({ textures: {} }, [{ id: "set", depth: 22, baseline: 30, height: 40, textures: { a: { stretch: true } } }])
     const rows = stripRows(textures.a, { top: 22, bottom: -4 }, 22, 20)
     assert.deepEqual(rows, { depth: 22, top: 40, bottom: -8, rows: 92, scale: { from: 20, to: 40, base: 0 } })
     assert.deepEqual([-12, -9, -8, -4, -1, 0, 1, 10, 19, 20, 21].map(y => stripY(rows, y)), [-8, -8, -8, -8, -2, 0, 2, 20, 38, 39, 39])
@@ -163,7 +170,7 @@ describe("stripRows", () => {
   })
 
   test("a baseline left out falls back to the depth", () => {
-    const { textures } = mergeStrips({ textures: {} }, [{ id: "set", depth: 22, textures: { a: {} } }])
+    const { textures } = mergeStrips({ textures: {} }, [{ id: "set", depth: 22, height: 42, textures: { a: {} } }])
     assert.deepEqual(stripRows(textures.a, { top: 42, bottom: 0 }, 22), { depth: 22, top: 42, bottom: 0, rows: 86 })
   })
 })
@@ -186,19 +193,28 @@ describe("published strips", () => {
     assert.ok(users.length)
   })
 
-  test("a font fits every strip it lists", () => {
+  test("every strip type a font uses has a height its strips line up with", () => {
     for (const font of users) {
-      const { cells, capHeight, layers } = readMask(font, fonts)
-      for (const use of stripsOf(font, fonts).map(stripUse)) {
-        const { id } = use
+      for (const { id } of stripsOf(font, fonts).map(stripUse)) {
         const set = setOf(id)
-        const range = stripRange({ cells, capHeight }, use.layer && layers ? use.layer - 1 : null)
-        const offset = centredOffset(set.height, capHeight) + use.offset
-        const baseline = set.baseline ?? set.depth
-        for (const [name, height, stretch] of set.heights) {
-          const resolution = height / (baseline + (set.height ?? range.top + offset) + set.depth)
-          assert.ok(Number.isInteger(Math.log2(resolution)), `${font.id} is the wrong height for ${id}.${name}: resolution ${resolution}`)
-          if (stretch) assert.ok(set.height, `${id}.${name} stretches, so the ${id} strips need a height`)
+        assert.ok(Number.isInteger(set.height), `the ${id} strips need a height`)
+        for (const [name, height] of set.heights) {
+          const resolution = height / ((set.baseline ?? set.depth) + set.height + set.depth)
+          assert.ok(Number.isInteger(Math.log2(resolution)), `${id}.${name} is the wrong height: resolution ${resolution}`)
+        }
+      }
+    }
+  })
+
+  test("every strip that doesn't stretch has a known anchor, and stretching strips have none", () => {
+    for (const font of users) {
+      for (const { id } of stripsOf(font, fonts).map(stripUse)) {
+        for (const [name, data] of Object.entries(setOf(id).textures)) {
+          for (const [variant, own] of [[name, {}]].concat(Object.entries(data.variants ?? {}))) {
+            const entry = { ...data, ...own }
+            if (entry.stretch) assert.equal(entry.anchor, undefined, `${id}.${variant} stretches, so it has no anchor`)
+            else assert.ok(entry.anchor === undefined || STRIP_ANCHORS.includes(entry.anchor), `${id}.${variant} has an unknown anchor`)
+          }
         }
       }
     }

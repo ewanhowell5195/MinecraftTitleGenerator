@@ -41,6 +41,7 @@
       "snap": 4,
       "variants": {
         "grass_side": {
+          "anchor": "base",
           "overlays": [
             { "overlay": "outline", "blend": "overlay", "colours": ["#f9f9f8"], "opacity": 45 }
           ],
@@ -70,6 +71,7 @@
     },
     "oak_planks": {
       "type": "strip",
+      "anchor": "base",
       "category": "Planks",
       "authors": ["TheAnnoying"],
       "border": "#322414",
@@ -115,6 +117,7 @@
     },
     "bee": {
       "type": "strip",
+      "anchor": "base",
       "overlays": [
         { "overlay": "outline", "blend": "overlay", "colours": ["#ebebeb"], "opacity": 86 }
       ],
@@ -198,6 +201,7 @@
     },
     "atmosphere": {
       "type": "strip",
+      "anchor": "base",
       "authors": ["Zodiuss"],
       "border": "#36005d",
       "snap": 4
@@ -235,6 +239,7 @@
     },
     "winter": {
       "type": "strip",
+      "anchor": "top",
       "overlays": [
         { "overlay": "highlights_bottom", "blend": "screen", "colours": ["#fbfcff"], "opacity": 55 }
       ],
@@ -250,6 +255,7 @@
     },
     "lagoona": {
       "type": "strip",
+      "anchor": "base",
       "authors": ["B1tseK", "Ewan Howell"],
       "border": "#0a2b6b"
     },

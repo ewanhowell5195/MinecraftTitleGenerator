@@ -21,6 +21,7 @@
   const DEFAULT_SET = "minecraft-ten"
   const NEW_SHAPE = { depth: 22, baseline: 30, height: 40 }
   const MODES = [{ value: "set", label: "Strip type" }, { value: "font", label: "Font" }, { value: "new", label: "New strip type" }]
+  const ANCHORS = [{ value: "top", label: "Top" }, { value: "center", label: "Centre" }, { value: "base", label: "Base" }]
 
   defineOptions({ inheritAttrs: false })
 
@@ -70,6 +71,10 @@
   const stretch = computed({
     get: () => props.details.stretch === true,
     set: value => change({ stretch: value || undefined })
+  })
+  const anchor = computed({
+    get: () => props.details.anchor ?? "center",
+    set: value => change({ anchor: value === "center" ? undefined : value })
   })
   const newId = computed(() => setIdOf(props.details.set))
   const picked = computed(() => Array.isArray(props.details.fonts) ? props.details.fonts : [])
@@ -189,6 +194,7 @@
   <VariantOf v-if="mode !== 'new'" noun="strip" :details="details" :list="variantList" :folder="shownOn ? fontFolder(shownOn) : null" :problem="tried ? problems.variantOf ?? '' : ''" @update:details="emit('update:details', $event)" />
   <Checkbox v-if="mode !== 'font' && !forDefault" v-model="stretch" label="Stretch the front between each font's baseline and top, instead of lining it up row by row" />
   <span v-if="problems.stretch" class="hint bad">{{ problems.stretch }}</span>
+  <Segments v-if="mode !== 'font' && !stretch" v-model="anchor" :options="ANCHORS" label="Anchor" :hint="problems.anchor || 'Where the strip sits on fonts shorter or taller than it: their top on its top, their middle on its middle, or their baseline on its baseline.'" />
   <Field group label="Snap" :error="problems.snap" hint="How many pixels wide each of the strip's own pixels are. Letters that don't touch start their strip on a whole one of these, so the pattern lines up from letter to letter.">
     <NumberInput min="1" :max="STRIP_LIMITS.snap" :value="details.snap ?? 1" @input="number('snap', $event.target.value)" />
   </Field>

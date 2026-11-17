@@ -29,7 +29,7 @@ export function stripOwners(fonts) {
 }
 
 export function setUsers(fonts, id) {
-  return stripOwners(fonts).flatMap(font => withDefaultStrips(font.strips).map(stripUse).filter(use => use.id === id).map(use => ({ font, offset: use.offset, layer: use.layer ? use.layer - 1 : null })))
+  return stripOwners(fonts).flatMap(font => withDefaultStrips(font.strips).map(stripUse).filter(use => use.id === id).map(use => ({ font, layer: use.layer ? use.layer - 1 : null })))
 }
 
 export function setIds(fonts) {
@@ -63,10 +63,6 @@ function fontRows(measure) {
   return measure.stacked ?? measure.depth * 2 + measure.range.top - measure.range.bottom
 }
 
-function setRows(set, measure, offset) {
-  return set.baseline + set.depth + (set.height ?? measure.range.top + offset)
-}
-
 export function stripHeights(rows) {
   let low = rows
   while (low % 2 === 0) low /= 2
@@ -93,19 +89,8 @@ export async function targetRows(ctx, target, details) {
   }
   if (!setIds(ctx.fonts).includes(id)) return null
   const set = await stripSet(ctx, id)
-  if (set.height) return [setRows(set, null, 0)]
-  return Promise.all(setUsers(ctx.fonts, id).map(async ({ font, offset, layer }) => setRows(set, await fontMeasure(ctx, font, layer), offset)))
-}
-
-export function stripFit(set, measure, offset, heights = []) {
-  const base = set.baseline + set.depth + measure.range.top
-  const problems = !set.height && heights.some(height => !Number.isInteger(Math.log2(height / (base + offset)))) ? ["height"] : []
-  return { problems, offsets: !set.height && heights.length ? sharedHeights(heights).filter(rows => rows > set.depth * 2).map(rows => rows - base) : null }
-}
-
-export function nearestOffset({ offsets }, wanted) {
-  if (!offsets) return wanted
-  return offsets.reduce((best, value) => best === null || Math.abs(value - wanted) < Math.abs(best - wanted) ? value : best, null)
+  if (!set.height) throw new Error(`the ${id} strips need a height`)
+  return [set.baseline + set.depth + set.height]
 }
 
 function sameColumn({ width, height, data }, a, b) {
@@ -128,8 +113,8 @@ export function stripSnap(bytes) {
   return 1
 }
 
-export function setEntry(set, offset, stretch) {
-  return { ...stripTag(set, offset), ...(stretch && { stretch: true }) }
+export function setEntry(set, stretch) {
+  return { ...stripTag(set), ...(stretch && { stretch: true }) }
 }
 
 export function remapScale(image, entry, measure) {

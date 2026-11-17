@@ -134,9 +134,9 @@ describe("shape checks", () => {
   })
 
   test("a PNG shape picks the strips it uses, like a font", async () => {
-    const checked = await shapeImage.check({ details: { strips: [{ id: "minecraft-ten", offset: 2 }] }, bytes: silhouette(20, 20) }, context)
+    const checked = await shapeImage.check({ details: { strips: [{ id: "minecraft-ten" }] }, bytes: silhouette(20, 20) }, context)
     assert.equal(checked.problems.strips, null)
-    assert.deepEqual(checked.details.strips, [{ id: "minecraft-ten", offset: 2 }])
+    assert.deepEqual(checked.details.strips, ["minecraft-ten"])
     assert.deepEqual((await shapeImage.check({ details: { strips: ["minecraft-ten"] }, bytes: silhouette(20, 20) }, context)).details.strips, ["minecraft-ten"])
   })
 
@@ -144,7 +144,7 @@ describe("shape checks", () => {
     assert.match((await shapeImage.check({ details: { strips: ["nothing-here"] }, bytes: silhouette(20, 20) }, context)).problems.strips, /no strips called that/)
     assert.equal((await shapeImage.check({ details: { strips: ["minecraft-ten"] }, bytes: silhouette(20, 64) }, context)).problems.strips, null)
     assert.match((await shapeImage.check({ details: { strips: ["minecraft-ten", "minecraft-ten"] }, bytes: silhouette(20, 20) }, context)).problems.strips, /strips aren't valid/)
-    assert.match((await shapeImage.check({ details: { strips: [{ id: "minecraft-ten", offset: 1.5 }] }, bytes: silhouette(20, 20) }, context)).problems.strips, /strips aren't valid/)
+    assert.match((await shapeImage.check({ details: { strips: [{ id: 5 }] }, bytes: silhouette(20, 20) }, context)).problems.strips, /strips aren't valid/)
   })
 
   test("the silhouette glyph is trimmed to the solid pixels", () => {

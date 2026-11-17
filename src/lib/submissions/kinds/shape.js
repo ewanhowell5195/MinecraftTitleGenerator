@@ -7,7 +7,7 @@ import { decodePng } from "./png.js"
 
 export const SHAPES_LIST = "/shapes/shapes.json"
 export const SHAPE_HOLDING_FOLDER = "submissions/shapes"
-export const SHAPE_STRIP_LIMITS = { sets: 8, offset: 64 }
+export const SHAPE_STRIP_LIMITS = { sets: 8 }
 export const SILHOUETTE_LIMITS = { width: 128, height: 64, minHeight: 8 }
 export const MODEL_LIMITS = { elements: 1000, reach: 100 }
 const CUSTOM_SHAPE_UNITS = { width: 256, height: 64 }
@@ -17,7 +17,6 @@ const AXES = ["x", "y", "z"]
 const FACE_TURNS = [0, 90, 180, 270]
 const ALIAS_DEPTH = 16
 const STRIP_SET = /^[a-z0-9_-]{1,40}$/
-const SHAPE_WORDS = { subject: "The shape", is: "is", fix: "Change its offset" }
 
 export function shapeHoldingPath(id) {
   return `${SHAPE_HOLDING_FOLDER}/${id}.png`
@@ -267,10 +266,10 @@ function cleanStrips(value) {
   if (value === undefined) return []
   const invalid = new Error("The strips aren't valid.")
   if (!Array.isArray(value) || value.length > SHAPE_STRIP_LIMITS.sets) throw invalid
-  const uses = value.map(item => typeof item === "string" ? { id: item, offset: 0 } : item)
-  if (uses.some(use => !use || !STRIP_SET.test(use.id) || !Number.isInteger(use.offset ?? 0) || Math.abs(use.offset ?? 0) > SHAPE_STRIP_LIMITS.offset)) throw invalid
-  if (new Set(uses.map(use => use.id)).size !== uses.length) throw invalid
-  return uses.map(({ id, offset = 0 }) => offset ? { id, offset } : id)
+  const ids = value.map(item => typeof item === "string" ? item : item?.id)
+  if (ids.some(id => typeof id !== "string" || !STRIP_SET.test(id))) throw invalid
+  if (new Set(ids).size !== ids.length) throw invalid
+  return ids
 }
 
 export const shapeImage = {
@@ -291,8 +290,7 @@ export const shapeImage = {
     try {
       const strips = cleanStrips(details.strips)
       if (strips.length) clean.strips = strips
-      const height = clean.height ?? details.height
-      if (strips.length && Number.isInteger(height)) problems.strips = await stripProblem({ strips }, [{ top: height, bottom: 0 }], height, ctx, SHAPE_WORDS)
+      if (strips.length) problems.strips = await stripProblem({ strips }, ctx)
     } catch (err) {
       problems.strips = err.message
     }

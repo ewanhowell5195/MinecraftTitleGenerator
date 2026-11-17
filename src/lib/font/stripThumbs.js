@@ -8,7 +8,7 @@ import { clamp } from "../core/maths.js"
 import { definitionPalette } from "../texture/overlayColours.js"
 import { defaultBorder, defaultDepth } from "../settings/defaults.js"
 import { overlayLayer } from "../settings/settings.js"
-import { stripY } from "./strips.js"
+import { safeRows, stripY } from "./strips.js"
 import { MARGIN, drawLayer, over } from "./thumbnails.js"
 import { pngUrl } from "../core/virtualFiles.js"
 
@@ -103,6 +103,13 @@ function generatedLayers(entry) {
 export function stripPixels(scene, entry, image) {
   const strip = sceneStrip(scene, entry, image)
   return render(scene, null, { density: Math.max(1, Math.ceil(strip.density)), border: opaque(entry.border ?? "#000000"), ring: scene.ring, strip, layers: generatedLayers(entry) })
+}
+
+export function stripGuides(scene, entry, image) {
+  const { low, high } = safeRows(sceneStrip(scene, entry, image).shape)
+  const { glyph, y } = scene.placed[0]
+  const baseline = y + glyph.top
+  return { top: (baseline - high) / scene.frame.height, bottom: (baseline - low) / scene.frame.height }
 }
 
 export function stripThumbnail(scene, entry, image, detail = 1) {

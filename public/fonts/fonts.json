@@ -265,7 +265,7 @@
         "authors": ["Miffen Kop"],
         "description": "Recreation of the Wiki part of the Minecraft Wiki logo",
         "strips": [
-          { "id": "minecraft-ten", "offset": -2, "layer": 1 }
+          { "id": "minecraft-ten", "layer": 1 }
         ],
         "spaceWidth": 16,
         "depth": 30,

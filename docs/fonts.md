@@ -15,7 +15,6 @@ Set the name, ID, authors and description in the editor's Font tab. If your font
 - Fonts are 8 to 128 pixels tall, with up to 400 characters.
 - The ID is up to 40 lowercase letters and numbers, with single hyphens between words, like `my-font`. It cannot be used by another font.
 - Kerning has to stay close to what the editor's Kerning tab suggests. Kerned pairs cannot push their characters into each other.
-- A [strip type](textures.md#strip-types) with no height has to line up with the font's height. Strip offsets are set in the editor's Textures tab.
 - A font made from someone else's files, like a font downloaded from another site, needs links to the original and to its licence. A font that only looks like something else, like a logo, does not.
 
 ### Variants
@@ -67,7 +66,7 @@ There are two kinds of variant folder:
 | `depth` | `22` | How deep the letters are |
 | `border` | `2` | How thick the outline is |
 | `height` | The letter height plus the outline | The height of a row of text |
-| `strips` | | The [strip types](textures.md#strip-types) the font uses, as IDs or `{ "id", "offset", "layer" }` |
+| `strips` | | The [strip types](textures.md#strip-types) the font uses, as IDs or `{ "id", "layer" }` |
 | `terminatorSpace` | `false` | Puts a space between the line terminators and the text |
 | `terminatorSpaceWidth` | `spaceWidth` | The width of that space |
 | `forcedTerminators` | `false` | Always draws the line terminators |

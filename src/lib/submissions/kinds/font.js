@@ -1,10 +1,9 @@
-import { stripRange } from "../../texture/assets.js"
 import { fullName, kerningPairs, parseMask } from "../../font/font.js"
 import { authorList } from "../../core/authors.js"
 import { collisionAmount, suggestKerning } from "../../font/kerning.js"
 import { jsonText } from "../../core/jsonText.js"
 import { DEFAULT_ORDER } from "../../font/order.js"
-import { defaultBorder, defaultDepth } from "../../settings/defaults.js"
+import { defaultBorder } from "../../settings/defaults.js"
 import { stripUse } from "../../font/strips.js"
 import { GENERATED_EDGE_OVERLAYS, withGenerated } from "../../texture/overlays/settings.js"
 import { DEFAULT_ROLES, EXTRA_FILE, HEX_COLOUR, SUBMISSION_LIMITS, assetId, creditProblem, pngProblem, pngSize, sizedProblem, textProblem, textureDensity } from "../submissions.js"
@@ -13,7 +12,7 @@ import { fontId } from "../../font/editor/export.js"
 import { MAX_ANCHORS } from "../../texture/overlayColours.js"
 import { overlayPalette } from "./fontAsset.js"
 import { FONT_LIMITS, drawnCells, ownFont, storedFont, submittedFont } from "./fontBuild.js"
-import { STRIP_LIMITS, heightList, layerDepth, stripFit, stripHeights, stripSet } from "./stripFit.js"
+import { STRIP_LIMITS, heightList, stripHeights, stripSet } from "./stripFit.js"
 
 const FONT_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/
 const FONT_ID_LENGTH = 40
@@ -89,22 +88,13 @@ function kerningProblem(entry, sheet, square) {
   return null
 }
 
-const LETTERS = { subject: "Its letters", is: "are", fix: "Change the offset in the Textures tab" }
-
-export async function stripProblem(entry, cells, capHeight, ctx, words = LETTERS, layers = null) {
+export async function stripProblem(entry, ctx) {
   for (const use of (entry.strips ?? []).map(stripUse)) {
-    const layer = use.layer && layers ? use.layer - 1 : null
-    const measure = { range: stripRange({ cells, capHeight, layerDepth: entry.layerDepth }, layer), capHeight, depth: layerDepth(defaultDepth(entry), layers, layer, entry.layerDepth === "independent") }
-    let set
     try {
-      set = await stripSet(ctx, use.id)
+      await stripSet(ctx, use.id)
     } catch {
       return `It uses the ${use.id} strips, and there are no strips called that.`
     }
-    const heights = set.height ? [] : await Promise.all(set.names.map(async name => pngSize(await ctx.bytes(`/strips/${use.id}/textures/${name}.png`)).height))
-    const { problems } = stripFit(set, measure, use.offset, heights)
-    const what = `the ${use.id} strips`
-    if (problems.includes("height")) return `${words.subject} ${words.is} the wrong height for ${what}. ${words.fix}, or stop using ${what}.`
   }
   return null
 }
@@ -142,7 +132,7 @@ async function ownFontProblem(font, parent, ctx) {
   if (problem) return problem
   const entry = own.entry
   if (entry.basedOn && !ctx.fonts.some(item => item.id === entry.basedOn)) return `It says it's based on ${entry.basedOn}, which isn't one of the fonts here. Change Based on in the font editor's Font tab.`
-  return await stripProblem(entry, own.cells, own.capHeight, ctx, LETTERS, own.layers) ?? kerningProblem(entry, own.sheet, font.grid * font.density)
+  return await stripProblem(entry, ctx) ?? kerningProblem(entry, own.sheet, font.grid * font.density)
 }
 
 async function readFile(bytes, parent, ctx) {

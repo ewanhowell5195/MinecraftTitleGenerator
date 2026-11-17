@@ -1,5 +1,5 @@
 import { fullName } from "../../font/font.js"
-import { DEFAULT_STRIPS } from "../../font/strips.js"
+import { DEFAULT_STRIPS, STRIP_ANCHORS } from "../../font/strips.js"
 import { HEX_COLOUR, SUBMISSION_LIMITS, pngProblem, pngSize, textProblem } from "../submissions.js"
 import { submissionFont, texturesList } from "./fontAsset.js"
 import { STRIP_LIMITS, heightList, setIdOf, setIds, setName, sharedHeights, stripOwners, stripSet, stripTarget, targetRows } from "./stripFit.js"
@@ -82,6 +82,10 @@ export const strip = {
     const result = chosen.kind === "new" ? await forNew(details, ctx) : chosen.kind === "set" ? await forSet(chosen.id, details, ctx) : await forFont(chosen.id, ctx)
     Object.assign(problems, result.problems)
     Object.assign(clean, result.clean)
+    if (details.anchor != null && chosen.kind !== "font" && !clean.stretch) {
+      if (!STRIP_ANCHORS.includes(details.anchor)) problems.anchor = "The anchor has to be top, center or base."
+      else if (details.anchor !== "center") clean.anchor = details.anchor
+    }
     if (details.variantOf && chosen.kind !== "new" && !result.problems.target) {
       if (typeof details.variantOf === "string" && Object.hasOwn(await stripParents(ctx, result.target), details.variantOf)) clean.variantOf = details.variantOf
       else problems.variantOf = "Pick the strip this is a variant of."
@@ -89,7 +93,7 @@ export const strip = {
     const rows = size && await targetRows(ctx, result.target, result.clean ?? {})
     if (rows) {
       const heights = sharedHeights(rows)
-      if (!heights.includes(size.height)) problems.file = heights.length ? `Strips for ${result.what} have to be ${heightList(heights)} pixels tall, and this one is ${size.height}.` : `The fonts using ${result.what} don't agree on a strip height, so it can't take new strips.`
+      if (!heights.includes(size.height)) problems.file = `Strips for ${result.what} have to be ${heightList(heights)} pixels tall, and this one is ${size.height}.`
       else clean.density = size.height / rows[0]
     }
     return { problems, target: result.target, details: clean }

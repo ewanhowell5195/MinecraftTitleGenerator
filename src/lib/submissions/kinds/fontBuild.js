@@ -38,7 +38,7 @@ function picked(source, keys, type) {
 function stripField(item) {
   if (typeof item === "string") return item
   if (!isRecord(item) || typeof item.id !== "string") return null
-  return { id: item.id, ...(Number.isFinite(item.offset) && { offset: item.offset }), ...(Number.isInteger(item.layer) && item.layer > 0 && { layer: item.layer }) }
+  return Number.isInteger(item.layer) && item.layer > 0 ? { id: item.id, layer: item.layer } : item.id
 }
 
 export function fontJsonFields(entry) {

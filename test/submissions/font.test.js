@@ -441,7 +441,7 @@ describe("sending a font", () => {
     const held = branchFile(id, "submissions/fonts/test-font.json").toString()
     assert.doesNotMatch(held, /secret|extra|note|hidden|dropped/)
     assert.deepEqual(Object.keys(JSON.parse(held).editor), Object.keys(original.editor))
-    assert.deepEqual(fontJsonFields({ strips: ["minecraft-ten", { id: "other", offset: 1, extra: true }, 5], name: 3 }), { strips: ["minecraft-ten", { id: "other", offset: 1 }] })
+    assert.deepEqual(fontJsonFields({ strips: ["minecraft-ten", { id: "other", offset: 1, extra: true }, { id: "layered", layer: 2 }, 5], name: 3 }), { strips: ["minecraft-ten", "other", { id: "layered", layer: 2 }] })
     assert.deepEqual(fontJsonFields({ allFaces: true, flat: "yes" }), { allFaces: true })
   })
 

@@ -76,7 +76,7 @@
       <div v-if="open" class="strips-body">
         <p v-if="!url" class="hint">Choose the shape's PNG first, to see which strips it fits.</p>
         <Notice v-else-if="shapeError">The shape couldn't be read: {{ shapeError }}</Notice>
-        <SharedStrips v-else-if="shape" subject="shape" :preview="false" :selected="trial" :sample="SILHOUETTE_TEXT" :titled="false" :font="shape" :strips="strips" :max-sets="SHAPE_STRIP_LIMITS.sets" :max-offset="SHAPE_STRIP_LIMITS.offset" @update:strips="save" @select="emit('update:trial', $event)" />
+        <SharedStrips v-else-if="shape" subject="shape" :preview="false" :selected="trial" :sample="SILHOUETTE_TEXT" :titled="false" :font="shape" :strips="strips" :max-sets="SHAPE_STRIP_LIMITS.sets" @update:strips="save" @select="emit('update:trial', $event)" />
       </div>
     </div>
   </template>

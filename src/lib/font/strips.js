@@ -5,7 +5,7 @@ export function stripFolder(id) {
 }
 
 export function stripUse(item) {
-  return typeof item === "string" ? { id: item, offset: 0, layer: null } : { offset: 0, layer: null, ...item }
+  return typeof item === "string" ? { id: item, layer: null } : { layer: null, ...item }
 }
 
 export const DEFAULT_STRIPS = "default"
@@ -14,23 +14,21 @@ export function withDefaultStrips(strips = []) {
   return strips.some(item => stripUse(item).id === DEFAULT_STRIPS) ? strips : [DEFAULT_STRIPS].concat(strips)
 }
 
-export function stripItem(id, offset = 0, layer = null) {
-  return offset || layer ? { id, ...(offset && { offset }), ...(layer && { layer }) } : id
+export function stripItem(id, layer = null) {
+  return layer ? { id, layer } : id
 }
 
 export function stripPlacements(strips, id, count) {
-  const placed = new Map()
+  const placed = new Set()
   for (const use of strips.map(stripUse).filter(item => item.id === id)) {
-    if (count > 1 && use.layer && use.layer <= count) placed.set(use.layer, use.offset)
-    else for (let layer = 1; layer <= count; layer++) placed.set(layer, use.offset)
+    if (count > 1 && use.layer && use.layer <= count) placed.add(use.layer)
+    else for (let layer = 1; layer <= count; layer++) placed.add(layer)
   }
   return placed
 }
 
-export function placedStrips(strips, id, placed, count, wholeFits = true) {
-  const offsets = Array.from(placed.values())
-  const whole = placed.size === count && offsets.every(offset => offset === offsets[0]) && (count === 1 || wholeFits)
-  const items = whole ? [stripItem(id, offsets[0])] : Array.from(placed).sort(([a], [b]) => a - b).map(([layer, offset]) => stripItem(id, offset, layer))
+export function placedStrips(strips, id, placed, count) {
+  const items = placed.size === count ? [id] : Array.from(placed).sort((a, b) => a - b).map(layer => stripItem(id, layer))
   const at = strips.findIndex(item => stripUse(item).id === id)
   const others = strips.filter(item => stripUse(item).id !== id)
   const index = at < 0 ? others.length : strips.slice(0, at).filter(item => stripUse(item).id !== id).length
@@ -50,16 +48,17 @@ export function stackedStrip(shape, layers, layer, cells, independent = false) {
   return { shape: { ...shape, depth: slices[layer].rows, ...ranges[layer], rows: heights[layer] }, offset: heights.slice(0, layer).reduce((sum, rows) => sum + rows, 0), total: heights.reduce((sum, rows) => sum + rows, 0) }
 }
 
-export function centredOffset(height, capHeight) {
-  return height && capHeight ? Math.floor((height - capHeight) / 2) : 0
+export const STRIP_ANCHORS = ["top", "center", "base"]
+
+export function anchorShift({ anchor = "center", snap, stripHeight }, capHeight) {
+  if (!stripHeight || !capHeight || anchor === "base") return 0
+  if (anchor === "top") return stripHeight - capHeight
+  const grid = Math.max(1, Math.round(snap ?? 1))
+  return Math.ceil((stripHeight - capHeight) / 2 / grid - 0.5) * grid
 }
 
-export function stripOffset(entry, capHeight) {
-  return centredOffset(entry.stripHeight, capHeight) + (entry.stripOffset ?? 0)
-}
-
-export function stripTag(set, offset = set.offset ?? 0) {
-  return { stripSet: set.id, stripDepth: set.depth, stripBaseline: set.baseline ?? set.depth, stripOffset: offset, stripHeight: set.height ?? null, stripLayer: set.layer ? set.layer - 1 : null }
+export function stripTag(set) {
+  return { stripSet: set.id, stripDepth: set.depth, stripBaseline: set.baseline ?? set.depth, stripHeight: set.height ?? null, stripLayer: set.layer ? set.layer - 1 : null }
 }
 
 export function bandEntry(entry, band) {
@@ -111,18 +110,21 @@ export function mergeStrips(own, sets) {
 }
 
 export function stripRows(entry, range, fontDepth, capHeight = null) {
-  const depth = entry.stripSet ? entry.stripDepth : fontDepth
-  if (entry.stretch && entry.stripSet && !entry.stripHeight) throw new Error(`the ${entry.stripSet} strips need a height for stretching textures`)
-  if (entry.stripSet && entry.stripHeight) {
-    const offset = entry.stretch ? 0 : stripOffset(entry, capHeight)
-    const top = entry.stripHeight - offset
-    const bottom = entry.stripDepth - entry.stripBaseline - offset
-    const shape = { depth, top, bottom, rows: depth * 2 + top - bottom }
-    const lines = range?.lines ?? { base: 0, top: capHeight }
-    return entry.stretch ? { ...shape, scale: { from: lines.top - lines.base, to: entry.stripHeight, base: lines.base } } : shape
-  }
-  const bottom = entry.stripSet ? entry.stripDepth - entry.stripBaseline - stripOffset(entry, capHeight) : range.bottom
-  return { depth, top: range.top, bottom, rows: depth * 2 + range.top - bottom }
+  if (!entry.stripSet) return { depth: fontDepth, top: range.top, bottom: range.bottom, rows: fontDepth * 2 + range.top - range.bottom }
+  if (!entry.stripHeight) throw new Error(`the ${entry.stripSet} strips need a height`)
+  const depth = entry.stripDepth
+  const shift = entry.stretch ? 0 : anchorShift(entry, capHeight)
+  const top = entry.stripHeight - shift
+  const bottom = entry.stripDepth - entry.stripBaseline - shift
+  const shape = { depth, top, bottom, rows: depth * 2 + top - bottom }
+  const lines = range?.lines ?? { base: 0, top: capHeight }
+  return entry.stretch ? { ...shape, scale: { from: lines.top - lines.base, to: entry.stripHeight, base: lines.base } } : shape
+}
+
+export function safeRows({ scale, top, bottom }) {
+  if (!scale) return { low: bottom, high: top }
+  const base = scale.base ?? 0
+  return { low: base + Math.ceil(bottom * scale.from / scale.to), high: base + scale.from }
 }
 
 export function stripY({ scale, top, bottom }, y) {

@@ -37,7 +37,7 @@ A strip belongs either to a strip type shared by several fonts, or to a single f
 
 ### Strip types
 
-A strip type is a set of strips any font of the right shape can use. Its shape is three numbers:
+A strip type is a set of strips any font can use. Its shape is three numbers, all required:
 
 - **Depth:** how many rows each edge takes.
 - **Height:** how many rows the front has above the baseline.
@@ -55,7 +55,7 @@ A strip is as tall as its rows, eg 92 pixels for Minecraft Ten's. It can also be
 
 Its snap is how many pixels wide each of the strip's own pixels are. Letters that do not touch start their strip on a whole one of these, so the pattern lines up from letter to letter.
 
-A strip can stretch its front between each font's baseline and top, instead of lining it up row by row. A type with no height can only have strips that do not stretch.
+A strip can stretch its front between each font's baseline and top. One that does not stretch keeps its own rows and has an anchor for fonts shorter or taller than it: `top` lines up their toplines, `base` their baselines, and `center` their middles, rounded to the nearest whole one of the strip's pixels.
 
 Like a texture, a strip has a border colour, and can have variants.
 
@@ -129,6 +129,7 @@ Strips take the texture keys, plus:
 | --- | --- | --- |
 | `type` | | `"strip"` |
 | `stretch` | `false` | Stretches the front between each font's baseline and top |
+| `anchor` | `"center"` | In a strip type, where a strip that does not stretch sits on a shorter or taller font: `"top"`, `"center"` or `"base"` |
 | `snap` | One of the strip's pixels | How many of the font's pixels wide each of the strip's own pixels are |
 | `tiling` | `"line"` | `"character"` restarts the strip on each letter |
 
@@ -157,7 +158,7 @@ A strip type has a folder in `public/strips`, with its PNGs in `textures` and a 
 }
 ```
 
-A font lists the types it uses under `strips` in `fonts.json`, eg `"strips": ["minecraft-ten"]`. `{ "id": "minecraft-ten", "offset": -2 }` moves the strips up or down by that many rows for the font, and `"layer"` puts them on one layer of a font with layers. Every strip in the type then shows in the font's textures.
+A font lists the types it uses under `strips` in `fonts.json`, eg `"strips": ["minecraft-ten"]`. `{ "id": "minecraft-ten", "layer": 1 }` puts them on one layer of a font with layers. Every strip in the type then shows in the font's textures.
 
 ### tileables.json
 

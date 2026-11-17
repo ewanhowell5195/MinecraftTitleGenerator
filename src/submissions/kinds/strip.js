@@ -33,11 +33,11 @@ async function placedSet(item, font, fonts) {
   const target = stripTarget(item.target)
   if (target.kind === "set") {
     const use = stripsOf(font, fonts).map(stripUse).find(entry => entry.id === target.id)
-    return { set: await loadSet(target.id), offset: use?.offset ?? 0, layer: use?.layer ? use.layer - 1 : null }
+    return { set: await loadSet(target.id), layer: use?.layer ? use.layer - 1 : null }
   }
   const { depth, baseline, height } = item.details
   if (![depth, baseline, height].every(Number.isInteger) || depth < 1 || height < 1 || baseline < depth) throw new Error("Fill in the new strip type's shape to preview it")
-  return { set: { id: "new", depth, baseline, height }, offset: 0, layer: null }
+  return { set: { id: "new", depth, baseline, height }, layer: null }
 }
 
 function measureOf(loaded, band) {
@@ -64,9 +64,10 @@ function stackedRemap(pixels, entry, loaded, layer) {
 
 async function stripFile(item, file, font, fonts) {
   if (stripTarget(item.target).kind === "font") return { url: file, layer: null, layers: 1 }
-  const [{ set, offset, layer }, loaded, image] = await Promise.all([placedSet(item, font, fonts), loadFont(font, fonts), loadImage(file)])
+  const [{ set, layer }, loaded, image] = await Promise.all([placedSet(item, font, fonts), loadFont(font, fonts), loadImage(file)])
   const pixels = { data: pixelsOf(image), width: image.width, height: image.height }
-  const entry = setEntry(set, offset, item.details.stretch)
+  const rows = set.baseline + set.depth + set.height
+  const entry = { ...setEntry(set, item.details.stretch), ...(item.details.anchor && { anchor: item.details.anchor }), snap: (item.details.snap ?? 1) * rows / image.height }
   if (!(loaded.layers?.length > 1)) return { url: pngUrl(remapStrip(pixels, entry, measureOf(loaded, null))), layer: null, layers: 1 }
   return { url: pngUrl(stackedRemap(pixels, entry, loaded, layer)), layer, layers: loaded.layers.length }
 }
