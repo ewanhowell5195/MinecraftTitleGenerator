@@ -374,5 +374,9 @@
     "terminatorSpace": true,
     "order": "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣",
     "editor": { "width": 32, "grid": 4 }
+  },
+  {
+    "id": "boxy",
+    "authors": ["Ewan Howell"]
   }
 ]
