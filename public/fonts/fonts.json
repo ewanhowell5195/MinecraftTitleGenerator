@@ -395,5 +395,11 @@
     "terminatorSpace": true,
     "order": "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣",
     "editor": { "width": 30, "grid": 6 }
+  },
+  {
+    "id": "daydream",
+    "authors": ["Patred", "Ewan Howell"],
+    "source": "https://fontstruct.com/fontstructions/show/2313047/daydream-extended",
+    "licence": "http://creativecommons.org/licenses/by-sa/3.0/"
   }
 ]
