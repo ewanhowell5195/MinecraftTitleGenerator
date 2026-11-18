@@ -374,5 +374,16 @@
     "terminatorSpace": true,
     "order": "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣",
     "editor": { "width": 32, "grid": 4 }
+  },
+  {
+    "id": "boxy",
+    "authors": ["Ewan Howell"],
+    "preview": "ABC",
+    "multicase": true,
+    "spaceWidth": 12,
+    "depth": 18,
+    "terminatorSpace": true,
+    "order": "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣",
+    "editor": { "width": 30, "grid": 6 }
   }
 ]
