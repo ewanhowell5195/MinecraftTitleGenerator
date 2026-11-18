@@ -14,7 +14,7 @@ export function slug(text) {
 }
 
 export function fontId(font) {
-  return font.id || slug(font.name ?? "")
+  return font.id?.trim() || slug(font.name ?? "")
 }
 
 export function savedJson(font, encode) {
@@ -44,13 +44,15 @@ function canvasOf(font, glyph) {
 }
 
 export function exportJson(font, texture, characters = charactersOf(font)) {
-  const entry = { id: fontId(font) || DEFAULT_ID, name: font.name }
+  const entry = { id: fontId(font) || DEFAULT_ID, name: font.name?.trim() }
   const order = characters.join("")
   const authors = authorList(font.authors)
+  const description = font.description?.trim()
+  const basedOn = font.basedOn?.trim()
   if (authors.length) entry.authors = authors
-  if (font.description) entry.description = font.description
+  if (description) entry.description = description
   if (previewText(font)) entry.preview = previewText(font)
-  if (font.basedOn) entry.basedOn = font.basedOn
+  if (basedOn) entry.basedOn = basedOn
   if (font.strips.length) entry.strips = font.strips
   if (order !== DEFAULT_ORDER && order !== `${DEFAULT_ORDER}${SPACE_CHAR}`) entry.order = order
   if (font.letterCase === "both") entry.multicase = true

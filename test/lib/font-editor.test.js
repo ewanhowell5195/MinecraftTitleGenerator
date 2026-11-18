@@ -117,6 +117,13 @@ describe("depth", () => {
     assert.deepEqual(reopened.depths, [0.5])
   })
 
+  test("saving trims the space around the font's text fields", () => {
+    const json = exportJson({ ...createFont(), id: " my-font ", name: "  My Font ", description: " Tall letters\n", basedOn: " minecraft-ten ", authors: [" Steve "] }, "")
+    assert.deepEqual([json.id, json.name, json.description, json.basedOn, json.authors], ["my-font", "My Font", "Tall letters", "minecraft-ten", ["Steve"]])
+    assert.equal(exportJson({ ...createFont(), id: "  ", name: " My Font " }, "").id, "my-font")
+    assert.equal(exportJson({ ...createFont(), description: "   " }, "").description, undefined)
+  })
+
   test("independent layer depth is only saved for a font with layers", () => {
     const { font } = drawn()
     assert.equal(exportJson({ ...font, layerDepth: "independent" }, "").layerDepth, "independent")

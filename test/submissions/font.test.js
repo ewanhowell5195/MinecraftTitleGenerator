@@ -454,6 +454,17 @@ describe("sending a font", () => {
     assert.deepEqual(fontJsonFields({ allFaces: true, flat: "yes" }), { allFaces: true })
   })
 
+  test("trims the space around the text in a sent font, but not its character order", async () => {
+    const cookie = await signIn()
+    const original = JSON.parse(Buffer.from(f8thful).toString())
+    const padded = { ...original, id: ` ${original.id} `, name: ` ${original.name} \n`, description: "  Pixel letters ", strips: [" minecraft-ten "] }
+    const { status, id } = await send(cookie, { file: new TextEncoder().encode(JSON.stringify(padded)) })
+    assert.equal(status, 201)
+    const held = JSON.parse(branchFile(id, `submissions/fonts/${original.id}.json`).toString())
+    assert.deepEqual([held.id, held.name, held.description, held.strips], [original.id, original.name, "Pixel letters", ["minecraft-ten"]])
+    assert.equal(fontJsonFields({ order: "ab " }).order, "ab ")
+  })
+
   test("a font based on someone else's work keeps its original and licence links in its entry and the pull request", async () => {
     const cookie = await signIn()
     const links = { source: " https://fontstruct.com/fontstructions/show/2275860 ", licence: "https://creativecommons.org/licenses/by-sa/3.0/" }

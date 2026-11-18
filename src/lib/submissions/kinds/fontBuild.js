@@ -35,14 +35,18 @@ function picked(source, keys, type) {
 }
 
 function stripField(item) {
-  if (typeof item === "string") return item
+  if (typeof item === "string") return item.trim()
   if (!isRecord(item) || typeof item.id !== "string") return null
-  return Number.isInteger(item.layer) && item.layer > 0 ? { id: item.id, layer: item.layer } : item.id
+  return Number.isInteger(item.layer) && item.layer > 0 ? { id: item.id.trim(), layer: item.layer } : item.id.trim()
+}
+
+function trimmedText(fields) {
+  return Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, key === "order" ? value : value.trim()]))
 }
 
 export function fontJsonFields(entry) {
   if (!isRecord(entry)) return entry
-  const clean = { ...picked(entry, TEXT_FIELDS, "string"), ...picked(entry, NUMBER_FIELDS, "number"), ...picked(entry, FLAG_FIELDS, "boolean") }
+  const clean = { ...trimmedText(picked(entry, TEXT_FIELDS, "string")), ...picked(entry, NUMBER_FIELDS, "number"), ...picked(entry, FLAG_FIELDS, "boolean") }
   const authors = authorList(entry.authors ?? entry.author)
   if (authors.length) clean.authors = authors
   if (Array.isArray(entry.strips)) clean.strips = entry.strips.map(stripField).filter(Boolean)
