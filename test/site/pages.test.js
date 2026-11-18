@@ -27,7 +27,14 @@ describe("pages", () => {
     const listed = Array.from(sitemapXml([{ id: 3 }, { id: 18 }]).matchAll(/<loc>([^<]+)<\/loc>/g), match => match[1])
     const pages = ["/", "/app/", "/app/presets", "/font-editor/", "/credits/", "/submit/", "/terms/", "/privacy/"].map(path => `${SITE}${path}`)
     assert.deepEqual(listed, pages.concat(`${SITE}/app/presets/3`, `${SITE}/app/presets/18`))
-    assert.ok(sitemapXml([]).startsWith('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'))
+    assert.ok(sitemapXml([]).startsWith('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">'))
+  })
+
+  test("a shared preset with a picture lists it as the image on its page", () => {
+    const xml = sitemapXml([{ id: 3, fingerprint: "abc" }, { id: 18, fingerprint: null }])
+    assert.ok(xml.includes(`<loc>${SITE}/app/presets/3</loc>\n    <image:image>\n      <image:loc>https://thumbnails.mctitlegenerator.com/p/abc.png</image:loc>\n    </image:image>\n  </url>`))
+    assert.ok(xml.includes(`<loc>${SITE}/app/presets/18</loc>\n  </url>`))
+    assert.equal(xml.match(/<image:image>/g).length, 1)
   })
 
   test("the sitemap is served as XML with the shared presets from the database", async () => {

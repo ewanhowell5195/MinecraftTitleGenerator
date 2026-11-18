@@ -1,6 +1,6 @@
 import { SITE_NAME, pageImage } from "../lib/core/head.js"
 import { LIMITS } from "../lib/core/limits.js"
-import { pictureUrl } from "../lib/core/pictures.js"
+import { pictureUrl, previewAlt } from "../lib/core/pictures.js"
 import { pageWithDetails } from "./head.js"
 import { WEBSITE, structuredData } from "../site/pages.js"
 
@@ -34,7 +34,7 @@ export function presetDetails(origin, preset, id) {
   const heading = preset?.name ?? "Presets"
   if (preset?.fingerprint) {
     const image = pictureUrl(preset, "png")
-    return { title, description, url, image, alt: `A preview of the ${preset.name} title`, spaced: true, heading, data: presetData(origin, preset, url, image) }
+    return { title, description, url, image, alt: previewAlt(preset.name), spaced: true, preview: true, heading, data: presetData(origin, preset, url, image) }
   }
   const { path: image, ...size } = pageImage("presets", "Presets")
   return { title, description, url, ...size, image: `${origin}${image}`, heading, data: presetData(origin, preset?.name ? preset : null, url, `${origin}${image}`) }

@@ -4,6 +4,7 @@
   defineProps({
     code: { type: String, required: true },
     fingerprint: { type: String, default: null },
+    name: { type: String, default: null },
     selected: { type: Boolean, default: false }
   })
 
@@ -12,7 +13,7 @@
 
 <template>
   <div class="card" :class="{ selected }" @click="emit('pick')">
-    <TitlePicture :code="code" :fingerprint="fingerprint" @open="emit('pick')" />
+    <TitlePicture :code="code" :fingerprint="fingerprint" :name="name" @open="emit('pick')" />
     <div class="details">
       <slot></slot>
     </div>

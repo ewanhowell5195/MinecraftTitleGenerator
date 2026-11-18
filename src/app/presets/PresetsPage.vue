@@ -292,7 +292,7 @@
           <p v-else-if="tab === 'community' ? !results.length && !loading : !localShown.length" class="message empty-state">{{ emptyMessage }}</p>
           <p v-if="tab === 'mine' && !account && signInProviders.length" class="message empty-state">Sign in to keep your presets under your account. The presets saved in this browser, and anything shared from it, move to your account when you do.</p>
           <div v-if="tab === 'community'" class="grid">
-            <PresetTile v-for="preset of results" :key="preset.id" :code="preset.code" :fingerprint="preset.fingerprint" :selected="selected?.id === preset.id" @pick="selectCommunity(preset)">
+            <PresetTile v-for="preset of results" :key="preset.id" :code="preset.code" :fingerprint="preset.fingerprint" :name="preset.name" :selected="selected?.id === preset.id" @pick="selectCommunity(preset)">
               <div class="info">
                 <a class="name big ellipsis" :href="`/app/presets/${preset.id}`" @click="followed">{{ preset.name }}</a>
                 <Badge v-if="isMine(preset) && !preset.author" tone="accent">Shared by you</Badge>
@@ -310,7 +310,7 @@
             <section v-for="group of localGroups" :key="group.label" class="group">
               <h2>{{ group.label }}</h2>
               <div class="grid">
-                <PresetTile v-for="preset of group.presets" :key="preset.code" :code="preset.code" :selected="selectedLocalCode === preset.code" @pick="selectLocal(preset)">
+                <PresetTile v-for="preset of group.presets" :key="preset.code" :code="preset.code" :name="preset.name" :selected="selectedLocalCode === preset.code" @pick="selectLocal(preset)">
                   <strong class="ellipsis">{{ preset.name }}</strong>
                   <Badge v-if="preset.inBrowser" v-tooltip="'Your account is full, so this is only saved in this browser'">This browser only</Badge>
                   <span v-if="stats[preset.shared]" class="stats">

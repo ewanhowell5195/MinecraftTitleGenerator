@@ -1,10 +1,11 @@
 <script setup>
   import { onBeforeUnmount, onMounted, ref, watch } from "vue"
-  import { pictureUrl } from "../../lib/core/pictures.js"
+  import { pictureUrl, previewAlt } from "../../lib/core/pictures.js"
 
   const props = defineProps({
     code: { type: String, required: true },
     fingerprint: { type: String, default: null },
+    name: { type: String, default: null },
     large: { type: Boolean, default: false }
   })
 
@@ -45,7 +46,7 @@
 
 <template>
   <div ref="element" class="picture" :class="large ? 'large' : 'clickable'" :role="large ? null : 'button'" :tabindex="large ? null : 0" @click="open" @keydown.enter="open" @keydown.space.prevent="open">
-    <img v-if="seen && !failed" v-show="loaded" :src="pictureUrl({ code, fingerprint })" alt="" @load="loaded = true" @error="failed = true">
+    <img v-if="seen && !failed" v-show="loaded" :src="pictureUrl({ code, fingerprint })" :alt="name ? previewAlt(name) : ''" @load="loaded = true" @error="failed = true">
     <span v-if="failed" class="status empty-state">Can't show this title</span>
     <span v-else-if="(large || seen) && !loaded" class="status empty-state">Loading</span>
   </div>

@@ -909,6 +909,8 @@ describe("preset page details", () => {
     const [, , work, trail] = details.data["@graph"]
     assert.equal(details.heading, "Iron and Ember")
     assert.equal(details.alt, "A preview of the Iron and Ember title")
+    assert.equal(details.preview, true)
+    assert.equal(presetDetails("https://mctitlegenerator.com", null, 4).preview, undefined)
     assert.deepEqual([work["@type"], work.name, work.url, work.image, work.author.name, work.datePublished], ["CreativeWork", "Iron and Ember", "https://mctitlegenerator.com/app/presets/12", details.image, "steve", "2026-11-05T00:00:00.000Z"])
     assert.deepEqual(trail.itemListElement.map(step => step.name), ["Minecraft Title Generator", "Presets", "Iron and Ember"])
     assert.equal(presetDetails("https://mctitlegenerator.com", null, 4).data["@graph"][2]["@type"], "CollectionPage")

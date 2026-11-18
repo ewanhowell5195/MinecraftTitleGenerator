@@ -34,7 +34,7 @@ export function shareTags({ title, description, url, image = null, alt = title, 
 
 const SPLASH_LINKS = [["Make a title", "/app/"], ["Presets", "/app/presets"], ["Font editor", "/font-editor/"], ["Submit", "/submit/"], ["Credits", "/credits/"]]
 
-export const SPLASH_STYLE = "<style>.splash{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;font-family:Gabarito,system-ui,sans-serif;text-align:center;color:var(--muted,#b0b4bd);opacity:0;animation:splash-in .4s ease .5s forwards}.splash h1{margin:0;font-size:28px;color:var(--text,#f1f2f4)}.splash p{max-width:48ch;margin:0}.splash nav{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 16px}.splash a{color:var(--accent,#6cc04a)}@keyframes splash-in{to{opacity:1}}</style>"
+export const SPLASH_STYLE = "<style>.splash{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;font-family:Gabarito,system-ui,sans-serif;text-align:center;color:var(--muted,#b0b4bd);opacity:0;animation:splash-in .4s ease .5s forwards}.splash h1{margin:0;font-size:28px;color:var(--text,#f1f2f4)}.splash p{max-width:48ch;margin:0}.splash img{max-width:min(100%,720px);max-height:40vh}.splash nav{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 16px}.splash a{color:var(--accent,#6cc04a)}@keyframes splash-in{to{opacity:1}}</style>"
 
 export function splashHtml(heading, description) {
   const links = SPLASH_LINKS.map(([label, path]) => `<a href="${path}">${label}</a>`).join("")
