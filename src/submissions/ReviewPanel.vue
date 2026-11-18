@@ -1,5 +1,5 @@
 <script setup>
-  import { computed, onMounted, ref } from "vue"
+  import { computed, onBeforeUnmount, onMounted, ref } from "vue"
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
   import Notice from "../components/Notice.vue"
@@ -26,6 +26,10 @@
     unknown: "GitHub is still checking it."
   }
   const READY = new Set(["clean", "behind", "has_hooks"])
+  const UNKNOWN_TRIES = 6
+  const UNKNOWN_WAIT = 5000
+
+  let retry
 
   const state = ref(null)
   const failed = computed(() => !!props.failedUrl && !READY.has(state.value))
@@ -35,13 +39,16 @@
   const busy = ref(false)
   const error = ref("")
 
-  async function check() {
+  async function check(tries = UNKNOWN_TRIES) {
+    clearTimeout(retry)
     error.value = ""
     try {
       state.value = await reviewState(props.item.id)
     } catch (err) {
       error.value = err.message
+      return
     }
+    if (state.value === "unknown" && tries > 1) retry = setTimeout(() => check(tries - 1), UNKNOWN_WAIT)
   }
 
   async function act(action) {
@@ -58,14 +65,15 @@
     }
   }
 
-  onMounted(check)
+  onMounted(() => check())
+  onBeforeUnmount(() => clearTimeout(retry))
 </script>
 
 <template>
   <section class="review" :class="{ ready: READY.has(state), failed }">
     <div class="summary">
       <h2>Review this submission</h2>
-      <p class="hint"><template v-if="failed">Processing it failed on GitHub. <a :href="failedUrl" target="_blank" rel="noopener">See what went wrong</a>.</template><template v-else>{{ status }}</template> <button type="button" class="link-button" @click="check">Check again</button></p>
+      <p class="hint"><template v-if="failed">Processing it failed on GitHub. <a :href="failedUrl" target="_blank" rel="noopener">See what went wrong</a>.</template><template v-else>{{ status }}</template> <button type="button" class="link-button" @click="check()">Check again</button></p>
     </div>
     <div v-if="!declining" class="buttons">
       <Button primary :disabled="busy || !READY.has(state)" @click="act('merge')"><template #icon><Icon name="check" :size="16" /></template>Merge</Button>
