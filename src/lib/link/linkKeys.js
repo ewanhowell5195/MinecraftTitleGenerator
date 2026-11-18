@@ -270,7 +270,8 @@ const KEYS = [
   ["customCoverX", NUMBER],
   ["customCoverY", NUMBER],
   ["customCoverAlign", choice("title", "camera")],
-  ["customCoverSpan", BOOLEAN]
+  ["customCoverSpan", BOOLEAN],
+  ["customStripPerCharacter", BOOLEAN]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))

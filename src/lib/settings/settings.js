@@ -34,7 +34,7 @@ export const TEXTURE_TABS = {
   premade: ["texture", "textureVariant"],
   tileable: ["tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion"].concat(TILING_KEYS),
   gradient: ["stops", "smooth", "gradientAngle"],
-  custom: ["customTexture", "customTextureMode", "customCoverAlign", "customCoverX", "customCoverY", "customCoverSpan"]
+  custom: ["customTexture", "customTextureMode", "customCoverAlign", "customCoverX", "customCoverY", "customCoverSpan", "customStripPerCharacter"]
 }
 
 function panelKeys(object, name) {

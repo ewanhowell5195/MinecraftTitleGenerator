@@ -94,6 +94,7 @@ const TOP_DEFAULTS = {
   customCoverX: 50,
   customCoverY: 50,
   customCoverSpan: true,
+  customStripPerCharacter: false,
   stops: [{ colour: "#FFCF76", position: 0 }, { colour: "#DA371E", position: 100 }],
   smooth: true,
   gradientAngle: 0,

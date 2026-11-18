@@ -92,6 +92,7 @@
   <template v-if="object.customTexture">
     <Segments label="Use as" :options="CUSTOM_MODES" v-model="object.customTextureMode" />
     <p class="hint" :class="{ bad: object.customTextureMode === 'standard' && !fitsFont }">{{ modeHint }}</p>
+    <Checkbox v-if="object.customTextureMode === 'strip'" v-model="object.customStripPerCharacter" label="Restart on each character" hint="Starts the strip again from the left of every character, instead of running it along the whole line." />
     <template v-if="object.customTextureMode === 'cover'">
       <Segments label="Align to" :options="ALIGNS" v-model="object.customCoverAlign" />
       <Checkbox v-if="sharing" v-model="object.customCoverSpan" label="Span with other lines using this image" />

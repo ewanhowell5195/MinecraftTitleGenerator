@@ -24,7 +24,7 @@ export async function loadAssets({ font, list, sheet, tileables }, value, band, 
   }
   if (value.source === "strip") {
     const custom = target.textureSource === "custom"
-    const entry = custom ? {} : bandEntry(textureEntry(list, target), band)
+    const entry = custom ? target.customStripPerCharacter ? { tiling: "character" } : {} : bandEntry(textureEntry(list, target), band)
     const id = custom ? "custom" : target.textureVariant ?? target.texture
     const loaded = await image(custom ? target.customTexture : `${entry.folder ?? font.sheetFolder}/textures/${id}.png`)
     const layers = font.layers

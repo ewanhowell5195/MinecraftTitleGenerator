@@ -44,6 +44,7 @@ export function lookOf(object, layer, font, list) {
     customCoverX: object.customCoverAlign === "camera" ? 50 : object.customCoverX,
     customCoverY: object.customCoverAlign === "camera" ? 50 : object.customCoverY,
     customCoverAlign: object.customCoverAlign,
+    customStripPerCharacter: object.customStripPerCharacter,
     hue: object.hue,
     saturation: object.saturation,
     brightness: object.brightness,

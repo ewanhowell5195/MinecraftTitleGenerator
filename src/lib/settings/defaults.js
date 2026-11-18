@@ -156,6 +156,7 @@ export const PANELS = {
     customCoverX: 50,
     customCoverY: 50,
     customCoverSpan: true,
+    customStripPerCharacter: false,
     stops: stops("top"),
     smooth: true,
     gradientAngle: 0,
