@@ -10,7 +10,7 @@ const { claimPresets, deletePreset, submissionUsage, submitPreset } = await impo
 const { votePreset } = await import("../../src/server/presetScores.js")
 const { addSaved, listSaved, removeSaved } = await import("../../src/server/saved.js")
 const { addComment } = await import("../../src/server/submissions/comments.js")
-const { createSubmission, submissionDetails } = await import("../../src/server/submissions/index.js")
+const { createSubmission, submissionDetails, withdrawSubmission } = await import("../../src/server/submissions/index.js")
 const { encodeTitle } = await import("../../src/lib/link/linkformat.js")
 const { FILE_VERSION } = await import("../../src/lib/settings/upgrades.js")
 
@@ -82,6 +82,7 @@ describe("deleting an account", () => {
     assert.equal(count("SELECT COUNT(*) AS total FROM preset_votes"), 0)
     assert.equal(count("SELECT votes AS total FROM presets WHERE id = ?", theirs.id), 0)
     assert.equal(count("SELECT COUNT(*) AS total FROM submissions"), 0)
+    assert.equal(count("SELECT COUNT(*) AS total FROM withdrawn_pulls"), 0)
     assert.equal(count("SELECT COUNT(*) AS total FROM notifications"), 0)
     assert.equal(count("SELECT COUNT(*) AS total FROM users WHERE name = 'leaving'"), 0)
     assert.equal(count("SELECT COUNT(*) AS total FROM users WHERE name = 'staying'"), 1)
@@ -92,6 +93,22 @@ describe("deleting an account", () => {
     assert.match(gh.pulls.get(1).body, /^Sent from the website\.$/m)
     assert.ok(gh.comments.every(item => !item.body.includes("leaving")))
   })
+
+  for (const mode of ["remove", "anonymise"]) {
+    test(`${mode === "remove" ? "removing" : "anonymising"} forgets the submissions they withdrew, so sending them again can't reopen their pull requests`, async () => {
+      const owner = await signIn("1", "leaving")
+      const other = await signIn("2", "staying")
+      for (const cookie of [owner, other]) {
+        const id = await submit(cookie)
+        await withdrawSubmission(context(`/api/submissions/${id}`, { method: "DELETE", cookie, params: { id: String(id) } }))
+      }
+      assert.equal(count("SELECT COUNT(*) AS total FROM withdrawn_pulls"), 2)
+      assert.equal((await remove(owner, mode)).status, 200)
+      assert.equal(count("SELECT COUNT(*) AS total FROM withdrawn_pulls"), 1)
+      const again = await send(await signIn("1", "leaving"), { border: "#000000" })
+      assert.equal(again.pull, 3)
+    })
+  }
 
   test("anonymising keeps shared presets and submissions without the account", async () => {
     const { owner, shared, submission } = await setUp()
@@ -260,7 +277,7 @@ describe("deleting an account while something else happens on it", () => {
       const hold = holdDeletion()
       const removing = remove(owner, mode)
       await hold.arrived
-      const late = await submit(owner)
+      const late = (await send(owner, { border: "#000000", name: "Late Bricks" })).id
       hold.release()
       const refused = await removing
       assert.equal(refused.status, 409)

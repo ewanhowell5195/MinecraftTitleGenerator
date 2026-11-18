@@ -103,6 +103,19 @@ CREATE TABLE deleted_submissions (
   id INTEGER PRIMARY KEY
 );
 
+CREATE TABLE withdrawn_pulls (
+  account_hash TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  target TEXT NOT NULL,
+  asset TEXT NOT NULL,
+  pull INTEGER NOT NULL,
+  branch TEXT NOT NULL,
+  withdrawn_at INTEGER NOT NULL,
+  PRIMARY KEY (account_hash, kind, target, asset)
+);
+
+CREATE INDEX withdrawn_pulls_by_pull ON withdrawn_pulls (pull);
+
 CREATE INDEX submissions_by_user ON submissions (user_id, id DESC);
 CREATE INDEX submissions_by_pull ON submissions (pull);
 CREATE INDEX submissions_by_status ON submissions (status, target);

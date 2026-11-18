@@ -74,7 +74,7 @@ export function fakeGitHub(publicKey, { repo, api, files }) {
     let match
     if (method === "POST" && at === "git/blobs") return json({ sha: blob(Buffer.from(body.content, "base64")) }, 201)
     if ((match = at.match(/^git\/blobs\/(\w+)$/))) return blobs.has(match[1]) ? new Response(blobs.get(match[1])) : json({}, 404)
-    if ((match = at.match(/^git\/ref\/(.+)$/))) return json({ object: { sha: refs.get(match[1]) } })
+    if ((match = at.match(/^git\/ref\/(.+)$/))) return refs.has(match[1]) ? json({ object: { sha: refs.get(match[1]) } }) : json({ message: "Not Found" }, 404)
     if ((match = at.match(/^git\/commits\/(\w+)$/))) return json({ tree: { sha: commits.get(match[1]).tree }, message: commits.get(match[1]).message })
     if ((match = at.match(/^actions\/workflows\/submission\.yml\/runs\?head_sha=(\w+)/))) return json({ workflow_runs: runs.filter(item => item.head_sha === match[1]) })
     if ((match = at.match(/^contents\/(.+)\?ref=(.+)$/))) {
@@ -119,7 +119,8 @@ export function fakeGitHub(publicKey, { repo, api, files }) {
     }
     if ((match = at.match(/^pulls\/(\d+)$/))) {
       const pull = pulls.get(Number(match[1]))
-      if (method === "PATCH") Object.assign(pull, body)
+      if (method === "PATCH" && body.state === "open" && pull.state === "closed" && (pull.merged || !refs.has(`heads/${pull.head}`) || refs.get(`heads/${pull.head}`) !== pull.closedAt)) return json({ message: "state cannot be changed" }, 422)
+      if (method === "PATCH") Object.assign(pull, body, body.state === "closed" && { closedAt: refs.get(`heads/${pull.head}`) })
       return json(pull)
     }
     if ((match = at.match(/^issues\/(\d+)\/comments(\?.*)?$/))) {

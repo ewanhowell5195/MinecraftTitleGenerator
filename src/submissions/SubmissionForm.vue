@@ -15,7 +15,7 @@
   import { SUBMISSION_KINDS, checkSubmission, submissionContext } from "../lib/submissions/kinds/index.js"
   import { navigate } from "../lib/state/navigation.js"
   import { EDITOR_EDIT, EDITOR_REVISION, EDITOR_SUBMISSION, SUBMISSION_LIMITS } from "../lib/submissions/submissions.js"
-  import { askOverwrite, editSubmission, sendSubmission, submission, submissionFileUrl } from "../lib/submissions/submissionsApi.js"
+  import { askOverwrite, editSubmission, sendSubmission, submission, submissionFileUrl, submissionPage } from "../lib/submissions/submissionsApi.js"
   import { pickedFile, releaseFile } from "./files.js"
   import { KIND_COMPONENTS } from "./kinds/components.js"
   import { CLIENT_KINDS, submissionTitle } from "./kinds/index.js"
@@ -69,6 +69,7 @@
   const dragging = ref(false)
   const error = ref("")
   const conflict = ref(false)
+  const existing = ref(null)
   const revision = ref(props.initial?.updatedAt ?? null)
   const context = submissionContext(props.fonts, path => fetched(path, path))
   let checks = 0
@@ -254,6 +255,7 @@
     tried.value = true
     error.value = ""
     conflict.value = false
+    existing.value = null
     if (Object.keys(problems.value).length || fileProblem.value) return false
     sending.value = true
     try {
@@ -265,6 +267,7 @@
     } catch (err) {
       error.value = err.message
       conflict.value = err.status === 409 && !!props.initial
+      if (err.status === 409 && !props.initial) existing.value = err.id ?? null
       if (!conflict.value) return false
     } finally {
       sending.value = false
@@ -343,6 +346,7 @@
       <p v-if="shown.agree || problems.check || error" class="hint bad">{{ error || problems.check || shown.agree }}</p>
       <div class="buttons">
         <Button v-if="conflict" @click="reload">Reload</Button>
+        <Button v-if="existing" :to="submissionPage(existing)">Open it</Button>
         <Button v-if="initial" @click="emit('cancel')">Cancel</Button>
         <Button primary type="submit" :disabled="blocked">{{ sending ? "Sending..." : initial ? "Save changes" : "Send for review" }}</Button>
       </div>

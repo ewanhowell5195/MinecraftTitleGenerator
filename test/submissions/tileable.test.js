@@ -147,7 +147,7 @@ describe("sending a tileable", () => {
     const variant = await send(cookie, { name: "Diagonal Down" })
     assert.ok(JSON.parse(branchText(variant.id)).diagonal_down_2)
     assert.ok(branchFiles(variant.id).has("public/tileables/community/diagonal_down_2.png"))
-    const again = await send(cookie, { name: "Checkerboard" }, png(8))
+    const again = await send(await signIn("github", { id: 9, login: "other" }), { name: "Checkerboard" }, png(8))
     assert.equal((await details(again.id)).asset, "checkerboard_3")
   })
 

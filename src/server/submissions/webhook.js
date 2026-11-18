@@ -7,6 +7,7 @@ import { SERVER_KINDS } from "./kinds/index.js"
 import { emailing, notify } from "./notifications.js"
 import { BASE, branchOf, syncSubmission } from "./pulls.js"
 import { OWNER, SHOWN, publishedFonts, withCredit } from "./store.js"
+import { forgetWithdrawnPull } from "./withdrawn.js"
 
 function gitHubActor(person) {
   return person?.id ? { provider: "github", providerId: String(person.id) } : null
@@ -19,6 +20,7 @@ async function pulledSubmission(env, pull) {
 async function pullClosed(context, pull, sender) {
   const { env } = context
   const row = await pulledSubmission(env, pull.number)
+  if (!row && pull.merged) await forgetWithdrawnPull(env, pull.number)
   if (!row || row.status !== "open" || pull.head.ref !== branchOf(row.id)) return
   const closing = await startClosing(context, row, pull.merged)
   if (closing) await finishClosing(context, row, closing, { author: sender?.login ?? "", url: pull.html_url, actor: gitHubActor(sender) })

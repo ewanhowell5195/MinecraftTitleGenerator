@@ -3,7 +3,7 @@
 </script>
 
 <template>
-  <LegalPage title="Privacy Policy" updated="17 November 2026" about="this policy">
+  <LegalPage title="Privacy Policy" updated="18 November 2026" about="this policy">
     <p>By using the Minecraft Title Generator, you agree that you have read and agree to this policy.</p>
     <p>This policy describes what data the title generator stores, why, how long it is kept, and how to remove it.</p>
 
@@ -40,7 +40,7 @@
     <h2>Submissions</h2>
     <p>A submission sent from the website stores the file you send, its name, the credit, any notes and settings you give it, its review status, and which account sent it.</p>
     <p>Submissions are public. Each one is opened as a pull request on the title generator's public <a href="https://github.com/ewanhowell5195/MinecraftTitleGenerator" target="_blank" rel="noopener">GitHub repository</a>, which shows the file, its name, the credit, your notes, your username, and whether you use Discord or GitHub. Anyone with the link can also see the submission's page on the title generator.</p>
-    <p>Withdrawing a submission removes it from my server and closes its pull request, but the pull request stays on GitHub. If a submission is accepted, it becomes part of the title generator, and the credit is shown on the <a href="/credits/">credits page</a>.</p>
+    <p>Withdrawing a submission removes it from my server and closes its pull request, but the pull request stays on GitHub. My server keeps a short note so that if you send the same thing again, its old pull request is reopened instead of a new one being made. The note holds a hash of your account id, what kind of submission it was and what it was for, the id it would have in the title generator, the pull request's number and branch, and when you withdrew it. It does not hold the file, its name, the credit, your notes, your email address or any notifications. If a submission is accepted, it becomes part of the title generator, and the credit is shown on the <a href="/credits/">credits page</a>.</p>
     <p>You and reviewers can comment on your submission, on its page or on its pull request. Comments are public and are kept on the pull request on GitHub, not on my server. Comments written on the site are posted there with your username.</p>
     <p>When someone comments on your submission, or it is accepted or turned down, a notification is saved to your account. This stores their username, their comment, and a link to it. Reviewers are also notified when you send, change or comment on a submission, which shows them your username.</p>
     <p>Each notification is also emailed to you, with the same details. Sending a submission needs an email address on your Discord or GitHub account for this.</p>
@@ -77,6 +77,7 @@
       <li>Vote and download records are kept until the preset is deleted. Changing a shared preset's title resets them. Your own votes are deleted when you delete your account.</li>
       <li>Daily share counts are deleted after the day ends.</li>
       <li>Submissions are removed from my server once they are accepted, turned down or withdrawn, along with their notifications. When one is accepted or turned down, you are left one notification saying so, which is kept until you clear it. Deleting your account removes all of your notifications.</li>
+      <li>The note kept when you withdraw a submission is deleted when you send it again, when its pull request is accepted anyway, or when you delete your account.</li>
       <li>Your email address is removed from my server once you have no submissions waiting for review and no notification emails left to send, unless you are a reviewer.</li>
       <li>Deleted data can remain in Cloudflare's database history for up to 30 days.</li>
       <li>Resend keeps a copy of each notification email for 30 days after it is sent.</li>

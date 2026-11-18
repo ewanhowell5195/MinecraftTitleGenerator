@@ -301,7 +301,7 @@ describe("sending a strip", () => {
     const cookie = await signIn()
     const gradient = await send(cookie, { name: "Gradient" })
     assert.ok(branchJson(gradient.id, SET).textures.gradient_2)
-    const again = await send(cookie, { name: "Gradient" })
+    const again = await send(await signIn("github", { id: 9, login: "other" }), { name: "Gradient" })
     assert.ok(branchJson(again.id, SET).textures.gradient_3)
     const own = await send(cookie, { target: "font:minecraft-ten", name: "Gradient" })
     assert.ok(branchJson(own.id, "public/fonts/minecraft-ten/textures.json").textures.gradient_4)

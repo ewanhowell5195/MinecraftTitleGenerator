@@ -461,9 +461,17 @@ describe("sending a font", () => {
     assert.equal(status, 201)
     assert.deepEqual(JSON.parse(branchFile(id, LIST).toString()).at(-1), { id: "test-font", authors: ["Someone"], source: "https://fontstruct.com/fontstructions/show/2275860", licence: "https://creativecommons.org/licenses/by-sa/3.0/" })
     assert.match(gh.pulls.get(1).body, /- Source: <https:\/\/fontstruct\.com\/fontstructions\/show\/2275860>\n- Licence: <https:\/\/creativecommons\.org\/licenses\/by-sa\/3\.0\/>/)
-    const plain = await send(cookie, { name: "Plain Font" })
+    const plain = await send(await signIn("github", { id: 9, login: "other" }), { name: "Plain Font" })
     assert.deepEqual(Object.keys(JSON.parse(branchFile(plain.id, LIST).toString()).at(-1)), ["id", "name", "authors"])
     assert.doesNotMatch(gh.pulls.get(2).body, /Source:/)
+  })
+
+  test("the same font file sent again while the first is waiting is refused, even under a new name", async () => {
+    const cookie = await signIn()
+    const first = await send(cookie)
+    const again = await send(cookie, { name: "Test Font Fixed" })
+    assert.deepEqual([again.status, again.id, again.error], [409, first.id, "You already have this font waiting for review. Change that one instead."])
+    assert.equal(gh.pulls.size, 1)
   })
 
   test("a font based on someone else's work needs both links, and both have to be web addresses", async () => {
@@ -498,7 +506,7 @@ describe("sending a font", () => {
     const list = JSON.parse(branchFile(id, "public/fonts/test-font/textures.json").toString())
     assert.equal(list.primary, "gold_bricks")
     assert.equal(list.secondary, undefined)
-    const both = await send(cookie, { details: { id: "test-font-2", extras: [{ ...details.extras[1], secondary: true }] }, extras: { gold: extras.gold } })
+    const both = await send(await signIn("github", { id: 9, login: "other" }), { details: { id: "test-font-2", extras: [{ ...details.extras[1], secondary: true }] }, extras: { gold: extras.gold } })
     const single = JSON.parse(branchFile(both.id, "public/fonts/test-font-2/textures.json").toString())
     assert.deepEqual([single.primary, single.secondary], ["gold_bricks", "gold_bricks"])
   })

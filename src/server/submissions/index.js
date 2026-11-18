@@ -10,6 +10,7 @@ import { readForm } from "./form.js"
 import { emailing, notify } from "./notifications.js"
 import { anonymisePull, closePull, deleteBranch, onGitHub, syncSubmission, uploadFile, withFiles } from "./pulls.js"
 import { CHANGED, CLOSED, MISSING, OWNER, SHOWN, SIGN_IN, claim, findSubmission, ownSubmission, removing, reopen, reviewerOf, shown, withCredit } from "./store.js"
+import { forgetWithdrawn, giveBackWithdrawn, noteResent, rememberWithdrawn, reopenPull, sameThing, takeWithdrawn } from "./withdrawn.js"
 
 const LASTING_SECONDS = 31536000
 const NEXT_ID = "MAX(COALESCE((SELECT MAX(id) FROM submissions), 0), COALESCE((SELECT MAX(id) FROM deleted_submissions), 0)) + 1"
@@ -21,20 +22,32 @@ async function openedSubmission(context, user, { clean, fonts, bytes, files }) {
   const { details } = await onGitHub(() => withFiles(env, clean, files))
   const now = Date.now()
   const placeholder = assetId(clean.name, new Set())
-  const [, inserted] = await env.DB.batch([
-    saveUser(env, user),
-    env.DB.prepare(`INSERT INTO submissions (id, user_id, kind, target, asset, name, credit, notes, details, file, created_at, updated_at) VALUES (${NEXT_ID}, ${USER_ROW}, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`).bind(user.provider, user.providerId, clean.kind, clean.target, placeholder, clean.name, JSON.stringify(clean.credit), clean.notes, details, file, now, now),
-    rememberUser(env, user)
-  ])
-  const row = { id: inserted.results[0].id, ...clean, asset: placeholder, details, file, pull: null, updatedAt: now, ownerName: user.name, ownerProvider: user.provider }
+  const taken = await takeWithdrawn(env, user, clean)
+  let row = null
+  let reopened = null
   try {
+    const [, inserted] = await env.DB.batch([
+      saveUser(env, user),
+      env.DB.prepare(`INSERT INTO submissions (id, user_id, kind, target, asset, name, credit, notes, details, file, created_at, updated_at) VALUES (COALESCE(?, ${NEXT_ID}), ${USER_ROW}, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`).bind(taken?.id ?? null, user.provider, user.providerId, clean.kind, clean.target, placeholder, clean.name, JSON.stringify(clean.credit), clean.notes, details, file, now, now),
+      rememberUser(env, user)
+    ])
+    row = { id: inserted.results[0].id, ...clean, asset: placeholder, details, file, pull: null, updatedAt: now, ownerName: user.name, ownerProvider: user.provider }
+    if (taken) reopened = row.pull = await onGitHub(() => reopenPull(env, taken))
+    if (reopened) await onGitHub(() => noteResent(env, reopened))
     if (!await onGitHub(() => syncSubmission(context, row, fonts))) throw new Error(`submission ${row.id} changed while it was being opened`)
   } catch (err) {
-    await env.DB.prepare("DELETE FROM submissions WHERE id = ? AND pull IS NULL").bind(row.id).run()
-    if (!row.pull) await deleteBranch(env, row.id).catch(problem => console.error(problem))
+    if (row) await env.DB.prepare("DELETE FROM submissions WHERE id = ? AND pull IS NULL").bind(row.id).run()
+    if (taken) await giveBackWithdrawn(env, taken)
+    if (reopened) await closePull(env, reopened).catch(problem => console.error(problem))
+    else if (row && !row.pull && !taken) await deleteBranch(env, row.id).catch(problem => console.error(problem))
     throw err
   }
   return row
+}
+
+async function openDuplicate(env, user, clean) {
+  const { results } = await env.DB.prepare(`SELECT id, kind, target, name, details FROM submissions WHERE status = 'open' AND user_id = ${USER_ROW}`).bind(user.provider, user.providerId).all()
+  return results.find(row => sameThing(row, clean))
 }
 
 export const createSubmission = guarded(async context => {
@@ -43,6 +56,8 @@ export const createSubmission = guarded(async context => {
   if (user.email === undefined) throw new Refusal(403, "Sign in again so you can be emailed about your submission.")
   if (!user.email) throw new Refusal(403, `Add an email address to your ${providerLabel(user.provider)} account, then sign in again. You'll be emailed about your submission there.`)
   const form = await readForm(context)
+  const duplicate = await openDuplicate(env, user, form.clean)
+  if (duplicate) return reply(409, { error: `You already have this ${SUBMISSION_KINDS[form.clean.kind].noun} waiting for review. Change that one instead.`, id: duplicate.id })
   const slot = await takeSlot(env, { table: "account_submissions", column: "account_hash", owner: await accountKey(env, "submissions", user) }, SUBMISSION_LIMITS.perDay)
   if (!slot) throw new Refusal(429, `You can send up to ${SUBMISSION_LIMITS.perDay} submissions a day.`)
   const row = await openedSubmission(context, user, form).catch(async err => {
@@ -94,7 +109,7 @@ export const withdrawSubmission = guarded(async context => {
     await reopen(env, row)
     throw err
   }
-  await env.DB.batch(removing(env, row.id).concat(forgetEmail(env, withdrawn.userId), forgetUnusedUser(env, user)))
+  await env.DB.batch(removing(env, row.id).concat(row.pull ? await rememberWithdrawn(env, user, row) : [], forgetEmail(env, withdrawn.userId), forgetUnusedUser(env, user)))
   return reply(200, { id: row.id })
 })
 
@@ -125,6 +140,7 @@ export async function releaseSubmissions(context, user, keep) {
     handled,
     statements: [
       env.DB.prepare(`DELETE FROM notifications WHERE user_id = ${USER_ROW}`).bind(user.provider, user.providerId),
+      await forgetWithdrawn(env, user),
       env.DB.prepare(`UPDATE notifications SET author = '' WHERE author = ? AND submission_id IN (${theirs})`).bind(user.name, user.provider, user.providerId, handled)
     ].concat(keep ? mine(`UPDATE submissions SET user_id = NULL WHERE id IN (${theirs})`) : [
       mine(`DELETE FROM notifications WHERE submission_id IN (${theirs})`),
