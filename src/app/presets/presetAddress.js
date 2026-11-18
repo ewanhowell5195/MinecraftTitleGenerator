@@ -13,7 +13,7 @@ function storedTab(storage) {
 
 export function startingTab(landed) {
   if (presetsPage.code !== null) return "mine"
-  if (addressHasFilters()) return "community"
+  if (import.meta.env.SSR || addressHasFilters()) return "community"
   if (!landed) return presetsPage.id === null ? storedTab(localStorage) : "community"
   return performance.getEntriesByType("navigation")[0]?.type === "reload" ? storedTab(sessionStorage) : "community"
 }

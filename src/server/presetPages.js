@@ -1,7 +1,11 @@
 import { SITE_NAME, pageImage } from "../lib/core/head.js"
 import { LIMITS } from "../lib/core/limits.js"
 import { pictureUrl, previewAlt } from "../lib/core/pictures.js"
+import { seedScript } from "../lib/core/seed.js"
+import { SORTS } from "../app/presets/presetText.js"
 import { pageWithDetails } from "./head.js"
+import { presetList, sharedPreset } from "./presets.js"
+import { TEMPLATES, presetsHtml } from "./presetTemplates.js"
 import { WEBSITE, structuredData } from "../site/pages.js"
 
 export function presetPageDetails(name, id, author = null) {
@@ -34,7 +38,7 @@ export function presetDetails(origin, preset, id) {
   const heading = preset?.name ?? "Presets"
   if (preset?.fingerprint) {
     const image = pictureUrl(preset, "png")
-    return { title, description, url, image, alt: previewAlt(preset.name), spaced: true, preview: true, heading, data: presetData(origin, preset, url, image) }
+    return { title, description, url, image, alt: previewAlt(preset.name), spaced: true, heading, data: presetData(origin, preset, url, image) }
   }
   const { path: image, ...size } = pageImage("presets", "Presets")
   return { title, description, url, ...size, image: `${origin}${image}`, heading, data: presetData(origin, preset?.name ? preset : null, url, `${origin}${image}`) }
@@ -48,16 +52,34 @@ function appShell({ env, request }) {
   return env.ASSETS.fetch(new URL("/app/", request.url))
 }
 
+async function presetTemplates({ env, request }) {
+  const response = await env.ASSETS.fetch(new URL(TEMPLATES, request.url))
+  if (!response.ok) throw new Error(`the presets page templates could not be read (${response.status})`)
+  return response.json()
+}
+
+function listQuery(address) {
+  const sort = address.searchParams.get("sort")
+  return { sort: SORTS.some(option => option.value === sort) ? sort : SORTS[0].value, search: address.searchParams.get("search") ?? "", offset: 0 }
+}
+
 export async function presetPage(context) {
   const { env, params, request } = context
-  const page = await appShell(context)
   const address = new URL(request.url)
   const code = params.id?.length ? null : linkedCode(address)
-  if (code) return linkedTitlePage(page, address, code, "/app/presets")
+  if (code) return linkedTitlePage(await appShell(context), address, code, "/app/presets")
   const id = Number(params.id?.[0])
   const known = params.id?.length === 1 && Number.isSafeInteger(id) && id > 0
-  const preset = known ? await env.DB.prepare("SELECT name, fingerprint, created_at AS createdAt, (SELECT users.name FROM users WHERE users.id = presets.user_id) AS author FROM presets WHERE id = ? AND shared = 1").bind(id).first() : null
-  return pageWithDetails(page, presetDetails(address.origin, preset, id))
+  const selected = known ? await sharedPreset(env, id) : null
+  if (params.id?.length && !selected) {
+    const missing = pageWithDetails(await appShell(context), { ...presetDetails(address.origin, null, id), hidden: true })
+    return new Response(missing.body, { status: 404, headers: missing.headers })
+  }
+  const query = listQuery(address)
+  const [page, list, templates] = await Promise.all([appShell(context), presetList(env, query), presetTemplates(context)])
+  const body = presetsHtml(templates, { presets: list.presets, selected, sort: query.sort, search: query.search })
+  const seed = { page: { sort: query.sort, search: query.search, presets: list.presets, more: list.more }, preset: selected }
+  return pageWithDetails(page, { ...presetDetails(address.origin, selected, id), body, head: templates.links + seedScript(seed) })
 }
 
 export async function appPage(context) {

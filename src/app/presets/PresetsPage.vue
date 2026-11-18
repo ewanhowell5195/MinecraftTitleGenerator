@@ -1,9 +1,8 @@
 <script setup>
   import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, watchEffect } from "vue"
-  import { account, accountChanges, countDownload, managedPresets, ownPresets, presetStats, randomCommunityPreset, refreshAccount, refreshUsage, signInProviders, voteOn } from "../../lib/state/community.js"
+  import { account, accountChanges, cachedCommunityPreset, countDownload, managedPresets, ownPresets, presetStats, randomCommunityPreset, refreshAccount, refreshUsage, signInProviders, voteOn } from "../../lib/state/community.js"
   import { isPlainClick, useWindowEvents } from "../../components/composables/events.js"
   import { titleBody } from "../../lib/link/linkformat.js"
-  import { LIMITS } from "../../lib/core/limits.js"
   import { notice, showNotice } from "../../lib/state/notices.js"
   import { addPreset, deleteSharedPreset, loadPreset, presets, presetsError, presetsLoading, removePreset, renamePreset, renameSharedPreset, unsharePreset } from "../../lib/state/presets.js"
   import { askConfirm } from "../../lib/state/confirm.js"
@@ -28,11 +27,11 @@
   import UserName from "../../components/UserName.vue"
   import ShareUsage from "./ShareUsage.vue"
   import TopBar from "../../site/TopBar.vue"
+  import { SORTS, ratingText, toGoText } from "./presetText.js"
   import { router } from "../../router.js"
 
   const TABS = [{ value: "community", label: "Community" }, { value: "mine", label: "My presets" }]
   const VOTED_LINGER = 700
-  const SORTS = [{ value: "week", label: "Popular this week" }, { value: "popular", label: "Popular all time" }, { value: "top", label: "Top rated" }, { value: "new", label: "Newest" }, { value: "needs", label: "Needs votes" }]
   const EDITOR_TITLE = "Minecraft Title Generator"
 
   const landed = takeLanding()
@@ -45,7 +44,7 @@
   const sharing = ref(null)
   const removing = ref(null)
   const stats = ref({})
-  const selectedCommunity = ref(null)
+  const selectedCommunity = ref(tab.value === "community" && presetsPage.id !== null ? cachedCommunityPreset(presetsPage.id) : null)
   const selectedLocalCode = ref(null)
 
   const term = computed(() => search.value.trim())
@@ -65,10 +64,6 @@
 
   function isMine(preset) {
     return ownPresets.value.includes(preset.id)
-  }
-
-  function votesToGo(preset) {
-    return Math.max(1, LIMITS.minVotes - preset.votes)
   }
 
   function refreshSelection() {
@@ -245,10 +240,10 @@
   watch(accountChanges, () => {
     if (tab.value === "community") load(0)
   })
-  watchEffect(() => {
+  onMounted(() => watchEffect(() => {
     const name = tab.value === "community" ? selectedCommunity.value?.name : null
     document.title = `${name ?? "Presets"} | ${EDITOR_TITLE}`
-  })
+  }))
   watch(selected, async () => {
     await nextTick()
     root.value?.querySelector(".card.selected")?.scrollIntoView({ block: "nearest" })
@@ -300,9 +295,9 @@
                 <UserName v-else class="author" community :size="13" />
               </div>
               <span v-if="preset.rating !== null" class="stats rated">
-                <span v-tooltip="`From ${preset.votes} votes`"><GoldStar :size="18" />{{ preset.rating.toFixed(1) }}</span>
+                <span v-tooltip="`From ${preset.votes} votes`"><GoldStar :size="18" />{{ ratingText(preset.rating) }}</span>
               </span>
-              <span v-else class="stats needs" v-tooltip="`${votesToGo(preset)} more ${votesToGo(preset) === 1 ? 'vote' : 'votes'} and it gets a rating`">Needs votes</span>
+              <span v-else class="stats needs" v-tooltip="toGoText(preset.votes)">Needs votes</span>
               <TileVote v-if="!isMine(preset)" :mine="preset.vote" @vote="vote(preset, $event)" />
             </PresetTile>
           </div>

@@ -1,30 +1,20 @@
 import { nextTick } from "vue"
-import { START_LOCATION, createRouter, createWebHistory } from "vue-router"
+import { START_LOCATION, createMemoryHistory, createRouter, createWebHistory } from "vue-router"
 import { isPlainClick } from "./components/composables/events.js"
 import { navigated, setNavigator } from "./lib/state/navigation.js"
 import { SITE } from "./site/pages.js"
 import { pageKey, pageRoutes, routed } from "./site/routes.js"
+import { PAGE_COMPONENTS } from "./site/pageComponents.js"
 
 const CAPTURE_WAIT = 200
 const RELOADED = "stale-chunk-reload"
 const RELOAD_GAP = 10000
 const STALE_CHUNK = /dynamically imported module|module script failed|unable to preload css/i
-const COMPONENTS = {
-  home: () => import("./site/home/HomePage.vue"),
-  app: () => import("./app/App.vue"),
-  "font-editor": () => import("./fontEditor/FontEditor.vue"),
-  credits: () => import("./site/credits/CreditsPage.vue"),
-  submit: () => import("./submissions/SubmissionsApp.vue"),
-  submissions: () => import("./submissions/SubmissionsApp.vue"),
-  account: () => import("./submissions/SubmissionsApp.vue"),
-  terms: () => import("./site/legal/TermsPage.vue"),
-  privacy: () => import("./site/legal/PrivacyPage.vue"),
-  "not-found": () => import("./site/NotFound.vue")
-}
+const SERVER = import.meta.env.SSR
 
 export const router = createRouter({
-  history: createWebHistory(),
-  routes: pageRoutes(COMPONENTS),
+  history: SERVER ? createMemoryHistory() : createWebHistory(),
+  routes: pageRoutes(PAGE_COMPONENTS),
   scrollBehavior(to, from, saved) {
     if (saved) return { ...saved, behavior: "instant" }
     if (to.hash) return { el: to.hash }
@@ -83,25 +73,28 @@ router.onError((error, to) => {
   navigating = false
   if (STALE_CHUNK.test(error?.message ?? "") && to) reloadFresh(router.resolve(to).href)
 })
-addEventListener("vite:preloadError", () => {
-  if (!navigating) reloadFresh(location.href)
-})
-
 setNavigator(router)
-router.beforeResolve(crossfade)
-router.afterEach(crossfaded)
 router.afterEach((to, from, failure) => {
   if (!failure) navigated(to, from)
 })
+
+if (!SERVER) {
+  addEventListener("vite:preloadError", () => {
+    if (!navigating) reloadFresh(location.href)
+  })
+  router.beforeResolve(crossfade)
+  router.afterEach(crossfaded)
+  router.afterEach(showPage)
+}
 
 function setHead(selector, attribute, value) {
   const element = document.head.querySelector(selector)
   if (element) element.setAttribute(attribute, value)
 }
 
-router.afterEach((to, from, failure) => {
+function showPage(to, from, failure) {
   const page = to.meta
-  if (failure || page.stays && page.name === from.meta.name) return
+  if (failure || from === START_LOCATION || page.stays && page.name === from.meta.name) return
   document.documentElement.dataset.styles = page.styles
   document.title = page.title
   setHead("meta[name=description]", "content", page.description)
@@ -109,7 +102,7 @@ router.afterEach((to, from, failure) => {
   const robots = document.head.querySelector("meta[name=robots]")
   if (page.hidden && !robots) document.head.insertAdjacentHTML("beforeend", "<meta name=\"robots\" content=\"noindex\">")
   else if (!page.hidden) robots?.remove()
-})
+}
 
 export function followLinks(root) {
   root.addEventListener("click", event => {

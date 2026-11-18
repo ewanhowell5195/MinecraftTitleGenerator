@@ -179,10 +179,17 @@ h2 + p,
 .poster {
   width: 100%;
   height: 100%;
+  opacity: 0;
 }
 
-.live .poster {
-  opacity: 0;
+.still .poster {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce), (scripting: none) {
+  .poster {
+    opacity: 1;
+  }
 }
 
 .lead {

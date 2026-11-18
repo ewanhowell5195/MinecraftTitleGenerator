@@ -15,6 +15,7 @@ const PAGES_KEPT = 60
 const CHANGE_LIFE = 60 * 60000
 
 export const usage = ref(null)
+const seeded = new Map()
 
 const store = read()
 
@@ -98,20 +99,42 @@ function poolIsCurrent() {
   return store.pool && Date.now() - store.pool.at < PAGE_LIFE
 }
 
-export async function listCommunity({ sort, search, offset }) {
-  const term = search.trim().toLowerCase()
-  const key = `${sort}|${term}|${offset}`
-  let page = store.pages[key]
-  if (!page || Date.now() - page.at >= PAGE_LIFE) {
-    const query = new URLSearchParams({ sort, offset: String(offset) })
-    if (term) query.set("q", term)
-    page = { at: Date.now(), ...await request(`?${query}`) }
-    store.pages[key] = page
-    persist()
-  }
+function pageKey({ sort, search, offset }) {
+  return `${sort}|${search.trim().toLowerCase()}|${offset}`
+}
+
+function fresh(page) {
+  return !!page && Date.now() - page.at < PAGE_LIFE
+}
+
+function shownPage({ sort, offset }, page) {
   const existing = page.presets.filter(preset => !currentChange(preset.id)?.deleted)
   const presets = sort === "needs" ? existing.filter(preset => !store.votes[preset.id] && !store.own.includes(preset.id)) : existing
   return { presets: presets.map(withMine), more: page.more, next: offset + page.presets.length }
+}
+
+export function cachedCommunity(query) {
+  const page = store.pages[pageKey(query)]
+  return fresh(page) ? shownPage(query, page) : null
+}
+
+export async function listCommunity(query) {
+  const key = pageKey(query)
+  let page = store.pages[key]
+  if (!fresh(page)) {
+    const params = new URLSearchParams({ sort: query.sort, offset: String(query.offset) })
+    const term = query.search.trim().toLowerCase()
+    if (term) params.set("q", term)
+    page = { at: Date.now(), ...await request(`?${params}`) }
+    store.pages[key] = page
+    persist()
+  }
+  return shownPage(query, page)
+}
+
+export function seedCommunity({ page = null, preset = null }) {
+  if (page) store.pages[pageKey({ ...page, offset: 0 })] = { at: Date.now(), presets: page.presets, more: page.more }
+  if (preset) seeded.set(preset.id, preset)
 }
 
 export async function presetStats(ids) {
@@ -120,12 +143,20 @@ export async function presetStats(ids) {
   return Object.assign({}, ...replies.map(reply => reply.stats))
 }
 
-export async function communityPreset(id) {
-  if (currentChange(id)?.deleted) throw Object.assign(new Error("This preset doesn't exist."), { status: 404 })
+export function cachedCommunityPreset(id) {
+  if (currentChange(id)?.deleted) return null
+  if (seeded.has(id)) return withMine(seeded.get(id))
   for (const page of Object.values(store.pages).concat(store.pool ?? [])) {
-    const found = Date.now() - page.at < PAGE_LIFE && page.presets.find(preset => preset.id === id)
+    const found = fresh(page) && page.presets.find(preset => preset.id === id)
     if (found) return withMine(found)
   }
+  return null
+}
+
+export async function communityPreset(id) {
+  if (currentChange(id)?.deleted) throw Object.assign(new Error("This preset doesn't exist."), { status: 404 })
+  const cached = cachedCommunityPreset(id)
+  if (cached) return cached
   const { preset } = await request(`/${id}`)
   return withMine(preset)
 }

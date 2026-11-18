@@ -1,9 +1,9 @@
 <script setup>
   import { computed } from "vue"
-  import { LIMITS } from "../../lib/core/limits.js"
   import Button from "../../components/Button.vue"
   import GoldStar from "./GoldStar.vue"
   import Icon from "../../components/Icon.vue"
+  import { ratingText, toGoText, votesText } from "./presetText.js"
 
   const STARS = [1, 2, 3, 4, 5]
 
@@ -17,11 +17,6 @@
   const emit = defineEmits(["vote"])
 
   const summary = computed(() => `${Math.round(props.rating * 20)}% upvoted`)
-  const toGo = computed(() => Math.max(1, LIMITS.minVotes - props.votes))
-
-  function fill(star) {
-    return `${Math.min(1, Math.max(0, props.rating - star + 1)) * 100}%`
-  }
 </script>
 
 <template>
@@ -31,16 +26,16 @@
       <Button class="vote" :class="{ negative: mine === -1 }" :active="mine === -1" :aria-pressed="mine === -1" @click="emit('vote', -1)"><template #icon><Icon name="arrowDown" :size="16" /></template><span>{{ mine === -1 ? "Downvoted" : "Downvote" }}</span></Button>
     </div>
     <div v-if="rating !== null" class="result" v-tooltip="summary">
-      <span class="stars" aria-hidden="true">
-        <span v-for="star of STARS" :key="star" class="star">
+      <span class="stars" :style="{ '--rating': ratingText(rating) }" aria-hidden="true">
+        <span v-for="star of STARS" :key="star" class="star" :style="{ '--star': star }">
           <Icon class="outline" name="star" :size="16" />
-          <span class="filled" :style="{ width: fill(star) }"><GoldStar :size="16" /></span>
+          <span class="filled"><GoldStar :size="16" /></span>
         </span>
       </span>
-      <strong>{{ rating.toFixed(1) }}</strong>
-      <span>from {{ votes }} votes</span>
+      <strong>{{ ratingText(rating) }}</strong>
+      <span>{{ votesText(votes) }}</span>
     </div>
-    <p v-else class="unrated">{{ toGo }} more {{ toGo === 1 ? "vote" : "votes" }} and it gets a rating</p>
+    <p v-else class="unrated">{{ toGoText(votes) }}</p>
   </div>
 </template>
 
@@ -99,6 +94,7 @@
     top: 0;
     left: 0;
     display: block;
+    width: calc(clamp(0, var(--rating) - var(--star) + 1, 1) * 100%);
     height: 16px;
     overflow: hidden;
     transition: width 0.4s ease-out;

@@ -1,5 +1,6 @@
 <script setup>
   import { onBeforeUnmount, onMounted, ref, watch } from "vue"
+  import { useRoute } from "vue-router"
   import credits from "virtual:credits"
   import NavTabs from "../../components/NavTabs.vue"
   import { startCredits } from "./credits.js"
@@ -7,7 +8,7 @@
   const TABS = [{ id: "contributors", label: "Contributors" }, { id: "fonts", label: "Licensed Fonts" }]
 
   const root = ref(null)
-  const tab = ref(new URLSearchParams(location.search).get("tab") === "fonts" ? "fonts" : "contributors")
+  const tab = ref(useRoute().query.tab === "fonts" ? "fonts" : "contributors")
   const leaving = new AbortController()
 
   watch(tab, value => {

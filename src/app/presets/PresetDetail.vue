@@ -9,6 +9,7 @@
   import PresetRating from "./PresetRating.vue"
   import TitlePicture from "./TitlePicture.vue"
   import UserName from "../../components/UserName.vue"
+  import { sharedText, usesText } from "./presetText.js"
 
   const props = defineProps({
     preset: { type: Object, required: true },
@@ -36,13 +37,8 @@
   }
 
   const figures = computed(() => props.local ? props.stats : props.preset)
-  const uses = computed(() => {
-    const { downloads, week } = figures.value
-    if (!downloads) return "Not used yet"
-    const total = `${downloads} ${downloads === 1 ? "use" : "uses"} in total`
-    return week === undefined ? total : `${total}, ${week || "none"} in the last 7 days`
-  })
-  const sharedOn = computed(() => new Date(figures.value.createdAt).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" }))
+  const uses = computed(() => usesText(figures.value))
+  const sharedOn = computed(() => sharedText(figures.value.createdAt))
 
   function finishRenaming(event) {
     if (!renaming.value) return

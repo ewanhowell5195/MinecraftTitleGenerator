@@ -1,6 +1,7 @@
 import { reactive } from "vue"
 import { navigate, onNavigated } from "./navigation.js"
 import { TITLE_PARAM } from "./scene.js"
+import { SITE } from "../../site/pages.js"
 
 export const PRESETS_PATH = "/app/presets"
 const EDITOR = "/app/"
@@ -57,10 +58,6 @@ function filtered(path) {
   if (presetsPage.filtersShown && presetsPage.search) url.searchParams.set(SEARCH_PARAM, presetsPage.search)
   else url.searchParams.delete(SEARCH_PARAM)
   return `${url.pathname}${url.search}${url.hash}`
-}
-
-function syncPresetsPage() {
-  syncTo(new URL(location.href))
 }
 
 function go(path, replace) {
@@ -134,7 +131,7 @@ export function takeLanding() {
 let landing = false
 
 onNavigated((to, from) => {
-  syncPresetsPage()
+  syncTo(new URL(to.fullPath, SITE))
   if (!presetsPage.open && presetsPage.fromEditor) setFromEditor(false)
   if (to.meta.name === "app" && from.meta.name !== "app") landing = presetsPage.open
 })

@@ -1,5 +1,5 @@
 <script setup>
-  import { nextTick, onBeforeUnmount, onMounted, ref } from "vue"
+  import { cloneVNode, computed, nextTick, onBeforeUnmount, onMounted, ref, useSlots } from "vue"
   import FluidTabs from "fluid-tabs-vue"
 
   defineProps({
@@ -10,16 +10,26 @@
 
   const READ_LINE = 120
   const JUMP_LIMIT = 1500
+  const CONTACT = "Contact"
 
+  const slots = useSlots()
   const content = ref(null)
-  const sections = ref([])
-  const current = ref("")
+  const sections = computed(() => (slots.default?.() ?? []).filter(isHeading).map(node => node.children).concat(CONTACT).map(label => ({ id: slug(label), label })))
+  const current = ref(sections.value[0]?.id ?? "")
   const leaving = new AbortController()
   let following = false
   let jumping = null
 
   function slug(text) {
     return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+  }
+
+  function isHeading(node) {
+    return node.type === "h2" && typeof node.children === "string"
+  }
+
+  function Body() {
+    return slots.default?.().map(node => isHeading(node) ? cloneVNode(node, { id: slug(node.children) }) : node)
   }
 
   function headings() {
@@ -56,10 +66,6 @@
   }
 
   onMounted(() => {
-    const list = headings()
-    for (const heading of list) heading.id = slug(heading.textContent)
-    sections.value = list.map(heading => ({ id: heading.id, label: heading.textContent }))
-    current.value = sections.value[0]?.id ?? ""
     const target = location.hash && document.getElementById(decodeURIComponent(location.hash.slice(1)))
     if (target) requestAnimationFrame(() => {
       target.scrollIntoView({ behavior: "instant" })
@@ -84,12 +90,14 @@
     </header>
     <nav v-if="sections.length" class="contents" aria-label="Contents">
       <p>Contents</p>
-      <FluidTabs v-model="current" :tabs="sections" tab-style="underline" vertical no-swipe @tab-changed="picked" />
+      <FluidTabs v-model="current" :tabs="sections" tab-style="underline" vertical no-swipe @tab-changed="picked">
+        <template #label="{ tab }"><span :class="{ current: tab.id === current }">{{ tab.label }}</span></template>
+      </FluidTabs>
     </nav>
     <main ref="content" class="legal-body">
-      <slot></slot>
+      <Body />
 
-      <h2>Contact</h2>
+      <h2 :id="slug(CONTACT)">{{ CONTACT }}</h2>
       <p>If you have any questions about {{ about }}, you can contact me:</p>
       <ul>
         <li>On Discord: <a href="https://discord.ewanhowell.com/" target="_blank" rel="noopener">Ewan's Server</a></li>

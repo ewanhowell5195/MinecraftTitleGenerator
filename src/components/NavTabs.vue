@@ -12,9 +12,9 @@
 
 <template>
   <FluidTabs v-model="model" :tabs="tabs" tab-style="nav" class="nav-tabs" :class="{ icons }" wrap>
-    <template v-if="icons" #label="{ tab }">
-      <Icon :name="tab.icon" :size="20" />
-      <span>{{ tab.label }}</span>
+    <template #label="{ tab }">
+      <Icon v-if="icons" :name="tab.icon" :size="20" />
+      <span :class="{ current: tab.id === model }">{{ tab.label }}</span>
     </template>
   </FluidTabs>
 </template>
@@ -69,12 +69,18 @@
   }
 
   .nav-tabs :deep(.tab-bar-button:hover),
-  .nav-tabs :deep(.tab-bar-button.active) {
+  .nav-tabs :deep(.tab-bar-button.active),
+  .nav-tabs :deep(.tab-bar:not(.tab-bar-ready) > .tab-bar-button:has(> .current)) {
     color: var(--text);
   }
 
-  .nav-tabs:where(.icons) :deep(.tab-bar-button.active) {
+  .nav-tabs:where(.icons) :deep(.tab-bar-button.active),
+  .nav-tabs:where(.icons) :deep(.tab-bar:not(.tab-bar-ready) > .tab-bar-button:has(> .current)) {
     color: var(--accent);
+  }
+
+  .nav-tabs :deep(.tab-bar:not(.tab-bar-ready) > .tab-bar-button:has(> .current)) {
+    box-shadow: inset 0 -2px 0 var(--accent);
   }
 
   .nav-tabs:where(.icons) :deep(.tab-bar-button svg) {

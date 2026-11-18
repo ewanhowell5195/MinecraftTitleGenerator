@@ -1,5 +1,5 @@
 <script setup>
-  import { onBeforeUnmount, onMounted, ref, watch } from "vue"
+  import { onMounted, ref, watch } from "vue"
   import { pictureUrl, previewAlt } from "../../lib/core/pictures.js"
 
   const props = defineProps({
@@ -11,21 +11,9 @@
 
   const emit = defineEmits(["open"])
 
-  const element = ref(null)
-  const seen = ref(false)
-  const loaded = ref(false)
+  const image = ref(null)
+  const loaded = ref(true)
   const failed = ref(false)
-  let observer = null
-
-  function watchForSight() {
-    observer?.disconnect()
-    observer = new IntersectionObserver(([entry]) => {
-      if (!entry.isIntersecting) return
-      observer.disconnect()
-      seen.value = true
-    }, { rootMargin: "200px" })
-    observer.observe(element.value)
-  }
 
   function open(event) {
     if (props.large) return
@@ -33,22 +21,21 @@
     emit("open")
   }
 
-  onMounted(watchForSight)
-  onBeforeUnmount(() => observer?.disconnect())
+  onMounted(() => {
+    if (!image.value?.complete) loaded.value = false
+  })
 
   watch(() => props.code, () => {
-    seen.value = false
     loaded.value = false
     failed.value = false
-    watchForSight()
   })
 </script>
 
 <template>
-  <div ref="element" class="picture" :class="large ? 'large' : 'clickable'" :role="large ? null : 'button'" :tabindex="large ? null : 0" @click="open" @keydown.enter="open" @keydown.space.prevent="open">
-    <img v-if="seen && !failed" v-show="loaded" :src="pictureUrl({ code, fingerprint })" :alt="name ? previewAlt(name) : ''" @load="loaded = true" @error="failed = true">
+  <div class="picture" :class="large ? 'large' : 'clickable'" :role="large ? null : 'button'" :tabindex="large ? null : 0" @click="open" @keydown.enter="open" @keydown.space.prevent="open">
+    <img v-if="!failed" v-show="loaded" ref="image" :src="pictureUrl({ code, fingerprint })" :alt="name ? previewAlt(name) : ''" loading="lazy" @load="loaded = true" @error="failed = true">
     <span v-if="failed" class="status empty-state">Can't show this title</span>
-    <span v-else-if="(large || seen) && !loaded" class="status empty-state">Loading</span>
+    <span v-else-if="!loaded" class="status empty-state">Loading</span>
   </div>
 </template>
 

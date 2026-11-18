@@ -3,19 +3,26 @@
   import { account, refreshAccount, signIn, signInProviders, signOut } from "../lib/state/community.js"
   import { providerLabel } from "../lib/core/providers.js"
   import { router } from "../router.js"
+  import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
   import MenuButton from "../components/MenuButton.vue"
 
   const broken = ref(null)
   const avatar = computed(() => account.value?.avatar && account.value.avatar !== broken.value ? account.value.avatar : null)
-  onMounted(() => refreshAccount())
+  const known = ref(false)
+
+  onMounted(() => {
+    known.value = !!account.value || signInProviders.value.length > 0
+    refreshAccount().finally(() => known.value = true)
+  })
 
   const hasSubmissions = computed(() => !!(account.value?.submissions || account.value?.waiting))
   const items = computed(() => account.value ? [{ heading: true, label: `Signed in as ${account.value.name}` }].concat(hasSubmissions.value ? { label: "Submissions", icon: "upload", action: () => router.push("/submissions/") } : [], { label: "Manage account", icon: "user", action: () => router.push("/account/") }, { label: "Sign out", icon: "signOut", action: signOut }) : signInProviders.value.map(id => ({ label: `Sign in with ${providerLabel(id)}`, icon: id, action: () => signIn(id) })))
 </script>
 
 <template>
-  <MenuButton v-if="account || signInProviders.length" class="account" :class="{ signed: account }" :items="items" end :aria-label="account ? `Account: ${account.name}` : 'Sign in'">
+  <Button v-if="!known" class="account" disabled><Icon name="user" :size="16" /><span>Sign in</span></Button>
+  <MenuButton v-else-if="account || signInProviders.length" class="account" :class="{ signed: account }" :items="items" end :aria-label="account ? `Account: ${account.name}` : 'Sign in'">
     <template v-if="account">
       <img v-if="avatar" class="avatar" :src="avatar" alt="" width="28" height="28" referrerpolicy="no-referrer" @error="broken = avatar">
       <span v-else class="avatar fallback"><Icon :name="account.provider" :size="16" /></span>

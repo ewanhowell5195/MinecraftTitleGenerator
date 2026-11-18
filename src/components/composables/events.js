@@ -1,4 +1,4 @@
-import { onBeforeUnmount, watch } from "vue"
+import { onBeforeUnmount, onMounted, watch } from "vue"
 
 const DRAG_DISTANCE = 6
 const LONG_PRESS = 500
@@ -93,6 +93,6 @@ export function useWindowEvents(active, handlers, capturing = {}) {
     for (const [type, handler] of Object.entries(handlers)) window[method](type, handler)
     for (const [type, handler] of Object.entries(capturing)) window[method](type, handler, true)
   }
-  watch(active, listen, { immediate: true })
+  onMounted(() => watch(active, listen, { immediate: true }))
   onBeforeUnmount(() => listen(false))
 }

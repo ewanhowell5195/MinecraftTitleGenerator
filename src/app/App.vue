@@ -196,5 +196,9 @@
       border-top: 2px solid var(--accent);
       border-bottom: none;
     }
+
+    .tabs.nav-tabs :deep(.tab-bar:not(.tab-bar-ready) > .tab-bar-button:has(> .current)) {
+      box-shadow: inset 0 2px 0 var(--accent);
+    }
   }
 </style>

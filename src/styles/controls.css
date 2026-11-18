@@ -309,6 +309,27 @@ input[type="checkbox"]:checked {
   cursor: default;
 }
 
+.tab-bar[data-tab-wrap]:not(.tab-bar-ready) {
+  flex-wrap: wrap;
+  overflow: visible;
+  touch-action: auto;
+}
+
+.tab-bar[data-tab-vertical=""]:not(.tab-bar-ready) {
+  flex-direction: column;
+  flex: none;
+  align-self: flex-start;
+  width: fit-content;
+  margin-bottom: 0;
+  margin-inline-end: 20px;
+  touch-action: auto;
+}
+
+.tab-bar[data-tab-vertical=""]:not(.tab-bar-ready) > .tab-bar-button {
+  flex: 0 0 auto;
+  justify-content: flex-start;
+}
+
 .tab-bar.tab-style-slide {
   width: 100%;
   gap: 2px;
@@ -334,8 +355,13 @@ input[type="checkbox"]:checked {
 
 .tab-bar.tab-style-slide > .tab-bar-button:hover,
 .tab-bar.tab-style-slide > .tab-bar-button.active,
-.tab-bar.tab-style-slide > .tab-bar-button > .tab-bar-button-reveal {
+.tab-bar.tab-style-slide > .tab-bar-button > .tab-bar-button-reveal,
+.tab-bar.tab-style-slide:not(.tab-bar-ready) > .tab-bar-button:has(> .current) {
   color: var(--text);
+}
+
+.tab-bar.tab-style-slide:not(.tab-bar-ready) > .tab-bar-button:has(> .current) {
+  background: var(--line-strong);
 }
 
 .tab-bar.tab-style-slide > .tab-bar-button:focus-visible {

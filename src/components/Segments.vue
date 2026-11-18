@@ -24,11 +24,11 @@
 <template>
   <Field v-if="label" group :label="label" :hint="hint">
     <FluidTabs :model-value="String(modelValue)" :tabs="tabs" :tab-style="radio ? 'card' : 'slide'" :class="{ radio }" wrap @tab-changed="change">
-      <template #label="{ tab }"><span v-tooltip="tab.title">{{ tab.label }}</span></template>
+      <template #label="{ tab }"><span :class="{ current: tab.id === String(modelValue) }" v-tooltip="tab.title">{{ tab.label }}</span></template>
     </FluidTabs>
   </Field>
   <FluidTabs v-else :model-value="String(modelValue)" :tabs="tabs" :tab-style="radio ? 'card' : 'slide'" :class="{ radio }" wrap @tab-changed="change">
-    <template #label="{ tab }"><span v-tooltip="tab.title">{{ tab.label }}</span></template>
+    <template #label="{ tab }"><span :class="{ current: tab.id === String(modelValue) }" v-tooltip="tab.title">{{ tab.label }}</span></template>
   </FluidTabs>
 </template>
 
@@ -66,7 +66,8 @@
   }
 
   .radio :deep(.tab-bar.tab-style-card > .tab-bar-button:hover),
-  .radio :deep(.tab-bar.tab-style-card > .tab-bar-button.active) {
+  .radio :deep(.tab-bar.tab-style-card > .tab-bar-button.active),
+  .radio :deep(.tab-bar.tab-style-card:not(.tab-bar-ready) > .tab-bar-button:has(> .current)) {
     color: var(--text);
   }
 
@@ -74,7 +75,8 @@
     border-color: var(--faint);
   }
 
-  .radio :deep(.tab-bar.tab-style-card > .tab-bar-button.active::before) {
+  .radio :deep(.tab-bar.tab-style-card > .tab-bar-button.active::before),
+  .radio :deep(.tab-bar.tab-style-card:not(.tab-bar-ready) > .tab-bar-button:has(> .current)::before) {
     border-color: var(--accent);
     background: var(--accent);
     box-shadow: inset 0 0 0 2.5px var(--bg);

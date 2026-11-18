@@ -144,6 +144,21 @@ export function dayNumber() {
   return Math.floor(Date.now() / DAY)
 }
 
+export async function presetList(env, { sort, search, offset }) {
+  const filter = searchFilter(search)
+  const conditions = filter.conditions.concat("shared = 1")
+  if (sort === "needs") conditions.push(`votes < ${LIMITS.minVotes}`)
+  const where = `WHERE ${conditions.join(" AND ")}`
+  const source = sort === "week" ? `SELECT ${COLUMNS}, COALESCE(week, 0) AS week FROM presets LEFT JOIN (SELECT preset_id, SUM(count) AS week FROM preset_daily_downloads WHERE day >= ${dayNumber() - WEEK_DAYS} GROUP BY preset_id) ON preset_id = id` : `SELECT ${COLUMNS} FROM presets`
+  const { results } = await env.DB.prepare(`${source} ${where} ORDER BY ${SORTS[sort]} LIMIT ${LIMITS.page + 1} OFFSET ${offset}`).bind(...filter.values).all()
+  return { presets: results.slice(0, LIMITS.page).map(rated), more: results.length > LIMITS.page }
+}
+
+export async function sharedPreset(env, id) {
+  const preset = await env.DB.prepare(`SELECT ${COLUMNS} FROM presets WHERE id = ? AND shared = 1`).bind(id).first()
+  return preset ? rated(preset) : null
+}
+
 export const listPresets = guarded(async context => {
   const { request, env } = context
   const url = new URL(request.url)
@@ -153,25 +168,17 @@ export const listPresets = guarded(async context => {
   if (sort !== "random" && !Object.hasOwn(SORTS, sort)) throw new Refusal(400, "That isn't a way to sort presets.")
   const offset = Number(url.searchParams.get("offset") ?? 0)
   if (!Number.isSafeInteger(offset) || offset < 0) throw new Refusal(400, "That isn't a valid page.")
-  const filter = searchFilter(url.searchParams.get("q") ?? "")
-  if (sort === "random") return reply(200, { presets: (await randomPresets(context, filter)).map(rated), more: false })
-  return cachedAtEdge(context, async () => {
-    const conditions = filter.conditions.concat("shared = 1")
-    if (sort === "needs") conditions.push(`votes < ${LIMITS.minVotes}`)
-    const where = `WHERE ${conditions.join(" AND ")}`
-    const source = sort === "week" ? `SELECT ${COLUMNS}, COALESCE(week, 0) AS week FROM presets LEFT JOIN (SELECT preset_id, SUM(count) AS week FROM preset_daily_downloads WHERE day >= ${dayNumber() - WEEK_DAYS} GROUP BY preset_id) ON preset_id = id` : `SELECT ${COLUMNS} FROM presets`
-    const statement = env.DB.prepare(`${source} ${where} ORDER BY ${SORTS[sort]} LIMIT ${LIMITS.page + 1} OFFSET ${offset}`)
-    const { results } = await statement.bind(...filter.values).all()
-    return reply(200, { presets: results.slice(0, LIMITS.page).map(rated), more: results.length > LIMITS.page })
-  })
+  const search = url.searchParams.get("q") ?? ""
+  if (sort === "random") return reply(200, { presets: (await randomPresets(context, searchFilter(search))).map(rated), more: false })
+  return cachedAtEdge(context, async () => reply(200, await presetList(env, { sort, search, offset })))
 })
 
 export const getPreset = guarded(async context => {
   const id = idParam(context.params, MISSING)
   return cachedAtEdge(context, async () => {
-    const preset = await context.env.DB.prepare(`SELECT ${COLUMNS} FROM presets WHERE id = ? AND shared = 1`).bind(id).first()
+    const preset = await sharedPreset(context.env, id)
     if (!preset) throw new Refusal(404, MISSING)
-    return reply(200, { preset: rated(preset) })
+    return reply(200, { preset })
   })
 })
 

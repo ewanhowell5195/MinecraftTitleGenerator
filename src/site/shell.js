@@ -41,5 +41,9 @@ export function shellHtml(html, page) {
   return html
     .replace("<html lang=\"en\">", `<html lang="en" data-styles="${page.styles}">`)
     .replace("<head>", `<head>\n    ${head.join("\n    ")}`)
-    .replace("<div id=\"app\"></div>", `<div id="app">${splashHtml(page.title.replace(/ [|-] .*$/, ""), page.description)}</div>`)
+    .replace("<div id=\"app\"></div>", splashOf(page))
+}
+
+export function splashOf(page) {
+  return `<div id="app">${splashHtml(page.title.replace(/ [|-] .*$/, ""), page.description)}</div>`
 }

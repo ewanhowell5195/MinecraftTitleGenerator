@@ -1,5 +1,5 @@
 <script setup>
-  import { computed, ref } from "vue"
+  import { computed, onMounted, ref } from "vue"
   import { useRoute } from "vue-router"
   import Icon from "../components/Icon.vue"
   import { PREVIEW_NOTICE, isPreviewHost } from "../lib/core/previewSite.js"
@@ -8,7 +8,7 @@
 
   const route = useRoute()
   const live = computed(() => `https://mctitlegenerator.com${route.fullPath}`)
-  const shown = ref(isPreviewHost(location.hostname) && !dismissed())
+  const shown = ref(false)
 
   function dismissed() {
     try {
@@ -17,6 +17,10 @@
       return false
     }
   }
+
+  onMounted(() => {
+    shown.value = isPreviewHost(location.hostname) && !dismissed()
+  })
 
   function hide() {
     shown.value = false

@@ -33,32 +33,14 @@ export function startCredits(root, signal) {
     const query = field.value.trim()
     const matches = matcher(query)
     let found = 0
+    people.classList.toggle("searching", !!query)
     for (const person of people.querySelectorAll(".person")) {
-      const list = person.querySelector(".pieces")
-      const pieces = Array.from(list.querySelectorAll(".piece"))
-      list.querySelector(".more")?.remove()
-      if (query) {
-        const name = person.querySelector("h2").textContent
-        const shown = pieces.filter(piece => matches(piece, name))
-        pieces.forEach(piece => piece.hidden = !shown.includes(piece))
-        person.hidden = !shown.length
-        found += shown.length
-        continue
-      }
-      person.hidden = false
-      found += pieces.length
-      const columns = getComputedStyle(list).gridTemplateColumns.split(" ").length
-      const shown = person.classList.contains("open") || pieces.length <= columns ? pieces.length : Math.max(1, columns - 1)
-      pieces.forEach((piece, index) => piece.hidden = index >= shown)
-      if (shown === pieces.length) continue
-      const more = document.createElement("li")
-      more.className = "more"
-      more.innerHTML = `<button type="button"><span class="count">+${pieces.length - shown}</span><span>Show all</span></button>`
-      more.querySelector("button").addEventListener("click", () => {
-        person.classList.add("open")
-        render()
-      })
-      list.append(more)
+      const pieces = Array.from(person.querySelectorAll(".piece"))
+      const name = person.querySelector("h2").textContent
+      const shown = query ? pieces.filter(piece => matches(piece, name)) : pieces
+      pieces.forEach(piece => piece.hidden = !shown.includes(piece))
+      person.hidden = !shown.length
+      found += shown.length
     }
     empty.hidden = found > 0
   }
@@ -74,23 +56,26 @@ export function startCredits(root, signal) {
 
   async function sortByUsage() {
     const counts = new Map((await titleStats(WEEK_STATS, signal)).map(entry => [entry.id, entry.count]))
-    for (const list of people.querySelectorAll(".pieces")) list.append(...byUsage(Array.from(list.querySelectorAll(".piece")), piece => usage(piece, counts)))
+    for (const list of people.querySelectorAll(".pieces")) list.append(...byUsage(Array.from(list.querySelectorAll(".piece")), piece => usage(piece, counts)).concat(Array.from(list.querySelectorAll(".more"))))
     const total = person => Array.from(person.querySelectorAll(".piece")).reduce((sum, piece) => sum + usage(piece, counts), 0)
     people.append(...byUsage(Array.from(people.querySelectorAll(".person")), total))
     render()
   }
 
-  search.hidden = false
   field.value = new URLSearchParams(location.search).get("search") ?? ""
   field.addEventListener("input", () => setSearch(field.value))
   people.addEventListener("click", event => {
+    const more = event.target.closest(".more button")
+    if (more) {
+      more.closest(".person").classList.add("open")
+      return
+    }
     const button = event.target.closest(".with")
     if (!button) return
     const url = new URL(location.href)
     url.searchParams.set("search", `${ID_FILTER}${button.dataset.id}`)
     navigate(`${url.pathname}${url.search}`)
   })
-  addEventListener("resize", render, { signal })
   render()
   if (field.value.startsWith(ID_FILTER)) search.scrollIntoView({ block: "center" })
   sortByUsage().catch(err => {

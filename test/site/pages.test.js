@@ -31,8 +31,8 @@ describe("pages", () => {
   })
 
   test("a shared preset with a picture lists it as the image on its page", () => {
-    const xml = sitemapXml([{ id: 3, fingerprint: "abc" }, { id: 18, fingerprint: null }])
-    assert.ok(xml.includes(`<loc>${SITE}/app/presets/3</loc>\n    <image:image>\n      <image:loc>https://thumbnails.mctitlegenerator.com/p/abc.png</image:loc>\n    </image:image>\n  </url>`))
+    const xml = sitemapXml([{ id: 3, fingerprint: "abc", createdAt: Date.UTC(2026, 10, 5, 13) }, { id: 18, fingerprint: null }])
+    assert.ok(xml.includes(`<loc>${SITE}/app/presets/3</loc>\n    <lastmod>2026-11-05</lastmod>\n    <image:image>\n      <image:loc>https://thumbnails.mctitlegenerator.com/p/abc.png</image:loc>\n    </image:image>\n  </url>`))
     assert.ok(xml.includes(`<loc>${SITE}/app/presets/18</loc>\n  </url>`))
     assert.equal(xml.match(/<image:image>/g).length, 1)
   })

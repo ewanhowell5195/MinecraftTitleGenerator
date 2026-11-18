@@ -1,5 +1,5 @@
 <script setup>
-  import { onBeforeUnmount, onMounted, ref } from "vue"
+  import { nextTick, onBeforeUnmount, onMounted, ref } from "vue"
   import people from "virtual:people"
   import { startHero } from "./hero.js"
   import Button from "../../components/Button.vue"
@@ -20,8 +20,8 @@
     return !!gl
   }
 
-  const animated = !matchMedia("(prefers-reduced-motion: reduce)").matches && hasWebGL()
-  const live = ref(animated)
+  const animated = ref(false)
+  const still = ref(false)
   const canvas = ref(null)
   const stage = ref(null)
   const stats = ref(null)
@@ -55,7 +55,7 @@
   }
 
   function showPoster() {
-    live.value = false
+    still.value = true
   }
 
   function whenNear(element, start) {
@@ -68,14 +68,17 @@
     leaving.signal.addEventListener("abort", () => watcher.disconnect())
   }
 
-  onMounted(() => {
+  onMounted(async () => {
+    animated.value = !matchMedia("(prefers-reduced-motion: reduce)").matches && hasWebGL()
     addEventListener("dragstart", event => event.preventDefault(), { signal: leaving.signal })
     whenNear(presetList.value, () => loadPopular().catch(reported))
     whenNear(stats.value, () => {
       loadStats().catch(reported)
-      if (animated) startTyping(bandTitle.value, leaving.signal).catch(reported)
+      if (animated.value) startTyping(bandTitle.value, leaving.signal).catch(reported)
     })
-    if (animated) {
+    if (!animated.value) showPoster()
+    else {
+      await nextTick()
       startHero(canvas.value, stage.value, leaving.signal, showPoster).catch(err => {
         showPoster()
         reported(err)
@@ -87,11 +90,11 @@
 </script>
 
 <template>
-  <main :class="{ live }">
+  <main :class="{ still }">
     <section class="hero">
       <div class="glow warm" aria-hidden="true"></div>
       <div class="glow cool" aria-hidden="true"></div>
-      <canvas v-if="live" ref="canvas" aria-hidden="true"></canvas>
+      <canvas v-if="animated" ref="canvas" aria-hidden="true"></canvas>
       <h1 ref="stage" class="stage"><img class="poster" src="/home/logo.webp" alt="Minecraft Title Generator" width="1800" height="524"></h1>
       <p class="lead">{{ TAGLINE }}</p>
       <div class="actions">
@@ -186,7 +189,7 @@
           </dl>
           <Button big to="/app/">Open the generator</Button>
         </div>
-        <div ref="bandTitle" class="band-title" aria-hidden="true"><img src="/home/typing/your-title.webp" alt="" width="1125" height="200" loading="lazy"><canvas></canvas></div>
+        <div ref="bandTitle" class="band-title" aria-hidden="true"><img src="/home/typing/your-title.webp" alt="" width="1125" height="200" loading="lazy"><canvas v-if="animated"></canvas></div>
       </div>
     </section>
   </main>

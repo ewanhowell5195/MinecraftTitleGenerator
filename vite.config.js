@@ -4,14 +4,17 @@ import path from "node:path"
 import { defineConfig } from "vite"
 import { PAGES } from "./src/site/pages.js"
 import { creditPeople, creditsHtml } from "./src/site/credits/build.js"
+import { stripNames } from "./src/site/home/stripNames.js"
 import { escaped } from "./src/lib/core/html.js"
 import { dataScript, shareTags, withoutShareTags } from "./src/lib/core/head.js"
 import { linkedCode, linkedTitleDetails, presetDetails } from "./src/server/presetPages.js"
 import { pageAt, pageFiles, shellHtml } from "./src/site/shell.js"
+import { prerender } from "./src/prerender/build.js"
 
 const LIVE = "https://mctitlegenerator.com"
 const CREDITS = "virtual:credits"
 const PEOPLE = "virtual:people"
+const STRIP_NAMES = "virtual:strip-names"
 const STYLE_SCOPES = {
   "src/styles/tool.css": "tool",
   "src/fontEditor/editor.css": "editor",
@@ -44,6 +47,20 @@ function withDetails(html, details) {
     .replace(/(<div class="splash">.*?<p>)[^<]*/s, (_, start) => start + escaped(description))
     .replace("</head>", () => `${shareTags(details)}${data ? dataScript(data) : ""}</head>`)
   return heading ? page.replace(/(<div class="splash"><h1>)[^<]*/, (_, start) => start + escaped(heading)) : page
+}
+
+const BROWSER_ONLY = new Set(["fluid-tabs", "fluid-marquee", "easy-tooltips"])
+const NOTHING = "\0browser-only"
+
+const browserOnly = {
+  name: "browser-only",
+  enforce: "pre",
+  resolveId(id, importer, options) {
+    if (options?.ssr && BROWSER_ONLY.has(id)) return NOTHING
+  },
+  load(id) {
+    if (id === NOTHING) return "export default {}"
+  }
 }
 
 const presetPages = {
@@ -83,11 +100,12 @@ const folderSlashes = {
 const creditsModule = {
   name: "credits-module",
   resolveId(id) {
-    if (id === CREDITS || id === PEOPLE) return `\0${id}`
+    if (id === CREDITS || id === PEOPLE || id === STRIP_NAMES) return `\0${id}`
   },
   load(id) {
     if (id === `\0${CREDITS}`) return `export default ${JSON.stringify(creditsHtml(import.meta.dirname))}`
     if (id === `\0${PEOPLE}`) return `export default ${JSON.stringify(creditPeople(import.meta.dirname))}`
+    if (id === `\0${STRIP_NAMES}`) return `export default ${JSON.stringify(stripNames(import.meta.dirname))}`
   }
 }
 
@@ -102,6 +120,7 @@ const shellPages = {
     }
   },
   generateBundle(_, bundle) {
+    if (this.environment.name !== "client") return
     const shell = bundle["index.html"]
     if (!shell) throw new Error("the build has no index.html to make the pages from")
     const source = String(shell.source)
@@ -142,9 +161,19 @@ function allowCookiesOverHttp(proxy) {
   })
 }
 
+const renderedPages = {
+  name: "rendered-pages",
+  apply: "build",
+  async closeBundle() {
+    if (this.environment.name !== "client") return
+    await prerender(this.environment.config.root, this.environment.config.build.outDir)
+  }
+}
+
 export default defineConfig({
-  plugins: [vue(), folderSlashes, presetPages, creditsModule, shellPages],
+  plugins: [vue(), browserOnly, folderSlashes, presetPages, creditsModule, shellPages, renderedPages],
   css: { postcss: { plugins: [scopedStyles()] } },
-  build: { rolldownOptions: { input: "index.html" } },
+  ssr: { noExternal: [/^fluid-/, /^easy-tooltips/] },
+  build: { ssrManifest: true, rolldownOptions: { input: "index.html" } },
   server: { host: "127.0.0.1", port: 9123, strictPort: true, proxy: { "/api": { target: LIVE, changeOrigin: true, configure: allowCookiesOverHttp } } }
 })

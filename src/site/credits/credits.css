@@ -149,6 +149,67 @@
   color: var(--text);
 }
 
+.person {
+  container: person / inline-size;
+}
+
+.more,
+.more .count {
+  display: none;
+}
+
+@media (min-width: 601px) {
+  @container person (width < 552px) {
+    .people:not(.searching) .person:not(.open) .pieces:has(> .piece:nth-child(3)) > .piece:nth-child(n + 2) { display: none; }
+    .people:not(.searching) .person:not(.open) .pieces:has(> .piece:nth-child(3)) > .more,
+    .more .count[data-shown="1"] { display: block; }
+  }
+
+  @container person (552px <= width < 740px) {
+    .people:not(.searching) .person:not(.open) .pieces:has(> .piece:nth-child(4)) > .piece:nth-child(n + 3) { display: none; }
+    .people:not(.searching) .person:not(.open) .pieces:has(> .piece:nth-child(4)) > .more,
+    .more .count[data-shown="2"] { display: block; }
+  }
+
+  @container person (740px <= width < 928px) {
+    .people:not(.searching) .person:not(.open) .pieces:has(> .piece:nth-child(5)) > .piece:nth-child(n + 4) { display: none; }
+    .people:not(.searching) .person:not(.open) .pieces:has(> .piece:nth-child(5)) > .more,
+    .more .count[data-shown="3"] { display: block; }
+  }
+
+  @container person (928px <= width < 1116px) {
+    .people:not(.searching) .person:not(.open) .pieces:has(> .piece:nth-child(6)) > .piece:nth-child(n + 5) { display: none; }
+    .people:not(.searching) .person:not(.open) .pieces:has(> .piece:nth-child(6)) > .more,
+    .more .count[data-shown="4"] { display: block; }
+  }
+
+  @container person (1116px <= width) {
+    .people:not(.searching) .person:not(.open) .pieces:has(> .piece:nth-child(7)) > .piece:nth-child(n + 6) { display: none; }
+    .people:not(.searching) .person:not(.open) .pieces:has(> .piece:nth-child(7)) > .more,
+    .more .count[data-shown="5"] { display: block; }
+  }
+}
+
+@media (max-width: 600px) {
+  @container person (width < 288px) {
+    .people:not(.searching) .person:not(.open) .pieces:has(> .piece:nth-child(2)) > .piece:nth-child(n + 2) { display: none; }
+    .people:not(.searching) .person:not(.open) .pieces:has(> .piece:nth-child(2)) > .more,
+    .more .count[data-shown="1"] { display: block; }
+  }
+
+  @container person (288px <= width < 436px) {
+    .people:not(.searching) .person:not(.open) .pieces:has(> .piece:nth-child(3)) > .piece:nth-child(n + 2) { display: none; }
+    .people:not(.searching) .person:not(.open) .pieces:has(> .piece:nth-child(3)) > .more,
+    .more .count[data-shown="1"] { display: block; }
+  }
+
+  @container person (436px <= width) {
+    .people:not(.searching) .person:not(.open) .pieces:has(> .piece:nth-child(4)) > .piece:nth-child(n + 3) { display: none; }
+    .people:not(.searching) .person:not(.open) .pieces:has(> .piece:nth-child(4)) > .more,
+    .more .count[data-shown="2"] { display: block; }
+  }
+}
+
 .thumb {
   display: flex;
   align-items: center;

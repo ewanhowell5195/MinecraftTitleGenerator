@@ -11,7 +11,7 @@
   const props = defineProps({ floating: Boolean })
 
   const route = useRoute()
-  const atTop = ref(scrollY <= 0)
+  const atTop = ref(true)
   const scrolled = computed(() => !props.floating || !atTop.value)
   const menu = ref(null)
   const toggle = ref(null)
@@ -45,7 +45,10 @@
   useWindowEvents(() => open.value, { resize: close }, { pointerdown: outside, keydown: key })
   watch(() => route.fullPath, close)
 
-  onMounted(() => addEventListener("scroll", update, { passive: true }))
+  onMounted(() => {
+    update()
+    addEventListener("scroll", update, { passive: true })
+  })
   onBeforeUnmount(() => removeEventListener("scroll", update))
 </script>
 
