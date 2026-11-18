@@ -395,5 +395,21 @@
     "terminatorSpace": true,
     "order": "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣",
     "editor": { "width": 30, "grid": 6 }
+  },
+  {
+    "id": "daydream",
+    "authors": ["Patred", "Ewan Howell"],
+    "source": "https://fontstruct.com/fontstructions/show/2313047/daydream-extended",
+    "licence": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "multicase": true,
+    "depth": 18,
+    "terminatorSpace": true,
+    "order": "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣",
+    "kerning": {
+      "3": ["21", "24", "27", "29", "31", "37", "43", "45", "48", "51", "57", "73", "75", "78", "81", "87", "93", "95", "Bt", "BT", "BV", "bY", "BY", "Ck", "CK", "Cl", "Ct", "CT", "CV", "CW", "CY", "dy", "dz", "dZ", "Ea", "EA", "EB", "Ec", "Ed", "Ee", "EE", "Ef", "EF", "Ej", "EL", "EM", "EN", "Ep", "EQ", "ER", "Es", "ES", "EX", "Ey", "Ez", "EZ", "fA", "Fa", "fB", "FB", "Fc", "fd", "Fd", "fE", "Fe", "FE", "ff", "fF", "FF", "fj", "Fj", "fL", "FL", "FM", "FN", "fp", "Fp", "FQ", "fR", "FR", "fs", "fS", "Fs", "FS", "fX", "FX", "fy", "Fy", "fz", "fZ", "Fz", "FZ", "Gy", "GY", "hY", "HY", "It", "IT", "IV", "IY", "lb", "Lb", "lk", "lK", "Lk", "LK", "ll", "Ll", "Lt", "LT", "lV", "LV", "lW", "LW", "LY", "mt", "mT", "Mt", "MT", "mV", "MV", "mY", "MY", "Ny", "Nz", "NZ", "Oy", "py", "Py", "Pz", "PZ", "Qb", "Qk", "QK", "Ql", "Qt", "QT", "QV", "QW", "QY", "rs", "rS", "rX", "ry", "rz", "rZ", "sk", "sK", "sl", "st", "sT", "St", "ST", "sV", "SV", "sW", "sY", "SY", "Ta", "TB", "Tc", "Td", "Te", "TE", "TF", "Tj", "TL", "TM", "TN", "Tp", "TQ", "TR", "Ts", "TS", "TX", "Ty", "Tz", "TZ", "Uy", "Vs", "VS", "VX", "vy", "Vy", "Vz", "VZ", "wy", "Wy", "Wz", "WZ", "Xk", "XK", "Xl", "Xt", "XT", "XV", "XW", "XY", "YA", "Yp", "Ys", "YS", "YX", "Yy", "Yz", "YZ", "zb", "Zb", "zk", "zK", "Zk", "ZK", "zl", "Zl", "zt", "zT", "Zt", "ZT", "zV", "ZV", "zW", "ZW", "zY", "ZY", "0y", "2b", "2k", "2K", "2l", "2t", "2T", "2V", "2W", "2Y", "3t", "3T", "3V", "3Y", "4A", "4p", "4s", "4S", "4X", "4y", "4z", "4Z", "5Y", "6Y", "7A", "7p", "7s", "7S", "7X", "7y", "7z", "7Z", "8t", "8T", "8V", "8Y", "9y", "9z", "9Z", "a1", "a7", "b1", "B1", "b7", "B7", "C1", "C7", "C9", "d3", "d5", "E3", "E5", "E6", "E8", "f3", "F3", "f5", "F5", "F6", "f8", "F8", "G1", "G7", "h1", "H1", "h7", "H7", "I1", "I7", "L1", "l4", "L4", "L7", "L9", "m1", "m7", "n1", "N3", "N5", "n7", "o1", "o7", "P3", "P5", "Q1", "Q4", "Q7", "Q9", "r3", "r5", "s1", "S1", "s7", "S7", "s9", "T3", "T5", "T6", "T8", "V3", "V5", "W3", "W5", "X1", "X7", "X9", "Y3", "Y5", "Y8", "z1", "Z1", "z4", "Z4", "z7", "Z7", "z9", "Z9", "Z?", "z?", "X?", "S?", "s?", "Q?", "M?", "m?", "L?", "l?", "I?", "H?", "h?", "G?", "C?", "B?", "b?", "8?", "6?", "5?", "3?", "2?", "$1", "$7", "€1", "€7", "€9", "d.", "E.", "N.", "P.", "T.", "V.", "W.", "Y.", "d,", "E,", "N,", "P,", "T,", "V,", "W,", "Y,", "{{", "})", "}]", "}}", "[{"],
+      "6": ["61", "67", "FA", "Ff", "lt", "lT", "TA", "Tf", "l1", "l7", "l9", "M1", "M7", "f.", "F.", "r.", "f,", "F,", "r,"],
+      "9": ["lY", "//", "\\\\"]
+    },
+    "editor": { "width": 30, "grid": 3 }
   }
 ]
