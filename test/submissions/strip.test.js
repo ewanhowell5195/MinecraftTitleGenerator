@@ -131,6 +131,12 @@ describe("checking a strip", () => {
     assert.equal((await checked("font:minecraft-five", { stretch: true }, png(1, 76))).details.stretch, undefined)
   })
 
+  test("a strip can restart on each character", async () => {
+    assert.equal((await checked("set:minecraft-ten", { tiling: "character" }, png(1, 92))).details.tiling, "character")
+    assert.equal((await checked("font:minecraft-five", { tiling: "character" }, png(1, 76))).details.tiling, "character")
+    assert.match((await checked("set:minecraft-ten", { tiling: "word" }, png(1, 92))).problems.tiling, /restarts on each character/)
+  })
+
   test("a new strip type takes any font, centred on its letters", async () => {
     const good = await checked("new", { set: "Soft Edge", ...NEW_SHAPE, fonts: ["minecraft-five", "geo-squares", "minecraft-earth"] }, png(1, 80))
     assert.deepEqual(good.problems, {})
@@ -219,6 +225,18 @@ describe("sending a strip", () => {
     const plain = await send(cookie, { name: "Paler Dawn", details: { variantOf: "bricks" } }, png(16, 46))
     assert.deepEqual(branchJson(plain.id, SET).textures.bricks.variants.paler_dawn, { authors: ["Someone"], border: "#3d1f0a" })
     assert.match((await send(cookie, { name: "Lost", details: { variantOf: "bricks_minecraft" } })).error, /Pick the strip this is a variant of/)
+  })
+
+  test("restarting on each character is written into the strip, and a variant only says so where it differs", async () => {
+    const cookie = await signIn()
+    const set = onMain(SET)
+    const own = await send(cookie, { details: { tiling: "character" } }, png(16, 46))
+    assert.equal(branchJson(own.id, SET).textures.pale_dawn.tiling, "character")
+    const matching = await send(cookie, { name: "Paler Dawn", details: { variantOf: "blueprint", tiling: "character" } }, png(16, 46))
+    assert.equal(branchJson(matching.id, SET).textures.blueprint.variants.paler_dawn.tiling, undefined)
+    const differing = await send(cookie, { name: "Palest Dawn", details: { variantOf: "blueprint" } }, png(16, 46))
+    assert.equal(branchJson(differing.id, SET).textures.blueprint.variants.palest_dawn.tiling, "line")
+    assert.equal(set.textures.blueprint.tiling, "character")
   })
 
   test("keeps its snap, and a variant only says so where it snaps differently from its strip", async () => {

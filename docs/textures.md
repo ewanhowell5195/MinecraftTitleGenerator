@@ -57,6 +57,8 @@ Its snap is how many pixels wide each of the strip's own pixels are. Letters tha
 
 A strip can stretch its front between each font's baseline and top. One that does not stretch keeps its own rows and has an anchor for fonts shorter or taller than it: `top` lines up their toplines, `base` their baselines, and `center` their middles, rounded to the nearest whole one of the strip's pixels.
 
+A strip runs along the whole line, or restarts from its left on each character.
+
 Like a texture, a strip has a border colour, and can have variants.
 
 ## Tileable

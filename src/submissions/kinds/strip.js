@@ -76,7 +76,7 @@ export async function stripLine(item, file, text, fontId, fonts) {
   const font = fonts.find(entry => entry.id === fontId)
   if (!font) throw new Error(`there is no font called ${fontId}`)
   const { url, layer, layers } = await stripFile(item, file, font, fonts)
-  const custom = { textureSource: "custom", customTexture: url, customTextureMode: "strip", customBorder: true, borderColour: item.details.border ?? "#000000" }
+  const custom = { textureSource: "custom", customTexture: url, customTextureMode: "strip", customStripPerCharacter: item.details.tiling === "character", customBorder: true, borderColour: item.details.border ?? "#000000" }
   if (layer === null) return { text, font: font.id, ...custom, ...fontDefaults(font) }
   return { text, font: font.id, ...(layer === 0 && custom), ...fontDefaults(font), separateTexture: true, layerSettings: Array.from({ length: layers - 1 }, (_, index) => index + 1 === layer ? custom : {}) }
 }

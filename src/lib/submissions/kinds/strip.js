@@ -86,6 +86,10 @@ export const strip = {
       if (!STRIP_ANCHORS.includes(details.anchor)) problems.anchor = "The anchor has to be top, center or base."
       else if (details.anchor !== "center") clean.anchor = details.anchor
     }
+    if (details.tiling != null) {
+      if (details.tiling === "character") clean.tiling = "character"
+      else problems.tiling = "A strip either restarts on each character or runs along the whole line."
+    }
     if (details.variantOf && chosen.kind !== "new" && !result.problems.target) {
       if (typeof details.variantOf === "string" && Object.hasOwn(await stripParents(ctx, result.target), details.variantOf)) clean.variantOf = details.variantOf
       else problems.variantOf = "Pick the strip this is a variant of."
