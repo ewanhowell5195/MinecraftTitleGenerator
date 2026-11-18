@@ -380,6 +380,13 @@ describe("depth layers", () => {
     assert.deepEqual(built.layers, [0, 1])
   })
 
+  test("deeper text only moves the back, keeping each layer's step from the front", () => {
+    const stepped = glyph("x", 3, 1, { depths: Uint8Array.from([0, 1, 0]) })
+    const font = { layers: [1, 0.5], depth: 4, capHeight: 1, glyphs: { x: stepped } }
+    assert.deepEqual(flatZs(text([place(stepped, 0)], { ...LAYERED, depth: 10 }, font).body), [-5, 3, 5])
+    assert.deepEqual(flatZs(text([place(stepped, 0)], { ...LAYERED, depth: 2 }, font).body), [-1, 0, 1])
+  })
+
   test("each layer packs side faces by its own setting", () => {
     const stepped = glyph("x", 3, 1, { depths: Uint8Array.from([0, 1, 0]) })
     const seen = []

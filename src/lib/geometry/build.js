@@ -8,6 +8,7 @@ import { planAtlas } from "../texture/atlas/plan.js"
 import { REGION_KINDS, detailOf, regionScales } from "../texture/atlas/scales.js"
 import { clamp, remember } from "../core/maths.js"
 import { baseChar } from "../font/order.js"
+import { defaultDepth } from "../settings/defaults.js"
 
 const EDGE_SHARE = 0.1
 
@@ -73,12 +74,17 @@ function stripFaces(body, glyph, original, capHeight) {
   for (const { face, level } of levels) face.internal &&= face.kind === "top" ? level < topline : level > baseline
 }
 
-function sliceFaces(glyph, x, depth, layers, independent) {
+function layerFronts(layers, depth, reference) {
+  const step = Math.min(depth, reference)
+  return layers.map(value => depth / 2 - (1 - value) * step)
+}
+
+function sliceFaces(glyph, x, depth, planes, independent) {
   const present = Array.from(new Set(Array.from(glyph.depths).filter((value, at) => glyph.mask[at]))).sort((a, b) => a - b)
   const faces = []
   if (independent) {
     for (const layer of present) {
-      const own = boxFaces(clippedBoxes(boxesFor(layerMask(glyph, layer, true), glyph.width, glyph.height, x, glyph.bottom), glyph, x), -depth / 2, layers[layer] * depth - depth / 2)
+      const own = boxFaces(clippedBoxes(boxesFor(layerMask(glyph, layer, true), glyph.width, glyph.height, x, glyph.bottom), glyph, x), -depth / 2, planes[layer])
       for (const face of own) face.layer = layer
       faces.push(...own)
     }
@@ -86,8 +92,8 @@ function sliceFaces(glyph, x, depth, layers, independent) {
   }
   for (const [index, layer] of present.entries()) {
     const next = present[index + 1]
-    const near = layers[layer] * depth - depth / 2
-    const far = (next === undefined ? 0 : layers[next]) * depth - depth / 2
+    const near = planes[layer]
+    const far = next === undefined ? -depth / 2 : planes[next]
     const keep = glyph.mask.map((solid, at) => solid && glyph.depths[at] <= layer ? 1 : 0)
     const exposed = glyph.mask.map((solid, at) => solid && glyph.depths[at] === layer ? 1 : 0)
     const sides = clippedBoxes(boxesFor(keep, glyph.width, glyph.height, x, glyph.bottom), glyph, x).map(box => ({ ...box, faces: { ...box.faces, front: next === undefined, back: false } }))
@@ -216,6 +222,7 @@ export function buildText(font, options) {
   if (!placed.length) return null
   const reach = font.capHeight * EDGE_SHARE
   const independent = independentLayers(font)
+  const fronts = font.layers ? layerFronts(font.layers, depth, defaultDepth(font)) : null
   const bounds = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity }
   const glyphs = []
   for (const item of placed) {
@@ -225,7 +232,7 @@ export function buildText(font, options) {
     const mesh = font.mesh?.glyphs[char]
     const shaped = mesh ? font.mesh.tools.meshFaces(mesh, glyph, font.glyphs[char], item.x, depth, reach) : null
     const sliced = !shaped && glyph.depths && font.layers
-    const body = shaped ? shaped.faces : sliced ? sliceFaces(glyph, item.x, depth, font.layers, independent) : boxFaces(boxes, -depth / 2, depth / 2)
+    const body = shaped ? shaped.faces : sliced ? sliceFaces(glyph, item.x, depth, fronts, independent) : boxFaces(boxes, -depth / 2, depth / 2)
     if (sliced) {
       for (const slice of Map.groupBy(body, face => face.layer).values()) stripFaces(slice, glyph, font.glyphs[char], font.capHeight)
     } else if (font.glyphs?.[char]) stripFaces(body, glyph, font.glyphs[char], font.capHeight)
@@ -323,7 +330,7 @@ export function buildText(font, options) {
     line: { min: [line.minX + offset, line.minY, depth / 2 - (options.lineDepth ?? depth)], max: [line.maxX + offset, line.maxY, depth / 2] },
     frame: font.autoBorder ? frameRects(glyphs.flatMap(glyph => glyph.boxes)) : null,
     slabs: font.layers && !font.autoBorder ? font.layers.map((_, layer) => glyphs.flatMap(glyph => flatRects(glyph.slabs?.[layer] ?? glyph.boxes))) : null,
-    layerDepths: font.layers ?? null,
+    layerFronts: fronts,
     independent,
     shapes: font.mesh ? glyphs.flatMap(glyphRings) : null,
     tools: font.mesh?.tools ?? null,
@@ -363,7 +370,7 @@ export function buildOutline(built, scale, extra = [0, 0, 0]) {
   if (built.shapes) return meshOutline(built, scale, [rx, ry], z)
   const positions = []
   const grow = sources => sources.map(([x0, y0, x1, y1]) => [x0 * sx - rx, y0 * sy - ry, x1 * sx + rx, y1 * sy + ry])
-  const front = layer => sz * (built.layerDepths[layer] - 0.5) * built.depth + rz
+  const front = layer => sz * built.layerFronts[layer] + rz
   function shell(sources, turn, slabs = null) {
     const rects = grow(sources)
     const last = (slabs?.length ?? 1) - 1
