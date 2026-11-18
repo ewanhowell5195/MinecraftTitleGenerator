@@ -134,6 +134,14 @@
     "editor": { "width": 30, "grid": 6 }
   },
   {
+    "id": "minecraft-seven-bold",
+    "authors": ["Ewan Howell"],
+    "spaceWidth": 14,
+    "depth": 16,
+    "terminatorSpace": true,
+    "editor": { "width": 36, "grid": 6 }
+  },
+  {
     "id": "minecraft-five",
     "authors": ["Ewan Howell"],
     "depth": 16,

@@ -1,0 +1,14 @@
+{
+  "textures": {
+    "flat": {
+      "authors": ["Ewan Howell"]
+    },
+    "flat_coloured": {
+      "type": "strip",
+      "authors": ["Ewan Howell"]
+    }
+  },
+  "overlays": {},
+  "primary": "flat_coloured",
+  "secondary": "flat_coloured"
+}
