@@ -367,6 +367,12 @@
     "id": "medieval-pixel",
     "authors": ["Goatmeal", "Ewan Howell"],
     "source": "https://fontstruct.com/fontstructions/show/640368/medieval_pixel",
-    "licence": "http://creativecommons.org/licenses/by-nc-nd/3.0/"
+    "licence": "http://creativecommons.org/licenses/by-nc-nd/3.0/",
+    "strips": ["minecraft-ten"],
+    "multicase": true,
+    "spaceWidth": 16,
+    "terminatorSpace": true,
+    "order": "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣",
+    "editor": { "width": 32, "grid": 4 }
   }
 ]
