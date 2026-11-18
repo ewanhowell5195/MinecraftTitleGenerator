@@ -2,7 +2,7 @@ import { watch } from "vue"
 import * as THREE from "three"
 import { hasMarks } from "../font/font.js"
 import { quietly } from "./history.js"
-import { round } from "../core/maths.js"
+import { clamp, round } from "../core/maths.js"
 import { editorTitle, words } from "./scene.js"
 import { effectiveScale } from "../settings/settings.js"
 import { lineBounds, placementMatrix } from "../../render/placement.js"
@@ -12,6 +12,8 @@ export const problems = editorTitle.problems
 
 const perspective = new THREE.PerspectiveCamera()
 const orthographic = new THREE.OrthographicCamera()
+const SCREEN_FULL = Math.PI / 4
+const SCREEN_LIMIT = Math.PI / 3
 
 function titleCamera(items, angle) {
   const camera = angle.fov ? perspective : orthographic
@@ -55,6 +57,35 @@ function bottomOf(reference, title) {
   }
 }
 
+function extent(built, direction) {
+  const positions = built.body?.positions
+  if (!positions?.length) return direction < 0 ? built.line.min[0] : built.line.max[0]
+  let value = -Infinity
+  for (let at = 0; at < positions.length; at += 3) value = Math.max(value, direction * positions[at])
+  return direction * value
+}
+
+function screenWeight(near, far) {
+  const angle = Math.atan2(Math.abs(far.x - near.x), Math.abs(far.y - near.y))
+  return clamp((SCREEN_LIMIT - angle) / (SCREEN_LIMIT - SCREEN_FULL), 0, 1)
+}
+
+function scaled(offset) {
+  return shift => {
+    let low = 0.01
+    let high = 8
+    const lowSign = Math.sign(offset(low, shift))
+    while (high < 4096 && Math.sign(offset(high, shift)) === lowSign) high *= 2
+    if (Math.sign(offset(high, shift)) === lowSign) return null
+    for (let i = 0; i < 60; i++) {
+      const middle = (low + high) / 2
+      if (Math.sign(offset(middle, shift)) === lowSign) low = middle
+      else high = middle
+    }
+    return (low + high) / 2
+  }
+}
+
 function solve(camera, target, reference, title) {
   const bottom = target.object.matchBottom ? bottomOf(reference.object, title) : null
   const targetBox = lineBounds(target.state.built)
@@ -66,6 +97,9 @@ function solve(camera, target, reference, title) {
   const referenceScale = [effectiveScale(reference.object)[0]].concat(reference.state.transform.scale.slice(1))
   const [, targetY, targetZ] = target.state.transform.scale
   const grows = target.object.matchScaleY && !(target.object.scaleMarked && hasMarks(target.state.font))
+  function targetScale(matchScale) {
+    return [matchScale, grows ? target.object.scaleY * matchScale : targetY, targetZ]
+  }
   const [left, right] = [-1, 1].map(direction => {
     const measured = bottom && (direction < 0 ? bottom.left : bottom.right)
     const edgeX = measured ? measured[0] : direction < 0 ? referenceBox.min.x : referenceBox.max.x
@@ -75,24 +109,21 @@ function solve(camera, target, reference, title) {
       ? [[measured ? measured[1] : referenceBox.min.y, referenceBox.max.z, -1, 1], [referenceBox.max.y, referenceBox.max.z, 1, 1]]
       : [[rowY, referenceBox.max.z, sideY, 1], [rowY, referenceBox.min.z, sideY, -1]]
     const [near, far] = ends.map(([y, z, sideY, sideZ]) => outlinePoint(reference.state, reference.object, referenceBox, referenceScale, [edgeX, y, z], [direction, sideY, sideZ]).project(camera))
-    function offset(matchScale, shift) {
-      const scale = [matchScale, grows ? target.object.scaleY * matchScale : targetY, targetZ]
+    const weight = screenWeight(near, far)
+    const onScreen = scaled((matchScale, shift) => {
       const x = direction < 0 ? targetBox.min.x : targetBox.max.x
-      const ends = [targetBox.min.y, targetBox.max.y].map((y, index) => outlinePoint(target.state, target.object, targetBox, scale, [x, y, targetBox.max.z], [direction, index ? 1 : -1, 1], shift).project(camera))
+      const ends = [targetBox.min.y, targetBox.max.y].map((y, index) => outlinePoint(target.state, target.object, targetBox, targetScale(matchScale), [x, y, targetBox.max.z], [direction, index ? 1 : -1, 1], shift).project(camera))
       return ends.reduce((sum, point) => sum + signedDistance(point, near, far), 0) * direction
-    }
+    })
+    const edge = direction * outlinePoint(reference.state, reference.object, referenceBox, referenceScale, [measured ? measured[0] : extent(reference.state.built, direction), 0, 0], [direction, 0, 0]).x
+    const x = extent(target.state.built, direction)
+    const inModel = scaled((matchScale, shift) => direction * outlinePoint(target.state, target.object, targetBox, targetScale(matchScale), [x, 0, 0], [direction, 0, 0], shift).x - edge)
     return shift => {
-      let low = 0.01
-      let high = 8
-      const lowSign = Math.sign(offset(low, shift))
-      while (high < 4096 && Math.sign(offset(high, shift)) === lowSign) high *= 2
-      if (Math.sign(offset(high, shift)) === lowSign) throw new Error("these texts' edges can't be lined up by scaling")
-      for (let i = 0; i < 60; i++) {
-        const middle = (low + high) / 2
-        if (Math.sign(offset(middle, shift)) === lowSign) low = middle
-        else high = middle
-      }
-      return (low + high) / 2
+      const screen = weight > 0 ? onScreen(shift) : null
+      if (screen !== null && weight === 1) return screen
+      const model = inModel(shift)
+      if (model === null) throw new Error("these texts' edges can't be lined up by scaling")
+      return screen === null ? model : screen * weight + model * (1 - weight)
     }
   })
   const measuredCentre = bottom ? (bottom.left[0] + bottom.right[0]) / 2 * reference.state.transform.type[0] * effectiveScale(reference.object)[0] : 0

@@ -430,6 +430,25 @@ describe("rows scaled by their stretch marks", () => {
     assert.notEqual(await solved({ target: { matchScaleY: true } }), fixed)
   })
 
+  async function viewed(angle) {
+    const saved = { ...scene.camera }
+    Object.assign(scene.camera, angle)
+    try {
+      return await solved({})
+    } finally {
+      Object.assign(scene.camera, saved)
+    }
+  }
+
+  test("a view along the depth edges matches the model's width", async () => {
+    assert.equal(await viewed({ pitch: 0, yaw: 0 }), 2.5)
+    assert.equal(await viewed({ pitch: 5, yaw: 0 }), 2.5)
+  })
+
+  test("a steep view lines the edges up on screen", async () => {
+    assert.notEqual(await viewed({ pitch: 60, yaw: 0 }), 2.5)
+  })
+
   test("a target whose height is built in is not made taller by the match", async () => {
     const marked = { ...state(40, 40, 100), font: { glyphs: { a: { stretch: [3] } } } }
     const fixed = await solved({ target: { scaleMarked: true } }, undefined, marked)
