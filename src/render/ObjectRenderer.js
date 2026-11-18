@@ -69,7 +69,7 @@ export default {
     let frame = 0
     let rested = 0
     let sharpening = 0
-    let line = null
+    const lines = {}
     let shown = null
     let paintedKey = null
     let builtFrom = null
@@ -185,11 +185,17 @@ export default {
       }
     }
 
-    function lineFor(source, list, word, options) {
+    function lineFor(source, list, word, options, use = "built") {
       const key = JSON.stringify([list, word, options.depth, options.arcMode, options.arcTop, options.arcBottom, options.arcMove, options.arcCentre, options.arcMarked, options.stretch, options.terminators, options.spacing, options.kerning])
-      if (line?.source === source && line.key === key) return line
-      line = { source, key, laid: arcLayout(source, sheet.value, list, word, options) }
-      return line
+      const known = lines[use]
+      if (known?.source === source && known.key === key) return known
+      lines[use] = { source, key, laid: arcLayout(source, sheet.value, list, word, options) }
+      return lines[use]
+    }
+
+    function thumbnailLine(source, list, word, options, laid) {
+      if (options.depth === ownDepth.value) return laid
+      return lineFor(source, list, word, { ...options, depth: ownDepth.value }, "preview").laid
     }
 
     function painter(source, sharp = false, cover = null) {
@@ -412,8 +418,9 @@ export default {
         }
         builtFrom.cover = cover?.key ?? null
         reach = twistedReach(built.value, laid.reach)
-        const thumbnail = view.previews === false ? [] : thumbnailItems(source, laid.placed)
-        preview.value = thumbnail.length ? previewFor(source, options, thumbnail, laid.sheet) : null
+        const thumbnailLaid = view.previews === false ? null : thumbnailLine(source, list, word, options, laid)
+        const thumbnail = thumbnailLaid ? thumbnailItems(source, thumbnailLaid.placed) : []
+        preview.value = thumbnail.length ? previewFor(source, options, thumbnail, thumbnailLaid.sheet) : null
         sweepPaints()
         buildError.value = null
         sharpen(built.value, source)

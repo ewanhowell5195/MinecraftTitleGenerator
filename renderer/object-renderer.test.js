@@ -71,4 +71,24 @@ describe("object renderer", () => {
       app.unmount()
     }
   })
+
+  test("an update text thumbnail lays its edge strips out at the thumbnail's own depth", async () => {
+    await warmed("minecraft-ten")
+    const object = reactive(createObject({ font: "minecraft-ten", text: "Title", type: "bottom" }))
+    const title = createTitle(reactive([object]), { render: false, eager: true })
+    const app = NOTHING_RENDERED.createApp(ObjectRenderer, { object, title, fonts, tileables, shapes })
+    app.mount({})
+    try {
+      const { built, preview } = await until(() => title.runtime[object.id], value => value?.settled && value.built && value.preview)
+      assert.notEqual(preview.built.depth, built.depth)
+      for (const page of preview.built.layouts) {
+        for (const entry of Object.values(page.glyphs)) {
+          assert.equal(entry.upHeight, preview.built.depth)
+          assert.equal(entry.downHeight, preview.built.depth)
+        }
+      }
+    } finally {
+      app.unmount()
+    }
+  })
 })
