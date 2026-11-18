@@ -11,7 +11,7 @@
   import Segments from "../components/Segments.vue"
   import UploadField from "../components/UploadField.vue"
   import { fullName, loadFontList } from "../lib/font/font.js"
-  import { PREVIEW_LENGTH, automaticPreview, characterName, charactersOf, previewText, setRequireCharacters, shownAs, undrawnPreview } from "../lib/font/editor/characters.js"
+  import { PREVIEW_LENGTH, automaticPreview, characterName, charactersOf, previewText, setRequireCharacters, shownAs, thumbnailText, undrawnPreview } from "../lib/font/editor/characters.js"
   import { DEFAULT_BORDER, DEFAULT_DEPTH, DEFAULT_ID, DEFAULT_SPACE_WIDTH, LETTER_CASES } from "../lib/font/editor/defaults.js"
   import { fontLayers } from "../lib/font/editor/depths.js"
   import { exportJson, flatTexture, fontId, slug } from "../lib/font/editor/export.js"
@@ -99,8 +99,7 @@
   const thumbnailPicture = computed(() => {
     const entry = exportJson(font.value, "")
     const { glyphs, list, capHeight, layers } = parsedSheet(font.value, defaultBorder("top", entry))
-    const text = previewText(font.value) || automaticPreview(drawn.value) || (entry.multicase ? "ABC" : "abc")
-    const scene = fontScene(entry, { glyphs, cells: list, capHeight, layers, kerning: font.value.kerning, depth: defaultDepth(entry) }, text)
+    const scene = fontScene(entry, { glyphs, cells: list, capHeight, layers, kerning: font.value.kerning, depth: defaultDepth(entry) }, thumbnailText(font.value, drawn.value))
     return scene && pngUrl(flatThumbnail(entry, scene, flatTexture(font.value)))
   })
   const errors = computed(() => {

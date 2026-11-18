@@ -15,6 +15,8 @@
   import { image } from "../lib/texture/assets.js"
   import { loadFontList, stripsOf } from "../lib/font/font.js"
   import { parsedSheet } from "../lib/font/editor/sheet.js"
+  import { charactersOf, thumbnailText } from "../lib/font/editor/characters.js"
+  import { glyphOf, isBlank } from "../lib/font/editor/glyph.js"
   import { titleCase } from "../lib/core/names.js"
   import { loadStats, usage } from "../lib/state/stats.js"
   import { DEFAULT_STRIPS, placedStrips, stripFolder, stripItem, stripPlacements, stripTag, stripUse, withDefaultStrips } from "../lib/font/strips.js"
@@ -146,7 +148,8 @@
     if (!set) return
     const token = ++thumbsToken
     const layer = layerOf()
-    const scene = thumbnailScene(toRaw(props.font), null, props.sample ?? undefined, layer ? layer - 1 : null)
+    const font = toRaw(props.font)
+    const scene = thumbnailScene(font, null, props.sample ?? thumbnailText(font, charactersOf(font).filter(char => !isBlank(glyphOf(font, char)))), layer ? layer - 1 : null)
     if (!scene) {
       thumbs.value = {}
       return

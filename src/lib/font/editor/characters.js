@@ -24,6 +24,10 @@ export function automaticPreview(drawn) {
   return (shown.length ? shown : chars).slice(0, PREVIEW_LENGTH).join("")
 }
 
+export function thumbnailText(font, drawn) {
+  return previewText(font) || automaticPreview(drawn) || (font.letterCase === "both" ? "ABC" : "abc")
+}
+
 export function undrawnPreview(text, drawn) {
   return Array.from(new Set(Array.from(text).filter(char => char !== SPACE_CHAR && !drawn.includes(char))))
 }
