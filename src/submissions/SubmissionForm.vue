@@ -241,7 +241,7 @@
       const bytes = chosen.value?.bytes ?? new Uint8Array(await (await fetched(fileUrl.value, "the font")).arrayBuffer())
       sessionStorage.setItem(EDITOR_EDIT, JSON.stringify({ submission: props.initial.id, text: new TextDecoder().decode(bytes) }))
       sessionStorage.setItem(EDITOR_REVISION, JSON.stringify({ submission: props.initial.id, revision: revision.value }))
-      navigate("/font-editor/")
+      navigate("/font-editor/editor")
     } catch (err) {
       error.value = err.message
     }

@@ -21,7 +21,7 @@
   import ImportWaiting from "./ImportWaiting.vue"
   import ScrollPage from "./ScrollPage.vue"
   import StartScreen from "./StartScreen.vue"
-  import { EDITOR_PATH, IMPORT_PATH, START_PATH, canRedo, canUndo, downloadFlatTexture, downloadJson, downloadStripTexture, downloadTexture, flushSave, font, importing, opened, pendingFont, redo, editingSubmission, replaceFont, restoreFont, saveError, saveSubmission, submitFont, takeSubmissionFont, typing, undo } from "./store.js"
+  import { EDITOR_PATH, IMPORT_PATH, START_PATH, canRedo, canUndo, downloadFlatTexture, downloadJson, downloadStripTexture, downloadTexture, flushSave, font, importing, opened, openingSubmission, pendingFont, redo, editingSubmission, replaceFont, restoreFont, saveError, saveSubmission, submissionError, submitFont, takeSubmissionFont, typing, undo } from "./store.js"
 
   const TABS = [{ id: "font", label: "Font" }, { id: "characters", label: "Characters" }, { id: "textures", label: "Textures" }, { id: "kerning", label: "Kerning" }]
 
@@ -39,6 +39,7 @@
   const route = useRoute()
   const loadError = ref("")
   const view = computed(() => VIEWS[route.path.replace(/\/$/, "")] ?? "start")
+  const shown = computed(() => openingSubmission.value ? null : font.value)
 
   const menus = computed(() => ({
     File: [
@@ -66,11 +67,11 @@
     }
   }
 
-  takeSubmissionFont().catch(err => loadError.value = `The submission's font couldn't be opened: ${err.message}`)
+  takeSubmissionFont()
 
   function key(event) {
     const letter = event.key.toLowerCase()
-    if (!font.value || view.value !== "editor" || !(event.ctrlKey || event.metaKey) || !["y", "z"].includes(letter) || typing(event.target)) return
+    if (!shown.value || view.value !== "editor" || !(event.ctrlKey || event.metaKey) || !["y", "z"].includes(letter) || typing(event.target)) return
     event.preventDefault()
     if (letter === "z" && !event.shiftKey) undo()
     else redo()
@@ -82,7 +83,7 @@
 
   watch(opened, () => tab.value = "characters")
 
-  watch(() => [view.value, !!font.value, !!importing.value], ([current, hasFont, hasImport]) => {
+  watch(() => [view.value, !!font.value || openingSubmission.value, !!importing.value], ([current, hasFont, hasImport]) => {
     if (current === "editor" && !hasFont || current === "import" && !hasImport) navigate(START_PATH, { replace: true })
   }, { immediate: true })
 
@@ -105,18 +106,19 @@
       <div class="site-gap"></div>
     </template>
     <TopBar v-else class="top">
-      <template v-if="font">
+      <template v-if="shown">
         <MenuStrip :menus="menus" />
         <NavTabs class="main-tabs divided" v-model="tab" :tabs="TABS" />
       </template>
       <template #end>
-        <Button v-if="font && editingSubmission" primary class="update" v-tooltip="'Save your submission with this font as its file'" @click="saveSubmission"><template #icon><Icon name="upload" :size="16" /></template>Save submission</Button>
-        <Button v-else-if="font" primary v-tooltip="'Send this font to be added to the title generator'" @click="submitFont"><template #icon><Icon name="upload" :size="16" /></template>Submit</Button>
+        <Button v-if="shown && editingSubmission" primary class="update" v-tooltip="'Save your submission with this font as its file'" @click="saveSubmission"><template #icon><Icon name="upload" :size="16" /></template>Save submission</Button>
+        <Button v-else-if="shown" primary v-tooltip="'Send this font to be added to the title generator'" @click="submitFont"><template #icon><Icon name="upload" :size="16" /></template>Submit</Button>
       </template>
     </TopBar>
 
     <Notice v-if="loadError" class="top-notice">{{ loadError }}</Notice>
     <Notice v-if="saveError" class="top-notice">{{ saveError }}</Notice>
+    <Notice v-if="submissionError" class="top-notice">{{ submissionError }}</Notice>
 
     <StartScreen v-if="view === 'start'" />
 
@@ -125,7 +127,7 @@
       <ImportWaiting v-else-if="importing" :name="importing.name" :error="importing.error" />
     </ScrollPage>
 
-    <template v-else-if="!font"></template>
+    <template v-else-if="!shown"></template>
 
     <main v-else-if="tab === 'characters'" class="workspace">
       <CharacterList class="left" />

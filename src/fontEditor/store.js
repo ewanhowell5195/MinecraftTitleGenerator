@@ -37,6 +37,8 @@ export const pencilDepth = ref(100)
 export const previewMode = ref("2d")
 export const kerningFilter = ref("all")
 export const editingSubmission = ref(null)
+export const openingSubmission = ref(false)
+export const submissionError = ref("")
 export const importing = shallowRef(null)
 export const pendingFont = shallowRef(null)
 export const opened = ref(0)
@@ -168,6 +170,7 @@ export function openFont(next, submission = null) {
   group = null
   strokeStart = null
   saveError.value = ""
+  submissionError.value = ""
   arrowsMove.value = "drawing"
   previewText.value = DEFAULT_PREVIEW
   previewTerminators.value = false
@@ -221,7 +224,17 @@ export async function takeSubmissionFont() {
   if (!saved) return
   sessionStorage.removeItem(EDITOR_EDIT)
   const { submission, text } = JSON.parse(saved)
-  showFont(await fontFromUploads([new File([text], "font.json", { type: "application/json" })]), submission)
+  openingSubmission.value = true
+  submissionError.value = ""
+  try {
+    openFont(await fontFromUploads([new File([text], "font.json", { type: "application/json" })]), submission)
+    await navigate(EDITOR_PATH, { replace: true })
+  } catch (err) {
+    submissionError.value = `The submission's font couldn't be opened: ${err.message}`
+    await navigate(START_PATH, { replace: true })
+  } finally {
+    openingSubmission.value = false
+  }
 }
 
 watch([font, selected], () => {
