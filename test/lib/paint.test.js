@@ -4,7 +4,7 @@ import { quietStorage } from "../helpers/browser.js"
 
 quietStorage()
 
-const { arcLayout } = await import("../../src/lib/geometry/arc.js")
+const { shapeLine } = await import("../../src/lib/geometry/shapedLine.js")
 const { baseKey, lookKey, paintKey } = await import("../../src/lib/texture/paint/keys.js")
 const { stripDetail } = await import("../../src/lib/texture/paint/strip.js")
 
@@ -19,7 +19,7 @@ function glyphOf(char) {
 function sheetWith(spacing) {
   const font = { capHeight: CAP, kerning: {}, glyphs: { a: glyphOf("a") } }
   const cells = { glyphs: { a: { char: "a", x: 0, top: 0, up: 0, upHeight: 1, down: 0, downHeight: 1, width: 4, height: CAP } } }
-  return arcLayout(font, cells, [{ text: "aaa", space: false }], 0, { depth: 4, spacing, kerning: true, arcMode: "stretch", arcTop: 0, arcBottom: 0, arcMove: 0, arcMarked: true, stretch: 1 }).sheet
+  return shapeLine(font, cells, [{ text: "aaa", space: false }], 0, { depth: 4, spacing, kerning: true, arcMode: "stretch", arcTop: 0, arcBottom: 0, arcMove: 0, arcMarked: true, stretch: 1 }).sheet
 }
 
 function alike(look, assets = NO_OVERLAYS) {

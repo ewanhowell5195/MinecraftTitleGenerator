@@ -1,4 +1,4 @@
-import { stretched } from "../lib/geometry/arc.js"
+import { stretched } from "../lib/geometry/stretch.js"
 import { hasMarks } from "../lib/font/font.js"
 import { layerShade } from "../lib/font/flatSheet.js"
 import { lineLayout } from "../lib/geometry/layout.js"

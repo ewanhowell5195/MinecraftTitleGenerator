@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { arcLayout } from "../../src/lib/geometry/arc.js"
+import { shapeLine } from "../../src/lib/geometry/shapedLine.js"
 
 const CAP = 8
 const OPEN = "┫"
@@ -23,11 +23,11 @@ function sheetOf(font) {
 }
 
 function arced(text, options = {}, font = fontOf({ a: glyphOf("a") })) {
-  return arcLayout(font, sheetOf(font), [{ text, space: false }], 0, { ...BASE, ...options })
+  return shapeLine(font, sheetOf(font), [{ text, space: false }], 0, { ...BASE, ...options })
 }
 
 function words(list, word, options = {}, font = fontOf({ a: glyphOf("a") })) {
-  return arcLayout(font, sheetOf(font), list, word, { ...BASE, ...options })
+  return shapeLine(font, sheetOf(font), list, word, { ...BASE, ...options })
 }
 
 function heights(laid) {
@@ -42,7 +42,7 @@ function range(from, to) {
   return Array.from({ length: to - from }, (_, index) => from + index)
 }
 
-describe("arcLayout results", () => {
+describe("shapeLine results", () => {
   test("returns null when the word has no glyphs", () => {
     assert.equal(words([{ text: "a", space: false }, { text: "  ", space: true }], 1), null)
     assert.equal(words([{ text: "a", space: false }], 3), null)
@@ -72,7 +72,7 @@ describe("arcLayout results", () => {
   test("sheet entries point at the source glyph in the original sheet", () => {
     const font = fontOf({ a: glyphOf("a") })
     const sheet = sheetOf(font)
-    const laid = arcLayout(font, sheet, [{ text: "a", space: false }], 0, BASE)
+    const laid = shapeLine(font, sheet, [{ text: "a", space: false }], 0, BASE)
     assert.equal(laid.sheet.glyphs["a\u00000"].source, sheet.glyphs.a)
   })
 })
@@ -397,7 +397,7 @@ describe("special glyphs", () => {
   test("a glyph missing from the sheet passes through unstretched but still counts", () => {
     const font = fontOf({ a: glyphOf("a"), b: glyphOf("b", { height: 10, top: 10 }) })
     const sheet = { glyphs: { a: sheetOf(font).glyphs.a } }
-    const laid = arcLayout(font, sheet, [{ text: "aba", space: false }], 0, { ...BASE, arcTop: 0.5 })
+    const laid = shapeLine(font, sheet, [{ text: "aba", space: false }], 0, { ...BASE, arcTop: 0.5 })
     assert.deepEqual(laid.placed.map(item => item.glyph.char), ["a\u00000", "b", "a\u00002"])
     assert.equal(laid.placed[1].glyph, font.glyphs.b)
     assert.equal(Object.keys(laid.sheet.glyphs).length, 2)
@@ -407,7 +407,7 @@ describe("special glyphs", () => {
 
   test("a line with nothing in the sheet reports no reach", () => {
     const font = fontOf({ a: glyphOf("a") })
-    const laid = arcLayout(font, { glyphs: {} }, [{ text: "a", space: false }], 0, BASE)
+    const laid = shapeLine(font, { glyphs: {} }, [{ text: "a", space: false }], 0, BASE)
     assert.deepEqual(laid.reach, { top: 0, bottom: 0 })
     assert.deepEqual(laid.sheet.tallest, { top: 0, bottom: 0 })
     assert.equal(laid.sheet.width, 1)

@@ -1,6 +1,7 @@
 import { computed, onBeforeUnmount, shallowRef, watch } from "vue"
 import { fontTextures, preload, shapeFont, sheetFor } from "../lib/texture/assets.js"
-import { arcAssets, arcLayout } from "../lib/geometry/arc.js"
+import { shapeLine } from "../lib/geometry/shapedLine.js"
+import { arcAssets } from "../lib/texture/arcTextures.js"
 import { buildOutline, buildText } from "../lib/geometry/build.js"
 import { textureLimit } from "../lib/texture/canvas.js"
 import { customFontEntry, customFontId } from "../lib/font/customFonts.js"
@@ -189,7 +190,7 @@ export default {
       const key = JSON.stringify([list, word, options.depth, options.arcMode, options.arcTop, options.arcBottom, options.arcMove, options.arcCentre, options.arcMarked, options.stretch, options.terminators, options.spacing, options.kerning])
       const known = lines[use]
       if (known?.source === source && known.key === key) return known
-      lines[use] = { source, key, laid: arcLayout(source, sheet.value, list, word, options) }
+      lines[use] = { source, key, laid: shapeLine(source, sheet.value, list, word, options) }
       return lines[use]
     }
 
