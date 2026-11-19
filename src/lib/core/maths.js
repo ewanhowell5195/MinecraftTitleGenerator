@@ -19,6 +19,13 @@ export function radians(degrees) {
   return degrees * Math.PI / 180
 }
 
+export function signedArea(polygon) {
+  return polygon.reduce((sum, [x, y], index) => {
+    const [nextX, nextY] = polygon[(index + 1) % polygon.length]
+    return sum + x * nextY - nextX * y
+  }, 0) / 2
+}
+
 export function mostCommon(values) {
   const tally = new Map()
   for (const value of values) tally.set(value, (tally.get(value) ?? 0) + 1)

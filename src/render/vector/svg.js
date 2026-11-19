@@ -2,7 +2,8 @@ import { FillRule, difference, intersectD, union, unionD } from "@countertype/cl
 import { placement } from "../compose.js"
 import { addToCover, visibleLoops } from "./cover.js"
 import { loopsInHundredths, number, writePath } from "./pathData.js"
-import { boxOfPolygons, boxesOverlap, mergedByFill, sameWinding, shapeOfPolygons, shapesOverlap, sharedEdges, signedArea } from "./polygons.js"
+import { signedArea } from "../../lib/core/maths.js"
+import { boxOfPolygons, boxesOverlap, mergedByFill, sameWinding, shapeOfPolygons, shapesOverlap, sharedEdges } from "./polygons.js"
 import { stitched, unionOf } from "./union.js"
 
 const SEAM_PRECISION = 4

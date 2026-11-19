@@ -12,7 +12,7 @@ import { safeRows, stripY } from "./strips.js"
 import { MARGIN, drawLayer, over } from "./thumbnails.js"
 import { pngUrl } from "../core/virtualFiles.js"
 import { platform } from "../core/platform.js"
-import { MITER_LIMIT } from "./meshGlyphs.js"
+import { MITER_LIMIT } from "../geometry/clip.js"
 import { edgeReach } from "../texture/material.js"
 
 const OVERLAYS = withGenerated({})

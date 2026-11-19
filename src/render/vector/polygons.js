@@ -1,15 +1,10 @@
+import { signedArea } from "../../lib/core/maths.js"
+
 const MIN_SHARED = 0.05
 const SHARED_ANGLE = 0.01
 const SHARED_OFFSET = 0.1
 const FLIP = 1e-4
 const OVERLAP_MARGIN = 0.005
-
-export function signedArea(polygon) {
-  return polygon.reduce((sum, [x, y], index) => {
-    const [nextX, nextY] = polygon[(index + 1) % polygon.length]
-    return sum + x * nextY - nextX * y
-  }, 0) / 2
-}
 
 export function area(polygon) {
   return Math.abs(signedArea(polygon))

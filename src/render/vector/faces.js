@@ -1,6 +1,7 @@
 import * as THREE from "three"
 import { analyse, contains, maskOf } from "./regions.js"
-import { boxOfPolygons, boxesOverlap, signedArea } from "./polygons.js"
+import { signedArea } from "../../lib/core/maths.js"
+import { boxOfPolygons, boxesOverlap } from "./polygons.js"
 
 export const EPSILON = 1e-4
 export const PLANE_ERROR = 1e-2
