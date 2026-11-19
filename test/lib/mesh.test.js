@@ -233,6 +233,17 @@ describe("mesh glyphs", () => {
     for (const side of ["up", "down"]) assert.deepEqual(fine.edgeRuns(side).map(run => run.map(value => Math.round(value * 100) / 100)), [[Math.min(...xs), Math.max(...xs)].map(value => Math.round(value * 100) / 100)], side)
   })
 
+  test("bottom faces split by a step keep separate edge runs", () => {
+    const cell = { bottom: 0, height: 30, width: 20 }
+    const stepped = [[0, 30], [10, 30], [20, 30], [20, 2], [10, 2], [10, 0], [0, 0]]
+    for (const start of [0, 1, 3, 5]) {
+      const outer = stepped.slice(start).concat(stepped.slice(0, start))
+      const fine = fineMasks({ shapes: [{ outer, holes: [] }] }, cell, cell, 3)
+      assert.deepEqual(fine.edgeRuns("down"), [[0, 10], [10, 20]], `starting at ${start}`)
+      assert.deepEqual(fine.edgeRuns("up"), [[0, 20]], `starting at ${start}`)
+    }
+  })
+
   test("a border grows round the letters, and the gap inside an O can be filled", async () => {
     const mesh = glyphMeshes(meshOutlines(await testFont(), { height: 30 })).o
     const { rings } = meshFaces(mesh, { bottom: 0, height: 30, arc: { map: Array.from({ length: 30 }, (_, row) => row) } }, { bottom: 0, height: 30 }, 0, 6, 3)

@@ -152,16 +152,6 @@ function facingScores(rings, holes, solid, width, height, scale, bottom, [tx, ty
   return out
 }
 
-function mergedSpans(spans) {
-  const out = []
-  for (const span of spans.slice().sort((a, b) => a[0] - b[0])) {
-    const last = out[out.length - 1]
-    if (last && span[0] <= last[1]) last[1] = Math.max(last[1], span[1])
-    else out.push(span.slice())
-  }
-  return out
-}
-
 function wallSpans(rings, kind, top, bottom, reach) {
   const spans = new Map()
   for (const ring of rings) {
@@ -172,7 +162,7 @@ function wallSpans(rings, kind, top, bottom, reach) {
       spans.set(face.run, [Math.min(span[0], ...xs), Math.max(span[1], ...xs)])
     }
   }
-  return mergedSpans(Array.from(spans.values()))
+  return Array.from(spans.values()).sort((a, b) => a[0] - b[0])
 }
 
 export function fineMasks(mesh, glyph, original, reach) {

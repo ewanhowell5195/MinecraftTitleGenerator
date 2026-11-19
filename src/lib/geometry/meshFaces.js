@@ -64,15 +64,24 @@ function wall(p, q, zFront, zBack, top, bottom, reach) {
   return { points, kind, name: kind === "top" ? "up" : "down", internal, mesh: true }
 }
 
+function sameRun(a, b) {
+  return a.kind === b.kind && a.name === b.name && a.internal === b.internal
+}
+
 export function ringWalls(ring, zFront, zBack, top, bottom, reach) {
   const walls = []
   let last = null
   for (let i = 0; i < ring.length; i++) {
     const face = wall(ring[i], ring[(i + 1) % ring.length], zFront, zBack, top, bottom, reach)
     if (!face) continue
-    face.run = last && last.kind === face.kind && last.name === face.name && last.internal === face.internal ? last.run : {}
+    face.run = last && sameRun(last, face) ? last.run : {}
     walls.push(face)
     last = face
+  }
+  const first = walls[0]
+  if (last && last.run !== first.run && sameRun(last, first)) {
+    const joined = first.run
+    for (const face of walls) if (face.run === joined) face.run = last.run
   }
   return walls
 }
