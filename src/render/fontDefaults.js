@@ -31,7 +31,7 @@ export function applyFontDefaults(object, loaded, textures, before) {
     })
   } else if (object.texture === null) quietly(() => (object.texture = defaultTexture(textures, object.type)))
   if (object.textureVariant && !textures.textures[object.texture]?.variants?.[object.textureVariant]) quietly(() => (object.textureVariant = null))
-  if (loaded.mesh && object.textureSource === "custom") quietly(() => setTexture(object, { textureSource: "premade" }))
+  if (loaded.mesh && object.textureSource === "custom" && object.customTextureMode === "standard") quietly(() => setTexture(object, { textureSource: "premade" }))
   quietly(() => separateForDefaults(object, textures))
   keepTexture.delete(object)
   loadedFont.set(object, loaded.id)

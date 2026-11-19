@@ -22,6 +22,7 @@
   const flatSize = ref(null)
   const customSize = ref(null)
 
+  const modes = computed(() => font.value?.mesh ? CUSTOM_MODES.filter(mode => mode.value !== "standard") : CUSTOM_MODES)
   const fitsFont = computed(() => !customSize.value || !flatSize.value || sameShape(customSize.value, flatSize.value))
   const modeHint = computed(() => ({
     standard: fitsFont.value ? "Painted onto the letters using the same layout as this font's flat texture." : "This image isn't the shape of this font's flat texture, so it won't line up with the letters.",
@@ -67,6 +68,11 @@
 
   async function pickCustom(data) {
     const target = object.value
+    if (font.value.mesh) {
+      target.customTexture = data
+      if (target.customTextureMode === "standard") target.customTextureMode = "tileable"
+      return
+    }
     const [upload, flat] = await Promise.all([image(data), image(`${font.value.sheetFolder}/textures/flat.png`)])
     target.customTexture = data
     target.customTextureMode = sameShape(upload, flat) ? "standard" : "tileable"
@@ -90,7 +96,7 @@
 <template>
   <UploadField accept="image/*" :label="object.customTexture ? 'Replace texture' : 'Choose an image'" empty="No texture uploaded" :image="object.customTexture" :clearable="!!object.customTexture" @change="readImage($event, pickCustom)" @clear="object.customTexture = null" />
   <template v-if="object.customTexture">
-    <Segments label="Use as" :options="CUSTOM_MODES" v-model="object.customTextureMode" />
+    <Segments label="Use as" :options="modes" v-model="object.customTextureMode" />
     <p class="hint" :class="{ bad: object.customTextureMode === 'standard' && !fitsFont }">{{ modeHint }}</p>
     <Checkbox v-if="object.customTextureMode === 'strip'" v-model="object.customStripPerCharacter" label="Restart on each character" hint="Starts the strip again from the left of every character, instead of running it along the whole line." />
     <template v-if="object.customTextureMode === 'cover'">
@@ -100,6 +106,7 @@
       <Slider v-if="overflow !== 'x' && overflow !== 'none'" label="Vertical position" v-model="coverY" :min="0" :max="100" />
     </template>
   </template>
+  <p v-else-if="font?.mesh" class="hint">An image is tiled across the letters, or you can use it as a strip or stretch it over the line.</p>
   <p v-else class="hint">An image the shape of this font's flat texture is painted onto the letters. Anything else is tiled, or you can use it as a strip or stretch it over the line.</p>
   <UploadReuse :items="reusable" @pick="reuse" />
 </template>

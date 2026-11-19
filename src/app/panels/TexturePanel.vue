@@ -49,8 +49,7 @@
   }
 
   const sources = computed(() => {
-    if (font.value?.model) return SOURCES.filter(source => source.value === "premade")
-    return font.value?.mesh ? SOURCES.filter(source => source.value !== "custom") : SOURCES
+    return font.value?.model ? SOURCES.filter(source => source.value === "premade") : SOURCES
   })
   const search = ref("")
   const blocks = shallowRef(null)
@@ -163,7 +162,8 @@
     if (source === "tileable" && (target.tileableSource === "minecraft" || untouchedTileable(target) && !eulaDeclined())) return switchToMinecraft(target, { textureSource: source })
     pending.value = null
     if (source !== "tileable") retint(null)
-    setTexture(target, { textureSource: source }, { before: list.value })
+    const meshCustom = source === "custom" && font.value?.mesh && target.customTextureMode === "standard"
+    setTexture(target, meshCustom ? { textureSource: source, customTextureMode: "tileable" } : { textureSource: source }, { before: list.value })
   }
 
   function chooseTileables(source) {
