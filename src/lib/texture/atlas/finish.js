@@ -415,7 +415,18 @@ export function finishAtlas(plan, page, painted, options) {
     for (let channel = 0; channel < 4; channel++) sideSum[channel] += drawn.sideSum[channel]
     for (const { image, rect } of drawn.lines) ctx.putImageData(image, rect.x, rect.y)
   }
-  if (!covered || options.customEdge) copyStrips(ctx, extraRuns.length ? snapshot() : canvas)
+  if (!covered || options.customEdge) {
+    copyStrips(ctx, painted.stripSource ?? (extraRuns.length ? snapshot() : canvas))
+    for (const edge of painted.edgeFaces ?? []) {
+      ctx.globalCompositeOperation = edge.blend
+      ctx.globalAlpha = edge.opacity
+      for (const { rect, sx, sy, width, height, glyph, side, line, from, extra } of wrapped) {
+        if (extra) ctx.drawImage(edge.face(glyph, side, line, from, width, height, Math.max(sx, sy)), rect.x, rect.y, rect.width, rect.height)
+      }
+    }
+    ctx.globalAlpha = 1
+    ctx.globalCompositeOperation = "source-over"
+  }
   for (const wrap of painted.sideWraps) {
     ctx.globalCompositeOperation = wrap.blend
     ctx.globalAlpha = wrap.opacity

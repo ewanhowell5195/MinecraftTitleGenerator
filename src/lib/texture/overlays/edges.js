@@ -9,6 +9,7 @@ function edgeRuns(glyph, side) {
   const joined = joinedMask(glyph, 1)
   const continues = column => !!joined && joined.mask[(row + 1) * joined.width + column + 1] === 1
   if (glyph.fine?.edgeRuns) return glyph.fine.edgeRuns(side).map(([from, to]) => [from, to, continues(Math.floor(from) - 1), continues(Math.ceil(to))])
+  if (glyph.edgeSpans) return glyph.edgeSpans[side].map(([from, to]) => [from, to, continues(Math.floor(from) - 1), continues(Math.ceil(to))])
   const list = []
   for (let start = 0; start < width;) {
     if (!mask[row * width + start]) {
@@ -27,11 +28,11 @@ function columnsOf(from, to, scale) {
   return [Math.max(0, Math.floor(from * scale)), Math.ceil(to * scale)]
 }
 
-function rounded(glyph, side, radius, depth, scale) {
-  const columns = glyph.width * scale
+function rounded(runs, width, side, radius, depth, scale) {
+  const columns = width * scale
   const rows = depth * scale
   const out = new Float32Array(columns * rows)
-  for (const [from, to, leftJoined, rightJoined] of edgeRuns(glyph, side)) {
+  for (const [from, to, leftJoined, rightJoined] of runs) {
     const size = Math.min(radius, (to - from) / 2, depth) * scale
     const left = leftJoined ? -Infinity : from * scale + size
     const right = rightJoined ? Infinity : to * scale - size
@@ -49,26 +50,28 @@ function rounded(glyph, side, radius, depth, scale) {
   return out
 }
 
-function crackStrip(glyph, side, layer, depth, scale, soft) {
-  const columns = glyph.width * scale
-  const out = crackWrap(glyph, layer, side, side === "up" ? 0 : glyph.height, 0, glyph.width, depth, scale, soft) ?? new Float32Array(columns * depth * scale)
-  const open = new Uint8Array(glyph.width)
-  for (const [from, to] of edgeRuns(glyph, side)) open.fill(1, Math.max(0, Math.floor(from)), Math.ceil(to))
+function crackStrip(glyph, runs, place, side, layer, depth, scale, soft) {
+  const columns = place.width * scale
+  const out = crackWrap(glyph, layer, side, place.line, place.from, place.width, depth, scale, soft) ?? new Float32Array(columns * depth * scale)
+  const open = new Uint8Array(place.width)
+  for (const [from, to] of runs) open.fill(1, Math.max(0, Math.floor(from)), Math.ceil(to))
   for (let index = 0; index < out.length; index++) {
     if (!open[Math.floor(index % columns / scale)]) out[index] = 0
   }
   return out
 }
 
-export function edgeAlpha(glyph, side, kind, layer, depth, scale, soft = false) {
-  if (kind === "cracks") return crackStrip(glyph, side, layer, depth, scale, soft)
+export function edgeAlpha(glyph, side, kind, layer, depth, scale, soft = false, face = null) {
+  const place = face ?? { line: side === "up" ? 0 : glyph.height, from: 0, width: glyph.width }
+  const runs = face ? [[0, face.width, false, false]] : edgeRuns(glyph, side)
+  if (kind === "cracks") return crackStrip(glyph, runs, place, side, layer, depth, scale, soft)
   const settings = settingsOf(kind, layer)
-  if (kind === "edge_rounded") return rounded(glyph, side, settings.radius, depth, scale)
+  if (kind === "edge_rounded") return rounded(runs, place.width, side, settings.radius, depth, scale)
   const { thickness } = settings
-  const columns = glyph.width * scale
+  const columns = place.width * scale
   const rows = depth * scale
   const out = new Float32Array(columns * rows)
-  for (const [from, to, leftJoined, rightJoined] of edgeRuns(glyph, side)) {
+  for (const [from, to, leftJoined, rightJoined] of runs) {
     const [first, last] = columnsOf(from, to, scale)
     for (let sd = 0; sd < rows; sd++) {
       const d = (sd + 0.5) / scale

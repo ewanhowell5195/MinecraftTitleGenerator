@@ -2,6 +2,7 @@ import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import { crackList, crackTriangle, crackWrap } from "../../src/lib/texture/overlays/cracks.js"
 import { edgeAlpha } from "../../src/lib/texture/overlays/edges.js"
+import { planAtlas, stripSpans } from "../../src/lib/texture/atlas/plan.js"
 import { generatedAlpha } from "../../src/lib/texture/overlays/faces.js"
 import { layerGlyph } from "../../src/lib/font/flatSheet.js"
 import { joinNeighbours } from "../../src/lib/geometry/joins.js"
@@ -22,6 +23,29 @@ describe("edge overlays", () => {
   test("outline frames each run of the edge", () => {
     assert.deepEqual(picture(edgeAlpha(glyph, "up", "edge_outline", {}, 3, 1), 7), ["1111111", "1000001", "1111111"])
     assert.deepEqual(picture(edgeAlpha(glyph, "down", "edge_outline", {}, 3, 1), 7), ["1110111", "1010101", "1110111"])
+  })
+
+  test("faces at different heights along the strip are outlined on their own", () => {
+    const stepped = { ...glyphOf(["11111", "11111"]), edgeSpans: { up: [[0, 5]], down: [[0, 3], [3, 5]] } }
+    assert.deepEqual(picture(edgeAlpha(stepped, "down", "edge_outline", {}, 3, 1), 5), ["11111", "10111", "11111"])
+  })
+
+  test("a face given its own span is outlined across just that span", () => {
+    assert.deepEqual(picture(edgeAlpha(glyph, "down", "edge_outline", {}, 3, 1, false, { line: 2, from: 2, width: 3 }), 3), ["111", "101", "111"])
+  })
+
+  test("the strip keeps the lowest face of each column and splits where the height changes", () => {
+    const bottom = (from, to, y) => ({ kind: "bottom", internal: false, points: [[from, y, 0], [to, y, 0], [to, y, 1], [from, y, 1]] })
+    const faces = [bottom(24, 28, 0), bottom(0, 24, 4), bottom(8, 36, 12)]
+    assert.deepEqual(stripSpans(faces, "bottom", 0), [[0, 24], [24, 28]])
+    assert.deepEqual(stripSpans([bottom(0, 4, 0), bottom(4, 9, 0)], "bottom", 2), [[-2, 7]])
+  })
+
+  test("a stacked face built from touching boxes gets one run, so one outline", () => {
+    const bottom = (from, to, y) => ({ kind: "bottom", internal: false, glyph: 0, points: [[from, y, 0], [to, y, 0], [to, y, 1], [from, y, 1]] })
+    const faces = [bottom(24, 28, 0), bottom(0, 24, 4), bottom(8, 20, 12), bottom(20, 36, 12)]
+    const plan = planAtlas(faces, { depth: 4, rects: [{ minX: 0, maxX: 36, minY: 0, maxY: 52 }], chars: ["b"], spaces: [0] })
+    assert.deepEqual(plan.runs.filter(run => run.region === "edge").map(run => run.width), [28])
   })
 
   test("outline thickness narrows the opening", () => {

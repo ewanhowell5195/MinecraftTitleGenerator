@@ -9,7 +9,7 @@ import { adjustedTiles, paintTiles } from "./tiles.js"
 import { paintStrip } from "./strip.js"
 import { paintCover } from "./cover.js"
 import { paintBakedCover, paintBakedRuns } from "./coverBake.js"
-import { labelIndexes, overlayLabels, overlayLayer, sideWrapsOf, wrapsOf } from "./overlays.js"
+import { edgeFacesOf, labelIndexes, overlayLabels, overlayLayer, sideWrapsOf, wrapsOf } from "./overlays.js"
 import { lookKey } from "./keys.js"
 
 const preparedSheets = new WeakMap()
@@ -143,15 +143,20 @@ export function paintSheet(sheet, look, assets, capHeight, base) {
     return copy
   }
 
+  const extraFaces = assets.edgeOverlays.length && sheet.runs && Array.from(sheet.runs.keys()).some(run => run.region === "edge")
+  const unedged = extraFaces ? copyOf(work.canvas) : null
   for (const { layer, source } of overlayLayers) {
     const own = overlayLayer(sheet, layer, source, capHeight, band, independent)
     const overlay = layer.edgeWrap && !source.edge && !look.customEdge && look.edgeBrightness < 100 && ["source-over", "lighter"].includes(layer.blend) ? shadedEdges(own) : own
-    work.ctx.globalCompositeOperation = layer.blend
-    work.ctx.globalAlpha = layer.opacity / 100
-    work.ctx.drawImage(overlay.canvas, 0, 0)
-    work.ctx.globalAlpha = 1
-    work.ctx.globalCompositeOperation = "source-over"
+    for (const target of source.edge || !unedged ? [work] : [work, unedged]) {
+      target.ctx.globalCompositeOperation = layer.blend
+      target.ctx.globalAlpha = layer.opacity / 100
+      target.ctx.drawImage(overlay.canvas, 0, 0)
+      target.ctx.globalAlpha = 1
+      target.ctx.globalCompositeOperation = "source-over"
+    }
   }
+  const stripSource = unedged?.canvas ?? null
 
   if (look.customBorder) fillSwatch(work.ctx, sheet, look.borderColour)
   const final = eager ? work.ctx.getImageData(0, 0, width, height) : null
@@ -185,5 +190,5 @@ export function paintSheet(sheet, look, assets, capHeight, base) {
 
   const tiles = look.source === "tile" && look.tileableTileEdges ? adjustedTiles(look, assets.tile) : null
   const gradient = look.source === "gradient" ? { stops: paintedStops(look), ends: entry => gradientEnds(entry, look, capHeight, sheet) } : null
-  return { canvas: work.canvas, coverRuns: assets.coverBase ? ready.canvas : null, facePixels, border, edgeAverage, tiles, tilesAcrossLine: !look.tileablePerCharacter, gradient, fade, borderColour: packed(rgb, 0), labels: () => overlayLabels(sheet, overlayLayers, capHeight, width, height, band, independent), wraps: wrapsOf(sheet, assets.overlays, labelIndexes(overlayLayers), band, independent), sideWraps: sideWrapsOf(sheet, assets.overlays, capHeight, band, independent), tileScale: R }
+  return { canvas: work.canvas, coverRuns: assets.coverBase ? ready.canvas : null, facePixels, border, edgeAverage, tiles, tilesAcrossLine: !look.tileablePerCharacter, gradient, fade, borderColour: packed(rgb, 0), labels: () => overlayLabels(sheet, overlayLayers, capHeight, width, height, band, independent), wraps: wrapsOf(sheet, assets.overlays, labelIndexes(overlayLayers), band, independent), sideWraps: sideWrapsOf(sheet, assets.overlays, capHeight, band, independent), stripSource, edgeFaces: stripSource ? edgeFacesOf(sheet, assets.edgeOverlays, band, independent) : [], tileScale: R }
 }

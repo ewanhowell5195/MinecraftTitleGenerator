@@ -166,6 +166,24 @@ export function wrapsOf(sheet, layers, indexes, band, independent) {
   }))
 }
 
+export function edgeFacesOf(sheet, layers, band, independent) {
+  const layered = layeredGlyphs(sheet, band, independent)
+  const own = glyph => layered?.get(glyph.char) ?? glyph
+  return layers.filter(({ layer }) => layer.opacity).map(({ layer, generated }) => ({
+    blend: layer.blend,
+    opacity: layer.opacity / 100,
+    face(glyph, side, line, from, width, depth, scale) {
+      const alpha = edgeAlpha(own(glyph), side, generated, layer, depth, scale, scale > R, { line, from, width })
+      const mask = surface(width * scale, depth * scale)
+      const image = mask.ctx.createImageData(width * scale, depth * scale)
+      image.data.fill(255)
+      for (let index = 0; index < alpha.length; index++) image.data[index * 4 + 3] = alpha[index] * 255
+      mask.ctx.putImageData(image, 0, 0)
+      return colourOverlay(mask, layer).canvas
+    }
+  }))
+}
+
 export function sideWrapsOf(sheet, layers, capHeight, band, independent) {
   const entries = new Map(Object.values(sheet.glyphs).map(entry => [entry.glyph.char, entry]))
   return layers.filter(({ layer, source }) => layer.sideWrap && layer.opacity && !source.edge && !WRAPPED_KINDS.has(source.generated)).map(({ layer, source }) => {

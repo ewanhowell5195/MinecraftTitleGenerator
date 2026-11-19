@@ -10,6 +10,40 @@ export function extent(points, axis) {
   return { min, max, size: Math.max(1, Math.round(max - min)) }
 }
 
+export function stripOwners(faces, kind) {
+  const outward = kind === "top" ? -1 : 1
+  const list = faces.filter(face => face.kind === kind && !face.internal).map(face => ({ face, span: extent(face.points, 0), level: extent(face.points, 1)[kind === "top" ? "max" : "min"] })).sort((a, b) => (a.level - b.level) * outward)
+  const taken = []
+  const extras = []
+  for (const item of list) {
+    if (taken.some(other => other.level !== item.level && other.span.min < item.span.max && item.span.min < other.span.max)) extras.push(item.face)
+    else taken.push(item)
+  }
+  return { taken, extras }
+}
+
+function joinLevels(faces, kind) {
+  const items = faces.filter(face => !face.run).map(face => ({ face, span: extent(face.points, 0), level: extent(face.points, 1)[kind === "top" ? "max" : "min"] })).sort((a, b) => a.level - b.level || a.span.min - b.span.min)
+  let last = null
+  for (const item of items) {
+    if (last && last.level === item.level && last.face.layer === item.face.layer && item.span.min <= last.max) {
+      item.face.run = last.face.run ??= {}
+      last.max = Math.max(last.max, item.span.max)
+    } else last = { face: item.face, level: item.level, max: item.span.max }
+  }
+  return faces
+}
+
+export function stripSpans(faces, kind, origin) {
+  const spans = []
+  for (const { span, level } of stripOwners(faces, kind).taken.sort((a, b) => a.span.min - b.span.min)) {
+    const last = spans[spans.length - 1]
+    if (last && last.level === level && span.min <= last.to) last.to = Math.max(last.to, span.max)
+    else spans.push({ from: span.min, to: span.max, level })
+  }
+  return spans.map(({ from, to }) => [from - origin, to - origin])
+}
+
 function boundsOf(faces) {
   const points = faces.flatMap(face => face.points)
   const x = extent(points, 0)
@@ -50,14 +84,9 @@ export function planAtlas(faces, options) {
   const extras = []
   for (const block of blocks) {
     for (const kind of ["top", "bottom"]) {
-      const outward = kind === "top" ? -1 : 1
-      const list = block.group.filter(face => face.kind === kind).map(face => ({ face, span: extent(face.points, 0), level: extent(face.points, 1)[kind === "top" ? "max" : "min"] })).sort((a, b) => (a.level - b.level) * outward)
-      const taken = []
-      for (const item of list) {
-        if (taken.some(other => other.level !== item.level && other.span.min < item.span.max && item.span.min < other.span.max)) {
-          item.face.extra = true
-          extras.push(item.face)
-        } else taken.push(item)
+      for (const face of joinLevels(stripOwners(block.group, kind).extras, kind)) {
+        face.extra = true
+        extras.push(face)
       }
     }
   }

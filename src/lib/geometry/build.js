@@ -4,7 +4,7 @@ import { clippedBoxes } from "./joins.js"
 import { SPACE } from "./layout.js"
 import { finishAtlas, mapFaces } from "../texture/atlas/finish.js"
 import { layoutPages, pageGroups } from "../texture/atlas/pages.js"
-import { planAtlas } from "../texture/atlas/plan.js"
+import { planAtlas, stripSpans } from "../texture/atlas/plan.js"
 import { REGION_KINDS, detailOf, regionScales } from "../texture/atlas/scales.js"
 import { clamp, remember } from "../core/maths.js"
 import { baseChar } from "../font/order.js"
@@ -236,6 +236,7 @@ export function buildText(font, options) {
       for (const slice of Map.groupBy(body, face => face.layer).values()) stripFaces(slice, glyph, font.glyphs[char], font.capHeight)
     } else if (font.glyphs?.[char]) stripFaces(body, glyph, font.glyphs[char], font.capHeight)
     if (!shaped && font.outlines?.[char]) roundEdges(body, font.outlines[char], glyph, font.glyphs[char], item.x, reach)
+    if (!shaped) glyph.edgeSpans = { up: stripSpans(body, "top", item.x), down: stripSpans(body, "bottom", item.x) }
     for (const face of body) face.glyph = glyphs.length
     const slabs = sliced ? font.layers.map((_, layer) => clippedBoxes(boxesFor(layerMask(glyph, layer, independent), glyph.width, glyph.height, item.x, glyph.bottom), glyph, item.x)) : null
     glyphs.push({ body, boxes, slabs, rings: shaped?.rings ?? null, spaces: item.spaces, char: glyph.char, rect: { minX: item.x, maxX: item.x + glyph.width, minY: glyph.bottom, maxY: glyph.bottom + glyph.height } })
