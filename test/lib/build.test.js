@@ -107,12 +107,34 @@ describe("buildText", () => {
     const STILL = { amount: 0, centre: 0.5, same: false }
 
     function twisted(twist, options = {}) {
-      return text(ROW, { twist: { ribbon: STILL, door: STILL, ...twist }, ...options })
+      return text(ROW, { twist: { ribbon: STILL, door: STILL, fan: STILL, ...twist }, ...options })
     }
 
     function corners(built, index) {
       const list = points(built.body.positions)
       return list.slice(index * list.length / 3, (index + 1) * list.length / 3)
+    }
+
+    function seen(built, index, scale = [1, 1]) {
+      const anchor = [(built.plain?.min[0] + built.plain?.max[0]) / 2 || 0, built.plain?.min[1] ?? 0]
+      return corners(built, index).map(point => [0, 1].map(axis => anchor[axis] + scale[axis] * (point[axis] - anchor[axis])))
+    }
+
+    function mover(flat, built, index, scale) {
+      const [from, to] = [seen(flat, index, scale), seen(built, index, scale)]
+      const other = from.findIndex(point => Math.hypot(point[0] - from[0][0], point[1] - from[0][1]) > 1)
+      const angle = Math.atan2(to[other][1] - to[0][1], to[other][0] - to[0][0]) - Math.atan2(from[other][1] - from[0][1], from[other][0] - from[0][0])
+      return { angle, move: ([x, y]) => [to[0][0] + Math.cos(angle) * (x - from[0][0]) - Math.sin(angle) * (y - from[0][1]), to[0][1] + Math.sin(angle) * (x - from[0][0]) + Math.cos(angle) * (y - from[0][1])] }
+    }
+
+    function hinged(flat, built, height, scale) {
+      for (const index of [0, 1]) {
+        const left = seen(flat, index, scale).map(point => point[0])
+        const right = seen(flat, index + 1, scale).map(point => point[0])
+        const hinge = [(Math.max(...left) + Math.min(...right)) / 2, height]
+        const [a, b] = [mover(flat, built, index, scale).move(hinge), mover(flat, built, index + 1, scale).move(hinge)]
+        assert.ok(Math.hypot(a[0] - b[0], a[1] - b[1]) < 1e-4, `${a} and ${b} come apart`)
+      }
     }
 
     function spread(built, index, axis) {
@@ -166,7 +188,7 @@ describe("buildText", () => {
     })
 
     test("a single character on a line has nothing to turn against", () => {
-      const built = text([place(glyph("a", 4, 4), 0)], { twist: { ribbon: { amount: 90, centre: 0 }, door: { amount: 90, centre: 1, same: true } } })
+      const built = text([place(glyph("a", 4, 4), 0)], { twist: { ribbon: { amount: 90, centre: 0 }, door: { amount: 90, centre: 1, same: true }, fan: { amount: 90, centre: 0.5, same: false } } })
       assert.deepEqual(extents(built.body.positions)[2], [-2, 2])
     })
 
@@ -253,6 +275,157 @@ describe("buildText", () => {
       const body = extents(built.body.positions).map((range, axis) => range.map(value => value * scale[axis]))
       const shell = extents(outline.positions)
       for (const axis of [0, 1, 2]) assert.ok(shell[axis][0] < body[axis][0] && shell[axis][1] > body[axis][1])
+    })
+
+    test("a fan turns characters flat on the screen and leaves the anchor still", () => {
+      const flat = text(ROW)
+      const built = twisted({ fan: { amount: 60, centre: 0 } })
+      assert.deepEqual(corners(built, 0), corners(flat, 0))
+      for (const index of [1, 2]) {
+        assert.notDeepEqual(corners(built, index), corners(flat, index))
+        assert.deepEqual(corners(built, index).map(point => point[2]), corners(flat, index).map(point => point[2]))
+      }
+    })
+
+    test("a fan turns the far character the full amount", () => {
+      const built = twisted({ fan: { amount: 45, centre: 0 } })
+      for (const axis of [0, 1]) {
+        near(spread(built, 2, axis), 4 * Math.SQRT2)
+        near(spread(built, 1, axis), 4 * (Math.cos(Math.PI / 8) + Math.sin(Math.PI / 8)))
+      }
+    })
+
+    test("a positive fan leans the tops of the ends away from the middle", () => {
+      const built = twisted({ fan: { amount: 30, centre: 0.5 } })
+      const flat = text(ROW)
+      function across(index, y) {
+        const list = corners(built, index).filter((point, at) => corners(flat, index)[at][1] === y)
+        return list.reduce((sum, point) => sum + point[0], 0) / list.length
+      }
+      function lean(index) {
+        return across(index, 4) - across(index, 0)
+      }
+      assert.ok(lean(0) < 0 && lean(2) > 0)
+      assert.deepEqual(corners(built, 1), corners(flat, 1))
+    })
+
+    test("a fan mirrors its sides unless both sides turn the same way", () => {
+      assert.ok(matchesMirror(twisted({ fan: { amount: 60, centre: 0.5 } })))
+      assert.ok(matchesMirror(twisted({ fan: { amount: 60, centre: 0.5, roll: true, height: 1.5 } })))
+      assert.ok(!matchesMirror(twisted({ fan: { amount: 60, centre: 0.5, same: true } })))
+    })
+
+    test("a fan around one shared point hinges each character on the next at the hinge height", () => {
+      const flat = text(ROW)
+      for (const height of [0, 0.5, 1, 1.5]) {
+        const built = twisted({ fan: { amount: 30, centre: 0.5, roll: true, height } })
+        assert.deepEqual(corners(built, 1), corners(flat, 1))
+        hinged(flat, built, height * 4)
+        near(Math.abs(mover(flat, built, 0).angle), Math.PI / 6)
+      }
+    })
+
+    test("a fan off centre still keeps every character hinged", () => {
+      const flat = text(ROW)
+      hinged(flat, twisted({ fan: { amount: 50, centre: 0.2, roll: true, height: 0 } }), 0)
+    })
+
+    test("a fan hinges a scaled word's characters in its scaled space", () => {
+      const scale = [2, 2, 1]
+      const flat = text(ROW, { wordScale: scale })
+      for (const height of [0, 1]) hinged(flat, twisted({ fan: { amount: 30, centre: 0.5, roll: true, height } }, { wordScale: scale }), height * 8, scale)
+    })
+
+    test("a word's scale doesn't stretch the line arc's lift", () => {
+      const lifted = [place(glyph("a", 4, 4, { lift: 10, lineLift: 10 }), 0)]
+      const plain = text(lifted, { wordScale: [1, 2, 1] })
+      near(extents(plain.body.positions)[1][0], 5)
+      near(plain.plain.min[1], 0)
+      near(extents(text(lifted).body.positions)[1][0], 10)
+    })
+
+    test("a fanned outline still lines up with its character alongside the other twists", () => {
+      const built = twisted({ ribbon: { amount: 45, centre: 0 }, door: { amount: 30, centre: 1, same: true }, fan: { amount: 40, centre: 0.5 } })
+      const scale = [1, 2, 3]
+      const outline = buildOutline(built, scale)
+      const body = extents(built.body.positions).map((range, axis) => range.map(value => value * scale[axis]))
+      const shell = extents(outline.positions)
+      for (const axis of [0, 1, 2]) assert.ok(shell[axis][0] < body[axis][0] && shell[axis][1] > body[axis][1])
+    })
+
+    describe("on a word", () => {
+      const ENDS = { ends: { first: -30, last: 18 } }
+
+      function worded(twist, options = {}) {
+        return text(ROW, { wordTwist: { ribbon: STILL, door: STILL, fan: STILL, ...twist }, ...options })
+      }
+
+      test("turns the word across its own span, whatever the line's ends", () => {
+        const flat = text(ROW, ENDS)
+        const built = worded({ door: { amount: 90, centre: 0, same: true } }, ENDS)
+        assert.deepEqual(corners(built, 0), corners(flat, 0))
+        near(spread(built, 2, 0), 4)
+        near(spread(built, 2, 2), 4)
+        assert.deepEqual(Array.from(built.body.positions), Array.from(worded({ door: { amount: 90, centre: 0, same: true } }).body.positions))
+        assert.notDeepEqual(corners(twisted({ door: { amount: 90, centre: 0, same: true } }, ENDS), 0), corners(flat, 0))
+      })
+
+      test("its centre sits within the word", () => {
+        const flat = text(ROW, ENDS)
+        const built = worded({ fan: { amount: 40, centre: 0.5, roll: true } }, ENDS)
+        assert.deepEqual(corners(built, 1), corners(flat, 1))
+        assert.ok(matchesMirror(worded({ fan: { amount: 40, centre: 0.5 } })))
+      })
+
+      test("leaves a word without one alone", () => {
+        const other = [place(glyph("d", 4, 4), 24)]
+        assert.equal(text(other, ENDS).twist, null)
+        assert.deepEqual(Array.from(text(other, { ...ENDS, wordTwist: null }).body.positions), Array.from(text(other, ENDS).body.positions))
+      })
+
+      test("adds its turn to the line's twist", () => {
+        const line = { ribbon: { amount: 30, centre: 0 }, door: { amount: 50, centre: 1, same: true, roll: true }, fan: { amount: -20, centre: 0.25, roll: true } }
+        const word = { ribbon: { amount: -15, centre: 0.5, same: true }, door: { amount: 25, centre: 0.5, roll: true }, fan: { amount: 35, centre: 1, roll: true } }
+        const lone = text(ROW, { ...ENDS, twist: line })
+        const own = text(ROW, { ...ENDS, wordTwist: word })
+        const both = text(ROW, { ...ENDS, twist: line, wordTwist: word })
+        for (const [index, { turn }] of both.twist.entries()) {
+          for (const key of ["ribbon", "door", "fan", "moveX", "moveZ", "fanX", "fanY"]) near(turn[key], lone.twist[index].turn[key] + own.twist[index].turn[key])
+        }
+      })
+
+      test("on the same span as the line it matches one bigger twist", () => {
+        const both = text(ROW, { twist: { ribbon: { amount: 30, centre: 0 }, door: STILL, fan: STILL }, wordTwist: { ribbon: { amount: 20, centre: 0 }, door: { amount: 15, centre: 1 }, fan: STILL } })
+        const single = twisted({ ribbon: { amount: 50, centre: 0 }, door: { amount: 15, centre: 1 } })
+        const expected = Array.from(single.body.positions)
+        for (const [at, value] of Array.from(both.body.positions).entries()) near(value, expected[at])
+      })
+
+      test("an all zero word twist is the same as none", () => {
+        const still = { ribbon: STILL, door: { ...STILL, roll: true }, fan: { ...STILL, roll: true } }
+        for (const options of [ENDS, { ...ENDS, twist: { ribbon: { amount: 30, centre: 0 }, door: { amount: 40, centre: 1, roll: true }, fan: { amount: 20, centre: 0.5, roll: true } } }]) {
+          const plain = text(ROW, options)
+          const zero = text(ROW, { ...options, wordTwist: still })
+          assert.deepEqual(Array.from(zero.body.positions), Array.from(plain.body.positions))
+          assert.deepEqual(zero.twist?.map(({ turn }) => turn) ?? null, plain.twist?.map(({ turn }) => turn) ?? null)
+          assert.deepEqual(Array.from(buildOutline(zero, [1, 1, 1]).positions), Array.from(buildOutline(plain, [1, 1, 1]).positions))
+        }
+      })
+
+      test("hinges a scaled word's characters across its own span", () => {
+        const scale = [2, 2, 1]
+        const flat = text(ROW, { ...ENDS, wordScale: scale })
+        for (const height of [0, 1]) hinged(flat, worded({ fan: { amount: 30, centre: 0.5, roll: true, height } }, { ...ENDS, wordScale: scale }), height * 8, scale)
+      })
+
+      test("its outline follows the turned characters", () => {
+        const built = worded({ ribbon: { amount: 45, centre: 0 }, door: { amount: 30, centre: 1, same: true }, fan: { amount: 40, centre: 0.5 } }, ENDS)
+        const scale = [1, 2, 3]
+        const outline = buildOutline(built, scale)
+        const body = extents(built.body.positions).map((range, axis) => range.map(value => value * scale[axis]))
+        const shell = extents(outline.positions)
+        for (const axis of [0, 1, 2]) assert.ok(shell[axis][0] < body[axis][0] && shell[axis][1] > body[axis][1])
+      })
     })
   })
 
@@ -751,7 +924,7 @@ describe("halo for a word with no border", () => {
 
 describe("detail", () => {
   const ROW = [place(glyph("a", 4, 4), 0), place(glyph("b", 4, 4), 8)]
-  const TURN = { ribbon: { amount: 40, centre: 0.5, same: false }, door: { amount: 0, centre: 0.5, same: false } }
+  const TURN = { ribbon: { amount: 40, centre: 0.5, same: false }, door: { amount: 0, centre: 0.5, same: false }, fan: { amount: 0, centre: 0.5, same: false } }
 
   const FRONT = [{ front: 4 }]
 
@@ -862,7 +1035,7 @@ describe("door roll", () => {
   const RADIUS = 8 / (Math.PI / 2)
 
   function door(values) {
-    return text(ROW, { twist: { ribbon: STILL, door: { amount: 90, centre: 0.5, same: false, ...values } } })
+    return text(ROW, { twist: { ribbon: STILL, door: { amount: 90, centre: 0.5, same: false, ...values }, fan: STILL } })
   }
 
   function middles(built) {
@@ -877,16 +1050,34 @@ describe("door roll", () => {
     assert.deepEqual(middles(door({ roll: false })).map(([x, , z]) => [Math.round(x), Math.round(z)]), [[-8, 0], [0, 0], [8, 0]])
   })
 
-  test("with it the characters sit on one circle, as far apart along it as they were in line", () => {
-    const [left, middle, right] = middles(door({ roll: true }))
-    near(middle[0], 0)
-    near(middle[2], 0)
-    const depth = (left[2] + right[2]) / 2
-    near(left[2], right[2])
-    near(Math.abs(depth), RADIUS)
-    near(left[0], -RADIUS)
-    near(right[0], RADIUS)
-    for (const [x, , z] of [left, middle, right]) near(Math.hypot(x, z - depth), RADIUS)
+  function chars(built, index) {
+    const list = points(built.body.positions)
+    return list.slice(index * list.length / 3, (index + 1) * list.length / 3)
+  }
+
+  function moved(flat, built, index, [x, z]) {
+    const [from, to] = [chars(flat, index), chars(built, index)]
+    const other = from.findIndex(point => Math.hypot(point[0] - from[0][0], point[2] - from[0][2]) > 1)
+    const angle = Math.atan2(to[other][2] - to[0][2], to[other][0] - to[0][0]) - Math.atan2(from[other][2] - from[0][2], from[other][0] - from[0][0])
+    return [to[0][0] + Math.cos(angle) * (x - from[0][0]) - Math.sin(angle) * (z - from[0][2]), to[0][2] + Math.sin(angle) * (x - from[0][0]) + Math.cos(angle) * (z - from[0][2])]
+  }
+
+  test("with it each character hinges on the next at the hinge depth", () => {
+    const flat = text(ROW)
+    for (const depth of [0, 0.5, 1, 1.5]) {
+      const built = door({ roll: true, depth })
+      const middle = middles(built)[1]
+      near(middle[0], 0)
+      near(middle[2], 0)
+      const z = -flat.depth / 2 + flat.depth * depth
+      for (const index of [0, 1]) {
+        const left = chars(flat, index).map(point => point[0])
+        const right = chars(flat, index + 1).map(point => point[0])
+        const hinge = [(Math.max(...left) + Math.min(...right)) / 2, z]
+        const [from, to] = [moved(flat, built, index, hinge), moved(flat, built, index + 1, hinge)]
+        assert.ok(Math.hypot(from[0] - to[0], from[1] - to[1]) < 1e-4, `${from} and ${to} come apart`)
+      }
+    }
   })
 
   test("it bends the same way the door turns the far edges", () => {
@@ -908,8 +1099,8 @@ describe("door roll", () => {
   })
 
   test("no door turn means nothing to roll", () => {
-    const still = text(ROW, { twist: { ribbon: { amount: 30, centre: 0.5, same: false }, door: { ...STILL, roll: true } } })
-    const plain = text(ROW, { twist: { ribbon: { amount: 30, centre: 0.5, same: false }, door: STILL } })
+    const still = text(ROW, { twist: { ribbon: { amount: 30, centre: 0.5, same: false }, door: { ...STILL, roll: true }, fan: STILL } })
+    const plain = text(ROW, { twist: { ribbon: { amount: 30, centre: 0.5, same: false }, door: STILL, fan: STILL } })
     assert.deepEqual(Array.from(still.body.positions), Array.from(plain.body.positions))
   })
 })

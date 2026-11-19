@@ -56,6 +56,14 @@ const UNUSED = Object.entries(TEXTURE_TABS).map(([source, keys]) => [object => o
   [object => object.wordArcMode === "move", ["wordArcTop", "wordArcBottom", "wordArcMarked"]],
   [object => !object.twistRibbon, ["twistRibbonCentre", "twistRibbonMirror"]],
   [object => !object.twistDoor, ["twistDoorCentre", "twistDoorSame", "twistDoorRoll"]],
+  [object => !object.twistDoor || !object.twistDoorRoll, ["twistDoorDepth"]],
+  [object => !object.twistFan, ["twistFanCentre", "twistFanRoll"]],
+  [object => !object.twistFan || !object.twistFanRoll, ["twistFanHeight"]],
+  [object => !object.wordTwistRibbon, ["wordTwistRibbonCentre", "wordTwistRibbonMirror"]],
+  [object => !object.wordTwistDoor, ["wordTwistDoorCentre", "wordTwistDoorSame", "wordTwistDoorRoll"]],
+  [object => !object.wordTwistDoor || !object.wordTwistDoorRoll, ["wordTwistDoorDepth"]],
+  [object => !object.wordTwistFan, ["wordTwistFanCentre", "wordTwistFanRoll"]],
+  [object => !object.wordTwistFan || !object.wordTwistFanRoll, ["wordTwistFanHeight"]],
   [object => matchSolved(object), ["matchScale", "matchOffset"]],
   [object => object.matchWidth === null, ["matchScaleY"]]
 ])

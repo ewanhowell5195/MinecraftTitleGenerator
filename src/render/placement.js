@@ -36,7 +36,7 @@ export function placementMatrix(value, bounds) {
 }
 
 function wordParts(value, built) {
-  const bounds = boxOf(built.body)
+  const bounds = built.plain ? new THREE.Box3(new THREE.Vector3(...built.plain.min), new THREE.Vector3(...built.plain.max)) : boxOf(built.body)
   const centre = bounds.getCenter(new THREE.Vector3())
   const anchor = anchorOf(value, bounds, centre)
   const scale = around(new THREE.Matrix4(), anchor, new THREE.Matrix4().makeScale(...value.word.scale))

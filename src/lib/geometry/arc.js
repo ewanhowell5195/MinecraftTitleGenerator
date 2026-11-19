@@ -31,7 +31,8 @@ export function glyphArcs(placed, words, options, capHeight) {
   return placed.map((item, index) => {
     const arc = wordArc(words, item)
     const arcs = [curve(options.arcMode, options.arcTop, options.arcBottom, options.arcMarked !== false, amounts[index], capHeight), curve(arc.mode, arc.top, arc.bottom, arc.marked !== false, wordAmounts[index], capHeight)]
-    const lift = (options.arcMode === "move" ? Math.round(options.arcMove * amounts[index] * capHeight) : 0) + (arc.mode === "move" ? Math.round(arc.move * wordAmounts[index] * capHeight) : 0)
-    return { arcs, lift }
+    const lineLift = options.arcMode === "move" ? Math.round(options.arcMove * amounts[index] * capHeight) : 0
+    const lift = lineLift + (arc.mode === "move" ? Math.round(arc.move * wordAmounts[index] * capHeight) : 0)
+    return { arcs, lift, lineLift }
   })
 }

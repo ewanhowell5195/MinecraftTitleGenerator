@@ -1,9 +1,9 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import { isReactive } from "vue"
-import { applyType, defaultBorder, defaultDepth, defaultSpacing, fontFaces, typeDefaults } from "../../src/lib/settings/defaults.js"
+import { PANELS, applyType, defaultBorder, defaultDepth, defaultSpacing, fontFaces, typeDefaults } from "../../src/lib/settings/defaults.js"
 import { applyFontFaces, layerTarget, layerView, overlayFits, separateLayers } from "../../src/lib/settings/layers.js"
-import { effectiveScale, isModified, resetPanel, resetTransform, restore, snapshot, transformKeys } from "../../src/lib/settings/settings.js"
+import { LINE, effectiveScale, isModified, resetPanel, resetTransform, restore, snapshot, transformKeys, wordKey } from "../../src/lib/settings/settings.js"
 import { LAYER, activeOverlays, defaultOverlays, defaultTexture, overlayLayer, pinnedTextures, setTexture, textureEntry } from "../../src/lib/settings/textureDefaults.js"
 import { createObject } from "../../src/lib/settings/objects.js"
 
@@ -39,6 +39,11 @@ const TOP_DEFAULTS = {
   twistDoorCentre: 50,
   twistDoorSame: false,
   twistDoorRoll: true,
+  twistDoorDepth: 50,
+  twistFan: 0,
+  twistFanCentre: 50,
+  twistFanRoll: true,
+  twistFanHeight: 50,
   arcGradient: false,
   matchWidth: null,
   matchBottom: false,
@@ -69,6 +74,18 @@ const TOP_DEFAULTS = {
   wordArcMove: 0,
   wordArcCentre: 50,
   wordArcMarked: true,
+  wordTwistRibbon: 0,
+  wordTwistRibbonCentre: 50,
+  wordTwistRibbonMirror: false,
+  wordTwistDoor: 0,
+  wordTwistDoorCentre: 50,
+  wordTwistDoorSame: false,
+  wordTwistDoorRoll: true,
+  wordTwistDoorDepth: 50,
+  wordTwistFan: 0,
+  wordTwistFanCentre: 50,
+  wordTwistFanRoll: true,
+  wordTwistFanHeight: 50,
   wordScaleX: 1,
   wordScaleY: 1,
   wordLinkScale: null,
@@ -183,7 +200,7 @@ const SMALL_DEFAULTS = {
   sideFade: 75
 }
 
-const PANEL_NAMES = ["text", "terminators", "font", "placement", "geometry", "spacing", "arc", "transform", "wordGeometry", "wordArc", "wordTransform", "texture", "overlays", "edgeOverlays", "colour", "outline", "inner", "sides", "faces"]
+const PANEL_NAMES = ["text", "terminators", "font", "placement", "geometry", "spacing", "arc", "twist", "transform", "wordGeometry", "wordArc", "wordTwist", "wordTransform", "texture", "overlays", "edgeOverlays", "colour", "outline", "inner", "sides", "faces"]
 
 const TEXTURES = {
   primary: "cracked",
@@ -196,6 +213,13 @@ const TEXTURES = {
 describe("typeDefaults", () => {
   test("pins every top default", () => {
     assert.deepEqual(typeDefaults("top"), TOP_DEFAULTS)
+  })
+
+  test("the word twist starts the same as the line twist and belongs to the word", () => {
+    const line = PANELS.twist()
+    assert.deepEqual(PANELS.wordTwist(), Object.fromEntries(Object.entries(line).map(([key, value]) => [wordKey(key), value])))
+    for (const key of Object.keys(PANELS.wordTwist())) assert.ok(!LINE.has(key), key)
+    for (const key of Object.keys(line)) assert.ok(LINE.has(key), key)
   })
 
   test("pins every bottom default", () => {

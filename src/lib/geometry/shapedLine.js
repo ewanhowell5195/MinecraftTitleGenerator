@@ -30,6 +30,7 @@ export function shapeLine(font, sheet, words, word, options) {
   const items = []
   const owned = []
   const chain = []
+  const spans = []
   const line = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity }
   const ends = { first: Infinity, last: -Infinity }
   const tallest = { top: -Infinity, bottom: -Infinity }
@@ -51,10 +52,10 @@ export function shapeLine(font, sheet, words, word, options) {
       if (own) items.push(item)
       continue
     }
-    const { arcs, lift } = bends[index]
+    const { arcs, lift, lineLift } = bends[index]
     const grow = Math.round(((options.stretch ?? 1) * (words[item.word]?.stretch ?? 1) - 1) * font.capHeight)
     const key = glyphKey(item.glyph.char, index)
-    const laid = { ...stretched(item.glyph, key, arcs, grow, marked), placedX: item.x, lineSpan, lineX: item.x - placed[0].x, lineFirst: placed[0].glyph, lift }
+    const laid = { ...stretched(item.glyph, key, arcs, grow, marked), placedX: item.x, lineSpan, lineX: item.x - placed[0].x, lineFirst: placed[0].glyph, lift, lineLift }
     const mesh = font.mesh?.glyphs[item.glyph.char]
     const [left, right] = mesh ? inkPadding(mesh, laid.width) : [0, 0]
     const glyph = padded(laid, left, right)
@@ -65,6 +66,7 @@ export function shapeLine(font, sheet, words, word, options) {
     reach.top = Math.max(reach.top, glyph.arc.top + Math.max(0, lift))
     reach.bottom = Math.max(reach.bottom, glyph.arc.bottom + Math.max(0, -lift))
     extend(item, laid, lift)
+    spans.push({ minX: item.x, maxX: item.x + laid.width, own })
     if (!own) continue
     owned.push({ key, glyph, source })
     items.push({ ...item, x: item.x - left, glyph })
@@ -73,5 +75,5 @@ export function shapeLine(font, sheet, words, word, options) {
   for (const extent of [tallest, reach]) {
     for (const side of ["top", "bottom"]) if (extent[side] === -Infinity) extent[side] = 0
   }
-  return { placed: items, line, ends, reach, sheet: wordSheet(owned, faceDepth(options.depth), tallest) }
+  return { placed: items, line, ends, spans, reach, sheet: wordSheet(owned, faceDepth(options.depth), tallest) }
 }

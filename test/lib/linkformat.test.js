@@ -47,6 +47,27 @@ describe("twist in links", () => {
     const lines = [{ twistRibbon: -135, twistRibbonAnchor: "left", twistRibbonMirror: false, twistDoor: 45.5, twistDoorAnchor: "centre", twistDoorSame: true }, { twistRibbon: 180, twistRibbonAnchor: "right", twistDoor: -1, twistDoorAnchor: "right" }]
     assert.deepEqual(decodeTitle(encodeTitle({ version: 2, lines }).code).lines, lines)
   })
+
+  test("round trips the fan settings, alone and with the other twists", () => {
+    const lines = [{ twistFan: -45.5, twistFanCentre: 0, twistFanRoll: false }, { twistRibbon: 30, twistDoor: 60, twistFan: 180, twistFanCentre: 100, twistFanHeight: -150, words: [{ text: "a" }, { text: "b" }] }]
+    assert.deepEqual(decodeTitle(encodeTitle({ version: FILE_VERSION, lines }).code).lines, lines)
+    assert.equal(unknownSetting(lines), null)
+  })
+
+  test("round trips the word twist settings on each word", () => {
+    const lines = [{ words: [{ text: "a", wordTwistRibbon: -60.5, wordTwistRibbonCentre: 0, wordTwistRibbonMirror: true }, { text: "b", wordTwistDoor: 90, wordTwistDoorCentre: 100, wordTwistDoorSame: true, wordTwistDoorRoll: false }, { text: "c", wordTwistFan: -180, wordTwistFanCentre: 25, wordTwistFanHeight: 75 }] }, { text: "d", twistRibbon: 20, wordTwistFan: 45 }]
+    assert.deepEqual(decodeTitle(encodeTitle({ version: FILE_VERSION, lines }).code).lines, lines)
+    assert.deepEqual(roundTrip(lines), lines)
+    assert.equal(unknownSetting(lines), null)
+  })
+
+  test("the word twist settings come after every older setting", () => {
+    assert.equal(encodeTitle({ version: 7, lines: [{ text: "word", wordTwistRibbon: 10, wordTwistFanRoll: false }] }).code, "OAQMCERQ_gvYCoAGKAw")
+  })
+
+  test("the fan settings come after every older setting", () => {
+    assert.equal(encodeTitle({ version: 7, lines: [{ text: "fan", twistFan: 30, twistFanCentre: 25, twistFanRoll: false }] }).code, "OAQQCDR3C7gLgA_ACkAPyAg")
+  })
 })
 
 describe("old links", () => {

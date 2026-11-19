@@ -200,6 +200,9 @@ describe("saving trims settings", () => {
     const twisted = { twistRibbon: 30, twistRibbonCentre: 0, twistRibbonMirror: true, twistDoor: 0, twistDoorCentre: 100, twistDoorSame: true }
     assert.deepEqual(await savedLines(make("top", twisted)), [{ twistRibbon: 30, twistRibbonCentre: 0, twistRibbonMirror: true }])
     assert.deepEqual(await savedLines(make("top", { ...twisted, twistRibbon: 0 })), [{}])
+    const fanned = { twistFan: -45, twistFanCentre: 100, twistFanRoll: false }
+    assert.deepEqual(await savedLines(make("top", fanned)), [fanned])
+    assert.deepEqual(await savedLines(make("top", { ...fanned, twistFan: 0 })), [{}])
     const values = { arcTop: 3, arcBottom: 2, arcMove: 5, arcMarked: false }
     assert.deepEqual(await savedLines(make("top", values)), [{ arcTop: 3, arcBottom: 2, arcMarked: false }])
     assert.deepEqual(await savedLines(make("top", { ...values, arcMode: "move" })), [{ arcMode: "move", arcMove: 5 }])
@@ -216,6 +219,17 @@ describe("saving trims settings", () => {
     const values = { wordArcTop: 3, wordArcBottom: 2, wordArcMove: 5, wordArcMarked: false }
     assert.deepEqual(await savedLines(make("top", values)), [{ wordArcTop: 3, wordArcBottom: 2, wordArcMarked: false }])
     assert.deepEqual(await savedLines(make("top", { ...values, wordArcMode: "move" })), [{ wordArcMode: "move", wordArcMove: 5 }])
+  })
+
+  test("word twist settings are only saved while that twist turns", async () => {
+    const ribbon = { wordTwistRibbon: 30, wordTwistRibbonCentre: 0, wordTwistRibbonMirror: true }
+    const door = { wordTwistDoor: -20, wordTwistDoorCentre: 100, wordTwistDoorSame: true, wordTwistDoorRoll: false }
+    const fan = { wordTwistFan: 45, wordTwistFanCentre: 25, wordTwistFanRoll: false }
+    assert.deepEqual(await savedLines(make("top", { ...ribbon, ...door, ...fan })), [{ ...ribbon, ...door, ...fan }])
+    assert.deepEqual(await savedLines(make("top", { ...ribbon, wordTwistRibbon: 0 })), [{}])
+    assert.deepEqual(await savedLines(make("top", { ...door, wordTwistDoor: 0 })), [{}])
+    assert.deepEqual(await savedLines(make("top", { ...fan, wordTwistFan: 0 })), [{}])
+    assert.deepEqual(await savedLines(make("top", { ...ribbon, ...fan, wordTwistFan: 0 })), [ribbon])
   })
 
   test("a solved scale is left out", async () => {
@@ -285,6 +299,17 @@ describe("saving multi-word lines", () => {
     const twist = { group: 7, twistRibbon: 20, twistRibbonCentre: 25 }
     const lines = await savedLines(make("top", { ...twist, text: "a" }), make("top", { ...twist, text: "b" }))
     assert.deepEqual(lines, [{ twistRibbon: 20, twistRibbonCentre: 25, words: [{ text: "a" }, { text: "b" }] }])
+  })
+
+  test("fan settings go on the line", async () => {
+    const fan = { group: 7, twistFan: 30, twistFanCentre: 0, twistFanRoll: false }
+    const lines = await savedLines(make("top", { ...fan, text: "a" }), make("top", { ...fan, text: "b" }))
+    assert.deepEqual(lines, [{ twistFan: 30, twistFanCentre: 0, twistFanRoll: false, words: [{ text: "a" }, { text: "b" }] }])
+  })
+
+  test("word twists stay on their own words", async () => {
+    const lines = await savedLines(make("top", { group: 7, text: "a", wordTwistFan: 30, wordTwistFanCentre: 0 }), make("top", { group: 7, text: "b", wordTwistDoor: -40, wordTwistDoorRoll: false, wordTwistFanCentre: 0 }))
+    assert.deepEqual(lines, [{ words: [{ text: "a", wordTwistFan: 30, wordTwistFanCentre: 0 }, { text: "b", wordTwistDoor: -40, wordTwistDoorRoll: false }] }])
   })
 
   test("a hidden word is saved on that word", async () => {
@@ -506,6 +531,13 @@ describe("opening", () => {
   test("a door twist from before rolling keeps turning its characters in place", async () => {
     await openTitle(fileOf(title([{ text: "a", twistDoor: 30 }, { text: "b", twistRibbon: 20 }, { text: "c", twistDoor: 30, twistDoorRoll: true }], { version: 5 })))
     assert.deepEqual(scene.objects.map(object => object.twistDoorRoll), [false, true, true])
+  })
+
+  test("a fan opens with its settings, and older files open with no fan", async () => {
+    await openTitle(fileOf(title([{ text: "a", twistFan: -30, twistFanCentre: 25, twistFanRoll: false }, { text: "b", twistRibbon: 20 }], { version: 7 })))
+    assert.deepEqual(scene.objects.map(object => [object.twistFan, object.twistFanCentre, object.twistFanRoll]), [[-30, 25, false], [0, 50, true]])
+    const saved = await save()
+    assert.deepEqual(saved.lines, [{ text: "a", twistFan: -30, twistFanCentre: 25, twistFanRoll: false }, { text: "b", twistRibbon: 20 }])
   })
 
   test("a door twist saved now rolls unless it says otherwise", async () => {

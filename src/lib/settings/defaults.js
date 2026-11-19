@@ -94,7 +94,12 @@ export const PANELS = {
     twistDoor: 0,
     twistDoorCentre: 50,
     twistDoorSame: false,
-    twistDoorRoll: true
+    twistDoorRoll: true,
+    twistDoorDepth: 50,
+    twistFan: 0,
+    twistFanCentre: 50,
+    twistFanRoll: true,
+    twistFanHeight: 50
   }),
   transform: () => ({
     matchWidth: null,
@@ -126,6 +131,20 @@ export const PANELS = {
     wordArcMove: 0,
     wordArcCentre: 50,
     wordArcMarked: true
+  }),
+  wordTwist: () => ({
+    wordTwistRibbon: 0,
+    wordTwistRibbonCentre: 50,
+    wordTwistRibbonMirror: false,
+    wordTwistDoor: 0,
+    wordTwistDoorCentre: 50,
+    wordTwistDoorSame: false,
+    wordTwistDoorRoll: true,
+    wordTwistDoorDepth: 50,
+    wordTwistFan: 0,
+    wordTwistFanCentre: 50,
+    wordTwistFanRoll: true,
+    wordTwistFanHeight: 50
   }),
   wordTransform: () => ({
     wordScaleX: 1,

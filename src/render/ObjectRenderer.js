@@ -32,12 +32,17 @@ import { DEFAULT_CAP_HEIGHT, DEFAULT_HEIGHT, NO_ARC } from "../lib/geometry/rows
 import { editorTitle, finalShadows, words } from "../lib/state/scene.js"
 import { defaultDepth } from "../lib/settings/defaults.js"
 import { isSeparate, layerTarget } from "../lib/settings/layers.js"
-import { effectiveScale, isCustomFont } from "../lib/settings/settings.js"
+import { effectiveScale, isCustomFont, wordKey } from "../lib/settings/settings.js"
 
 const REST = 0.5
 const SHARPEN_DELAY = 250
 
-const LAYOUT = new Set(["spacing", "kerning", "arcMode", "arcTop", "arcBottom", "arcMove", "arcCentre", "arcMarked", "stretch", "terminators", "twist"])
+const LAYOUT = new Set(["spacing", "kerning", "arcMode", "arcTop", "arcBottom", "arcMove", "arcCentre", "arcMarked", "stretch", "terminators", "twist", "wordTwist"])
+
+function twistOf(object, k) {
+  if (!object[k("twistRibbon")] && !object[k("twistDoor")] && !object[k("twistFan")]) return null
+  return { ribbon: { amount: object[k("twistRibbon")], centre: object[k("twistRibbonCentre")] / 100, same: object[k("twistRibbonMirror")] }, door: { amount: object[k("twistDoor")], centre: object[k("twistDoorCentre")] / 100, same: object[k("twistDoorSame")], roll: object[k("twistDoorRoll")], depth: object[k("twistDoorDepth")] / 100 }, fan: { amount: object[k("twistFan")], centre: object[k("twistFanCentre")] / 100, same: false, roll: object[k("twistFanRoll")], height: object[k("twistFanHeight")] / 100 } }
+}
 
 export default {
   props: {
@@ -128,7 +133,9 @@ export default {
       arcMove: object.arcMove / 100,
       arcCentre: object.arcCentre / 100,
       arcMarked: object.arcMarked,
-      twist: object.twistRibbon || object.twistDoor ? { ribbon: { amount: object.twistRibbon, centre: object.twistRibbonCentre / 100, same: object.twistRibbonMirror }, door: { amount: object.twistDoor, centre: object.twistDoorCentre / 100, same: object.twistDoorSame, roll: object.twistDoorRoll } } : null,
+      twist: twistOf(object, key => key),
+      wordTwist: twistOf(object, wordKey),
+      wordScale: wordScale.value,
       stretch: stretching.value ? effectiveScale(object)[1] : 1,
       terminators: object.terminators,
       ...faceOptions(object)
@@ -385,7 +392,7 @@ export default {
       const key = JSON.stringify([placed.map(item => [item.glyph.char, item.glyph.width, item.x, item.spaces]), ownDepth.value, Object.entries(options).filter(([name]) => !LAYOUT.has(name)), layerFaces.value])
       const final = finalShadowed.value
       if (shown?.source === source && shown.sheet === sheet && shown.painted === painted.value && shown.final === final && shown.key === key) return shown.value
-      const value = buildText(source, { ...options, twist: null, depth: ownDepth.value, placed, sheet, paint: painter(source), layers: layerOptions(), textureLimit: textureLimit() })
+      const value = buildText(source, { ...options, twist: null, wordTwist: null, depth: ownDepth.value, placed, sheet, paint: painter(source), layers: layerOptions(), textureLimit: textureLimit() })
       shown = { source, sheet, painted: painted.value, final, key, value }
       return value
     }
@@ -408,7 +415,7 @@ export default {
           sharpen(null)
           return
         }
-        const settings = { ...options, lineDepth, placed: laid.placed, line: laid.line, ends: laid.ends, sheet: laid.sheet, layers: layerOptions(), details: regionDetails(painted.value, targets.value, options), redraw: !finalShadowed.value && shadowed(), textureLimit: textureLimit() }
+        const settings = { ...options, lineDepth, placed: laid.placed, line: laid.line, ends: laid.ends, spans: laid.spans, sheet: laid.sheet, layers: layerOptions(), details: regionDetails(painted.value, targets.value, options), redraw: !finalShadowed.value && shadowed(), textureLimit: textureLimit() }
         const firstKey = [builtFrom.painted, source, inputsKey, builtFrom.final]
         if (!drafted || drafted.key.some((part, at) => part !== firstKey[at])) drafted = { key: firstKey, value: buildText(source, cameraCover(object) ? { ...settings, paint: null, faded: faded() } : { ...settings, paint: painter(source) }) }
         const first = drafted.value

@@ -281,7 +281,24 @@ const KEYS = [
   ["customCoverAlign", choice("title", "camera")],
   ["customCoverSpan", BOOLEAN],
   ["customStripPerCharacter", BOOLEAN],
-  ["customFont", GOOGLE_FONT]
+  ["customFont", GOOGLE_FONT],
+  ["twistDoorDepth", NUMBER],
+  ["twistFan", NUMBER],
+  ["twistFanCentre", NUMBER],
+  ["twistFanRoll", BOOLEAN],
+  ["twistFanHeight", NUMBER],
+  ["wordTwistRibbon", NUMBER],
+  ["wordTwistRibbonCentre", NUMBER],
+  ["wordTwistRibbonMirror", BOOLEAN],
+  ["wordTwistDoor", NUMBER],
+  ["wordTwistDoorCentre", NUMBER],
+  ["wordTwistDoorSame", BOOLEAN],
+  ["wordTwistDoorRoll", BOOLEAN],
+  ["wordTwistDoorDepth", NUMBER],
+  ["wordTwistFan", NUMBER],
+  ["wordTwistFanCentre", NUMBER],
+  ["wordTwistFanRoll", BOOLEAN],
+  ["wordTwistFanHeight", NUMBER]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))
