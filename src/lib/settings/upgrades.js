@@ -52,3 +52,17 @@ const UPGRADES = [[2, restartLineTiles], [3, separateMatchScale], [4, widenBlock
 export function upgradeLine(line, version) {
   return UPGRADES.reduce((upgraded, [to, upgrade]) => version < to ? upgrade(upgraded) : upgraded, line)
 }
+
+const TWIST_ANCHORS = [["twistRibbonAnchor", "twistRibbonCentre", "twistRibbonMirror"], ["twistDoorAnchor", "twistDoorCentre", "twistDoorSame"]]
+const ANCHOR_CENTRES = { left: 0, centre: 50, right: 100 }
+
+export function twistCentres(values) {
+  const converted = { ...values }
+  for (const [anchor, centre, same] of TWIST_ANCHORS) {
+    if (!(anchor in converted)) continue
+    converted[centre] ??= ANCHOR_CENTRES[converted[anchor]] ?? 50
+    if (converted[anchor] === "right") converted[same] = true
+    delete converted[anchor]
+  }
+  return converted
+}

@@ -3,7 +3,7 @@ import { typeDefaults } from "../settings/defaults.js"
 import { loadFontList, sheetFolder, stripsOf } from "../font/font.js"
 import { LAYERS, OVERLAY_KINDS, isCustomFont } from "../settings/settings.js"
 import { isMinecraftShape, loadShapeList } from "../geometry/shapes.js"
-import { lineWords } from "./titleFacts.js"
+import { lineWords } from "./titleLines.js"
 
 let library = null
 
