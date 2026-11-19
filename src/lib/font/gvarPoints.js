@@ -7,11 +7,41 @@ const POINTS_ARE_WORDS = 0x80
 const POINT_RUN_COUNT_MASK = 0x7f
 const PHANTOM_POINTS = 4
 
-function tableStart(view, tag) {
+function tagAt(view, at) {
+  return String.fromCharCode(view.getUint8(at), view.getUint8(at + 1), view.getUint8(at + 2), view.getUint8(at + 3))
+}
+
+export function sfntTable(buffer, tag) {
+  const view = new DataView(buffer)
   const count = view.getUint16(4)
   for (let table = 0; table < count; table++) {
     const at = 12 + table * 16
-    if (String.fromCharCode(view.getUint8(at), view.getUint8(at + 1), view.getUint8(at + 2), view.getUint8(at + 3)) === tag) return view.getUint32(at + 8)
+    if (tagAt(view, at) === tag) return new Uint8Array(buffer, view.getUint32(at + 8), view.getUint32(at + 12))
+  }
+  return null
+}
+
+async function inflate(stored, tag) {
+  try {
+    return new Uint8Array(await new Response(new Response(stored).body.pipeThrough(new DecompressionStream("deflate"))).arrayBuffer())
+  } catch (err) {
+    throw new Error(`the woff ${tag} table isn't valid zlib data (${err.cause?.message || err.message})`)
+  }
+}
+
+export async function woffTable(buffer, tag) {
+  const view = new DataView(buffer)
+  const count = view.getUint16(12)
+  for (let table = 0; table < count; table++) {
+    const at = 44 + table * 20
+    if (tagAt(view, at) !== tag) continue
+    const stored = new Uint8Array(buffer, view.getUint32(at + 4), view.getUint32(at + 8))
+    const length = view.getUint32(at + 12)
+    if (stored.length === length) return stored
+    if (stored.length > length) throw new Error(`the woff ${tag} table is stored larger than its ${length} byte original`)
+    const inflated = await inflate(stored, tag)
+    if (inflated.length !== length) throw new Error(`the woff ${tag} table inflated to ${inflated.length} bytes instead of ${length}`)
+    return inflated
   }
   return null
 }
@@ -39,17 +69,16 @@ function everyPoint(glyph) {
 }
 
 // opentype.js reads a private point list of count 0 ("every point") as no private list and uses the shared points instead
-export function fixEveryPointTuples(font, buffer) {
+export function fixEveryPointTuples(font, table) {
   const gvar = font.tables.gvar
   if (!gvar) return font
-  const view = new DataView(buffer)
-  const start = tableStart(view, "gvar")
-  if (start === null) throw new Error("this font has gvar data but no gvar table in its file")
-  const axisCount = view.getUint16(start + 4)
-  const glyphCount = view.getUint16(start + 12)
-  const long = view.getUint16(start + 14) & 1
-  const dataStart = start + view.getUint32(start + 16)
-  const offsetOf = index => long ? view.getUint32(start + 20 + index * 4) : view.getUint16(start + 20 + index * 2) * 2
+  if (!table) throw new Error("this font has gvar data but no gvar table in its file")
+  const view = new DataView(table.buffer, table.byteOffset, table.byteLength)
+  const axisCount = view.getUint16(4)
+  const glyphCount = view.getUint16(12)
+  const long = view.getUint16(14) & 1
+  const dataStart = view.getUint32(16)
+  const offsetOf = index => long ? view.getUint32(20 + index * 4) : view.getUint16(20 + index * 2) * 2
   for (let index = 0; index < glyphCount; index++) {
     const variations = gvar.glyphVariations[index]
     const begin = offsetOf(index)
