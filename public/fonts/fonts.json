@@ -411,5 +411,9 @@
       "9": ["lY", "//", "\\\\"]
     },
     "editor": { "width": 30, "grid": 3 }
+  },
+  {
+    "id": "minecraft-alpha",
+    "authors": ["PopitTart"]
   }
 ]
