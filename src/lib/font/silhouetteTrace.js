@@ -1,5 +1,5 @@
 import { ClipType, FillRule, PolyTreeD, booleanOpDWithPolyTree } from "@countertype/clipper2-ts"
-import { inkBox } from "../submissions/kinds/shape.js"
+import { inkBox } from "./silhouette.js"
 
 const THRESHOLD = 128
 const SUBDIVISIONS = 4

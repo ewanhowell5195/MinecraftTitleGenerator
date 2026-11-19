@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { cubesMatch, silhouetteSample } from "../../src/lib/submissions/kinds/shape.js"
+import { cubesMatch, silhouetteSample } from "../../src/lib/font/silhouette.js"
 import { traceSilhouette } from "../../src/lib/font/silhouetteTrace.js"
 
 function imageOf(width, height, coverage) {

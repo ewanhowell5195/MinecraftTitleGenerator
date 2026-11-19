@@ -5,7 +5,9 @@ import { PNG } from "pngjs"
 import { pngOf } from "../helpers/png.js"
 import { publicContext } from "../helpers/site.js"
 
-const { cleanModel, cleanModelFile, sampleGlyph, samplePixels, shapeImage, shapeModel, silhouetteGlyph, silhouettePixels, silhouetteSample, silhouetteScale } = await import("../../src/lib/submissions/kinds/shape.js")
+const { shapeImage, shapeModel } = await import("../../src/lib/submissions/kinds/shape.js")
+const { cleanModel, cleanModelFile } = await import("../../src/lib/submissions/kinds/modelFile.js")
+const { sampleGlyph, samplePixels, silhouetteGlyph, silhouettePixels, silhouetteSample, silhouetteScale } = await import("../../src/lib/font/silhouette.js")
 const { elementCorners, modelHeight } = await import("../../src/lib/geometry/shapes.js")
 const { shapeImage: serverImage, shapeModel: serverModel } = await import("../../src/server/submissions/kinds/shape.js")
 const { frontView } = await import("../../generator/modelView.js")

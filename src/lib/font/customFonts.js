@@ -79,7 +79,7 @@ async function editorFont({ kind, data, google, style, height, mesh, density }) 
     return { font: fontFromFiles({ sheet: await pixels(json.editor.texture), json }) }
   }
   if (kind === "silhouette") {
-    const [{ fontFromShapes }, { sampleGlyph, silhouetteSample }, { traceSilhouette }] = await Promise.all([import("./editor/import.js"), import("../submissions/kinds/shape.js"), import("./silhouetteTrace.js")])
+    const [{ fontFromShapes }, { sampleGlyph, silhouetteSample }, { traceSilhouette }] = await Promise.all([import("./editor/import.js"), import("./silhouette.js"), import("./silhouetteTrace.js")])
     const sample = silhouetteSample(await pixels(data))
     const glyph = sampleGlyph(sample)
     const font = fontFromShapes(new Map([[SILHOUETTE_TEXT, glyph]]), { name: "Shape", capHeight: glyph.height, grid: 1, spaceWidth: Math.round(glyph.height / 2), letterCase: "upper" })
@@ -98,7 +98,7 @@ async function editorFont({ kind, data, google, style, height, mesh, density }) 
 }
 
 export async function silhouetteMesh(data) {
-  const { cubesMatch, silhouetteSample } = await import("../submissions/kinds/shape.js")
+  const { cubesMatch, silhouetteSample } = await import("./silhouette.js")
   return !cubesMatch(silhouetteSample(await pixels(data)))
 }
 
@@ -158,7 +158,7 @@ async function drawThumbnails(font, folder, entry) {
 }
 
 async function silhouetteTexture(font, entry, sample) {
-  const [{ parsedSheet }, { samplePixels }] = await Promise.all([import("./editor/sheet.js"), import("../submissions/kinds/shape.js")])
+  const [{ parsedSheet }, { samplePixels }] = await Promise.all([import("./editor/sheet.js"), import("./silhouette.js")])
   const { list, capHeight } = parsedSheet(font, defaultBorder("top", entry))
   return { ...samplePixels(list, capHeight, defaultDepth(entry), sample), scale: sample.scale }
 }

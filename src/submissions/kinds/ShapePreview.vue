@@ -5,7 +5,7 @@
   import { fetched } from "../../lib/submissions/api.js"
   import { titleCase } from "../../lib/core/names.js"
   import { stripFolder, stripUse } from "../../lib/font/strips.js"
-  import { cleanModel } from "../../lib/submissions/kinds/shape.js"
+  import { cleanModel } from "../../lib/submissions/kinds/modelFile.js"
   import { embedded } from "../submissionLink.js"
   import { submissionExtraUrl, submissionFileUrl } from "../../lib/submissions/submissionsApi.js"
   import { useLoaded, usePreviewLine } from "./preview.js"
