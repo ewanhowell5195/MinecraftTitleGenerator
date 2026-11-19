@@ -11,6 +11,7 @@ import { joinWords, titleLines, titleValues, trimmed } from "../link/titleFacts.
 import { FILE_VERSION } from "../settings/upgrades.js"
 import { readStored, view } from "./view.js"
 import { readLarge, removeLarge, writeLarge } from "./largeStore.js"
+import { trackEach } from "./tracking.js"
 
 const STORAGE = "minecraft-title-scene"
 const LARGE = "large"
@@ -161,13 +162,28 @@ export function leaveSharedLink() {
   clearSharedLink()
 }
 
-watch(scene, () => {
+const trims = new WeakMap()
+
+function savedValues(object) {
+  const raw = toRaw(object)
+  if (!trims.has(raw)) trims.set(raw, trimmed(object))
+  return { ...trims.get(raw) }
+}
+
+function queueSave() {
   clearTimeout(saving)
   saving = setTimeout(() => {
     if (sharedLink.open) return
-    save(JSON.stringify(stored(scene.objects, scene, FILE_VERSION, trimmed)))
+    save(JSON.stringify(stored(scene.objects, scene, FILE_VERSION, savedValues)))
   }, 300)
-}, { deep: true })
+}
+
+trackEach(() => scene.objects, raw => {
+  if (raw) trims.delete(raw)
+  queueSave()
+})
+trackEach(() => [scene.camera], queueSave)
+watch(() => [scene.selected, scene.selectedGroup, scene.preset], queueSave)
 
 export function words(object, title = editorTitle) {
   return object.group === null ? [object] : title.objects.filter(other => other.group === object.group)

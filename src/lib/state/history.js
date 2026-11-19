@@ -1,16 +1,19 @@
-import { effect, reactive, watch } from "vue"
+import { reactive, toRaw, watch } from "vue"
 import { forgetImages } from "../texture/assets.js"
 import { setCamera } from "../settings/camera.js"
 import { restore } from "../settings/settings.js"
 import { keepTexture, keptObject, leaveSharedLink, scene, validSelection } from "./scene.js"
 import { loadKey } from "../geometry/shapes.js"
+import { trackEach } from "./tracking.js"
 
 const LIMIT = 200
 const SETTLE = 300
 const LONG = 1024
+const EMPTY_OBJECTS = `{"objects":[]`
 
 export const history = reactive({ undo: [], redo: [] })
 
+const parts = new WeakMap()
 const strings = new Map()
 const ids = new Map()
 let nextString = 0
@@ -20,7 +23,6 @@ let quiet = 0
 let restoring = false
 let changed = false
 let held = false
-let retracking = false
 
 function intern(key, value) {
   if (typeof value !== "string" || value.length < LONG) return value
@@ -48,8 +50,15 @@ function prune() {
   forgetImages(url => url.length < LONG || ids.has(url))
 }
 
+function objectJson(object) {
+  const raw = toRaw(object)
+  if (!parts.has(raw)) parts.set(raw, JSON.stringify(object, intern))
+  return parts.get(raw)
+}
+
 function take() {
-  return JSON.stringify({ objects: scene.objects, camera: scene.camera, selected: scene.selected, selectedGroup: scene.selectedGroup }, intern)
+  const rest = JSON.stringify({ objects: [], camera: scene.camera, selected: scene.selected, selectedGroup: scene.selectedGroup }, intern)
+  return `{"objects":[${scene.objects.map(objectJson).join(",")}]${rest.slice(EMPTY_OBJECTS.length)}`
 }
 
 function commit() {
@@ -118,19 +127,7 @@ export function redo() {
   step("redo", "undo")
 }
 
-function touch(value) {
-  if (value === null || typeof value !== "object") return
-  for (const key in value) touch(value[key])
-}
-
 function noticeChange() {
-  if (!retracking) {
-    retracking = true
-    queueMicrotask(() => {
-      retracking = false
-      tracker()
-    })
-  }
   if (restoring) return
   if (!quiet) {
     changed = true
@@ -140,7 +137,11 @@ function noticeChange() {
   timer = held ? null : setTimeout(commit, SETTLE)
 }
 
-const tracker = effect(() => touch([scene.objects, scene.camera]), { scheduler: noticeChange })
+trackEach(() => scene.objects, raw => {
+  if (raw) parts.delete(raw)
+  noticeChange()
+})
+trackEach(() => [scene.camera], noticeChange)
 
 watch(() => [scene.selected, scene.selectedGroup], () => {
   if (!restoring && !changed && !timer) present = take()
