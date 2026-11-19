@@ -1,5 +1,6 @@
 <script setup>
   import { usePanel } from "./panel.js"
+  import { holdCentre } from "../centreDot.js"
   import Panel from "../Panel.vue"
   import Slider from "../../components/Slider.vue"
   import Toggle from "../../components/Toggle.vue"
@@ -24,10 +25,10 @@
     <p class="hint">{{ twist.hint }}</p>
     <Slider label="Amount" v-model="object[k(twist.amount)]" :min="-180" :max="180" />
     <template v-if="object[k(twist.amount)]">
-      <Slider label="Centre" v-model="object[k(twist.centre)]" :min="0" :max="100" hint="0 is the left end and 100 is the right end." />
+      <Slider label="Centre" v-model="object[k(twist.centre)]" :min="0" :max="100" hint="0 is the left end and 100 is the right end." @pointerdown="holdCentre(kind, word)" />
       <Toggle v-if="twist.same" :label="twist.sameLabel" v-model="object[k(twist.same)]" />
       <Toggle v-if="twist.roll" :label="twist.rollLabel" v-model="object[k(twist.roll)]" />
-      <Slider v-if="twist.hinge && object[k(twist.roll)]" :label="twist.hingeLabel" v-model="object[k(twist.hinge)]" :min="-100" :max="200" :hint="twist.hingeHint" />
+      <Slider v-if="twist.hinge && object[k(twist.roll)]" :label="twist.hingeLabel" v-model="object[k(twist.hinge)]" :min="-100" :max="200" :hint="twist.hingeHint" @pointerdown="holdCentre(kind, word)" />
     </template>
   </Panel>
 </template>

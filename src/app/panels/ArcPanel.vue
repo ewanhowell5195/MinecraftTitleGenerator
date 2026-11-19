@@ -2,6 +2,7 @@
   import { computed } from "vue"
   import { hasMarks } from "../../lib/font/stretchMarks.js"
   import { usePanel } from "./panel.js"
+  import { holdCentre } from "../centreDot.js"
   import Panel from "../Panel.vue"
   import Segments from "../../components/Segments.vue"
   import Slider from "../../components/Slider.vue"
@@ -31,6 +32,6 @@
       <p class="hint">Moves the outer characters more than the inner ones.</p>
       <Slider label="Curve" v-model="object[k('arcMove')]" :min="-100" :max="100" />
     </template>
-    <Slider label="Centre" v-model="object[k('arcCentre')]" :min="0" :max="100" hint="0 is the left end and 100 is the right end." />
+    <Slider label="Centre" v-model="object[k('arcCentre')]" :min="0" :max="100" hint="0 is the left end and 100 is the right end." @pointerdown="holdCentre('arc', word)" />
   </Panel>
 </template>

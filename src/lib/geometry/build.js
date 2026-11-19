@@ -420,6 +420,13 @@ export function buildText(font, options) {
     tools: font.mesh?.tools ?? null,
     twist,
     plain,
+    centres: {
+      line: { ends: [first, last], extent: [line.minX + offset, line.maxX + offset] },
+      word: { ends: [Math.min(...middles), Math.max(...middles)], extent: [Math.min(...glyphs.map(glyph => glyph.rect.minX)), Math.max(...glyphs.map(glyph => glyph.rect.maxX))] },
+      y: (line.minY + line.maxY) / 2,
+      height: line.maxY - line.minY,
+      depths: [depth / 2 - (options.lineDepth ?? depth), depth / 2]
+    },
     swatch: texture.swatch,
     averages: { side: texture.side, get edge() { return texture.edge() } }
   }

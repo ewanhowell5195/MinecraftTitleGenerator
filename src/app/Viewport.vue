@@ -13,6 +13,7 @@
   import { scene as title, shapingWord } from "../lib/state/scene.js"
   import { createSmoothing } from "../components/composables/smoothing.js"
   import { createStage } from "../render/stage.js"
+  import { centrePoint, heldCentre } from "./centreDot.js"
   import { titleLoads, view, viewport, viewportChanges } from "../lib/state/view.js"
 
   const TOOLS = [[null, "pointer", "No gizmo"], ["translate", "move", "Move"], ["rotate", "rotate", "Rotate"], ["scale", "scale", "Scale"]]
@@ -24,6 +25,7 @@
   })
 
   const host = ref(null)
+  const dot = ref(null)
   const stage = createStage()
   const { scene, entries } = stage
   const rig = { renderer: null, camera: null, controls: null, frameSize: { width: 1, height: 1 } }
@@ -58,6 +60,15 @@
       rig.renderer.autoClear = true
     }
     viewport.mirror?.(rig.renderer.domElement)
+    placeDot()
+  }
+
+  function placeDot() {
+    const point = centrePoint(entries)
+    dot.value.hidden = !point
+    if (!point) return
+    point.project(rig.camera)
+    dot.value.style.translate = `${(point.x + 1) / 2 * rig.frameSize.width}px ${(1 - point.y) / 2 * rig.frameSize.height}px`
   }
 
   function sync() {
@@ -143,6 +154,7 @@
   watch(() => view.gizmo, invalidate)
   watch([() => view.section, () => view.render, () => view.camera], () => view.gizmo = null)
   watch(shapingWord, invalidate)
+  watch(heldCentre, invalidate)
   watch([pan, orbit], applyView)
   watch(navigable, homeView, { flush: "sync" })
   watch(titleLoads, homeView)
@@ -155,6 +167,7 @@
 
 <template>
   <div ref="host" class="viewport" :class="{ navigable, panning }">
+    <div ref="dot" class="centre-dot" hidden></div>
     <div v-if="navigable" class="toolbar">
       <div v-if="view.section === 'transform'" class="tools">
         <Button ghost :active="view.gizmo === mode" v-for="[mode, icon, title] of TOOLS" :key="icon" v-tooltip="{ text: title, tooltipClass: 'slow' }" :aria-label="title" :aria-pressed="view.gizmo === mode" :icon="icon" @click="view.gizmo = mode" />
@@ -183,6 +196,25 @@
     z-index: 2;
     display: flex;
     gap: 8px;
+  }
+
+  .centre-dot {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 2;
+    width: 14px;
+    height: 14px;
+    margin: -7px 0 0 -7px;
+    background: var(--accent);
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px #000000;
+    pointer-events: none;
+  }
+
+  .centre-dot[hidden] {
+    display: none;
   }
 
   .tools {
