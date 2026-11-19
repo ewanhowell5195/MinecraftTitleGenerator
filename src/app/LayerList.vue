@@ -3,7 +3,7 @@
   import { isPlainClick, vLongPress } from "../components/composables/events.js"
   import { namingForShare, namingPreset } from "../lib/state/presets.js"
   import { PRESETS_PATH, openPresetsPage } from "../lib/state/presetsPage.js"
-  import { dropPreview, previews, renderPreview } from "./previews.js"
+  import { dropPreview, renderPreview } from "./previews.js"
   import { clampedSpot, followPointer, useReorderDrag } from "../components/composables/reorder.js"
   import { TYPES } from "../lib/settings/defaults.js"
   import { addObject, addShape, duplicateLine, lineHidden, lineText, lines, removeLine, removeObject, runtime, scene, select, selectGroup, toggleLine, wordText } from "../lib/state/scene.js"
@@ -11,13 +11,46 @@
   import { userBusy } from "../lib/state/activity.js"
   import ContextMenu from "../components/ContextMenu.vue"
   import Icon from "../components/Icon.vue"
+  import LayerThumb from "./LayerThumb.vue"
   import SavePresetDialog from "./presets/SavePresetDialog.vue"
 
   const SETTLE = 150
+  const BUDGET = 12
 
   const rendered = new Map()
   const queued = new Set()
+  const seen = new Set()
+  const watched = new Map()
   let timer = null
+
+  function schedule() {
+    clearTimeout(timer)
+    timer = setTimeout(flush, SETTLE)
+  }
+
+  const sightings = new IntersectionObserver(entries => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue
+      const id = watched.get(entry.target)
+      watched.delete(entry.target)
+      sightings.unobserve(entry.target)
+      if (seen.has(id)) continue
+      seen.add(id)
+      if (rendered.get(id)) {
+        queued.add(id)
+        schedule()
+      }
+    }
+  }, { rootMargin: "200px" })
+
+  function sight(element, id) {
+    watched.set(element, id)
+    sightings.observe(element)
+    return () => {
+      watched.delete(element)
+      sightings.unobserve(element)
+    }
+  }
 
   function flush() {
     if (userBusy()) {
@@ -25,12 +58,18 @@
       return
     }
     timer = null
+    const start = performance.now()
     for (const id of queued) {
+      queued.delete(id)
+      if (!seen.has(id)) continue
       const state = runtime[id]
       if (state?.preview && state.transform) renderPreview(id, { ...state.preview, transform: state.transform })
       else dropPreview(id)
+      if (queued.size && performance.now() - start > BUDGET) {
+        timer = setTimeout(flush)
+        return
+      }
     }
-    queued.clear()
   }
 
   watch(() => scene.objects.map(object => [object.id, runtime[object.id]]), list => {
@@ -46,11 +85,10 @@
     for (const id of rendered.keys()) {
       if (ids.has(id)) continue
       rendered.delete(id)
+      seen.delete(id)
       dropPreview(id)
     }
-    if (!queued.size) return
-    clearTimeout(timer)
-    timer = setTimeout(flush, SETTLE)
+    if (queued.size) schedule()
   }, { immediate: true })
 
   const rows = computed(() => lines().map(words => ({ key: words[0].group === null ? `object-${words[0].id}` : `group-${words[0].group}`, group: words[0].group, words })))
@@ -216,7 +254,10 @@
     openPresetsPage()
   }
 
-  onBeforeUnmount(() => clearTimeout(timer))
+  onBeforeUnmount(() => {
+    clearTimeout(timer)
+    sightings.disconnect()
+  })
 </script>
 
 <template>
@@ -231,10 +272,8 @@
         <div v-if="row.group !== null" class="head" tabindex="0" role="button" :aria-label="`${lineLabel(row)} line`" :aria-pressed="groupSelected(row)" @pointerdown="press($event, row, null)" @click="pickGroup(row.group)" v-long-press @contextmenu.prevent="menu($event, row, null)" @keydown.enter="pickGroup(row.group)" @keydown.space.prevent="pickGroup(row.group)" v-tooltip="{ text: `${lineLabel(row)} (${TYPES[row.words[0].type].name})`, prefer: 'right', tooltipClass: 'rail-tip rail-head' }">
           <Icon name="layers" :size="14" />
         </div>
-        <div class="layer" v-for="object of row.words" :key="object.id" tabindex="0" role="button" :aria-pressed="selected(object)" @pointerdown="press($event, row, row.group === null ? null : object)" @click="pick(object)" v-long-press @contextmenu.prevent="menu($event, row, row.group === null ? null : object)" @keydown.enter="pick(object)" @keydown.space.prevent="pick(object)" :class="{ selected: selected(object), hidden: object.hidden, error: runtime[object.id]?.error, dragged: dragged === object.id || dragged === row.key && row.group === null }" v-tooltip="{ text: `${label(object)} (${TYPES[object.type].name})`, prefer: 'right', tooltipClass: row.group === null ? 'rail-tip thumb-tip' : 'rail-tip thumb-tip rail-word' }">
-          <div class="thumb">
-            <img v-if="previews[object.id]" :src="previews[object.id]" alt="">
-          </div>
+        <div class="layer" v-for="object of row.words" :key="object.id" tabindex="0" role="button" :aria-pressed="selected(object)" @pointerdown="press($event, row, row.group === null ? null : object)" @click="pick(object)" v-long-press @contextmenu.prevent="menu($event, row, row.group === null ? null : object)" @keydown.enter="pick(object)" @keydown.space.prevent="pick(object)" :class="{ selected: selected(object), hidden: object.hidden, dragged: dragged === object.id || dragged === row.key && row.group === null }" v-tooltip="{ text: `${label(object)} (${TYPES[object.type].name})`, prefer: 'right', tooltipClass: row.group === null ? 'rail-tip thumb-tip' : 'rail-tip thumb-tip rail-word' }">
+          <LayerThumb :id="object.id" :sight="sight" />
           <span class="name ellipsis">{{ label(object) }}</span>
         </div>
       </div>
@@ -308,7 +347,7 @@
     border-color: var(--accent);
   }
 
-  .layer.error .thumb {
+  .thumb.error {
     border-color: var(--danger);
   }
 
@@ -321,7 +360,7 @@
     outline-offset: 2px;
   }
 
-  .thumb img {
+  .thumb :deep(img) {
     display: block;
     width: 100%;
     height: 100%;
@@ -329,7 +368,7 @@
     object-fit: contain;
   }
 
-  .layer.hidden img {
+  .layer.hidden :deep(img) {
     opacity: 0.3;
   }
 

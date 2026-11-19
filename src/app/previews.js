@@ -12,6 +12,7 @@ export const previews = reactive({})
 const stage = createStage()
 let renderer = null
 let camera = null
+let shown = null
 
 function setup() {
   renderer = platform.createWebGLRenderer()
@@ -22,7 +23,8 @@ function setup() {
 
 export function renderPreview(id, item) {
   if (!renderer) setup()
-  for (const other of stage.entries.values()) other.group.visible = false
+  if (shown !== id && stage.entries.has(shown)) stage.entries.get(shown).group.visible = false
+  shown = id
   const entry = stage.update(id, item)
   if (entry.outline) entry.outline.renderOrder = 0
   if (entry.solid) entry.solid.renderOrder = 1
@@ -37,6 +39,7 @@ export function renderPreview(id, item) {
 }
 
 export function dropPreview(id) {
+  if (shown === id) shown = null
   stage.drop(id)
   delete previews[id]
 }
