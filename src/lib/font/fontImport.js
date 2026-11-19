@@ -3,6 +3,7 @@ import { MULTICASE_CHARACTERS } from "./editor/characters.js"
 import { DEFAULT_SPACE_WIDTH } from "./editor/defaults.js"
 import { fontFromShapes } from "./editor/import.js"
 import { flatten, glyphFor, gridShift, lineUnits, pixelGrid, rasterise } from "./fontOutline.js"
+import { fixEveryPointTuples } from "./gvarPoints.js"
 
 const SAMPLE_LETTERS = Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
 const MOST_PIXEL_ROWS = 32
@@ -23,14 +24,16 @@ export async function parseFontFile(buffer) {
   if (start === "ttcf") throw new Error("font collections (.ttc) can't be imported, use a single .ttf or .otf")
   if (start !== "wOF2") {
     try {
-      return opentype.parse(buffer)
+      const parsed = opentype.parse(buffer)
+      return start === "wOFF" ? parsed : fixEveryPointTuples(parsed, buffer)
     } catch (err) {
       throw new Error(`that file isn't a font this editor can read (${err.message})`)
     }
   }
   const { default: decompress } = await import("woff2-encoder/decompress")
   const font = await decompress(buffer)
-  return opentype.parse(font.buffer.slice(font.byteOffset, font.byteOffset + font.byteLength))
+  const sfnt = font.buffer.slice(font.byteOffset, font.byteOffset + font.byteLength)
+  return fixEveryPointTuples(opentype.parse(sfnt), sfnt)
 }
 
 export function atVariation(source, coords) {
