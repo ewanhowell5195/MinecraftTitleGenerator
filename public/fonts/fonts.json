@@ -431,6 +431,26 @@
   {
     "id": "technis-font",
     "name": "Technis font",
-    "authors": ["Techna45", "Dragonslayr15001"]
+    "authors": ["Techna45", "Dragonslayr15001"],
+    "description": "Made by techna",
+    "preview": "toc",
+    "basedOn": "block-serif",
+    "strips": ["minecraft-ten"],
+    "spaceWidth": 14,
+    "characterSpacing": 1,
+    "terminatorSpace": true,
+    "forcedTerminators": true,
+    "order": "😳abcdefghijklmnopqrstuvwxyz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣§|◇♡‽¤",
+    "kerning": {
+      "1": ["😳7", "vj", "t.", ".t", "t,", "t_", "y,", ",y", "y_", "😳v", "v/", "😳\\"],
+      "2": ["f😳", "fj", ".y", "/😳"],
+      "3": ["😳w", "fa", "y.", "a\\", "pa"],
+      "4": ["w😳", "a7", "yj", "_t", "_y", "\\v"],
+      "5": ["ly", "w/", "\\w", "va"],
+      "6": ["aw", "wa", "lv", "\\\\", "av"],
+      "9": ["7a", "//"],
+      "10": ["l?", "/a"]
+    },
+    "editor": { "width": 32, "grid": 4 }
   }
 ]
