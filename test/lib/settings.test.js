@@ -200,7 +200,7 @@ const SMALL_DEFAULTS = {
   sideFade: 75
 }
 
-const PANEL_NAMES = ["text", "terminators", "font", "placement", "geometry", "spacing", "arc", "twist", "transform", "wordGeometry", "wordArc", "wordTwist", "wordTransform", "texture", "overlays", "edgeOverlays", "colour", "outline", "inner", "sides", "faces"]
+const PANEL_NAMES = ["text", "terminators", "font", "placement", "geometry", "spacing", "arc", "ribbon", "wrap", "fan", "transform", "wordGeometry", "wordArc", "wordRibbon", "wordWrap", "wordFan", "wordTransform", "texture", "overlays", "edgeOverlays", "colour", "outline", "inner", "sides", "faces"]
 
 const TEXTURES = {
   primary: "cracked",
@@ -215,11 +215,13 @@ describe("typeDefaults", () => {
     assert.deepEqual(typeDefaults("top"), TOP_DEFAULTS)
   })
 
-  test("the word twist starts the same as the line twist and belongs to the word", () => {
-    const line = PANELS.twist()
-    assert.deepEqual(PANELS.wordTwist(), Object.fromEntries(Object.entries(line).map(([key, value]) => [wordKey(key), value])))
-    for (const key of Object.keys(PANELS.wordTwist())) assert.ok(!LINE.has(key), key)
-    for (const key of Object.keys(line)) assert.ok(LINE.has(key), key)
+  test("each word twist starts the same as its line twist and belongs to the word", () => {
+    for (const [name, wordName] of [["ribbon", "wordRibbon"], ["wrap", "wordWrap"], ["fan", "wordFan"]]) {
+      const line = PANELS[name]()
+      assert.deepEqual(PANELS[wordName](), Object.fromEntries(Object.entries(line).map(([key, value]) => [wordKey(key), value])))
+      for (const key of Object.keys(PANELS[wordName]())) assert.ok(!LINE.has(key), key)
+      for (const key of Object.keys(line)) assert.ok(LINE.has(key), key)
+    }
   })
 
   test("pins every bottom default", () => {

@@ -83,7 +83,7 @@
         <GeometryPanel :word="shapingWord" :key="shapingWord ? 'word-geometry' : 'line-geometry'" />
         <template v-if="!shapeLine">
           <ArcPanel :word="shapingWord" :key="shapingWord ? 'word-arc' : 'line-arc'" />
-          <TwistPanel :word="shapingWord" :key="shapingWord ? 'word-twist' : 'line-twist'" />
+          <TwistPanel v-for="kind of ['ribbon', 'wrap', 'fan']" :key="`${shapingWord ? 'word' : 'line'}-${kind}`" :kind="kind" :word="shapingWord" />
         </template>
       </template>
       <TransformPanel v-else :word="shapingWord" />

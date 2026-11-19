@@ -87,15 +87,19 @@ export const PANELS = {
     arcMarked: true,
     arcGradient: false
   }),
-  twist: () => ({
+  ribbon: () => ({
     twistRibbon: 0,
     twistRibbonCentre: 50,
-    twistRibbonMirror: false,
+    twistRibbonMirror: false
+  }),
+  wrap: () => ({
     twistDoor: 0,
     twistDoorCentre: 50,
     twistDoorSame: false,
     twistDoorRoll: true,
-    twistDoorDepth: 50,
+    twistDoorDepth: 50
+  }),
+  fan: () => ({
     twistFan: 0,
     twistFanCentre: 50,
     twistFanRoll: true,
@@ -132,15 +136,19 @@ export const PANELS = {
     wordArcCentre: 50,
     wordArcMarked: true
   }),
-  wordTwist: () => ({
+  wordRibbon: () => ({
     wordTwistRibbon: 0,
     wordTwistRibbonCentre: 50,
-    wordTwistRibbonMirror: false,
+    wordTwistRibbonMirror: false
+  }),
+  wordWrap: () => ({
     wordTwistDoor: 0,
     wordTwistDoorCentre: 50,
     wordTwistDoorSame: false,
     wordTwistDoorRoll: true,
-    wordTwistDoorDepth: 50,
+    wordTwistDoorDepth: 50
+  }),
+  wordFan: () => ({
     wordTwistFan: 0,
     wordTwistFanCentre: 50,
     wordTwistFanRoll: true,

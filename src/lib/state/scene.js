@@ -315,7 +315,7 @@ export const current = computed(() => {
   return broadcast(object, key => LINE.has(key) ? words(object) : [object])
 })
 
-export const wordTabs = computed(() => !!currentWord.value && (words(currentWord.value).length > 1 || ["wordGeometry", "wordArc", "wordTwist", "wordTransform"].some(panel => isModified(currentWord.value, panel))))
+export const wordTabs = computed(() => !!currentWord.value && (words(currentWord.value).length > 1 || ["wordGeometry", "wordArc", "wordRibbon", "wordWrap", "wordFan", "wordTransform"].some(panel => isModified(currentWord.value, panel))))
 
 export const shapingWord = computed(() => wordTabs.value && view.shapeTab === "word")
 
