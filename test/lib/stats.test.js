@@ -13,7 +13,7 @@ function stubFetch(url, options) {
 quietStorage()
 globalThis.fetch = stubFetch
 
-const { loadStats, popular } = await import("../../src/lib/state/stats.js")
+const { loadStats, popular, statScope } = await import("../../src/lib/state/stats.js")
 
 function statsOf(entries) {
   return { ok: true, status: 200, json: async () => entries }
@@ -84,5 +84,17 @@ describe("popular", () => {
     response = { ok: false, status: 503 }
     await assert.rejects(loadStats(), { message: "failed to load the title stats: 503" })
     assert.deepEqual(ids(popular(entries, idOf, idOf)), ["b", "a", "c"])
+  })
+})
+
+describe("statScope", () => {
+  test("puts every Google font's textures and overlays under one shared scope", () => {
+    assert.equal(statScope({ font: "custom-abc", customFont: { kind: "outline", google: "Roboto", style: "700" } }, "custom-abc"), "google")
+    assert.equal(statScope({ font: "custom-def", customFont: { kind: "outline", google: "Pacifico", style: "400" } }, "custom-def"), "google")
+  })
+
+  test("keeps the font's own id for published fonts and uploads", () => {
+    assert.equal(statScope({ font: "minecraft-ten", customFont: null }, "minecraft-ten"), "minecraft-ten")
+    assert.equal(statScope({ font: "custom-abc", customFont: { kind: "outline", data: "data:font/ttf;base64," } }, "custom-abc"), "custom-abc")
   })
 })

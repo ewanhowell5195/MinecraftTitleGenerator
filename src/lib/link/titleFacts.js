@@ -146,7 +146,7 @@ function twistCentres(values) {
 
 function expand(values) {
   if (values.customTexture && !values.customTexture.startsWith("data:image/")) throw new Error("it has a texture image that isn't embedded in it")
-  if (values.customFont && (!CUSTOM_FONT_KINDS.includes(values.customFont.kind) || !values.customFont.data?.startsWith?.("data:"))) throw new Error("it has a custom font that isn't embedded in it")
+  if (values.customFont && (!CUSTOM_FONT_KINDS.includes(values.customFont.kind) || !values.customFont.google && !values.customFont.data?.startsWith?.("data:"))) throw new Error("it has a custom font that isn't embedded in it")
   const base = typeDefaults(values.type ?? "top")
   const object = { ...base, ...twistCentres(values) }
   for (const key of LAYERS) {

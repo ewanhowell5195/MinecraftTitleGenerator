@@ -1,6 +1,7 @@
 import { shallowRef } from "vue"
 import { scene } from "./scene.js"
 import { OVERLAY_KINDS, isCustomFont } from "../settings/settings.js"
+import { GOOGLE_STATS } from "../font/googleCatalog.js"
 
 const API = "https://api.wynem.com/minecrafttitlegenerator/stats"
 
@@ -30,19 +31,28 @@ export function minecraftStatId(id) {
   return `tileable.minecraft.${id}`
 }
 
+function googleFamily(object) {
+  return isCustomFont(object.font) ? object.customFont?.google ?? null : null
+}
+
+export function statScope(object, id) {
+  return googleFamily(object) ? GOOGLE_STATS : id
+}
+
 function statIds() {
   const ids = new Set()
   const minecraft = new Map()
   for (const object of scene.objects) {
-    if (object.hidden || object.shape !== null || !object.text.trim() || isCustomFont(object.font)) continue
-    ids.add(object.font)
-    if (object.textureSource === "premade") ids.add(`${object.font}.${object.texture}`)
+    if (object.hidden || object.shape !== null || !object.text.trim() || isCustomFont(object.font) && !googleFamily(object)) continue
+    const scope = statScope(object, object.font)
+    ids.add(googleFamily(object) ? `${GOOGLE_STATS}.${googleFamily(object)}` : object.font)
+    if (object.textureSource === "premade") ids.add(`${scope}.${object.texture}`)
     if (object.textureSource === "tileable" && object.tileableSource === "minecraft") minecraft.set(object.minecraftTexture, object.minecraftVersion)
     if (object.textureSource === "tileable" && object.tileableSource !== "minecraft") ids.add(`tileable.${object.tileable}`)
     for (const [kind, mode] of Object.entries(OVERLAY_KINDS)) {
       if (object[mode] !== "custom") continue
       for (const layer of object[kind]) {
-        if (layer.source === "premade") ids.add(`${object.font}.${layer.overlay}`)
+        if (layer.source === "premade") ids.add(`${scope}.${layer.overlay}`)
       }
     }
   }

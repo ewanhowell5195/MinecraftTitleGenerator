@@ -1,6 +1,7 @@
 import { typeDefaults } from "../settings/defaults.js"
 import { ID_CHARACTERS, fitsSet, isColour, readColour, readId, readNumber, readText, readVarint, writeColour, writeId, writeNumber, writeText, writeVarint } from "./linkBytes.js"
 import { LAYERS } from "../settings/settings.js"
+import { googleFontSource, isGoogleFont } from "../font/googleFonts.js"
 
 function isStop(stop) {
   return stop !== null && typeof stop === "object" && Object.keys(stop).length === 2 && isColour(stop.colour) && Number.isFinite(stop.position)
@@ -74,6 +75,14 @@ const STATE = {
     for (let count = readVarint(reader); count > 0; count--) entries.push([readId(reader), readId(reader)])
     return Object.fromEntries(entries)
   }
+}
+const GOOGLE_FONT = {
+  fits: isGoogleFont,
+  write(out, value) {
+    writeText(out, value.google)
+    writeText(out, value.style)
+  },
+  read: reader => googleFontSource(readText(reader), readText(reader))
 }
 const COMPONENTS = { fits: isObject, write: (out, value) => writeText(out, JSON.stringify(value)), read: reader => JSON.parse(readText(reader)) }
 const OVERLAY_KEYS = new Map([["fade", "overlayFade"]])
@@ -271,7 +280,8 @@ const KEYS = [
   ["customCoverY", NUMBER],
   ["customCoverAlign", choice("title", "camera")],
   ["customCoverSpan", BOOLEAN],
-  ["customStripPerCharacter", BOOLEAN]
+  ["customStripPerCharacter", BOOLEAN],
+  ["customFont", GOOGLE_FONT]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))

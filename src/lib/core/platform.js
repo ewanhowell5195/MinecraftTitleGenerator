@@ -14,6 +14,8 @@ function maxTextureSize() {
 export const platform = {
   minecraftAsset: null,
   minecraftModels: null,
+  fontUserAgent: null,
+  cachedFont: (name, load) => load(),
   fetch: (...args) => fetch(...args),
   createCanvas: () => document.createElement("canvas"),
   createWebGLRenderer: () => new THREE.WebGLRenderer({ antialias: false, alpha: true }),

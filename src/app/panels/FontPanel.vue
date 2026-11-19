@@ -5,7 +5,7 @@
 <script setup>
   import { computed, ref, watch } from "vue"
   import { fontCredit } from "../../lib/font/credits.js"
-  import { PREVIEW_DETAIL, customFontEntry, customFontKind, customThumbnail } from "../../lib/font/customFonts.js"
+  import { PREVIEW_DETAIL, customFontEntry, customFontKind, customThumbnail, customThumbnails } from "../../lib/font/customFonts.js"
   import { DEFAULT_FONT } from "../../lib/settings/defaults.js"
   import { fullName, loadImage } from "../../lib/font/font.js"
   import { usePanel } from "./panel.js"
@@ -15,6 +15,8 @@
   import { popular } from "../../lib/state/stats.js"
   import { SEARCH_ABOVE, fontThumbnail, readDataUrl, takeFile } from "../../lib/state/ui.js"
   import { usedFonts } from "./uploads.js"
+  import { googleFontSource } from "../../lib/font/googleFonts.js"
+  import GoogleFontList from "./GoogleFontList.vue"
   import Button from "../../components/Button.vue"
   import Field from "../../components/Field.vue"
   import FontInfoDialog from "./FontInfoDialog.vue"
@@ -28,20 +30,22 @@
   import UploadReuse from "../../components/UploadReuse.vue"
   import Toggle from "../../components/Toggle.vue"
 
-  const TABS = [{ value: "published", label: "All fonts" }, { value: "custom", label: "Custom" }]
+  const TABS = [{ value: "published", label: "All fonts" }, { value: "google", label: "Google Fonts" }, { value: "custom", label: "Custom" }]
   const IMPORT_HEIGHT = 40
   const BUILDS = [{ value: false, label: "Cubes" }, { value: true, label: "Mesh" }]
 
   const info = ref(false)
   const { object, font, modified, reset } = usePanel("font")
-  const tab = ref(isCustomFont(object.value.font) ? "custom" : "published")
+  const tab = ref(tabOf(object.value))
+  const googleLoading = ref(null)
   const customName = ref("")
   const customImage = ref(null)
   const customUnit = ref(null)
   const customError = ref("")
   const loading = ref(false)
   const usingCustom = computed(() => isCustomFont(object.value.font) && !!object.value.customFont)
-  const imported = computed(() => object.value.customFont && object.value.customFont.kind !== "json")
+  const uploaded = computed(() => !!object.value.customFont && !object.value.customFont.google)
+  const imported = computed(() => uploaded.value && object.value.customFont.kind !== "json")
   const squares = computed(() => object.value.customFont?.kind === "outline" && !object.value.customFont.mesh)
   const terminators = usePanel("terminators")
   const creeper = usePanel("creeper")
@@ -60,6 +64,11 @@
     const term = search.value.trim().toLowerCase()
     return baseFonts.value.flatMap(base => [base].concat(popular(library.fonts.filter(item => item.variant === base.id), item => item.id, item => item.name))).filter(item => [item.id, fullName(item, library.fonts)].some(text => text.toLowerCase().includes(term)))
   })
+
+  function tabOf(target) {
+    if (!isCustomFont(target.font)) return "published"
+    return target.customFont?.google ? "google" : "custom"
+  }
 
   function entryThumbnail(entry) {
     const detailed = customThumbnail(entry.id, "preview")
@@ -84,9 +93,9 @@
   function chooseTab(value) {
     tab.value = value
     search.value = ""
-    if (value === "custom") {
+    if (value !== "published") {
       if (!isCustomFont(object.value.font)) publishedFonts.set(object.value.id, object.value.font)
-      if (object.value.customFont && !usingCustom.value) applyCustom(object.value.customFont)
+      if (object.value.customFont && !usingCustom.value && !!object.value.customFont.google === (value === "google")) applyCustom(object.value.customFont)
     } else if (isCustomFont(object.value.font)) {
       object.value.font = publishedFonts.get(object.value.id) ?? DEFAULT_FONT
     }
@@ -106,6 +115,12 @@
       return
     }
     readDataUrl(file, data => applyCustom({ kind, fileName: file.name, data, height: IMPORT_HEIGHT }))
+  }
+
+  async function pickGoogle(font) {
+    googleLoading.value = font.family
+    await applyCustom(googleFontSource(font.family, font.style))
+    googleLoading.value = null
   }
 
   function changeImport(key, value) {
@@ -130,6 +145,8 @@
       const entry = await customFontEntry(source)
       if (stale) return
       customName.value = entry.name
+      await customThumbnails(entry.id)
+      if (stale) return
       const { image, detailed } = entryThumbnail(entry)
       const unit = image && (await loadImage(image)).height * (detailed ? 1 : PREVIEW_DETAIL)
       if (stale) return
@@ -151,13 +168,14 @@
     const token = ++reuseToken
     const shown = await Promise.all(items.map(async item => {
       const entry = await customFontEntry(item.value)
+      await customThumbnails(entry.id)
       return { ...item, label: entry.name, image: entryThumbnail(entry).image }
     }))
     if (token === reuseToken) reusable.value = shown
   }, { immediate: true })
 
   watch(() => [object.value.id, isCustomFont(object.value.font)], () => {
-    tab.value = isCustomFont(object.value.font) ? "custom" : "published"
+    tab.value = tabOf(object.value)
     customError.value = ""
   })
 
@@ -178,8 +196,8 @@
     <FontInfoDialog v-if="info && font" :font="font" :title="entry?.name || customName || 'Font'" @close="info = false" />
     <Segments v-if="tab === 'custom'" :options="TABS" :model-value="tab" @update:model-value="chooseTab" />
     <template v-if="tab === 'custom'">
-      <UploadField accept=".json,.png,.ttf,.otf,.woff,.woff2,application/json,image/png,font/ttf,font/otf,font/woff,font/woff2" :label="loading ? 'Loading...' : object.customFont ? 'Replace font' : 'Choose a font file'" empty="No font uploaded" :disabled="loading" :clearable="!!object.customFont" @change="upload" @clear="clearCustom">
-        <template v-if="object.customFont" #preview>
+      <UploadField accept=".json,.png,.ttf,.otf,.woff,.woff2,application/json,image/png,font/ttf,font/otf,font/woff,font/woff2" :label="loading ? 'Loading...' : uploaded ? 'Replace font' : 'Choose a font file'" empty="No font uploaded" :disabled="loading" :clearable="uploaded" @change="upload" @clear="clearCustom">
+        <template v-if="uploaded" #preview>
           <div class="custom-font">
             <div class="preview picture"><img v-if="customImage" :src="customImage" alt="" :style="customUnit ? { height: `${customUnit}px` } : null"></div>
             <span class="name ellipsis">{{ customName || object.customFont.fileName }}</span>
@@ -204,6 +222,11 @@
       </template>
       <UploadReuse :items="reusable" @pick="applyCustom" />
     </template>
+    <div v-if="tab === 'google'" class="flow pick peek">
+      <Segments :options="TABS" :model-value="tab" @update:model-value="chooseTab" />
+      <Notice v-if="customError">{{ customError }}</Notice>
+      <GoogleFontList :current="usingCustom && object.customFont.google ? object.customFont : null" :loading="googleLoading" @pick="pickGoogle" />
+    </div>
     <div v-if="tab === 'published'" ref="picker" class="flow pick peek" :style="{ minHeight: `${floor}px` }">
       <Segments :options="TABS" :model-value="tab" @update:model-value="chooseTab" />
       <input v-if="searchable" type="text" v-model="search" placeholder="Search fonts" aria-label="Search fonts">

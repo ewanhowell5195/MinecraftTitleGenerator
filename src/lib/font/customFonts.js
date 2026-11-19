@@ -1,4 +1,6 @@
+import { shallowReactive } from "vue"
 import { fontTextures } from "../texture/assets.js"
+import { IMPORTED_TEXTURES } from "../texture/imported.js"
 import { pixelsOf } from "../texture/canvas.js"
 import { defaultBorder, defaultDepth } from "../settings/defaults.js"
 import { fontFolder, kerningPairs, loadImage } from "./font.js"
@@ -7,12 +9,15 @@ import { CUSTOM_FONT } from "../settings/settings.js"
 import { SILHOUETTE_TEXT } from "../geometry/shapes.js"
 import { stripRows } from "./strips.js"
 import { pngUrl, serveFile } from "../core/virtualFiles.js"
+import { platform } from "../core/platform.js"
 
 const OVERLAY_BASE = "#404040"
 export const PREVIEW_DETAIL = 3
 const KINDS = [["json", /\.json$/i], ["ascii", /\.png$/i], ["outline", /\.(ttf|otf|woff2?)$/i]]
 const built = new Map()
-const thumbnails = new Map()
+const thumbnails = shallowReactive(new Map())
+const drawing = new Map()
+const undrawn = new Map()
 
 export function customFontKind(fileName) {
   return KINDS.find(([, pattern]) => pattern.test(fileName))?.[0] ?? null
@@ -24,16 +29,32 @@ function hash(text) {
   return (value >>> 0).toString(36)
 }
 
-export function customFontId({ kind, data, height, mesh, density, strips }) {
-  return CUSTOM_FONT + hash(JSON.stringify([kind, data, height].concat(mesh ? ["mesh"] : [], squareSize({ kind, mesh, density }) > 1 ? [squareSize({ kind, mesh, density })] : [], strips?.length ? [strips] : [])))
+export function customFontId({ kind, data, google, style, height, mesh, density, strips }) {
+  return CUSTOM_FONT + hash(JSON.stringify([kind, data ?? `${google}:${style}`, height].concat(mesh ? ["mesh"] : [], squareSize({ kind, mesh, density }) > 1 ? [squareSize({ kind, mesh, density })] : [], strips?.length ? [strips] : [])))
 }
 
 function squareSize({ kind, mesh, density }) {
   return kind === "outline" && !mesh ? density ?? 1 : 1
 }
 
+function thumbnailsOf(fontId) {
+  if (undrawn.has(fontId)) {
+    drawing.set(fontId, undrawn.get(fontId)().then(drawn => {
+      thumbnails.set(fontId, drawn)
+      return drawn
+    }))
+    undrawn.delete(fontId)
+  }
+  return drawing.get(fontId)
+}
+
 export function customThumbnail(fontId, name) {
+  thumbnailsOf(fontId)
   return thumbnails.get(fontId)?.[name] ?? null
+}
+
+export function customThumbnails(fontId) {
+  return thumbnailsOf(fontId) ?? Promise.resolve({})
 }
 
 export function customFontEntry(source) {
@@ -50,7 +71,7 @@ async function pixels(url) {
   return { data: pixelsOf(image), width: image.width, height: image.height }
 }
 
-async function editorFont({ kind, data, height, mesh, density }) {
+async function editorFont({ kind, data, google, style, height, mesh, density }) {
   if (kind === "json") {
     const { fontFromFiles, parseFontJson } = await import("./editor/import.js")
     const json = parseFontJson(await (await fetch(data)).text())
@@ -68,8 +89,10 @@ async function editorFont({ kind, data, height, mesh, density }) {
     const { fontFromAscii } = await import("./asciiImport.js")
     return { font: fontFromAscii(await pixels(data), { height }) }
   }
-  const { fontFromOutlines, meshOutlines, parseFontFile } = await import("./fontImport.js")
-  const source = await parseFontFile(await (await fetch(data)).arrayBuffer())
+  const { atVariation, fontFromOutlines, meshOutlines, parseFontFile } = await import("./fontImport.js")
+  const { googleFontBytes, styleParts } = await import("./googleFonts.js")
+  const parsed = await parseFontFile(google ? await googleFontBytes({ family: google, style }) : await (await fetch(data)).arrayBuffer())
+  const source = google && parsed.tables.fvar ? atVariation(parsed, { wght: styleParts(style).weight }) : parsed
   const options = { height, density: squareSize({ kind, mesh, density }) }
   return { font: fontFromOutlines(source, options), outlines: meshOutlines(source, options), mesh }
 }
@@ -84,7 +107,7 @@ export async function silhouetteFont(data) {
 }
 
 function plainStrip(rows, colour) {
-  const canvas = document.createElement("canvas")
+  const canvas = platform.createCanvas()
   canvas.width = 1
   canvas.height = rows
   const ctx = canvas.getContext("2d")
@@ -99,14 +122,28 @@ async function meshThumbnails(font, mesh, list) {
   if (!scene) return {}
   const rows = stripRows({}, scene.stripRange, scene.depth, scene.capHeight).rows
   const shaded = plainStrip(rows, OVERLAY_BASE)
-  const drawn = { preview: stripThumbnail(scene, {}, plainStrip(rows, "#ffffff"), PREVIEW_DETAIL), flat: stripThumbnail(scene, {}, plainStrip(rows, "#ffffff")) }
-  for (const name of Object.keys(withGenerated({}))) drawn[name] = stripThumbnail(scene, { overlays: [{ overlay: name, blend: "source-over", opacity: 100 }] }, shaded)
-  for (const name of Object.keys(GENERATED_EDGE_OVERLAYS)) drawn[name] = stripThumbnail(scene, {}, shaded)
-  const textures = Object.entries(list.textures).filter(([, entry]) => entry.type === "strip")
-  await Promise.all(textures.flatMap(([id, entry]) => [[id, entry]].concat(Object.entries(entry.variants ?? {}).map(([name, variant]) => [name, { ...entry, ...variant }]))).map(async ([name, entry]) => {
-    drawn[name] = stripThumbnail(scene, entry, await loadImage(`${entry.folder}/textures/${name}.png`))
-  }))
+  const white = plainStrip(rows, "#ffffff")
+  const textures = Object.entries(list.textures).filter(([, entry]) => entry.type === "strip").flatMap(([id, entry]) => [[id, entry]].concat(Object.entries(entry.variants ?? {}).map(([name, variant]) => [name, { ...entry, ...variant }])))
+  const images = Promise.all(textures.map(([name, entry]) => loadImage(`${entry.folder}/textures/${name}.png`)))
+  const jobs = [["preview", {}, white, PREVIEW_DETAIL], ["flat", {}, white]].concat(Object.keys(withGenerated({})).map(name => [name, { overlays: [{ overlay: name, blend: "source-over", opacity: 100 }] }, shaded]), Object.keys(GENERATED_EDGE_OVERLAYS).map(name => [name, {}, shaded]))
+  const loaded = await images
+  const drawn = {}
+  for (const [name, entry, strip, detail] of jobs.concat(textures.map(([name, entry], index) => [name, entry, loaded[index]]))) {
+    drawn[name] = stripThumbnail(scene, entry, strip, detail)
+    await breather()
+  }
   return drawn
+}
+
+function breather() {
+  return new Promise(resolve => {
+    const channel = new MessageChannel()
+    channel.port1.onmessage = () => {
+      channel.port1.close()
+      resolve()
+    }
+    channel.port2.postMessage(null)
+  })
 }
 
 async function drawThumbnails(font, folder, entry) {
@@ -142,7 +179,7 @@ async function build(id, source) {
   const own = sample ? "image" : "flat"
   const painted = sample ? await silhouetteTexture(font, entry, sample) : null
   if (painted) serveFile(`${folder}/textures/image.png`, pngUrl(painted))
-  serveFile(`${folder}/textures.json`, { primary: own, secondary: own, textures: { ...(painted && { image: { border: "#000000", ...(painted.scale > 1 && { density: painted.scale }) } }), flat: { border: "#000000" } }, overlays: {} })
-  thumbnails.set(id, await drawThumbnails(font, folder, entry))
+  serveFile(`${folder}/textures.json`, painted ? { ...IMPORTED_TEXTURES, primary: own, secondary: own, textures: { image: { border: "#000000", ...(painted.scale > 1 && { density: painted.scale }) }, ...IMPORTED_TEXTURES.textures } } : IMPORTED_TEXTURES)
+  undrawn.set(id, () => drawThumbnails(font, folder, entry))
   return entry
 }

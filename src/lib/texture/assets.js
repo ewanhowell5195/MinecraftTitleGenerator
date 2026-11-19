@@ -9,6 +9,7 @@ import { titleCase } from "../core/names.js"
 import { platform } from "../core/platform.js"
 import { defaultDepth } from "../settings/defaults.js"
 import { mergeStrips, stackedStrip, stripFolder, stripRows, stripUse, withDefaultStrips } from "../font/strips.js"
+import { IMPORTED_TEXTURES } from "./imported.js"
 
 const json = new Map()
 const images = new Map()
@@ -64,13 +65,21 @@ export function filePalette(url) {
   })
 }
 
+function withOverlays(data) {
+  return { ...data, overlays: withGenerated(data.overlays), edgeOverlays: GENERATED_EDGE_OVERLAYS }
+}
+
 function textureList(folder) {
-  return fetchJson(`${folder}/textures.json`).then(data => ({ ...data, overlays: withGenerated(data.overlays), edgeOverlays: GENERATED_EDGE_OVERLAYS }))
+  return fetchJson(`${folder}/textures.json`).then(withOverlays)
 }
 
 function stripSet(item) {
   const { id, offset, layer } = stripUse(item)
   return fetchJson(`${stripFolder(id)}/textures.json`).then(list => ({ ...list, id, offset, layer }))
+}
+
+export async function importedTextures(strips = []) {
+  return mergeStrips(withOverlays(IMPORTED_TEXTURES), await Promise.all(withDefaultStrips(strips).map(stripSet)))
 }
 
 export async function fontTextures(folder, strips = []) {

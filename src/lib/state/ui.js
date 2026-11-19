@@ -4,6 +4,7 @@ import { surface } from "../texture/canvas.js"
 import { customThumbnail } from "../font/customFonts.js"
 import { fontFolder, loadImage } from "../font/font.js"
 import { fileError } from "./notices.js"
+import { isCustomFont } from "../settings/settings.js"
 
 const heights = reactive({})
 const KEPT_TYPES = ["image/png", "image/jpeg"]
@@ -58,11 +59,13 @@ export function fontThumbnail(font) {
 
 export function thumbnail(font, id, layer = null) {
   const name = layer === null ? id : `layer-${layer}/${id}`
-  return customThumbnail(font?.id, name) ?? `${font?.folder ?? "font"}/thumbnails/${name}.png`
+  if (isCustomFont(font?.id)) return customThumbnail(font.id, name)
+  return `${font?.folder ?? "font"}/thumbnails/${name}.png`
 }
 
 export function thumbnailHeight(font) {
   const url = thumbnail(font, "flat")
+  if (!url) return null
   if (!(url in heights)) {
     heights[url] = null
     image(url).then(loaded => heights[url] = loaded.height)

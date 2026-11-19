@@ -1,7 +1,7 @@
-import { fontTextures, loadTileables, modelTextures } from "../texture/assets.js"
+import { fontTextures, importedTextures, loadTileables, modelTextures } from "../texture/assets.js"
 import { typeDefaults } from "../settings/defaults.js"
 import { loadFontList, sheetFolder, stripsOf } from "../font/font.js"
-import { LAYERS, OVERLAY_KINDS } from "../settings/settings.js"
+import { LAYERS, OVERLAY_KINDS, isCustomFont } from "../settings/settings.js"
 import { isMinecraftShape, loadShapeList } from "../geometry/shapes.js"
 import { lineWords } from "./titleFacts.js"
 
@@ -28,6 +28,7 @@ async function listOf(object, fonts, shapes) {
     if (shape.kind === "model" && object.textureSource !== "premade") return { problem: `the shape ${shape.id} only takes its own textures` }
     return { owner: shape, list: await (shape.kind === "model" ? modelTextures(shape.folder) : fontTextures(shape.folder, shape.strips ?? [])) }
   }
+  if (isCustomFont(object.font) && object.customFont?.google) return { owner: { id: object.font }, list: await importedTextures() }
   const font = fonts.find(entry => entry.id === object.font)
   if (!font) return { problem: `there is no font called ${object.font}` }
   return { owner: font, list: await fontTextures(sheetFolder(font, fonts), stripsOf(font, fonts)) }

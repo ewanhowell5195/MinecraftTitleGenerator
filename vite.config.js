@@ -10,6 +10,7 @@ import { dataScript, shareTags, withoutShareTags } from "./src/lib/core/head.js"
 import { linkedCode, linkedTitleDetails, presetDetails } from "./src/server/presetPages.js"
 import { pageAt, pageFiles, shellHtml } from "./src/site/shell.js"
 import { prerender } from "./src/prerender/build.js"
+import { googleFonts } from "./src/server/googleFonts.js"
 
 const LIVE = "https://mctitlegenerator.com"
 const CREDITS = "virtual:credits"
@@ -25,6 +26,7 @@ const STYLE_SCOPES = {
 }
 const PRESET_PAGE = /^\/app\/presets(?:\/(\d+))?\/?$/
 const APP_PAGE = /^\/app\/(index\.html)?$/
+const LOCAL_API = { "/api/google-fonts": googleFonts }
 
 async function pageDetails(url) {
   const preset = url.pathname.match(PRESET_PAGE)
@@ -89,6 +91,25 @@ function slashFolders(server) {
     response.setHeader("Location", `${url.pathname}/${url.search}`)
     response.end()
   })
+}
+
+const localApi = {
+  name: "local-api",
+  configureServer(server) {
+    server.middlewares.use(async (request, response, next) => {
+      try {
+        const url = new URL(request.url, `http://${request.headers.host}`)
+        const handler = LOCAL_API[url.pathname]
+        if (!handler) return next()
+        const answer = await handler({ request: new Request(url), env: {}, params: {} })
+        response.statusCode = answer.status
+        answer.headers.forEach((value, key) => response.setHeader(key, value))
+        response.end(Buffer.from(await answer.arrayBuffer()))
+      } catch (err) {
+        next(err)
+      }
+    })
+  }
 }
 
 const folderSlashes = {
@@ -171,7 +192,7 @@ const renderedPages = {
 }
 
 export default defineConfig({
-  plugins: [vue(), browserOnly, folderSlashes, presetPages, creditsModule, shellPages, renderedPages],
+  plugins: [vue(), browserOnly, folderSlashes, localApi, presetPages, creditsModule, shellPages, renderedPages],
   css: { postcss: { plugins: [scopedStyles()] } },
   ssr: { noExternal: [/^fluid-/, /^easy-tooltips/] },
   build: { ssrManifest: true, rolldownOptions: { input: "index.html" } },

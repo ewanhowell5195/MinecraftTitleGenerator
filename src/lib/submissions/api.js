@@ -13,8 +13,8 @@ export async function apiCall(url, options, unavailable, signedOut) {
   throw error
 }
 
-export async function fetched(url, what) {
-  const response = await fetch(url)
+export async function fetched(url, what, options) {
+  const response = await fetch(url, options)
   if (!response.ok) throw new Error(`${what} could not be loaded (${response.status})`)
   return response
 }

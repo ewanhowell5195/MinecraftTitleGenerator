@@ -28,5 +28,5 @@ export function usedShapes() {
 }
 
 export function usedFonts() {
-  return used(object => object.customFont && object.customFont.kind !== "silhouette" ? [object.customFont] : [], font => font.data)
+  return used(object => object.customFont && object.customFont.kind !== "silhouette" && !object.customFont.google ? [object.customFont] : [], font => font.data)
 }

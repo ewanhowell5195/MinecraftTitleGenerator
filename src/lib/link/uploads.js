@@ -12,7 +12,7 @@ function layerUploads(layer) {
 }
 
 export function countUploads(entry) {
-  const own = fileOverlays(entry) + (entry.textureSource === "custom" && (entry.customTexture || (entry.words ?? []).some(word => word.customTexture)) ? 1 : 0) + (isCustomFont(entry.font) || entry.shape === CUSTOM_SHAPE ? 1 : 0)
+  const own = fileOverlays(entry) + (entry.textureSource === "custom" && (entry.customTexture || (entry.words ?? []).some(word => word.customTexture)) ? 1 : 0) + (isCustomFont(entry.font) && !entry.customFont?.google || entry.shape === CUSTOM_SHAPE ? 1 : 0)
   const layered = (entry.layerSettings ?? []).reduce((total, layer) => total + layerUploads(layer), own)
   return (entry.words ?? []).reduce((total, word) => total + countUploads(word), layered)
 }
@@ -28,7 +28,8 @@ function layerWithoutUploads(layer) {
 
 export function withoutUploads(entry) {
   const stripped = layerWithoutUploads(entry)
-  if (isCustomFont(entry.font)) delete stripped.font
+  if (entry.customFont?.google) stripped.customFont = entry.customFont
+  else if (isCustomFont(entry.font)) delete stripped.font
   if (entry.shape === CUSTOM_SHAPE) {
     stripped.shape = FALLBACK_SHAPE
     delete stripped.texture

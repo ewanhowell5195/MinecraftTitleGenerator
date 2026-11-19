@@ -8,6 +8,8 @@ import { usePlatform } from "../src/lib/core/platform.js"
 import { writeFlipped } from "../src/render/render.js"
 
 const PUBLIC = fileURLToPath(new URL("../public/", import.meta.url))
+const FONT_CACHE = fileURLToPath(new URL("cache/google-fonts/", import.meta.url))
+const FONT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
 
 function publicFile(url) {
   const file = path.resolve(PUBLIC, url)
@@ -22,6 +24,22 @@ async function fetchPublic(url) {
     if (err.code !== "ENOENT") throw err
     return new Response(null, { status: 404 })
   }
+}
+
+async function cachedFont(name, load) {
+  const file = path.join(FONT_CACHE, `${name.replaceAll(" ", "_")}.font`)
+  try {
+    const bytes = await fs.promises.readFile(file)
+    return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
+  } catch (err) {
+    if (err.code !== "ENOENT") throw err
+  }
+  const bytes = await load()
+  await fs.promises.mkdir(FONT_CACHE, { recursive: true })
+  const partial = `${file}.${process.pid}.part`
+  await fs.promises.writeFile(partial, new Uint8Array(bytes))
+  await fs.promises.rename(partial, file)
+  return bytes
 }
 
 async function loadSafely(src) {
@@ -155,6 +173,8 @@ export async function useNode() {
     pngUrl,
     frame: callback => setTimeout(callback),
     cancelFrame: clearTimeout,
-    loadImage: loadSafely
+    loadImage: loadSafely,
+    fontUserAgent: FONT_USER_AGENT,
+    cachedFont
   })
 }

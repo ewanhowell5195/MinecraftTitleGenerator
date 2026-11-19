@@ -47,6 +47,7 @@
     edit: { type: Function, required: true },
     available: { type: Object, required: true },
     font: { type: Object, default: null },
+    statScope: { type: String, default: null },
     fonts: { type: Array, default: () => [] },
     shownLayer: { type: Number, default: null },
     edge: { type: Boolean, default: false },
@@ -59,10 +60,11 @@
   const selected = defineModel("selected", { type: Number, default: 0 })
   const pending = pendingKind
 
-  const overlays = computed(() => popular(Object.entries(props.available), ([id]) => `${props.font?.id}.${id}`, ([id, data]) => data.name ?? titleCase(id)))
+  const overlays = computed(() => popular(Object.entries(props.available), ([id]) => `${props.statScope ?? props.font?.id}.${id}`, ([id, data]) => data.name ?? titleCase(id)))
   const layer = computed(() => props.layers[selected.value] ?? null)
   const generated = computed(() => layer.value?.source === "premade" ? props.available[layer.value.overlay]?.generated ?? null : null)
-  const kinds = computed(() => KINDS.filter(item => (item.value !== "generated" || !props.font?.model) && (item.value !== "file" || props.files)))
+  const textured = computed(() => overlays.value.some(ofKind("texture")) || layer.value?.source === "premade" && !generated.value)
+  const kinds = computed(() => KINDS.filter(item => (item.value !== "generated" || !props.font?.model) && (item.value !== "texture" || textured.value) && (item.value !== "file" || props.files)))
   const kind = computed(() => !layer.value ? kinds.value.find(item => item.value === pending.value)?.value ?? kinds.value[0].value : layer.value.source === "file" ? "file" : generated.value ? "generated" : "texture")
   const shown = computed(() => overlays.value.filter(ofKind(kind.value)))
   const settings = computed(() => GENERATED_SETTINGS[generated.value] ?? [])

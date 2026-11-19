@@ -11,7 +11,7 @@
   import { EulaDeclined, eulaDeclined } from "../../lib/minecraft/eula.js"
   import { pinnedTextures, setTexture, untouchedTileable } from "../../lib/settings/settings.js"
   import { viewed } from "../../lib/settings/layers.js"
-  import { minecraftStatId, popular } from "../../lib/state/stats.js"
+  import { minecraftStatId, popular, statScope } from "../../lib/state/stats.js"
   import { stripCovers } from "../../lib/font/strips.js"
   import { SEARCH_ABOVE, saveImage, thumbnail, thumbnailHeight, tilePreview } from "../../lib/state/ui.js"
   import Button from "../../components/Button.vue"
@@ -61,7 +61,7 @@
   const waiting = computed(() => pending.value?.target === viewed(object.value) ? pending.value.values : null)
   const textures = computed(() => {
     const entries = Object.entries(list.value?.textures ?? {}).filter(([, data]) => stripCovers(data, shownLayer.value, font.value?.layers?.length ?? 1))
-    const statId = id => `${font.value?.id}.${id}`
+    const statId = id => `${statScope(object.value, font.value?.id)}.${id}`
     return popular(entries, ([id]) => statId(id), ([id, data]) => label(id, data), list.value ? pinnedTextures(list.value).map(statId) : [])
   })
   const tileables = computed(() => popular(Object.entries(library.tileables), ([id]) => `tileable.${id}`, ([id, data]) => label(id, data)))

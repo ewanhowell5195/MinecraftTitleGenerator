@@ -23,7 +23,7 @@ export function forgetFiles(folder) {
 }
 
 export function pngUrl({ data, width, height }) {
-  const canvas = document.createElement("canvas")
+  const canvas = platform.createCanvas()
   canvas.width = Math.max(1, width)
   canvas.height = Math.max(1, height)
   if (width && height) canvas.getContext("2d").putImageData(new ImageData(data, width, height), 0, 0)
