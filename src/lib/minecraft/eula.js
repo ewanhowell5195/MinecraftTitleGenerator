@@ -16,11 +16,11 @@ export class EulaDeclined extends Error {
 let waiting = null
 
 function accepted() {
-  return localStorage.getItem(STORAGE) === "accepted"
+  return import.meta.env.DEV || localStorage.getItem(STORAGE) === "accepted"
 }
 
 export function eulaDeclined() {
-  return localStorage.getItem(STORAGE) === "declined"
+  return !import.meta.env.DEV && localStorage.getItem(STORAGE) === "declined"
 }
 
 export function agreeToEula(reason = "tileables") {
