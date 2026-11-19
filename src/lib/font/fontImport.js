@@ -9,6 +9,8 @@ const MOST_PIXEL_ROWS = 32
 const PIXEL_SLACK = 0.1
 const SUGGESTED_PIXELS = 40
 const STROKE_ROWS = 120
+const MESH_STEP = 0.5
+const prepared = new WeakMap()
 
 export function englishName(source, key) {
   const names = source.names.unicode ?? source.names.macintosh ?? source.names.windows
@@ -31,7 +33,17 @@ export async function parseFontFile(buffer) {
   return opentype.parse(font.buffer.slice(font.byteOffset, font.byteOffset + font.byteLength))
 }
 
+export function atVariation(source, coords) {
+  const glyphAt = source.charToGlyph.bind(source)
+  source.charToGlyph = char => source.variation.getTransform(glyphAt(char), coords)
+  return source
+}
+
 function scaled(source, { height = 40, density = 1 }) {
+  const key = `${height}:${density}`
+  const known = prepared.get(source) ?? new Map()
+  prepared.set(source, known)
+  if (known.has(key)) return known.get(key)
   const glyphs = MULTICASE_CHARACTERS.map(char => glyphFor(source, char))
   const { top, base } = lineUnits(source)
   const units = top - base
@@ -41,7 +53,19 @@ function scaled(source, { height = 40, density = 1 }) {
   const scale = unit ? block / unit : Math.max(1, Math.round(height / square)) / units
   const capHeight = Math.round(units * scale) * square
   if (!Number.isFinite(scale) || capHeight < 1) throw new Error("this font has no usable cap height")
-  return { glyphs, unit, block, scale, square, capHeight, base }
+  const placed = []
+  function placedAt(index) {
+    const glyph = glyphs[index]
+    if (!glyph) return null
+    if (!placed[index]) {
+      const shift = gridShift(glyph, unit, scale)
+      placed[index] = { shift, shape: rasterise(glyph, scale, shift, base) }
+    }
+    return placed[index]
+  }
+  const found = { glyphs, unit, block, scale, square, capHeight, base, placedAt }
+  known.set(key, found)
+  return found
 }
 
 function enlarged(shape, square) {
@@ -119,23 +143,32 @@ export function outlineShape(source, char, options = {}) {
 }
 
 export function meshOutlines(source, options = {}) {
-  const { glyphs, unit, scale, square, base } = scaled(source, options)
+  const { glyphs, scale, square, base, placedAt } = scaled(source, options)
   return Object.fromEntries(MULTICASE_CHARACTERS.flatMap((char, index) => {
-    const glyph = glyphs[index]
-    const shift = glyph ? gridShift(glyph, unit, scale) : 0
-    const shape = glyph && rasterise(glyph, scale, shift, base)
-    if (!shape) return []
-    return [[char, flatten(glyph).map(points => points.map(([x, y]) => [((x + shift) * scale - shape.left) * square, (y - base) * scale * square]))]]
+    const placed = placedAt(index)
+    if (!placed?.shape) return []
+    const { shift, shape } = placed
+    return [[char, flatten(glyphs[index], MESH_STEP / scale).map(points => points.map(([x, y]) => [((x + shift) * scale - shape.left) * square, (y - base) * scale * square]))]]
   }))
 }
 
 export function fontFromOutlines(source, options = {}) {
-  const { glyphs, unit, block, scale, square, capHeight, base } = scaled(source, options)
-  const shapes = new Map(MULTICASE_CHARACTERS.map((char, index) => {
-    const glyph = glyphs[index]
-    return [char, glyph ? enlarged(rasterise(glyph, scale, gridShift(glyph, unit, scale), base), square) : null]
-  }))
+  const { glyphs, block, scale, square, capHeight, placedAt } = scaled(source, options)
+  const shapes = new Map(MULTICASE_CHARACTERS.map((char, index) => [char, glyphs[index] ? enlarged(placedAt(index).shape, square) : null]))
   const space = source.charToGlyph(" ")
   const spaceWidth = space && space.index !== 0 ? Math.round(space.advanceWidth * scale) * square : Math.round(capHeight / 4) || DEFAULT_SPACE_WIDTH
-  return fontFromShapes(shapes, { name: englishName(source, "fullName") || "Imported Font", authors: englishName(source, "designer"), capHeight, grid: block, spaceWidth })
+  const font = fontFromShapes(shapes, { name: englishName(source, "fullName") || "Imported Font", authors: englishName(source, "designer"), capHeight, grid: block, spaceWidth })
+  return { ...font, kerning: fontKerning(source, glyphs, scale, square) }
+}
+
+function fontKerning(source, glyphs, scale, square) {
+  const kerning = {}
+  for (const [first, before] of glyphs.entries()) {
+    if (!before) continue
+    for (const [second, after] of glyphs.entries()) {
+      const amount = after && -Math.round(source.getKerningValue(before, after) * scale) * square
+      if (amount) kerning[MULTICASE_CHARACTERS[first] + MULTICASE_CHARACTERS[second]] = amount
+    }
+  }
+  return kerning
 }

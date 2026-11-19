@@ -4,6 +4,8 @@ import { CREEPER, OPENING_QUOTE } from "./order.js"
 const CURVE_STEPS = 16
 const CAPITALS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 const EDGE_PROBE = 1
+const BANDS = 64
+const measured = new WeakMap()
 
 function sourceChars(char) {
   if (char === OPENING_QUOTE) return ["\u2018", "'"]
@@ -21,7 +23,14 @@ export function glyphFor(font, char) {
   return null
 }
 
-export function flatten(glyph) {
+function curveSteps(controls, stepLength) {
+  if (!stepLength) return CURVE_STEPS
+  let length = 0
+  for (let i = 1; i < controls.length; i++) length += Math.hypot(controls[i][0] - controls[i - 1][0], controls[i][1] - controls[i - 1][1])
+  return Math.min(CURVE_STEPS, Math.max(1, Math.ceil(length / stepLength)))
+}
+
+export function flatten(glyph, stepLength = 0) {
   const contours = []
   let points = []
   let at = [0, 0]
@@ -32,14 +41,16 @@ export function flatten(glyph) {
     } else if (command.type === "L") {
       points.push([command.x, command.y])
     } else if (command.type === "Q") {
-      for (let step = 1; step <= CURVE_STEPS; step++) {
-        const t = step / CURVE_STEPS
+      const steps = curveSteps([at, [command.x1, command.y1], [command.x, command.y]], stepLength)
+      for (let step = 1; step <= steps; step++) {
+        const t = step / steps
         const u = 1 - t
         points.push([u * u * at[0] + 2 * u * t * command.x1 + t * t * command.x, u * u * at[1] + 2 * u * t * command.y1 + t * t * command.y])
       }
     } else if (command.type === "C") {
-      for (let step = 1; step <= CURVE_STEPS; step++) {
-        const t = step / CURVE_STEPS
+      const steps = curveSteps([at, [command.x1, command.y1], [command.x2, command.y2], [command.x, command.y]], stepLength)
+      for (let step = 1; step <= steps; step++) {
+        const t = step / steps
         const u = 1 - t
         points.push([u * u * u * at[0] + 3 * u * u * t * command.x1 + 3 * u * t * t * command.x2 + t * t * t * command.x, u * u * u * at[1] + 3 * u * u * t * command.y1 + 3 * u * t * t * command.y2 + t * t * t * command.y])
       }
@@ -87,10 +98,29 @@ export function ringEdges(rings) {
   return rings.flatMap(ring => ring.map((point, index) => point.concat(ring[(index + 1) % ring.length])))
 }
 
+export function edgeBands(edges, size) {
+  const bands = new Map()
+  for (const edge of edges) {
+    const from = Math.floor(Math.min(edge[1], edge[3]) / size)
+    const to = Math.floor(Math.max(edge[1], edge[3]) / size)
+    for (let band = from; band <= to; band++) {
+      if (!bands.has(band)) bands.set(band, [])
+      bands.get(band).push(edge)
+    }
+  }
+  return y => bands.get(Math.floor(y / size)) ?? []
+}
+
 function flatEdges(glyph) {
   const edges = ringEdges(flatten(glyph))
   const crossing = edges.filter(([, y0, , y1]) => y0 !== y1)
-  const inside = (x, y) => fillSpans(crossing, y).some(([from, to]) => x >= from && x < to)
+  const ys = crossing.flatMap(edge => [edge[1], edge[3]])
+  const near = edgeBands(crossing, Math.max(1, (highest(ys) - lowest(ys)) / BANDS))
+  const spans = new Map()
+  function inside(x, y) {
+    if (!spans.has(y)) spans.set(y, fillSpans(near(y), y))
+    return spans.get(y).some(([from, to]) => x >= from && x < to)
+  }
   return edges.filter(([x0, y0, x1, y1]) => y0 === y1 && x0 !== x1).map(([x0, y, x1]) => {
     const middle = (x0 + x1) / 2
     const below = inside(middle, y - EDGE_PROBE)
@@ -111,6 +141,11 @@ function commonTop(glyphs) {
 }
 
 export function lineUnits(font) {
+  if (!measured.has(font)) measured.set(font, measuredLines(font))
+  return measured.get(font)
+}
+
+function measuredLines(font) {
   const glyphs = Array.from(CAPITALS, char => font.charToGlyph(char)).filter(glyph => glyph && glyph.index !== 0)
   const tops = new Map()
   const bottoms = new Map()
@@ -151,10 +186,11 @@ export function rasterise(glyph, scale, shift, base = 0) {
   const ys = edges.flatMap(edge => [edge[1], edge[3]])
   const minY = Math.floor(lowest(ys))
   const maxY = Math.ceil(highest(ys))
+  const near = edgeBands(edges, 1)
   const rows = []
   for (let y = minY; y < maxY; y++) {
     const filled = new Set()
-    for (const [from, to] of fillSpans(edges, y + 0.5)) {
+    for (const [from, to] of fillSpans(near(y + 0.5), y + 0.5)) {
       for (let x = from; x < to; x++) filled.add(x)
     }
     rows.push(filled)
