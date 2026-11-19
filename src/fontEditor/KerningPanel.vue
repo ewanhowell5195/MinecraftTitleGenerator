@@ -12,8 +12,11 @@
   import { CREEPER } from "../lib/font/order.js"
   import PairView from "./PairView.vue"
   import { unkernedFont } from "./textCanvas.js"
+  import { usePaged } from "../components/composables/paged.js"
   import { font, kerningFilter as filter, update } from "./store.js"
 
+  const PAIR_PAGE = 30
+  const SUGGESTION_PAGE = 90
   const FILTERS = [{ id: "all", label: "Everything", ranks: [0, 1, 2, 3, 4] }, { id: "letters", label: "Letters", ranks: [0] }, { id: "numbers", label: "Numbers", ranks: [1, 2] }, { id: "symbols", label: "Symbols", ranks: [3, 4] }]
 
   const custom = ref("")
@@ -50,6 +53,9 @@
     const { ranks } = FILTERS.find(item => item.id === filter.value)
     return allSuggestions.value.filter(({ pair }) => ranks.includes(pairRank(pair)) && matches(pair))
   })
+
+  const { shown: shownPairs, more: morePairs, end: pairsEnd } = usePaged(pairs, PAIR_PAGE, () => search.value)
+  const { shown: shownSuggestions, more: moreSuggestions, end: suggestionsEnd } = usePaged(suggestions, SUGGESTION_PAGE, () => [search.value, filter.value])
 
   function pairLabel(pair) {
     return Array.from(pair, char => char === CREEPER ? "A" : characterLabel(char, font.value.letterCase)).join("")
@@ -111,7 +117,7 @@
         <p v-if="!allPairs.length" class="hint">None yet. Add some from the suggestions, or type your own.</p>
         <p v-else-if="!pairs.length" class="hint">None of your pairs match this search.</p>
         <div v-else class="rows list">
-          <div v-for="{ pair, amount, max, top, past } of pairs" :key="pair" class="pair-row">
+          <div v-for="{ pair, amount, max, top, past } of shownPairs" :key="pair" class="pair-row">
             <div class="picture"><PairView :parsed="parsed" :pair="pair" :amount="amount" :width="200" :height="88" :max-scale="6" /></div>
             <div class="tools">
               <div class="head">
@@ -125,6 +131,7 @@
               <span v-if="past" class="hint bad">Pushes these characters into each other, so the font can't be submitted. Use {{ max }} or less.</span>
             </div>
           </div>
+          <div v-if="morePairs" ref="pairsEnd" class="end"></div>
         </div>
       </section>
 
@@ -137,9 +144,10 @@
         </div>
         <p v-if="!suggestions.length" class="hint">No suggestions here.</p>
         <TileGrid v-else class="list" :min="140">
-          <Tile v-for="{ pair, amount } of suggestions" :key="pair" :label="pairLabel(pair)" :tooltip="`Add, ${amount} closer`" @pick="setKerning({ [pair]: amount })">
+          <Tile v-for="{ pair, amount } of shownSuggestions" :key="pair" :label="pairLabel(pair)" :tooltip="`Add, ${amount} closer`" @pick="setKerning({ [pair]: amount })">
             <template #picture><span class="pair-picture"><PairView :parsed="parsed" :pair="pair" :amount="amount" /></span></template>
           </Tile>
+          <div v-if="moreSuggestions" ref="suggestionsEnd" class="end"></div>
         </TileGrid>
       </section>
     </div>
@@ -226,6 +234,12 @@
   .pair-name {
     font-size: var(--font-md);
     font-weight: 600;
+  }
+
+  .end {
+    flex: none;
+    grid-column: 1 / -1;
+    height: 1px;
   }
 
   .toolbar {
