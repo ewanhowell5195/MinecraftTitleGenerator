@@ -33,7 +33,7 @@
 
 <template>
   <div class="picture" :class="large ? 'large' : 'clickable'" :role="large ? null : 'button'" :tabindex="large ? null : 0" @click="open" @keydown.enter="open" @keydown.space.prevent="open">
-    <img v-if="!failed" v-show="loaded" ref="image" :src="pictureUrl({ code, fingerprint })" :alt="name ? previewAlt(name) : ''" loading="lazy" @load="loaded = true" @error="failed = true">
+    <img v-if="!failed" ref="image" :class="{ waiting: !loaded }" :src="pictureUrl({ code, fingerprint })" :alt="name ? previewAlt(name) : ''" loading="lazy" @load="loaded = true" @error="failed = true">
     <span v-if="failed" class="status empty-state">Can't show this title</span>
     <span v-else-if="!loaded" class="status empty-state">Loading</span>
   </div>
@@ -68,5 +68,9 @@
     width: 100%;
     height: 100%;
     padding: inherit;
+  }
+
+  .picture img.waiting {
+    visibility: hidden;
   }
 </style>
