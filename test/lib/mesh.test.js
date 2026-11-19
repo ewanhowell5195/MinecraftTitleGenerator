@@ -233,6 +233,16 @@ describe("mesh glyphs", () => {
     for (const side of ["up", "down"]) assert.deepEqual(fine.edgeRuns(side).map(run => run.map(value => Math.round(value * 100) / 100)), [[Math.min(...xs), Math.max(...xs)].map(value => Math.round(value * 100) / 100)], side)
   })
 
+  test("the distance band comes to a point at an inward corner instead of rounding off", () => {
+    const cell = { bottom: 0, height: 20, width: 20 }
+    const notched = [[0, 20], [6, 20], [10, 10], [14, 20], [20, 20], [20, 0], [0, 0]]
+    const fine = fineMasks({ shapes: [{ outer: notched, holes: [] }] }, cell, cell, 3)
+    const distance = fine.distance(1, 8)
+    const below = distance[6 * 20 + 9]
+    assert.ok(below < 0.6 * Math.hypot(0.5, 3.5), `${below}`)
+    assert.ok(Math.abs(distance[6 * 20 + 1] - 1.5) < 1e-6)
+  })
+
   test("bottom faces split by a step keep separate edge runs", () => {
     const cell = { bottom: 0, height: 30, width: 20 }
     const stepped = [[0, 30], [10, 30], [20, 30], [20, 2], [10, 2], [10, 0], [0, 0]]

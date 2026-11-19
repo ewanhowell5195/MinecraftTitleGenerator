@@ -1,5 +1,6 @@
 import { edgeBands, fillSpans, ringEdges } from "../font/fontOutline.js"
 import { signedArea } from "../core/maths.js"
+import { MITER_LIMIT } from "../geometry/clip.js"
 import { liftedRings, ringWalls, rowMapping } from "../geometry/meshFaces.js"
 
 const CORNER_WINDOW = 2
@@ -59,7 +60,42 @@ function edgeDistances(rings, holes, solid, width, height, scale, bottom, reach)
       }
     }
   }
+  for (const [index, ring] of rings.entries()) mitreCorners(ring, signedArea(ring) > 0 !== holes[index], solid, out, facing, columns, rows, scale, bottom, reach)
   return { distance: out, facing }
+}
+
+function mitreCorners(ring, solidLeft, solid, out, facing, columns, rows, scale, bottom, reach) {
+  const points = ring.map(([x, y]) => [x * scale, (y - bottom) * scale])
+  const count = points.length
+  const extent = reach * MITER_LIMIT
+  for (let at = 0; at < count; at++) {
+    const [vx, vy] = points[at]
+    const [px, py] = points[(at - 1 + count) % count]
+    const [qx, qy] = points[(at + 1) % count]
+    const [ix, iy] = [vx - px, vy - py]
+    const [ox, oy] = [qx - vx, qy - vy]
+    const turn = ix * oy - iy * ox
+    if (!(solidLeft ? turn < 0 : turn > 0)) continue
+    const inLength = Math.hypot(ix, iy)
+    const outLength = Math.hypot(ox, oy)
+    const normals = [[ix, iy, inLength], [ox, oy, outLength]].map(([x, y, size]) => solidLeft ? [-y / size, x / size] : [y / size, -x / size])
+    for (let row = Math.max(0, Math.floor(vy - extent)); row <= Math.min(rows - 1, Math.ceil(vy + extent)); row++) {
+      for (let column = Math.max(0, Math.floor(vx - extent)); column <= Math.min(columns - 1, Math.ceil(vx + extent)); column++) {
+        const index = row * columns + column
+        if (!solid[index]) continue
+        const dx = column + 0.5 - vx
+        const dy = row + 0.5 - vy
+        if (dx * ix + dy * iy <= 0 || dx * ox + dy * oy >= 0) continue
+        const sides = normals.map(([nx, ny]) => dx * nx + dy * ny)
+        const side = sides[0] >= sides[1] ? 0 : 1
+        const distance = Math.max(sides[side], Math.hypot(dx, dy) / MITER_LIMIT)
+        if (distance >= out[index]) continue
+        out[index] = distance
+        facing[index * 2] = -normals[side][0]
+        facing[index * 2 + 1] = -normals[side][1]
+      }
+    }
+  }
 }
 
 function cornerEdges(ring, solidLeft) {
