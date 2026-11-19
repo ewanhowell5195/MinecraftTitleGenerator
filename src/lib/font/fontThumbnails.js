@@ -1,4 +1,3 @@
-import { stripLayout, stripRange } from "../texture/assets.js"
 import { rgbOf } from "../core/colour.js"
 import { expandBands, independentLayers, layerGlyph, layerLeft } from "./flatSheet.js"
 import { sheetLayout, solidMask } from "./font.js"
@@ -10,7 +9,7 @@ import { layout } from "../geometry/layout.js"
 import { WHITE, definitionPalette } from "../texture/overlayColours.js"
 import { defaultBorder } from "../settings/defaults.js"
 import { layerDefault, overlayLayer, perLayerDefault } from "../settings/settings.js"
-import { bandEntry, stripCovers } from "./strips.js"
+import { bandEntry, stripCovers, stripLayout, stripRange } from "./strips.js"
 import { MARGIN, drawLayer, drawRing, drawStrip, over, sceneFrame } from "./thumbnails.js"
 
 const BACKGROUND_ALPHA = 0.3

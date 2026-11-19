@@ -1,4 +1,5 @@
-import { layerRange, layerSlices } from "./flatSheet.js"
+import { independentLayers, layerRange, layerSlices } from "./flatSheet.js"
+import { mostCommon } from "../core/maths.js"
 
 export function stripFolder(id) {
   return `strips/${id}`
@@ -119,6 +120,45 @@ export function stripRows(entry, range, fontDepth, capHeight = null) {
   const shape = { depth, top, bottom, rows: depth * 2 + top - bottom }
   const lines = range?.lines ?? { base: 0, top: capHeight }
   return entry.stretch ? { ...shape, scale: { from: lines.top - lines.base, to: entry.stripHeight, base: lines.base } } : shape
+}
+
+function layerExtent(glyph, layer, independent) {
+  let low = Infinity
+  let high = -Infinity
+  for (let row = 0; row < glyph.height; row++) {
+    for (let column = 0; column < glyph.width; column++) {
+      const at = row * glyph.width + column
+      if (!glyph.mask[at] || (independent ? glyph.depths[at] !== layer : glyph.depths[at] > layer)) continue
+      low = Math.min(low, row)
+      high = Math.max(high, row)
+    }
+  }
+  return high < low ? null : { char: glyph.char, bottom: glyph.bottom + low, top: glyph.bottom + high + 1 }
+}
+
+function layerLines(cells, capHeight, layer, independent) {
+  const standard = cells.filter(glyph => glyph.depths && glyph.top === capHeight && glyph.bottom === 0).map(glyph => layerExtent(glyph, layer, independent)).filter(Boolean)
+  if (!standard.length) return { base: 0, top: capHeight }
+  return { base: mostCommon(standard.map(extent => extent.bottom)), top: mostCommon(standard.map(extent => extent.top)) }
+}
+
+export function stripRange(font, layer = null) {
+  const cells = font.cells.filter(glyph => glyph.width)
+  const layered = layer !== null && cells.some(glyph => glyph.depths)
+  const independent = independentLayers(font)
+  const extents = layered ? cells.map(glyph => glyph.depths ? layerExtent(glyph, layer, independent) : glyph).filter(Boolean) : cells
+  const lines = layered ? layerLines(cells, font.capHeight, layer, independent) : { base: 0, top: font.capHeight }
+  const top = Math.max(...(layered ? [] : [font.capHeight]).concat(extents.map(extent => extent.top)))
+  const bottom = Math.min(...(layered ? [] : [0]).concat(extents.map(extent => extent.bottom)))
+  const highest = top > lines.top ? extents.find(extent => extent.top === top).char : null
+  const lowest = bottom < lines.base ? extents.find(extent => extent.bottom === bottom).char : null
+  return { top, bottom, highest, lowest, lines }
+}
+
+export function stripLayout(entry, font, depth, band) {
+  const shape = stripRows(entry, stripRange(font, entry.stripSet ? entry.stripLayer ?? null : null), depth, font.capHeight)
+  if (!font.layers || font.layers.length < 2 || entry.stripSet) return { shape, offset: 0, total: shape.rows, stacked: false }
+  return { ...stackedStrip(shape, font.layers, band, font.cells, independentLayers(font)), stacked: true }
 }
 
 export function safeRows({ scale, top, bottom }) {

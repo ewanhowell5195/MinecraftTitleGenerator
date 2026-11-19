@@ -1,5 +1,6 @@
 import { computed, onBeforeUnmount, shallowRef, watch } from "vue"
-import { fontTextures, preload, shapeFont, sheetFor } from "../lib/texture/assets.js"
+import { fontTextures, preload } from "../lib/texture/assets.js"
+import { shapeFont, sheetFor } from "../lib/font/fontSheet.js"
 import { shapeLine } from "../lib/geometry/shapedLine.js"
 import { arcAssets } from "../lib/texture/arcTextures.js"
 import { buildOutline, buildText } from "../lib/geometry/build.js"

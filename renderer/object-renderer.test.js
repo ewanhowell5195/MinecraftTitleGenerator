@@ -8,7 +8,8 @@ const { default: ObjectRenderer } = await import("../src/render/ObjectRenderer.j
 const { createTitle, OFFSCREEN_VIEW } = await import("../src/lib/state/title.js")
 const { loadLibrary } = await import("../src/lib/link/titleNames.js")
 const { loadFont } = await import("../src/lib/font/font.js")
-const { fontTextures, sheetFor } = await import("../src/lib/texture/assets.js")
+const { fontTextures } = await import("../src/lib/texture/assets.js")
+const { sheetFor } = await import("../src/lib/font/fontSheet.js")
 const { createObject } = await import("../src/lib/settings/objects.js")
 
 const NOTHING_RENDERED = createRenderer({ insert() {}, remove() {}, createElement: () => ({}), createText: () => ({}), createComment: () => ({}), setText() {}, setElementText() {}, parentNode: () => null, nextSibling: () => null, patchProp() {} })

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
 import { usePlatform } from "../../src/lib/core/platform.js"
-import { bandOf, stripBand } from "../../src/lib/texture/assets.js"
+import { bandOf, stripBand } from "../../src/lib/texture/bands.js"
 
 function fakeCanvas() {
   const canvas = { width: 0, height: 0 }
