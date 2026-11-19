@@ -172,6 +172,12 @@ export function finishAtlas(plan, page, painted, options) {
     }
   }
 
+  function snapshot() {
+    const copy = surface(canvas.width, canvas.height)
+    copy.ctx.drawImage(canvas, 0, 0)
+    return copy.canvas
+  }
+
   const wrapped = []
 
   function labels() {
@@ -409,7 +415,7 @@ export function finishAtlas(plan, page, painted, options) {
     for (let channel = 0; channel < 4; channel++) sideSum[channel] += drawn.sideSum[channel]
     for (const { image, rect } of drawn.lines) ctx.putImageData(image, rect.x, rect.y)
   }
-  if (!covered || options.customEdge) copyStrips(ctx, canvas)
+  if (!covered || options.customEdge) copyStrips(ctx, extraRuns.length ? snapshot() : canvas)
   for (const wrap of painted.sideWraps) {
     ctx.globalCompositeOperation = wrap.blend
     ctx.globalAlpha = wrap.opacity
