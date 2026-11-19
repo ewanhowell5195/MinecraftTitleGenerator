@@ -2,15 +2,6 @@ import { hexOf, rgbOf } from "../core/colour.js"
 import { clamp } from "../core/maths.js"
 
 const MIX_STEPS = 24
-const EDGE_SHARE = 0.1
-
-export function faceDepth(depth) {
-  return Math.max(1, Math.round(depth))
-}
-
-export function edgeReach(capHeight) {
-  return capHeight * EDGE_SHARE
-}
 
 export function ordered(stops) {
   const list = stops.map(stop => ({ colour: stop.colour, position: clamp(stop.position / 100, 0, 1) }))
@@ -95,10 +86,6 @@ export function stopColour(stops, t) {
   const from = stops[after - 1]
   const to = stops[after]
   return blend(from.colour, to.colour, (t - from.position) / (to.position - from.position))
-}
-
-function faceGradient(custom, fill, stops, smooth, direction) {
-  return custom && fill === "gradient" ? { stops: gradientStops(stops, smooth), direction } : null
 }
 
 export function cssGradient(stops, smooth, direction) {

@@ -3,7 +3,7 @@ import { joinNeighbours } from "./joins.js"
 import { glyphArcs } from "./arc.js"
 import { stretched, usesMarks } from "./stretch.js"
 import { wordSheet } from "./wordSheet.js"
-import { edgeReach, faceDepth } from "../texture/material.js"
+import { edgeReach, faceDepth } from "./sizes.js"
 import { glyphKey } from "../font/order.js"
 
 export function shapeLine(font, sheet, words, word, options) {

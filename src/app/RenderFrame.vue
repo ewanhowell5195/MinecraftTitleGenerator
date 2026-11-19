@@ -1,7 +1,7 @@
 <script setup>
   import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue"
   import { frameRect, frameSplit, framing } from "../render/framing.js"
-  import { cssGradient } from "../lib/texture/material.js"
+  import { cssGradient } from "../lib/texture/colourStops.js"
   import { view, viewport, viewportChanges } from "../lib/state/view.js"
 
   const title = shallowRef(null)

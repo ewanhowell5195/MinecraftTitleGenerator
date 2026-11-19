@@ -1,5 +1,5 @@
 import { lineLayout } from "../geometry/layout.js"
-import { gradientDirection, gradientReach, ordered, stopColour, stopEdges } from "./material.js"
+import { gradientDirection, gradientReach, ordered, stopColour, stopEdges } from "./colourStops.js"
 
 const ALONG = { dx: 1, dy: 0 }
 

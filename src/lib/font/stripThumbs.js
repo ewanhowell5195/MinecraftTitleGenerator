@@ -13,7 +13,7 @@ import { MARGIN, drawLayer, over } from "./thumbnails.js"
 import { pngUrl } from "../core/virtualFiles.js"
 import { platform } from "../core/platform.js"
 import { MITER_LIMIT } from "../geometry/clip.js"
-import { edgeReach } from "../texture/material.js"
+import { edgeReach } from "../geometry/sizes.js"
 
 const OVERLAYS = withGenerated({})
 

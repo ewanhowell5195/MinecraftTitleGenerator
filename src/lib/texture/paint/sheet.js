@@ -1,6 +1,6 @@
 import { fadeStops, linearGradient, surface } from "../canvas.js"
 import { hexOf, packed } from "../../core/colour.js"
-import { gradientStops } from "../material.js"
+import { gradientStops } from "../colourStops.js"
 import { clamp } from "../../core/maths.js"
 import { R, fillRect, gradientFill, into, pageSurface, pixelAt, plain, stripParts } from "./draw.js"
 import { adjusted, borderOf, paintedStops } from "./adjust.js"

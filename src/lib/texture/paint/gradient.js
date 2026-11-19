@@ -1,4 +1,4 @@
-import { gradientLine, gradientStops } from "../material.js"
+import { gradientLine, gradientStops } from "../colourStops.js"
 import { fillRect, gradientFill, into, plain } from "./draw.js"
 
 function edgeFill(ctx, [x0, y0], [x1, y1], y, stops) {

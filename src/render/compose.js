@@ -1,5 +1,5 @@
 import { canvasOf, linearGradient } from "../lib/texture/canvas.js"
-import { gradientLine, gradientStops } from "../lib/texture/material.js"
+import { gradientLine, gradientStops } from "../lib/texture/colourStops.js"
 import { clamp } from "../lib/core/maths.js"
 
 const WHOLE = { size: value => Math.max(1, Math.round(value)), drawn: Math.round, offset: Math.floor }

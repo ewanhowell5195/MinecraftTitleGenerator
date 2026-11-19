@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { blend, cssGradient, gradientLine, gradientStops, movedStopPositions, stopColour } from "../../src/lib/texture/material.js"
+import { blend, cssGradient, gradientLine, gradientStops, movedStopPositions, stopColour } from "../../src/lib/texture/colourStops.js"
 import { rgbOf } from "../../src/lib/core/colour.js"
 import { close } from "../helpers/assert.js"
 

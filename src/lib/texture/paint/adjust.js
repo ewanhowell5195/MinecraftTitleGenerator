@@ -1,6 +1,6 @@
 import { surface } from "../canvas.js"
 import { packed } from "../../core/colour.js"
-import { gradientStops } from "../material.js"
+import { gradientStops } from "../colourStops.js"
 import { remember } from "../../core/maths.js"
 import { CACHED_OVERLAYS } from "./draw.js"
 

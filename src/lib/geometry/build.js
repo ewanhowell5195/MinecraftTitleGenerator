@@ -9,7 +9,7 @@ import { REGION_KINDS, detailOf, regionScales } from "../texture/atlas/scales.js
 import { clamp, remember } from "../core/maths.js"
 import { baseChar } from "../font/order.js"
 import { defaultDepth } from "../settings/defaults.js"
-import { edgeReach } from "../texture/material.js"
+import { edgeReach } from "./sizes.js"
 
 function expand(bounds, faces) {
   for (const face of faces) {

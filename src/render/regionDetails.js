@@ -1,6 +1,6 @@
 import { MAX_DETAIL } from "../lib/texture/atlas/scales.js"
 import { FADE_KINDS, SMOOTH_KINDS, WRAPPED_KINDS } from "../lib/texture/overlays/settings.js"
-import { faceDepth } from "../lib/texture/material.js"
+import { faceDepth } from "../lib/geometry/sizes.js"
 import { stripDetail } from "../lib/texture/paint/strip.js"
 import { faceOptions } from "./objectLook.js"
 

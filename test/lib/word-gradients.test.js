@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { blend } from "../../src/lib/texture/material.js"
+import { blend } from "../../src/lib/texture/colourStops.js"
 import { refitStops, splitGradients } from "../../src/lib/texture/wordGradients.js"
 
 const BLACK_WHITE = [{ colour: "#000000", position: 0 }, { colour: "#ffffff", position: 100 }]
