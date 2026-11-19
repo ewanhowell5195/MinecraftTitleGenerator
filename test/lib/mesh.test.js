@@ -44,6 +44,18 @@ async function testFont() {
   return parseFontFile(built.toArrayBuffer())
 }
 
+function roundFont() {
+  const round = new opentype.Path()
+  round.moveTo(650, 350)
+  round.quadraticCurveTo(650, 650, 350, 650)
+  round.quadraticCurveTo(50, 650, 50, 350)
+  round.quadraticCurveTo(50, 50, 350, 50)
+  round.quadraticCurveTo(650, 50, 650, 350)
+  round.close()
+  const notdef = new opentype.Glyph({ name: ".notdef", unicode: 0, advanceWidth: 500, path: new opentype.Path() })
+  return opentype.parse(new opentype.Font({ familyName: "Round", styleName: "Regular", unitsPerEm: 1000, ascender: 800, descender: -200, glyphs: [notdef, glyph("H", [[[[100, 0], [100, 700], [600, 700], [600, 0]], false]]), new opentype.Glyph({ name: "Q", unicode: 81, advanceWidth: 800, path: round })] }).toArrayBuffer())
+}
+
 function inside(contours, x, y) {
   let winding = 0
   for (const points of contours) {
@@ -182,15 +194,6 @@ describe("mesh glyphs", () => {
   })
 
   test("corner dots go on the outline's corners, not along its curves", async () => {
-    const round = new opentype.Path()
-    round.moveTo(650, 350)
-    round.quadraticCurveTo(650, 650, 350, 650)
-    round.quadraticCurveTo(50, 650, 50, 350)
-    round.quadraticCurveTo(50, 50, 350, 50)
-    round.quadraticCurveTo(650, 50, 650, 350)
-    round.close()
-    const notdef = new opentype.Glyph({ name: ".notdef", unicode: 0, advanceWidth: 500, path: new opentype.Path() })
-    const roundFont = opentype.parse(new opentype.Font({ familyName: "Round", styleName: "Regular", unitsPerEm: 1000, ascender: 800, descender: -200, glyphs: [notdef, glyph("H", [[[[100, 0], [100, 700], [600, 700], [600, 0]], false]]), new opentype.Glyph({ name: "Q", unicode: 81, advanceWidth: 800, path: round })] }).toArrayBuffer())
     function dots(source, char) {
       const meshes = glyphMeshes(meshOutlines(source, { height: 30 }))
       const cell = parsedSheet(fontFromOutlines(source, { height: 30 }), 2).list.find(item => item.char === char)
@@ -202,8 +205,32 @@ describe("mesh glyphs", () => {
     assert.equal(dots(source, "o").corners, 4)
     assert.equal(dots(source, "c").corners, 4)
     assert.ok(dots(source, "h").alpha.some(value => value > 0))
-    assert.equal(dots(roundFont, "q").corners, 0)
-    assert.ok(dots(roundFont, "q").alpha.every(value => value === 0))
+    assert.equal(dots(roundFont(), "q").corners, 0)
+    assert.ok(dots(roundFont(), "q").alpha.every(value => value === 0))
+  })
+
+  test("a curve's top and bottom edge runs cover just its top and bottom faces", () => {
+    const source = roundFont()
+    const mesh = glyphMeshes(meshOutlines(source, { height: 30 })).q
+    const cell = parsedSheet(fontFromOutlines(source, { height: 30 }), 2).list.find(item => item.char === "q")
+    const fine = fineMasks(mesh, cell, cell, 3)
+    const { faces } = meshFaces(mesh, cell, cell, 0, 6, 3)
+    for (const [side, kind] of [["up", "top"], ["down", "bottom"]]) {
+      const xs = faces.filter(face => face.kind === kind && !face.internal).flatMap(face => face.points.map(point => point[0]))
+      const runs = fine.edgeRuns(side)
+      assert.equal(runs.length, 1, side)
+      assert.ok(Math.abs(runs[0][0] - Math.min(...xs)) < 1e-9 && Math.abs(runs[0][1] - Math.max(...xs)) < 1e-9, side)
+      assert.ok(faces.some(face => face.kind === kind && face.internal), side)
+    }
+  })
+
+  test("a square's top and bottom edge runs cover its whole width", async () => {
+    const source = await testFont()
+    const mesh = glyphMeshes(meshOutlines(source, { height: 30 })).h
+    const cell = parsedSheet(fontFromOutlines(source, { height: 30 }), 2).list.find(item => item.char === "h")
+    const fine = fineMasks(mesh, cell, cell, 3)
+    const xs = meshFaces(mesh, cell, cell, 0, 6, 3).rings.flat().map(point => point[0])
+    for (const side of ["up", "down"]) assert.deepEqual(fine.edgeRuns(side).map(run => run.map(value => Math.round(value * 100) / 100)), [[Math.min(...xs), Math.max(...xs)].map(value => Math.round(value * 100) / 100)], side)
   })
 
   test("a border grows round the letters, and the gap inside an O can be filled", async () => {

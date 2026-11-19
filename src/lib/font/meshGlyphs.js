@@ -126,6 +126,19 @@ function wall(p, q, zFront, zBack, top, bottom, reach) {
   return { points, kind, name: kind === "top" ? "up" : "down", internal, mesh: true }
 }
 
+function ringWalls(ring, zFront, zBack, top, bottom, reach) {
+  const walls = []
+  let last = null
+  for (let i = 0; i < ring.length; i++) {
+    const face = wall(ring[i], ring[(i + 1) % ring.length], zFront, zBack, top, bottom, reach)
+    if (!face) continue
+    face.run = last && last.kind === face.kind && last.name === face.name && last.internal === face.internal ? last.run : {}
+    walls.push(face)
+    last = face
+  }
+  return walls
+}
+
 function liftedRings(shapes, { lift, breaks }, x = 0) {
   return ringsOf(shapes).map(ring => divided(ring, breaks).map(([px, py]) => [x + px, lift(py)]))
 }
@@ -144,16 +157,7 @@ export function meshFaces(mesh, glyph, original, x, depth, reach) {
     faces.push({ points: corners.map(([px, py]) => [px, py, zFront]), kind: "front", name: "front", internal: false, mesh: true })
     faces.push({ points: corners.slice().reverse().map(([px, py]) => [px, py, zBack]), kind: "back", name: "back", internal: false, mesh: true })
   }
-  for (const ring of rings) {
-    let last = null
-    for (let i = 0; i < ring.length; i++) {
-      const face = wall(ring[i], ring[(i + 1) % ring.length], zFront, zBack, top, glyph.bottom, reach)
-      if (!face) continue
-      face.run = last && last.kind === face.kind && last.name === face.name && last.internal === face.internal ? last.run : {}
-      faces.push(face)
-      last = face
-    }
-  }
+  for (const ring of rings) faces.push(...ringWalls(ring, zFront, zBack, top, glyph.bottom, reach))
   return { faces, rings }
 }
 
@@ -302,7 +306,30 @@ function facingScores(rings, holes, solid, width, height, scale, bottom, [tx, ty
   return out
 }
 
-export function fineMasks(mesh, glyph, original) {
+function mergedSpans(spans) {
+  const out = []
+  for (const span of spans.slice().sort((a, b) => a[0] - b[0])) {
+    const last = out[out.length - 1]
+    if (last && span[0] <= last[1]) last[1] = Math.max(last[1], span[1])
+    else out.push(span.slice())
+  }
+  return out
+}
+
+function wallSpans(rings, kind, top, bottom, reach) {
+  const spans = new Map()
+  for (const ring of rings) {
+    for (const face of ringWalls(ring, 0, 0, top, bottom, reach)) {
+      if (face.kind !== kind || face.internal) continue
+      const xs = face.points.map(point => point[0])
+      const span = spans.get(face.run) ?? [Infinity, -Infinity]
+      spans.set(face.run, [Math.min(span[0], ...xs), Math.max(span[1], ...xs)])
+    }
+  }
+  return mergedSpans(Array.from(spans.values()))
+}
+
+export function fineMasks(mesh, glyph, original, reach) {
   const masks = new Map()
   const distances = new Map()
   let rings = null
@@ -321,6 +348,8 @@ export function fineMasks(mesh, glyph, original) {
   fine.facing = (scale, reach) => nearest(scale, reach).facing
   let corners = null
   fine.corners = () => corners ??= outlineCorners(lifted(), holes)
+  const spans = {}
+  fine.edgeRuns = side => spans[side] ??= wallSpans(lifted(), side === "up" ? "top" : "bottom", glyph.bottom + glyph.height, glyph.bottom, reach)
   fine.toward = (scale, dx, dy, least, reach, score) => facingScores(lifted(), holes, fine(scale), glyph.width, glyph.height, scale, glyph.bottom, [dx, dy], least, reach, score)
   return fine
 }

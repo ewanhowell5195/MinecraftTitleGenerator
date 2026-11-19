@@ -13,6 +13,7 @@ import { MARGIN, drawLayer, over } from "./thumbnails.js"
 import { pngUrl } from "../core/virtualFiles.js"
 import { platform } from "../core/platform.js"
 import { MITER_LIMIT } from "./meshGlyphs.js"
+import { edgeReach } from "../texture/material.js"
 
 const OVERLAYS = withGenerated({})
 
@@ -55,7 +56,7 @@ function coverage(scene, size, items, grow) {
 
 function fineOf(scene, glyph) {
   const mesh = scene.mesh?.glyphs[glyph.char]
-  return mesh ? scene.mesh.tools.fineMasks(mesh, glyph, glyph) : null
+  return mesh ? scene.mesh.tools.fineMasks(mesh, glyph, glyph, edgeReach(scene.capHeight)) : null
 }
 
 function drawOverlays(target, scene, entry, d) {

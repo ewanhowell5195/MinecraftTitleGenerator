@@ -1,7 +1,7 @@
 import { surface } from "../texture/canvas.js"
 import { lineLayout } from "./layout.js"
 import { joinNeighbours } from "./joins.js"
-import { faceDepth } from "../texture/material.js"
+import { edgeReach, faceDepth } from "../texture/material.js"
 import { remember } from "../core/maths.js"
 import { glyphKey } from "../font/order.js"
 import { hasMarks } from "../font/font.js"
@@ -109,7 +109,7 @@ export function arcLayout(font, sheet, words, word, options) {
     const glyph = { ...stretched(item.glyph, key, arcs, grow, marked), placedX: item.x, lineSpan, lineX: item.x - placed[0].x, lineFirst: placed[0].glyph, lift }
     chain.push(glyph)
     const mesh = font.mesh?.glyphs[item.glyph.char]
-    if (mesh) glyph.fine = font.mesh.tools.fineMasks(mesh, glyph, item.glyph)
+    if (mesh) glyph.fine = font.mesh.tools.fineMasks(mesh, glyph, item.glyph, edgeReach(font.capHeight))
     tallest.top = Math.max(tallest.top, glyph.arc.top)
     tallest.bottom = Math.max(tallest.bottom, glyph.arc.bottom)
     reach.top = Math.max(reach.top, glyph.arc.top + Math.max(0, lift))

@@ -9,8 +9,7 @@ import { REGION_KINDS, detailOf, regionScales } from "../texture/atlas/scales.js
 import { clamp, remember } from "../core/maths.js"
 import { baseChar } from "../font/order.js"
 import { defaultDepth } from "../settings/defaults.js"
-
-const EDGE_SHARE = 0.1
+import { edgeReach } from "../texture/material.js"
 
 function expand(bounds, faces) {
   for (const face of faces) {
@@ -220,7 +219,7 @@ export function rowBottom(boxLists) {
 export function buildText(font, options) {
   const { placed, depth, border } = options
   if (!placed.length) return null
-  const reach = font.capHeight * EDGE_SHARE
+  const reach = edgeReach(font.capHeight)
   const independent = independentLayers(font)
   const fronts = font.layers ? layerFronts(font.layers, depth, defaultDepth(font)) : null
   const bounds = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity }
