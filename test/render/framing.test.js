@@ -14,7 +14,7 @@ quietStorage()
 globalThis.document = { createElement: fakeElement }
 
 const { frameBounds, framePixels, frameRect, frameSplit, framing, paddingScale, renderVector, setAspect, setResolution, textureSize, textureSizes } = await import("../../src/render/framing.js")
-const { outputSize } = await import("../../src/render/render.js")
+const { outputSize } = await import("../../src/render/compose.js")
 const { view, viewport } = await import("../../src/lib/state/view.js")
 
 const TITLE = { left: 100, top: 50, width: 400, height: 100 }

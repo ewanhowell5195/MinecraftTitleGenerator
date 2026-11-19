@@ -1,20 +1,14 @@
 import * as THREE from "three"
-import { canvasOf, linearGradient } from "../lib/texture/canvas.js"
-import { gradientLine, gradientStops } from "../lib/texture/material.js"
-import { clamp } from "../lib/core/maths.js"
+import { canvasOf } from "../lib/texture/canvas.js"
 import { platform } from "../lib/core/platform.js"
 import { cullOutlines } from "./stage.js"
+import { clean, writeFlipped } from "./pixelClean.js"
 
-const LIMIT = 6
 const TILE = 4096
 export const SAMPLES = 4
 // wider than LIMIT so clean sees whole regions, and divisible by SAMPLES to keep tiles on the output pixel grid
 const MARGIN = 8
 const STRIDE = TILE - MARGIN * 2
-const WHOLE = { size: value => Math.max(1, Math.round(value)), drawn: Math.round, offset: Math.floor }
-export const EXACT = { size: value => value, drawn: value => value, offset: value => value }
-const region = new Int32Array(32)
-const around = new Int32Array(4)
 let hidden = null
 
 function autoCrop(canvas) {
@@ -79,99 +73,6 @@ export function titleShot(scene, camera, size, target) {
   const height = (bounds.maxY - bounds.minY) * view.height
   const longest = Math.max(width, height)
   return { bounds, view, width, height, outWidth: Math.max(1, Math.round(width * target / longest)), outHeight: Math.max(1, Math.round(height * target / longest)) }
-}
-
-function neighbours(p, width, height) {
-  const x = p % width
-  let count = 0
-  if (x > 0) around[count++] = p - 1
-  if (x < width - 1) around[count++] = p + 1
-  if (p >= width) around[count++] = p - width
-  if (p < width * (height - 1)) around[count++] = p + width
-  return count
-}
-
-function same(pixels, p, solid) {
-  return (pixels[p] !== 0) === solid
-}
-
-// rows run bottom to top, as gl.readPixels returns them
-function enclosed(pixels, p, x, y, width, height) {
-  if (x === 0 || y === 0 || x === width - 1 || y === height - 1) return false
-  const a = pixels[p]
-  const b = pixels[p - 1]
-  const c = pixels[p + 1]
-  const d = pixels[p - width]
-  const e = pixels[p + width]
-  const f = pixels[p + width - 1]
-  return (a | b | c | d | e | f) === 0 || (a & b & c & d & e & f) >>> 24 === 255
-}
-
-function inRegion(q, found) {
-  for (let i = 0; i < found; i++) {
-    if (region[i] === q) return true
-  }
-  return false
-}
-
-function grow(pixels, start, width, height, solid) {
-  region[0] = start
-  let found = 1
-  for (let read = 0; read < found; read++) {
-    if (read === LIMIT) return 0
-    const count = neighbours(region[read], width, height)
-    for (let n = 0; n < count; n++) {
-      const q = around[n]
-      if (same(pixels, q, solid) && !inRegion(q, found)) region[found++] = q
-    }
-  }
-  return found < LIMIT ? found : 0
-}
-
-function fill(data, p, width, height) {
-  const sum = [0, 0, 0, 0]
-  let solid = 0
-  const count = neighbours(p, width, height)
-  for (let n = 0; n < count; n++) {
-    const q = around[n] * 4
-    if (data[q + 3] === 0) continue
-    solid++
-    for (let c = 0; c < 4; c++) sum[c] += data[q + c]
-  }
-  if (!solid) return
-  for (let c = 0; c < 4; c++) data[p * 4 + c] = sum[c] / solid
-}
-
-function cleanRow(data, pixels, y, width, height) {
-  let changed = false
-  for (let x = width - 1; x >= 0; x--) {
-    const p = y * width + x
-    if (enclosed(pixels, p, x, y, width, height)) continue
-    const solid = pixels[p] !== 0
-    const size = grow(pixels, p, width, height, solid)
-    if (size) changed = true
-    for (let k = 0; k < size; k++) {
-      if (solid) pixels[region[k]] = 0
-      else fill(data, region[k], width, height)
-    }
-  }
-  return changed
-}
-
-async function clean(data, width, height, step) {
-  const pixels = new Uint32Array(data.buffer, 0, width * height)
-  let changed = false
-  for (let y = 0; y < height; y++) {
-    await step(y / height)
-    if (cleanRow(data, pixels, y, width, height)) changed = true
-  }
-  return changed
-}
-
-export function writeFlipped(ctx, data, width, height) {
-  const image = new ImageData(width, height)
-  for (let y = 0; y < height; y++) image.data.set(data.subarray((height - 1 - y) * width * 4, (height - y) * width * 4), y * width * 4)
-  ctx.putImageData(image, 0, 0)
 }
 
 function tracker({ signal, progress }) {
@@ -261,98 +162,4 @@ export async function renderTitle(size, scene, camera, resolution, antialias, ta
     renderer.setSize(1, 1, false)
   }
   return autoCrop(final.canvas)
-}
-
-export function minecraftLayout(mode, size) {
-  if (mode === "1.19") {
-    const width = size * 137 / 128
-    const height = size * 22 / 128
-    const split = Math.floor(width * 155 / 274)
-    return { width, height, left: 0, top: 0, padded: [width, height], output: [size, size], split, shift: [-split, Math.floor(height * 45 / 44)] }
-  }
-  if (mode === "mojang") {
-    const margin = size / 128
-    return { width: size * 2 - margin * 2, height: size / 2 - margin / 2, left: margin, top: margin / 4, padded: [size * 2, size / 2], output: [size, size], split: size, shift: [-size, size / 2] }
-  }
-  return { width: size, height: size * 176 / 1024, left: 0, top: 0, padded: [size, size / 4], output: [size, size / 4], split: null, shift: null }
-}
-
-export function fitTitle(layout, width, height) {
-  const scale = Math.min(layout.width / width, layout.height / height)
-  return { scale, x: layout.left + (layout.width - width * scale) / 2, y: layout.top + (layout.height - height * scale) / 2 }
-}
-
-export function drawnTitle(layout, width, height) {
-  const { scale, x, y } = fitTitle(layout, width, height)
-  return { scale, x: Math.round(x), y: Math.round(y), width: Math.round(width * scale), height: Math.round(height * scale) }
-}
-
-function minecraft(image, mode, base, size) {
-  const layout = minecraftLayout(mode, size)
-  const { x, y, width: drawWidth, height: drawHeight } = drawnTitle(layout, image.width, image.height)
-  const padded = canvasOf(Math.round(layout.padded[0]), Math.round(layout.padded[1]))
-  padded.ctx.drawImage(image, x, y, drawWidth, drawHeight)
-  const result = canvasOf(...layout.output)
-  if (mode === "1.19") {
-    result.ctx.imageSmoothingEnabled = false
-    result.ctx.drawImage(base, 0, 0, size, size)
-  }
-  if (layout.split === null) {
-    result.ctx.drawImage(padded.canvas, 0, 0)
-    return result.canvas
-  }
-  const { width, height } = padded.canvas
-  result.ctx.drawImage(padded.canvas, 0, 0, layout.split, height, 0, 0, layout.split, height)
-  result.ctx.drawImage(padded.canvas, layout.split, 0, width - layout.split, height, layout.split + layout.shift[0], layout.shift[1], width - layout.split, height)
-  return result.canvas
-}
-
-export function outputSize(image, settings, padding, snap = WHOLE) {
-  const side = Math.max(image.width, image.height)
-  if (settings.tab === "square") return [side, side]
-  if (settings.tab === "custom") return [settings.width, settings.height]
-  const scale = (side - padding * 2) / side
-  return [snap.size(image.width * scale) + padding * 2, snap.size(image.height * scale) + padding * 2]
-}
-
-export function placement(image, settings, snap = WHOLE) {
-  const shortest = settings.tab === "custom" ? Math.min(settings.width, settings.height) : Math.max(image.width, image.height)
-  const padding = clamp(settings.padding, 0, Math.floor((shortest - 1) / 2))
-  const [width, height] = outputSize(image, settings, padding, snap)
-  const ratio = Math.min((width - padding * 2) / image.width, (height - padding * 2) / image.height)
-  const drawWidth = snap.drawn(image.width * ratio)
-  const drawHeight = snap.drawn(image.height * ratio)
-  const background = settings.backgroundEnabled ? { line: gradientLine(0, 0, width, height, settings.backgroundAngle), stops: gradientStops(settings.backgroundStops, settings.backgroundSmooth) } : null
-  return { width, height, ratio, x: snap.offset((width - drawWidth) / 2), y: snap.offset((height - drawHeight) / 2), drawWidth, drawHeight, background }
-}
-
-export function compose(image, settings, base) {
-  if (settings.tab === "minecraft") return minecraft(image, settings.mode, base, settings.textureSize)
-  const { width, height, x, y, drawWidth, drawHeight, background } = placement(image, settings)
-  const result = canvasOf(width, height)
-  if (background) {
-    const [from, to] = background.line
-    result.ctx.fillStyle = linearGradient(result.ctx, ...from, ...to, background.stops)
-    result.ctx.fillRect(0, 0, width, height)
-  }
-  result.ctx.drawImage(image, x, y, drawWidth, drawHeight)
-  return result.canvas
-}
-
-function gcd(a, b) {
-  return b === 0 ? a : gcd(b, a % b)
-}
-
-export function aspectOf(width, height) {
-  const divisor = gcd(width, height)
-  return [width / divisor, height / divisor]
-}
-
-export function fromAspect(aspectWidth, aspectHeight, width, height, byWidth, max) {
-  if (byWidth) {
-    const result = [width, Math.floor(width * aspectHeight / aspectWidth)]
-    return result[1] > max ? [Math.floor(max * aspectWidth / aspectHeight), max] : result
-  }
-  const result = [Math.floor(height * aspectWidth / aspectHeight), height]
-  return result[0] > max ? [max, Math.floor(max * aspectHeight / aspectWidth)] : result
 }

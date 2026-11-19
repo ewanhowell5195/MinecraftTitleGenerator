@@ -1,5 +1,5 @@
 import { FillRule, difference, intersectD, union, unionD } from "@countertype/clipper2-ts"
-import { placement } from "../render.js"
+import { placement } from "../compose.js"
 import { addToCover, visibleLoops } from "./cover.js"
 import { loopsInHundredths, number, writePath } from "./pathData.js"
 import { boxOfPolygons, boxesOverlap, mergedByFill, sameWinding, shapeOfPolygons, shapesOverlap, sharedEdges, signedArea } from "./polygons.js"

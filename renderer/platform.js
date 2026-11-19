@@ -5,7 +5,7 @@ import createContext from "gl"
 import getTHREE from "headless-three"
 import { Canvas, DOMMatrix, Image, ImageData, loadImage } from "skia-canvas"
 import { usePlatform } from "../src/lib/core/platform.js"
-import { writeFlipped } from "../src/render/render.js"
+import { writeFlipped } from "../src/render/pixelClean.js"
 
 const PUBLIC = fileURLToPath(new URL("../public/", import.meta.url))
 const FONT_CACHE = fileURLToPath(new URL("cache/google-fonts/", import.meta.url))
