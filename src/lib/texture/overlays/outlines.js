@@ -4,6 +4,11 @@ import { TONES } from "./settings.js"
 
 const SIDES = { top: [0, 1], bottom: [0, -1], left: [-1, 0], right: [1, 0] }
 const LIGHT_SIDES = { 0: [-1, 1], 90: [1, 1], 180: [1, -1], 270: [-1, -1] }
+const TWO_TONE = new Set(["two_tone_outline"].concat(TONES.two_tone_outline))
+const SMOOTH_KINDS = new Set(["outline", "outline_fade", "outline_fade_inverted"].concat(Object.keys(SIDES), Array.from(TWO_TONE)))
+const BLEED = 1
+const FACING_FROM = 0.6
+const FACING_TO = 0.85
 
 export function upscale(own, width, height, scale, flip) {
   const columns = width * scale
@@ -61,6 +66,70 @@ function twoTonePixels(glyph, kind, settings) {
   return out
 }
 
+function fadeStrength(glyph, kind, settings) {
+  const arc = glyph.arc ?? { top: 0, bottom: 0 }
+  const span = settings.capHeight + arc.top + arc.bottom
+  const centre = span / 2 - arc.bottom
+  const half = settings.spread / 100 * span / 2
+  return row => {
+    const from = Math.abs(glyph.bottom + row + 0.5 - centre)
+    return kind === "outline_fade" ? Math.max(0, 1 - (from / half) ** 1.45) : clamp(1 - (span / 2 - from) / half, 0, 1)
+  }
+}
+
+function facingWeight(facing) {
+  const amount = clamp((facing - FACING_FROM) / (FACING_TO - FACING_FROM), 0, 1)
+  return amount * amount * (3 - 2 * amount)
+}
+
+function bandAlpha(signed, from, to) {
+  const outer = from > 0 ? clamp(signed - from + 0.5, 0, 1) : 1
+  return outer * clamp(to - signed + 0.5, 0, 1)
+}
+
+function toneOf(kind, settings, smooth, reach) {
+  if (!TWO_TONE.has(kind) || kind === "two_tone_outline") return () => 1
+  const facing = smooth.facing(reach)
+  const [h, v] = LIGHT_SIDES[settings.direction] ?? LIGHT_SIDES[0]
+  const wanted = kind === "two_tone_outline_light"
+  return index => facing[index * 2] * h + facing[index * 2 + 1] * v >= 0 === wanted ? 1 : 0
+}
+
+function smoothBand(glyph, kind, settings, smooth) {
+  const { width, height, mask } = glyph
+  if (SIDES[kind]) return spilled(smooth.toward(...SIDES[kind], FACING_FROM, Math.ceil(settings.thickness) + BLEED + 1, (signed, toward) => bandAlpha(signed, 0, settings.thickness) * facingWeight(toward)), mask, width, height)
+  const from = kind === "outline" ? settings.inset : 0
+  const to = from + settings.thickness
+  const reach = Math.ceil(to) + BLEED + 1
+  const distance = smooth.distance(reach)
+  const strength = kind === "outline_fade" || kind === "outline_fade_inverted" ? fadeStrength(glyph, kind, settings) : () => 1
+  const tone = toneOf(kind, settings, smooth, reach)
+  const out = new Float32Array(width * height)
+  for (let j = 0; j < height; j++) {
+    const row = strength(j)
+    for (let i = 0; i < width; i++) {
+      const index = j * width + i
+      if (mask[index]) out[index] = bandAlpha(distance[index], from, to) * row * tone(index)
+    }
+  }
+  return spilled(out, mask, width, height)
+}
+
+function spilled(own, mask, width, height) {
+  const out = own.slice()
+  for (let j = 0; j < height; j++) {
+    for (let i = 0; i < width; i++) {
+      if (mask[j * width + i]) continue
+      let best = 0
+      for (let y = Math.max(0, j - 1); y <= Math.min(height - 1, j + 1); y++) {
+        for (let x = Math.max(0, i - 1); x <= Math.min(width - 1, i + 1); x++) if (mask[y * width + x]) best = Math.max(best, own[y * width + x])
+      }
+      out[j * width + i] = best
+    }
+  }
+  return out
+}
+
 function pixels(glyph, kind, settings) {
   const { width, height, mask } = glyph
   const out = new Float32Array(width * height)
@@ -92,15 +161,10 @@ function pixels(glyph, kind, settings) {
     return out
   }
   if (kind === "outline_fade" || kind === "outline_fade_inverted") {
-    const arc = glyph.arc ?? { top: 0, bottom: 0 }
-    const span = settings.capHeight + arc.top + arc.bottom
-    const centre = span / 2 - arc.bottom
-    const half = settings.spread / 100 * span / 2
+    const strength = fadeStrength(glyph, kind, settings)
     const dist = distances(mask, width, height)
     for (let j = 0; j < height; j++) {
-      const from = Math.abs(glyph.bottom + j + 0.5 - centre)
-      const strength = kind === "outline_fade" ? Math.max(0, 1 - (from / half) ** 1.45) : clamp(1 - (span / 2 - from) / half, 0, 1)
-      for (let i = 0; i < width; i++) if (dist[j * width + i] >= 1 && dist[j * width + i] <= thickness) out[j * width + i] = strength
+      for (let i = 0; i < width; i++) if (dist[j * width + i] >= 1 && dist[j * width + i] <= thickness) out[j * width + i] = strength(j)
     }
     return out
   }
@@ -111,11 +175,31 @@ function pixels(glyph, kind, settings) {
   return out
 }
 
-export function finePixels(glyph, fine, kind, settings, scale) {
+export function finePixels(glyph, fine, kind, settings, scale, smooth = null) {
   const arc = glyph.arc && { ...glyph.arc, top: glyph.arc.top * scale, bottom: glyph.arc.bottom * scale }
   const detailed = { ...glyph, mask: fine, width: glyph.width * scale, height: glyph.height * scale, bottom: glyph.bottom * scale, arc }
   const scaled = { ...settings, capHeight: settings.capHeight * scale, thickness: settings.thickness * scale, inset: settings.inset * scale }
-  return upscale(pixels(detailed, kind, scaled), detailed.width, detailed.height, 1, true)
+  const own = smooth && SMOOTH_KINDS.has(kind) ? smoothBand(detailed, kind, scaled, smooth) : pixels(detailed, kind, scaled)
+  return upscale(own, detailed.width, detailed.height, 1, true)
+}
+
+export function fineCorners(glyph, fine, corners, settings, scale) {
+  const columns = glyph.width * scale
+  const rows = glyph.height * scale
+  const side = settings.size * scale
+  const inset = settings.inset * scale
+  const own = new Float32Array(columns * rows)
+  for (const { x, y, inward, angle } of corners) {
+    const reach = (inset + side / 2) / Math.sin(angle / 2)
+    const left = Math.round(x * scale + inward[0] * reach - side / 2)
+    const low = Math.round((y - glyph.bottom) * scale + inward[1] * reach - side / 2)
+    const cells = []
+    for (let row = low; row < low + side; row++) {
+      for (let column = left; column < left + side; column++) cells.push(column >= 0 && row >= 0 && column < columns && row < rows && fine[row * columns + column] ? row * columns + column : -1)
+    }
+    if (cells.every(cell => cell >= 0)) for (const cell of cells) own[cell] = 1
+  }
+  return upscale(own, columns, rows, 1, true)
 }
 
 function joinPad(settings) {

@@ -182,7 +182,7 @@ function fillerLayout(sheet, cells) {
   return { ...at, x: at.x + Math.floor(space.width / 2), fill: true }
 }
 
-export function fontScene(entry, { glyphs, cells, capHeight, layers, kerning, depth }, text = entry.preview ?? (entry.multicase ? "ABC" : "abc")) {
+export function fontScene(entry, { glyphs, cells, capHeight, layers, kerning, depth }, text = entry.preview || (entry.multicase ? "ABC" : "abc")) {
   const placed = layout({ ...entry, glyphs, kerning }, text, { spacing: entry.characterSpacing ?? 0 })
   if (!placed.length) return null
   const ring = defaultBorder("top", entry) > 0

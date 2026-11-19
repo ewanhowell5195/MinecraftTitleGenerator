@@ -11,6 +11,8 @@ import { overlayLayer } from "../settings/settings.js"
 import { safeRows, stripY } from "./strips.js"
 import { MARGIN, drawLayer, over } from "./thumbnails.js"
 import { pngUrl } from "../core/virtualFiles.js"
+import { platform } from "../core/platform.js"
+import { MITER_LIMIT } from "./meshGlyphs.js"
 
 const OVERLAYS = withGenerated({})
 
@@ -22,7 +24,7 @@ export function thumbnailScene(font, mesh = null, text = undefined, layer = null
 }
 
 function coverage(scene, size, items, grow) {
-  const canvas = document.createElement("canvas")
+  const canvas = platform.createCanvas()
   canvas.width = size.width
   canvas.height = size.height
   const ctx = canvas.getContext("2d")
@@ -43,7 +45,8 @@ function coverage(scene, size, items, grow) {
   }
   ctx.fill("nonzero")
   if (grow) {
-    ctx.lineJoin = "round"
+    ctx.lineJoin = "miter"
+    ctx.miterLimit = MITER_LIMIT
     ctx.lineWidth = grow * 2
     ctx.stroke()
   }

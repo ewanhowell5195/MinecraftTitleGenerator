@@ -156,19 +156,54 @@ describe("mesh glyphs", () => {
     }
   })
 
-  test("a smooth outline overlay stays inside the letter", async () => {
+  test("a smooth outline overlay reaches the letter's edge and fades on its inner side", async () => {
     const source = await testFont()
     const mesh = glyphMeshes(meshOutlines(source, { height: 30 })).c
     const cell = parsedSheet(fontFromOutlines(source, { height: 30 }), 2).list.find(item => item.char === "c")
     const fine = fineMasks(mesh, cell, cell)
     const alpha = generatedAlpha({ ...cell, placedX: 0, fine }, "outline", {}, 30, 4)
     const solid = fine(4)
+    const near = fine.distance(4, 8)
     const columns = cell.width * 4
     const rows = cell.height * 4
-    assert.ok(alpha.some(value => value > 0))
-    for (let index = 0; index < alpha.length; index++) {
-      if (alpha[index]) assert.equal(solid[(rows - 1 - Math.floor(index / columns)) * columns + index % columns], 1)
+    const value = (column, row) => alpha[(rows - 1 - row) * columns + column]
+    assert.ok(alpha.some(level => level > 0 && level < 1))
+    for (let row = 0; row < rows; row++) {
+      for (let column = 0; column < columns; column++) {
+        if (solid[row * columns + column]) continue
+        const touching = []
+        for (let y = Math.max(0, row - 1); y <= Math.min(rows - 1, row + 1); y++) {
+          for (let x = Math.max(0, column - 1); x <= Math.min(columns - 1, column + 1); x++) if (solid[y * columns + x]) touching.push(value(x, y))
+        }
+        assert.equal(value(column, row), Math.max(0, ...touching))
+        if (near[row * columns + column] < 0.5) assert.equal(value(column, row), 1)
+      }
     }
+  })
+
+  test("corner dots go on the outline's corners, not along its curves", async () => {
+    const round = new opentype.Path()
+    round.moveTo(650, 350)
+    round.quadraticCurveTo(650, 650, 350, 650)
+    round.quadraticCurveTo(50, 650, 50, 350)
+    round.quadraticCurveTo(50, 50, 350, 50)
+    round.quadraticCurveTo(650, 50, 650, 350)
+    round.close()
+    const notdef = new opentype.Glyph({ name: ".notdef", unicode: 0, advanceWidth: 500, path: new opentype.Path() })
+    const roundFont = opentype.parse(new opentype.Font({ familyName: "Round", styleName: "Regular", unitsPerEm: 1000, ascender: 800, descender: -200, glyphs: [notdef, glyph("H", [[[[100, 0], [100, 700], [600, 700], [600, 0]], false]]), new opentype.Glyph({ name: "Q", unicode: 81, advanceWidth: 800, path: round })] }).toArrayBuffer())
+    function dots(source, char) {
+      const meshes = glyphMeshes(meshOutlines(source, { height: 30 }))
+      const cell = parsedSheet(fontFromOutlines(source, { height: 30 }), 2).list.find(item => item.char === char)
+      const fine = fineMasks(meshes[char], cell, cell)
+      return { corners: fine.corners().length, alpha: generatedAlpha({ ...cell, placedX: 0, fine }, "corners", {}, 30, 4) }
+    }
+    const source = await testFont()
+    assert.equal(dots(source, "h").corners, 4)
+    assert.equal(dots(source, "o").corners, 4)
+    assert.equal(dots(source, "c").corners, 4)
+    assert.ok(dots(source, "h").alpha.some(value => value > 0))
+    assert.equal(dots(roundFont, "q").corners, 0)
+    assert.ok(dots(roundFont, "q").alpha.every(value => value === 0))
   })
 
   test("a border grows round the letters, and the gap inside an O can be filled", async () => {
