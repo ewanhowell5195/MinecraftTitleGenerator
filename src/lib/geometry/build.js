@@ -229,7 +229,7 @@ export function buildText(font, options) {
     const boxes = clippedBoxes(boxesFor(glyph.mask, glyph.width, glyph.height, item.x, glyph.bottom), glyph, item.x)
     const char = baseChar(glyph.char)
     const mesh = font.mesh?.glyphs[char]
-    const shaped = mesh ? font.mesh.tools.meshFaces(mesh, glyph, font.glyphs[char], item.x, depth, reach) : null
+    const shaped = mesh ? font.mesh.tools.meshFaces(mesh, glyph, font.glyphs[char], item.x + (glyph.inkShift ?? 0), depth, reach) : null
     const sliced = !shaped && glyph.depths && font.layers
     const body = shaped ? shaped.faces : sliced ? sliceFaces(glyph, item.x, depth, fronts, independent) : boxFaces(boxes, -depth / 2, depth / 2)
     if (sliced) {

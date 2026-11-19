@@ -169,7 +169,7 @@ export function fineMasks(mesh, glyph, original, reach) {
   const masks = new Map()
   const distances = new Map()
   let rings = null
-  const lifted = () => rings ??= liftedRings(mesh.shapes, rowMapping(glyph, original))
+  const lifted = () => rings ??= liftedRings(mesh.shapes, rowMapping(glyph, original), glyph.inkShift ?? 0)
   function fine(scale) {
     if (!masks.has(scale)) masks.set(scale, scanFill(lifted(), glyph.width, glyph.height, scale, glyph.bottom))
     return masks.get(scale)

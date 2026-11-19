@@ -69,6 +69,20 @@ describe("shapeLine results", () => {
     assert.deepEqual(Object.keys(laid.sheet.glyphs), keys)
   })
 
+  test("a mesh glyph whose outline overhangs its cell is widened to cover it, without moving the line", () => {
+    const shapes = [{ outer: [[-1.5, 0], [5, 0], [5, CAP], [-1.5, CAP]], holes: [] }]
+    const font = fontOf({ a: glyphOf("a") }, { mesh: { glyphs: { a: { shapes } }, tools: { fineMasks: () => () => null } } })
+    const laid = shapeLine(font, sheetOf(font), [{ text: "a", space: false }], 0, BASE)
+    const [{ x, glyph }] = laid.placed
+    assert.equal(x, -2)
+    assert.equal(glyph.width, 7)
+    assert.equal(glyph.inkShift, 2)
+    assert.equal(glyph.placedX, -2)
+    assert.deepEqual(Array.from(glyph.mask.subarray(0, 7)), [0, 0, 1, 1, 1, 1, 0])
+    assert.deepEqual(laid.line, { minX: 0, maxX: 4, minY: 0, maxY: CAP })
+    assert.deepEqual(laid.ends, { first: 2, last: 2 })
+  })
+
   test("sheet entries point at the source glyph in the original sheet", () => {
     const font = fontOf({ a: glyphOf("a") })
     const sheet = sheetOf(font)
