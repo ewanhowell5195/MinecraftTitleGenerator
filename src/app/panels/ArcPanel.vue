@@ -14,7 +14,7 @@
   const MODES = [{ value: "stretch", label: "Stretch" }, { value: "move", label: "Move" }]
 
   const { object, font, modified, reset, k } = usePanel(props.word ? "wordArc" : "arc", props.word)
-  const marked = computed(() => hasMarks(font.value))
+  const marked = computed(() => !font.value?.mesh && hasMarks(font.value))
 </script>
 
 <template>

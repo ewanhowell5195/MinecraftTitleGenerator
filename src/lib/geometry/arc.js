@@ -78,7 +78,7 @@ export function arcLayout(font, sheet, words, word, options) {
   const reach = { top: -Infinity, bottom: -Infinity }
   const lineSpan = [Math.min(...placed.map(item => item.x)), Math.max(...placed.map(item => item.x + item.glyph.width))]
   const moving = options.arcMode === "move"
-  const marked = hasMarks(font)
+  const marked = !font.mesh && hasMarks(font)
   const bend = (amount, strength) => Math.round(Math.abs(amount) * (amount < 0 ? 1 - strength : strength) * font.capHeight)
   const curve = (mode, top, bottom, marked, strength) => mode === "move" ? { raise: 0, drop: 0, marked } : { raise: bend(top, strength), drop: bend(bottom, strength), marked }
   let x = 0
