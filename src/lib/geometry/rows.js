@@ -49,6 +49,7 @@ function rowBelow(object, title) {
 }
 
 export function rowStart(object, title = editorTitle) {
+  if (object.row === 0) return 0
   if (object.row < 0) return rowBelow(object, title)
   const rows = visibleRows(object, title)
   let end = 0
