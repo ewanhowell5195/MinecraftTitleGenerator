@@ -23,12 +23,20 @@ export function popular(entries, id, label, pinned = []) {
   return entries.slice().sort((a, b) => rank(a) - rank(b) || (counts.value.get(id(b)) ?? 0) - (counts.value.get(id(a)) ?? 0) || label(a).localeCompare(label(b)))
 }
 
+export function byUsage(entries, id) {
+  return entries.slice().sort((a, b) => (counts.value.get(id(b)) ?? 0) - (counts.value.get(id(a)) ?? 0))
+}
+
 export function usage(ids) {
   return ids.reduce((total, id) => total + (counts.value.get(id) ?? 0), 0)
 }
 
 export function minecraftStatId(id) {
   return `tileable.minecraft.${id}`
+}
+
+export function googleStatId(family) {
+  return `${GOOGLE_STATS}.${family}`
 }
 
 function googleFamily(object) {
@@ -45,7 +53,7 @@ function statIds() {
   for (const object of scene.objects) {
     if (object.hidden || object.shape !== null || !object.text.trim() || isCustomFont(object.font) && !googleFamily(object)) continue
     const scope = statScope(object, object.font)
-    ids.add(googleFamily(object) ? `${GOOGLE_STATS}.${googleFamily(object)}` : object.font)
+    ids.add(googleFamily(object) ? googleStatId(googleFamily(object)) : object.font)
     if (object.textureSource === "premade") ids.add(`${scope}.${object.texture}`)
     if (object.textureSource === "tileable" && object.tileableSource === "minecraft") minecraft.set(object.minecraftTexture, object.minecraftVersion)
     if (object.textureSource === "tileable" && object.tileableSource !== "minecraft") ids.add(`tileable.${object.tileable}`)

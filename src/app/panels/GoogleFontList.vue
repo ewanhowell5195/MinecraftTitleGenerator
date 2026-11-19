@@ -1,6 +1,7 @@
 <script setup>
   import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue"
   import { openedFirst } from "../../components/composables/opened.js"
+  import { byUsage, googleStatId } from "../../lib/state/stats.js"
   import { googleFontList, googlePreview, googlePreviewFamily, styleLabel, styleParts } from "../../lib/font/googleFonts.js"
   import Dropdown from "../../components/Dropdown.vue"
   import Slider from "../../components/Slider.vue"
@@ -12,6 +13,7 @@
   const PAGE = 60
 
   const props = defineProps({
+    search: { type: String, default: "" },
     current: { type: Object, default: null },
     opened: { type: String, default: null },
     loading: { type: String, default: null }
@@ -21,13 +23,12 @@
 
   const fonts = ref([])
   const error = ref("")
-  const search = ref("")
   const limit = ref(PAGE)
   const more = ref(null)
   const loaded = reactive({})
   const found = computed(() => {
-    const term = search.value.trim().toLowerCase()
-    const ordered = openedFirst(fonts.value, font => font.family === props.opened)
+    const term = props.search.trim().toLowerCase()
+    const ordered = openedFirst(byUsage(fonts.value, font => googleStatId(font.family)), font => font.family === props.opened)
     if (!term) return ordered
     return ordered.filter(font => [font.family, font.category].concat(font.designers).some(text => text.toLowerCase().includes(term)))
   })
@@ -69,7 +70,7 @@
     if (element && !loaded[element.dataset.family]) samples.observe(element)
   }
 
-  watch(search, () => (limit.value = PAGE))
+  watch(() => props.search, () => (limit.value = PAGE))
 
   watch(more, (element, before) => {
     if (before) paging.unobserve(before)
@@ -91,7 +92,6 @@
 </script>
 
 <template>
-  <input type="text" v-model="search" placeholder="Search Google Fonts" aria-label="Search Google Fonts" spellcheck="false">
   <Notice v-if="error">{{ error }}</Notice>
   <p v-else-if="!fonts.length" class="hint">Loading fonts...</p>
   <p v-else-if="!found.length" class="hint">No fonts match</p>

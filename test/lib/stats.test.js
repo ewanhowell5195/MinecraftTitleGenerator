@@ -13,7 +13,7 @@ function stubFetch(url, options) {
 quietStorage()
 globalThis.fetch = stubFetch
 
-const { loadStats, popular, statScope } = await import("../../src/lib/state/stats.js")
+const { byUsage, loadStats, popular, statScope } = await import("../../src/lib/state/stats.js")
 
 function statsOf(entries) {
   return { ok: true, status: 200, json: async () => entries }
@@ -84,6 +84,14 @@ describe("popular", () => {
     response = { ok: false, status: 503 }
     await assert.rejects(loadStats(), { message: "failed to load the title stats: 503" })
     assert.deepEqual(ids(popular(entries, idOf, idOf)), ["b", "a", "c"])
+  })
+})
+
+describe("byUsage", () => {
+  test("sorts by count and keeps the given order for ties", async () => {
+    response = statsOf([{ id: "c", count: 4 }, { id: "a", count: 4 }, { id: "d", count: 9 }])
+    await loadStats()
+    assert.deepEqual(ids(byUsage([{ id: "b" }, { id: "c" }, { id: "e" }, { id: "a" }, { id: "d" }], idOf)), ["d", "c", "a", "b", "e"])
   })
 })
 

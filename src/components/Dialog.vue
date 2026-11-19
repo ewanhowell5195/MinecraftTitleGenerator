@@ -11,6 +11,7 @@
     title: { type: String, required: true },
     closeTitle: { type: String, required: true },
     large: { type: Boolean, default: false },
+    tall: { type: Boolean, default: false },
     wide: { type: Boolean, default: false },
     dismissable: { type: Boolean, default: false }
   })
@@ -56,7 +57,7 @@
 
 <template>
   <Teleport to="body">
-    <div ref="backdrop" class="backdrop" :class="{ large, wide }" @pointerdown.self="dismissable && emit('close')">
+    <div ref="backdrop" class="backdrop" :class="{ large, tall, wide }" @pointerdown.self="dismissable && emit('close')">
       <div class="dialog" role="dialog" :aria-label="title">
         <header class="row">
           <h2>{{ title }}</h2>
@@ -128,6 +129,10 @@
     flex-direction: column;
     width: min(1000px, 100%);
     height: min(760px, 100%);
+  }
+
+  .large.tall .dialog {
+    height: 100%;
   }
 
   header {

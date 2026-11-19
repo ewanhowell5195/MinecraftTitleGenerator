@@ -17,6 +17,7 @@
   import { SEARCH_ABOVE, fontThumbnail, readDataUrl, takeFile } from "../../lib/state/ui.js"
   import { usedFonts } from "./uploads.js"
   import { googleFontSource } from "../../lib/font/googleFonts.js"
+  import FontBrowser from "./FontBrowser.vue"
   import GoogleFontList from "./GoogleFontList.vue"
   import Button from "../../components/Button.vue"
   import Field from "../../components/Field.vue"
@@ -36,6 +37,8 @@
   const BUILDS = [{ value: false, label: "Cubes" }, { value: true, label: "Mesh" }]
 
   const info = ref(false)
+  const browsing = ref(false)
+  const browsedPicks = ref(0)
   const { object, font, modified, reset } = usePanel("font")
   const tab = ref(tabOf(object.value))
   const googleLoading = ref(null)
@@ -54,7 +57,7 @@
   const hasCreeper = computed(() => !!font.value?.glyphs["\u{1F633}"])
   const entry = computed(() => library.fonts.find(item => item.id === object.value.font))
   const baseId = computed(() => entry.value?.variant ?? object.value.font)
-  const opened = useOpened(() => ({ base: baseId.value, font: object.value.font, google: object.value.customFont?.google ?? null }), () => [tab.value, object.value.id])
+  const opened = useOpened(() => ({ base: baseId.value, font: object.value.font, google: object.value.customFont?.google ?? null }), () => [tab.value, object.value.id, browsedPicks.value])
   const baseFonts = computed(() => popular(library.fonts.filter(item => !item.variant), item => item.id, item => item.name, [opened.value.base, DEFAULT_FONT]))
   const variants = computed(() => popular(library.fonts.filter(item => item.variant === baseId.value), item => item.id, item => item.name, [opened.value.font]))
   const search = ref("")
@@ -94,7 +97,6 @@
 
   function chooseTab(value) {
     tab.value = value
-    search.value = ""
     if (value !== "published") {
       if (!isCustomFont(object.value.font)) publishedFonts.set(object.value.id, object.value.font)
       if (object.value.customFont && !usingCustom.value && !!object.value.customFont.google === (value === "google")) applyCustom(object.value.customFont)
@@ -123,6 +125,12 @@
     googleLoading.value = font.family
     await applyCustom(googleFontSource(font.family, font.style))
     googleLoading.value = null
+  }
+
+  async function browsed(picked) {
+    if (tab.value === "google") await pickGoogle(picked)
+    else object.value.font = picked.id
+    browsedPicks.value++
   }
 
   function changeImport(key, value) {
@@ -196,6 +204,7 @@
       <Button ghost icon="info" title="Font info and characters" :disabled="!font" @click="info = true" />
     </template>
     <FontInfoDialog v-if="info && font" :font="font" :title="entry?.name || customName || 'Font'" @close="info = false" />
+    <FontBrowser v-if="browsing" v-model:search="search" :kind="tab" :current="tab === 'google' ? (usingCustom ? object.customFont.google : null) : object.font" @pick="browsed" @close="browsing = false" />
     <Segments v-if="tab === 'custom'" :options="TABS" :model-value="tab" @update:model-value="chooseTab" />
     <template v-if="tab === 'custom'">
       <UploadField accept=".json,.png,.ttf,.otf,.woff,.woff2,application/json,image/png,font/ttf,font/otf,font/woff,font/woff2" :label="loading ? 'Loading...' : uploaded ? 'Replace font' : 'Choose a font file'" empty="No font uploaded" :disabled="loading" :clearable="uploaded" @change="upload" @clear="clearCustom">
@@ -226,12 +235,20 @@
     </template>
     <div v-if="tab === 'google'" class="flow pick peek">
       <Segments :options="TABS" :model-value="tab" @update:model-value="chooseTab" />
+      <div class="row">
+        <input type="text" v-model="search" placeholder="Search Google Fonts" aria-label="Search Google Fonts" spellcheck="false">
+        <Button icon="rows" title="Browse Google Fonts" @click="browsing = true" />
+      </div>
       <Notice v-if="customError">{{ customError }}</Notice>
-      <GoogleFontList :current="usingCustom && object.customFont.google ? object.customFont : null" :opened="opened.google" :loading="googleLoading" @pick="pickGoogle" />
+      <GoogleFontList :search="search" :current="usingCustom && object.customFont.google ? object.customFont : null" :opened="opened.google" :loading="googleLoading" @pick="pickGoogle" />
     </div>
     <div v-if="tab === 'published'" ref="picker" class="flow pick peek" :style="{ minHeight: `${floor}px` }">
       <Segments :options="TABS" :model-value="tab" @update:model-value="chooseTab" />
-      <input v-if="searchable" type="text" v-model="search" placeholder="Search fonts" aria-label="Search fonts">
+      <div class="row">
+        <input v-if="searchable" type="text" v-model="search" placeholder="Search fonts" aria-label="Search fonts">
+        <div v-else class="grow"></div>
+        <Button icon="rows" title="Browse fonts" @click="browsing = true" />
+      </div>
       <TileGrid v-if="searching" class="scroll">
         <Tile v-for="data of foundFonts" :key="data.id" :label="fullName(data, library.fonts)" :image="fontThumbnail(data)" :author="fontCredit(data, library.fonts)" :selected="object.font === data.id" @pick="object.font = data.id" />
       </TileGrid>

@@ -2,8 +2,9 @@ import { fetched } from "../submissions/api.js"
 import { MULTICASE_CHARACTERS } from "./editor/characters.js"
 import { platform } from "../core/platform.js"
 import { sameValue } from "../settings/settings.js"
+import { CATALOG_VERSION } from "./googleCatalog.js"
 
-const LIST = "/api/google-fonts"
+const LIST = `/api/google-fonts?v=${CATALOG_VERSION}`
 const STYLESHEET = "https://fonts.googleapis.com/css2"
 const FILE = /url\((https:\/\/fonts\.gstatic\.com\/[^)]+)\)/
 const TEXT = encodeURIComponent([" "].concat(MULTICASE_CHARACTERS).join(""))
@@ -19,6 +20,7 @@ const WEIGHT_NAMES = { 100: "Thin", 200: "Extra Light", 300: "Light", 400: "Regu
 
 let listing = null
 const previews = new Map()
+const sampleTexts = new Map([[PREVIEW_TEXT, 0]])
 let queued = []
 let flushing = null
 
@@ -54,12 +56,17 @@ function familyQuery({ family, style }) {
   return `family=${family.replaceAll(" ", "+")}:ital,wght@${italic ? 1 : 0},${weight}`
 }
 
-export function googlePreviewFamily(family) {
-  return `"${PREVIEW_PREFIX}${family}"`
+function previewName(family, text) {
+  if (!sampleTexts.has(text)) sampleTexts.set(text, sampleTexts.size)
+  return `${PREVIEW_PREFIX}${sampleTexts.get(text)} ${family}`
 }
 
-async function loadPreviews(batch) {
-  const css = await (await fetched(`${STYLESHEET}?${batch.map(({ font }) => familyQuery(font)).join("&")}&text=${PREVIEW_TEXT}`, "Google Fonts previews")).text()
+export function googlePreviewFamily(family, text = PREVIEW_TEXT) {
+  return `"${previewName(family, text)}"`
+}
+
+async function loadPreviews(batch, text) {
+  const css = await (await fetched(`${STYLESHEET}?${batch.map(({ font }) => familyQuery(font)).join("&")}&text=${encodeURIComponent(text)}`, "Google Fonts previews")).text()
   const urls = new Map(Array.from(css.matchAll(FACES), ([, family, url]) => [family, url]))
   for (const { font, settle } of batch) {
     const url = urls.get(font.family)
@@ -67,7 +74,7 @@ async function loadPreviews(batch) {
       settle.reject(new Error(`Google Fonts has no preview for ${font.family}`))
       continue
     }
-    const face = new FontFace(`${PREVIEW_PREFIX}${font.family}`, `url(${url})`)
+    const face = new FontFace(previewName(font.family, text), `url(${url})`)
     document.fonts.add(face)
     face.load().then(settle.resolve, settle.reject)
   }
@@ -75,22 +82,25 @@ async function loadPreviews(batch) {
 
 function flushPreviews() {
   flushing = null
-  const waiting = queued
+  const waiting = Map.groupBy(queued, item => item.text)
   queued = []
-  for (let start = 0; start < waiting.length; start += PREVIEW_BATCH) {
-    const batch = waiting.slice(start, start + PREVIEW_BATCH)
-    loadPreviews(batch).catch(err => batch.forEach(({ settle }) => settle.reject(err)))
+  for (const [text, items] of waiting) {
+    for (let start = 0; start < items.length; start += PREVIEW_BATCH) {
+      const batch = items.slice(start, start + PREVIEW_BATCH)
+      loadPreviews(batch, text).catch(err => batch.forEach(({ settle }) => settle.reject(err)))
+    }
   }
 }
 
-export function googlePreview(font) {
-  if (!previews.has(font.family)) {
+export function googlePreview(font, text = PREVIEW_TEXT) {
+  const key = previewName(font.family, text)
+  if (!previews.has(key)) {
     const settle = {}
-    previews.set(font.family, new Promise((resolve, reject) => Object.assign(settle, { resolve, reject })))
-    queued.push({ font, settle })
+    previews.set(key, new Promise((resolve, reject) => Object.assign(settle, { resolve, reject })))
+    queued.push({ font, text, settle })
     flushing ??= setTimeout(flushPreviews, PREVIEW_WAIT)
   }
-  return previews.get(font.family)
+  return previews.get(key)
 }
 
 export async function googleFontUrl(font) {
