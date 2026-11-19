@@ -134,7 +134,7 @@ export function paintSheet(sheet, look, assets, capHeight, base) {
   const eager = layered && look.fade
   const faces = eager ? ready.read() : null
 
-  const overlayLayers = assets.overlays.concat(assets.edgeOverlays.map(({ layer, generated }) => ({ layer, source: { edge: generated } })))
+  const overlayLayers = assets.edgeOverlays.map(({ layer, generated }) => ({ layer, source: { edge: generated } })).concat(assets.overlays)
   function shadedEdges(overlay) {
     const copy = copyOf(overlay.canvas)
     copy.ctx.globalCompositeOperation = "source-atop"
