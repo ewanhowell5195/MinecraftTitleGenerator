@@ -32,7 +32,7 @@ export function setHeights(object, title, values) {
 }
 
 export function usePublished(object, title, { size, scaleY, entry }) {
-  watch(entry, value => (title.runtime[object.id] = value), { immediate: true })
+  watch(entry, value => (title.runtime[object.id] = value), { immediate: true, flush: "post" })
   watch(size, values => setHeights(object, title, values), { immediate: true })
   watch(scaleY, value => setHeights(object, title, { scaleY: value }), { immediate: true })
 
