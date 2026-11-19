@@ -1,4 +1,4 @@
-import { sheetLayout } from "./font.js"
+import { sheetLayout } from "./sheet.js"
 
 const CUSTOM_SHAPE_UNITS = { width: 256, height: 64 }
 

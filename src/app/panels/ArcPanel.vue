@@ -1,6 +1,6 @@
 <script setup>
   import { computed } from "vue"
-  import { hasMarks } from "../../lib/font/font.js"
+  import { hasMarks } from "../../lib/font/stretchMarks.js"
   import { usePanel } from "./panel.js"
   import Panel from "../Panel.vue"
   import Segments from "../../components/Segments.vue"

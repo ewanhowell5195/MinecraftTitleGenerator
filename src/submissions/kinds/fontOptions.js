@@ -1,4 +1,4 @@
-import { fullName } from "../../lib/font/font.js"
+import { fullName } from "../../lib/font/catalog.js"
 import { DEFAULT_FONT } from "../../lib/settings/defaults.js"
 import { popular } from "../../lib/state/stats.js"
 import { fontThumbnail } from "../../lib/font/thumbnailUrls.js"

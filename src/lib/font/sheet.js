@@ -1,4 +1,6 @@
-import { SHEET_MAX_WIDTH, depthShade } from "./font.js"
+export const SHEET_MAX_WIDTH = 560
+
+const SHEET_GAP = 2
 
 export const EMPTY = [255, 255, 255]
 export const GLYPH = [0, 0, 0]
@@ -12,6 +14,10 @@ export function setPixel({ data, width }, x, y, colour) {
   data[at + 1] = colour[1]
   data[at + 2] = colour[2]
   data[at + 3] = colour[3] ?? 255
+}
+
+export function depthShade(depth) {
+  return Math.round((1 - depth) * 255)
 }
 
 function sheetRows(cells, capHeight, { maxWidth = SHEET_MAX_WIDTH, flatWidth = Infinity, keepRows = false } = {}) {
@@ -67,4 +73,22 @@ export function drawSheet(cells, capHeight, { width: fixed = null, layers = null
   }
   for (let x = 0; x < width; x++) setPixel(sheet, x, height - 1, GRID)
   return sheet
+}
+
+export function sheetLayout(cells, capHeight, depth, fit = false) {
+  const positions = new Map()
+  const rows = Map.groupBy(cells.filter(glyph => (glyph.source ?? glyph).width).sort((a, b) => a.row - b.row || a.column - b.column), glyph => glyph.row)
+  let band = 0
+  for (const row of rows.values()) {
+    const shown = row.filter(glyph => glyph.height)
+    const rise = fit ? shown.length ? Math.max(...shown.map(glyph => glyph.top)) : 0 : Math.max(capHeight, ...row.map(glyph => glyph.top))
+    const drop = fit ? shown.length ? Math.min(...shown.map(glyph => glyph.bottom)) : 0 : Math.min(0, ...row.map(glyph => glyph.bottom))
+    let x = 0
+    for (const glyph of row) {
+      positions.set(glyph, { x, top: band + depth + rise - glyph.top, up: band, down: band + depth + rise - drop })
+      if (glyph.width) x += glyph.width + SHEET_GAP
+    }
+    band += depth * 2 + rise - drop + SHEET_GAP
+  }
+  return positions
 }

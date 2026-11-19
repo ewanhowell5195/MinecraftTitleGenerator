@@ -7,7 +7,7 @@
   import NumberInput from "../../components/NumberInput.vue"
   import Segments from "../../components/Segments.vue"
   import { fetched } from "../../lib/submissions/api.js"
-  import { fontFolder, fullName, sheetOwner } from "../../lib/font/font.js"
+  import { fontFolder, fullName, sheetOwner } from "../../lib/font/catalog.js"
   import { texturesList } from "../../lib/submissions/kinds/fontAsset.js"
   import { submissionContext } from "../../lib/submissions/kinds/index.js"
   import { DEFAULT_FONT } from "../../lib/settings/defaults.js"

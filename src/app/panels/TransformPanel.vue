@@ -4,7 +4,7 @@
   import { previews } from "../previews.js"
   import { TYPES } from "../../lib/settings/defaults.js"
   import { TRANSFORM_GROUPS, TRANSFORM_LIMITS, isModified, resetTransform, transformKeys, wordKey } from "../../lib/settings/settings.js"
-  import { hasMarks } from "../../lib/font/font.js"
+  import { hasMarks } from "../../lib/font/stretchMarks.js"
   import { active, bakeMatch, chooseMatch, current, currentWord, lineText, scene, selection, setScale, words } from "../../lib/state/scene.js"
   import Button from "../../components/Button.vue"
   import Dropdown from "../../components/Dropdown.vue"

@@ -1,5 +1,6 @@
 import { independentLayers, layerSlices } from "../../font/flatSheet.js"
-import { fontFolder, fullOrder, parseMask, sheetOwner } from "../../font/font.js"
+import { fontFolder, fullOrder, sheetOwner } from "../../font/catalog.js"
+import { parseMask } from "../../font/sheetParse.js"
 import { titleCase } from "../../core/names.js"
 import { defaultBorder, defaultDepth } from "../../settings/defaults.js"
 import { stackedStrip, stripRange, stripRows, stripTag, stripUse, stripY, withDefaultStrips } from "../../font/strips.js"

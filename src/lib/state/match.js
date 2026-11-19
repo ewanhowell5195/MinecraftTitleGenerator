@@ -1,6 +1,6 @@
 import { watch } from "vue"
 import * as THREE from "three"
-import { hasMarks } from "../font/font.js"
+import { hasMarks } from "../font/stretchMarks.js"
 import { quietly } from "./history.js"
 import { clamp, round } from "../core/maths.js"
 import { editorTitle, words } from "./scene.js"

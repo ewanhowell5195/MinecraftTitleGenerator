@@ -7,7 +7,7 @@
 <script setup>
   import { computed, nextTick, onBeforeUnmount, reactive, ref, shallowRef, watch } from "vue"
   import { fontCredit } from "../../lib/font/credits.js"
-  import { fullName } from "../../lib/font/font.js"
+  import { fullName } from "../../lib/font/catalog.js"
   import { fontSample } from "../../lib/font/fontSamples.js"
   import { googleFontList, googlePreview, googlePreviewFamily } from "../../lib/font/googleFonts.js"
   import { library } from "../../lib/state/scene.js"

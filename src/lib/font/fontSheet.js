@@ -1,6 +1,7 @@
 import { pixelsOf } from "../texture/canvas.js"
 import { image, textureList } from "../texture/assets.js"
-import { sheetLayout, solidMask } from "./font.js"
+import { sheetLayout } from "./sheet.js"
+import { solidMask } from "./sheetParse.js"
 import { defaultDepth } from "../settings/defaults.js"
 
 const shapes = new WeakMap()

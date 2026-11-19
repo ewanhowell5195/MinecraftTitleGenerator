@@ -1,6 +1,7 @@
 import { fontTextures, importedTextures, loadTileables, modelTextures } from "../texture/assets.js"
 import { typeDefaults } from "../settings/defaults.js"
-import { loadFontList, sheetFolder, stripsOf } from "../font/font.js"
+import { loadFontList } from "../font/font.js"
+import { sheetFolder, stripsOf } from "../font/catalog.js"
 import { isCustomFont } from "../settings/settings.js"
 import { LAYERS, OVERLAY_KINDS } from "../settings/textureDefaults.js"
 import { isMinecraftShape, loadShapeList } from "../geometry/shapes.js"

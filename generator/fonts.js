@@ -1,5 +1,6 @@
 import path from "node:path"
-import { flattenFonts, fontFolder, fullOrder, parseMask, sheetOwner, stripsOf } from "../src/lib/font/font.js"
+import { flattenFonts, fontFolder, fullOrder, sheetOwner, stripsOf } from "../src/lib/font/catalog.js"
+import { parseMask } from "../src/lib/font/sheetParse.js"
 import { defaultBorder } from "../src/lib/settings/defaults.js"
 import { mergeStrips, stripFolder, stripUse } from "../src/lib/font/strips.js"
 import { readJson, readPng } from "./common.js"

@@ -1,4 +1,4 @@
-import { parseMask } from "../font.js"
+import { parseMask } from "../sheetParse.js"
 import { drawSheet } from "../sheet.js"
 import { marksFor, sheetMeasures } from "../stretchMarks.js"
 import { charactersOf } from "./characters.js"

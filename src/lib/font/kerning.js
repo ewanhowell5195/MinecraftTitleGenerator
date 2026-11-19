@@ -6,6 +6,19 @@ const LETTER = /^\p{L}$/u
 const DIGIT = /^[0-9]$/
 const MAIN_SYMBOL = /^[$£€()[\]{}/\\?]$/
 
+export function kerningPairs(grouped, owner) {
+  if (grouped === undefined) return undefined
+  const valid = grouped && typeof grouped === "object" && !Array.isArray(grouped) && Object.entries(grouped).every(([amount, pairs]) => Number.isInteger(Number(amount)) && Array.isArray(pairs) && pairs.every(pair => typeof pair === "string"))
+  if (!valid) throw new Error(`${owner}'s kerning isn't grouped by amount, like { "4": ["lt", "ly"] }`)
+  return Object.fromEntries(Object.entries(grouped).flatMap(([amount, pairs]) => pairs.map(pair => [pair, Number(amount)])))
+}
+
+export function groupedKerning(pairs) {
+  const grouped = {}
+  for (const [pair, amount] of Object.entries(pairs)) (grouped[amount] ??= []).push(pair)
+  return grouped
+}
+
 export function pairRank(pair) {
   const kinds = Array.from(pair, char => char === CREEPER || LETTER.test(char) ? "letter" : DIGIT.test(char) ? "digit" : MAIN_SYMBOL.test(char) ? "main" : "symbol")
   if (kinds.includes("symbol")) return 4

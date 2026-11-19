@@ -1,4 +1,4 @@
-import { flattenFonts, fontFolder, fullName, sheetOwner } from "../../../lib/font/font.js"
+import { flattenFonts, fontFolder, fullName, sheetOwner } from "../../../lib/font/catalog.js"
 import { jsonText } from "../../../lib/core/jsonText.js"
 import { titleCase } from "../../../lib/core/names.js"
 import { mergeStrips, stripFolder, stripUse, withDefaultStrips } from "../../../lib/font/strips.js"

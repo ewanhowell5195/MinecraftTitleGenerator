@@ -7,7 +7,7 @@
   import Segments from "../../components/Segments.vue"
   import Toggle from "../../components/Toggle.vue"
   import { fetched } from "../../lib/submissions/api.js"
-  import { fontFolder } from "../../lib/font/font.js"
+  import { fontFolder } from "../../lib/font/catalog.js"
   import { DEFAULT_FONT, fontFaces } from "../../lib/settings/defaults.js"
   import { FACE_PANELS, overlayLayer } from "../../lib/settings/textureDefaults.js"
   import { DEFAULT_OVERLAY_LIMIT, fontLayerCount, fontOwners, overlayChoices, texturesList } from "../../lib/submissions/kinds/fontAsset.js"

@@ -1,4 +1,4 @@
-import { sheetLayout } from "./font.js"
+import { sheetLayout } from "./sheet.js"
 
 const FACE = [255, 255, 255]
 const UP = [176, 176, 176]

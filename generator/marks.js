@@ -1,4 +1,4 @@
-import { scanMask } from "../src/lib/font/font.js"
+import { scanMask } from "../src/lib/font/sheetParse.js"
 import { BASELINE, GRID, setPixel } from "../src/lib/font/sheet.js"
 import { marksFor, sheetMeasures } from "../src/lib/font/stretchMarks.js"
 

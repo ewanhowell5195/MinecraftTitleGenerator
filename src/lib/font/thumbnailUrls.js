@@ -1,7 +1,7 @@
 import { reactive } from "vue"
 import { image } from "../texture/assets.js"
 import { customThumbnail } from "./customFonts.js"
-import { fontFolder } from "./font.js"
+import { fontFolder } from "./catalog.js"
 import { isCustomFont } from "../settings/settings.js"
 
 const heights = reactive({})

@@ -1,4 +1,4 @@
-import { parseMask } from "../../src/lib/font/font.js"
+import { parseMask } from "../../src/lib/font/sheetParse.js"
 import { glyphOf, setGlyph } from "../../src/lib/font/editor/glyph.js"
 import { paint } from "../../src/lib/font/editor/painting.js"
 import { buildSheet, sheetOrder } from "../../src/lib/font/editor/sheet.js"

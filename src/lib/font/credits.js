@@ -1,7 +1,7 @@
 import { reactive } from "vue"
 import { fontTextures, stripTextures } from "../texture/assets.js"
 import { authorText } from "../core/authors.js"
-import { fullName, sheetFolder, stripsOf } from "./font.js"
+import { fullName, sheetFolder, stripsOf } from "./catalog.js"
 import { titleCase } from "../core/names.js"
 
 const STRIPS = "strips."

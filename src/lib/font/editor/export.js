@@ -1,6 +1,6 @@
 import { authorList } from "../../core/authors.js"
 import { blankStrip, flatLayers, flatPixels, independentLayers } from "../flatSheet.js"
-import { groupedKerning } from "../font.js"
+import { groupedKerning } from "../kerning.js"
 import { DEFAULT_ORDER } from "../order.js"
 import { defaultBorder, defaultDepth } from "../../settings/defaults.js"
 import { SPACE_CHAR, charactersOf, previewText } from "./characters.js"

@@ -1,4 +1,4 @@
-import { fullName } from "../../font/font.js"
+import { fullName } from "../../font/catalog.js"
 import { DEFAULT_STRIPS, STRIP_ANCHORS } from "../../font/strips.js"
 import { HEX_COLOUR, SUBMISSION_LIMITS, pngProblem, pngSize, textProblem } from "../submissions.js"
 import { submissionFont, texturesList } from "./fontAsset.js"

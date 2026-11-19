@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 import fs from "node:fs"
 import path from "node:path"
 import { flatSheet, writeStarterTextures } from "../../generator/flat.js"
-import { solidMask } from "../../src/lib/font/font.js"
+import { solidMask } from "../../src/lib/font/sheetParse.js"
 
 const FACE = [255, 255, 255, 255]
 const UP = [176, 176, 176, 255]

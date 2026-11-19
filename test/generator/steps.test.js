@@ -10,7 +10,7 @@ import { prepare as fontAssetStep } from "../../generator/submissionSteps/fontAs
 import { prepare as shapeStep } from "../../generator/submissionSteps/shape.js"
 import { prepare as stripStep } from "../../generator/submissionSteps/strip.js"
 import { drawThumbnails, thumbnailEntry, thumbnailList } from "../../generator/thumbnails.js"
-import { sheetOwner } from "../../src/lib/font/font.js"
+import { sheetOwner } from "../../src/lib/font/catalog.js"
 import { jsonText } from "../../src/lib/core/jsonText.js"
 
 const HERE = path.resolve(".")

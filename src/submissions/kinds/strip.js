@@ -1,6 +1,7 @@
 import { fetched } from "../../lib/submissions/api.js"
 import { pixelsOf } from "../../lib/texture/canvas.js"
-import { fullName, loadFont, loadFontList, loadImage, stripsOf } from "../../lib/font/font.js"
+import { fullName, stripsOf } from "../../lib/font/catalog.js"
+import { loadFont, loadFontList, loadImage } from "../../lib/font/font.js"
 import { defaultDepth } from "../../lib/settings/defaults.js"
 import { stripFolder, stripRange, stripRows, stripUse } from "../../lib/font/strips.js"
 import { textureName } from "../../lib/submissions/kinds/fontAsset.js"

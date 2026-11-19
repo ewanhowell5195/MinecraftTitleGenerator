@@ -1,5 +1,6 @@
 import { authorList } from "../../core/authors.js"
-import { kerningPairs, parseMask, scanMask } from "../font.js"
+import { kerningPairs } from "../kerning.js"
+import { parseMask, scanMask } from "../sheetParse.js"
 import { titleCase } from "../../core/names.js"
 import { mostCommon } from "../../core/maths.js"
 import { CREEPER, DEFAULT_ORDER } from "../order.js"

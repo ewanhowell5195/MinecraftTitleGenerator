@@ -1,4 +1,4 @@
-import { hasMarks } from "../font/font.js"
+import { hasMarks } from "../font/stretchMarks.js"
 
 function spread(rows, extra, length) {
   const added = new Array(length).fill(0)

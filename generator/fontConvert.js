@@ -1,6 +1,6 @@
 import fs from "node:fs"
 import path from "node:path"
-import { flattenFonts } from "../src/lib/font/font.js"
+import { flattenFonts } from "../src/lib/font/catalog.js"
 import { titleCase } from "../src/lib/core/names.js"
 import { defaultDepth } from "../src/lib/settings/defaults.js"
 import { font as fontKind } from "../src/lib/submissions/kinds/font.js"

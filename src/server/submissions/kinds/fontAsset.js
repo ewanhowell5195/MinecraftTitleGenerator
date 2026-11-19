@@ -1,4 +1,4 @@
-import { fontFolder, fullName } from "../../../lib/font/font.js"
+import { fontFolder, fullName } from "../../../lib/font/catalog.js"
 import { GENERATED_EDGE_OVERLAYS, GENERATED_SETTINGS, withGenerated } from "../../../lib/texture/overlays/settings.js"
 import { jsonText } from "../../../lib/core/jsonText.js"
 import { titleCase } from "../../../lib/core/names.js"

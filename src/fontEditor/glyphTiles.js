@@ -1,4 +1,4 @@
-import { depthShade } from "../lib/font/font.js"
+import { depthShade } from "../lib/font/sheet.js"
 import { depthOf } from "../lib/font/editor/depths.js"
 import { glyphOf, widthOf } from "../lib/font/editor/glyph.js"
 

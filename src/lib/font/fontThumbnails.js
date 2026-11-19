@@ -1,6 +1,7 @@
 import { rgbOf } from "../core/colour.js"
 import { expandBands, independentLayers, layerGlyph, layerLeft } from "./flatSheet.js"
-import { sheetLayout, solidMask } from "./font.js"
+import { sheetLayout } from "./sheet.js"
+import { solidMask } from "./sheetParse.js"
 import { FADE_KINDS, GENERATED_EDGE_OVERLAYS, SMOOTH_KINDS, thumbnailLayer, toneKinds, withGenerated } from "../texture/overlays/settings.js"
 import { edgeAlpha } from "../texture/overlays/edges.js"
 import { generatedAlpha } from "../texture/overlays/faces.js"

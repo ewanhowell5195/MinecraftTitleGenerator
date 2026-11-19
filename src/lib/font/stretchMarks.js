@@ -1,5 +1,9 @@
 import { mostCommon } from "../core/maths.js"
 
+export function hasMarks(font) {
+  return Object.values(font?.glyphs ?? {}).some(glyph => glyph.stretch)
+}
+
 function segments(row) {
   const list = []
   let start = -1

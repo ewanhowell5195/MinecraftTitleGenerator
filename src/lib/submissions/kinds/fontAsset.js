@@ -1,4 +1,5 @@
-import { fontFolder, fullOrder, parseMask, sheetOwner } from "../../font/font.js"
+import { fontFolder, fullOrder, sheetOwner } from "../../font/catalog.js"
+import { parseMask } from "../../font/sheetParse.js"
 import { GENERATED_EDGE_OVERLAYS, GENERATED_SETTINGS, withGenerated } from "../../texture/overlays/settings.js"
 import { titleCase } from "../../core/names.js"
 import { MAX_ANCHORS, paletteHexes, paletteOf } from "../../texture/overlayColours.js"

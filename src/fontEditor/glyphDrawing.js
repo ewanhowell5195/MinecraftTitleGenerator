@@ -1,7 +1,7 @@
 import { SPACE_CHAR, characterLabel } from "../lib/font/editor/characters.js"
 import { depthOf } from "../lib/font/editor/depths.js"
 import { rowOfY, yOfRow } from "../lib/font/editor/glyph.js"
-import { depthShade } from "../lib/font/font.js"
+import { depthShade } from "../lib/font/sheet.js"
 import { CREEPER } from "../lib/font/order.js"
 import { GUTTER, GUTTER_GAP } from "./glyphView.js"
 import { font, glyph, selected } from "./store.js"

@@ -1,5 +1,5 @@
 import { authorList } from "../../../lib/core/authors.js"
-import { flattenFonts, fontFolder } from "../../../lib/font/font.js"
+import { flattenFonts, fontFolder } from "../../../lib/font/catalog.js"
 import { jsonText } from "../../../lib/core/jsonText.js"
 import { titleCase } from "../../../lib/core/names.js"
 import { fontParent } from "../../../lib/submissions/kinds/font.js"

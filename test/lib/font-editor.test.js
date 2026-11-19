@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
-import { parseMask } from "../../src/lib/font/font.js"
+import { parseMask } from "../../src/lib/font/sheetParse.js"
 import { CREEPER, DEFAULT_ORDER, OPENING_QUOTE } from "../../src/lib/font/order.js"
 import { MULTICASE_CHARACTERS, REQUIRED_CHARACTERS, SPACE_CHAR, addCharacters, canDelete, chooseCharacters, setRequireCharacters, characterLabel, charactersOf, sameCharacter, setLetterCase, isOptional, removeCharacter } from "../../src/lib/font/editor/characters.js"
 import { createFont } from "../../src/lib/font/editor/defaults.js"
