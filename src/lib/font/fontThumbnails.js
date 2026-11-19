@@ -8,7 +8,7 @@ import { joinNeighbours, keptAt } from "../geometry/joins.js"
 import { layout } from "../geometry/layout.js"
 import { WHITE, definitionPalette } from "../texture/overlayColours.js"
 import { defaultBorder } from "../settings/defaults.js"
-import { layerDefault, overlayLayer, perLayerDefault } from "../settings/settings.js"
+import { layerDefault, overlayLayer, perLayerDefault } from "../settings/textureDefaults.js"
 import { bandEntry, stripCovers, stripLayout, stripRange } from "./strips.js"
 import { MARGIN, drawLayer, drawRing, drawStrip, over, sceneFrame } from "./thumbnails.js"
 

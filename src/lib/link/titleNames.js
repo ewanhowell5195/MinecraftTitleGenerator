@@ -1,7 +1,8 @@
 import { fontTextures, importedTextures, loadTileables, modelTextures } from "../texture/assets.js"
 import { typeDefaults } from "../settings/defaults.js"
 import { loadFontList, sheetFolder, stripsOf } from "../font/font.js"
-import { LAYERS, OVERLAY_KINDS, isCustomFont } from "../settings/settings.js"
+import { isCustomFont } from "../settings/settings.js"
+import { LAYERS, OVERLAY_KINDS } from "../settings/textureDefaults.js"
 import { isMinecraftShape, loadShapeList } from "../geometry/shapes.js"
 import { lineWords } from "./titleLines.js"
 

@@ -19,7 +19,7 @@
   import { openedFirst, useOpened } from "./composables/opened.js"
   import { useListReorder } from "./composables/reorder.js"
   import { BLEND_OPTIONS } from "../lib/settings/defaults.js"
-  import { overlayLayer } from "../lib/settings/settings.js"
+  import { overlayLayer } from "../lib/settings/textureDefaults.js"
   import { popular } from "../lib/state/stats.js"
   import { readImage, saveSheet } from "../lib/texture/imageFiles.js"
   import { thumbnail, thumbnailHeight } from "../lib/font/thumbnailUrls.js"

@@ -1,6 +1,6 @@
 import { typeDefaults } from "../settings/defaults.js"
 import { ID_CHARACTERS, fitsSet, isColour, readColour, readId, readNumber, readText, readVarint, writeColour, writeId, writeNumber, writeText, writeVarint } from "./linkBytes.js"
-import { LAYERS } from "../settings/settings.js"
+import { LAYERS } from "../settings/textureDefaults.js"
 import { googleFontSource, isGoogleFont } from "../font/googleFonts.js"
 
 function isStop(stop) {

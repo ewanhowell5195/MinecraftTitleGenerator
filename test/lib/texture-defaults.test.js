@@ -2,7 +2,8 @@ import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import { publishedFonts, fontTextureList, readMask } from "../../generator/fonts.js"
 import { layerTarget, layerView, separateLayers } from "../../src/lib/settings/layers.js"
-import { FACE_PANELS, LAYERS, activeOverlays, isModified, perLayerDefault, resetPanel, separateForDefaults, setTexture, textureFaces } from "../../src/lib/settings/settings.js"
+import { isModified, resetPanel } from "../../src/lib/settings/settings.js"
+import { FACE_PANELS, LAYERS, activeOverlays, perLayerDefault, separateForDefaults, setTexture, textureFaces } from "../../src/lib/settings/textureDefaults.js"
 import { createObject } from "../../src/lib/settings/objects.js"
 
 const list = {

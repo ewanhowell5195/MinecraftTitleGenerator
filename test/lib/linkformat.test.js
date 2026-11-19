@@ -6,7 +6,7 @@ import { decodeTitle, encodeTitle, openableTitle, titleBody } from "../../src/li
 import { readTitleBytes, unknownSetting, writeLines } from "../../src/lib/link/linkKeys.js"
 import { UPLOAD_KEYS } from "../../src/lib/link/uploads.js"
 import { typeDefaults } from "../../src/lib/settings/defaults.js"
-import { LAYER } from "../../src/lib/settings/settings.js"
+import { LAYER } from "../../src/lib/settings/textureDefaults.js"
 import { FILE_VERSION } from "../../src/lib/settings/upgrades.js"
 
 const fixtures = JSON.parse(fs.readFileSync(new URL("../fixtures/links.json", import.meta.url), "utf8"))

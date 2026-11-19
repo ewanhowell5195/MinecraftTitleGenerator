@@ -5,7 +5,7 @@ import { MAX_ANCHORS, paletteHexes, paletteOf } from "../../texture/overlayColou
 import { decodePng } from "./png.js"
 import { BLEND_OPTIONS, defaultBorder } from "../../settings/defaults.js"
 import { overlayFits } from "../../settings/layers.js"
-import { FACE_PANELS, overlayLayer } from "../../settings/settings.js"
+import { FACE_PANELS, overlayLayer } from "../../settings/textureDefaults.js"
 import { DEFAULT_ROLES, HEX_COLOUR, pngProblem, pngSize, textureDensity } from "../submissions.js"
 
 export function submissionFont(fonts, id) {

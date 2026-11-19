@@ -3,7 +3,7 @@
   import { EULA_URL, answerEula, eula } from "../lib/minecraft/eula.js"
   import { library, scene } from "../lib/state/scene.js"
   import { isMinecraftShape } from "../lib/geometry/shapes.js"
-  import { setTexture } from "../lib/settings/settings.js"
+  import { setTexture } from "../lib/settings/textureDefaults.js"
   import Button from "../components/Button.vue"
   import Checkbox from "../components/Checkbox.vue"
   import Dialog from "../components/Dialog.vue"

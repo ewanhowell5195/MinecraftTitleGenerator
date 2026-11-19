@@ -9,7 +9,7 @@
   import { fetched } from "../../lib/submissions/api.js"
   import { fontFolder } from "../../lib/font/font.js"
   import { DEFAULT_FONT, fontFaces } from "../../lib/settings/defaults.js"
-  import { FACE_PANELS, overlayLayer } from "../../lib/settings/settings.js"
+  import { FACE_PANELS, overlayLayer } from "../../lib/settings/textureDefaults.js"
   import { DEFAULT_OVERLAY_LIMIT, fontLayerCount, fontOwners, overlayChoices, texturesList } from "../../lib/submissions/kinds/fontAsset.js"
   import { submissionContext } from "../../lib/submissions/kinds/index.js"
   import { DEFAULT_ROLES, SUBMISSION_LIMITS, pngProblem, pngSize } from "../../lib/submissions/submissions.js"

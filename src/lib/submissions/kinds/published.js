@@ -1,7 +1,7 @@
 import { fontFolder, linkText, sheetOwner, stripsOf } from "../../font/font.js"
 import { encodeTitle } from "../../link/linkformat.js"
 import { DEFAULT_FONT } from "../../settings/defaults.js"
-import { overlayLayer } from "../../settings/settings.js"
+import { overlayLayer } from "../../settings/textureDefaults.js"
 import { FILE_VERSION } from "../../settings/upgrades.js"
 import { stripUse } from "../../font/strips.js"
 import { stripTarget } from "./stripFit.js"

@@ -7,7 +7,7 @@ import { thumbnailLayer, toneKinds, withGenerated } from "../texture/overlays/se
 import { clamp } from "../core/maths.js"
 import { definitionPalette } from "../texture/overlayColours.js"
 import { defaultBorder, defaultDepth } from "../settings/defaults.js"
-import { overlayLayer } from "../settings/settings.js"
+import { overlayLayer } from "../settings/textureDefaults.js"
 import { safeRows, stripY } from "./strips.js"
 import { MARGIN, drawLayer, over } from "./thumbnails.js"
 import { pngUrl } from "../core/virtualFiles.js"

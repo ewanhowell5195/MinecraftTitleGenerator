@@ -1,6 +1,7 @@
 import { shallowRef } from "vue"
 import { scene } from "./scene.js"
-import { OVERLAY_KINDS, isCustomFont } from "../settings/settings.js"
+import { isCustomFont } from "../settings/settings.js"
+import { OVERLAY_KINDS } from "../settings/textureDefaults.js"
 import { GOOGLE_STATS } from "../font/googleCatalog.js"
 
 const API = "https://api.wynem.com/minecrafttitlegenerator/stats"

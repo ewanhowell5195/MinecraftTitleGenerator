@@ -18,7 +18,7 @@ const { watch } = await import("vue")
 const { confirming } = await import("../../src/lib/state/confirm.js")
 watch(confirming, request => request?.answer(answer), { flush: "sync" })
 
-const { LAYER } = await import("../../src/lib/settings/settings.js")
+const { LAYER } = await import("../../src/lib/settings/textureDefaults.js")
 const { FILE_VERSION } = await import("../../src/lib/settings/upgrades.js")
 const { createObject } = await import("../../src/lib/settings/objects.js")
 const { scene } = await import("../../src/lib/state/scene.js")

@@ -1,4 +1,5 @@
-import { LAYERS, isCustomFont } from "../settings/settings.js"
+import { isCustomFont } from "../settings/settings.js"
+import { LAYERS } from "../settings/textureDefaults.js"
 import { CUSTOM_SHAPE, FALLBACK_SHAPE } from "../geometry/shapes.js"
 
 export const UPLOAD_KEYS = ["customTexture", "customTextureMode", "customFont"]

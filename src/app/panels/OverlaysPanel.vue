@@ -7,7 +7,7 @@
   import { overlayFits } from "../../lib/settings/layers.js"
   import { layerShown, usePanel, usedLayers } from "./panel.js"
   import { library } from "../../lib/state/scene.js"
-  import { OVERLAY_KINDS, activeOverlays, defaultOverlays } from "../../lib/settings/settings.js"
+  import { OVERLAY_KINDS, activeOverlays, defaultOverlays } from "../../lib/settings/textureDefaults.js"
   import { usedOverlayFiles } from "./uploads.js"
   import { statScope } from "../../lib/state/stats.js"
   import OverlayLayers from "../../components/OverlayLayers.vue"

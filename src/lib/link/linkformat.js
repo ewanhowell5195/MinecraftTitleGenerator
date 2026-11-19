@@ -1,7 +1,8 @@
 import { deflateSync, inflateSync } from "three/addons/libs/fflate.module.js"
 import { cameraChanges } from "../settings/camera.js"
 import { opens, readTitleBytes, unknownSetting, writeLines } from "./linkKeys.js"
-import { LINE, sameValue } from "../settings/settings.js"
+import { LINE } from "../settings/settings.js"
+import { sameValue } from "../core/values.js"
 import { FILE_VERSION, upgradeLine } from "../settings/upgrades.js"
 import { countUploads, withoutUploads } from "./uploads.js"
 

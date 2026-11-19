@@ -10,7 +10,7 @@
   import { SEARCH_ABOVE, leastRows, usePickFloor, variantRows } from "./pickFloor.js"
   import { gameVersions, library } from "../../lib/state/scene.js"
   import { EulaDeclined, eulaDeclined } from "../../lib/minecraft/eula.js"
-  import { pinnedTextures, setTexture, untouchedTileable } from "../../lib/settings/settings.js"
+  import { pinnedTextures, setTexture, untouchedTileable } from "../../lib/settings/textureDefaults.js"
   import { viewed } from "../../lib/settings/layers.js"
   import { minecraftStatId, popular, statScope } from "../../lib/state/stats.js"
   import { stripCovers } from "../../lib/font/strips.js"

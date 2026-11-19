@@ -1,7 +1,7 @@
 import { fetched } from "../submissions/api.js"
 import { MULTICASE_CHARACTERS } from "./editor/characters.js"
 import { platform } from "../core/platform.js"
-import { sameValue } from "../settings/settings.js"
+import { sameValue } from "../core/values.js"
 import { CATALOG_VERSION } from "./googleCatalog.js"
 
 const LIST = `/api/google-fonts?v=${CATALOG_VERSION}`

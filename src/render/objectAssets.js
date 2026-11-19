@@ -5,7 +5,7 @@ import { bandEntry, layerSlice, stripLayout } from "../lib/font/strips.js"
 import { independentLayers } from "../lib/font/flatSheet.js"
 import { blockTextureImage } from "../lib/minecraft/minecraft.js"
 import { defaultDepth } from "../lib/settings/defaults.js"
-import { textureEntry } from "../lib/settings/settings.js"
+import { textureEntry } from "../lib/settings/textureDefaults.js"
 
 export async function loadAssets({ font, list, sheet, tileables }, value, band, target) {
   function sheetImage(path) {

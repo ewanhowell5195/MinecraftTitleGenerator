@@ -1,6 +1,8 @@
 import { typeDefaults } from "../settings/defaults.js"
 import { LAYER_KEYS } from "../settings/layers.js"
-import { CUSTOM_FONT_KINDS, LAYER, LAYERS, LINE, sameValue, snapshot } from "../settings/settings.js"
+import { CUSTOM_FONT_KINDS, LINE, snapshot } from "../settings/settings.js"
+import { LAYER, LAYERS } from "../settings/textureDefaults.js"
+import { sameValue } from "../core/values.js"
 import { FILE_VERSION, twistCentres, upgradeLine } from "../settings/upgrades.js"
 
 export function lineWords({ words, ...line }) {

@@ -2,7 +2,8 @@ import { quietly } from "../lib/state/history.js"
 import { keepTexture, loadedFont } from "../lib/state/scene.js"
 import { defaultBorder, defaultDepth, defaultSpacing, fontFaces } from "../lib/settings/defaults.js"
 import { applyFontFaces, isSeparate, layerView } from "../lib/settings/layers.js"
-import { defaultTexture, sameValue, separateForDefaults, setTexture } from "../lib/settings/settings.js"
+import { defaultTexture, separateForDefaults, setTexture } from "../lib/settings/textureDefaults.js"
+import { sameValue } from "../lib/core/values.js"
 
 const loadedFaces = new WeakMap()
 

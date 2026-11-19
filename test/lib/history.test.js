@@ -7,7 +7,7 @@ quietStorage()
 forbidFetch()
 fakeTimeouts()
 
-const { LAYER } = await import("../../src/lib/settings/settings.js")
+const { LAYER } = await import("../../src/lib/settings/textureDefaults.js")
 const { createObject } = await import("../../src/lib/settings/objects.js")
 const { addObject, keepTexture, scene, select } = await import("../../src/lib/state/scene.js")
 const { history, holdHistory, quietly, redo, undo } = await import("../../src/lib/state/history.js")

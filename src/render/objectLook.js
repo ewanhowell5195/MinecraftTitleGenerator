@@ -1,4 +1,4 @@
-import { activeOverlays, textureEntry } from "../lib/settings/settings.js"
+import { activeOverlays, textureEntry } from "../lib/settings/textureDefaults.js"
 
 const CUSTOM_SOURCES = { standard: "texture", tileable: "tile", strip: "strip", cover: "cover" }
 

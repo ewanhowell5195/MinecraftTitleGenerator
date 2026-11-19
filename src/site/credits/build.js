@@ -6,7 +6,7 @@ import { flattenFonts, fontFolder, fullName, linkText } from "../../lib/font/fon
 import { encodeTitle } from "../../lib/link/linkformat.js"
 import { titleCase } from "../../lib/core/names.js"
 import { DEFAULT_FONT } from "../../lib/settings/defaults.js"
-import { overlayLayer } from "../../lib/settings/settings.js"
+import { overlayLayer } from "../../lib/settings/textureDefaults.js"
 import { FILE_VERSION } from "../../lib/settings/upgrades.js"
 import { stripUse, withDefaultStrips } from "../../lib/font/strips.js"
 import { escaped } from "../../lib/core/html.js"
