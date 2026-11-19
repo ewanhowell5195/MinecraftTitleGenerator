@@ -12,7 +12,7 @@ import { jsonText } from "../lib/core/jsonText.js"
 import { EDITOR_EDIT, EDITOR_REVISION, EDITOR_SUBMISSION } from "../lib/submissions/submissions.js"
 import { askOverwrite, submission } from "../lib/submissions/submissionsApi.js"
 import { fontFromUploads } from "./loaders.js"
-import { download, downloadBlob } from "../lib/state/ui.js"
+import { download, downloadBlob } from "../lib/core/files.js"
 import { pngUrl } from "../lib/core/virtualFiles.js"
 import { navigate } from "../lib/state/navigation.js"
 

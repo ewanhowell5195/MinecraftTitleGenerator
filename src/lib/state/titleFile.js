@@ -10,7 +10,7 @@ import { TEXTURE_TABS, defaultTexture, isCustomFont, sameValue } from "../settin
 import { CUSTOM_SHAPE, isMinecraftShape } from "../geometry/shapes.js"
 import { submitStats } from "./stats.js"
 import { titleLines, titleValues, trimmed } from "../link/titleLines.js"
-import { downloadBlob } from "./ui.js"
+import { downloadBlob } from "../core/files.js"
 import { FILE_VERSION } from "../settings/upgrades.js"
 import { resetTabs, titleLoads } from "./view.js"
 

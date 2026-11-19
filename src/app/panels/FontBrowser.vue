@@ -12,7 +12,7 @@
   import { googleFontList, googlePreview, googlePreviewFamily } from "../../lib/font/googleFonts.js"
   import { library } from "../../lib/state/scene.js"
   import { byUsage, googleStatId, popular } from "../../lib/state/stats.js"
-  import { fontThumbnail } from "../../lib/state/ui.js"
+  import { fontThumbnail } from "../../lib/font/thumbnailUrls.js"
   import { openedFirst } from "../../components/composables/opened.js"
   import Button from "../../components/Button.vue"
   import Checkbox from "../../components/Checkbox.vue"

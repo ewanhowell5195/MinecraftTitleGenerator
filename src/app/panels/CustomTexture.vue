@@ -2,7 +2,7 @@
   import { computed, ref, watch } from "vue"
   import { image } from "../../lib/texture/assets.js"
   import { usePanel } from "./panel.js"
-  import { readImage } from "../../lib/state/ui.js"
+  import { readImage } from "../../lib/texture/imageFiles.js"
   import { usedTextures } from "./uploads.js"
   import { TEXTURE_TABS } from "../../lib/settings/settings.js"
   import { editorTitle } from "../../lib/state/scene.js"

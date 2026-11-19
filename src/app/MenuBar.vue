@@ -7,7 +7,7 @@
   import { askConfirm } from "../lib/state/confirm.js"
   import { scene } from "../lib/state/scene.js"
   import { droppedOnField } from "../components/composables/fileDrop.js"
-  import { takeFile } from "../lib/state/ui.js"
+  import { takeFile } from "../lib/core/files.js"
   import MenuStrip from "../components/MenuStrip.vue"
 
   const picker = ref(null)

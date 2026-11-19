@@ -18,7 +18,7 @@
   import { SUBMISSION_LIMITS, pngProblem } from "../../lib/submissions/submissions.js"
   import { DEFAULT_FONT } from "../../lib/settings/defaults.js"
   import { submissionExtraUrl } from "../../lib/submissions/submissionsApi.js"
-  import { fontThumbnail } from "../../lib/state/ui.js"
+  import { fontThumbnail } from "../../lib/font/thumbnailUrls.js"
   import { pngUrl } from "../../lib/core/virtualFiles.js"
   import { pickedFile } from "../files.js"
 

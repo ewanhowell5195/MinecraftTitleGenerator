@@ -5,7 +5,7 @@
   import { painted } from "../../lib/core/platform.js"
   import { scene, titleFileName } from "../../lib/state/scene.js"
   import { submitStats } from "../../lib/state/stats.js"
-  import { downloadBlob } from "../../lib/state/ui.js"
+  import { downloadBlob } from "../../lib/core/files.js"
   import { view } from "../../lib/state/view.js"
   import Button from "../../components/Button.vue"
   import ColourPicker from "../../components/ColourPicker.vue"

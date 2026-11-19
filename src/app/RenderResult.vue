@@ -1,6 +1,6 @@
 <script setup>
   import { onBeforeUnmount, onMounted, ref } from "vue"
-  import { downloadBlob } from "../lib/state/ui.js"
+  import { downloadBlob } from "../lib/core/files.js"
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
   import Dialog from "../components/Dialog.vue"

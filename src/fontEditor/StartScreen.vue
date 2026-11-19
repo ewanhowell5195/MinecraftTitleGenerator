@@ -11,7 +11,7 @@
   import { fullName, loadFontList } from "../lib/font/font.js"
   import { createFont } from "../lib/font/editor/defaults.js"
   import { fontCredit } from "../lib/font/credits.js"
-  import { fontThumbnail } from "../lib/state/ui.js"
+  import { fontThumbnail } from "../lib/font/thumbnailUrls.js"
   import { fontFromList, fontFromUploads, imageOf } from "./loaders.js"
   import EditorIntro from "./EditorIntro.vue"
   import SizeStats from "./SizeStats.vue"

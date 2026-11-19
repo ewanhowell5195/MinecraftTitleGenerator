@@ -14,7 +14,7 @@
   import { DEFAULT_STRIPS } from "../../lib/font/strips.js"
   import { STRIP_LIMITS, heightList, setIdOf, setIds, setName, setUsers, sharedHeights, stripOwners, stripSnap, stripTarget, targetRows } from "../../lib/submissions/kinds/stripFit.js"
   import { SUBMISSION_LIMITS, pngProblem } from "../../lib/submissions/submissions.js"
-  import { fontThumbnail } from "../../lib/state/ui.js"
+  import { fontThumbnail } from "../../lib/font/thumbnailUrls.js"
   import { popularFontOptions } from "./fontOptions.js"
   import VariantOf from "./VariantOf.vue"
 

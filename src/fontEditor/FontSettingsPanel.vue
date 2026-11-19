@@ -21,7 +21,7 @@
   import { pngUrl } from "../lib/core/virtualFiles.js"
   import { defaultBorder, defaultDepth } from "../lib/settings/defaults.js"
   import { lostPixels, resizeFont, setSquareSize, squareSizeLoss, squaresOf } from "../lib/font/editor/sizes.js"
-  import { fontThumbnail } from "../lib/state/ui.js"
+  import { fontThumbnail } from "../lib/font/thumbnailUrls.js"
   import { typedNumber } from "./fields.js"
   import { changeLetterCase, font, update } from "./store.js"
   import { loadTemplate } from "./template.js"

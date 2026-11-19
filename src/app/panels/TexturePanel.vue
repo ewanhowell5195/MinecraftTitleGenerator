@@ -7,14 +7,15 @@
   import { titleCase } from "../../lib/core/names.js"
   import { layerShown, usePanel } from "./panel.js"
   import { openedFirst, useOpened } from "../../components/composables/opened.js"
-  import { leastRows, usePickFloor, variantRows } from "./pickFloor.js"
+  import { SEARCH_ABOVE, leastRows, usePickFloor, variantRows } from "./pickFloor.js"
   import { gameVersions, library } from "../../lib/state/scene.js"
   import { EulaDeclined, eulaDeclined } from "../../lib/minecraft/eula.js"
   import { pinnedTextures, setTexture, untouchedTileable } from "../../lib/settings/settings.js"
   import { viewed } from "../../lib/settings/layers.js"
   import { minecraftStatId, popular, statScope } from "../../lib/state/stats.js"
   import { stripCovers } from "../../lib/font/strips.js"
-  import { SEARCH_ABOVE, saveImage, thumbnail, thumbnailHeight, tilePreview } from "../../lib/state/ui.js"
+  import { saveImage } from "../../lib/texture/imageFiles.js"
+  import { thumbnail, thumbnailHeight } from "../../lib/font/thumbnailUrls.js"
   import Button from "../../components/Button.vue"
   import CustomTexture from "./CustomTexture.vue"
   import GradientEditor from "../GradientEditor.vue"
@@ -46,6 +47,10 @@
 
   function tileableMenu(id, variant = null) {
     return [{ label: "Download tileable", icon: "download", action: () => saveImage(tileableUrl(library.tileables, id, variant), `${variant ?? id}.png`) }]
+  }
+
+  function tilePreview(tileables, id, variant) {
+    return { backgroundImage: `url(${tileableUrl(tileables, id, variant)})` }
   }
 
   const sources = computed(() => {
