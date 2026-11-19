@@ -8,7 +8,7 @@
   import Spinner from "../components/Spinner.vue"
   import UserName from "../components/UserName.vue"
   import { authorText } from "../lib/core/authors.js"
-  import { account } from "../lib/state/community.js"
+  import { account } from "../lib/state/account.js"
   import { SUBMISSION_KINDS } from "../lib/submissions/kinds/index.js"
   import { publishedTitle } from "../lib/submissions/kinds/published.js"
   import { SUBMISSION_PARAM } from "./submissionLink.js"

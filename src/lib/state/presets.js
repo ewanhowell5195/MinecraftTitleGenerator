@@ -1,5 +1,7 @@
 import { ref, watch } from "vue"
-import { account, changeSaved, deleteSaved, deleteShared, loadSaved, managedPresets, refreshUsage, renameShared, replaceShared, sharePublicly, unshareShared, uploadSaved } from "./community.js"
+import { account } from "./account.js"
+import { deleteShared, managedPresets, refreshUsage, renameShared, replaceShared, sharePublicly, unshareShared } from "./community.js"
+import { changeSaved, deleteSaved, loadSaved, uploadSaved } from "./savedApi.js"
 import { isDefaultTitle, openTitleData, titleData } from "./titleFile.js"
 import { LIMITS } from "../core/limits.js"
 import { encodeTitle, openableTitle, titleBody } from "../link/linkformat.js"

@@ -1,6 +1,6 @@
 <script setup>
   import { computed, onMounted, ref } from "vue"
-  import { account, refreshAccount, signIn, signInProviders, signOut } from "../lib/state/community.js"
+  import { account, refreshAccount, signIn, signInProviders, signOut } from "../lib/state/account.js"
   import { providerLabel } from "../lib/core/providers.js"
   import { router } from "../router.js"
   import Button from "../components/Button.vue"

@@ -1,13 +1,11 @@
-import { computed, ref } from "vue"
+import { computed, ref, watch } from "vue"
 import { apiCall, jsonOptions } from "../submissions/api.js"
 import { LIMITS } from "../core/limits.js"
 import { showNotice } from "./notices.js"
-import { ACCOUNT_CHANNEL, SIGN_IN_RETURN } from "../core/providers.js"
+import { account, onSignedIn, onSignedInOrOut, refreshAccount } from "./account.js"
+import { saveStore, store } from "./communityStore.js"
 
 const API = "/api/presets"
-const ACCOUNT_API = "/api/account"
-const SAVED_API = "/api/saved"
-const STORAGE = "minecraft-title-community"
 const PAGE_LIFE = 30 * 60000
 const POOL_RETRY = 60000
 const PAGES_KEPT = 60
@@ -17,29 +15,22 @@ const CHANGE_LIFE = 60 * 60000
 export const usage = ref(null)
 const seeded = new Map()
 
-const store = read()
-
 export const ownPresets = ref(store.own)
 export const accountPresets = ref(store.owned)
-export const account = ref(store.account)
-export const signInProviders = ref(store.providers)
-export const accountChanges = ref(0)
 const presetTokens = ref(store.tokens)
 export const managedPresets = computed(() => accountPresets.value.concat(Object.keys(presetTokens.value).map(Number)))
 
 let usageRequest = null
-let accountRequest = null
-let accountChecked = false
-let channel = null
 
-function read() {
-  const empty = { pages: {}, votes: {}, downloads: [], own: [], owned: [], tokens: {}, account: null, providers: [], changes: {}, usage: null, pool: null }
-  try {
-    return { ...empty, ...JSON.parse(localStorage.getItem(STORAGE)) }
-  } catch {
-    return empty
-  }
-}
+onSignedIn(moveTokensToAccount)
+onSignedInOrOut(() => refreshUsage(true))
+
+watch(() => account.value?.id, () => {
+  setOwn(Object.keys(store.tokens).map(Number))
+  store.votes = {}
+  setAccountPresets([])
+  persist()
+}, { flush: "sync" })
 
 function persist() {
   const keys = Object.keys(store.pages).sort((a, b) => store.pages[b].at - store.pages[a].at)
@@ -47,11 +38,7 @@ function persist() {
   for (const id of Object.keys(store.changes)) {
     if (!currentChange(id)) delete store.changes[id]
   }
-  try {
-    localStorage.setItem(STORAGE, JSON.stringify(store))
-  } catch (err) {
-    console.error(err)
-  }
+  saveStore()
 }
 
 function called(url, options) {
@@ -300,97 +287,6 @@ export async function deleteShared(id) {
   forgetShared(id)
   forgetTokens([id])
   persist()
-}
-
-function setAccount(user) {
-  if (store.account?.id !== user?.id) {
-    setOwn(Object.keys(store.tokens).map(Number))
-    store.votes = {}
-    setAccountPresets([])
-  }
-  store.account = user
-  account.value = user
-  persist()
-}
-
-function announceAccountChange() {
-  channel?.postMessage("changed")
-}
-
-function listenForAccountChanges() {
-  if (channel) return
-  channel = new BroadcastChannel(ACCOUNT_CHANNEL)
-  channel.onmessage = () => refreshAccount(true)
-}
-
-export function refreshAccount(force = false) {
-  listenForAccountChanges()
-  if (accountChecked && !force) return Promise.resolve()
-  accountRequest ??= fetchAccount().finally(() => accountRequest = null)
-  return accountRequest
-}
-
-async function fetchAccount() {
-  try {
-    const { user, providers = [] } = await called(ACCOUNT_API)
-    const wasSignedIn = !!store.account
-    const changed = store.account?.id !== user?.id
-    accountChecked = true
-    store.providers = providers
-    signInProviders.value = providers
-    if (user) await moveTokensToAccount()
-    setAccount(user)
-    if (user || wasSignedIn) await refreshUsage(true)
-    if (changed) accountChanges.value++
-  } catch (err) {
-    console.error(err)
-  }
-}
-
-export function signIn(provider) {
-  const url = `${ACCOUNT_API}/login/${provider}?return=${encodeURIComponent(location.origin)}`
-  listenForAccountChanges()
-  if (window.open(url, "signin", "popup,width=520,height=760")) return
-  sessionStorage.setItem(SIGN_IN_RETURN, location.href)
-  location.assign(url)
-}
-
-export async function loadSaved() {
-  return (await called(SAVED_API)).presets
-}
-
-export async function uploadSaved(presets) {
-  const kept = []
-  for (let start = 0; start < presets.length; start += LIMITS.savedBatch) {
-    const reply = await called(SAVED_API, jsonOptions("POST", { presets: presets.slice(start, start + LIMITS.savedBatch) }))
-    kept.push(...reply.kept)
-  }
-  return kept
-}
-
-export function changeSaved(code, changes) {
-  return called(SAVED_API, jsonOptions("PATCH", { code, ...changes }))
-}
-
-export function deleteSaved(code) {
-  return called(SAVED_API, jsonOptions("DELETE", { code }))
-}
-
-export async function deleteAccount(mode) {
-  await called(`${ACCOUNT_API}/delete`, jsonOptions("POST", { mode }))
-  await fetchAccount()
-  announceAccountChange()
-}
-
-export async function signOut() {
-  try {
-    await called(`${ACCOUNT_API}/logout`, { method: "POST" })
-    await fetchAccount()
-    announceAccountChange()
-  } catch (err) {
-    console.error(err)
-    showNotice(`Couldn't sign out: ${err.message}`)
-  }
 }
 
 export function refreshUsage(force = false) {

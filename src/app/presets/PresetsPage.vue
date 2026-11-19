@@ -1,6 +1,7 @@
 <script setup>
   import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, watchEffect } from "vue"
-  import { account, accountChanges, cachedCommunityPreset, countDownload, managedPresets, ownPresets, presetStats, randomCommunityPreset, refreshAccount, refreshUsage, signInProviders, voteOn } from "../../lib/state/community.js"
+  import { account, accountChanges, refreshAccount, signInProviders } from "../../lib/state/account.js"
+  import { cachedCommunityPreset, countDownload, managedPresets, ownPresets, presetStats, randomCommunityPreset, refreshUsage, voteOn } from "../../lib/state/community.js"
   import { isPlainClick, useWindowEvents } from "../../components/composables/events.js"
   import { titleBody } from "../../lib/link/linkformat.js"
   import { notice, showNotice } from "../../lib/state/notices.js"

@@ -1,5 +1,5 @@
 import { apiCall, jsonOptions } from "./api.js"
-import { refreshAccount } from "../state/community.js"
+import { refreshAccount } from "../state/account.js"
 import { askConfirm } from "../state/confirm.js"
 
 const API = "/api/submissions"

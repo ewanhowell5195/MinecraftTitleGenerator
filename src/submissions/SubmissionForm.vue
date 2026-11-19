@@ -11,7 +11,7 @@
   import UploadField from "../components/UploadField.vue"
   import { fetched } from "../lib/submissions/api.js"
   import { AUTHOR_LIMITS, authorList } from "../lib/core/authors.js"
-  import { account } from "../lib/state/community.js"
+  import { account } from "../lib/state/account.js"
   import { SUBMISSION_KINDS, checkSubmission, submissionContext } from "../lib/submissions/kinds/index.js"
   import { navigate } from "../lib/state/navigation.js"
   import { EDITOR_EDIT, EDITOR_REVISION, EDITOR_SUBMISSION, SUBMISSION_LIMITS } from "../lib/submissions/submissions.js"

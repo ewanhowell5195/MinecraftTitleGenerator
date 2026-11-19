@@ -4,7 +4,7 @@
   import Icon from "../components/Icon.vue"
   import Notice from "../components/Notice.vue"
   import SignInButtons from "../components/SignInButtons.vue"
-  import { account } from "../lib/state/community.js"
+  import { account } from "../lib/state/account.js"
   import { mySubmissions, reviewQueue } from "../lib/submissions/submissionsApi.js"
   import SubmissionList from "./SubmissionList.vue"
 

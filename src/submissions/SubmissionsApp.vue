@@ -1,7 +1,7 @@
 <script setup>
   import { computed, onMounted, ref } from "vue"
   import { useRoute } from "vue-router"
-  import { refreshAccount } from "../lib/state/community.js"
+  import { refreshAccount } from "../lib/state/account.js"
   import { loadFontList } from "../lib/font/font.js"
   import { loadStats } from "../lib/state/stats.js"
   import Notice from "../components/Notice.vue"

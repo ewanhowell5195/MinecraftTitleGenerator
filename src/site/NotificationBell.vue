@@ -1,6 +1,6 @@
 <script setup>
   import { computed, nextTick, ref } from "vue"
-  import { account } from "../lib/state/community.js"
+  import { account } from "../lib/state/account.js"
   import { dateTime } from "../lib/core/dates.js"
   import { useWindowEvents } from "../components/composables/events.js"
   import { clearNotifications, markNotificationsSeen, notifications, submissionPage } from "../lib/submissions/submissionsApi.js"

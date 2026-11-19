@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, mock, test } from "node:test"
 import assert from "node:assert/strict"
+import { registerHooks } from "node:module"
 import { fakeReplies, stubStorage } from "../helpers/browser.js"
 
 const stored = stubStorage()
@@ -7,8 +8,18 @@ const { requests, replies, reset } = fakeReplies({ record: (method, url) => `${m
 
 mock.timers.enable({ apis: ["Date"], now: Date.parse("2026-11-05T12:00:00Z") })
 
+function resolve(specifier, context, nextResolve) {
+  const result = nextResolve(specifier, context)
+  const run = context.parentURL?.startsWith("file:") && new URL(context.parentURL).searchParams.get("run")
+  if (!run || !/\/src\/lib\/state\/(account|communityStore)\.js$/.test(result.url)) return result
+  return { ...result, url: `${result.url}?run=${run}` }
+}
+registerHooks({ resolve })
+
 async function fresh() {
-  return await import(`../../src/lib/state/community.js?run=${Math.random()}`)
+  const run = Math.random()
+  const community = await import(`../../src/lib/state/community.js?run=${run}`)
+  return { ...await import(`../../src/lib/state/account.js?run=${run}`), ...community }
 }
 
 function page(ids, more = false) {
