@@ -9,6 +9,7 @@
   import { DEFAULT_FONT } from "../../lib/settings/defaults.js"
   import { fullName, loadImage } from "../../lib/font/font.js"
   import { usePanel } from "./panel.js"
+  import { useOpened } from "../../components/composables/opened.js"
   import { leastRows, usePickFloor, variantRows } from "./pickFloor.js"
   import { library } from "../../lib/state/scene.js"
   import { isCustomFont } from "../../lib/settings/settings.js"
@@ -53,8 +54,9 @@
   const hasCreeper = computed(() => !!font.value?.glyphs["\u{1F633}"])
   const entry = computed(() => library.fonts.find(item => item.id === object.value.font))
   const baseId = computed(() => entry.value?.variant ?? object.value.font)
-  const baseFonts = computed(() => popular(library.fonts.filter(item => !item.variant), item => item.id, item => item.name, [DEFAULT_FONT]))
-  const variants = computed(() => popular(library.fonts.filter(item => item.variant === baseId.value), item => item.id, item => item.name))
+  const opened = useOpened(() => ({ base: baseId.value, font: object.value.font, google: object.value.customFont?.google ?? null }), () => [tab.value, object.value.id])
+  const baseFonts = computed(() => popular(library.fonts.filter(item => !item.variant), item => item.id, item => item.name, [opened.value.base, DEFAULT_FONT]))
+  const variants = computed(() => popular(library.fonts.filter(item => item.variant === baseId.value), item => item.id, item => item.name, [opened.value.font]))
   const search = ref("")
   const { picker, floor } = usePickFloor(() => [tab.value, variants.value.length, search.value])
   const searchable = computed(() => baseFonts.value.length > SEARCH_ABOVE)
@@ -225,7 +227,7 @@
     <div v-if="tab === 'google'" class="flow pick peek">
       <Segments :options="TABS" :model-value="tab" @update:model-value="chooseTab" />
       <Notice v-if="customError">{{ customError }}</Notice>
-      <GoogleFontList :current="usingCustom && object.customFont.google ? object.customFont : null" :loading="googleLoading" @pick="pickGoogle" />
+      <GoogleFontList :current="usingCustom && object.customFont.google ? object.customFont : null" :opened="opened.google" :loading="googleLoading" @pick="pickGoogle" />
     </div>
     <div v-if="tab === 'published'" ref="picker" class="flow pick peek" :style="{ minHeight: `${floor}px` }">
       <Segments :options="TABS" :model-value="tab" @update:model-value="chooseTab" />

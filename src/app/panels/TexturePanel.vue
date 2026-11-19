@@ -6,6 +6,7 @@
   import { keepVersions } from "../../lib/minecraft/minecraftModels.js"
   import { titleCase } from "../../lib/core/names.js"
   import { layerShown, usePanel } from "./panel.js"
+  import { openedFirst, useOpened } from "../../components/composables/opened.js"
   import { leastRows, usePickFloor, variantRows } from "./pickFloor.js"
   import { gameVersions, library } from "../../lib/state/scene.js"
   import { EulaDeclined, eulaDeclined } from "../../lib/minecraft/eula.js"
@@ -57,17 +58,18 @@
   const pending = shallowRef(null)
   let blocksRequest = 0
 
+  const opened = useOpened(() => ({ ...object.value }), () => [object.value.id, font.value?.id, object.value.textureSource, object.value.tileableSource])
   const usingMinecraft = computed(() => object.value.textureSource === "tileable" && object.value.tileableSource === "minecraft")
   const waiting = computed(() => pending.value?.target === viewed(object.value) ? pending.value.values : null)
   const textures = computed(() => {
     const entries = Object.entries(list.value?.textures ?? {}).filter(([, data]) => stripCovers(data, shownLayer.value, font.value?.layers?.length ?? 1))
     const statId = id => `${statScope(object.value, font.value?.id)}.${id}`
-    return popular(entries, ([id]) => statId(id), ([id, data]) => label(id, data), list.value ? pinnedTextures(list.value).map(statId) : [])
+    return popular(entries, ([id]) => statId(id), ([id, data]) => label(id, data), [opened.value.texture].concat(list.value ? pinnedTextures(list.value) : []).map(statId))
   })
-  const tileables = computed(() => popular(Object.entries(library.tileables), ([id]) => `tileable.${id}`, ([id, data]) => label(id, data)))
-  const blockEntries = computed(() => popular(Array.from(blocks.value ?? []).filter(([id, { opaque }]) => opaque || id === object.value.minecraftTexture).map(([id, { preview }]) => [id, { name: blockName(id), url: preview }]), ([id]) => minecraftStatId(id), ([, data]) => data.name))
-  const textureVariants = computed(() => Object.entries(list.value?.textures[object.value.texture]?.variants ?? {}))
-  const tileableVariants = computed(() => Object.entries(library.tileables[object.value.tileable]?.variants ?? {}))
+  const tileables = computed(() => popular(Object.entries(library.tileables), ([id]) => `tileable.${id}`, ([id, data]) => label(id, data), [`tileable.${opened.value.tileable}`]))
+  const blockEntries = computed(() => popular(Array.from(blocks.value ?? []).filter(([id, { opaque }]) => opaque || id === object.value.minecraftTexture).map(([id, { preview }]) => [id, { name: blockName(id), url: preview }]), ([id]) => minecraftStatId(id), ([, data]) => data.name, [minecraftStatId(opened.value.minecraftTexture)]))
+  const textureVariants = computed(() => openedFirst(Object.entries(list.value?.textures[object.value.texture]?.variants ?? {}), ([id]) => id === opened.value.textureVariant))
+  const tileableVariants = computed(() => openedFirst(Object.entries(library.tileables[object.value.tileable]?.variants ?? {}), ([id]) => id === opened.value.tileableVariant))
 
   function searchable(entries) {
     return entries.length > SEARCH_ABOVE
