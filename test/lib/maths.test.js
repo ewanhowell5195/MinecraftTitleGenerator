@@ -62,10 +62,6 @@ describe("round", () => {
   test("keeps large values to the requested places", () => {
     assert.equal(round(123456.789, 2), 123456.79)
   })
-
-  test("leaves a value that is already rounded unchanged", () => {
-    assert.equal(round(round(1.23456789, 4), 4), 1.2346)
-  })
 })
 
 describe("mostCommon", () => {

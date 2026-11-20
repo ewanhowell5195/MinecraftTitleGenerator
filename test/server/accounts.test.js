@@ -237,12 +237,10 @@ describe("accounts", () => {
       return (await list(query)).presets.map(preset => preset.name).toSorted()
     }
 
-    for (const sort of ["week", "popular", "top", "new", "needs", "random"]) {
-      test(`finds only that user's presets, sorted by ${sort}`, async () => {
-        await people()
-        assert.deepEqual(await names(`?sort=${sort}&q=user:first_person`), ["Grass One", "Nether One"])
-      })
-    }
+    test("finds only that user's presets in every sort", async () => {
+      await people()
+      for (const sort of ["week", "popular", "top", "new", "needs", "random"]) assert.deepEqual(await names(`?sort=${sort}&q=user:first_person`), ["Grass One", "Nether One"], sort)
+    })
 
     test("the same name on both providers: no prefix finds both, a prefix finds one", async () => {
       const onDiscord = await signIn("discord", { id: "1", username: "shared_name" })

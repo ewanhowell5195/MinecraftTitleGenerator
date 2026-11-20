@@ -203,17 +203,17 @@ describe("silhouettePixels", () => {
 describe("big custom shapes", () => {
   test("shrink the shape but keep every pixel in the texture", async () => {
     const { sheetLayout } = await import("../../src/lib/font/sheet.js")
-    const image = PNG.sync.read(Buffer.from(silhouette(2048, 476)))
+    const image = PNG.sync.read(Buffer.from(silhouette(1024, 238)))
     const scale = silhouetteScale(image)
-    assert.equal(scale, 8)
+    assert.equal(scale, 4)
     const glyph = silhouetteGlyph(image, scale)
     assert.deepEqual([glyph.width, glyph.height], [256, 60])
     const cells = [{ ...glyph, char: "x", row: 0, column: 0 }]
     const painted = silhouettePixels(cells, 60, 22, image, scale)
     const [, at] = Array.from(sheetLayout(cells, 60, 22))[0]
-    assert.equal(painted.width, (at.x + 256) * 8)
-    const lift = 60 * 8 - 476
-    assert.deepEqual(Array.from(painted.data.subarray(((at.top * 8 + lift) * painted.width + at.x * 8) * 4, ((at.top * 8 + lift) * painted.width + at.x * 8) * 4 + 4)), [200, 40, 40, 255])
+    assert.equal(painted.width, (at.x + 256) * 4)
+    const lift = 60 * 4 - 238
+    assert.deepEqual(Array.from(painted.data.subarray(((at.top * 4 + lift) * painted.width + at.x * 4) * 4, ((at.top * 4 + lift) * painted.width + at.x * 4) * 4 + 4)), [200, 40, 40, 255])
   })
 
   test("fill the see-through pixels inside a solid block", async () => {

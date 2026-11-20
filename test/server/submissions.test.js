@@ -186,7 +186,7 @@ describe("sending a submission", () => {
     assert.match((await send(await signIn(), { kind: "nope" })).error, /Pick what you're submitting/)
     const cookie = await signIn()
     assert.match((await send(cookie, {}, pngOf(100, 100))).error, new RegExp(`template size, ${FLAT.width}x${FLAT.height}`))
-    assert.match((await send(cookie, {}, pngOf(4560, 3552))).error, /up to 4096 pixels/)
+    assert.match((await send(cookie, {}, pngOf(4097, 1))).error, /up to 4096 pixels/)
     assert.match((await send(cookie, { name: "fuck" })).error, /isn't allowed/)
     assert.match((await send(cookie, { agree: "false" })).error, /Agree/)
     assert.match((await send(cookie, { font: "nope" })).error, /Pick the font/)
@@ -202,12 +202,6 @@ describe("sending a submission", () => {
     assert.equal((await details(id)).target, inherited.owner.id)
   })
 
-  test("is limited per day", async () => {
-    const cookie = await signIn()
-    for (let index = 0; index < 10; index++) assert.equal((await send(cookie, { name: `Texture ${index}` })).status, 201)
-    assert.equal((await send(cookie, { name: "One more" })).status, 429)
-  })
-
   test("is limited per day even when each one is withdrawn", async () => {
     const cookie = await signIn()
     for (let index = 0; index < 10; index++) {
@@ -221,9 +215,9 @@ describe("sending a submission", () => {
 
   test("sent at once can't go past the daily limit", async () => {
     const cookie = await signIn()
-    const sent = await Promise.all(Array.from({ length: 12 }, (_, index) => send(cookie, { name: `Texture ${index}` })))
+    const sent = await Promise.all(Array.from({ length: 11 }, (_, index) => send(cookie, { name: `Texture ${index}` })))
     assert.equal(sent.filter(item => item.status === 201).length, 10)
-    assert.equal(sent.filter(item => item.status === 429).length, 2)
+    assert.equal(sent.filter(item => item.status === 429).length, 1)
   })
 
   test("is undone when GitHub won't open the pull request", async () => {

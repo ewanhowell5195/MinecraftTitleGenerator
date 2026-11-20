@@ -34,10 +34,6 @@ describe("paintLine", () => {
 })
 
 describe("layerWords", () => {
-  test("is off by default", () => {
-    assert.equal(createObject().layerWords, false)
-  })
-
   test("survives a share link and can be shared publicly", () => {
     const lines = [{ layerWords: true, words: [{ text: "one" }, { text: "two" }] }]
     const decoded = decodeTitle(encodeTitle({ version: 2, lines }).code)

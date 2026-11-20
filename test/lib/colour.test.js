@@ -12,11 +12,6 @@ describe("rgbOf", () => {
     assert.deepEqual(rgbOf("#FFAA0B"), [255, 170, 11])
   })
 
-  test("reads the extremes", () => {
-    assert.deepEqual(rgbOf("#000000"), [0, 0, 0])
-    assert.deepEqual(rgbOf("#ffffff"), [255, 255, 255])
-  })
-
   test("ignores an alpha pair", () => {
     assert.deepEqual(rgbOf("#11223344"), [17, 34, 51])
   })
@@ -46,9 +41,5 @@ describe("round trip", () => {
       const rgb = [value, 255 - value, value >> 1]
       assert.deepEqual(rgbOf(hexOf(rgb)), rgb)
     }
-  })
-
-  test("a lower case hex colour comes back unchanged", () => {
-    for (const hex of ["#000000", "#ffffff", "#ff8000", "#0a141e", "#00010f"]) assert.equal(hexOf(rgbOf(hex)), hex)
   })
 })

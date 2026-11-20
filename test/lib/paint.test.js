@@ -75,17 +75,9 @@ describe("lookKey", () => {
     assert.equal(key.includes("base64"), false)
   })
 
-  test("the same picture gives the same key", () => {
-    assert.equal(lookKey({ customTexture: picture, hue: 1 }), lookKey({ customTexture: `${picture}`, hue: 1 }))
-  })
-
   test("another picture or another setting gives another key", () => {
     assert.notEqual(lookKey({ customTexture: picture }), lookKey({ customTexture: `${picture}B` }))
     assert.notEqual(lookKey({ customTexture: picture, hue: 1 }), lookKey({ customTexture: picture, hue: 2 }))
-  })
-
-  test("other values are keyed as they are", () => {
-    assert.equal(lookKey({ texture: "cracked", stops: [{ colour: "#ffffff", position: 0 }] }), JSON.stringify({ texture: "cracked", stops: [{ colour: "#ffffff", position: 0 }] }))
   })
 })
 

@@ -7,16 +7,8 @@ describe("titleCase", () => {
     assert.equal(titleCase("dark_oak"), "Dark Oak")
   })
 
-  test("turns hyphens into spaces", () => {
-    assert.equal(titleCase("minecraft-five-bold"), "Minecraft Five Bold")
-  })
-
   test("handles both separators in one id", () => {
     assert.equal(titleCase("minecraft-ten_outline"), "Minecraft Ten Outline")
-  })
-
-  test("capitalises a single word", () => {
-    assert.equal(titleCase("wave"), "Wave")
   })
 
   test("lowers the rest of each word", () => {

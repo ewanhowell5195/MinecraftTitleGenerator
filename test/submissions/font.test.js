@@ -34,12 +34,16 @@ const LIST = "public/fonts/fonts.json"
 const published = publishedFonts()
 const fonts = published.map(entry => ({ ...entry, name: entry.name ?? titleCase(entry.id) }))
 
+const copies = new Map()
+
 function copyOf(id) {
+  if (copies.has(id)) return copies.get(id)
   const entry = published.find(item => item.id === id)
   const { png, cells } = readMask(entry, published)
   const zero = parseMask(png.data, png.width, png.height, cells.map(cell => cell.char).join(""), 0)
   const { glyphs } = splitCells(entry, published, zero.list)
-  return fontFromPublished({ ...entry, name: entry.name ?? entry.id }, Object.values(glyphs), zero.capHeight)
+  copies.set(id, fontFromPublished({ ...entry, name: entry.name ?? entry.id }, Object.values(glyphs), zero.capHeight))
+  return copies.get(id)
 }
 
 function pngBytes({ width, height, data }) {
@@ -52,8 +56,13 @@ function plainPng(width, height) {
   return new Uint8Array(pngOf(width, height))
 }
 
+const jsons = new WeakMap()
+
 function jsonOf(font, id = "test-font") {
-  return new TextEncoder().encode(`${jsonText(exportJson({ ...font, id }, `data:image/png;base64,${pngBytes(buildSheet(font)).toString("base64")}`))}\n`)
+  if (!jsons.has(font)) jsons.set(font, new Map())
+  const made = jsons.get(font)
+  if (!made.has(id)) made.set(id, new TextEncoder().encode(`${jsonText(exportJson({ ...font, id }, `data:image/png;base64,${pngBytes(buildSheet(font)).toString("base64")}`))}\n`))
+  return made.get(id)
 }
 
 function withFields(bytes, fields) {
@@ -311,12 +320,12 @@ describe("checking a font", () => {
 
 const roots = []
 
-function tempRoot() {
+function tempRoot(parent) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "font-submission-"))
   roots.push(root)
   const skip = file => !file.split(/[\\/]/).includes("thumbnails")
   fs.cpSync(LIST, path.join(root, LIST))
-  fs.cpSync("public/fonts/minecraft-ten", path.join(root, "public/fonts/minecraft-ten"), { recursive: true, filter: skip })
+  if (parent) fs.cpSync(`public/fonts/${parent}`, path.join(root, `public/fonts/${parent}`), { recursive: true, filter: skip })
   fs.cpSync("public/strips", path.join(root, "public/strips"), { recursive: true })
   return root
 }
@@ -401,7 +410,7 @@ describe("the workflow step", () => {
   })
 
   test("drops blank characters and starts a separate variant with a flat texture", async () => {
-    const root = tempRoot()
+    const root = tempRoot("minecraft-ten")
     addEntry(root, { id: "ten-greek", name: "Greek", authors: ["Someone"] }, "minecraft-ten")
     const held = hold(root, "ten-greek", jsonOf(copyOf("minecraft-ten-cyrillic")))
     await prepare({ root, changed: [held], node: () => {} })
