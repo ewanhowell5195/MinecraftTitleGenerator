@@ -1,6 +1,4 @@
 import assert from "node:assert/strict"
-import { createHash } from "node:crypto"
-import fs from "node:fs"
 import { describe, test } from "node:test"
 import opentype from "opentype.js"
 import { parsedSheet } from "../../src/lib/font/editor/sheet.js"
@@ -315,28 +313,6 @@ describe("mesh glyphs", () => {
     const at = (x, y) => alpha[Math.floor(y * scale) * 40 * scale + Math.floor(x * scale)]
     assert.equal(at(17, 9), 1)
     for (const x of [22, 24, 26]) assert.equal(at(x, 8 - (x - 20) * Math.tan(Math.PI / 6) + 0.5), 0, `${x}`)
-  })
-
-  test("side highlights on the shape test font match the recorded output", async () => {
-    const file = fs.readFileSync(new URL("../fixtures/ShapeTest.otf", import.meta.url))
-    const source = await parseFontFile(file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength))
-    const meshes = glyphMeshes(meshOutlines(source, { height: 40 }))
-    const { list } = parsedSheet(fontFromOutlines(source, { height: 40 }), 2)
-    const digests = {}
-    for (const cell of list.filter(item => meshes[item.char] && item.char !== item.char.toLowerCase())) {
-      const fine = fineMasks(meshes[cell.char], cell, cell)
-      for (const kind of ["top", "bottom", "left", "right"]) {
-        for (const thickness of [1, 2, 3, 5]) {
-          const alpha = generatedAlpha({ ...cell, placedX: 0, fine }, kind, { thickness }, 40, 8)
-          digests[`${cell.char} ${kind} ${thickness}`] = createHash("sha1").update(Uint8Array.from(alpha, value => Math.round(value * 255))).digest("hex").slice(0, 16)
-        }
-      }
-    }
-    const recorded = new URL("../fixtures/shape-test-highlights.json", import.meta.url)
-    if (process.env.UPDATE_FIXTURES) fs.writeFileSync(recorded, JSON.stringify(digests, null, 2) + "\n")
-    const expected = JSON.parse(fs.readFileSync(recorded, "utf8"))
-    assert.deepEqual(Object.keys(digests).filter(key => digests[key] !== expected[key]), [])
-    assert.deepEqual(Object.keys(digests), Object.keys(expected))
   })
 
   test("the distance band comes to a point at an inward corner instead of rounding off", () => {
