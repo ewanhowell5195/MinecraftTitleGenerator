@@ -1,0 +1,9 @@
+{
+  "primary": "default",
+  "secondary": "default",
+  "textures": {
+    "default": {},
+    "flat": {}
+  },
+  "overlays": {}
+}
