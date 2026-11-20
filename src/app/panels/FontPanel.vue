@@ -212,7 +212,7 @@
     <FontBrowser v-if="browsing" v-model:search="search" :kind="tab" :current="tab === 'google' ? (usingCustom ? object.customFont.google : null) : object.font" @pick="browsed" @close="browsing = false" />
     <Segments v-if="tab === 'custom'" :options="TABS" :model-value="tab" @update:model-value="chooseTab" />
     <template v-if="tab === 'custom'">
-      <UploadField accept=".json,.png,.ttf,.otf,.woff,.woff2,application/json,image/png,font/ttf,font/otf,font/woff,font/woff2" :label="loading ? 'Loading...' : uploaded ? 'Replace font' : 'Choose a font file'" empty="No font uploaded" :disabled="loading" :clearable="uploaded" @change="upload" @clear="clearCustom">
+      <UploadField accept=".json,.png,.ttf,.otf,.woff,.woff2,application/json,image/png,font/ttf,font/otf,font/woff,font/woff2" :label="loading ? 'Loading...' : uploaded ? 'Replace font' : 'Choose a font file'" empty="No font uploaded" :disabled="loading" :clearable="uploaded" :back="reusable.length > 0" @change="upload" @clear="clearCustom">
         <template v-if="uploaded" #preview>
           <div class="custom-font">
             <div class="preview picture"><img v-if="customImage" :src="customImage" alt="" :style="customUnit ? { height: `${customUnit}px` } : null"></div>

@@ -94,7 +94,7 @@
 </script>
 
 <template>
-  <UploadField accept="image/*" :label="object.customTexture ? 'Replace texture' : 'Choose an image'" empty="No texture uploaded" :image="object.customTexture" :clearable="!!object.customTexture" @change="readImage($event, pickCustom)" @clear="object.customTexture = null" />
+  <UploadField accept="image/*" :label="object.customTexture ? 'Replace texture' : 'Choose an image'" empty="No texture uploaded" :image="object.customTexture" :clearable="!!object.customTexture" :back="reusable.length > 0" @change="readImage($event, pickCustom)" @clear="object.customTexture = null" />
   <template v-if="object.customTexture">
     <Segments label="Use as" :options="modes" v-model="object.customTextureMode" />
     <p class="hint" :class="{ bad: object.customTextureMode === 'standard' && !fitsFont }">{{ modeHint }}</p>

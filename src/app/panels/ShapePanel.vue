@@ -171,7 +171,7 @@
         <Tile v-for="shape of library.shapes" :key="shape.id" :label="shape.name" :image="`${shape.folder}/thumbnails/flat.png`" aspect="4 / 3" :author="shape.authors" :selected="object.shape === shape.id" @pick="object.shape = shape.id" />
       </TileGrid>
       <template v-else-if="source === 'custom'">
-        <UploadField accept="image/*" :label="object.shape === CUSTOM_SHAPE ? 'Replace image' : 'Choose an image'" empty="No image chosen" :image="object.shape === CUSTOM_SHAPE ? object.customFont?.data : null" :clearable="object.shape === CUSTOM_SHAPE" @change="readImage($event, pickPng)" @clear="clearPng" />
+        <UploadField accept="image/*" :label="object.shape === CUSTOM_SHAPE ? 'Replace image' : 'Choose an image'" empty="No image chosen" :image="object.shape === CUSTOM_SHAPE ? object.customFont?.data : null" :clearable="object.shape === CUSTOM_SHAPE" :back="reusable.length > 0" @change="readImage($event, pickPng)" @clear="clearPng" />
         <p class="hint">The solid pixels make the shape, pushed out like a letter, and the image paints its front.</p>
         <Segments v-if="object.shape === CUSTOM_SHAPE && object.customFont" label="Build from" :options="BUILDS" :model-value="!!object.customFont.mesh" :hint="object.customFont.mesh ? 'Smooth edges that follow the outline of the image.' : 'Pixel cubes, like the letters.'" @update:model-value="setBuild" />
         <UploadReuse :items="reusable" @pick="pickPng" />

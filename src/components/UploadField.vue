@@ -3,28 +3,35 @@
   import Button from "./Button.vue"
   import Icon from "./Icon.vue"
 
-  defineProps({
+  const props = defineProps({
     accept: { type: String, required: true },
     label: { type: String, required: true },
     empty: { type: String, default: "" },
     image: { type: String, default: null },
     disabled: { type: Boolean, default: false },
     multiple: { type: Boolean, default: false },
-    clearable: { type: Boolean, default: false }
+    clearable: { type: Boolean, default: false },
+    back: { type: Boolean, default: false }
   })
 
   const emit = defineEmits(["change", "clear"])
+
+  function picked(event) {
+    if (!props.clearable || !props.back || props.disabled || event.target.matches("input")) return
+    event.preventDefault()
+    emit("clear")
+  }
 </script>
 
 <template>
-  <label v-file-drop class="upload-field" :class="{ disabled }">
+  <label v-file-drop class="upload-field" :class="{ disabled }" @click="picked">
+    <input type="file" :accept="accept" :multiple="multiple" :disabled="disabled" @change="emit('change', $event)">
     <slot name="preview">
       <img v-if="image" class="upload-image" :src="image" alt="">
       <span v-else class="empty-state">{{ empty }}</span>
     </slot>
     <span class="button" :class="{ disabled }"><Icon name="open" :size="16" /><span>{{ label }}</span></span>
-    <Button v-if="clearable" ghost class="upload-clear" icon="trash" title="Remove" :disabled="disabled" @click.prevent="emit('clear')" />
-    <input type="file" :accept="accept" :multiple="multiple" :disabled="disabled" @change="emit('change', $event)">
+    <Button v-if="clearable" ghost class="upload-clear" icon="trash" title="Remove" :disabled="disabled" @click.prevent.stop="emit('clear')" />
   </label>
 </template>
 
