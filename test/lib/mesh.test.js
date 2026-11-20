@@ -326,7 +326,7 @@ describe("mesh glyphs", () => {
     for (const cell of list.filter(item => meshes[item.char] && item.char !== item.char.toLowerCase())) {
       const fine = fineMasks(meshes[cell.char], cell, cell)
       for (const kind of ["top", "bottom", "left", "right"]) {
-        for (const thickness of [1, 3, 5]) {
+        for (const thickness of [1, 2, 3, 5]) {
           const alpha = generatedAlpha({ ...cell, placedX: 0, fine }, kind, { thickness }, 40, 8)
           digests[`${cell.char} ${kind} ${thickness}`] = createHash("sha1").update(Uint8Array.from(alpha, value => Math.round(value * 255))).digest("hex").slice(0, 16)
         }

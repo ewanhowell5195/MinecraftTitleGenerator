@@ -143,11 +143,8 @@ function facingScores(rings, holes, solid, width, height, scale, bottom, [tx, ty
   const columns = width * scale
   const rows = height * scale
   const out = new Float32Array(columns * rows)
-  const nearest = new Float32Array(columns * rows).fill(Infinity)
-  const nearRun = new Int32Array(columns * rows).fill(-1)
   const walls = []
   const joins = []
-  let runs = 0
   for (const [index, points] of rings.entries()) {
     const ring = []
     for (const point of points) {
@@ -160,33 +157,19 @@ function facingScores(rings, holes, solid, width, height, scale, bottom, [tx, ty
     const kept = longRuns(corners, [tx, ty], least)
     const edges = corners.map(([ax, ay, bx, by]) => [[ax * scale, (ay - bottom) * scale], [bx * scale, (by - bottom) * scale]])
     const count = edges.length
-    const raw = edges.map(([a, b]) => {
-      const size = Math.hypot(b[0] - a[0], b[1] - a[1])
-      return size ? Math.max(0, ((solidLeft ? b[1] - a[1] : a[1] - b[1]) * tx + (solidLeft ? a[0] - b[0] : b[0] - a[0]) * ty) / size) : 0
-    })
-    const towards = raw.map((value, at) => kept[at] ? value : 0)
+    const lengths = edges.map(([a, b]) => Math.hypot(b[0] - a[0], b[1] - a[1]))
+    const outward = edges.map(([a, b], at) => [(solidLeft ? b[1] - a[1] : a[1] - b[1]) / (lengths[at] || 1), (solidLeft ? a[0] - b[0] : b[0] - a[0]) / (lengths[at] || 1)])
+    const raw = outward.map(([x, y]) => Math.max(0, x * tx + y * ty))
     const soft = raw.map((value, at) => kept[at] ? value : Math.min(value, least))
     const turns = edges.map((_, at) => {
       const [[ax, ay], [bx, by]] = edges[(at - 1 + count) % count]
       const [[cx, cy], [dx, dy]] = edges[at]
       return Math.atan2((bx - ax) * (dy - cy) - (by - ay) * (dx - cx), (bx - ax) * (dx - cx) + (by - ay) * (dy - cy))
     })
-    const lengths = edges.map(([a, b]) => Math.hypot(b[0] - a[0], b[1] - a[1]))
     const long = lengths.map(size => size > scale * LONG_EDGE)
     const bent = (turn, at) => turn > SHARP_TURN || turn > BEND_TURN && long[at] && long[(at - 1 + count) % count]
     const sharp = turns.map((turn, at) => bent(Math.abs(turn), at))
     const convex = turns.map((turn, at) => bent(solidLeft ? turn : -turn, at))
-    const firstSharp = Math.max(0, sharp.indexOf(true))
-    const runOf = new Array(count)
-    for (let offset = 0; offset < count; offset++) {
-      const at = (firstSharp + offset) % count
-      if (sharp[at] || offset === 0) runs++
-      runOf[at] = runs
-    }
-    const outward = edges.map(([a, b]) => {
-      const size = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1
-      return [(solidLeft ? b[1] - a[1] : a[1] - b[1]) / size, (solidLeft ? a[0] - b[0] : b[0] - a[0]) / size]
-    })
     const ends = edges.map(() => [])
     const joined = []
     function bandWidth(toward) {
@@ -211,9 +194,9 @@ function facingScores(rings, holes, solid, width, height, scale, bottom, [tx, ty
       const behindBand = bandWidth(soft[behind])
       const aheadBand = bandWidth(soft[ahead])
       const forward = [[vx - outward[behind][0] * behindBand, vy - outward[behind][1] * behindBand, ...outward[behind]]].concat(away ? [[vx, vy, -ty * away, tx * away]] : [])
-      for (let step = 0, j = ahead; step < count && towards[j] > 0 && (step === 0 || !sharp[j]); step++, j = (j + 1) % count) ends[j].push(...forward)
+      for (let step = 0, j = ahead; step < count && kept[j] && raw[j] > 0 && (step === 0 || !sharp[j]); step++, j = (j + 1) % count) ends[j].push(...forward)
       const backward = [[vx - outward[ahead][0] * aheadBand, vy - outward[ahead][1] * aheadBand, ...outward[ahead]]].concat(back ? [[vx, vy, -ty * back, tx * back]] : [])
-      for (let step = 0, j = behind; step < count && towards[j] > 0 && (step === 0 || !sharp[(j + 1) % count]); step++, j = (j - 1 + count) % count) ends[j].push(...backward)
+      for (let step = 0, j = behind; step < count && kept[j] && raw[j] > 0 && (step === 0 || !sharp[(j + 1) % count]); step++, j = (j - 1 + count) % count) ends[j].push(...backward)
     }
     for (let at = 0; at < count; at++) {
       if (!long[at] || soft[at] > least) continue
@@ -244,7 +227,7 @@ function facingScores(rings, holes, solid, width, height, scale, bottom, [tx, ty
       const [vx, vy] = edges[at][0]
       const [nx, ny] = outward[flat]
       const [[fx, fy], [gx, gy]] = edges[flat]
-      const size = Math.hypot(gx - fx, gy - fy)
+      const size = lengths[flat]
       const curve = []
       let rise = 0
       let along = 0
@@ -258,7 +241,7 @@ function facingScores(rings, holes, solid, width, height, scale, bottom, [tx, ty
         if (sharp[step > 0 ? (j + 1) % count : j]) break
       }
       if (!curve.length) continue
-      const roll = { stretch: Math.max(reach, along), lines: curve.map(j => [edges[j][0][0], edges[j][0][1], ...outward[j]]) }
+      const roll = { stretch: Math.max(reach, along), lines: curve.map(j => edges[j][0].concat(outward[j])) }
       if (step > 0) rollEnd[flat] = roll
       else rollStart[flat] = roll
       for (const j of curve) ceilings[j].push([vx, vy, nx, ny, soft[flat]])
@@ -270,28 +253,29 @@ function facingScores(rings, holes, solid, width, height, scale, bottom, [tx, ty
     })
     const shaped = soft.map((value, at) => curved[at] ? raw[at] : value)
     const curveReach = edges.map(() => 0)
+    function spread(group) {
+      const levels = group.flatMap(j => [edges[j][0][0] * tx + edges[j][0][1] * ty, edges[j][1][0] * tx + edges[j][1][1] * ty])
+      return Math.max(...levels) - Math.min(...levels)
+    }
     const firstBreak = edges.findIndex((_, at) => !curved[at] || sharp[at])
-    if (firstBreak < 0) {
-      const levels = edges.flatMap(([a, b]) => [a[0] * tx + a[1] * ty, b[0] * tx + b[1] * ty])
-      curveReach.fill(Math.max(...levels) - Math.min(...levels))
-    } else {
+    if (firstBreak < 0) curveReach.fill(spread(Array.from(edges.keys())))
+    else {
       let group = []
       for (let offset = 0; offset <= count; offset++) {
         const at = (firstBreak + offset) % count
         if (group.length && (offset === count || !curved[at] || sharp[at])) {
-          const levels = group.flatMap(j => [edges[j][0][0] * tx + edges[j][0][1] * ty, edges[j][1][0] * tx + edges[j][1][1] * ty])
-          for (const j of group) curveReach[j] = Math.max(...levels) - Math.min(...levels)
+          const size = spread(group)
+          for (const j of group) curveReach[j] = size
           group = []
         }
         if (offset < count && curved[at]) group.push(at)
       }
     }
-    const blended = outward.map(([x, y], at) => {
+    const vertexFacing = outward.map(([x, y], at) => {
       const [bx, by] = outward[(at - 1 + count) % count]
       const size = Math.hypot(x + bx, y + by) || 1
-      return [(x + bx) / size, (y + by) / size]
+      return (x + bx) / size * tx + (y + by) / size * ty
     })
-    const vertexFacing = blended.map(([x, y]) => x * tx + y * ty)
     const smoothFacing = vertexFacing.map((value, at) => {
       if (sharp[at]) return value
       let total = value
@@ -315,6 +299,7 @@ function facingScores(rings, holes, solid, width, height, scale, bottom, [tx, ty
       const [x, y] = outward[edge]
       return x * tx + y * ty
     }
+    const stretch = turn => reach / Math.tan(Math.min(Math.abs(turn), Math.PI / 4))
     const ringWalls = edges.map(([a, b], at) => {
       const before = (at - 1 + count) % count
       const next = (at + 1) % count
@@ -322,21 +307,19 @@ function facingScores(rings, holes, solid, width, height, scale, bottom, [tx, ty
       const atB = sharp[next] || convex[next] || rollEnd[at] ? shaped[at] : (shaped[at] + shaped[next]) / 2
       const dx = b[0] - a[0]
       const dy = b[1] - a[1]
-      const size = Math.hypot(dx, dy)
-      const stretch = turn => Math.max(reach, reach / Math.tan(Math.min(Math.abs(turn), Math.PI / 4)))
+      const size = lengths[at]
       const stretchStart = convex[at] ? stretch(turns[at]) : rollStart[at]?.stretch ?? 0
       const stretchEnd = convex[next] ? stretch(turns[next]) : rollEnd[at]?.stretch ?? 0
       const startLines = convex[at] ? neighbours(before, -1, stretchStart + reach) : rollStart[at]?.lines ?? []
       const endLines = convex[next] ? neighbours(next, 1, stretchEnd + reach) : rollEnd[at]?.lines ?? []
-      return size ? { a, dx, dy, ends: ends[at], length: size * size, size, nx: (solidLeft ? dy : -dy) / size, ny: (solidLeft ? -dx : dx) / size, atA, atB, run: runOf[at], sharpStart: sharp[at], sharpEnd: sharp[next], capStart: startLines.length > 0, capEnd: endLines.length > 0, stretchStart, stretchEnd, startLines, endLines, ceilings: ceilings[at], curved: curved[at], curveStart: !sharp[at] && curved[before], curveEnd: !sharp[next] && curved[next], reach: curveReach[at], least: curved[at] ? 0 : least, faces: raw[at] > 0, facings: [sharp[at] ? facingAt(at, at) : facingAt(before, before), facingAt(at, at), facingAt(next, at), sharp[next] ? facingAt(next, at) : facingAt((next + 1) % count, next)] } : null
+      return size ? { a, dx, dy, ends: ends[at], length: size * size, size, nx: (solidLeft ? dy : -dy) / size, ny: (solidLeft ? -dx : dx) / size, atA, atB, sharpStart: sharp[at], sharpEnd: sharp[next], stretchStart, stretchEnd, startLines, endLines, ceilings: ceilings[at], curved: curved[at], curveStart: !sharp[at] && curved[before], curveEnd: !sharp[next] && curved[next], reach: curveReach[at], least: curved[at] ? 0 : least, faces: raw[at] > 0, facings: [sharp[at] ? facingAt(at, at) : facingAt(before, before), facingAt(at, at), facingAt(next, at), sharp[next] ? facingAt(next, at) : facingAt((next + 1) % count, next)] } : null
     })
     function neighbours(from, step, limit) {
       const lines = []
       let length = 0
       for (let j = from; lines.length < count && length <= limit; j = (j + step + count) % count) {
-        const [a, b] = edges[j]
-        lines.push([a[0], a[1], ...outward[j]])
-        length += Math.hypot(b[0] - a[0], b[1] - a[1])
+        lines.push(edges[j][0].concat(outward[j]))
+        length += lengths[j]
         if (sharp[step > 0 ? (j + 1) % count : j]) break
       }
       return lines
@@ -373,14 +356,10 @@ function facingScores(rings, holes, solid, width, height, scale, bottom, [tx, ty
       }
     }
   }
-  for (const wall of walls) {
-    around(wall, (pixel, px, py, along) => {
-      const share = Math.max(0, Math.min(1, along))
-      const distance = Math.hypot(px - share * wall.dx, py - share * wall.dy)
-      if (distance > nearest[pixel] + 1e-6 || distance >= nearest[pixel] - 1e-6 && !(wall.atA > wall.least || wall.atB > wall.least)) return
-      nearest[pixel] = Math.min(distance, nearest[pixel])
-      nearRun[pixel] = wall.run
-    })
+  function ceiling(wall, px, py) {
+    let cap = 1
+    for (const [vx, vy, nx, ny, toward] of wall.ceilings) cap = Math.min(cap, score(Math.max(0, -((px + wall.a[0] - vx) * nx + (py + wall.a[1] - vy) * ny)), toward))
+    return cap
   }
   const hitDistance = new Float32Array(columns * rows).fill(Infinity)
   const hitWall = new Int32Array(columns * rows).fill(-1)
@@ -410,10 +389,6 @@ function facingScores(rings, holes, solid, width, height, scale, bottom, [tx, ty
     around(wall, (pixel, px, py, along) => {
       const keep = coverage(wall, px, py)
       if (!keep) return
-      const across = -(px * wall.nx + py * wall.ny)
-      const before = along < 0
-      const past = along > 1
-      let best = 0
       if (wall.curved) {
         if (hitWall[pixel] !== index) return
         const share = hitShare[pixel]
@@ -422,24 +397,24 @@ function facingScores(rings, holes, solid, width, height, scale, bottom, [tx, ty
         const buried = Math.max(0, Math.min(1, (wall.reach / thickness - BURIED_FROM) / (BURIED_TO - BURIED_FROM)))
         const depth = thickness * buried * buried * (3 - 2 * buried)
         if (!(facing > 0) || !(depth > 0)) return
-        let cap = keep
-        for (const [vx, vy, nx, ny, toward] of wall.ceilings) cap = Math.min(cap, score(Math.max(0, -((px + wall.a[0] - vx) * nx + (py + wall.a[1] - vy) * ny)), toward))
         curveInset[pixel] = depth * facing - hitDistance[pixel]
-        curveKeep[pixel] = cap
+        curveKeep[pixel] = Math.min(keep, ceiling(wall, px, py))
         return
-      } else if (before && wall.capStart || past && wall.capEnd) {
+      }
+      const across = -(px * wall.nx + py * wall.ny)
+      const before = along < 0
+      const past = along > 1
+      let best = 0
+      if (before && wall.startLines.length || past && wall.endLines.length) {
         const toward = before ? atA : atB
         let inside = 0
         for (const [vx, vy, nx, ny] of before ? wall.startLines : wall.endLines) inside = Math.max(inside, Math.min(1, 0.5 - ((px + wall.a[0] - vx) * nx + (py + wall.a[1] - vy) * ny)))
         if (across >= 0 && toward > least) best = score(across, toward) * inside
-      } else if (nearRun[pixel] !== wall.run) {
-        if (!before && !past && across >= 0) best = at(px, py, along)
       } else if (!(before && (wall.sharpStart || wall.curveStart) || past && (wall.sharpEnd || wall.curveEnd) || !before && !past && across < 0)) {
         best = at(px, py, Math.max(0, Math.min(1, along)))
         for (let step = 0; steps && step <= steps; step++) best = Math.max(best, at(px, py, step / steps))
       }
-      best *= keep
-      for (const [vx, vy, nx, ny, toward] of wall.ceilings) best = Math.min(best, score(Math.max(0, -((px + wall.a[0] - vx) * nx + (py + wall.a[1] - vy) * ny)), toward))
+      best = Math.min(best * keep, ceiling(wall, px, py))
       if (best > out[pixel]) out[pixel] = best
     }, true)
   }
