@@ -1,7 +1,7 @@
 import { edgeBands, fillSpans, ringEdges } from "../font/fontOutline.js"
 import { signedArea } from "../core/maths.js"
 import { MITER_LIMIT } from "../geometry/clip.js"
-import { liftedRings, ringWalls, rowMapping } from "../geometry/meshFaces.js"
+import { faceLimits, liftedRings, ringWalls, rowMapping } from "../geometry/meshFaces.js"
 
 const CORNER_WINDOW = 2
 const CORNER_TURN = Math.PI / 3
@@ -481,10 +481,10 @@ function facingScores(rings, holes, solid, width, height, scale, bottom, [tx, ty
   return out
 }
 
-function wallSpans(rings, kind, top, bottom, reach) {
+function wallSpans(rings, kind, top, bottom, reach, limits) {
   const spans = new Map()
   for (const ring of rings) {
-    for (const face of ringWalls(ring, 0, 0, top, bottom, reach)) {
+    for (const face of ringWalls(ring, 0, 0, top, bottom, reach, limits)) {
       if (face.kind !== kind || face.internal) continue
       const xs = face.points.map(point => point[0])
       const span = spans.get(face.run) ?? [Infinity, -Infinity]
@@ -494,7 +494,7 @@ function wallSpans(rings, kind, top, bottom, reach) {
   return Array.from(spans.values()).sort((a, b) => a[0] - b[0])
 }
 
-export function fineMasks(mesh, glyph, original, reach) {
+export function fineMasks(mesh, glyph, original, reach, limits = faceLimits()) {
   const masks = new Map()
   const distances = new Map()
   let rings = null
@@ -514,7 +514,7 @@ export function fineMasks(mesh, glyph, original, reach) {
   let corners = null
   fine.corners = () => corners ??= outlineCorners(lifted(), holes)
   const spans = {}
-  fine.edgeRuns = side => spans[side] ??= wallSpans(lifted(), side === "up" ? "top" : "bottom", glyph.bottom + glyph.height, glyph.bottom, reach)
+  fine.edgeRuns = side => spans[side] ??= wallSpans(lifted(), side === "up" ? "top" : "bottom", glyph.bottom + glyph.height, glyph.bottom, reach, limits)
   fine.toward = (scale, dx, dy, least, reach, score, thickness) => facingScores(lifted(), holes, fine(scale), glyph.width, glyph.height, scale, glyph.bottom, [dx, dy], least, reach, score, thickness)
   return fine
 }

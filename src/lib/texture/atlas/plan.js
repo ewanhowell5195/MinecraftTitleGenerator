@@ -44,6 +44,38 @@ export function stripSpans(faces, kind, origin) {
   return spans.map(({ from, to }) => [from - origin, to - origin])
 }
 
+function pointKey(kind, [x, y]) {
+  return `${kind}:${x},${y}`
+}
+
+function steep({ points: [p, , , q] }) {
+  return Math.abs(q[1] - p[1]) > Math.abs(q[0] - p[0])
+}
+
+function curveRuns(faces, depth) {
+  const list = faces.filter(face => face.mesh && (face.kind === "top" || face.kind === "bottom") && !face.internal && (!face.extra || face.arc) && steep(face))
+  const starting = new Map(list.map(face => [pointKey(face.kind, face.points[0]), face]))
+  const ending = new Set(list.map(face => pointKey(face.kind, face.points[3])))
+  const seen = new Set()
+  const runs = []
+  for (const first of list.filter(face => !ending.has(pointKey(face.kind, face.points[0]))).concat(list)) {
+    if (seen.has(first)) continue
+    const run = { kind: first.kind, name: first.name, glyph: first.glyph, faces: [], points: [], region: "edge", height: depth }
+    let length = 0
+    for (let face = first; face && !seen.has(face); face = starting.get(pointKey(face.kind, face.points[3]))) {
+      seen.add(face)
+      const [p, , , q] = face.points
+      face.along = [length, length += Math.hypot(q[0] - p[0], q[1] - p[1])]
+      face.extra = true
+      face.arc = true
+      run.faces.push(face)
+      run.points.push(...face.points)
+    }
+    runs.push({ ...run, width: extent(run.points, 0).size, length: Math.max(1, length) })
+  }
+  return runs
+}
+
 function boundsOf(faces) {
   const points = faces.flatMap(face => face.points)
   const x = extent(points, 0)
@@ -91,7 +123,7 @@ export function planAtlas(faces, options) {
     }
   }
 
-  const runs = runsOf(extras).map(run => ({ ...run, region: "edge", width: extent(run.points, 0).size, height: depth }))
+  const runs = runsOf(extras).map(run => ({ ...run, region: "edge", width: extent(run.points, 0).size, height: depth })).concat(curveRuns(faces, depth))
   for (const kind of ["top", "bottom"]) {
     const members = options.internalFaces ? runsOf(faces.filter(face => face.internal && face.kind === kind)) : []
     runs.push(...members.map(run => ({ ...run, region: "internal", width: extent(run.points, 0).size, height: depth })))

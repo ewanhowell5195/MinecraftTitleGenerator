@@ -298,7 +298,10 @@ const KEYS = [
   ["wordTwistFan", NUMBER],
   ["wordTwistFanCentre", NUMBER],
   ["wordTwistFanRoll", BOOLEAN],
-  ["wordTwistFanHeight", NUMBER]
+  ["wordTwistFanHeight", NUMBER],
+  ["fadeCurves", BOOLEAN],
+  ["curveAngle", NUMBER],
+  ["curveHeight", NUMBER]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))

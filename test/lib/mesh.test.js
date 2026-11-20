@@ -8,6 +8,7 @@ import { fontFromOutlines, meshOutlines, parseFontFile } from "../../src/lib/fon
 import { generatedAlpha } from "../../src/lib/texture/overlays/faces.js"
 import { fillSpans } from "../../src/lib/font/fontOutline.js"
 import { fineMasks, glyphMeshes, holeFill, meshFaces, outlineShell } from "../../src/lib/font/meshGlyphs.js"
+import { faceLimits, ringWalls } from "../../src/lib/geometry/meshFaces.js"
 
 function area(points) {
   let sum = 0
@@ -233,6 +234,35 @@ describe("mesh glyphs", () => {
     const fine = fineMasks(mesh, cell, cell, 3)
     const xs = meshFaces(mesh, cell, cell, 0, 6, 3).rings.flat().map(point => point[0])
     for (const side of ["up", "down"]) assert.deepEqual(fine.edgeRuns(side).map(run => run.map(value => Math.round(value * 100) / 100)), [[Math.min(...xs), Math.max(...xs)].map(value => Math.round(value * 100) / 100)], side)
+  })
+
+  test("with the curve fade on, a steeper wall still counts as a bottom face so the fade can run past the old limit", () => {
+    const ring = [[0, 30], [20, 30], [20, 24], [0, 0]]
+    const kinds = limits => ringWalls(ring, 0, 1, 30, 0, 30, limits).map(face => face.kind)
+    assert.deepEqual(kinds(faceLimits()), ["top", "side", "side", "side"])
+    assert.deepEqual(kinds(faceLimits({ faded: true })), ["top", "side", "bottom", "side"])
+  })
+
+  test("a steep wall above the band is a side, and with sides and the curve fade on so is one past where the fade starts", () => {
+    const ring = [[0, 30], [20, 30], [20, 24], [0, 0]]
+    const walls = (limits, points = ring) => ringWalls(points, 0, 1, 30, 0, 10, limits).map(face => [face.kind, face.internal])
+    assert.deepEqual(walls(faceLimits({ faded: true }))[2], ["side", false])
+    assert.deepEqual(walls(faceLimits({ faded: true, sides: true }))[2], ["side", false])
+    const gentle = [[0, 30], [20, 30], [20, 24], [0, 24 - 20 * Math.tan(Math.PI / 6)]]
+    assert.deepEqual(walls(faceLimits({ faded: true, angle: 30 }), gentle)[2], ["bottom", true])
+    assert.deepEqual(walls(faceLimits({ faded: true, angle: 30, sides: true }), gentle)[2], ["side", false])
+    const ledge = [[0, 30], [20, 30], [20, 0], [10, 0], [10, 20], [0, 20]]
+    assert.deepEqual(ringWalls(ledge, 0, 1, 30, 0, 10, faceLimits({ faded: true, sides: true })).map(face => [face.kind, face.internal]).at(-2), ["bottom", true])
+  })
+
+  test("the face angle and height settings move where top and bottom faces stop", () => {
+    const ring = [[0, 30], [20, 30], [20, 24], [0, 0]]
+    const kinds = (limits, reach = 30) => ringWalls(ring, 0, 1, 30, 0, reach, limits).map(face => [face.kind, face.internal])
+    assert.deepEqual(kinds(faceLimits())[2], ["side", false])
+    assert.deepEqual(kinds(faceLimits({ angle: 55 }))[2], ["bottom", false])
+    assert.deepEqual(kinds(faceLimits({ angle: 55 }), 20)[2], ["side", false])
+    const faded = faceLimits({ faded: true, angle: 30 })
+    assert.ok(Math.abs(faded.fadeFrom - Math.PI / 12) < 1e-9 && Math.abs(faded.slope - Math.PI / 4) < 1e-9)
   })
 
   test("a side highlight on a hole is an ellipse that thins smoothly into the sides", () => {

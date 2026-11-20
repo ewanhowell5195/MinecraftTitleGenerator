@@ -138,6 +138,9 @@ export default {
       wordScale: wordScale.value,
       stretch: stretching.value ? effectiveScale(object)[1] : 1,
       terminators: object.terminators,
+      fadeCurves: object.fadeCurves,
+      curveAngle: object.curveAngle,
+      curveHeight: object.curveHeight,
       ...faceOptions(object)
     }))
 
@@ -197,7 +200,7 @@ export default {
     }
 
     function lineFor(source, list, word, options, use = "built") {
-      const key = JSON.stringify([list, word, options.depth, options.arcMode, options.arcTop, options.arcBottom, options.arcMove, options.arcCentre, options.arcMarked, options.stretch, options.terminators, options.spacing, options.kerning])
+      const key = JSON.stringify([list, word, options.depth, options.arcMode, options.arcTop, options.arcBottom, options.arcMove, options.arcCentre, options.arcMarked, options.stretch, options.terminators, options.spacing, options.kerning, options.fadeCurves, options.curveAngle, options.curveHeight])
       const known = lines[use]
       if (known?.source === source && known.key === key) return known
       lines[use] = { source, key, laid: shapeLine(source, sheet.value, list, word, options) }

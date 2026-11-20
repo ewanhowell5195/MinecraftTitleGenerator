@@ -15,6 +15,9 @@ const TOP_DEFAULTS = {
   terminators: false,
   font: "minecraft-ten",
   customFont: null,
+  fadeCurves: true,
+  curveAngle: 45,
+  curveHeight: 10,
   type: "top",
   row: 0,
   rowSpacing: 0,
@@ -200,7 +203,7 @@ const SMALL_DEFAULTS = {
   sideFade: 75
 }
 
-const PANEL_NAMES = ["text", "terminators", "font", "placement", "geometry", "spacing", "arc", "ribbon", "wrap", "fan", "transform", "wordGeometry", "wordArc", "wordRibbon", "wordWrap", "wordFan", "wordTransform", "texture", "overlays", "edgeOverlays", "colour", "outline", "inner", "sides", "faces"]
+const PANEL_NAMES = ["text", "terminators", "font", "curves", "placement", "geometry", "spacing", "arc", "ribbon", "wrap", "fan", "transform", "wordGeometry", "wordArc", "wordRibbon", "wordWrap", "wordFan", "wordTransform", "texture", "overlays", "edgeOverlays", "colour", "outline", "inner", "sides", "faces"]
 
 const TEXTURES = {
   primary: "cracked",

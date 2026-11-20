@@ -5,6 +5,7 @@ import { stretched, usesMarks } from "./stretch.js"
 import { wordSheet } from "./wordSheet.js"
 import { edgeReach, faceDepth } from "./sizes.js"
 import { glyphKey } from "../font/order.js"
+import { faceLimits } from "./meshFaces.js"
 
 function inkPadding(mesh, width) {
   const xs = mesh.shapes.flatMap(shape => [shape.outer].concat(shape.holes)).flat().map(point => point[0])
@@ -60,7 +61,7 @@ export function shapeLine(font, sheet, words, word, options) {
     const [left, right] = mesh ? inkPadding(mesh, laid.width) : [0, 0]
     const glyph = padded(laid, left, right)
     chain.push(glyph)
-    if (mesh) glyph.fine = font.mesh.tools.fineMasks(mesh, glyph, item.glyph, edgeReach(font.capHeight))
+    if (mesh) glyph.fine = font.mesh.tools.fineMasks(mesh, glyph, item.glyph, edgeReach(font.capHeight, options.curveHeight), faceLimits({ faded: options.fadeCurves, angle: options.curveAngle }))
     tallest.top = Math.max(tallest.top, glyph.arc.top)
     tallest.bottom = Math.max(tallest.bottom, glyph.arc.bottom)
     reach.top = Math.max(reach.top, glyph.arc.top + Math.max(0, lift))

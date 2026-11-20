@@ -28,6 +28,7 @@
   import NumberInput from "../../components/NumberInput.vue"
   import Panel from "../Panel.vue"
   import Segments from "../../components/Segments.vue"
+  import Slider from "../../components/Slider.vue"
   import Tile from "../../components/Tile.vue"
   import TileGrid from "../../components/TileGrid.vue"
   import UploadField from "../../components/UploadField.vue"
@@ -54,6 +55,7 @@
   const imported = computed(() => uploaded.value && object.value.customFont.kind !== "json")
   const squares = computed(() => object.value.customFont?.kind === "outline" && !object.value.customFont.mesh)
   const terminators = usePanel("terminators")
+  const curves = usePanel("curves")
   const creeper = usePanel("creeper")
   const hasTerminators = computed(() => font.value && font.value.glyphs["┫"] && font.value.glyphs["┣"] && !font.value.forcedTerminators)
   const hasCreeper = computed(() => !!font.value?.glyphs["\u{1F633}"])
@@ -265,6 +267,11 @@
         </TileGrid>
       </template>
     </div>
+  </Panel>
+  <Panel v-if="usingCustom && object.customFont.kind === 'outline'" title="Curved faces" :modified="curves.modified.value" @reset="curves.reset">
+    <Slider label="Face angle" v-model="object.curveAngle" :min="0" :max="90" hint="How steep a curve can get and still count as a top or bottom face." />
+    <Slider label="Face height" v-model="object.curveHeight" :min="0" :max="50" hint="How far a top or bottom face can reach into the letter, as a percentage of the cap height." />
+    <Toggle v-if="object.customFont.mesh" label="Fade curved edges" hint="Top and bottom faces fade out round curves instead of stopping sharply, into the sides when they are on" v-model="object.fadeCurves" />
   </Panel>
   <Panel v-if="hasCreeper" title="Creeper face" :modified="creeper.modified.value" @reset="creeper.reset">
     <Toggle label="Creeper face on A" :hint="`${font.multicase ? 'Every capital A' : 'Every a'} gets the creeper face. Split a word off to set it for just part of the text`" v-model="object.creeperFace" />

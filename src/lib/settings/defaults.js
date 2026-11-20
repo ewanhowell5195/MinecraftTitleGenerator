@@ -56,6 +56,11 @@ export const PANELS = {
     font: DEFAULT_FONT,
     customFont: null
   }),
+  curves: () => ({
+    curveAngle: 45,
+    curveHeight: 10,
+    fadeCurves: true
+  }),
   shape: () => ({
     shape: null,
     shapeVersion: null,

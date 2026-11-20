@@ -5,6 +5,7 @@ import { clamp } from "../../core/maths.js"
 import { extent } from "./plan.js"
 import { SWATCH } from "./pages.js"
 import { drawRuns } from "../paint/coverBake.js"
+import { fadeCurves, keepStrips } from "./curveFade.js"
 
 const INSET = 0.125
 const CORNER_SAMPLE = 3
@@ -107,12 +108,13 @@ export function mapFaces(plan, page, options, faded) {
     if (!chosen.has(run.glyph)) continue
     const span = extent(run.points, run.kind === "side" ? 1 : 0)
     const { x, y, sx, sy } = page.runs.get(run)
-    const width = run.width
+    const width = run.length ?? run.width
     const height = run.height
     const within = run.faces[0].mesh ? (value, size) => clamp(value, INSET, size - INSET) : value => value
     for (const face of run.faces) {
       face.page = page
-      if (run.kind === "side") face.uvs = face.points.map(point => [x + within(half + point[2], width) * sx, y + within(span.max - point[1], height) * sy])
+      if (face.arc) face.uvs = face.points.map((point, corner) => [x + within(face.along[corner < 2 ? 0 : 1], width) * sx, y + within(run.kind === "top" ? half + point[2] : half - point[2], height) * sy])
+      else if (run.kind === "side") face.uvs = face.points.map(point => [x + within(half + point[2], width) * sx, y + within(span.max - point[1], height) * sy])
       else face.uvs = face.points.map(point => [x + within(point[0] - span.min, width) * sx, y + within(run.kind === "top" ? half + point[2] : half - point[2], height) * sy])
     }
   }
@@ -134,6 +136,10 @@ export function finishAtlas(plan, page, painted, options) {
   const chosen = new Set(page.indexes)
   const own = blocks.filter(block => chosen.has(block.glyph))
   const packed = runs.filter(run => chosen.has(run.glyph))
+  keepStrips(ctx, own.flatMap(block => {
+    const { up, down } = page.regions.get(block.glyph)
+    return [pixelRect(up, block.own.width, depth), pixelRect(down, block.own.width, depth)]
+  }), options.fadeCurves)
   function clearRuns(target) {
     for (const run of packed) {
       const { x, y, width, height } = page.runs.get(run)
@@ -358,8 +364,9 @@ export function finishAtlas(plan, page, painted, options) {
     const entry = entryOf(block)
     if (!entry) continue
     const at = page.runs.get(run)
-    const { sx, sy } = at
-    const scale = Math.max(sx, sy)
+    const sx = run.length ? at.width / run.width : at.sx
+    const sy = at.sy
+    const scale = Math.max(at.sx, sy)
     const rect = { x: at.x, y: at.y, width: at.width, height: at.height }
     const { front } = page.regions.get(block.glyph)
     const f = front.sx
@@ -442,6 +449,7 @@ export function finishAtlas(plan, page, painted, options) {
 
   ctx.fillStyle = painted.border
   ctx.fillRect(swatch.x, swatch.y, SWATCH * swatch.scale, SWATCH * swatch.scale)
+  if (options.fadeCurves) fadeCurves(ctx, plan.faces, options.rects, chosen, options.reach, options.limits)
 
   const side = sideSum[3] ? hexOf(sideSum.slice(0, 3).map(value => value / sideSum[3] * options.sideBrightness / 100)) : null
   const edgeStops = stripStops

@@ -22,7 +22,7 @@ export function regionDetails(painted, targets, options, mesh = false) {
     const camera = look.source === "cover" && look.customCoverAlign === "camera"
     return {
       front: smoothDetail(1, look.source === "gradient" || look.source === "cover" || smooth.length > 0),
-      edge: { along: smoothDetail(base, look.source === "gradient" || look.source === "cover" || edgeGradient || cracked || smooth.some(({ layer }) => layer.edgeWrap)), deep: smoothDetail(base, camera || cracked || edgeFaded) },
+      edge: { along: smoothDetail(base, look.source === "gradient" || look.source === "cover" || edgeGradient || cracked || mesh && options.fadeCurves || smooth.some(({ layer }) => layer.edgeWrap)), deep: smoothDetail(base, camera || cracked || edgeFaded) },
       internal: { along: smoothDetail(1, faces.internalFaces && (camera || sideWrapped || (faces.customInternal ? faces.internalFill === "gradient" && faces.internalDirection !== "up" : edgeGradient))), deep: smoothDetail(1, faces.internalFaces && camera) },
       side: { along: smoothDetail(1, faces.sideFaces && (camera || sideWrapped || faces.customSide && faces.sideFill === "gradient" && faces.sideDirection !== "along")), deep: smoothDetail(1, faces.sideFaces && camera) }
     }

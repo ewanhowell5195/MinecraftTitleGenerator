@@ -5,6 +5,7 @@ import { SPACE } from "./layout.js"
 import { finishAtlas, mapFaces } from "../texture/atlas/finish.js"
 import { layoutPages, pageGroups } from "../texture/atlas/pages.js"
 import { planAtlas, stripSpans } from "../texture/atlas/plan.js"
+import { faceLimits } from "./meshFaces.js"
 import { REGION_KINDS, detailOf, regionScales } from "../texture/atlas/scales.js"
 import { clamp, remember } from "../core/maths.js"
 import { baseChar } from "../font/order.js"
@@ -35,7 +36,7 @@ function shift({ body, boxes, slabs, rings }, axis, offset) {
   }
 }
 
-function gentleAt(contours, x, y) {
+function gentleAt(contours, x, y, steepest) {
   let nearest = Infinity
   let gentle = false
   for (const points of contours) {
@@ -48,7 +49,7 @@ function gentleAt(contours, x, y) {
       const distance = Math.hypot(x0 + t * dx - x, y0 + t * dy - y)
       if (distance >= nearest) continue
       nearest = distance
-      gentle = Math.abs(dy) <= Math.abs(dx)
+      gentle = Math.atan2(Math.abs(dy), Math.abs(dx)) <= steepest
     }
   }
   return gentle
@@ -104,7 +105,7 @@ function sliceFaces(glyph, x, depth, planes, independent) {
   return faces
 }
 
-function roundEdges(body, contours, glyph, original, x, reach) {
+function roundEdges(body, contours, glyph, original, x, reach, steepest) {
   const top = glyph.bottom + glyph.height
   for (const face of body) {
     if (!face.internal || face.kind !== "top" && face.kind !== "bottom") continue
@@ -113,7 +114,7 @@ function roundEdges(body, contours, glyph, original, x, reach) {
     const xs = face.points.map(point => point[0])
     const across = (Math.min(...xs) + Math.max(...xs)) / 2 - x
     const level = face.kind === "top" ? sourceRow(glyph, original, y - glyph.bottom - 1) + 1 : sourceRow(glyph, original, y - glyph.bottom)
-    if (gentleAt(contours, across, level)) face.internal = false
+    if (gentleAt(contours, across, level, steepest)) face.internal = false
   }
 }
 
@@ -290,7 +291,8 @@ export function rowBottom(boxLists) {
 export function buildText(font, options) {
   const { placed, depth, border } = options
   if (!placed.length) return null
-  const reach = edgeReach(font.capHeight)
+  const reach = edgeReach(font.capHeight, options.curveHeight)
+  const limits = faceLimits({ faded: options.fadeCurves, sides: options.sideFaces, angle: options.curveAngle })
   const independent = independentLayers(font)
   const fronts = font.layers ? layerFronts(font.layers, depth, defaultDepth(font)) : null
   const bounds = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity }
@@ -300,13 +302,13 @@ export function buildText(font, options) {
     const boxes = clippedBoxes(boxesFor(glyph.mask, glyph.width, glyph.height, item.x, glyph.bottom), glyph, item.x)
     const char = baseChar(glyph.char)
     const mesh = font.mesh?.glyphs[char]
-    const shaped = mesh ? font.mesh.tools.meshFaces(mesh, glyph, font.glyphs[char], item.x + (glyph.inkShift ?? 0), depth, reach) : null
+    const shaped = mesh ? font.mesh.tools.meshFaces(mesh, glyph, font.glyphs[char], item.x + (glyph.inkShift ?? 0), depth, reach, limits) : null
     const sliced = !shaped && glyph.depths && font.layers
     const body = shaped ? shaped.faces : sliced ? sliceFaces(glyph, item.x, depth, fronts, independent) : boxFaces(boxes, -depth / 2, depth / 2)
     if (sliced) {
       for (const slice of Map.groupBy(body, face => face.layer).values()) stripFaces(slice, glyph, font.glyphs[char], font.capHeight)
     } else if (font.glyphs?.[char]) stripFaces(body, glyph, font.glyphs[char], font.capHeight)
-    if (!shaped && font.outlines?.[char]) roundEdges(body, font.outlines[char], glyph, font.glyphs[char], item.x, reach)
+    if (!shaped && font.outlines?.[char]) roundEdges(body, font.outlines[char], glyph, font.glyphs[char], item.x, reach, faceLimits({ angle: options.curveAngle }).slope)
     if (!shaped) glyph.edgeSpans = { up: stripSpans(body, "top", item.x), down: stripSpans(body, "bottom", item.x) }
     for (const face of body) face.glyph = glyphs.length
     const slabs = sliced ? font.layers.map((_, layer) => clippedBoxes(boxesFor(layerMask(glyph, layer, independent), glyph.width, glyph.height, item.x, glyph.bottom), glyph, item.x)) : null
@@ -327,7 +329,9 @@ export function buildText(font, options) {
     chars: glyphs.map(glyph => glyph.char),
     rects: glyphs.map(glyph => glyph.rect),
     spaces: glyphs.map(glyph => glyph.spaces),
-    space: font.spaceWidth ?? SPACE
+    space: font.spaceWidth ?? SPACE,
+    reach,
+    limits
   }
   const flat = body.map(face => ({ ...face, points: face.points.map(point => point.slice()) }))
   const limit = options.textureLimit ?? Infinity

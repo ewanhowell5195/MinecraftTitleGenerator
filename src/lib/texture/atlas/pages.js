@@ -13,7 +13,7 @@ function blockSize(block, depth, scales) {
 function runSize(run, scales) {
   const { along, deep } = scales[run.region]
   const [sx, sy] = run.kind === "side" ? [deep, along] : [along, deep]
-  return { width: Math.ceil(run.width * sx), height: Math.ceil(run.height * sy), sx, sy }
+  return { width: Math.ceil((run.length ?? run.width) * sx), height: Math.ceil(run.height * sy), sx, sy }
 }
 
 function arrange(items, width) {
