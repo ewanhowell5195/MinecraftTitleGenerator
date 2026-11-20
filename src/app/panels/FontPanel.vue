@@ -188,9 +188,10 @@
     if (token === reuseToken) reusable.value = shown
   }, { immediate: true })
 
-  watch(() => [object.value.id, isCustomFont(object.value.font)], () => {
-    tab.value = tabOf(object.value)
+  watch(() => [object.value.id, isCustomFont(object.value.font)], ([id], [previous]) => {
     customError.value = ""
+    if (id === previous && tab.value === "custom" && !object.value.customFont) return
+    tab.value = tabOf(object.value)
   })
 
   const variantBadges = computed(() => {
