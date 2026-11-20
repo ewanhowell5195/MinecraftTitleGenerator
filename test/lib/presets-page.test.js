@@ -3,8 +3,8 @@ import assert from "node:assert/strict"
 
 globalThis.location = { pathname: "/app/", origin: "https://example.test" }
 
-const { addressHasFilters, openLinkInEditor, presetLink, presetsPage, readPresetPath, setPresetSearch, setPresetSort, showOwnPreset, showPreset, showPresetFilters } = await import("../../src/lib/state/presetsPage.js")
-const { setNavigator } = await import("../../src/lib/state/navigation.js")
+const { addressHasFilters, closePresetsPage, openLinkInEditor, presetLink, presetsPage, readPresetPath, setPresetSearch, setPresetSort, showOwnPreset, showPreset, showPresetFilters } = await import("../../src/lib/state/presetsPage.js")
+const { navigated, setNavigator } = await import("../../src/lib/state/navigation.js")
 
 function setAddress(address) {
   const { pathname, search } = new URL(address, "https://example.test")
@@ -147,5 +147,29 @@ describe("preset addresses", () => {
     assert.equal(location.search, "?title=abc")
     assert.equal(presetsPage.open, false)
     assert.equal(presetsPage.code, null)
+  })
+})
+
+describe("the way back to the editor", () => {
+  function route(fullPath) {
+    return { fullPath, path: new URL(fullPath, "https://example.test").pathname, meta: { name: "app" } }
+  }
+
+  test("going back to the editor and forward to the presets again keeps it", () => {
+    navigated(route("/app/presets"), route("/app/?title=abc"))
+    assert.equal(presetsPage.fromEditor, true)
+    navigated(route("/app/?title=abc"), route("/app/presets"))
+    assert.equal(presetsPage.fromEditor, false)
+    navigated(route("/app/presets"), route("/app/?title=abc"))
+    assert.equal(presetsPage.fromEditor, true)
+    pushed.length = 0
+    closePresetsPage()
+    assert.deepEqual(pushed, ["/app/?title=abc"])
+  })
+
+  test("landing straight on the presets has none", () => {
+    navigated(route("/app/"), route("/app/presets"))
+    navigated(route("/app/presets"), { fullPath: "/", path: "/", meta: {} })
+    assert.equal(presetsPage.fromEditor, false)
   })
 })

@@ -131,7 +131,11 @@ export function takeLanding() {
 let landing = false
 
 onNavigated((to, from) => {
+  const fromEditor = from.meta.name === "app" && !readPresetPath(from.path).open
   syncTo(new URL(to.fullPath, SITE))
-  if (!presetsPage.open && presetsPage.fromEditor) setFromEditor(false)
+  if (presetsPage.open && fromEditor) {
+    returnTo = from.fullPath
+    if (!presetsPage.fromEditor) setFromEditor(true)
+  } else if (!presetsPage.open && presetsPage.fromEditor) setFromEditor(false)
   if (to.meta.name === "app" && from.meta.name !== "app") landing = presetsPage.open
 })
