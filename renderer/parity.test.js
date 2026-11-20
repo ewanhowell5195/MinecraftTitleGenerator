@@ -5,7 +5,7 @@ import fs from "node:fs"
 import { fileURLToPath } from "node:url"
 import { chromium } from "playwright"
 import { Canvas, loadImage } from "skia-canvas"
-import { createServer } from "vite"
+import { build, createServer } from "vite"
 import { encodeTitle } from "../src/lib/link/linkformat.js"
 import { answerMinecraftAssets, renderTitle } from "./index.js"
 
@@ -106,18 +106,18 @@ describe("node and browser renderers", () => {
   let page
 
   before(async () => {
-    server = await createServer({
-      root: fileURLToPath(new URL("..", import.meta.url)),
-      cacheDir: fileURLToPath(new URL("node_modules/.vite", import.meta.url)),
-      logLevel: "error",
-      optimizeDeps: { noDiscovery: true, include: ["vue", "three", "minecraft-asset-loader", "@countertype/clipper2-ts"] },
-      server: { port: 0, strictPort: false, hmr: false, watch: null }
-    })
-    await server.listen()
+    const root = fileURLToPath(new URL("..", import.meta.url))
+    const [bundle, launched] = await Promise.all([
+      build({ root, configFile: false, mode: "development", logLevel: "error", define: { "process.env.NODE_ENV": "\"development\"" }, build: { write: false, minify: false, lib: { entry: "src/render/titlePicture.js", formats: ["es"], fileName: "titlePicture" }, rolldownOptions: { output: { codeSplitting: false } } } }),
+      chromium.launch(),
+      createServer({ root, configFile: false, logLevel: "error", optimizeDeps: { noDiscovery: true }, server: { host: "127.0.0.1", port: 0, strictPort: false, hmr: false, watch: null } }).then(created => (server = created).listen())
+    ])
+    const picture = bundle[0].output[0].code
     const origin = `http://127.0.0.1:${server.httpServer.address().port}`
-    browser = await chromium.launch()
+    browser = launched
     page = await browser.newPage()
     await page.route(`${origin}/blank`, route => route.fulfill({ contentType: "text/html", body: "<!doctype html><base href=\"/\">" }))
+    await page.route(`${origin}/titlePicture.js`, route => route.fulfill({ contentType: "text/javascript", body: picture }))
     await page.goto(`${origin}/blank`)
   })
 
@@ -128,7 +128,7 @@ describe("node and browser renderers", () => {
 
   async function browserRender(title) {
     const url = await page.evaluate(async title => {
-      const { titleCanvas } = await import("/src/render/titlePicture.js")
+      const { titleCanvas } = await import("/titlePicture.js")
       return (await titleCanvas(title))?.toDataURL("image/png") ?? null
     }, title)
     return url && Buffer.from(url.split(",")[1], "base64")
@@ -137,7 +137,8 @@ describe("node and browser renderers", () => {
   for (const [name, lines] of Object.entries(TITLES)) {
     test(`draw the same ${name}`, async () => {
       const title = code(...lines)
-      await assertSamePicture(await renderTitle(title, { format: "png" }), await browserRender(title))
+      const [theirs, mine] = await Promise.all([browserRender(title), renderTitle(title, { format: "png" })])
+      await assertSamePicture(mine, theirs)
     })
   }
 
