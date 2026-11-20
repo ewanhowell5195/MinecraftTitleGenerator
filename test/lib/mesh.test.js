@@ -225,6 +225,21 @@ describe("mesh glyphs", () => {
     }
   })
 
+  test("a bottom just above the baseline of a letter with a descender is a bottom face, measured from the baseline", async () => {
+    const notdef = new opentype.Glyph({ name: ".notdef", unicode: 0, advanceWidth: 500, path: new opentype.Path() })
+    const ledge = glyph("J", [[[[100, -300], [100, 700], [600, 700], [600, 50], [300, 50], [300, -300]], false]])
+    const source = await parseFontFile(new opentype.Font({ familyName: "Ledge", styleName: "Regular", unitsPerEm: 1000, ascender: 800, descender: -300, glyphs: [notdef, glyph("H", [[[[100, 0], [100, 700], [600, 700], [600, 0]], false]]), ledge] }).toArrayBuffer())
+    const meshes = glyphMeshes(meshOutlines(source, { height: 30 }))
+    const { list } = parsedSheet(fontFromOutlines(source, { height: 30 }), 2)
+    const cell = list.find(item => item.char === "j")
+    const { faces, lines } = meshFaces(meshes.j, cell, cell, 0, 6, 3)
+    assert.deepEqual(lines.bottoms, [cell.bottom, 0])
+    const flat = faces.filter(face => face.kind === "bottom" && face.points.every(point => point[1] > 0 && point[1] < 3))
+    assert.ok(flat.length && flat.every(face => !face.internal))
+    const square = list.find(item => item.char === "h")
+    assert.deepEqual(meshFaces(meshes.h, square, square, 0, 6, 3).lines.bottoms, [square.bottom])
+  })
+
   test("a square's top and bottom edge runs cover its whole width", async () => {
     const source = await testFont()
     const mesh = glyphMeshes(meshOutlines(source, { height: 30 })).h

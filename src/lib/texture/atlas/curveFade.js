@@ -5,6 +5,7 @@ const FADE_HEIGHT_FROM = 0.5
 const LONGEST_WALK = 256
 const SHARP_TURN = Math.PI / 6
 const FLATTER = Math.PI / 90
+const SHORT_FACE = 0.25
 
 function easedOut(value, [from, to]) {
   const amount = clamp((value - from) / (to - from), 0, 1)
@@ -21,7 +22,8 @@ function slope(face) {
 }
 
 export function curveWeights(face, rect, reach, corners = [slope(face), slope(face)], limits = faceLimits({ faded: true })) {
-  const height = point => face.kind === "top" ? rect.maxY - point[1] : point[1] - rect.minY
+  const lines = face.kind === "top" ? rect.tops ?? [rect.maxY] : rect.bottoms ?? [rect.minY]
+  const height = point => Math.min(...lines.map(line => Math.abs(point[1] - line)))
   return [face.points[0], face.points[3]].map((point, index) => Math.min(easedOut(corners[index], [limits.fadeFrom, limits.slope]), easedOut(height(point) / reach, [FADE_HEIGHT_FROM, limits.band])))
 }
 
@@ -39,23 +41,32 @@ function cornerSlope(face, neighbour) {
 }
 
 function stripFace(face) {
-  return (face.kind === "top" || face.kind === "bottom") && !face.internal && (!face.extra || face.arc)
+  return (face.kind === "top" || face.kind === "bottom") && !face.internal
 }
 
 function steepness(face) {
   return face.kind === "side" ? Infinity : slope(face)
 }
 
-function beyond(face, starting, ending) {
+function length(face) {
+  const [p, , , q] = face.points
+  return Math.hypot(q[0] - p[0], q[1] - p[1])
+}
+
+function beyond(face, starting, ending, short) {
   let forward = face
   let backward = face
+  let ahead = slope(face)
+  let behind = slope(face)
   for (let step = 0; step < LONGEST_WALK; step++) {
     const next = forward && starting.get(pointKey(forward.points[3]))
-    forward = next && steepness(next) >= slope(forward) - FLATTER ? next : null
+    forward = next && (steepness(next) >= ahead - FLATTER || length(next) < short) ? next : null
     if (forward && !stripFace(forward)) return [forward, 0, 1]
+    if (forward && length(forward) >= short) ahead = slope(forward)
     const last = backward && ending.get(pointKey(backward.points[0]))
-    backward = last && steepness(last) >= slope(backward) - FLATTER ? last : null
+    backward = last && (steepness(last) >= behind - FLATTER || length(last) < short) ? last : null
     if (backward && !stripFace(backward)) return [backward, 3, 2]
+    if (backward && length(backward) >= short) behind = slope(backward)
     if (!forward && !backward) return null
   }
   return null
@@ -101,7 +112,7 @@ export function fadeCurves(ctx, faces, rects, chosen, reach, limits = faceLimits
       const corners = [cornerSlope(face, ending.get(pointKey(face.points[0]))), cornerSlope(face, starting.get(pointKey(face.points[3])))]
       const [atStart, atEnd] = curveWeights(face, rects[glyph], reach, corners, limits)
       if (atStart >= 1 && atEnd >= 1) continue
-      const found = beyond(face, starting, ending)
+      const found = beyond(face, starting, ending, reach * SHORT_FACE)
       if (!found) continue
       const [next, front, back] = found
       jobs.push({ face, atStart, atEnd, target: sampler(image, next.uvs, [front, back]) })

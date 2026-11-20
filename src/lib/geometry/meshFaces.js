@@ -107,7 +107,7 @@ export function liftedRings(shapes, { lift, breaks }, x = 0) {
   return ringsOf(shapes).map(ring => divided(ring, breaks).map(([px, py]) => [x + px, lift(py)]))
 }
 
-export function meshFaces(mesh, glyph, original, x, depth, reach, limits = faceLimits()) {
+export function meshFaces(mesh, glyph, original, x, depth, reach, limits = faceLimits(), capHeight = Infinity) {
   const mapping = rowMapping(glyph, original)
   const place = ([px, py]) => [x + px, mapping.lift(py)]
   const triangles = mapping.identity ? mesh.triangles : bandTriangles(mesh.shapes, mapping.breaks)
@@ -115,12 +115,15 @@ export function meshFaces(mesh, glyph, original, x, depth, reach, limits = faceL
   const zFront = -depth / 2
   const zBack = depth / 2
   const top = glyph.bottom + glyph.height
+  const band = reach * limits.band
+  const tops = [top, mapping.lift(capHeight)].filter((line, at) => !at || top - line > band)
+  const bottoms = [glyph.bottom, mapping.lift(0)].filter((line, at) => !at || line - glyph.bottom > band)
   const faces = []
   for (const triangle of triangles) {
     const corners = triangle.map(place)
     faces.push({ points: corners.map(([px, py]) => [px, py, zFront]), kind: "front", name: "front", internal: false, mesh: true })
     faces.push({ points: corners.slice().reverse().map(([px, py]) => [px, py, zBack]), kind: "back", name: "back", internal: false, mesh: true })
   }
-  for (const ring of rings) faces.push(...ringWalls(ring, zFront, zBack, top, glyph.bottom, reach, limits))
-  return { faces, rings }
+  for (const ring of rings) faces.push(...ringWalls(ring, zFront, zBack, tops.at(-1), bottoms.at(-1), reach, limits))
+  return { faces, rings, lines: { tops, bottoms } }
 }

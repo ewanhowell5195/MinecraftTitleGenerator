@@ -302,7 +302,7 @@ export function buildText(font, options) {
     const boxes = clippedBoxes(boxesFor(glyph.mask, glyph.width, glyph.height, item.x, glyph.bottom), glyph, item.x)
     const char = baseChar(glyph.char)
     const mesh = font.mesh?.glyphs[char]
-    const shaped = mesh ? font.mesh.tools.meshFaces(mesh, glyph, font.glyphs[char], item.x + (glyph.inkShift ?? 0), depth, reach, limits) : null
+    const shaped = mesh ? font.mesh.tools.meshFaces(mesh, glyph, font.glyphs[char], item.x + (glyph.inkShift ?? 0), depth, reach, limits, font.capHeight) : null
     const sliced = !shaped && glyph.depths && font.layers
     const body = shaped ? shaped.faces : sliced ? sliceFaces(glyph, item.x, depth, fronts, independent) : boxFaces(boxes, -depth / 2, depth / 2)
     if (sliced) {
@@ -312,7 +312,7 @@ export function buildText(font, options) {
     if (!shaped) glyph.edgeSpans = { up: stripSpans(body, "top", item.x), down: stripSpans(body, "bottom", item.x) }
     for (const face of body) face.glyph = glyphs.length
     const slabs = sliced ? font.layers.map((_, layer) => clippedBoxes(boxesFor(layerMask(glyph, layer, independent), glyph.width, glyph.height, item.x, glyph.bottom), glyph, item.x)) : null
-    glyphs.push({ body, boxes, slabs, rings: shaped?.rings ?? null, spaces: item.spaces, char: glyph.char, rect: { minX: item.x, maxX: item.x + glyph.width, minY: glyph.bottom, maxY: glyph.bottom + glyph.height } })
+    glyphs.push({ body, boxes, slabs, rings: shaped?.rings ?? null, spaces: item.spaces, char: glyph.char, rect: { minX: item.x, maxX: item.x + glyph.width, minY: glyph.bottom, maxY: glyph.bottom + glyph.height, ...shaped?.lines } })
     expand(bounds, body)
   }
   const line = options.line ?? bounds

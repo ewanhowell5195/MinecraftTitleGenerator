@@ -58,6 +58,32 @@ describe("curve fade", () => {
     assert.ok(past > 0 && past < 1)
   })
 
+  test("a face on the baseline above a descender fades by its height over the baseline, not over the bottom of the letter", () => {
+    const rect = { ...RECT, minY: -20, bottoms: [-20, 0] }
+    assert.deepEqual(curveWeights(wall("bottom", [0, -0.5], [5, -0.5]), rect, 4), [1, 1])
+    assert.deepEqual(curveWeights(wall("bottom", [0, 6], [5, 6]), rect, 4), [0, 0])
+    assert.deepEqual(curveWeights(wall("bottom", [0, -19], [5, -19]), rect, 4), [1, 1])
+  })
+
+  test("a face laid out in a run of its own, like a bowl over a descender, still fades", () => {
+    const ctx = painted(30, 8)
+    ctx.fill(0, 0, 8, 4, [255, 0, 0, 255])
+    ctx.fill(20, 0, 24, 6, [0, 0, 255, 255])
+    const faces = [{ ...wall("bottom", [0, 0], [5, 0], [[0, 0], [0, 4], [5, 4], [5, 0]]), extra: true }, { ...wall("bottom", [5, 0], [6, 3], [[5, 0], [5, 4], [8, 4], [8, 0]]), extra: true }, wall("side", [6, 3], [6, 9], [[20, 0], [24, 0], [24, 6], [20, 6]])]
+    fadeCurves(ctx, faces, [RECT], new Set([0]), 4)
+    assert.deepEqual(ctx.pixel(2, 2), [255, 0, 0, 255])
+    assert.deepEqual(ctx.pixel(6, 2), [0, 0, 255, 255])
+  })
+
+  test("a tiny flat step where a curve meets the wall doesn't stop the fade reaching it", () => {
+    const ctx = painted(30, 8)
+    ctx.fill(0, 0, 8, 4, [255, 0, 0, 255])
+    ctx.fill(20, 0, 24, 6, [0, 0, 255, 255])
+    const faces = [wall("bottom", [0, 0], [5, 0], [[0, 0], [0, 4], [5, 4], [5, 0]]), wall("bottom", [5, 0], [6, 3], [[5, 0], [5, 4], [8, 4], [8, 0]]), wall("bottom", [6, 3], [6.5, 3], [[8, 0], [8, 4], [8, 4], [8, 0]]), wall("side", [6.5, 3], [6.5, 9], [[20, 0], [24, 0], [24, 6], [20, 6]])]
+    fadeCurves(ctx, faces, [RECT], new Set([0]), 4)
+    assert.deepEqual(ctx.pixel(6, 2), [0, 0, 255, 255])
+  })
+
   test("a face at the limit takes on the colour of the wall past it, the flat part keeps its own", () => {
     const ctx = painted(30, 8)
     ctx.fill(0, 0, 8, 4, [255, 0, 0, 255])
