@@ -5,9 +5,7 @@
     "authors": ["Ewan Howell"],
     "kind": "png",
     "order": "x",
-    "strips": [
-      "minecraft-ten"
-    ]
+    "strips": ["minecraft-ten"]
   },
   {
     "id": "dungeons-skull",
@@ -26,5 +24,13 @@
     "authors": ["Ewan Howell"],
     "kind": "model",
     "height": 32
+  },
+  {
+    "id": "checo",
+    "name": "checo",
+    "authors": ["Homi"],
+    "kind": "png",
+    "order": "x",
+    "strips": ["minecraft-ten"]
   }
 ]
