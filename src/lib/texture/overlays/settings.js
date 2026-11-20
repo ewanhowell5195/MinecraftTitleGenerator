@@ -1,5 +1,6 @@
 const highlight = { key: "thickness", label: "Highlight thickness", min: 0.25, max: 8, steps: [0.25, 0.5, 1, 2, 3, 4, 5, 6, 7, 8], fallback: 1 }
 const outline = { ...highlight, label: "Outline thickness" }
+const sideHighlight = { ...highlight, max: 5, steps: [0.25, 0.5, 1, 2, 3, 4, 5] }
 const fade = { key: "fade", label: "Fade", min: 0, max: 100, fallback: 80 }
 const seed = { key: "seed", label: "Seed", min: 0, max: 99, fallback: 0 }
 const randomSeed = { ...seed, shown: values => values.randomness > 0 }
@@ -17,10 +18,10 @@ export const SMOOTH_KINDS = new Set(["wave", "cracks", "shadow"])
 export const FADE_KINDS = new Set(["outline_fade", "outline_fade_inverted", "edge_outline_fade"])
 
 export const GENERATED_SETTINGS = {
-  top: [highlight],
-  bottom: [highlight],
-  left: [highlight],
-  right: [highlight],
+  top: [sideHighlight],
+  bottom: [sideHighlight],
+  left: [sideHighlight],
+  right: [sideHighlight],
   outline: [{ key: "inset", label: "Inset", min: 0, max: 8, fallback: 0 }, outline],
   outline_fade: [outline, { key: "spread", label: "Fade height", min: 10, max: 100, fallback: 60 }],
   outline_fade_inverted: [outline, { key: "spread", label: "Fade height", min: 10, max: 100, fallback: 75 }],

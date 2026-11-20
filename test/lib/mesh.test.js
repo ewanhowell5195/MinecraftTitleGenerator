@@ -1,4 +1,6 @@
 import assert from "node:assert/strict"
+import { createHash } from "node:crypto"
+import fs from "node:fs"
 import { describe, test } from "node:test"
 import opentype from "opentype.js"
 import { parsedSheet } from "../../src/lib/font/editor/sheet.js"
@@ -231,6 +233,80 @@ describe("mesh glyphs", () => {
     const fine = fineMasks(mesh, cell, cell, 3)
     const xs = meshFaces(mesh, cell, cell, 0, 6, 3).rings.flat().map(point => point[0])
     for (const side of ["up", "down"]) assert.deepEqual(fine.edgeRuns(side).map(run => run.map(value => Math.round(value * 100) / 100)), [[Math.min(...xs), Math.max(...xs)].map(value => Math.round(value * 100) / 100)], side)
+  })
+
+  test("a side highlight on a hole is an ellipse that thins smoothly into the sides", () => {
+    const cell = { bottom: 0, height: 40, width: 40 }
+    const from = Math.cos(Math.PI / 6)
+    for (const [size, points, thickness, scale] of [[10, 96, 3, 8], [2.5, 36, 2, 16]]) {
+      const hole = Array.from({ length: points }, (_, at) => [20 + size * Math.cos(at / points * Math.PI * 2), 20 + size * Math.sin(at / points * Math.PI * 2)])
+      const fine = fineMasks({ shapes: [{ outer: [[0, 40], [40, 40], [40, 0], [0, 0]], holes: [hole] }] }, cell, cell, 3)
+      const alpha = fine.toward(scale, 0, -1, from, (thickness + 2) * scale, distance => Math.min(1, Math.max(0, thickness * scale - distance + 0.5)), thickness * scale)
+      for (let row = 15 * scale; row < 40 * scale; row++) {
+        for (let column = 0; column < 40 * scale; column++) if (alpha[row * 40 * scale + column] > 0.5) assert.ok(Math.abs((column + 0.5) / scale - 20) < size + 0.1, `${size}: ${column}`)
+      }
+      function band(degrees) {
+        const angle = degrees * Math.PI / 180
+        let reach = 0
+        for (let radius = size + 0.2; radius < size + thickness + 1; radius += 0.02) {
+          if (alpha[Math.floor((20 + radius * Math.sin(angle)) * scale) * 40 * scale + Math.floor((20 + radius * Math.cos(angle)) * scale)] <= 0.5) break
+          reach = radius - size
+        }
+        return reach
+      }
+      const values = Array.from({ length: 91 }, (_, at) => band(90 - at))
+      for (let index = 1; index < values.length; index++) assert.ok(values[index] <= values[index - 1] + 0.25 && values[index - 1] - values[index] < 0.25, `${size}: ${values}`)
+      assert.ok(values[0] > thickness - 0.1 && values.at(-1) < 0.1, `${size}: ${values}`)
+    }
+  })
+
+  test("a side highlight on a short flat between steep walls narrows along the walls' lines", () => {
+    const cell = { bottom: 0, height: 30, width: 40 }
+    const outer = [[0, 30], [40, 30], [40, 2], [24, 2], [22, 8], [18, 8], [16, 2], [0, 2]]
+    const fine = fineMasks({ shapes: [{ outer, holes: [] }] }, cell, cell, 3)
+    const scale = 8
+    const alpha = fine.toward(scale, 0, -1, 0.9, 5 * scale, (distance, toward) => toward > 0.9 ? Math.min(1, Math.max(0, 3 * scale - distance + 0.5)) : 0, 3 * scale)
+    const at = (x, y) => alpha[Math.floor(y * scale) * 40 * scale + Math.floor(x * scale)]
+    for (const y of [8.5, 9.5, 10.5]) {
+      const edge = 16 + (y - 2) / 3
+      assert.ok(at(edge - 0.3, y) === 0 && at(edge + 0.3, y) === 1, `${y}`)
+      assert.ok(at(40 - edge + 0.3, y) === 0 && at(40 - edge - 0.3, y) === 1, `${y}`)
+    }
+  })
+
+  test("a side highlight stays off a 30 degree wall next to a flat", () => {
+    const cell = { bottom: 0, height: 30, width: 40 }
+    const drop = 10 * Math.tan(Math.PI / 6)
+    const outer = [[0, 30], [40, 30], [40, 8], [34, 8], [30, 8 - drop], [20, 8], [14, 8], [8, 2], [0, 2]]
+    const fine = fineMasks({ shapes: [{ outer, holes: [] }] }, cell, cell, 3)
+    const scale = 8
+    const from = Math.cos(Math.PI / 6)
+    const alpha = fine.toward(scale, 0, -1, from, 5 * scale, (distance, toward) => toward > from + 1e-3 ? Math.min(1, Math.max(0, 3 * scale - distance + 0.5)) : 0, 3 * scale)
+    const at = (x, y) => alpha[Math.floor(y * scale) * 40 * scale + Math.floor(x * scale)]
+    assert.equal(at(17, 9), 1)
+    for (const x of [22, 24, 26]) assert.equal(at(x, 8 - (x - 20) * Math.tan(Math.PI / 6) + 0.5), 0, `${x}`)
+  })
+
+  test("side highlights on the shape test font match the recorded output", async () => {
+    const file = fs.readFileSync(new URL("../fixtures/ShapeTest.otf", import.meta.url))
+    const source = await parseFontFile(file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength))
+    const meshes = glyphMeshes(meshOutlines(source, { height: 40 }))
+    const { list } = parsedSheet(fontFromOutlines(source, { height: 40 }), 2)
+    const digests = {}
+    for (const cell of list.filter(item => meshes[item.char] && item.char !== item.char.toLowerCase())) {
+      const fine = fineMasks(meshes[cell.char], cell, cell)
+      for (const kind of ["top", "bottom", "left", "right"]) {
+        for (const thickness of [1, 3, 5]) {
+          const alpha = generatedAlpha({ ...cell, placedX: 0, fine }, kind, { thickness }, 40, 8)
+          digests[`${cell.char} ${kind} ${thickness}`] = createHash("sha1").update(Uint8Array.from(alpha, value => Math.round(value * 255))).digest("hex").slice(0, 16)
+        }
+      }
+    }
+    const recorded = new URL("../fixtures/shape-test-highlights.json", import.meta.url)
+    if (process.env.UPDATE_FIXTURES) fs.writeFileSync(recorded, JSON.stringify(digests, null, 2) + "\n")
+    const expected = JSON.parse(fs.readFileSync(recorded, "utf8"))
+    assert.deepEqual(Object.keys(digests).filter(key => digests[key] !== expected[key]), [])
+    assert.deepEqual(Object.keys(digests), Object.keys(expected))
   })
 
   test("the distance band comes to a point at an inward corner instead of rounding off", () => {

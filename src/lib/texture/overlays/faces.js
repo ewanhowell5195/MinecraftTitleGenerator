@@ -13,7 +13,7 @@ export function generatedAlpha(glyph, kind, layer, capHeight, scale, soft = fals
   if (kind === "wave") return waveFill(glyph, settings, scale, fine)
   if (kind === "cracks") return crackFaces(glyph, layer, scale, fine, soft)
   if (fine && kind === "corners" && glyph.fine.corners) return fineCorners(glyph, fine, glyph.fine.corners(), settings, scale)
-  if (fine && kind !== "corners") return finePixels(glyph, fine, kind, settings, scale, glyph.fine.distance && { distance: reach => glyph.fine.distance(scale, reach), facing: reach => glyph.fine.facing(scale, reach), toward: (dx, dy, least, reach, score) => glyph.fine.toward(scale, dx, dy, least, reach, score) })
+  if (fine && kind !== "corners") return finePixels(glyph, fine, kind, settings, scale, glyph.fine.distance && { distance: reach => glyph.fine.distance(scale, reach), facing: reach => glyph.fine.facing(scale, reach), toward: (dx, dy, least, reach, score, thickness) => glyph.fine.toward(scale, dx, dy, least, reach, score, thickness) })
   if (!Number.isInteger(settings.thickness ?? 1) || FADE_KINDS.has(kind) && scale > 1) return blockPixels(glyph, kind, settings, scale)
   const alpha = upscale(joinedPixels(glyph, kind, settings), glyph.width, glyph.height, scale, true)
   if (fine) {

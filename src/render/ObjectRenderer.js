@@ -415,7 +415,7 @@ export default {
           sharpen(null)
           return
         }
-        const settings = { ...options, lineDepth, placed: laid.placed, line: laid.line, ends: laid.ends, spans: laid.spans, sheet: laid.sheet, layers: layerOptions(), details: regionDetails(painted.value, targets.value, options), redraw: !finalShadowed.value && shadowed(), textureLimit: textureLimit() }
+        const settings = { ...options, lineDepth, placed: laid.placed, line: laid.line, ends: laid.ends, spans: laid.spans, sheet: laid.sheet, layers: layerOptions(), details: regionDetails(painted.value, targets.value, options, Boolean(source.mesh)), redraw: !finalShadowed.value && shadowed(), textureLimit: textureLimit() }
         const firstKey = [builtFrom.painted, source, inputsKey, builtFrom.final]
         if (!drafted || drafted.key.some((part, at) => part !== firstKey[at])) drafted = { key: firstKey, value: buildText(source, cameraCover(object) ? { ...settings, paint: null, faded: faded() } : { ...settings, paint: painter(source) }) }
         const first = drafted.value

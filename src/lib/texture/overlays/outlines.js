@@ -5,10 +5,10 @@ import { TONES } from "./settings.js"
 const SIDES = { top: [0, 1], bottom: [0, -1], left: [-1, 0], right: [1, 0] }
 const LIGHT_SIDES = { 0: [-1, 1], 90: [1, 1], 180: [1, -1], 270: [-1, -1] }
 const TWO_TONE = new Set(["two_tone_outline"].concat(TONES.two_tone_outline))
-const SMOOTH_KINDS = new Set(["outline", "outline_fade", "outline_fade_inverted"].concat(Object.keys(SIDES), Array.from(TWO_TONE)))
+export const SMOOTH_KINDS = new Set(["outline", "outline_fade", "outline_fade_inverted"].concat(Object.keys(SIDES), Array.from(TWO_TONE)))
 const BLEED = 1
-const FACING_FROM = 0.6
-const FACING_TO = 0.85
+const FACING_FROM = Math.cos(Math.PI * 2 / 9)
+const FACING_TO = Math.cos(Math.PI / 9)
 
 export function upscale(own, width, height, scale, flip) {
   const columns = width * scale
@@ -97,7 +97,7 @@ function toneOf(kind, settings, smooth, reach) {
 
 function smoothBand(glyph, kind, settings, smooth) {
   const { width, height, mask } = glyph
-  if (SIDES[kind]) return spilled(smooth.toward(...SIDES[kind], FACING_FROM, Math.ceil(settings.thickness) + BLEED + 1, (signed, toward) => bandAlpha(signed, 0, settings.thickness) * facingWeight(toward)), mask, width, height)
+  if (SIDES[kind]) return spilled(smooth.toward(...SIDES[kind], FACING_FROM, Math.ceil(settings.thickness) + BLEED + 1, (signed, toward) => facingWeight(toward) > 0 ? bandAlpha(signed, 0, settings.thickness * facingWeight(toward)) : 0, settings.thickness), mask, width, height)
   const from = kind === "outline" ? settings.inset : 0
   const to = from + settings.thickness
   const reach = Math.ceil(to) + BLEED + 1
@@ -120,11 +120,12 @@ function spilled(own, mask, width, height) {
   for (let j = 0; j < height; j++) {
     for (let i = 0; i < width; i++) {
       if (mask[j * width + i]) continue
-      let best = 0
-      for (let y = Math.max(0, j - 1); y <= Math.min(height - 1, j + 1); y++) {
-        for (let x = Math.max(0, i - 1); x <= Math.min(width - 1, i + 1); x++) if (mask[y * width + x]) best = Math.max(best, own[y * width + x])
+      let best = -1
+      for (const [x, y] of [[i - 1, j], [i + 1, j], [i, j - 1], [i, j + 1]]) if (x >= 0 && y >= 0 && x < width && y < height && mask[y * width + x]) best = Math.max(best, own[y * width + x])
+      if (best < 0) {
+        for (const [x, y] of [[i - 1, j - 1], [i + 1, j - 1], [i - 1, j + 1], [i + 1, j + 1]]) if (x >= 0 && y >= 0 && x < width && y < height && mask[y * width + x]) best = Math.max(best, own[y * width + x])
       }
-      out[j * width + i] = best
+      out[j * width + i] = Math.max(0, best)
     }
   }
   return out

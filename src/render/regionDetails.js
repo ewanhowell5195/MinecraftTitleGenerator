@@ -1,5 +1,6 @@
 import { MAX_DETAIL } from "../lib/texture/atlas/scales.js"
 import { FADE_KINDS, SMOOTH_KINDS, WRAPPED_KINDS } from "../lib/texture/overlays/settings.js"
+import { SMOOTH_KINDS as MESH_SMOOTH_KINDS } from "../lib/texture/overlays/outlines.js"
 import { faceDepth } from "../lib/geometry/sizes.js"
 import { stripDetail } from "../lib/texture/paint/strip.js"
 import { faceOptions } from "./objectLook.js"
@@ -8,11 +9,11 @@ function smoothDetail(base, smooth) {
   return smooth ? base * Math.ceil(MAX_DETAIL / base) : base
 }
 
-export function regionDetails(painted, targets, options) {
+export function regionDetails(painted, targets, options, mesh = false) {
   const depth = faceDepth(options.depth)
   return (painted.layers ?? [painted]).map(({ look, assets }, layer) => {
     const faces = painted.layers ? faceOptions(targets[layer]) : options
-    const smooth = assets.overlays.filter(({ layer, source }) => (SMOOTH_KINDS.has(source.generated) || FADE_KINDS.has(source.generated)) && layer.opacity > 0)
+    const smooth = assets.overlays.filter(({ layer, source }) => (SMOOTH_KINDS.has(source.generated) || FADE_KINDS.has(source.generated) || mesh && MESH_SMOOTH_KINDS.has(source.generated)) && layer.opacity > 0)
     const edgeFaded = assets.edgeOverlays.some(({ layer, generated }) => FADE_KINDS.has(generated) && layer.opacity > 0)
     const base = look.source === "strip" ? stripDetail(assets.strip, depth) : 1
     const edgeGradient = look.customEdge && look.edgeFill === "gradient"
