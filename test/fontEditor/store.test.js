@@ -4,6 +4,9 @@ import { beginStroke, canRedo, canUndo, cancelStroke, endStroke, font, glyph, op
 import { createFont } from "../../src/lib/font/editor/defaults.js"
 import { glyphOf, setGlyph } from "../../src/lib/font/editor/glyph.js"
 import { paint } from "../../src/lib/font/editor/painting.js"
+import { fakeTimeouts } from "../helpers/browser.js"
+
+fakeTimeouts()
 
 function open() {
   openFont(createFont({ height: 4, width: 4, grid: 1 }))

@@ -6,7 +6,7 @@ import { fakeReplies, stubStorage } from "../helpers/browser.js"
 const stored = stubStorage()
 const { requests, replies, reset } = fakeReplies({ record: (method, url) => `${method} ${url}` })
 
-mock.timers.enable({ apis: ["Date"], now: Date.parse("2026-11-05T12:00:00Z") })
+mock.timers.enable({ apis: ["Date", "setTimeout"], now: Date.parse("2026-11-05T12:00:00Z") })
 
 function resolve(specifier, context, nextResolve) {
   const result = nextResolve(specifier, context)

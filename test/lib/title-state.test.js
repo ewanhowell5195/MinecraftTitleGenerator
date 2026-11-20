@@ -1,8 +1,9 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { quietStorage } from "../helpers/browser.js"
+import { fakeTimeouts, quietStorage } from "../helpers/browser.js"
 
 quietStorage()
+fakeTimeouts()
 
 const { reactive } = await import("vue")
 const { heights, rowStart } = await import("../../src/lib/geometry/rows.js")
