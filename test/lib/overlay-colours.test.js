@@ -1,8 +1,5 @@
 import assert from "node:assert/strict"
-import fs from "node:fs"
-import path from "node:path"
 import { test } from "node:test"
-import { PNG } from "pngjs"
 import { decodeTitle, encodeTitle } from "../../src/lib/link/linkformat.js"
 import { MAX_ANCHORS, chosenColours, mapColour, paletteHexes, paletteOf, recolour } from "../../src/lib/texture/overlayColours.js"
 
@@ -67,20 +64,4 @@ test("a layer without colours keeps the image's own, and missing colours fall ba
 test("links carry overlay colours, tints and tint modes", () => {
   const lines = [{ text: "Title", overlayMode: "custom", overlays: [{ overlay: "bevel", colours: ["#c01010", "#ff3030"] }, { overlay: "glass", tint: "#2dff00", tintBlend: "screen" }] }]
   assert.deepEqual(decodeTitle(encodeTitle({ version: 1, lines }).code).lines, lines)
-})
-
-test("every stored overlay palette matches its image, and no overlay is complex", () => {
-  for (const base of ["public/fonts"]) {
-    for (const file of fs.readdirSync(base, { recursive: true }).filter(name => name.endsWith("textures.json"))) {
-      const folder = path.join(base, path.dirname(file))
-      const list = JSON.parse(fs.readFileSync(path.join(base, file), "utf8"))
-      for (const [id, definition] of Object.entries(list.overlays ?? {})) {
-        const image = path.join(folder, "overlays", `${id}.png`)
-        if (!fs.existsSync(image)) continue
-        const { anchors, complex } = paletteOf(PNG.sync.read(fs.readFileSync(image)).data)
-        assert.equal(complex, false, image)
-        assert.deepEqual(definition.palette ?? ["#ffffff"], paletteHexes(anchors), image)
-      }
-    }
-  }
 })

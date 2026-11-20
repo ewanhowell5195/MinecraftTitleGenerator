@@ -371,14 +371,6 @@ describe("damaged links", () => {
 })
 
 describe("names in links", () => {
-  test("any font is stored compactly by its id", () => {
-    const list = JSON.parse(fs.readFileSync(new URL("../../public/fonts/fonts.json", import.meta.url), "utf8"))
-    for (const id of list.flatMap(({ variants, ...font }) => [font].concat(variants ?? [])).map(entry => entry.id).concat("a-font-added-later")) {
-      assert.ok(isCompact("font", id), id)
-      assert.equal(roundTrip([{ font: id }])[0].font, id)
-    }
-  })
-
   test("names of every length round trip", () => {
     for (const name of ["", "a", "ab", "abc", "abcd", "story_mode", "1.21.4", "26.4-snapshot-7", "cracked_polished_blackstone_bricks", "..--__99zz"]) {
       for (const key of ["texture", "textureVariant", "tileable", "tileableVariant", "minecraftTexture", "minecraftVersion"]) assert.equal(roundTrip([{ [key]: name }])[0][key], name)

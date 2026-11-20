@@ -1,15 +1,6 @@
 import assert from "node:assert/strict"
-import path from "node:path"
 import { test } from "node:test"
-import { creditsHtml, licensedFontsHtml, sourceHtml } from "../../src/site/credits/build.js"
-
-test("the credits page builds from the published fonts and textures, splitting shared credits", () => {
-  const html = creditsHtml(path.resolve(import.meta.dirname, "../..")).contributors
-  const people = Array.from(html.matchAll(/<h2>([^<]+)<\/h2><p>/g), match => match[1])
-  assert.ok(people.length > 1)
-  assert.equal(new Set(people).size, people.length)
-  assert.ok(people.every(person => !/[,&]/.test(person)), people.filter(person => /[,&]/.test(person)).join(", "))
-})
+import { licensedFontsHtml, sourceHtml } from "../../src/site/credits/build.js"
 
 test("someone else's work links to its source and licence, and says it was adapted", () => {
   assert.equal(sourceHtml({ source: null, licence: null }), "")

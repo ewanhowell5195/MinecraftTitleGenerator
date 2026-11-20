@@ -150,11 +150,6 @@ describe("thumbnails", () => {
     assert.throws(() => thumbnailEntry(list, "c"), /no font or shape with id c/)
   })
 
-  test("no published font and PNG shape share an id", () => {
-    const list = thumbnailList()
-    for (const entry of list) assert.equal(thumbnailEntry(list, entry.id), entry)
-  })
-
   test("draws a font's thumbnails into the root it is given, and nothing changes on a second run", async () => {
     const root = tempRoot()
     fs.cpSync("public/fonts/fonts.json", path.join(root, "public/fonts/fonts.json"))

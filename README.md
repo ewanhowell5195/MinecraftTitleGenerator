@@ -67,6 +67,12 @@ You can also add things by hand with a pull request. The same rules apply.
    npm run compress
    ```
 
-6. Open a pull request, saying what you are adding and who made it.
+6. Check the files.
+
+   ```bash
+   npm run test:content
+   ```
+
+7. Open a pull request, saying what you are adding and who made it.
 
 Thumbnails are always generated, never made by hand.

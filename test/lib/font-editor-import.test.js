@@ -5,7 +5,7 @@ import { compress } from "woff2-encoder"
 import { publishedFonts, readMask } from "../../generator/fonts.js"
 import { parseMask } from "../../src/lib/font/sheetParse.js"
 import { splitCells } from "../../src/lib/font/catalog.js"
-import { CREEPER, DEFAULT_ORDER } from "../../src/lib/font/order.js"
+import { CREEPER } from "../../src/lib/font/order.js"
 import { REQUIRED_CHARACTERS, SPACE_CHAR, addCharacters } from "../../src/lib/font/editor/characters.js"
 import { exportJson } from "../../src/lib/font/editor/export.js"
 import { glyphOf, isBlank } from "../../src/lib/font/editor/glyph.js"
@@ -15,40 +15,22 @@ import { asciiRows, fontFromAscii } from "../../src/lib/font/asciiImport.js"
 import { fontFromOutlines, parseFontFile, suggestedSize } from "../../src/lib/font/fontImport.js"
 import { templateGlyphs, withTemplateGlyphs } from "../../src/fontEditor/template.js"
 import { gridShift, lineUnits, rasterise } from "../../src/lib/font/fontOutline.js"
-import { comparable, drawn, sheetOf } from "../helpers/fontEditor.js"
+import { drawn, sheetOf } from "../helpers/fontEditor.js"
 
 describe("starting from a published font", () => {
   const fonts = publishedFonts()
 
+  const copies = new Map()
+
   function copyOf(id) {
+    if (copies.has(id)) return copies.get(id)
     const entry = fonts.find(item => item.id === id)
     const { png, cells } = readMask(entry, fonts)
     const zero = parseMask(png.data, png.width, png.height, cells.map(cell => cell.char).join(""), 0)
     const { glyphs } = splitCells(entry, fonts, zero.list)
-    return { entry, glyphs, capHeight: zero.capHeight, font: fontFromPublished({ ...entry, name: entry.name ?? entry.id }, Object.values(glyphs), zero.capHeight) }
+    copies.set(id, { entry, glyphs, capHeight: zero.capHeight, font: fontFromPublished({ ...entry, name: entry.name ?? entry.id }, Object.values(glyphs), zero.capHeight) })
+    return copies.get(id)
   }
-
-  for (const entry of fonts.filter(item => !item.inherits)) {
-    test(`${entry.id} comes through with its forced characters unchanged`, () => {
-      const { glyphs, capHeight, font } = copyOf(entry.id)
-      assert.equal(font.height, capHeight)
-      const after = sheetOf(font)
-      for (const char of Array.from(DEFAULT_ORDER)) {
-        const before = glyphs[char]
-        const cell = after.glyphs[char]
-        if (!before) {
-          assert.ok(!cell?.width, `${entry.id} ${char} should start blank`)
-          continue
-        }
-        assert.deepEqual(comparable(cell), comparable({ ...before, stretch: before.stretch ?? null }), `${entry.id} ${char}`)
-      }
-      assert.ok(font.basedOn === entry.id)
-    })
-  }
-
-  test("finds Ten's 4 pixel grid", () => {
-    assert.equal(copyOf("minecraft-ten").font.grid, 4)
-  })
 
   test("a font that kept its editor settings opens with them", () => {
     const { font } = copyOf("minecraft-wiki")
@@ -63,10 +45,10 @@ describe("starting from a published font", () => {
     assert.deepEqual(glyphOf(font, "a").rows, glyphOf(copyOf("minecraft-ten").font, "a").rows)
   })
 
-  test("the depth, border, flat setting and strips come across, the author and description do not", () => {
+  test("the depth, border, flat setting, strips and grid come across, the author and description do not", () => {
     const { font } = copyOf("minecraft-ten-outline")
     assert.deepEqual([font.name, font.depth, font.border, font.flat, font.authors, font.description, font.overlay], ["minecraft-ten-outline Copy", 0, 0, true, [], "", false])
-    assert.deepEqual(copyOf("minecraft-ten").font.strips, ["minecraft-ten"])
+    assert.deepEqual([copyOf("minecraft-ten").font.strips, copyOf("minecraft-ten").font.grid], [["minecraft-ten"], 4])
   })
 })
 
@@ -116,26 +98,6 @@ describe("importing a font file", () => {
   test("the result builds a sheet the real parser reads", async () => {
     const font = fontFromOutlines(await testFont(), { height: 21 })
     assert.equal(sheetOf(font).capHeight, 21)
-  })
-
-  test("a pixel art font suggests its own rows, at a square size near 40 pixels tall", async () => {
-    const notdef = new opentype.Glyph({ name: ".notdef", unicode: 0, advanceWidth: 500, path: new opentype.Path() })
-    const pixel = (char, rects) => {
-      const path = new opentype.Path()
-      for (const [x, y, w, h] of rects) {
-        path.moveTo(x * 100, y * 100)
-        path.lineTo((x + w) * 100, y * 100)
-        path.lineTo((x + w) * 100, (y + h) * 100)
-        path.lineTo(x * 100, (y + h) * 100)
-        path.close()
-      }
-      return new opentype.Glyph({ name: char, unicode: char.codePointAt(0), advanceWidth: 600, path })
-    }
-    const built = new opentype.Font({ familyName: "Px", styleName: "Regular", unitsPerEm: 1000, ascender: 800, descender: -200, glyphs: [notdef, pixel("H", [[0, 0, 1, 7], [4, 0, 1, 7], [1, 3, 3, 1]]), pixel("A", [[0, 0, 1, 6], [4, 0, 1, 6], [1, 6, 3, 1], [1, 3, 3, 1]])] })
-    const source = await parseFontFile(built.toArrayBuffer())
-    const suggested = suggestedSize(source)
-    assert.ok(suggested.pixel && suggested.rows > 1)
-    assert.equal(suggested.square, Math.round(40 / suggested.rows))
   })
 
   function pixelArtFont(letters, { rows, nudge = 0 }) {

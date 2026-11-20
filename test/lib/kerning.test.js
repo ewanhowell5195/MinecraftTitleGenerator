@@ -17,13 +17,6 @@ describe("kerning suggestions", () => {
   const options = { capHeight: ten.capHeight, unit: 4, border: ten.border }
   const suggested = new Map(suggestKerning(ten.glyphs, options).map(item => [item.pair, item.amount]))
 
-  test("no published font kerns a pair past its collision", () => {
-    for (const entry of fonts.filter(font => !font.inherits && font.kerning)) {
-      const { glyphs, border } = glyphsOf(entry)
-      for (const [pair, amount] of Object.entries(entry.kerning)) assert.ok(amount <= collisionAmount(glyphs, pair, border), `${entry.id} ${pair} kerned ${amount}, past its collision`)
-    }
-  })
-
   test("two full height letters close the whole gap, short characters and single slashes about half", () => {
     assert.deepEqual(["lt", "//", "t.", "l-", "t/", "/j"].map(pair => suggested.get(pair)), [8, 16, 4, 8, 4, 8])
     for (const [pair, amount] of suggested) if (Array.from(pair).some(char => "._-,'".includes(char))) assert.ok(amount <= 8, `${pair} ${amount}`)

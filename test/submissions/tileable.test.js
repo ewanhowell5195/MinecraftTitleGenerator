@@ -8,7 +8,7 @@ import { details, editForm, hook, sendForm, serverEnv, signIn } from "../helpers
 import { publicContext } from "../helpers/site.js"
 
 const { jsonText } = await import("../../src/lib/core/jsonText.js")
-const { TILEABLE_SIDES, seeThrough, tileable, tileableImage, tileableSizeProblem } = await import("../../src/lib/submissions/kinds/tileable.js")
+const { TILEABLE_SIDES, seeThrough, tileable, tileableSizeProblem } = await import("../../src/lib/submissions/kinds/tileable.js")
 const { tileable: client } = await import("../../src/submissions/kinds/tileable.js")
 
 const LIST = "public/tileables/tileables.json"
@@ -80,22 +80,6 @@ describe("tileable checks", () => {
     assert.equal(client.summary({ target: "diagonal_up", details: {} }), "A variant of the Diagonal Up tileable")
     assert.deepEqual(client.rows({ target: "diagonal_up", details: { size: 16 } }), [{ label: "Variant of", value: "Diagonal Up" }, { label: "Size", value: "16x16" }])
     assert.deepEqual(client.line({ target: "", details: {} }, "data:image/png;base64,AA", "Hi"), { text: "Hi", font: "minecraft-ten", textureSource: "custom", customTexture: "data:image/png;base64,AA", customTextureMode: "tileable" })
-  })
-})
-
-describe("published tileables", () => {
-  test("follow the submission rules", () => {
-    const list = published()
-    for (const [id, data] of Object.entries(list)) {
-      const own = PNG.sync.read(fs.readFileSync(path.join("public", tileableImage(list, id))))
-      assert.equal(tileableSizeProblem(own), null, id)
-      assert.equal(seeThrough(own.data), false, `${id} has see-through pixels`)
-      for (const [variantId, variant] of Object.entries(data.variants ?? {})) {
-        const image = PNG.sync.read(fs.readFileSync(path.join("public/tileables", variant.path ?? data.path ?? "minecraft", `${variantId}.png`)))
-        assert.deepEqual([image.width, image.height], [own.width, own.height], `${variantId} is the size of ${id}`)
-        assert.equal(seeThrough(image.data), false, `${variantId} has see-through pixels`)
-      }
-    }
   })
 })
 

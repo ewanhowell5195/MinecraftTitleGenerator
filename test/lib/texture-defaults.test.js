@@ -1,9 +1,8 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { publishedFonts, fontTextureList, readMask } from "../../generator/fonts.js"
 import { layerTarget, layerView, separateLayers } from "../../src/lib/settings/layers.js"
 import { isModified, resetPanel } from "../../src/lib/settings/settings.js"
-import { FACE_PANELS, LAYERS, activeOverlays, perLayerDefault, separateForDefaults, setTexture, textureFaces } from "../../src/lib/settings/textureDefaults.js"
+import { activeOverlays, separateForDefaults, setTexture, textureFaces } from "../../src/lib/settings/textureDefaults.js"
 import { createObject } from "../../src/lib/settings/objects.js"
 
 const list = {
@@ -154,26 +153,4 @@ describe("texture overlay defaults", () => {
     assert.deepEqual(activeOverlays(list, object, "overlays", 0).map(layer => layer.overlay), ["dust"])
     assert.deepEqual(activeOverlays(list, layerTarget(object, 1), "overlays", 1).map(layer => layer.overlay), ["glow"])
   })
-})
-
-describe("published texture defaults", () => {
-  const fonts = publishedFonts().filter(font => !font.inherits)
-  for (const font of fonts) {
-    test(`${font.id} texture defaults are valid`, () => {
-      const textures = fontTextureList(font, fonts)
-      const count = readMask(font, fonts).layers?.length ?? 1
-      for (const [id, entry] of Object.entries(textures.textures)) {
-        for (const variant of [null].concat(Object.keys(entry.variants ?? {}))) {
-          const object = { textureSource: "premade", texture: id, textureVariant: variant }
-          const merged = variant ? { ...entry, ...entry.variants[variant] } : entry
-          for (const key of LAYERS.concat(FACE_PANELS)) {
-            if (perLayerDefault(merged[key], key)) assert.equal(merged[key].length, count, `${variant ?? id} gives ${key} for ${merged[key].length} layers, but ${font.id} has ${count}`)
-          }
-          for (let layer = 0; layer < count; layer++) {
-            for (const name of FACE_PANELS) textureFaces(textures, object, name, layer)
-          }
-        }
-      }
-    })
-  }
 })

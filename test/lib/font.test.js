@@ -1,15 +1,10 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import path from "node:path"
 import { flattenFonts, fullOrder, sheetFolder, splitCells } from "../../src/lib/font/catalog.js"
 import { hasMarks } from "../../src/lib/font/stretchMarks.js"
 import { parseMask, scanMask, shadeLevels, solidMask } from "../../src/lib/font/sheetParse.js"
 import { depthShade, drawSheet, sheetLayout } from "../../src/lib/font/sheet.js"
 import { DEFAULT_ORDER } from "../../src/lib/font/order.js"
-import { defaultDepth } from "../../src/lib/settings/defaults.js"
-import { bandLayouts, independentLayers, layerCell } from "../../src/lib/font/flatSheet.js"
-import { readJson, readPng } from "../../generator/common.js"
-import { publishedFonts, readMask } from "../../generator/fonts.js"
 
 const COLOURS = { ".": [255, 255, 255], "#": [0, 0, 0], R: [255, 0, 0], G: [0, 255, 0], B: [0, 0, 255] }
 
@@ -407,53 +402,5 @@ describe("sheetFolder", () => {
 
   test("falls back to the variant's folder when the parent is missing", () => {
     assert.equal(sheetFolder(partial, [partial]), "fonts/parent/variants/partial")
-  })
-})
-
-describe("published fonts", () => {
-  const fonts = publishedFonts()
-  const sheets = fonts.filter(entry => !entry.inherits)
-
-  test("every sheet parses into one tight glyph per character", () => {
-    for (const entry of sheets) {
-      const { cells } = readMask(entry, fonts)
-      const order = Array.from(fullOrder(entry, fonts))
-      const chars = cells.map(cell => cell.char)
-      assert.deepEqual(chars.slice(0, order.length), order, entry.id)
-      assert.ok(chars.length === order.length || chars.length === order.length + 1 && chars.at(-1) === " ", entry.id)
-      for (const glyph of cells.filter(cell => cell.width)) {
-        assert.equal(glyph.mask.length, glyph.width * glyph.height, `${entry.id} ${glyph.char}`)
-        assert.equal(glyph.top - glyph.bottom, glyph.height, `${entry.id} ${glyph.char}`)
-        assert.ok(glyph.mask.subarray(0, glyph.width).some(Boolean), `${entry.id} ${glyph.char} bottom row`)
-        assert.ok(glyph.mask.subarray(glyph.mask.length - glyph.width).some(Boolean), `${entry.id} ${glyph.char} top row`)
-      }
-    }
-  })
-
-  test("each flat sheet matches its layout and masks", () => {
-    for (const entry of sheets) {
-      const { folder, cells, capHeight, layers } = readMask(entry, fonts)
-      const depth = defaultDepth(entry)
-      const density = readJson(path.join(folder, "textures.json")).textures.flat?.density ?? 1
-      const flat = readPng(path.join(folder, "textures", "flat.png"))
-      const independent = independentLayers(entry)
-      const bands = layers ? bandLayouts(cells, capHeight, depth, layers, independent) : [{ layout: sheetLayout(cells, capHeight, depth), offset: 0 }]
-      for (const [layer, band] of bands.entries()) {
-        for (const [glyph, at] of band.layout) {
-          const own = layers ? layerCell(glyph, layer, independent) : glyph
-          assert.deepEqual(solidMask(flat.data, flat.width, density, at.x + (own.left ?? 0), at.top + glyph.top - own.top + band.offset, own.width, own.height), own.mask, `${entry.id} ${glyph.char} layer ${layer + 1}`)
-        }
-      }
-    }
-  })
-
-  test("an inheriting variant gets exactly the characters of its order", () => {
-    const entry = fonts.find(font => font.id === "minecraft-ten")
-    const variant = fonts.find(font => font.id === "minecraft-ten-v2")
-    const { cells } = readMask(entry, fonts)
-    const { glyphs, alternates } = splitCells(entry, fonts, cells)
-    assert.deepEqual(Object.keys(alternates[variant.id]).sort(), Array.from(variant.order).sort())
-    assert.notEqual(alternates[variant.id].e, glyphs.e)
-    assert.equal(sheetFolder(variant, fonts), "fonts/minecraft-ten")
   })
 })

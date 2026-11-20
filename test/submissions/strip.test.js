@@ -3,17 +3,15 @@ import assert from "node:assert/strict"
 import fs from "node:fs"
 import path from "node:path"
 import { PNG } from "pngjs"
-import { readMask } from "../../generator/fonts.js"
 import { prepare as prepareAsset } from "../../generator/submissionSteps/fontAsset.js"
 import { prepare } from "../../generator/submissionSteps/strip.js"
 import { flattenFonts, stripsOf } from "../../src/lib/font/catalog.js"
 import { jsonText } from "../../src/lib/core/jsonText.js"
 import { titleCase } from "../../src/lib/core/names.js"
 import { defaultDepth } from "../../src/lib/settings/defaults.js"
-import { stripLayout, stripRange, stripUse } from "../../src/lib/font/strips.js"
+import { stripUse } from "../../src/lib/font/strips.js"
 import { strip as checker } from "../../src/lib/submissions/kinds/strip.js"
-import { fontMeasure, heightList, remapStrip, setEntry, stripHeights, stripSnap, stripTarget } from "../../src/lib/submissions/kinds/stripFit.js"
-import { decodePng } from "../../src/lib/submissions/kinds/png.js"
+import { heightList, remapStrip, setEntry, stripHeights, stripSnap, stripTarget } from "../../src/lib/submissions/kinds/stripFit.js"
 import { strip as writer } from "../../src/server/submissions/kinds/strip.js"
 import { pngOf } from "../helpers/png.js"
 import { details, editForm, hook, sendForm, serverEnv, signIn } from "../helpers/server.js"
@@ -39,23 +37,6 @@ async function checked(target, details, image) {
 }
 
 describe("strip shapes", () => {
-  test("reads every font sheet the same as pngjs", async () => {
-    for (const file of SEEDED.filter(item => item.startsWith("public/fonts/") && item !== FONTS).map(item => path.join(path.dirname(item), "font.png")).filter(item => fs.existsSync(item))) {
-      const bytes = fs.readFileSync(file)
-      const mine = await decodePng(new Uint8Array(bytes))
-      assert.deepEqual(Buffer.from(mine.data), PNG.sync.read(bytes).data, file)
-    }
-  })
-
-  test("measures fonts the way the thumbnails do", async () => {
-    const ctx = siteContext()
-    for (const font of published.filter(item => !item.inherits)) {
-      const { cells, capHeight, layers } = readMask(font, published)
-      const stacked = layers?.length > 1 ? stripLayout({}, { ...font, cells, capHeight, layers }, defaultDepth(font), 0).total : null
-      assert.deepEqual(await fontMeasure(ctx, font), { range: stripRange({ cells, capHeight }), capHeight, depth: defaultDepth(font), stacked })
-    }
-  })
-
   test("a strip can be any power of two times its rows", () => {
     assert.deepEqual(stripHeights(92), [23, 46, 92, 184, 368, 736, 1472, 2944])
     assert.deepEqual(stripHeights(80).slice(0, 4), [5, 10, 20, 40])

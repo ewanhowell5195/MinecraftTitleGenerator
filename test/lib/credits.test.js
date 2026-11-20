@@ -1,9 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
-import { fontTextureList, publishedFonts, readStripSet } from "../../generator/fonts.js"
-import { basedOnParts, credit, findEntry, fontCredit } from "../../src/lib/font/credits.js"
+import { credit, fontCredit } from "../../src/lib/font/credits.js"
 import { usePlatform } from "../../src/lib/core/platform.js"
-import { mergeStrips } from "../../src/lib/font/strips.js"
 
 const FONTS = [{ id: "base", name: "Base Font" }, { id: "port", name: "Port Font" }]
 const LISTS = {
@@ -17,7 +15,7 @@ usePlatform({ fetch: async url => ({ ok: url in LISTS, json: async () => LISTS[u
 
 async function settled(read) {
   read()
-  await new Promise(resolve => setTimeout(resolve))
+  await new Promise(resolve => setImmediate(resolve))
   return read()
 }
 
@@ -103,61 +101,5 @@ describe("fontCredit", () => {
 
   test("an unknown font fails loudly", () => {
     assert.throws(() => fontCredit({ id: "a", basedOn: "missing" }, fonts), /missing/)
-  })
-})
-
-describe("published credits", () => {
-  const fonts = publishedFonts()
-
-  test("every font's based on is in the font list", () => {
-    const listed = fonts.map(font => ({ ...font, name: font.name ?? font.id }))
-    for (const font of listed) fontCredit(font, listed)
-    assert.equal(fontCredit(listed.find(font => font.id === "minecraft-ten-rounded"), listed), "Ewan Howell, based on minecraft-ten")
-  })
-
-  const lists = new Map()
-
-  function listOf(owner) {
-    if (!lists.has(owner)) {
-      if (owner.startsWith("strips.")) lists.set(owner, mergeStrips({ textures: {}, overlays: {} }, [readStripSet(owner.slice("strips.".length))]))
-      else {
-        const entry = fonts.find(font => font.id === owner)
-        assert.ok(entry, `no font ${owner}`)
-        lists.set(owner, fontTextureList(entry, fonts))
-      }
-    }
-    return lists.get(owner)
-  }
-
-  function entries(id) {
-    const list = listOf(id)
-    return [list.textures, list.overlays].flatMap(group => Object.entries(group ?? {}).flatMap(([key, data]) => [[key, data, null]].concat(Object.entries(data.variants ?? {}).map(([variant, value]) => [variant, value, key]))))
-  }
-
-  function resolve(data, owner, seen) {
-    if (data.authors || !data.basedOn) return data.authors ?? null
-    const target = basedOnParts(data.basedOn, data.stripSet ? `strips.${data.stripSet}` : owner)
-    const key = `${target.owner}.${target.id}`
-    assert.ok(!seen.has(key), `${key} is in a loop`)
-    const entry = findEntry(listOf(target.owner), target.id)
-    assert.ok(entry, `${key} does not exist`)
-    return resolve(entry, target.owner, new Set(seen).add(key))
-  }
-
-  test("every based on points at something that ends in an author", () => {
-    for (const font of fonts.filter(entry => !entry.inherits)) {
-      for (const [id, data] of entries(font.id)) {
-        if (!data.basedOn) continue
-        assert.ok(resolve(data, font.id, new Set([`${font.id}.${id}`])), `${font.id}.${id} has no author`)
-      }
-    }
-  })
-
-  test("a variant is never based on its own parent", () => {
-    for (const font of fonts.filter(entry => !entry.inherits)) {
-      for (const [id, data, parent] of entries(font.id)) {
-        if (parent && data.basedOn) assert.notEqual(data.basedOn, parent, `${font.id}.${id}`)
-      }
-    }
   })
 })
