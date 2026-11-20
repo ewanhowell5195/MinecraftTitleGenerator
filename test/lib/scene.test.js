@@ -623,7 +623,7 @@ describe("addObject", () => {
     const object = scene.objects[1]
     assert.equal(object.text, "text")
     assert.equal(object.type, "top")
-    assert.equal(object.row, 1)
+    assert.equal(object.row, -1)
     assert.equal(scene.selected, object.id)
   })
 
@@ -665,9 +665,9 @@ describe("addObject", () => {
     assert.equal(a.row, 0)
   })
 
-  test("fills the lowest free row and only counts lines of the same placement", () => {
-    setScene(createObject({ text: "a" }), createObject({ text: "b", row: 2 }), createObject({ ...typeDefaults("small"), text: "c" }))
-    assert.equal(freeRow("top"), 1)
+  test("fills the next free row going down and only counts lines of the same placement", () => {
+    setScene(createObject({ text: "a" }), createObject({ text: "b", row: -1 }), createObject({ ...typeDefaults("small"), text: "c" }))
+    assert.equal(freeRow("top"), -2)
     assert.equal(freeRow("small"), 1)
     assert.equal(freeRow("bottom"), 0)
   })
@@ -675,7 +675,7 @@ describe("addObject", () => {
   test("a line moving placement doesn't count its own row", () => {
     const [a] = setScene(createObject({ ...typeDefaults("bottom"), text: "a" }), createObject({ text: "b" }))
     assert.equal(freeRow("bottom", a), 0)
-    assert.equal(freeRow("top", a), 1)
+    assert.equal(freeRow("top", a), -1)
   })
 })
 
