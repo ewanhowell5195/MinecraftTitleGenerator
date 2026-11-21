@@ -21,7 +21,7 @@
   import { flatThumbnail, fontScene } from "../lib/font/fontThumbnails.js"
   import { pngUrl } from "../lib/core/virtualFiles.js"
   import { defaultBorder, defaultDepth } from "../lib/settings/defaults.js"
-  import { lostPixels, resizeFont, setSquareSize, squareSizeLoss, squaresOf } from "../lib/font/editor/sizes.js"
+  import { lostPixels, resizeFont, setSquareSize, shiftedCharacters, squareSizeLoss, squaresOf } from "../lib/font/editor/sizes.js"
   import { fontThumbnail } from "../lib/font/thumbnailUrls.js"
   import { typedNumber } from "./fields.js"
   import { changeLetterCase, font, update } from "./store.js"
@@ -138,11 +138,11 @@
     setNumber("terminatorSpaceWidth", event, 0)
   }
 
-  function applyOrWarn(event, shown, lost, text, apply) {
-    if (!lost) return apply()
+  function applyOrWarn(event, shown, lost, text, apply, shifted = 0) {
+    if (!lost && !shifted) return apply()
     if (event.type !== "change") return
     event.target.value = shown
-    warning.value = { text, lost, apply }
+    warning.value = { text, lost, shifted, apply }
   }
 
   function setSize(key, event) {
@@ -151,13 +151,19 @@
     if (value === null) return
     const pixels = value * font.value.grid
     if (pixels === font.value[key]) return
-    applyOrWarn(event, shown, lostPixels(font.value, { [key]: pixels }), `Changing ${key === "height" ? "the height" : "the default width"} to ${value}`, () => update(resizeFont(font.value, { [key]: pixels }), `font.${key}`))
+    applyOrWarn(event, shown, lostPixels(font.value, { [key]: pixels }), `Changing ${key === "height" ? "the height" : "the default width"} to ${value}`, () => update(resizeFont(font.value, { [key]: pixels }, { shift: true }), `font.${key}`), shiftedCharacters(font.value, { [key]: pixels }))
   }
 
   function setSquare(event) {
     const value = typedNumber(event, font.value.grid, typed => Number.isInteger(typed) && typed >= 1)
     if (value === null || value === font.value.grid) return
     applyOrWarn(event, font.value.grid, squareSizeLoss(font.value, value), `Changing the square size to ${value}`, () => update(setSquareSize(font.value, value), "font.grid"))
+  }
+
+  function warningText({ text, lost, shifted }) {
+    const moved = shifted ? `moves ${shifted} ${shifted === 1 ? "character" : "characters"} down to fit` : ""
+    const changed = lost ? `changes ${lost} drawn ${lost === 1 ? "pixel" : "pixels"}` : ""
+    return `${text} ${[moved, changed].filter(Boolean).join(" and ")}.`
   }
 
   function confirmResize() {
@@ -234,7 +240,7 @@
       </div>
       <p class="hint">Height and width count squares, and one click paints one square. Square size is how many pixels each square is. Each character is {{ finalSize }}.</p>
       <Notice v-if="warning">
-        <p>{{ warning.text }} changes {{ warning.lost }} drawn {{ warning.lost === 1 ? "pixel" : "pixels" }}.</p>
+        <p>{{ warningText(warning) }}</p>
         <div class="row">
           <Button @click="warning = null">Cancel</Button>
           <Button danger @click="confirmResize">Change anyway</Button>

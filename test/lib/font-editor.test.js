@@ -11,7 +11,7 @@ import { changeGlyph, moveGlyph, reshapeGlyph, trimGlyph } from "../../src/lib/f
 import { fontFromFiles, parseFontJson } from "../../src/lib/font/editor/import.js"
 import { blockAt, fillCells, lineCells, mirroredCells, paint, rectangleCells, setStretch, setStretchRange } from "../../src/lib/font/editor/painting.js"
 import { autoStretch, buildSheet, savedCharacters, savedSheet, sheetOrder } from "../../src/lib/font/editor/sheet.js"
-import { fitGlyph, lostPixels, resizeFont, setSquareSize, squareSizeLoss, squaresOf } from "../../src/lib/font/editor/sizes.js"
+import { fitGlyph, lostPixels, resizeFont, setSquareSize, shiftedCharacters, squareSizeLoss, squaresOf } from "../../src/lib/font/editor/sizes.js"
 import { jsonText } from "../../src/lib/core/jsonText.js"
 import { comparable, drawn, sheetOf } from "../helpers/fontEditor.js"
 
@@ -340,8 +340,22 @@ describe("resizing a font", () => {
   test("reports the pixels a change would remove", () => {
     assert.equal(lostPixels(strokeCell(font, "b", 3, 3), { width: 3 }), 0)
     assert.equal(lostPixels(strokeCell(strokeCell(font, "b", 3, 3), "b", 0, 3), { width: 3 }), 1)
-    assert.equal(lostPixels(strokeCell(font, "b", 3, 3), { height: 3 }), 1)
+    assert.equal(lostPixels(strokeCell(font, "b", 3, 3), { height: 3 }), 0)
     assert.equal(lostPixels(font, { width: 9 }), 0)
+  })
+
+  test("a lower height moves a character down instead of cutting its top", () => {
+    const tall = strokeCell(font, "b", 3, 3)
+    assert.equal(shiftedCharacters(tall, { height: 3 }), 1)
+    assert.equal(shiftedCharacters(font, { height: 3 }), 0)
+    assert.equal(resizeFont(tall, { height: 3 }, { shift: true }).glyphs.b.rows.join("").replaceAll("0", "").length, 1)
+    assert.equal(resizeFont(tall, { height: 3 }).glyphs.b.rows.join("").replaceAll("0", "").length, 0)
+  })
+
+  test("a character too tall for the new height moves down as far as it can", () => {
+    const full = strokeCell(strokeCell(font, "c", 0, 3), "c", 0, 0)
+    assert.equal(shiftedCharacters(full, { height: 3 }), 0)
+    assert.equal(lostPixels(full, { height: 3 }), 1)
   })
 })
 

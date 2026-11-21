@@ -1,20 +1,32 @@
 import { hasInk, inRows, inkCount, mapGlyphs, rowOfY, shapeOf, widthOf } from "./glyph.js"
 
-function reshape(glyph, from, to) {
+function dropOf(glyph, from, to) {
+  const inked = glyph.rows.flatMap((row, index) => hasInk(row) ? [from.above + from.height - 1 - index] : [])
+  if (!inked.length) return 0
+  return Math.max(0, Math.min(Math.max(...inked) - (to.height + to.above - 1), Math.min(...inked) + to.below))
+}
+
+function reshape(glyph, from, to, shift) {
   const cut = from.width - to.width
   const inked = (start, end) => glyph.rows.some(row => hasInk(row.slice(start, end)))
   const start = cut > 0 && inked(to.width, from.width) && !inked(0, cut) ? cut : 0
+  const drop = shift ? dropOf(glyph, from, to) : 0
   const rows = []
   for (let y = to.height + to.above - 1; y >= -to.below; y--) {
-    const old = glyph.rows[from.above + from.height - 1 - y] ?? ""
+    const old = glyph.rows[from.above + from.height - 1 - y - drop] ?? ""
     rows.push(old.slice(start, start + to.width).padEnd(to.width, "0"))
   }
-  return { ...glyph, rows, stretch: glyph.stretch.filter(inRows(to)) }
+  return { ...glyph, rows, stretch: glyph.stretch.map(y => y - drop).filter(inRows(to)) }
 }
 
-export function resizeFont(font, { height = font.height, width = font.width }) {
+export function shiftedCharacters(font, { height = font.height, width = font.width }) {
   const next = { ...font, height, width }
-  const reshaped = glyphs => glyphs && mapGlyphs(glyphs, glyph => reshape(glyph, shapeOf(font, glyph), shapeOf(next, glyph)))
+  return Object.keys(font.glyphs).filter(char => dropOf(font.glyphs[char], shapeOf(font, font.glyphs[char]), shapeOf(next, font.glyphs[char])) > 0).length
+}
+
+export function resizeFont(font, { height = font.height, width = font.width }, { shift = false } = {}) {
+  const next = { ...font, height, width }
+  const reshaped = glyphs => glyphs && mapGlyphs(glyphs, glyph => reshape(glyph, shapeOf(font, glyph), shapeOf(next, glyph), shift))
   return { ...next, glyphs: reshaped(font.glyphs), imported: reshaped(font.imported), ...(font.hidden && { hidden: { ...font.hidden, glyphs: reshaped(font.hidden.glyphs), imported: reshaped(font.hidden.imported) } }) }
 }
 
@@ -69,6 +81,6 @@ export function squareSizeLoss(font, grid) {
 }
 
 export function lostPixels(font, change) {
-  const next = resizeFont(font, change)
+  const next = resizeFont(font, change, { shift: true })
   return Object.keys(font.glyphs).reduce((total, char) => total + inkCount(font.glyphs[char]) - inkCount(next.glyphs[char]), 0)
 }
