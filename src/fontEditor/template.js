@@ -11,12 +11,26 @@ function fontImport() {
   return import("../lib/font/fontImport.js")
 }
 
+function minecraftImport() {
+  return import("../lib/font/minecraftFont.js")
+}
+
+async function minecraftTemplateSource(template) {
+  const [{ minecraftSource }, { texturePixels }, text] = await Promise.all([minecraftImport(), import("../lib/font/minecraftFiles.js"), fetch(template.data).then(response => response.text())])
+  return minecraftSource(text, texturePixels)
+}
+
 export function templateSource(template) {
-  if (!sources.has(template.data)) sources.set(template.data, Promise.all([fontImport(), fetch(template.data).then(response => response.arrayBuffer())]).then(([{ parseFontFile }, buffer]) => parseFontFile(buffer)))
+  if (!sources.has(template.data)) sources.set(template.data, template.kind === "minecraft" ? minecraftTemplateSource(template) : Promise.all([fontImport(), fetch(template.data).then(response => response.arrayBuffer())]).then(([{ parseFontFile }, buffer]) => parseFontFile(buffer)))
   return sources.get(template.data)
 }
 
+async function templateShape(template) {
+  return template.kind === "minecraft" ? (await minecraftImport()).minecraftShape : (await fontImport()).outlineShape
+}
+
 export function templateFamily(template) {
+  if (template.kind === "minecraft") return null
   if (!families.has(template.data)) {
     const family = `font-template-${families.size}`
     const face = new FontFace(family, `url(${template.data})`)
@@ -44,21 +58,32 @@ export async function loadTemplate(file, square = 1) {
   return { template: { name: file.name, data, square }, source }
 }
 
+export function minecraftTemplate(minecraft, square = 1) {
+  sources.set(minecraft.data, Promise.resolve(minecraft.source))
+  return { template: { kind: "minecraft", name: minecraft.name, data: minecraft.data, square }, source: minecraft.source }
+}
+
+export async function loadTemplateFiles(files, square = 1) {
+  const { minecraftFontFiles, minecraftSheetFiles } = await import("../lib/font/minecraftFiles.js")
+  const minecraft = await minecraftFontFiles(files) ?? await minecraftSheetFiles(files)
+  return minecraft ? minecraftTemplate(minecraft, square) : loadTemplate(Array.from(files).find(file => /\.(ttf|otf|woff2?)$/i.test(file.name)) ?? files[0], square)
+}
+
 function drawable(chars) {
   return chars.filter(char => char !== SPACE_CHAR && char !== CREEPER)
 }
 
-export function glyphsFromSource(outlineShape, source, font, chars, square) {
+export function glyphsFromSource(shapeOf, source, font, chars, square) {
   return Object.fromEntries(drawable(chars).flatMap(char => {
-    const found = outlineShape(source, shownAs(char, font.letterCase), { height: font.height, density: square })
+    const found = shapeOf(source, shownAs(char, font.letterCase), { height: font.height, density: square })
     return found ? [[char, glyphFromTemplate(font, found.shape, found.capHeight)]] : []
   }))
 }
 
 export async function templateGlyphs(font, chars) {
   if (!font.template || !drawable(chars).length) return {}
-  const [{ outlineShape }, source] = await Promise.all([fontImport(), templateSource(font.template)])
-  return glyphsFromSource(outlineShape, source, font, chars, font.template.square)
+  const [shapeOf, source] = await Promise.all([templateShape(font.template), templateSource(font.template)])
+  return glyphsFromSource(shapeOf, source, font, chars, font.template.square)
 }
 
 export function withTemplateGlyphs(font, glyphs) {

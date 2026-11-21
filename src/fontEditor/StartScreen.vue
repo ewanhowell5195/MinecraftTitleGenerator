@@ -21,7 +21,7 @@
   import { limitSize, resettable } from "./sizeLimit.js"
   import { navigate } from "../lib/state/navigation.js"
   import { EDITOR_PATH, IMPORT_PATH, font, importing, startFont } from "./store.js"
-  import { loadTemplate } from "./template.js"
+  import { loadTemplate, minecraftTemplate } from "./template.js"
 
   const BLANK_SIZE = { height: 10, width: 6, grid: 4 }
   const SIZE_FIELDS = [{ key: "height", label: "Height" }, { key: "width", label: "Default width" }, { key: "grid", label: "Square size" }]
@@ -68,30 +68,43 @@
     attempt(`Opening ${entry.name}...`, () => fontFromList(entry, fonts.value))
   }
 
-  function upload(event) {
-    const { files } = event.target
-    attempt("Opening your files...", () => fontFromUploads(files)).finally(() => event.target.value = "")
-  }
-
-  async function readImport(file) {
-    if (/\.png$/i.test(file.name)) {
-      const [{ asciiRows, fontFromAscii }, image] = await Promise.all([import("../lib/font/asciiImport.js"), imageOf(file)])
-      const rows = asciiRows(image)
-      return { kind: "ascii", name: file.name, image, suggested: { rows, square: Math.max(1, Math.ceil(40 / rows - 0.5)) }, build: fontFromAscii }
-    }
-    const [{ fontFromOutlines, outlineShape, suggestedSize }, { template, source }] = await Promise.all([import("../lib/font/fontImport.js"), loadTemplate(file)])
-    return { kind: "outline", name: file.name, source, template, suggested: suggestedSize(source), build: fontFromOutlines, outlineShape }
-  }
-
-  async function importFile(event) {
-    const file = event.target.files[0]
+  async function upload(event) {
+    const files = Array.from(event.target.files)
     event.target.value = ""
-    if (!file) return
-    const reading = { name: file.name }
+    const { minecraftJson } = await import("../lib/font/minecraftFiles.js")
+    if (await minecraftJson(files)) startImport(files)
+    else attempt("Opening your files...", () => fontFromUploads(files))
+  }
+
+  async function readMinecraft(files) {
+    const [{ minecraftFontFiles, minecraftSheetFiles }, { fontFromMinecraft, minecraftNotes, minecraftShape, suggestedMinecraftSize }] = await Promise.all([import("../lib/font/minecraftFiles.js"), import("../lib/font/minecraftFont.js")])
+    const minecraft = await minecraftFontFiles(files) ?? await minecraftSheetFiles(files)
+    if (!minecraft) return null
+    const { template, source } = minecraftTemplate(minecraft)
+    return { kind: "minecraft", name: minecraft.name, source, template, suggested: suggestedMinecraftSize(source), build: fontFromMinecraft, shapeOf: minecraftShape, notes: minecraftNotes(source) }
+  }
+
+  async function readImport(files) {
+    const minecraft = await readMinecraft(files)
+    if (minecraft) return minecraft
+    const file = files.find(item => !/\.json$/i.test(item.name)) ?? files[0]
+    if (/\.json$/i.test(file.name)) throw new Error(`${file.name} isn't a resource pack font. Open a JSON from this editor with "Open a saved font" instead`)
+    const [{ fontFromOutlines, outlineShape, suggestedSize }, { template, source }] = await Promise.all([import("../lib/font/fontImport.js"), loadTemplate(file)])
+    return { kind: "outline", name: file.name, source, template, suggested: suggestedSize(source), build: fontFromOutlines, shapeOf: outlineShape }
+  }
+
+  function importFile(event) {
+    const files = Array.from(event.target.files)
+    event.target.value = ""
+    if (files.length) startImport(files)
+  }
+
+  async function startImport(files) {
+    const reading = { name: (files.find(file => /\.json$/i.test(file.name)) ?? files[0]).name }
     importing.value = reading
     navigate(IMPORT_PATH)
     try {
-      const read = await readImport(file)
+      const read = await readImport(files)
       if (importing.value === reading) importing.value = read
     } catch (err) {
       if (importing.value === reading) importing.value = { ...reading, error: err.message }
@@ -135,8 +148,8 @@
         <UploadField multiple accept=".png,.json,image/png,application/json" label="Choose files" empty="Drop a font JSON, a font.png, or both" @change="upload" />
 
         <h2 class="second">Import a font file</h2>
-        <p class="hint">Turns a .ttf, .otf, .woff or .woff2, or a Minecraft ascii.png, into pixels ready for you to edit. You choose the size next, with a preview. The font file is kept as its template, so each character can go back to its imported shape and characters you add start from it.</p>
-        <UploadField accept=".ttf,.otf,.woff,.woff2,.png,font/ttf,font/otf,font/woff,font/woff2,image/png" label="Choose font file" empty="Drop a font file or an ascii.png" @change="importFile" />
+        <p class="hint">Turns a .ttf, .otf, .woff or .woff2, a Minecraft ascii.png, or a resource pack font JSON chosen together with its PNGs, into pixels ready for you to edit. You choose the size next, with a preview. The font file is kept as its template, so each character can go back to its imported shape and characters you add start from it.</p>
+        <UploadField multiple accept=".ttf,.otf,.woff,.woff2,.png,.json,font/ttf,font/otf,font/woff,font/woff2,image/png,application/json" label="Choose font file" empty="Drop a font file, an ascii.png, or a font JSON with its PNGs" @change="importFile" />
       </section>
 
       <section class="editor-card wide-choice">

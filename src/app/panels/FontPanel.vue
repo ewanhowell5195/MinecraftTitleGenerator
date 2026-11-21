@@ -16,7 +16,7 @@
   import { isCustomFont } from "../../lib/settings/settings.js"
   import { popular } from "../../lib/state/stats.js"
   import { fontThumbnail } from "../../lib/font/thumbnailUrls.js"
-  import { readDataUrl, takeFile } from "../../lib/core/files.js"
+  import { readDataUrl } from "../../lib/core/files.js"
   import { usedFonts } from "./uploads.js"
   import { googleFontSource } from "../../lib/font/googleFonts.js"
   import FontBrowser from "./FontBrowser.vue"
@@ -49,6 +49,7 @@
   const customImage = ref(null)
   const customUnit = ref(null)
   const customError = ref("")
+  const customNote = ref(null)
   const loading = ref(false)
   const usingCustom = computed(() => isCustomFont(object.value.font) && !!object.value.customFont)
   const uploaded = computed(() => !!object.value.customFont && !object.value.customFont.google)
@@ -114,9 +115,24 @@
     Object.assign(object.value, { font: publishedFonts.get(object.value.id) ?? DEFAULT_FONT, customFont: null })
   }
 
-  function upload(event) {
-    const file = takeFile(event)
-    if (!file) return
+  async function upload(event) {
+    const files = Array.from(event.target.files)
+    event.target.value = ""
+    if (!files.length) return
+    customError.value = ""
+    try {
+      const [{ minecraftFontFiles }, { minecraftNotes }] = await Promise.all([import("../../lib/font/minecraftFiles.js"), import("../../lib/font/minecraftFont.js")])
+      const minecraft = await minecraftFontFiles(files)
+      if (minecraft) {
+        customNote.value = { data: minecraft.data, text: minecraftNotes(minecraft.source) }
+        await applyCustom({ kind: "minecraft", fileName: minecraft.name, data: minecraft.data, height: IMPORT_HEIGHT })
+        return
+      }
+    } catch (err) {
+      customError.value = `Couldn't use this font: ${err.message}`
+      return
+    }
+    const file = files[0]
     const kind = customFontKind(file.name)
     if (!kind) {
       customError.value = "Choose a .json, .png, .ttf, .otf, .woff or .woff2 file."
@@ -212,7 +228,7 @@
     <FontBrowser v-if="browsing" v-model:search="search" :kind="tab" :current="tab === 'google' ? (usingCustom ? object.customFont.google : null) : object.font" @pick="browsed" @close="browsing = false" />
     <Segments v-if="tab === 'custom'" :options="TABS" :model-value="tab" @update:model-value="chooseTab" />
     <template v-if="tab === 'custom'">
-      <UploadField accept=".json,.png,.ttf,.otf,.woff,.woff2,application/json,image/png,font/ttf,font/otf,font/woff,font/woff2" :label="loading ? 'Loading...' : uploaded ? 'Replace font' : 'Choose a font file'" empty="No font uploaded" :disabled="loading" :clearable="uploaded" :back="reusable.length > 0" @change="upload" @clear="clearCustom">
+      <UploadField multiple accept=".json,.png,.ttf,.otf,.woff,.woff2,application/json,image/png,font/ttf,font/otf,font/woff,font/woff2" :label="loading ? 'Loading...' : uploaded ? 'Replace font' : 'Choose a font file'" empty="No font uploaded" :disabled="loading" :clearable="uploaded" :back="reusable.length > 0" @change="upload" @clear="clearCustom">
         <template v-if="uploaded" #preview>
           <div class="custom-font">
             <div class="preview picture"><img v-if="customImage" :src="customImage" alt="" :style="customUnit ? { height: `${customUnit}px` } : null"></div>
@@ -221,7 +237,8 @@
         </template>
       </UploadField>
       <Notice v-if="customError">{{ customError }}</Notice>
-      <p v-else class="hint">A JSON from the font editor, a Minecraft ascii.png, or a .ttf, .otf, .woff or .woff2 font.</p>
+      <p v-else class="hint">A JSON from the font editor, a Minecraft ascii.png, a resource pack font JSON chosen together with its PNGs, or a .ttf, .otf, .woff or .woff2 font.</p>
+      <p v-if="!customError && customNote?.text && customNote.data === object.customFont?.data" class="hint">{{ customNote.text }}</p>
       <template v-if="imported && usingCustom">
         <template v-if="object.customFont.kind === 'outline'">
           <Segments label="Build from" :options="BUILDS" :model-value="!!object.customFont.mesh" :hint="object.customFont.mesh ? `Smooth edges that follow the font's own curves.` : 'Pixel cubes, like the other fonts.'" @update:model-value="changeImport('mesh', $event)" />

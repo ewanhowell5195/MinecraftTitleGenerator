@@ -34,6 +34,12 @@ function pause() {
 }
 
 async function listDrawn(source) {
+  const chars = source.minecraft ? source.characters.filter(char => DRAWABLE.test(char) && !EMOJI.test(char)) : await listOutlined(source)
+  if (!chars.includes("'") && chars.includes(CLOSING_QUOTE)) chars.push("'")
+  return chars.filter(char => !UNUSED.has(char)).sort((a, b) => a.codePointAt(0) - b.codePointAt(0))
+}
+
+async function listOutlined(source) {
   const chars = []
   let until = performance.now() + SLICE_MS
   for (const [code, index] of Object.entries(source.tables.cmap.glyphIndexMap)) {
@@ -44,8 +50,7 @@ async function listDrawn(source) {
     const char = String.fromCodePoint(Number(code))
     if (index && DRAWABLE.test(char) && !EMOJI.test(char) && source.glyphs.get(index).path.commands.length) chars.push(char)
   }
-  if (!chars.includes("'") && chars.includes(CLOSING_QUOTE)) chars.push("'")
-  return chars.filter(char => !UNUSED.has(char)).sort((a, b) => a.codePointAt(0) - b.codePointAt(0))
+  return chars
 }
 
 export function drawnCharacters(source) {

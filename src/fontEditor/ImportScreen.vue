@@ -42,18 +42,18 @@
   let observer = null
   let frame = 0
 
-  const outline = computed(() => props.picked.kind === "outline")
+  const fromSource = computed(() => !!props.picked.source)
   const valid = computed(() => [height.value, square.value].every(value => Number.isInteger(value) && value >= 1))
   const pixels = computed(() => valid.value ? height.value * square.value : null)
   const built = computed(() => {
     if (!valid.value) return { error: "Height and square size need to be whole numbers of at least 1." }
     try {
-      const font = outline.value ? { ...props.picked.build(props.picked.source, { height: pixels.value, density: square.value }), template: { ...props.picked.template, square: square.value } } : props.picked.build(props.picked.image, { height: pixels.value })
+      const font = fromSource.value ? { ...props.picked.build(props.picked.source, { height: pixels.value, density: square.value }), template: { ...props.picked.template, square: square.value } } : props.picked.build(props.picked.image, { height: pixels.value })
       const cased = setLetterCase({ ...font, grid: square.value }, letterCase.value)
       if (characterSet.value === "default") return { font: cased }
       const { font: kept, added } = chooseCharacters(cased, chosen.value)
       if (!charactersOf(kept).length) return { error: "Type at least one character for the font to have." }
-      return { font: outline.value ? withTemplateGlyphs(kept, glyphsFromSource(props.picked.outlineShape, props.picked.source, kept, added, square.value)) : kept }
+      return { font: fromSource.value ? withTemplateGlyphs(kept, glyphsFromSource(props.picked.shapeOf, props.picked.source, kept, added, square.value)) : kept }
     } catch (err) {
       return { error: err.message }
     }
@@ -142,8 +142,9 @@
         <Field v-if="characterSet === 'custom'" label="Characters to include">
           <textarea v-model="chosen" rows="4" spellcheck="false"></textarea>
         </Field>
-        <Button v-if="outline" @click="browsing = true"><template #icon><Icon name="font" /></template>See the characters in this font</Button>
+        <Button v-if="fromSource" @click="browsing = true"><template #icon><Icon name="font" /></template>See the characters in this font</Button>
         <p v-if="count" class="hint">{{ count }}</p>
+        <p v-if="picked.notes" class="hint">{{ picked.notes }}</p>
         <Button primary wide class="confirm" :disabled="!built.font" @click="confirm"><template #icon><Icon name="check" /></template>Import</Button>
       </section>
 

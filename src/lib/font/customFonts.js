@@ -91,6 +91,10 @@ async function editorFont({ kind, data, google, style, height, mesh, density }) 
     const { fontFromAscii } = await import("./asciiImport.js")
     return { font: fontFromAscii(await pixels(data), { height }) }
   }
+  if (kind === "minecraft") {
+    const { fontFromMinecraft, minecraftSource } = await import("./minecraftFont.js")
+    return { font: fontFromMinecraft(await minecraftSource(await (await fetch(data)).text(), pixels), { height }) }
+  }
   const { atVariation, fontFromOutlines, meshOutlines, parseFontFile } = await import("./fontImport.js")
   const { googleFontBytes, styleParts } = await import("./googleFonts.js")
   const parsed = await parseFontFile(google ? await googleFontBytes({ family: google, style }) : await (await fetch(data)).arrayBuffer())

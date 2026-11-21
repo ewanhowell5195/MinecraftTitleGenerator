@@ -169,5 +169,5 @@ export function glyphFromTemplate(font, shape, capHeight) {
 function templateFrom(value) {
   const valid = value && typeof value === "object" && typeof value.name === "string" && typeof value.data === "string" && value.data.startsWith("data:") && Number.isInteger(value.square) && value.square >= 1
   if (!valid) throw new Error("that JSON file's template font isn't valid")
-  return { name: value.name, data: value.data, square: value.square }
+  return { ...(value.kind === "minecraft" && { kind: "minecraft" }), name: value.name, data: value.data, square: value.square }
 }

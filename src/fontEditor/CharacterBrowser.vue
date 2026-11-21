@@ -14,7 +14,7 @@
   const props = defineProps({
     title: { type: String, required: true },
     source: { type: Object, required: true },
-    family: { type: String, required: true },
+    family: { type: String, default: null },
     letterCase: { type: String, required: true },
     selected: { type: Array, default: () => [] },
     locked: { type: Function, default: () => false },
@@ -36,9 +36,16 @@
   const hovered = ref(null)
   const drawn = shallowRef(null)
   const shown = ref(FIRST_CHUNKS)
+  const picture = shallowRef(null)
   let timer = 0
 
   drawnCharacters(props.source).then(chars => drawn.value = chars)
+  if (props.source.minecraft) {
+    import("../lib/font/minecraftFiles.js").then(({ glyphPicture }) => {
+      const colour = getComputedStyle(document.documentElement).getPropertyValue("--text").trim()
+      picture.value = char => glyphPicture(props.source, char, colour)
+    })
+  }
 
   const all = computed(() => drawn.value ? casedCharacters(drawn.value, props.letterCase) : [])
   const kept = computed(() => new Set(all.value.filter(char => props.locked(char))))
@@ -54,7 +61,7 @@
   })
   const chunkCount = computed(() => groups.value.reduce((count, group) => count + group.chunks.length, 0))
   const visibleGroups = computed(() => groups.value.filter(group => group.chunks[0].order < shown.value).map(group => ({ ...group, chunks: group.chunks.filter(chunk => chunk.order < shown.value) })))
-  const fontFamily = computed(() => `"${props.family}", var(--font-ui)`)
+  const fontFamily = computed(() => props.family ? `"${props.family}", var(--font-ui)` : "var(--font-ui)")
   const status = computed(() => {
     if (hovered.value) return `${hovered.value} ${codeOf(hovered.value)}${kept.value.has(hovered.value) ? ", already in your font" : forced(hovered.value) ? ", required" : ""}`
     return picked.value.size === 1 ? "1 character chosen" : `${picked.value.size} characters chosen`
@@ -114,7 +121,7 @@
             <span class="hint">{{ group.chars.length }}</span>
           </header>
           <div class="grid" :style="{ fontFamily }">
-            <CharacterChunk v-for="chunk of group.chunks" :key="chunk.chars[0]" :chars="chunk.chars" :tile="tile" />
+            <CharacterChunk v-for="chunk of group.chunks" :key="chunk.chars[0]" :chars="chunk.chars" :tile="tile" :picture="picture" />
           </div>
         </section>
         <p v-if="!drawn" class="empty-state">Reading the font...</p>

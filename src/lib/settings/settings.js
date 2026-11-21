@@ -87,7 +87,7 @@ export function resetTransform(object, group, word = false) {
 }
 
 export const CUSTOM_FONT = "custom-"
-export const CUSTOM_FONT_KINDS = ["json", "ascii", "outline", "silhouette"]
+export const CUSTOM_FONT_KINDS = ["json", "ascii", "minecraft", "outline", "silhouette"]
 
 export function isCustomFont(id) {
   return typeof id === "string" && id.startsWith(CUSTOM_FONT)

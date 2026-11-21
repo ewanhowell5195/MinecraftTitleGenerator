@@ -25,7 +25,7 @@
   import { fontThumbnail } from "../lib/font/thumbnailUrls.js"
   import { typedNumber } from "./fields.js"
   import { changeLetterCase, font, update } from "./store.js"
-  import { loadTemplate } from "./template.js"
+  import { loadTemplateFiles } from "./template.js"
 
   const ABOUT = [
     { key: "name", label: "Name", required: true, hint: "Shown in the font list and the credits." },
@@ -172,12 +172,12 @@
   }
 
   async function pickTemplate(event) {
-    const file = event.target.files[0]
-    if (!file) return
+    const files = Array.from(event.target.files)
+    if (!files.length) return
     templateError.value = ""
     loadingTemplate.value = true
     try {
-      const { template } = await loadTemplate(file, font.value.template?.square ?? font.value.grid)
+      const { template } = await loadTemplateFiles(files, font.value.template?.square ?? font.value.grid)
       update({ ...font.value, template, imported: null })
     } catch (err) {
       templateError.value = err.message
@@ -222,13 +222,13 @@
 
     <section class="flow">
       <h3>Template font</h3>
-      <UploadField accept=".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2" :label="loadingTemplate ? 'Loading...' : font.template ? 'Replace font file' : 'Choose a font file'" empty="No template font" :disabled="loadingTemplate" :clearable="!!font.template" @change="pickTemplate" @clear="removeTemplate">
+      <UploadField multiple accept=".ttf,.otf,.woff,.woff2,.json,.png,font/ttf,font/otf,font/woff,font/woff2,application/json,image/png" :label="loadingTemplate ? 'Loading...' : font.template ? 'Replace font file' : 'Choose a font file'" empty="No template font" :disabled="loadingTemplate" :clearable="!!font.template" @change="pickTemplate" @clear="removeTemplate">
         <template v-if="font.template" #preview>
           <span class="template-name ellipsis">{{ font.template.name }}</span>
         </template>
       </UploadField>
       <Notice v-if="templateError">{{ templateError }}</Notice>
-      <p v-else class="hint">A .ttf, .otf, .woff or .woff2 that characters you add are drawn from to start with. Each character can also go back to its shape in it. It's saved inside the font's JSON.</p>
+      <p v-else class="hint">A .ttf, .otf, .woff or .woff2, a Minecraft ascii.png, or a resource pack font JSON chosen together with its PNGs, that characters you add are drawn from to start with. Each character can also go back to its shape in it. It's saved inside the font's JSON.</p>
     </section>
 
     <section class="flow">

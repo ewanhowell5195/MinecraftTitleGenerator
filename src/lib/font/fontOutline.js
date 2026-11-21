@@ -7,7 +7,7 @@ const EDGE_PROBE = 1
 const BANDS = 64
 const measured = new WeakMap()
 
-function sourceChars(char) {
+export function sourceChars(char) {
   if (char === OPENING_QUOTE) return ["\u2018", "'"]
   if (char === "'") return ["'", "\u2019"]
   const letter = char === CREEPER ? "A" : char
