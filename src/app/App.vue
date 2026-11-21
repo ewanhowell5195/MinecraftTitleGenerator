@@ -2,7 +2,9 @@
   import { computed, onMounted, ref, watch } from "vue"
   import EditorDrawer from "./EditorDrawer.vue"
   import EulaDialog from "./EulaDialog.vue"
+  import ContextMenu from "../components/ContextMenu.vue"
   import Notice from "../components/Notice.vue"
+  import { canCopySection, canPasteSection, copySection, pasteSection } from "./panels/sectionClipboard.js"
   import LayerActions from "./LayerActions.vue"
   import LayerList from "./LayerList.vue"
   import MenuBar from "./MenuBar.vue"
@@ -68,6 +70,17 @@
     if (value && GAME_TEXTURED.has(view.section)) view.section = "shape"
   }, { immediate: true })
 
+  const sectionMenu = ref(null)
+
+  function openSectionMenu(section, event) {
+    if (!canCopySection(section)) return
+    event.preventDefault()
+    const name = SECTIONS[section].name.toLowerCase()
+    const items = [{ label: `Copy ${name} settings`, icon: "copy", action: () => copySection(section) }]
+    if (canPasteSection(section)) items.push({ label: `Paste ${name} settings`, icon: "paste", action: () => pasteSection(section) })
+    sectionMenu.value = { at: { x: event.clientX, y: event.clientY }, items }
+  }
+
   const SHORTCUTS = { undo, redo, save: saveTitle, open: () => menuBar.value.openPicker() }
 
   function shortcut(event) {
@@ -104,7 +117,8 @@
 
     <LayerActions v-if="editing" />
 
-    <NavTabs v-if="editing" class="tabs" v-model="view.section" :tabs="tabs" icons />
+    <NavTabs v-if="editing" class="tabs" v-model="view.section" :tabs="tabs" icons @menu="openSectionMenu" />
+    <ContextMenu :items="sectionMenu?.items" :at="sectionMenu?.at" @close="sectionMenu = null" />
 
     <EditorDrawer :editing="editing" :shape-line="shapeLine" />
 

@@ -44,6 +44,10 @@ function panelKeys(object, name) {
   return Object.keys(PANELS[name]()).filter(key => key !== "text")
 }
 
+export function copiedKeys(object, name) {
+  return (name === "texture" ? ["textureSource"] : []).concat(panelKeys(object, name))
+}
+
 export function resetPanel(object, name, context = {}) {
   const values = PANELS[name]()
   for (const key of panelKeys(object, name)) object[key] = values[key]

@@ -8,13 +8,20 @@
   })
 
   const model = defineModel({ type: String, required: true })
+
+  const emit = defineEmits(["menu"])
+
+  function menu(event) {
+    const id = event.target.closest(".tab-bar-button")?.querySelector("[data-tab]")?.dataset.tab
+    if (id) emit("menu", id, event)
+  }
 </script>
 
 <template>
-  <FluidTabs v-model="model" :tabs="tabs" tab-style="nav" class="nav-tabs" :class="{ icons }" wrap>
+  <FluidTabs v-model="model" :tabs="tabs" tab-style="nav" class="nav-tabs" :class="{ icons }" wrap @contextmenu="menu">
     <template #label="{ tab }">
       <Icon v-if="icons" :name="tab.icon" :size="20" />
-      <span :class="{ current: tab.id === model }">{{ tab.label }}</span>
+      <span :class="{ current: tab.id === model }" :data-tab="tab.id">{{ tab.label }}</span>
     </template>
   </FluidTabs>
 </template>

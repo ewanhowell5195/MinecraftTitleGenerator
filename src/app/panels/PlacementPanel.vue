@@ -1,8 +1,6 @@
 <script setup>
-  import { usePanel } from "./panel.js"
-  import { TYPES, applyType } from "../../lib/settings/defaults.js"
-  import { defaultTexture, setTexture } from "../../lib/settings/textureDefaults.js"
-  import { freeRow, noteType, selection, words } from "../../lib/state/scene.js"
+  import { placeLine, usePanel } from "./panel.js"
+  import { TYPES } from "../../lib/settings/defaults.js"
   import Panel from "../Panel.vue"
   import Slider from "../../components/Slider.vue"
   import Tile from "../../components/Tile.vue"
@@ -14,22 +12,10 @@
     small: ["top", "small"]
   }
 
-  const { object, font, list, modified } = usePanel("placement")
-
-  function pick(type) {
-    if (object.value.type === type) return
-    const row = freeRow(type, selection.value[0])
-    for (const word of words(selection.value[0])) {
-      if (list.value && !word.textureVariant && word.texture === defaultTexture(list.value, word.type)) setTexture(word, { texture: defaultTexture(list.value, type) }, { before: list.value })
-      word.type = type
-      word.row = row
-      applyType(word, type, font.value)
-    }
-    noteType(selection.value[0])
-  }
+  const { object, modified } = usePanel("placement")
 
   function reset() {
-    pick("top")
+    placeLine("top")
     object.value.row = 0
     object.value.rowSpacing = 0
   }
@@ -38,7 +24,7 @@
 <template>
   <Panel title="Placement" :modified="modified" @reset="reset">
     <TileGrid :columns="1">
-      <Tile v-for="(data, id) of TYPES" :key="id" :label="data.name" aspect="auto" :selected="object.type === id" @pick="pick(id)">
+      <Tile v-for="(data, id) of TYPES" :key="id" :label="data.name" aspect="auto" :selected="object.type === id" @pick="placeLine(id)">
         <template #picture>
           <span class="preview">
             <img v-for="layer of LAYERS[id]" :key="layer" :src="`placement/${id}-${layer}.png`" :class="{ dim: layer !== id }" alt="">
