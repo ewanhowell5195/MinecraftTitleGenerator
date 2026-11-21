@@ -129,6 +129,53 @@ function cleanBlocks(grid, across, down) {
   })
 }
 
+const WAVE_SAMPLES = 32
+
+function waveCurve(points, shape, from, to) {
+  const curve = []
+  for (let index = waveSegment(points, from); index + 1 < points.length && points[index][0] < to; index++) {
+    const [start, end] = [points[index], points[index + 1]]
+    const parts = shape === "sine" ? WAVE_SAMPLES : 1
+    for (let step = 0; step < parts; step++) {
+      const at = start[0] + (end[0] - start[0]) * step / parts
+      if (shape === "square") curve.push([at, start[1]], [(start[0] + end[0]) / 2, start[1]], [(start[0] + end[0]) / 2, end[1]])
+      else curve.push([at, waveHeight(shape, start, end, at)])
+    }
+  }
+  const inside = curve.filter(([at]) => at > from && at < to)
+  const height = at => waveHeight(shape, points[waveSegment(points, at)], points[waveSegment(points, at) + 1], at)
+  return [[from, height(from)]].concat(inside, [[to, height(to)]])
+}
+
+export function waveOutline(glyph, settings) {
+  if (settings.pixelation) return null
+  const { width, height } = glyph
+  const capTop = settings.capHeight - glyph.top
+  const middle = settings.capHeight / 2
+  const level = settings.level / 100 * settings.capHeight
+  const turn = settings.angle * Math.PI / 180
+  const cos = Math.round(Math.cos(turn) * 1e9) / 1e9
+  const sin = Math.round(Math.sin(turn) * 1e9) / 1e9
+  const [start, end] = glyph.lineSpan ?? [0, 0]
+  const centre = (start + end) / 2
+  const along = (x, down) => (x - settings.horizontalOffset - centre) * cos + (down - middle) * sin + centre - settings.offset
+  const across = (x, down) => middle - (x - settings.horizontalOffset - centre) * sin + (down - middle) * cos
+  function local([a, c]) {
+    const shifted = a - centre + settings.offset
+    const raised = c - middle
+    return [shifted * cos - raised * sin + settings.horizontalOffset + centre - glyph.placedX, shifted * sin + raised * cos + middle - capTop]
+  }
+  const corners = [[glyph.placedX, capTop], [glyph.placedX + width, capTop], [glyph.placedX, capTop + height], [glyph.placedX + width, capTop + height]]
+  const alongs = corners.map(([x, down]) => along(x, down))
+  const acrosses = corners.map(([x, down]) => across(x, down))
+  const from = Math.min(...alongs) - 1
+  const to = Math.max(...alongs) + 1
+  const points = wavePoints(from, to, settings)
+  const curve = waveCurve(points, settings.waveShape, from, to).map(([at, rise]) => [at, level + rise])
+  const beyond = Math.min(...acrosses, ...curve.map(([, rise]) => rise)) - 1
+  return curve.concat([[to, beyond], [from, beyond]]).map(local)
+}
+
 export function waveFill(glyph, settings, scale, fine) {
   const { width, height, mask } = glyph
   const columns = width * scale

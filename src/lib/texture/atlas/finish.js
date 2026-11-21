@@ -228,6 +228,15 @@ export function finishAtlas(plan, page, painted, options) {
       }
       for (const { rect, sx, sy, width, height, glyph, side, line, from } of wrapped) add(wrap.label, wrap.triangles(glyph, side, line, from, width, height), [rect.x, rect.y], sx, sy)
     }
+    for (const wave of painted.waves ?? []) {
+      for (const block of own) {
+        const entry = entryOf(block)
+        const outline = entry && wave.front(entry.glyph)
+        if (!outline) continue
+        const { front } = page.regions.get(block.glyph)
+        add(wave.label, [outline], glyphOrigin(block, front), front.sx, front.sy)
+      }
+    }
     return found
   }
 

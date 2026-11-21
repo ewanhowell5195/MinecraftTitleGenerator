@@ -9,7 +9,7 @@ import { adjustedTiles, paintTiles } from "./tiles.js"
 import { paintStrip } from "./strip.js"
 import { paintCover } from "./cover.js"
 import { paintBakedCover, paintBakedRuns } from "./coverBake.js"
-import { edgeFacesOf, labelIndexes, overlayLabels, overlayLayer, sideWrapsOf, wrapsOf } from "./overlays.js"
+import { edgeFacesOf, labelIndexes, overlayLabels, overlayLayer, sideWrapsOf, wavesOf, wrapsOf } from "./overlays.js"
 import { lookKey } from "./keys.js"
 
 const preparedSheets = new WeakMap()
@@ -191,5 +191,5 @@ export function paintSheet(sheet, look, assets, capHeight, base) {
 
   const tiles = look.source === "tile" && look.tileableTileEdges ? adjustedTiles(look, assets.tile) : null
   const gradient = look.source === "gradient" ? { stops: paintedStops(look), ends: entry => gradientEnds(entry, look, capHeight, sheet) } : null
-  return { canvas: work.canvas, coverRuns: assets.coverBase ? ready.canvas : null, facePixels, border, edgeAverage, tiles, tilesAcrossLine: !look.tileablePerCharacter, gradient, fade, fadeOpacity, borderColour: packed(rgb, 0), labels: () => overlayLabels(sheet, overlayLayers, capHeight, width, height, band, independent), wraps: wrapsOf(sheet, assets.overlays, labelIndexes(overlayLayers), band, independent), sideWraps: sideWrapsOf(sheet, assets.overlays, capHeight, band, independent), stripSource, edgeFaces: stripSource ? edgeFacesOf(sheet, assets.edgeOverlays, band, independent) : [], tileScale: R }
+  return { canvas: work.canvas, coverRuns: assets.coverBase ? ready.canvas : null, facePixels, border, edgeAverage, tiles, tilesAcrossLine: !look.tileablePerCharacter, gradient, fade, fadeOpacity, borderColour: packed(rgb, 0), labels: () => overlayLabels(sheet, overlayLayers, capHeight, width, height, band, independent), wraps: wrapsOf(sheet, assets.overlays, labelIndexes(overlayLayers), band, independent), waves: wavesOf(sheet, assets.overlays, labelIndexes(overlayLayers), capHeight, band, independent), sideWraps: sideWrapsOf(sheet, assets.overlays, capHeight, band, independent), stripSource, edgeFaces: stripSource ? edgeFacesOf(sheet, assets.edgeOverlays, band, independent) : [], tileScale: R }
 }

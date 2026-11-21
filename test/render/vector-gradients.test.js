@@ -306,6 +306,21 @@ describe("vectorTitle gradients it was told about", () => {
     assert.deepEqual(red[0].polygons.map(polygon => polygon.length), [3])
   })
 
+  test("an exact shape covering most of a face is still drawn exactly, and its blended edge is not traced", () => {
+    const corners = [[0, 0], [64, 0], [64, 40], [32, 48], [0, 40]]
+    const edge = x => 40 + 8 * (1 - Math.abs(x - 32) / 32)
+    const data = new Uint8Array(64 * 64 * 4)
+    for (let y = 0; y < 64; y++) {
+      for (let x = 0; x < 64; x++) if (y + 0.5 < edge(x + 0.5)) data[(y * 64 + x) * 4 + 2] = 1
+    }
+    const texture = textureOf(64, 64, (x, y) => y + 0.5 < edge(x + 0.5) ? RED : y + 0.5 < edge(x + 0.5) + 2 ? [128, 0, 128] : BLUE)
+    texture.userData.labels = () => data
+    texture.userData.crackShapes = () => new Map([[16, [corners]]])
+    const paths = pathsOf(titleOf(whole(texture)).markup)
+    assert.deepEqual(Array.from(new Set(paths.map(path => path.fill))).sort(), ["#0000ff", "#ff0000"])
+    assert.deepEqual(paths.filter(path => path.fill === "#ff0000").flatMap(path => path.polygons).map(polygon => polygon.length), [5])
+  })
+
   test("merges overlay pieces of one colour when nothing lands between them", () => {
     const left = x => x >= 4 && x < 10
     const right = x => x >= 40 && x < 46

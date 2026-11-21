@@ -1,6 +1,7 @@
 import { surface } from "../canvas.js"
 import { hexOf } from "../../core/colour.js"
-import { PLACED_KINDS, SMOOTH_KINDS, WRAPPED_KINDS, toneKinds } from "../overlays/settings.js"
+import { PLACED_KINDS, SMOOTH_KINDS, WRAPPED_KINDS, settingsOf, toneKinds } from "../overlays/settings.js"
+import { waveOutline } from "../overlays/patterns.js"
 import { crackList, crackTriangle, crackWrap, wrapTriangles } from "../overlays/cracks.js"
 import { edgeAlpha } from "../overlays/edges.js"
 import { generatedAlpha } from "../overlays/faces.js"
@@ -163,6 +164,15 @@ export function wrapsOf(sheet, layers, indexes, band, independent) {
       mask.ctx.putImageData(image, 0, 0)
       return colourOverlay(mask, layer).canvas
     }
+  }))
+}
+
+export function wavesOf(sheet, layers, indexes, capHeight, band, independent) {
+  const layered = layeredGlyphs(sheet, band, independent)
+  const own = glyph => layered?.get(glyph.char) ?? glyph
+  return layers.filter(({ layer, source }) => source.generated === "wave" && layer.opacity && indexes.has(layer)).map(({ layer }) => ({
+    label: indexes.get(layer),
+    front: glyph => waveOutline(own(glyph), { ...settingsOf("wave", layer), capHeight })
   }))
 }
 

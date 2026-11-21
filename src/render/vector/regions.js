@@ -5,6 +5,7 @@ import { BASE_SHARE, STEP_EDGE, fadedModel, flatOf, joinedBands, modelOf, painte
 import { smoothStairs, trace } from "./trace.js"
 
 const CUT_PRECISION = 3
+const BLEND_REACH = 3
 const SLIDE_CONTRAST = 48
 const SOFT_LABEL = 1 << 16
 const MAX_MODELS = 6
@@ -24,6 +25,7 @@ export function analyse(image, rect, mask = null) {
   const width = rect.right - rect.left
   const height = rect.bottom - rect.top
   const colours = new Int32Array(width * height)
+  const labelled = new Int32Array(width * height).fill(-1)
   const regions = new Map()
   const solid = []
   let holes = false
@@ -38,6 +40,7 @@ export function analyse(image, rect, mask = null) {
       colours[index] = packed(data, at)
       solid.push(index)
       const label = labels ? packed(labels, at) : 0
+      labelled[index] = label
       if (!regions.has(label)) regions.set(label, [])
       regions.get(label).push(index)
     }
@@ -61,7 +64,9 @@ export function analyse(image, rect, mask = null) {
     return { ...model, stops: model.stops.map(stop => ({ t: stop.t + shift, colour: stop.colour })) }
   }
 
-  const [main, ...overlaid] = Array.from(regions.entries()).sort((a, b) => b[1].length - a[1].length)
+  const exactBits = image.crackShapes ? Array.from(image.crackShapes.keys()) : []
+  const isExact = label => exactBits.some(bit => label & 1 << bit)
+  const [main, ...overlaid] = Array.from(regions.entries()).sort((a, b) => isExact(a[0]) - isExact(b[0]) || b[1].length - a[1].length)
   const anySoft = main[0] >= SOFT_LABEL || overlaid.some(([label]) => label >= SOFT_LABEL)
   const totals = colourTotals(image)
 
@@ -192,7 +197,20 @@ export function analyse(image, rect, mask = null) {
     if (source) return paintedModel(source, rect, region, colours, width, overlaid)
     return fade ? fadedModel(fade, rect, region, colours, width) : null
   }
-  const { base, layers: painted } = decompose(main[1], false, main[0], knownModel(main[1], false))
+  const exactLabels = new Set(overlaid.map(([label]) => label).filter(isExact))
+  const blended = []
+  if (exactLabels.size) {
+    const inMain = new Set(main[1])
+    let edge = main[1].filter(pixel => sidesOf(pixel).some(side => exactLabels.has(labelled[side])))
+    const seen = new Set(edge)
+    for (let step = 0; step < BLEND_REACH && edge.length; step++) {
+      blended.push(...edge)
+      edge = Array.from(new Set(edge.flatMap(pixel => sidesOf(pixel)))).filter(side => inMain.has(side) && !seen.has(side))
+      for (const pixel of edge) seen.add(pixel)
+    }
+  }
+  const unblended = without(main[1], blended)
+  const { base, layers: painted } = decompose(unblended.length ? unblended : main[1], false, main[0], knownModel(main[1], false))
   function exactCut(label, region) {
     const bits = image.crackShapes ? Array.from(image.crackShapes.keys()).filter(bit => label & 1 << bit) : []
     if (!bits.length) return null

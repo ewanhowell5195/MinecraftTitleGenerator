@@ -1,8 +1,9 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import { createHash } from "node:crypto"
-import { GENERATED_EDGE_OVERLAYS, GENERATED_SETTINGS, PLACED_KINDS, generatedSetting, thumbnailLayer, toneKinds, withGenerated } from "../../src/lib/texture/overlays/settings.js"
+import { GENERATED_EDGE_OVERLAYS, GENERATED_SETTINGS, PLACED_KINDS, generatedSetting, settingsOf, thumbnailLayer, toneKinds, withGenerated } from "../../src/lib/texture/overlays/settings.js"
 import { generatedAlpha } from "../../src/lib/texture/overlays/faces.js"
+import { waveOutline } from "../../src/lib/texture/overlays/patterns.js"
 import { withFinalShadows } from "../../src/lib/texture/overlays/shadows.js"
 import { columnOf, glyphOf, near, picture, rowsOf, solid } from "../helpers/overlays.js"
 
@@ -19,6 +20,16 @@ function assertContinues(kind, layer) {
   const right = generatedAlpha(solid(10, 8, { placedX: 9 }), kind, layer, capHeight, scale)
   const joined = rowsOf(left, 24).flatMap((row, index) => row.concat(rowsOf(right, 40)[index]))
   nearAll(joined, Array.from(whole), 0.00001)
+}
+
+function insidePolygon(points, x, y) {
+  let inside = false
+  for (let index = 0, last = points.length - 1; index < points.length; last = index++) {
+    const [ax, ay] = points[index]
+    const [bx, by] = points[last]
+    if ((ay > y) !== (by > y) && x < (bx - ax) * (y - ay) / (by - ay) + ax) inside = !inside
+  }
+  return inside
 }
 
 function runsOf(text) {
@@ -607,6 +618,30 @@ describe("wave", () => {
       ["2ebb0247ccae57db", "9fb862accd4abcf8", "a9c52e9fbcaf9e88"],
       ["cb6e720c0ed981c9", "c69a8a00eb7efd68", "67df6fd9e9984e67"]
     ])
+  })
+
+  test("the exact outline covers the same pixels as the drawn wave, at any angle and shape", () => {
+    const glyph = solid(30, 20, { placedX: 7, lineSpan: [0, 60] })
+    const layer = { randomness: 40, seed: 3, amplitude: 5, length: 17, offset: 3, horizontalOffset: 2, level: 40 }
+    const scale = 3
+    for (const angle of [0, 180, 35]) {
+      for (const waveShape of ["sine", "square", "triangle"]) {
+        const settings = { ...layer, angle, waveShape }
+        const alpha = generatedAlpha(glyph, "wave", settings, 20, scale)
+        const outline = waveOutline(glyph, { ...settingsOf("wave", settings), capHeight: 20 })
+        for (let sy = 0; sy < 20 * scale; sy++) {
+          for (let sx = 0; sx < 30 * scale; sx++) {
+            const value = alpha[sy * 30 * scale + sx]
+            if (value > 0.02 && value < 0.98) continue
+            assert.equal(insidePolygon(outline, (sx + 0.5) / scale, (sy + 0.5) / scale), value >= 0.5, `${waveShape} at ${angle} degrees, pixel ${sx}, ${sy}`)
+          }
+        }
+      }
+    }
+  })
+
+  test("a pixelated wave has no exact outline, so it is traced as drawn", () => {
+    assert.equal(waveOutline(solid(4, 4), { ...settingsOf("wave", { pixelation: 2 }), capHeight: 4 }), null)
   })
 })
 
