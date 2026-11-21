@@ -238,7 +238,7 @@ describe("saving trims settings", () => {
     assert.deepEqual(await savedLines(reference, target), [{}, { type: "bottom", matchWidth: 0, scaleX: 1.2, scaleY: 2 }])
   })
 
-  test("full row width is saved with its match, and left out without one", async () => {
+  test("widest part is saved with its match, and left out without one", async () => {
     const reference = make("top")
     const target = make("bottom", { matchWidth: reference.id, matchBottom: false })
     assert.deepEqual(await savedLines(reference, target), [{}, { type: "bottom", matchWidth: 0, matchBottom: false }])
@@ -563,7 +563,7 @@ describe("opening", () => {
     assert.equal(scene.objects[0].overlays[0].randomness, undefined)
   })
 
-  test("a match from version 7 keeps matching the full row width, a new one matches the row bottom", async () => {
+  test("a match from version 7 keeps matching the widest part, a new one matches the bottom edge", async () => {
     await openTitle(fileOf(title([{ text: "a" }, { text: "b", matchWidth: 0 }, { text: "c", matchWidth: 0, matchBottom: true }], { version: 7 })))
     assert.deepEqual(scene.objects.map(object => object.matchBottom), [true, false, true])
     await openTitle(fileOf(title([{ text: "a" }, { text: "b", matchWidth: 0 }], { version: 8 })))

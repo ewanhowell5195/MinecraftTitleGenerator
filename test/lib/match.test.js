@@ -204,14 +204,14 @@ describe("problems and solving", () => {
     assert.equal(target.scaleX, 1.5)
   })
 
-  describe("row bottom width", () => {
+  describe("bottom edge", () => {
     function withBottom(halfWidth, border, left, right, offsetY = 0) {
       const made = state(halfWidth, border, offsetY)
       made.built.bottom = { left, right }
       return made
     }
 
-    test("full row width ignores the bottom of the row", async () => {
+    test("widest part ignores the bottom of the row", async () => {
       const [target, reference] = linked(2)
       runtime[reference.id] = withBottom(100, 0, [-50, 0], [50, 0])
       runtime[target.id] = state(50, 0, -60)
@@ -238,7 +238,7 @@ describe("problems and solving", () => {
       assert.equal(target.matchOffset, -10)
     })
 
-    test("full row width leaves the line centred", async () => {
+    test("widest part leaves the line centred", async () => {
       const [target, reference] = linked(2)
       runtime[reference.id] = withBottom(100, 0, [-60, 0], [40, 0])
       runtime[target.id] = state(50, 0, -60)
