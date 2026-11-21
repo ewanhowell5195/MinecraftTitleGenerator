@@ -1,8 +1,10 @@
+import { mostCommon } from "../core/maths.js"
 import { MULTICASE_CHARACTERS } from "./editor/characters.js"
 import { fontFromShapes } from "./editor/import.js"
 import { OPENING_QUOTE } from "./order.js"
 
 const CELLS = 16
+const CAPITALS = Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 const POUND_CELL = 156
 
 function cellOf(char) {
@@ -40,6 +42,15 @@ function cellShape(image, index, { cellWidth, cellHeight, ascent, grid }) {
   return { width, height, top: (ascent - first) * grid, bottom: (ascent - last - 1) * grid, mask }
 }
 
+function lastRow(image, index, cellWidth, cellHeight) {
+  const x0 = index % CELLS * cellWidth
+  const y0 = Math.floor(index / CELLS) * cellHeight
+  for (let y = cellHeight - 1; y >= 0; y--) {
+    for (let x = 0; x < cellWidth; x++) if (image.data[((y0 + y) * image.width + x0 + x) * 4 + 3] > 0) return y
+  }
+  return null
+}
+
 export function asciiRows(image) {
   return image.height / CELLS / 8 * 7
 }
@@ -49,7 +60,8 @@ export function fontFromAscii(image, { height = 40 } = {}) {
   const cellWidth = image.width / CELLS
   const cellHeight = image.height / CELLS
   if (cellHeight % 8) throw new Error(`each character in this ascii.png is ${cellHeight} pixels tall, and Minecraft needs a multiple of 8`)
-  const ascent = cellHeight / 8 * 7
+  const lift = Math.max(0, mostCommon(CAPITALS.map(char => lastRow(image, cellOf(char), cellWidth, cellHeight)).filter(row => row !== null).map(row => cellHeight / 8 * 7 - 1 - row)) ?? 0)
+  const ascent = cellHeight / 8 * 7 - lift
   const grid = Math.max(1, Math.round(height / ascent))
   const shapes = new Map(MULTICASE_CHARACTERS.map(char => [char, cellShape(image, cellOf(char), { cellWidth, cellHeight, ascent, grid })]))
   return fontFromShapes(shapes, { name: "Minecraft Font", capHeight: ascent * grid, grid, spaceWidth: cellHeight / 2 * grid })
