@@ -57,7 +57,7 @@ export function useViewCamera(rig, { props, entries, invalidate }) {
 
   function panView() {
     if (extentFor !== props.items && props.items.every(item => item.settled)) measure(titleFraming(props.items, title.camera.fixedDistance))
-    return { extent: extent ?? NO_EXTENT, aspect: rig.frameSize.width / rig.frameSize.height }
+    return { extent: extent ?? NO_EXTENT }
   }
 
   function holdPan() {

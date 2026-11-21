@@ -61,7 +61,7 @@ describe("viewport zoom", () => {
     const { pan, fire } = setup()
     fire("wheel", { deltaY: -1200, deltaMode: 0, clientX: 790, clientY: 10 })
     assert.ok(pan.value.scale > 8)
-    assert.deepEqual(keptPan(pan.value, { extent: { left: 0, right: 0, bottom: 0, top: 0 }, aspect: WIDTH / HEIGHT }), pan.value)
+    assert.deepEqual(keptPan(pan.value, { extent: { left: 0, right: 0, bottom: 0, top: 0 } }), pan.value)
     assert.ok(onScreen(pan.value, titlePoint({ scale: 1, x: 0, y: 0 }, 790, 10)).distanceTo(clip(790, 10)) > 0.1)
   })
 
@@ -96,7 +96,7 @@ describe("viewport pan limit", () => {
     fire("wheel", { deltaY: -100, deltaMode: 0, clientX: 400, clientY: 200 })
     camera.pan.value = { ...camera.pan.value, x: -5 }
     camera.holdPan()
-    const view = { extent: { left: -1.3, right: 0.9, bottom: -0.5, top: 0.3 }, aspect: WIDTH / HEIGHT }
+    const view = { extent: { left: -1.3, right: 0.9, bottom: -0.5, top: 0.3 } }
     assert.ok(camera.pan.value.x > -5)
     assert.deepEqual(camera.pan.value, keptPan(camera.pan.value, view))
   })

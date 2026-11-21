@@ -2,7 +2,7 @@ import * as THREE from "three"
 import { clamp } from "../lib/core/maths.js"
 
 const ZOOM_LIMITS = [0.25, 32]
-const PAN_MARGIN = 0.1
+const KEPT_ON_SCREEN = 0.1
 
 export const UNZOOMED = { scale: 1, x: 0, y: 0 }
 
@@ -20,14 +20,13 @@ export function screenExtent(points, matrix) {
   return extent.left <= extent.right ? extent : null
 }
 
-function slid(at, scale, low, high, margin) {
-  const ends = [-1 - scale * low, 1 - scale * high]
-  const give = margin * Math.min(1, scale * (high - low) / 2)
-  return clamp(at, Math.min(...ends) - give, Math.max(...ends) + give)
+function slid(at, scale, low, high) {
+  const kept = KEPT_ON_SCREEN * scale * (high - low)
+  return clamp(at, -1 + kept - scale * high, 1 - kept - scale * low)
 }
 
-export function keptPan({ scale, x, y }, { extent, aspect }) {
-  return { scale, x: slid(x, scale, extent.left, extent.right, PAN_MARGIN * Math.min(1, 1 / aspect)), y: slid(y, scale, extent.bottom, extent.top, PAN_MARGIN * Math.min(1, aspect)) }
+export function keptPan({ scale, x, y }, { extent }) {
+  return { scale, x: slid(x, scale, extent.left, extent.right), y: slid(y, scale, extent.bottom, extent.top) }
 }
 
 export function pannedBy(pan, dx, dy, view) {

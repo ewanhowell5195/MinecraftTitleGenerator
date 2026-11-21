@@ -385,8 +385,8 @@ describe("zoom and pan", () => {
     assert.ok(panMatrix(UNZOOMED).equals(new THREE.Matrix4()))
   })
 
-  const square = { extent: { left: -0.94, right: 0.94, bottom: -0.94, top: 0.94 }, aspect: 1 }
-  const wide = { extent: { left: -0.94, right: 0.94, bottom: -0.1, top: 0.1 }, aspect: 2 }
+  const square = { extent: { left: -0.94, right: 0.94, bottom: -0.94, top: 0.94 } }
+  const wide = { extent: { left: -0.94, right: 0.94, bottom: -0.1, top: 0.1 } }
 
   function edges(pan, { extent }) {
     const [left, bottom] = shown(pan, extent.left, extent.bottom)
@@ -430,43 +430,15 @@ describe("zoom and pan", () => {
     assert.equal(y, -0.5)
   })
 
-  test("zoomed out, a small title pans until its edge reaches the side of the view", () => {
-    const pan = zoomedAt(UNZOOMED, 0.25, 0, 0, wide)
-    const [right, left] = furthest(pan, wide)
-    close(right.right, 1 + 0.05 * 0.235)
-    close(left.left, -1 - 0.05 * 0.235)
-    close(right.top, 1 + 0.1 * 0.025)
-    close(left.bottom, -1 - 0.1 * 0.025)
-  })
-
-  test("a title that fills the view still has a little room to move", () => {
-    const [right, left] = furthest(UNZOOMED, square)
-    close(right.right, 1.094)
-    close(left.left, -1.094)
-  })
-
-  test("zoomed in, every edge of the title can be reached but never pulled off screen", () => {
-    for (const scale of [2, 8, 32]) {
-      const pan = zoomedAt(UNZOOMED, scale, 0, 0, wide)
-      const [right, left] = furthest(pan, wide)
-      close(right.left, -1 + 0.05)
-      close(left.right, 1 - 0.05)
-      assert.ok(right.right > 1 && left.left < -1)
-      if (scale > 10) {
-        close(right.bottom, -1 + 0.1)
-        close(left.top, 1 - 0.1)
-      } else {
-        close(right.top, 1 + 0.1 * 0.1 * scale)
-        close(left.bottom, -1 - 0.1 * 0.1 * scale)
+  test("at any zoom the title pans until only a tenth of it is left on screen", () => {
+    for (const view of [square, wide]) {
+      for (const scale of [0.25, 1, 4, 32]) {
+        const [right, left] = furthest(zoomedAt(UNZOOMED, scale, 0, 0, view), view)
+        close(right.left, 1 - 0.1 * (right.right - right.left))
+        close(right.bottom, 1 - 0.1 * (right.top - right.bottom))
+        close(left.right, -1 + 0.1 * (left.right - left.left))
+        close(left.top, -1 + 0.1 * (left.top - left.bottom))
       }
-    }
-  })
-
-  test("the room past the edges grows with the title until it fills the view, then stays the same on screen", () => {
-    for (const scale of [0.25, 0.5, 1, 2, 4, 16, 32]) {
-      const pan = zoomedAt(UNZOOMED, scale, 0, 0, square)
-      const [right, left] = furthest(pan, square)
-      close(right.left - left.left, Math.abs(2 - 1.88 * scale) + 0.2 * Math.min(1, 0.94 * scale))
     }
   })
 
@@ -488,8 +460,8 @@ describe("zoom and pan", () => {
 
   test("a view left outside the limits is pulled back in", () => {
     const pan = keptPan({ scale: 1, x: 5, y: -5 }, wide)
-    close(pan.x, 0.107)
-    close(pan.y, -0.91)
+    close(pan.x, 1.752)
+    close(pan.y, -1.08)
   })
 
   test("the extent is where the title lands on screen at any field of view and tilt", () => {
