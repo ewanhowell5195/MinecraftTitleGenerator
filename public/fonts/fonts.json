@@ -48,6 +48,11 @@
           "16": ["//", "\\\\"]
         },
         "editor": { "width": 28, "grid": 4 }
+      },
+      {
+        "id": "conlogo",
+        "name": "ConLogo",
+        "authors": ["antehexaer"]
       }
     ],
     "editor": { "width": 28, "grid": 4 }
