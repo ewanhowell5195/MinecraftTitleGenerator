@@ -301,7 +301,10 @@ const KEYS = [
   ["wordTwistFanHeight", NUMBER],
   ["fadeCurves", BOOLEAN],
   ["curveAngle", NUMBER],
-  ["curveHeight", NUMBER]
+  ["curveHeight", NUMBER],
+  ["outerFadeOpacity", NUMBER],
+  ["internalFadeOpacity", NUMBER],
+  ["sideFadeOpacity", NUMBER]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))

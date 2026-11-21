@@ -15,9 +15,9 @@
   const END_ANGLES = { up: 180, along: 270 }
 
   const GROUPS = [
-    { name: "faces", title: "Top and bottom faces", custom: "customEdge", colour: "edgeColour", average: "edge", brightness: "edgeBrightness", fading: "fade", fade: "outerFade", fill: "edgeFill", stops: "edgeStops", smooth: "edgeSmooth" },
-    { name: "inner", title: "Inner faces", enabled: "internalFaces", custom: "customInternal", colour: "internalColour", average: "edge", inherits: "customEdge", brightness: "internalBrightness", fading: "fadeInternal", fade: "internalFade", fill: "internalFill", stops: "internalStops", smooth: "internalSmooth", direction: "internalDirection" },
-    { name: "sides", title: "Side faces", enabled: "sideFaces", custom: "customSide", colour: "sideColour", average: "side", brightness: "sideBrightness", fading: "fadeSides", fade: "sideFade", fill: "sideFill", stops: "sideStops", smooth: "sideSmooth", direction: "sideDirection" }
+    { name: "faces", title: "Top and bottom faces", custom: "customEdge", colour: "edgeColour", average: "edge", brightness: "edgeBrightness", fading: "fade", fade: "outerFade", opacity: "outerFadeOpacity", fill: "edgeFill", stops: "edgeStops", smooth: "edgeSmooth" },
+    { name: "inner", title: "Inner faces", enabled: "internalFaces", custom: "customInternal", colour: "internalColour", average: "edge", inherits: "customEdge", brightness: "internalBrightness", fading: "fadeInternal", fade: "internalFade", opacity: "internalFadeOpacity", fill: "internalFill", stops: "internalStops", smooth: "internalSmooth", direction: "internalDirection" },
+    { name: "sides", title: "Side faces", enabled: "sideFaces", custom: "customSide", colour: "sideColour", average: "side", brightness: "sideBrightness", fading: "fadeSides", fade: "sideFade", opacity: "sideFadeOpacity", fill: "sideFill", stops: "sideStops", smooth: "sideSmooth", direction: "sideDirection" }
   ]
 
   const groups = GROUPS.map(group => ({ ...group, ...usePanel(group.name) }))
@@ -54,6 +54,9 @@
     <p v-if="group.inherits && group.object.value[group.inherits] && !group.object.value[group.custom]" class="hint">Uses the custom colour of the top and bottom faces.</p>
     <Slider v-else-if="hasBrightness(group)" label="Brightness" v-model="group.object.value[group.brightness]" :min="0" :max="100" />
     <Toggle label="Fade into the outline" v-model="group.object.value[group.fading]" />
-    <Slider v-if="group.object.value[group.fading]" label="Fade" v-model="group.object.value[group.fade]" :min="0" :max="100" :step="5" />
+    <template v-if="group.object.value[group.fading]">
+      <Slider label="Fade" v-model="group.object.value[group.fade]" :min="0" :max="100" :step="5" />
+      <Slider label="Fade opacity" v-model="group.object.value[group.opacity]" :min="0" :max="100" :step="5" />
+    </template>
   </Panel>
 </template>

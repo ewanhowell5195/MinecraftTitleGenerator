@@ -221,6 +221,7 @@ export const PANELS = {
     internalFaces: false,
     fadeInternal: true,
     internalFade: 75,
+    internalFadeOpacity: 0,
     customInternal: false,
     internalColour: "#000000",
     internalBrightness: 35,
@@ -233,6 +234,7 @@ export const PANELS = {
     sideFaces: false,
     fadeSides: true,
     sideFade: 75,
+    sideFadeOpacity: 0,
     customSide: false,
     sideColour: "#000000",
     sideBrightness: 35,
@@ -250,6 +252,7 @@ export const PANELS = {
   faces: () => ({
     fade: false,
     outerFade: 50,
+    outerFadeOpacity: 0,
     customEdge: false,
     edgeColour: "#000000",
     edgeBrightness: 35,

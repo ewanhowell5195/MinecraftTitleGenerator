@@ -241,6 +241,7 @@ export function fadedModel(fade, rect, list, colours, width) {
   if (!line) return null
   const { axis, length, start } = line
   const border = fade.colour
+  const opacity = fade.opacity ?? 1
   const reach = length * (1 - fade.amount)
   const distance = index => alongAxis(index, width, axis) - start
   const lineOf = index => axis[0] ? Math.floor(index / width) : index % width
@@ -251,7 +252,7 @@ export function fadedModel(fade, rect, list, colours, width) {
   }
   const groups = []
   for (const [across, index] of closest) {
-    const amount = reach > 0 ? clamp(distance(index) / reach, 0, 1) : 1
+    const amount = (reach > 0 ? clamp(distance(index) / reach, 0, 1) : 1) * opacity
     if (amount > FADE_USABLE) continue
     const colour = [0, 8, 16].reduce((sum, shift) => sum | clamp(Math.round(((colours[index] >> shift & 255) - (border >> shift & 255) * amount) / (1 - amount)), 0, 255) << shift, 0)
     const group = groups.find(other => within(other.colour, colour, STEP_EDGE))
@@ -259,8 +260,9 @@ export function fadedModel(fade, rect, list, colours, width) {
     else groups.push({ colour, lines: new Set([across]) })
   }
   const parts = groups.map(({ colour, lines }) => {
-    const matched = list.filter(index => lines.has(lineOf(index)) && within(colours[index], mixed(colour, border, clamp(distance(index) / reach, 0, 1)), FADE_MATCH))
-    const stops = [{ t: start, colour }, { t: start + reach, colour: border }].concat(reach < length ? [{ t: start + length, colour: border }] : [])
+    const matched = list.filter(index => lines.has(lineOf(index)) && within(colours[index], mixed(colour, border, clamp(distance(index) / reach, 0, 1) * opacity), FADE_MATCH))
+    const end = mixed(colour, border, opacity)
+    const stops = [{ t: start, colour }, { t: start + reach, colour: end }].concat(reach < length ? [{ t: start + length, colour: end }] : [])
     return flatIfOneColour({ axis, matched, stops })
   }).filter(part => part.matched.length).sort((a, b) => b.matched.length - a.matched.length)
   const matched = parts.flatMap(part => part.matched)

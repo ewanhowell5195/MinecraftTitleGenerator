@@ -56,6 +56,7 @@ export function lookOf(object, layer, font, list) {
     borderColour: object.borderColour,
     fade: object.fade,
     outerFade: object.outerFade,
+    outerFadeOpacity: object.outerFadeOpacity,
     customEdge: object.customEdge,
     edgeColour: object.edgeColour,
     edgeBrightness: object.edgeBrightness,
@@ -70,6 +71,7 @@ export function faceOptions(target) {
   return {
     internalFaces: target.internalFaces,
     internalFade: target.fadeInternal ? target.internalFade / 100 : null,
+    internalFadeOpacity: 1 - target.internalFadeOpacity / 100,
     customInternal: target.customInternal,
     internalColour: target.internalColour,
     internalBrightness: target.internalBrightness,
@@ -79,6 +81,7 @@ export function faceOptions(target) {
     internalDirection: target.internalDirection,
     sideFaces: target.sideFaces,
     sideFade: target.fadeSides ? target.sideFade / 100 : null,
+    sideFadeOpacity: 1 - target.sideFadeOpacity / 100,
     customSide: target.customSide,
     sideColour: target.sideColour,
     sideBrightness: target.sideBrightness,

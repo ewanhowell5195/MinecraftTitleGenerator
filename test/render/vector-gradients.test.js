@@ -192,6 +192,16 @@ describe("vectorTitle gradients it was told about", () => {
     for (const gradient of gradients) assert.deepEqual(gradient.stops.at(-1).colour, [16, 16, 16])
   })
 
+  test("a known fade at half opacity ends halfway to the outline colour", () => {
+    const border = 0x101010
+    const fadeAt = y => Math.min(1, (63.5 - y) / 48) / 2
+    const texture = textureOf(64, 64, (x, y) => [200, 100, 40].map(value => Math.round(value + (16 - value) * fadeAt(y)) + (x + y) % 2))
+    texture.userData.fades = [{ left: 0, top: 0, right: 64, bottom: 64, near: [0, 64], far: [0, 0], amount: 0.25, opacity: 0.5, colour: border }]
+    const [gradient] = gradientsOf(titleOf(whole(texture)).markup)
+    for (const [channel, value] of [200, 100, 40].entries()) close(gradient.stops[0].colour[channel], value, 2)
+    for (const [channel, value] of [108, 58, 28].entries()) close(gradient.stops.at(-1).colour[channel], value, 2)
+  })
+
   test("a face only writes the part of a known gradient it reaches", () => {
     const stops = Array.from({ length: 33 }, (unused, index) => ({ position: index / 32, colour: index * 7 % 256 << 8 }))
     const colourAt = t => stops[Math.round(t * 32)].colour

@@ -231,12 +231,13 @@ export function finishAtlas(plan, page, painted, options) {
     return found
   }
 
-  const clear = painted.border.replace("rgb(", "rgba(").replace(")", ", 0)")
+  const borderAt = opacity => painted.border.replace("rgb(", "rgba(").replace(")", `, ${opacity})`)
+  const clear = borderAt(0)
   const fades = []
   const gradientFaces = []
 
-  function addFade(left, top, right, bottom, near, far, amount) {
-    if (amount < 1) fades.push({ left, top, right, bottom, near, far, amount, colour: painted.borderColour })
+  function addFade(left, top, right, bottom, near, far, amount, opacity) {
+    if (amount < 1) fades.push({ left, top, right, bottom, near, far, amount, opacity, colour: painted.borderColour })
   }
 
   function addGradient({ x, y, width, height }, from, to, stops) {
@@ -250,8 +251,8 @@ export function finishAtlas(plan, page, painted, options) {
     ctx.fill()
   }
 
-  function fadeGradient(fade, back, front, horizontal) {
-    const stops = fadeStops(painted.border, clear, fade)
+  function fadeGradient(fade, opacity, back, front, horizontal) {
+    const stops = fadeStops(borderAt(opacity), clear, fade)
     return horizontal ? linearGradient(ctx, front, 0, back, 0, stops) : linearGradient(ctx, 0, front, 0, back, stops)
   }
 
@@ -271,16 +272,16 @@ export function finishAtlas(plan, page, painted, options) {
   function shadeFaces(shades) {
     const fills = new Map()
     const gradients = new Map()
-    for (const [rect, fill, amount, back, front, horizontal] of shades) {
+    for (const [rect, fill, amount, opacity, back, front, horizontal] of shades) {
       if (!fills.has(fill)) fills.set(fill, [])
       fills.get(fill).push(rect)
       if (amount === null) continue
       const fade = clamp(amount, 0, 1)
-      const key = [fade, back, front, horizontal].join()
-      if (!gradients.has(key)) gradients.set(key, { gradient: fadeGradient(fade, back, front, horizontal), rects: [] })
+      const key = [fade, opacity, back, front, horizontal].join()
+      if (!gradients.has(key)) gradients.set(key, { gradient: fadeGradient(fade, opacity, back, front, horizontal), rects: [] })
       gradients.get(key).rects.push(rect)
       const { x, y, width, height } = rect
-      if (typeof fill === "string") addFade(x, y, x + width, y + height, horizontal ? [front, 0] : [0, front], horizontal ? [back, 0] : [0, back], fade)
+      if (typeof fill === "string") addFade(x, y, x + width, y + height, horizontal ? [front, 0] : [0, front], horizontal ? [back, 0] : [0, back], fade, opacity)
     }
     ctx.globalCompositeOperation = "source-atop"
     for (const [fill, rects] of fills) fillRects(fill, rects)
@@ -387,7 +388,7 @@ export function finishAtlas(plan, page, painted, options) {
           for (let channel = 0; channel < 4; channel++) sideSum[channel] += whole * totals.sums[start + totals.width * 4 + channel] + totals.sums[start + rest * 4 + channel]
         }
       } else if (!covered) lineDraws.push({ from: [west ? fx + column * f : fx + (column + 1) * f - 1, fy + row * f, run.height * f, true, west ? 1 : -1, f], rect, repeat: rect.width * rect.height / (run.height * f) })
-      shades.push([rect, sideFill(run, rect, sy, block, span), options.sideFade, rect.x, rect.x + rect.width, true])
+      shades.push([rect, sideFill(run, rect, sy, block, span), options.sideFade, options.sideFadeOpacity ?? 1, rect.x, rect.x + rect.width, true])
       wrapped.push({ rect, scale, sx, sy, width: run.width, height: run.height, glyph: entry.glyph, side: west ? "left" : "right", line: Math.round(run.points[0][0] - block.own.minX), from: Math.round(block.own.maxY - span.max) })
       if (options.sideFade === null && sideGradient && sideGradient.direction !== "along") addGradient(rect, [0, rect.y + (span.max - shared.minY) * sy], [0, rect.y + (span.max - shared.maxY) * sy], sideGradient.stops)
       continue
@@ -401,7 +402,7 @@ export function finishAtlas(plan, page, painted, options) {
     if (run.region === "edge") {
       wrapped.push({ ...strip, extra: true })
       const start = rect.x - (strip.from + entry.glyph.wordX) * sx
-      if (painted.fade !== null) addFade(rect.x, rect.y, rect.x + rect.width, rect.y + rect.height, [0, near], [0, far], painted.fade)
+      if (painted.fade !== null) addFade(rect.x, rect.y, rect.x + rect.width, rect.y + rect.height, [0, near], [0, far], painted.fade, painted.fadeOpacity)
       else if (stripStops) addGradient(rect, [start, 0], [start + wordWidth * sx, 0], stripStops)
       continue
     }
@@ -409,7 +410,7 @@ export function finishAtlas(plan, page, painted, options) {
     const edge = run.kind === "top" ? fy + row * f : fy + (row + 1) * f - 1
     if (painted.tiles && !covered) tile(rect, sx, sy, painted.tilesAcrossLine ? column + entry.glyph.lineX : 0)
     else if (!covered) lineDraws.push({ from: [fx + column * f, edge, run.width * f, false, run.kind === "top" ? 1 : -1, f], rect, repeat: 0 })
-    shades.push([rect, innerFill(rect, sx, block, span, level), options.internalFade, far, near, false])
+    shades.push([rect, innerFill(rect, sx, block, span, level), options.internalFade, options.internalFadeOpacity ?? 1, far, near, false])
     wrapped.push(strip)
     if (options.internalFade === null && innerGradient && innerGradient.direction !== "up") {
       const start = rect.x - (Math.round(span.min - block.own.minX) + entry.glyph.wordX) * sx
@@ -464,8 +465,8 @@ export function finishAtlas(plan, page, painted, options) {
     const downRect = pixelRect(down, block.own.width, depth)
     panels.push(areaOf(upRect), areaOf(frontRect), areaOf(downRect))
     if (painted.fade !== null) {
-      addFade(upRect.x, upRect.y, upRect.x + upRect.width, upRect.y + upRect.height, [0, upRect.y + upRect.height], [0, upRect.y], painted.fade)
-      addFade(downRect.x, downRect.y, downRect.x + downRect.width, downRect.y + downRect.height, [0, downRect.y], [0, downRect.y + downRect.height], painted.fade)
+      addFade(upRect.x, upRect.y, upRect.x + upRect.width, upRect.y + upRect.height, [0, upRect.y + upRect.height], [0, upRect.y], painted.fade, painted.fadeOpacity)
+      addFade(downRect.x, downRect.y, downRect.x + downRect.width, downRect.y + downRect.height, [0, downRect.y], [0, downRect.y + downRect.height], painted.fade, painted.fadeOpacity)
     } else if (edgeStops) {
       for (const [rect, region] of [[upRect, up], [downRect, down]]) {
         const start = glyphOrigin(block, region)[0] - entry.glyph.wordX * region.sx

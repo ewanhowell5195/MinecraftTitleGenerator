@@ -171,9 +171,10 @@ export function paintSheet(sheet, look, assets, capHeight, base) {
   const edgeAverage = () => average ??= averageColour(finalPixels(), entries.flatMap(stripPixels))
 
   const fade = look.fade ? clamp(look.outerFade / 100, 0, 1) : null
+  const fadeOpacity = clamp(1 - look.outerFadeOpacity / 100, 0, 1)
   if (look.fade) {
     work.ctx.globalCompositeOperation = "source-atop"
-    const stops = fadeStops(border, `rgba(${r}, ${g}, ${b}, 0)`, fade)
+    const stops = fadeStops(`rgba(${r}, ${g}, ${b}, ${fadeOpacity})`, `rgba(${r}, ${g}, ${b}, 0)`, fade)
     for (const entry of entries) {
       for (const [part, rect] of stripParts(entry)) {
         const [, y, , h] = rect
@@ -190,5 +191,5 @@ export function paintSheet(sheet, look, assets, capHeight, base) {
 
   const tiles = look.source === "tile" && look.tileableTileEdges ? adjustedTiles(look, assets.tile) : null
   const gradient = look.source === "gradient" ? { stops: paintedStops(look), ends: entry => gradientEnds(entry, look, capHeight, sheet) } : null
-  return { canvas: work.canvas, coverRuns: assets.coverBase ? ready.canvas : null, facePixels, border, edgeAverage, tiles, tilesAcrossLine: !look.tileablePerCharacter, gradient, fade, borderColour: packed(rgb, 0), labels: () => overlayLabels(sheet, overlayLayers, capHeight, width, height, band, independent), wraps: wrapsOf(sheet, assets.overlays, labelIndexes(overlayLayers), band, independent), sideWraps: sideWrapsOf(sheet, assets.overlays, capHeight, band, independent), stripSource, edgeFaces: stripSource ? edgeFacesOf(sheet, assets.edgeOverlays, band, independent) : [], tileScale: R }
+  return { canvas: work.canvas, coverRuns: assets.coverBase ? ready.canvas : null, facePixels, border, edgeAverage, tiles, tilesAcrossLine: !look.tileablePerCharacter, gradient, fade, fadeOpacity, borderColour: packed(rgb, 0), labels: () => overlayLabels(sheet, overlayLayers, capHeight, width, height, band, independent), wraps: wrapsOf(sheet, assets.overlays, labelIndexes(overlayLayers), band, independent), sideWraps: sideWrapsOf(sheet, assets.overlays, capHeight, band, independent), stripSource, edgeFaces: stripSource ? edgeFacesOf(sheet, assets.edgeOverlays, band, independent) : [], tileScale: R }
 }
