@@ -31,13 +31,14 @@ function toViewer(view, point) {
   return view.perspective ? view.eye.clone().sub(point) : view.direction.clone().negate()
 }
 
-function imageOf(texture, cache) {
-  if (!cache.has(texture)) {
-    const { image, labels, crackShapes, gradient, fades, panels } = texture.userData.plain ?? { image: texture.image, ...texture.userData }
+function imageOf(texture, cache, plain) {
+  const key = plain ? texture.userData.plain : texture
+  if (!cache.has(key)) {
+    const { image, labels, crackShapes, gradient, fades, panels } = plain ? texture.userData.plain : { image: texture.image, ...texture.userData }
     const { width, height } = image
-    cache.set(texture, { data: image.getContext("2d").getImageData(0, 0, width, height).data, width, height, labels: labels?.() ?? null, crackShapes: crackShapes?.() ?? null, gradient: gradient ?? null, fades: fades ?? null, panels: panels ?? null, analyses: new Map() })
+    cache.set(key, { data: image.getContext("2d").getImageData(0, 0, width, height).data, width, height, labels: labels?.() ?? null, crackShapes: crackShapes?.() ?? null, gradient: gradient ?? null, fades: fades ?? null, panels: panels ?? null, analyses: new Map() })
   }
-  return cache.get(texture)
+  return cache.get(key)
 }
 
 function materialColour(material) {
@@ -94,8 +95,9 @@ export function facesOf(mesh, view, project, cache) {
     if (mirrored) normal.negate()
     if (normal.dot(toViewer(view, corners[0])) > 0 === showsBack) continue
     const material = materialAt(mesh, start)
-    const image = material.map ? imageOf(material.map, cache) : null
-    const coords = material.map?.userData.plain && plainUv ? plainUv : uv
+    const plain = !!(material.map?.userData.plain && plainUv)
+    const image = material.map ? imageOf(material.map, cache, plain) : null
+    const coords = plain ? plainUv : uv
     let texels = null
     let rect = null
     if (image) {

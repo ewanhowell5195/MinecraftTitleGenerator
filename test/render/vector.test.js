@@ -153,6 +153,14 @@ describe("vectorTitle faces", () => {
 })
 
 describe("vectorTitle colours", () => {
+  test("a mesh without plain coordinates, like the outline, reads the sharp texture and not the plain copy", () => {
+    const texture = textureOf(64, 64, () => RED)
+    texture.userData.plain = { image: textureOf(64, 64, () => BLUE).image }
+    const { markup } = titleOf(whole(texture))
+    assert.equal(pathsFilled(markup, "#ff0000").length, 1)
+    assert.equal(pathsFilled(markup, "#0000ff").length, 0)
+  })
+
   test("a vertical ramp is one vertical gradient that matches the texture", () => {
     const { markup } = titleOf(whole(textureOf(8, 64, (x, y) => [y * 4, 0, 0])))
     const gradients = gradientsOf(markup)
