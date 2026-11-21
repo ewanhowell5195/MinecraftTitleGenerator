@@ -157,6 +157,15 @@ describe("mesh glyphs", () => {
     }))
   })
 
+  test("a round letter's overshoot below the baseline is not a descender", async () => {
+    const mesh = glyphMeshes(meshOutlines(await testFont(), { height: 30 })).c
+    const rows = length => ({ map: Array.from({ length }, (_, row) => row) })
+    const overshoot = meshFaces(mesh, { bottom: -1, height: 31, arc: rows(31) }, { bottom: -1, height: 31 }, 0, 6, 0.3, faceLimits(), 30)
+    assert.deepEqual(overshoot.lines.bottoms, [-1])
+    const descender = meshFaces(mesh, { bottom: -8, height: 38, arc: rows(38) }, { bottom: -8, height: 38 }, 0, 6, 0.3, faceLimits(), 30)
+    assert.equal(descender.lines.bottoms.length, 2)
+  })
+
   test("walls only share a run with neighbours of the same kind", async () => {
     const mesh = glyphMeshes(meshOutlines(await testFont(), { height: 30 })).c
     const { faces } = meshFaces(mesh, { bottom: 0, height: 30, arc: { map: Array.from({ length: 30 }, (_, row) => row) } }, { bottom: 0, height: 30 }, 0, 6, 3)

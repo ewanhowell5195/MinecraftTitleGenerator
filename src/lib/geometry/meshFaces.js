@@ -2,6 +2,7 @@ import { ClipType } from "@countertype/clipper2-ts"
 import { ringsOf, solve, triangulated } from "./clip.js"
 
 const FAR = 1e6
+const OVERSHOOT = 0.1
 
 export function rowMapping(glyph, original) {
   const rows = original.height
@@ -116,8 +117,9 @@ export function meshFaces(mesh, glyph, original, x, depth, reach, limits = faceL
   const zBack = depth / 2
   const top = glyph.bottom + glyph.height
   const band = reach * limits.band
-  const tops = [top, mapping.lift(capHeight)].filter((line, at) => !at || top - line > band)
-  const bottoms = [glyph.bottom, mapping.lift(0)].filter((line, at) => !at || line - glyph.bottom > band)
+  const past = Math.max(band, Number.isFinite(capHeight) ? capHeight * OVERSHOOT : 0)
+  const tops = [top, mapping.lift(capHeight)].filter((line, at) => !at || top - line > past)
+  const bottoms = [glyph.bottom, mapping.lift(0)].filter((line, at) => !at || line - glyph.bottom > past)
   const faces = []
   for (const triangle of triangles) {
     const corners = triangle.map(place)
