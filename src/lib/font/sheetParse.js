@@ -100,11 +100,13 @@ function verticalLines(map, width, top, bottom) {
   return lines
 }
 
-function findRow(map, width, top, bottom, kind) {
+function findRow(map, width, top, bottom, kind, row, name) {
+  const found = []
   for (let y = top; y <= bottom; y++) {
-    if (map[y * width] === kind) return y
+    if (map[y * width] === kind) found.push(y)
   }
-  return null
+  if (found.length > 1) throw new Error(`row ${row} has ${found.length} ${name} marker pixels in its left column, and it can only have one`)
+  return found[0] ?? null
 }
 
 export function scanMask(data, width, height) {
@@ -137,8 +139,8 @@ export function scanMask(data, width, height) {
     rows.push({
       top,
       bottom,
-      baseline: findRow(map, width, top, bottom, BASELINE) ?? bottom,
-      topline: findRow(map, width, top, bottom, TOPLINE) ?? top,
+      baseline: findRow(map, width, top, bottom, BASELINE, rows.length + 1, "green baseline") ?? bottom,
+      topline: findRow(map, width, top, bottom, TOPLINE, rows.length + 1, "blue topline") ?? top,
       cells
     })
   }

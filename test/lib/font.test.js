@@ -192,6 +192,10 @@ describe("parseMask", () => {
     assert.throws(() => parse(SHEET, "abc"), { message: "mask has 2 cells but the order lists 3 characters" })
   })
 
+  test("throws when a row's left column has more than one baseline marker", () => {
+    assert.throws(() => parse(["RRR", "G#R", "G#R", "RRR"], "a"), { message: "row 1 has 2 green baseline marker pixels in its left column, and it can only have one" })
+  })
+
   test("throws when rows disagree on cap height", () => {
     assert.throws(() => parse(["RRR", "B#R", "G#R", "RRR", "B#R", "R#R", "G#R", "RRR"], "ab"), { message: "rows disagree on cap height: 2, 3" })
   })
