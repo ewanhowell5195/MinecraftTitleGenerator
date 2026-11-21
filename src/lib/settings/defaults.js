@@ -112,7 +112,7 @@ export const PANELS = {
   }),
   transform: () => ({
     matchWidth: null,
-    matchBottom: false,
+    matchBottom: true,
     matchScaleY: false,
     matchScale: 1,
     matchOffset: 0,

@@ -330,10 +330,10 @@ describe("chooseMatch", () => {
 describe("bakeMatch", () => {
   test("moves the match into the sliders and unlinks", () => {
     const [a, b] = setScene(createObject({ text: "a" }), createObject({ text: "b" }))
-    Object.assign(b, { matchWidth: a.id, matchBottom: true, matchScale: 2, matchOffset: -4, scaleX: 1.5, scaleY: 1.2, translateX: 10 })
+    Object.assign(b, { matchWidth: a.id, matchBottom: false, matchScale: 2, matchOffset: -4, scaleX: 1.5, scaleY: 1.2, translateX: 10 })
     bakeMatch(b)
     assert.deepEqual([b.scaleX, b.scaleY, b.translateX], [3, 1.2, 6])
-    assert.deepEqual([b.matchWidth, b.matchBottom, b.matchScale, b.matchOffset], [null, false, 1, 0])
+    assert.deepEqual([b.matchWidth, b.matchBottom, b.matchScale, b.matchOffset], [null, true, 1, 0])
   })
 
   test("takes Y along when it was matched too", () => {

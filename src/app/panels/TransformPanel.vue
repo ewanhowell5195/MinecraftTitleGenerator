@@ -18,7 +18,7 @@
   })
 
   const AXIS_PANELS = [["translation", "Position"], ["rotation", "Rotation"]]
-  const MATCH_MODES = [{ value: false, label: "Row width", title: "The widest point in the row" }, { value: true, label: "Row bottom width", title: "The widest point in the bottom of the row" }]
+  const MATCH_MODES = [{ value: false, label: "Full row width", title: "The widest point in the row" }, { value: true, label: "Row bottom width", title: "The widest point in the bottom of the row" }]
 
   const object = computed(() => props.word ? currentWord.value : current.value)
   const k = key => props.word ? wordKey(key) : key

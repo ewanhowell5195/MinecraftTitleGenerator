@@ -226,7 +226,7 @@ export function chooseMatch(object, id) {
 function bakeWord(word) {
   const scaleX = round(word.scaleX * word.matchScale, 4)
   const scaleY = word.matchScaleY ? round(word.scaleY * word.matchScale, 4) : word.scaleY
-  Object.assign(word, { scaleX, scaleY, linkScale: word.linkScale === null ? null : scaleY / scaleX, translateX: round(word.translateX + word.matchOffset, 2), matchWidth: null, matchBottom: false, matchScaleY: false, matchScale: 1, matchOffset: 0 })
+  Object.assign(word, { scaleX, scaleY, linkScale: word.linkScale === null ? null : scaleY / scaleX, translateX: round(word.translateX + word.matchOffset, 2), matchWidth: null, matchBottom: true, matchScaleY: false, matchScale: 1, matchOffset: 0 })
 }
 
 export function bakeMatch(object) {

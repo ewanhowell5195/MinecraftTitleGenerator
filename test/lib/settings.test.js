@@ -49,7 +49,7 @@ const TOP_DEFAULTS = {
   twistFanHeight: 50,
   arcGradient: false,
   matchWidth: null,
-  matchBottom: false,
+  matchBottom: true,
   matchScaleY: false,
   matchScale: 1,
   matchOffset: 0,
@@ -598,10 +598,10 @@ describe("transform groups", () => {
   })
 
   test("resetting the match leaves the scale", () => {
-    const object = createObject({ matchWidth: 4, matchBottom: true, scaleX: 2 })
+    const object = createObject({ matchWidth: 4, matchBottom: false, scaleX: 2 })
     resetTransform(object, "match")
     assert.equal(object.matchWidth, null)
-    assert.equal(object.matchBottom, false)
+    assert.equal(object.matchBottom, true)
     assert.equal(object.scaleX, 2)
   })
 

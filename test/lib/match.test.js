@@ -20,7 +20,7 @@ function chain(count) {
 
 function linked(count) {
   const objects = chain(count)
-  for (let i = 0; i < count - 1; i++) objects[i].matchWidth = objects[i + 1].id
+  for (let i = 0; i < count - 1; i++) Object.assign(objects[i], { matchWidth: objects[i + 1].id, matchBottom: false })
   return objects
 }
 
@@ -211,7 +211,7 @@ describe("problems and solving", () => {
       return made
     }
 
-    test("row width ignores the bottom of the row", async () => {
+    test("full row width ignores the bottom of the row", async () => {
       const [target, reference] = linked(2)
       runtime[reference.id] = withBottom(100, 0, [-50, 0], [50, 0])
       runtime[target.id] = state(50, 0, -60)
@@ -238,7 +238,7 @@ describe("problems and solving", () => {
       assert.equal(target.matchOffset, -10)
     })
 
-    test("row width leaves the line centred", async () => {
+    test("full row width leaves the line centred", async () => {
       const [target, reference] = linked(2)
       runtime[reference.id] = withBottom(100, 0, [-60, 0], [40, 0])
       runtime[target.id] = state(50, 0, -60)

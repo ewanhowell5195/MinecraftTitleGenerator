@@ -86,8 +86,8 @@ describe("the real title file", () => {
     assert.equal(scene.objects.length, 3)
     const [first, word, generator] = scene.objects
     assert.deepEqual(snapshot(first), { ...typeDefaults("top"), texture: "cracked" })
-    assert.deepEqual(snapshot(word), { ...typeDefaults("bottom"), text: "title", texture: "fired", hue: 359, customBorder: true, borderColour: "#230f00", matchWidth: first.id, matchScale: 0.7977, group: word.group })
-    assert.deepEqual(snapshot(generator), { ...typeDefaults("bottom"), text: "generator", texture: "fired", hue: 180, customBorder: true, borderColour: "#001329", customEdge: true, edgeColour: "#11467d", matchWidth: first.id, matchScale: 0.7977, group: word.group })
+    assert.deepEqual(snapshot(word), { ...typeDefaults("bottom"), text: "title", texture: "fired", hue: 359, customBorder: true, borderColour: "#230f00", matchWidth: first.id, matchBottom: false, matchScale: 0.7977, group: word.group })
+    assert.deepEqual(snapshot(generator), { ...typeDefaults("bottom"), text: "generator", texture: "fired", hue: 180, customBorder: true, borderColour: "#001329", customEdge: true, edgeColour: "#11467d", matchWidth: first.id, matchBottom: false, matchScale: 0.7977, group: word.group })
     assert.notEqual(word.group, null)
     assert.equal(scene.selected, first.id)
     assert.equal(scene.selectedGroup, null)
@@ -103,7 +103,7 @@ describe("the real title file", () => {
   test("saves back without the scale that gets solved", async () => {
     await openTitle(fileOf(REAL_FILE))
     const saved = await save()
-    assert.deepEqual(saved, { format: "minecraft-title", version: 7, lines: [{ texture: "cracked" }, { type: "bottom", matchWidth: 0, words: [{ text: "title", texture: "fired", hue: 359, customBorder: true, borderColour: "#230f00" }, { text: "generator", texture: "fired", hue: 180, customBorder: true, borderColour: "#001329", customEdge: true, edgeColour: "#11467d" }] }] })
+    assert.deepEqual(saved, { format: "minecraft-title", version: 8, lines: [{ texture: "cracked" }, { type: "bottom", matchWidth: 0, matchBottom: false, words: [{ text: "title", texture: "fired", hue: 359, customBorder: true, borderColour: "#230f00" }, { text: "generator", texture: "fired", hue: 180, customBorder: true, borderColour: "#001329", customEdge: true, edgeColour: "#11467d" }] }] })
   })
 
   test("opens the same after saving", async () => {
@@ -119,7 +119,7 @@ describe("the real title file", () => {
 describe("saving trims settings", () => {
   test("a brand new title saves an empty line", async () => {
     setScene(createObject())
-    assert.deepEqual(await save(), { format: "minecraft-title", version: 7, lines: [{}] })
+    assert.deepEqual(await save(), { format: "minecraft-title", version: 8, lines: [{}] })
   })
 
   test("an object at its type defaults saves only its type", async () => {
@@ -238,18 +238,18 @@ describe("saving trims settings", () => {
     assert.deepEqual(await savedLines(reference, target), [{}, { type: "bottom", matchWidth: 0, scaleX: 1.2, scaleY: 2 }])
   })
 
-  test("row bottom width is saved with its match, and left out without one", async () => {
+  test("full row width is saved with its match, and left out without one", async () => {
     const reference = make("top")
-    const target = make("bottom", { matchWidth: reference.id, matchBottom: true })
-    assert.deepEqual(await savedLines(reference, target), [{}, { type: "bottom", matchWidth: 0, matchBottom: true }])
+    const target = make("bottom", { matchWidth: reference.id, matchBottom: false })
+    assert.deepEqual(await savedLines(reference, target), [{}, { type: "bottom", matchWidth: 0, matchBottom: false }])
     target.matchWidth = null
     assert.deepEqual((await save()).lines, [{}, { type: "bottom" }])
   })
 
   test("a solved sideways move is left out, and kept while the reference is hidden", async () => {
     const reference = make("top")
-    const target = make("bottom", { matchWidth: reference.id, matchBottom: true, matchOffset: -10 })
-    assert.deepEqual(await savedLines(reference, target), [{}, { type: "bottom", matchWidth: 0, matchBottom: true }])
+    const target = make("bottom", { matchWidth: reference.id, matchOffset: -10 })
+    assert.deepEqual(await savedLines(reference, target), [{}, { type: "bottom", matchWidth: 0 }])
     reference.hidden = true
     assert.equal((await save()).lines[1].matchOffset, -10)
   })
@@ -393,7 +393,7 @@ describe("matchWidth indexes", () => {
   test("a chain of matches survives saving and opening", async () => {
     await open([{ text: "a", matchWidth: 1 }, { text: "b", matchWidth: 2 }, { text: "c" }])
     const saved = await save()
-    assert.deepEqual(saved.lines, [{ text: "a", matchWidth: 1 }, { text: "b", matchWidth: 2 }, { text: "c" }])
+    assert.deepEqual(saved.lines, [{ text: "a", matchWidth: 1, matchBottom: false }, { text: "b", matchWidth: 2, matchBottom: false }, { text: "c" }])
     const [a, b, c] = await open(saved.lines)
     assert.equal(a.matchWidth, b.id)
     assert.equal(b.matchWidth, c.id)
@@ -563,6 +563,13 @@ describe("opening", () => {
     assert.equal(scene.objects[0].overlays[0].randomness, undefined)
   })
 
+  test("a match from version 7 keeps matching the full row width, a new one matches the row bottom", async () => {
+    await openTitle(fileOf(title([{ text: "a" }, { text: "b", matchWidth: 0 }, { text: "c", matchWidth: 0, matchBottom: true }], { version: 7 })))
+    assert.deepEqual(scene.objects.map(object => object.matchBottom), [true, false, true])
+    await openTitle(fileOf(title([{ text: "a" }, { text: "b", matchWidth: 0 }], { version: 8 })))
+    assert.equal(scene.objects[1].matchBottom, true)
+  })
+
   test("depth from version 5 uses each type's anchor", async () => {
     await openTitle(fileOf(title([{ text: "a", depth: 30 }, { type: "small", text: "b", depth: 30 }], { version: 5 })))
     assert.deepEqual(scene.objects.map(object => object.depthAnchor), ["back", "middle"])
@@ -635,7 +642,7 @@ describe("rejected files", () => {
     ["a JSON null", "null", "Couldn't open test.mctitle: this isn't a Minecraft title file"],
     ["another format", { format: "something-else", version: 1, lines: [{}] }, "Couldn't open test.mctitle: this isn't a Minecraft title file"],
     ["no format", { version: 1, lines: [{}] }, "Couldn't open test.mctitle: this isn't a Minecraft title file"],
-    ["a newer version", title([{}], { version: 8 }), "Couldn't open test.mctitle: it was saved by a newer version of the generator (format 8)"],
+    ["a newer version", title([{}], { version: 9 }), "Couldn't open test.mctitle: it was saved by a newer version of the generator (format 9)"],
     ["no lines key", { format: "minecraft-title", version: 1 }, "Couldn't open test.mctitle: it has no text in it"],
     ["empty lines", title([]), "Couldn't open test.mctitle: it has no text in it"],
     ["lines that are not a list", title("words"), "Couldn't open test.mctitle: it has no text in it"],

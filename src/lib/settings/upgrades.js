@@ -1,6 +1,6 @@
 import { typeDefaults } from "./defaults.js"
 
-export const FILE_VERSION = 7
+export const FILE_VERSION = 8
 const OLD_WAVE = { level: 45, randomness: 60 }
 
 function restartTilesPerCharacter(entry) {
@@ -47,7 +47,11 @@ function turnInvertedWaves(value) {
   return oldWave(Object.fromEntries(Object.entries(value).map(([key, item]) => [key, turnInvertedWaves(item)])))
 }
 
-const UPGRADES = [[2, restartLineTiles], [3, separateMatchScale], [4, widenBlockSerif], [5, anchorDepthAtFront], [6, turnDoorsInPlace], [7, turnInvertedWaves]]
+function matchFullRow(line) {
+  return line.matchWidth !== undefined && line.matchWidth !== null && !("matchBottom" in line) ? { ...line, matchBottom: false } : line
+}
+
+const UPGRADES = [[2, restartLineTiles], [3, separateMatchScale], [4, widenBlockSerif], [5, anchorDepthAtFront], [6, turnDoorsInPlace], [7, turnInvertedWaves], [8, matchFullRow]]
 
 export function upgradeLine(line, version) {
   return UPGRADES.reduce((upgraded, [to, upgrade]) => version < to ? upgrade(upgraded) : upgraded, line)
