@@ -45,6 +45,30 @@ describe("font defaults", () => {
     assert.equal(object.texture, "gold")
   })
 
+  test("a texture the new font also has is kept", () => {
+    const object = layered({ texture: "flat" })
+    switchFont(object)
+    assert.equal(object.texture, "flat")
+  })
+
+  test("a variant the new font doesn't have falls back to its texture", () => {
+    const shared = { primary: "stone", overlays: {}, edgeOverlays: {}, textures: { stone: { variants: { mossy: {} } } } }
+    const object = layered({ textureVariant: "mossy" })
+    applyFontDefaults(object, newFont, structuredClone(shared), shared)
+    assert.deepEqual([object.texture, object.textureVariant], ["stone", "mossy"])
+    loadedFont.set(object, oldFont.id)
+    applyFontDefaults(object, newFont, { ...shared, textures: { stone: {} } }, shared)
+    assert.deepEqual([object.texture, object.textureVariant], ["stone", null])
+  })
+
+  test("a kept texture only takes the new font's face defaults where they differ", () => {
+    const list = (sides, inner) => ({ primary: "stone", overlays: {}, edgeOverlays: {}, textures: { stone: { sides, inner } } })
+    const object = layered({ customInternal: true, internalColour: "#abcdef" })
+    applyFontDefaults(object, newFont, list("#222222", "#333333"), list("#111111", "#333333"))
+    assert.deepEqual([object.customSide, object.sideColour], [true, "#222222"])
+    assert.deepEqual([object.customInternal, object.internalColour], [true, "#abcdef"])
+  })
+
   test("every separate layer drops overlays the new font doesn't have", () => {
     const object = layered()
     object.overlayMode = "custom"

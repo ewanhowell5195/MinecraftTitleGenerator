@@ -103,7 +103,7 @@ export function setTexture(object, values, { before = null, after = before } = {
     object[key] = value
     changed = true
   }
-  if (!changed) return
+  if (!changed && before === after) return
   if (!after) {
     for (const kind of LAYERS) object[OVERLAY_KINDS[kind]] = "default"
     return

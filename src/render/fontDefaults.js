@@ -12,11 +12,17 @@ function layerViews(object, group) {
   return Array.from({ length: count }, (_, layer) => layerView(object, layer, group))
 }
 
+function fontTexture(target, textures, type) {
+  const entry = textures.textures[target.texture]
+  if (!entry) return { texture: defaultTexture(textures, type), textureVariant: null }
+  return { texture: target.texture, textureVariant: entry.variants?.[target.textureVariant] ? target.textureVariant : null }
+}
+
 export function applyFontDefaults(object, loaded, textures, before) {
   if (!keepTexture.has(object) && loadedFont.get(object) !== loaded.id) {
     quietly(() => {
-      const values = { texture: defaultTexture(textures, object.type), textureVariant: null }
       for (const target of layerViews(object, "texture")) {
+        const values = fontTexture(target, textures, object.type)
         const unfitting = target.textureSource === "custom" && !!target.customTexture && !["tileable", "cover"].includes(target.customTextureMode)
         if (target.textureSource === "premade" || unfitting) setTexture(target, unfitting ? { ...values, textureSource: "premade" } : values, { before, after: textures })
         else Object.assign(target, values)
