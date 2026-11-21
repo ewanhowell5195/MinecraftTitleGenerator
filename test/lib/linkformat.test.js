@@ -115,6 +115,15 @@ describe("settings table", () => {
     assert.equal(unknownSetting([{ fade: 40 }]), "fade")
   })
 
+  test("a hidden overlay layer is shared compactly and stays hidden", () => {
+    for (const list of ["overlays", "edgeOverlays"]) {
+      const lines = [{ [list]: [{ overlay: "shine", hidden: true }, { overlay: "dust" }] }]
+      assert.ok(!Buffer.from(writeLines(lines)).includes("hidden"))
+      assert.deepEqual(roundTrip(lines), lines)
+      assert.equal(unknownSetting(lines), null)
+    }
+  })
+
   test("an overlay fade opens and can be shared", () => {
     const { lines } = decodeTitle("EAQICFQKB71oSAQQGBQKB71rcAQAQwAzWAYAK")
     assert.deepEqual(lines, [{ text: "shine", overlays: [{ overlay: "shine", source: "premade", opacity: 100, fade: 80 }] }])

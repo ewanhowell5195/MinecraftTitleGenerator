@@ -56,7 +56,8 @@
     files: { type: Boolean, default: true },
     sideFaces: { type: Boolean, default: false },
     tileMin: { type: Number, default: null },
-    reuse: { type: Array, default: () => [] }
+    reuse: { type: Array, default: () => [] },
+    hideable: { type: Boolean, default: true }
   })
 
   const selected = defineModel("selected", { type: Number, default: 0 })
@@ -153,7 +154,7 @@
 
   function replaceLayer(target, next) {
     const before = toRaw(target[selected.value])
-    target[selected.value] = next
+    target[selected.value] = { ...next, hidden: !!before.hidden }
     memories.set(toRaw(target[selected.value]), memoryOf(before))
   }
 
@@ -207,6 +208,11 @@
     selected.value = Math.max(0, Math.min(selected.value, target.length - 1))
   }
 
+  function toggleLayer(index) {
+    const target = props.edit()
+    target[index].hidden = !target[index].hidden
+  }
+
   function duplicateLayer(index) {
     const target = props.edit()
     target.splice(index + 1, 0, structuredClone(toRaw(target[index])))
@@ -232,12 +238,15 @@
 
 <template>
   <div ref="box" class="layers" v-if="layers.length">
-    <div :ref="el => (rows[index] = el)" class="layer card card-row small" v-for="(item, index) of layers" :key="index" tabindex="0" role="button" :aria-pressed="selected === index" @click="selected = index" @keydown.enter="selected = index" @keydown.space.self.prevent="selected = index" :class="{ selected: selected === index, dragged: dragged === index }">
+    <div :ref="el => (rows[index] = el)" class="layer card card-row small" v-for="(item, index) of layers" :key="index" tabindex="0" role="button" :aria-pressed="selected === index" @click="selected = index" @keydown.enter="selected = index" @keydown.space.self.prevent="selected = index" :class="{ selected: selected === index, dragged: dragged === index, hidden: item.hidden }">
       <span class="grip" @pointerdown="press($event, index)"><Icon name="grip" :size="14" /></span>
       <img :src="item.source === 'file' ? item.file : thumbnail(font, item.overlay, shownLayer)" alt="">
-      <span class="grow ellipsis">{{ layerName(item) }}</span>
-      <Button ghost icon="copy" title="Duplicate overlay" @click.stop="duplicateLayer(index)" />
-      <Button ghost icon="trash" title="Remove overlay" @click.stop="removeLayer(index)" />
+      <span class="name grow ellipsis">{{ layerName(item) }}</span>
+      <span class="actions">
+        <Button ghost v-if="hideable" :icon="item.hidden ? 'hidden' : 'eye'" :title="item.hidden ? 'Show this overlay' : 'Hide this overlay'" :aria-pressed="!!item.hidden" @click.stop="toggleLayer(index)" />
+        <Button ghost icon="copy" title="Duplicate overlay" @click.stop="duplicateLayer(index)" />
+        <Button ghost icon="trash" title="Remove overlay" @click.stop="removeLayer(index)" />
+      </span>
     </div>
   </div>
   <Button wide icon="plus" v-if="layer" @click="selected = null"><span>Add overlay</span></Button>
@@ -318,6 +327,19 @@
     object-fit: contain;
     image-rendering: pixelated;
     background: var(--field);
+  }
+
+  .layer.hidden img {
+    opacity: 0.3;
+  }
+
+  .layer.hidden .name {
+    color: var(--faint);
+  }
+
+  .actions {
+    display: flex;
+    gap: 2px;
   }
 
   .scroll {

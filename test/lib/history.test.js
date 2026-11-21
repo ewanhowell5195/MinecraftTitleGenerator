@@ -236,6 +236,16 @@ describe("undo and redo", () => {
     assert.equal(object.overlays[0].file, file)
   })
 
+  test("hiding an overlay layer can be undone and redone", async () => {
+    await change(object, { overlayMode: "custom", overlays: [{ ...LAYER, overlay: "dust" }] })
+    object.overlays[0].hidden = true
+    await settle()
+    undo()
+    assert.equal(object.overlays[0].hidden, false)
+    redo()
+    assert.equal(object.overlays[0].hidden, true)
+  })
+
   test("two different long strings stay apart", async () => {
     const first = "a".repeat(2000)
     const second = "b".repeat(2000)

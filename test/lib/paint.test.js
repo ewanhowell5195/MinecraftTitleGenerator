@@ -7,6 +7,9 @@ quietStorage()
 const { shapeLine } = await import("../../src/lib/geometry/shapedLine.js")
 const { baseKey, lookKey, paintKey } = await import("../../src/lib/texture/paint/keys.js")
 const { stripDetail } = await import("../../src/lib/texture/paint/strip.js")
+const { lookOf } = await import("../../src/render/objectLook.js")
+const { createObject } = await import("../../src/lib/settings/objects.js")
+const { LAYER } = await import("../../src/lib/settings/textureDefaults.js")
 
 const CAP = 8
 const PLAIN = { source: "texture", gradientAngle: 0, tileablePerCharacter: false, wordedFaces: false }
@@ -78,6 +81,25 @@ describe("lookKey", () => {
   test("another picture or another setting gives another key", () => {
     assert.notEqual(lookKey({ customTexture: picture }), lookKey({ customTexture: `${picture}B` }))
     assert.notEqual(lookKey({ customTexture: picture, hue: 1 }), lookKey({ customTexture: picture, hue: 2 }))
+  })
+})
+
+describe("hidden overlays", () => {
+  const list = { overlays: { dust: {}, scratches: {} }, edgeOverlays: { rim: {} }, textures: { flat: {} } }
+
+  function lookWith(hidden) {
+    return lookOf(createObject({ texture: "flat", overlayMode: "custom", overlays: [{ ...LAYER, overlay: "dust", hidden }, { ...LAYER, overlay: "scratches" }], edgeOverlayMode: "custom", edgeOverlays: [{ ...LAYER, overlay: "rim", hidden }] }), 0, null, list)
+  }
+
+  test("a hidden layer never reaches the painted look", () => {
+    const look = lookWith(true)
+    assert.deepEqual(look.overlays.map(layer => layer.overlay), ["scratches"])
+    assert.deepEqual(look.edgeOverlays, [])
+    assert.deepEqual(lookWith(false).overlays.map(layer => layer.overlay), ["dust", "scratches"])
+  })
+
+  test("hiding a layer repaints", () => {
+    assert.notEqual(lookKey(lookWith(true)), lookKey(lookWith(false)))
   })
 })
 

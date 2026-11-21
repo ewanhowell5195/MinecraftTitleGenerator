@@ -12,7 +12,7 @@ import { usePlacement, usePublished } from "./objectState.js"
 import { NO_ARC } from "../lib/geometry/rows.js"
 import { editorTitle, keepTexture, loadedFont } from "../lib/state/scene.js"
 import { effectiveScale } from "../lib/settings/settings.js"
-import { activeOverlays, defaultTexture, setTexture, textureEntry } from "../lib/settings/textureDefaults.js"
+import { defaultTexture, setTexture, shownOverlays, textureEntry } from "../lib/settings/textureDefaults.js"
 import { minecraftQuads } from "../lib/minecraft/minecraftModels.js"
 import { definitionPalette } from "../lib/texture/overlayColours.js"
 import { CUSTOM_SHAPE, MODEL_BASELINE, SHAPE_TEXTURE, isMinecraftShape, minecraftShapeParts, modelHeight, shapeName, shapeOf } from "../lib/geometry/shapes.js"
@@ -47,7 +47,7 @@ export default {
       shape: shape.value?.id,
       texture: object.texture,
       textureVariant: object.textureVariant,
-      overlays: list.value && !shape.value?.minecraft ? activeOverlays(list.value, object, "overlays").map(layer => ({ ...layer })) : [],
+      overlays: list.value && !shape.value?.minecraft ? shownOverlays(list.value, object, "overlays").map(layer => ({ ...layer })) : [],
       hue: object.hue,
       saturation: object.saturation,
       brightness: object.brightness,

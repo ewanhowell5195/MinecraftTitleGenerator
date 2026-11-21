@@ -209,12 +209,12 @@
     <template v-if="hasDefaults">
       <div class="overlay-group wide">
         <h3>Face overlays</h3>
-        <OverlayLayers v-model:selected="selected.overlays.value" :layers="layers.overlays.value" :edit="() => layers.overlays.value" :available="choices.overlays" :font="fontView" :fonts="fonts" :files="false" :side-faces="!!(faces.internalFaces || faces.sideFaces)" :tile-min="110" />
+        <OverlayLayers v-model:selected="selected.overlays.value" :layers="layers.overlays.value" :edit="() => layers.overlays.value" :available="choices.overlays" :font="fontView" :fonts="fonts" :files="false" :hideable="false" :side-faces="!!(faces.internalFaces || faces.sideFaces)" :tile-min="110" />
       </div>
       <div class="overlay-group wide">
         <h3>Edge overlays</h3>
         <p class="hint">Paints the top and bottom faces around each letter.</p>
-        <OverlayLayers v-model:selected="selected.edgeOverlays.value" :layers="layers.edgeOverlays.value" :edit="() => layers.edgeOverlays.value" :available="choices.edgeOverlays" :font="fontView" :fonts="fonts" :files="false" :tile-min="110" edge />
+        <OverlayLayers v-model:selected="selected.edgeOverlays.value" :layers="layers.edgeOverlays.value" :edit="() => layers.edgeOverlays.value" :available="choices.edgeOverlays" :font="fontView" :fonts="fonts" :files="false" :hideable="false" :tile-min="110" edge />
       </div>
     </template>
     <Field group label="Default face colours" hint="Colours the faces start with when someone picks this texture." :error="tried ? problems.colours : ''">

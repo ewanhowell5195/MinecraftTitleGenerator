@@ -2,7 +2,7 @@ import { sameValue } from "../core/values.js"
 import { PANELS, TYPED_KEYS } from "./defaults.js"
 import { isSeparate, layerTarget, layerView, separateLayers, viewed } from "./layers.js"
 
-export const LAYER = { source: "premade", file: null, blend: "overlay", colours: null, tint: null, tintBlend: "multiply", opacity: 100 }
+export const LAYER = { source: "premade", file: null, blend: "overlay", colours: null, tint: null, tintBlend: "multiply", opacity: 100, hidden: false }
 
 export function overlayLayer(overlay, definition) {
   return { ...LAYER, overlay, ...structuredClone(definition?.default ?? {}) }
@@ -53,6 +53,10 @@ export function defaultOverlays(list, object, kind, layer = 0) {
 
 export function activeOverlays(list, object, kind, layer = 0) {
   return object[OVERLAY_KINDS[kind]] === "custom" ? object[kind] : defaultOverlays(list, object, kind, layer)
+}
+
+export function shownOverlays(list, object, kind, layer = 0) {
+  return activeOverlays(list, object, kind, layer).filter(entry => !entry.hidden)
 }
 
 export const FACE_COLOURS = {

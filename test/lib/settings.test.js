@@ -4,7 +4,7 @@ import { isReactive } from "vue"
 import { PANELS, applyType, defaultBorder, defaultDepth, defaultSpacing, fontFaces, typeDefaults } from "../../src/lib/settings/defaults.js"
 import { applyFontFaces, layerTarget, layerView, overlayFits, separateLayers } from "../../src/lib/settings/layers.js"
 import { LINE, effectiveScale, isModified, resetPanel, resetTransform, restore, snapshot, transformKeys, wordKey } from "../../src/lib/settings/settings.js"
-import { LAYER, activeOverlays, defaultOverlays, defaultTexture, overlayLayer, pinnedTextures, setTexture, textureEntry } from "../../src/lib/settings/textureDefaults.js"
+import { LAYER, activeOverlays, defaultOverlays, defaultTexture, overlayLayer, pinnedTextures, setTexture, shownOverlays, textureEntry } from "../../src/lib/settings/textureDefaults.js"
 import { createObject } from "../../src/lib/settings/objects.js"
 
 const TOP_DEFAULTS = {
@@ -247,7 +247,7 @@ describe("typeDefaults", () => {
 
 describe("LAYER", () => {
   test("pins every layer default", () => {
-    assert.deepEqual(LAYER, { source: "premade", file: null, blend: "overlay", colours: null, tint: null, tintBlend: "multiply", opacity: 100 })
+    assert.deepEqual(LAYER, { source: "premade", file: null, blend: "overlay", colours: null, tint: null, tintBlend: "multiply", opacity: 100, hidden: false })
   })
 })
 
@@ -710,6 +710,13 @@ describe("overlays", () => {
     assert.deepEqual(snapshot(custom).overlays, layers)
     assert.deepEqual(activeOverlays(list, custom, "overlays").map(layer => layer.overlay), ["dust"])
     assert.deepEqual(activeOverlays(list, standard, "overlays").map(layer => layer.overlay), ["scratches"])
+  })
+
+  test("shownOverlays leaves out hidden layers but activeOverlays keeps them", () => {
+    const object = createObject({ texture: "cracked", overlayMode: "custom", overlays: [{ ...LAYER, overlay: "dust", hidden: true }, { ...LAYER, overlay: "scratches" }], edgeOverlayMode: "custom", edgeOverlays: [{ ...LAYER, overlay: "rim", hidden: true }] })
+    assert.deepEqual(shownOverlays(list, object, "overlays").map(layer => layer.overlay), ["scratches"])
+    assert.deepEqual(shownOverlays(list, object, "edgeOverlays"), [])
+    assert.deepEqual(activeOverlays(list, object, "overlays").map(layer => layer.overlay), ["dust", "scratches"])
   })
 })
 

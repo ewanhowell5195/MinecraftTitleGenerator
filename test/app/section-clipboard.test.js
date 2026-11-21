@@ -63,4 +63,13 @@ describe("copying a tab's settings", () => {
     runtime[to.id] = { list: { ...LIST, overlays: {} }, font: {} }
     assert.equal(canPasteSection("overlays"), false)
   })
+
+  test("hidden overlay layers stay hidden when pasted", async () => {
+    Object.assign(from, { overlayMode: "custom", overlays: [{ overlay: "shine", source: "premade", hidden: true }] })
+    select(from)
+    copySection("overlays")
+    select(to)
+    await pasteSection("overlays")
+    assert.deepEqual(to.overlays, [{ overlay: "shine", source: "premade", hidden: true }])
+  })
 })

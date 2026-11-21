@@ -1,4 +1,4 @@
-import { activeOverlays, textureEntry } from "../lib/settings/textureDefaults.js"
+import { shownOverlays, textureEntry } from "../lib/settings/textureDefaults.js"
 
 const CUSTOM_SOURCES = { standard: "texture", tileable: "tile", strip: "strip", cover: "cover" }
 
@@ -31,8 +31,8 @@ export function lookOf(object, layer, font, list) {
     smooth: object.smooth,
     gradientAngle: object.gradientAngle,
     arcGradient: object.arcGradient,
-    overlays: activeOverlays(list, object, "overlays", layer).map(entry => ({ ...entry })),
-    edgeOverlays: activeOverlays(list, object, "edgeOverlays", layer).map(entry => ({ ...entry })),
+    overlays: shownOverlays(list, object, "overlays", layer).map(entry => ({ ...entry })),
+    edgeOverlays: shownOverlays(list, object, "edgeOverlays", layer).map(entry => ({ ...entry })),
     tileableScale: object.tileableScale,
     tileableXOffset: object.tileableXOffset,
     tileableYOffset: object.tileableYOffset,

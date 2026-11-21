@@ -416,6 +416,14 @@ describe("overlay layers", () => {
     }])
   })
 
+  test("saving keeps a hidden layer hidden and drops visible layers' hidden flag", async () => {
+    const lines = await savedLines(make("top", { overlayMode: "custom", overlays: [{ ...LAYER, overlay: "dust", hidden: true }, { ...LAYER, overlay: "scratches" }], edgeOverlayMode: "custom", edgeOverlays: [{ ...LAYER, overlay: "rim", hidden: true }] }))
+    assert.deepEqual(lines, [{ overlayMode: "custom", overlays: [{ overlay: "dust", hidden: true }, { overlay: "scratches" }], edgeOverlayMode: "custom", edgeOverlays: [{ overlay: "rim", hidden: true }] }])
+    const [object] = await open(lines)
+    assert.deepEqual(snapshot(object).overlays, [{ ...LAYER, overlay: "dust", hidden: true }, { ...LAYER, overlay: "scratches" }])
+    assert.deepEqual(snapshot(object).edgeOverlays, [{ ...LAYER, overlay: "rim", hidden: true }])
+  })
+
   test("opening fills each layer back in", async () => {
     const [object] = await open([{ overlayMode: "custom", overlays: [{ overlay: "dust", opacity: 50, size: 3 }], edgeOverlayMode: "custom", edgeOverlays: [{ overlay: "rim" }] }])
     assert.deepEqual(snapshot(object).overlays, [{ ...LAYER, overlay: "dust", opacity: 50, size: 3 }])
