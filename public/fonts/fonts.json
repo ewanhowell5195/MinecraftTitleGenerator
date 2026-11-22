@@ -455,5 +455,10 @@
       "16": ["lt", "ly", "l7", "f_", "l^", "l~", "p_"]
     },
     "editor": { "width": 48, "grid": 8 }
+  },
+  {
+    "id": "mc-burokku-regular",
+    "name": "MC Burokku",
+    "authors": ["TheSamir_MC"]
   }
 ]
