@@ -146,6 +146,7 @@
   </Field>
   <Field group class="wide" label="Textures, overlays and strips for this font" :error="problems.extras">
     <p class="hint">Optional. A flat texture replaces the plain one the font gets otherwise. Paint flat textures, textures and overlays over the font's <a v-if="blankTexture" :href="blankTexture" :download="`${fontId || 'font'}-template.png`">blank texture</a><template v-else>blank texture, from the Textures tab of the font editor</template>, at its size or a whole number of times bigger.<template v-if="stripHeights"> Strips can be {{ heightList(stripHeights) }} pixels tall.</template> Up to {{ SUBMISSION_LIMITS.extraFiles }} files.</p>
+    <p class="hint">These are kept simple. For variants, default overlays and colours, or overlay strips, submit them as textures once the font is added.</p>
     <p class="hint">The primary texture is what top and small lines start with, and the secondary is what bottom lines start with. Without a secondary, bottom lines use the primary, and without a primary, every line starts flat. Set one texture as both to keep the bottom line on the primary.</p>
     <div v-for="item of extras" :key="item.key" class="extra">
       <UploadField class="extra-image" accept="image/png" :label="imageOf(item.key) ? 'Replace' : 'Choose'" empty="PNG" :image="imageOf(item.key)" @change="pick(item.key, $event)" />
