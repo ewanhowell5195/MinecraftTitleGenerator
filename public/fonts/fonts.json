@@ -48,6 +48,18 @@
           "16": ["//", "\\\\"]
         },
         "editor": { "width": 28, "grid": 4 }
+      },
+      {
+        "id": "minecraft-ten-japanese",
+        "name": "Japanese",
+        "authors": ["DMart"],
+        "source": "https://fontstruct.com/fontstructions/show/2253563/mc-ten-japanese",
+        "licence": "http://creativecommons.org/licenses/by/3.0/",
+        "preview": "あイう",
+        "spaceWidth": 12,
+        "terminatorSpace": true,
+        "order": "0123456789&()?!.:-%~,┫┣あいうえおかゟがきぎくぐけげこごさざしじぬになどとでてづつぢちただぞそぜせずすねむのめはもやばぱゆひよびぴりらるふぶれろぷへわゐべぺゑをほぼんゔぽまゝゞみーヾヿヽヺヹムネスアイズノメモハセウエゼバヤユパオカソゾヒヨラビタガキダピリルフチギクヂブレロプツグケヅヘワヰベテゲコデペヱヲホトゴサドボンヴポナザシニマヷヸミヌジ゠・",
+        "editor": { "width": 28, "grid": 4 }
       }
     ],
     "editor": { "width": 28, "grid": 4 }
