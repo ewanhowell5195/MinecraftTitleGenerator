@@ -66,7 +66,7 @@ There are two kinds of variant folder:
 | `depth` | `22` | How deep the letters are |
 | `border` | `2` | How thick the outline is |
 | `height` | The letter height plus the outline | The height of a row of text |
-| `strips` | | The [strip types](textures.md#strip-types) the font uses, as IDs or `{ "id", "layer" }` |
+| `strips` | | The [strip types](textures.md#strip-types) the font uses, as IDs or `{ "id", "layer", "skip" }` |
 | `terminatorSpace` | `false` | Puts a space between the line terminators and the text |
 | `terminatorSpaceWidth` | `spaceWidth` | The width of that space |
 | `forcedTerminators` | `false` | Always draws the line terminators |

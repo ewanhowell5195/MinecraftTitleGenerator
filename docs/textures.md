@@ -160,7 +160,7 @@ A strip type has a folder in `public/strips`, with its PNGs in `textures` and a 
 }
 ```
 
-A font lists the types it uses under `strips` in `fonts.json`, eg `"strips": ["minecraft-ten"]`. `{ "id": "minecraft-ten", "layer": 1 }` puts them on one layer of a font with layers. Every strip in the type then shows in the font's textures.
+A font lists the types it uses under `strips` in `fonts.json`, eg `"strips": ["minecraft-ten"]`. `{ "id": "minecraft-ten", "layer": 1 }` puts them on one layer of a font with layers. Every strip in the type then shows in the font's textures, except the IDs in its `skip` list, eg `{ "id": "default", "skip": ["minecon"] }`.
 
 ### tileables.json
 
