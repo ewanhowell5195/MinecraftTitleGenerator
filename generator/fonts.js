@@ -12,9 +12,9 @@ export function publicDir(root = ROOT) {
 }
 
 export function readStripSet(item, root = ROOT) {
-  const { id, offset, layer } = stripUse(item)
+  const { id, offset, layer, skip } = stripUse(item)
   const folder = path.join(publicDir(root), stripFolder(id))
-  return { ...readJson(path.join(folder, "textures.json")), id, offset, layer, folder }
+  return { ...readJson(path.join(folder, "textures.json")), id, offset, layer, skip, folder }
 }
 
 export function fontTextureList(entry, list, root = ROOT) {

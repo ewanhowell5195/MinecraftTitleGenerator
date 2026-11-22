@@ -100,9 +100,10 @@ export function mergeStrips(own, sets) {
   const taken = new Set(Object.entries(textures).flatMap(([id, entry]) => [id].concat(Object.keys(entry.variants ?? {}))))
   for (const setId of new Set(sets.map(item => item.id))) {
     const { set, bands } = placed(setId, sets)
+    const skipped = new Set(sets.filter(item => item.id === setId).flatMap(item => item.skip ?? []))
     for (const [id, data] of Object.entries(set.textures)) {
       const ids = [id].concat(Object.keys(data.variants ?? {}))
-      if (ids.some(name => taken.has(name))) continue
+      if (skipped.has(id) || ids.some(name => taken.has(name))) continue
       textures[id] = shared(data, set, bands)
       for (const name of ids) taken.add(name)
     }

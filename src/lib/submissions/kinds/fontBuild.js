@@ -38,7 +38,9 @@ function picked(source, keys, type) {
 function stripField(item) {
   if (typeof item === "string") return item.trim()
   if (!isRecord(item) || typeof item.id !== "string") return null
-  return Number.isInteger(item.layer) && item.layer > 0 ? { id: item.id.trim(), layer: item.layer } : item.id.trim()
+  const layer = Number.isInteger(item.layer) && item.layer > 0 ? { layer: item.layer } : {}
+  const skip = Array.isArray(item.skip) && item.skip.length && item.skip.every(id => typeof id === "string") ? { skip: item.skip.map(id => id.trim()) } : {}
+  return layer.layer || skip.skip ? { id: item.id.trim(), ...layer, ...skip } : item.id.trim()
 }
 
 function trimmedText(fields) {

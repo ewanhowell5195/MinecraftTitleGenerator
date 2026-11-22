@@ -74,6 +74,9 @@
   {
     "id": "minecraft-five-bold-block",
     "authors": ["Ewan Howell"],
+    "strips": [
+      { "id": "default", "skip": ["minecon"] }
+    ],
     "characterSpacing": -4,
     "depth": 16,
     "border": 2,

@@ -13,6 +13,12 @@ describe("mergeStrips", () => {
     assert.equal(textures.flat.folder, undefined)
   })
 
+  test("a font can skip a shared strip", () => {
+    const { textures } = mergeStrips({ textures: {} }, [{ ...SET, skip: ["shared"] }])
+    assert.deepEqual(Object.keys(textures), ["other"])
+    assert.deepEqual(stripUse({ id: "set", skip: ["shared"] }).skip, ["shared"])
+  })
+
   test("a font's own strip overrides a shared one", () => {
     const { textures } = mergeStrips({ textures: { shared: { authors: "mine" } } }, [SET])
     assert.deepEqual(textures.shared, { authors: "mine" })

@@ -70,8 +70,8 @@ export function textureList(folder) {
 }
 
 function stripSet(item) {
-  const { id, offset, layer } = stripUse(item)
-  return fetchJson(`${stripFolder(id)}/textures.json`).then(list => ({ ...list, id, offset, layer }))
+  const { id, offset, layer, skip } = stripUse(item)
+  return fetchJson(`${stripFolder(id)}/textures.json`).then(list => ({ ...list, id, offset, layer, skip }))
 }
 
 export async function importedTextures(strips = []) {
