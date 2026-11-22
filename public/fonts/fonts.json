@@ -48,6 +48,17 @@
           "16": ["//", "\\\\"]
         },
         "editor": { "width": 28, "grid": 4 }
+      },
+      {
+        "id": "minecraft-ten-japanese",
+        "name": "Japanese",
+        "authors": ["DMart"],
+        "description": "Font imported from mctitles.com - made by DMart - supports only Hiragana & Katakana",
+        "preview": "あイう",
+        "spaceWidth": 12,
+        "terminatorSpace": true,
+        "order": "0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣あいうえおかゟがきぎくぐけげこごさざしじぬになどとでてづつぢちただぞそぜせずす`|ねむのめはもやばぱゆひよびぴりらるふぶれろぷへわゐべぺゑをほぼんゔぽまゝゞみーヾヿヽヺヹムネスアイズノメモハセウエゼバヤユパオカソゾヒヨラビタガキダピリルフチギクヂブレロプツグケヅヘワヰベテゲコデペヱヲホトゴサドボンヴポナザシニマヷヸミヌジ゠・",
+        "editor": { "width": 28, "grid": 4 }
       }
     ],
     "editor": { "width": 28, "grid": 4 }
@@ -443,17 +454,5 @@
       "16": ["lt", "ly", "l7", "f_", "l^", "l~", "p_"]
     },
     "editor": { "width": 48, "grid": 8 }
-  },
-  {
-    "id": "minecraft-ten-japanese",
-    "authors": ["DMart"],
-    "description": "Font imported from mctitles.com - made by DMart - supports only Hiragana & Katakana",
-    "preview": "あイう",
-    "basedOn": "minecraft-ten",
-    "multicase": true,
-    "spaceWidth": 12,
-    "terminatorSpace": true,
-    "order": "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣あいうえおかゟがきぎくぐけげこごさざしじぬになどとでてづつぢちただぞそぜせずす`|ねむのめはもやばぱゆひよびぴりらるふぶれろぷへわゐべぺゑをほぼんゔぽまゝゞみーヾヿヽヺヹムネスアイズノメモハセウエゼバヤユパオカソゾヒヨラビタガキダピリルフチギクヂブレロプツグケヅヘワヰベテゲコデペヱヲホトゴサドボンヴポナザシニマヷヸミヌジ゠・",
-    "editor": { "width": 28, "grid": 4 }
   }
 ]
