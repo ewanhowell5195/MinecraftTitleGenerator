@@ -154,6 +154,11 @@ export function openTitleData(data) {
   showObjects(readTitleObjects(data), data.camera)
 }
 
+export function openTitleText(text) {
+  const { values, camera, preset } = readTitle(text)
+  showObjects(titleObjects(values), camera, preset)
+}
+
 export async function openTitle(file, allow = () => true) {
   try {
     const { values, camera, preset } = readTitle(await file.text())

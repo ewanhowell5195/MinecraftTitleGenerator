@@ -131,4 +131,34 @@ describe("opening a shared link", () => {
     assert.equal(fileError.value, "Couldn't open this link: line 0 matches its own width")
     assert.deepEqual(scene.objects.map(object => object.text), ["before"])
   })
+
+  async function openFileUrl(address, served) {
+    replaced.length = 0
+    globalThis.history = { state: null, replaceState: (state, title, url) => replaced.push(url.href) }
+    globalThis.fetch = async url => url === address && served ? { ok: served.status === 200, status: served.status, text: async () => served.text } : { ok: false, status: 404 }
+    location.href = `https://example.test/app/?title=${encodeURIComponent(address)}`
+    location.search = `?title=${encodeURIComponent(address)}`
+    await openSharedLink()
+    globalThis.fetch = recordPost
+    location.href = "https://example.test/app/"
+    location.search = ""
+  }
+
+  test("opens a title file from a link to it", async () => {
+    const address = "https://raw.githubusercontent.com/owner/repo/abc/reports/x/title.mctitle"
+    await openFileUrl(address, { status: 200, text: JSON.stringify({ format: "minecraft-title", version: FILE_VERSION, lines: [{ text: "from a file", hue: 12 }] }) })
+    assert.equal(fileError.value, null)
+    assert.deepEqual(scene.objects.map(object => [object.text, object.hue]), [["from a file", 12]])
+    assert.equal(sharedLink.open, true)
+  })
+
+  test("refuses a title file link that can't be downloaded or isn't a title", async () => {
+    await openFileUrl("https://example.test/missing.mctitle", null)
+    assert.equal(fileError.value, "Couldn't open this link: its title file couldn't be downloaded (404)")
+    assert.deepEqual(replaced, ["https://example.test/app/"])
+    await openFileUrl("https://example.test/other.json", { status: 200, text: "{\"format\":\"other\"}" })
+    assert.equal(fileError.value, "Couldn't open this link: this isn't a Minecraft title file")
+    assert.deepEqual(scene.objects.map(object => object.text), ["before"])
+    assert.equal(sharedLink.open, false)
+  })
 })
