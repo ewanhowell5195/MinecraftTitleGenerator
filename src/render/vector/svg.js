@@ -1,4 +1,4 @@
-import { FillRule, difference, intersectD, union, unionD } from "@countertype/clipper2-ts"
+import { EndType, FillRule, JoinType, difference, differenceD, inflatePathsD, intersectD, union, unionD } from "@countertype/clipper2-ts"
 import { placement } from "../compose.js"
 import { addToCover, visibleLoops } from "./cover.js"
 import { loopsInHundredths, number, writePath } from "./pathData.js"
@@ -7,16 +7,8 @@ import { boxOfPolygons, boxesOverlap, mergedByFill, sameWinding, shapeOfPolygons
 import { stitched, unionOf } from "./union.js"
 
 const SEAM_PRECISION = 4
-const GROW = 0.05
-
-function grownOutward(polygon) {
-  const middleX = polygon.reduce((sum, point) => sum + point[0], 0) / polygon.length
-  const middleY = polygon.reduce((sum, point) => sum + point[1], 0) / polygon.length
-  return polygon.map(([x, y]) => {
-    const length = Math.hypot(x - middleX, y - middleY) || 1
-    return [x + (x - middleX) / length * GROW, y + (y - middleY) / length * GROW]
-  })
-}
+const SPIKE_WIDTH = 6
+const SEAM_INSET = 0.08
 
 function basesJoinedToLayers(list, placed) {
   function movedUp(fill, polygon) {
@@ -28,17 +20,6 @@ function basesJoinedToLayers(list, placed) {
     return true
   }
   return list.map(([fill, polygons]) => [fill, polygons.filter(polygon => !movedUp(fill, polygon))]).filter(([, polygons]) => polygons.length)
-}
-
-function aroundStrokes(polygons, strokes, bleed) {
-  const boxes = strokes.flatMap(([, segments]) => segments.map(segment => {
-    const { minX, minY, maxX, maxY } = boxOfPolygons([segment])
-    return { minX: minX - bleed, minY: minY - bleed, maxX: maxX + bleed, maxY: maxY + bleed }
-  }))
-  return polygons.filter(polygon => {
-    const box = boxOfPolygons([polygon])
-    return boxes.some(other => boxesOverlap(box, other))
-  }).map(grownOutward)
 }
 
 function stripsAlong(segments, width) {
@@ -58,14 +39,23 @@ function fromPaths(paths) {
   return paths.map(path => path.map(({ x, y }) => [x, y]))
 }
 
+function outwardWound(polygons) {
+  if (!polygons.length) return polygons
+  const largest = polygons.reduce((best, polygon) => Math.abs(signedArea(polygon)) > Math.abs(signedArea(best)) ? polygon : best)
+  return signedArea(largest) < 0 ? polygons.map(polygon => polygon.toReversed()) : polygons
+}
+
+function stripUnder(segment, under, bleed) {
+  const area = toPaths([under])
+  const strip = intersectD(toPaths(stripsAlong([segment], bleed)), area, FillRule.NonZero, SEAM_PRECISION)
+  const rim = differenceD(area, inflatePathsD(area, -SEAM_INSET, JoinType.Miter, EndType.Polygon, 2, SEAM_PRECISION), FillRule.NonZero, SEAM_PRECISION)
+  return differenceD(strip, differenceD(rim, toPaths(stripsAlong([segment], SEAM_INSET * 2)), FillRule.NonZero, SEAM_PRECISION), FillRule.NonZero, SEAM_PRECISION)
+}
+
 function seamsOf(list, bleed, output) {
   const strokes = list.length > 1 ? Array.from(sharedEdges(list)).sort((a, b) => output.brightness(a[0]) - output.brightness(b[0])) : []
   if (!strokes.length) return []
-  const areas = list.map(([, polygons]) => toPaths(aroundStrokes(polygons, strokes, bleed))).filter(paths => paths.length)
-  return strokes.map(([fill, segments]) => {
-    const strips = toPaths(stripsAlong(segments, bleed))
-    return [fill, fromPaths(areas.flatMap(area => intersectD(strips, area, FillRule.NonZero, SEAM_PRECISION))).map(sameWinding)]
-  }).filter(([, polygons]) => polygons.length)
+  return strokes.map(([fill, seams]) => [fill, outwardWound(fromPaths(seams.flatMap(({ segment, under }) => stripUnder(segment, under, bleed))))]).filter(([, polygons]) => polygons.length)
 }
 
 export function entriesOf({ base, layers, joins, covers }, { bleed, output, totals }) {
@@ -79,13 +69,31 @@ function filledArea(polygons) {
   return fromPaths(unionD(toPaths(polygons), FillRule.NonZero, SEAM_PRECISION))
 }
 
-function pathMarkup(fill, loops) {
-  return loops.length ? `<path fill="${fill}" d="${writePath(loops)}"/>` : ""
+function withoutSpikes(loop) {
+  const points = loop.slice()
+  for (let index = 0; index < points.length && points.length > 3;) {
+    const [bx, by] = points[(index + points.length - 1) % points.length]
+    const [x, y] = points[index]
+    const [ax, ay] = points[(index + 1) % points.length]
+    const outward = Math.hypot(bx - x, by - y)
+    const back = Math.hypot(ax - x, ay - y)
+    const folded = (bx - x) * (ax - x) + (by - y) * (ay - y) > 0 && Math.abs((bx - x) * (ay - y) - (by - y) * (ax - x)) <= SPIKE_WIDTH * Math.max(outward, back)
+    if (!outward || !back || folded) {
+      points.splice(index, 1)
+      index = Math.max(0, index - 1)
+    } else index++
+  }
+  return points
 }
 
-function sinkToSameFill(shapes) {
+function pathMarkup(fill, loops) {
+  const cleaned = loops.map(withoutSpikes).filter(loop => loop.length >= 3)
+  return cleaned.length ? `<path fill="${fill}" d="${writePath(cleaned)}"/>` : ""
+}
+
+function sinkToSameFill(shapes, exact) {
   for (const [later, shape] of shapes.entries()) {
-    if (!shape.shown.length) continue
+    if (!shape.shown.length || exact.has(shape.fill)) continue
     const target = shapes.findIndex(other => other.fill === shape.fill && other.shown.length)
     if (target >= later) continue
     const area = toPaths(shape.loops)
@@ -110,7 +118,7 @@ function sinkToSameFill(shapes) {
   return shapes
 }
 
-export function markupOf(entries, { left, top, totals, cover }) {
+export function markupOf(entries, { left, top, totals, cover, exact }) {
   const source = new Map(entries.flatMap(([, polygons], index) => polygons.map(polygon => [polygon, index])))
   const shapes = []
   for (const [fill, polygons] of mergedByFill(entries, totals).toReversed()) {
@@ -119,7 +127,7 @@ export function markupOf(entries, { left, top, totals, cover }) {
     shapes.unshift({ fill, loops, shown: visibleLoops(loops, cover) })
     addToCover(cover, loops)
   }
-  return sinkToSameFill(shapes).map(({ fill, shown }) => pathMarkup(fill, shown)).join("")
+  return sinkToSameFill(shapes, exact).map(({ fill, shown }) => pathMarkup(fill, shown)).join("")
 }
 
 function svgOf(width, height, content) {

@@ -1,7 +1,8 @@
 import { surface } from "../canvas.js"
 import { hexOf } from "../../core/colour.js"
 import { PLACED_KINDS, SMOOTH_KINDS, WRAPPED_KINDS, settingsOf, toneKinds } from "../overlays/settings.js"
-import { waveOutline } from "../overlays/patterns.js"
+import { fineShapes, FINE_SHAPED } from "../overlays/fineShapes.js"
+import { shineOutlines, waveOutline } from "../overlays/patterns.js"
 import { crackList, crackTriangle, crackWrap, wrapTriangles } from "../overlays/cracks.js"
 import { edgeAlpha } from "../overlays/edges.js"
 import { generatedAlpha } from "../overlays/faces.js"
@@ -206,13 +207,29 @@ export function wrapsOf(sheet, layers, indexes, band, independent) {
   }))
 }
 
-export function wavesOf(sheet, layers, indexes, capHeight, band, independent) {
+function waveShapes(glyph, layer, capHeight) {
+  const outline = waveOutline(glyph, { ...settingsOf("wave", layer), capHeight })
+  return outline && [outline]
+}
+
+const EXACT_SHAPES = {
+  ...Object.fromEntries(FINE_SHAPED.map(kind => [kind, (glyph, layer, capHeight) => fineShapes(glyph, kind, layer, capHeight)])),
+  wave: waveShapes,
+  shine: (glyph, layer, capHeight) => shineOutlines(glyph, "shine", { ...settingsOf("shine", layer), capHeight }),
+  shine_random: (glyph, layer, capHeight) => shineOutlines(glyph, "shine_random", { ...settingsOf("shine_random", layer), capHeight })
+}
+
+export function exactShapesOf(sheet, layers, indexes, capHeight, band, independent) {
   const layered = layeredGlyphs(sheet, band, independent)
   const own = glyph => layered?.get(glyph.char) ?? glyph
-  return layers.filter(({ layer, source }) => source.generated === "wave" && layer.opacity && indexes.has(layer)).map(({ layer }) => ({
-    label: indexes.get(layer),
-    front: glyph => waveOutline(own(glyph), { ...settingsOf("wave", layer), capHeight })
-  }))
+  return layers.filter(({ layer, source }) => EXACT_SHAPES[source.generated] && layer.opacity && indexes.has(layer)).map(({ layer, source }) => {
+    const tones = toneKinds(source.generated)
+    return {
+      label: indexes.get(layer),
+      front: glyph => EXACT_SHAPES[source.generated](own(glyph), layer, capHeight),
+      tones: tones.length > 1 ? glyph => tones.map(tone => fineShapes(own(glyph), tone, layer, capHeight)) : null
+    }
+  })
 }
 
 export function edgeFacesOf(sheet, layers, band, independent) {

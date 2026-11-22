@@ -2,7 +2,17 @@ import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import * as THREE from "three"
 import { close } from "../helpers/assert.js"
-import { BLUE, RED, YELLOW, boundsOf, colourAt, gradientsOf, meshOf, pathsFilled, pathsOf, plain, textureOf, titleOf, verticalAt, whole } from "../helpers/vector.js"
+import { BLUE, GREEN, RED, YELLOW, boundsOf, colourAt, gradientsOf, meshOf, pathsFilled, pathsOf, plain, textureOf, titleOf, verticalAt, whole } from "../helpers/vector.js"
+
+function insidePolygon(points, x, y) {
+  let inside = false
+  for (let index = 0, last = points.length - 1; index < points.length; last = index++) {
+    const [ax, ay] = points[index]
+    const [bx, by] = points[last]
+    if ((ay > y) !== (by > y) && x < (bx - ax) * (y - ay) / (by - ay) + ax) inside = !inside
+  }
+  return inside
+}
 
 function clampUnit(value) {
   return Math.min(1, Math.max(0, value))
@@ -68,6 +78,12 @@ describe("vectorTitle gradient smoothing", () => {
     const gradients = gradientsOf(titleOf(mesh).markup)
     assert.equal(gradients.length, 1)
     assert.deepEqual([gradients[0].y1, gradients[0].y2], [0, 64])
+  })
+
+  test("side by side faces whose gradients differ by a few shades share one gradient", () => {
+    const texture = textureOf(64, 64, (x, y) => [y * 3 + (x >= 32 ? 5 : 0), 40, 80])
+    const mesh = meshOf([{ left: 0, right: 32, bottom: 0, top: 64, uv: [0, 0, 0.5, 1] }, { left: 32, right: 64, bottom: 0, top: 64, uv: [0.5, 0, 1, 1] }], new THREE.MeshBasicMaterial({ map: texture }))
+    assert.equal(gradientsOf(titleOf(mesh).markup).length, 1)
   })
 
   test("an overlay's stepped bands become a gradient too", () => {
@@ -300,7 +316,7 @@ describe("vectorTitle gradients it was told about", () => {
     }
     const texture = textureOf(64, 64, (x, y) => inside(x + 0.5, y + 0.5) ? RED : BLUE)
     texture.userData.labels = () => data
-    texture.userData.crackShapes = () => new Map([[16, [corners]]])
+    texture.userData.crackShapes = () => new Map([[16, { shape: [corners], tones: [] }]])
     const red = pathsOf(titleOf(whole(texture)).markup).filter(path => path.fill === "#ff0000")
     assert.equal(red.length, 1)
     assert.deepEqual(red[0].polygons.map(polygon => polygon.length), [3])
@@ -315,10 +331,26 @@ describe("vectorTitle gradients it was told about", () => {
     }
     const texture = textureOf(64, 64, (x, y) => y + 0.5 < edge(x + 0.5) ? RED : y + 0.5 < edge(x + 0.5) + 2 ? [128, 0, 128] : BLUE)
     texture.userData.labels = () => data
-    texture.userData.crackShapes = () => new Map([[16, [corners]]])
+    texture.userData.crackShapes = () => new Map([[16, { shape: [corners], tones: [] }]])
     const paths = pathsOf(titleOf(whole(texture)).markup)
     assert.deepEqual(Array.from(new Set(paths.map(path => path.fill))).sort(), ["#0000ff", "#ff0000"])
     assert.deepEqual(paths.filter(path => path.fill === "#ff0000").flatMap(path => path.polygons).map(polygon => polygon.length), [5])
+  })
+
+  test("an exact shape leaves a hole for another exact shape inside it", () => {
+    const top = (x, y) => y < 40
+    const stripe = (x, y) => x >= 20 && x < 30
+    const data = new Uint8Array(64 * 64 * 4)
+    for (let y = 0; y < 64; y++) {
+      for (let x = 0; x < 64; x++) data[(y * 64 + x) * 4 + 2] = (top(x, y) ? 1 : 0) | (stripe(x, y) ? 2 : 0)
+    }
+    const texture = textureOf(64, 64, (x, y) => stripe(x, y) ? GREEN : top(x, y) ? RED : BLUE)
+    texture.userData.labels = () => data
+    texture.userData.crackShapes = () => new Map([[16, { shape: [[[0, 0], [64, 0], [64, 40], [0, 40]]], tones: [] }], [17, { shape: [[[20, 0], [30, 0], [30, 64], [20, 64]]], tones: [] }]])
+    const paths = pathsOf(titleOf(whole(texture)).markup)
+    const red = paths.filter(path => path.fill === "#ff0000").flatMap(path => path.polygons)
+    assert.ok(red.length)
+    assert.ok(!red.some(polygon => insidePolygon(polygon, 25, 20)))
   })
 
   test("merges overlay pieces of one colour when nothing lands between them", () => {

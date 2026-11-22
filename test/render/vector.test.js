@@ -1,7 +1,7 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import * as THREE from "three"
-import { composeVector } from "../../src/render/vector/svg.js"
+import { composeVector, entriesOf } from "../../src/render/vector/svg.js"
 import { vectorTitle } from "../../src/render/vector/title.js"
 import { mergedByFill } from "../../src/render/vector/polygons.js"
 import { unionOf } from "../../src/render/vector/union.js"
@@ -421,6 +421,23 @@ describe("vectorTitle letter fronts", () => {
   test("faces outside any front still paint a colour crossing them whole", () => {
     const red = pathsFilled(split(across, [{ left: 100, top: 100, right: 164, bottom: 164 }]), "#ff0000")
     assert.deepEqual(boundsOf(red.flatMap(path => path.polygons)), { left: 20, right: 44, top: 20, bottom: 30 })
+  })
+})
+
+describe("seams", () => {
+  test("a seam running round a hole leaves the hole open", () => {
+    const box = (left, top, right, bottom) => [[left, top], [right, top], [right, bottom], [left, bottom]]
+    const outer = [box(0, 0, 48, 8), box(0, 40, 48, 48), box(0, 8, 8, 40), box(40, 8, 48, 40)]
+    const inner = [box(8, 8, 40, 16), box(8, 32, 40, 40), box(8, 16, 16, 32), box(32, 16, 40, 32)]
+    const base = new Map([["#0000ff", outer.concat(inner)], ["#ff0000", [box(48, 0, 64, 48)]]])
+    const entries = entriesOf({ base, layers: [], joins: [], covers: new Map() }, { bleed: 1, output: { brightness: fill => fill === "#ff0000" ? 1 : 0 }, totals: new Map() })
+    const winding = polygons => polygons.reduce((total, polygon) => total + polygon.reduce((sum, [ax, ay], index) => {
+      const [bx, by] = polygon[(index + 1) % polygon.length]
+      if (ay <= 24 && by > 24 && (bx - ax) * (24 - ay) - (24 - ax) * (by - ay) > 0) return sum + 1
+      if (by <= 24 && ay > 24 && (bx - ax) * (24 - ay) - (24 - ax) * (by - ay) < 0) return sum - 1
+      return sum
+    }, 0), 0)
+    assert.ok(entries.every(([, polygons]) => winding(polygons) === 0))
   })
 })
 

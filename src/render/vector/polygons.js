@@ -50,7 +50,7 @@ export function sharedEdges(list) {
           const start = Math.max(edge.start, other.start)
           const end = Math.min(edge.end, other.end)
           if (end - start < MIN_SHARED) continue
-          addTo(shared, edge.fill, [[[edge.dx * start + edge.dy * edge.offset, edge.dy * start - edge.dx * edge.offset], [edge.dx * end + edge.dy * edge.offset, edge.dy * end - edge.dx * edge.offset]]])
+          addTo(shared, edge.fill, [{ segment: [[edge.dx * start + edge.dy * edge.offset, edge.dy * start - edge.dx * edge.offset], [edge.dx * end + edge.dy * edge.offset, edge.dy * end - edge.dx * edge.offset]], under: other.polygon }])
         }
       }
     }

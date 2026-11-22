@@ -44,6 +44,42 @@ export function shine(glyph, kind, settings, scale, fine) {
   return out
 }
 
+export function clippedTo(polygon, value) {
+  const kept = []
+  for (const [index, point] of polygon.entries()) {
+    const next = polygon[(index + 1) % polygon.length]
+    const [here, there] = [value(point), value(next)]
+    if (here >= 0) kept.push(point)
+    if (here >= 0 !== there >= 0) {
+      const part = here / (here - there)
+      kept.push([point[0] + (next[0] - point[0]) * part, point[1] + (next[1] - point[1]) * part])
+    }
+  }
+  return kept
+}
+
+export function shineOutlines(glyph, kind, settings) {
+  const { width, height } = glyph
+  const arc = glyph.arc ?? { top: 0, bottom: 0 }
+  const { capHeight, width: band } = settings
+  const capTop = capHeight - glyph.top
+  const period = band + settings.gap
+  const sin = Math.sin(settings.angle * Math.PI / 180)
+  const cos = Math.cos(settings.angle * Math.PI / 180)
+  const start = glyph.placedX * sin + 18.75 + settings.offset
+  const position = ([x, y]) => start + x * sin - (capTop + y) * cos
+  const fade = settings.fade / 100
+  const lowest = fade ? Math.min(height, (capHeight + arc.top + arc.bottom) / fade - arc.top - capTop) : height
+  if (lowest <= 0) return []
+  const area = [[0, 0], [width, 0], [width, lowest], [0, lowest]]
+  const alongs = area.map(position)
+  const [from, to] = [Math.min(...alongs) - 1, Math.max(...alongs) + 1]
+  const bands = []
+  if (kind === "shine_random") bands.push(...randomBands(from, to, settings))
+  else for (let at = Math.floor(from / period) * period; at < to; at += period) bands.push([at, at + band])
+  return bands.map(([low, high]) => clippedTo(clippedTo(area, point => position(point) - low), point => high - position(point))).filter(polygon => polygon.length > 2)
+}
+
 function wavePoints(from, to, settings) {
   const swing = settings.randomness / 100
   const next = random(settings.seed)

@@ -484,6 +484,7 @@ export function fineMasks(mesh, glyph, original, reach, limits = faceLimits()) {
     if (!distances.has(key)) distances.set(key, edgeDistances(lifted(), holes, fine(scale), glyph.width, glyph.height, scale, glyph.bottom, reach))
     return distances.get(key)
   }
+  fine.rings = lifted
   fine.distance = (scale, reach) => nearest(scale, reach).distance
   fine.facing = (scale, reach) => nearest(scale, reach).facing
   let corners = null

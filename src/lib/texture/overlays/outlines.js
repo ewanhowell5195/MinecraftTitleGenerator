@@ -66,11 +66,21 @@ function twoTonePixels(glyph, kind, settings) {
   return out
 }
 
-function fadeStrength(glyph, kind, settings) {
+function fadeSpan(glyph, settings) {
   const arc = glyph.arc ?? { top: 0, bottom: 0 }
   const span = settings.capHeight + arc.top + arc.bottom
-  const centre = span / 2 - arc.bottom
-  const half = settings.spread / 100 * span / 2
+  return { span, centre: span / 2 - arc.bottom, half: settings.spread / 100 * span / 2 }
+}
+
+export function fadeShown(glyph, kind, settings) {
+  const { span, centre, half } = fadeSpan(glyph, settings)
+  if (kind === "outline_fade") return [[centre - half, centre + half]]
+  const gap = span / 2 - half
+  return [[-Infinity, centre - gap], [centre + gap, Infinity]]
+}
+
+function fadeStrength(glyph, kind, settings) {
+  const { span, centre, half } = fadeSpan(glyph, settings)
   return row => {
     const from = Math.abs(glyph.bottom + row + 0.5 - centre)
     return kind === "outline_fade" ? Math.max(0, 1 - (from / half) ** 1.45) : clamp(1 - (span / 2 - from) / half, 0, 1)

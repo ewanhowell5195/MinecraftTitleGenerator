@@ -4,6 +4,7 @@ import { brightness, colourAlong, mixed, simplifyStops, within } from "./colours
 import { EPSILON, split, worldMap } from "./faces.js"
 
 const GRADIENT_AGREE = 3
+const GROUP_AGREE = 6
 const NEARLY_FLAT = 2
 const GRADIENT_MATCH = 0.1
 
@@ -91,12 +92,12 @@ function colourOn(points, t) {
   return colourAlong(points, points.findIndex(point => point.t >= t), t)
 }
 
-function agree(first, second) {
+function agree(first, second, limit) {
   const low = Math.max(first[0].t, second[0].t)
   const high = Math.min(first.at(-1).t, second.at(-1).t)
   if (low > high) return false
   const samples = first.concat(second).map(point => point.t).filter(t => t >= low && t <= high).concat(low, high)
-  return samples.every(t => within(colourOn(first, t), colourOn(second, t), GRADIENT_AGREE))
+  return samples.every(t => within(colourOn(first, t), colourOn(second, t), limit))
 }
 
 function joinedPoints(first, second) {
@@ -117,13 +118,18 @@ export class Output {
     return brightness(stops ? middleOf(stops)[1] : parseInt(fill.slice(1), 16))
   }
 
-  fill(gradient) {
+  fill(gradient, group = null, face = null, exact = false) {
     const { upright, level } = alignment(gradient)
     const key = JSON.stringify([upright ? 0 : gradient.x1, level ? 0 : gradient.y1, upright ? 0 : gradient.x2, level ? 0 : gradient.y2].map(value => Math.round(value / GRADIENT_MATCH)).concat(gradient.stops.map(([offset, colour]) => [Math.round(offset * 1e3), colour])))
-    if (!this.gradients.has(key)) this.gradients.set(key, { id: `g${this.nextId++}`, key, gradient })
+    if (!this.gradients.has(key)) this.gradients.set(key, { id: `g${this.nextId++}`, key, gradient, group, exact, faces: new Set() })
+    if (face) this.gradients.get(key).faces.add(face)
     const fill = `url(#${this.gradients.get(key).id})`
     this.fills.set(fill, gradient)
     return fill
+  }
+
+  exactFills() {
+    return new Set(Array.from(this.gradients.values()).filter(entry => entry.exact).map(entry => `url(#${entry.id})`))
   }
 
   mergeAlongAxis(shortest) {
@@ -132,11 +138,13 @@ export class Output {
     const entries = Array.from(this.gradients.values()).sort((a, b) => a.gradient.y1 - b.gradient.y1 || a.gradient.x1 - b.gradient.x1)
     for (const entry of entries) {
       const line = lineOf(entry.gradient)
-      const group = line && groups.find(other => other.upright === line.upright && agree(other.points, line.points))
+      const group = line && groups.find(other => other.upright === line.upright && !Array.from(entry.faces).some(face => other.faces.has(face)) && agree(other.points, line.points, other.exact || entry.exact ? 0 : other.entry.group !== null && other.entry.group === entry.group ? GROUP_AGREE : GRADIENT_AGREE))
       if (!group) {
-        if (line) groups.push({ ...line, entry })
+        if (line) groups.push({ ...line, entry, exact: entry.exact, faces: new Set(entry.faces) })
         continue
       }
+      for (const face of entry.faces) group.faces.add(face)
+      group.exact ||= entry.exact
       group.points = joinedPoints(group.points, line.points)
       merged.set(`url(#${entry.id})`, `url(#${group.entry.id})`)
       this.gradients.delete(entry.key)

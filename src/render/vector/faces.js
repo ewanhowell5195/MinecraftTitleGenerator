@@ -31,6 +31,10 @@ function toViewer(view, point) {
   return view.perspective ? view.eye.clone().sub(point) : view.direction.clone().negate()
 }
 
+function outlineOf({ left, top, right, bottom, outline }) {
+  return outline ?? [[left, top], [right, top], [right, bottom], [left, bottom]]
+}
+
 function imageOf(texture, cache, plain) {
   const key = plain ? texture.userData.plain : texture
   if (!cache.has(key)) {
@@ -69,19 +73,22 @@ export function facesOf(mesh, view, project, cache) {
   }
   function analysisOf(image, rect, parts = null) {
     const key = [rect].concat(parts ?? []).map(({ left, top, right, bottom, triangle }) => `${left},${top},${right},${bottom}${triangle ? `:${triangle.join(";")}` : ""}`).join(" ")
-    if (!image.analyses.has(key)) image.analyses.set(key, analyse(image, rect, parts && maskOf(rect, parts)))
+    if (!image.analyses.has(key)) image.analyses.set(key, analyse(image, rect, parts && maskOf(rect, parts), parts && parts.map(outlineOf)))
     return image.analyses.get(key)
   }
   function wholeOf(panel, quad) {
     if (panel.whole !== undefined) return panel.whole
-    const rects = panel.parts.map(part => part.texels.length === 3 ? { ...part.rect, triangle: part.texels } : part.rect)
+    const rects = panel.parts.map(part => ({ ...part.rect, ...(part.texels.length === 3 && { triangle: part.texels }), outline: part.exact }))
     const bounds = { left: Math.min(...rects.map(item => item.left)), top: Math.min(...rects.map(item => item.top)), right: Math.max(...rects.map(item => item.right)), bottom: Math.max(...rects.map(item => item.bottom)) }
-    const { corners, normal, texels, rect } = quad.texels.length === 3 ? panel.parts.reduce((best, part) => texelArea(part.texels) > texelArea(best.texels) ? part : best) : quad
-    const toWorld = worldMap({ corners, texels })
+    const { corners, normal, texels, exact, rect } = quad.texels.length === 3 ? panel.parts.reduce((best, part) => texelArea(part.texels) > texelArea(best.texels) ? part : best) : quad
+    const toWorld = worldMap({ corners, texels: exact })
     const wholeTexels = texels.length === 3 ? facingCorners(bounds, toWorld, normal) : texels.map(([x, y]) => [x === rect.left ? bounds.left : bounds.right, y === rect.top ? bounds.top : bounds.bottom])
     const analysis = analysisOf(quad.image, bounds, rects)
     panel.whole = analysis && faceFrom(wholeTexels.map(([x, y]) => toWorld(x, y)), wholeTexels, bounds, analysis, normal, quad.image)
-    if (panel.whole) faces.push(panel.whole)
+    if (panel.whole) {
+      panel.whole.parts = panel.parts
+      faces.push(panel.whole)
+    }
     return panel.whole
   }
   const quads = []
@@ -99,9 +106,11 @@ export function facesOf(mesh, view, project, cache) {
     const image = material.map ? imageOf(material.map, cache, plain) : null
     const coords = plain ? plainUv : uv
     let texels = null
+    let exact = null
     let rect = null
     if (image) {
-      texels = offsets.map(offset => [Math.round(coords.getX(start + offset) * image.width), Math.round((1 - coords.getY(start + offset)) * image.height)])
+      exact = offsets.map(offset => [coords.getX(start + offset) * image.width, (1 - coords.getY(start + offset)) * image.height])
+      texels = exact.map(([x, y]) => [Math.round(x), Math.round(y)])
       const xs = texels.map(texel => texel[0])
       const ys = texels.map(texel => texel[1])
       rect = { left: Math.min(...xs), top: Math.min(...ys), right: Math.max(...xs), bottom: Math.max(...ys) }
@@ -112,7 +121,7 @@ export function facesOf(mesh, view, project, cache) {
         rect.bottom = rect.top + 1
       }
     }
-    const quad = { corners, normal, texels, rect, image, material, panel: null }
+    const quad = { corners, normal, texels, exact, rect, image, material, panel: null }
     quads.push(quad)
     const panelArea = rect && image.panels?.find(item => contains(item, rect))
     if (!panelArea) continue

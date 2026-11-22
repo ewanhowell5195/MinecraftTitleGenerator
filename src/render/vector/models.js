@@ -18,6 +18,9 @@ const FADE_USABLE = 0.8
 const FADE_MATCH = 3
 const MIN_BIN_SHARE = 0.2
 const RAMP_WOBBLE = 3
+const BAND_TOLERANCE = 0
+const BAND_STOP_TOLERANCE = 0.5
+const DENOISE_REACH = 2
 
 function alongAxis(index, width, [ax, ay]) {
   return (index % width + 0.5) * ax + (Math.floor(index / width) + 0.5) * ay
@@ -146,7 +149,8 @@ function fitAxis(list, colours, width, axis, exact, bands) {
   const points = [{ t: ordered[0][0], colour: ordered[0][1] }]
   for (const [position, [bin, colour]] of ordered.entries()) {
     const next = ordered[position + 1]
-    if (next && (next[0] !== bin + 1 || shownEdges.has(bin))) points.push({ t: bin, colour }, { t: bin + 1, colour }, { t: bin + 1, colour: next[1] })
+    const step = !next ? null : next[0] !== bin + 1 ? (bin + 1 + next[0]) / 2 : shownEdges.has(bin) ? bin + 1 : null
+    if (step !== null) points.push({ t: bin, colour }, { t: step, colour }, { t: step, colour: next[1] })
     else points.push({ t: bin + 0.5, colour })
   }
   points.push({ t: ordered.at(-1)[0] + 1, colour: ordered.at(-1)[1] })
@@ -207,6 +211,107 @@ export function flatOf(list, colours) {
   for (const index of list) tally(counts, colours[index])
   const colour = majority(counts)
   return { colour, matched: list.filter(index => near(colours[index], colour)) }
+}
+
+export function drawnNear(model, index, colours, width, limit) {
+  if (!model.stops) return within(colours[index], model.colour, limit)
+  const t = alongAxis(index, width, model.axis)
+  return within(colours[index], colourAlong(model.stops, model.stops.findIndex(stop => stop.t > t), t), limit)
+}
+
+function averagedAxis(list, colours, width, axis) {
+  const sums = new Map()
+  for (const index of list) {
+    const bin = binAt(index, width, axis)
+    if (!sums.has(bin)) sums.set(bin, [0, 0, 0, 0])
+    const sum = sums.get(bin)
+    for (let channel = 0; channel < 3; channel++) sum[channel] += colours[index] >> channel * 8 & 255
+    sum[3]++
+  }
+  const ordered = Array.from(sums, ([bin, sum]) => [bin, sum.slice(0, 3).reduce((colour, value, channel) => colour | Math.round(value / sum[3]) << channel * 8, 0)]).sort((a, b) => a[0] - b[0])
+  const points = [{ t: ordered[0][0], colour: ordered[0][1] }]
+  for (const [position, [bin, colour]] of ordered.entries()) {
+    const next = ordered[position + 1]
+    if (next && next[0] !== bin + 1) {
+      const step = (bin + 1 + next[0]) / 2
+      points.push({ t: bin, colour }, { t: step, colour }, { t: step, colour: next[1] })
+    } else points.push({ t: bin + 0.5, colour })
+  }
+  points.push({ t: ordered.at(-1)[0] + 1, colour: ordered.at(-1)[1] })
+  return { axis, stops: simplifyStops(points, BAND_STOP_TOLERANCE) }
+}
+
+function planeAt(index, present, colours, width) {
+  const x = index % width
+  let count = 0
+  let sx = 0
+  let sy = 0
+  let sxx = 0
+  let syy = 0
+  let sxy = 0
+  const sums = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+  for (let dy = -DENOISE_REACH; dy <= DENOISE_REACH; dy++) {
+    for (let dx = -DENOISE_REACH; dx <= DENOISE_REACH; dx++) {
+      const other = index + dy * width + dx
+      if (x + dx < 0 || x + dx >= width || !present.has(other)) continue
+      count++
+      sx += dx
+      sy += dy
+      sxx += dx * dx
+      syy += dy * dy
+      sxy += dx * dy
+      for (let channel = 0; channel < 3; channel++) {
+        const value = colours[other] >> channel * 8 & 255
+        sums[channel][0] += value
+        sums[channel][1] += value * dx
+        sums[channel][2] += value * dy
+      }
+    }
+  }
+  const det = count * (sxx * syy - sxy * sxy) - sx * (sx * syy - sxy * sy) + sy * (sx * sxy - sxx * sy)
+  return sums.reduce((colour, [sum, sumX, sumY], channel) => {
+    const value = Math.abs(det) < 1e-9 ? sum / count : (sum * (sxx * syy - sxy * sxy) - sx * (sumX * syy - sxy * sumY) + sy * (sumX * sxy - sxx * sumY)) / det
+    return colour | clamp(Math.round(value), 0, 255) << channel * 8
+  }, 0)
+}
+
+export function denoised(list, colours, width) {
+  const present = new Set(list)
+  const field = Int32Array.from(colours)
+  for (const index of list) field[index] = planeAt(index, present, colours, width)
+  return field
+}
+
+export function bandedOf(list, colours, width) {
+  let best = null
+  for (const axis of [[1, 0], [0, 1]]) {
+    const lineOf = index => axis[0] ? Math.floor(index / width) : index % width
+    const lines = new Map()
+    for (const index of list) {
+      const line = lineOf(index)
+      if (!lines.has(line)) lines.set(line, [])
+      lines.get(line).push(index)
+    }
+    const order = Array.from(lines.keys()).sort((a, b) => a - b)
+    const most = best?.length ?? Infinity
+    const bands = []
+    for (let start = 0; start < order.length && bands.length < most;) {
+      let pixels = lines.get(order[start])
+      let fit = averagedAxis(pixels, colours, width, axis)
+      let end = start + 1
+      for (; end < order.length && order[end] === order[end - 1] + 1; end++) {
+        const grown = pixels.concat(lines.get(order[end]))
+        const trial = averagedAxis(grown, colours, width, axis)
+        if (trial.stops.length > MAX_STOPS || !grown.every(index => drawnNear(trial, index, colours, width, BAND_TOLERANCE))) break
+        pixels = grown
+        fit = trial
+      }
+      bands.push({ ...flatIfOneColour({ ...fit, matched: pixels }), strip: { axis, from: order[start], to: order[end - 1] + 1 } })
+      start = end
+    }
+    if (bands.length < most) best = bands
+  }
+  return best
 }
 
 export function modelOf(list, colours, width, height, share, exact, bands) {

@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 import { createHash } from "node:crypto"
 import { GENERATED_EDGE_OVERLAYS, GENERATED_SETTINGS, PLACED_KINDS, generatedSetting, settingsOf, thumbnailLayer, toneKinds, withGenerated } from "../../src/lib/texture/overlays/settings.js"
 import { generatedAlpha } from "../../src/lib/texture/overlays/faces.js"
-import { waveOutline } from "../../src/lib/texture/overlays/patterns.js"
+import { shineOutlines, waveOutline } from "../../src/lib/texture/overlays/patterns.js"
 import { withFinalShadows } from "../../src/lib/texture/overlays/shadows.js"
 import { columnOf, glyphOf, near, picture, rowsOf, solid } from "../helpers/overlays.js"
 
@@ -635,6 +635,21 @@ describe("wave", () => {
             if (value > 0.02 && value < 0.98) continue
             assert.equal(insidePolygon(outline, (sx + 0.5) / scale, (sy + 0.5) / scale), value >= 0.5, `${waveShape} at ${angle} degrees, pixel ${sx}, ${sy}`)
           }
+        }
+      }
+    }
+  })
+
+  test("the exact shine stripes cover the same pixels as the drawn shine", () => {
+    const glyph = solid(30, 20, { placedX: 7 })
+    const scale = 3
+    for (const [kind, layer] of [["shine", { angle: 45, fade: 80 }], ["shine", { angle: 120, fade: 0, offset: 5 }], ["shine_random", { angle: 30, seed: 4, randomness: 75 }]]) {
+      const alpha = generatedAlpha(glyph, kind, layer, 20, scale)
+      const stripes = shineOutlines(glyph, kind, { ...settingsOf(kind, layer), capHeight: 20 })
+      for (let sy = 0; sy < 20 * scale; sy++) {
+        for (let sx = 0; sx < 30 * scale; sx++) {
+          const [x, y] = [(sx + 0.5) / scale, (sy + 0.5) / scale]
+          assert.equal(stripes.some(stripe => insidePolygon(stripe, x, y)), alpha[sy * 30 * scale + sx] > 0, `${kind} at ${layer.angle} degrees, pixel ${sx}, ${sy}`)
         }
       }
     }

@@ -34,7 +34,7 @@ function useMergedFills(layers, merged) {
   }
 }
 
-function nearFillsJoined(layers, totals, level) {
+function nearFillsJoined(layers, totals, level, exact) {
   const used = new Set()
   for (const { base, layers: shapes, joins, covers } of layers) {
     for (const fill of Array.from(base.keys()).concat(shapes.map(entry => entry[0]), joins.map(entry => entry[0]), Array.from(covers.keys()))) {
@@ -45,7 +45,7 @@ function nearFillsJoined(layers, totals, level) {
   const joined = new Map()
   for (const fill of Array.from(used).sort((a, b) => (totals.get(b) ?? 0) - (totals.get(a) ?? 0))) {
     const colour = parseInt(fill.slice(1), 16)
-    const home = kept.find(other => within(parseInt(other.slice(1), 16), colour, level))
+    const home = !exact.has(fill) && kept.find(other => within(parseInt(other.slice(1), 16), colour, level))
     if (home) joined.set(fill, home)
     else kept.push(fill)
   }
@@ -106,6 +106,7 @@ export function vectorTitle(scene, camera, size, resolution) {
   const limits = { fit: resolution * FIT_ERROR, spacing: resolution * SPACING_ERROR }
   const output = new Output()
   const bandFills = new Set()
+  const exactFills = new Set()
 
   function project(point) {
     const { x, y } = point.clone().project(camera)
@@ -119,7 +120,7 @@ export function vectorTitle(scene, camera, size, resolution) {
   }
 
   function onScreen(pieces) {
-    return pieces.map(piece => piece.map(project)).filter(polygon => area(polygon) >= SLIVER)
+    return pieces.map(piece => sameWinding(piece.map(project))).filter(polygon => area(polygon) >= SLIVER)
   }
 
   function gradientOf(face, rect, model) {
@@ -130,8 +131,11 @@ export function vectorTitle(scene, camera, size, resolution) {
     return gradient && gradient.error > limits.fit && depth < MAX_SPLITS
   }
 
-  function fillFor(model, gradient) {
-    return gradient ? output.fill(gradient) : hexOfPacked(model.stops ? middleOf(model.stops).colour : model.colour)
+  function fillFor(model, gradient, face) {
+    if (gradient) return output.fill(gradient, model.group, face, !!model.banded)
+    const fill = hexOfPacked(model.stops ? middleOf(model.stops).colour : model.colour)
+    if (model.banded) exactFills.add(fill)
+    return fill
   }
 
   function fillBase(face, model, rect, pieces, groups, depth) {
@@ -159,13 +163,28 @@ export function vectorTitle(scene, camera, size, resolution) {
       if (high.length) fillBase(face, model, half.high, high, groups, depth + 1)
       return
     }
-    addTo(groups, fillFor(model, gradient), onScreen(pieces))
+    addTo(groups, fillFor(model, gradient, face), onScreen(pieces))
   }
 
-  function paintPixels(face, layer, list, rect, groups, depth, stacked = true) {
+  function cutOnParts(cut, parts) {
+    return parts.filter(part => area(part.exact) > SLIVER).flatMap(part => {
+      const toPart = worldMap({ corners: part.corners, texels: part.exact })
+      return cut.map(loop => withinConvex(loop, part.exact)).filter(Boolean).map(loop => loop.map(([x, y]) => project(toPart(x, y))))
+    })
+  }
+
+  function boundsOf(face, list, rect) {
+    const faceWidth = face.rect.right - face.rect.left
+    const xs = list.map(index => face.rect.left + index % faceWidth)
+    const ys = list.map(index => face.rect.top + Math.floor(index / faceWidth))
+    return { left: Math.max(rect.left, Math.min(...xs)), top: Math.max(rect.top, Math.min(...ys)), right: Math.min(rect.right, Math.max(...xs) + 1), bottom: Math.min(rect.bottom, Math.max(...ys) + 1) }
+  }
+
+  function paintPixels(face, layer, list, whole, groups, depth, stacked = true) {
     const toWorld = worldMap(face)
+    const rect = list.length && (!layer.cut || layer.banded) ? boundsOf(face, list, whole) : whole
     if (layer.cut) {
-      addInOrder(groups, fillFor(layer, gradientOf(face, rect, layer)), layer.cut.map(loop => loop.map(([x, y]) => project(toWorld(x, y)))))
+      addInOrder(groups, fillFor(layer, gradientOf(face, rect, layer), face), face.parts ? cutOnParts(layer.cut, face.parts) : layer.cut.map(loop => loop.map(([x, y]) => project(toWorld(x, y)))))
       return
     }
     if (layer.bands) {
@@ -188,11 +207,11 @@ export function vectorTitle(scene, camera, size, resolution) {
         return
       }
     }
-    addInOrder(groups, fillFor(layer, gradient), face.analysis.shapeOf(list, layer.smooth).map(loop => loop.map(([x, y]) => project(toWorld(x, y)))))
+    addInOrder(groups, fillFor(layer, gradient, face), face.analysis.shapeOf(list, layer.smooth).map(loop => loop.map(([x, y]) => project(toWorld(x, y)))))
   }
 
   function wholeFill(face, model) {
-    return fillFor(model, gradientOf(face, face.rect, model))
+    return fillFor(model, gradientOf(face, face.rect, model), face)
   }
 
   function fillLayer(face, faces, layer, { groups, joins, covers }) {
@@ -234,7 +253,8 @@ export function vectorTitle(scene, camera, size, resolution) {
       const { base, layers: shapes } = face.analysis
       const whole = visible.length === 1 && visible[0] === face.corners
       const target = whole ? { groups: layer.layers, joins: layer.joins, covers: layer.covers } : { groups: [], joins: [], covers: new Map() }
-      if (base.masked) fillLayer(face, faces, base, target)
+      if (base.masked && face.parts && !base.transparent) fillBase(face, base, face.rect, face.parts.flatMap(part => hideAll(hideAll([part.corners], face, occluders), face, own)), layer.base, 0)
+      else if (base.masked) fillLayer(face, faces, base, target)
       else {
         const trimmed = whole && shapes.length ? trimmedBase(face, faces) : null
         if (trimmed) {
@@ -265,8 +285,8 @@ export function vectorTitle(scene, camera, size, resolution) {
   const joined = joinFacesToLayerBelow(layers)
   useMergedFills(joined, output.mergeAlongAxis(resolution * SHORT_GRADIENT))
   const totals = fillTotals(cache, bandFills)
-  useMergedFills(joined, nearFillsJoined(joined, totals, NEAR_FILLS))
-  const context = { left, top, bleed: resolution * BLEED, output, totals, cover: coverOf(right - left, bottom - top) }
+  useMergedFills(joined, nearFillsJoined(joined, totals, NEAR_FILLS, exactFills))
+  const context = { left, top, bleed: resolution * BLEED, output, totals, cover: coverOf(right - left, bottom - top), exact: new Set(Array.from(exactFills).concat(Array.from(output.exactFills()))) }
   const markup = markupOf(joined.flatMap(layer => entriesOf(layer, context)), context)
   const defs = output.defs(left, top)
   return { width: right - left, height: bottom - top, markup: (defs ? `<defs>${defs}</defs>` : "") + markup }

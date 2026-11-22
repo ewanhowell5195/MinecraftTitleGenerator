@@ -211,9 +211,12 @@ export function finishAtlas(plan, page, painted, options) {
 
   function crackShapes() {
     const found = new Map()
-    function add(label, triangles, [x, y], sx, sy) {
-      if (!found.has(label)) found.set(label, [])
-      for (const points of triangles) found.get(label).push(points.map(([px, py]) => [x + px * sx, y + py * sy]))
+    function add(label, triangles, [x, y], sx, sy, tone = null) {
+      if (!found.has(label)) found.set(label, { shape: [], tones: [] })
+      const { shape, tones } = found.get(label)
+      if (tone !== null) tones[tone] ??= []
+      const target = tone === null ? shape : tones[tone]
+      for (const points of triangles) target.push(points.map(([px, py]) => [x + px * sx, y + py * sy]))
     }
     for (const wrap of painted.wraps) {
       if (wrap.label === null) continue
@@ -228,13 +231,14 @@ export function finishAtlas(plan, page, painted, options) {
       }
       for (const { rect, sx, sy, width, height, glyph, side, line, from } of wrapped) add(wrap.label, wrap.triangles(glyph, side, line, from, width, height), [rect.x, rect.y], sx, sy)
     }
-    for (const wave of painted.waves ?? []) {
+    for (const shape of painted.exactShapes ?? []) {
       for (const block of own) {
         const entry = entryOf(block)
-        const outline = entry && wave.front(entry.glyph)
-        if (!outline) continue
+        const polygons = entry && shape.front(entry.glyph)
+        if (!polygons) continue
         const { front } = page.regions.get(block.glyph)
-        add(wave.label, [outline], glyphOrigin(block, front), front.sx, front.sy)
+        add(shape.label, polygons, glyphOrigin(block, front), front.sx, front.sy)
+        for (const [tone, list] of (shape.tones?.(entry.glyph) ?? []).entries()) add(shape.label, list ?? [], glyphOrigin(block, front), front.sx, front.sy, tone)
       }
     }
     return found
