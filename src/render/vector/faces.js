@@ -5,6 +5,7 @@ import { boxOfPolygons, boxesOverlap } from "./polygons.js"
 
 export const EPSILON = 1e-4
 export const PLANE_ERROR = 1e-2
+const BACKTRACK = 1e-9
 
 export function split(points, normal, constant) {
   const distances = points.map(point => normal.dot(point) - constant)
@@ -235,5 +236,23 @@ export function withinConvex(polygon, piece) {
     if (kept.length < 3) return null
     result = kept
   }
-  return result
+  const cleaned = withoutBacktracks(result)
+  return cleaned.length >= 3 ? cleaned : null
+}
+
+function withoutBacktracks(points) {
+  const kept = points.slice()
+  for (let index = 0; index < kept.length && kept.length > 2;) {
+    const [px, py] = kept[(index + kept.length - 1) % kept.length]
+    const [x, y] = kept[index]
+    const [nx, ny] = kept[(index + 1) % kept.length]
+    const cross = (x - px) * (ny - y) - (y - py) * (nx - x)
+    const dot = (x - px) * (nx - x) + (y - py) * (ny - y)
+    const flat = Math.abs(cross) <= BACKTRACK * Math.hypot(x - px, y - py) * Math.hypot(nx - x, ny - y)
+    if (x === px && y === py || flat && dot <= 0) {
+      kept.splice(index, 1)
+      index = Math.max(0, index - 1)
+    } else index++
+  }
+  return kept
 }
