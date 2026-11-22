@@ -149,7 +149,7 @@ function fitAxis(list, colours, width, axis, exact, bands) {
   const points = [{ t: ordered[0][0], colour: ordered[0][1] }]
   for (const [position, [bin, colour]] of ordered.entries()) {
     const next = ordered[position + 1]
-    const step = !next ? null : next[0] !== bin + 1 ? (bin + 1 + next[0]) / 2 : shownEdges.has(bin) ? bin + 1 : null
+    const step = !next ? null : next[0] !== bin + 1 ? jump(colour, next[1]) ? (bin + 1 + next[0]) / 2 : null : shownEdges.has(bin) ? bin + 1 : null
     if (step !== null) points.push({ t: bin, colour }, { t: step, colour }, { t: step, colour: next[1] })
     else points.push({ t: bin + 0.5, colour })
   }
