@@ -3,7 +3,7 @@ export const DEFAULT_FONT = "minecraft-ten"
 export const TYPES = {
   top: { name: "Top Text", creeperFace: true, clipHoles: true, depthAnchor: "back", stops: [["#FFCF76", 0], ["#DA371E", 100]], fade: false, outerFade: 0, internalFaces: false, fadeInternal: true, internalFade: 0, sideFaces: false, fadeSides: true, sideFade: 0, border: 2, spacing: 0 },
   bottom: { name: "Update Text", creeperFace: false, clipHoles: true, depthAnchor: "front", stops: [["#FFCF76", 0], ["#DA371E", 100]], fade: true, outerFade: 50, internalFaces: true, fadeInternal: true, internalFade: 75, sideFaces: false, fadeSides: true, sideFade: 75, border: 2, spacing: 0 },
-  small: { name: "Edition Text", creeperFace: false, clipHoles: false, depthAnchor: "middle", stops: [["#E0E0E0", 0], ["#8A8A8A", 100]], fade: false, outerFade: 0, internalFaces: true, fadeInternal: false, internalFade: 75, sideFaces: true, fadeSides: false, sideFade: 75, border: 3, spacing: 2 }
+  small: { name: "Edition Text", creeperFace: false, clipHoles: false, depthAnchor: "middle", stops: [["#E0E0E0", 0], ["#8A8A8A", 100]], fade: false, outerFade: 0, internalFaces: true, fadeInternal: false, internalFade: 0, sideFaces: true, fadeSides: false, sideFade: 0, border: 3, spacing: 2 }
 }
 
 const BLENDS = {

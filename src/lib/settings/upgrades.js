@@ -1,7 +1,8 @@
 import { typeDefaults } from "./defaults.js"
 
-export const FILE_VERSION = 8
+export const FILE_VERSION = 9
 const OLD_WAVE = { level: 45, randomness: 60 }
+const OLD_EDITION_FADE = 75
 
 function restartTilesPerCharacter(entry) {
   return entry.textureSource === "tileable" ? { tileablePerCharacter: true, ...entry } : entry
@@ -51,7 +52,11 @@ function matchFullRow(line) {
   return line.matchWidth !== undefined && line.matchWidth !== null && !("matchBottom" in line) ? { ...line, matchBottom: false } : line
 }
 
-const UPGRADES = [[2, restartLineTiles], [3, separateMatchScale], [4, widenBlockSerif], [5, anchorDepthAtFront], [6, turnDoorsInPlace], [7, turnInvertedWaves], [8, matchFullRow]]
+function keepEditionFades(line) {
+  return line.type === "small" ? { internalFade: OLD_EDITION_FADE, sideFade: OLD_EDITION_FADE, ...line } : line
+}
+
+const UPGRADES = [[2, restartLineTiles], [3, separateMatchScale], [4, widenBlockSerif], [5, anchorDepthAtFront], [6, turnDoorsInPlace], [7, turnInvertedWaves], [8, matchFullRow], [9, keepEditionFades]]
 
 export function upgradeLine(line, version) {
   return UPGRADES.reduce((upgraded, [to, upgrade]) => version < to ? upgrade(upgraded) : upgraded, line)

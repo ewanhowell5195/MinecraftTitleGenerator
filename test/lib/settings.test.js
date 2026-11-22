@@ -200,10 +200,8 @@ const SMALL_DEFAULTS = {
   stops: [{ colour: "#E0E0E0", position: 0 }, { colour: "#8A8A8A", position: 100 }],
   internalFaces: true,
   fadeInternal: false,
-  internalFade: 75,
   sideFaces: true,
-  fadeSides: false,
-  sideFade: 75
+  fadeSides: false
 }
 
 const PANEL_NAMES = ["text", "terminators", "font", "curves", "placement", "geometry", "spacing", "arc", "ribbon", "wrap", "fan", "transform", "wordGeometry", "wordArc", "wordRibbon", "wordWrap", "wordFan", "wordTransform", "texture", "overlays", "edgeOverlays", "colour", "outline", "inner", "sides", "faces"]
@@ -438,7 +436,7 @@ describe("resetPanel", () => {
     resetPanel(object, "sides")
     assert.equal(object.sideFaces, true)
     assert.equal(object.fadeSides, false)
-    assert.equal(object.sideFade, 75)
+    assert.equal(object.sideFade, 0)
     assert.equal(object.sideBrightness, 35)
   })
 
