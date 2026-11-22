@@ -28,7 +28,7 @@
 <template>
   <div class="replace">
     <Dropdown v-if="options.length > 1" :label="label" searchable :options="options" v-model="chosen" />
-    <Notice v-if="target?.online">This also replaces the shared version in Community, at the same link. Its votes, rating and uses are reset, and that cannot be undone.</Notice>
+    <Notice v-if="target?.online" warn>This also replaces the shared version in Community, at the same link. Its votes, rating and uses are reset, and that cannot be undone.</Notice>
     <p v-else-if="target?.shared" class="note">This browser can't manage the shared version, so it will stay in Community as it is.</p>
   </div>
 </template>

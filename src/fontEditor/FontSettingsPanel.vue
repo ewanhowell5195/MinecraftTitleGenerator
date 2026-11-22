@@ -239,7 +239,7 @@
         <Field label="Square size"><NumberInput min="1" :value="font.grid" @input="setSquare" @change="setSquare" /></Field>
       </div>
       <p class="hint">Height and width count squares, and one click paints one square. Square size is how many pixels each square is. Each character is {{ finalSize }}.</p>
-      <Notice v-if="warning">
+      <Notice v-if="warning" warn>
         <p>{{ warningText(warning) }}</p>
         <div class="row">
           <Button @click="warning = null">Cancel</Button>
