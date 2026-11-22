@@ -266,7 +266,14 @@
       "8": ["tj", "lt", "ly", "l-", "/j", "l\\", "l1", "t4", "_\\", "_4", ",\\", ".\\", "/_", "/,", "/.", "\\'", "\\^", "\\~", "^/", "^j", "~/", "~j", "7_", "f_", "l'", "l*", "l^", "l~", "l😩", "p_", "p,", "p.", "'j", "😩j"],
       "16": ["//", "\\\\"]
     },
-    "editor": { "width": 28, "grid": 4 }
+    "editor": { "width": 28, "grid": 4 },
+    "variants": [
+      {
+        "id": "minecraft-ten-light-alternate",
+        "name": "Alternate",
+        "authors": ["DizzyAndy"]
+      }
+    ]
   },
   {
     "id": "minecraft-wiki",
