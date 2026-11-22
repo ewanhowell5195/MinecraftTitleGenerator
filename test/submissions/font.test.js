@@ -163,9 +163,11 @@ describe("checking a font", () => {
     assert.equal((await check({ target: "minecraft-ten", bytes: jsonOf(copyOf("minecraft-ten-cyrillic")) })).problems.file, null)
   })
 
-  test("kerning that pushes letters into each other is refused", async () => {
+  test("kerning that pushes letters into each other is a warning, not a problem", async () => {
     const font = copyOf("f8thful")
-    assert.match((await check({ bytes: jsonOf({ ...font, kerning: { ...font.kerning, lt: 60 } }) })).problems.file, /push their characters into each other: lt/)
+    const checked = await check({ bytes: jsonOf({ ...font, kerning: { ...font.kerning, lt: 60 } }) })
+    assert.equal(checked.problems.file, null)
+    assert.match(checked.warnings.file, /push their characters into each other: lt/)
   })
 
   test("thumbnail text is kept, and can only use drawn characters", async () => {

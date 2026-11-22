@@ -60,14 +60,14 @@ function listed(items) {
   return items.length > shown.length ? `${shown.join(", ")} and ${items.length - shown.length} more` : shown.join(", ")
 }
 
-function kerningProblem(entry, sheet) {
+function kerningWarning(entry, sheet) {
   if (!entry.kerning) return null
   const pairs = kerningPairs(entry.kerning, "the font")
   const border = defaultBorder("top", entry)
   const { list } = parseMask(sheet.data, sheet.width, sheet.height, entry.order ?? DEFAULT_ORDER, border)
   const glyphs = Object.fromEntries(list.map(glyph => [glyph.char, glyph]))
   const past = Object.entries(pairs).filter(([pair, amount]) => !(amount <= collisionAmount(glyphs, pair, border))).map(([pair]) => pair)
-  return past.length ? `Some kerned pairs push their characters into each other: ${listed(past)}. Kern them less, so they stop where they touch.` : null
+  return past.length ? `Some kerned pairs push their characters into each other: ${listed(past)}. If that isn't on purpose, kern them less so they stop where they touch.` : null
 }
 
 export async function stripProblem(entry, ctx) {
@@ -122,7 +122,7 @@ async function ownFontProblem(font, parent, ctx) {
   const preview = previewProblem(previewText(font), drawn)
   if (preview) return preview
   if (entry.basedOn && !ctx.fonts.some(item => item.id === entry.basedOn)) return `It says it's based on ${entry.basedOn}, which isn't one of the fonts here. Change Based on in the font editor's Font tab.`
-  return await stripProblem(entry, ctx) ?? kerningProblem(entry, own.sheet)
+  return await stripProblem(entry, ctx)
 }
 
 async function readFile(bytes, parent, ctx) {
@@ -135,7 +135,9 @@ async function readFile(bytes, parent, ctx) {
     return { problem: err.message }
   }
   const problem = await ownFontProblem(font, parent, ctx)
-  return { problem, template: problem ? null : builtFont(font, parent?.id ?? null).template }
+  if (problem) return { problem, template: null }
+  const own = builtFont(font, parent?.id ?? null)
+  return { problem: null, warning: kerningWarning(own.entry, own.sheet), template: own.template }
 }
 
 function storedTemplate(template) {
@@ -235,6 +237,7 @@ export const font = {
   },
   async check({ target, details, bytes, files = {} }, ctx) {
     const problems = {}
+    const warnings = {}
     const clean = {}
     const parent = fontParent(ctx.fonts, target)
     if (target && !parent) problems.target = "Pick the font this is a variant of."
@@ -245,12 +248,13 @@ export const font = {
     if (bytes && (!target || parent)) {
       const read = await readFile(bytes, parent, ctx)
       problems.file = read.problem
+      warnings.file = read.warning
       if (read.template) clean.template = template = read.template
     }
     const sent = Object.keys(files).length
     if (!bytes && sent && !template) problems.extras = "Choose the font's JSON file again to add new textures, overlays or strips."
     const extras = extrasOf(details.extras, files, details.files, template, problems)
     if (extras.length) clean.extras = extras
-    return { problems, target: parent?.id ?? target, details: clean }
+    return { problems, warnings, target: parent?.id ?? target, details: clean }
   }
 }

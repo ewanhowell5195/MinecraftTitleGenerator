@@ -63,6 +63,10 @@ p.hint {
   color: var(--danger);
 }
 
+.hint.warn {
+  color: var(--warn);
+}
+
 .field {
   display: flex;
   flex-direction: column;

@@ -32,5 +32,6 @@ export async function checkSubmission({ kind, target, details, bytes, files, ...
   const checked = await type.check({ target, details: details ?? {}, bytes, files: files ?? {} }, ctx)
   const problems = Object.fromEntries(Object.entries({ ...common, ...sourced, ...checked.problems }).filter(([, problem]) => problem))
   const cleanDetails = Object.values(sourced).some(Boolean) ? checked.details : { ...checked.details, ...cleanSource(details ?? {}) }
-  return { problems, clean: { kind, target: checked.target, details: cleanDetails, ...cleanCommon(fields) } }
+  const warnings = Object.fromEntries(Object.entries(checked.warnings ?? {}).filter(([, warning]) => warning))
+  return { problems, warnings, clean: { kind, target: checked.target, details: cleanDetails, ...cleanCommon(fields) } }
 }

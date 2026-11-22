@@ -63,6 +63,7 @@
   const lastFont = ref("")
   const trial = ref(null)
   const problems = ref({})
+  const warnings = ref({})
   const extraProblem = ref(null)
   const tried = ref(false)
   const sending = ref(false)
@@ -166,9 +167,15 @@
     const files = Object.fromEntries(Object.entries(extras.value).map(([key, extra]) => [key, extra.bytes]))
     try {
       const result = await checkSubmission({ kind: kind.value, target: target.value, details: sentDetails.value, bytes: chosen.value?.bytes ?? null, files, name: name.value, credit: credit.value, notes: notes.value, agree: agree.value }, context)
-      if (check === checks) problems.value = result.problems
+      if (check === checks) {
+        problems.value = result.problems
+        warnings.value = result.warnings ?? {}
+      }
     } catch (err) {
-      if (check === checks) problems.value = { check: `This couldn't be checked: ${err.message}` }
+      if (check === checks) {
+        problems.value = { check: `This couldn't be checked: ${err.message}` }
+        warnings.value = {}
+      }
     }
   }
 
@@ -310,6 +317,7 @@
         <div class="stage-bar">
           <input v-if="group !== 'shape'" type="text" v-model="previewText" :placeholder="previewName" spellcheck="false" aria-label="Preview text">
           <p v-if="problemInBar && fileProblem && (tried || chosen)" class="hint bad">{{ fileProblem }}</p>
+          <p v-else-if="problemInBar && warnings.file && chosen" class="hint warn">{{ warnings.file }}</p>
           <Button v-if="initial && kind === 'font' && fileUrl" v-tooltip="'Open this font in the font editor. It replaces the font saved there'" @click="editFont"><template #icon><Icon name="pencil" :size="16" /></template>Edit font</Button>
           <Button file :accept="isImage ? 'image/png' : '.json,application/json'" @change="pick"><template #icon><Icon name="open" :size="16" /></template>
             <span>Replace file</span>
@@ -324,6 +332,7 @@
       </UploadField>
     </div>
     <p v-if="!problemInBar && fileProblem && (tried || chosen)" class="hint bad">{{ fileProblem }}</p>
+    <p v-else-if="!problemInBar && warnings.file && chosen" class="hint warn">{{ warnings.file }}</p>
     <div class="kind-fields">
       <component :is="parts.Fields" v-bind="linked.fields" v-model:target="target" v-model:details="details" v-model:files="extras" :fonts="fonts" :context="context" :kind="kind" :file="chosen" :initial="initial" :name="name" :problems="problems" :tried="tried" @problem="extraProblem = $event" />
     </div>
