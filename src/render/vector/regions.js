@@ -15,7 +15,7 @@ const HOLE = -2
 export const BASE = -1
 const COVERED = -1
 const PEEL_SHARE = 0.1
-const MERGE_STEP = 1.5
+const MERGE_STEP = 2
 const TEXEL_INSET = 0.02
 const LEFTOVER_SHARE = 0.05
 const CROSS_REACH = 1
@@ -321,9 +321,12 @@ export function analyse(image, rect, mask = null, outline = null) {
     return insidePolygons(polygons, pixel % width + rect.left + 0.5, Math.floor(pixel / width) + rect.top + 0.5)
   }
 
+  function wholeIn(polygons, pixel) {
+    return [[TEXEL_INSET, TEXEL_INSET], [1 - TEXEL_INSET, TEXEL_INSET], [TEXEL_INSET, 1 - TEXEL_INSET], [1 - TEXEL_INSET, 1 - TEXEL_INSET]].every(([dx, dy]) => insidePolygons(polygons, pixel % width + rect.left + dx, Math.floor(pixel / width) + rect.top + dy))
+  }
+
   function cutFill(region, island) {
-    const whole = pixel => [[TEXEL_INSET, TEXEL_INSET], [1 - TEXEL_INSET, TEXEL_INSET], [TEXEL_INSET, 1 - TEXEL_INSET], [1 - TEXEL_INSET, 1 - TEXEL_INSET]].every(([dx, dy]) => insidePolygons(island, pixel % width + rect.left + dx, Math.floor(pixel / width) + rect.top + dy))
-    const interior = region.filter(whole)
+    const interior = region.filter(pixel => wholeIn(island, pixel))
     const clean = interior.length ? interior : region
     const columns = new Set(clean.map(pixel => pixel % width))
     const rows = new Set(clean.map(pixel => Math.floor(pixel / width)))
@@ -360,8 +363,10 @@ export function analyse(image, rect, mask = null, outline = null) {
       continue
     }
     const part = decompose(region, true, label, knownModel(region, true))
-    const shape = !part.banded && faceBits.length ? labelShape(label) : []
-    painted.push({ ...part.base, pixels: part.base.matched, smooth: anySoft && !part.banded, group, depth: overlaysOf(label), ...(shape.length && { cut: asPolygons(shape) }) }, ...part.layers.map(layer => ({ ...layer, group, depth: overlaysOf(label) })))
+    const shape = !part.banded && faceBits.length ? asPolygons(labelShape(label)) : []
+    const straddling = shape.length ? part.layers.filter(layer => layer.pixels.every(pixel => !wholeIn(shape, pixel))) : []
+    const matched = (part.base.matched ?? []).concat(straddling.flatMap(layer => layer.pixels))
+    painted.push({ ...part.base, pixels: matched, smooth: anySoft && !part.banded, group, depth: overlaysOf(label), ...(shape.length && { cut: shape }) }, ...part.layers.filter(layer => !straddling.includes(layer)).map(layer => ({ ...layer, group, depth: overlaysOf(label) })))
   }
   const layers = joinedBands(painted)
   layers.sort((a, b) => a.depth - b.depth || (a.stops || b.stops ? !!b.stops - !!a.stops : (totals.get(b.colour) ?? 0) - (totals.get(a.colour) ?? 0) || a.colour - b.colour))
