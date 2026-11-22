@@ -16,6 +16,7 @@
   import { navigate } from "../lib/state/navigation.js"
   import { EDITOR_EDIT, EDITOR_REVISION, EDITOR_SUBMISSION, SUBMISSION_LIMITS } from "../lib/submissions/submissions.js"
   import { askOverwrite, editSubmission, sendSubmission, submission, submissionFileUrl, submissionPage } from "../lib/submissions/submissionsApi.js"
+  import FileImage from "./FileImage.vue"
   import { pickedFile, releaseFile } from "./files.js"
   import { KIND_COMPONENTS } from "./kinds/components.js"
   import { CLIENT_KINDS, submissionTitle } from "./kinds/index.js"
@@ -313,7 +314,12 @@
     <Segments v-if="group === 'shape'" v-model="kind" :options="SHAPE_KINDS" label="Kind of shape" :hint="ABOUT[kind]" />
     <div class="stage-area" :class="{ dragging, loaded: fileUrl || chosen }" @dragover.prevent="dragging = true" @dragleave.self="dragging = false" @drop.prevent="drop">
       <template v-if="fileUrl || chosen">
-        <component :is="parts.Preview" v-bind="linked.preview" :fonts="fonts" :kind="kind" :target="target" :details="details" :files="extras" :initial="initial" :url="fileUrl" :text="previewText || previewName" />
+        <div class="stage-row">
+          <div class="stage-main">
+            <component :is="parts.Preview" v-bind="linked.preview" :fonts="fonts" :kind="kind" :target="target" :details="details" :files="extras" :initial="initial" :url="fileUrl" :text="previewText || previewName" />
+          </div>
+          <FileImage v-if="group === 'texture' && fileUrl" class="stage-file" :url="fileUrl" :name="chosen?.name" />
+        </div>
         <div class="stage-bar">
           <input v-if="group !== 'shape'" type="text" v-model="previewText" :placeholder="previewName" spellcheck="false" aria-label="Preview text">
           <p v-if="problemInBar && fileProblem && (tried || chosen)" class="hint bad">{{ fileProblem }}</p>
@@ -411,6 +417,23 @@
     aspect-ratio: auto;
   }
 
+  .stage-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .stage-main {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .stage-file {
+    width: clamp(200px, 25vw, 280px);
+  }
+
   @media (min-height: 760px) {
     .submission-form:has(.strips-head.open) .stage-area {
       position: sticky;
@@ -502,6 +525,15 @@
     .stage-area :deep(.render),
     .drop {
       height: 220px;
+    }
+
+    .stage-row {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .stage-file {
+      width: auto;
+      height: 180px;
     }
   }
 </style>
