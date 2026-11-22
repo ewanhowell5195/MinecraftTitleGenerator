@@ -10,6 +10,8 @@ export function fakeGitHub(publicKey, { repo, api, files }) {
   const commits = new Map()
   const refs = new Map()
   const pulls = new Map()
+  const issues = new Map()
+  let numbered = 0
   const comments = []
   const reviews = []
   const runs = []
@@ -95,6 +97,7 @@ export function fakeGitHub(publicKey, { repo, api, files }) {
     }
     if ((match = at.match(/^git\/refs\/(.+)$/))) {
       if (!refs.has(match[1])) return json({ message: "Reference does not exist" }, 422)
+      if (method === "PATCH" && body.force === false && !commits.get(body.sha)?.parents.includes(refs.get(match[1]))) return json({ message: "Update is not a fast forward" }, 422)
       if (method === "DELETE") {
         refs.delete(match[1])
         return new Response(null, { status: 204 })
@@ -106,8 +109,19 @@ export function fakeGitHub(publicKey, { repo, api, files }) {
       refs.set(body.ref.slice(5), body.sha)
       return json({}, 201)
     }
+    if (method === "POST" && at === "issues") {
+      const number = ++numbered
+      issues.set(number, { ...body, number, state: "open", state_reason: null, html_url: `https://github.com/${repo}/issues/${number}` })
+      return json(issues.get(number), 201)
+    }
+    if ((match = at.match(/^issues\/(\d+)$/))) {
+      const issue = issues.get(Number(match[1]))
+      if (!issue) return json({ message: "Not Found" }, 404)
+      if (method === "PATCH") Object.assign(issue, body)
+      return json(issue)
+    }
     if (method === "POST" && at === "pulls") {
-      const number = pulls.size + 1
+      const number = ++numbered
       pulls.set(number, { ...body, number, state: "open", mergeable_state: "clean" })
       return json({ number }, 201)
     }
@@ -137,5 +151,5 @@ export function fakeGitHub(publicKey, { repo, api, files }) {
     throw new Error(`the fake GitHub has no ${method} ${route}`)
   }
 
-  return { handle, refs, commits, pulls, comments, comment, reviews, runs, calls, failing, filesAt, blobs, main: () => refs.get("heads/main"), commit, blob }
+  return { handle, refs, commits, pulls, issues, comments, comment, reviews, runs, calls, failing, filesAt, blobs, main: () => refs.get("heads/main"), commit, blob }
 }

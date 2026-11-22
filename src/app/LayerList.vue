@@ -13,6 +13,9 @@
   import Icon from "../components/Icon.vue"
   import LayerThumb from "./LayerThumb.vue"
   import SavePresetDialog from "./presets/SavePresetDialog.vue"
+  import ReportDialog from "../issues/ReportDialog.vue"
+
+  const reporting = ref(false)
 
   const SETTLE = 150
   const BUDGET = 12
@@ -293,6 +296,11 @@
       <Icon name="image" :size="20" />
       <span>Render</span>
     </button>
+    <button class="report rail-button" @click="reporting = true">
+      <Icon name="bug" :size="20" />
+      <span>Report</span>
+    </button>
+    <ReportDialog v-if="reporting" @close="reporting = false" />
     <ContextMenu :items="context?.items" :at="context?.at" @close="context = null" />
     <SavePresetDialog v-if="namingPreset !== null" :suggested="namingPreset" :share-only="namingForShare" @close="namingPreset = null" />
   </nav>
@@ -521,10 +529,18 @@
     margin-top: 6px;
   }
 
+  .layers .report {
+    margin-top: auto;
+  }
+
   @media (max-width: 800px) {
     .rail-button + .rail-button {
       margin-top: 0;
       margin-left: 6px;
+    }
+
+    .layers .report {
+      margin-left: auto;
     }
 
     .layers {

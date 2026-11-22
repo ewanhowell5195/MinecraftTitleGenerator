@@ -31,7 +31,7 @@ const ENDPOINTS = {
   }
 }
 
-const KEEPS_EMAIL = "(users.admin = 1 OR EXISTS (SELECT 1 FROM submissions WHERE submissions.user_id = users.id) OR EXISTS (SELECT 1 FROM notifications WHERE notifications.user_id = users.id AND notifications.emailed = 0))"
+const KEEPS_EMAIL = "(users.admin = 1 OR EXISTS (SELECT 1 FROM submissions WHERE submissions.user_id = users.id) OR EXISTS (SELECT 1 FROM issues WHERE issues.user_id = users.id AND issues.status = 'open') OR EXISTS (SELECT 1 FROM notifications WHERE notifications.user_id = users.id AND notifications.emailed = 0))"
 
 function providerOf(env, params) {
   const provider = PROVIDERS.find(({ id }) => id === params.provider)
@@ -188,7 +188,7 @@ export async function isAdmin(env, user) {
 }
 
 export function forgetUnusedUser(env, user) {
-  return env.DB.prepare("DELETE FROM users WHERE provider = ? AND provider_id = ? AND admin = 0 AND NOT EXISTS (SELECT 1 FROM presets WHERE presets.user_id = users.id) AND NOT EXISTS (SELECT 1 FROM submissions WHERE submissions.user_id = users.id) AND NOT EXISTS (SELECT 1 FROM notifications WHERE notifications.user_id = users.id)").bind(user.provider, user.providerId)
+  return env.DB.prepare("DELETE FROM users WHERE provider = ? AND provider_id = ? AND admin = 0 AND NOT EXISTS (SELECT 1 FROM presets WHERE presets.user_id = users.id) AND NOT EXISTS (SELECT 1 FROM submissions WHERE submissions.user_id = users.id) AND NOT EXISTS (SELECT 1 FROM issues WHERE issues.user_id = users.id) AND NOT EXISTS (SELECT 1 FROM notifications WHERE notifications.user_id = users.id)").bind(user.provider, user.providerId)
 }
 
 export const startSignIn = showingRefusals(async ({ request, env, params }) => {
@@ -231,8 +231,8 @@ export const finishSignIn = showingRefusals(async ({ request, env, params }) => 
 })
 
 async function submissionCounts(env, user, admin) {
-  const row = await env.DB.prepare(`SELECT (SELECT COUNT(*) FROM notifications WHERE seen = 0 AND user_id = ${USER_ROW}) AS unread, (SELECT COUNT(*) FROM notifications WHERE user_id = ${USER_ROW}) AS notifications, (SELECT COUNT(*) FROM submissions WHERE user_id = ${USER_ROW}) AS submissions, (SELECT COUNT(*) FROM submissions WHERE status = 'open' AND ?) AS waiting`).bind(user.provider, user.providerId, user.provider, user.providerId, user.provider, user.providerId, admin ? 1 : 0).first()
-  return { unread: row?.unread ?? 0, notifications: row?.notifications ?? 0, submissions: row?.submissions ?? 0, waiting: row?.waiting ?? 0 }
+  const row = await env.DB.prepare(`SELECT (SELECT COUNT(*) FROM notifications WHERE seen = 0 AND user_id = ${USER_ROW}) AS unread, (SELECT COUNT(*) FROM notifications WHERE user_id = ${USER_ROW}) AS notifications, (SELECT COUNT(*) FROM submissions WHERE user_id = ${USER_ROW}) AS submissions, (SELECT COUNT(*) FROM submissions WHERE status = 'open' AND ?) AS waiting, (SELECT COUNT(*) FROM issues WHERE user_id = ${USER_ROW}) AS issues`).bind(user.provider, user.providerId, user.provider, user.providerId, user.provider, user.providerId, admin ? 1 : 0, user.provider, user.providerId).first()
+  return { unread: row?.unread ?? 0, notifications: row?.notifications ?? 0, submissions: row?.submissions ?? 0, waiting: row?.waiting ?? 0, issues: row?.issues ?? 0 }
 }
 
 export const accountDetails = guarded(async context => {

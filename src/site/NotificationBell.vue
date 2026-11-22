@@ -4,6 +4,7 @@
   import { dateTime } from "../lib/core/dates.js"
   import { useWindowEvents } from "../components/composables/events.js"
   import { clearNotifications, markNotificationsSeen, notifications, submissionPage } from "../lib/submissions/submissionsApi.js"
+  import { issuePage } from "../lib/issues/issuesApi.js"
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
   import Notice from "../components/Notice.vue"
@@ -14,7 +15,11 @@
     comment: "commented on",
     changes: "asked for changes to",
     published: "published",
-    rejected: "declined"
+    rejected: "declined",
+    reported: "reported",
+    fixed: "fixed",
+    closed: "closed",
+    reopened: "reopened"
   }
 
   const button = ref(null)
@@ -100,7 +105,7 @@
         <p v-else-if="items && !items.length" class="state empty-state">No notifications yet.</p>
         <ul v-else-if="items">
           <li v-for="item of items" :key="item.id" :class="{ fresh: !item.seen }">
-            <a :href="item.link || submissionPage(item.submission)" @click="close">
+            <a :href="item.link || (item.issue ? issuePage(item.issue) : submissionPage(item.submission))" @click="close">
               <span class="line"><strong>{{ item.author || "Someone" }}</strong> {{ ACTIONS[item.kind] }} <span class="name">{{ item.submissionName }}</span></span>
               <span v-if="item.body" class="body">{{ item.body }}</span>
               <span class="when">{{ dateTime(item.createdAt) }}</span>

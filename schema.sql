@@ -122,10 +122,28 @@ CREATE INDEX submissions_by_user ON submissions (user_id, id DESC);
 CREATE INDEX submissions_by_pull ON submissions (pull);
 CREATE INDEX submissions_by_status ON submissions (status, target);
 
+CREATE TABLE issues (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER REFERENCES users (id),
+  title TEXT NOT NULL,
+  body TEXT NOT NULL,
+  code TEXT,
+  files TEXT NOT NULL DEFAULT '[]',
+  status TEXT NOT NULL DEFAULT 'open',
+  number INTEGER,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE INDEX issues_by_user ON issues (user_id, id DESC);
+CREATE INDEX issues_by_number ON issues (number);
+CREATE INDEX issues_by_status ON issues (status, id);
+
 CREATE TABLE notifications (
   id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users (id),
   submission_id INTEGER REFERENCES submissions (id),
+  issue_id INTEGER REFERENCES issues (id),
   submission_name TEXT NOT NULL DEFAULT '',
   kind TEXT NOT NULL,
   author TEXT NOT NULL DEFAULT '',

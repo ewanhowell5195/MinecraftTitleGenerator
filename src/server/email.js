@@ -15,7 +15,11 @@ const MESSAGES = {
   comment: ({ name }) => ({ label: "New comment", subject: `New comment on ${name}`, action: "Reply" }),
   changes: ({ name }) => ({ label: "Changes requested", subject: `Changes requested on ${name}`, detail: "Make the changes on its page, and it will be reviewed again.", action: "See what to change" }),
   published: ({ name }) => ({ label: "Submission published", subject: `${name} was published`, detail: "It is now part of the Minecraft Title Generator. Thanks for sending it in!", action: "Open it in the generator" }),
-  rejected: ({ name, body }) => ({ label: "Submission declined", subject: `${name} was declined`, detail: body ? "Thanks for sending it in." : "Thanks for sending it in. The pull request has any comments about it.", action: "See the pull request" })
+  rejected: ({ name, body }) => ({ label: "Submission declined", subject: `${name} was declined`, detail: body ? "Thanks for sending it in." : "Thanks for sending it in. The pull request has any comments about it.", action: "See the pull request" }),
+  reported: ({ author, name }) => ({ label: "New report", subject: `${author} reported ${name}`, detail: "It is on GitHub as an issue.", action: "See the report" }),
+  fixed: ({ name }) => ({ label: "Report fixed", subject: `${name} was fixed`, detail: "Thanks for reporting it!", action: "See the report" }),
+  closed: ({ name }) => ({ label: "Report closed", subject: `${name} was closed`, detail: "Thanks for reporting it. The report has any comments about why.", action: "See the report" }),
+  reopened: ({ name }) => ({ label: "Report reopened", subject: `${name} was reopened`, action: "See the report" })
 }
 
 const GITHUB_BODY = 2000
@@ -29,7 +33,7 @@ const GITHUB_MESSAGES = {
 }
 
 function linkOf(note) {
-  return new URL(note.link || `/submissions/${note.submissionId}`, SITE).href
+  return new URL(note.link || (note.issueId ? `/issues/${note.issueId}/` : `/submissions/${note.submissionId}`), SITE).href
 }
 
 function quoteHtml(author, body) {
@@ -71,7 +75,7 @@ function composed(to, message, { author, body, link, reason }) {
 function notificationEmail(note) {
   const author = note.author || "Someone"
   const message = MESSAGES[note.kind]({ author, name: note.name, body: note.body })
-  return composed(note.email, message, { author, body: note.body, link: linkOf(note), reason: "of a submission on" })
+  return composed(note.email, message, { author, body: note.body, link: linkOf(note), reason: note.issueId ? "of an issue report on" : "of a submission on" })
 }
 
 function gitHubEmail(to, event) {
@@ -102,10 +106,10 @@ export async function emailReviewers(env, event, actorId) {
 export async function emailNotifications(env) {
   const { results: claimed } = await env.DB.prepare("UPDATE notifications SET emailed = 1 WHERE emailed = 0 RETURNING id").all()
   if (!claimed.length) return
-  const { results } = await env.DB.prepare("SELECT notifications.id, users.email, notifications.submission_id AS submissionId, COALESCE(submissions.name, notifications.submission_name) AS name, notifications.kind, notifications.author, notifications.body, notifications.link FROM notifications JOIN users ON users.id = notifications.user_id LEFT JOIN submissions ON submissions.id = notifications.submission_id WHERE users.email IS NOT NULL AND notifications.id IN (SELECT value FROM json_each(?))").bind(JSON.stringify(claimed.map(row => row.id))).all()
+  const { results } = await env.DB.prepare("SELECT notifications.id, users.email, notifications.submission_id AS submissionId, notifications.issue_id AS issueId, COALESCE(submissions.name, issues.title, notifications.submission_name) AS name, notifications.kind, notifications.author, notifications.body, notifications.link FROM notifications JOIN users ON users.id = notifications.user_id LEFT JOIN submissions ON submissions.id = notifications.submission_id LEFT JOIN issues ON issues.id = notifications.issue_id WHERE users.email IS NOT NULL AND notifications.id IN (SELECT value FROM json_each(?))").bind(JSON.stringify(claimed.map(row => row.id))).all()
   const groups = new Map()
   for (const note of results) {
-    const key = JSON.stringify([note.email, note.kind, note.submissionId, note.name, note.body])
+    const key = JSON.stringify([note.email, note.kind, note.submissionId, note.issueId, note.name, note.body])
     if (!groups.has(key)) groups.set(key, { message: notificationEmail(note), ids: [] })
     groups.get(key).ids.push(note.id)
   }

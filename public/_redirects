@@ -2,3 +2,5 @@
 /submissions/:id/edit /submissions/ 200
 /submissions/:id/ /submissions/ 200
 /submissions/:id /submissions/ 200
+/issues/:id/ /issues/ 200
+/issues/:id /issues/ 200

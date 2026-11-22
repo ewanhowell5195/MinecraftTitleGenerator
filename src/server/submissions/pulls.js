@@ -11,15 +11,15 @@ const UNMERGEABLE = [405, 409, 422]
 const WORKFLOW = "submission.yml"
 // the commit message .github/workflows/submission.yml makes after converting
 const WORKFLOW_COMMIT = "add thumbnails and compress textures"
-const PAGES_SKIP = "[CF-Pages-Skip]"
+export const PAGES_SKIP = "[CF-Pages-Skip]"
 
-export async function onGitHub(work) {
+export async function onGitHub(work, unavailable = UNAVAILABLE) {
   try {
     return await work()
   } catch (err) {
     if (!(err instanceof GitHubError)) throw err
     console.error(err)
-    throw new Refusal(502, UNAVAILABLE)
+    throw new Refusal(502, unavailable)
   }
 }
 

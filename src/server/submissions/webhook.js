@@ -1,4 +1,5 @@
 import { emailReviewers } from "../email.js"
+import { issueCommented, issueDeleted, issueStateChanged } from "../issues/index.js"
 import { github, repository, verifiedWebhook } from "../github.js"
 import { Refusal, guarded, reply } from "../http.js"
 import { finishClosing, startClosing } from "./closing.js"
@@ -43,7 +44,8 @@ async function fromGitHub(context, number, kind, entry) {
 }
 
 async function commented(context, item, comment) {
-  if (!await fromGitHub(context, item.number, "comment", comment)) reviewersHear(context, "comment", item.title, comment)
+  if (await fromGitHub(context, item.number, "comment", comment) || await issueCommented(context, item.number, comment)) return
+  reviewersHear(context, "comment", item.title, comment)
 }
 
 async function reviewed(context, pull, review) {
@@ -80,6 +82,8 @@ export const receiveWebhook = guarded(async context => {
   if (event === "pull_request" && payload.action === "closed") await pullClosed(context, payload.pull_request, payload.sender)
   else if (event === "pull_request" && payload.action === "opened") reviewersHear(context, "pull", payload.pull_request.title, payload.pull_request)
   else if (event === "issues" && payload.action === "opened") reviewersHear(context, "issue", payload.issue.title, payload.issue)
+  else if (event === "issues" && ["closed", "reopened"].includes(payload.action)) await issueStateChanged(context, payload.issue, payload.sender, payload.action)
+  else if (event === "issues" && payload.action === "deleted") await issueDeleted(context, payload.issue)
   else if (event === "issue_comment" && payload.action === "created") await commented(context, payload.issue, payload.comment)
   else if (event === "pull_request_review_comment" && payload.action === "created") await commented(context, payload.pull_request, payload.comment)
   else if (event === "pull_request_review" && payload.action === "submitted") await reviewed(context, payload.pull_request, payload.review)

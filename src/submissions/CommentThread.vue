@@ -11,12 +11,13 @@
   const props = defineProps({
     id: { type: Number, required: true },
     comments: { type: Array, default: null },
-    canComment: { type: Boolean, default: false }
+    canComment: { type: Boolean, default: false },
+    post: { type: Function, default: postComment }
   })
 
   const emit = defineEmits(["update"])
 
-  const ROLES = { submitter: "Submitter", reviewer: "Reviewer" }
+  const ROLES = { submitter: "Submitter", reviewer: "Reviewer", reporter: "Reporter" }
 
   const text = ref("")
   const busy = ref(false)
@@ -26,7 +27,7 @@
     busy.value = true
     error.value = ""
     try {
-      emit("update", await postComment(props.id, text.value))
+      emit("update", await props.post(props.id, text.value))
       text.value = ""
     } catch (err) {
       error.value = err.message

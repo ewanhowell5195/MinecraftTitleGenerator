@@ -45,6 +45,11 @@
     <p>When someone comments on your submission, or it is accepted or turned down, a notification is saved to your account. This stores their username, their comment, and a link to it. Reviewers are also notified when you send, change or comment on a submission, which shows them your username.</p>
     <p>Each notification is also emailed to you, with the same details. Sending a submission needs an email address on your Discord or GitHub account for this.</p>
 
+    <h2>Issue reports</h2>
+    <p>An issue reported from the title generator stores its title, its description, any images you add, a link to your title if you choose to include one, its status, and which account sent it. If your title has uploaded fonts or textures, which a link can't carry, its title file is attached too, including those uploads.</p>
+    <p>Reports are public. Each one is opened as an issue on the title generator's public <a href="https://github.com/ewanhowell5195/MinecraftTitleGenerator" target="_blank" rel="noopener">GitHub repository</a>, which shows its title, description, images, the title link and title file if included, your username, and whether you use Discord or GitHub. Images and title files are kept in that repository. On the title generator itself, only you and reviewers can see your report's page.</p>
+    <p>You and reviewers can comment on your report, on its page or on its GitHub issue. Comments are kept on GitHub, not on my server. When someone comments on your report, or it is fixed, closed or reopened, a notification is saved to your account and emailed to you, the same as for submissions. Reviewers are notified when you send or comment on a report. Reporting an issue needs an email address on your Discord or GitHub account for this.</p>
+
     <h2>Usage stats</h2>
     <p>When you render, save, or share a title, the title generator sends a list of the fonts, textures, and overlays it uses to my server. This is used to show the most popular ones first, and to count how many titles have been made.</p>
     <p>It does not include your title's text, your account, or any fonts or images you have added yourself.</p>
@@ -72,13 +77,14 @@
 
     <h2>How long data is kept</h2>
     <ul>
-      <li>Your account id and username are kept until you delete your account, or until you have no presets or submissions left.</li>
+      <li>Your account id and username are kept until you delete your account, or until you have no presets, submissions or reports left.</li>
+      <li>Reports are kept until you delete your account, or until their GitHub issue is deleted.</li>
       <li>Presets under your account and shared presets are kept until you delete them.</li>
       <li>Vote and download records are kept until the preset is deleted. Changing a shared preset's title resets them. Your own votes are deleted when you delete your account.</li>
       <li>Daily share counts are deleted after the day ends.</li>
       <li>Submissions are removed from my server once they are accepted, turned down or withdrawn, along with their notifications. When one is accepted or turned down, you are left one notification saying so, which is kept until you clear it. Deleting your account removes all of your notifications.</li>
       <li>The note kept when you withdraw a submission is deleted when you send it again, when its pull request is accepted anyway, or when you delete your account.</li>
-      <li>Your email address is removed from my server once you have no submissions waiting for review and no notification emails left to send, unless you are a reviewer.</li>
+      <li>Your email address is removed from my server once you have no submissions waiting for review, no open reports and no notification emails left to send, unless you are a reviewer.</li>
       <li>Deleted data can remain in Cloudflare's database history for up to 30 days.</li>
       <li>Resend keeps a copy of each notification email for 30 days after it is sent.</li>
     </ul>
@@ -88,7 +94,7 @@
     <ul>
       <li><strong><a href="https://www.cloudflare.com/" target="_blank" rel="noopener">Cloudflare</a></strong> hosts the title generator and its database. Every request to the title generator goes through Cloudflare, including your IP address.</li>
       <li><strong><a href="https://discord.com/" target="_blank" rel="noopener">Discord</a></strong> and <strong><a href="https://github.com/" target="_blank" rel="noopener">GitHub</a></strong> handle signing in, and show your profile picture.</li>
-      <li><strong><a href="https://github.com/" target="_blank" rel="noopener">GitHub</a></strong> hosts submissions as public pull requests, as described above.</li>
+      <li><strong><a href="https://github.com/" target="_blank" rel="noopener">GitHub</a></strong> hosts submissions as public pull requests and reports as public issues, as described above.</li>
       <li><strong><a href="https://resend.com/" target="_blank" rel="noopener">Resend</a></strong> sends notification emails, so it receives your email address and each notification.</li>
       <li><strong><a href="https://fonts.google.com/" target="_blank" rel="noopener">Google Fonts</a></strong> provides the fonts the title generator's pages use. Your browser downloads them from Google's servers, so Google receives your IP address.</li>
       <li><strong><a href="https://www.mojang.com/" target="_blank" rel="noopener">Mojang</a></strong>: when you use a Minecraft block texture, your browser downloads the game's files directly from Mojang's servers.</li>
@@ -104,13 +110,13 @@
 
     <h2>Removing your data</h2>
     <p>To delete your account, use the <a href="/account/">Manage account</a> page. This always deletes the presets saved to your account, your votes, and your notifications. To keep a copy of your presets, download them first.</p>
-    <p>You then choose what happens to your shared presets and submissions. They can stay without your username, and your shared presets keep their votes and ratings. Or they can be removed: your shared presets are deleted, and your submissions are removed from my server, and withdrawn if they are waiting for review.</p>
+    <p>You then choose what happens to your shared presets, submissions and reports. They can stay without your username, and your shared presets keep their votes and ratings. Or they can be removed: your shared presets are deleted, your submissions are removed from my server, and withdrawn if they are waiting for review, and your reports are removed from my server. Either way, your username is removed from your reports' GitHub issues.</p>
     <p>Signing out removes the session cookie, but does not delete anything from my server.</p>
     <p>To remove anything else, contact me through the contacts listed below.</p>
     <p>Some data cannot be removed on request:</p>
     <ul>
       <li>Accepted submissions stay in the title generator, under the submission terms in the <a href="https://github.com/ewanhowell5195/MinecraftTitleGenerator/blob/main/LICENSE.md" target="_blank" rel="noopener">licence</a>.</li>
-      <li>Pull requests and their comments cannot be deleted from GitHub. Deleting your account removes your username from them, and I can remove your notes on request.</li>
+      <li>Pull requests, issues and their comments cannot be deleted from GitHub. Deleting your account removes your username from them, and I can remove your notes or report on request. A report's images and title file stay in the repository after it is closed or your account is deleted, unless you ask me to remove them.</li>
     </ul>
 
     <h2>Children's privacy</h2>

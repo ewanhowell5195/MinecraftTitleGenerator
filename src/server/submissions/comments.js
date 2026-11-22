@@ -10,9 +10,9 @@ import { MISSING, findSubmission } from "./store.js"
 export const FRESH_SECONDS = 30
 const PER_PAGE = 100
 export const REVIEWERS = new Set(["OWNER", "MEMBER", "COLLABORATOR"])
-const COMMENTERS = { submitter: "The submitter", reviewer: "A reviewer" }
-const ANONYMOUS_ROLES = { "The submitter": "submitter", "A reviewer": "reviewer" }
-const SITE_COMMENT = /^(?:(`+) (.+?) \1 \((submitter|reviewer)\)|(The submitter|A reviewer)) commented on the site:\n\n(`{3,})text\n([\s\S]*)\n\5$/
+const COMMENTERS = { submitter: "The submitter", reviewer: "A reviewer", reporter: "The reporter" }
+const ANONYMOUS_ROLES = { "The submitter": "submitter", "A reviewer": "reviewer", "The reporter": "reporter" }
+const SITE_COMMENT = /^(?:(`+) (.+?) \1 \((submitter|reviewer|reporter)\)|(The submitter|A reviewer|The reporter)) commented on the site:\n\n(`{3,})text\n([\s\S]*)\n\5$/
 const SITE_EDIT = /^(?:(`+) (.+?) \1 \((submitter|reviewer)\)|(The submitter|A reviewer)) changed the submission on the site\.$/
 
 function siteComment(text) {
@@ -40,9 +40,9 @@ async function listed(env, path) {
   return entries.slice(0, SUBMISSION_LIMITS.comments)
 }
 
-async function commentsOf(env, row) {
-  if (!row.pull) return []
-  const [comments, reviews] = await Promise.all([listed(env, `issues/${row.pull}/comments`), listed(env, `pulls/${row.pull}/reviews`)])
+async function commentsOf(env, number, withReviews) {
+  if (!number) return []
+  const [comments, reviews] = await Promise.all([listed(env, `issues/${number}/comments`), withReviews ? listed(env, `pulls/${number}/reviews`) : []])
   const written = comments.flatMap(entry => {
     const shownAs = fromApp(env, entry) ? siteComment(entry.body) : fromReviewer(entry) ? { kind: "comment", author: entry.user.login, role: "reviewer", body: entry.body ?? "" } : null
     return shownAs ? [{ id: entry.id, ...shownAs, url: entry.html_url, createdAt: Date.parse(entry.created_at) }] : []
@@ -51,9 +51,9 @@ async function commentsOf(env, row) {
   return written.concat(reviewed).sort((a, b) => a.createdAt - b.createdAt)
 }
 
-async function threadOf(env, row) {
+export async function threadOf(env, number, withReviews = true) {
   try {
-    return await commentsOf(env, row)
+    return await commentsOf(env, number, withReviews)
   } catch (err) {
     if (!(err instanceof GitHubError)) throw err
     console.error(err)
@@ -73,13 +73,13 @@ export async function forgetFresh(request, row) {
   await Promise.all(["thread", "processing"].map(part => globalThis.caches?.default.delete(new Request(freshKey(request, row, part)))))
 }
 
-async function threadReply(env, row) {
-  const comments = await threadOf(env, row)
+export async function threadReply(env, number, withReviews = true) {
+  const comments = await threadOf(env, number, withReviews)
   return reply(comments ? 200 : 502, comments)
 }
 
 export async function cachedThread(context, row) {
-  const response = await cachedAtEdge(context, () => threadReply(context.env, row), { seconds: FRESH_SECONDS, key: freshKey(context.request, row, "thread") })
+  const response = await cachedAtEdge(context, () => threadReply(context.env, row.pull), { seconds: FRESH_SECONDS, key: freshKey(context.request, row, "thread") })
   return response.json()
 }
 
@@ -94,8 +94,8 @@ export function onGitHubText(name, { kind = "comment", role, body = "" }) {
   return kind === "edit" ? `${who} changed the submission on the site.` : `${who} commented on the site:\n\n${block(body)}`
 }
 
-function postComment(env, row, user, role, text) {
-  return github(env, `issues/${row.pull}/comments`, { method: "POST", body: { body: onGitHubText(user.name, { role, body: text }) } })
+export function postComment(env, number, user, role, text) {
+  return github(env, `issues/${number}/comments`, { method: "POST", body: { body: onGitHubText(user.name, { role, body: text }) } })
 }
 
 export async function noteEdit(env, row, user, role) {
@@ -124,12 +124,12 @@ export const addComment = guarded(async context => {
   if (!row.pull) throw new Refusal(409, "This submission isn't on GitHub yet, so it can't take comments.")
   const slot = role === "submitter" ? await takeSlot(env, { table: "account_submissions", column: "account_hash", owner: await accountKey(env, "comments", user) }, SUBMISSION_LIMITS.commentsPerDay) : null
   if (role === "submitter" && !slot) throw new Refusal(429, `You can send up to ${SUBMISSION_LIMITS.commentsPerDay} comments a day.`)
-  await onGitHub(() => postComment(env, row, user, role, text)).catch(async err => {
+  await onGitHub(() => postComment(env, row.pull, user, role, text)).catch(async err => {
     if (slot) await returnSlot(env, slot)
     throw err
   })
   await forgetFresh(request, row)
   await env.DB.batch([saveUser(env, user), notify(env, row, "comment", { author: user.name, body: text, admins: true, actor: user })])
   emailing(context)
-  return reply(201, { comments: await threadOf(env, row) })
+  return reply(201, { comments: await threadOf(env, row.pull) })
 })
