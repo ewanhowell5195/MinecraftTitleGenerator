@@ -41,6 +41,7 @@ describe("tokens", () => {
     assert.equal(db.prepare("SELECT COUNT(*) AS count FROM preset_downloads WHERE preset_id = ?").get(preset.id).count, 0)
     assert.equal(db.prepare("SELECT COUNT(*) AS count FROM preset_daily_downloads WHERE preset_id = ?").get(preset.id).count, 0)
     assert.equal((await download(preset.id, "someone")).counted, true)
+    assert.equal((await list("?sort=week")).presets[0].week, 1)
     assert.equal(result.status, 200)
     assert.equal(result.preset.id, preset.id)
     assert.equal(result.preset.code, code([{ text: "after" }]))

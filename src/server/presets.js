@@ -9,7 +9,7 @@ import { USER_ROW, activeUser, currentUser, forgetUnusedUser, requireUser, saveU
 import { nextDay, returnSlot, takeSlot, today } from "./daily.js"
 import { INVALID, Refusal, cachedAtEdge, canonical, guarded, hashed, idParam, jsonBody, randomToken, reply, setting, textField, unpublishedName } from "./http.js"
 
-const SORTS = { week: "week DESC, downloads DESC, id DESC", popular: "downloads DESC, id DESC", top: "rating DESC, votes DESC, id DESC", new: "created_at DESC, id DESC", needs: "votes, id" }
+const SORTS = { week: "week_downloads DESC, downloads DESC, id DESC", popular: "downloads DESC, id DESC", top: "rating DESC, votes DESC, id DESC", new: "created_at DESC, id DESC", needs: "votes, id" }
 const MATCHES = "lower(name) LIKE ?1 ESCAPE '\\' OR lower(text) LIKE ?1 ESCAPE '\\'"
 const DAY = 86400000
 const WEEK_DAYS = 7
@@ -21,7 +21,7 @@ const COLUMNS = `id, code, fingerprint, name, text, ${STAT_COLUMNS}`
 
 // sqlite reuses the rowid of a deleted newest row, which would repoint old links and browsers' vote records
 export const NEXT_ID = "MAX(COALESCE((SELECT MAX(id) FROM presets), 0), COALESCE((SELECT MAX(id) FROM deleted_presets), 0)) + 1"
-const SCORES_RESET = ", downloads = 0, ups = 0, votes = 0, rating = -1"
+const SCORES_RESET = ", downloads = 0, week_downloads = 0, ups = 0, votes = 0, rating = -1"
 function scoresCounted(voters = "") {
   const ups = `(SELECT COUNT(*) FROM preset_votes WHERE preset_id = presets.id AND value = 1${voters})`
   const votes = `(SELECT COUNT(*) FROM preset_votes WHERE preset_id = presets.id${voters})`
@@ -91,8 +91,16 @@ async function hasUnlimitedShares(env, user) {
   return !!(await env.DB.prepare("SELECT unlimited_shares FROM users WHERE provider = ? AND provider_id = ?").bind(user.provider, user.providerId).first())?.unlimited_shares
 }
 
+function forgetOldDownloads(env) {
+  const cutoff = dayNumber() - WEEK_DAYS
+  return [
+    env.DB.prepare("UPDATE presets SET week_downloads = week_downloads - (SELECT SUM(count) FROM preset_daily_downloads WHERE preset_id = presets.id AND day < ?1) WHERE id IN (SELECT preset_id FROM preset_daily_downloads WHERE day < ?1)").bind(cutoff),
+    env.DB.prepare("DELETE FROM preset_daily_downloads WHERE day < ?").bind(cutoff)
+  ]
+}
+
 function forgetOldCounts(env) {
-  return ["account_submissions", "preset_submissions"].map(table => env.DB.prepare(`DELETE FROM ${table} WHERE day < ?`).bind(today())).concat(env.DB.prepare("DELETE FROM preset_daily_downloads WHERE day < ?").bind(dayNumber() - WEEK_DAYS))
+  return ["account_submissions", "preset_submissions"].map(table => env.DB.prepare(`DELETE FROM ${table} WHERE day < ?`).bind(today())).concat(forgetOldDownloads(env))
 }
 
 function likePattern(term) {
@@ -149,8 +157,9 @@ export async function presetList(env, { sort, search, offset }) {
   const conditions = filter.conditions.concat("shared = 1")
   if (sort === "needs") conditions.push(`votes < ${LIMITS.minVotes}`)
   const where = `WHERE ${conditions.join(" AND ")}`
-  const source = sort === "week" ? `SELECT ${COLUMNS}, COALESCE(week, 0) AS week FROM presets LEFT JOIN (SELECT preset_id, SUM(count) AS week FROM preset_daily_downloads WHERE day >= ${dayNumber() - WEEK_DAYS} GROUP BY preset_id) ON preset_id = id` : `SELECT ${COLUMNS} FROM presets`
-  const { results } = await env.DB.prepare(`${source} ${where} ORDER BY ${SORTS[sort]} LIMIT ${LIMITS.page + 1} OFFSET ${offset}`).bind(...filter.values).all()
+  const columns = sort === "week" ? `${COLUMNS}, week_downloads AS week` : COLUMNS
+  const listing = env.DB.prepare(`SELECT ${columns} FROM presets ${where} ORDER BY ${SORTS[sort]} LIMIT ${LIMITS.page + 1} OFFSET ${offset}`).bind(...filter.values)
+  const { results } = sort === "week" ? (await env.DB.batch(forgetOldDownloads(env).concat(listing))).at(-1) : await listing.all()
   return { presets: results.slice(0, LIMITS.page).map(rated), more: results.length > LIMITS.page }
 }
 

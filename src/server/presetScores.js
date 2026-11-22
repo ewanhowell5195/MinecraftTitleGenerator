@@ -40,7 +40,7 @@ export const countDownload = guarded(async context => {
   // changes() in each statement counts the rows of the statement before it in this batch
   const [counted] = await env.DB.batch([
     env.DB.prepare("INSERT OR IGNORE INTO preset_downloads (preset_id, ip_hash) SELECT ?1, ?2 WHERE EXISTS (SELECT 1 FROM presets WHERE id = ?1 AND shared = 1) RETURNING preset_id").bind(id, ip),
-    env.DB.prepare("UPDATE presets SET downloads = downloads + 1 WHERE id = ? AND changes() = 1").bind(id),
+    env.DB.prepare("UPDATE presets SET downloads = downloads + 1, week_downloads = week_downloads + 1 WHERE id = ? AND changes() = 1").bind(id),
     env.DB.prepare("INSERT INTO preset_daily_downloads (day, preset_id, count) SELECT ?, ?, 1 WHERE changes() = 1 ON CONFLICT (day, preset_id) DO UPDATE SET count = count + 1").bind(dayNumber(), id)
   ])
   if (!counted.results.length) await requirePreset(env, id, " AND shared = 1")

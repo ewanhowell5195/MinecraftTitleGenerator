@@ -24,7 +24,7 @@ export function d1(sqlite) {
       first: async () => sqlite.prepare(sql).get(...values) ?? null,
       run: async () => ({ meta: { changes: Number(sqlite.prepare(sql).run(...values).changes) } }),
       execute() {
-        return /RETURNING/.test(sql) ? { results: sqlite.prepare(sql).all(...values) } : { results: [], meta: { changes: Number(sqlite.prepare(sql).run(...values).changes) } }
+        return /RETURNING|^\s*SELECT/i.test(sql) ?{ results: sqlite.prepare(sql).all(...values) } : { results: [], meta: { changes: Number(sqlite.prepare(sql).run(...values).changes) } }
       }
     }
   }
