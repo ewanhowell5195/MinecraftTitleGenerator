@@ -67,6 +67,43 @@ function wrapEdges(overlay, entries, band, independent) {
     const { glyph, x, top, up, upHeight, down, downHeight } = entry
     const mask = band === null || !glyph.depths ? glyph.mask : layerMask(glyph, band, independent)
     const scale = entry.regions.front.sx
+    const fine = mask === glyph.mask ? glyph.fine?.(scale) : null
+    const rows = glyph.height * scale
+    const columns = glyph.width * scale
+    const [glyphLeft, glyphTop] = pixelAt(entry, "front", x, top)
+    const smoothed = fine && { up: fineEdges(true), down: fineEdges(false) }
+    function fineEdges(highest) {
+      const picked = new Float32Array(columns * 4)
+      const solid = new Uint8Array(columns)
+      for (let at = 0; at < columns; at++) {
+        for (let step = 0; step < rows; step++) {
+          const row = highest ? rows - 1 - step : step
+          if (!fine[row * columns + at]) continue
+          const source = ((glyphTop + rows - 1 - row) * width + glyphLeft + at) * 4
+          const alpha = data[source + 3] / 255
+          for (let channel = 0; channel < 3; channel++) picked[at * 4 + channel] = data[source + channel] * alpha
+          picked[at * 4 + 3] = alpha
+          solid[at] = 1
+          break
+        }
+      }
+      const reach = Math.ceil(scale / 2)
+      const out = new Uint8ClampedArray(columns * 4)
+      for (let at = 0; at < columns; at++) {
+        if (!solid[at]) continue
+        const sum = [0, 0, 0, 0]
+        let count = 0
+        for (let near = Math.max(0, at - reach); near <= Math.min(columns - 1, at + reach); near++) {
+          if (!solid[near]) continue
+          for (let channel = 0; channel < 4; channel++) sum[channel] += picked[near * 4 + channel]
+          count++
+        }
+        const alpha = sum[3] / count
+        for (let channel = 0; channel < 3; channel++) out[at * 4 + channel] = alpha ? sum[channel] / count / alpha : 0
+        out[at * 4 + 3] = alpha * 255
+      }
+      return { out, solid }
+    }
     for (let column = 0; column < glyph.width; column++) {
       let first = -1
       let last = -1
@@ -82,8 +119,10 @@ function wrapEdges(overlay, entries, band, independent) {
         const [start, to] = pixelAt(entry, part, x + column, y)
         const { sx, sy } = entry.regions[part]
         for (let step = 0; step < sx; step++) {
-          const source = (from * width + left + Math.floor(step * scale / sx)) * 4
-          for (let row = 0; row < depth * sy; row++) data.copyWithin(((to + row) * width + start + step) * 4, source, source + 4)
+          const along = Math.floor(step * scale / sx)
+          const at = column * scale + along
+          const pixel = smoothed?.[part].solid[at] ? smoothed[part].out.subarray(at * 4, at * 4 + 4) : data.subarray((from * width + left + along) * 4, (from * width + left + along) * 4 + 4)
+          for (let row = 0; row < depth * sy; row++) data.set(pixel, ((to + row) * width + start + step) * 4)
         }
       }
     }
