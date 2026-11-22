@@ -68,7 +68,10 @@ export const strip = {
   available: true,
   accept: "image/png",
   derived: ["size", "density"],
-  async check({ target, details, bytes }, ctx) {
+  fileKeys(details) {
+    return details.overlayStrip === true ? ["overlay"] : []
+  },
+  async check({ target, details, bytes, files = {} }, ctx) {
     const clean = {}
     const problems = {}
     if (typeof details.border === "string" && HEX_COLOUR.test(details.border)) clean.border = details.border.toLowerCase()
@@ -93,6 +96,16 @@ export const strip = {
     if (details.variantOf && chosen.kind !== "new" && !result.problems.target) {
       if (typeof details.variantOf === "string" && Object.hasOwn(await stripParents(ctx, result.target), details.variantOf)) clean.variantOf = details.variantOf
       else problems.variantOf = "Pick the strip this is a variant of."
+    }
+    if (details.overlayStrip === true) {
+      const font = chosen.kind === "font" ? submissionFont(ctx.fonts, chosen.id) : null
+      if (!font?.overlay) problems.overlay = "Only strips for a font with a forced overlay can have an overlay strip."
+      else if (files.overlay) {
+        problems.overlay = pngProblem(files.overlay, "overlay strip")
+        const second = problems.overlay ? null : pngSize(files.overlay)
+        if (second && size && (second.width !== size.width || second.height !== size.height)) problems.overlay = `The overlay strip has to be the same size as the strip, ${size.width}x${size.height}, and this one is ${second.width}x${second.height}.`
+      } else if (typeof details.files?.overlay !== "string") problems.overlay = "Choose the overlay strip's PNG."
+      if (!problems.overlay) clean.overlayStrip = true
     }
     const rows = size && await targetRows(ctx, result.target, result.clean ?? {})
     if (rows) {

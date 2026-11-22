@@ -6,6 +6,7 @@
   import Field from "../../components/Field.vue"
   import NumberInput from "../../components/NumberInput.vue"
   import Segments from "../../components/Segments.vue"
+  import UploadField from "../../components/UploadField.vue"
   import { fetched } from "../../lib/submissions/api.js"
   import { fontFolder, fullName, sheetOwner } from "../../lib/font/catalog.js"
   import { texturesList } from "../../lib/submissions/kinds/fontAsset.js"
@@ -14,6 +15,8 @@
   import { DEFAULT_STRIPS } from "../../lib/font/strips.js"
   import { STRIP_LIMITS, heightList, setIdOf, setIds, setName, setUsers, sharedHeights, stripOwners, stripSnap, stripTarget, targetRows } from "../../lib/submissions/kinds/stripFit.js"
   import { SUBMISSION_LIMITS, pngProblem } from "../../lib/submissions/submissions.js"
+  import { submissionExtraUrl } from "../../lib/submissions/submissionsApi.js"
+  import { pickedFile } from "../files.js"
   import { fontThumbnail } from "../../lib/font/thumbnailUrls.js"
   import { popularFontOptions } from "./fontOptions.js"
   import VariantOf from "./VariantOf.vue"
@@ -31,13 +34,15 @@
     target: { type: String, default: "" },
     details: { type: Object, required: true },
     file: { type: Object, default: null },
+    files: { type: Object, default: () => ({}) },
+    initial: { type: Object, default: null },
     problems: { type: Object, required: true },
     tried: { type: Boolean, default: false },
     context: { type: Object, default: null },
     defaultFont: { type: String, default: "" }
   })
 
-  const emit = defineEmits(["update:target", "update:details", "preview"])
+  const emit = defineEmits(["update:target", "update:details", "update:files", "preview"])
 
   const ctx = props.context ?? submissionContext(props.fonts, path => fetched(path, path))
   const owners = computed(() => stripOwners(props.fonts))
@@ -76,6 +81,23 @@
     get: () => props.details.anchor ?? "center",
     set: value => change({ anchor: value === "center" ? undefined : value })
   })
+  const forcedOverlay = computed(() => chosen.value.kind === "font" && !!owners.value.find(item => item.id === chosen.value.id)?.overlay)
+  const overlayUrl = computed(() => props.details.overlayStrip ? props.files.overlay?.url ?? (props.initial ? submissionExtraUrl(props.initial, "overlay") : null) : null)
+
+  async function pickOverlay(event) {
+    const chosen = event.target.files[0]
+    event.target.value = ""
+    if (!chosen) return
+    emit("update:files", { ...props.files, overlay: await pickedFile(chosen) })
+    change({ overlayStrip: true })
+  }
+
+  function clearOverlay() {
+    const { overlay, ...rest } = props.files
+    emit("update:files", rest)
+    change({ overlayStrip: undefined })
+  }
+
   const perCharacter = computed({
     get: () => props.details.tiling === "character",
     set: value => change({ tiling: value ? "character" : undefined })
@@ -128,6 +150,10 @@
       emit("update:target", entry ? `font:${sheetOwner(entry, props.fonts).id}` : fallback("font"))
     } else if (kind === "font" && !owners.value.some(item => item.id === id)) emit("update:target", fallback("font"))
   }, { immediate: true })
+
+  watch(forcedOverlay, allowed => {
+    if (!allowed && props.details.overlayStrip) clearOverlay()
+  })
 
   watch(() => props.file?.bytes, bytes => {
     if (!bytes || pngProblem(bytes, "strip")) return
@@ -199,6 +225,9 @@
   <Checkbox v-if="mode !== 'font' && !forDefault" v-model="stretch" label="Stretch the front between each font's baseline and top, instead of lining it up row by row" />
   <span v-if="problems.stretch" class="hint bad">{{ problems.stretch }}</span>
   <Segments v-if="mode !== 'font' && !stretch" v-model="anchor" :options="ANCHORS" label="Anchor" :hint="problems.anchor || 'Where the strip sits on fonts shorter or taller than it: their top on its top, their middle on its middle, or their baseline on its baseline.'" />
+  <Field v-if="forcedOverlay" class="wide" label="Overlay strip" hint="Optional. A second strip, the same size as this one, drawn where the font's forced overlay is instead of the overlay itself." :error="files.overlay || tried ? problems.overlay : null">
+    <UploadField accept="image/png" :label="overlayUrl ? 'Replace PNG' : 'Choose a PNG'" empty="No overlay strip" :image="overlayUrl" :clearable="!!overlayUrl" @change="pickOverlay" @clear="clearOverlay" />
+  </Field>
   <Checkbox v-model="perCharacter" label="Restart on each character" :hint="problems.tiling || 'Starts the strip again from the left of every character, instead of running it along the whole line.'" />
   <Field group label="Snap" :error="problems.snap" hint="How many pixels wide each of the strip's own pixels are. Letters that don't touch start their strip on a whole one of these, so the pattern lines up from letter to letter.">
     <NumberInput min="1" :max="STRIP_LIMITS.snap" :value="details.snap ?? 1" @input="number('snap', $event.target.value)" />

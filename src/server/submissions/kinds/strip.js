@@ -37,16 +37,16 @@ async function freeAsset(read, row, fonts, extra, taken) {
 }
 
 function entryFor(row, details, asset, inherited) {
-  return { type: "strip", ...(details.stretch && { stretch: true }), ...(details.anchor && { anchor: details.anchor }), ...(details.tiling && { tiling: details.tiling }), ...(row.name !== titleCase(asset) && { name: row.name }), authors: row.credit, ...ownBorder(details.border, inherited), ...(details.snap > 1 && { snap: details.snap / (details.density ?? 1) }) }
+  return { type: "strip", ...(details.overlayStrip && { overlayStrip: true }), ...(details.stretch && { stretch: true }), ...(details.anchor && { anchor: details.anchor }), ...(details.tiling && { tiling: details.tiling }), ...(row.name !== titleCase(asset) && { name: row.name }), authors: row.credit, ...ownBorder(details.border, inherited), ...(details.snap > 1 && { snap: details.snap / (details.density ?? 1) }) }
 }
 
 function added(textures, row, details, asset, where) {
   if (!details.variantOf) return { ...textures, [asset]: entryFor(row, details, asset) }
   const parent = textures?.[details.variantOf]
   if (parent?.type !== "strip") throw new Error(`submission ${row.id} is a variant of ${details.variantOf}, which isn't a published strip of ${where}`)
-  const { type, stretch, snap: chosen, anchor = "center", tiling = "line", ...own } = entryFor(row, details, asset, parent.border)
+  const { type, overlayStrip, stretch, snap: chosen, anchor = "center", tiling = "line", ...own } = entryFor(row, details, asset, parent.border)
   const snap = chosen ?? (parent.snap === undefined ? undefined : 1 / (details.density ?? 1))
-  const variant = { ...(!!stretch !== !!parent.stretch && { stretch: !!stretch }), ...(!stretch && anchor !== (parent.anchor ?? "center") && { anchor }), ...(tiling !== (parent.tiling ?? "line") && { tiling }), ...own, ...(snap !== undefined && snap !== parent.snap && { snap }) }
+  const variant = { ...(!!overlayStrip !== !!parent.overlayStrip && { overlayStrip: !!overlayStrip }), ...(!!stretch !== !!parent.stretch && { stretch: !!stretch }), ...(!stretch && anchor !== (parent.anchor ?? "center") && { anchor }), ...(tiling !== (parent.tiling ?? "line") && { tiling }), ...own, ...(snap !== undefined && snap !== parent.snap && { snap }) }
   return { ...textures, [details.variantOf]: { ...parent, variants: { ...parent.variants, [asset]: variant } } }
 }
 
@@ -109,7 +109,9 @@ export const strip = {
       const list = await readJson(read, listPath)
       const asset = await freeAsset(read, row, [font], [], taken)
       list.textures = added(list.textures, row, details, asset, font.id)
-      return { asset, files: [{ path: listPath, content: `${jsonText(list)}\n` }, { path: `public/${fontFolder(font)}/textures/${asset}.png`, sha: row.file }] }
+      const overlay = details.overlayStrip ? details.files?.overlay : null
+      if (details.overlayStrip && !overlay) throw new Error(`submission ${row.id} has no overlay strip`)
+      return { asset, files: [{ path: listPath, content: `${jsonText(list)}\n` }, { path: `public/${fontFolder(font)}/textures/${asset}.png`, sha: row.file }].concat(overlay ? [{ path: `public/${fontFolder(font)}/textures/${asset}_overlay.png`, sha: overlay }] : []) }
     }
     if (target.kind === "set") {
       const listPath = setPath(target.id)

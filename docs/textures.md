@@ -134,6 +134,7 @@ Strips take the texture keys, plus:
 | `anchor` | `"center"` | In a strip type, where a strip that does not stretch sits on a shorter or taller font: `"top"`, `"center"` or `"base"` |
 | `snap` | One of the strip's pixels | How many of the font's pixels wide each of the strip's own pixels are |
 | `tiling` | `"line"` | `"character"` restarts the strip on each letter |
+| `overlayStrip` | `false` | In a font with a forced overlay, `true` draws a second strip, `<id>_overlay.png`, where the forced overlay is instead of the overlay itself. Only for the font's own strips |
 
 #### Overlay keys
 

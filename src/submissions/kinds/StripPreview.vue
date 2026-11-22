@@ -3,6 +3,7 @@
   import Dropdown from "../../components/Dropdown.vue"
   import LiveTitle from "../../components/LiveTitle.vue"
   import { embedded } from "../submissionLink.js"
+  import { submissionExtraUrl } from "../../lib/submissions/submissionsApi.js"
   import { fontOptions } from "./fontOptions.js"
   import { usePreviewLine } from "./preview.js"
   import { previewFonts, stripLine } from "./strip.js"
@@ -14,6 +15,8 @@
     target: { type: String, default: "" },
     details: { type: Object, required: true },
     url: { type: String, default: null },
+    files: { type: Object, default: () => ({}) },
+    initial: { type: Object, default: null },
     text: { type: String, required: true }
   })
 
@@ -22,11 +25,12 @@
   const options = computed(() => fontOptions(previewFonts({ target: props.target, details: props.details }, props.fonts), props.fonts))
   const font = computed(() => options.value.some(option => option.value === chosen.value) ? chosen.value : options.value[0]?.value ?? "")
 
-  const { line, problem, pending } = usePreviewLine(() => [props.target, JSON.stringify(props.details), props.url, props.text, font.value], build)
+  const overlayUrl = computed(() => props.details.overlayStrip ? props.files.overlay?.url ?? (props.initial ? submissionExtraUrl(props.initial, "overlay") : null) : null)
+  const { line, problem, pending } = usePreviewLine(() => [props.target, JSON.stringify(props.details), props.url, overlayUrl.value, props.text, font.value], build)
 
   async function build() {
     if (!props.url || !font.value || !props.text.trim()) return null
-    return stripLine({ target: props.target, details: props.details }, await embedded(props.url), props.text, font.value, props.fonts)
+    return stripLine({ target: props.target, details: props.details }, await embedded(props.url), props.text, font.value, props.fonts, overlayUrl.value && await embedded(overlayUrl.value))
   }
 </script>
 

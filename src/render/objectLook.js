@@ -27,6 +27,7 @@ export function lookOf(object, layer, font, list) {
     minecraftTexture: object.minecraftTexture,
     minecraftVersion: object.minecraftVersion,
     customTexture: object.customTexture,
+    customOverlayStrip: object.customOverlayStrip,
     stops: plainStops(object.stops),
     smooth: object.smooth,
     gradientAngle: object.gradientAngle,

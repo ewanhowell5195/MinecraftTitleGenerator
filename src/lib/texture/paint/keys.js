@@ -3,7 +3,7 @@ import { remember } from "../../core/maths.js"
 
 const CACHED_URLS = 64
 
-const BASE = ["font", "source", "textureSource", "texture", "textureVariant", "tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "customTexture", "customCoverX", "customCoverY", "customStripPerCharacter", "stops", "smooth", "gradientAngle", "arcGradient", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "tileablePerCharacter", "disableFontOverlay", "edgeBrightness"]
+const BASE = ["font", "source", "textureSource", "texture", "textureVariant", "tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion", "customTexture", "customOverlayStrip", "customCoverX", "customCoverY", "customStripPerCharacter", "stops", "smooth", "gradientAngle", "arcGradient", "tileableScale", "tileableXOffset", "tileableYOffset", "tileableRandomRotations", "tileableRandomMirroring", "tileableTileEdges", "tileablePerCharacter", "disableFontOverlay", "edgeBrightness"]
 
 const ids = new WeakMap()
 const urlIds = new Map()
@@ -20,7 +20,7 @@ export function lookKey(value) {
 
 export function baseKey(look, assets) {
   const { image, ...strip } = assets.strip ?? {}
-  return lookKey([BASE.map(name => look[name]), [assets.shape, assets.base, assets.tile, assets.fontOverlay, image].map(item => item ? idOf(item) : null), strip, assets.border])
+  return lookKey([BASE.map(name => look[name]), [assets.shape, assets.base, assets.tile, assets.fontOverlay, image, assets.overlayStrip?.image].map(item => item ? idOf(item) : null), strip, assets.border])
 }
 
 export function paintKey(sheet, assets, look) {

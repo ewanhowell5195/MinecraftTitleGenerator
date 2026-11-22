@@ -9,6 +9,8 @@ import { stripFonts } from "../../lib/submissions/kinds/published.js"
 import { layerDepth, remapScale, remapStrip, setEntry, setName, stripTarget } from "../../lib/submissions/kinds/stripFit.js"
 import { pngUrl } from "../../lib/core/virtualFiles.js"
 import { fontDefaults } from "./preview.js"
+import { submissionExtraUrl } from "../../lib/submissions/submissionsApi.js"
+import { embedded } from "../submissionLink.js"
 
 const sets = new Map()
 
@@ -72,11 +74,12 @@ async function stripFile(item, file, font, fonts) {
   return { url: pngUrl(stackedRemap(pixels, entry, loaded, layer)), layer, layers: loaded.layers.length }
 }
 
-export async function stripLine(item, file, text, fontId, fonts) {
+export async function stripLine(item, file, text, fontId, fonts, overlay = null) {
   const font = fonts.find(entry => entry.id === fontId)
   if (!font) throw new Error(`there is no font called ${fontId}`)
   const { url, layer, layers } = await stripFile(item, file, font, fonts)
-  const custom = { textureSource: "custom", customTexture: url, customTextureMode: "strip", customStripPerCharacter: item.details.tiling === "character", customBorder: true, borderColour: item.details.border ?? "#000000" }
+  const masked = item.details.overlayStrip && overlay && stripTarget(item.target).kind === "font" ? { customOverlayStrip: overlay } : {}
+  const custom = { textureSource: "custom", customTexture: url, customTextureMode: "strip", customStripPerCharacter: item.details.tiling === "character", customBorder: true, borderColour: item.details.border ?? "#000000", ...masked }
   if (layer === null) return { text, font: font.id, ...custom, ...fontDefaults(font) }
   return { text, font: font.id, ...(layer === 0 && custom), ...fontDefaults(font), separateTexture: true, layerSettings: Array.from({ length: layers - 1 }, (_, index) => index + 1 === layer ? custom : {}) }
 }
@@ -94,7 +97,8 @@ export const strip = {
     const fonts = await loadFontList()
     const font = previewFonts(item, fonts)[0]
     if (!font) throw new Error("none of the fonts this strip is for are published")
-    return stripLine(item, file, text, font.id, fonts)
+    const overlay = item.details.overlayStrip ? submissionExtraUrl(item, "overlay") : null
+    return stripLine(item, file, text, font.id, fonts, overlay && await embedded(overlay))
   },
   summary(item, fonts) {
     return `${item.details.variantOf ? `A variant of the ${textureName(item.details.variantOf)} strip` : "A strip"} for ${targetName(item, fonts)}`
@@ -109,6 +113,6 @@ export const strip = {
       { label: "Height", value: String(item.details.height) },
       { label: "Fonts", value: (item.details.fonts ?? []).map(id => named(fonts, id)).join(", ") }
     ] : [{ label: target.kind === "font" ? "Font" : "Strip type", value: target.kind === "font" ? named(fonts, target.id) : setName(target.id) }]
-    return shape.concat(item.details.variantOf ? [{ label: "Variant of", value: textureName(item.details.variantOf) }] : [], size ? [{ label: "Size", value: `${size.width}x${size.height}` }] : [], target.kind === "font" ? [] : [{ label: "Stretches", value: stretch ? "Yes" : "No" }], snap > 1 ? [{ label: "Snap", value: `${snap} pixels` }] : [], [{ label: "Border", value: border, colour: border }])
+    return shape.concat(item.details.variantOf ? [{ label: "Variant of", value: textureName(item.details.variantOf) }] : [], item.details.overlayStrip ? [{ label: "Overlay strip", value: "Yes" }] : [], size ? [{ label: "Size", value: `${size.width}x${size.height}` }] : [], target.kind === "font" ? [] : [{ label: "Stretches", value: stretch ? "Yes" : "No" }], snap > 1 ? [{ label: "Snap", value: `${snap} pixels` }] : [], [{ label: "Border", value: border, colour: border }])
   }
 }

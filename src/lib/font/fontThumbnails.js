@@ -100,6 +100,23 @@ function layerSource(scene, { kind, image, layer }, { density: d, width }) {
   return { texel: { data: image.data, at } }
 }
 
+function stripInto(image, scene, density, strip) {
+  if (scene.layers && scene.layer == null) {
+    for (const layer of scene.layers.keys()) drawStrip(image, exposed(scene.placed, layer, independentLayers(scene)), density, strip.layers?.[layer] ?? strip)
+  } else drawStrip(image, scene.placed.map(item => ({ ...item, trim: layerLeft(item.glyph, scene.layer ?? null, independentLayers(scene)) })), density, strip.layers?.[scene.layer] ?? strip)
+}
+
+function drawMaskedStrip(image, scene, masks, options) {
+  const masked = blankImage(image.width, image.height)
+  stripInto(masked, scene, options.density, options.overlayStrip)
+  const mask = blankImage(image.width, image.height)
+  drawFaces(mask, scene, options.fontOverlay, masks, options)
+  for (let at = 0; at < image.data.length; at += 4) {
+    const amount = mask.data[at + 3] / 255 * masked.data[at + 3] / 255
+    for (let channel = 0; channel < 3; channel++) image.data[at + channel] += (masked.data[at + channel] - image.data[at + channel]) * amount
+  }
+}
+
 export function render(scene, sheet, options) {
   const image = blankImage(scene.frame.width * options.density, scene.frame.height * options.density)
   const masks = new Map(scene.placed.map(({ glyph }) => {
@@ -110,11 +127,10 @@ export function render(scene, sheet, options) {
     return [glyph, bands[0].map((solid, at) => bands.some(band => band[at]) ? 1 : 0)]
   }))
   if (options.ring) drawRing(image, scene.placed, options.density, options.border, glyph => masks.get(glyph))
-  if (options.strip && scene.layers && scene.layer == null) {
-    for (const layer of scene.layers.keys()) drawStrip(image, exposed(scene.placed, layer, independentLayers(scene)), options.density, options.strip.layers?.[layer] ?? options.strip)
-  } else if (options.strip) drawStrip(image, scene.placed.map(item => ({ ...item, trim: layerLeft(item.glyph, scene.layer ?? null, independentLayers(scene)) })), options.density, options.strip.layers?.[scene.layer] ?? options.strip)
+  if (options.strip) stripInto(image, scene, options.density, options.strip)
   else drawFaces(image, scene, sheet, masks, options)
-  if (options.fontOverlay) drawFaces(image, scene, options.fontOverlay, masks, options)
+  if (options.fontOverlay && options.overlayStrip) drawMaskedStrip(image, scene, masks, options)
+  else if (options.fontOverlay) drawFaces(image, scene, options.fontOverlay, masks, options)
   if (options.generated) drawGenerated(image, scene, options)
   for (const layer of options.layers ?? []) drawLayer(image, scene.placed, options.density, layer.layer, layerSource(scene, layer, options))
   return image
@@ -236,7 +252,8 @@ async function textureThumbnail(context, name, data, variant) {
   let png
   if (merged.type === "strip") {
     const strip = merged.stripBands ? bandedStrip(scene, { ...merged, id: name }, image) : sceneStrip(scene, { ...merged, id: name }, image)
-    png = render(scene, null, { density: Math.max(1, Math.ceil(strip.density)), border, width, ring: scene.ring, strip, layers: overlays, fontOverlay: entry.overlay ? await sheet(".", "forced-overlay") : null })
+    const masked = entry.overlay && merged.overlayStrip === true && !merged.stripSet ? sceneStrip(scene, { ...merged, id: name }, await sheet("textures", `${name}_overlay`, null, true)) : null
+    png = render(scene, null, { density: Math.max(1, Math.ceil(strip.density)), border, width, ring: scene.ring, strip, overlayStrip: masked, layers: overlays, fontOverlay: entry.overlay ? await sheet(".", "forced-overlay") : null })
   } else {
     png = render(scene, image, { density: densityOf(image), border, width, ring: scene.ring, ownShape: true, layers: overlays })
   }

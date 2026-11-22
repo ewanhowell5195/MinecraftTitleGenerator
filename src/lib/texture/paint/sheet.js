@@ -70,7 +70,13 @@ export function paintBase(sheet, look, assets, capHeight) {
       base.ctx.fillStyle = `rgba(0, 0, 0, ${(100 - look.edgeBrightness) / 100})`
       fillStrips(base.ctx, entries)
     }
-    if (assets.fontOverlay) base.ctx.drawImage(assets.fontOverlay, 0, 0)
+    if (assets.fontOverlay && assets.overlayStrip) {
+      const masked = pageSurface(sheet)
+      paintStrip(masked.ctx, entries, assets.overlayStrip)
+      masked.ctx.globalCompositeOperation = "destination-in"
+      masked.ctx.drawImage(assets.fontOverlay, 0, 0)
+      base.ctx.drawImage(masked.canvas, 0, 0)
+    } else if (assets.fontOverlay) base.ctx.drawImage(assets.fontOverlay, 0, 0)
     base.ctx.globalCompositeOperation = "destination-in"
     base.ctx.drawImage(assets.shape, 0, 0)
     base.ctx.globalCompositeOperation = "source-over"

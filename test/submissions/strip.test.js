@@ -31,8 +31,8 @@ function siteContext() {
   return publicContext(published.map(font => ({ ...font, name: font.name ?? titleCase(font.id) })))
 }
 
-async function checked(target, details, image) {
-  const result = await checker.check({ target, details: { border: "#000000", ...details }, bytes: image ? new Uint8Array(image) : null }, siteContext())
+async function checked(target, details, image, files = {}) {
+  const result = await checker.check({ target, details: { border: "#000000", ...details }, bytes: image ? new Uint8Array(image) : null, files: Object.fromEntries(Object.entries(files).map(([key, bytes]) => [key, new Uint8Array(bytes)])) }, siteContext())
   return { ...result, problems: Object.fromEntries(Object.entries(result.problems).filter(([, problem]) => problem)) }
 }
 
@@ -109,6 +109,16 @@ describe("checking a strip", () => {
   test("only strip types with a height can stretch", async () => {
     assert.equal((await checked("set:minecraft-ten", { stretch: true }, png(1, 92))).details.stretch, true)
     assert.equal((await checked("font:minecraft-five", { stretch: true }, png(1, 76))).details.stretch, undefined)
+  })
+
+  test("a strip for a font with a forced overlay can have an overlay strip of the same size", async () => {
+    const block = "font:minecraft-five-bold-block"
+    assert.equal((await checked(block, { overlayStrip: true }, png(4, 41), { overlay: png(4, 41) })).details.overlayStrip, true)
+    assert.match((await checked(block, { overlayStrip: true }, png(4, 41), { overlay: png(4, 82) })).problems.overlay, /same size as the strip, 4x41/)
+    assert.match((await checked(block, { overlayStrip: true }, png(4, 41))).problems.overlay, /Choose the overlay strip/)
+    assert.match((await checked("font:minecraft-five", { overlayStrip: true }, png(1, 19), { overlay: png(1, 19) })).problems.overlay, /forced overlay/)
+    assert.deepEqual(checker.fileKeys({ overlayStrip: true }), ["overlay"])
+    assert.deepEqual(checker.fileKeys({}), [])
   })
 
   test("a strip can restart on each character", async () => {
@@ -323,6 +333,16 @@ describe("sending a strip", () => {
 })
 
 describe("the strip writer", () => {
+  test("an overlay strip is written beside its strip and marked on its entry", async () => {
+    const read = async file => fs.existsSync(file) ? fs.readFileSync(file, "utf8") : null
+    const row = { id: 1, target: "font:minecraft-five-bold-block", name: "Overlay Test", credit: ["Tester"], file: "main-sha" }
+    const { asset, files } = await writer.write({ row, details: { border: "#000000", overlayStrip: true, files: { overlay: "overlay-sha" } }, read, taken: [] })
+    assert.ok(files.some(file => file.path === `public/fonts/minecraft-five-bold-block/textures/${asset}_overlay.png` && file.sha === "overlay-sha"))
+    const list = JSON.parse(files.find(file => file.path.endsWith("textures.json")).content)
+    assert.equal(list.textures[asset].overlayStrip, true)
+    await assert.rejects(writer.write({ row, details: { border: "#000000", overlayStrip: true }, read, taken: [] }), /no overlay strip/)
+  })
+
   const fonts = published.map(font => ({ ...font, name: font.name ?? titleCase(font.id) }))
 
   test("watches every list the strip's id depends on", () => {

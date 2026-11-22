@@ -74,6 +74,7 @@
     let at = 0
     for (const line of lines) {
       if (line.customModel && !line.words) fresh[at].customModel = line.customModel
+      if (!line.words) fresh[at].customOverlayStrip = line.customOverlayStrip ?? null
       at += line.words?.length ?? 1
     }
     if (fresh.length !== objects.length || fresh.some((object, index) => object.group !== objects[index].group)) {
