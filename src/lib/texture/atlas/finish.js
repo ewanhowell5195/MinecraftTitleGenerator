@@ -1,3 +1,4 @@
+import { FillRule, intersectD } from "@countertype/clipper2-ts"
 import { fadeStops, fillPattern, linearGradient, surface } from "../canvas.js"
 import { hexOf, packed as packedColour, rgbOf } from "../../core/colour.js"
 import { gradientStops, stopColour } from "../colourStops.js"
@@ -10,10 +11,17 @@ import { fadeCurves, keepStrips } from "./curveFade.js"
 const INSET = 0.125
 const CORNER_SAMPLE = 3
 const SIMILAR = 24
+const CLIP_PRECISION = 4
 
 const tileTotals = new WeakMap()
 const drawnLineCache = new WeakMap()
 const LINE_CACHE = 4
+
+function clippedTo(polygons, [left, top, right, bottom]) {
+  if (!polygons.length) return polygons
+  const box = [{ x: left, y: top }, { x: right, y: top }, { x: right, y: bottom }, { x: left, y: bottom }]
+  return intersectD(polygons.map(points => points.map(([x, y]) => ({ x, y }))), [box], FillRule.NonZero, CLIP_PRECISION).map(path => path.map(({ x, y }) => [x, y]))
+}
 
 function totalsOf(canvas) {
   if (tileTotals.has(canvas)) return tileTotals.get(canvas)
@@ -209,14 +217,20 @@ export function finishAtlas(plan, page, painted, options) {
     return data
   }
 
+  function frontBox(block) {
+    const { front } = page.regions.get(block.glyph)
+    return [front.x, front.y, front.x + block.own.width * front.sx, front.y + block.own.height * front.sy]
+  }
+
   function crackShapes() {
     const found = new Map()
-    function add(label, triangles, [x, y], sx, sy, tone = null) {
+    function add(label, triangles, [x, y], sx, sy, tone = null, box = null) {
       if (!found.has(label)) found.set(label, { shape: [], tones: [] })
       const { shape, tones } = found.get(label)
       if (tone !== null) tones[tone] ??= []
       const target = tone === null ? shape : tones[tone]
-      for (const points of triangles) target.push(points.map(([px, py]) => [x + px * sx, y + py * sy]))
+      const placed = triangles.map(points => points.map(([px, py]) => [x + px * sx, y + py * sy]))
+      target.push(...(box ? clippedTo(placed, box) : placed))
     }
     for (const wrap of painted.wraps) {
       if (wrap.label === null) continue
@@ -225,7 +239,7 @@ export function finishAtlas(plan, page, painted, options) {
         if (!entry) continue
         const { glyph } = entry
         const { up, front, down } = page.regions.get(block.glyph)
-        add(wrap.label, wrap.front(glyph), glyphOrigin(block, front), front.sx, front.sy)
+        add(wrap.label, wrap.front(glyph), glyphOrigin(block, front), front.sx, front.sy, null, frontBox(block))
         add(wrap.label, wrap.triangles(glyph, "up", 0, 0, glyph.width, depth), glyphOrigin(block, up), up.sx, up.sy)
         add(wrap.label, wrap.triangles(glyph, "down", glyph.height, 0, glyph.width, depth), glyphOrigin(block, down), down.sx, down.sy)
       }
@@ -237,8 +251,8 @@ export function finishAtlas(plan, page, painted, options) {
         const polygons = entry && shape.front(entry.glyph)
         if (!polygons) continue
         const { front } = page.regions.get(block.glyph)
-        add(shape.label, polygons, glyphOrigin(block, front), front.sx, front.sy)
-        for (const [tone, list] of (shape.tones?.(entry.glyph) ?? []).entries()) add(shape.label, list ?? [], glyphOrigin(block, front), front.sx, front.sy, tone)
+        add(shape.label, polygons, glyphOrigin(block, front), front.sx, front.sy, null, frontBox(block))
+        for (const [tone, list] of (shape.tones?.(entry.glyph) ?? []).entries()) add(shape.label, list ?? [], glyphOrigin(block, front), front.sx, front.sy, tone, frontBox(block))
       }
     }
     return found
