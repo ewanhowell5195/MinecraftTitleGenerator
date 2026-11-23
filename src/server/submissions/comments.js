@@ -11,7 +11,7 @@ export const FRESH_SECONDS = 30
 const PER_PAGE = 100
 export const REVIEWERS = new Set(["OWNER", "MEMBER", "COLLABORATOR"])
 const ANONYMOUS_ROLES = { "The submitter": "submitter", "A reviewer": "reviewer", "The reporter": "reporter" }
-const SITE_COMMENT = /^(?:(`+) (.+?) \1 \((submitter|reviewer|reporter)\)|(The submitter|A reviewer|The reporter)) commented on the site:\n\n(`{3,})text\n([\s\S]*)\n\5$/
+const SITE_COMMENT = /^(?:(`+) (.+?) \1 \((submitter|reviewer|reporter|commenter)\)|(The submitter|A reviewer|The reporter)) commented on the site:\n\n(`{3,})text\n([\s\S]*)\n\5$/
 const SITE_EDIT = /^(?:(`+) (.+?) \1 \((submitter|reviewer)\)|(The submitter|A reviewer)) changed the submission on the site\.$/
 
 function siteComment(text) {

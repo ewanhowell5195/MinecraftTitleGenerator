@@ -145,7 +145,7 @@ describe("reporting issues", () => {
     for (let count = 0; count < 5; count++) assert.equal((await report(cookie)).status, 201)
   })
 
-  test("only the reporter and reviewers can see a report", async () => {
+  test("anyone can see a report, but only its reporter and reviewers can list it", async () => {
     const reviewer = await admin()
     const cookie = await signIn()
     const other = await signIn("discord", { id: "55", username: "other", email: "other@example.com", verified: true })
@@ -154,10 +154,13 @@ describe("reporting issues", () => {
     assert.equal(mine.issue.mine, true)
     assert.equal(mine.issue.titleLink, "/app/?title=QAREabc")
     assert.equal(mine.issue.issueUrl, `https://github.com/${REPO}/issues/${stored(id).number}`)
-    assert.equal(mine.reviewer, false)
-    assert.equal((await details(reviewer, id)).reviewer, true)
-    assert.equal((await details(other, id)).status, 404)
-    assert.equal((await details(null, id)).status, 401)
+    for (const viewer of [reviewer, other, null]) {
+      const seen = await details(viewer, id)
+      assert.equal(seen.status, 200)
+      assert.deepEqual(seen.issue, { ...mine.issue, mine: false })
+      assert.deepEqual(seen.comments, [])
+    }
+    assert.equal((await list(null)).status, 401)
     assert.deepEqual((await list(cookie)).issues.map(item => item.id), [id])
     assert.deepEqual((await list(other)).issues, [])
     assert.equal((await list(other, true)).status, 403)
@@ -178,8 +181,32 @@ describe("following a report", () => {
     await comment(reviewer, id, "Fixed in the next update")
     assert.deepEqual(inbox(), [["someone@example.com", "New comment on Fonts are blurry"]])
     assert.deepEqual((await news(cookie)).map(([kind, author, issue, name]) => [kind, author, issue, name]), [["comment", "ewan", id, "Fonts are blurry"]])
-    const other = await signIn("discord", { id: "55", username: "other", email: "other@example.com", verified: true })
-    assert.equal((await comment(other, id, "Me too")).status, 404)
+  })
+
+  test("anyone signed in can comment, up to the daily limit", async () => {
+    await admin()
+    const cookie = await signIn()
+    const { id } = await report(cookie)
+    inbox()
+    const other = await signIn("discord", { id: "55", username: "other", verified: true })
+    assert.equal((await comment(null, id, "Me too")).error, "Sign in to comment.")
+    const sent = await comment(other, id, "Me too")
+    assert.equal(sent.status, 201)
+    assert.deepEqual(sent.comments.map(item => [item.author, item.role, item.body]), [["other", "commenter", "Me too"]])
+    assert.deepEqual(inbox().sort(), [["ewan@example.com", "New comment on Fonts are blurry"], ["someone@example.com", "New comment on Fonts are blurry"]])
+    assert.equal(db.prepare("SELECT COUNT(*) AS count FROM users WHERE provider_id = '55'").get().count, 0)
+    db.prepare("UPDATE account_submissions SET count = 50").run()
+    assert.equal((await comment(other, id, "Again")).status, 429)
+  })
+
+  test("only the reporter can close it", async () => {
+    const reviewer = await admin()
+    const { id } = await report(await signIn())
+    const closing = async cookie => (await closeIssue(context(`/api/issues/${id}/close`, { method: "POST", cookie, params: { id: String(id) } }))).status
+    assert.equal(await closing(await signIn("discord", { id: "55", username: "other", verified: true })), 403)
+    assert.equal(await closing(reviewer), 403)
+    assert.equal(await closing(null), 401)
+    assert.equal(stored(id).status, "open")
   })
 
   test("comments from collaborators on GitHub reach the reporter", async () => {

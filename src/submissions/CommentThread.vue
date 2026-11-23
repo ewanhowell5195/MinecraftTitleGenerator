@@ -52,7 +52,7 @@
           <article>
             <header>
               <strong class="ellipsis">{{ item.author || "A deleted account" }}</strong>
-              <Badge :tone="item.role === 'reviewer' ? 'accent' : 'neutral'">{{ ROLES[item.role] }}</Badge>
+              <Badge v-if="ROLES[item.role]" :tone="item.role === 'reviewer' ? 'accent' : 'neutral'">{{ ROLES[item.role] }}</Badge>
               <time>{{ dateTime(item.createdAt) }}</time>
               <a v-if="item.url" class="github" :href="item.url" target="_blank" rel="noopener" v-tooltip="'View on GitHub'" aria-label="View on GitHub"><Icon name="github" :size="16" /></a>
             </header>

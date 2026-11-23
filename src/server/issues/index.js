@@ -1,7 +1,7 @@
 import { providerLabel } from "../../lib/core/providers.js"
 import { ISSUE_LIMITS, cleanIssue, imageType, issueProblems } from "../../lib/issues/issues.js"
 import { SUBMISSION_LIMITS } from "../../lib/submissions/submissions.js"
-import { USER_ROW, accountKey, forgetEmail, isAdmin, rememberUser, requireUser, saveUser } from "../accounts.js"
+import { USER_ROW, accountKey, currentUser, forgetEmail, isAdmin, rememberUser, requireUser, saveUser } from "../accounts.js"
 import { returnSlot, takeSlot } from "../daily.js"
 import { github, repository } from "../github.js"
 import { Refusal, bodyBytes, cachedAtEdge, guarded, idParam, jsonBody, randomToken, reply } from "../http.js"
@@ -91,13 +91,8 @@ async function findIssue(env, id) {
   return row
 }
 
-async function visibleIssue(context, message = "Sign in to see this report.") {
-  const user = await requireUser(context, message)
-  const row = await findIssue(context.env, idParam(context.params, MISSING))
-  const mine = row.owner === user.id
-  const reviewer = await isAdmin(context.env, user)
-  if (!mine && !reviewer) throw new Refusal(404, MISSING)
-  return { user, row, mine, reviewer }
+function requestedIssue({ env, params }) {
+  return findIssue(env, idParam(params, MISSING))
 }
 
 function threadKey(request, row) {
@@ -159,32 +154,35 @@ export const listIssues = guarded(async context => {
 })
 
 export const issueDetails = guarded(async context => {
-  const { user, row, reviewer } = await visibleIssue(context)
-  return reply(200, { issue: shown(context.env, row, user), comments: await cachedThread(context, row), reviewer })
+  const user = await currentUser(context)
+  const row = await requestedIssue(context)
+  return reply(200, { issue: shown(context.env, row, user), comments: await cachedThread(context, row) })
 })
 
 export const addIssueComment = guarded(async context => {
   const { env, request } = context
-  const { user, row, mine } = await visibleIssue(context, "Sign in to comment.")
-  const role = mine ? "reporter" : "reviewer"
+  const user = await requireUser(context, "Sign in to comment.")
+  const row = await requestedIssue(context)
+  const role = row.owner === user.id ? "reporter" : await isAdmin(env, user) ? "reviewer" : "commenter"
   const text = commentText((await jsonBody(request)).body)
   if (!text) throw new Refusal(400, "Write a comment first.")
-  const slot = mine ? await takeSlot(env, { table: "account_submissions", column: "account_hash", owner: await accountKey(env, "comments", user) }, SUBMISSION_LIMITS.commentsPerDay) : null
-  if (mine && !slot) throw new Refusal(429, `You can send up to ${SUBMISSION_LIMITS.commentsPerDay} comments a day.`)
+  const slot = role !== "reviewer" ? await takeSlot(env, { table: "account_submissions", column: "account_hash", owner: await accountKey(env, "comments", user) }, SUBMISSION_LIMITS.commentsPerDay) : null
+  if (role !== "reviewer" && !slot) throw new Refusal(429, `You can send up to ${SUBMISSION_LIMITS.commentsPerDay} comments a day.`)
   await onGitHub(() => postComment(env, row.number, user, role, text), UNAVAILABLE).catch(async err => {
     if (slot) await returnSlot(env, slot)
     throw err
   })
   await forgetThread(request, row)
-  await env.DB.batch([saveUser(env, user), notify(env, row, "comment", { author: user.name, body: text, admins: true, actor: user, on: "issues" })])
+  await env.DB.batch((role === "commenter" ? [] : [saveUser(env, user)]).concat(notify(env, row, "comment", { author: user.name, body: text, admins: true, actor: user, on: "issues" })))
   emailing(context)
   return reply(201, { comments: await threadOf(env, row.number, false) })
 })
 
 export const closeIssue = guarded(async context => {
   const { env, request } = context
-  const { user, row, mine } = await visibleIssue(context)
-  if (!mine) throw new Refusal(403, "Only the person who reported this can close it here.")
+  const user = await requireUser(context, "Sign in to close your report.")
+  const row = await requestedIssue(context)
+  if (row.owner !== user.id) throw new Refusal(403, "Only the person who reported this can close it here.")
   if (row.status !== "open") throw new Refusal(409, "This report is already closed.")
   await onGitHub(async () => {
     await github(env, `issues/${row.number}/comments`, { method: "POST", body: { body: "Closed by the person who reported it, on the site." } })

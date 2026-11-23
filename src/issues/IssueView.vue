@@ -20,7 +20,6 @@
 
   const item = ref(null)
   const comments = ref([])
-  const reviewer = ref(false)
   const error = ref("")
   const busy = ref(false)
 
@@ -30,19 +29,17 @@
 
   async function load() {
     error.value = ""
-    if (!account.value) return
     try {
       const thread = await issueThread(props.id)
       item.value = thread.issue
       comments.value = thread.comments
-      reviewer.value = thread.reviewer
     } catch (err) {
       error.value = err.message
     }
   }
 
   async function markSeen() {
-    if (!item.value) return
+    if (!item.value || !account.value) return
     if ((await notifications()).some(entry => entry.issue === props.id && !entry.seen)) await markIssueSeen(props.id)
   }
 
@@ -68,14 +65,7 @@
 </script>
 
 <template>
-  <template v-if="!account">
-    <section class="intro">
-      <a class="hint" href="/issues/">Reports</a>
-      <h1>Sign in to see this report</h1>
-    </section>
-    <SignInButtons />
-  </template>
-  <Notice v-else-if="error && !item">{{ error }}</Notice>
+  <Notice v-if="error && !item">{{ error }}</Notice>
   <template v-else-if="item">
     <section class="intro">
       <a class="hint" href="/issues/">Reports</a>
@@ -100,7 +90,11 @@
     <Notice v-if="error">{{ error }}</Notice>
     <section class="section">
       <h2>Comments</h2>
-      <CommentThread :id="item.id" :comments="comments" :can-comment="item.mine || reviewer" :post="postIssueComment" @update="comments = $event" />
+      <CommentThread :id="item.id" :comments="comments" :can-comment="!!account" :post="postIssueComment" @update="comments = $event" />
+      <template v-if="!account">
+        <p class="hint">Sign in to comment.</p>
+        <SignInButtons />
+      </template>
     </section>
   </template>
 </template>
