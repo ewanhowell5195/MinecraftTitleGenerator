@@ -24,7 +24,7 @@ function slope(face) {
 export function curveWeights(face, rect, reach, corners = [slope(face), slope(face)], limits = faceLimits({ faded: true })) {
   const lines = face.kind === "top" ? rect.tops ?? [rect.maxY] : rect.bottoms ?? [rect.minY]
   const height = point => Math.min(...lines.map(line => Math.abs(point[1] - line)))
-  return [face.points[0], face.points[3]].map((point, index) => Math.min(easedOut(corners[index], [limits.fadeFrom, limits.slope]), easedOut(height(point) / reach, [FADE_HEIGHT_FROM, limits.band])))
+  return [face.points[0], face.points[3]].map((point, index) => Math.min(easedOut(corners[index], [limits.fadeFrom, limits.slope]), easedOut(height(point) / Math.max(reach, Number.EPSILON), [FADE_HEIGHT_FROM, limits.band])))
 }
 
 function direction(face) {
