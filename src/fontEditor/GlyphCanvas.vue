@@ -2,6 +2,7 @@
   import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
+  import { MIN_DEPTH } from "../lib/font/editor/depths.js"
   import { NOTHING_OUTSIDE } from "../lib/font/editor/glyphEditing.js"
   import Slider from "../components/Slider.vue"
   import { BASELINE_COLOUR, STRETCH_COLOUR, TOPLINE_COLOUR, useGlyphDrawing } from "./glyphDrawing.js"
@@ -137,7 +138,7 @@
         <Button ghost :active="brush === size" v-for="size of brushes" :key="size" v-tooltip="toolTip(size === 1 ? 'Draw single pixels' : `Draw ${size} pixel blocks`)" :aria-pressed="brush === size" @click="chosenBrush = size">{{ font.grid / size }}x</Button>
       </span>
       <span class="group depth" v-tooltip="toolTip('How far forward the pencil draws. Lower depths sit at the back of the letter. Hold Alt and click the character to pick a depth')">
-        <Slider inline label="Depth" :min="12.5" :max="100" :step="12.5" :typed-min="1" v-model="pencilDepth" />
+        <Slider inline label="Depth" :min="12.5" :max="100" :step="12.5" :typed-min="MIN_DEPTH * 100" v-model="pencilDepth" />
       </span>
       <span class="group">
         <span class="group-label">Flip</span>

@@ -101,6 +101,18 @@ describe("depth", () => {
     assert.equal(depthOf(font, code), 0.5)
   })
 
+  test("depths too close to tell apart on the sheet share a code", () => {
+    const { font, code } = drawn()
+    assert.equal(depthCode(font, 0.52).code, code)
+    assert.notEqual(depthCode(font, 0.6).code, code)
+    assert.equal(depthCode(font, 0.98).code, "1")
+  })
+
+  test("a depth too shallow for the sheet is raised to the lowest one it can hold", () => {
+    const { font, code } = depthCode(createFont({ height: 2, width: 3, grid: 1 }), 0.01)
+    assert.equal(depthOf(font, code), 0.04)
+  })
+
   test("moving and trimming a character keeps each pixel's depth", () => {
     const { font, code } = drawn()
     const moved = moveGlyph(font, glyphOf(font, "a"), 0, 1)

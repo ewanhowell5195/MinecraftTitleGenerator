@@ -9,7 +9,7 @@ const TOPLINE = 4
 
 const KINDS = [GLYPH, TOPLINE, BASELINE, -1, GRID, -1, -1, EMPTY]
 
-const NOISE = 8
+export const NOISE = 8
 
 function greyOf(data, i) {
   const r = data[i]

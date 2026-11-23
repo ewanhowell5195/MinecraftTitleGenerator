@@ -2,7 +2,7 @@ import { computed, ref, shallowRef, watch } from "vue"
 import { authorList } from "../lib/core/authors.js"
 import { DEFAULT_ORDER } from "../lib/font/order.js"
 import { charactersOf, sameCharacter, setLetterCase } from "../lib/font/editor/characters.js"
-import { depthCode } from "../lib/font/editor/depths.js"
+import { depthCode, depthOf } from "../lib/font/editor/depths.js"
 import { flatTexture, savedJson, stripTexture } from "../lib/font/editor/export.js"
 import { glyphOf, sameGlyph, setGlyph } from "../lib/font/editor/glyph.js"
 import { moveGlyph, reshapeGlyph } from "../lib/font/editor/glyphEditing.js"
@@ -93,6 +93,8 @@ export function typing(target) {
 export function inkCode() {
   const { font: next, code } = depthCode(font.value, pencilDepth.value / 100)
   if (next !== font.value) font.value = next
+  const drawn = depthOf(next, code) * 100
+  if (Math.abs(drawn - pencilDepth.value) > 1e-6) pencilDepth.value = drawn
   return code
 }
 
