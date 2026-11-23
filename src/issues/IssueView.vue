@@ -128,7 +128,7 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 8px;
-    margin: 0;
+    margin: 16px 0 0;
     padding: 0;
     list-style: none;
   }
