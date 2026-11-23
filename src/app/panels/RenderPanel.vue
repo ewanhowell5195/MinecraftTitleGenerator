@@ -1,11 +1,12 @@
 <script setup>
   import { computed, ref, shallowRef } from "vue"
   import { canvasLimit } from "../../lib/texture/canvas.js"
-  import { FRAMINGS, MINECRAFT_MODES, framing, framingModified, outlineModified, paddingScale, renderFramed, renderVector, resetFraming, resetOutline, setAspect, setResolution, textureSize, textureSizes } from "../../render/framing.js"
+  import { FRAMINGS, MINECRAFT_MODES, framing, framingModified, outlineModified, paddingScale, renderFramed, renderLayers, renderVector, resetFraming, resetOutline, setAspect, setResolution, textureSize, textureSizes } from "../../render/framing.js"
   import { painted } from "../../lib/core/platform.js"
-  import { scene, titleFileName } from "../../lib/state/scene.js"
+  import { fileNameOf, scene, titleFileName } from "../../lib/state/scene.js"
   import { submitStats } from "../../lib/state/stats.js"
-  import { downloadBlob } from "../../lib/core/files.js"
+  import { canvasBlob, downloadBlob } from "../../lib/core/files.js"
+  import { zipOf } from "../../lib/core/zip.js"
   import { view } from "../../lib/state/view.js"
   import Button from "../../components/Button.vue"
   import ColourPicker from "../../components/ColourPicker.vue"
@@ -35,6 +36,8 @@
     }
   })
   const progress = ref(null)
+  const layer = ref(0)
+  const layerNames = ref([])
   const failed = ref("")
   const result = shallowRef(null)
 
@@ -60,15 +63,16 @@
   let rendering = null
   const saving = ref(false)
 
-  async function render() {
+  async function rendered(work) {
     submitStats()
     rendering = new AbortController()
     progress.value = 0
+    layer.value = 0
+    layerNames.value = []
     failed.value = ""
     try {
       await painted()
-      result.value = await renderFramed({ signal: rendering.signal, progress: value => progress.value = value })
-      if (!result.value) failed.value = "Nothing in frame."
+      if (!await work({ signal: rendering.signal, progress: showProgress, layers: names => layerNames.value = names })) failed.value = "Nothing in frame."
     } catch (err) {
       if (rendering.signal.aborted) return
       failed.value = `Render failed: ${err.message}`
@@ -77,6 +81,29 @@
       progress.value = null
       rendering = null
     }
+  }
+
+  function showProgress(value, at) {
+    progress.value = value
+    layer.value = at
+  }
+
+  function render() {
+    return rendered(async task => {
+      result.value = await renderFramed(task)
+      return result.value
+    })
+  }
+
+  function downloadLayers() {
+    return rendered(async task => {
+      const layers = await renderLayers(task)
+      if (!layers) return false
+      const digits = String(layers.length).length
+      const files = await Promise.all(layers.map(async ({ name, image }, index) => ({ name: `${String(index + 1).padStart(digits, "0")}_${fileNameOf(name, "line")}.png`, blob: await canvasBlob(image) })))
+      downloadBlob(`${titleFileName()}_layers.zip`, await zipOf(files))
+      return true
+    })
   }
 
   function cancel() {
@@ -163,10 +190,15 @@
     <Button wide v-if="framing.tab !== 'minecraft'" :disabled="progress !== null || saving" @click="saveVector"><template #icon><Icon name="download" :size="16" /></template>
       <span>Save SVG</span>
     </Button>
+    <Field group hint="A zip with each line as its own image">
+      <Button wide :disabled="progress !== null" @click="downloadLayers"><template #icon><Icon name="layers" :size="16" /></template>
+        <span>Render layers</span>
+      </Button>
+    </Field>
     <Notice v-if="failed">{{ failed }}</Notice>
   </Panel>
 
-  <RenderProgress v-if="progress !== null" :progress="progress" @close="cancel" />
+  <RenderProgress v-if="progress !== null" :progress="progress" :layers="layerNames" :layer="layer" @close="cancel" />
   <RenderResult v-if="result" :image="result" :name="`${titleFileName()}.png`" @close="result = null" />
 </template>
 

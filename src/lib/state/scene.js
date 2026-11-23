@@ -250,9 +250,13 @@ export function casedTitle() {
   return lines().some(line => line.some(word => !word.hidden && word.shape === null && runtime[word.id]?.font?.multicase))
 }
 
+export function fileNameOf(text, fallback) {
+  const name = text.toLowerCase().replace(/[\\/:*?"<>|\s]+/g, "_").replace(/^[_.]+|[_.]+$/g, "")
+  return Array.from(name).slice(0, FILE_NAME_LIMIT).join("").replace(/[_.]+$/, "") || fallback
+}
+
 export function titleFileName() {
-  const name = titleText().toLowerCase().replace(/[\\/:*?"<>|\s]+/g, "_").replace(/^[_.]+|[_.]+$/g, "")
-  return Array.from(name).slice(0, FILE_NAME_LIMIT).join("").replace(/[_.]+$/, "") || "title"
+  return fileNameOf(titleText(), "title")
 }
 
 function clone(value) {

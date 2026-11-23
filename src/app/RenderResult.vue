@@ -1,6 +1,6 @@
 <script setup>
   import { onBeforeUnmount, onMounted, ref } from "vue"
-  import { downloadBlob } from "../lib/core/files.js"
+  import { canvasBlob, downloadBlob } from "../lib/core/files.js"
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
   import Dialog from "../components/Dialog.vue"
@@ -22,7 +22,7 @@
     return bytes > 1048576 ? `${Math.round(bytes / 1048576 * 100) / 100} MB` : `${Math.round(bytes / 1024)} KB`
   }
 
-  const blob = new Promise((resolve, reject) => props.image.toBlob(encoded => encoded ? resolve(encoded) : reject(new Error("could not encode the render")), "image/png"))
+  const blob = canvasBlob(props.image)
 
   function flash(text) {
     notice.value = text

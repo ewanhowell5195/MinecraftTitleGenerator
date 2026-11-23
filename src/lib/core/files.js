@@ -11,6 +11,10 @@ export function downloadBlob(name, blob) {
   setTimeout(() => URL.revokeObjectURL(url), 10000)
 }
 
+export function canvasBlob(canvas) {
+  return new Promise((resolve, reject) => canvas.toBlob(encoded => encoded ? resolve(encoded) : reject(new Error("could not encode the render")), "image/png"))
+}
+
 export function takeFile(event) {
   const file = event.target.files[0]
   event.target.value = ""
