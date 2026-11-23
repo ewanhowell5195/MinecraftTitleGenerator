@@ -236,7 +236,7 @@
       <div class="numbers">
         <Field label="Height"><NumberInput min="1" :value="squaresOf(font, font.height)" @input="setSize('height', $event)" @change="setSize('height', $event)" /></Field>
         <Field label="Default width"><NumberInput min="1" :value="squaresOf(font, font.width)" @input="setSize('width', $event)" @change="setSize('width', $event)" /></Field>
-        <Field label="Square size"><NumberInput min="1" :value="font.grid" @input="setSquare" @change="setSquare" /></Field>
+        <Field label="Square size"><NumberInput min="1" :value="font.grid" @change="setSquare" /></Field>
       </div>
       <p class="hint">Height and width count squares, and one click paints one square. Square size is how many pixels each square is. Each character is {{ finalSize }}.</p>
       <Notice v-if="warning" warn>
