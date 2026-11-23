@@ -7,7 +7,8 @@ import { github, repository } from "../github.js"
 import { Refusal, bodyBytes, cachedAtEdge, guarded, idParam, jsonBody, randomToken, reply } from "../http.js"
 import { FRESH_SECONDS, REVIEWERS, commentText, postComment, threadOf, threadReply } from "../submissions/comments.js"
 import { emailing, notify } from "../submissions/notifications.js"
-import { block, inline, onGitHub } from "../submissions/pulls.js"
+import { onGitHub } from "../submissions/pulls.js"
+import { inline, quoted } from "../submissions/quoted.js"
 import { storeFiles } from "./files.js"
 
 const MISSING = "This report doesn't exist."
@@ -31,7 +32,7 @@ function issueText(origin, user, clean, files) {
     `Reported from the website by ${inline(user.name)} (${user.provider}).`,
     clean.code ? `**[Open the title in the generator](${origin}${titleLink(clean.code, files)})**` : null,
     titleFile ? `It has uploaded fonts or textures, so the link opens its attached **[title file](${titleFile.page})**.` : null,
-    block(clean.body),
+    quoted(clean.body),
     images.length ? images.map((image, index) => `![Image ${index + 1}](${image.url})`).join("\n") : null
   ].filter(Boolean).join("\n\n")
 }

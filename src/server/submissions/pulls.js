@@ -2,6 +2,7 @@ import { SUBMISSION_KINDS } from "../../lib/submissions/kinds/index.js"
 import { GitHubError, base64, github, repository } from "../github.js"
 import { Refusal } from "../http.js"
 import { SERVER_KINDS } from "./kinds/index.js"
+import { inline, quoted } from "./quoted.js"
 
 export const BASE = "main"
 const UNAVAILABLE = "GitHub isn't taking submissions right now. Try again in a few minutes."
@@ -26,20 +27,6 @@ export function branchOf(id) {
   return `submission/${id}`
 }
 
-function longestRun(text) {
-  return Math.max(0, ...Array.from(text.matchAll(/`+/g), match => match[0].length))
-}
-
-export function inline(text) {
-  const fence = "`".repeat(longestRun(text) + 1)
-  return `${fence} ${text} ${fence}`
-}
-
-export function block(text) {
-  const fence = "`".repeat(Math.max(3, longestRun(text) + 1))
-  return `${fence}text\n${text}\n${fence}`
-}
-
 function phrase(...parts) {
   return parts.filter(Boolean).join(" ")
 }
@@ -52,7 +39,7 @@ function pullText(env, origin, row, described, preview, commit) {
     row.ownerName ? `Sent from the website by ${inline(row.ownerName)} (${row.ownerProvider}).` : ANONYMOUS,
     `**[Preview it on the site](${origin}/submissions/${row.id})**`,
     preview ? `<img src="https://raw.githubusercontent.com/${repository(env)}/${commit}/${preview}" alt="" width="512">` : null,
-    row.notes ? `Notes from the submitter:\n\n${block(row.notes)}` : null,
+    row.notes ? `Notes from the submitter:\n\n${quoted(row.notes)}` : null,
     sourced.source ? `The submitter says this uses someone else's files or artwork, and their licence allows it to be used here. Check both links before merging.\n\n- Source: <${sourced.source}>\n- Licence: <${sourced.licence}>` : null
   ]
   return { title: phrase(row.name, noun, described.where), body: body.filter(Boolean).join("\n\n") }

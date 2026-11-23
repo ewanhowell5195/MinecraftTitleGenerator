@@ -60,7 +60,7 @@ describe("sending a submission", () => {
     const { id } = await send(cookie, { credit: ["@everyone `x`", "Friend"], notes: "@ewan ```\n# heading" })
     const { body } = gh.pulls.get(1)
     assert.match(body, /`` @everyone `x` ``/)
-    assert.match(body, /````text\n@ewan ```\n# heading\n````/)
+    assert.ok(body.includes("\n\n> `@ewan` \\`\\`\\`\n> `#` heading"))
     assert.deepEqual((await details(id)).credit, ["@everyone `x`", "Friend"])
     assert.match(body, /credited to `` @everyone `x` ``, ` Friend `\./)
   })

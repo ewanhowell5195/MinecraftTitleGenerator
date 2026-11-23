@@ -80,14 +80,14 @@ describe("reporting issues", () => {
     assert.match((await report(cookie)).error, /Add an email address/)
   })
 
-  test("opens a GitHub issue with the text fenced, and tells reviewers", async () => {
+  test("opens a GitHub issue with the text quoted, and tells reviewers", async () => {
     await admin()
     const cookie = await signIn()
     const { status, id } = await report(cookie, { body: "It's `bad`\n@everyone", code: "QAREabc_-1" })
     assert.equal(status, 201)
     const issue = gh.issues.get(stored(id).number)
     assert.equal(issue.title, "Fonts are blurry")
-    assert.equal(issue.body, "Reported from the website by ` someone ` (discord).\n\n**[Open the title in the generator](https://mctitlegenerator.com/app/?title=QAREabc_-1)**\n\n```text\nIt's `bad`\n@everyone\n```")
+    assert.equal(issue.body, "Reported from the website by ` someone ` (discord).\n\n**[Open the title in the generator](https://mctitlegenerator.com/app/?title=QAREabc_-1)**\n\n> It's \\`bad\\`\n> `@everyone`")
     assert.deepEqual(inbox(), [["ewan@example.com", "someone reported Fonts are blurry"]])
     assert.equal((await (await accountDetails(context("/api/account", { cookie }))).json()).user.issues, 1)
   })
@@ -221,6 +221,14 @@ describe("following a report", () => {
     assert.deepEqual(inbox(), [["ewan@example.com", "New comment on Fonts are blurry"]])
     gh.comment(number, "Can you share a screenshot?", { user: { login: "ewan", type: "User" }, association: "OWNER", app: false })
     assert.deepEqual((await details(cookie, id)).comments.map(item => [item.author, item.role]), [["ewan", "reviewer"]])
+  })
+
+  test("comments from before they were quoted are still read", async () => {
+    const cookie = await signIn()
+    const { id } = await report(cookie)
+    gh.comment(stored(id).number, "` someone ` (reporter) commented on the site:\n\n```text\nAn **old** one\n```")
+    gh.comment(stored(id).number, "The reporter commented on the site:\n\n```text\nOlder\n```")
+    assert.deepEqual((await details(cookie, id)).comments.map(item => [item.author, item.body]), [["someone", "An **old** one"], ["", "Older"]])
   })
 
   test("closing on GitHub marks it fixed or closed and tells the reporter", async () => {

@@ -4,19 +4,20 @@ import { returnSlot, takeSlot } from "../daily.js"
 import { GitHubError, github } from "../github.js"
 import { Refusal, cachedAtEdge, guarded, idParam, jsonBody, reply, setting } from "../http.js"
 import { emailing, notify } from "./notifications.js"
-import { block, inline, onGitHub } from "./pulls.js"
+import { onGitHub } from "./pulls.js"
+import { inline, quoted, unquoted } from "./quoted.js"
 import { MISSING, findSubmission } from "./store.js"
 
 export const FRESH_SECONDS = 30
 const PER_PAGE = 100
 export const REVIEWERS = new Set(["OWNER", "MEMBER", "COLLABORATOR"])
 const ANONYMOUS_ROLES = { "The submitter": "submitter", "A reviewer": "reviewer", "The reporter": "reporter" }
-const SITE_COMMENT = /^(?:(`+) (.+?) \1 \((submitter|reviewer|reporter|commenter)\)|(The submitter|A reviewer|The reporter)) commented on the site:\n\n(`{3,})text\n([\s\S]*)\n\5$/
+const SITE_COMMENT = /^(?:(`+) (.+?) \1 \((submitter|reviewer|reporter|commenter)\)|(The submitter|A reviewer|The reporter)) commented on the site:\n\n(?:(`{3,})text\n([\s\S]*)\n\5|(>[\s\S]*))$/
 const SITE_EDIT = /^(?:(`+) (.+?) \1 \((submitter|reviewer)\)|(The submitter|A reviewer)) changed the submission on the site\.$/
 
 function siteComment(text) {
   const comment = SITE_COMMENT.exec(text ?? "")
-  if (comment) return { kind: "comment", author: comment[2] ?? "", role: comment[3] ?? ANONYMOUS_ROLES[comment[4]], body: comment[6] }
+  if (comment) return { kind: "comment", author: comment[2] ?? "", role: comment[3] ?? ANONYMOUS_ROLES[comment[4]], body: comment[6] ?? unquoted(comment[7]) }
   const edit = SITE_EDIT.exec(text ?? "")
   return edit && { kind: "edit", author: edit[2] ?? "", role: edit[3] ?? ANONYMOUS_ROLES[edit[4]], body: "" }
 }
@@ -90,7 +91,7 @@ export function commentText(value) {
 
 export function onGitHubText(name, { kind = "comment", role, body = "" }) {
   const who = `${inline(name)} (${role})`
-  return kind === "edit" ? `${who} changed the submission on the site.` : `${who} commented on the site:\n\n${block(body)}`
+  return kind === "edit" ? `${who} changed the submission on the site.` : `${who} commented on the site:\n\n${quoted(body)}`
 }
 
 export function postComment(env, number, user, role, text) {

@@ -107,7 +107,7 @@ describe("reviewing on the site", () => {
     const cookie = await signIn()
     const { id } = await send(cookie)
     assert.equal((await comment(cookie, id, "  is this @everyone ok?  ")).status, 201)
-    assert.equal(gh.comments.at(-1).body, "` someone ` (submitter) commented on the site:\n\n```text\nis this @everyone ok?\n```")
+    assert.equal(gh.comments.at(-1).body, "` someone ` (submitter) commented on the site:\n\n> is this `@everyone` ok?")
     assert.equal((await comment(reviewer, id, "Looks good")).status, 201)
     assert.match(gh.comments.at(-1).body, /^` ewan ` \(reviewer\) commented on the site:/)
     assert.deepEqual((await news(reviewer)).slice(0, 1), [["comment", "someone", "is this @everyone ok?"]])
