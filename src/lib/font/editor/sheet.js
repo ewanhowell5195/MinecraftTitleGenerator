@@ -39,11 +39,12 @@ function drawnSheet(font, chars) {
 }
 
 function builtSheet(font) {
-  const key = `${font.height},${font.width},${font.density},${font.letterCase},${font.creeper},${font.defineSpace},${font.extras.join("")},${(font.depths ?? []).join()}`
+  const chars = charactersOf(font)
+  const key = `${font.height},${font.width},${font.density},${font.letterCase},${font.creeper},${font.defineSpace},${font.extras.join("")},${(font.depths ?? []).join()},${chars.join("")}`
   let built = sheets.get(font.glyphs)
   if (built?.key !== key) {
     const capHeight = font.height * font.density
-    built = { key, sheet: { ...drawnSheet(font, charactersOf(font)), capHeight }, parsed: new Map() }
+    built = { key, sheet: { ...drawnSheet(font, chars), capHeight }, parsed: new Map() }
     sheets.set(font.glyphs, built)
     if (sheets.size > SHEETS_KEPT) sheets.delete(sheets.keys().next().value)
   }
