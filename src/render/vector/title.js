@@ -175,9 +175,19 @@ export function vectorTitle(scene, camera, size, resolution) {
 
   function boundsOf(face, list, rect) {
     const faceWidth = face.rect.right - face.rect.left
-    const xs = list.map(index => face.rect.left + index % faceWidth)
-    const ys = list.map(index => face.rect.top + Math.floor(index / faceWidth))
-    return { left: Math.max(rect.left, Math.min(...xs)), top: Math.max(rect.top, Math.min(...ys)), right: Math.min(rect.right, Math.max(...xs) + 1), bottom: Math.min(rect.bottom, Math.max(...ys) + 1) }
+    let left = Infinity
+    let top = Infinity
+    let right = -Infinity
+    let bottom = -Infinity
+    for (const index of list) {
+      const x = face.rect.left + index % faceWidth
+      const y = face.rect.top + Math.floor(index / faceWidth)
+      left = Math.min(left, x)
+      top = Math.min(top, y)
+      right = Math.max(right, x)
+      bottom = Math.max(bottom, y)
+    }
+    return { left: Math.max(rect.left, left), top: Math.max(rect.top, top), right: Math.min(rect.right, right + 1), bottom: Math.min(rect.bottom, bottom + 1) }
   }
 
   function paintPixels(face, layer, list, whole, groups, depth, stacked = true) {
