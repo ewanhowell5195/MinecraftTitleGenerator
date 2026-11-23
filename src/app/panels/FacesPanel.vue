@@ -55,7 +55,7 @@
     <Slider v-else-if="hasBrightness(group)" label="Brightness" v-model="group.object.value[group.brightness]" :min="0" :max="100" />
     <Toggle label="Fade into the outline" v-model="group.object.value[group.fading]" />
     <template v-if="group.object.value[group.fading]">
-      <Slider label="Fade" v-model="group.object.value[group.fade]" :min="0" :max="100" :step="5" />
+      <Slider label="Fade" v-model="group.object.value[group.fade]" :min="-100" :max="100" :step="5" />
       <Slider label="Fade opacity" v-model="group.object.value[group.opacity]" :min="0" :max="100" :step="5" />
     </template>
   </Panel>

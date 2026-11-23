@@ -303,7 +303,7 @@ export function finishAtlas(plan, page, painted, options) {
       if (!fills.has(fill)) fills.set(fill, [])
       fills.get(fill).push(rect)
       if (amount === null) continue
-      const fade = clamp(amount, 0, 1)
+      const fade = clamp(amount, -1, 1)
       const key = [fade, opacity, back, front, horizontal].join()
       if (!gradients.has(key)) gradients.set(key, { gradient: fadeGradient(fade, opacity, back, front, horizontal), rects: [] })
       gradients.get(key).rects.push(rect)

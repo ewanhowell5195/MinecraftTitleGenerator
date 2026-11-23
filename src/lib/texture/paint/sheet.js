@@ -176,7 +176,7 @@ export function paintSheet(sheet, look, assets, capHeight, base) {
   let average = null
   const edgeAverage = () => average ??= averageColour(finalPixels(), entries.flatMap(stripPixels))
 
-  const fade = look.fade ? clamp(look.outerFade / 100, 0, 1) : null
+  const fade = look.fade ? clamp(look.outerFade / 100, -1, 1) : null
   const fadeOpacity = clamp(1 - look.outerFadeOpacity / 100, 0, 1)
   if (look.fade) {
     work.ctx.globalCompositeOperation = "source-atop"

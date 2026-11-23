@@ -27,7 +27,7 @@ export function linearGradient(ctx, x0, y0, x1, y1, stops) {
 }
 
 export function fadeStops(colour, clear, fade) {
-  return [{ position: 0, colour: clear }, { position: 1 - fade, colour }, { position: 1, colour }]
+  return [{ position: 0, colour: clear }, { position: Math.max(0, -fade), colour: clear }, { position: 1 - Math.max(0, fade), colour }, { position: 1, colour }]
 }
 
 function drawsAt(width, height) {
