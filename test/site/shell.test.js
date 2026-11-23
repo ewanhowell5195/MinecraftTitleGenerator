@@ -19,13 +19,13 @@ describe("page shells", () => {
     const html = shellHtml(SHELL, page)
     const head = html.slice(html.indexOf("<head>"), html.indexOf("</head>"))
 
-    test(`${page.file} has one title, description and canonical link`, () => {
+    test(`${page.file} has one title${page.hidden ? "" : ", description"} and canonical link`, () => {
       assert.equal(count(html, /<head>/g), 1)
       assert.equal(count(head, /<title>/g), 1)
-      assert.equal(count(head, /<meta name="description"/g), 1)
+      assert.equal(count(head, /<meta name="description"/g), page.hidden ? 0 : 1)
       assert.equal(count(head, /<link rel="canonical"/g), 1)
       assert.equal(unescaped(head.match(/<title>([^<]*)<\/title>/)[1]), page.title)
-      assert.equal(unescaped(head.match(/<meta name="description" content="([^"]*)">/)[1]), page.description)
+      if (!page.hidden) assert.equal(unescaped(head.match(/<meta name="description" content="([^"]*)">/)[1]), page.description)
       assert.ok(head.match(/<link rel="canonical" href="([^"]*)">/)[1].startsWith(`${SITE}/`))
       assert.ok(html.includes(`<html lang="en" data-styles="${page.styles}">`))
     })

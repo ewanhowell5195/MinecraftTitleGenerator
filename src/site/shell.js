@@ -26,10 +26,9 @@ export function shellHtml(html, page) {
     "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">",
     "<base href=\"/\">",
     `<title>${escaped(page.title)}</title>`,
-    `<meta name="description" content="${escaped(page.description)}">`,
     "<meta name=\"color-scheme\" content=\"dark\">",
     "<meta name=\"theme-color\" content=\"#111214\">"
-  ].concat(page.hidden ? "<meta name=\"robots\" content=\"noindex\">" : [], [
+  ].concat(page.hidden ? "<meta name=\"robots\" content=\"noindex\">" : `<meta name="description" content="${escaped(page.description)}">`, [
     `<link rel="canonical" href="${url}">`,
     "<link rel=\"icon\" href=\"/favicon.ico\" sizes=\"32x32\">",
     "<link rel=\"icon\" href=\"/favicon.svg\" type=\"image/svg+xml\">",
