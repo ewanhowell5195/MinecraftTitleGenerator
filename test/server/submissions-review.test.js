@@ -473,6 +473,14 @@ describe("emailing notifications", () => {
     assert.deepEqual(stored(), [["ewan", "ewan@example.com"], ["someone", null]])
   })
 
+  test("reviewers still hear about submissions from an account that gives their email", async () => {
+    await admin()
+    const cookie = await signIn("github", { id: 9, login: "sender", emails: [{ email: "ewan@example.com", primary: true, verified: false }] })
+    await send(cookie)
+    await Promise.all(waiting)
+    assert.deepEqual(inbox(), [["ewan@example.com", "sender sent Gold Bricks"]])
+  })
+
   test("emails one change until the reviewer has seen it", async () => {
     const reviewer = await admin()
     const cookie = await signIn()

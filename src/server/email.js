@@ -99,7 +99,7 @@ function checkSent(outcomes) {
 }
 
 export async function emailReviewers(env, event, actorId) {
-  const { results } = await env.DB.prepare("SELECT DISTINCT email FROM users WHERE admin = 1 AND email IS NOT NULL AND email NOT IN (SELECT email FROM users WHERE provider = 'github' AND provider_id = ? AND email IS NOT NULL)").bind(String(actorId)).all()
+  const { results } = await env.DB.prepare("SELECT DISTINCT email FROM users WHERE admin = 1 AND email IS NOT NULL AND email NOT IN (SELECT email FROM users WHERE provider = 'github' AND provider_id = ? AND email IS NOT NULL AND admin = 1)").bind(String(actorId)).all()
   checkSent(await sendEach(env, results.map(row => gitHubEmail(row.email, event))))
 }
 
