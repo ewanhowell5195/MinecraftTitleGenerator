@@ -61,6 +61,16 @@ describe("paintKey", () => {
     assert.equal(alike(PLAIN, { overlays: [{ source: { generated: "outline" } }] }), true)
   })
 
+  test("a cover needs the letters' places in the word", () => {
+    assert.equal(alike({ ...PLAIN, source: "cover" }), false)
+  })
+
+  test("an overlay that reaches other letters needs where they are", () => {
+    assert.equal(alike(PLAIN, { overlays: [{ layer: { distance: 3, blur: 0 }, source: { generated: "shadow" } }] }), false)
+    const outlined = { overlays: [{ source: { generated: "outline" } }] }
+    assert.notEqual(paintKey(sheetWith(-1), outlined, PLAIN), paintKey(sheetWith(0), outlined, PLAIN))
+  })
+
   test("a sheet kept under a plain texture is not the same once the look needs positions", () => {
     const old = sheetWith(0)
     const fresh = sheetWith(3)
