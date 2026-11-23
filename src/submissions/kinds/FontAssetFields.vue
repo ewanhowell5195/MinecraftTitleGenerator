@@ -90,7 +90,9 @@
     editing.value = 0
     if (!font) return
     const count = await fontLayerCount(ctx, font)
-    if (font === entry.value) layerCount.value = count
+    if (font !== entry.value) return
+    layerCount.value = count
+    if (count < 2 && props.details.perLayer) setPerLayer(false)
   }, { immediate: true })
 
   const choices = computed(() => overlayChoices(fontList.value, perLayer.value ? editing.value : null, layerCount.value))
