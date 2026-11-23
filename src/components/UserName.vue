@@ -12,7 +12,7 @@
 
 <template>
   <span v-if="community" class="user-name"><Icon name="community" :size="size" /><span class="ellipsis">Community</span></span>
-  <span v-else class="user-name"><Icon :name="provider" :size="size" v-tooltip="providerLabel(provider)" /><span class="ellipsis">{{ name }}</span></span>
+  <span v-else class="user-name"><Icon :name="provider" :class="provider" :size="size" v-tooltip="providerLabel(provider)" /><span class="ellipsis">{{ name }}</span></span>
 </template>
 
 <style scoped>
@@ -28,5 +28,9 @@
   .user-name > :deep(svg) {
     flex: none;
     translate: 0 0.1em;
+  }
+
+  .user-name > :deep(svg.github) {
+    translate: none;
   }
 </style>
