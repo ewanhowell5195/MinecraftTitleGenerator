@@ -139,7 +139,16 @@ export function copyGlyph(char) {
 
 export function pasteGlyph(char) {
   const { font: from, glyph: copied } = clipboard.value
-  update(setGlyph(font.value, char, fitGlyph(from, copied, font.value)))
+  const fitted = fitGlyph(from, copied, font.value)
+  let next = font.value
+  const codes = new Map([["0", "0"]])
+  for (const code of new Set(fitted.rows.join(""))) {
+    if (codes.has(code)) continue
+    const found = depthCode(next, depthOf(from, code))
+    next = found.font
+    codes.set(code, found.code)
+  }
+  update(setGlyph(next, char, { ...fitted, rows: fitted.rows.map(row => Array.from(row, code => codes.get(code)).join("")) }))
 }
 
 export function undo() {
