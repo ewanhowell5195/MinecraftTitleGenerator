@@ -416,7 +416,7 @@ export function finishAtlas(plan, page, painted, options) {
         }
       } else if (!covered) lineDraws.push({ from: [west ? fx + column * f : fx + (column + 1) * f - 1, fy + row * f, run.height * f, true, west ? 1 : -1, f], rect, repeat: rect.width * rect.height / (run.height * f) })
       shades.push([rect, sideFill(run, rect, sy, block, span), options.sideFade, options.sideFadeOpacity ?? 1, rect.x, rect.x + rect.width, true])
-      wrapped.push({ rect, scale, sx, sy, width: run.width, height: run.height, glyph: entry.glyph, side: west ? "left" : "right", line: Math.round(run.points[0][0] - block.own.minX), from: Math.round(block.own.maxY - span.max) })
+      wrapped.push({ rect, scale, width: run.width, height: run.height, glyph: entry.glyph, side: west ? "left" : "right", line: Math.round(run.points[0][0] - block.own.minX), from: Math.round(block.own.maxY - span.max) })
       if (options.sideFade === null && sideGradient && sideGradient.direction !== "along") addGradient(rect, [0, rect.y + (span.max - shared.minY) * sy], [0, rect.y + (span.max - shared.maxY) * sy], sideGradient.stops)
       continue
     }
@@ -425,7 +425,7 @@ export function finishAtlas(plan, page, painted, options) {
     const near = run.kind === "top" ? rect.y + rect.height : rect.y
     const far = run.kind === "top" ? rect.y : rect.y + rect.height
     const level = extent(run.points, 1).min
-    const strip = { rect, scale, sx, sy, width: run.width, height: run.height, glyph: entry.glyph, side: run.kind === "top" ? "up" : "down", line: Math.round(block.own.maxY - level), from: Math.round(span.min - block.own.minX) }
+    const strip = { rect, scale, width: run.width, height: run.height, glyph: entry.glyph, side: run.kind === "top" ? "up" : "down", line: Math.round(block.own.maxY - level), from: Math.round(span.min - block.own.minX) }
     if (run.region === "edge") {
       wrapped.push({ ...strip, extra: true })
       const start = rect.x - (strip.from + entry.glyph.wordX) * sx
@@ -455,8 +455,8 @@ export function finishAtlas(plan, page, painted, options) {
     for (const edge of painted.edgeFaces ?? []) {
       ctx.globalCompositeOperation = edge.blend
       ctx.globalAlpha = edge.opacity
-      for (const { rect, sx, sy, width, height, glyph, side, line, from, extra } of wrapped) {
-        if (extra) ctx.drawImage(edge.face(glyph, side, line, from, width, height, Math.max(sx, sy)), rect.x, rect.y, rect.width, rect.height)
+      for (const { rect, scale, width, height, glyph, side, line, from, extra } of wrapped) {
+        if (extra) ctx.drawImage(edge.face(glyph, side, line, from, width, height, scale), rect.x, rect.y, rect.width, rect.height)
       }
     }
     ctx.globalAlpha = 1
