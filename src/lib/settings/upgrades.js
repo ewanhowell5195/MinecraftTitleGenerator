@@ -52,8 +52,19 @@ function matchFullRow(line) {
   return line.matchWidth !== undefined && line.matchWidth !== null && !("matchBottom" in line) ? { ...line, matchBottom: false } : line
 }
 
+function oldEditionFades(values) {
+  const faded = { internalFade: OLD_EDITION_FADE, sideFade: OLD_EDITION_FADE, ...values }
+  return Array.isArray(values.layerSettings) ? { ...faded, layerSettings: values.layerSettings.map(oldEditionFades) } : faded
+}
+
+function keepLayerFades(word) {
+  return Array.isArray(word.layerSettings) ? { ...word, layerSettings: word.layerSettings.map(oldEditionFades) } : word
+}
+
 function keepEditionFades(line) {
-  return line.type === "small" ? { internalFade: OLD_EDITION_FADE, sideFade: OLD_EDITION_FADE, ...line } : line
+  if (line.type !== "small") return line
+  const faded = oldEditionFades(line)
+  return Array.isArray(line.words) ? { ...faded, words: line.words.map(keepLayerFades) } : faded
 }
 
 const UPGRADES = [[2, restartLineTiles], [3, separateMatchScale], [4, widenBlockSerif], [5, anchorDepthAtFront], [6, turnDoorsInPlace], [7, turnInvertedWaves], [8, matchFullRow], [9, keepEditionFades]]

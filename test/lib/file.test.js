@@ -579,6 +579,11 @@ describe("opening", () => {
     assert.equal(scene.objects[1].matchBottom, true)
   })
 
+  test("edition fades from version 8 keep their old 75 amount on every layer", async () => {
+    await openTitle(fileOf(title([{ type: "small", text: "a", separateColour: true, layerSettings: [{}, { sideFade: 10 }] }], { version: 8 })))
+    assert.deepEqual(scene.objects[0].layerSettings.map(layer => [layer.internalFade, layer.sideFade]), [[75, 75], [75, 10]])
+  })
+
   test("edition fades from version 8 keep their old 75 amount", async () => {
     await openTitle(fileOf(title([{ type: "small", text: "a", fadeInternal: true, fadeSides: true }, { type: "small", text: "b", internalFade: 20, fadeSides: true }, { text: "c", fadeSides: true }], { version: 8 })))
     assert.deepEqual(scene.objects.map(object => [object.internalFade, object.sideFade]), [[75, 75], [20, 75], [0, 0]])
