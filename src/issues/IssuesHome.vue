@@ -5,7 +5,7 @@
   import Notice from "../components/Notice.vue"
   import SignInButtons from "../components/SignInButtons.vue"
   import { account } from "../lib/state/account.js"
-  import { myIssues, openIssues } from "../lib/issues/issuesApi.js"
+  import { REPORT_PARAM, myIssues, openIssues } from "../lib/issues/issuesApi.js"
   import IssueList from "./IssueList.vue"
 
   const issues = ref(null)
@@ -37,14 +37,14 @@
       <h1>Reports</h1>
       <p>Follow the issues you've reported with the title generator.</p>
     </div>
-    <Button primary href="/app/"><template #icon><Icon name="bug" :size="16" /></template>Report from the generator</Button>
+    <Button primary :href="`/app/?${REPORT_PARAM}`"><template #icon><Icon name="bug" :size="16" /></template>Report an issue</Button>
   </section>
   <template v-if="!account">
     <p class="hint">Sign in to see your reports.</p>
     <SignInButtons />
   </template>
   <Notice v-else-if="error">{{ error }}</Notice>
-  <p v-else-if="empty" class="hint">You haven't reported anything yet. Use Report in the generator's sidebar to report an issue.</p>
+  <p v-else-if="empty" class="hint">You haven't reported anything yet.</p>
   <section v-if="waiting?.length" class="section">
     <h2>Open reports</h2>
     <IssueList :items="waiting" show-reporter />

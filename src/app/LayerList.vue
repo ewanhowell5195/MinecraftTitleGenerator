@@ -14,8 +14,9 @@
   import LayerThumb from "./LayerThumb.vue"
   import SavePresetDialog from "./presets/SavePresetDialog.vue"
   import ReportDialog from "../issues/ReportDialog.vue"
+  import { askedToReport } from "../lib/issues/issuesApi.js"
 
-  const reporting = ref(false)
+  const reporting = ref(askedToReport())
 
   const SETTLE = 150
   const BUDGET = 12

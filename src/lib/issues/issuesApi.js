@@ -3,6 +3,16 @@ import { refreshAccount } from "../state/account.js"
 
 const API = "/api/issues"
 
+export const REPORT_PARAM = "report"
+
+export function askedToReport() {
+  const url = new URL(location.href)
+  if (!url.searchParams.has(REPORT_PARAM)) return false
+  url.searchParams.delete(REPORT_PARAM)
+  history.replaceState(history.state, "", url)
+  return true
+}
+
 function called(url, options) {
   return apiCall(url, options, "Reports aren't available right now", () => refreshAccount(true))
 }
