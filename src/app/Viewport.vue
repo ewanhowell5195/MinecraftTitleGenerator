@@ -35,7 +35,7 @@
   const { pan, orbit, orbiting, navigable, moved, hasFitted, refit, fitCamera, holdPan, applyView, resetView, toggleOrbit, homeView } = viewCamera
   const { panning, listen } = useViewPointer(rig, viewCamera, entries)
   const { proxy, pose, grab, release, drag, cancelDrag } = useGizmoDrag(rig, { props, invalidate })
-  const { capture, vector, titleRect } = useViewCapture(rig, { stage, host, props, refit })
+  const { capture, captureLayers, vector, titleRect } = useViewCapture(rig, { stage, host, props, refit })
 
   function invalidate() {
     dirty = true
@@ -117,6 +117,7 @@
     })
     observer.observe(host.value)
     viewport.capture = capture
+    viewport.captureLayers = captureLayers
     viewport.vector = vector
     viewport.titleRect = titleRect
     viewport.canvas = rig.renderer.domElement
@@ -126,6 +127,7 @@
 
   onBeforeUnmount(() => {
     viewport.capture = null
+    viewport.captureLayers = null
     viewport.vector = null
     viewport.titleRect = null
     viewport.canvas = null

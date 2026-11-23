@@ -2,7 +2,8 @@ import { reactive } from "vue"
 import { image } from "../lib/texture/assets.js"
 import { canvasLimit } from "../lib/texture/canvas.js"
 import { clamp } from "../lib/core/maths.js"
-import { EXACT, aspectOf, compose, drawnTitle, fromAspect, minecraftLayout, placement } from "./compose.js"
+import { EXACT, aspectOf, compose, composeBackground, drawnTitle, fromAspect, minecraftLayout, placement } from "./compose.js"
+import { matchImages } from "./layers.js"
 import { composeVector } from "./vector/svg.js"
 import { view, viewport } from "../lib/state/view.js"
 
@@ -97,11 +98,26 @@ export async function renderVector() {
   return title && composeVector(title, outputSettings())
 }
 
+async function baseOf(settings) {
+  return settings.tab === "minecraft" && settings.mode === "1.19" ? image("render/legacy-title.png") : null
+}
+
 export async function renderFramed(task) {
   const shot = await viewport.capture(captureResolution(), view.antialias, task)
   if (!shot) return shot
   const settings = outputSettings()
-  return compose(shot, settings, settings.tab === "minecraft" && settings.mode === "1.19" ? await image("render/legacy-title.png") : null)
+  return compose(shot, settings, await baseOf(settings))
+}
+
+export async function renderLayers(task) {
+  const shot = await viewport.captureLayers(captureResolution(), view.antialias, task)
+  if (!shot) return null
+  const settings = outputSettings()
+  const bare = { ...settings, backgroundEnabled: false }
+  const background = composeBackground(shot.image, settings, await baseOf(settings))
+  const layers = shot.layers.map(({ name, image: layer }) => ({ name, image: compose(layer, bare, null) }))
+  await matchImages(compose(shot.image, bare, null), layers.map(layer => layer.image), task.signal)
+  return background ? [{ name: "Background", image: background }].concat(layers) : layers
 }
 
 function minecraftPlacement(title) {

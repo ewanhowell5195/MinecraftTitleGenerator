@@ -35,7 +35,7 @@ function minecraft(image, mode, base, size) {
   const padded = canvasOf(Math.round(layout.padded[0]), Math.round(layout.padded[1]))
   padded.ctx.drawImage(image, x, y, drawWidth, drawHeight)
   const result = canvasOf(...layout.output)
-  if (mode === "1.19") {
+  if (base) {
     result.ctx.imageSmoothingEnabled = false
     result.ctx.drawImage(base, 0, 0, size, size)
   }
@@ -68,16 +68,34 @@ export function placement(image, settings, snap = WHOLE) {
   return { width, height, ratio, x: snap.offset((width - drawWidth) / 2), y: snap.offset((height - drawHeight) / 2), drawWidth, drawHeight, background }
 }
 
+function fillBackground(ctx, { width, height, background }) {
+  const [from, to] = background.line
+  ctx.fillStyle = linearGradient(ctx, ...from, ...to, background.stops)
+  ctx.fillRect(0, 0, width, height)
+}
+
 export function compose(image, settings, base) {
   if (settings.tab === "minecraft") return minecraft(image, settings.mode, base, settings.textureSize)
-  const { width, height, x, y, drawWidth, drawHeight, background } = placement(image, settings)
-  const result = canvasOf(width, height)
-  if (background) {
-    const [from, to] = background.line
-    result.ctx.fillStyle = linearGradient(result.ctx, ...from, ...to, background.stops)
-    result.ctx.fillRect(0, 0, width, height)
+  const placed = placement(image, settings)
+  const result = canvasOf(placed.width, placed.height)
+  if (placed.background) fillBackground(result.ctx, placed)
+  result.ctx.drawImage(image, placed.x, placed.y, placed.drawWidth, placed.drawHeight)
+  return result.canvas
+}
+
+export function composeBackground(image, settings, base) {
+  if (settings.tab === "minecraft") {
+    if (!base) return null
+    const { output: [width, height] } = minecraftLayout(settings.mode, settings.textureSize)
+    const result = canvasOf(width, height)
+    result.ctx.imageSmoothingEnabled = false
+    result.ctx.drawImage(base, 0, 0, width, height)
+    return result.canvas
   }
-  result.ctx.drawImage(image, x, y, drawWidth, drawHeight)
+  const placed = placement(image, settings)
+  if (!placed.background) return null
+  const result = canvasOf(placed.width, placed.height)
+  fillBackground(result.ctx, placed)
   return result.canvas
 }
 

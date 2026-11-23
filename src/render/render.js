@@ -11,7 +11,7 @@ const MARGIN = 8
 const STRIDE = TILE - MARGIN * 2
 let hidden = null
 
-function autoCrop(canvas) {
+function opaqueBounds(canvas) {
   const { width, height } = canvas
   const data = canvas.getContext("2d").getImageData(0, 0, width, height).data
   let minX = width
@@ -27,9 +27,12 @@ function autoCrop(canvas) {
       maxY = y
     }
   }
-  if (maxX < 0) return null
-  const cropped = canvasOf(maxX - minX + 1, maxY - minY + 1)
-  cropped.ctx.drawImage(canvas, -minX, -minY)
+  return maxX < 0 ? null : { left: minX, top: minY, width: maxX - minX + 1, height: maxY - minY + 1 }
+}
+
+function cropTo(canvas, { left, top, width, height }) {
+  const cropped = canvasOf(width, height)
+  cropped.ctx.drawImage(canvas, -left, -top)
   return cropped.canvas
 }
 
@@ -77,9 +80,9 @@ export function titleShot(scene, camera, size, target) {
 
 function tracker({ signal, progress }) {
   let last = performance.now()
-  return async function step(fraction) {
+  return async function step(fraction, part = 0) {
     if (performance.now() - last < 100) return
-    progress(fraction)
+    progress(fraction, part)
     await new Promise(resolve => setTimeout(resolve))
     signal.throwIfAborted()
     last = performance.now()
@@ -105,11 +108,7 @@ function hiddenRenderer() {
   return hidden
 }
 
-export async function renderTitle(size, scene, camera, resolution, antialias, task) {
-  const step = tracker(task)
-  const samples = antialias ? SAMPLES : 1
-  const framed = titleShot(scene, camera, size, resolution * samples)
-  if (!framed) return null
+async function draw(framed, scene, camera, samples, step) {
   const { bounds, view, width, height, outWidth, outHeight } = framed
   const scaleX = outWidth / width
   const scaleY = outHeight / height
@@ -152,7 +151,7 @@ export async function renderTitle(size, scene, camera, resolution, antialias, ta
         gl.readPixels(0, 0, tileWidth, tileHeight, gl.RGBA, gl.UNSIGNED_BYTE, bytes)
         if (await clean(data, tileWidth, tileHeight, fraction => step((done + fraction) / tiles))) writeFlipped(tile.ctx, data, tileWidth, tileHeight)
         done++
-        const shrunk = antialias ? halve(halve(tile.canvas, half), quarter) : tile.canvas
+        const shrunk = samples > 1 ? halve(halve(tile.canvas, half), quarter) : tile.canvas
         const shownWidth = Math.min(STRIDE, renderWidth - x) / samples
         const shownHeight = Math.min(STRIDE, renderHeight - y) / samples
         final.ctx.drawImage(shrunk, (x - tileLeft) / samples, (y - tileTop) / samples, shownWidth, shownHeight, x / samples, y / samples, shownWidth, shownHeight)
@@ -161,5 +160,35 @@ export async function renderTitle(size, scene, camera, resolution, antialias, ta
   } finally {
     renderer.setSize(1, 1, false)
   }
-  return autoCrop(final.canvas)
+  return final.canvas
+}
+
+export async function renderTitle(size, scene, camera, resolution, antialias, task) {
+  const samples = antialias ? SAMPLES : 1
+  const framed = titleShot(scene, camera, size, resolution * samples)
+  if (!framed) return null
+  const image = await draw(framed, scene, camera, samples, tracker(task))
+  const bounds = opaqueBounds(image)
+  return bounds && cropTo(image, bounds)
+}
+
+export async function renderPasses(size, scene, camera, resolution, antialias, task, passes) {
+  const samples = antialias ? SAMPLES : 1
+  const framed = titleShot(scene, camera, size, resolution * samples)
+  if (!framed) return null
+  const step = tracker(task)
+  const full = await draw(framed, scene, camera, samples, step)
+  const bounds = opaqueBounds(full)
+  if (!bounds) return null
+  const images = []
+  for (const [index, pass] of passes.entries()) {
+    const leave = pass()
+    try {
+      images.push(cropTo(await draw(framed, scene, camera, samples, fraction => step(fraction, index + 1)), bounds))
+    } finally {
+      leave()
+    }
+  }
+  task.progress(1, passes.length)
+  return { image: cropTo(full, bounds), images }
 }
