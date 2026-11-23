@@ -6,7 +6,7 @@
   import { titleBody } from "../../lib/link/linkformat.js"
   import { notice, showNotice } from "../../lib/state/notices.js"
   import { addPreset, deleteSharedPreset, loadPreset, presets, presetsError, presetsLoading, removePreset, renamePreset, renameSharedPreset, unsharePreset } from "../../lib/state/presets.js"
-  import { askConfirm } from "../../lib/state/confirm.js"
+  import { askConfirm, confirming } from "../../lib/state/confirm.js"
   import { scene } from "../../lib/state/scene.js"
   import { searchWithUser, searchesUser, toggleUserSearch } from "../../lib/link/presetSearch.js"
   import { closePresetsPage, leavePresetsForEditor, presetsPage, setPresetSearch, setPresetSort, showPresetFilters, showPreset, takeLanding } from "../../lib/state/presetsPage.js"
@@ -215,7 +215,7 @@
   }
 
   function key(event) {
-    if (event.key !== "Escape" || event.defaultPrevented || sharing.value || removing.value) return
+    if (event.key !== "Escape" || event.defaultPrevented || sharing.value || removing.value || confirming.value) return
     if (selected.value) clearSelection()
     else if (presetsPage.fromEditor) closePresetsPage()
   }
