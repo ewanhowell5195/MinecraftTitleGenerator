@@ -92,9 +92,13 @@
     change({ overlayStrip: true })
   }
 
-  function clearOverlay() {
+  function removeOverlayFile() {
     const { overlay, ...rest } = props.files
     emit("update:files", rest)
+  }
+
+  function clearOverlay() {
+    removeOverlayFile()
     change({ overlayStrip: undefined })
   }
 
@@ -151,18 +155,18 @@
     } else if (kind === "font" && !owners.value.some(item => item.id === id)) emit("update:target", fallback("font"))
   }, { immediate: true })
 
-  watch(forcedOverlay, allowed => {
-    if (!allowed && props.details.overlayStrip) clearOverlay()
-  })
-
   watch(() => props.file?.bytes, bytes => {
     if (!bytes || pngProblem(bytes, "strip")) return
     const snap = stripSnap(bytes)
     change({ snap: snap > 1 ? snap : undefined })
   })
 
-  watch(() => [props.target, props.kind], () => {
+  watch(() => [props.target, props.kind, forcedOverlay.value], () => {
     const missing = {}
+    if (!forcedOverlay.value && props.details.overlayStrip) {
+      removeOverlayFile()
+      missing.overlayStrip = undefined
+    }
     if (!props.details.border) missing.border = "#000000"
     if (chosen.value.kind === "new") {
       for (const [key, value] of Object.entries(NEW_SHAPE)) if (props.details[key] === undefined) missing[key] = value
