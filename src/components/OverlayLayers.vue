@@ -15,6 +15,7 @@
   import { credit } from "../lib/font/credits.js"
   import { GENERATED_SETTINGS, WRAPPED_KINDS, generatedSetting } from "../lib/texture/overlays/settings.js"
   import { titleCase } from "../lib/core/names.js"
+  import { plainCopy } from "../lib/core/values.js"
   import { MAX_ANCHORS, WHITE, definitionPalette, paletteHexes } from "../lib/texture/overlayColours.js"
   import { openedFirst, useOpened } from "./composables/opened.js"
   import { useListReorder } from "./composables/reorder.js"
@@ -147,7 +148,7 @@
   function setColourMode(mode) {
     const current = toRaw(props.edit()[selected.value])
     const saved = memoryOf(current).colours
-    saved[colourMode.value] = structuredClone({ colours: current.colours ?? null, tint: current.tint ?? null })
+    saved[colourMode.value] = plainCopy({ colours: current.colours ?? null, tint: current.tint ?? null })
     set("colours", structuredClone(saved[mode]?.colours ?? (mode === "colours" ? paletteHexes(palette.value.anchors) : null)))
     set("tint", saved[mode]?.tint ?? (mode === "tint" ? "#ffffff" : null))
   }
@@ -182,7 +183,7 @@
     }
     const target = props.edit()
     const kinds = memoryOf(toRaw(target[selected.value])).kinds
-    kinds[kind.value] = structuredClone(toRaw(target[selected.value]))
+    kinds[kind.value] = plainCopy(target[selected.value])
     if (kinds[value]) return replaceLayer(target, structuredClone(kinds[value]))
     if (value === "file") {
       set("source", "file")
@@ -215,15 +216,16 @@
 
   function duplicateLayer(index) {
     const target = props.edit()
-    target.splice(index + 1, 0, structuredClone(toRaw(target[index])))
+    target.splice(index + 1, 0, plainCopy(target[index]))
     selected.value = index + 1
   }
 
   function moveLayer(from, to) {
     const target = props.edit()
-    const chosen = target[selected.value]
     target.splice(to, 0, target.splice(from, 1)[0])
-    selected.value = target.indexOf(chosen)
+    if (selected.value === from) selected.value = to
+    else if (from < selected.value && to >= selected.value) selected.value--
+    else if (from > selected.value && to <= selected.value) selected.value++
   }
 
   const box = ref(null)
