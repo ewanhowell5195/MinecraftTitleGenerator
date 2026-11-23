@@ -394,6 +394,11 @@ describe("lineLayout with a space glyph", () => {
     assert.equal(placed[2].x, 6.5)
   })
 
+  test("adds no filler for a space with nothing drawn in it", () => {
+    const blank = withGlyphs(font, { " ": glyphOf(" ", { width: 0, height: 0 }) })
+    assert.ok(layout(blank, "aa", { spacing: 5 }).every(item => !item.glyph.fill))
+  })
+
   test("adds no filler when glyphs touch or overlap", () => {
     assert.deepEqual(charsOf(layout(font, "aa", { spacing: -2 })), ["a", "a"])
     assert.deepEqual(charsOf(layout(font, "aa", { spacing: -3 })), ["a", "a"])

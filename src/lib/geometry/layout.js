@@ -83,7 +83,7 @@ export function lineLayout(font, words, options) {
       const x = pen + glyph.originX
       const before = placed[placed.length - 1]
       const edge = before ? before.x + before.glyph.width : x
-      if (font.glyphs[" "] && x > edge) placed.push({ glyph: filler(font.glyphs[" "], Math.ceil(x - edge)), x: edge, spaces: 0, word: before.word })
+      if (font.glyphs[" "]?.width && x > edge) placed.push({ glyph: filler(font.glyphs[" "], Math.ceil(x - edge)), x: edge, spaces: 0, word: before.word })
       placed.push({ glyph, x, spaces, word })
       spaces = 0
     }
