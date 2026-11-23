@@ -39,9 +39,19 @@ async function extraFiles(form) {
   return files
 }
 
-function keptSizes(details, files, previous) {
+function keptDerived(details, type, bytes, before) {
+  if (bytes || !before) return details
+  const kept = { ...details }
+  for (const key of type.derived) {
+    if (before[key] === undefined) delete kept[key]
+    else kept[key] = before[key]
+  }
+  return kept
+}
+
+function keptSizes(details, files, previousDetails) {
   if (!Array.isArray(details.extras)) return details
-  const before = previous ? JSON.parse(previous.details).extras ?? [] : []
+  const before = previousDetails?.extras ?? []
   return { ...details, extras: details.extras.map(item => item && typeof item === "object" && !files[item.key] ? { ...item, size: before.find(old => old.key === item.key)?.size } : item) }
 }
 
@@ -58,18 +68,20 @@ export async function readForm(context, previous = null) {
   if (!type?.available) throw new Refusal(400, "Pick what you're submitting.")
   if (!bytes && !previous) throw new Refusal(400, sizedProblem(bytes, type.noun))
   const fonts = await publishedFonts(context)
-  const fields = { kind, target: form.get("target") ?? "", details: keptSizes(parsedDetails(form.get("details")), files, previous), bytes, files, name: form.get("name"), credit: sentCredit(form.get("credit")), notes: form.get("notes") ?? "", agree: form.get("agree") === "true" }
+  const before = previous ? JSON.parse(previous.details) : null
+  const details = keptDerived(keptSizes(parsedDetails(form.get("details")), files, before), type, bytes, before)
+  const fields = { kind, target: form.get("target") ?? "", details, bytes, files, name: form.get("name"), credit: sentCredit(form.get("credit")), notes: form.get("notes") ?? "", agree: form.get("agree") === "true" }
   const { problems, clean } = await checkSubmission(fields, submissionContext(fonts, path => asset(context, path)))
   const problem = Object.values(problems)[0]
   if (problem) throw new Refusal(400, problem)
-  const before = previous ? JSON.parse(previous.details) : {}
+  const stored = before?.files ?? {}
   if (!bytes) {
     if (clean.kind !== previous.kind || clean.target !== previous.target) throw new Refusal(400, `Choose the ${type.noun}'s file again for the new choice.`)
     for (const key of type.derived) clean.details[key] ??= before[key]
   }
   const wanted = type.fileKeys?.(clean.details) ?? []
-  const missing = wanted.find(key => !files[key] && !Object.hasOwn(before.files ?? {}, key))
+  const missing = wanted.find(key => !files[key] && !Object.hasOwn(stored, key))
   if (missing) throw new Refusal(400, "One of the extra files is missing. Choose it again.")
-  const stored = bytes && type.cleanFile ? type.cleanFile(bytes) : bytes
-  return { clean, fonts, bytes: stored, files: Object.fromEntries(wanted.map(key => [key, files[key] ?? before.files[key]])), revision: Number(form.get("revision")) }
+  const cleaned = bytes && type.cleanFile ? type.cleanFile(bytes) : bytes
+  return { clean, fonts, bytes: cleaned, files: Object.fromEntries(wanted.map(key => [key, files[key] ?? stored[key]])), revision: Number(form.get("revision")) }
 }
