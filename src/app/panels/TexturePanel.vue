@@ -123,9 +123,9 @@
     if (target.colour.toLowerCase() === WHITE || target.colour.toLowerCase() === current) target.colour = next ?? WHITE
   }
 
-  function pickBlock(id) {
-    retint(blockTint(id))
-    object.value.minecraftTexture = id
+  function pickBlock(id, target = object.value) {
+    retint(blockTint(id), target)
+    target.minecraftTexture = id
   }
 
   async function minecraftTint(target) {
@@ -195,7 +195,7 @@
       const solid = Array.from(textures.keys()).filter(id => textures.get(id).opaque)
       if (!solid.length) throw new Error(`Minecraft ${version} has no block textures without transparency`)
       target.minecraftVersion = version
-      if (!textures.has(target.minecraftTexture)) pickBlock(["cobblestone", "stone"].find(id => solid.includes(id)) ?? solid[0])
+      if (!textures.has(target.minecraftTexture)) pickBlock(["cobblestone", "stone"].find(id => solid.includes(id)) ?? solid[0], target)
     } catch (err) {
       blocksError.value = err.message
     }
