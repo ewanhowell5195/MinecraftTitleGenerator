@@ -129,7 +129,7 @@
 <template>
   <div class="gradient-editor">
     <div class="bar" :style="{ background }"></div>
-    <div class="track" ref="track" @pointerdown.self="add" v-tooltip="'Click to add a colour, drag a colour down to remove it'">
+    <div class="track" ref="track" @pointerdown.self="add" v-tooltip="{ text: 'Click to add a colour, drag a colour down to remove it', anchor: 'cursor-x' }">
       <button v-for="(item, index) of stops" :key="index" class="stop" :class="{ selected: index === selected, removing: removing && index === selected }" :style="{ left: `${item.position}%` }" @pointerdown="begin(index, $event)" @keydown.left.prevent="nudge($event, -1)" @keydown.right.prevent="nudge($event, 1)" @keydown.delete.prevent="remove(index)" @focus="selected = index" :aria-label="`Colour at ${item.position}%`">
         <span :style="{ background: item.colour }"></span>
       </button>
