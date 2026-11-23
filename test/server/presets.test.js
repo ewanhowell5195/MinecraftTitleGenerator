@@ -15,7 +15,7 @@ beforeEach(freshServer)
 
 describe("titleFacts", () => {
   test("joins lines, and words by their spaces", () => {
-    const facts = titleFacts([{ text: "top" }, { words: [{ text: "one" }, { text: "two", spaceBefore: true }, { text: "three" }] }])
+    const facts = titleFacts([{ text: "top" }, { words: [{ text: "one" }, { text: "two" }, { text: "three", spaceBefore: false }] }])
     assert.equal(facts.text, "top one twothree")
     assert.equal(facts.words, 4)
   })

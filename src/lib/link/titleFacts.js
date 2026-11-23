@@ -7,7 +7,8 @@ import { joinWords, lineWords, titleProblem } from "./titleLines.js"
 import { FILE_VERSION } from "../settings/upgrades.js"
 
 function wordsOf(line) {
-  return lineWords(line).filter(word => !word.shape)
+  const { spaceBefore } = typeDefaults("top")
+  return lineWords(line).filter(word => !word.shape).map(word => ({ spaceBefore, ...word }))
 }
 
 function textOf(word, fallback) {
