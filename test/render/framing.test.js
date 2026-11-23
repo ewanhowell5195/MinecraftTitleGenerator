@@ -379,42 +379,42 @@ describe("renderVector", () => {
     return asked
   }
 
-  test("asks for the render resolution outside the minecraft tab", () => {
+  test("asks for the render resolution outside the minecraft tab", async () => {
     const asked = captured()
     view.resolution = 2048
-    assert.equal(renderVector(), null)
+    assert.equal(await renderVector(), null)
     assert.deepEqual(asked, [2048])
   })
 
-  test("asks for the title size fitted to the minecraft texture", () => {
+  test("asks for the title size fitted to the minecraft texture", async () => {
     const asked = captured()
     framing.tab = "minecraft"
     viewport.titleRect = () => ({ left: 0, top: 0, width: 512, height: 64 })
-    renderVector()
+    await renderVector()
     assert.deepEqual(asked, [1024])
   })
 
-  test("asks for no more than the texture holds when the fit is not exact", () => {
+  test("asks for no more than the texture holds when the fit is not exact", async () => {
     const asked = captured()
     framing.tab = "minecraft"
     framing.mode = "mojang"
     viewport.titleRect = () => ({ left: 0, top: 0, width: 306, height: 20 })
-    renderVector()
+    await renderVector()
     assert.deepEqual(asked, [2032])
   })
 
-  test("falls back to the render resolution before a title is measured", () => {
+  test("falls back to the render resolution before a title is measured", async () => {
     const asked = captured()
     framing.tab = "minecraft"
     viewport.titleRect = () => null
-    renderVector()
+    await renderVector()
     assert.deepEqual(asked, [1024])
   })
 
-  test("composes with padding converted to output pixels", () => {
+  test("composes with padding converted to output pixels", async () => {
     view.resolution = 2048
     framing.padding = 5
     viewport.vector = () => ({ width: 1000, height: 500, markup: "" })
-    assert.match(renderVector(), /width="1000" height="510"/)
+    assert.match(await renderVector(), /width="1000" height="510"/)
   })
 })

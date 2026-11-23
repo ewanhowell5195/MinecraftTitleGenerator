@@ -39,7 +39,9 @@ export function useViewCapture(rig, { stage, host, props, refit }) {
     }
   }
 
-  function vector(resolution) {
+  async function vector(resolution) {
+    await whenSharp()
+    await nextTick()
     refit()
     stage.sort(rig.camera)
     return vectorTitle(stage.scene, rig.camera, rig.renderer.getSize(new THREE.Vector2()), resolution)

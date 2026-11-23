@@ -58,6 +58,7 @@
   }
 
   let rendering = null
+  const saving = ref(false)
 
   async function render() {
     submitStats()
@@ -82,11 +83,12 @@
     rendering?.abort()
   }
 
-  function saveVector() {
+  async function saveVector() {
     submitStats()
     failed.value = ""
+    saving.value = true
     try {
-      const svg = renderVector()
+      const svg = await renderVector()
       if (!svg) {
         failed.value = "Nothing in frame."
         return
@@ -95,6 +97,8 @@
     } catch (err) {
       failed.value = `Render failed: ${err.message}`
       throw err
+    } finally {
+      saving.value = false
     }
   }
 </script>
@@ -156,7 +160,7 @@
     <Button primary wide :disabled="progress !== null" @click="render"><template #icon><Icon name="camera" :size="16" /></template>
       <span>Render image</span>
     </Button>
-    <Button wide v-if="framing.tab !== 'minecraft'" :disabled="progress !== null" @click="saveVector"><template #icon><Icon name="download" :size="16" /></template>
+    <Button wide v-if="framing.tab !== 'minecraft'" :disabled="progress !== null || saving" @click="saveVector"><template #icon><Icon name="download" :size="16" /></template>
       <span>Save SVG</span>
     </Button>
     <Notice v-if="failed">{{ failed }}</Notice>

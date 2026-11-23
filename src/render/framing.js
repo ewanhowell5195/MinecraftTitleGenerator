@@ -92,8 +92,8 @@ function outputSettings() {
   return { ...framing, padding: paddingPixels(), textureSize: textureSize() }
 }
 
-export function renderVector() {
-  const title = viewport.vector(captureResolution())
+export async function renderVector() {
+  const title = await viewport.vector(captureResolution())
   return title && composeVector(title, outputSettings())
 }
 
