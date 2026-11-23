@@ -41,7 +41,13 @@ export function templateProblem(bytes, flat, noun) {
 }
 
 export function overlayPalette(bytes) {
-  const { anchors, complex } = paletteOf(decodePng(bytes).data)
+  let image
+  try {
+    image = decodePng(bytes)
+  } catch (err) {
+    return { problem: `This PNG can't be read: ${err.message}.` }
+  }
+  const { anchors, complex } = paletteOf(image.data)
   if (complex) return { problem: `This overlay has too many colours. Overlays can have up to ${MAX_ANCHORS}, so put shading, glows and fades in its transparency instead.` }
   const palette = paletteHexes(anchors)
   return { palette: palette.length === 1 && palette[0] === "#ffffff" ? null : palette }
