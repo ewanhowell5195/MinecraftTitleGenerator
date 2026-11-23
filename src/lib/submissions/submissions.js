@@ -23,6 +23,7 @@ function length(text) {
 }
 
 const CONTROL = /[\u0000-\u001f\u007f\u2028\u2029]/
+const LINK_BREAKING = /[\s<>]/
 
 export function textProblem(value, label, limit, { required = false, noun = "submission", lines = false } = {}) {
   if (typeof value !== "string") return `The ${label} has to be text.`
@@ -49,7 +50,7 @@ function linkProblem(value, label) {
   try {
     url = new URL(text)
   } catch {}
-  return url && ["http:", "https:"].includes(url.protocol) && !CONTROL.test(text) ? null : `The ${label} has to be a web address, like https://example.com.`
+  return url && ["http:", "https:"].includes(url.protocol) && !CONTROL.test(text) && !LINK_BREAKING.test(text) ? null : `The ${label} has to be a web address, like https://example.com.`
 }
 
 export function sourceProblems(details) {
