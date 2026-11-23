@@ -1,5 +1,5 @@
 <script setup>
-  import { computed, onBeforeUnmount, ref, watch } from "vue"
+  import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
   import { isPlainClick, vLongPress } from "../components/composables/events.js"
   import { namingForShare, namingPreset } from "../lib/state/presets.js"
   import { PRESETS_PATH, openPresetsPage } from "../lib/state/presetsPage.js"
@@ -16,7 +16,9 @@
   import ReportDialog from "../issues/ReportDialog.vue"
   import { askedToReport } from "../lib/issues/issuesApi.js"
 
-  const reporting = ref(askedToReport())
+  const reporting = ref(false)
+
+  onMounted(() => (reporting.value = askedToReport()))
 
   const SETTLE = 150
   const BUDGET = 12
@@ -26,13 +28,14 @@
   const seen = new Set()
   const watched = new Map()
   let timer = null
+  let sightings = null
 
   function schedule() {
     clearTimeout(timer)
     timer = setTimeout(flush, SETTLE)
   }
 
-  const sightings = new IntersectionObserver(entries => {
+  function showSeen(entries) {
     for (const entry of entries) {
       if (!entry.isIntersecting) continue
       const id = watched.get(entry.target)
@@ -45,9 +48,10 @@
         schedule()
       }
     }
-  }, { rootMargin: "200px" })
+  }
 
   function sight(element, id) {
+    sightings ??= new IntersectionObserver(showSeen, { rootMargin: "200px" })
     watched.set(element, id)
     sightings.observe(element)
     return () => {
@@ -260,7 +264,7 @@
 
   onBeforeUnmount(() => {
     clearTimeout(timer)
-    sightings.disconnect()
+    sightings?.disconnect()
   })
 </script>
 
