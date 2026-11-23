@@ -1,6 +1,7 @@
 import { lineLayout } from "../geometry/layout.js"
-import { gradientDirection, gradientReach, ordered, stopColour, stopEdges } from "./colourStops.js"
+import { blend, gradientDirection, gradientReach, ordered, stopColour, stopEdges } from "./colourStops.js"
 
+const LONG_STEPS = 8
 const ALONG = { dx: 1, dy: 0 }
 
 function gradientsOf(word) {
@@ -16,6 +17,17 @@ function rounded(position) {
   return Math.round(position * 10000) / 100
 }
 
+function longWayStops(list) {
+  return list.flatMap((stop, index) => {
+    const next = list[index + 1]
+    if (!next) return [stop]
+    return [stop].concat(Array.from({ length: LONG_STEPS - 1 }, (_, at) => {
+      const t = (at + 1) / LONG_STEPS
+      return { colour: blend(stop.colour, next.colour, t, "long"), position: stop.position + (next.position - stop.position) * t }
+    }))
+  })
+}
+
 export function refitStops(stops, smooth, from, to, mix) {
   const list = ordered(stops)
   const local = t => (t - from) / (to - from)
@@ -23,7 +35,7 @@ export function refitStops(stops, smooth, from, to, mix) {
     const edges = stopEdges(list)
     return list.flatMap((stop, index) => edges[index + 1] > from && edges[index] < to || list.length === 1 ? [{ colour: stop.colour, position: rounded(Math.max(0, local(edges[index]))) }] : [])
   }
-  const inside = list.map(stop => ({ colour: stop.colour, position: rounded(local(stop.position)) })).filter(stop => stop.position > 0 && stop.position < 100)
+  const inside = (mix === "long" ? longWayStops(list) : list).map(stop => ({ colour: stop.colour, position: rounded(local(stop.position)) })).filter(stop => stop.position > 0 && stop.position < 100)
   return [{ colour: stopColour(list, from, mix), position: 0 }].concat(inside, [{ colour: stopColour(list, to, mix), position: 100 }])
 }
 
@@ -48,14 +60,15 @@ export function splitGradients(font, line, word, parts) {
   const height = font.capHeight ?? 0
   return ranges.map(range => {
     if (!range || !width) return {}
-    return Object.fromEntries(gradients.map(({ stops, smooth, mix, direction }) => {
+    return Object.fromEntries(gradients.flatMap(({ stops, smooth, mix, direction }) => {
       const reach = gradientReach(direction, width, height)
       const ownReach = gradientReach(direction, range.right - range.left, height)
-      if (!reach) return [stops, word[stops]]
+      if (!reach) return [[stops, word[stops]]]
       const shift = ((range.left + range.right) / 2 - (left + width / 2)) * direction.dx
       const from = (shift + reach - ownReach) / (2 * reach)
       const to = from + ownReach / reach
-      return [stops, refitStops(word[stops], word[smooth], from, to, word[mix])]
+      const refitted = [[stops, refitStops(word[stops], word[smooth], from, to, word[mix])]]
+      return word[smooth] && word[mix] === "long" ? refitted.concat([[mix, "short"]]) : refitted
     }))
   })
 }

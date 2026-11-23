@@ -1,6 +1,7 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { blend } from "../../src/lib/texture/colourStops.js"
+import { blend, ordered, stopColour } from "../../src/lib/texture/colourStops.js"
+import { rgbOf } from "../../src/lib/core/colour.js"
 import { refitStops, splitGradients } from "../../src/lib/texture/wordGradients.js"
 
 const BLACK_WHITE = [{ colour: "#000000", position: 0 }, { colour: "#ffffff", position: 100 }]
@@ -40,6 +41,17 @@ describe("splitting a word", () => {
   test("a vertical gradient stays the same on every word", () => {
     const original = word({ textureSource: "gradient", gradientAngle: 0 })
     for (const part of splitGradients(font, [original], original, PARTS)) assert.deepEqual(part.stops, BLACK_WHITE)
+  })
+
+  test("a long hue gradient keeps going the long way round", () => {
+    const stops = [{ colour: "#ff0000", position: 0 }, { colour: "#0000ff", position: 100 }]
+    const original = word({ textureSource: "gradient", gradientAngle: 270, stops, mix: "long" })
+    const [left, right] = splitGradients(font, [original], original, PARTS)
+    for (const [part, at, whole] of [[left, 11 / 22, 11 / 46], [right, 11 / 22, 35 / 46]]) {
+      const wanted = rgbOf(stopColour(ordered(stops), whole, "long"))
+      const found = rgbOf(stopColour(ordered(part.stops), at, part.mix))
+      assert.ok(wanted.every((value, index) => Math.abs(value - found[index]) < 32), `${found} is not near ${wanted}`)
+    }
   })
 
   test("edge gradients are shared out too", () => {
