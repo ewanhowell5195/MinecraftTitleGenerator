@@ -27,7 +27,7 @@ async function uploaded(value) {
 }
 
 async function extraFiles(form) {
-  const files = {}
+  const files = Object.create(null)
   for (const [field, value] of form.entries()) {
     if (!field.startsWith(EXTRA_PREFIX)) continue
     const key = field.slice(EXTRA_PREFIX.length)
@@ -68,7 +68,7 @@ export async function readForm(context, previous = null) {
     for (const key of type.derived) clean.details[key] ??= before[key]
   }
   const wanted = type.fileKeys?.(clean.details) ?? []
-  const missing = wanted.find(key => !files[key] && !before.files?.[key])
+  const missing = wanted.find(key => !files[key] && !Object.hasOwn(before.files ?? {}, key))
   if (missing) throw new Refusal(400, "One of the extra files is missing. Choose it again.")
   const stored = bytes && type.cleanFile ? type.cleanFile(bytes) : bytes
   return { clean, fonts, bytes: stored, files: Object.fromEntries(wanted.map(key => [key, files[key] ?? before.files[key]])), revision: Number(form.get("revision")) }
