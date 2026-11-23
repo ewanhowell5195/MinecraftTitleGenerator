@@ -755,6 +755,17 @@ describe("current", () => {
     assert.equal(a.stops[0].colour, "#000000")
   })
 
+  test("a change to one layer's setting leaves the rest of the other words' layers alone", () => {
+    const [a, b] = line(1, "a", "b")
+    a.layerSettings = [{ hue: 0, colour: "#111111" }]
+    b.layerSettings = [{ hue: 0, colour: "#222222" }]
+    setScene(a, b)
+    selectGroup(1)
+    current.value.layerSettings[0].hue = 40
+    assert.deepEqual(snapshot(a).layerSettings, [{ hue: 40, colour: "#111111" }])
+    assert.deepEqual(snapshot(b).layerSettings, [{ hue: 40, colour: "#222222" }])
+  })
+
   test("array changes reach every word", () => {
     const [a, b] = line(1, "a", "b")
     setScene(a, b)

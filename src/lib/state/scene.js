@@ -261,30 +261,35 @@ function clone(value) {
 
 function broadcast(object, targets) {
   const wrappers = new WeakMap()
-  function read(target, prop, key) {
+  function within(path, prop) {
+    return path[0] === "layerSettings" && path.length < 3 ? path.concat(prop) : path
+  }
+  function read(target, prop, path) {
     if (Array.isArray(target) && typeof Array.prototype[prop] === "function") return Array.prototype[prop]
     if (typeof prop === "symbol") return Reflect.get(target, prop)
     if (prop.startsWith("__v_")) return undefined
-    return wrap(Reflect.get(target, prop), key)
+    return wrap(Reflect.get(target, prop), path)
   }
-  function sync(key) {
+  function sync([key, layer, name]) {
     for (const other of targets(key)) {
-      if (other !== object) other[key] = clone(object[key])
+      if (other === object) continue
+      if (name === undefined) other[key] = clone(object[key])
+      else if (other[key][layer]) other[key][layer][name] = clone(object[key][layer][name])
     }
   }
-  function wrap(value, key) {
+  function wrap(value, path) {
     if (value === null || typeof value !== "object") return value
     if (!wrappers.has(value)) {
       wrappers.set(value, new Proxy(value, {
-        get: (target, prop) => read(target, prop, key),
+        get: (target, prop) => read(target, prop, within(path, prop)),
         set: (target, prop, next) => {
           Reflect.set(target, prop, clone(next))
-          sync(key)
+          sync(within(path, prop))
           return true
         },
         deleteProperty: (target, prop) => {
           Reflect.deleteProperty(target, prop)
-          sync(key)
+          sync(within(path, prop))
           return true
         }
       }))
@@ -292,7 +297,7 @@ function broadcast(object, targets) {
     return wrappers.get(value)
   }
   return new Proxy(object, {
-    get: (target, prop) => read(target, prop, prop),
+    get: (target, prop) => read(target, prop, [prop]),
     set: (target, prop, next) => {
       const value = clone(next)
       for (const other of targets(prop)) other[prop] = other === object ? value : clone(value)
