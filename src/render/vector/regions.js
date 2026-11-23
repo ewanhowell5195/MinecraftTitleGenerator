@@ -477,7 +477,7 @@ export function analyse(image, rect, mask = null, outline = null) {
   }
   const inset = holes ? insetBase() : null
   const finalBase = holes ? { ...base, masked: true, transparent, pixels: inset, exact: shapeOf(inset, false) } : base
-  return { base: finalBase, layers: stacked, owner, shapeOf }
+  return { base: finalBase, layers: stacked, owner, solid, shapeOf }
 }
 
 export function contains(area, rect) {

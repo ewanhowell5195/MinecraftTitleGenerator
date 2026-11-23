@@ -3,7 +3,7 @@ import { hexOfPacked } from "../../lib/core/colour.js"
 import { SAMPLES, titleShot } from "../render.js"
 import { colourTotals, within } from "./colours.js"
 import { coverOf } from "./cover.js"
-import { facesOf, firstMaterial, hideAll, occluderOf, split, withinConvex, worldMap } from "./faces.js"
+import { facesOf, firstMaterial, hideAll, occludersOf, split, withinConvex, worldMap } from "./faces.js"
 import { Output, bandPlane, bandRuns, clippedToBand, fitGradient, halved, middleOf } from "./gradients.js"
 import { joinsOf, outerPixels, trimmedBase } from "./joins.js"
 import { addInOrder, addTo, area, boxOfPolygons, sameWinding, shapeOfPolygons, shapesOverlap } from "./polygons.js"
@@ -251,7 +251,7 @@ export function vectorTitle(scene, camera, size, resolution) {
   for (const mesh of meshes) {
     const { faces, solids } = facesOf(mesh, view, project, cache)
     const material = firstMaterial(mesh)
-    const own = material.depthWrite ? solids.map(face => occluderOf(face, view)) : []
+    const own = material.depthWrite ? solids.flatMap(face => occludersOf(face, view)) : []
     if (!material.colorWrite) {
       occluders.push(...own)
       continue

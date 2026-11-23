@@ -67,7 +67,7 @@ export function facesOf(mesh, view, project, cache) {
   const faces = []
   const solids = []
   function faceFrom(corners, texels, rect, analysis, normal, image) {
-    const points = view.perspective ? split(corners, view.direction, view.direction.dot(view.eye) + view.near)[0] : corners
+    const points = clippedToView(corners, view)
     if (!points) return null
     const facing = corners[1].clone().sub(corners[0]).cross(corners[2].clone().sub(corners[0])).normalize()
     return { index: faces.length, corners, texels, rect, image, analysis, points, facing, normal: normal.dot(toViewer(view, corners[0])) < 0 ? normal.clone().negate().normalize() : normal.clone().normalize(), box: boxOfPolygons([points.map(project)]) }
@@ -180,16 +180,52 @@ export function worldMap(face) {
   }
 }
 
-export function occluderOf(face, view) {
-  const middle = face.points.reduce((sum, point) => sum.add(point), new THREE.Vector3()).divideScalar(face.points.length)
-  const edges = face.points.map((from, index) => {
-    const to = face.points[(index + 1) % face.points.length]
+function solidRects({ solid, rect }) {
+  const width = rect.right - rect.left
+  const height = rect.bottom - rect.top
+  const open = new Uint8Array(width * height)
+  for (const index of solid) open[index] = 1
+  const rects = []
+  for (let start = 0; start < open.length; start++) {
+    if (!open[start]) continue
+    const left = start % width
+    const top = Math.floor(start / width)
+    let right = left
+    while (right < width && open[top * width + right]) right++
+    let bottom = top
+    while (bottom < height && open.subarray(bottom * width + left, bottom * width + right).every(value => value)) {
+      open.fill(0, bottom * width + left, bottom * width + right)
+      bottom++
+    }
+    rects.push({ left: rect.left + left, top: rect.top + top, right: rect.left + right, bottom: rect.top + bottom })
+  }
+  return rects
+}
+
+function clippedToView(points, view) {
+  return view.perspective ? split(points, view.direction, view.direction.dot(view.eye) + view.near)[0] : points
+}
+
+function occludingShapes(face, view) {
+  if (!face.analysis?.base.transparent || face.texels.length !== 4) return [face.points]
+  const toWorld = worldMap(face)
+  return solidRects({ solid: face.analysis.solid, rect: face.rect }).map(({ left, top, right, bottom }) => clippedToView([[left, top], [right, top], [right, bottom], [left, bottom]].map(([x, y]) => toWorld(x, y)), view)).filter(Boolean)
+}
+
+export function occludersOf(face, view) {
+  return occludingShapes(face, view).map(points => occluderOf(face, points, view))
+}
+
+function occluderOf(face, points, view) {
+  const middle = points.reduce((sum, point) => sum.add(point), new THREE.Vector3()).divideScalar(points.length)
+  const edges = points.map((from, index) => {
+    const to = points[(index + 1) % points.length]
     const normal = view.perspective ? from.clone().sub(view.eye).cross(to.clone().sub(view.eye)) : to.clone().sub(from).cross(view.direction)
     if (normal.dot(middle.clone().sub(from)) > 0) normal.negate()
     normal.normalize()
     return { normal, constant: normal.dot(from) }
   })
-  return { face, normal: face.normal, constant: face.normal.dot(face.points[0]), edges }
+  return { face, normal: face.normal, constant: face.normal.dot(points[0]), edges }
 }
 
 function hide(pieces, occluder) {
