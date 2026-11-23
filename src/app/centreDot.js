@@ -9,7 +9,13 @@ export const heldCentre = shallowRef(null)
 
 export function holdCentre(kind, word) {
   heldCentre.value = { kind, word }
-  window.addEventListener("pointerup", () => (heldCentre.value = null), { once: true })
+  const held = new AbortController()
+  function release() {
+    heldCentre.value = null
+    held.abort()
+  }
+  window.addEventListener("pointerup", release, { signal: held.signal })
+  window.addEventListener("pointercancel", release, { signal: held.signal })
 }
 
 export function centrePoint(entries) {
