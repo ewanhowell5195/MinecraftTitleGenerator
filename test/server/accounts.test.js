@@ -39,6 +39,14 @@ describe("accounts", () => {
     })
   }
 
+  test("a sign-in can't be finished as another provider", async () => {
+    stubProvider({ id: "1", username: "a" })
+    const { state, cookie } = await begin()
+    const back = await atProvider("discord", { code: "abc", state })
+    const finished = await finishing(back.headers.get("Location"), cookie, "github")
+    assert.equal(finished.status, 400)
+  })
+
   for (const origin of ["https://evil.test", "https://mctitlegenerator.com.evil.test", "https://minecrafttitlegenerator.pages.dev", "https://abc123.minecrafttitlegenerator.pages.dev", "https://evilminecrafttitlegenerator.pages.dev", "http://minecrafttitlegenerator.pages.dev", "http://dev.ewanhowell.com", "javascript:alert(1)"]) {
     test(`refuses to sign in for ${origin}`, async () => {
       const response = await startSignIn(context(`/api/account/login/discord?return=${encodeURIComponent(origin)}`, { params: { provider: "discord" } }))

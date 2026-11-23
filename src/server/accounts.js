@@ -212,7 +212,7 @@ export const receiveSignIn = showingRefusals(async ({ request, env, params }) =>
   const code = url.searchParams.get("code")
   if (!code) throw new Refusal(400, "This sign-in has expired. Close this window and try again.")
   const person = await fetchPerson(provider, code)
-  return redirect(`${finish}?${new URLSearchParams({ handoff: await signed(env, "handoff", HANDOFF_SECONDS, { ...person, nonce: state.nonce }) })}`)
+  return redirect(`${finish}?${new URLSearchParams({ handoff: await signed(env, "handoff", HANDOFF_SECONDS, { ...person, provider: provider.id, nonce: state.nonce }) })}`)
 })
 
 export const finishSignIn = showingRefusals(async ({ request, env, params }) => {
@@ -220,7 +220,7 @@ export const finishSignIn = showingRefusals(async ({ request, env, params }) => 
   const url = new URL(request.url)
   if (url.searchParams.get("cancelled")) return page(200, "Sign-in cancelled", "You can close this window.", leaveScript())
   const handoff = await verified(env, "handoff", url.searchParams.get("handoff"))
-  if (!handoff || handoff.nonce !== cookieValue(request, STATE_COOKIE)) throw new Refusal(400, "This sign-in has expired. Close this window and try again.")
+  if (!handoff || handoff.provider !== provider.id || handoff.nonce !== cookieValue(request, STATE_COOKIE)) throw new Refusal(400, "This sign-in has expired. Close this window and try again.")
   const id = `${provider.id}:${handoff.id}`
   const session = await signed(env, "session", SESSION_SECONDS, { id, name: handoff.name, provider: provider.id, avatar: handoff.avatar, email: handoff.email, issued: Date.now() })
   await rememberUser(env, { name: handoff.name, email: handoff.email, provider: provider.id, providerId: handoff.id }).run()
