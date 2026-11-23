@@ -191,6 +191,7 @@ export const PANELS = {
     customStripPerCharacter: false,
     stops: stops("top"),
     smooth: true,
+    mix: "oklab",
     gradientAngle: 0,
     ...tiling()
   }),
@@ -228,6 +229,7 @@ export const PANELS = {
     internalFill: "solid",
     internalStops: faceStops(),
     internalSmooth: true,
+    internalMix: "oklab",
     internalDirection: "up"
   }),
   sides: () => ({
@@ -241,6 +243,7 @@ export const PANELS = {
     sideFill: "solid",
     sideStops: faceStops(),
     sideSmooth: true,
+    sideMix: "oklab",
     sideDirection: "up"
   }),
   layers: () => ({
@@ -258,7 +261,8 @@ export const PANELS = {
     edgeBrightness: 35,
     edgeFill: "solid",
     edgeStops: faceStops(),
-    edgeSmooth: true
+    edgeSmooth: true,
+    edgeMix: "oklab"
   })
 }
 

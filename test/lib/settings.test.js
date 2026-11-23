@@ -118,6 +118,7 @@ const TOP_DEFAULTS = {
   customStripPerCharacter: false,
   stops: [{ colour: "#FFCF76", position: 0 }, { colour: "#DA371E", position: 100 }],
   smooth: true,
+  mix: "oklab",
   gradientAngle: 0,
   tileableScale: 2,
   tileableXOffset: 0,
@@ -150,6 +151,7 @@ const TOP_DEFAULTS = {
   internalFill: "solid",
   internalStops: [{ colour: "#000000", position: 0 }, { colour: "#ffffff", position: 100 }],
   internalSmooth: true,
+  internalMix: "oklab",
   internalDirection: "up",
   sideFaces: false,
   fadeSides: true,
@@ -161,6 +163,7 @@ const TOP_DEFAULTS = {
   sideFill: "solid",
   sideStops: [{ colour: "#000000", position: 0 }, { colour: "#ffffff", position: 100 }],
   sideSmooth: true,
+  sideMix: "oklab",
   sideDirection: "up",
   separateTexture: false,
   separateColour: false,
@@ -174,7 +177,8 @@ const TOP_DEFAULTS = {
   edgeBrightness: 35,
   edgeFill: "solid",
   edgeStops: [{ colour: "#000000", position: 0 }, { colour: "#ffffff", position: 100 }],
-  edgeSmooth: true
+  edgeSmooth: true,
+  edgeMix: "oklab"
 }
 
 const BOTTOM_DEFAULTS = {

@@ -1,7 +1,7 @@
 <script setup>
   import { computed, onBeforeUnmount, ref, watch } from "vue"
   import { trackPointer } from "../components/composables/events.js"
-  import { cssGradient, movedStopPositions, stopColour } from "../lib/texture/colourStops.js"
+  import { DEFAULT_MIX, cssGradient, movedStopPositions, stopColour } from "../lib/texture/colourStops.js"
   import { clamp } from "../lib/core/maths.js"
   import { useListReorder } from "../components/composables/reorder.js"
   import Button from "../components/Button.vue"
@@ -14,6 +14,7 @@
 
   const props = defineProps({
     smooth: { type: Boolean, default: true },
+    mix: { type: String, default: DEFAULT_MIX },
     angle: { type: Number, default: 0 },
     min: { type: Number, default: 2 }
   })
@@ -27,13 +28,13 @@
   let drag = null
 
   const ends = computed(() => ENDS[props.angle] ?? ["Start", "End"])
-  const background = computed(() => cssGradient(stops.value, props.smooth, "to right"))
+  const background = computed(() => cssGradient(stops.value, props.smooth, "to right", props.mix))
 
   const stop = computed(() => stops.value[selected.value] ?? null)
   const removable = computed(() => stops.value.length > props.min)
 
   function colourAt(position) {
-    return stopColour(stops.value.map(stop => ({ colour: stop.colour, position: clamp(stop.position, 0, 100) })).sort((a, b) => a.position - b.position), position)
+    return stopColour(stops.value.map(stop => ({ colour: stop.colour, position: clamp(stop.position, 0, 100) })).sort((a, b) => a.position - b.position), position, props.mix)
   }
 
   function positionAt(x) {

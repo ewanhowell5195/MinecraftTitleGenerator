@@ -23,7 +23,9 @@
   import MinecraftVersionField from "../MinecraftVersionField.vue"
   import Notice from "../../components/Notice.vue"
   import Panel from "../Panel.vue"
+  import Dropdown from "../../components/Dropdown.vue"
   import Segments from "../../components/Segments.vue"
+  import { GRADIENT_MIXES } from "../../lib/texture/colourStops.js"
   import Slider from "../../components/Slider.vue"
   import Tile from "../../components/Tile.vue"
   import TileGrid from "../../components/TileGrid.vue"
@@ -273,8 +275,9 @@
     <CustomTexture v-if="object.textureSource === 'custom'" />
 
     <template v-if="object.textureSource === 'gradient'">
-      <GradientEditor v-model="object.stops" :smooth="object.smooth" :angle="object.gradientAngle" :key="object.id" />
+      <GradientEditor v-model="object.stops" :smooth="object.smooth" :mix="object.mix" :angle="object.gradientAngle" :key="object.id" />
       <Toggle label="Smooth gradient" v-model="object.smooth" />
+      <Dropdown v-if="object.smooth" label="Mix" :options="GRADIENT_MIXES" v-model="object.mix" />
       <Button wide @click="spread">Spread evenly</Button>
       <Slider label="Angle" v-model="object.gradientAngle" :min="0" :max="360" />
     </template>

@@ -98,7 +98,7 @@ function readLater(target) {
 }
 
 function preparedSheet(sheet, look, base, reads) {
-  const key = lookKey([look.hue, look.saturation, look.brightness, look.contrast, look.blend, look.colourOpacity, look.colour, look.customEdge, look.edgeFill, look.edgeColour, look.edgeStops, look.edgeSmooth, !!reads])
+  const key = lookKey([look.hue, look.saturation, look.brightness, look.contrast, look.blend, look.colourOpacity, look.colour, look.customEdge, look.edgeFill, look.edgeColour, look.edgeStops, look.edgeSmooth, look.edgeMix, !!reads])
   if (!preparedSheets.has(base.canvas)) preparedSheets.set(base.canvas, new Map())
   const known = preparedSheets.get(base.canvas)
   if (known.has(key)) return known.get(key)
@@ -106,7 +106,7 @@ function preparedSheet(sheet, look, base, reads) {
   const work = adjusted(base.canvas, look, reads)
   if (look.customEdge) {
     work.ctx.globalCompositeOperation = "source-atop"
-    const stops = look.edgeFill === "gradient" ? gradientStops(look.edgeStops, look.edgeSmooth) : null
+    const stops = look.edgeFill === "gradient" ? gradientStops(look.edgeStops, look.edgeSmooth, look.edgeMix) : null
     work.ctx.fillStyle = look.edgeColour
     if (stops) {
       for (const entry of entries) {

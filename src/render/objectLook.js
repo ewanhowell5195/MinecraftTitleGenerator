@@ -30,6 +30,7 @@ export function lookOf(object, layer, font, list) {
     customOverlayStrip: object.customOverlayStrip,
     stops: plainStops(object.stops),
     smooth: object.smooth,
+    mix: object.mix,
     gradientAngle: object.gradientAngle,
     arcGradient: object.arcGradient,
     overlays: shownOverlays(list, object, "overlays", layer).map(entry => ({ ...entry })),
@@ -64,6 +65,7 @@ export function lookOf(object, layer, font, list) {
     edgeFill: object.edgeFill,
     edgeStops: plainStops(object.edgeStops),
     edgeSmooth: object.edgeSmooth,
+    edgeMix: object.edgeMix,
     wordedFaces: object.customEdge && object.edgeFill === "gradient" || object.customInternal && object.internalFill === "gradient" && object.internalDirection === "along" || object.customSide && object.sideFill === "gradient" && object.sideDirection === "along"
   }
 }
@@ -79,6 +81,7 @@ export function faceOptions(target) {
     internalFill: target.internalFill,
     internalStops: plainStops(target.internalStops),
     internalSmooth: target.internalSmooth,
+    internalMix: target.internalMix,
     internalDirection: target.internalDirection,
     sideFaces: target.sideFaces,
     sideFade: target.fadeSides ? target.sideFade / 100 : null,
@@ -89,11 +92,13 @@ export function faceOptions(target) {
     sideFill: target.sideFill,
     sideStops: plainStops(target.sideStops),
     sideSmooth: target.sideSmooth,
+    sideMix: target.sideMix,
     sideDirection: target.sideDirection,
     customEdge: target.customEdge,
     edgeColour: target.edgeColour,
     edgeFill: target.edgeFill,
     edgeStops: plainStops(target.edgeStops),
-    edgeSmooth: target.edgeSmooth
+    edgeSmooth: target.edgeSmooth,
+    edgeMix: target.edgeMix
   }
 }

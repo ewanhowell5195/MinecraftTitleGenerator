@@ -11,7 +11,7 @@ export function adjustmentsOf(look) {
 }
 
 export function paintedStops(look) {
-  const stops = gradientStops(look.stops, look.smooth)
+  const stops = gradientStops(look.stops, look.smooth, look.mix)
   const data = remember(adjustedColours, JSON.stringify([stops, adjustmentsOf(look)]), () => {
     const row = surface(stops.length, 1)
     for (const [index, stop] of stops.entries()) {

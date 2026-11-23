@@ -98,6 +98,7 @@ const TWIST_ANCHOR = choice("centre", "left", "right")
 const OVERLAY_MODE = choice("default", "custom")
 const FACE_FILL = choice("solid", "gradient")
 const FACE_DIRECTION = choice("up", "along")
+const GRADIENT_MIX = choice("oklab", "short", "long", "vivid")
 
 // Links store keys and options by position, so only ever add to the end of these lists.
 const KEYS = [
@@ -304,7 +305,11 @@ const KEYS = [
   ["curveHeight", NUMBER],
   ["outerFadeOpacity", NUMBER],
   ["internalFadeOpacity", NUMBER],
-  ["sideFadeOpacity", NUMBER]
+  ["sideFadeOpacity", NUMBER],
+  ["mix", GRADIENT_MIX],
+  ["internalMix", GRADIENT_MIX],
+  ["sideMix", GRADIENT_MIX],
+  ["edgeMix", GRADIENT_MIX]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))

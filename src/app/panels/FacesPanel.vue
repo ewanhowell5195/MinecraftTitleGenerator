@@ -1,11 +1,13 @@
 <script setup>
   import { faceStops } from "../../lib/settings/defaults.js"
+  import { GRADIENT_MIXES } from "../../lib/texture/colourStops.js"
   import { usePanel } from "./panel.js"
   import { active } from "../../lib/state/scene.js"
   import ColourPicker from "../../components/ColourPicker.vue"
   import ColourToggle from "../ColourToggle.vue"
   import GradientEditor from "../GradientEditor.vue"
   import Panel from "../Panel.vue"
+  import Dropdown from "../../components/Dropdown.vue"
   import Segments from "../../components/Segments.vue"
   import Slider from "../../components/Slider.vue"
   import Toggle from "../../components/Toggle.vue"
@@ -15,9 +17,9 @@
   const END_ANGLES = { up: 180, along: 270 }
 
   const GROUPS = [
-    { name: "faces", title: "Top and bottom faces", custom: "customEdge", colour: "edgeColour", average: "edge", brightness: "edgeBrightness", fading: "fade", fade: "outerFade", opacity: "outerFadeOpacity", fill: "edgeFill", stops: "edgeStops", smooth: "edgeSmooth" },
-    { name: "inner", title: "Inner faces", enabled: "internalFaces", custom: "customInternal", colour: "internalColour", average: "edge", inherits: "customEdge", brightness: "internalBrightness", fading: "fadeInternal", fade: "internalFade", opacity: "internalFadeOpacity", fill: "internalFill", stops: "internalStops", smooth: "internalSmooth", direction: "internalDirection" },
-    { name: "sides", title: "Side faces", enabled: "sideFaces", custom: "customSide", colour: "sideColour", average: "side", brightness: "sideBrightness", fading: "fadeSides", fade: "sideFade", opacity: "sideFadeOpacity", fill: "sideFill", stops: "sideStops", smooth: "sideSmooth", direction: "sideDirection" }
+    { name: "faces", title: "Top and bottom faces", custom: "customEdge", colour: "edgeColour", average: "edge", brightness: "edgeBrightness", fading: "fade", fade: "outerFade", opacity: "outerFadeOpacity", fill: "edgeFill", stops: "edgeStops", smooth: "edgeSmooth", mix: "edgeMix" },
+    { name: "inner", title: "Inner faces", enabled: "internalFaces", custom: "customInternal", colour: "internalColour", average: "edge", inherits: "customEdge", brightness: "internalBrightness", fading: "fadeInternal", fade: "internalFade", opacity: "internalFadeOpacity", fill: "internalFill", stops: "internalStops", smooth: "internalSmooth", mix: "internalMix", direction: "internalDirection" },
+    { name: "sides", title: "Side faces", enabled: "sideFaces", custom: "customSide", colour: "sideColour", average: "side", brightness: "sideBrightness", fading: "fadeSides", fade: "sideFade", opacity: "sideFadeOpacity", fill: "sideFill", stops: "sideStops", smooth: "sideSmooth", mix: "sideMix", direction: "sideDirection" }
   ]
 
   const groups = GROUPS.map(group => ({ ...group, ...usePanel(group.name) }))
@@ -46,8 +48,9 @@
       <Segments :options="FILLS" :model-value="group.object.value[group.fill]" @update:model-value="pickFill(group, $event)" />
       <ColourPicker v-if="group.object.value[group.fill] === 'solid'" v-model="group.object.value[group.colour]" />
       <template v-else>
-        <GradientEditor v-model="group.object.value[group.stops]" :smooth="group.object.value[group.smooth]" :angle="group.direction ? END_ANGLES[group.object.value[group.direction]] : END_ANGLES.along" />
+        <GradientEditor v-model="group.object.value[group.stops]" :smooth="group.object.value[group.smooth]" :mix="group.object.value[group.mix]" :angle="group.direction ? END_ANGLES[group.object.value[group.direction]] : END_ANGLES.along" />
         <Toggle label="Smooth gradient" v-model="group.object.value[group.smooth]" />
+        <Dropdown v-if="group.object.value[group.smooth]" label="Mix" :options="GRADIENT_MIXES" v-model="group.object.value[group.mix]" />
         <Segments v-if="group.direction" label="Direction" :options="DIRECTIONS" v-model="group.object.value[group.direction]" />
       </template>
     </ColourToggle>

@@ -2,6 +2,10 @@ import { hexOf, rgbOf } from "../core/colour.js"
 import { clamp } from "../core/maths.js"
 
 const MIX_STEPS = 24
+const VIVID_FLOOR = 0.6
+
+export const DEFAULT_MIX = "oklab"
+export const GRADIENT_MIXES = [{ value: "oklab", label: "Default" }, { value: "short", label: "Short hue" }, { value: "long", label: "Long hue" }, { value: "vivid", label: "Vivid" }]
 
 export function ordered(stops) {
   const list = stops.map(stop => ({ colour: stop.colour, position: clamp(stop.position / 100, 0, 1) }))
@@ -34,23 +38,53 @@ function fromOklab([L, a, b]) {
   return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s].map(fromLinear)
 }
 
-function mix(a, b, t) {
-  const from = toOklab(a)
-  const to = toOklab(b)
+function chroma([, a, b]) {
+  return Math.hypot(a, b)
+}
+
+function hueTurn(from, to, longer) {
+  const turn = (Math.atan2(to[2], to[1]) - Math.atan2(from[2], from[1]) + Math.PI * 3) % (Math.PI * 2) - Math.PI
+  if (!longer) return turn
+  return turn > 0 ? turn - Math.PI * 2 : turn + Math.PI * 2
+}
+
+function alongHue(from, to, t, longer) {
+  const hue = Math.atan2(from[2], from[1]) + hueTurn(from, to, longer) * t
+  const amount = chroma(from) + (chroma(to) - chroma(from)) * t
+  return [amount * Math.cos(hue), amount * Math.sin(hue)]
+}
+
+function keptChroma(from, to, t) {
+  const a = from[1] + (to[1] - from[1]) * t
+  const b = from[2] + (to[2] - from[2]) * t
+  const length = Math.hypot(a, b) || 1
+  const kept = (chroma(from) + (chroma(to) - chroma(from)) * t) * Math.min(1, VIVID_FLOOR + (1 - VIVID_FLOOR) * length / Math.max(1e-9, (chroma(from) + chroma(to)) / 2))
+  const scale = Math.max(length, kept) / length
+  return [a * scale, b * scale]
+}
+
+const MIXERS = {
+  vivid: keptChroma,
+  oklab: (from, to, t) => [from[1] + (to[1] - from[1]) * t, from[2] + (to[2] - from[2]) * t],
+  short: (from, to, t) => alongHue(from, to, t, false),
+  long: (from, to, t) => alongHue(from, to, t, true)
+}
+
+function mix(a, b, t, mode) {
   const [lightness] = toOklab(a.map((value, i) => value + (b[i] - value) * t))
-  return fromOklab([lightness, from[1] + (to[1] - from[1]) * t, from[2] + (to[2] - from[2]) * t])
+  return fromOklab([lightness].concat((MIXERS[mode] ?? MIXERS[DEFAULT_MIX])(toOklab(a), toOklab(b), t)))
 }
 
-export function blend(a, b, t) {
-  return hexOf(mix(rgbOf(a), rgbOf(b), t))
+export function blend(a, b, t, mode = DEFAULT_MIX) {
+  return hexOf(mix(rgbOf(a), rgbOf(b), t, mode))
 }
 
-function smoothStops(stops) {
+function smoothStops(stops, mode) {
   const list = []
   for (let i = 0; i < stops.length - 1; i++) {
     const from = stops[i]
     const to = stops[i + 1]
-    for (let step = 0; step < MIX_STEPS; step++) list.push({ position: from.position + (to.position - from.position) * step / MIX_STEPS, colour: blend(from.colour, to.colour, step / MIX_STEPS) })
+    for (let step = 0; step < MIX_STEPS; step++) list.push({ position: from.position + (to.position - from.position) * step / MIX_STEPS, colour: blend(from.colour, to.colour, step / MIX_STEPS, mode) })
   }
   return list.concat(stops.slice(-1))
 }
@@ -72,25 +106,25 @@ export function stopEdges(list) {
   return [0].concat(list.slice(1).map(stop => stop.position), 1)
 }
 
-export function gradientStops(stops, smooth) {
+export function gradientStops(stops, smooth, mode = DEFAULT_MIX) {
   const list = ordered(stops)
-  if (smooth) return smoothStops(list)
+  if (smooth) return smoothStops(list, mode)
   const edges = stopEdges(list)
   return list.flatMap((stop, i) => [{ position: edges[i], colour: stop.colour }, { position: edges[i + 1], colour: stop.colour }])
 }
 
-export function stopColour(stops, t) {
+export function stopColour(stops, t, mode = DEFAULT_MIX) {
   const after = stops.findIndex(stop => stop.position >= t)
   if (after === -1) return stops[stops.length - 1].colour
   if (after === 0) return stops[0].colour
   const from = stops[after - 1]
   const to = stops[after]
-  return blend(from.colour, to.colour, (t - from.position) / (to.position - from.position))
+  return blend(from.colour, to.colour, (t - from.position) / (to.position - from.position), mode)
 }
 
-export function cssGradient(stops, smooth, direction) {
+export function cssGradient(stops, smooth, direction, mode = DEFAULT_MIX) {
   if (stops.length === 1) return stops[0].colour
-  return `linear-gradient(${direction}, ${gradientStops(stops, smooth).map(stop => `${stop.colour} ${stop.position * 100}%`).join(", ")})`
+  return `linear-gradient(${direction}, ${gradientStops(stops, smooth, mode).map(stop => `${stop.colour} ${stop.position * 100}%`).join(", ")})`
 }
 
 export function gradientDirection(angle) {

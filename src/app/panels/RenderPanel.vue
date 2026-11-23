@@ -19,6 +19,7 @@
   import RenderProgress from "../RenderProgress.vue"
   import RenderResult from "../RenderResult.vue"
   import Segments from "../../components/Segments.vue"
+  import { GRADIENT_MIXES } from "../../lib/texture/colourStops.js"
   import Slider from "../../components/Slider.vue"
   import Toggle from "../../components/Toggle.vue"
 
@@ -122,9 +123,10 @@
     <template v-else>
       <Toggle label="Background" v-model="framing.backgroundEnabled" />
       <template v-if="framing.backgroundEnabled">
-        <GradientEditor v-model="framing.backgroundStops" :smooth="framing.backgroundSmooth" :angle="framing.backgroundAngle" :min="1" />
+        <GradientEditor v-model="framing.backgroundStops" :smooth="framing.backgroundSmooth" :mix="framing.backgroundMix" :angle="framing.backgroundAngle" :min="1" />
         <template v-if="framing.backgroundStops.length > 1">
           <Toggle label="Smooth gradient" v-model="framing.backgroundSmooth" />
+          <Dropdown v-if="framing.backgroundSmooth" label="Mix" :options="GRADIENT_MIXES" v-model="framing.backgroundMix" />
           <Slider label="Angle" v-model="framing.backgroundAngle" :min="0" :max="360" />
         </template>
       </template>

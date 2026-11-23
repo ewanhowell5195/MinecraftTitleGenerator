@@ -34,7 +34,7 @@ export const TRANSFORM_LIMITS = { scale: [0.05, 4], rotation: [-180, 180], trans
 export const TEXTURE_TABS = {
   premade: ["texture", "textureVariant"],
   tileable: ["tileable", "tileableVariant", "tileableSource", "minecraftTexture", "minecraftVersion"].concat(TILING_KEYS),
-  gradient: ["stops", "smooth", "gradientAngle"],
+  gradient: ["stops", "smooth", "mix", "gradientAngle"],
   custom: ["customTexture", "customTextureMode", "customCoverAlign", "customCoverX", "customCoverY", "customCoverSpan", "customStripPerCharacter"]
 }
 

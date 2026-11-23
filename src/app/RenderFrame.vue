@@ -27,7 +27,7 @@
   const fill = computed(() => {
     if (framing.tab === "minecraft") return framing.mode === "1.19" ? "url(render/legacy-title.png) 0 0 / 100% 100%" : null
     if (!framing.backgroundEnabled) return null
-    return cssGradient(framing.backgroundStops, framing.backgroundSmooth, `${180 + framing.backgroundAngle}deg`)
+    return cssGradient(framing.backgroundStops, framing.backgroundSmooth, `${180 + framing.backgroundAngle}deg`, framing.backgroundMix)
   })
 
   function copy(source) {

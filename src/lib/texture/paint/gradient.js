@@ -21,7 +21,7 @@ export function gradientEnds(entry, look, capHeight, sheet) {
 }
 
 export function paintGradient(ctx, entries, look, capHeight, sheet) {
-  const stops = gradientStops(look.stops, look.smooth)
+  const stops = gradientStops(look.stops, look.smooth, look.mix)
   for (const entry of entries) {
     const { from, to, top, bottom } = gradientEnds(entry, look, capHeight, sheet)
     into(ctx, entry, "front")

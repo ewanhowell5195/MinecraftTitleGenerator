@@ -23,6 +23,7 @@ const DEFAULTS = {
   backgroundEnabled: false,
   backgroundStops: [{ colour: "#78b8ff", position: 0 }],
   backgroundSmooth: true,
+  backgroundMix: "oklab",
   backgroundAngle: 0,
   padding: 0,
   outline: false,
@@ -30,7 +31,7 @@ const DEFAULTS = {
   outlineWidth: 2
 }
 
-const DECORATION = ["backgroundEnabled", "backgroundStops", "backgroundSmooth", "backgroundAngle", "padding"]
+const DECORATION = ["backgroundEnabled", "backgroundStops", "backgroundSmooth", "backgroundMix", "backgroundAngle", "padding"]
 const OUTLINE = ["outline", "outlineColour", "outlineWidth"]
 
 const TAB_KEYS = {

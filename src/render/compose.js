@@ -64,7 +64,7 @@ export function placement(image, settings, snap = WHOLE) {
   const ratio = Math.min((width - padding * 2) / image.width, (height - padding * 2) / image.height)
   const drawWidth = snap.drawn(image.width * ratio)
   const drawHeight = snap.drawn(image.height * ratio)
-  const background = settings.backgroundEnabled ? { line: gradientLine(0, 0, width, height, settings.backgroundAngle), stops: gradientStops(settings.backgroundStops, settings.backgroundSmooth) } : null
+  const background = settings.backgroundEnabled ? { line: gradientLine(0, 0, width, height, settings.backgroundAngle), stops: gradientStops(settings.backgroundStops, settings.backgroundSmooth, settings.backgroundMix) } : null
   return { width, height, ratio, x: snap.offset((width - drawWidth) / 2), y: snap.offset((height - drawHeight) / 2), drawWidth, drawHeight, background }
 }
 

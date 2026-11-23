@@ -83,8 +83,8 @@ function inside(value, start, size) {
   return clamp(value, start, start + Math.max(1, size) - 1)
 }
 
-function faceGradient(custom, fill, stops, smooth, direction) {
-  return custom && fill === "gradient" ? { stops: gradientStops(stops, smooth), direction } : null
+function faceGradient(custom, fill, stops, smooth, mix, direction) {
+  return custom && fill === "gradient" ? { stops: gradientStops(stops, smooth, mix), direction } : null
 }
 
 function pixelRect({ x, y, sx, sy }, width, height) {
@@ -318,8 +318,8 @@ export function finishAtlas(plan, page, painted, options) {
     ctx.globalCompositeOperation = "source-over"
   }
 
-  const sideGradient = faceGradient(options.customSide, options.sideFill, options.sideStops, options.sideSmooth, options.sideDirection)
-  const innerGradient = options.customInternal ? faceGradient(true, options.internalFill, options.internalStops, options.internalSmooth, options.internalDirection) : faceGradient(options.customEdge, options.edgeFill, options.edgeStops, options.edgeSmooth, "along")
+  const sideGradient = faceGradient(options.customSide, options.sideFill, options.sideStops, options.sideSmooth, options.sideMix, options.sideDirection)
+  const innerGradient = options.customInternal ? faceGradient(true, options.internalFill, options.internalStops, options.internalSmooth, options.internalMix, options.internalDirection) : faceGradient(options.customEdge, options.edgeFill, options.edgeStops, options.edgeSmooth, options.edgeMix, "along")
   const wordWidth = page.wordWidth
 
   function heightOf(y) {
@@ -386,7 +386,7 @@ export function finishAtlas(plan, page, painted, options) {
     ctx.fillRect(rect.x, rect.y, rect.width, rect.height)
   }
 
-  const stripStops = painted.fade === null && options.customEdge && options.edgeFill === "gradient" ? gradientStops(options.edgeStops, options.edgeSmooth) : null
+  const stripStops = painted.fade === null && options.customEdge && options.edgeFill === "gradient" ? gradientStops(options.edgeStops, options.edgeSmooth, options.edgeMix) : null
   for (const run of packed) {
     const block = blockOf.get(run.glyph)
     const entry = entryOf(block)

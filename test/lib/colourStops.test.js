@@ -69,6 +69,18 @@ describe("blend", () => {
       for (const channel of [0, 1, 2]) assert.ok(Math.abs(forward[channel] - back[channel]) <= 1, `${t} ${forward} ${back}`)
     }
   })
+
+  test("mixes opposite colours each mode's way", () => {
+    assert.deepEqual(["oklab", "short", "long", "vivid"].map(mode => blend("#1a9fff", "#ff8800", 0.5, mode)), ["#988c93", "#cc60c0", "#00ad55", "#bf73a4"])
+    assert.equal(blend("#1a9fff", "#ff8800", 0.5), blend("#1a9fff", "#ff8800", 0.5, "oklab"))
+  })
+
+  test("keeps the ends in every mode", () => {
+    for (const mode of ["oklab", "short", "long", "vivid"]) {
+      assert.equal(blend("#ffcf76", "#336699", 0, mode), "#ffcf76")
+      assert.equal(blend("#ffcf76", "#336699", 1, mode), "#336699")
+    }
+  })
 })
 
 describe("movedStopPositions", () => {
