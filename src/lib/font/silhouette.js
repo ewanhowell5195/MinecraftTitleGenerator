@@ -56,13 +56,18 @@ function blockPixels(row, column, scale, lift) {
   return pixels
 }
 
-function unitMask({ scale, bounds, width, height, lift, solid }) {
+function unitMask(shape) {
+  const mask = filledUnits(shape, 0.5)
+  return mask.includes(1) ? mask : filledUnits(shape, 0)
+}
+
+function filledUnits({ scale, bounds, width, height, lift, solid }, share) {
   const mask = new Uint8Array(width * height)
   for (let row = 0; row < height; row++) {
     for (let column = 0; column < width; column++) {
       const inside = blockPixels(row, column, scale, lift).filter(([x, y]) => x < bounds.width && y >= 0 && y < bounds.height)
       const filled = inside.filter(([x, y]) => solid(x, y)).length
-      mask[row * width + column] = inside.length && filled * 2 >= inside.length ? 1 : 0
+      mask[row * width + column] = filled && filled >= inside.length * share ? 1 : 0
     }
   }
   return mask
