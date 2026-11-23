@@ -3,7 +3,7 @@
 </script>
 
 <template>
-  <LegalPage title="Privacy Policy" updated="18 November 2026" about="this policy">
+  <LegalPage title="Privacy Policy" updated="23 November 2026" about="this policy">
     <p>By using the Minecraft Title Generator, you agree that you have read and agree to this policy.</p>
     <p>This policy describes what data the title generator stores, why, how long it is kept, and how to remove it.</p>
 
@@ -110,13 +110,13 @@
 
     <h2>Removing your data</h2>
     <p>To delete your account, use the <a href="/account/">Manage account</a> page. This always deletes the presets saved to your account, your votes, and your notifications. To keep a copy of your presets, download them first.</p>
-    <p>You then choose what happens to your shared presets, submissions and reports. They can stay without your username, and your shared presets keep their votes and ratings. Or they can be removed: your shared presets are deleted, your submissions are removed from my server, and withdrawn if they are waiting for review, and your reports are removed from my server. Either way, your username is removed from your reports' GitHub issues.</p>
+    <p>You then choose what happens to your shared presets, submissions and reports. They can stay without your username, and your shared presets keep their votes and ratings. Or they can be removed: your shared presets are deleted, your submissions are removed from my server, and withdrawn if they are waiting for review, and your reports are removed from my server. Either way, your submissions, reports and comments stay on GitHub with your username.</p>
     <p>Signing out removes the session cookie, but does not delete anything from my server.</p>
     <p>To remove anything else, contact me through the contacts listed below.</p>
     <p>Some data cannot be removed on request:</p>
     <ul>
       <li>Accepted submissions stay in the title generator, under the submission terms in the <a href="https://github.com/ewanhowell5195/MinecraftTitleGenerator/blob/main/LICENSE.md" target="_blank" rel="noopener">licence</a>.</li>
-      <li>Pull requests, issues and their comments cannot be deleted from GitHub. Deleting your account removes your username from them, and I can remove your notes or report on request. A report's images and title file stay in the repository after it is closed or your account is deleted, unless you ask me to remove them.</li>
+      <li>Pull requests, issues and their comments cannot be deleted from GitHub. I can remove your username, notes or report from them on request. A report's images and title file stay in the repository after it is closed or your account is deleted, unless you ask me to remove them.</li>
     </ul>
 
     <h2>Children's privacy</h2>

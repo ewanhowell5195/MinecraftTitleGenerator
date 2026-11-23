@@ -89,9 +89,7 @@ describe("deleting an account", () => {
     assert.deepEqual(db.prepare("SELECT count FROM account_submissions ORDER BY rowid").all().map(row => row.count), [1, 1, 1])
     assert.equal(gh.pulls.get(1).state, "closed")
     assert.ok(gh.refs.has(`heads/submission/${submission}`))
-    assert.doesNotMatch(gh.pulls.get(1).body, /leaving/)
-    assert.match(gh.pulls.get(1).body, /^Sent from the website\.$/m)
-    assert.ok(gh.comments.every(item => !item.body.includes("leaving")))
+    assert.match(gh.pulls.get(1).body, /^Sent from the website by ` leaving `/m)
   })
 
   for (const mode of ["remove", "anonymise"]) {
@@ -117,10 +115,9 @@ describe("deleting an account", () => {
     assert.deepEqual({ ...db.prepare("SELECT user_id, shared FROM presets WHERE id = ?").get(shared.id) }, { user_id: null, shared: 1 })
     assert.equal(count("SELECT COUNT(*) AS total FROM presets WHERE shared = 0"), 0)
     assert.deepEqual({ ...db.prepare("SELECT user_id, status FROM submissions WHERE id = ?").get(submission) }, { user_id: null, status: "open" })
-    assert.equal(gh.comments[0].body, "The submitter commented on the site:\n\n```text\nmy note\n```")
+    assert.match(gh.comments[0].body, /^` leaving ` .submitter. commented on the site:/)
     assert.deepEqual(db.prepare("SELECT kind, author FROM notifications").all().map(row => [row.kind, row.author]), [["submitted", ""], ["comment", ""]])
     assert.equal(gh.pulls.get(1).state, "open")
-    assert.doesNotMatch(gh.pulls.get(1).body, /leaving/)
     assert.equal(count("SELECT COUNT(*) AS total FROM users WHERE name = 'leaving'"), 0)
     const comment = { action: "created", issue: { number: 1, pull_request: {} }, comment: { body: "nice", author_association: "OWNER", html_url: "https://github.com/c", user: { login: "ewan", type: "User" } } }
     assert.equal((await hook("issue_comment", comment)).status, 200)
@@ -294,7 +291,6 @@ describe("deleting an account while something else happens on it", () => {
       assert.equal(count("SELECT COUNT(*) AS total FROM submissions WHERE id = ? AND user_id IS NOT NULL", late), 1)
       assert.equal(count("SELECT COUNT(*) AS total FROM users WHERE name = 'leaving'"), 1)
       assert.equal((await remove(owner, mode)).status, 200)
-      assert.doesNotMatch(gh.pulls.get(2).body, /leaving/)
       assert.equal(gh.pulls.get(2).state, mode === "remove" ? "closed" : "open")
       assert.equal(count("SELECT COUNT(*) AS total FROM submissions WHERE user_id IS NOT NULL"), 0)
       assert.equal(count("SELECT COUNT(*) AS total FROM users"), 0)

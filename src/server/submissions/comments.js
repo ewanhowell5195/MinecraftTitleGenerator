@@ -10,7 +10,6 @@ import { MISSING, findSubmission } from "./store.js"
 export const FRESH_SECONDS = 30
 const PER_PAGE = 100
 export const REVIEWERS = new Set(["OWNER", "MEMBER", "COLLABORATOR"])
-const COMMENTERS = { submitter: "The submitter", reviewer: "A reviewer", reporter: "The reporter" }
 const ANONYMOUS_ROLES = { "The submitter": "submitter", "A reviewer": "reviewer", "The reporter": "reporter" }
 const SITE_COMMENT = /^(?:(`+) (.+?) \1 \((submitter|reviewer|reporter)\)|(The submitter|A reviewer|The reporter)) commented on the site:\n\n(`{3,})text\n([\s\S]*)\n\5$/
 const SITE_EDIT = /^(?:(`+) (.+?) \1 \((submitter|reviewer)\)|(The submitter|A reviewer)) changed the submission on the site\.$/
@@ -90,7 +89,7 @@ export function commentText(value) {
 }
 
 export function onGitHubText(name, { kind = "comment", role, body = "" }) {
-  const who = name ? `${inline(name)} (${role})` : COMMENTERS[role]
+  const who = `${inline(name)} (${role})`
   return kind === "edit" ? `${who} changed the submission on the site.` : `${who} commented on the site:\n\n${block(body)}`
 }
 
@@ -104,13 +103,6 @@ export async function noteEdit(env, row, user, role) {
   const before = last && fromApp(env, last) ? siteComment(last.body) : null
   if (before?.kind === "edit" && before.role === role && (role === "submitter" || before.author === user.name)) await github(env, `issues/comments/${last.id}`, { method: "PATCH", body: { body } })
   else await github(env, `issues/${row.pull}/comments`, { method: "POST", body: { body } })
-}
-
-export async function anonymiseComments(env, pull, theirs) {
-  for (const entry of await listed(env, `issues/${pull}/comments`)) {
-    const comment = fromApp(env, entry) && siteComment(entry.body)
-    if (comment?.author && theirs(comment)) await github(env, `issues/comments/${entry.id}`, { method: "PATCH", body: { body: onGitHubText(null, comment) } })
-  }
 }
 
 export const addComment = guarded(async context => {

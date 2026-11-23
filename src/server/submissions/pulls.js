@@ -6,7 +6,6 @@ import { SERVER_KINDS } from "./kinds/index.js"
 export const BASE = "main"
 const UNAVAILABLE = "GitHub isn't taking submissions right now. Try again in a few minutes."
 const ANONYMOUS = "Sent from the website."
-const SENDER = /^Sent from the website by .*$/m
 const UNMERGEABLE = [405, 409, 422]
 const WORKFLOW = "submission.yml"
 // the commit message .github/workflows/submission.yml makes after converting
@@ -160,11 +159,6 @@ export async function mergePull(env, pull) {
     if (err instanceof GitHubError && UNMERGEABLE.includes(err.status)) throw new Refusal(409, "GitHub can't merge this yet. Wait for its checks to finish, or open the pull request to see why.")
     throw err
   }
-}
-
-export async function anonymisePull(env, number) {
-  const pull = await github(env, `pulls/${number}`)
-  if (typeof pull.body === "string" && SENDER.test(pull.body)) await github(env, `pulls/${number}`, { method: "PATCH", body: { body: pull.body.replace(SENDER, ANONYMOUS) } })
 }
 
 export async function processingOf(env, row) {

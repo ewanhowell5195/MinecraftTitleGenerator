@@ -239,15 +239,17 @@ describe("deleting an account with reports", () => {
     return deleteAccount(context("/api/account/delete", { method: "POST", body: { mode }, cookie }))
   }
 
-  test("anonymises the issue and comments, and keeps or removes the report", async () => {
+  test("keeps or removes the report, and leaves GitHub alone", async () => {
     for (const mode of ["anonymise", "remove"]) {
       const cookie = await signIn()
       const { id } = await report(cookie)
       const number = stored(id).number
       await comment(cookie, id, "More details")
+      const { body } = gh.issues.get(number)
+      const commented = gh.comments.at(-1).body
       assert.equal((await remove(cookie, mode)).status, 200)
-      assert.equal(gh.issues.get(number).body, "Reported from the website.\n\n```text\nOn every title.\n```")
-      assert.equal(gh.comments.at(-1).body, "The reporter commented on the site:\n\n```text\nMore details\n```")
+      assert.equal(gh.issues.get(number).body, body)
+      assert.equal(gh.comments.at(-1).body, commented)
       if (mode === "anonymise") assert.deepEqual({ ...stored(id) }, { status: "open", number, userId: null })
       else assert.equal(stored(id), undefined)
     }

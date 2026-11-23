@@ -13,9 +13,8 @@ export const deleteAccount = guarded(async context => {
   if (!Object.hasOwn(MODES, mode)) throw new Refusal(400, "Choose what happens to your shared presets and submissions.")
   const keep = MODES[mode]
   const submissions = await releaseSubmissions(context, user, keep)
-  const issues = await releaseIssues(context, user, keep)
   const { statements, changed } = await presetsForDeletion(env, user, keep)
-  const results = await env.DB.batch(statements.concat(issues, submissions.statements, env.DB.prepare("DELETE FROM users WHERE provider = ? AND provider_id = ?").bind(user.provider, user.providerId), await forgetSessions(env, user))).catch(async err => {
+  const results = await env.DB.batch(statements.concat(releaseIssues(env, user, keep), submissions.statements, env.DB.prepare("DELETE FROM users WHERE provider = ? AND provider_id = ?").bind(user.provider, user.providerId), await forgetSessions(env, user))).catch(async err => {
     if (await unhandledSubmission(env, user, submissions.handled)) throw new Refusal(409, "A submission was sent from your account while it was being deleted. Try again.")
     throw err
   })

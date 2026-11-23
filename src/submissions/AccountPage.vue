@@ -57,12 +57,12 @@
       <p>Choose what happens to the presets you have shared and the things you have submitted or reported. This can't be undone.</p>
       <div class="choice">
         <p class="label">Keep them</p>
-        <p class="hint">Your shared presets, submissions and reports stay, without your username. Your shared presets keep their votes, ratings and downloads.</p>
+        <p class="hint">Your shared presets, submissions and reports stay on the title generator, without your username. Your shared presets keep their votes, ratings and downloads.</p>
         <Button danger :disabled="busy" @click="remove('anonymise')"><template #icon><Icon name="trash" :size="16" /></template>Delete account and keep them</Button>
       </div>
       <div class="choice">
         <p class="label">Remove them</p>
-        <p class="hint">Your shared presets and reports are deleted, and your submissions waiting for review are withdrawn. Reports stay on GitHub without your username. Submissions already added to the title generator stay, as the <a href="/terms/" target="_blank" rel="noopener">Terms of Service</a> allow.</p>
+        <p class="hint">Your shared presets and reports are deleted, and your submissions waiting for review are withdrawn. Submissions already added to the title generator stay, as the <a href="/terms/" target="_blank" rel="noopener">Terms of Service</a> allow.</p>
         <Button danger :disabled="busy" @click="remove('remove')"><template #icon><Icon name="trash" :size="16" /></template>Delete account and remove them</Button>
       </div>
       <Notice v-if="error">{{ error }}</Notice>

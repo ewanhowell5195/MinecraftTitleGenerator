@@ -5,7 +5,7 @@ import { USER_ROW, accountKey, forgetEmail, isAdmin, rememberUser, requireUser, 
 import { returnSlot, takeSlot } from "../daily.js"
 import { github, repository } from "../github.js"
 import { Refusal, bodyBytes, cachedAtEdge, guarded, idParam, jsonBody, randomToken, reply } from "../http.js"
-import { FRESH_SECONDS, REVIEWERS, anonymiseComments, commentText, postComment, threadOf, threadReply } from "../submissions/comments.js"
+import { FRESH_SECONDS, REVIEWERS, commentText, postComment, threadOf, threadReply } from "../submissions/comments.js"
 import { emailing, notify } from "../submissions/notifications.js"
 import { block, inline, onGitHub } from "../submissions/pulls.js"
 import { storeFiles } from "./files.js"
@@ -13,8 +13,6 @@ import { storeFiles } from "./files.js"
 const MISSING = "This report doesn't exist."
 const SIGN_IN = "Sign in to report an issue."
 const UNAVAILABLE = "GitHub isn't taking reports right now. Try again in a few minutes."
-const REPORTER = /^Reported from the website by .*$/m
-const ANONYMOUS = "Reported from the website."
 const SHOWN = "id, title, body, code, files, status, number, created_at AS createdAt, updated_at AS updatedAt"
 const INVALID = "This report isn't valid."
 const FORM_ALLOWANCE = 40000
@@ -227,22 +225,7 @@ export async function issueDeleted({ env }, issue) {
   await env.DB.batch([env.DB.prepare("DELETE FROM notifications WHERE issue_id = ?").bind(row.id), env.DB.prepare("DELETE FROM issues WHERE id = ?").bind(row.id), forgetEmail(env, row.userId)])
 }
 
-async function anonymiseIssue(env, number) {
-  const issue = await github(env, `issues/${number}`)
-  if (typeof issue.body === "string" && REPORTER.test(issue.body)) await github(env, `issues/${number}`, { method: "PATCH", body: { body: issue.body.replace(REPORTER, ANONYMOUS) } })
-}
-
-export async function releaseIssues(context, user, keep) {
-  const { env } = context
-  const { results } = await env.DB.prepare(`SELECT id, number FROM issues WHERE user_id = ${USER_ROW}`).bind(user.provider, user.providerId).all()
-  const reviewing = await isAdmin(env, user) ? (await env.DB.prepare(`SELECT number FROM issues WHERE number IS NOT NULL AND (user_id IS NULL OR user_id != ${USER_ROW})`).bind(user.provider, user.providerId).all()).results : []
-  await onGitHub(async () => {
-    for (const row of results.filter(item => item.number)) {
-      await anonymiseIssue(env, row.number)
-      await anonymiseComments(env, row.number, comment => comment.role === "reporter")
-    }
-    for (const row of reviewing) await anonymiseComments(env, row.number, comment => comment.role === "reviewer" && comment.author === user.name)
-  }, UNAVAILABLE)
+export function releaseIssues(env, user, keep) {
   const theirs = `SELECT id FROM issues WHERE user_id = ${USER_ROW}`
   const mine = statement => env.DB.prepare(statement).bind(user.provider, user.providerId)
   return [env.DB.prepare(`UPDATE notifications SET author = '' WHERE author = ? AND issue_id IN (${theirs})`).bind(user.name, user.provider, user.providerId)].concat(keep ? mine(`UPDATE issues SET user_id = NULL WHERE user_id = ${USER_ROW}`) : [

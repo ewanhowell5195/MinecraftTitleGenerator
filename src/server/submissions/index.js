@@ -5,10 +5,10 @@ import { USER_ROW, accountKey, currentUser, forgetEmail, forgetUnusedUser, isAdm
 import { returnSlot, takeSlot } from "../daily.js"
 import { github } from "../github.js"
 import { Refusal, cachedAtEdge, canonical, guarded, idParam, reply } from "../http.js"
-import { anonymiseComments, cacheKey, cachedThread, forgetFresh, noteEdit } from "./comments.js"
+import { cacheKey, cachedThread, forgetFresh, noteEdit } from "./comments.js"
 import { readForm } from "./form.js"
 import { emailing, notify } from "./notifications.js"
-import { anonymisePull, closePull, deleteBranch, onGitHub, syncSubmission, uploadFile, withFiles } from "./pulls.js"
+import { closePull, deleteBranch, onGitHub, syncSubmission, uploadFile, withFiles } from "./pulls.js"
 import { CHANGED, CLOSED, MISSING, OWNER, SHOWN, SIGN_IN, claim, findSubmission, ownSubmission, removing, reopen, reviewerOf, shown, withCredit } from "./store.js"
 import { forgetWithdrawn, giveBackWithdrawn, noteResent, rememberWithdrawn, reopenPull, sameThing, takeWithdrawn } from "./withdrawn.js"
 
@@ -116,18 +116,12 @@ export const withdrawSubmission = guarded(async context => {
 export async function releaseSubmissions(context, user, keep) {
   const { env } = context
   const { results } = await env.DB.prepare(`SELECT id, status, pull FROM submissions WHERE user_id = ${USER_ROW}`).bind(user.provider, user.providerId).all()
-  const reviewing = await isAdmin(env, user) ? (await env.DB.prepare(`SELECT pull FROM submissions WHERE pull IS NOT NULL AND (user_id IS NULL OR user_id != ${USER_ROW})`).bind(user.provider, user.providerId).all()).results : []
   const open = keep ? [] : results.filter(row => row.status === "open")
   const withdrawn = open.length ? new Set((await env.DB.prepare("UPDATE submissions SET status = 'withdrawn', updated_at = ? WHERE status = 'open' AND id IN (SELECT value FROM json_each(?)) RETURNING id").bind(Date.now(), JSON.stringify(open.map(row => row.id))).all()).results.map(row => row.id)) : new Set()
   const withdrawing = open.filter(row => withdrawn.has(row.id))
   try {
     await onGitHub(async () => {
-      for (const row of results.filter(item => item.pull)) {
-        await anonymisePull(env, row.pull)
-        await anonymiseComments(env, row.pull, comment => comment.role === "submitter")
-        if (withdrawing.includes(row)) await closePull(env, row.pull, "Withdrawn because the person who sent it deleted their account. Reopen this pull request to accept it anyway.")
-      }
-      for (const row of reviewing) await anonymiseComments(env, row.pull, comment => comment.role === "reviewer" && comment.author === user.name)
+      for (const row of withdrawing.filter(item => item.pull)) await closePull(env, row.pull, "Withdrawn because the person who sent it deleted their account. Reopen this pull request to accept it anyway.")
     })
   } catch (err) {
     if (withdrawing.length) await env.DB.prepare(`UPDATE submissions SET status = 'open' WHERE status = 'withdrawn' AND id IN (SELECT value FROM json_each(?))`).bind(JSON.stringify(withdrawing.map(row => row.id))).run()
