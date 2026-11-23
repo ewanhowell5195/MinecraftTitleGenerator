@@ -17,8 +17,8 @@ const MESSAGES = {
   published: ({ name }) => ({ label: "Submission published", subject: `${name} was published`, detail: "It is now part of the Minecraft Title Generator. Thanks for sending it in!", action: "Open it in the generator" }),
   rejected: ({ name, body }) => ({ label: "Submission declined", subject: `${name} was declined`, detail: body ? "Thanks for sending it in." : "Thanks for sending it in. The pull request has any comments about it.", action: "See the pull request" }),
   reported: ({ author, name }) => ({ label: "New report", subject: `${author} reported ${name}`, detail: "It is on GitHub as an issue.", action: "See the report" }),
-  fixed: ({ name }) => ({ label: "Report fixed", subject: `${name} was fixed`, detail: "Thanks for reporting it!", action: "See the report" }),
-  closed: ({ name }) => ({ label: "Report closed", subject: `${name} was closed`, detail: "Thanks for reporting it. The report has any comments about why.", action: "See the report" }),
+  fixed: ({ name }) => ({ label: "Report resolved", subject: `${name} was resolved`, detail: "Thanks for reporting it!", action: "See the report" }),
+  closed: ({ name, body }) => ({ label: "Report closed", subject: `${name} was closed as not planned`, detail: body ? "Thanks for reporting it." : "Thanks for reporting it. The report has any comments about why.", action: "See the report" }),
   reopened: ({ name }) => ({ label: "Report reopened", subject: `${name} was reopened`, action: "See the report" })
 }
 

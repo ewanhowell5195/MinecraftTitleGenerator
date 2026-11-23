@@ -142,6 +142,12 @@ export function fakeGitHub(publicKey, { repo, api, files }) {
       return json({ id: comment(Number(match[1]), body.body).id }, 201)
     }
     if ((match = at.match(/^pulls\/(\d+)\/reviews(\?.*)?$/))) return json(reviews.filter(item => item.number === Number(match[1])))
+    if (method === "DELETE" && (match = at.match(/^issues\/comments\/(\d+)$/))) {
+      const at = comments.findIndex(item => item.id === Number(match[1]))
+      if (at < 0) return json({ message: "Not Found" }, 404)
+      comments.splice(at, 1)
+      return new Response(null, { status: 204 })
+    }
     if (method === "PATCH" && (match = at.match(/^issues\/comments\/(\d+)$/))) {
       const comment = comments[Number(match[1]) - 1]
       if (!comment) return json({ message: "Not Found" }, 404)

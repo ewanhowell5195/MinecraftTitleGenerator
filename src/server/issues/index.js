@@ -16,9 +16,15 @@ const SIGN_IN = "Sign in to report an issue."
 const UNAVAILABLE = "GitHub isn't taking reports right now. Try again in a few minutes."
 const SHOWN = "id, title, body, code, files, status, number, created_at AS createdAt, updated_at AS updatedAt"
 const INVALID = "This report isn't valid."
+const CHANGES = {
+  fixed: { issue: { state: "closed", state_reason: "completed" }, kind: "fixed" },
+  closed: { issue: { state: "closed", state_reason: "not_planned" }, kind: "closed" },
+  withdrawn: { issue: { state: "closed", state_reason: "not_planned" }, note: "Closed by the person who reported it, on the site." },
+  open: { issue: { state: "open" }, kind: "reopened" }
+}
 const FORM_ALLOWANCE = 40000
 const MEGABYTE = 1000000
-const OWNER = "(SELECT users.provider || ':' || users.provider_id FROM users WHERE users.id = issues.user_id) AS owner, (SELECT users.name FROM users WHERE users.id = issues.user_id) AS ownerName, (SELECT users.provider FROM users WHERE users.id = issues.user_id) AS ownerProvider"
+const OWNER = "user_id AS userId, (SELECT users.provider || ':' || users.provider_id FROM users WHERE users.id = issues.user_id) AS owner, (SELECT users.name FROM users WHERE users.id = issues.user_id) AS ownerName, (SELECT users.provider FROM users WHERE users.id = issues.user_id) AS ownerProvider"
 
 function titleLink(code, files) {
   const titleFile = files.find(file => file.kind === "title")
@@ -81,7 +87,7 @@ function issueLink(env, row) {
 }
 
 function shown(env, row, user) {
-  const { owner, code, number, files, ...rest } = row
+  const { owner, userId, code, number, files, ...rest } = row
   const attached = JSON.parse(files)
   return { ...rest, files: attached, issueUrl: number ? issueLink(env, row) : null, titleLink: code ? titleLink(code, attached) : null, mine: !!user && user.id === owner }
 }
@@ -160,40 +166,73 @@ export const issueDetails = guarded(async context => {
   return reply(200, { issue: shown(context.env, row, user), comments: await cachedThread(context, row) })
 })
 
+async function roleOn(env, row, user) {
+  if (row.owner === user.id) return "reporter"
+  return await isAdmin(env, user) ? "reviewer" : "commenter"
+}
+
+async function commentSlot(env, user, role) {
+  if (role === "reviewer") return null
+  const slot = await takeSlot(env, { table: "account_submissions", column: "account_hash", owner: await accountKey(env, "comments", user) }, SUBMISSION_LIMITS.commentsPerDay)
+  if (!slot) throw new Refusal(429, `You can send up to ${SUBMISSION_LIMITS.commentsPerDay} comments a day.`)
+  return slot
+}
+
+function commented(env, row, user, text) {
+  return notify(env, row, "comment", { author: user.name, body: text, admins: true, actor: user, on: "issues" })
+}
+
 export const addIssueComment = guarded(async context => {
   const { env, request } = context
   const user = await requireUser(context, "Sign in to comment.")
   const row = await requestedIssue(context)
-  const role = row.owner === user.id ? "reporter" : await isAdmin(env, user) ? "reviewer" : "commenter"
+  const role = await roleOn(env, row, user)
   const text = commentText((await jsonBody(request)).body)
   if (!text) throw new Refusal(400, "Write a comment first.")
-  const slot = role !== "reviewer" ? await takeSlot(env, { table: "account_submissions", column: "account_hash", owner: await accountKey(env, "comments", user) }, SUBMISSION_LIMITS.commentsPerDay) : null
-  if (role !== "reviewer" && !slot) throw new Refusal(429, `You can send up to ${SUBMISSION_LIMITS.commentsPerDay} comments a day.`)
+  const slot = await commentSlot(env, user, role)
   await onGitHub(() => postComment(env, row.number, user, role, text), UNAVAILABLE).catch(async err => {
     if (slot) await returnSlot(env, slot)
     throw err
   })
   await forgetThread(request, row)
-  await env.DB.batch((role === "commenter" ? [] : [saveUser(env, user)]).concat(notify(env, row, "comment", { author: user.name, body: text, admins: true, actor: user, on: "issues" })))
+  await env.DB.batch((role === "commenter" ? [] : [saveUser(env, user)]).concat(commented(env, row, user, text)))
   emailing(context)
   return reply(201, { comments: await threadOf(env, row.number, false) })
 })
 
-export const closeIssue = guarded(async context => {
+async function changeOnGitHub(env, row, user, role, text, { issue, note }) {
+  const comment = text ? await postComment(env, row.number, user, role, text) : note ? await github(env, `issues/${row.number}/comments`, { method: "POST", body: { body: note } }) : null
+  try {
+    await github(env, `issues/${row.number}`, { method: "PATCH", body: issue })
+  } catch (err) {
+    if (comment) await github(env, `issues/comments/${comment.id}`, { method: "DELETE" }).catch(problem => console.error(problem))
+    throw err
+  }
+}
+
+export const changeIssueStatus = guarded(async context => {
   const { env, request } = context
-  const user = await requireUser(context, "Sign in to close your report.")
+  const user = await requireUser(context, "Sign in to close or reopen reports.")
   const row = await requestedIssue(context)
-  if (row.owner !== user.id) throw new Refusal(403, "Only the person who reported this can close it here.")
-  if (row.status !== "open") throw new Refusal(409, "This report is already closed.")
-  await onGitHub(async () => {
-    await github(env, `issues/${row.number}/comments`, { method: "POST", body: { body: "Closed by the person who reported it, on the site." } })
-    await github(env, `issues/${row.number}`, { method: "PATCH", body: { state: "closed", state_reason: "not_planned" } })
-  }, UNAVAILABLE)
+  const { status, comment } = await jsonBody(request)
+  if (!Object.hasOwn(CHANGES, status)) throw new Refusal(400, INVALID)
+  const role = await roleOn(env, row, user)
+  if (status === "withdrawn" ? role !== "reporter" : !await isAdmin(env, user)) throw new Refusal(403, status === "withdrawn" ? "Only the person who reported this can close it like that." : "Only reviewers can do that.")
+  if ((row.status === "open") === (status === "open")) throw new Refusal(409, status === "open" ? "This report is already open." : "This report is already closed.")
+  const text = commentText(comment)
+  const slot = text ? await commentSlot(env, user, role) : null
+  const { kind } = CHANGES[status]
+  await onGitHub(() => changeOnGitHub(env, row, user, role, text, CHANGES[status]), UNAVAILABLE).catch(async err => {
+    if (slot) await returnSlot(env, slot)
+    throw err
+  })
   const now = Date.now()
-  const closed = await env.DB.prepare("UPDATE issues SET status = 'closed', updated_at = ? WHERE id = ? AND status = 'open' RETURNING user_id AS userId").bind(now, row.id).first()
-  if (closed) await forgetEmail(env, closed.userId).run()
+  const told = kind ? notify(env, row, kind, { author: user.name, body: text, url: issueLink(env, row), actor: user, on: "issues" }) : text ? commented(env, row, user, text) : []
+  await env.DB.batch([env.DB.prepare("UPDATE issues SET status = ?, updated_at = ? WHERE id = ?").bind(status, now, row.id), saveUser(env, user)].concat(told))
+  if (status === "withdrawn") await forgetEmail(env, row.userId).run()
   await forgetThread(request, row)
-  return reply(200, { issue: shown(env, { ...row, status: "closed", updatedAt: now }, user) })
+  emailing(context)
+  return reply(200, { issue: shown(env, { ...row, status, updatedAt: now }, user), comments: await threadOf(env, row.number, false) })
 })
 
 async function issueByNumber(env, number) {
@@ -212,7 +251,7 @@ export async function issueCommented(context, number, entry) {
 export async function issueStateChanged(context, issue, sender, action) {
   const { env } = context
   const status = action === "reopened" ? "open" : issue.state_reason === "completed" ? "fixed" : "closed"
-  const row = await env.DB.prepare("UPDATE issues SET status = ?, updated_at = ? WHERE number = ? AND status != ? RETURNING id").bind(status, Date.now(), issue.number, status).first()
+  const row = await env.DB.prepare("UPDATE issues SET status = ?, updated_at = ? WHERE number = ? AND status != ? AND NOT (status = 'withdrawn' AND ? = 'closed') RETURNING id").bind(status, Date.now(), issue.number, status, status).first()
   if (!row || sender?.type === "Bot") return
   await notify(env, row, status === "open" ? "reopened" : status, { author: sender?.login ?? "", url: issue.html_url, actor: gitHubActor(sender), on: "issues" }).run()
   emailing(context)

@@ -47,8 +47,8 @@ export async function postIssueComment(id, body) {
   return (await called(`${API}/${id}/comments`, jsonOptions("POST", { body }))).comments
 }
 
-export async function closeIssue(id) {
-  return (await called(`${API}/${id}/close`, { method: "POST" })).issue
+export function changeIssueStatus(id, status, comment) {
+  return called(`${API}/${id}/status`, jsonOptions("POST", { status, comment }))
 }
 
 export async function markIssueSeen(id) {

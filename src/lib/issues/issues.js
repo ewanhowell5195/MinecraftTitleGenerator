@@ -11,7 +11,7 @@ export function imageType(bytes) {
   return Object.keys(SIGNATURES).find(type => SIGNATURES[type].every((value, index) => bytes[index] === value)) ?? null
 }
 
-export const ISSUE_STATUSES = { open: "Open", fixed: "Fixed", closed: "Closed" }
+export const ISSUE_STATUSES = { open: "Open", fixed: "Resolved", closed: "Not planned", withdrawn: "Closed by reporter" }
 
 const TITLE_CODE = /^[A-Za-z0-9_-]+$/
 

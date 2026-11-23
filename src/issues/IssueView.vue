@@ -8,7 +8,7 @@
   import UserName from "../components/UserName.vue"
   import { dateTime } from "../lib/core/dates.js"
   import { ISSUE_STATUSES } from "../lib/issues/issues.js"
-  import { closeIssue, issueThread, markIssueSeen, postIssueComment } from "../lib/issues/issuesApi.js"
+  import { changeIssueStatus, issueThread, markIssueSeen, postIssueComment } from "../lib/issues/issuesApi.js"
   import { account } from "../lib/state/account.js"
   import { askConfirm } from "../lib/state/confirm.js"
   import { notifications } from "../lib/submissions/submissionsApi.js"
@@ -21,9 +21,17 @@
   const item = ref(null)
   const comments = ref([])
   const error = ref("")
-  const busy = ref(false)
 
-  const closable = computed(() => item.value?.mine && item.value.status === "open")
+  const RESOLVE = { status: "fixed", icon: "check", label: "Resolve", written: "Resolve with comment" }
+  const DISMISS = { status: "closed", icon: "close", label: "Not planned", written: "Not planned with comment" }
+  const WITHDRAW = { status: "withdrawn", icon: "check", label: "Close report", written: "Close with comment" }
+  const REOPEN = { status: "open", icon: "undo", label: "Reopen", written: "Reopen with comment" }
+
+  const changes = computed(() => {
+    const open = item.value.status === "open"
+    if (account.value?.admin) return open ? [DISMISS, RESOLVE] : [REOPEN]
+    return open && item.value.mine ? [WITHDRAW] : []
+  })
   const images = computed(() => item.value?.files.filter(file => file.kind === "image") ?? [])
   const titleFile = computed(() => item.value?.files.find(file => file.kind === "title") ?? null)
 
@@ -43,17 +51,13 @@
     if ((await notifications()).some(entry => entry.issue === props.id && !entry.seen)) await markIssueSeen(props.id)
   }
 
-  async function close() {
-    if (!await askConfirm({ title: "Close report", message: `Close "${item.value.title}"? Do this if it's fixed for you or no longer needed.`, action: "Close report" })) return
-    busy.value = true
-    error.value = ""
-    try {
-      item.value = await closeIssue(props.id)
-    } catch (err) {
-      error.value = err.message
-    } finally {
-      busy.value = false
-    }
+  async function change({ status }, submit) {
+    if (status === "withdrawn" && !await askConfirm({ title: "Close report", message: `Close "${item.value.title}"? Do this if it's fixed for you or no longer needed.`, action: "Close report" })) return
+    await submit(async comment => {
+      const changed = await changeIssueStatus(props.id, status, comment)
+      item.value = changed.issue
+      comments.value = changed.comments
+    })
   }
 
   onMounted(load)
@@ -85,12 +89,15 @@
       <Button v-if="item.titleLink" primary :href="item.titleLink"><template #icon><Icon name="link" :size="16" /></template>Open the title</Button>
       <Button v-if="titleFile" :href="titleFile.page" target="_blank" rel="noopener"><template #icon><Icon name="download" :size="16" /></template>Title file</Button>
       <Button v-if="item.issueUrl" :href="item.issueUrl" target="_blank" rel="noopener"><template #icon><Icon name="github" :size="16" /></template>GitHub issue</Button>
-      <Button v-if="closable" :disabled="busy" @click="close"><template #icon><Icon name="check" :size="16" /></template>Close report</Button>
     </div>
     <Notice v-if="error">{{ error }}</Notice>
     <section class="section">
       <h2>Comments</h2>
-      <CommentThread :id="item.id" :comments="comments" :can-comment="!!account" :post="postIssueComment" @update="comments = $event" />
+      <CommentThread :id="item.id" :comments="comments" :can-comment="!!account" :post="postIssueComment" @update="comments = $event">
+        <template #actions="{ written, busy, submit }">
+          <Button v-for="option of changes" :key="option.status" :disabled="busy" @click="change(option, submit)"><template #icon><Icon :name="option.icon" :size="16" /></template>{{ written ? option.written : option.label }}</Button>
+        </template>
+      </CommentThread>
       <template v-if="!account">
         <p class="hint">Sign in to comment.</p>
         <SignInButtons />

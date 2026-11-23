@@ -5,7 +5,7 @@ import { TEXTURES } from "../helpers/submissionServer.js"
 
 const { accountDetails } = await import("../../src/server/accounts.js")
 const { deleteAccount } = await import("../../src/server/accountDeletion.js")
-const { addIssueComment, closeIssue, createIssue, issueDetails, listIssues } = await import("../../src/server/issues/index.js")
+const { addIssueComment, changeIssueStatus, createIssue, issueDetails, listIssues } = await import("../../src/server/issues/index.js")
 const { listNotifications } = await import("../../src/server/submissions/notifications.js")
 
 let db
@@ -52,6 +52,12 @@ async function details(cookie, id) {
 
 async function comment(cookie, id, body) {
   const response = await addIssueComment(context(`/api/issues/${id}/comments`, { method: "POST", body: { body }, cookie, params: { id: String(id) } }))
+  await Promise.all(waiting)
+  return { status: response.status, ...await response.json() }
+}
+
+async function change(cookie, id, status, text) {
+  const response = await changeIssueStatus(context(`/api/issues/${id}/status`, { method: "POST", body: { status, comment: text }, cookie, params: { id: String(id) } }))
   await Promise.all(waiting)
   return { status: response.status, ...await response.json() }
 }
@@ -199,14 +205,56 @@ describe("following a report", () => {
     assert.equal((await comment(other, id, "Again")).status, 429)
   })
 
-  test("only the reporter can close it", async () => {
+  test("only reviewers can resolve, dismiss and reopen a report, and only its reporter can withdraw it", async () => {
     const reviewer = await admin()
-    const { id } = await report(await signIn())
-    const closing = async cookie => (await closeIssue(context(`/api/issues/${id}/close`, { method: "POST", cookie, params: { id: String(id) } }))).status
-    assert.equal(await closing(await signIn("discord", { id: "55", username: "other", verified: true })), 403)
-    assert.equal(await closing(reviewer), 403)
-    assert.equal(await closing(null), 401)
+    const cookie = await signIn()
+    const { id } = await report(cookie)
+    const other = await signIn("discord", { id: "55", username: "other", verified: true })
+    for (const status of ["fixed", "closed", "open"]) {
+      assert.equal((await change(cookie, id, status)).status, 403)
+      assert.equal((await change(other, id, status)).status, 403)
+      assert.equal((await change(null, id, status)).status, 401)
+    }
+    assert.equal((await change(reviewer, id, "withdrawn")).status, 403)
+    assert.equal((await change(other, id, "withdrawn")).status, 403)
+    assert.equal((await change(reviewer, id, "constructor")).status, 400)
+    assert.equal((await change(reviewer, id, "open")).status, 409)
     assert.equal(stored(id).status, "open")
+  })
+
+  test("reviewers close and reopen it with one email each", async () => {
+    const reviewer = await admin()
+    const cookie = await signIn()
+    const { id } = await report(cookie)
+    const issue = gh.issues.get(stored(id).number)
+    inbox()
+    const fixed = await change(reviewer, id, "fixed", "  It's in now!  ")
+    assert.deepEqual([fixed.status, fixed.issue.status], [200, "fixed"])
+    assert.deepEqual(fixed.comments.map(item => [item.author, item.role, item.body]), [["ewan", "reviewer", "It's in now!"]])
+    assert.deepEqual([issue.state, issue.state_reason], ["closed", "completed"])
+    assert.ok(emails.every(email => email.text.includes("It's in now!")))
+    assert.deepEqual(inbox(), [["someone@example.com", "Fonts are blurry was resolved"]])
+    assert.equal((await change(reviewer, id, "closed")).status, 409)
+    await hook("issues", { action: "closed", sender: { login: "app[bot]", id: 1, type: "Bot" }, issue: { number: issue.number, state_reason: "completed", html_url: "https://github.com/i/1" } })
+    assert.deepEqual(inbox(), [])
+    assert.equal((await change(reviewer, id, "open")).issue.status, "open")
+    assert.equal(issue.state, "open")
+    const dismissed = await change(reviewer, id, "closed")
+    assert.equal(dismissed.issue.status, "closed")
+    assert.equal(dismissed.comments.length, 1)
+    assert.deepEqual([issue.state, issue.state_reason], ["closed", "not_planned"])
+    assert.deepEqual((await news(cookie)).map(([kind, author]) => [kind, author]), [["closed", "ewan"], ["reopened", "ewan"], ["fixed", "ewan"]])
+  })
+
+  test("a comment is taken back when GitHub won't close the report", async () => {
+    const reviewer = await admin()
+    const cookie = await signIn()
+    const { id } = await report(cookie)
+    gh.failing.add(`PATCH /repos/${REPO}/issues/:n`)
+    assert.equal((await change(reviewer, id, "fixed", "Done")).status, 502)
+    assert.deepEqual(gh.comments, [])
+    assert.equal(stored(id).status, "open")
+    assert.deepEqual(await news(cookie), [])
   })
 
   test("comments from collaborators on GitHub reach the reporter", async () => {
@@ -237,7 +285,7 @@ describe("following a report", () => {
     const number = stored(id).number
     await hook("issues", { action: "closed", sender: { login: "ewan", id: 77, type: "User" }, issue: { number, state_reason: "completed", html_url: "https://github.com/i/1" } })
     assert.equal(stored(id).status, "fixed")
-    assert.deepEqual(inbox(), [["someone@example.com", "Fonts are blurry was fixed"]])
+    assert.deepEqual(inbox(), [["someone@example.com", "Fonts are blurry was resolved"]])
     await hook("issues", { action: "reopened", sender: { login: "ewan", id: 77, type: "User" }, issue: { number, state_reason: "reopened", html_url: "https://github.com/i/1" } })
     assert.equal(stored(id).status, "open")
     await hook("issues", { action: "closed", sender: { login: "ewan", id: 77, type: "User" }, issue: { number, state_reason: "not_planned", html_url: "https://github.com/i/1" } })
@@ -245,19 +293,28 @@ describe("following a report", () => {
     assert.deepEqual((await news(cookie)).map(([kind]) => kind), ["closed", "reopened", "fixed"])
   })
 
-  test("the reporter can close it, and their email is let go", async () => {
+  test("the reporter can withdraw it, and their email is let go", async () => {
     const cookie = await signIn()
     const { id } = await report(cookie)
     const number = stored(id).number
-    const response = await closeIssue(context(`/api/issues/${id}/close`, { method: "POST", cookie, params: { id: String(id) } }))
-    assert.equal((await response.json()).issue.status, "closed")
+    assert.equal((await change(cookie, id, "withdrawn")).issue.status, "withdrawn")
     assert.equal(gh.issues.get(number).state, "closed")
     assert.equal(gh.comments.at(-1).body, "Closed by the person who reported it, on the site.")
     assert.equal(db.prepare("SELECT email FROM users WHERE provider_id = '1234'").get().email, null)
     await hook("issues", { action: "closed", sender: { login: "app[bot]", id: 1, type: "Bot" }, issue: { number, state_reason: "not_planned", html_url: "https://github.com/i/1" } })
+    assert.equal(stored(id).status, "withdrawn")
     assert.deepEqual(await news(cookie), [])
-    const again = await closeIssue(context(`/api/issues/${id}/close`, { method: "POST", cookie, params: { id: String(id) } }))
-    assert.equal(again.status, 409)
+    assert.equal((await change(cookie, id, "withdrawn")).status, 409)
+  })
+
+  test("reviewers are told about a comment the reporter withdraws it with", async () => {
+    await admin()
+    const cookie = await signIn()
+    const { id } = await report(cookie)
+    inbox()
+    const withdrawn = await change(cookie, id, "withdrawn", "It was my mistake")
+    assert.deepEqual(withdrawn.comments.map(item => [item.author, item.role, item.body]), [["someone", "reporter", "It was my mistake"]])
+    assert.deepEqual(inbox(), [["ewan@example.com", "New comment on Fonts are blurry"]])
   })
 
   test("deleting the issue on GitHub removes the report", async () => {

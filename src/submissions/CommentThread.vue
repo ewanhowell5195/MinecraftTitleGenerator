@@ -23,11 +23,15 @@
   const busy = ref(false)
   const error = ref("")
 
-  async function send() {
+  function send() {
+    return submit(async body => emit("update", await props.post(props.id, body)))
+  }
+
+  async function submit(work) {
     busy.value = true
     error.value = ""
     try {
-      emit("update", await props.post(props.id, text.value))
+      await work(text.value.trim())
       text.value = ""
     } catch (err) {
       error.value = err.message
@@ -63,7 +67,10 @@
     </ol>
     <form v-if="canComment" class="composer" @submit.prevent="send">
       <textarea v-model="text" rows="2" :maxlength="SUBMISSION_LIMITS.comment" placeholder="Write a comment" aria-label="Comment"></textarea>
-      <Button primary type="submit" :disabled="busy || !text.trim()">Comment</Button>
+      <div class="buttons">
+        <slot name="actions" :written="!!text.trim()" :busy="busy" :submit="submit"></slot>
+        <Button primary type="submit" :disabled="busy || !text.trim()">Comment</Button>
+      </div>
     </form>
     <Notice v-if="canComment && error">{{ error }}</Notice>
   </div>
@@ -200,8 +207,14 @@
     border: none;
   }
 
-  .composer button {
+  .composer .buttons {
     flex: none;
+    justify-content: flex-end;
     margin-bottom: 8px;
+  }
+
+  .composer:has(.buttons > :nth-child(2)) {
+    flex-direction: column;
+    align-items: stretch;
   }
 </style>

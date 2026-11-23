@@ -17,7 +17,7 @@
     published: "published",
     rejected: "declined",
     reported: "reported",
-    fixed: "fixed",
+    fixed: "resolved",
     closed: "closed",
     reopened: "reopened"
   }
