@@ -6,6 +6,14 @@ function spread(rows, extra, length) {
   return added
 }
 
+function keepInside(added, rows, inside, others) {
+  const own = rows.filter(inside)
+  if (!own.length || own.some(index => 1 + added[index] + others(index) > 0)) return
+  added[own[Math.floor(own.length / 2)]]++
+  const spare = rows.find(index => !inside(index) && 1 + added[index] + others(index) > 0)
+  if (spare !== undefined) added[spare]--
+}
+
 export function usesMarks(font) {
   return !font.mesh && hasMarks(font)
 }
@@ -23,6 +31,7 @@ export function stretched(glyph, key, arcs, grow, marked = true) {
   const kept = span.filter((y, index) => inside(y) && !growRows.includes(index)).length
   const arcAdded = arcs.map((arc, index) => spread(arcRows[index], arc.raise + arc.drop, span.length))
   const growAdded = spread(growRows, Math.max(grow, kept ? -growRows.length : 1 - growRows.length), span.length)
+  if (!kept) keepInside(growAdded, growRows, index => inside(span[index]), index => arcAdded.reduce((sum, added) => sum + added[index], 0))
   const counts = span.map((y, index) => arcAdded.reduce((sum, added) => sum + added[index], 1 + growAdded[index]))
   const stretchable = span.map((y, index) => arcRows.some(rows => rows.includes(index)) || growRows.includes(index))
   const raise = arcs.reduce((sum, arc, index) => arcRows[index].length ? sum + arc.raise : sum, 0)
