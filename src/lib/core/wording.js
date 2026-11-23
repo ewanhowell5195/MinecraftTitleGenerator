@@ -1,7 +1,8 @@
-import { RegExpMatcher, englishDataset, englishRecommendedTransformers } from "obscenity"
+import { DataSet, RegExpMatcher, englishDataset, englishRecommendedTransformers, pattern } from "obscenity"
 import { LIMITS } from "./limits.js"
 
-const rude = new RegExpMatcher({ ...englishDataset.build(), ...englishRecommendedTransformers })
+const blocked = new DataSet().addAll(englishDataset).addPhrase(phrase => phrase.setMetadata({ originalWord: "kill yourself" }).addPattern(pattern`|kill[?][?]your[?][?]self|`))
+const rude = new RegExpMatcher({ ...blocked.build(), ...englishRecommendedTransformers })
 
 function hasBlockedWord(text) {
   return rude.hasMatch(text)
