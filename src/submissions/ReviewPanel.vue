@@ -30,6 +30,7 @@
   const UNKNOWN_WAIT = 5000
 
   let retry
+  let gone = false
 
   const state = ref(null)
   const failed = computed(() => !!props.failedUrl && !READY.has(state.value))
@@ -48,7 +49,7 @@
       error.value = err.message
       return
     }
-    if (state.value === "unknown" && tries > 1) retry = setTimeout(() => check(tries - 1), UNKNOWN_WAIT)
+    if (!gone && state.value === "unknown" && tries > 1) retry = setTimeout(() => check(tries - 1), UNKNOWN_WAIT)
   }
 
   async function act(action) {
@@ -66,7 +67,10 @@
   }
 
   onMounted(() => check())
-  onBeforeUnmount(() => clearTimeout(retry))
+  onBeforeUnmount(() => {
+    gone = true
+    clearTimeout(retry)
+  })
 </script>
 
 <template>

@@ -46,6 +46,7 @@
   const tab = ref("comments")
   const textureKey = ref("")
   let pollTimer = null
+  let gone = false
 
   const client = computed(() => CLIENT_KINDS[item.value?.kind])
   const title = computed(() => item.value && submissionTitle(item.value, props.fonts))
@@ -89,6 +90,7 @@
     } finally {
       known.value = true
     }
+    if (gone) return
     if (processing.value.state === "processing") pollTimer = setTimeout(checkProcessing, PROCESSING_POLL)
     else if (before === "processing") load()
   }
@@ -125,7 +127,7 @@
     clearTimeout(pollTimer)
     router.replace(page).finally(() => {
       saving.value = false
-      checkProcessing()
+      if (!gone) checkProcessing()
     })
   }
 
@@ -135,7 +137,10 @@
   }
 
   onMounted(() => Promise.all([load(), checkProcessing()]))
-  onBeforeUnmount(() => clearTimeout(pollTimer))
+  onBeforeUnmount(() => {
+    gone = true
+    clearTimeout(pollTimer)
+  })
   watch(() => props.editing, editing => {
     if (!editing && !saving.value) checkProcessing()
   })
