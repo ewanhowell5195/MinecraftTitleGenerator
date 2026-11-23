@@ -276,12 +276,12 @@ export async function presetsForDeletion(env, user, keep) {
   const statements = [
     env.DB.prepare(`UPDATE presets SET ${scoresCounted(" AND ip_hash != ?1")} WHERE id IN (SELECT preset_id FROM preset_votes WHERE ip_hash = ?1) RETURNING id`).bind(voter),
     env.DB.prepare("DELETE FROM preset_votes WHERE ip_hash = ?").bind(voter),
-    env.DB.prepare("DELETE FROM account_submissions WHERE account_hash = ?").bind(voter),
     env.DB.prepare(`INSERT INTO deleted_presets (id) SELECT id FROM presets WHERE ${theirs} RETURNING id`).bind(...owner),
     env.DB.prepare(`DELETE FROM presets WHERE ${theirs}`).bind(...owner)
   ]
   if (keep) statements.push(env.DB.prepare(`UPDATE presets SET user_id = NULL WHERE user_id = ${USER_ROW}`).bind(...owner))
-  return { statements, changed: results => Array.from(new Set(results[0].results.concat(results[3].results).map(row => row.id))) }
+  else statements.push(env.DB.prepare("DELETE FROM account_submissions WHERE account_hash = ?").bind(voter))
+  return { statements, changed: results => Array.from(new Set(results[0].results.concat(results[2].results).map(row => row.id))) }
 }
 
 export async function forgetCached(request, ...ids) {

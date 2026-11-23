@@ -127,6 +127,15 @@ describe("deleting an account", () => {
     assert.equal(count("SELECT COUNT(*) AS total FROM notifications WHERE kind = 'comment' AND author = 'ewan'"), 1)
   })
 
+  test("anonymising keeps the day's share count, so deleting the account doesn't give more", async () => {
+    const cookie = await signIn("1", "leaving")
+    await share(cookie, "one")
+    await remove(cookie, "anonymise")
+    await wait(5)
+    await share(await signIn("1", "leaving"), "two")
+    assert.deepEqual(db.prepare("SELECT count FROM account_submissions").all().map(row => row.count), [2])
+  })
+
   test("keeps the day's submission count, so deleting the account doesn't give more", async () => {
     const cookie = await signIn("1", "leaving")
     await submit(cookie)
