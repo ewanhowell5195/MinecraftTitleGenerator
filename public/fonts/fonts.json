@@ -60,6 +60,13 @@
         "terminatorSpace": true,
         "order": "0123456789&()?!.:-%~,┫┣あいうえおかゟがきぎくぐけげこごさざしじぬになどとでてづつぢちただぞそぜせずすねむのめはもやばぱゆひよびぴりらるふぶれろぷへわゐべぺゑをほぼんゔぽまゝゞみーヾヿヽヺヹムネスアイズノメモハセウエゼバヤユパオカソゾヒヨラビタガキダピリルフチギクヂブレロプツグケヅヘワヰベテゲコデペヱヲホトゴサドボンヴポナザシニマヷヸミヌジ゠・",
         "editor": { "width": 28, "grid": 4 }
+      },
+      {
+        "id": "minecraft-ten-vietnam",
+        "name": "Vietnam",
+        "authors": ["Góc Việt hóa font • lengnef", "Fardilizer", "bl205vn"],
+        "source": "https://fontstruct.com/fontstructions/show/2552125/minecraft-ten-5",
+        "licence": "https://fontstruct.com/fontstructions/license/2552125/minecraft-ten-5"
       }
     ],
     "editor": { "width": 28, "grid": 4 }
