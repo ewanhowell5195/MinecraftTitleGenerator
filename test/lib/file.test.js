@@ -132,6 +132,11 @@ describe("saving trims settings", () => {
     assert.deepEqual(await savedLines(make("top", { text: "hello", hue: 0, saturation: 50 })), [{ text: "hello", saturation: 50 }])
   })
 
+  test("settings only a deeper layer uses are saved", async () => {
+    const [saved] = await savedLines(make("top", { separateTexture: true, arcGradient: true, disableFontOverlay: true, layerSettings: [{ textureSource: "gradient" }] }))
+    assert.deepEqual([saved.arcGradient, saved.disableFontOverlay], [true, true])
+  })
+
   test("defaults are compared against the object's own type", async () => {
     assert.deepEqual(await savedLines(make("bottom", { fade: false })), [{ type: "bottom", fade: false }])
     assert.deepEqual(await savedLines(make("top", { fade: true, outerFade: 50 })), [{ fade: true, outerFade: 50 }])

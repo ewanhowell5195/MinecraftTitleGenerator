@@ -4,6 +4,7 @@ import { TILING_KEYS, defaultBorder, defaultDepth, defaultSpacing, fontFaces, ty
 import { loadFont, loadFontList } from "../font/font.js"
 import { matchSolved } from "./match.js"
 import { fileError } from "./notices.js"
+import { isSeparate } from "../settings/layers.js"
 import { createObject } from "../settings/objects.js"
 import { lines, presetSource, runtime, scene, titleFileName, titleObjects, validSelection } from "./scene.js"
 import { TEXTURE_TABS, isCustomFont } from "../settings/settings.js"
@@ -19,6 +20,11 @@ import { resetTabs, titleLoads } from "./view.js"
 const FORMAT = "minecraft-title"
 export const EXTENSION = "mctitle"
 
+function usesSource(object, matches) {
+  const looks = isSeparate(object, "texture") ? [object].concat(object.layerSettings) : [object]
+  return looks.some(look => matches(look.textureSource))
+}
+
 const UNUSED = Object.entries(TEXTURE_TABS).map(([source, keys]) => [object => object.textureSource !== source, keys.filter(key => !TILING_KEYS.includes(key))]).concat([
   [object => object.shape !== null, ["text", "spaceBefore", "terminators", "creeperFace", "font", "spacing", "kerning"]],
   [object => object.shape !== null && object.shape !== CUSTOM_SHAPE, ["customFont"]],
@@ -27,11 +33,11 @@ const UNUSED = Object.entries(TEXTURE_TABS).map(([source, keys]) => [object => o
   [object => !isCustomFont(object.font) && object.shape !== CUSTOM_SHAPE, ["customFont"]],
   [object => object.tileableSource !== "minecraft", ["minecraftTexture", "minecraftVersion"]],
   [object => object.tileableSource === "minecraft", ["tileable", "tileableVariant"]],
-  [object => object.textureSource !== "gradient", ["arcGradient"]],
+  [object => !usesSource(object, source => source === "gradient"), ["arcGradient"]],
   [object => object.customTextureMode !== "cover", ["customCoverAlign", "customCoverX", "customCoverY", "customCoverSpan"]],
   [object => object.customCoverAlign !== "camera", ["customCoverSpan"]],
   [object => object.customTextureMode !== "strip", ["customStripPerCharacter"]],
-  [object => object.textureSource === "premade", ["disableFontOverlay"]],
+  [object => !usesSource(object, source => source !== "premade"), ["disableFontOverlay"]],
   [object => object.matchWidth === null, ["matchBottom"]],
   [object => object.overlayMode !== "custom", ["overlays"]],
   [object => object.edgeOverlayMode !== "custom", ["edgeOverlays"]],
