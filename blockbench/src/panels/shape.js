@@ -36,7 +36,7 @@ export const ShapeGroup = {
       <div class="mtg-head"><h3>Shape</h3></div>
       <div class="mtg-controls">
         <segments-control :options="SHAPE_SOURCES" :value="source" @change="change(() => (source = $event))" />
-        <div v-if="source === 'premade'" class="mtg-grid">
+        <div v-if="source === 'premade'" class="mtg-grid mtg-scroll">
           <title-tile v-for="shape of library.shapes" :key="shape.id" :label="shape.name" :image="shape.folder + '/thumbnails/flat.png'" aspect="4 / 3" :author="shape.authors" :selected="object.shape === shape.id" @pick="change(() => (object.shape = shape.id))" />
         </div>
         <template v-else-if="source === 'custom'">

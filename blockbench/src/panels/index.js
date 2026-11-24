@@ -35,15 +35,13 @@ const STRETCHING_PANEL = {
 
 const UNSELECTED = { shape: null }
 const isText = settings => settings.shape === null
-const isShape = settings => settings.shape !== null
 const isDrawn = settings => !isMinecraftShape(settings.shape)
 
 const BESIDE_TRANSFORM = { slot: "right_bar", sidebar_index: 2, attached_to: "transform", attached_index: 0 }
 
 const SECTIONS = [
-  { id: "minecraft_title_words", name: "Text", shapeName: "Shape", icon: "text_fields", groups: settings => [isText(settings) ? "title-words" : "shape-group"], panels: (settings, kind) => isText(settings) && kind !== "word" ? [PLACEMENT_PANEL] : [] },
+  { id: "minecraft_title_words", name: "Text", shapeName: "Shape", icon: "text_fields", groups: settings => [isText(settings) ? "title-words" : "shape-group"], panels: (settings, kind) => kind === "word" ? [] : [PLACEMENT_PANEL] },
   { id: "minecraft_title_font", name: "Font", icon: "font_download", shown: isText, groups: (settings, kind) => [kind === "word" ? "font-note" : "font-group"], panels: (settings, kind) => kind === "word" ? [CREEPER_PANEL] : [CURVES_PANEL, CREEPER_PANEL, TERMINATORS_PANEL, SPACING_PANEL] },
-  { id: "minecraft_title_placement", name: "Placement", icon: "table_rows", shown: isShape, panels: () => [PLACEMENT_PANEL] },
   { id: "minecraft_title_texture", name: "Texture", icon: "texture", shown: isDrawn, panels: () => [TEXTURE_LAYERS, TEXTURE_PANEL, TILING_PANEL] },
   { id: "minecraft_title_colour", name: "Color", icon: "palette", panels: () => [COLOUR_LAYERS, FILTERS_PANEL].concat(FACE_PANELS, OUTLINE_PANEL) },
   { id: "minecraft_title_overlays", name: "Overlay", icon: "layers", shown: isDrawn, panels: () => [OVERLAY_LAYERS, OVERLAYS_PANEL, EDGE_OVERLAYS_PANEL] },
