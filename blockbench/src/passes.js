@@ -97,7 +97,7 @@ export function unregisterPasses() {
       const mesh = project.nodes_3d[element.uuid]
       if (!mesh) continue
       draw(mesh, 0)
-      element.preview_controller.updateRenderOrder?.(element)
+      if (project === Project) element.preview_controller.updateRenderOrder?.(element)
     }
   }
   for (const property of properties.splice(0)) property.delete()
