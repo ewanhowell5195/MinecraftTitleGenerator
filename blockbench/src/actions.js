@@ -5,6 +5,7 @@ import { FORMAT } from "./format.js"
 import { library } from "./library.js"
 import { titleState } from "./titles.js"
 import { isTitle, types } from "./elements.js"
+import { addWord, homeElement } from "./words.js"
 
 const actions = []
 const converters = []
@@ -34,7 +35,8 @@ function addElement(type, values, label) {
 }
 
 function like(keys, wanted) {
-  const selected = Outliner.selected.find(isTitle)?.settings
+  const element = Outliner.selected.find(isTitle)
+  const selected = element && (element.words[0] ?? element).settings
   return selected && wanted(selected) ? Object.fromEntries(keys.map(key => [key, selected[key]])) : {}
 }
 
@@ -47,7 +49,12 @@ export function addShape() {
 }
 
 function selectedTitles() {
-  return Outliner.selected.filter(isTitle)
+  return Array.from(new Set(Outliner.selected.filter(isTitle).map(homeElement)))
+}
+
+function wordTarget() {
+  const titles = selectedTitles()
+  return titles.length === 1 && titles[0] instanceof types.text ? titles[0] : null
 }
 
 async function convertSelected(kind) {
@@ -66,6 +73,7 @@ export function registerActions() {
     new Action("add_minecraft_title_shape", { name: "Add Minecraft Title Shape", icon: "interests", category: "edit", condition, click: () => addShape() })
   )
   converters.push(
+    new Action("add_minecraft_title_word", { name: "Add Word", icon: "match_word", category: "edit", condition: () => !!wordTarget(), click: () => addWord(wordTarget()) }),
     new Action("convert_minecraft_title_to_cubes", { name: "Convert to Cubes", icon: "view_in_ar", category: "edit", condition: () => selectedTitles().length > 0 && selectedTitles().every(isCubes), click: () => convertSelected("cubes") }),
     new Action("convert_minecraft_title_to_mesh", { name: "Convert to Mesh", icon: "fa-gem", category: "edit", condition: () => selectedTitles().length > 0, click: () => convertSelected("mesh") })
   )

@@ -9,7 +9,8 @@ import { askEula } from "./panels/minecraft.js"
 import { registerPasses, unregisterPasses } from "./passes.js"
 import { useBlockbench } from "./platform.js"
 import { keepCounted, registerStats, savedStats, unregisterStats } from "./stats.js"
-import { closeTitle, closeTitles, refreshList, resort, sortTitle, titleState } from "./titles.js"
+import { closeTitle, closeTitles, resort, settleTitle, sortTitle } from "./titles.js"
+import { keepWords } from "./undo.js"
 
 const listeners = []
 
@@ -19,7 +20,7 @@ function listen(event, action) {
 }
 
 function refresh() {
-  if (Project) refreshList(titleState())
+  if (Project) settleTitle()
   resort()
 }
 
@@ -56,9 +57,11 @@ Plugin.register("minecraft_title_generator", {
     registerPasses()
     registerPanels()
     stopAsking = askEula()
-    for (const event of ["finished_edit", "undo", "redo", "load_project", "select_project"]) listen(event, refresh)
+    for (const event of ["finished_edit", "undo", "redo", "load_project", "merge_project", "select_project"]) listen(event, refresh)
     for (const event of ["update_selection", "select_project", "unselect_project"]) listen(event, followSelection)
+    Codecs.project.on("parsed", refresh)
     listen("update_selection", followElementTab)
+    listen("create_undo_save", keepWords)
     listen("load_project", () => setTimeout(() => Project && Outliner.elements.some(isTitle) && openTitleMode()))
     listen("close_project", () => Project && closeTitle(Project))
     listen("saved_state_changed", savedStats)
@@ -74,6 +77,7 @@ Plugin.register("minecraft_title_generator", {
     stopAsking()
     for (const [event, action] of listeners.splice(0)) Blockbench.removeListener(event, action)
     selected.value = null
+    Codecs.project.removeListener("parsed", refresh)
     unregisterPanels()
     unregisterMode()
     closeTitles()

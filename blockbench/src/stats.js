@@ -18,7 +18,7 @@ function countedIn(project) {
 }
 
 function settingsIn(project) {
-  return project.elements.filter(isTitle).map(element => element.settings)
+  return project.elements.filter(element => isTitle(element) && !element.words.length).map(element => element.settings)
 }
 
 function uncounted(project, objects) {

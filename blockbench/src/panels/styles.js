@@ -49,6 +49,21 @@ export const STYLES = `
     gap: 8px;
   }
 
+  .mtg-word > .tool,
+  .mtg-space {
+    flex: none;
+    width: 30px;
+    user-select: none;
+  }
+
+  .mtg-word > .tool {
+    cursor: pointer;
+  }
+
+  .mtg-text.mtg-chosen {
+    border-color: var(--color-accent);
+  }
+
   .mtg-fill {
     flex: 1;
     min-width: 0;

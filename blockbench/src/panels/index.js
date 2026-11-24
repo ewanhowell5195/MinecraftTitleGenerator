@@ -11,46 +11,26 @@ import { TILING_PANEL } from "../../../src/lib/panels/tiling.js"
 import { MATCH_PANEL, SCALING_PANEL } from "../../../src/lib/panels/transform.js"
 import { TWIST_PANELS } from "../../../src/lib/panels/twists.js"
 import { PANELS } from "../../../src/lib/settings/defaults.js"
-import { isModified } from "../../../src/lib/settings/settings.js"
-import { selected, selectedElements } from "../host.js"
+import { isModified, wordKey } from "../../../src/lib/settings/settings.js"
+import { kindOf, selected, shownSettings } from "../host.js"
 import { deleteTitlePanel, settleTabs, titlePanel } from "../mode.js"
-import { beginEdit, finishEdit } from "../undo.js"
+import { homeElement } from "../words.js"
 import { TitleGroup } from "./controls.js"
 import { FontGroup } from "./font.js"
 import { ShapeGroup } from "./shape.js"
 import { STYLES } from "./styles.js"
+import { FontNote, TitleWords } from "./words.js"
 
 const SCALING = ["scaleMarked", "scaleOutline"]
 
 const STRETCHING_PANEL = {
   ...SCALING_PANEL,
   title: "Scaling",
-  modified: (get, { object }) => isModified(object, "transform", {}, SCALING),
+  modified: (get, { object, word }) => isModified(object, word ? "wordTransform" : "transform", {}, word ? SCALING.map(wordKey) : SCALING),
   reset({ set }) {
     const values = PANELS.transform()
     for (const key of SCALING) set(key, values[key])
   }
-}
-
-const TitleWords = {
-  computed: {
-    element: () => selected.value
-  },
-  methods: {
-    type(event) {
-      beginEdit(selectedElements(), "text")
-      this.element.settings.text = event.target.value
-    },
-    done() {
-      finishEdit("Change title text")
-    }
-  },
-  template: `
-    <section class="mtg-group">
-      <div class="mtg-head"><h3>Text</h3></div>
-      <input type="text" class="dark_bordered mtg-text" :value="element.settings.text" placeholder="Type your title" spellcheck="false" @input="type" @change="done" @blur="done">
-    </section>
-  `
 }
 
 const UNSELECTED = { shape: null }
@@ -63,8 +43,8 @@ const STACKS = [
     slot: "left_bar",
     sidebar_index: 0,
     sections: [
-      { id: "minecraft_title_words", name: "Text", shapeName: "Shape", icon: "text_fields", groups: settings => [isText(settings) ? "title-words" : "shape-group"], panels: settings => isText(settings) ? [PLACEMENT_PANEL] : [] },
-      { id: "minecraft_title_font", name: "Font", icon: "font_download", shown: isText, groups: () => ["font-group"], panels: () => [CURVES_PANEL, CREEPER_PANEL, TERMINATORS_PANEL, SPACING_PANEL] },
+      { id: "minecraft_title_words", name: "Text", shapeName: "Shape", icon: "text_fields", groups: settings => [isText(settings) ? "title-words" : "shape-group"], panels: (settings, kind) => isText(settings) && kind !== "word" ? [PLACEMENT_PANEL] : [] },
+      { id: "minecraft_title_font", name: "Font", icon: "font_download", shown: isText, groups: (settings, kind) => [kind === "word" ? "font-note" : "font-group"], panels: (settings, kind) => kind === "word" ? [CREEPER_PANEL] : [CURVES_PANEL, CREEPER_PANEL, TERMINATORS_PANEL, SPACING_PANEL] },
       { id: "minecraft_title_placement", name: "Placement", icon: "table_rows", shown: isShape, panels: () => [PLACEMENT_PANEL] }
     ]
   },
@@ -81,7 +61,7 @@ const STACKS = [
     sidebar_index: 9,
     sections: [
       { id: "minecraft_title_colour", name: "Colour", icon: "palette", panels: () => [COLOUR_LAYERS, FILTERS_PANEL].concat(FACE_PANELS, OUTLINE_PANEL) },
-      { id: "minecraft_title_form", name: "Form", icon: "deployed_code", panels: settings => [MATCH_PANEL, STRETCHING_PANEL, GEOMETRY_PANEL].concat(isDrawn(settings) ? [ARC_PANEL].concat(TWIST_PANELS) : []) }
+      { id: "minecraft_title_form", name: "Form", icon: "deployed_code", shapes: true, panels: settings => [MATCH_PANEL, STRETCHING_PANEL, GEOMETRY_PANEL].concat(isDrawn(settings) ? [ARC_PANEL].concat(TWIST_PANELS) : []) }
     ]
   }
 ]
@@ -91,26 +71,32 @@ const made = new Map()
 let styles = null
 let following = null
 
-function component({ shown, groups, panels }) {
+function component({ shapes, shown, groups, panels }) {
   return {
-    components: { FontGroup, ShapeGroup, TitleGroup, TitleWords },
+    components: { FontGroup, FontNote, ShapeGroup, TitleGroup, TitleWords },
     computed: {
       element: () => selected.value,
+      settings: () => selected.value && shownSettings(selected.value),
+      kind: () => selected.value && kindOf(selected.value),
+      home: () => selected.value && homeElement(selected.value).uuid,
+      word() {
+        return !!shapes && this.kind === "word"
+      },
       applies() {
-        return !!this.element && (!shown || shown(this.element.settings))
+        return !!this.element && (!shown || shown(this.settings))
       },
       groups() {
-        return groups?.(this.element.settings) ?? []
+        return groups?.(this.settings, this.kind) ?? []
       },
       panels() {
-        return Object.freeze(panels(this.element.settings))
+        return Object.freeze(panels(this.settings, this.kind))
       }
     },
     template: `
       <div class="mtg-panel">
         <template v-if="applies">
-          <component v-for="group of groups" :key="group + element.uuid" :is="group" />
-          <title-group v-for="(panel, index) of panels" :key="panel.id + index" :panel="panel" />
+          <component v-for="group of groups" :key="group + home" :is="group" />
+          <title-group v-for="(panel, index) of panels" :key="panel.id + index + word" :panel="panel" :word="word" />
         </template>
         <p v-else-if="!element" class="mtg-hint mtg-none">Select a title text or shape to edit it.</p>
       </div>
@@ -120,7 +106,7 @@ function component({ shown, groups, panels }) {
 
 function followKind() {
   if (!selected.value) return
-  const { settings } = selected.value
+  const settings = shownSettings(selected.value)
   for (const { sections: [host] } of STACKS) {
     const panel = made.get(host.id)
     if (host.shapeName) panel.handle.firstElementChild.textContent = isText(settings) ? host.name : host.shapeName
@@ -141,10 +127,10 @@ export function registerPanels() {
         resizable: true,
         default_position: { slot, sidebar_index, float_position: [0, 0], float_size: [320, 500], height: 400, ...(index && { attached_to: sections[0].id, attached_index: sections.length - index }) },
         component: component(section)
-      }, () => !shown || shown(selected.value?.settings ?? UNSELECTED)))
+      }, () => !shown || shown(selected.value ? shownSettings(selected.value) : UNSELECTED)))
     }
   }
-  following = watch(() => selected.value && [isText(selected.value.settings), isDrawn(selected.value.settings)].join(), followKind)
+  following = watch(() => selected.value && [isText, isDrawn].map(test => test(shownSettings(selected.value))).join(), followKind)
 }
 
 export function unregisterPanels() {

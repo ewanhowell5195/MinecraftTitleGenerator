@@ -85,9 +85,9 @@ export const TitleControls = {
 
 export const TitleGroup = {
   components: { TitleControls },
-  props: { panel: Object },
+  props: { panel: Object, word: { type: Boolean, default: false } },
   setup(props) {
-    const state = usePanelState(props.panel)
+    const state = usePanelState(props.panel, props.word)
     const { enabled, modified, shown, title } = state
     return { state: Object.freeze({ ...state }), enabled, modified, shown, title }
   },

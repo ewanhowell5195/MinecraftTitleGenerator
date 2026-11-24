@@ -3,21 +3,29 @@ import { effectScope, watch } from "vue"
 import { buildPartOutline, turned } from "../../../src/lib/geometry/build.js"
 import { CREEPER, TERMINATOR_CLOSE, TERMINATOR_OPEN, baseChar } from "../../../src/lib/font/order.js"
 import { RENDER_ORDER, SHARE } from "../passes.js"
+import { FACING } from "../placing.js"
 import { sendStats } from "../stats.js"
-import { memberOf, runtimeOf } from "../titles.js"
+import { lineOf, memberOf, runtimeOf } from "../titles.js"
+import { familyOf } from "../words.js"
 import { allSides, hullOf, makeCube, sharedTurn, swatchPaint, texturedPaint, wholeSides } from "./cubes.js"
 import { makeMesh } from "./mesh.js"
 import { boxesOf, facesOf, solidBox, solidPoints } from "./quads.js"
 
-const FACING = new THREE.Matrix4().makeRotationY(Math.PI)
 const STILL = new THREE.Quaternion()
 const OUTLINE_ORDER = -1
+const VIEWER = new THREE.Vector3(0, -166, -302)
 
 const round = value => Math.roundTo(value, 4)
 
+function piecesOf(element) {
+  return element.words.length ? element.words : [element]
+}
+
 export function isCubes(element) {
-  const { item } = memberOf(element) ?? {}
-  return !!item?.built && !item.built.body.sizes && !item.built.shapes
+  return piecesOf(element).every(piece => {
+    const { item } = memberOf(piece) ?? {}
+    return !!item?.built && !item.built.body.sizes && !item.built.shapes
+  })
 }
 
 function isReady(element) {
@@ -31,15 +39,45 @@ function whenReady(element) {
   return new Promise(resolve => scope.run(() => watch(() => isReady(element), ready => ready && resolve()))).finally(() => scope.stop())
 }
 
-function frameOf(element) {
-  const { entry, pivot } = memberOf(element)
+function facedFrame(placement, origin) {
   const turn = new THREE.Quaternion()
   const size = new THREE.Vector3()
-  entry.group.matrix.decompose(new THREE.Vector3(), turn, size)
+  placement.decompose(new THREE.Vector3(), turn, size)
   const base = new THREE.Quaternion().setFromRotationMatrix(FACING).invert().premultiply(turn)
-  const matrix = new THREE.Matrix4().makeRotationFromQuaternion(base.clone().invert()).multiply(entry.group.matrix)
-  const own = new THREE.Quaternion().setFromEuler(new THREE.Euler(...element.rotation.map(Math.degToRad), Format.euler_order))
-  return { base, matrix, size, origin: new THREE.Vector3(...element.position).add(pivot), rotation: own.multiply(base) }
+  return { base, matrix: new THREE.Matrix4().makeRotationFromQuaternion(base.clone().invert()).multiply(placement), size, origin, rotation: base }
+}
+
+function ownTurn(element) {
+  return new THREE.Quaternion().setFromEuler(new THREE.Euler(...element.rotation.map(Math.degToRad), Format.euler_order))
+}
+
+function frameOf(element) {
+  const { entry, pivot } = memberOf(element)
+  const frame = facedFrame(entry.group.matrix, new THREE.Vector3(...element.position).add(pivot))
+  return { ...frame, rotation: ownTurn(element).multiply(frame.base) }
+}
+
+function wordFrame(word, line) {
+  const { entry } = memberOf(word)
+  word.mesh.updateMatrix()
+  const centre = word.mesh.position.clone()
+  const placement = new THREE.Matrix4().makeTranslation(-centre.x, -centre.y, -centre.z).multiply(word.mesh.matrix).multiply(entry.group.matrix)
+  const inLine = new THREE.Matrix4().makeRotationFromQuaternion(line.base.clone().invert())
+  return facedFrame(inLine.clone().multiply(placement), centre.applyMatrix4(inLine).add(line.origin))
+}
+
+function lineFrame(element) {
+  const [first] = element.words
+  const { pivot } = lineOf(element)
+  const still = new THREE.Matrix4().makeTranslation(-first.mesh.position.x, -first.mesh.position.y, -first.mesh.position.z)
+  const unturned = first.mesh.matrix.clone().multiply(memberOf(first).entry.group.matrix).premultiply(still)
+  unturned.premultiply(new THREE.Matrix4().makeRotationFromQuaternion(first.mesh.quaternion.clone().invert()))
+  const frame = facedFrame(unturned, new THREE.Vector3(...element.position).add(pivot))
+  return { ...frame, rotation: ownTurn(element).multiply(frame.base) }
+}
+
+function farthestFirst(words) {
+  return words.slice().sort((a, b) => b.mesh.position.distanceTo(VIEWER) - a.mesh.position.distanceTo(VIEWER))
 }
 
 function angles(quaternion) {
@@ -79,9 +117,9 @@ function newLine(name, origin, element, made, rotation) {
   return group
 }
 
-function newOutline(origin, parent, made) {
+function newOutline(origin, parent, made, order) {
   const group = newGroup("outline", origin, parent, made)
-  group[RENDER_ORDER] = OUTLINE_ORDER
+  group[RENDER_ORDER] = order
   return group
 }
 
@@ -110,20 +148,19 @@ function outlineBoxes(built, part, outline, matrix) {
   })
 }
 
-function buildCubes(element, frame, name, made) {
+function buildCubes(element, frame, name, made, line, order) {
   const { item } = memberOf(element)
   const { built, outline } = item
-  const { matrix, size, origin, rotation } = frame
+  const { matrix, size, origin } = frame
   const pages = built.pages.map(page => page.texture)
   const textures = makeTextures(name, pages, made.textures)
   const faces = facesOf(built.body, matrix, pages)
-  const line = newLine(name, origin, element, made.groups, angles(rotation))
   const paint = texturedPaint(textures)
   const letters = []
   const parts = built.parts?.()
 
   function add(cube, group) {
-    cube.visibility = element.visibility
+    cube.visibility = !element.settings.hidden
     cube.addTo(group).init()
     made.elements.push(cube)
   }
@@ -145,7 +182,7 @@ function buildCubes(element, frame, name, made) {
   const swatch = swatchPaint(textures[0], pages[0], built.swatch)
   for (const { glyph, boxes, group, space } of letters) {
     const hull = built.runs ? hullOf(boxes, hullReach(built, outline, size), pages) : outlineBoxes(built, parts[glyph], outline, matrix)
-    const outer = newOutline(space.pivot, group, made.groups)
+    const outer = newOutline(space.pivot, group, made.groups, order)
     for (const box of hull) add(makeCube({ name: "outline", box, space, inverted: true, paint: swatch }), outer)
   }
   return line
@@ -155,18 +192,17 @@ function hullReach(built, outline, size) {
   return outline.scale.map((axis, index) => built.border * size.getComponent(index) / axis)
 }
 
-function buildMesh(element, frame, name, made) {
+function buildMesh(element, frame, name, made, line, order) {
   const { item } = memberOf(element)
   const { built, outline } = item
-  const { matrix, size, origin, rotation } = frame
+  const { matrix, size, origin } = frame
   const pages = built.pages.map(page => page.texture)
   const textures = makeTextures(name, pages, made.textures)
   const faces = facesOf(built.body, matrix, pages)
-  const line = newLine(name, origin, element, made.groups, angles(rotation))
 
   function add(options, group) {
     const mesh = makeMesh(options)
-    mesh.visibility = element.visibility
+    mesh.visibility = !element.settings.hidden
     mesh.addTo(group).init()
     made.elements.push(mesh)
   }
@@ -186,7 +222,7 @@ function buildMesh(element, frame, name, made) {
   const parts = built.parts?.()
   for (const { glyph, members, centre, pivot, group } of letters) {
     const shell = built.runs ? hullOf(boxesOf(members), hullReach(built, outline, size), pages).flatMap(hullFaces) : facesOf(buildPartOutline(built, parts[glyph], outline.scale), outlineMatrix(outline, matrix), pages)
-    add({ name: "outline", faces: shell.map(face => ({ ...face, page: 0, points: face.points.toReversed(), uvs: face.points.map(() => [u, v]) })), centre, origin, textures }, newOutline(pivot, group, made.groups))
+    add({ name: "outline", faces: shell.map(face => ({ ...face, page: 0, points: face.points.toReversed(), uvs: face.points.map(() => [u, v]) })), centre, origin, textures }, newOutline(pivot, group, made.groups, order))
   }
   return line
 }
@@ -204,20 +240,38 @@ function hullFaces({ centre, half, quaternion, axes, members }) {
 
 const BUILDERS = { cubes: buildCubes, mesh: buildMesh }
 
+function buildLine(element, kind, made) {
+  const name = element.name || "title"
+  if (!element.words.length) {
+    const frame = frameOf(element)
+    BUILDERS[kind](element, frame, name, made, newLine(name, frame.origin, element, made.groups, angles(frame.rotation)), OUTLINE_ORDER)
+    return
+  }
+  const frame = lineFrame(element)
+  const line = newLine(name, frame.origin, element, made.groups, angles(frame.rotation))
+  const order = farthestFirst(element.words)
+  for (const word of element.words) {
+    const own = wordFrame(word, frame)
+    const group = newGroup(word.name || "word", own.origin, line, made.groups, angles(own.rotation))
+    BUILDERS[kind](word, own, word.name || "word", made, group, OUTLINE_ORDER * (order.length - order.indexOf(word)))
+  }
+}
+
 export async function convert(elements, kind) {
-  await Promise.all(elements.map(whenReady))
-  for (const element of elements) {
-    if (!memberOf(element).item?.built) throw new Error(runtimeOf(element).error ?? `${element.name || "This title"} has nothing to convert`)
+  const pieces = elements.flatMap(piecesOf)
+  await Promise.all(pieces.map(whenReady))
+  for (const piece of pieces) {
+    if (!memberOf(piece).item?.built) throw new Error(runtimeOf(piece).error ?? `${piece.name || "This title"} has nothing to convert`)
   }
   const made = { groups: [], elements: [], textures: [] }
-  Undo.initEdit({ outliner: true, elements, groups: [], textures: [], selection: true })
+  Undo.initEdit({ outliner: true, elements: elements.flatMap(familyOf), groups: [], textures: [], selection: true })
   try {
-    for (const element of elements) BUILDERS[kind](element, frameOf(element), element.name || "title", made)
+    for (const element of elements) buildLine(element, kind, made)
   } catch (err) {
     Undo.cancelEdit(true)
     throw err
   }
-  sendStats(Project, elements.map(element => element.settings))
+  sendStats(Project, pieces.map(piece => piece.settings))
   unselectAllElements()
   for (const element of elements) element.remove()
   Undo.finishEdit(kind === "cubes" ? "Convert title to cubes" : "Convert title to mesh", { outliner: true, elements: made.elements, groups: made.groups, textures: made.textures, selection: true })

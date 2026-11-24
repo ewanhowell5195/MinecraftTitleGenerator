@@ -36,6 +36,12 @@ export function edit(elements, label, change) {
   lateLabel = label
 }
 
+export function keepWords({ save, aspects }) {
+  for (const { words } of aspects.elements ?? []) {
+    for (const word of words ?? []) save.elements[word.uuid] ??= word.getUndoCopy()
+  }
+}
+
 export function quietly(change) {
   quiet++
   try {
@@ -70,7 +76,7 @@ function recordLate() {
 
 export function watchChanges(element) {
   watch(() => [element.savedSettings(), element.describe()], ([settings, description], [earlier, wasDescribed]) => {
-    if (quiet) return
+    if (quiet || element.words.length) return
     const before = { ...element.getUndoCopy(), ...earlier }
     if (element.name === wasDescribed) element.name = description
     if (editing || Undo.current_save || late.has(element) || JSON.stringify(settings) === JSON.stringify(earlier)) return
