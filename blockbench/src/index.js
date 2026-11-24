@@ -1,4 +1,5 @@
 import { addText, registerActions, unregisterActions } from "./actions.js"
+import { chooseClicked } from "./clicks.js"
 import { isTitle, registerElements, unregisterElements } from "./elements.js"
 import { registerFormat, unregisterFormat } from "./format.js"
 import { followSelection, registerHost, selected } from "./host.js"
@@ -61,6 +62,7 @@ Plugin.register("minecraft_title_generator", {
     for (const event of ["update_selection", "select_project", "unselect_project"]) listen(event, followSelection)
     Codecs.project.on("parsed", refresh)
     listen("update_selection", followElementTab)
+    listen("canvas_select", chooseClicked)
     listen("create_undo_save", keepWords)
     listen("load_project", () => setTimeout(() => Project && Outliner.elements.some(isTitle) && openTitleMode()))
     listen("close_project", () => Project && closeTitle(Project))
