@@ -22,7 +22,6 @@
 
   const DEFAULT_SAMPLE = "Minecraft"
   const PAGE = 40
-  const TYPING_WAIT = 250
   const SORTS = {
     google: [{ value: "usage", label: "Popular here" }, { value: "google", label: "Popular on Google" }, { value: "trending", label: "Trending" }, { value: "newest", label: "Newest" }, { value: "name", label: "Name" }, { value: "random", label: "Random" }],
     published: [{ value: "usage", label: "Popular" }, { value: "name", label: "Name" }, { value: "random", label: "Random" }]
@@ -122,7 +121,7 @@
 
   watch(typed, value => {
     clearTimeout(typing)
-    typing = setTimeout(() => (sampleText.value = value), TYPING_WAIT)
+    typing = setTimeout(() => (sampleText.value = value), 250)
   })
 
   watch(text, () => {

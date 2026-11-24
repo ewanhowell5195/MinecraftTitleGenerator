@@ -7,8 +7,6 @@ import { splashOf } from "../site/shell.js"
 import { TEMPLATES } from "../server/presetTemplates.js"
 import { presetTemplates } from "./presetTemplates.js"
 
-const ENTRY = "src/prerender/entry.js"
-
 function assetLinks(modules, manifest) {
   const files = Array.from(new Set(modules.flatMap(id => manifest[id] ?? [])))
   const styles = files.filter(file => file.endsWith(".css")).map(file => `<link rel="stylesheet" href="${file}">`)
@@ -22,7 +20,7 @@ function renderedPath(page) {
 
 export async function prerender(root, outDir) {
   const server = path.join(root, "node_modules", ".prerender")
-  await build({ root, configFile: path.join(root, "vite.config.js"), logLevel: "warn", build: { ssr: ENTRY, outDir: server, emptyOutDir: true } })
+  await build({ root, configFile: path.join(root, "vite.config.js"), logLevel: "warn", build: { ssr: "src/prerender/entry.js", outDir: server, emptyOutDir: true } })
   const { renderPage } = await import(pathToFileURL(path.join(server, "entry.js")).href)
   const manifestFolder = path.join(outDir, ".vite")
   const manifest = JSON.parse(await fs.promises.readFile(path.join(manifestFolder, "ssr-manifest.json"), "utf8"))

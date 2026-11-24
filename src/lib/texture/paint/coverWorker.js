@@ -1,6 +1,5 @@
 import { runBake } from "./coverRaster.js"
 
-const KEPT_SOURCES = 4
 const sources = new Map()
 
 self.onmessage = ({ data }) => {
@@ -8,7 +7,7 @@ self.onmessage = ({ data }) => {
   if (pixels) {
     sources.delete(source)
     sources.set(source, { pixels, width, height })
-    if (sources.size > KEPT_SOURCES) sources.delete(sources.keys().next().value)
+    if (sources.size > 4) sources.delete(sources.keys().next().value)
   }
   const kept = sources.get(source)
   if (!kept) {

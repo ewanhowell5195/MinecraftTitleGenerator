@@ -5,8 +5,6 @@
   import { usePopover } from "./composables/popover.js"
   import Icon from "./Icon.vue"
 
-  const SHOWN = 8
-
   defineProps({
     placeholder: { type: String, default: "Add a name" }
   })
@@ -28,7 +26,7 @@
     const term = typed.value.toLowerCase()
     const known = people.filter(person => !taken.includes(person.toLowerCase()) && person.toLowerCase().includes(term))
     const fresh = term && !taken.includes(term) && !people.some(person => person.toLowerCase() === term)
-    return known.slice(0, SHOWN).map(name => ({ name })).concat(fresh ? [{ name: typed.value, fresh: true }] : [])
+    return known.slice(0, 8).map(name => ({ name })).concat(fresh ? [{ name: typed.value, fresh: true }] : [])
   })
 
   function place() {

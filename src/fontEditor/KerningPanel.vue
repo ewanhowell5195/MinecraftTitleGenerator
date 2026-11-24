@@ -15,8 +15,6 @@
   import { usePaged } from "../components/composables/paged.js"
   import { font, kerningFilter as filter, update } from "./store.js"
 
-  const PAIR_PAGE = 30
-  const SUGGESTION_PAGE = 90
   const FILTERS = [{ id: "all", label: "Everything", ranks: [0, 1, 2, 3, 4] }, { id: "letters", label: "Letters", ranks: [0] }, { id: "numbers", label: "Numbers", ranks: [1, 2] }, { id: "symbols", label: "Symbols", ranks: [3, 4] }]
 
   const custom = ref("")
@@ -54,8 +52,8 @@
     return allSuggestions.value.filter(({ pair }) => ranks.includes(pairRank(pair)) && matches(pair))
   })
 
-  const { shown: shownPairs, more: morePairs, end: pairsEnd } = usePaged(pairs, PAIR_PAGE, () => search.value)
-  const { shown: shownSuggestions, more: moreSuggestions, end: suggestionsEnd } = usePaged(suggestions, SUGGESTION_PAGE, () => [search.value, filter.value])
+  const { shown: shownPairs, more: morePairs, end: pairsEnd } = usePaged(pairs, 30, () => search.value)
+  const { shown: shownSuggestions, more: moreSuggestions, end: suggestionsEnd } = usePaged(suggestions, 90, () => [search.value, filter.value])
 
   function pairLabel(pair) {
     return Array.from(pair, char => char === CREEPER ? "A" : characterLabel(char, font.value.letterCase)).join("")

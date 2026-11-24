@@ -1,7 +1,6 @@
 import { packed } from "../../lib/core/colour.js"
 
 const TOLERANCE = 2
-const STOP_TOLERANCE = 1.5
 const HARD_EDGE = 24
 
 export function within(a, b, limit) {
@@ -66,7 +65,7 @@ export function majority(counts) {
   return best
 }
 
-export function simplifyStops(points, tolerance = STOP_TOLERANCE) {
+export function simplifyStops(points, tolerance = 1.5) {
   return furthestKept(points, tolerance, (point, from, to) => {
     const span = to.t - from.t
     const amount = span ? (point.t - from.t) / span : 0

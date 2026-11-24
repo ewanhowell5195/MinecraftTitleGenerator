@@ -14,8 +14,6 @@ export function shareLink() {
   return { link: url.href, skipped }
 }
 
-const TITLE_FILE_URL = /^https:\/\//
-
 async function openTitleUrl(address) {
   const response = await fetch(address).catch(() => null)
   if (!response?.ok) throw new Error(`its title file couldn't be downloaded${response ? ` (${response.status})` : ""}`)
@@ -26,7 +24,7 @@ export async function openSharedLink() {
   const code = new URLSearchParams(location.search).get(TITLE_PARAM)
   if (!code || presetsPage.open) return
   try {
-    if (TITLE_FILE_URL.test(code)) await openTitleUrl(code)
+    if (/^https:\/\//.test(code)) await openTitleUrl(code)
     else openTitleData(openableTitle(code))
     sharedLink.open = true
   } catch (err) {

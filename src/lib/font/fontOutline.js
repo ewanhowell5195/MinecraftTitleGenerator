@@ -2,7 +2,6 @@ import { highest, lowest, mostCommon } from "../core/maths.js"
 import { CREEPER, OPENING_QUOTE } from "./order.js"
 
 const CURVE_STEPS = 16
-const CAPITALS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 const EDGE_PROBE = 1
 const BANDS = 64
 const measured = new WeakMap()
@@ -146,7 +145,7 @@ export function lineUnits(font) {
 }
 
 function measuredLines(font) {
-  const glyphs = Array.from(CAPITALS, char => font.charToGlyph(char)).filter(glyph => glyph && glyph.index !== 0)
+  const glyphs = Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZ", char => font.charToGlyph(char)).filter(glyph => glyph && glyph.index !== 0)
   const tops = new Map()
   const bottoms = new Map()
   for (const glyph of glyphs) {

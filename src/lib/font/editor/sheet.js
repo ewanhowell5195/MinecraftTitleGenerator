@@ -5,7 +5,6 @@ import { charactersOf } from "./characters.js"
 import { depthOf, fontLayers } from "./depths.js"
 import { fontRows, glyphOf, inkExtent, isBlank, rowOfY, setGlyph, trimmed, widthOf } from "./glyph.js"
 
-const SHEETS_KEPT = 8
 const sheets = new Map()
 
 function sheetCell(font, glyph, layers = null) {
@@ -46,7 +45,7 @@ function builtSheet(font) {
     const capHeight = font.height * font.density
     built = { key, sheet: { ...drawnSheet(font, chars), capHeight }, parsed: new Map() }
     sheets.set(font.glyphs, built)
-    if (sheets.size > SHEETS_KEPT) sheets.delete(sheets.keys().next().value)
+    if (sheets.size > 8) sheets.delete(sheets.keys().next().value)
   }
   return built
 }

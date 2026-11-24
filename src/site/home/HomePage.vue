@@ -11,8 +11,7 @@
   import { ALL_STATS, WEEK_STATS, titleStats } from "../stats.js"
 
   const POPULAR_COUNT = 6
-  const MAKERS_SHOWN = 30
-  const makers = people.slice(0, MAKERS_SHOWN)
+  const makers = people.slice(0, 30)
 
   function hasWebGL() {
     const gl = document.createElement("canvas").getContext("webgl")

@@ -1,7 +1,5 @@
 import { USER_AGENT, bodyBytes, setting } from "./http.js"
 
-const API = "https://api.github.com"
-const REPOSITORY = "ewanhowell5195/MinecraftTitleGenerator"
 const TOKEN_MARGIN = 120000
 const WEBHOOK_BYTES = 5000000
 const RSA_ALGORITHM = [0x30, 0x0d, 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01, 0x05, 0x00]
@@ -16,7 +14,7 @@ export class GitHubError extends Error {
 }
 
 export function repository(env) {
-  return env.GITHUB_REPOSITORY ?? REPOSITORY
+  return env.GITHUB_REPOSITORY ?? "ewanhowell5195/MinecraftTitleGenerator"
 }
 
 function base64Url(bytes) {
@@ -59,7 +57,7 @@ async function appJwt(env) {
 }
 
 async function send(env, path, token, { method = "GET", body, accept = "application/vnd.github+json" } = {}) {
-  const response = await fetch(`${env.GITHUB_API ?? API}${path}`, {
+  const response = await fetch(`${env.GITHUB_API ?? "https://api.github.com"}${path}`, {
     method,
     headers: { Accept: accept, Authorization: `Bearer ${token}`, "User-Agent": USER_AGENT, "X-GitHub-Api-Version": "2022-11-28", ...(body !== undefined && { "Content-Type": "application/json" }) },
     body: body === undefined ? undefined : JSON.stringify(body)

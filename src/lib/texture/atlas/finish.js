@@ -15,7 +15,6 @@ const CLIP_PRECISION = 4
 
 const tileTotals = new WeakMap()
 const drawnLineCache = new WeakMap()
-const LINE_CACHE = 4
 
 function clippedTo(polygons, [left, top, right, bottom]) {
   if (!polygons.length) return polygons
@@ -376,7 +375,7 @@ export function finishAtlas(plan, page, painted, options) {
       }
     }
     const made = { lines, sideSum: sum }
-    if (known.size >= LINE_CACHE) known.delete(known.keys().next().value)
+    if (known.size >= 4) known.delete(known.keys().next().value)
     known.set(key, made)
     return made
   }

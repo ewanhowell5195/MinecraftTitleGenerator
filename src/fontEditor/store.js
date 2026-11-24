@@ -20,8 +20,6 @@ const STORAGE_KEY = "minecraft-title-font-editor"
 export const START_PATH = "/font-editor/"
 export const EDITOR_PATH = "/font-editor/editor"
 export const IMPORT_PATH = "/font-editor/import"
-const HISTORY_LIMIT = 200
-const SAVE_DELAY = 300
 
 export const font = shallowRef(null)
 export const selected = ref(Array.from(DEFAULT_ORDER)[1])
@@ -56,7 +54,7 @@ export const characters = computed(() => font.value ? charactersOf(font.value) :
 export const glyph = computed(() => font.value ? glyphOf(font.value, selected.value) : null)
 
 function remember() {
-  undoStack.value = undoStack.value.concat([font.value]).slice(-HISTORY_LIMIT)
+  undoStack.value = undoStack.value.concat([font.value]).slice(-200)
   redoStack.value = []
 }
 
@@ -250,7 +248,7 @@ export async function takeSubmissionFont() {
 
 watch([font, selected], () => {
   clearTimeout(saveTimer)
-  saveTimer = setTimeout(save, SAVE_DELAY)
+  saveTimer = setTimeout(save, 300)
 })
 
 watch(selected, () => {

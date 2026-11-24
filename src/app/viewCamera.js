@@ -7,7 +7,6 @@ import { frameCamera, titleFraming } from "../render/titleFraming.js"
 import { UNZOOMED, keptPan, panMatrix, pannedBy, screenExtent, zoomedAt } from "../render/pan.js"
 import { ORBIT_FOV, orbitDollied, orbitPanned, orbitStart, placeOrbit } from "../render/orbit.js"
 
-const MAX_SCALE = 5
 const NO_EXTENT = { left: 0, right: 0, bottom: 0, top: 0 }
 
 export function useViewCamera(rig, { props, entries, invalidate }) {
@@ -39,7 +38,7 @@ export function useViewCamera(rig, { props, entries, invalidate }) {
     extentFor = null
     const shot = titleFraming(props.items, title.camera.fixedDistance)
     if (!shot) return
-    frameCamera(rig.camera, { ...shot, angle: title.camera, ...rig.frameSize, maxScale: view.render ? Infinity : MAX_SCALE, frame: view.render ? { rect: frameRect, bounds: frameBounds, pixels: framePixels } : null })
+    frameCamera(rig.camera, { ...shot, angle: title.camera, ...rig.frameSize, maxScale: view.render ? Infinity : 5, frame: view.render ? { rect: frameRect, bounds: frameBounds, pixels: framePixels } : null })
     framed = true
     framedTitle = shot
     baseProjection.copy(rig.camera.projectionMatrix)

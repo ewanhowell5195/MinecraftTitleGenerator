@@ -24,7 +24,6 @@
   import { editorLine, useServedFont } from "../fontEditor/editorLine.js"
   import { stripGuides, stripThumbnail, thumbnailScene } from "../lib/font/stripThumbs.js"
 
-  const DRAW_DELAY = 300
   const VIEWS = [{ value: "2d", label: "2D" }, { value: "3d", label: "3D" }]
   const WORDS = {
     font: { yours: "your font", empty: "Nothing to show yet. Draw the characters in your text." },
@@ -169,7 +168,7 @@
 
   function scheduleThumbs() {
     clearTimeout(drawTimer)
-    drawTimer = setTimeout(drawThumbs, DRAW_DELAY)
+    drawTimer = setTimeout(drawThumbs, 300)
   }
 
   async function drawFlat() {

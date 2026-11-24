@@ -14,7 +14,6 @@ import { readStored } from "./view.js"
 import { shortNameProblem } from "../core/wording.js"
 
 const STORAGE = "minecraft-title-presets"
-const FALLBACK_NAME = "Title"
 export const NAME_LIMIT = LIMITS.name
 
 export const presets = ref([])
@@ -153,7 +152,7 @@ function cleanName(name) {
 export function addPreset(name, code) {
   const existing = savedWithCode(code)
   if (existing) return existing
-  const preset = { name: uniqueName(name || FALLBACK_NAME), code }
+  const preset = { name: uniqueName(name || "Title"), code }
   change(code, list => list.concat(preset), async () => {
     const kept = await uploadSaved([preset])
     if (kept.length) keepInBrowser(code)

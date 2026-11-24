@@ -23,7 +23,6 @@
   import SubmissionForm from "./SubmissionForm.vue"
   import { router } from "../router.js"
 
-  const PROCESSING_POLL = 5000
   const TABS = [{ id: "comments", label: "Comments" }, { id: "characters", label: "Characters" }, { id: "files", label: "Files" }]
 
   const props = defineProps({
@@ -91,7 +90,7 @@
       known.value = true
     }
     if (gone) return
-    if (processing.value.state === "processing") pollTimer = setTimeout(checkProcessing, PROCESSING_POLL)
+    if (processing.value.state === "processing") pollTimer = setTimeout(checkProcessing, 5000)
     else if (before === "processing") load()
   }
 

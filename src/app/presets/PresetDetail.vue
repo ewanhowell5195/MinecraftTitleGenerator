@@ -21,8 +21,6 @@
     searched: { type: Boolean, default: false }
   })
 
-  const COPY_MESSAGE_TIME = 2000
-
   const emit = defineEmits(["close", "open", "save", "vote", "rename", "remove", "share", "view", "user"])
 
   const renaming = ref(false)
@@ -49,7 +47,7 @@
   function showCopyMessage(text) {
     copyMessage.value = text
     clearTimeout(copying)
-    copying = setTimeout(() => copyMessage.value = "", COPY_MESSAGE_TIME)
+    copying = setTimeout(() => copyMessage.value = "", 2000)
   }
 
   async function copyLink() {

@@ -6,7 +6,6 @@ import { keepTexture, keptObject, leaveSharedLink, scene, validSelection } from 
 import { loadKey } from "../geometry/shapes.js"
 import { trackEach } from "./tracking.js"
 
-const LIMIT = 200
 const SETTLE = 300
 const LONG = 1024
 const EMPTY_OBJECTS = `{"objects":[]`
@@ -71,7 +70,7 @@ function commit() {
   }
   if (changed) {
     history.undo.push(present)
-    if (history.undo.length > LIMIT) history.undo.shift()
+    if (history.undo.length > 200) history.undo.shift()
     history.redo = []
   }
   present = snapshot

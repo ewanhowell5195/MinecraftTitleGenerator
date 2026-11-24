@@ -13,7 +13,6 @@ const YAW = 30
 const PITCH = 25
 const DEEP = 0.75
 const FADED = 0.3
-const BORDER = "#000000"
 const SHADES = { north: 1, south: 1, up: 0.69, down: 0.6, east: 0.85, west: 0.85 }
 
 function radians(degrees) {
@@ -224,7 +223,7 @@ export function modelThumbnails(root, id) {
   const list = readJson(path.join(folder, "textures.json"))
   const view = facesFront(model) ? frontView : angledView
   const textures = Object.entries(list.textures).flatMap(([name, data]) => [[name, data.border]].concat(Object.entries(data.variants ?? {}).map(([variant, own]) => [variant, own.border ?? data.border])))
-  const views = new Map(textures.map(([name, border]) => [name, view(model, readPng(path.join(folder, "textures", `${name}.png`)), rgbOf(border ?? BORDER).slice(0, 3))]))
+  const views = new Map(textures.map(([name, border]) => [name, view(model, readPng(path.join(folder, "textures", `${name}.png`)), rgbOf(border ?? "#000000").slice(0, 3))]))
   if (!views.has("flat")) views.set("flat", views.get(list.primary ?? textures[0][0]))
   const flat = path.join(folder, "textures", "flat.png")
   for (const [name, data] of Object.entries(list.overlays ?? {})) {

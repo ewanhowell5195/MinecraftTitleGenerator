@@ -6,7 +6,6 @@ export const MODEL_LIMITS = { elements: 1000, reach: 100 }
 const SIDES = ["north", "south", "east", "west", "up", "down"]
 const AXES = ["x", "y", "z"]
 const FACE_TURNS = [0, 90, 180, 270]
-const ALIAS_DEPTH = 16
 
 function numbers(value, length) {
   return Array.isArray(value) && value.length === length && value.every(Number.isFinite)
@@ -32,7 +31,7 @@ function spriteOf(entry) {
 
 function textureOf(textures, reference) {
   let value = reference
-  for (let depth = 0; depth < ALIAS_DEPTH && value.startsWith("#"); depth++) {
+  for (let depth = 0; depth < 16 && value.startsWith("#"); depth++) {
     const next = spriteOf(textures[value.slice(1)])
     if (next === null) return value
     value = next

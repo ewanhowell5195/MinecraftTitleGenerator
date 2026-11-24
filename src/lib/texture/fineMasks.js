@@ -6,7 +6,6 @@ import { faceLimits, liftedRings, ringWalls, rowMapping } from "../geometry/mesh
 const CORNER_WINDOW = 2
 const CORNER_TURN = Math.PI / 3
 const SHARP_INSIDE = Math.PI / 6
-const SHORTEST_RUN = 1
 const SHARP_TURN = Math.PI / 6
 const BEND_TURN = Math.PI / 24
 const LONG_EDGE = 2
@@ -134,7 +133,7 @@ function longRuns(edges, [tx, ty], least) {
       run.push(at)
       length += Math.hypot(edges[at][2] - edges[at][0], edges[at][3] - edges[at][1])
     }
-    if (length < SHORTEST_RUN) for (const at of run) kept[at] = false
+    if (length < 1) for (const at of run) kept[at] = false
   }
   return kept
 }

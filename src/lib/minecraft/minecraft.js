@@ -9,7 +9,6 @@ import { platform } from "../core/platform.js"
 
 const BLOCK_TEXTURE = /^(?:assets\/minecraft\/)?textures\/blocks?\/([^/]+)\.png$/
 const FIRST_BLOCK_FOLDER = Date.parse("2013-01-10T00:00:00+00:00")
-const GRASS_COLORMAP = "assets/minecraft/textures/colormap/grass.png"
 
 const assets = new MinecraftAssets()
 const loaded = new Map()
@@ -77,7 +76,7 @@ async function readTexture(bytes, tint = null) {
 }
 
 async function colormapReader(version) {
-  const bitmap = await platform.decodePng(await assets.read(GRASS_COLORMAP, { version }))
+  const bitmap = await platform.decodePng(await assets.read("assets/minecraft/textures/colormap/grass.png", { version }))
   const { ctx } = surface(bitmap.width, bitmap.height, { willReadFrequently: true })
   ctx.drawImage(bitmap, 0, 0)
   bitmap.close?.()

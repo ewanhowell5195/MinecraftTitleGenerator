@@ -5,7 +5,6 @@ import { fontFromShapes } from "./editor/import.js"
 import { sourceChars } from "./fontOutline.js"
 import { VANILLA_DEFAULT, VANILLA_SPACE } from "./minecraftVanilla.js"
 
-const DEFAULT_GLYPH_HEIGHT = 8
 const SPACE_ADVANCE = 4
 const SUGGESTED_PIXELS = 40
 const CAPITALS = Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -75,7 +74,7 @@ function inkOf(cell) {
 function bitmapGlyphs(provider, image, rows) {
   const cellWidth = Math.floor(image.width / rows[0].length)
   const cellHeight = Math.floor(image.height / rows.length)
-  const scale = (provider.height ?? DEFAULT_GLYPH_HEIGHT) / cellHeight
+  const scale = (provider.height ?? 8) / cellHeight
   const glyphs = new Map()
   if (!cellWidth || !cellHeight) return glyphs
   rows.forEach((row, r) => row.forEach((char, c) => {

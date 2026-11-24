@@ -20,7 +20,6 @@ const FONT_ID_LENGTH = 40
 const RESERVED = ["textures", "overlays", "thumbnails"]
 const RESERVED_PREFIXES = ["custom-", "editor-preview-"]
 export const EXTRA_KINDS = ["flat", "texture", "overlay", "strip"]
-const FLAT_NAME = "Flat"
 const RESERVED_ASSETS = new Set(["flat"].concat(Object.keys(withGenerated({})), Object.keys(GENERATED_EDGE_OVERLAYS)))
 const built = new WeakMap()
 
@@ -192,7 +191,7 @@ function extrasOf(list, files, stored, template, problems) {
     const named = flat ? null : textProblem(item.name ?? "", "name", SUBMISSION_LIMITS.name, { required: true, noun: item.kind })
     const credit = authorList(item.credit)
     const credited = creditProblem(credit, item.kind, false)
-    const name = flat ? FLAT_NAME : named ? "" : item.name.trim()
+    const name = flat ? "Flat" : named ? "" : item.name.trim()
     const id = flat ? "" : name ? assetId(name, new Set()) : ""
     const bordered = item.kind !== "overlay"
     const border = bordered && typeof item.border === "string" && HEX_COLOUR.test(item.border) ? item.border.toLowerCase() : null

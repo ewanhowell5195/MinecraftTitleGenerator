@@ -4,7 +4,6 @@ import { setting } from "./http.js"
 
 const SITE = "https://mctitlegenerator.com"
 const FROM = "Minecraft Title Generator <notifications@mctitlegenerator.com>"
-const RESEND = "https://api.resend.com/emails"
 const UNSENDABLE = [400, 422]
 
 const FONT = "system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
@@ -85,7 +84,7 @@ function gitHubEmail(to, event) {
 }
 
 async function send(env, message) {
-  const response = await fetch(RESEND, { method: "POST", headers: { Authorization: `Bearer ${setting(env, "RESEND_API_KEY")}`, "Content-Type": "application/json" }, body: JSON.stringify(message) })
+  const response = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${setting(env, "RESEND_API_KEY")}`, "Content-Type": "application/json" }, body: JSON.stringify(message) })
   if (!response.ok) throw Object.assign(new Error(`Resend refused an email to a notification recipient (${response.status}): ${await response.text()}`), { status: response.status })
 }
 

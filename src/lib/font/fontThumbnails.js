@@ -13,7 +13,6 @@ import { layerDefault, overlayLayer, perLayerDefault } from "../settings/texture
 import { bandEntry, stripCovers, stripLayout, stripRange } from "./strips.js"
 import { MARGIN, drawLayer, drawRing, drawStrip, over, sceneFrame } from "./thumbnails.js"
 
-const BACKGROUND_ALPHA = 0.3
 const AUTO_BORDER_ALPHA = 77
 const SUPERSAMPLE = 4
 
@@ -303,7 +302,7 @@ export async function fontThumbnails(entry, scene, textures, load) {
 
   async function drawAll(shown, prefix, layer) {
     const own = { ...context, scene: shown }
-    const background = fade(render(shown, flat, { density: densityOf(flat), border: flatBorder, width, ring: shown.ring }), BACKGROUND_ALPHA)
+    const background = fade(render(shown, flat, { density: densityOf(flat), border: flatBorder, width, ring: shown.ring }), 0.3)
     if (entry.autoBorder) frameFill(background, [flatBorder[0], flatBorder[1], flatBorder[2], AUTO_BORDER_ALPHA])
     for (const [id, data] of Object.entries(meta.textures)) {
       if (!stripCovers(data, layer, scene.layers?.length ?? 1)) continue

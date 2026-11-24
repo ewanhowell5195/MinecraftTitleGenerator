@@ -17,7 +17,6 @@ import { trackEach } from "./tracking.js"
 const STORAGE = "minecraft-title-scene"
 const LARGE = "large"
 const UNVERSIONED = 4
-const FILE_NAME_LIMIT = 64
 
 export const keepTexture = new WeakSet()
 
@@ -252,7 +251,7 @@ export function casedTitle() {
 
 export function fileNameOf(text, fallback) {
   const name = text.toLowerCase().replace(/[\\/:*?"<>|\s]+/g, "_").replace(/^[_.]+|[_.]+$/g, "")
-  return Array.from(name).slice(0, FILE_NAME_LIMIT).join("").replace(/[_.]+$/, "") || fallback
+  return Array.from(name).slice(0, 64).join("").replace(/[_.]+$/, "") || fallback
 }
 
 export function titleFileName() {

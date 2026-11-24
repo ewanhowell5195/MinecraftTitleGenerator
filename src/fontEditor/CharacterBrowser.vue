@@ -9,7 +9,6 @@
 
   const CHUNK = 128
   const FIRST_CHUNKS = 4
-  const MORE_CHUNKS = 1
 
   const props = defineProps({
     title: { type: String, required: true },
@@ -93,7 +92,7 @@
   function showMore() {
     timer = 0
     if (shown.value >= chunkCount.value) return
-    shown.value += MORE_CHUNKS
+    shown.value++
     timer = setTimeout(showMore)
   }
 

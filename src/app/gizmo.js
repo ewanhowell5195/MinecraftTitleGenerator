@@ -5,8 +5,6 @@ const PLANES = { YZ: "X", XZ: "Y", XY: "Z" }
 const AXES = { X: new THREE.Vector3(1, 0, 0), Y: new THREE.Vector3(0, 1, 0), Z: new THREE.Vector3(0, 0, 1) }
 const RADIUS = 96
 const SHAFT = 0.014
-const LIGHTEN = 0.45
-const FADED = 0.15
 const RING = 0.9
 const MIN_SPEED = 0.35
 const EDGE_ON = 0.35
@@ -431,8 +429,8 @@ export class Gizmo extends THREE.EventDispatcher {
     for (const handle of this.modes[this.mode].handles) {
       const active = handle.axis === this.axis
       handle.material.color.copy(handle.base)
-      if (active) handle.material.color.lerp(new THREE.Color(1, 1, 1), LIGHTEN)
-      handle.material.opacity = this.dragging && !active ? FADED : active ? 1 : handle.opacity
+      if (active) handle.material.color.lerp(new THREE.Color(1, 1, 1), 0.45)
+      handle.material.opacity = this.dragging && !active ? 0.15 : active ? 1 : handle.opacity
     }
   }
 

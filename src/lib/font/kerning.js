@@ -2,8 +2,6 @@ import { mostCommon } from "../core/maths.js"
 import { CREEPER, TERMINATOR_CLOSE, TERMINATOR_OPEN } from "./order.js"
 
 const SKIPPED = new Set([" ", TERMINATOR_OPEN, TERMINATOR_CLOSE])
-const LETTER = /^\p{L}$/u
-const DIGIT = /^[0-9]$/
 const MAIN_SYMBOL = /^[$£€()[\]{}/\\?]$/
 
 export function kerningPairs(grouped, owner) {
@@ -20,7 +18,7 @@ export function groupedKerning(pairs) {
 }
 
 export function pairRank(pair) {
-  const kinds = Array.from(pair, char => char === CREEPER || LETTER.test(char) ? "letter" : DIGIT.test(char) ? "digit" : MAIN_SYMBOL.test(char) ? "main" : "symbol")
+  const kinds = Array.from(pair, char => char === CREEPER || /^\p{L}$/u.test(char) ? "letter" : /^[0-9]$/.test(char) ? "digit" : MAIN_SYMBOL.test(char) ? "main" : "symbol")
   if (kinds.includes("symbol")) return 4
   if (kinds.includes("main")) return 3
   if (kinds.every(kind => kind === "letter")) return 0

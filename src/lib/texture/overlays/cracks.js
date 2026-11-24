@@ -3,7 +3,6 @@ import { clamp } from "../../core/maths.js"
 import { hashed, random } from "./random.js"
 import { settingsOf } from "./settings.js"
 
-const CRACK_SPACING = 1800
 const CRACK_BLEND = 0.5
 const CRACK_CORNER = 2
 const CRACK_EDGE_GAP = 0.5
@@ -11,7 +10,6 @@ const CRACK_TIP_GAP = 0.99
 const CRACK_SHRINK = 0.3
 const CRACK_SHRINK_STEPS = 6
 const CRACK_GAP = 2
-const CRACK_VARIETY = 0.6
 const CRACK_SCATTER = 0.4
 const CRACK_OPPOSITE = 6
 const CRACK_STEEP_REACH = 2
@@ -102,8 +100,8 @@ function repeated(crack, glyph, settings) {
 }
 
 function crackCandidates(glyph, settings) {
-  const gap = CRACK_SPACING / 100
-  const vary = CRACK_VARIETY
+  const gap = 18
+  const vary = 0.6
   const list = []
   const edges = crackEdges(glyph)
   const lines = side => edges.filter(edge => edge.side === side).map(edge => edge.line)

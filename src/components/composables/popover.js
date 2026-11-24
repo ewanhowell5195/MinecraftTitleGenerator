@@ -1,7 +1,6 @@
 import { watch } from "vue"
 import { useWindowEvents } from "./events.js"
 
-const REOPEN_DELAY = 300
 const MOVED = 1
 
 export function usePopover(open, { popover, trigger = () => null, focus = trigger, close }) {
@@ -40,6 +39,6 @@ export function reopenGuard() {
   let closed = null
   return {
     note: (key = null) => (closed = { key, time: performance.now() }),
-    recent: (key = null) => closed?.key === key && performance.now() - closed.time < REOPEN_DELAY
+    recent: (key = null) => closed?.key === key && performance.now() - closed.time < 300
   }
 }

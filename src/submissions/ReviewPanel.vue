@@ -26,8 +26,6 @@
     unknown: "GitHub is still checking it."
   }
   const READY = new Set(["clean", "behind", "has_hooks"])
-  const UNKNOWN_TRIES = 6
-  const UNKNOWN_WAIT = 5000
 
   let retry
   let gone = false
@@ -40,7 +38,7 @@
   const busy = ref(false)
   const error = ref("")
 
-  async function check(tries = UNKNOWN_TRIES) {
+  async function check(tries = 6) {
     clearTimeout(retry)
     error.value = ""
     try {
@@ -49,7 +47,7 @@
       error.value = err.message
       return
     }
-    if (!gone && state.value === "unknown" && tries > 1) retry = setTimeout(() => check(tries - 1), UNKNOWN_WAIT)
+    if (!gone && state.value === "unknown" && tries > 1) retry = setTimeout(() => check(tries - 1), 5000)
   }
 
   async function act(action) {

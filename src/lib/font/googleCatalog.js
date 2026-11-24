@@ -1,4 +1,3 @@
-const METADATA = "https://fonts.google.com/metadata/fonts"
 const REGULAR = 400
 
 export const GOOGLE_STATS = "google"
@@ -14,7 +13,7 @@ function regularStyle(styles) {
 }
 
 export async function googleCatalog(userAgent) {
-  const response = await fetch(METADATA, { headers: { "User-Agent": userAgent } })
+  const response = await fetch("https://fonts.google.com/metadata/fonts", { headers: { "User-Agent": userAgent } })
   if (!response.ok) throw new Error(`Google Fonts answered ${response.status}`)
   const { familyMetadataList } = await response.json()
   return familyMetadataList.filter(font => font.subsets.includes("latin")).sort((a, b) => a.popularity - b.popularity).map(font => {

@@ -4,16 +4,12 @@ import { platform } from "../core/platform.js"
 import { sameValue } from "../core/values.js"
 import { CATALOG_VERSION } from "./googleCatalog.js"
 
-const LIST = `/api/google-fonts?v=${CATALOG_VERSION}`
 const STYLESHEET = "https://fonts.googleapis.com/css2"
 const FILE = /url\((https:\/\/fonts\.gstatic\.com\/[^)]+)\)/
 const TEXT = encodeURIComponent([" "].concat(MULTICASE_CHARACTERS).join(""))
 const PREVIEW_TEXT = "ABC"
-const PREVIEW_PREFIX = "Google preview "
 const PREVIEW_BATCH = 24
-const PREVIEW_WAIT = 50
 const FACES = /font-family: '([^']+)';[^}]*?src: url\((https:\/\/fonts\.gstatic\.com\/[^)]+)\)/g
-const HEIGHT = 40
 const FAMILY = /^[A-Za-z0-9 ]{1,80}$/
 const STYLE = /^\d{1,4}i?$/
 const WEIGHT_NAMES = { 100: "Thin", 200: "Extra Light", 300: "Light", 400: "Regular", 500: "Medium", 600: "Semi Bold", 700: "Bold", 800: "Extra Bold", 900: "Black", 1000: "Extra Black" }
@@ -25,7 +21,7 @@ let queued = []
 let flushing = null
 
 export function googleFontList() {
-  listing ??= fetched(LIST, "The Google Fonts list").then(response => response.json()).then(body => body.fonts).catch(err => {
+  listing ??= fetched(`/api/google-fonts?v=${CATALOG_VERSION}`, "The Google Fonts list").then(response => response.json()).then(body => body.fonts).catch(err => {
     listing = null
     throw err
   })
@@ -37,7 +33,7 @@ export function isGoogleFont(value) {
 }
 
 export function googleFontSource(family, style) {
-  return { kind: "outline", google: family, style, height: HEIGHT, mesh: true }
+  return { kind: "outline", google: family, style, height: 40, mesh: true }
 }
 
 export function styleParts(style) {
@@ -58,7 +54,7 @@ function familyQuery({ family, style }) {
 
 function previewName(family, text) {
   if (!sampleTexts.has(text)) sampleTexts.set(text, sampleTexts.size)
-  return `${PREVIEW_PREFIX}${sampleTexts.get(text)} ${family}`
+  return `Google preview ${sampleTexts.get(text)} ${family}`
 }
 
 export function googlePreviewFamily(family, text = PREVIEW_TEXT) {
@@ -98,7 +94,7 @@ export function googlePreview(font, text = PREVIEW_TEXT) {
     const settle = {}
     previews.set(key, new Promise((resolve, reject) => Object.assign(settle, { resolve, reject })))
     queued.push({ font, text, settle })
-    flushing ??= setTimeout(flushPreviews, PREVIEW_WAIT)
+    flushing ??= setTimeout(flushPreviews, 50)
   }
   return previews.get(key)
 }

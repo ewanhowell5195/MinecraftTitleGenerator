@@ -6,7 +6,6 @@ import { inline, quoted } from "./quoted.js"
 
 export const BASE = "main"
 const UNAVAILABLE = "GitHub isn't taking submissions right now. Try again in a few minutes."
-const ANONYMOUS = "Sent from the website."
 const UNMERGEABLE = [405, 409, 422]
 const WORKFLOW = "submission.yml"
 // the commit message .github/workflows/submission.yml makes after converting
@@ -36,7 +35,7 @@ function pullText(env, origin, row, described, preview, commit) {
   const sourced = JSON.parse(row.details)
   const body = [
     `New ${phrase(noun, inline(row.name), described.where)}, credited to ${row.credit.map(inline).join(", ")}.`,
-    row.ownerName ? `Sent from the website by ${inline(row.ownerName)} (${row.ownerProvider}).` : ANONYMOUS,
+    row.ownerName ? `Sent from the website by ${inline(row.ownerName)} (${row.ownerProvider}).` : "Sent from the website.",
     `**[Preview it on the site](${origin}/submissions/${row.id})**`,
     preview ? `<img src="https://raw.githubusercontent.com/${repository(env)}/${commit}/${preview}" alt="" width="512">` : null,
     row.notes ? `Notes from the submitter:\n\n${quoted(row.notes)}` : null,

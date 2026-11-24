@@ -1,8 +1,6 @@
 import { onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { cachedCommunity, listCommunity } from "../../lib/state/community.js"
 
-const SEARCH_DELAY = 500
-
 export function usePresetPaging({ sort, search, active, loaded }) {
   const cached = active() ? cachedCommunity({ sort: sort.value, search: search.value, offset: 0 }) : null
   const results = ref(cached?.presets ?? [])
@@ -42,7 +40,7 @@ export function usePresetPaging({ sort, search, active, loaded }) {
   watch(search, () => {
     clearTimeout(searching)
     if (!active()) return
-    searching = setTimeout(() => load(0), SEARCH_DELAY)
+    searching = setTimeout(() => load(0), 500)
   })
 
   onMounted(() => {

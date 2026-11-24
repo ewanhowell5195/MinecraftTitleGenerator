@@ -1,9 +1,8 @@
-const DATABASE = "minecraft-title"
 const STORE = "saves"
 
 function opened() {
   return new Promise((fulfil, reject) => {
-    const request = indexedDB.open(DATABASE, 1)
+    const request = indexedDB.open("minecraft-title", 1)
     request.onupgradeneeded = () => request.result.createObjectStore(STORE)
     request.onsuccess = () => fulfil(request.result)
     request.onerror = () => reject(request.error)
