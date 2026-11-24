@@ -1,12 +1,17 @@
 import * as THREE from "three"
 
+// Blockbench's three doesn't turn normalised attributes back into 0 to 1
+function colourAt({ array, itemSize, normalized }, at) {
+  return [0, 1, 2].map(channel => array[at * itemSize + channel] / (normalized ? 2 ** (array.BYTES_PER_ELEMENT * 8) - 1 : 1))
+}
+
 function corner(mesh, at) {
   const { position, uv, color } = mesh.geometry.attributes
   return {
     key: `${position.getX(at)},${position.getY(at)},${position.getZ(at)},${uv.getX(at)},${uv.getY(at)}`,
     point: new THREE.Vector3().fromBufferAttribute(position, at).applyMatrix4(mesh.matrixWorld),
     uv: [uv.getX(at), uv.getY(at)],
-    tint: color ? [color.getX(at), color.getY(at), color.getZ(at)] : [1, 1, 1]
+    tint: color ? colourAt(color, at) : [1, 1, 1]
   }
 }
 
