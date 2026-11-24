@@ -13,7 +13,8 @@ function stubFetch(url, options) {
 quietStorage()
 globalThis.fetch = stubFetch
 
-const { byUsage, loadStats, popular, statScope } = await import("../../src/lib/state/stats.js")
+const { statScope } = await import("../../src/lib/title/statIds.js")
+const { byUsage, loadStats, popular } = await import("../../src/lib/state/stats.js")
 
 function statsOf(entries) {
   return { ok: true, status: 200, json: async () => entries }

@@ -1,13 +1,14 @@
 import { before, describe, test } from "node:test"
 import assert from "node:assert/strict"
+import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { build } from "vite"
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url))
 const ENTRY = "shared-code"
-const SHARED = ["src/lib/link/linkformat.js", "src/lib/title/titleData.js", "src/lib/title/items.js", "src/lib/title/match.js", "src/lib/core/platform.js", "src/render/ModelRenderer.js", "src/render/ObjectRenderer.js", "src/render/render.js", "src/render/stage.js", "src/render/titlePicture.js"]
-const SITE_ONLY = /^src\/(app|components|fontEditor|issues|prerender|server|site|styles|submissions|lib\/(issues|state|submissions)|render\/framing)\b/
+const SHARED = ["src/lib/link/linkformat.js", "src/lib/title/titleData.js", "src/lib/title/items.js", "src/lib/title/match.js", "src/lib/core/platform.js", "src/render/ModelRenderer.js", "src/render/ObjectRenderer.js", "src/render/render.js", "src/render/stage.js", "src/render/titlePicture.js"].concat(fs.readdirSync(new URL("../../src/lib/panels/", import.meta.url)).map(file => `src/lib/panels/${file}`))
+const SITE_ONLY = /^src\/(app|components|fontEditor|issues|prerender|server|site|styles|submissions|lib\/(issues|state|submissions))\b/
 const GIVEN = new Set(["three", "vue"])
 
 const entry = {

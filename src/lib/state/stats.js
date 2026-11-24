@@ -2,7 +2,7 @@ import { shallowRef } from "vue"
 import { scene } from "./scene.js"
 import { isCustomFont } from "../settings/settings.js"
 import { OVERLAY_KINDS } from "../settings/textureDefaults.js"
-import { GOOGLE_STATS } from "../font/googleCatalog.js"
+import { googleFamily, googleStatId, statScope } from "../title/statIds.js"
 
 const API = "https://api.wynem.com/minecrafttitlegenerator/stats"
 
@@ -30,22 +30,6 @@ export function byUsage(entries, id) {
 
 export function usage(ids) {
   return ids.reduce((total, id) => total + (counts.value.get(id) ?? 0), 0)
-}
-
-export function minecraftStatId(id) {
-  return `tileable.minecraft.${id}`
-}
-
-export function googleStatId(family) {
-  return `${GOOGLE_STATS}.${family}`
-}
-
-function googleFamily(object) {
-  return isCustomFont(object.font) ? object.customFont?.google ?? null : null
-}
-
-export function statScope(object, id) {
-  return googleFamily(object) ? GOOGLE_STATS : id
 }
 
 function statIds() {

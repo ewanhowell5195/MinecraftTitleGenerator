@@ -1,4 +1,4 @@
-const CENTRE_HINT = "0 is the left end and 100 is the right end."
+export const CENTRE_HINT = "0 is the left end and 100 is the right end."
 
 function amount(key) {
   return { type: "slider", key, label: "Amount", min: -180, max: 180 }

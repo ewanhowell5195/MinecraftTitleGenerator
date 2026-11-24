@@ -1,7 +1,5 @@
 import { nextTick, ref, watch } from "vue"
 
-export const SEARCH_ABOVE = 9
-
 export function variantRows(variants) {
   return Math.ceil((variants.length + 1) / 3)
 }

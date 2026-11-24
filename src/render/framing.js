@@ -5,11 +5,18 @@ import { clamp } from "../lib/core/maths.js"
 import { EXACT, aspectOf, compose, composeBackground, drawnTitle, fromAspect, minecraftLayout, placement } from "./compose.js"
 import { matchImages } from "./layers.js"
 import { composeVector } from "./vector/svg.js"
-import { view, viewport } from "../lib/state/view.js"
 
 export const FRAMINGS = [{ value: "normal", label: "Normal" }, { value: "square", label: "Square" }, { value: "custom", label: "Custom" }, { value: "minecraft", label: "Minecraft" }]
 export const MINECRAFT_MODES = [{ value: "1.20", label: "1.20+ Title Texture" }, { value: "1.19", label: "1.19- Title Texture" }, { value: "mojang", label: "Mojang Studios Texture" }]
 const TEXTURE_SIZES = [256, 512, 1024, 2048]
+
+let view = null
+let viewport = null
+
+export function useFraming(bound) {
+  view = bound.view
+  viewport = bound.viewport
+}
 
 const DEFAULTS = {
   tab: "normal",

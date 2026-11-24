@@ -2,6 +2,7 @@
   import { computed, nextTick, ref } from "vue"
   import { followPointer, useReorderDrag } from "../../components/composables/reorder.js"
   import { addWord, insertWord, removeObject, runtime, scene, select, selection, words } from "../../lib/state/scene.js"
+  import { splitWord } from "../../lib/panels/words.js"
   import { resetPanel } from "../../lib/settings/settings.js"
   import { splitGradients } from "../../lib/texture/wordGradients.js"
   import Button from "../../components/Button.vue"
@@ -43,17 +44,15 @@
   }
 
   function split({ word, start, end }) {
-    const text = word.text
-    const parts = [[0, start], [start, end], [end, text.length]].filter(([from, to]) => text.slice(from, to).trim())
-    if (parts.length < 2 || !parts.some(([from, to]) => from === start && to === end)) return false
-    const values = parts.map(([from, to], index) => ({ text: text.slice(from, to).trim(), spaceBefore: index ? /\s/.test(text[from - 1] + text[from]) : word.spaceBefore }))
-    const gradients = splitGradients(runtime[word.id]?.font, line.value, word, values)
+    const parts = splitWord(word, start, end)
+    if (!parts) return false
+    const gradients = splitGradients(runtime[word.id]?.font, line.value, word, parts)
     let last = word
     let target = word
-    for (const [index, [from]] of parts.entries()) {
-      if (index) last = insertWord(last, { ...values[index], ...gradients[index] })
-      else Object.assign(word, { text: values[0].text }, gradients[0])
-      if (from === start) target = last
+    for (const [index, { text, spaceBefore, picked }] of parts.entries()) {
+      if (index) last = insertWord(last, { text, spaceBefore, ...gradients[index] })
+      else Object.assign(word, { text }, gradients[0])
+      if (picked) target = last
     }
     select(target)
     return true

@@ -4,7 +4,7 @@ import { applyType } from "../settings/defaults.js"
 import { hoisted, lowered } from "../link/linkformat.js"
 import { round } from "../core/maths.js"
 import { createObject } from "../settings/objects.js"
-import { framing } from "../../render/framing.js"
+import { framing, useFraming } from "../../render/framing.js"
 import { LINE, isModified, snapshot } from "../settings/settings.js"
 import { plainCopy } from "../core/values.js"
 import { shapeName } from "../geometry/shapes.js"
@@ -13,7 +13,7 @@ import { createTitle, linesOf, wordsOf } from "../title/title.js"
 import { joinWords, titleLines, titleValues, trimmed } from "../link/titleLines.js"
 import { FILE_VERSION } from "../settings/upgrades.js"
 import { userBusy } from "./activity.js"
-import { readStored, view } from "./view.js"
+import { readStored, view, viewport } from "./view.js"
 import { readLarge, removeLarge, writeLarge } from "./largeStore.js"
 import { trackEach } from "./tracking.js"
 
@@ -69,6 +69,8 @@ async function load() {
     return fresh(err.message)
   }
 }
+
+useFraming({ view, viewport })
 
 const initial = await load()
 

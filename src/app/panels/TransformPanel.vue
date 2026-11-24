@@ -1,38 +1,27 @@
 <script setup>
   import { computed } from "vue"
-  import { leadsTo } from "../../lib/title/match.js"
-  import { previews } from "../previews.js"
-  import { TYPES } from "../../lib/settings/defaults.js"
+  import { MATCH_PANEL, SCALING_PANEL } from "../../lib/panels/transform.js"
+  import { usePanelState } from "../../lib/panels/panel.js"
   import { TRANSFORM_GROUPS, TRANSFORM_LIMITS, isModified, resetTransform, transformKeys, wordKey } from "../../lib/settings/settings.js"
-  import { hasMarks } from "../../lib/font/stretchMarks.js"
-  import { active, bakeMatch, chooseMatch, current, currentWord, editorTitle, lineText, scene, selection, setScale, words } from "../../lib/state/scene.js"
+  import { current, currentWord, setScale } from "../../lib/state/scene.js"
   import Button from "../../components/Button.vue"
-  import Dropdown from "../../components/Dropdown.vue"
+  import DataControls from "./DataControls.vue"
+  import DataPanel from "./DataPanel.vue"
   import Panel from "../Panel.vue"
-  import Segments from "../../components/Segments.vue"
   import Slider from "../../components/Slider.vue"
-  import Toggle from "../../components/Toggle.vue"
 
   const props = defineProps({
     word: { type: Boolean, default: false }
   })
 
   const AXIS_PANELS = [["translation", "Position"], ["rotation", "Rotation"]]
-  const MATCH_MODES = [{ value: true, label: "Bottom edge", title: "The widest point in the bottom of the row" }, { value: false, label: "Widest part", title: "The widest point in the row" }]
 
   const object = computed(() => props.word ? currentWord.value : current.value)
   const k = key => props.word ? wordKey(key) : key
 
   const modified = computed(() => Object.fromEntries(Object.keys(TRANSFORM_GROUPS).map(group => [group, isModified(object.value, props.word ? "wordTransform" : "transform", {}, transformKeys(group, props.word))])))
-  const own = computed(() => words(selection.value[0]))
-  const references = computed(() => scene.objects.filter(other => !own.value.includes(other) && words(other)[0] === other && !own.value.some(word => leadsTo(other, word, editorTitle))))
-  const matched = computed(() => {
-    const target = scene.objects.find(other => other.id === object.value.matchWidth)
-    return target ? words(target)[0].id : object.value.matchWidth
-  })
-  const matchOptions = computed(() => [{ value: null, label: "None" }].concat(references.value.map(other => ({ value: other.id, label: lineText(other) || "(empty)", hint: TYPES[other.type].name, image: previews[other.id] }))))
   const linked = computed(() => object.value[k("linkScale")] !== null)
-  const marked = computed(() => hasMarks(active.value.font))
+  const scaling = usePanelState(SCALING_PANEL, props.word)
 
   function setting(key) {
     return computed({
@@ -51,15 +40,7 @@
 </script>
 
 <template>
-  <Panel v-if="!word && (references.length || object.matchWidth !== null)" title="Match width to" :modified="modified.match" @reset="resetTransform(object, 'match')">
-    <Dropdown :options="matchOptions" :model-value="matched" @update:model-value="chooseMatch(selection[0], $event)" />
-    <template v-if="object.matchWidth !== null">
-      <Segments :options="MATCH_MODES" v-model="object.matchBottom" />
-      <Toggle label="Scale Y to match too" v-model="object.matchScaleY" />
-      <p v-if="editorTitle.problems[object.id]" class="hint">{{ editorTitle.problems[object.id] }}</p>
-      <Button class="bake" v-tooltip="'Stop matching and move its scale and position into the sliders'" @click="bakeMatch(selection[0])">Bake match</Button>
-    </template>
-  </Panel>
+  <DataPanel :panel="MATCH_PANEL" :word="word" />
   <Panel v-for="[group, title] of AXIS_PANELS" :key="group" :title="title" :modified="modified[group]" @reset="resetTransform(object, group, word)">
     <Slider v-for="(key, index) of TRANSFORM_GROUPS[group]" :key="key" inline :label="'XYZ'[index]" v-model="object[k(key)]" :min="TRANSFORM_LIMITS[group][0]" :max="TRANSFORM_LIMITS[group][1]" v-bind="group === 'translation' ? { typedMin: null, typedMax: null } : {}" />
   </Panel>
@@ -76,8 +57,7 @@
       <Slider class="grow" inline label="Z" v-model="object[k('scaleZ')]" :min="TRANSFORM_LIMITS.scale[0]" :max="TRANSFORM_LIMITS.scale[1]" :typed-max="null" :step="0.05" />
       <span class="spare"></span>
     </div>
-    <Toggle v-if="marked" label="Only stretch the stretchable parts" v-model="object[k('scaleMarked')]" />
-    <Toggle label="Scale the outline too" v-model="object[k('scaleOutline')]" />
+    <DataControls :panel="SCALING_PANEL" :state="scaling" :controls="SCALING_PANEL.controls" />
   </Panel>
 </template>
 
@@ -106,10 +86,6 @@
 
   .bracket.active {
     border-color: var(--accent);
-  }
-
-  .bake {
-    align-self: flex-start;
   }
 
   .spare {

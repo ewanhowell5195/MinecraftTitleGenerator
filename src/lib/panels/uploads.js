@@ -1,4 +1,4 @@
-import { lineText, scene } from "../../lib/state/scene.js"
+import { host } from "./host.js"
 
 function settingsOf(object) {
   return [object].concat((object.layerSettings ?? []).filter(Boolean))
@@ -6,10 +6,10 @@ function settingsOf(object) {
 
 function used(collect, keyOf = value => value) {
   const found = new Map()
-  for (const object of scene.objects) {
+  for (const object of host.title.objects) {
     for (const value of collect(object)) {
       const key = keyOf(value)
-      if (!found.has(key)) found.set(key, { key, value, label: lineText(object) })
+      if (!found.has(key)) found.set(key, { key, value, label: host.lineText(object) })
     }
   }
   return Array.from(found.values())

@@ -4,25 +4,33 @@
   import Icon from "../components/Icon.vue"
   import Panel from "./Panel.vue"
   import Segments from "../components/Segments.vue"
-  import ArcPanel from "./panels/ArcPanel.vue"
-  import CameraPanel from "./panels/CameraPanel.vue"
-  import ColourPanel from "./panels/ColourPanel.vue"
+  import "./panels/host.js"
   import DataPanel from "./panels/DataPanel.vue"
   import FontPanel from "./panels/FontPanel.vue"
-  import GeometryPanel from "./panels/GeometryPanel.vue"
-  import LayerPanel from "./panels/LayerPanel.vue"
-  import OverlaysPanel from "./panels/OverlaysPanel.vue"
-  import PlacementPanel from "./panels/PlacementPanel.vue"
-  import RenderPanel from "./panels/RenderPanel.vue"
   import ShapePanel from "./panels/ShapePanel.vue"
-  import SpacingPanel from "./panels/SpacingPanel.vue"
   import TextPanel from "./panels/TextPanel.vue"
-  import TexturePanel from "./panels/TexturePanel.vue"
   import TransformPanel from "./panels/TransformPanel.vue"
-  import { active, addObject, addShape, currentWord, shapingWord, wordTabs } from "../lib/state/scene.js"
+  import { addObject, addShape, currentWord, shapingWord, wordTabs } from "../lib/state/scene.js"
+  import { CAMERA_PANEL } from "../lib/panels/camera.js"
+  import { FACE_PANELS, FILTERS_PANEL, OUTLINE_PANEL } from "../lib/panels/colour.js"
+  import { CREEPER_PANEL, CURVES_PANEL, SPACING_PANEL, TERMINATORS_PANEL } from "../lib/panels/font.js"
+  import { ARC_PANEL, GEOMETRY_PANEL } from "../lib/panels/form.js"
+  import { layersPanel } from "../lib/panels/layers.js"
+  import { EDGE_OVERLAYS_PANEL, OVERLAYS_PANEL } from "../lib/panels/overlays.js"
+  import { PLACEMENT_PANEL } from "../lib/panels/placement.js"
+  import { FRAMING_PANEL, IMAGE_PANEL, SECOND_OUTLINE_PANEL } from "../lib/panels/render.js"
+  import { TEXTURE_PANEL } from "../lib/panels/texture.js"
+  import { TILING_PANEL } from "../lib/panels/tiling.js"
   import { TWIST_PANELS } from "../lib/panels/twists.js"
   import { FORM_SECTIONS, view } from "../lib/state/view.js"
 
+  const FONT_PANELS = [CURVES_PANEL, CREEPER_PANEL, TERMINATORS_PANEL, SPACING_PANEL]
+  const RENDER_PANELS = [FRAMING_PANEL, SECOND_OUTLINE_PANEL, IMAGE_PANEL]
+  const LOOK_PANELS = {
+    texture: [layersPanel("texture"), TEXTURE_PANEL, TILING_PANEL],
+    colour: [layersPanel("colour"), FILTERS_PANEL].concat(FACE_PANELS, OUTLINE_PANEL),
+    overlays: [layersPanel("overlays"), OVERLAYS_PANEL, EDGE_OVERLAYS_PANEL]
+  }
   const SHAPE_TABS = [{ value: "line", label: "Whole line" }, { value: "word", label: "Current word" }]
 
   defineProps({
@@ -42,8 +50,10 @@
     <div v-if="!editing" class="intro row">
       <h2>{{ view.render ? "Render" : view.camera ? "Camera" : "No text" }}</h2>
     </div>
-    <RenderPanel v-if="view.render" />
-    <CameraPanel v-else-if="view.camera" />
+    <template v-if="view.render">
+      <DataPanel v-for="panel of RENDER_PANELS" :key="panel.id" :panel="panel" />
+    </template>
+    <DataPanel v-else-if="view.camera" :panel="CAMERA_PANEL" />
     <Panel v-else-if="!editing">
       <Button primary wide @click="addObject"><template #icon><Icon name="letter" :size="16" /></template>
         <span>Add text</span>
@@ -54,26 +64,16 @@
     </Panel>
     <template v-else-if="view.section === 'text'">
       <TextPanel />
-      <PlacementPanel />
+      <DataPanel :panel="PLACEMENT_PANEL" />
     </template>
     <template v-else-if="view.section === 'font'">
       <FontPanel />
-      <SpacingPanel />
+      <DataPanel v-for="panel of FONT_PANELS" :key="panel.id" :panel="panel" />
     </template>
     <ShapePanel v-else-if="view.section === 'shape'" :key="currentWord.id" />
-    <PlacementPanel v-else-if="view.section === 'placement'" />
-    <template v-else-if="view.section === 'texture'">
-      <LayerPanel group="texture" />
-      <TexturePanel />
-    </template>
-    <template v-else-if="view.section === 'colour'">
-      <LayerPanel group="colour" />
-      <ColourPanel />
-    </template>
-    <template v-else-if="view.section === 'overlays'">
-      <LayerPanel group="overlays" />
-      <OverlaysPanel />
-      <OverlaysPanel v-if="!active.font?.model" edge />
+    <DataPanel v-else-if="view.section === 'placement'" :panel="PLACEMENT_PANEL" />
+    <template v-else-if="LOOK_PANELS[view.section]">
+      <DataPanel v-for="panel of LOOK_PANELS[view.section]" :key="`${view.section}-${panel.id}`" :panel="panel" />
     </template>
     <template v-else-if="FORM_SECTIONS.has(view.section)">
       <Panel v-if="wordTabs && !shapeLine">
@@ -81,13 +81,13 @@
         <p v-if="shapingWord" class="hint">Only changes "{{ currentWord.text.trim() }}", on top of the shape of the whole line.</p>
       </Panel>
       <template v-if="view.section === 'form'">
-        <GeometryPanel :word="shapingWord" :key="shapingWord ? 'word-geometry' : 'line-geometry'" />
+        <DataPanel :panel="GEOMETRY_PANEL" :word="shapingWord" :key="shapingWord ? 'word-geometry' : 'line-geometry'" />
         <template v-if="!shapeLine">
-          <ArcPanel :word="shapingWord" :key="shapingWord ? 'word-arc' : 'line-arc'" />
+          <DataPanel :panel="ARC_PANEL" :word="shapingWord" :key="shapingWord ? 'word-arc' : 'line-arc'" />
           <DataPanel v-for="panel of TWIST_PANELS" :key="`${shapingWord ? 'word' : 'line'}-${panel.id}`" :panel="panel" :word="shapingWord" />
         </template>
       </template>
-      <TransformPanel v-else :word="shapingWord" />
+      <TransformPanel v-else :word="shapingWord" :key="shapingWord ? 'word-transform' : 'line-transform'" />
     </template>
     <p class="disclaimer"><span>Not an official Minecraft product.</span> <span>Not approved by or associated with Mojang or Microsoft.</span></p>
   </aside>
