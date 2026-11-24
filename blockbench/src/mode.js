@@ -2,7 +2,6 @@ import { isTitle } from "./elements.js"
 import { FORMAT } from "./format.js"
 
 const ID = "minecraft_title"
-const OUTLINER_HEIGHT = 260
 const KEPT_PANELS = ["outliner", "transform", "element"]
 
 let mode = null
@@ -30,12 +29,6 @@ export function deleteTitlePanel(panel) {
 
 export function openTitleMode() {
   if (Format?.id === FORMAT) mode.select()
-}
-
-function outlinerPosition(position) {
-  const { default_configuration, mode_position_data } = Panels.outliner
-  default_configuration.mode_positions = { ...default_configuration.mode_positions, [ID]: position }
-  delete mode_position_data[ID]
 }
 
 function hasElementTab() {
@@ -101,7 +94,6 @@ export function registerMode() {
   elementCondition = Panels.element.condition
   Panels.element.condition = () => Condition(elementCondition) && hasElementTab()
   putFirst()
-  outlinerPosition({ fixed_height: true, height: OUTLINER_HEIGHT })
 }
 
 export function unregisterMode() {
@@ -111,7 +103,6 @@ export function unregisterMode() {
   }
   Panels.element.condition = elementCondition
   left.clear()
-  outlinerPosition(undefined)
   Vue.delete(Modes.options, ID)
   mode = null
   Object.defineProperty(Modes, "id", nativeId)

@@ -1,4 +1,27 @@
 export const STYLES = `
+  .panel_container[panel_id="minecraft_title_words"] .panel_handle {
+    position: relative;
+    min-width: 0;
+    padding: 0 6px;
+    font-size: 1em;
+  }
+
+  .panel_container[panel_id="minecraft_title_words"] .panel_handle > .panel_menu_button {
+    display: none;
+    position: absolute;
+    right: 0;
+    margin: 0;
+    background-color: var(--color-ui);
+  }
+
+  .panel_container[panel_id="minecraft_title_words"] .panel_handle.selected:hover > .panel_menu_button {
+    display: flex;
+  }
+
+  .panel_container[panel_id="transform"] > #panel_minecraft_title_form {
+    height: 60vh;
+  }
+
   .mtg-panel {
     height: 100%;
     overflow-y: auto;

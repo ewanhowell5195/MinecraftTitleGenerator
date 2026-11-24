@@ -38,32 +38,16 @@ const isText = settings => settings.shape === null
 const isShape = settings => settings.shape !== null
 const isDrawn = settings => !isMinecraftShape(settings.shape)
 
-const STACKS = [
-  {
-    slot: "left_bar",
-    sidebar_index: 0,
-    sections: [
-      { id: "minecraft_title_words", name: "Text", shapeName: "Shape", icon: "text_fields", groups: settings => [isText(settings) ? "title-words" : "shape-group"], panels: (settings, kind) => isText(settings) && kind !== "word" ? [PLACEMENT_PANEL] : [] },
-      { id: "minecraft_title_font", name: "Font", icon: "font_download", shown: isText, groups: (settings, kind) => [kind === "word" ? "font-note" : "font-group"], panels: (settings, kind) => kind === "word" ? [CREEPER_PANEL] : [CURVES_PANEL, CREEPER_PANEL, TERMINATORS_PANEL, SPACING_PANEL] },
-      { id: "minecraft_title_placement", name: "Placement", icon: "table_rows", shown: isShape, panels: () => [PLACEMENT_PANEL] }
-    ]
-  },
-  {
-    slot: "left_bar",
-    sidebar_index: 1,
-    sections: [
-      { id: "minecraft_title_texture", name: "Texture", icon: "texture", shown: isDrawn, panels: () => [TEXTURE_LAYERS, TEXTURE_PANEL, TILING_PANEL] },
-      { id: "minecraft_title_overlays", name: "Overlays", icon: "layers", shown: isDrawn, panels: () => [OVERLAY_LAYERS, OVERLAYS_PANEL, EDGE_OVERLAYS_PANEL] }
-    ]
-  },
-  {
-    slot: "right_bar",
-    sidebar_index: 9,
-    sections: [
-      { id: "minecraft_title_colour", name: "Colour", icon: "palette", panels: () => [COLOUR_LAYERS, FILTERS_PANEL].concat(FACE_PANELS, OUTLINE_PANEL) },
-      { id: "minecraft_title_form", name: "Form", icon: "deployed_code", shapes: true, panels: settings => [MATCH_PANEL, STRETCHING_PANEL, GEOMETRY_PANEL].concat(isDrawn(settings) ? [ARC_PANEL].concat(TWIST_PANELS) : []) }
-    ]
-  }
+const BESIDE_TRANSFORM = { slot: "right_bar", sidebar_index: 2, attached_to: "transform", attached_index: 0 }
+
+const SECTIONS = [
+  { id: "minecraft_title_words", name: "Text", shapeName: "Shape", icon: "text_fields", groups: settings => [isText(settings) ? "title-words" : "shape-group"], panels: (settings, kind) => isText(settings) && kind !== "word" ? [PLACEMENT_PANEL] : [] },
+  { id: "minecraft_title_font", name: "Font", icon: "font_download", shown: isText, groups: (settings, kind) => [kind === "word" ? "font-note" : "font-group"], panels: (settings, kind) => kind === "word" ? [CREEPER_PANEL] : [CURVES_PANEL, CREEPER_PANEL, TERMINATORS_PANEL, SPACING_PANEL] },
+  { id: "minecraft_title_placement", name: "Placement", icon: "table_rows", shown: isShape, panels: () => [PLACEMENT_PANEL] },
+  { id: "minecraft_title_texture", name: "Texture", icon: "texture", shown: isDrawn, panels: () => [TEXTURE_LAYERS, TEXTURE_PANEL, TILING_PANEL] },
+  { id: "minecraft_title_colour", name: "Color", icon: "palette", panels: () => [COLOUR_LAYERS, FILTERS_PANEL].concat(FACE_PANELS, OUTLINE_PANEL) },
+  { id: "minecraft_title_overlays", name: "Overlay", icon: "layers", shown: isDrawn, panels: () => [OVERLAY_LAYERS, OVERLAYS_PANEL, EDGE_OVERLAYS_PANEL] },
+  { id: "minecraft_title_form", name: "Form", icon: "deployed_code", place: BESIDE_TRANSFORM, shapes: true, panels: settings => [MATCH_PANEL, STRETCHING_PANEL, GEOMETRY_PANEL].concat(isDrawn(settings) ? [ARC_PANEL].concat(TWIST_PANELS) : []) }
 ]
 
 const [COLOUR_LAYERS, TEXTURE_LAYERS, OVERLAY_LAYERS] = ["colour", "texture", "overlays"].map(layersPanel)
@@ -104,33 +88,33 @@ function component({ shapes, shown, groups, panels }) {
   }
 }
 
+function selectedSettings() {
+  return selected.value ? shownSettings(selected.value) : UNSELECTED
+}
+
 function followKind() {
-  if (!selected.value) return
-  const settings = shownSettings(selected.value)
-  for (const { sections: [host] } of STACKS) {
-    const panel = made.get(host.id)
-    if (host.shapeName) panel.handle.firstElementChild.textContent = isText(settings) ? host.name : host.shapeName
-    settleTabs(panel)
-  }
+  const settings = selectedSettings()
+  const [{ id, name, shapeName }] = SECTIONS
+  const host = made.get(id)
+  host.handle.firstElementChild.textContent = isText(settings) ? name : shapeName
+  settleTabs(host)
   updateInterfacePanels()
 }
 
 export function registerPanels() {
   styles = Blockbench.addCSS(STYLES)
-  for (const { slot, sidebar_index, sections } of STACKS) {
-    for (const [index, section] of sections.entries()) {
-      const { id, name, icon, shown } = section
-      made.set(id, titlePanel(id, {
-        name,
-        icon,
-        growable: true,
-        resizable: true,
-        default_position: { slot, sidebar_index, float_position: [0, 0], float_size: [320, 500], height: 400, ...(index && { attached_to: sections[0].id, attached_index: sections.length - index }) },
-        component: component(section)
-      }, () => !shown || shown(selected.value ? shownSettings(selected.value) : UNSELECTED)))
-    }
+  for (const [index, section] of SECTIONS.entries()) {
+    const { id, name, icon, place, shown } = section
+    made.set(id, titlePanel(id, {
+      name,
+      icon,
+      growable: true,
+      resizable: true,
+      default_position: { slot: "left_bar", sidebar_index: 0, float_position: [0, 0], float_size: [320, 500], height: 400, ...(place ?? (index && { attached_to: SECTIONS[0].id, attached_index: SECTIONS.length - index })) },
+      component: component(section)
+    }, () => !shown || shown(selectedSettings())))
   }
-  following = watch(() => selected.value && [isText, isDrawn].map(test => test(shownSettings(selected.value))).join(), followKind)
+  following = watch(() => [isText, isDrawn].map(test => test(selectedSettings())).join(), followKind)
 }
 
 export function unregisterPanels() {
