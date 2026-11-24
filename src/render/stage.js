@@ -93,7 +93,7 @@ function fill(entry, built) {
   if (!built) return
   entry.textures = built.pages.map(page => {
     const texture = pageTexture(page.texture)
-    Object.assign(texture.userData, { labels: page.labels, crackShapes: page.crackShapes, gradient: page.gradient, fades: page.fades, panels: page.panels, plain: page.plain ? { image: page.plain.texture, labels: page.plain.labels, crackShapes: page.plain.crackShapes, gradient: page.plain.gradient, fades: page.plain.fades, panels: page.plain.panels } : null })
+    texture.userData = { labels: page.labels, crackShapes: page.crackShapes, gradient: page.gradient, fades: page.fades, panels: page.panels, plain: page.plain ? { image: page.plain.texture, labels: page.plain.labels, crackShapes: page.plain.crackShapes, gradient: page.plain.gradient, fades: page.plain.fades, panels: page.plain.panels } : null }
     return texture
   })
   entry.lights = shader ? shader.light.map(pageTexture) : []
