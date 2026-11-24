@@ -3,7 +3,7 @@ import { R } from "../paint/draw.js"
 
 export const SWATCH = 1
 
-const GAP = 2
+const GAP = 4
 const WIDTH_STEPS = 48
 
 function blockSize(block, depth, scales) {
