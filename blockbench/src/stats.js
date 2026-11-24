@@ -10,7 +10,7 @@ const COUNTED = "minecraft_title_counted"
 let property = null
 
 function inDevelopment() {
-  return Plugins.all.find(plugin => plugin.id === "minecraft_title_generator")?.source === "file"
+  return Plugins.all.some(plugin => plugin.id === "minecraft_title_generator" && plugin.installed && plugin.source === "file")
 }
 
 function countedIn(project) {
