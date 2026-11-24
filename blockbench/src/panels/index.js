@@ -13,7 +13,7 @@ import { TWIST_PANELS } from "../../../src/lib/panels/twists.js"
 import { PANELS } from "../../../src/lib/settings/defaults.js"
 import { isModified } from "../../../src/lib/settings/settings.js"
 import { selected, selectedElements } from "../host.js"
-import { deleteTitlePanel, titlePanel } from "../mode.js"
+import { deleteTitlePanel, settleTabs, titlePanel } from "../mode.js"
 import { beginEdit, finishEdit } from "../undo.js"
 import { TitleGroup } from "./controls.js"
 import { FontGroup } from "./font.js"
@@ -88,7 +88,6 @@ const STACKS = [
 
 const [COLOUR_LAYERS, TEXTURE_LAYERS, OVERLAY_LAYERS] = ["colour", "texture", "overlays"].map(layersPanel)
 const made = new Map()
-const left = new Map()
 let styles = null
 let following = null
 
@@ -124,15 +123,8 @@ function followKind() {
   const { settings } = selected.value
   for (const { sections: [host] } of STACKS) {
     const panel = made.get(host.id)
-    const open = panel.open_attached_panel
     if (host.shapeName) panel.handle.firstElementChild.textContent = isText(settings) ? host.name : host.shapeName
-    if (!Condition(open.condition)) {
-      left.set(panel, open)
-      panel.selectTab(panel)
-    } else if (open === panel && left.has(panel) && Condition(left.get(panel).condition)) {
-      panel.selectTab(left.get(panel))
-      left.delete(panel)
-    }
+    settleTabs(panel)
   }
   updateInterfacePanels()
 }
@@ -159,6 +151,5 @@ export function unregisterPanels() {
   following()
   for (const panel of Array.from(made.values()).reverse()) deleteTitlePanel(panel)
   made.clear()
-  left.clear()
   styles?.delete()
 }

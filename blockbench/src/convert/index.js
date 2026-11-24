@@ -1,7 +1,8 @@
 import * as THREE from "three"
 import { effectScope, watch } from "vue"
-import { buildOutline } from "../../../src/lib/geometry/build.js"
+import { buildPartOutline } from "../../../src/lib/geometry/build.js"
 import { CREEPER, TERMINATOR_CLOSE, TERMINATOR_OPEN, baseChar } from "../../../src/lib/font/order.js"
+import { RENDER_ORDER, SHARE } from "../passes.js"
 import { sendStats } from "../stats.js"
 import { memberOf, runtimeOf } from "../titles.js"
 import { hullOf, makeCube, sharedTurn, swatchPaint, texturedPaint } from "./cubes.js"
@@ -10,6 +11,7 @@ import { boxesOf, facesOf } from "./quads.js"
 
 const FACING = new THREE.Matrix4().makeRotationY(Math.PI)
 const STILL = new THREE.Quaternion()
+const OUTLINE_ORDER = -1
 
 const round = value => Math.roundTo(value, 4)
 
@@ -58,11 +60,6 @@ function makeTextures(name, pages, made) {
   })
 }
 
-function outlineOf({ built, outline }) {
-  if (!built.slabs && !built.twist?.some(({ slabs }) => slabs)) return outline
-  return buildOutline({ ...built, slabs: null, twist: built.twist?.map(part => ({ ...part, slabs: null })) ?? null }, outline.scale)
-}
-
 function outlineMatrix(outline, matrix) {
   return matrix.clone().multiply(new THREE.Matrix4().makeScale(...outline.scale.map(axis => 1 / axis)))
 }
@@ -76,21 +73,32 @@ function newGroup(name, origin, parent, made, rotation = [0, 0, 0]) {
   return group
 }
 
+function newLine(name, origin, element, made, rotation) {
+  const group = newGroup(name, origin, element, made, rotation)
+  group[SHARE] = true
+  return group
+}
+
+function newOutline(origin, parent, made) {
+  const group = newGroup("outline", origin, parent, made)
+  group[RENDER_ORDER] = OUTLINE_ORDER
+  return group
+}
+
 function nameOf(char) {
   return { [TERMINATOR_OPEN]: "open_terminator", [TERMINATOR_CLOSE]: "close_terminator", [CREEPER]: "creeper" }[char] ?? (char.trim() || "space")
 }
 
-function buildCubes(element, parts, name, made) {
+function buildCubes(element, frame, name, made) {
   const { item } = memberOf(element)
-  const { built } = item
-  const outline = item.outline && outlineOf(item)
-  const { matrix, size, origin, rotation } = parts
+  const { built, outline } = item
+  const { matrix, size, origin, rotation } = frame
   const pages = built.pages.map(page => page.texture)
   const textures = makeTextures(name, pages, made.textures)
   const faces = facesOf(built.body, matrix, pages)
-  const line = newGroup(name, origin, element, made.groups, angles(rotation))
+  const line = newLine(name, origin, element, made.groups, angles(rotation))
   const paint = texturedPaint(textures)
-  const all = []
+  const letters = []
 
   function add(cube, group) {
     cube.visibility = element.visibility
@@ -100,52 +108,65 @@ function buildCubes(element, parts, name, made) {
 
   for (const [glyph, members] of Map.groupBy(faces, face => face.glyph)) {
     const boxes = boxesOf(members)
-    all.push(...boxes)
     const char = baseChar(built.chars?.[glyph] ?? "")
     const turn = sharedTurn(boxes)
     const middle = new THREE.Box3().setFromPoints(members.flatMap(face => face.points)).getCenter(new THREE.Vector3())
     const own = built.chars?.length > 1
-    const group = own ? newGroup(nameOf(char), middle.clone().add(origin), line, made.groups, turn ? angles(turn) : [0, 0, 0]) : line
     const turned = own && turn
-    const space = { centre: turned ? middle : new THREE.Vector3(), turn: turned ? turn : STILL, origin, pivot: new THREE.Vector3(...group.origin) }
+    const space = { centre: turned ? middle : new THREE.Vector3(), turn: turned ? turn : STILL, origin, pivot: own ? middle.clone().add(origin) : origin }
+    const group = own ? newGroup(nameOf(char), space.pivot, line, made.groups, turn ? angles(turn) : [0, 0, 0]) : line
     for (const box of boxes) add(makeCube({ name: own ? nameOf(char) : name, box, space, paint }), group)
+    letters.push({ glyph, boxes, group, space })
   }
 
   if (!outline?.triangles || !built.swatch || built.border <= 0) return line
   const swatch = swatchPaint(textures[0], pages[0], built.swatch)
-  const outer = newGroup("outline", origin, line, made.groups)
-  const space = { centre: new THREE.Vector3(), turn: STILL, origin, pivot: origin }
-  const hull = built.runs ? hullOf(all, outline.scale.map((axis, index) => built.border * size.getComponent(index) / axis), pages) : boxesOf(facesOf(outline, outlineMatrix(outline, matrix), pages))
-  for (const box of hull) add(makeCube({ name: "outline", box, space, inverted: true, paint: swatch }), outer)
+  const parts = built.parts?.()
+  for (const { glyph, boxes, group, space } of letters) {
+    const hull = built.runs ? hullOf(boxes, hullReach(built, outline, size), pages) : boxesOf(facesOf(buildPartOutline(built, parts[glyph], outline.scale), outlineMatrix(outline, matrix), pages))
+    const outer = newOutline(space.pivot, group, made.groups)
+    for (const box of hull) add(makeCube({ name: "outline", box, space, inverted: true, paint: swatch }), outer)
+  }
   return line
 }
 
-function buildMesh(element, parts, name, made) {
+function hullReach(built, outline, size) {
+  return outline.scale.map((axis, index) => built.border * size.getComponent(index) / axis)
+}
+
+function buildMesh(element, frame, name, made) {
   const { item } = memberOf(element)
-  const { built } = item
-  const outline = item.outline && outlineOf(item)
-  const { matrix, size, origin, rotation } = parts
+  const { built, outline } = item
+  const { matrix, size, origin, rotation } = frame
   const pages = built.pages.map(page => page.texture)
   const textures = makeTextures(name, pages, made.textures)
   const faces = facesOf(built.body, matrix, pages)
-  const line = newGroup(name, origin, element, made.groups, angles(rotation))
+  const line = newLine(name, origin, element, made.groups, angles(rotation))
 
-  function add(options) {
+  function add(options, group) {
     const mesh = makeMesh(options)
     mesh.visibility = element.visibility
-    mesh.addTo(line).init()
+    mesh.addTo(group).init()
     made.elements.push(mesh)
   }
 
-  for (const [glyph, members] of Map.groupBy(faces, face => face.glyph)) {
+  const letters = Array.from(Map.groupBy(faces, face => face.glyph), ([glyph, members]) => {
     const char = baseChar(built.chars?.[glyph] ?? "")
-    const middle = new THREE.Box3().setFromPoints(members.flatMap(face => face.points)).getCenter(new THREE.Vector3())
-    add({ name: built.chars?.length > 1 ? nameOf(char) : name, faces: members, centre: middle, origin, textures })
-  }
+    const centre = new THREE.Box3().setFromPoints(members.flatMap(face => face.points)).getCenter(new THREE.Vector3())
+    const own = built.chars?.length > 1
+    const letter = own ? nameOf(char) : name
+    const pivot = centre.clone().add(origin)
+    const group = own ? newGroup(letter, pivot, line, made.groups) : line
+    add({ name: letter, faces: members, centre, origin, textures }, group)
+    return { glyph, members, centre, pivot, group }
+  })
   if (!outline?.triangles || !built.swatch || built.border <= 0) return line
   const [u, v] = [built.swatch[0] * pages[0].width, (1 - built.swatch[1]) * pages[0].height]
-  const shell = built.runs ? hullOf(boxesOf(faces), outline.scale.map((axis, index) => built.border * size.getComponent(index) / axis), pages).flatMap(hullFaces) : facesOf(outline, outlineMatrix(outline, matrix), pages)
-  add({ name: "outline", faces: shell.map(face => ({ ...face, page: 0, points: face.points.toReversed(), uvs: face.points.map(() => [u, v]) })), centre: new THREE.Vector3(), origin, textures })
+  const parts = built.parts?.()
+  for (const { glyph, members, centre, pivot, group } of letters) {
+    const shell = built.runs ? hullOf(boxesOf(members), hullReach(built, outline, size), pages).flatMap(hullFaces) : facesOf(buildPartOutline(built, parts[glyph], outline.scale), outlineMatrix(outline, matrix), pages)
+    add({ name: "outline", faces: shell.map(face => ({ ...face, page: 0, points: face.points.toReversed(), uvs: face.points.map(() => [u, v]) })), centre, origin, textures }, newOutline(pivot, group, made.groups))
+  }
   return line
 }
 

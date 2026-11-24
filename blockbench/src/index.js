@@ -3,12 +3,13 @@ import { isTitle, registerElements, unregisterElements } from "./elements.js"
 import { registerFormat, unregisterFormat } from "./format.js"
 import { followSelection, registerHost, selected } from "./host.js"
 import { openLibrary } from "./library.js"
-import { openTitleMode, registerMode, unregisterMode } from "./mode.js"
+import { followElementTab, openTitleMode, registerMode, unregisterMode } from "./mode.js"
 import { registerPanels, unregisterPanels } from "./panels/index.js"
 import { askEula } from "./panels/minecraft.js"
+import { registerPasses, unregisterPasses } from "./passes.js"
 import { useBlockbench } from "./platform.js"
 import { keepCounted, registerStats, savedStats, unregisterStats } from "./stats.js"
-import { closeTitle, closeTitles, refreshList, sortTitle, titleState } from "./titles.js"
+import { closeTitle, closeTitles, refreshList, resort, sortTitle, titleState } from "./titles.js"
 
 const listeners = []
 
@@ -19,6 +20,7 @@ function listen(event, action) {
 
 function refresh() {
   if (Project) refreshList(titleState())
+  resort()
 }
 
 let drawn = null
@@ -51,10 +53,12 @@ Plugin.register("minecraft_title_generator", {
     registerActions()
     registerHost()
     registerStats()
+    registerPasses()
     registerPanels()
     stopAsking = askEula()
     for (const event of ["finished_edit", "undo", "redo", "load_project", "select_project"]) listen(event, refresh)
     for (const event of ["update_selection", "select_project", "unselect_project"]) listen(event, followSelection)
+    listen("update_selection", followElementTab)
     listen("load_project", () => setTimeout(() => Project && Outliner.elements.some(isTitle) && openTitleMode()))
     listen("close_project", () => Project && closeTitle(Project))
     listen("saved_state_changed", savedStats)
@@ -76,6 +80,7 @@ Plugin.register("minecraft_title_generator", {
     unregisterActions()
     unregisterFormat()
     unregisterStats()
+    unregisterPasses()
     unregisterElements()
   }
 })

@@ -1,13 +1,17 @@
+import { isTitle } from "./elements.js"
 import { FORMAT } from "./format.js"
 
 const ID = "minecraft_title"
 const OUTLINER_HEIGHT = 260
-const KEPT_PANELS = ["outliner", "transform"]
+const KEPT_PANELS = ["outliner", "transform", "element"]
 
 let mode = null
 let nativeId = null
 const ours = new Set()
 const hidden = new Map()
+const left = new Map()
+let elementCondition = null
+let elementShown = true
 
 export function inTitleMode() {
   return !!mode && Mode.selected === mode
@@ -32,6 +36,28 @@ function outlinerPosition(position) {
   const { default_configuration, mode_position_data } = Panels.outliner
   default_configuration.mode_positions = { ...default_configuration.mode_positions, [ID]: position }
   delete mode_position_data[ID]
+}
+
+function hasElementTab() {
+  return !Outliner.selected.length || Group.multi_selected.length > 0 || !Outliner.selected.every(isTitle)
+}
+
+export function settleTabs(host) {
+  const open = host.open_attached_panel
+  if (!Condition(open.condition)) {
+    left.set(host, open)
+    host.selectTab(host)
+  } else if (open === host && left.has(host) && Condition(left.get(host).condition)) {
+    host.selectTab(left.get(host))
+    left.delete(host)
+  }
+}
+
+export function followElementTab() {
+  if (!Project || elementShown === hasElementTab()) return
+  elementShown = !elementShown
+  settleTabs(Panels.element.getContainerPanel())
+  updateInterfacePanels()
 }
 
 function hidePanels() {
@@ -72,6 +98,8 @@ export function registerMode() {
       showPanels()
     }
   })
+  elementCondition = Panels.element.condition
+  Panels.element.condition = () => Condition(elementCondition) && hasElementTab()
   putFirst()
   outlinerPosition({ fixed_height: true, height: OUTLINER_HEIGHT })
 }
@@ -81,6 +109,8 @@ export function unregisterMode() {
   for (const project of ModelProject.all) {
     if (project.mode === ID) project.mode = "edit"
   }
+  Panels.element.condition = elementCondition
+  left.clear()
   outlinerPosition(undefined)
   Vue.delete(Modes.options, ID)
   mode = null

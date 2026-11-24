@@ -10,7 +10,9 @@ import { fullCamera } from "../../src/lib/settings/camera.js"
 import { createTitleItems } from "../../src/lib/title/items.js"
 import { keepMatched } from "../../src/lib/title/match.js"
 import { createTitle } from "../../src/lib/title/title.js"
+import { FORMAT } from "./format.js"
 import { library } from "./library.js"
+import { stackEntries } from "./passes.js"
 import { amendLastEdit, quietly, watchChanges } from "./undo.js"
 
 // the site's titles face +z, and Blockbench models face north, which is -z
@@ -23,7 +25,7 @@ function createProjectTitle(project) {
   const members = new Map()
   const scope = effectScope(true)
   const title = Object.defineProperty(createTitle(null, reactive({ render: false, previews: false, eager: false }), reactive(fullCamera())), "objects", { get: () => list.value })
-  const state = { project, title, list, members, scope, sorted: null, changes: 0 }
+  const state = { project, title, list, members, scope, sorted: null, stacks: null, changes: 0 }
   title.quietly = change => {
     quietly(change)
     amendLastEdit(Array.from(members.values(), member => member.element))
@@ -45,9 +47,15 @@ function sync(state, items) {
     const member = state.members.get(item.id)
     if (!member) continue
     updateEntry(member.entry, item)
+    member.entry.materials.forEach(drawWithCubes)
     place(member, item)
   }
   state.changes++
+}
+
+function drawWithCubes(material) {
+  material.transparent = true
+  material.blending = THREE.NoBlending
 }
 
 function outlineBox({ built, outline }) {
@@ -114,6 +122,7 @@ export function attach(element) {
   const { settings } = element
   if (state.members.has(settings.id)) return
   const member = { element, state, entry: createEntry(), pivot: new THREE.Vector3(), body: null, box: null, item: null, scope: null }
+  for (const material of ["body", "border", "rim", "clip"]) drawWithCubes(member.entry[material])
   state.members.set(settings.id, member)
   refreshList(state)
   member.scope = startRenderer(state, settings)
@@ -152,13 +161,29 @@ export function runtimeOf(element) {
   return memberOf(element)?.state.title.runtime[element.settings.id] ?? {}
 }
 
+function squeezeOrders(entries) {
+  const reach = entries.length * 2
+  for (const entry of entries) {
+    for (const part of ["halo", "holes", "outline", "solid"]) {
+      if (entry[part]) entry[part].renderOrder = (entry[part].renderOrder + reach + 1) / (reach * 2 + 2) - 1
+    }
+  }
+}
+
+export function resort() {
+  if (Project) Object.assign(titleState(), { sorted: null, stacks: null })
+}
+
 export function sortTitle(camera) {
-  const state = titles.get(Project?.uuid)
-  if (!state?.members.size) return
+  if (!Project || Format.id !== FORMAT) return
+  const state = titleState()
   const seen = `${state.changes} ${camera.matrixWorld.elements.join()} ${camera.projectionMatrix.elements.join()}`
   if (state.sorted === seen) return
   state.sorted = seen
-  sortEntries(Array.from(state.members.values(), member => member.entry), camera)
+  state.stacks ??= stackEntries()
+  const entries = Array.from(state.members.values(), member => member.entry).concat(state.stacks)
+  sortEntries(entries, camera)
+  squeezeOrders(entries)
   cullOutlines(Project.model_3d, camera)
 }
 
