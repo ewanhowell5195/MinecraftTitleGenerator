@@ -7,6 +7,7 @@ import { openTitleMode, registerMode, unregisterMode } from "./mode.js"
 import { registerPanels, unregisterPanels } from "./panels/index.js"
 import { askEula } from "./panels/minecraft.js"
 import { useBlockbench } from "./platform.js"
+import { keepCounted, registerStats, savedStats, unregisterStats } from "./stats.js"
 import { closeTitle, closeTitles, refreshList, sortTitle, titleState } from "./titles.js"
 
 const listeners = []
@@ -49,12 +50,15 @@ Plugin.register("minecraft_title_generator", {
     registerMode()
     registerActions()
     registerHost()
+    registerStats()
     registerPanels()
     stopAsking = askEula()
     for (const event of ["finished_edit", "undo", "redo", "load_project", "select_project"]) listen(event, refresh)
     for (const event of ["update_selection", "select_project", "unselect_project"]) listen(event, followSelection)
     listen("load_project", () => setTimeout(() => Project && Outliner.elements.some(isTitle) && openTitleMode()))
     listen("close_project", () => Project && closeTitle(Project))
+    listen("saved_state_changed", savedStats)
+    listen("save_project", keepCounted)
     drawn = scene.onBeforeRender
     scene.onBeforeRender = (renderer, shown, camera, ...rest) => {
       drawn?.(renderer, shown, camera, ...rest)
@@ -71,6 +75,7 @@ Plugin.register("minecraft_title_generator", {
     closeTitles()
     unregisterActions()
     unregisterFormat()
+    unregisterStats()
     unregisterElements()
   }
 })

@@ -4,13 +4,11 @@ import { round } from "../../src/lib/core/maths.js"
 import { joinWords } from "../../src/lib/link/titleLines.js"
 import { applyType } from "../../src/lib/settings/defaults.js"
 import { defaultTexture, setTexture } from "../../src/lib/settings/textureDefaults.js"
-import { loadCounts, popular } from "../../src/lib/title/popularity.js"
+import { popular } from "../../src/lib/title/popularity.js"
 import { freeRowOf, wordsOf } from "../../src/lib/title/title.js"
 import { isTitle } from "./elements.js"
 import { library } from "./library.js"
 import { elementOf, runtimeOf, titleState } from "./titles.js"
-
-const STATS = "https://api.wynem.com/blockbench/minecrafttitlegenerator/stats"
 
 export const selected = shallowRef(null)
 const edited = shallowRef(null)
@@ -92,5 +90,4 @@ export function registerHost() {
     popular,
     gameVersions: browsing => new Set(title.objects.flatMap(object => [object.shapeVersion, object.minecraftVersion]).concat(browsing).filter(Boolean))
   })
-  loadCounts(STATS, { headers: { source: "blockbench" } }).catch(err => console.error(err))
 }

@@ -2,6 +2,7 @@ import * as THREE from "three"
 import { effectScope, watch } from "vue"
 import { buildOutline } from "../../../src/lib/geometry/build.js"
 import { CREEPER, TERMINATOR_CLOSE, TERMINATOR_OPEN, baseChar } from "../../../src/lib/font/order.js"
+import { sendStats } from "../stats.js"
 import { memberOf, runtimeOf } from "../titles.js"
 import { hullOf, makeCube, sharedTurn, swatchPaint, texturedPaint } from "./cubes.js"
 import { makeMesh } from "./mesh.js"
@@ -174,6 +175,7 @@ export async function convert(elements, kind) {
     Undo.cancelEdit(true)
     throw err
   }
+  sendStats(Project, elements.map(element => element.settings))
   unselectAllElements()
   for (const element of elements) element.remove()
   Undo.finishEdit(kind === "cubes" ? "Convert title to cubes" : "Convert title to mesh", { outliner: true, elements: made.elements, groups: made.groups, textures: made.textures, selection: true })
