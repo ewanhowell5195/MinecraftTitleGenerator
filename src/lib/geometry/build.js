@@ -330,7 +330,6 @@ export function buildText(font, options) {
     ...options,
     outline: border > 0,
     chars: glyphs.map(glyph => glyph.char),
-    parts: () => twist ?? glyphs.map(glyph => partOf(glyph)),
     rects: glyphs.map(glyph => glyph.rect),
     spaces: glyphs.map(glyph => glyph.spaces),
     space: font.spaceWidth ?? SPACE,
