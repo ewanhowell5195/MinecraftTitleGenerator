@@ -7,6 +7,7 @@
   import ArcPanel from "./panels/ArcPanel.vue"
   import CameraPanel from "./panels/CameraPanel.vue"
   import ColourPanel from "./panels/ColourPanel.vue"
+  import DataPanel from "./panels/DataPanel.vue"
   import FontPanel from "./panels/FontPanel.vue"
   import GeometryPanel from "./panels/GeometryPanel.vue"
   import LayerPanel from "./panels/LayerPanel.vue"
@@ -18,8 +19,8 @@
   import TextPanel from "./panels/TextPanel.vue"
   import TexturePanel from "./panels/TexturePanel.vue"
   import TransformPanel from "./panels/TransformPanel.vue"
-  import TwistPanel from "./panels/TwistPanel.vue"
   import { active, addObject, addShape, currentWord, shapingWord, wordTabs } from "../lib/state/scene.js"
+  import { TWIST_PANELS } from "../lib/panels/twists.js"
   import { FORM_SECTIONS, view } from "../lib/state/view.js"
 
   const SHAPE_TABS = [{ value: "line", label: "Whole line" }, { value: "word", label: "Current word" }]
@@ -83,7 +84,7 @@
         <GeometryPanel :word="shapingWord" :key="shapingWord ? 'word-geometry' : 'line-geometry'" />
         <template v-if="!shapeLine">
           <ArcPanel :word="shapingWord" :key="shapingWord ? 'word-arc' : 'line-arc'" />
-          <TwistPanel v-for="kind of ['ribbon', 'wrap', 'fan']" :key="`${shapingWord ? 'word' : 'line'}-${kind}`" :kind="kind" :word="shapingWord" />
+          <DataPanel v-for="panel of TWIST_PANELS" :key="`${shapingWord ? 'word' : 'line'}-${panel.id}`" :panel="panel" :word="shapingWord" />
         </template>
       </template>
       <TransformPanel v-else :word="shapingWord" />
