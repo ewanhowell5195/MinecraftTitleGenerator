@@ -41,7 +41,7 @@ function itemsOf(plan, indexes, scales) {
   const swatch = { swatch: true, width: SWATCH * R, height: SWATCH * R }
   const blocks = plan.blocks.filter(block => chosen.has(block.glyph)).map(block => ({ block, ...blockSize(block, plan.depth, scales) }))
   const runs = plan.runs.filter(run => chosen.has(run.glyph)).map(run => ({ run, ...runSize(run, scales) }))
-  return [swatch].concat(blocks, runs).sort((a, b) => b.height - a.height || b.width - a.width)
+  return blocks.concat(runs.concat(swatch).sort((a, b) => b.height - a.height || b.width - a.width))
 }
 
 function squarest(items, limit) {
