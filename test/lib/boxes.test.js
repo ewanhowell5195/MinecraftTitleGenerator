@@ -60,7 +60,20 @@ function extents(points) {
 
 const SHAPES = [["1"], ["111", "111"], ["11", "10"], ["111", "101", "111"], ["010", "111", "010"], ["101", "010", "101"], ["1111111", "1110111", "1100011", "1000001"], ["10001", "11011", "11111", "11011", "10001"], ["0"]].concat(Array.from({ length: 40 }, (_, seed) => seededMask(seed + 1, 3 + seed % 9, 2 + seed % 7)))
 
-const ALL_FACES = { front: true, back: true, west: true, east: true, down: true, up: true }
+function allFaces(width, height, x = 0, y = 0) {
+  return { front: true, back: true, west: [[y, y + height]], east: [[y, y + height]], down: [[x, x + width]], up: [[x, x + width]] }
+}
+
+function concaveCorners(rows) {
+  const at = solidAt(rows)
+  let total = 0
+  for (let y = 1; y < rows.length; y++) {
+    for (let x = 1; x < rows[0].length; x++) {
+      if ([at(x - 1, y - 1), at(x, y - 1), at(x - 1, y), at(x, y)].filter(Boolean).length === 3) total++
+    }
+  }
+  return total
+}
 
 describe("boxesFor", () => {
   test("returns nothing for an empty mask", () => {
@@ -68,7 +81,7 @@ describe("boxesFor", () => {
   })
 
   test("a single pixel is one fully exposed box", () => {
-    assert.deepEqual(boxesOf(["1"]), [{ from: [0, 0], to: [1, 1], faces: ALL_FACES, internal: { up: false, down: false } }])
+    assert.deepEqual(boxesOf(["1"]), [{ from: [0, 0], to: [1, 1], faces: allFaces(1, 1), internal: { up: false, down: false } }])
   })
 
   test("a solid block merges into one box", () => {
@@ -76,14 +89,14 @@ describe("boxesFor", () => {
     assert.equal(boxes.length, 1)
     assert.deepEqual(boxes[0].from, [0, 0])
     assert.deepEqual(boxes[0].to, [4, 3])
-    assert.deepEqual(boxes[0].faces, ALL_FACES)
+    assert.deepEqual(boxes[0].faces, allFaces(4, 3))
   })
 
   test("the origin offsets coordinates without changing culling", () => {
     const [box] = boxesOf(["11", "11"], 5, -3)
     assert.deepEqual(box.from, [5, -3])
     assert.deepEqual(box.to, [7, -1])
-    assert.deepEqual(box.faces, ALL_FACES)
+    assert.deepEqual(box.faces, allFaces(2, 2, 5, -3))
   })
 
   test("row zero of the mask is the bottom of the shape", () => {
@@ -93,39 +106,49 @@ describe("boxesFor", () => {
     assert.deepEqual(box.internal, { up: true, down: false })
   })
 
-  test("an L shape splits where a face changes exposure", () => {
+  test("an L shape is two boxes, with each side drawn only where it shows", () => {
     const boxes = sorted(boxesOf(["10", "11"]))
-    assert.deepEqual(boxes.map(box => [box.from, box.to]), [[[0, 0], [1, 1]], [[1, 0], [2, 1]], [[0, 1], [1, 2]]])
-    assert.deepEqual(boxes[0].faces, { front: true, back: true, west: true, east: false, down: true, up: false })
-    assert.deepEqual(boxes[1].faces, { front: true, back: true, west: false, east: true, down: true, up: true })
-    assert.deepEqual(boxes[2].faces, { front: true, back: true, west: true, east: true, down: false, up: true })
+    assert.deepEqual(boxes.map(box => [box.from, box.to]), [[[0, 0], [2, 1]], [[0, 1], [1, 2]]])
+    assert.deepEqual(boxes[0].faces, { front: true, back: true, west: [[0, 1]], east: [[0, 1]], down: [[0, 2]], up: [[1, 2]] })
+    assert.deepEqual(boxes[1].faces, { front: true, back: true, west: [[1, 2]], east: [[1, 2]], down: [], up: [[0, 1]] })
   })
 
-  test("the middle of a plus has only front and back faces", () => {
+  test("a leg isn't cut where the shape beside it starts", () => {
+    const boxes = sorted(boxesOf(["11111111", "11011011", "11111111", "11100111", "11100111"]))
+    assert.deepEqual(boxes[0].from, [0, 0])
+    assert.equal(boxes[0].to[0], 3)
+  })
+
+  test("a plus is three boxes", () => {
     const boxes = boxesOf(["010", "111", "010"])
-    const middle = boxes.find(box => box.from[0] === 1 && box.from[1] === 1)
-    assert.equal(boxes.length, 5)
-    assert.deepEqual(middle.to, [2, 2])
-    assert.deepEqual(middle.faces, { front: true, back: true, west: false, east: false, down: false, up: false })
+    assert.equal(boxes.length, 3)
+    const long = boxes.find(box => box.to[1] - box.from[1] === 3)
+    assert.deepEqual(long.faces, { front: true, back: true, west: [[0, 1], [2, 3]], east: [[0, 1], [2, 3]], down: [[1, 2]], up: [[1, 2]] })
   })
 
   test("faces around a hole stay exposed", () => {
     const boxes = boxesOf(["111", "101", "111"])
-    const below = boxes.find(box => box.from[0] === 1 && box.from[1] === 0)
-    const above = boxes.find(box => box.from[0] === 1 && box.from[1] === 2)
-    const left = boxes.find(box => box.from[0] === 0 && box.from[1] === 1)
-    const right = boxes.find(box => box.from[0] === 2 && box.from[1] === 1)
-    assert.equal(below.faces.up, true)
-    assert.equal(above.faces.down, true)
-    assert.equal(left.faces.east, true)
-    assert.equal(right.faces.west, true)
+    const shown = side => boxes.flatMap(box => box.faces[side].map(([from, to]) => `${side === "up" || side === "down" ? `${from}-${to} at ${side === "up" ? box.to[1] : box.from[1]}` : `${from}-${to} at ${side === "east" ? box.to[0] : box.from[0]}`}`))
+    assert.ok(shown("up").includes("1-2 at 1"))
+    assert.ok(shown("down").includes("1-2 at 2"))
+    assert.ok(shown("east").includes("1-2 at 1"))
+    assert.ok(shown("west").includes("1-2 at 2"))
+  })
+
+  test("never takes more boxes than the corners to cut from", () => {
+    for (const rows of SHAPES) {
+      const solid = rows.join("").includes("1")
+      const pieces = boxesOf(rows).length
+      assert.ok(pieces <= concaveCorners(rows) + rows.join("").split("1").length - 1 && (!solid || pieces > 0), rows.join("/"))
+    }
+    assert.equal(boxesOf(["11011", "11111", "11111", "11011"]).length, 3)
+    assert.equal(boxesOf(["0110", "1111", "1111", "0110"]).length, 3)
   })
 
   test("internal flags mark faces away from the mask's outer rows", () => {
     const boxes = sorted(boxesOf(["10", "11"]))
     assert.deepEqual(boxes[0].internal, { up: true, down: false })
-    assert.deepEqual(boxes[1].internal, { up: true, down: false })
-    assert.deepEqual(boxes[2].internal, { up: false, down: true })
+    assert.deepEqual(boxes[1].internal, { up: false, down: true })
   })
 
   test("boxes cover each solid pixel exactly once", () => {
@@ -143,17 +166,18 @@ describe("boxesFor", () => {
     }
   })
 
-  test("each side face is wholly exposed or wholly hidden", () => {
+  test("each side is drawn exactly where it is exposed", () => {
     for (const rows of SHAPES) {
       const at = solidAt(rows)
       for (const { from: [x0, y0], to: [x1, y1], faces } of boxesOf(rows)) {
+        const drawn = (found, value) => found.some(([from, to]) => value >= from && value < to)
         for (let y = y0; y < y1; y++) {
-          assert.equal(!at(x0 - 1, y), faces.west, rows.join("/"))
-          assert.equal(!at(x1, y), faces.east, rows.join("/"))
+          assert.equal(!at(x0 - 1, y), drawn(faces.west, y), rows.join("/"))
+          assert.equal(!at(x1, y), drawn(faces.east, y), rows.join("/"))
         }
         for (let x = x0; x < x1; x++) {
-          assert.equal(!at(x, y0 - 1), faces.down, rows.join("/"))
-          assert.equal(!at(x, y1), faces.up, rows.join("/"))
+          assert.equal(!at(x, y0 - 1), drawn(faces.down, x), rows.join("/"))
+          assert.equal(!at(x, y1), drawn(faces.up, x), rows.join("/"))
         }
       }
     }
@@ -161,19 +185,14 @@ describe("boxesFor", () => {
 
   test("exposed side lengths add up to the shape's perimeter", () => {
     for (const rows of SHAPES) {
-      let total = 0
-      for (const { from, to, faces } of boxesOf(rows)) {
-        const across = to[0] - from[0]
-        const tall = to[1] - from[1]
-        total += (faces.west ? tall : 0) + (faces.east ? tall : 0) + (faces.down ? across : 0) + (faces.up ? across : 0)
-      }
+      const total = boxesOf(rows).flatMap(({ faces }) => [faces.west, faces.east, faces.down, faces.up].flat()).reduce((sum, [from, to]) => sum + to - from, 0)
       assert.equal(total, perimeter(rows), rows.join("/"))
     }
   })
 })
 
 describe("boxFaces", () => {
-  const whole = { from: [0, 0], to: [2, 3], faces: ALL_FACES, internal: { up: false, down: false } }
+  const whole = { from: [0, 0], to: [2, 3], faces: allFaces(2, 3), internal: { up: false, down: false } }
 
   test("emits one face per visible side with its kind", () => {
     const faces = boxFaces([whole], -1, 1)
@@ -181,7 +200,7 @@ describe("boxFaces", () => {
   })
 
   test("skips culled faces", () => {
-    const faces = boxFaces([{ ...whole, faces: { front: true, back: true, west: false, east: true, down: false, up: false } }], -1, 1)
+    const faces = boxFaces([{ ...whole, faces: { front: true, back: true, west: [], east: [[0, 3]], down: [], up: [] } }], -1, 1)
     assert.deepEqual(faces.map(face => face.name), ["front", "back", "east"])
   })
 
@@ -223,8 +242,8 @@ describe("boxFaces", () => {
 
   test("a plus produces front and back plus its perimeter of sides", () => {
     const faces = boxFaces(boxesOf(["010", "111", "010"]), -1, 1)
-    assert.equal(faces.filter(face => face.name === "front").length, 5)
-    assert.equal(faces.filter(face => face.name === "back").length, 5)
+    assert.equal(faces.filter(face => face.name === "front").length, 3)
+    assert.equal(faces.filter(face => face.name === "back").length, 3)
     assert.equal(faces.filter(face => face.kind === "side" || face.kind === "top" || face.kind === "bottom").length, 12)
   })
 

@@ -63,7 +63,9 @@ export function clippedBoxes(boxes, glyph, x) {
       while (end < box.to[1] && left.get(end - glyph.bottom) === left.get(row) && right.get(end - glyph.bottom) === right.get(row)) end++
       const from = Math.max(box.from[0], low)
       const to = Math.min(box.to[0], high)
-      if (from < to) out.push({ ...box, from: [from, start], to: [to, end], faces: { ...box.faces, down: box.faces.down && start === box.from[1], up: box.faces.up && end === box.to[1] } })
+      const [bottom, top] = [start, end]
+      const within = (found, low, high) => found.map(([a, b]) => [Math.max(a, low), Math.min(b, high)]).filter(([a, b]) => a < b)
+      if (from < to) out.push({ ...box, from: [from, start], to: [to, end], faces: { ...box.faces, west: within(box.faces.west, bottom, top), east: within(box.faces.east, bottom, top), down: start === box.from[1] ? within(box.faces.down, from, to) : [], up: end === box.to[1] ? within(box.faces.up, from, to) : [] } })
       start = end
     }
   }

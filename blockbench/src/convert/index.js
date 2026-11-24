@@ -1,13 +1,13 @@
 import * as THREE from "three"
 import { effectScope, watch } from "vue"
-import { buildPartOutline } from "../../../src/lib/geometry/build.js"
+import { buildPartOutline, turned } from "../../../src/lib/geometry/build.js"
 import { CREEPER, TERMINATOR_CLOSE, TERMINATOR_OPEN, baseChar } from "../../../src/lib/font/order.js"
 import { RENDER_ORDER, SHARE } from "../passes.js"
 import { sendStats } from "../stats.js"
 import { memberOf, runtimeOf } from "../titles.js"
-import { hullOf, makeCube, sharedTurn, swatchPaint, texturedPaint } from "./cubes.js"
+import { allSides, hullOf, makeCube, sharedTurn, swatchPaint, texturedPaint, wholeSides } from "./cubes.js"
 import { makeMesh } from "./mesh.js"
-import { boxesOf, facesOf } from "./quads.js"
+import { boxesOf, facesOf, solidBox, solidPoints } from "./quads.js"
 
 const FACING = new THREE.Matrix4().makeRotationY(Math.PI)
 const STILL = new THREE.Quaternion()
@@ -89,6 +89,27 @@ function nameOf(char) {
   return { [TERMINATOR_OPEN]: "open_terminator", [TERMINATOR_CLOSE]: "close_terminator", [CREEPER]: "creeper" }[char] ?? (char.trim() || "space")
 }
 
+function placed(matrix, turn, scale) {
+  return point => new THREE.Vector3(...(turn ? turned(point, turn, scale) : point)).applyMatrix4(matrix)
+}
+
+function boxesIn(faces, turn, matrix) {
+  if (!faces[0].solid) return boxesOf(faces)
+  return Array.from(Map.groupBy(faces, face => face.solid)).flatMap(([solid, quads]) => {
+    const box = solidBox(solidPoints(solid, placed(matrix, turn)), [])
+    const { members, extras } = wholeSides(box, quads)
+    return [{ ...box, members }].concat(boxesOf(extras))
+  })
+}
+
+function outlineBoxes(built, part, outline, matrix) {
+  const place = outlineMatrix(outline, matrix)
+  return buildPartOutline(built, part, outline.scale).solids.map(solid => {
+    const box = solidBox(solidPoints(solid, placed(place, solid.turn, outline.scale)), [])
+    return { ...box, members: allSides(box) }
+  })
+}
+
 function buildCubes(element, frame, name, made) {
   const { item } = memberOf(element)
   const { built, outline } = item
@@ -99,6 +120,7 @@ function buildCubes(element, frame, name, made) {
   const line = newLine(name, origin, element, made.groups, angles(rotation))
   const paint = texturedPaint(textures)
   const letters = []
+  const parts = built.parts?.()
 
   function add(cube, group) {
     cube.visibility = element.visibility
@@ -107,7 +129,7 @@ function buildCubes(element, frame, name, made) {
   }
 
   for (const [glyph, members] of Map.groupBy(faces, face => face.glyph)) {
-    const boxes = boxesOf(members)
+    const boxes = boxesIn(members, parts?.[glyph].turn, matrix)
     const char = baseChar(built.chars?.[glyph] ?? "")
     const turn = sharedTurn(boxes)
     const middle = new THREE.Box3().setFromPoints(members.flatMap(face => face.points)).getCenter(new THREE.Vector3())
@@ -121,9 +143,8 @@ function buildCubes(element, frame, name, made) {
 
   if (!outline?.triangles || !built.swatch || built.border <= 0) return line
   const swatch = swatchPaint(textures[0], pages[0], built.swatch)
-  const parts = built.parts?.()
   for (const { glyph, boxes, group, space } of letters) {
-    const hull = built.runs ? hullOf(boxes, hullReach(built, outline, size), pages) : boxesOf(facesOf(buildPartOutline(built, parts[glyph], outline.scale), outlineMatrix(outline, matrix), pages))
+    const hull = built.runs ? hullOf(boxes, hullReach(built, outline, size), pages) : outlineBoxes(built, parts[glyph], outline, matrix)
     const outer = newOutline(space.pivot, group, made.groups)
     for (const box of hull) add(makeCube({ name: "outline", box, space, inverted: true, paint: swatch }), outer)
   }

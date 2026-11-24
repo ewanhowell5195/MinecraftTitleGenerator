@@ -23,11 +23,11 @@ function expand(bounds, faces) {
   }
 }
 
-function shift({ body, boxes, slabs, rings }, axis, offset) {
+function shift({ body, boxes, slabs, rings, solids }, axis, offset) {
   for (const face of body) {
     for (const point of face.points) point[axis] += offset
   }
-  for (const box of boxes.concat(slabs?.flat() ?? [])) {
+  for (const box of boxes.concat(slabs?.flat() ?? [], solids)) {
     box.from[axis] += offset
     box.to[axis] += offset
   }
@@ -235,7 +235,7 @@ function fanned(across, up, { fan, fanX, fanY }) {
   return [across * Math.cos(fan) - up * Math.sin(fan) + fanX, across * Math.sin(fan) + up * Math.cos(fan) + fanY]
 }
 
-function turned([x, y, z], turn, [sx, sy, sz] = [1, 1, 1]) {
+export function turned([x, y, z], turn, [sx, sy, sz] = [1, 1, 1]) {
   const { ribbon, door, x: pivotX, y: pivotY, moveX, moveZ, scale: [wide, tall, deep] } = turn
   const [across, up] = fanned((x / sx - pivotX) * wide, (y / sy - pivotY) * tall, turn)
   const along = z / sz * deep
@@ -254,6 +254,7 @@ function toBuffers(faces, mapped, pages) {
   const sizes = []
   const groups = []
   const glyphs = []
+  const solids = []
   for (const at of order) {
     const face = faces[at]
     const { page, uvs: coords } = mapped[at]
@@ -262,6 +263,7 @@ function toBuffers(faces, mapped, pages) {
     if (groups.at(-1)?.page !== index) groups.push({ start, count: 0, page: index })
     sizes.push(face.points.length === 3 ? 3 : 6)
     glyphs.push(face.glyph)
+    solids.push(face.solid)
     for (const corner of face.points.length === 3 ? [0, 1, 2] : [0, 1, 2, 0, 2, 3]) {
       const point = face.points[corner]
       const coord = coords[corner]
@@ -270,7 +272,7 @@ function toBuffers(faces, mapped, pages) {
     }
     groups.at(-1).count += positions.length / 3 - start
   }
-  return { positions: new Float32Array(positions), uvs: new Float32Array(uvs), triangles: positions.length / 9, sizes: sizes.includes(3) ? Uint8Array.from(sizes) : null, groups, glyphs: Uint16Array.from(glyphs) }
+  return { positions: new Float32Array(positions), uvs: new Float32Array(uvs), triangles: positions.length / 9, sizes: sizes.includes(3) ? Uint8Array.from(sizes) : null, groups, glyphs: Uint16Array.from(glyphs), solids }
 }
 
 export function rowBottom(boxLists) {
@@ -312,7 +314,8 @@ export function buildText(font, options) {
     if (!shaped) glyph.edgeSpans = { up: stripSpans(body, "top", item.x), down: stripSpans(body, "bottom", item.x) }
     for (const face of body) face.glyph = glyphs.length
     const slabs = sliced ? font.layers.map((_, layer) => clippedBoxes(boxesFor(layerMask(glyph, layer, independent), glyph.width, glyph.height, item.x, glyph.bottom), glyph, item.x)) : null
-    glyphs.push({ body, boxes, slabs, rings: shaped?.rings ?? null, spaces: item.spaces, char: glyph.char, rect: { minX: item.x, maxX: item.x + glyph.width, minY: glyph.bottom, maxY: glyph.bottom + glyph.height, ...shaped?.lines } })
+    const solids = Array.from(new Set(body.map(face => face.solid).filter(Boolean)))
+    glyphs.push({ body, boxes, slabs, solids, rings: shaped?.rings ?? null, spaces: item.spaces, char: glyph.char, rect: { minX: item.x, maxX: item.x + glyph.width, minY: glyph.bottom, maxY: glyph.bottom + glyph.height, ...shaped?.lines } })
     expand(bounds, body)
   }
   const line = options.line ?? bounds
@@ -461,7 +464,8 @@ function rectGrid(rects) {
 
 export function unionBoxes(rects) {
   const { xs, ys, width, height, mask } = rectGrid(rects)
-  return boxesFor(mask, width, height).map(box => ({ ...box, from: [xs[box.from[0]], ys[box.from[1]]], to: [xs[box.to[0]], ys[box.to[1]]] }))
+  const along = (found, values) => found.map(ends => ends.map(end => values[end]))
+  return boxesFor(mask, width, height).map(box => ({ ...box, from: [xs[box.from[0]], ys[box.from[1]]], to: [xs[box.to[0]], ys[box.to[1]]], faces: { ...box.faces, west: along(box.faces.west, ys), east: along(box.faces.east, ys), down: along(box.faces.down, xs), up: along(box.faces.up, xs) } }))
 }
 
 function flatRects(boxes) {
@@ -476,12 +480,14 @@ export function buildOutline(built, scale, extra = [0, 0, 0]) {
   const positions = []
   const grow = sources => sources.map(([x0, y0, x1, y1]) => [x0 * sx - rx, y0 * sy - ry, x1 * sx + rx, y1 * sy + ry])
   const front = layer => sz * built.layerFronts[layer] + rz
+  const solids = []
   function shell(sources, turn, slabs = null) {
     const rects = grow(sources)
     const last = (slabs?.length ?? 1) - 1
     const pieces = slabs ? slabs.map((list, layer) => ({ rects: grow(list), low: layer === last || built.independent ? -z : front(layer + 1), high: front(layer), capped: layer === last || built.independent })) : [{ rects, low: -z, high: z, capped: true }]
     for (const piece of rx > 0 ? pieces : []) {
       const boxes = unionBoxes(piece.rects).map(box => piece.capped ? box : { ...box, faces: { ...box.faces, front: false } })
+      solids.push(...boxes.map(box => ({ from: box.from.concat(piece.low), to: box.to.concat(piece.high), turn })))
       for (const face of boxFaces(boxes, piece.low, piece.high)) {
         for (const index of [0, 1, 2, 0, 2, 3]) positions.push(...(turn ? turned(face.points[index], turn, scale) : face.points[index]))
       }
@@ -490,7 +496,7 @@ export function buildOutline(built, scale, extra = [0, 0, 0]) {
   }
   const rects = built.twist ? [] : shell(built.frame ?? built.boxes.map(([from, to]) => [from[0], from[1], to[0], to[1]]), null, built.frame ? null : built.slabs)
   for (const { sources, turn, slabs } of built.twist ?? []) shell(sources, turn, slabs)
-  return { positions: new Float32Array(positions), uvs: swatchUvs(positions, built.swatch), triangles: positions.length / 9, scale, rects, z }
+  return { positions: new Float32Array(positions), uvs: swatchUvs(positions, built.swatch), triangles: positions.length / 9, scale, rects, z, solids }
 }
 
 export function buildPartOutline(built, part, scale) {

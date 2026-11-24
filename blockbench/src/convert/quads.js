@@ -7,7 +7,7 @@ export function keyOf(point) {
   return point.toArray().map(value => Math.round(value * PRECISION)).join()
 }
 
-export function facesOf({ positions, uvs, triangles, sizes, glyphs, groups }, matrix, pages) {
+export function facesOf({ positions, uvs, triangles, sizes, glyphs, solids, groups }, matrix, pages) {
   const faces = []
   const count = sizes ? sizes.length : triangles / 2
   let at = 0
@@ -18,6 +18,7 @@ export function facesOf({ positions, uvs, triangles, sizes, glyphs, groups }, ma
     faces.push({
       page,
       glyph: glyphs?.[index] ?? 0,
+      solid: solids?.[index] ?? null,
       points: corners.map(corner => new THREE.Vector3().fromArray(positions, (at + corner) * 3).applyMatrix4(matrix)),
       uvs: corners.map(corner => [uvs[(at + corner) * 2] * width, (1 - uvs[(at + corner) * 2 + 1]) * height])
     })
@@ -66,12 +67,21 @@ function axesOf(vectors) {
   return axes
 }
 
-function boxOf(points, vectors, members) {
+export function boxOf(points, vectors, members) {
   const axes = axesOf(vectors)
   const centre = points.reduce((sum, point) => sum.add(point), new THREE.Vector3()).multiplyScalar(1 / points.length)
   const half = axes.map(axis => Math.max(...points.map(point => Math.abs(point.clone().sub(centre).dot(axis)))))
   const quaternion = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(...axes))
   return { centre, half, axes, quaternion, members }
+}
+
+export function solidPoints({ from, to }, place) {
+  return [from[2], to[2]].flatMap(z => [[from[0], from[1]], [to[0], from[1]], [to[0], to[1]], [from[0], to[1]]].map(([x, y]) => place([x, y, z])))
+}
+
+export function solidBox(points, members) {
+  const [a, b, , d, e] = points
+  return { ...boxOf(points, [b, d, e].map(point => point.clone().sub(a).normalize()), members), volume: true }
 }
 
 export function boxesOf(faces) {

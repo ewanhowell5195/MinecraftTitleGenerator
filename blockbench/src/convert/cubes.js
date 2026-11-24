@@ -6,6 +6,7 @@ const DIRECTIONS = [["west", "east"], ["down", "up"], ["north", "south"]]
 const OPPOSITE = { west: "east", east: "west", down: "up", up: "down", north: "south", south: "north" }
 const SWATCH = 0.1
 const SAME = 1e-4
+const SAME_TEXEL = 0.02
 const OPAQUE = 128
 
 const round = value => Math.roundTo(value, 4)
@@ -82,6 +83,57 @@ export function swatchPaint(texture, { width, height }, [u, v]) {
   return () => ({ texture: texture.uuid, uv: [x - SWATCH, y - SWATCH, x + SWATCH, y + SWATCH].map(round) })
 }
 
+export function allSides({ axes }) {
+  return axes.flatMap(axis => [1, -1].map(side => ({ normal: axis.clone().multiplyScalar(side) })))
+}
+
+function mapOf(quad) {
+  const [a, b, , d] = quad.points
+  const across = b.clone().sub(a)
+  const down = d.clone().sub(a)
+  return point => {
+    const offset = point.clone().sub(a)
+    const [s, t] = [across, down].map(edge => offset.dot(edge) / edge.lengthSq())
+    return [0, 1].map(axis => quad.uvs[0][axis] + s * (quad.uvs[1][axis] - quad.uvs[0][axis]) + t * (quad.uvs[3][axis] - quad.uvs[0][axis]))
+  }
+}
+
+function sameMap(map, quad) {
+  return quad.points.every((point, index) => map(point).every((value, axis) => Math.abs(value - quad.uvs[index][axis]) < SAME_TEXEL))
+}
+
+function sameTexels(a, b) {
+  const listed = quad => quad.uvs.map(uv => uv.map(round).join()).sort().join("|")
+  return a.page === b.page && listed(a) === listed(b)
+}
+
+export function wholeSides(box, quads) {
+  const members = []
+  const extras = []
+  for (const found of Map.groupBy(quads, quad => directionOf(normalOf(quad), box.axes)).values()) {
+    const [first, ...others] = found.sort((a, b) => areaOf(b) - areaOf(a))
+    const normal = normalOf(first)
+    const map = mapOf(first)
+    const reach = box.axes.reduce((sum, axis, index) => sum + Math.abs(axis.dot(normal)) * box.half[index], 0)
+    const middle = box.centre.clone().addScaledVector(normal, reach)
+    const edges = [1, 3].map(corner => first.points[corner].clone().sub(first.points[0]).normalize())
+    const spans = edges.map(edge => box.axes.reduce((sum, axis, index) => sum + Math.abs(axis.dot(edge)) * box.half[index], 0))
+    const points = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([s, t]) => middle.clone().addScaledVector(edges[0], s * spans[0]).addScaledVector(edges[1], t * spans[1]))
+    const fixed = others.length > 0 && others.every(quad => sameTexels(first, quad))
+    members.push({ ...first, points, normal, uvs: fixed ? first.uvs : points.map(map) })
+    extras.push(...others.filter(quad => !fixed && (quad.page !== first.page || !sameMap(map, quad))))
+  }
+  return { members, extras }
+}
+
+function normalOf({ points: [a, b, , d] }) {
+  return b.clone().sub(a).cross(d.clone().sub(a)).normalize()
+}
+
+function areaOf({ points: [a, b, , d] }) {
+  return a.distanceTo(b) * a.distanceTo(d)
+}
+
 function pixelsOf(page) {
   return page.getContext("2d").getImageData(0, 0, page.width, page.height)
 }
@@ -134,7 +186,7 @@ function hullBoxes(box, radius, pixels) {
   })
   return unionBoxes(rects).map(({ from, to, faces }) => {
     const place = (point, end) => [0, 1, 2].map(axis => axis === x ? point[0] : axis === y ? point[1] : end * (box.half[thin] + reach[thin]))
-    return { low: place(from, -1), high: place(to, 1), faces: { [DIRECTIONS[x][0]]: faces.west, [DIRECTIONS[x][1]]: faces.east, [DIRECTIONS[y][0]]: faces.down, [DIRECTIONS[y][1]]: faces.up } }
+    return { low: place(from, -1), high: place(to, 1), faces: { [DIRECTIONS[x][0]]: faces.west.length > 0, [DIRECTIONS[x][1]]: faces.east.length > 0, [DIRECTIONS[y][0]]: faces.down.length > 0, [DIRECTIONS[y][1]]: faces.up.length > 0 } }
   })
 }
 
