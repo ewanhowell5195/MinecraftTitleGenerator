@@ -21,7 +21,7 @@ let queued = []
 let flushing = null
 
 export function googleFontList() {
-  listing ??= fetched(`/api/google-fonts?v=${CATALOG_VERSION}`, "The Google Fonts list").then(response => response.json()).then(body => body.fonts).catch(err => {
+  listing ??= fetched(platform.asset(`/api/google-fonts?v=${CATALOG_VERSION}`), "The Google Fonts list").then(response => response.json()).then(body => body.fonts).catch(err => {
     listing = null
     throw err
   })

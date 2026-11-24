@@ -5,7 +5,7 @@ const LIST_SECONDS = 86400
 
 export const googleFonts = guarded(context => cachedAtEdge(context, async () => {
   try {
-    return reply(200, { fonts: await googleCatalog(USER_AGENT) })
+    return reply(200, { fonts: await googleCatalog(USER_AGENT) }, { "Access-Control-Allow-Origin": "*" })
   } catch (err) {
     throw new Refusal(502, `${err.message}.`)
   }
