@@ -1,3 +1,8 @@
+export function fileNameOf(text, fallback) {
+  const name = text.toLowerCase().replace(/[\\/:*?"<>|\s]+/g, "_").replace(/^[_.]+|[_.]+$/g, "")
+  return Array.from(name).slice(0, 64).join("").replace(/[_.]+$/, "") || fallback
+}
+
 export function download(name, url) {
   const link = document.createElement("a")
   link.download = name

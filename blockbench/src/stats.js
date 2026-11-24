@@ -50,8 +50,16 @@ export function savedStats({ project, saved }) {
   if (saved && project.format?.id === FORMAT) sendStats(project)
 }
 
+export function countedInFile() {
+  return inDevelopment() ? countedIn(Project) : countedIn(Project).concat(keysOf(uncounted(Project, settingsIn(Project))))
+}
+
+export function restoreCounted(keys = []) {
+  Project[COUNTED] = keys.slice()
+}
+
 export function keepCounted({ model }) {
-  if (Format?.id === FORMAT && !inDevelopment()) model[COUNTED] = countedIn(Project).concat(keysOf(uncounted(Project, settingsIn(Project))))
+  if (Format?.id === FORMAT) model[COUNTED] = countedInFile()
 }
 
 export function registerStats() {

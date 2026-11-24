@@ -1,5 +1,6 @@
 import { computed, reactive, ref, shallowReactive, toRaw, watch } from "vue"
 import { cameraChanges, fullCamera } from "../settings/camera.js"
+import { fileNameOf } from "../core/files.js"
 import { applyType } from "../settings/defaults.js"
 import { hoisted, lowered } from "../link/linkformat.js"
 import { round } from "../core/maths.js"
@@ -234,11 +235,6 @@ export function titleText() {
 
 export function casedTitle() {
   return lines().some(line => line.some(word => !word.hidden && word.shape === null && runtime[word.id]?.font?.multicase))
-}
-
-export function fileNameOf(text, fallback) {
-  const name = text.toLowerCase().replace(/[\\/:*?"<>|\s]+/g, "_").replace(/^[_.]+|[_.]+$/g, "")
-  return Array.from(name).slice(0, 64).join("").replace(/[_.]+$/, "") || fallback
 }
 
 export function titleFileName() {
