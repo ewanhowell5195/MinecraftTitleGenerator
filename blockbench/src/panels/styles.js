@@ -285,6 +285,10 @@ export const STYLES = `
     background: var(--color-button);
   }
 
+  .mtg-tile:has(> .mtg-badge) > .mtg-name {
+    padding: 0 14px;
+  }
+
   .mtg-sample {
     display: flex;
     align-items: center;
