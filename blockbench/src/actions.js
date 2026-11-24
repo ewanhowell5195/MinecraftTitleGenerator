@@ -77,7 +77,7 @@ export function registerActions() {
     new Action("convert_minecraft_title_to_cubes", { name: "Convert to Cubes", icon: "view_in_ar", category: "edit", condition: () => selectedTitles().length > 0 && selectedTitles().every(isCubes), click: () => convertSelected("cubes") }),
     new Action("convert_minecraft_title_to_mesh", { name: "Convert to Mesh", icon: "fa-gem", category: "edit", condition: () => selectedTitles().length > 0, click: () => convertSelected("mesh") })
   )
-  BarItems.add_element.side_menu.structure.unshift(...actions.map(action => action.id))
+  BarItems.add_element.side_menu.structure.push(...actions.map(action => action.id))
   for (const action of actions.toReversed()) {
     Toolbars.outliner.add(action, 0)
     MenuBar.menus.edit.addAction(action, 5)
