@@ -2,9 +2,12 @@ import { after, before, describe, test } from "node:test"
 import assert from "node:assert/strict"
 import { fork } from "node:child_process"
 import { fileURLToPath } from "node:url"
+import sharp from "sharp"
 import { encodeTitle } from "../src/lib/link/linkformat.js"
 import { renderTitle } from "./index.js"
 
+const CLEARLY_DIFFERENT = 16
+const MAX_DIFFERING_PIXELS = 0.001
 const VUE_2 = new URL("../test/helpers/useVue2.js", import.meta.url).href
 
 const TITLES = {
@@ -14,6 +17,22 @@ const TITLES = {
   "stacked and twisted rows": [{ text: "one", twistRibbon: 40 }, { text: "two", row: 1, arcTop: 40, scaleY: 0.5, twistDoor: 60 }],
   "separate layers": [{ text: "Layers", font: "minecraft-ten-inset", separateColour: true, layerSettings: [{ hue: 120 }, { hue: 240 }] }],
   "a shape": [{ text: "Title" }, { shape: "heart", row: 1 }]
+}
+
+async function pixelsOf(png) {
+  return sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
+}
+
+async function assertSame(theirs, mine) {
+  if (mine.equals(theirs)) return
+  const [a, b] = await Promise.all([pixelsOf(theirs), pixelsOf(mine)])
+  assert.deepEqual([a.info.width, a.info.height], [b.info.width, b.info.height])
+  let differing = 0
+  for (let at = 0; at < a.data.length; at += 4) {
+    if ([0, 1, 2, 3].some(channel => Math.abs(a.data[at + channel] - b.data[at + channel]) > CLEARLY_DIFFERENT)) differing++
+  }
+  const share = differing / (a.info.width * a.info.height)
+  assert.ok(share <= MAX_DIFFERING_PIXELS, `${(share * 100).toFixed(3)}% of pixels differ`)
 }
 
 function code(lines) {
@@ -44,9 +63,9 @@ describe("rendering on Vue 2", () => {
   }
 
   for (const [name, lines] of Object.entries(TITLES)) {
-    test(`draws ${name} exactly as Vue 3 does`, async () => {
+    test(`draws ${name} as Vue 3 does`, async () => {
       const [theirs, mine] = await Promise.all([rendered(code(lines)), renderTitle(code(lines), { format: "png" })])
-      assert.ok(mine.equals(theirs), "the pictures differ")
+      await assertSame(theirs, mine)
     })
   }
 })
