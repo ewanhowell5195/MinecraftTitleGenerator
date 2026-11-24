@@ -9,7 +9,7 @@ import { LINE, isModified, snapshot } from "../settings/settings.js"
 import { plainCopy } from "../core/values.js"
 import { shapeName } from "../geometry/shapes.js"
 import { keptObject, titleObjects } from "../title/objects.js"
-import { createTitle, linesOf, wordsOf } from "../title/title.js"
+import { createTitle, freeRowOf, linesOf, wordsOf } from "../title/title.js"
 import { joinWords, titleLines, titleValues, trimmed } from "../link/titleLines.js"
 import { FILE_VERSION } from "../settings/upgrades.js"
 import { userBusy } from "./activity.js"
@@ -331,10 +331,7 @@ function nextType() {
 }
 
 export function freeRow(type, moving = null) {
-  const own = new Set(moving ? words(moving) : [])
-  const used = new Set(scene.objects.filter(object => object.type === type && !own.has(object)).map(object => object.row))
-  const rows = type === "top" ? [0, -1, -2, -3, 1, 2, 3] : [0, 1, 2, 3]
-  return rows.find(row => !used.has(row)) ?? rows[3]
+  return freeRowOf(type, editorTitle, moving ? words(moving) : [])
 }
 
 function addNew(object, section) {

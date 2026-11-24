@@ -38,7 +38,7 @@
     <template v-if="isShown(control)">
       <p v-if="control.type === 'hint'" class="hint">{{ resolved(control.text) }}</p>
       <h3 v-else-if="control.type === 'heading'">{{ resolved(control.text) }}</h3>
-      <Slider v-else-if="control.type === 'slider'" :label="control.label" :model-value="valueOf(control)" @update:model-value="change(control, $event)" :min="resolved(control.min)" :max="resolved(control.max)" :step="control.step" :steps="control.steps" :log="control.log" :hint="resolved(control.hint)" @pointerdown="press(control)" />
+      <Slider v-else-if="control.type === 'slider'" :label="control.label" :model-value="valueOf(control)" @update:model-value="change(control, $event)" :min="resolved(control.min)" :max="resolved(control.max)" :typed-min="resolved(control.typedMin)" :typed-max="resolved(control.typedMax)" :step="control.step" :steps="control.steps" :log="control.log" :hint="resolved(control.hint)" @pointerdown="press(control)" />
       <Toggle v-else-if="control.type === 'toggle'" :label="control.label" :hint="resolved(control.hint)" :model-value="!!valueOf(control)" @update:model-value="change(control, $event)" />
       <Segments v-else-if="control.type === 'segments'" :label="control.label" :radio="control.radio" :options="resolved(control.options)" :model-value="valueOf(control)" @update:model-value="change(control, $event)" />
       <Dropdown v-else-if="control.type === 'dropdown'" :class="{ grow: control.grow }" :label="control.label" :options="resolved(control.options)" :model-value="valueOf(control)" @update:model-value="change(control, $event)" v-tooltip="control.tooltip" />

@@ -25,3 +25,11 @@ export function linesOf(objects) {
   }
   return list
 }
+
+export function freeRowOf(type, title, own = []) {
+  const used = new Set(title.objects.filter(object => object.type === type && !own.includes(object)).map(object => object.row))
+  const step = type === "top" ? -1 : 1
+  let row = 0
+  while (used.has(row)) row += step
+  return row
+}

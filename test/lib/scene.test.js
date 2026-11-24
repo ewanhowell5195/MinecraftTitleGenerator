@@ -673,6 +673,12 @@ describe("addObject", () => {
     assert.equal(freeRow("bottom"), 0)
   })
 
+  test("keeps going past the ends of the row slider", () => {
+    setScene(...[0, -1, -2, -3].map(row => createObject({ text: "top", row })), ...[0, 1, 2, 3].map(row => createObject({ ...typeDefaults("bottom"), text: "bottom", row })))
+    assert.equal(freeRow("top"), -4)
+    assert.equal(freeRow("bottom"), 4)
+  })
+
   test("a line moving placement doesn't count its own row", () => {
     const [a] = setScene(createObject({ ...typeDefaults("bottom"), text: "a" }), createObject({ text: "b" }))
     assert.equal(freeRow("bottom", a), 0)
