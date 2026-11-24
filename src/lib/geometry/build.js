@@ -253,6 +253,7 @@ function toBuffers(faces, mapped, pages) {
   const uvs = []
   const sizes = []
   const groups = []
+  const glyphs = []
   for (const at of order) {
     const face = faces[at]
     const { page, uvs: coords } = mapped[at]
@@ -260,6 +261,7 @@ function toBuffers(faces, mapped, pages) {
     const start = positions.length / 3
     if (groups.at(-1)?.page !== index) groups.push({ start, count: 0, page: index })
     sizes.push(face.points.length === 3 ? 3 : 6)
+    glyphs.push(face.glyph)
     for (const corner of face.points.length === 3 ? [0, 1, 2] : [0, 1, 2, 0, 2, 3]) {
       const point = face.points[corner]
       const coord = coords[corner]
@@ -268,7 +270,7 @@ function toBuffers(faces, mapped, pages) {
     }
     groups.at(-1).count += positions.length / 3 - start
   }
-  return { positions: new Float32Array(positions), uvs: new Float32Array(uvs), triangles: positions.length / 9, sizes: sizes.includes(3) ? Uint8Array.from(sizes) : null, groups }
+  return { positions: new Float32Array(positions), uvs: new Float32Array(uvs), triangles: positions.length / 9, sizes: sizes.includes(3) ? Uint8Array.from(sizes) : null, groups, glyphs: Uint16Array.from(glyphs) }
 }
 
 export function rowBottom(boxLists) {
@@ -412,6 +414,7 @@ export function buildText(font, options) {
     refine: sharpened || options.redraw ? refine : null,
     repaint,
     layers: Array.from(new Set(body.map(face => face.layer ?? 0))).sort((a, b) => a - b),
+    chars: glyphs.map(glyph => glyph.char),
     depth,
     border,
     boxes: glyphs.flatMap(glyph => glyph.boxes.map(box => [box.from, box.to])),
@@ -451,7 +454,7 @@ function rectGrid(rects) {
   return { xs, ys, width, height, mask }
 }
 
-function union(rects) {
+export function unionBoxes(rects) {
   const { xs, ys, width, height, mask } = rectGrid(rects)
   return boxesFor(mask, width, height).map(box => ({ ...box, from: [xs[box.from[0]], ys[box.from[1]]], to: [xs[box.to[0]], ys[box.to[1]]] }))
 }
@@ -473,7 +476,7 @@ export function buildOutline(built, scale, extra = [0, 0, 0]) {
     const last = (slabs?.length ?? 1) - 1
     const pieces = slabs ? slabs.map((list, layer) => ({ rects: grow(list), low: layer === last || built.independent ? -z : front(layer + 1), high: front(layer), capped: layer === last || built.independent })) : [{ rects, low: -z, high: z, capped: true }]
     for (const piece of rx > 0 ? pieces : []) {
-      const boxes = union(piece.rects).map(box => piece.capped ? box : { ...box, faces: { ...box.faces, front: false } })
+      const boxes = unionBoxes(piece.rects).map(box => piece.capped ? box : { ...box, faces: { ...box.faces, front: false } })
       for (const face of boxFaces(boxes, piece.low, piece.high)) {
         for (const index of [0, 1, 2, 0, 2, 3]) positions.push(...(turn ? turned(face.points[index], turn, scale) : face.points[index]))
       }
