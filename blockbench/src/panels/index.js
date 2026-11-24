@@ -53,10 +53,11 @@ const made = new Map()
 let styles = null
 let following = null
 
-function component({ shapes, shown, groups, panels }) {
+function component({ place, shapes, shown, groups, panels }) {
   return {
     components: { FontGroup, FontNote, ShapeGroup, TitleGroup, TitleWords },
     computed: {
+      filling: () => !place,
       element: () => selected.value,
       settings: () => selected.value && shownSettings(selected.value),
       kind: () => selected.value && kindOf(selected.value),
@@ -75,7 +76,7 @@ function component({ shapes, shown, groups, panels }) {
       }
     },
     template: `
-      <div class="mtg-panel">
+      <div class="mtg-panel" :class="{ filling }">
         <template v-if="applies">
           <component v-for="group of groups" :key="group + home" :is="group" />
           <title-group v-for="(panel, index) of panels" :key="panel.id + index + word" :panel="panel" :word="word" />
@@ -106,7 +107,7 @@ export function registerPanels() {
     made.set(id, titlePanel(id, {
       name,
       icon,
-      growable: true,
+      growable: !place,
       resizable: true,
       default_position: { slot: "left_bar", sidebar_index: 0, float_position: [0, 0], float_size: [320, 500], height: 400, ...(place ?? (index && { attached_to: SECTIONS[0].id, attached_index: SECTIONS.length - index })) },
       component: component(section)
