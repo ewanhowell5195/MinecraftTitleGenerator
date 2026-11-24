@@ -327,6 +327,7 @@ export function buildText(font, options) {
     ...options,
     outline: border > 0,
     chars: glyphs.map(glyph => glyph.char),
+    parts: () => twist ?? glyphs.map(glyph => partOf(glyph)),
     rects: glyphs.map(glyph => glyph.rect),
     spaces: glyphs.map(glyph => glyph.spaces),
     space: font.spaceWidth ?? SPACE,
@@ -401,10 +402,13 @@ export function buildText(font, options) {
     return span.own ? { minX: place(minX), maxX: place(maxX) } : { minX: minX * stretchX, maxX: maxX * stretchX }
   }) : ownSpans
   const twists = [options.twist && { twist: options.twist, first: first * stretchX, last: last * stretchX, cells: fanCells(lineSpans) }, twisting(options.wordTwist) && { twist: options.wordTwist, first: place(Math.min(...middles)), last: place(Math.max(...middles)), cells: fanCells(ownSpans) }].filter(Boolean)
+  function partOf(glyph, turn = null) {
+    return { turn, rings: font.mesh ? glyphRings(glyph) : null, sources: font.autoBorder ? frameRects(glyph.boxes) : flatRects(glyph.boxes), slabs: font.autoBorder || !font.layers ? null : font.layers.map((_, layer) => flatRects(glyph.slabs?.[layer] ?? glyph.boxes)) }
+  }
   const twist = twists.length ? glyphs.map(glyph => {
     const turn = twistTurn(twists, glyph.rect, line, place, scale.map((axis, index) => axis * lineScale[index]), [depth / 2 - (options.lineDepth ?? depth), depth / 2])
     for (const face of glyph.body) face.points = face.points.map(point => turned(point, turn))
-    return { turn, rings: font.mesh ? glyphRings(glyph) : null, sources: font.autoBorder ? frameRects(glyph.boxes) : flatRects(glyph.boxes), slabs: font.autoBorder || !font.layers ? null : font.layers.map((_, layer) => flatRects(glyph.slabs?.[layer] ?? glyph.boxes)) }
+    return partOf(glyph, turn)
   }) : null
   drafted = toBuffers(body, flat, texture.layouts)
   return {
@@ -415,6 +419,7 @@ export function buildText(font, options) {
     repaint,
     layers: Array.from(new Set(body.map(face => face.layer ?? 0))).sort((a, b) => a - b),
     chars: glyphs.map(glyph => glyph.char),
+    parts: () => twist ?? glyphs.map(glyph => partOf(glyph)),
     depth,
     border,
     boxes: glyphs.flatMap(glyph => glyph.boxes.map(box => [box.from, box.to])),
@@ -488,6 +493,10 @@ export function buildOutline(built, scale, extra = [0, 0, 0]) {
   return { positions: new Float32Array(positions), uvs: swatchUvs(positions, built.swatch), triangles: positions.length / 9, scale, rects, z }
 }
 
+export function buildPartOutline(built, part, scale) {
+  return buildOutline({ ...built, boxes: [], frame: null, slabs: null, shapes: built.shapes && part.rings, twist: [part] }, scale)
+}
+
 export function swatchUvs(positions, swatch) {
   const uvs = new Float32Array(positions.length / 3 * 2)
   if (swatch) {
@@ -516,7 +525,7 @@ function ringsKey(groups, ...values) {
 }
 
 function meshOutline(built, scale, radius, z) {
-  const groups = built.twist ? built.twist.map(({ turn, rings }) => ({ rings, turn: point => turned(point, turn, scale) })) : [{ rings: built.shapes }]
+  const groups = built.twist ? built.twist.map(({ turn, rings }) => ({ rings, turn: turn && (point => turned(point, turn, scale)) })) : [{ rings: built.shapes }]
   const key = ringsKey(groups, scale, radius, z, built.swatch, built.twist?.map(({ turn }) => turn))
   return remember(shells, key, () => shellOutline(built, groups, scale, radius, z), CACHED_SHELLS)
 }
