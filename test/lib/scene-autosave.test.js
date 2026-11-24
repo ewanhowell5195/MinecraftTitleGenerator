@@ -18,6 +18,7 @@ fakeTimeouts()
 const { snapshot } = await import("../../src/lib/settings/settings.js")
 const { FILE_VERSION } = await import("../../src/lib/settings/upgrades.js")
 const { createObject } = await import("../../src/lib/settings/objects.js")
+const { keepTexture } = await import("../../src/lib/title/objects.js")
 const { saveError, scene, select } = await import("../../src/lib/state/scene.js")
 const { line, setScene } = await import("../helpers/scene.js")
 
@@ -111,7 +112,7 @@ describe("restoring the saved scene", () => {
     assert.deepEqual([second.matchWidth, third.matchWidth], [first.id, first.id])
     assert.equal(module.scene.selected, third.id)
     assert.equal(module.scene.selectedGroup, third.group)
-    assert.ok(module.keepTexture.has(first))
+    assert.ok(keepTexture.has(first))
     assert.equal(module.saveError.value, null)
   })
 
@@ -148,7 +149,7 @@ describe("restoring the saved scene", () => {
       assert.deepEqual([second.matchWidth, third.matchWidth], [first.id, first.id])
       assert.equal(module.scene.selected, second.id)
       assert.equal(module.scene.selectedGroup, second.group)
-      assert.ok(module.keepTexture.has(first))
+      assert.ok(keepTexture.has(first))
     })
 
     test("keeps separate lines that have no group apart", async () => {

@@ -1,5 +1,5 @@
 import { computed, ref, watch } from "vue"
-import { apiCall, jsonOptions } from "../submissions/api.js"
+import { apiCall, jsonOptions } from "../core/api.js"
 import { LIMITS } from "../core/limits.js"
 import { showNotice } from "./notices.js"
 import { account, onSignedIn, onSignedInOrOut, refreshAccount } from "./account.js"

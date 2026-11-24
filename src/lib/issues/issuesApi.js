@@ -1,4 +1,4 @@
-import { apiCall, jsonOptions } from "../submissions/api.js"
+import { apiCall, jsonOptions } from "../core/api.js"
 import { refreshAccount } from "../state/account.js"
 
 const API = "/api/issues"

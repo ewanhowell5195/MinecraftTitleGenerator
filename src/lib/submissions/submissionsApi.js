@@ -1,4 +1,4 @@
-import { apiCall, jsonOptions } from "./api.js"
+import { apiCall, jsonOptions } from "../core/api.js"
 import { refreshAccount } from "../state/account.js"
 import { askConfirm } from "../state/confirm.js"
 

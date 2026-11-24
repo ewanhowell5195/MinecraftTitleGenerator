@@ -9,7 +9,8 @@ fakeTimeouts()
 
 const { LAYER } = await import("../../src/lib/settings/textureDefaults.js")
 const { createObject } = await import("../../src/lib/settings/objects.js")
-const { addObject, keepTexture, scene, select } = await import("../../src/lib/state/scene.js")
+const { keepTexture } = await import("../../src/lib/title/objects.js")
+const { addObject, scene, select } = await import("../../src/lib/state/scene.js")
 const { history, holdHistory, quietly, redo, undo } = await import("../../src/lib/state/history.js")
 const { openTitle } = await import("../../src/lib/state/titleFile.js")
 

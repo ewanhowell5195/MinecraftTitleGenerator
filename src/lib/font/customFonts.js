@@ -1,4 +1,3 @@
-import { shallowReactive } from "vue"
 import { fontTextures } from "../texture/assets.js"
 import { IMPORTED_TEXTURES } from "../texture/imported.js"
 import { pixelsOf } from "../texture/canvas.js"
@@ -10,6 +9,7 @@ import { GENERATED_EDGE_OVERLAYS, withGenerated } from "../texture/overlays/sett
 import { CUSTOM_FONT } from "../settings/settings.js"
 import { SILHOUETTE_TEXT } from "../geometry/shapes.js"
 import { stripRows } from "./strips.js"
+import { keyed } from "../core/keyed.js"
 import { pngUrl, serveFile } from "../core/virtualFiles.js"
 import { platform } from "../core/platform.js"
 
@@ -17,7 +17,7 @@ const OVERLAY_BASE = "#404040"
 export const PREVIEW_DETAIL = 3
 const KINDS = [["json", /\.json$/i], ["ascii", /\.png$/i], ["outline", /\.(ttf|otf|woff2?)$/i]]
 const built = new Map()
-const thumbnails = shallowReactive(new Map())
+const thumbnails = keyed()
 const drawing = new Map()
 const undrawn = new Map()
 
@@ -42,7 +42,7 @@ function squareSize({ kind, mesh, density }) {
 function thumbnailsOf(fontId) {
   if (undrawn.has(fontId)) {
     drawing.set(fontId, undrawn.get(fontId)().then(drawn => {
-      thumbnails.set(fontId, drawn)
+      thumbnails[fontId] = drawn
       return drawn
     }))
     undrawn.delete(fontId)
@@ -52,7 +52,7 @@ function thumbnailsOf(fontId) {
 
 export function customThumbnail(fontId, name) {
   thumbnailsOf(fontId)
-  return thumbnails.get(fontId)?.[name] ?? null
+  return thumbnails[fontId]?.[name] ?? null
 }
 
 export function customThumbnails(fontId) {

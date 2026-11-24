@@ -1,5 +1,4 @@
-import { quietly } from "../lib/state/history.js"
-import { keepTexture, loadedFont } from "../lib/state/scene.js"
+import { keepTexture, loadedFont } from "../lib/title/objects.js"
 import { defaultBorder, defaultDepth, defaultSpacing, fontFaces } from "../lib/settings/defaults.js"
 import { applyFontFaces, isSeparate, layerView } from "../lib/settings/layers.js"
 import { defaultTexture, separateForDefaults, setTexture } from "../lib/settings/textureDefaults.js"
@@ -18,7 +17,7 @@ function fontTexture(target, textures, type) {
   return { texture: target.texture, textureVariant: entry.variants?.[target.textureVariant] ? target.textureVariant : null }
 }
 
-export function applyFontDefaults(object, loaded, textures, before) {
+export function applyFontDefaults(object, loaded, textures, before, quietly) {
   if (!keepTexture.has(object) && loadedFont.get(object) !== loaded.id) {
     quietly(() => {
       for (const target of layerViews(object, "texture")) {

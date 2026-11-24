@@ -6,10 +6,10 @@ quietStorage()
 fakeTimeouts()
 
 const { reactive } = await import("vue")
-const { heights, rowStart } = await import("../../src/lib/geometry/rows.js")
+const { rowStart } = await import("../../src/lib/geometry/rows.js")
 const { editorTitle, scene, words } = await import("../../src/lib/state/scene.js")
 const { createObject } = await import("../../src/lib/settings/objects.js")
-const { createTitle } = await import("../../src/lib/state/title.js")
+const { createTitle, wordsOf } = await import("../../src/lib/title/title.js")
 
 function separate(objects) {
   return createTitle(reactive(objects), { render: false, fov: 43, fixedDistance: false })
@@ -27,7 +27,7 @@ describe("a separate title", () => {
     const own = createObject({ text: "own", group: 7 })
     const other = createObject({ text: "other", group: 7 })
     const title = separate([own, other])
-    assert.equal(words(title.objects[0], title).length, 2)
+    assert.equal(wordsOf(title.objects[0], title).length, 2)
     assert.equal(words(title.objects[0]).length, 0)
   })
 
@@ -38,7 +38,7 @@ describe("a separate title", () => {
     title.heights[first.id] = { height: 100, capHeight: 100, scaleY: 1 }
     const start = rowStart(title.objects[1], title)
     assert.ok(start > 100)
-    assert.equal(heights[first.id], undefined)
+    assert.equal(editorTitle.heights[first.id], undefined)
   })
 })
 

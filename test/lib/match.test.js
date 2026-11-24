@@ -8,9 +8,11 @@ forbidFetch()
 fakeTimeouts()
 
 const { createObject } = await import("../../src/lib/settings/objects.js")
-const { runtime, scene } = await import("../../src/lib/state/scene.js")
+const { editorTitle, runtime, scene } = await import("../../src/lib/state/scene.js")
 const { history } = await import("../../src/lib/state/history.js")
-const { keepMatched, leadsTo, matchSolved, problems } = await import("../../src/lib/state/match.js")
+const { keepMatched, leadsTo, matchSolved } = await import("../../src/lib/title/match.js")
+
+const { problems } = editorTitle
 
 function chain(count) {
   const objects = Array.from({ length: count }, (_, index) => createObject({ text: `line ${index}` }))
@@ -32,43 +34,43 @@ beforeEach(() => {
 describe("leadsTo", () => {
   test("a line leads to itself", () => {
     const [a] = chain(1)
-    assert.equal(leadsTo(a, a), true)
+    assert.equal(leadsTo(a, a, editorTitle), true)
   })
 
   test("follows a direct match", () => {
     const [a, b] = linked(2)
-    assert.equal(leadsTo(a, b), true)
+    assert.equal(leadsTo(a, b, editorTitle), true)
   })
 
   test("does not follow a match backwards", () => {
     const [a, b] = linked(2)
-    assert.equal(leadsTo(b, a), false)
+    assert.equal(leadsTo(b, a, editorTitle), false)
   })
 
   test("follows a whole chain", () => {
     const [a, b, c, d] = linked(4)
-    assert.equal(leadsTo(a, d), true)
-    assert.equal(leadsTo(b, d), true)
-    assert.equal(leadsTo(d, a), false)
-    assert.equal(leadsTo(c, b), false)
+    assert.equal(leadsTo(a, d, editorTitle), true)
+    assert.equal(leadsTo(b, d, editorTitle), true)
+    assert.equal(leadsTo(d, a, editorTitle), false)
+    assert.equal(leadsTo(c, b, editorTitle), false)
   })
 
   test("is false for unrelated lines", () => {
     const [a, b] = chain(2)
-    assert.equal(leadsTo(a, b), false)
+    assert.equal(leadsTo(a, b, editorTitle), false)
   })
 
   test("stops at a reference that no longer exists", () => {
     const [a, b] = chain(2)
     a.matchWidth = 987654
-    assert.equal(leadsTo(a, b), false)
+    assert.equal(leadsTo(a, b, editorTitle), false)
   })
 
   test("finishes on a loop that misses the target", () => {
     const [a, b, c] = chain(3)
     a.matchWidth = b.id
     b.matchWidth = a.id
-    assert.equal(leadsTo(a, c), false)
+    assert.equal(leadsTo(a, c, editorTitle), false)
   })
 
   test("finds a target inside a loop", () => {
@@ -76,14 +78,14 @@ describe("leadsTo", () => {
     a.matchWidth = b.id
     b.matchWidth = c.id
     c.matchWidth = a.id
-    assert.equal(leadsTo(a, c), true)
-    assert.equal(leadsTo(c, b), true)
+    assert.equal(leadsTo(a, c, editorTitle), true)
+    assert.equal(leadsTo(c, b, editorTitle), true)
   })
 
   test("finishes when a line matches itself", () => {
     const [a, b] = chain(2)
     a.matchWidth = a.id
-    assert.equal(leadsTo(a, b), false)
+    assert.equal(leadsTo(a, b, editorTitle), false)
   })
 
   test("finishes when a chain runs into a loop", () => {
@@ -91,55 +93,55 @@ describe("leadsTo", () => {
     a.matchWidth = b.id
     b.matchWidth = c.id
     c.matchWidth = b.id
-    assert.equal(leadsTo(a, d), false)
-    assert.equal(leadsTo(a, c), true)
+    assert.equal(leadsTo(a, d, editorTitle), false)
+    assert.equal(leadsTo(a, c, editorTitle), true)
   })
 })
 
 describe("matchSolved", () => {
   test("is false with no match", () => {
     const [a] = chain(1)
-    assert.equal(matchSolved(a), false)
+    assert.equal(matchSolved(a, editorTitle), false)
   })
 
   test("is true when the reference is visible", () => {
     const [a] = linked(2)
-    assert.equal(matchSolved(a), true)
+    assert.equal(matchSolved(a, editorTitle), true)
   })
 
   test("is false when the reference is hidden", () => {
     const [a, b] = linked(2)
     b.hidden = true
-    assert.equal(matchSolved(a), false)
+    assert.equal(matchSolved(a, editorTitle), false)
   })
 
   test("ignores whether the line itself is hidden", () => {
     const [a] = linked(2)
     a.hidden = true
-    assert.equal(matchSolved(a), true)
+    assert.equal(matchSolved(a, editorTitle), true)
   })
 
   test("looks at the end of a chain", () => {
     const [a, b, c] = linked(3)
-    assert.equal(matchSolved(a), true)
+    assert.equal(matchSolved(a, editorTitle), true)
     b.hidden = true
-    assert.equal(matchSolved(a), true)
+    assert.equal(matchSolved(a, editorTitle), true)
     b.hidden = false
     c.hidden = true
-    assert.equal(matchSolved(a), false)
-    assert.equal(matchSolved(b), false)
+    assert.equal(matchSolved(a, editorTitle), false)
+    assert.equal(matchSolved(b, editorTitle), false)
   })
 
   test("is false for a reference that no longer exists", () => {
     const [a] = chain(1)
     a.matchWidth = 987654
-    assert.equal(matchSolved(a), false)
+    assert.equal(matchSolved(a, editorTitle), false)
   })
 })
 
 describe("problems and solving", () => {
   before(() => {
-    keepMatched()
+    keepMatched(editorTitle)
     scene.camera.fov = 0
   })
 

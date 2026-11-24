@@ -1,4 +1,4 @@
-import { editorTitle, words } from "../state/scene.js"
+import { wordsOf } from "../title/title.js"
 import { effectiveScale } from "../settings/settings.js"
 
 const STACK = {
@@ -10,12 +10,10 @@ const STACK = {
 export const DEFAULT_HEIGHT = 44
 export const DEFAULT_CAP_HEIGHT = 40
 
-export const heights = editorTitle.heights
-
 export const NO_ARC = { top: 0, bottom: 0 }
 
 function tallest(object, title, measure) {
-  const reaches = [object].concat(words(object, title)).map(word => measure(title.heights[word.id] ?? {}))
+  const reaches = [object].concat(wordsOf(object, title)).map(word => measure(title.heights[word.id] ?? {}))
   return { top: Math.max(...reaches.map(reach => reach.top)), bottom: Math.max(...reaches.map(reach => reach.bottom)) }
 }
 
@@ -56,7 +54,7 @@ function rowBelow(object, title) {
   return startBelow(object, end, title)
 }
 
-export function rowStart(object, title = editorTitle) {
+export function rowStart(object, title) {
   if (object.row === 0) return 0
   if (object.row < 0) return rowBelow(object, title)
   const rows = visibleRows(object, title)

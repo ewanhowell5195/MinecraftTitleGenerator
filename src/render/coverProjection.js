@@ -1,5 +1,5 @@
 import * as THREE from "three"
-import { words } from "../lib/state/scene.js"
+import { wordsOf } from "../lib/title/title.js"
 import { objectMatrix } from "./placement.js"
 import { cameraPoint, cameraPose, titleFraming } from "./titleFraming.js"
 
@@ -18,7 +18,7 @@ function rounded(value) {
 
 export function coverProjection(object, title, built, transform) {
   const stateOf = other => other === object ? { built, transform } : title.runtime[other.id] ?? {}
-  const shown = title.objects.filter(other => !words(other, title).every(word => word.hidden))
+  const shown = title.objects.filter(other => !wordsOf(other, title).every(word => word.hidden))
   const items = shown.map(other => ({ type: other.type, built: stateOf(other).built ?? null, transform: stateOf(other).transform ?? null, outline: title.runtime[other.id]?.outline ?? null }))
   const shot = titleFraming(items, title.camera.fixedDistance)
   if (!shot || !built || !transform) return null

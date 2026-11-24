@@ -1,8 +1,8 @@
-import { image } from "./assets.js"
-import { surface } from "./canvas.js"
+import { image } from "../texture/assets.js"
+import { surface } from "../texture/canvas.js"
 import { loadImage } from "../font/font.js"
 import { download, readDataUrl, takeFile } from "../core/files.js"
-import { fileError } from "../state/notices.js"
+import { fileError } from "./notices.js"
 
 const KEPT_TYPES = ["image/png", "image/jpeg"]
 

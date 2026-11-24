@@ -1,6 +1,6 @@
 import { afterEach, describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { apiCall, fetched, jsonOptions } from "../../src/lib/submissions/api.js"
+import { apiCall, fetched, jsonOptions } from "../../src/lib/core/api.js"
 
 const realFetch = globalThis.fetch
 

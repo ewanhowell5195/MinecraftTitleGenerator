@@ -1,86 +1,21 @@
 import { fontTextures } from "../texture/assets.js"
 import { cameraChanges, setCamera } from "../settings/camera.js"
-import { TILING_KEYS, defaultBorder, defaultDepth, defaultSpacing, fontFaces, typeDefaults } from "../settings/defaults.js"
+import { defaultBorder, defaultDepth, defaultSpacing, fontFaces, typeDefaults } from "../settings/defaults.js"
 import { loadFont, loadFontList } from "../font/font.js"
-import { matchSolved } from "./match.js"
+import { readTitleObjects, titleObjects } from "../title/objects.js"
+import { EXTENSION, fileData, readTitle, trimUnused } from "../title/titleData.js"
 import { fileError } from "./notices.js"
-import { isSeparate } from "../settings/layers.js"
 import { createObject } from "../settings/objects.js"
-import { lines, presetSource, runtime, scene, titleFileName, titleObjects, validSelection } from "./scene.js"
-import { TEXTURE_TABS, isCustomFont } from "../settings/settings.js"
+import { editorTitle, lines, presetSource, runtime, scene, titleFileName, validSelection } from "./scene.js"
+import { isCustomFont } from "../settings/settings.js"
 import { defaultTexture } from "../settings/textureDefaults.js"
 import { sameValue } from "../core/values.js"
-import { CUSTOM_SHAPE, isMinecraftShape } from "../geometry/shapes.js"
 import { submitStats } from "./stats.js"
-import { titleLines, titleValues, trimmed } from "../link/titleLines.js"
 import { downloadBlob } from "../core/files.js"
-import { FILE_VERSION } from "../settings/upgrades.js"
 import { resetTabs, titleLoads } from "./view.js"
 
-const FORMAT = "minecraft-title"
-export const EXTENSION = "mctitle"
-
-function usesSource(object, matches) {
-  const looks = isSeparate(object, "texture") ? [object].concat(object.layerSettings) : [object]
-  return looks.some(look => matches(look.textureSource))
-}
-
-const UNUSED = Object.entries(TEXTURE_TABS).map(([source, keys]) => [object => object.textureSource !== source, keys.filter(key => !TILING_KEYS.includes(key))]).concat([
-  [object => object.shape !== null, ["text", "spaceBefore", "terminators", "creeperFace", "font", "spacing", "kerning"]],
-  [object => object.shape !== null && object.shape !== CUSTOM_SHAPE, ["customFont"]],
-  [object => !isMinecraftShape(object.shape), ["shapeVersion", "blockState", "itemComponents"]],
-  [object => object.textureSource !== "tileable" && !(object.textureSource === "custom" && object.customTextureMode === "tileable"), TILING_KEYS],
-  [object => !isCustomFont(object.font) && object.shape !== CUSTOM_SHAPE, ["customFont"]],
-  [object => object.tileableSource !== "minecraft", ["minecraftTexture", "minecraftVersion"]],
-  [object => object.tileableSource === "minecraft", ["tileable", "tileableVariant"]],
-  [object => !usesSource(object, source => source === "gradient"), ["arcGradient"]],
-  [object => object.customTextureMode !== "cover", ["customCoverAlign", "customCoverX", "customCoverY", "customCoverSpan"]],
-  [object => object.customCoverAlign !== "camera", ["customCoverSpan"]],
-  [object => object.customTextureMode !== "strip", ["customStripPerCharacter"]],
-  [object => !usesSource(object, source => source !== "premade"), ["disableFontOverlay"]],
-  [object => object.matchWidth === null, ["matchBottom"]],
-  [object => object.overlayMode !== "custom", ["overlays"]],
-  [object => object.edgeOverlayMode !== "custom", ["edgeOverlays"]],
-  [object => !object.fade, ["outerFade", "outerFadeOpacity"]],
-  [object => !object.customEdge, ["edgeColour", "edgeFill", "edgeStops", "edgeSmooth", "edgeMix"]],
-  [object => object.edgeFill !== "gradient", ["edgeStops", "edgeSmooth", "edgeMix"]],
-  [object => !object.edgeSmooth, ["edgeMix"]],
-  [object => object.edgeFill === "gradient", ["edgeColour"]],
-  [object => !object.customBorder, ["borderColour"]],
-  [object => !object.internalFaces, ["fadeInternal", "internalFade", "internalFadeOpacity", "customInternal", "internalColour", "internalBrightness", "internalFill", "internalStops", "internalSmooth", "internalMix", "internalDirection"]],
-  [object => !object.fadeInternal, ["internalFade", "internalFadeOpacity"]],
-  [object => !object.customInternal, ["internalColour", "internalFill", "internalStops", "internalSmooth", "internalMix", "internalDirection"]],
-  [object => object.internalFill !== "gradient", ["internalStops", "internalSmooth", "internalMix", "internalDirection"]],
-  [object => !object.internalSmooth, ["internalMix"]],
-  [object => object.internalFill === "gradient", ["internalColour"]],
-  [object => !object.sideFaces, ["fadeSides", "sideFade", "sideFadeOpacity", "customSide", "sideColour", "sideBrightness", "sideFill", "sideStops", "sideSmooth", "sideMix", "sideDirection"]],
-  [object => !object.fadeSides, ["sideFade", "sideFadeOpacity"]],
-  [object => !object.customSide, ["sideColour", "sideFill", "sideStops", "sideSmooth", "sideMix", "sideDirection"]],
-  [object => object.sideFill !== "gradient", ["sideStops", "sideSmooth", "sideMix", "sideDirection"]],
-  [object => !object.sideSmooth, ["sideMix"]],
-  [object => !object.smooth, ["mix"]],
-  [object => object.sideFill === "gradient", ["sideColour"]],
-  [object => object.arcMode !== "move", ["arcMove"]],
-  [object => object.arcMode === "move", ["arcTop", "arcBottom", "arcMarked"]],
-  [object => object.wordArcMode !== "move", ["wordArcMove"]],
-  [object => object.wordArcMode === "move", ["wordArcTop", "wordArcBottom", "wordArcMarked"]],
-  [object => !object.twistRibbon, ["twistRibbonCentre", "twistRibbonMirror"]],
-  [object => !object.twistDoor, ["twistDoorCentre", "twistDoorSame", "twistDoorRoll"]],
-  [object => !object.twistDoor || !object.twistDoorRoll, ["twistDoorDepth"]],
-  [object => !object.twistFan, ["twistFanCentre", "twistFanRoll"]],
-  [object => !object.twistFan || !object.twistFanRoll, ["twistFanHeight"]],
-  [object => !object.wordTwistRibbon, ["wordTwistRibbonCentre", "wordTwistRibbonMirror"]],
-  [object => !object.wordTwistDoor, ["wordTwistDoorCentre", "wordTwistDoorSame", "wordTwistDoorRoll"]],
-  [object => !object.wordTwistDoor || !object.wordTwistDoorRoll, ["wordTwistDoorDepth"]],
-  [object => !object.wordTwistFan, ["wordTwistFanCentre", "wordTwistFanRoll"]],
-  [object => !object.wordTwistFan || !object.wordTwistFanRoll, ["wordTwistFanHeight"]],
-  [object => matchSolved(object), ["matchScale", "matchOffset"]],
-  [object => object.matchWidth === null, ["matchScaleY"]]
-])
-
-
 function trim(object) {
-  return trimmed(object, new Set(UNUSED.filter(([skip]) => skip(object)).flatMap(([, keys]) => keys)))
+  return trimUnused(object, editorTitle)
 }
 
 function sameSettings(a, b) {
@@ -88,8 +23,7 @@ function sameSettings(a, b) {
 }
 
 export function titleData() {
-  const camera = cameraChanges(scene.camera)
-  return { format: FORMAT, version: FILE_VERSION, lines: titleLines(lines(), trim), ...(Object.keys(camera).length && { camera }) }
+  return fileData(lines(), scene.camera, trim)
 }
 
 export function saveTitle() {
@@ -98,20 +32,6 @@ export function saveTitle() {
   const data = { ...titleData(), ...(scene.preset && { preset: scene.preset }) }
   downloadBlob(`${titleFileName()}.${EXTENSION}`, new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }))
   fileError.value = null
-}
-
-function parse(text) {
-  try {
-    return JSON.parse(text)
-  } catch {
-    return null
-  }
-}
-
-function readTitle(text) {
-  const data = parse(text)
-  if (data?.format !== FORMAT) throw new Error("this isn't a Minecraft title file")
-  return { values: titleValues(data), camera: data.camera, preset: presetSource(data.preset) }
 }
 
 function titleReference(list, font) {
@@ -156,24 +76,20 @@ export function resetTitle() {
   showObjects([createObject()])
 }
 
-export function readTitleObjects(data) {
-  return titleObjects(titleValues(data))
-}
-
 export function openTitleData(data) {
   showObjects(readTitleObjects(data), data.camera)
 }
 
 export function openTitleText(text) {
   const { values, camera, preset } = readTitle(text)
-  showObjects(titleObjects(values), camera, preset)
+  showObjects(titleObjects(values), camera, presetSource(preset))
 }
 
 export async function openTitle(file, allow = () => true) {
   try {
     const { values, camera, preset } = readTitle(await file.text())
     if (!await allow()) return
-    showObjects(titleObjects(values), camera, preset)
+    showObjects(titleObjects(values), camera, presetSource(preset))
   } catch (err) {
     fileError.value = `Couldn't open ${file.name}: ${err.message}`
   }

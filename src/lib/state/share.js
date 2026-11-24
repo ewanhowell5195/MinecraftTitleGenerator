@@ -1,9 +1,9 @@
-import { openTitleData, openTitleText, titleData } from "../state/titleFile.js"
-import { fileError } from "../state/notices.js"
-import { encodeTitle, openableTitle } from "./linkformat.js"
-import { presetsPage } from "../state/presetsPage.js"
-import { TITLE_PARAM, clearSharedLink, sharedLink } from "../state/scene.js"
-import { submitStats } from "../state/stats.js"
+import { openTitleData, openTitleText, titleData } from "./titleFile.js"
+import { fileError } from "./notices.js"
+import { encodeTitle, openableTitle } from "../link/linkformat.js"
+import { presetsPage } from "./presetsPage.js"
+import { TITLE_PARAM, clearSharedLink, sharedLink } from "./scene.js"
+import { submitStats } from "./stats.js"
 
 export function shareLink() {
   const { code, skipped } = encodeTitle(titleData())

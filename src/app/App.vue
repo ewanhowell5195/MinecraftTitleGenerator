@@ -22,14 +22,14 @@
   import { saveTitle } from "../lib/state/titleFile.js"
   import { loadFontList } from "../lib/font/font.js"
   import { isMinecraftShape, isModelShape, loadShapeList } from "../lib/geometry/shapes.js"
-  import { titleItems } from "../lib/state/items.js"
+  import { createTitleItems } from "../lib/title/items.js"
   import { redo, undo } from "../lib/state/history.js"
   import { shortcutFor } from "./shortcuts.js"
-  import { keepMatched } from "../lib/state/match.js"
+  import { keepMatched } from "../lib/title/match.js"
   import { fileError, notice } from "../lib/state/notices.js"
   import { presetsPage } from "../lib/state/presetsPage.js"
-  import { active, currentWord, library, saveError, scene, selection, shapingWord, words } from "../lib/state/scene.js"
-  import { openSharedLink } from "../lib/link/share.js"
+  import { active, currentWord, editorTitle, library, saveError, scene, selection, shapingWord, words } from "../lib/state/scene.js"
+  import { openSharedLink } from "../lib/state/share.js"
   import { openSubmissionLink } from "../submissions/submissionLink.js"
   import { loadStats } from "../lib/state/stats.js"
   import { SECTIONS, FORM_SECTIONS, view } from "../lib/state/view.js"
@@ -42,7 +42,9 @@
 
   if (!SECTIONS[view.section]) view.section = "text"
 
-  keepMatched()
+  const titleItems = createTitleItems(editorTitle)
+
+  keepMatched(editorTitle)
 
   const error = ref(null)
   const ready = ref(false)
@@ -134,8 +136,8 @@
 
     <template v-if="ready">
       <template v-for="object of scene.objects" :key="object.id">
-        <ModelRenderer v-if="isModelShape(library.shapes, object.shape)" :object="object" :shapes="library.shapes" />
-        <ObjectRenderer v-else :object="object" :fonts="library.fonts" :shapes="library.shapes" :tileables="library.tileables" />
+        <ModelRenderer v-if="isModelShape(library.shapes, object.shape)" :object="object" :shapes="library.shapes" :title="editorTitle" />
+        <ObjectRenderer v-else :object="object" :fonts="library.fonts" :shapes="library.shapes" :tileables="library.tileables" :title="editorTitle" />
       </template>
     </template>
   </div>

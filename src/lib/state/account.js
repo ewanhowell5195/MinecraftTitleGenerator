@@ -1,5 +1,5 @@
 import { ref } from "vue"
-import { apiCall, jsonOptions } from "../submissions/api.js"
+import { apiCall, jsonOptions } from "../core/api.js"
 import { showNotice } from "./notices.js"
 import { saveStore, store } from "./communityStore.js"
 import { ACCOUNT_CHANNEL, SIGN_IN_RETURN } from "../core/providers.js"

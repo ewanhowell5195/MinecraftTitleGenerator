@@ -22,7 +22,7 @@
   import { BLEND_OPTIONS } from "../lib/settings/defaults.js"
   import { overlayLayer } from "../lib/settings/textureDefaults.js"
   import { popular } from "../lib/state/stats.js"
-  import { readImage, saveSheet } from "../lib/texture/imageFiles.js"
+  import { readImage, saveSheet } from "../lib/state/imageFiles.js"
   import { thumbnail, thumbnailHeight } from "../lib/font/thumbnailUrls.js"
   import Button from "./Button.vue"
   import ColourPicker from "./ColourPicker.vue"

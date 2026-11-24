@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 import zlib from "node:zlib"
 import { PNG } from "pngjs"
 import { templateProblem } from "../../src/lib/submissions/kinds/fontAsset.js"
-import { decodePng } from "../../src/lib/submissions/kinds/png.js"
+import { decodePng } from "../../src/lib/core/png.js"
 import { SUBMISSION_LIMITS, opaqueCells, pngProblem, templateScore, textureDensity } from "../../src/lib/submissions/submissions.js"
 import { readPngFile } from "../helpers/png.js"
 

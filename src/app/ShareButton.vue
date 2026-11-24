@@ -3,7 +3,7 @@
   import { showNotice } from "../lib/state/notices.js"
   import { startSavingPreset } from "../lib/state/presets.js"
   import { scene } from "../lib/state/scene.js"
-  import { shareLink } from "../lib/link/share.js"
+  import { shareLink } from "../lib/state/share.js"
   import Icon from "../components/Icon.vue"
   import MenuButton from "../components/MenuButton.vue"
   import MessageDialog from "../components/MessageDialog.vue"

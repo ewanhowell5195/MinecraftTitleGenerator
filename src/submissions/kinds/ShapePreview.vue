@@ -2,7 +2,7 @@
   import { computed, ref } from "vue"
   import Dropdown from "../../components/Dropdown.vue"
   import LiveTitle from "../../components/LiveTitle.vue"
-  import { fetched } from "../../lib/submissions/api.js"
+  import { fetched } from "../../lib/core/api.js"
   import { titleCase } from "../../lib/core/names.js"
   import { stripFolder, stripUse } from "../../lib/font/strips.js"
   import { cleanModel } from "../../lib/submissions/kinds/modelFile.js"

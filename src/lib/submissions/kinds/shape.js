@@ -3,7 +3,7 @@ import { modelHeight } from "../../geometry/shapes.js"
 import { pngProblem, sizedProblem } from "../submissions.js"
 import { stripProblem } from "./font.js"
 import { cleanModel, cleanModelFile } from "./modelFile.js"
-import { decodePng } from "./png.js"
+import { decodePng } from "../../core/png.js"
 
 export const SHAPES_LIST = "/shapes/shapes.json"
 export const SHAPE_HOLDING_FOLDER = "submissions/shapes"

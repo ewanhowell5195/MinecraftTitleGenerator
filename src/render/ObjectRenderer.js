@@ -1,4 +1,4 @@
-import { computed, onBeforeUnmount, shallowRef, watch } from "vue"
+import { computed, onScopeDispose, shallowRef, watch } from "vue"
 import { fontTextures, preload } from "../lib/texture/assets.js"
 import { shapeFont, sheetFor } from "../lib/font/fontSheet.js"
 import { shapeLine } from "../lib/geometry/shapedLine.js"
@@ -28,10 +28,8 @@ import { cameraCover, coverProjection } from "./coverProjection.js"
 import { hueMatrix } from "./coverMaterial.js"
 import { platform } from "../lib/core/platform.js"
 import { sameValue } from "../lib/core/values.js"
-import { quietly } from "../lib/state/history.js"
-import { userBusy } from "../lib/state/activity.js"
 import { DEFAULT_CAP_HEIGHT, DEFAULT_HEIGHT, NO_ARC } from "../lib/geometry/rows.js"
-import { editorTitle, finalShadows, words } from "../lib/state/scene.js"
+import { wordsOf } from "../lib/title/title.js"
 import { defaultDepth } from "../lib/settings/defaults.js"
 import { isSeparate, layerTarget } from "../lib/settings/layers.js"
 import { effectiveScale, isCustomFont, wordKey } from "../lib/settings/settings.js"
@@ -52,7 +50,7 @@ export default {
     fonts: { type: Array, required: true },
     shapes: { type: Array, default: () => [] },
     tileables: { type: Object, required: true },
-    title: { type: Object, default: () => editorTitle }
+    title: { type: Object, required: true }
   },
   setup(props) {
     const object = props.object
@@ -72,7 +70,7 @@ export default {
     const shading = shallowRef(null)
     const bakes = new WeakMap()
     const error = computed(() => fontError.value ?? paintError.value ?? buildError.value)
-    const finalShadowed = computed(() => finalShadows.value && !!painted.value && shadowed())
+    const finalShadowed = computed(() => props.title.finalShadows.value && !!painted.value && shadowed())
     let fontRequest = 0
     let paintRequest = 0
     let painting = false
@@ -112,7 +110,7 @@ export default {
     const twists = computed(() => ({ twist: twistOf(object, key => key), wordTwist: twistOf(object, wordKey) }))
     const lineScale = computed(() => twists.value.twist || twists.value.wordTwist ? TYPE_SCALES[object.type].map((axis, index) => axis * meshScale.value[index]) : null)
 
-    const members = computed(() => words(object, props.title))
+    const members = computed(() => wordsOf(object, props.title))
 
     function wordShape(other) {
       return {
@@ -363,7 +361,7 @@ export default {
       }
       function attempt() {
         if (built.value !== text) return
-        if (userBusy()) {
+        if (props.title.busy()) {
           sharpening = setTimeout(attempt, SHARPEN_DELAY)
           return
         }
@@ -481,12 +479,12 @@ export default {
       const fonts = shape ? [] : custom ? props.fonts.concat(custom) : props.fonts
       const data = shape ?? custom ?? props.fonts.find(entry => entry.id === id) ?? props.fonts[0]
       if (!data) throw new Error("no fonts available")
-      if (!shape && !customShape && object.font !== data.id) quietly(() => (object.font = data.id))
+      if (!shape && !customShape && object.font !== data.id) props.title.quietly(() => (object.font = data.id))
       preload(sheetFolder(data, fonts))
       const loaded = await loadFont(data, fonts)
       const [layout, textures] = await Promise.all([sheetFor(loaded), fontTextures(loaded.sheetFolder, loaded.strips)])
       if (token !== fontRequest) return
-      applyFontDefaults(object, loaded, textures, list.value)
+      applyFontDefaults(object, loaded, textures, list.value, props.title.quietly)
       font.value = loaded
       sheet.value = layout
       list.value = textures
@@ -524,7 +522,7 @@ export default {
       entry: () => ({ font: font.value, list: list.value, built: built.value, cover: shading.value, error: error.value, transform: transform.value, outline: outline.value, halo: halo.value, preview: preview.value && { built: preview.value, outline: previewOutline.value }, settled: painted.value?.font === wanted.value && !baking.value || !!error.value, sharp: sharp.value })
     })
 
-    onBeforeUnmount(() => {
+    onScopeDispose(() => {
       gone = true
       platform.cancelFrame(frame)
       clearTimeout(sharpening)

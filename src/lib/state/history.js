@@ -2,7 +2,8 @@ import { reactive, toRaw, watch } from "vue"
 import { forgetImages } from "../texture/assets.js"
 import { setCamera } from "../settings/camera.js"
 import { restore } from "../settings/settings.js"
-import { keepTexture, keptObject, leaveSharedLink, scene, validSelection } from "./scene.js"
+import { keepTexture, keptObject } from "../title/objects.js"
+import { editorTitle, leaveSharedLink, scene, validSelection } from "./scene.js"
 import { loadKey } from "../geometry/shapes.js"
 import { trackEach } from "./tracking.js"
 
@@ -102,6 +103,8 @@ export function quietly(change) {
     quiet--
   }
 }
+
+editorTitle.quietly = quietly
 
 export function holdHistory(on) {
   held = on

@@ -1,3 +1,4 @@
+import { platform } from "../../core/platform.js"
 import { pixelsOf, surface } from "../canvas.js"
 import { SWATCH } from "../atlas/pages.js"
 import { coverFit } from "./cover.js"
@@ -238,7 +239,7 @@ export function coverBases(built, projection, image) {
 }
 
 export function bakesAside() {
-  return typeof Worker !== "undefined"
+  return platform.coverWorker !== null
 }
 
 function post(id, source, job, withPixels) {
@@ -248,7 +249,7 @@ function post(id, source, job, withPixels) {
 
 function workerOf() {
   if (worker) return worker
-  worker = new Worker(new URL("./coverWorker.js", import.meta.url), { type: "module" })
+  worker = platform.coverWorker()
   worker.onmessage = ({ data }) => {
     const entry = waiting.get(data.id)
     if (!entry) return

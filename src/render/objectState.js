@@ -1,5 +1,4 @@
-import { computed, onBeforeUnmount, watch } from "vue"
-import { framing } from "./framing.js"
+import { computed, onScopeDispose, watch } from "vue"
 import { placementOf } from "../lib/geometry/placement.js"
 
 export function usePlacement(object, title, { scale, wordScale, measures }) {
@@ -17,7 +16,8 @@ export function usePlacement(object, title, { scale, wordScale, measures }) {
 
   function haloOf(built, shell) {
     return computed(() => {
-      if (!built.value || !title.view.render || !framing.outline) return null
+      const { framing } = title
+      if (!built.value || !title.view.render || !framing?.outline) return null
       const size = outlineScale()
       const { type } = transform.value
       return shell(built.value, size, size.map((value, axis) => framing.outlineWidth * value / (type[axis] * (scale.value[axis] * wordScale.value[axis]))))
@@ -36,7 +36,7 @@ export function usePublished(object, title, { size, scaleY, entry }) {
   watch(size, values => setHeights(object, title, values), { immediate: true })
   watch(scaleY, value => setHeights(object, title, { scaleY: value }), { immediate: true })
 
-  onBeforeUnmount(() => {
+  onScopeDispose(() => {
     delete title.runtime[object.id]
     delete title.heights[object.id]
   })

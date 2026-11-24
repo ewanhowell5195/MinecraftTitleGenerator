@@ -11,7 +11,7 @@ import { defaultBorder, defaultDepth } from "../../settings/defaults.js"
 import { flatLayers, independentLayers, layerRange, layerSlices } from "../../font/flatSheet.js"
 import { SHEET_MAX_WIDTH, drawSheet, sheetLayout } from "../../font/sheet.js"
 import { pngSize } from "../submissions.js"
-import { decodePng, encodePng } from "./png.js"
+import { decodePng, encodePng } from "../../core/png.js"
 
 export const FONT_LIMITS = { capHeight: [8, 128], characters: 400 }
 export const HOLDING_FOLDER = "submissions/fonts"

@@ -1,4 +1,4 @@
-import { fetched } from "../../lib/submissions/api.js"
+import { fetched } from "../../lib/core/api.js"
 import { fontFolder } from "../../lib/font/catalog.js"
 import { opaqueCells, templateScore, textureDensity } from "../../lib/submissions/submissions.js"
 

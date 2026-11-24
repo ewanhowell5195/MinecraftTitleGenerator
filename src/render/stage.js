@@ -171,7 +171,7 @@ function place(entry, value) {
   entry.group.updateMatrixWorld(true)
 }
 
-function createEntry() {
+export function createEntry() {
   return {
     group: new THREE.Group(),
     outline: null,
@@ -194,7 +194,7 @@ function createEntry() {
   }
 }
 
-function updateEntry(entry, item) {
+export function updateEntry(entry, item) {
   entry.line = item.paintLine
   if (entry.built !== item.built) {
     fill(entry, item.built)
@@ -220,7 +220,7 @@ function updateEntry(entry, item) {
   entry.group.visible = !item.hidden
 }
 
-function destroyEntry(entry) {
+export function destroyEntry(entry) {
   clear(entry)
   releaseCover(entry)
   for (const material of entry.pool.plain.concat(entry.pool.shaded)) material.dispose()

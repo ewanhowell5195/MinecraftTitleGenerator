@@ -1,4 +1,4 @@
-import { fetched } from "../submissions/api.js"
+import { fetched } from "../core/api.js"
 import { MULTICASE_CHARACTERS } from "./editor/characters.js"
 import { platform } from "../core/platform.js"
 import { sameValue } from "../core/values.js"

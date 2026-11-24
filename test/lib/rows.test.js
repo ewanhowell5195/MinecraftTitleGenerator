@@ -8,8 +8,10 @@ fakeTimeouts()
 
 const { createObject } = await import("../../src/lib/settings/objects.js")
 const { editorTitle, scene } = await import("../../src/lib/state/scene.js")
-const { heights, lineArc, rowStart } = await import("../../src/lib/geometry/rows.js")
+const { lineArc, rowStart } = await import("../../src/lib/geometry/rows.js")
 const { placementOf } = await import("../../src/lib/geometry/placement.js")
+
+const { heights } = editorTitle
 
 function setScene(...objects) {
   scene.objects.splice(0, scene.objects.length, ...objects)
@@ -28,28 +30,28 @@ describe("rowStart above the title", () => {
   test("row 0 starts at zero whatever its spacing", () => {
     const object = createObject({ row: 0, rowSpacing: 10 })
     setScene(object)
-    assert.equal(rowStart(object), 0)
+    assert.equal(rowStart(object, editorTitle), 0)
   })
 
   test("row 1 starts after the height of row 0", () => {
     const base = createObject({ row: 0 })
     const object = createObject({ row: 1 })
     setScene(base, object)
-    assert.equal(rowStart(object), 48)
+    assert.equal(rowStart(object, editorTitle), 48)
   })
 
   test("row 0's spacing does not push row 1", () => {
     const base = createObject({ row: 0, rowSpacing: 10 })
     const object = createObject({ row: 1 })
     setScene(base, object)
-    assert.equal(rowStart(object), 48)
+    assert.equal(rowStart(object, editorTitle), 48)
   })
 
   test("a row's own spacing is added", () => {
     const base = createObject({ row: 0 })
     const object = createObject({ row: 1, rowSpacing: 5 })
     setScene(base, object)
-    assert.equal(rowStart(object), 53)
+    assert.equal(rowStart(object, editorTitle), 53)
   })
 
   test("spacing of rows between carries up", () => {
@@ -57,7 +59,7 @@ describe("rowStart above the title", () => {
     const middle = createObject({ row: 1, rowSpacing: 5 })
     const object = createObject({ row: 2 })
     setScene(base, middle, object)
-    assert.equal(rowStart(object), 101)
+    assert.equal(rowStart(object, editorTitle), 101)
   })
 
   test("the tallest object in a row decides", () => {
@@ -65,14 +67,14 @@ describe("rowStart above the title", () => {
     const tall = createObject({ row: 0, scaleY: 2 })
     const object = createObject({ row: 1 })
     setScene(short, tall, object)
-    assert.equal(rowStart(object), 88)
+    assert.equal(rowStart(object, editorTitle), 88)
   })
 
   test("an empty row takes the height of the object itself", () => {
     const base = createObject({ row: 0 })
     const object = createObject({ row: 2, scaleY: 2 })
     setScene(base, object)
-    assert.equal(rowStart(object), 48 + 88)
+    assert.equal(rowStart(object, editorTitle), 48 + 88)
   })
 })
 
@@ -80,20 +82,20 @@ describe("rowStart below the title", () => {
   test("row -1 ends at zero", () => {
     const object = createObject({ row: -1 })
     setScene(object)
-    assert.equal(rowStart(object), -48)
+    assert.equal(rowStart(object, editorTitle), -48)
   })
 
   test("row -1 is moved down by its spacing", () => {
     const object = createObject({ row: -1, rowSpacing: 5 })
     setScene(object)
-    assert.equal(rowStart(object), -53)
+    assert.equal(rowStart(object, editorTitle), -53)
   })
 
   test("row -2 starts below row -1", () => {
     const above = createObject({ row: -1 })
     const object = createObject({ row: -2 })
     setScene(above, object)
-    assert.equal(rowStart(object), -96)
+    assert.equal(rowStart(object, editorTitle), -96)
   })
 
   test("the lowest object in a row decides", () => {
@@ -101,14 +103,14 @@ describe("rowStart below the title", () => {
     const tall = createObject({ row: -1, scaleY: 2 })
     const object = createObject({ row: -2 })
     setScene(short, tall, object)
-    assert.equal(rowStart(object), -88 - 48)
+    assert.equal(rowStart(object, editorTitle), -88 - 48)
   })
 
   test("positive rows are not counted", () => {
     const above = createObject({ row: 1 })
     const object = createObject({ row: -1 })
     setScene(above, object)
-    assert.equal(rowStart(object), -48)
+    assert.equal(rowStart(object, editorTitle), -48)
   })
 })
 
@@ -117,14 +119,14 @@ describe("rowStart scaling by type", () => {
     const base = createObject({ type: "bottom", row: 0 })
     const object = createObject({ type: "bottom", row: 1, rowSpacing: 2 })
     setScene(base, object)
-    near(rowStart(object), 1.67665 * 48 + 1.67665 * 2)
+    near(rowStart(object, editorTitle), 1.67665 * 48 + 1.67665 * 2)
   })
 
   test("small rows scale height without outline padding or spacing scale", () => {
     const base = createObject({ type: "small", row: 0, border: 3 })
     const object = createObject({ type: "small", row: 1, rowSpacing: 2 })
     setScene(base, object)
-    near(rowStart(object), 0.43021 * 44 + 2)
+    near(rowStart(object, editorTitle), 0.43021 * 44 + 2)
   })
 
   test("types stack separately", () => {
@@ -132,8 +134,8 @@ describe("rowStart scaling by type", () => {
     const bottom = createObject({ type: "bottom", row: 1 })
     const base = createObject({ type: "bottom", row: 0 })
     setScene(top, bottom, base)
-    near(rowStart(bottom), 1.67665 * 48)
-    assert.equal(rowStart(top), 208)
+    near(rowStart(bottom, editorTitle), 1.67665 * 48)
+    assert.equal(rowStart(top, editorTitle), 208)
   })
 })
 
@@ -143,28 +145,28 @@ describe("rowStart inputs", () => {
     const visible = createObject({ row: 0 })
     const object = createObject({ row: 1 })
     setScene(hidden, visible, object)
-    assert.equal(rowStart(object), 48)
+    assert.equal(rowStart(object, editorTitle), 48)
   })
 
   test("the border pads the height", () => {
     const base = createObject({ row: 0, border: 5 })
     const object = createObject({ row: 1 })
     setScene(base, object)
-    assert.equal(rowStart(object), 54)
+    assert.equal(rowStart(object, editorTitle), 54)
   })
 
   test("the object's scale applies to the cap height only", () => {
     const base = createObject({ row: 0, scaleY: 3 })
     const object = createObject({ row: 1 })
     setScene(base, object)
-    assert.equal(rowStart(object), 128)
+    assert.equal(rowStart(object, editorTitle), 128)
   })
 
   test("the outline scales with the object when asked", () => {
     const base = createObject({ row: 0, scaleY: 3, scaleOutline: true })
     const object = createObject({ row: 1 })
     setScene(base, object)
-    assert.equal(rowStart(object), 136)
+    assert.equal(rowStart(object, editorTitle), 136)
   })
 
   test("measured heights replace the defaults", () => {
@@ -172,7 +174,7 @@ describe("rowStart inputs", () => {
     const object = createObject({ row: 1 })
     heights[base.id] = { height: 50, capHeight: 30, arc: { top: 5, bottom: 0 }, scaleY: 2 }
     setScene(base, object)
-    assert.equal(rowStart(object), 94)
+    assert.equal(rowStart(object, editorTitle), 94)
   })
 
   test("a measured scale wins for the outline too", () => {
@@ -180,7 +182,7 @@ describe("rowStart inputs", () => {
     const object = createObject({ row: 1 })
     heights[base.id] = { scaleY: 2 }
     setScene(base, object)
-    assert.equal(rowStart(object), 92)
+    assert.equal(rowStart(object, editorTitle), 92)
   })
 
   test("arcs add to the height", () => {
@@ -188,7 +190,7 @@ describe("rowStart inputs", () => {
     const object = createObject({ row: 1 })
     heights[base.id] = { arc: { top: 3, bottom: 4 } }
     setScene(base, object)
-    assert.equal(rowStart(object), 55)
+    assert.equal(rowStart(object, editorTitle), 55)
   })
 })
 
@@ -230,8 +232,8 @@ describe("words of one line", () => {
     heights[first.id] = { arc: { top: 4, bottom: 0 } }
     heights[second.id] = { arc: { top: 0, bottom: 0 } }
     setScene(first, second)
-    assert.equal(rowStart(first), -52)
-    assert.equal(rowStart(second), -52)
+    assert.equal(rowStart(first, editorTitle), -52)
+    assert.equal(rowStart(second, editorTitle), -52)
   })
 
   test("a word with no line uses its own reach", () => {

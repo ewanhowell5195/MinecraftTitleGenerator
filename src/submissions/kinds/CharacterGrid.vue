@@ -3,7 +3,7 @@
   import Notice from "../../components/Notice.vue"
   import Tile from "../../components/Tile.vue"
   import TileGrid from "../../components/TileGrid.vue"
-  import { fetched } from "../../lib/submissions/api.js"
+  import { fetched } from "../../lib/core/api.js"
   import { pixelsOf } from "../../lib/texture/canvas.js"
   import { bandLayouts } from "../../lib/font/flatSheet.js"
   import { loadImage } from "../../lib/font/font.js"

@@ -1,6 +1,6 @@
 import { titleCase } from "../../core/names.js"
 import { pngProblem, pngSize } from "../submissions.js"
-import { decodePng } from "./png.js"
+import { decodePng } from "../../core/png.js"
 
 export const TILEABLES_LIST = "/tileables/tileables.json"
 export const TILEABLE_FOLDER = "community"

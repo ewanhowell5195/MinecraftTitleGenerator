@@ -1,7 +1,7 @@
 <script setup>
   import Notice from "../components/Notice.vue"
   import { onBeforeUnmount, ref, watch } from "vue"
-  import { fetched } from "../lib/submissions/api.js"
+  import { fetched } from "../lib/core/api.js"
   import { SUBMISSION_KINDS } from "../lib/submissions/kinds/index.js"
   import { submissionExtraUrl, submissionFileUrl } from "../lib/submissions/submissionsApi.js"
 

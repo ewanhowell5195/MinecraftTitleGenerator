@@ -1,11 +1,11 @@
-import { reactive } from "vue"
 import { fontTextures, stripTextures } from "../texture/assets.js"
 import { authorText } from "../core/authors.js"
+import { keyed } from "../core/keyed.js"
 import { fullName, sheetFolder, stripsOf } from "./catalog.js"
 import { titleCase } from "../core/names.js"
 
 const STRIPS = "strips."
-const lists = reactive({})
+const lists = keyed()
 
 function fontNamed(id, fonts) {
   const entry = fonts.find(font => font.id === id)

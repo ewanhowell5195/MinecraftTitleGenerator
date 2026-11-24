@@ -6,11 +6,12 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test \"test/**/*.test.js\" \"renderer/*.test.js\"",
+    "test": "node --test \"test/**/*.test.js\" \"renderer/*.test.js\" && npm run test:vue2",
     "test:quick": "node --test \"test/**/*.test.js\"",
     "test:content": "node --test \"test/content/*.test.js\"",
     "test:lib": "node --test \"test/lib/*.test.js\"",
     "test:render": "node --test \"test/render/*.test.js\" \"renderer/*.test.js\"",
+    "test:vue2": "node --import ./test/helpers/useVue2.js --test \"test/render/*.test.js\" renderer/object-renderer.test.js",
     "test:server": "node --test \"test/server/*.test.js\"",
     "test:submissions": "node --test \"test/submissions/*.test.js\" \"test/generator/*.test.js\"",
     "test:app": "node --test \"test/app/*.test.js\" \"test/fontEditor/*.test.js\" \"test/site/*.test.js\"",
@@ -36,7 +37,8 @@
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.10",
     "pngjs": "^7.0.0",
-    "vite": "^8.3.5"
+    "vite": "^8.3.5",
+    "vue2": "npm:vue@^2.7.16"
   },
   "optionalDependencies": {
     "optipng-bin": "^9.0.0"

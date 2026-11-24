@@ -21,7 +21,7 @@ const { createObject } = await import("../../src/lib/settings/objects.js")
 const { scene, sharedLink } = await import("../../src/lib/state/scene.js")
 const { fileError } = await import("../../src/lib/state/notices.js")
 const { encodeTitle } = await import("../../src/lib/link/linkformat.js")
-const { openSharedLink, shareLink } = await import("../../src/lib/link/share.js")
+const { openSharedLink, shareLink } = await import("../../src/lib/state/share.js")
 const { setTitle } = await import("../helpers/scene.js")
 
 describe("sharing a title", () => {

@@ -1,19 +1,19 @@
-import { createRenderer, effectScope, reactive, watch } from "vue"
+import { effectScope, reactive, watch } from "vue"
 import * as THREE from "three"
 import ModelRenderer from "./ModelRenderer.js"
 import ObjectRenderer from "./ObjectRenderer.js"
 import { fullCamera } from "../lib/settings/camera.js"
-import { readTitleObjects } from "../lib/state/titleFile.js"
-import { createTitleItems } from "../lib/state/items.js"
+import { readTitleObjects } from "../lib/title/objects.js"
+import { createTitleItems } from "../lib/title/items.js"
 import { decodeTitle } from "../lib/link/linkformat.js"
 import { unknownSetting } from "../lib/link/linkKeys.js"
-import { keepMatched } from "../lib/state/match.js"
+import { keepMatched } from "../lib/title/match.js"
 import { painted } from "../lib/core/platform.js"
 import { renderTitle, titleShot } from "./render.js"
 import { isModelShape } from "../lib/geometry/shapes.js"
 import { createStage } from "./stage.js"
 import { frameCamera, titleFraming } from "./titleFraming.js"
-import { OFFSCREEN_VIEW, createTitle, firstError } from "../lib/state/title.js"
+import { OFFSCREEN_VIEW, createTitle, firstError } from "../lib/title/title.js"
 import { loadLibrary, titleNameProblem } from "../lib/link/titleNames.js"
 
 const STAGE_WIDTH = 1000
@@ -23,7 +23,6 @@ const PICTURE_WIDTH = 935
 // that view is 2:1 (aspect-ratio on .picture in TitlePicture.vue), so this is half its width minus the same padding
 const PICTURE_HEIGHT = 443
 const TIME_LIMIT = 180000
-const NOTHING_RENDERED = createRenderer({ insert() {}, remove() {}, createElement: () => ({}), createText: () => ({}), createComment: () => ({}), setText() {}, setElementText() {}, parentNode: () => null, nextSibling: () => null, patchProp() {} })
 
 function settled(title, items) {
   return new Promise((fulfil, reject) => {
@@ -79,17 +78,19 @@ export async function titleCanvas(code, width = PICTURE_WIDTH, fixedDistance = f
 }
 
 function titleOf(decoded, fixedDistance) {
-  return createTitle(reactive(readTitleObjects(decoded)), OFFSCREEN_VIEW, reactive(fullCamera({ ...decoded.camera, ...(fixedDistance && { fixedDistance }) })))
+  return createTitle(readTitleObjects(decoded), OFFSCREEN_VIEW, reactive(fullCamera({ ...decoded.camera, ...(fixedDistance && { fixedDistance }) })))
 }
 
 async function pictureOf(title, fonts, tileables, width, shapes) {
   const scope = effectScope(true)
   const items = scope.run(() => {
     keepMatched(title)
+    for (const object of title.objects) {
+      if (isModelShape(shapes, object.shape)) ModelRenderer.setup({ object, title, shapes })
+      else ObjectRenderer.setup({ object, title, fonts, tileables, shapes })
+    }
     return createTitleItems(title)
   })
-  const apps = title.objects.map(object => isModelShape(shapes, object.shape) ? NOTHING_RENDERED.createApp(ModelRenderer, { object, title, shapes }) : NOTHING_RENDERED.createApp(ObjectRenderer, { object, title, fonts, tileables, shapes }))
-  for (const app of apps) app.mount({})
   try {
     let before
     do {
@@ -101,7 +102,6 @@ async function pictureOf(title, fonts, tileables, width, shapes) {
     if (failed) throw new Error(failed)
     return await shoot(items.value, width, title.camera)
   } finally {
-    for (const app of apps) app.unmount()
     scope.stop()
   }
 }

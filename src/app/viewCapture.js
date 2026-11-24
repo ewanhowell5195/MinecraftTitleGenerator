@@ -1,7 +1,7 @@
 import * as THREE from "three"
 import { nextTick, watch } from "vue"
 import { joinWords } from "../lib/link/titleLines.js"
-import { finalShadows, scene, wordText } from "../lib/state/scene.js"
+import { editorTitle, scene, wordText } from "../lib/state/scene.js"
 import { viewport } from "../lib/state/view.js"
 import { paintedLines, showLayer } from "../render/layers.js"
 import { renderPasses, renderTitle, screenBounds } from "../render/render.js"
@@ -29,7 +29,7 @@ export function useViewCapture(rig, { stage, host, props, refit }) {
   }
 
   async function captured(work) {
-    finalShadows.value = true
+    editorTitle.finalShadows.value = true
     try {
       await nextTick()
       await whenSharp()
@@ -38,7 +38,7 @@ export function useViewCapture(rig, { stage, host, props, refit }) {
       stage.sort(rig.camera)
       return await work(rig.renderer.getSize(new THREE.Vector2()))
     } finally {
-      finalShadows.value = false
+      editorTitle.finalShadows.value = false
     }
   }
 

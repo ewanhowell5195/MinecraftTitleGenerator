@@ -6,7 +6,7 @@ import { defaultBorder, defaultDepth } from "../../settings/defaults.js"
 import { stackedStrip, stripRange, stripRows, stripTag, stripUse, stripY, withDefaultStrips } from "../../font/strips.js"
 import { SUBMISSION_LIMITS } from "../submissions.js"
 import { submissionFont } from "./fontAsset.js"
-import { decodePng } from "./png.js"
+import { decodePng } from "../../core/png.js"
 
 export const STRIP_LIMITS = { depth: 64, height: 256, below: 64, snap: 64 }
 

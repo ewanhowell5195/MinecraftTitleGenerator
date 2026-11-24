@@ -1,10 +1,10 @@
-import { reactive } from "vue"
 import { image } from "../texture/assets.js"
 import { customThumbnail } from "./customFonts.js"
+import { keyed } from "../core/keyed.js"
 import { fontFolder } from "./catalog.js"
 import { isCustomFont } from "../settings/settings.js"
 
-const heights = reactive({})
+const heights = keyed()
 
 export function fontThumbnail(font) {
   return `${fontFolder(font)}/thumbnails/flat.png`

@@ -1,14 +1,11 @@
 import { watch } from "vue"
 import * as THREE from "three"
 import { hasMarks } from "../font/stretchMarks.js"
-import { quietly } from "./history.js"
 import { clamp, round } from "../core/maths.js"
-import { editorTitle, words } from "./scene.js"
+import { wordsOf } from "./title.js"
 import { effectiveScale } from "../settings/settings.js"
 import { lineBounds, placementMatrix } from "../../render/placement.js"
 import { frameCamera, titleFraming } from "../../render/titleFraming.js"
-
-export const problems = editorTitle.problems
 
 const perspective = new THREE.PerspectiveCamera()
 const orthographic = new THREE.OrthographicCamera()
@@ -49,7 +46,7 @@ function settledOffset(difference, start) {
 }
 
 function bottomOf(reference, title) {
-  const edges = words(reference, title).map(object => title.runtime[object.id]?.built?.bottom).filter(Boolean)
+  const edges = wordsOf(reference, title).map(object => title.runtime[object.id]?.built?.bottom).filter(Boolean)
   if (!edges.length) throw new Error("this row has no bottom to measure")
   return {
     left: edges.reduce((best, { left }) => left[0] < best[0] ? left : best, edges[0].left),
@@ -131,27 +128,27 @@ function solve(camera, target, reference, title) {
   return { matchScale: (left(matchOffset) + right(matchOffset)) / 2, matchOffset }
 }
 
-function find(id, title = editorTitle) {
+function find(id, title) {
   return title.objects.find(object => object.id === id)
 }
 
-export function leadsTo(start, target) {
+export function leadsTo(start, target, title) {
   const seen = new Set()
-  for (let current = start; current && !seen.has(current.id); current = find(current.matchWidth)) {
+  for (let current = start; current && !seen.has(current.id); current = find(current.matchWidth, title)) {
     if (current.id === target.id) return true
     seen.add(current.id)
   }
   return false
 }
 
-function matchReference(object, title = editorTitle) {
+function matchReference(object, title) {
   let reference = find(object.matchWidth, title)
   while (reference && find(reference.matchWidth, title)) reference = find(reference.matchWidth, title)
   return reference
 }
 
-export function matchSolved(object) {
-  return matchReference(object)?.hidden === false
+export function matchSolved(object, title) {
+  return matchReference(object, title)?.hidden === false
 }
 
 function depth(object, title) {
@@ -175,7 +172,7 @@ function ready(object, title) {
 }
 
 function framed(object, title) {
-  return settled(object, title) && !words(object, title).every(word => word.hidden)
+  return settled(object, title) && !wordsOf(object, title).every(word => word.hidden)
 }
 
 function update(title) {
@@ -184,7 +181,7 @@ function update(title) {
   for (const object of title.objects) {
     if (object.matchWidth === null) delete title.problems[object.id]
     if (object.matchWidth === null && (object.matchOffset || object.matchScale !== 1)) {
-      quietly(() => {
+      title.quietly(() => {
         object.matchOffset = 0
         object.matchScale = 1
       })
@@ -201,7 +198,7 @@ function update(title) {
       const matchOffset = round(solved.matchOffset, 2)
       delete title.problems[object.id]
       if (Math.abs(matchScale - object.matchScale) > 0.0001 || matchOffset !== object.matchOffset) {
-        quietly(() => {
+        title.quietly(() => {
           object.matchScale = matchScale
           object.matchOffset = matchOffset
         })
@@ -212,6 +209,6 @@ function update(title) {
   }
 }
 
-export function keepMatched(title = editorTitle) {
+export function keepMatched(title) {
   watch(() => [{ ...title.camera }, title.objects.map(object => [object.matchWidth, object.matchBottom, object.matchScaleY, object.hidden, title.runtime[object.id]])], () => update(title))
 }

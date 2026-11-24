@@ -8,7 +8,7 @@
   import { usePanel } from "./panel.js"
   import { gameVersions, library } from "../../lib/state/scene.js"
   import { CUSTOM_SHAPE, isMinecraftShape, minecraftShape, minecraftShapeParts } from "../../lib/geometry/shapes.js"
-  import { readImage } from "../../lib/texture/imageFiles.js"
+  import { readImage } from "../../lib/state/imageFiles.js"
   import { silhouetteMesh } from "../../lib/font/customFonts.js"
   import { usedShapes } from "./uploads.js"
   import ColourPicker from "../../components/ColourPicker.vue"

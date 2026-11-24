@@ -14,7 +14,7 @@
   import { viewed } from "../../lib/settings/layers.js"
   import { minecraftStatId, popular, statScope } from "../../lib/state/stats.js"
   import { stripCovers } from "../../lib/font/strips.js"
-  import { saveImage } from "../../lib/texture/imageFiles.js"
+  import { saveImage } from "../../lib/state/imageFiles.js"
   import { thumbnail, thumbnailHeight } from "../../lib/font/thumbnailUrls.js"
   import Button from "../../components/Button.vue"
   import CustomTexture from "./CustomTexture.vue"

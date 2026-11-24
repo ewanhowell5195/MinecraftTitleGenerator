@@ -1,3 +1,4 @@
+import "./platform.js"
 import { createApp } from "vue"
 import { setTooltipDefaults, vTooltip } from "easy-tooltips-vue"
 import Root from "./Root.vue"

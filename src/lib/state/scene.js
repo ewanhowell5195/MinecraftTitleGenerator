@@ -4,12 +4,15 @@ import { applyType } from "../settings/defaults.js"
 import { hoisted, lowered } from "../link/linkformat.js"
 import { round } from "../core/maths.js"
 import { createObject } from "../settings/objects.js"
+import { framing } from "../../render/framing.js"
 import { LINE, isModified, snapshot } from "../settings/settings.js"
 import { plainCopy } from "../core/values.js"
 import { shapeName } from "../geometry/shapes.js"
-import { createTitle } from "./title.js"
+import { keptObject, titleObjects } from "../title/objects.js"
+import { createTitle, linesOf, wordsOf } from "../title/title.js"
 import { joinWords, titleLines, titleValues, trimmed } from "../link/titleLines.js"
 import { FILE_VERSION } from "../settings/upgrades.js"
+import { userBusy } from "./activity.js"
 import { readStored, view } from "./view.js"
 import { readLarge, removeLarge, writeLarge } from "./largeStore.js"
 import { trackEach } from "./tracking.js"
@@ -18,16 +21,6 @@ const STORAGE = "minecraft-title-scene"
 const LARGE = "large"
 const UNVERSIONED = 4
 
-export const keepTexture = new WeakSet()
-
-export const loadedFont = new WeakMap()
-
-export function keptObject(values, id) {
-  const object = createObject(values, id)
-  keepTexture.add(object)
-  return object
-}
-
 export function validSelection(objects, selected, selectedGroup) {
   return {
     selected: objects.some(object => object.id === selected) ? selected : objects[0]?.id ?? null,
@@ -35,23 +28,8 @@ export function validSelection(objects, selected, selectedGroup) {
   }
 }
 
-export function titleObjects(values) {
-  const list = values.map(words => words.map(value => keptObject(value)))
-  const objects = list.flat()
-  for (const object of objects) {
-    if (object.matchWidth !== null) object.matchWidth = list[object.matchWidth][0].id
-  }
-  return objects
-}
-
-export function lines(objects = scene.objects) {
-  const list = []
-  for (const object of objects) {
-    const last = list[list.length - 1]
-    if (object.group !== null && last?.[0].group === object.group) last.push(object)
-    else list.push([object])
-  }
-  return list
+export function lines() {
+  return linesOf(scene.objects)
 }
 
 export function presetSource(value) {
@@ -59,7 +37,7 @@ export function presetSource(value) {
 }
 
 function stored(objects, { selected, selectedGroup, camera, preset = null }, version, values) {
-  const list = lines(objects)
+  const list = linesOf(objects)
   const group = list.findIndex(line => line[0].group !== null && line[0].group === selectedGroup)
   const changes = cameraChanges(camera)
   return { version, lines: titleLines(list, values).map(hoisted), ...(Object.keys(changes).length && { camera: changes }), selected: objects.findIndex(object => object.id === selected), selectedGroup: group < 0 ? null : group, ...(preset && { preset }) }
@@ -86,7 +64,7 @@ async function load() {
     if (!data?.lines?.length) return fresh()
     const objects = titleObjects(titleValues({ ...data, lines: data.lines.map(lowered) }))
     if (!objects.some(object => object.shape !== null || object.text.trim())) return fresh()
-    return { objects, camera: data.camera, selected: objects[data.selected]?.id ?? null, selectedGroup: lines(objects)[data.selectedGroup]?.[0].group ?? null, preset: presetSource(data.preset), error: null }
+    return { objects, camera: data.camera, selected: objects[data.selected]?.id ?? null, selectedGroup: linesOf(objects)[data.selectedGroup]?.[0].group ?? null, preset: presetSource(data.preset), error: null }
   } catch (err) {
     return fresh(err.message)
   }
@@ -98,6 +76,8 @@ export const scene = reactive({ objects: initial.objects, camera: fullCamera(ini
 
 export const editorTitle = {
   ...createTitle(scene.objects, view, scene.camera),
+  framing,
+  busy: userBusy,
   get objects() {
     return scene.objects
   }
@@ -106,8 +86,6 @@ export const editorTitle = {
 export const runtime = editorTitle.runtime
 
 export const library = shallowReactive({ fonts: [], shapes: [], tileables: {} })
-
-export const finalShadows = ref(false)
 
 export const saveError = ref(initial.error && `Your last title couldn't be restored: ${initial.error}`)
 
@@ -185,8 +163,8 @@ trackEach(() => scene.objects, raw => {
 trackEach(() => [scene.camera], queueSave)
 watch(() => [scene.selected, scene.selectedGroup, scene.preset], queueSave)
 
-export function words(object, title = editorTitle) {
-  return object.group === null ? [object] : title.objects.filter(other => other.group === object.group)
+export function words(object) {
+  return wordsOf(object, editorTitle)
 }
 
 export function gameVersions(browsing = null) {

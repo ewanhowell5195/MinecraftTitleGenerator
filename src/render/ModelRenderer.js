@@ -2,7 +2,6 @@ import { computed, shallowRef, watch } from "vue"
 import { filePalette, image, modelOf, modelTextures } from "../lib/texture/assets.js"
 import { rowBottom } from "../lib/geometry/build.js"
 import { surface } from "../lib/texture/canvas.js"
-import { quietly } from "../lib/state/history.js"
 import { adjusted, borderOf } from "../lib/texture/paint/adjust.js"
 import { colourOverlay } from "../lib/texture/paint/overlays.js"
 import { lookKey } from "../lib/texture/paint/keys.js"
@@ -10,7 +9,7 @@ import { bodyOf, faceOutline, footprint, minecraftPlaced, modelQuads, placed, so
 import { atlasOf, packing, solidAdjusted } from "../lib/texture/modelAtlas.js"
 import { usePlacement, usePublished } from "./objectState.js"
 import { NO_ARC } from "../lib/geometry/rows.js"
-import { editorTitle, keepTexture, loadedFont } from "../lib/state/scene.js"
+import { keepTexture, loadedFont } from "../lib/title/objects.js"
 import { effectiveScale } from "../lib/settings/settings.js"
 import { defaultTexture, setTexture, shownOverlays, textureEntry } from "../lib/settings/textureDefaults.js"
 import { minecraftQuads } from "../lib/minecraft/minecraftModels.js"
@@ -25,7 +24,7 @@ export default {
   props: {
     object: { type: Object, required: true },
     shapes: { type: Array, required: true },
-    title: { type: Object, default: () => editorTitle }
+    title: { type: Object, required: true }
   },
   setup(props) {
     const object = props.object
@@ -110,11 +109,11 @@ export default {
       const [data, textures] = await Promise.all([modelOf(entry.folder), modelTextures(entry.folder)])
       if (token !== request) return
       if (!keepTexture.has(object) && loadedFont.get(object) !== entry.id) {
-        quietly(() => {
+        props.title.quietly(() => {
           setTexture(object, { textureSource: "premade", texture: defaultTexture(textures, object.type), textureVariant: null })
           object.overlays = object.overlays.filter(layer => layer.source === "file" || textures.overlays[layer.overlay])
         })
-      } else if (object.texture === null || object.textureSource !== "premade") quietly(() => setTexture(object, { textureSource: "premade", texture: object.texture ?? defaultTexture(textures, object.type) }))
+      } else if (object.texture === null || object.textureSource !== "premade") props.title.quietly(() => setTexture(object, { textureSource: "premade", texture: object.texture ?? defaultTexture(textures, object.type) }))
       keepTexture.delete(object)
       loadedFont.set(object, entry.id)
       shape.value = entry

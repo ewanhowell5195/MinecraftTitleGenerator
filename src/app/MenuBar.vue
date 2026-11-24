@@ -1,7 +1,8 @@
 <script setup>
   import { computed, ref } from "vue"
   import { useWindowEvents } from "../components/composables/events.js"
-  import { EXTENSION, isDefaultTitle, openTitle, resetTitle, saveTitle } from "../lib/state/titleFile.js"
+  import { EXTENSION } from "../lib/title/titleData.js"
+  import { isDefaultTitle, openTitle, resetTitle, saveTitle } from "../lib/state/titleFile.js"
   import { history, redo, undo } from "../lib/state/history.js"
   import { startSavingPreset } from "../lib/state/presets.js"
   import { askConfirm } from "../lib/state/confirm.js"

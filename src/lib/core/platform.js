@@ -16,7 +16,9 @@ export const platform = {
   minecraftModels: null,
   fontUserAgent: null,
   cachedFont: (name, load) => load(),
-  fetch: (...args) => fetch(...args),
+  coverWorker: null,
+  asset: path => path,
+  fetch: (path, ...args) => fetch(platform.asset(path), ...args),
   createCanvas: () => document.createElement("canvas"),
   createWebGLRenderer: () => new THREE.WebGLRenderer({ antialias: false, alpha: true }),
   maxTextureSize,
@@ -27,9 +29,11 @@ export const platform = {
   loadImage(src) {
     return new Promise((fulfil, reject) => {
       const image = new Image()
+      const url = platform.asset(src)
+      if (url !== src) image.crossOrigin = "anonymous"
       image.onload = () => fulfil(image)
       image.onerror = () => reject(new Error(`failed to load ${src}`))
-      image.src = src
+      image.src = url
     })
   }
 }

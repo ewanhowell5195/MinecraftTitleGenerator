@@ -1,7 +1,7 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import { applyFontDefaults } from "../../src/render/fontDefaults.js"
-import { loadedFont } from "../../src/lib/state/scene.js"
+import { loadedFont } from "../../src/lib/title/objects.js"
 import { layerTarget, separateLayers } from "../../src/lib/settings/layers.js"
 import { createObject } from "../../src/lib/settings/objects.js"
 
@@ -16,8 +16,12 @@ function layered(values = {}) {
   return object
 }
 
+function now(change) {
+  change()
+}
+
 function switchFont(object) {
-  applyFontDefaults(object, newFont, after, before)
+  applyFontDefaults(object, newFont, after, before, now)
 }
 
 describe("font defaults", () => {
@@ -54,17 +58,17 @@ describe("font defaults", () => {
   test("a variant the new font doesn't have falls back to its texture", () => {
     const shared = { primary: "stone", overlays: {}, edgeOverlays: {}, textures: { stone: { variants: { mossy: {} } } } }
     const object = layered({ textureVariant: "mossy" })
-    applyFontDefaults(object, newFont, structuredClone(shared), shared)
+    applyFontDefaults(object, newFont, structuredClone(shared), shared, now)
     assert.deepEqual([object.texture, object.textureVariant], ["stone", "mossy"])
     loadedFont.set(object, oldFont.id)
-    applyFontDefaults(object, newFont, { ...shared, textures: { stone: {} } }, shared)
+    applyFontDefaults(object, newFont, { ...shared, textures: { stone: {} } }, shared, now)
     assert.deepEqual([object.texture, object.textureVariant], ["stone", null])
   })
 
   test("a kept texture only takes the new font's face defaults where they differ", () => {
     const list = (sides, inner) => ({ primary: "stone", overlays: {}, edgeOverlays: {}, textures: { stone: { sides, inner } } })
     const object = layered({ customInternal: true, internalColour: "#abcdef" })
-    applyFontDefaults(object, newFont, list("#222222", "#333333"), list("#111111", "#333333"))
+    applyFontDefaults(object, newFont, list("#222222", "#333333"), list("#111111", "#333333"), now)
     assert.deepEqual([object.customSide, object.sideColour], [true, "#222222"])
     assert.deepEqual([object.customInternal, object.internalColour], [true, "#abcdef"])
   })

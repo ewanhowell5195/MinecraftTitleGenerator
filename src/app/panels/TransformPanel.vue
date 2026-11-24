@@ -1,11 +1,11 @@
 <script setup>
   import { computed } from "vue"
-  import { leadsTo, problems } from "../../lib/state/match.js"
+  import { leadsTo } from "../../lib/title/match.js"
   import { previews } from "../previews.js"
   import { TYPES } from "../../lib/settings/defaults.js"
   import { TRANSFORM_GROUPS, TRANSFORM_LIMITS, isModified, resetTransform, transformKeys, wordKey } from "../../lib/settings/settings.js"
   import { hasMarks } from "../../lib/font/stretchMarks.js"
-  import { active, bakeMatch, chooseMatch, current, currentWord, lineText, scene, selection, setScale, words } from "../../lib/state/scene.js"
+  import { active, bakeMatch, chooseMatch, current, currentWord, editorTitle, lineText, scene, selection, setScale, words } from "../../lib/state/scene.js"
   import Button from "../../components/Button.vue"
   import Dropdown from "../../components/Dropdown.vue"
   import Panel from "../Panel.vue"
@@ -25,7 +25,7 @@
 
   const modified = computed(() => Object.fromEntries(Object.keys(TRANSFORM_GROUPS).map(group => [group, isModified(object.value, props.word ? "wordTransform" : "transform", {}, transformKeys(group, props.word))])))
   const own = computed(() => words(selection.value[0]))
-  const references = computed(() => scene.objects.filter(other => !own.value.includes(other) && words(other)[0] === other && !own.value.some(word => leadsTo(other, word))))
+  const references = computed(() => scene.objects.filter(other => !own.value.includes(other) && words(other)[0] === other && !own.value.some(word => leadsTo(other, word, editorTitle))))
   const matched = computed(() => {
     const target = scene.objects.find(other => other.id === object.value.matchWidth)
     return target ? words(target)[0].id : object.value.matchWidth
@@ -56,7 +56,7 @@
     <template v-if="object.matchWidth !== null">
       <Segments :options="MATCH_MODES" v-model="object.matchBottom" />
       <Toggle label="Scale Y to match too" v-model="object.matchScaleY" />
-      <p v-if="problems[object.id]" class="hint">{{ problems[object.id] }}</p>
+      <p v-if="editorTitle.problems[object.id]" class="hint">{{ editorTitle.problems[object.id] }}</p>
       <Button class="bake" v-tooltip="'Stop matching and move its scale and position into the sliders'" @click="bakeMatch(selection[0])">Bake match</Button>
     </template>
   </Panel>

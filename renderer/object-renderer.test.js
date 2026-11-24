@@ -2,17 +2,16 @@ import { after, describe, test } from "node:test"
 import assert from "node:assert/strict"
 
 await import("./index.js")
-const { createRenderer, reactive, watch } = await import("vue")
+const { effectScope, reactive, watch } = await import("vue")
 const { platform } = await import("../src/lib/core/platform.js")
 const { default: ObjectRenderer } = await import("../src/render/ObjectRenderer.js")
-const { createTitle, OFFSCREEN_VIEW } = await import("../src/lib/state/title.js")
+const { createTitle, OFFSCREEN_VIEW } = await import("../src/lib/title/title.js")
 const { loadLibrary } = await import("../src/lib/link/titleNames.js")
 const { loadFont } = await import("../src/lib/font/font.js")
 const { fontTextures } = await import("../src/lib/texture/assets.js")
 const { sheetFor } = await import("../src/lib/font/fontSheet.js")
 const { createObject } = await import("../src/lib/settings/objects.js")
 
-const NOTHING_RENDERED = createRenderer({ insert() {}, remove() {}, createElement: () => ({}), createText: () => ({}), createComment: () => ({}), setText() {}, setElementText() {}, parentNode: () => null, nextSibling: () => null, patchProp() {} })
 const [fonts, tileables, shapes] = await loadLibrary()
 const loadImage = platform.loadImage
 
@@ -42,9 +41,9 @@ describe("object renderer", () => {
     assert.ok(layered.layers)
     await warmed("minecraft-five")
     const object = reactive(createObject({ font: "minecraft-ten", text: "Title" }))
-    const title = createTitle(reactive([object]), OFFSCREEN_VIEW)
-    const app = NOTHING_RENDERED.createApp(ObjectRenderer, { object, title, fonts, tileables, shapes })
-    app.mount({})
+    const title = createTitle([object], OFFSCREEN_VIEW)
+    const scope = effectScope()
+    scope.run(() => ObjectRenderer.setup({ object, title, fonts, tileables, shapes }))
     const entry = () => title.runtime[object.id]
     const errors = []
     const stop = watch(() => entry()?.error, error => error && errors.push(error))
@@ -69,16 +68,33 @@ describe("object renderer", () => {
     } finally {
       stop()
       platform.loadImage = loadImage
-      app.unmount()
+      scope.stop()
     }
+  })
+
+  test("rebuilds when the text changes and lets go when it is stopped", async () => {
+    await warmed("minecraft-ten")
+    const object = reactive(createObject({ font: "minecraft-ten", text: "One" }))
+    const title = createTitle([object], OFFSCREEN_VIEW)
+    const scope = effectScope()
+    scope.run(() => ObjectRenderer.setup({ object, title, fonts, tileables, shapes }))
+    const entry = () => title.runtime[object.id]
+    await until(entry, value => value?.settled && value.built)
+    const first = entry().built
+    object.text = "Longer"
+    await until(entry, value => value?.built && value.built !== first)
+    assert.ok(entry().built.line.max[0] > first.line.max[0])
+    scope.stop()
+    assert.equal(entry(), undefined)
+    assert.equal(title.heights[object.id], undefined)
   })
 
   test("an update text thumbnail lays its edge strips out at the thumbnail's own depth", async () => {
     await warmed("minecraft-ten")
     const object = reactive(createObject({ font: "minecraft-ten", text: "Title", type: "bottom" }))
-    const title = createTitle(reactive([object]), { render: false, eager: true })
-    const app = NOTHING_RENDERED.createApp(ObjectRenderer, { object, title, fonts, tileables, shapes })
-    app.mount({})
+    const title = createTitle([object], { render: false, eager: true })
+    const scope = effectScope()
+    scope.run(() => ObjectRenderer.setup({ object, title, fonts, tileables, shapes }))
     try {
       const { built, preview } = await until(() => title.runtime[object.id], value => value?.settled && value.built && value.preview)
       assert.notEqual(preview.built.depth, built.depth)
@@ -89,7 +105,7 @@ describe("object renderer", () => {
         }
       }
     } finally {
-      app.unmount()
+      scope.stop()
     }
   })
 })

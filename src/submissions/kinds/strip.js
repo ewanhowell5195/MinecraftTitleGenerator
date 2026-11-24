@@ -1,4 +1,4 @@
-import { fetched } from "../../lib/submissions/api.js"
+import { fetched } from "../../lib/core/api.js"
 import { pixelsOf } from "../../lib/texture/canvas.js"
 import { fullName, stripsOf } from "../../lib/font/catalog.js"
 import { loadFont, loadFontList, loadImage } from "../../lib/font/font.js"

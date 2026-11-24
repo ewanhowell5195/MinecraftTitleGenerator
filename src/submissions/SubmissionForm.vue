@@ -9,7 +9,7 @@
   import Segments from "../components/Segments.vue"
   import SignInButtons from "../components/SignInButtons.vue"
   import UploadField from "../components/UploadField.vue"
-  import { fetched } from "../lib/submissions/api.js"
+  import { fetched } from "../lib/core/api.js"
   import { AUTHOR_LIMITS, authorList } from "../lib/core/authors.js"
   import { account } from "../lib/state/account.js"
   import { SUBMISSION_KINDS, checkSubmission, submissionContext } from "../lib/submissions/kinds/index.js"

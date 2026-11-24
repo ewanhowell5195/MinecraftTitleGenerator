@@ -3,17 +3,16 @@
   import * as THREE from "three"
   import ModelRenderer from "../render/ModelRenderer.js"
   import ObjectRenderer from "../render/ObjectRenderer.js"
-  import { readTitleObjects } from "../lib/state/titleFile.js"
-  import { createTitleItems } from "../lib/state/items.js"
-  import { keepMatched } from "../lib/state/match.js"
+  import { createTitleItems } from "../lib/title/items.js"
+  import { keepMatched } from "../lib/title/match.js"
   import { platform } from "../lib/core/platform.js"
-  import { keepTexture } from "../lib/state/scene.js"
+  import { keepTexture, readTitleObjects } from "../lib/title/objects.js"
   import { FILE_VERSION } from "../lib/settings/upgrades.js"
   import { loadKey } from "../lib/geometry/shapes.js"
   import { createSmoothing } from "./composables/smoothing.js"
   import { createStage } from "../render/stage.js"
   import { frameCamera, titleFraming } from "../render/titleFraming.js"
-  import { OFFSCREEN_VIEW, createTitle, firstError } from "../lib/state/title.js"
+  import { OFFSCREEN_VIEW, createTitle, firstError } from "../lib/title/title.js"
 
   const NO_TILEABLES = {}
 
