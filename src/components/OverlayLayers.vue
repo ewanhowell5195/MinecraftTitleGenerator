@@ -6,7 +6,7 @@
   import { COLOUR_HINTS, COLOUR_MODES, useOverlayLayers } from "../lib/panels/overlayLayers.js"
   import { useListReorder } from "./composables/reorder.js"
   import { BLEND_OPTIONS } from "../lib/settings/defaults.js"
-  import { popular } from "../lib/state/stats.js"
+  import { popular } from "../lib/title/popularity.js"
   import { readImage, saveSheet } from "../lib/state/imageFiles.js"
   import { thumbnail, thumbnailHeight } from "../lib/font/thumbnailUrls.js"
   import Button from "./Button.vue"

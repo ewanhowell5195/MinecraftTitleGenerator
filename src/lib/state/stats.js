@@ -1,35 +1,15 @@
-import { shallowRef } from "vue"
 import { scene } from "./scene.js"
 import { isCustomFont } from "../settings/settings.js"
 import { OVERLAY_KINDS } from "../settings/textureDefaults.js"
+import { loadCounts } from "../title/popularity.js"
 import { googleFamily, googleStatId, statScope } from "../title/statIds.js"
 
 const API = "https://api.wynem.com/minecrafttitlegenerator/stats"
 
-const counts = shallowRef(new Map())
-
 let submitted = null
 
-export async function loadStats() {
-  const response = await fetch(API)
-  if (!response.ok) throw new Error(`failed to load the title stats: ${response.status}`)
-  counts.value = new Map((await response.json()).map(entry => [entry.id, entry.count]))
-}
-
-export function popular(entries, id, label, pinned = []) {
-  function rank(entry) {
-    const at = pinned.indexOf(id(entry))
-    return at === -1 ? pinned.length : at
-  }
-  return entries.slice().sort((a, b) => rank(a) - rank(b) || (counts.value.get(id(b)) ?? 0) - (counts.value.get(id(a)) ?? 0) || label(a).localeCompare(label(b)))
-}
-
-export function byUsage(entries, id) {
-  return entries.slice().sort((a, b) => (counts.value.get(id(b)) ?? 0) - (counts.value.get(id(a)) ?? 0))
-}
-
-export function usage(ids) {
-  return ids.reduce((total, id) => total + (counts.value.get(id) ?? 0), 0)
+export function loadStats() {
+  return loadCounts(API)
 }
 
 function statIds() {

@@ -1,7 +1,7 @@
 <script setup>
   import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue"
   import { openedFirst } from "../../lib/panels/opened.js"
-  import { byUsage } from "../../lib/state/stats.js"
+  import { byUsage } from "../../lib/title/popularity.js"
   import { googleStatId } from "../../lib/title/statIds.js"
   import { googleFontList, googlePreview, googlePreviewFamily, styleLabel, styleParts } from "../../lib/font/googleFonts.js"
   import Dropdown from "../../components/Dropdown.vue"

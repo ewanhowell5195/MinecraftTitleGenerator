@@ -11,7 +11,7 @@
   import Checkbox from "../../components/Checkbox.vue"
   import UploadField from "../../components/UploadField.vue"
   import { flatTexture } from "../../lib/font/editor/export.js"
-  import { popular } from "../../lib/state/stats.js"
+  import { popular } from "../../lib/title/popularity.js"
   import { EXTRA_KINDS, fontParents, submittedFontId } from "../../lib/submissions/kinds/font.js"
   import { STRIP_LIMITS, heightList, stripHeights as heightsOf, stripSnap } from "../../lib/submissions/kinds/stripFit.js"
   import { ownFont, submittedFont } from "../../lib/submissions/kinds/fontBuild.js"

@@ -1,6 +1,6 @@
 import { fullName } from "../../lib/font/catalog.js"
 import { DEFAULT_FONT } from "../../lib/settings/defaults.js"
-import { popular } from "../../lib/state/stats.js"
+import { popular } from "../../lib/title/popularity.js"
 import { fontThumbnail } from "../../lib/font/thumbnailUrls.js"
 
 export function fontOptions(list, fonts) {

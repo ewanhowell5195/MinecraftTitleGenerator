@@ -11,7 +11,7 @@
   import { fontSample } from "../../lib/font/fontSamples.js"
   import { googleFontList, googlePreview, googlePreviewFamily } from "../../lib/font/googleFonts.js"
   import { library } from "../../lib/state/scene.js"
-  import { byUsage, popular } from "../../lib/state/stats.js"
+  import { byUsage, popular } from "../../lib/title/popularity.js"
   import { googleStatId } from "../../lib/title/statIds.js"
   import { fontThumbnail } from "../../lib/font/thumbnailUrls.js"
   import { openedFirst } from "../../lib/panels/opened.js"

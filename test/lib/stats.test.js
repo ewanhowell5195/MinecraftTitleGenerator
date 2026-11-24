@@ -14,7 +14,8 @@ quietStorage()
 globalThis.fetch = stubFetch
 
 const { statScope } = await import("../../src/lib/title/statIds.js")
-const { byUsage, loadStats, popular } = await import("../../src/lib/state/stats.js")
+const { loadStats } = await import("../../src/lib/state/stats.js")
+const { byUsage, popular } = await import("../../src/lib/title/popularity.js")
 
 function statsOf(entries) {
   return { ok: true, status: 200, json: async () => entries }
