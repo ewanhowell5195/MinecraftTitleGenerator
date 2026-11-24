@@ -11,7 +11,7 @@
     "test:content": "node --test \"test/content/*.test.js\"",
     "test:lib": "node --test \"test/lib/*.test.js\"",
     "test:render": "node --test \"test/render/*.test.js\" \"renderer/*.test.js\"",
-    "test:vue2": "node --import ./test/helpers/useVue2.js --test \"test/render/*.test.js\" test/lib/panels.test.js renderer/object-renderer.test.js",
+    "test:vue2": "node --import ./test/helpers/useVue2.js --test \"test/render/*.test.js\" test/lib/panels.test.js test/lib/broadcast.test.js renderer/object-renderer.test.js",
     "test:server": "node --test \"test/server/*.test.js\"",
     "test:submissions": "node --test \"test/submissions/*.test.js\" \"test/generator/*.test.js\"",
     "test:app": "node --test \"test/app/*.test.js\" \"test/fontEditor/*.test.js\" \"test/site/*.test.js\"",

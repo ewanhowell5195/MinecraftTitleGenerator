@@ -5,9 +5,9 @@ import { hoisted, lowered } from "../link/linkformat.js"
 import { round } from "../core/maths.js"
 import { createObject } from "../settings/objects.js"
 import { framing, useFraming } from "../../render/framing.js"
-import { LINE, isModified, snapshot } from "../settings/settings.js"
-import { plainCopy } from "../core/values.js"
+import { isModified, snapshot } from "../settings/settings.js"
 import { shapeName } from "../geometry/shapes.js"
+import { oneWord, wholeLine } from "../title/broadcast.js"
 import { keptObject, titleObjects } from "../title/objects.js"
 import { createTitle, freeRowOf, linesOf, wordsOf } from "../title/title.js"
 import { joinWords, titleLines, titleValues, trimmed } from "../link/titleLines.js"
@@ -245,57 +245,6 @@ export function titleFileName() {
   return fileNameOf(titleText(), "title")
 }
 
-function clone(value) {
-  return plainCopy(value)
-}
-
-function broadcast(object, targets) {
-  const wrappers = new WeakMap()
-  function within(path, prop) {
-    return path[0] === "layerSettings" && path.length < 3 ? path.concat(prop) : path
-  }
-  function read(target, prop, path) {
-    if (Array.isArray(target) && typeof Array.prototype[prop] === "function") return Array.prototype[prop]
-    if (typeof prop === "symbol") return Reflect.get(target, prop)
-    if (prop.startsWith("__v_")) return undefined
-    return wrap(Reflect.get(target, prop), path)
-  }
-  function sync([key, layer, name]) {
-    for (const other of targets(key)) {
-      if (other === object) continue
-      if (name === undefined) other[key] = clone(object[key])
-      else if (other[key][layer]) other[key][layer][name] = clone(object[key][layer][name])
-    }
-  }
-  function wrap(value, path) {
-    if (value === null || typeof value !== "object") return value
-    if (!wrappers.has(value)) {
-      wrappers.set(value, new Proxy(value, {
-        get: (target, prop) => read(target, prop, within(path, prop)),
-        set: (target, prop, next) => {
-          Reflect.set(target, prop, clone(next))
-          sync(within(path, prop))
-          return true
-        },
-        deleteProperty: (target, prop) => {
-          Reflect.deleteProperty(target, prop)
-          sync(within(path, prop))
-          return true
-        }
-      }))
-    }
-    return wrappers.get(value)
-  }
-  return new Proxy(object, {
-    get: (target, prop) => read(target, prop, [prop]),
-    set: (target, prop, next) => {
-      const value = clone(next)
-      for (const other of targets(prop)) other[prop] = other === object ? value : clone(value)
-      return true
-    }
-  })
-}
-
 export const currentWord = computed(() => scene.objects.find(object => object.id === scene.selected) ?? scene.objects[0])
 
 export const selection = computed(() => {
@@ -306,8 +255,7 @@ export const selection = computed(() => {
 export const current = computed(() => {
   const object = currentWord.value
   if (!object || object.group === null) return object
-  if (scene.selectedGroup === object.group) return broadcast(object, key => key === "text" ? [object] : words(object))
-  return broadcast(object, key => LINE.has(key) ? words(object) : [object])
+  return scene.selectedGroup === object.group ? wholeLine(object, () => words(object)) : oneWord(object, () => words(object))
 })
 
 export const wordTabs = computed(() => !!currentWord.value && (words(currentWord.value).length > 1 || ["wordGeometry", "wordArc", "wordRibbon", "wordWrap", "wordFan", "wordTransform"].some(panel => isModified(currentWord.value, panel))))
