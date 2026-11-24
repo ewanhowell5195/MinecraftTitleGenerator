@@ -6,7 +6,7 @@ import { holdQuery } from "../helpers/server.js"
 const { LIMITS } = await import("../../src/lib/core/limits.js")
 const { checkTitle, getPreset, listPresets, submitPreset } = await import("../../src/server/presets.js")
 const { countDownload, presetStats, votePreset } = await import("../../src/server/presetScores.js")
-const { presetDetails, presetPageDetails } = await import("../../src/server/presetPages.js")
+const { linkedPreset, linkedPresetDetails, presetDetails, presetPageDetails } = await import("../../src/server/presetPages.js")
 const { titleFacts } = await import("../../src/lib/link/titleFacts.js")
 const { encodeTitle } = await import("../../src/lib/link/linkformat.js")
 const { FILE_VERSION } = await import("../../src/lib/settings/upgrades.js")
@@ -912,6 +912,18 @@ describe("preset page details", () => {
     assert.deepEqual([work["@type"], work.name, work.url, work.image, work.author.name, work.datePublished], ["CreativeWork", "Iron and Ember", "https://mctitlegenerator.com/app/presets/12", details.image, "steve", "2026-11-05T00:00:00.000Z"])
     assert.deepEqual(trail.itemListElement.map(step => step.name), ["Minecraft Title Generator", "Presets", "Iron and Ember"])
     assert.equal(presetDetails("https://mctitlegenerator.com", null, 4).data["@graph"][2]["@type"], "CollectionPage")
+  })
+
+  test("a link that opens a preset in the editor shows the preset's name and picture", () => {
+    const url = new URL("https://mctitlegenerator.com/app/?preset=12")
+    assert.equal(linkedPreset(url), 12)
+    const details = linkedPresetDetails(url, { id: 12, name: "Iron and Ember", fingerprint: "abc", author: "steve" })
+    assert.equal(details.title, "Iron and Ember | Minecraft Title Generator")
+    assert.equal(details.url, url.href)
+    assert.equal(details.canonical, "https://mctitlegenerator.com/app/presets/12")
+    assert.equal(details.image, presetDetails(url.origin, { name: "Iron and Ember", fingerprint: "abc" }, 12).image)
+    assert.equal(details.data, undefined)
+    for (const value of ["", "abc", "0", "-1", "1.5"]) assert.equal(linkedPreset(new URL(`https://mctitlegenerator.com/app/?preset=${value}`)), null)
   })
 })
 

@@ -92,8 +92,9 @@ export const library = shallowReactive({ fonts: [], shapes: [], tileables: {} })
 export const saveError = ref(initial.error && `Your last title couldn't be restored: ${initial.error}`)
 
 export const TITLE_PARAM = "title"
+export const PRESET_PARAM = "preset"
 
-export const sharedLink = { open: false }
+export const sharedLink = { open: false, preset: null }
 
 let saving = null
 let saves = 0
@@ -130,15 +131,21 @@ function save(text) {
   removeLarge(STORAGE).catch(failed)
 }
 
+export function replaceAddress(url) {
+  // vue-router puts its state's current address back when it next moves on
+  history.replaceState(history.state && { ...history.state, current: `${url.pathname}${url.search}${url.hash}` }, "", url)
+}
+
 export function clearSharedLink() {
   const url = new URL(location.href)
   url.searchParams.delete(TITLE_PARAM)
-  history.replaceState(history.state, "", url)
+  url.searchParams.delete(PRESET_PARAM)
+  replaceAddress(url)
 }
 
 export function leaveSharedLink() {
-  if (!sharedLink.open) return
-  sharedLink.open = false
+  if (!sharedLink.open && sharedLink.preset === null) return
+  Object.assign(sharedLink, { open: false, preset: null })
   clearSharedLink()
 }
 

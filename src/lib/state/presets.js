@@ -8,7 +8,7 @@ import { encodeTitle, openableTitle, titleBody } from "../link/linkformat.js"
 import { capitalWords } from "../core/names.js"
 import { askConfirm } from "./confirm.js"
 import { fileError, showNotice } from "./notices.js"
-import { casedTitle, titleText } from "./scene.js"
+import { casedTitle, sharedLink, titleText } from "./scene.js"
 import { submitStats } from "./stats.js"
 import { readStored } from "./view.js"
 import { shortNameProblem } from "../core/wording.js"
@@ -343,10 +343,11 @@ export function savePreset(name = "", { keepOpen = false } = {}) {
   }
 }
 
-export async function loadPreset(preset) {
+export async function loadPreset(preset, shared = preset.shared ?? null) {
   if (!isDefaultTitle() && !showingCode(preset.code) && !await askConfirm({ title: "Open preset", message: `Replace your current title with ${preset.name}?`, action: "Replace" })) return false
   try {
     openTitleData(openableTitle(preset.code))
+    sharedLink.preset = shared
   } catch (err) {
     fileError.value = `Couldn't open ${preset.name}: ${err.message}`
   }

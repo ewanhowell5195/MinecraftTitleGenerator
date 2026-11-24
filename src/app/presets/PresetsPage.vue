@@ -121,8 +121,9 @@
   }
 
   async function open(preset) {
-    if (!await loadPreset(preset)) return
-    if (tab.value === "community") {
+    const community = tab.value === "community"
+    if (!await loadPreset(preset, community ? preset.id : preset.shared)) return
+    if (community) {
       counted(preset)
       scene.preset = { id: preset.id, name: preset.name }
     }

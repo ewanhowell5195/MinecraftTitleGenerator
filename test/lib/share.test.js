@@ -22,6 +22,7 @@ const { scene, sharedLink } = await import("../../src/lib/state/scene.js")
 const { fileError } = await import("../../src/lib/state/notices.js")
 const { encodeTitle } = await import("../../src/lib/link/linkformat.js")
 const { openSharedLink, shareLink } = await import("../../src/lib/state/share.js")
+const { undo } = await import("../../src/lib/state/history.js")
 const { setTitle } = await import("../helpers/scene.js")
 
 describe("sharing a title", () => {
@@ -88,6 +89,75 @@ describe("sharing a title", () => {
     location.href = "https://example.test/app/"
     assert.match(link, /^https:\/\/example\.test\/app\/\?other=1&title=[A-Za-z0-9_-]+$/)
     assert.doesNotMatch(link, /old/)
+  })
+})
+
+describe("a preset's link", () => {
+  const replaced = []
+  const code = encodeTitle({ version: FILE_VERSION, lines: [{ text: "preset", hue: 40 }] }).code
+
+  async function openPreset(value, reply = { ok: true, status: 200, body: { preset: { id: 330, name: "Quest", code, downloads: 4 } } }) {
+    globalThis.history = { state: null, replaceState: (state, title, url) => replaced.push(url.href) }
+    globalThis.fetch = async (url, options) => {
+      posts.push({ url, method: options?.method ?? "GET" })
+      return { ok: reply.ok, status: reply.status, json: async () => url.endsWith("/download") ? { counted: true } : reply.body }
+    }
+    location.href = `https://example.test/app/?preset=${value}`
+    location.search = `?preset=${value}`
+    await openSharedLink()
+    globalThis.fetch = recordPost
+    location.search = ""
+  }
+
+  beforeEach(() => {
+    posts.length = 0
+    replaced.length = 0
+    fileError.value = null
+    Object.assign(sharedLink, { open: false, preset: null })
+    setTitle(createObject({ text: "before" }))
+  })
+
+  test("opens it, remembers it and keeps it in the address", async () => {
+    await openPreset(330)
+    assert.equal(fileError.value, null)
+    assert.deepEqual(scene.objects.map(object => [object.text, object.hue]), [["preset", 40]])
+    assert.deepEqual(scene.preset, { id: 330, name: "Quest" })
+    assert.deepEqual(sharedLink, { open: true, preset: 330 })
+    assert.deepEqual(replaced, [])
+    assert.ok(posts.some(post => post.url.endsWith("/330/download") && post.method === "POST"))
+  })
+
+  test("is what sharing gives until something is edited", async () => {
+    await openPreset(330)
+    assert.deepEqual(shareLink(), { link: "https://example.test/app/?preset=330", skipped: 0 })
+    await Promise.resolve()
+    scene.objects[0].hue = 90
+    assert.deepEqual(sharedLink, { open: false, preset: null })
+    assert.deepEqual(replaced, ["https://example.test/app/"])
+    location.href = "https://example.test/app/"
+    assert.match(shareLink().link, /[?]title=/)
+  })
+
+  test("doesn't come back when the edit is undone", async () => {
+    await openPreset(330)
+    await Promise.resolve()
+    scene.objects[0].hue = 90
+    undo()
+    assert.equal(sharedLink.preset, null)
+  })
+
+  test("a preset that doesn't exist says so and leaves the title and address", async () => {
+    await openPreset(99, { ok: false, status: 404, body: { error: "This preset doesn't exist." } })
+    assert.equal(fileError.value, "Couldn't open this link: This preset doesn't exist.")
+    assert.deepEqual(scene.objects.map(object => object.text), ["before"])
+    assert.deepEqual(sharedLink, { open: false, preset: null })
+    assert.deepEqual(replaced, ["https://example.test/app/"])
+  })
+
+  test("refuses a link without a number", async () => {
+    await openPreset("abc")
+    assert.equal(fileError.value, "Couldn't open this link: it doesn't have a preset's number")
+    assert.equal(posts.length, 0)
   })
 })
 

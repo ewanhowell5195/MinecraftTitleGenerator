@@ -1,6 +1,6 @@
 import { reactive } from "vue"
 import { navigate, onNavigated } from "./navigation.js"
-import { TITLE_PARAM } from "./scene.js"
+import { PRESET_PARAM, TITLE_PARAM, replaceAddress, sharedLink } from "./scene.js"
 import { SITE } from "../../site/pages.js"
 
 export const PRESETS_PATH = "/app/presets"
@@ -118,8 +118,25 @@ export function closePresetsPage(to = returnTo) {
   returnTo = EDITOR
 }
 
+export function editorPresetPath(id) {
+  return `${EDITOR}?${PRESET_PARAM}=${id}`
+}
+
 export function leavePresetsForEditor() {
-  closePresetsPage(EDITOR)
+  closePresetsPage(sharedLink.preset === null ? EDITOR : editorPresetPath(sharedLink.preset))
+}
+
+function editorAddress(address) {
+  const url = new URL(address, location.origin)
+  if (!sharedLink.open) url.searchParams.delete(TITLE_PARAM)
+  if (sharedLink.preset === null) url.searchParams.delete(PRESET_PARAM)
+  else url.searchParams.set(PRESET_PARAM, sharedLink.preset)
+  return `${url.pathname}${url.search}${url.hash}`
+}
+
+function showEditorAddress(shown) {
+  const address = editorAddress(shown)
+  if (address !== shown) replaceAddress(new URL(address, location.origin))
 }
 
 export function takeLanding() {
@@ -134,8 +151,9 @@ onNavigated((to, from) => {
   const fromEditor = from.meta.name === "app" && !readPresetPath(from.path).open
   syncTo(new URL(to.fullPath, SITE))
   if (presetsPage.open && fromEditor) {
-    returnTo = from.fullPath
+    returnTo = editorAddress(from.fullPath)
     if (!presetsPage.fromEditor) setFromEditor(true)
   } else if (!presetsPage.open && presetsPage.fromEditor) setFromEditor(false)
+  if (to.meta.name === "app" && !presetsPage.open && from.meta.name === "app") showEditorAddress(to.fullPath)
   if (to.meta.name === "app" && from.meta.name !== "app") landing = presetsPage.open
 })

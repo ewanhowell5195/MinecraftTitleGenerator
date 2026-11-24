@@ -1,9 +1,10 @@
-import { describe, test } from "node:test"
+import { afterEach, describe, test } from "node:test"
 import assert from "node:assert/strict"
 
 globalThis.location = { pathname: "/app/", origin: "https://example.test" }
 
-const { addressHasFilters, closePresetsPage, openLinkInEditor, presetLink, presetsPage, readPresetPath, setPresetSearch, setPresetSort, showOwnPreset, showPreset, showPresetFilters } = await import("../../src/lib/state/presetsPage.js")
+const { addressHasFilters, closePresetsPage, leavePresetsForEditor, openLinkInEditor, presetLink, presetsPage, readPresetPath, setPresetSearch, setPresetSort, showOwnPreset, showPreset, showPresetFilters } = await import("../../src/lib/state/presetsPage.js")
+const { sharedLink } = await import("../../src/lib/state/scene.js")
 const { navigated, setNavigator } = await import("../../src/lib/state/navigation.js")
 
 function setAddress(address) {
@@ -155,7 +156,16 @@ describe("the way back to the editor", () => {
     return { fullPath, path: new URL(fullPath, "https://example.test").pathname, meta: { name: "app" } }
   }
 
+  const replaced = []
+  globalThis.history = { state: { position: 3 }, replaceState: (state, title, url) => replaced.push([state, url.href]) }
+
+  afterEach(() => {
+    replaced.length = 0
+    Object.assign(sharedLink, { open: false, preset: null })
+  })
+
   test("going back to the editor and forward to the presets again keeps it", () => {
+    sharedLink.open = true
     navigated(route("/app/presets"), route("/app/?title=abc"))
     assert.equal(presetsPage.fromEditor, true)
     navigated(route("/app/?title=abc"), route("/app/presets"))
@@ -165,6 +175,32 @@ describe("the way back to the editor", () => {
     pushed.length = 0
     closePresetsPage()
     assert.deepEqual(pushed, ["/app/?title=abc"])
+  })
+
+  test("forgets a link that was edited away", () => {
+    navigated(route("/app/presets"), route("/app/?title=abc"))
+    pushed.length = 0
+    closePresetsPage()
+    assert.deepEqual(pushed, ["/app/"])
+  })
+
+  test("opening a preset puts it in the editor's address", () => {
+    sharedLink.preset = 330
+    pushed.length = 0
+    leavePresetsForEditor()
+    assert.deepEqual(pushed, ["/app/?preset=330"])
+    sharedLink.preset = null
+    leavePresetsForEditor()
+    assert.deepEqual(pushed, ["/app/?preset=330", "/app/"])
+  })
+
+  test("going back to an address that isn't the open preset corrects it", () => {
+    sharedLink.preset = 331
+    navigated(route("/app/?preset=330"), route("/app/presets"))
+    assert.deepEqual(replaced, [[{ position: 3, current: "/app/?preset=331" }, "https://example.test/app/?preset=331"]])
+    sharedLink.preset = null
+    navigated(route("/app/?preset=330"), route("/app/presets"))
+    assert.equal(replaced.at(-1)[1], "https://example.test/app/")
   })
 
   test("landing straight on the presets has none", () => {

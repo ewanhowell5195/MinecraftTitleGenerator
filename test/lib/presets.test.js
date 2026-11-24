@@ -21,7 +21,7 @@ watch(confirming, request => request?.answer(answer), { flush: "sync" })
 const { LAYER } = await import("../../src/lib/settings/textureDefaults.js")
 const { FILE_VERSION } = await import("../../src/lib/settings/upgrades.js")
 const { createObject } = await import("../../src/lib/settings/objects.js")
-const { scene } = await import("../../src/lib/state/scene.js")
+const { scene, sharedLink } = await import("../../src/lib/state/scene.js")
 const { fileError } = await import("../../src/lib/state/notices.js")
 const { notice } = await import("../../src/lib/state/notices.js")
 const { decodeTitle, encodeTitle } = await import("../../src/lib/link/linkformat.js")
@@ -310,6 +310,19 @@ describe("presets", () => {
     assert.equal(await loadPreset(preset), true)
     assert.deepEqual(scene.objects.map(object => object.text), ["kept", "below"])
     assert.equal(scene.objects[0].hue, 42)
+  })
+
+  test("a shared one is remembered for the address, an unshared one isn't", async () => {
+    const code = encodeTitle({ version: FILE_VERSION, lines: [{ text: "linked" }] }).code
+    await loadPreset({ name: "shared", code, shared: 12 })
+    assert.equal(sharedLink.preset, 12)
+    await loadPreset({ name: "community", code }, 330)
+    assert.equal(sharedLink.preset, 330)
+    await loadPreset({ name: "mine", code })
+    assert.equal(sharedLink.preset, null)
+    await loadPreset({ name: "community", code }, 330)
+    await loadPreset({ name: "broken", code: "1!!!" }, 331)
+    assert.equal(sharedLink.preset, 330)
   })
 
   test("do not replace the title when you say no", async () => {

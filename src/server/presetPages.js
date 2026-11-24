@@ -82,10 +82,22 @@ export async function presetPage(context) {
   return pageWithDetails(page, { ...presetDetails(address.origin, selected, id), body, head: templates.links + seedScript(seed) })
 }
 
+export function linkedPreset(url) {
+  const id = Number(url.searchParams.get("preset"))
+  return Number.isSafeInteger(id) && id > 0 ? id : null
+}
+
+export function linkedPresetDetails(url, preset) {
+  const { data, heading, ...details } = presetDetails(url.origin, preset, preset.id)
+  return { ...details, url: url.href, canonical: details.url }
+}
+
 export async function appPage(context) {
-  const { next, request } = context
+  const { env, next, request } = context
   const url = new URL(request.url)
   const code = linkedCode(url)
-  if (!code) return next()
-  return linkedTitlePage(await appShell(context), url, code, "/app/")
+  if (code) return linkedTitlePage(await appShell(context), url, code, "/app/")
+  const id = linkedPreset(url)
+  const preset = id === null ? null : await sharedPreset(env, id)
+  return preset ? pageWithDetails(await appShell(context), linkedPresetDetails(url, preset)) : next()
 }
