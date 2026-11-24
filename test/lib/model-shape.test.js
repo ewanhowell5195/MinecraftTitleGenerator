@@ -66,6 +66,21 @@ describe("faceOutline", () => {
     assert.ok(outline.facing.every(({ normal }) => normal[2] > 0.99))
   })
 
+  test("a front and back with no sides between them are walled in along their pixels", () => {
+    const holed = texture((x, y) => x < 8 && !(x >= 2 && x < 4 && y >= 2 && y < 4))
+    const { faces } = placed(modelQuads(cube(["north", "south", "up"]), holed))
+    const walls = solidRuns(faces, { base: holed }).filter(({ face }) => !faces.includes(face))
+    assert.equal(walls.length, 8)
+    const { facing } = faceOutline(walls, [1, 1, 1], [1, 1, 1], [0, 0])
+    assert.deepEqual(facing.map(({ normal }) => normal.map(value => Math.round(value) + 0).join()).sort(), ["-1,0,0", "-1,0,0", "0,-1,0", "0,-1,0", "0,1,0", "0,1,0", "1,0,0", "1,0,0"])
+    for (const { corners } of walls) assert.deepEqual([Math.min(...corners.map(point => point[2])), Math.max(...corners.map(point => point[2]))], [-8, 8])
+  })
+
+  test("a cube with every face has no walls added", () => {
+    const { faces } = placed(modelQuads(cube(), texture()))
+    assert.ok(solidRuns(faces, { base: texture() }).every(({ face }) => faces.includes(face)))
+  })
+
   test("grows by its own amount along each axis", () => {
     const { faces } = placed(modelQuads(cube(["north"]), texture()))
     const outline = faceOutline(solidRuns(faces, { base: texture() }), [1, 1, 1], [1, 2, 3], [0, 0])

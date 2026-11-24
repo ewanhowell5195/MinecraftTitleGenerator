@@ -2,6 +2,7 @@ import { swatchUvs } from "./build.js"
 import { MINECRAFT_SCALE, MODEL_BASELINE, rotated } from "./shapes.js"
 
 const NEAR = 1e-3
+const WALL_SIDES = ["east", "west", "up", "down"]
 
 function corners(side, [x1, y1, z1], [x2, y2, z2]) {
   if (side === "north") return [[x2, y2, z1], [x1, y2, z1], [x1, y1, z1], [x2, y1, z1]]
@@ -17,10 +18,22 @@ function turned(texels, rotation = 0) {
   return texels.map((texel, index) => texels[(index + 4 - steps) % 4])
 }
 
+function placedCorners(side, { from, to, rotation }) {
+  return corners(side, from, to).map(point => rotated(point, rotation)).map(([x, y, z]) => [-x, y, -z])
+}
+
+function thickness(element) {
+  const { faces, from, to } = element
+  if (!faces.north || !faces.south || from[2] === to[2] || WALL_SIDES.every(side => faces[side])) return null
+  const [, front] = placedCorners("north", element)
+  const [back] = placedCorners("south", element)
+  return back.map((value, axis) => value - front[axis])
+}
+
 export function modelQuads(model, { width, height }) {
   return model.elements.flatMap(element => Object.entries(element.faces).map(([side, face]) => {
     const [u1, v1, u2, v2] = face.uv.map((value, index) => Math.round(value * (index % 2 ? height : width) / 16))
-    return { points: corners(side, element.from, element.to).map(point => rotated(point, element.rotation)).map(([x, y, z]) => [-x, y, -z]), texels: turned([[u1, v1], [u2, v1], [u2, v2], [u1, v2]], face.rotation), source: "base", tint: null }
+    return { points: placedCorners(side, element), texels: turned([[u1, v1], [u2, v1], [u2, v2], [u1, v2]], face.rotation), source: "base", tint: null, thickness: side === "north" ? thickness(element) : null }
   }))
 }
 
@@ -96,6 +109,33 @@ export function bodyOf(cells, width, height) {
   return { positions: new Float32Array(positions), uvs: new Float32Array(uvs), triangles: positions.length / 9, sizes: null }
 }
 
+function wallRuns({ face, x, y, width, height }, at, opaque) {
+  const solid = (column, row) => column >= 0 && row >= 0 && column < width && row < height && opaque(column, row)
+  const runs = []
+  function wall(from, to, inside) {
+    const [a, b, within] = [from, to, inside].map(([column, row]) => at(x + column, y + row))
+    const corners = [a, b, b.map((value, axis) => value + face.thickness[axis]), a.map((value, axis) => value + face.thickness[axis])]
+    const points = dot(normalOf(corners), within.map((value, axis) => value - a[axis])) > 0 ? corners.toReversed() : corners
+    runs.push({ face: { points }, corners: points })
+  }
+  function trace(lines, length, place, cell) {
+    for (let line = 0; line <= lines; line++) {
+      let start = 0
+      let side = 0
+      for (let along = 0; along <= length; along++) {
+        const next = along < length ? solid(...cell(line, along)) - solid(...cell(line - 1, along)) : 0
+        if (next === side) continue
+        if (side) wall(place(line, start), place(line, along), place(line + side / 2, (start + along) / 2))
+        start = along
+        side = next
+      }
+    }
+  }
+  trace(width, height, (line, along) => [line, along], (line, along) => [line, along])
+  trace(height, width, (line, along) => [along, line], (line, along) => [along, line])
+  return runs
+}
+
 export function solidRuns(faces, sources) {
   const runs = []
   const pixels = new Map()
@@ -121,6 +161,7 @@ export function solidRuns(faces, sources) {
       return [0, 1, 2].map(axis => p0[axis] + a * (p1[axis] - p0[axis]) + b * (p3[axis] - p0[axis]))
     }
     const cell = cellOf(face)
+    if (face.thickness) runs.push(...wallRuns(cell, at, (column, row) => opaque(face.source, cell.x + column, cell.y + row)))
     for (let row = 0; row < cell.height; row++) {
       let start = null
       for (let column = 0; column <= cell.width; column++) {
