@@ -15,6 +15,7 @@
     "test:server": "node --test \"test/server/*.test.js\"",
     "test:submissions": "node --test \"test/submissions/*.test.js\" \"test/generator/*.test.js\"",
     "test:app": "node --test \"test/app/*.test.js\" \"test/fontEditor/*.test.js\" \"test/site/*.test.js\"",
+    "plugin": "node blockbench/build.js",
     "mark": "node generator/mark.js",
     "convert": "node generator/convert.js",
     "template": "node generator/template.js",
