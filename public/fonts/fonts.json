@@ -458,6 +458,9 @@
   },
   {
     "id": "my-font",
-    "authors": ["hussnainakbar471-ux"]
+    "authors": ["hussnainakbar471-ux"],
+    "terminatorSpace": true,
+    "order": "😳abcdefghijklmnopqrstuvwxyz0123456789&#()[]{}/\\?!.:-😩'+=<>%^*~,;_$£€@┫┣äöü",
+    "editor": { "width": 24, "grid": 4 }
   }
 ]
