@@ -152,7 +152,7 @@ export default {
       const layout = packing(faces)
       const points = faces.flatMap(face => face.points)
       const line = { min: [Math.min(...points.map(point => point[0])), Math.min(...points.map(point => point[1])), -depth / 2], max: [Math.max(...points.map(point => point[0])), Math.max(...points.map(point => point[1])), depth / 2] }
-      shaped = { model: model.value, key, depth, runs, layout, line, body: bodyOf(layout.cells, layout.width, layout.height), bottom: rowBottom([footprint(runs)]), swatch: [0.5 / layout.width, 1 - (layout.swatchY + 0.5) / layout.height] }
+      shaped = { model: model.value, key, depth, runs, layout, line, body: bodyOf(layout, runs), bottom: rowBottom([footprint(runs)]), swatch: [0.5 / layout.width, 1 - (layout.swatchY + 0.5) / layout.height] }
       return shaped
     }
 

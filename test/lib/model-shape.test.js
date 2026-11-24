@@ -68,12 +68,27 @@ describe("faceOutline", () => {
 
   test("a front and back with no sides between them are walled in along their pixels", () => {
     const holed = texture((x, y) => x < 8 && !(x >= 2 && x < 4 && y >= 2 && y < 4))
-    const { faces } = placed(modelQuads(cube(["north", "south", "up"]), holed))
+    const { faces } = placed(modelQuads(cube(["north", "south"]), holed))
     const walls = solidRuns(faces, { base: holed }).filter(({ face }) => !faces.includes(face))
     assert.equal(walls.length, 8)
     const { facing } = faceOutline(walls, [1, 1, 1], [1, 1, 1], [0, 0])
     assert.deepEqual(facing.map(({ normal }) => normal.map(value => Math.round(value) + 0).join()).sort(), ["-1,0,0", "-1,0,0", "0,-1,0", "0,-1,0", "0,1,0", "0,1,0", "1,0,0", "1,0,0"])
     for (const { corners } of walls) assert.deepEqual([Math.min(...corners.map(point => point[2])), Math.max(...corners.map(point => point[2]))], [-8, 8])
+  })
+
+  test("walls are solid except where the model has its own face", () => {
+    const half = texture(x => x < 8)
+    const model = cube(["north", "south", "up"])
+    model.elements[0].faces.up.uv = [0, 0, 8, 16]
+    const { faces } = placed(modelQuads(model, half))
+    const runs = solidRuns(faces, { base: half })
+    const walls = runs.filter(({ face }) => !faces.includes(face))
+    const { facing } = faceOutline(walls, [1, 1, 1], [1, 1, 1], [0, 0])
+    const bare = walls.map(({ bare }, index) => [Math.round(facing[index].normal[1]) + 0, bare])
+    assert.ok(bare.some(([up, isBare]) => up === 1 && !isBare))
+    assert.ok(bare.every(([up, isBare]) => up === 1 || isBare))
+    const layout = packing(faces)
+    assert.equal(bodyOf(layout, runs).triangles, (faces.length + bare.filter(([, isBare]) => isBare).length) * 2)
   })
 
   test("a cube with every face has no walls added", () => {
@@ -164,7 +179,7 @@ describe("footprint and body", () => {
   test("the body has two triangles per face", () => {
     const { faces } = placed(modelQuads(cube(), texture()))
     const cells = faces.map((face, index) => ({ face, at: index * SIZE, x: 0, y: 0 }))
-    assert.equal(bodyOf(cells, SIZE, SIZE * 6).triangles, 12)
+    assert.equal(bodyOf({ cells, width: SIZE, height: SIZE * 6, swatchY: 0 }).triangles, 12)
   })
 
   test("faces are packed one under another with a row left for the border colour", () => {

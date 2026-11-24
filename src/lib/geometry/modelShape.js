@@ -96,43 +96,68 @@ export function cellOf(face) {
   return { face, x, y, width: Math.max(1, Math.ceil(Math.max(...us) - 0.001) - x), height: Math.max(1, Math.ceil(Math.max(...vs) - 0.001) - y) }
 }
 
-export function bodyOf(cells, width, height) {
+export function bodyOf({ cells, width, height, swatchY }, runs = []) {
   const positions = []
   const uvs = []
-  for (const { face, at, x: cellX, y: cellY } of cells) {
-    const coords = face.texels.map(([u, v]) => [(u - cellX) / width, 1 - (at + v - cellY) / height])
+  function quad(points, coords) {
     for (const index of [0, 3, 2, 0, 2, 1]) {
-      positions.push(...face.points[index])
+      positions.push(...points[index])
       uvs.push(...coords[index])
     }
+  }
+  for (const { face, at, x: cellX, y: cellY } of cells) quad(face.points, face.texels.map(([u, v]) => [(u - cellX) / width, 1 - (at + v - cellY) / height]))
+  const [left, right] = [0.25, 0.75].map(x => x / width)
+  const [top, bottom] = [0.25, 0.75].map(y => 1 - (swatchY + y) / height)
+  for (const { corners, bare } of runs) {
+    if (bare) quad(corners, [[left, top], [right, top], [right, bottom], [left, bottom]])
   }
   return { positions: new Float32Array(positions), uvs: new Float32Array(uvs), triangles: positions.length / 9, sizes: null }
 }
 
-function wallRuns({ face, x, y, width, height }, at, opaque) {
+function coveredBy(faces, opaque) {
+  const planes = faces.map(face => {
+    const [origin, across, , down] = face.points
+    return { face, origin, normal: unit(normalOf(face.points)), across: across.map((value, axis) => value - origin[axis]), down: down.map((value, axis) => value - origin[axis]) }
+  })
+  return (point, normal) => planes.some(({ face, origin, normal: own, across, down }) => {
+    const offset = point.map((value, axis) => value - origin[axis])
+    if (dot(own, normal) < 1 - NEAR || Math.abs(dot(offset, own)) > NEAR) return false
+    const a = dot(offset, across) / dot(across, across)
+    const b = dot(offset, down) / dot(down, down)
+    if (a < 0 || a > 1 || b < 0 || b > 1) return false
+    const [t0, t1, , t3] = face.texels
+    const [u, v] = [0, 1].map(axis => Math.floor(t0[axis] + a * (t1[axis] - t0[axis]) + b * (t3[axis] - t0[axis])))
+    return opaque(face.source, u, v)
+  })
+}
+
+function wallRuns({ face, x, y, width, height }, at, opaque, covered) {
   const solid = (column, row) => column >= 0 && row >= 0 && column < width && row < height && opaque(column, row)
   const runs = []
   function wall(from, to, inside) {
     const [a, b, within] = [from, to, inside].map(([column, row]) => at(x + column, y + row))
     const corners = [a, b, b.map((value, axis) => value + face.thickness[axis]), a.map((value, axis) => value + face.thickness[axis])]
-    const points = dot(normalOf(corners), within.map((value, axis) => value - a[axis])) > 0 ? corners.toReversed() : corners
-    runs.push({ face: { points }, corners: points })
+    return dot(normalOf(corners), within.map((value, axis) => value - a[axis])) > 0 ? corners.toReversed() : corners
   }
-  function trace(lines, length, place, cell) {
+  function trace(lines, length, place) {
     for (let line = 0; line <= lines; line++) {
-      let start = 0
-      let side = 0
+      const between = (start, end, side) => wall(place(line, start), place(line, end), place(line + side / 2, (start + end) / 2))
+      const open = { start: 0, side: 0, bare: false }
       for (let along = 0; along <= length; along++) {
-        const next = along < length ? solid(...cell(line, along)) - solid(...cell(line - 1, along)) : 0
-        if (next === side) continue
-        if (side) wall(place(line, start), place(line, along), place(line + side / 2, (start + along) / 2))
-        start = along
-        side = next
+        const side = along < length ? solid(...place(line, along)) - solid(...place(line - 1, along)) : 0
+        const points = side ? between(along, along + 1, side) : null
+        const bare = !!points && !covered([0, 1, 2].map(axis => (points[0][axis] + points[2][axis]) / 2), unit(normalOf(points)))
+        if (side === open.side && bare === open.bare) continue
+        if (open.side) {
+          const corners = between(open.start, along, open.side)
+          runs.push({ face: { points: corners }, corners, bare: open.bare })
+        }
+        Object.assign(open, { start: along, side, bare })
       }
     }
   }
-  trace(width, height, (line, along) => [line, along], (line, along) => [line, along])
-  trace(height, width, (line, along) => [along, line], (line, along) => [along, line])
+  trace(width, height, (line, along) => [line, along])
+  trace(height, width, (line, along) => [along, line])
   return runs
 }
 
@@ -144,6 +169,7 @@ export function solidRuns(faces, sources) {
     if (!pixels.has(key)) pixels.set(key, source.getContext("2d").getImageData(0, 0, source.width, source.height).data)
     return x >= 0 && y >= 0 && x < source.width && y < source.height && pixels.get(key)[(y * source.width + x) * 4 + 3] >= 128
   }
+  const covered = coveredBy(faces, opaque)
   for (const face of faces) {
     if (face.whole) {
       runs.push({ face, corners: face.points })
@@ -161,7 +187,7 @@ export function solidRuns(faces, sources) {
       return [0, 1, 2].map(axis => p0[axis] + a * (p1[axis] - p0[axis]) + b * (p3[axis] - p0[axis]))
     }
     const cell = cellOf(face)
-    if (face.thickness) runs.push(...wallRuns(cell, at, (column, row) => opaque(face.source, cell.x + column, cell.y + row)))
+    if (face.thickness) runs.push(...wallRuns(cell, at, (column, row) => opaque(face.source, cell.x + column, cell.y + row), covered))
     for (let row = 0; row < cell.height; row++) {
       let start = null
       for (let column = 0; column <= cell.width; column++) {
