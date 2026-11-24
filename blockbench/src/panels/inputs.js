@@ -121,7 +121,7 @@ export const ColourControl = {
     }
   },
   mounted() {
-    this.picker = new ColorPicker({ id: `mtg_colour_${++pickers}`, label: false, private: true, value: this.value })
+    this.picker = new ColorPicker({ id: `mtg_colour_${++pickers}`, name: "Color", label: false, private: true, value: this.value })
     this.picker.jq.spectrum("option", "showAlpha", false)
     this.picker.onChange = colour => {
       this.$emit("change", colour.toHexString())
