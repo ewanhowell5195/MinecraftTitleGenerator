@@ -5,7 +5,7 @@
   import { fontThumbnail } from "../../lib/font/thumbnailUrls.js"
   import { BUILDS, FONT_TABS, useFontSource } from "../../lib/panels/fontSource.js"
   import { library } from "../../lib/state/scene.js"
-  import { leastRows, usePickFloor, variantRows } from "./pickFloor.js"
+  import { leastRows, usePickFloor, variantRows } from "../../lib/panels/pickFloor.js"
   import FontBrowser from "./FontBrowser.vue"
   import GoogleFontList from "./GoogleFontList.vue"
   import Button from "../../components/Button.vue"

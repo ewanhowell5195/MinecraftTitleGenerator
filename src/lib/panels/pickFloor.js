@@ -8,13 +8,13 @@ export function leastRows(entries) {
   return Math.min(2, Math.ceil(entries.length / 3))
 }
 
-function outerHeight(child) {
+function outerHeight(child, list) {
   const style = getComputedStyle(child)
-  const own = child.classList.contains("scroll") ? parseFloat(style.minHeight) || 0 : child.getBoundingClientRect().height
+  const own = child.classList.contains(list) ? parseFloat(style.minHeight) || 0 : child.getBoundingClientRect().height
   return own + parseFloat(style.marginTop) + parseFloat(style.marginBottom)
 }
 
-export function usePickFloor(changes) {
+export function usePickFloor(changes, list = "scroll") {
   const picker = ref(null)
   const floor = ref(0)
 
@@ -22,7 +22,7 @@ export function usePickFloor(changes) {
     const box = picker.value
     if (!box) return
     const children = Array.from(box.children)
-    floor.value = children.reduce((total, child) => total + outerHeight(child), 0) + parseFloat(getComputedStyle(box).rowGap) * Math.max(0, children.length - 1)
+    floor.value = children.reduce((total, child) => total + outerHeight(child, list), 0) + parseFloat(getComputedStyle(box).rowGap) * Math.max(0, children.length - 1)
   }
 
   watch(picker, (box, _, onCleanup) => {

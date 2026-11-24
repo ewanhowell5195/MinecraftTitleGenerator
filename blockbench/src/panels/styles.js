@@ -25,6 +25,7 @@ export const STYLES = `
   .mtg-panel {
     height: 100%;
     overflow-y: auto;
+    container-type: size;
   }
 
   .mtg-group {
@@ -198,13 +199,58 @@ export const STYLES = `
 
   .mtg-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 6px;
   }
 
   .mtg-scroll {
-    max-height: 340px;
+    margin-right: -10px;
+    scrollbar-gutter: stable;
     overflow-y: auto;
+  }
+
+  .mtg-short {
+    max-height: 360px;
+  }
+
+  .mtg-pick {
+    /* 50px is a group's 30px header and its padding */
+    max-height: max(520px, calc(100cqh - 50px));
+    container-type: inline-size;
+  }
+
+  .mtg-pick.mtg-peek {
+    max-height: max(420px, calc(100cqh - 50px - 120px));
+  }
+
+  .mtg-pick > * {
+    flex: none;
+  }
+
+  .mtg-pick > .mtg-scroll,
+  .mtg-pick > .mtg-controls:has(> .mtg-scroll) {
+    flex: 0 1 auto;
+    align-content: start;
+    min-height: 0;
+  }
+
+  .mtg-pick > .mtg-scroll {
+    --thumb-ratio: 132 / 288;
+    --row: calc(((100cqw - 12px) / 3 - 18px) * var(--thumb-ratio) + 39px);
+  }
+
+  .mtg-pick > .mtg-patterns {
+    --thumb-ratio: 1 / 2;
+  }
+
+  .mtg-pick > .mtg-variants {
+    --shown: min(var(--rows), 3);
+    flex: 0 1000 auto;
+    min-height: calc(var(--shown) * var(--row) + (var(--shown) - 1) * 6px);
+  }
+
+  .mtg-pick > .mtg-kept {
+    min-height: calc(var(--least) * var(--row) + (var(--least) - 1) * 6px);
   }
 
   .mtg-thumb {

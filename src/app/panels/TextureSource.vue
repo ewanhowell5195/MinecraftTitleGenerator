@@ -6,7 +6,7 @@
   import { TILEABLE_SOURCES, label, variantBadge } from "../../lib/panels/textureSource.js"
   import { library } from "../../lib/state/scene.js"
   import { saveImage } from "../../lib/state/imageFiles.js"
-  import { leastRows, usePickFloor, variantRows } from "./pickFloor.js"
+  import { leastRows, usePickFloor, variantRows } from "../../lib/panels/pickFloor.js"
   import MinecraftDownload from "../MinecraftDownload.vue"
   import MinecraftVersionField from "../MinecraftVersionField.vue"
   import Notice from "../../components/Notice.vue"

@@ -2,6 +2,7 @@ import { titleCase } from "../../../src/lib/core/names.js"
 import { credit } from "../../../src/lib/font/credits.js"
 import { thumbnail, thumbnailHeight } from "../../../src/lib/font/thumbnailUrls.js"
 import { ALIGNS, useCustomTexture } from "../../../src/lib/panels/customTexture.js"
+import { leastRows, usePickFloor, variantRows } from "../../../src/lib/panels/pickFloor.js"
 import { TILEABLE_SOURCES, label, variantBadge } from "../../../src/lib/panels/textureSource.js"
 import { tileableUrl } from "../../../src/lib/texture/assets.js"
 import { selectedElements } from "../host.js"
@@ -29,10 +30,12 @@ export const TextureSourceBlock = {
       return credit(data, state.font.value?.id, library.fonts, parent)
     }
 
-    return { ...state, TILEABLE_SOURCES, library, titleCase, tileableUrl, label, variantBadge, change, thumb, textureCredit, unit: () => thumbnailHeight(state.font.value) }
+    const { picker, floor } = usePickFloor(() => [state.object.value.textureSource, state.usingMinecraft.value, state.textureVariants.value.length, state.tileableVariants.value.length, state.search.value], "mtg-scroll")
+
+    return { ...state, picker, floor, leastRows, variantRows, TILEABLE_SOURCES, library, titleCase, tileableUrl, label, variantBadge, change, thumb, textureCredit, unit: () => thumbnailHeight(state.font.value) }
   },
   template: `
-    <div class="mtg-controls">
+    <div ref="picker" class="mtg-controls" :class="{ 'mtg-pick': object.textureSource === 'premade' || object.textureSource === 'tileable', 'mtg-peek': object.textureSource === 'tileable' }" :style="{ minHeight: floor + 'px' }">
       <segments-control v-if="sources.length > 1" :options="sources" :value="waiting && waiting.textureSource || object.textureSource" @change="change(() => chooseSource($event))" />
       <download-progress v-if="waiting" />
 
@@ -41,12 +44,12 @@ export const TextureSourceBlock = {
         <div v-if="searchingTextures" class="mtg-grid mtg-scroll">
           <title-tile v-for="item of foundTextures" :key="item.id + '/' + (item.variant || '')" :label="item.data.name || titleCase(item.variant || item.id)" :unit="unit()" :image="thumb(item.variant || item.id)" :author="item.variant ? textureCredit(item.data, item.parent) : textureCredit(item.data)" :selected="object.texture === item.id && (object.textureVariant || null) === item.variant" @pick="change(() => pickTexture(item.id, item.variant))" />
         </div>
-        <div v-else class="mtg-grid mtg-scroll">
+        <div v-else class="mtg-grid mtg-scroll" :class="{ 'mtg-kept': textureVariants.length }" :style="{ '--least': leastRows(textures) }">
           <title-tile v-for="[id, data] of textures" :key="id" :label="label(id, data)" :unit="unit()" :image="thumb(id)" :author="textureCredit(data)" :badge="variantBadge(data)" :selected="object.texture === id" @pick="change(() => pickTexture(id, null))" />
         </div>
         <template v-if="textureVariants.length && !searchingTextures">
           <h4>Variants</h4>
-          <div class="mtg-grid mtg-scroll">
+          <div class="mtg-grid mtg-scroll mtg-variants" :style="{ '--rows': variantRows(textureVariants) }">
             <title-tile :label="list.textures[object.texture].name || titleCase(object.texture)" :unit="unit()" :image="thumb(object.texture)" :selected="!object.textureVariant" @pick="change(() => pickVariant(null))" />
             <title-tile v-for="[id, data] of textureVariants" :key="id" :label="data.name || titleCase(id)" :unit="unit()" :image="thumb(id)" :author="textureCredit(data, list.textures[object.texture])" :selected="object.textureVariant === id" @pick="change(() => pickVariant(id))" />
           </div>
@@ -72,12 +75,12 @@ export const TextureSourceBlock = {
         <div v-if="searchingTileables" class="mtg-grid mtg-scroll">
           <title-tile v-for="item of foundTileables" :key="item.id + '/' + (item.variant || '')" :label="item.data.name || titleCase(item.variant || item.id)" aspect="2 / 1" :pattern="tileableUrl(library.tileables, item.id, item.variant)" :author="item.data.authors || item.parent.authors" :selected="object.tileable === item.id && (object.tileableVariant || null) === item.variant" @pick="change(() => pickTileable(item.id, item.variant))" />
         </div>
-        <div v-else class="mtg-grid mtg-scroll">
+        <div v-else class="mtg-grid mtg-scroll mtg-patterns" :class="{ 'mtg-kept': tileableVariants.length }" :style="{ '--least': leastRows(tileables) }">
           <title-tile v-for="[id, data] of tileables" :key="id" :label="label(id, data)" aspect="2 / 1" :pattern="tileableUrl(library.tileables, id)" :author="data.authors" :badge="variantBadge(data)" :selected="object.tileable === id" @pick="change(() => pickTileable(id, null))" />
         </div>
         <template v-if="tileableVariants.length && !searchingTileables">
           <h4>Variants</h4>
-          <div class="mtg-grid mtg-scroll">
+          <div class="mtg-grid mtg-scroll mtg-variants mtg-patterns" :style="{ '--rows': variantRows(tileableVariants) }">
             <title-tile :label="library.tileables[object.tileable].name" aspect="2 / 1" :pattern="tileableUrl(library.tileables, object.tileable)" :selected="!object.tileableVariant" @pick="change(() => pickTileable(object.tileable, null))" />
             <title-tile v-for="[id, data] of tileableVariants" :key="id" :label="data.name" aspect="2 / 1" :pattern="tileableUrl(library.tileables, object.tileable, id)" :author="data.authors || library.tileables[object.tileable].authors" :selected="object.tileableVariant === id" @pick="change(() => pickTileable(object.tileable, id))" />
           </div>

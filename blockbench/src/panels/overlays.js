@@ -97,7 +97,7 @@ export const OverlaysBlock = {
         <div v-if="layerModified" class="tool" title="Reset" @click="change(resetLayer)"><i class="material-icons">replay</i></div>
       </div>
       <segments-control v-if="!edge && kinds.length > 1" :options="kinds" :value="kind" @change="change(() => pickKind($event))" />
-      <div v-if="kind !== 'file'" class="mtg-grid mtg-scroll">
+      <div v-if="kind !== 'file'" class="mtg-grid mtg-scroll mtg-short">
         <title-tile v-for="[id, data] of shown" :key="id" :label="data.name || titleCase(id)" :unit="unit()" :image="thumb(id)" :author="overlayCredit(data)" :selected="!!layer && layer.overlay === id" @pick="change(() => pickOverlay(id))" />
       </div>
       <template v-else>

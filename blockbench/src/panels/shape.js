@@ -34,7 +34,7 @@ export const ShapeGroup = {
   template: `
     <section class="mtg-group">
       <div class="mtg-head"><h3>Shape</h3></div>
-      <div class="mtg-controls">
+      <div class="mtg-controls" :class="{ 'mtg-pick mtg-peek': source !== 'custom' }">
         <segments-control :options="SHAPE_SOURCES" :value="source" @change="change(() => (source = $event))" />
         <div v-if="source === 'premade'" class="mtg-grid mtg-scroll">
           <title-tile v-for="shape of library.shapes" :key="shape.id" :label="shape.name" :image="shape.folder + '/thumbnails/flat.png'" aspect="4 / 3" :author="shape.authors" :selected="object.shape === shape.id" @pick="change(() => (object.shape = shape.id))" />

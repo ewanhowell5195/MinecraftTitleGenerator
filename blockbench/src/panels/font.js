@@ -6,6 +6,7 @@ import { googleFontList, googlePreview, googlePreviewFamily, styleLabel, stylePa
 import { fontThumbnail } from "../../../src/lib/font/thumbnailUrls.js"
 import { BUILDS, FONT_TABS, useFontSource } from "../../../src/lib/panels/fontSource.js"
 import { openedFirst } from "../../../src/lib/panels/opened.js"
+import { leastRows, usePickFloor, variantRows } from "../../../src/lib/panels/pickFloor.js"
 import { byUsage } from "../../../src/lib/title/popularity.js"
 import { googleStatId } from "../../../src/lib/title/statIds.js"
 import { selectedElements } from "../host.js"
@@ -113,7 +114,9 @@ export const FontGroup = {
       edit(selectedElements(), "Change title font", action)
     }
 
-    return { ...state, BUILDS, FONT_TABS, change, credit: data => fontCredit(data, library.fonts), fontThumbnail, named: data => fullName(data, library.fonts), base: id => library.fonts.find(item => item.id === id) ?? { id } }
+    const { picker, floor } = usePickFloor(() => [state.tab.value, state.variants.value.length, state.search.value], "mtg-scroll")
+
+    return { ...state, picker, floor, leastRows, variantRows, BUILDS, FONT_TABS, change, credit: data => fontCredit(data, library.fonts), fontThumbnail, named: data => fullName(data, library.fonts), base: id => library.fonts.find(item => item.id === id) ?? { id } }
   },
   template: `
     <section class="mtg-group">
@@ -121,7 +124,7 @@ export const FontGroup = {
         <h3>Font</h3>
         <div v-if="modified" class="tool" title="Reset" @click="change(reset)"><i class="material-icons">replay</i></div>
       </div>
-      <div class="mtg-controls">
+      <div ref="picker" class="mtg-controls" :class="{ 'mtg-pick mtg-peek': tab !== 'custom' }" :style="tab === 'published' ? { minHeight: floor + 'px' } : null">
         <segments-control :options="FONT_TABS" :value="tab" @change="change(() => chooseTab($event))" />
 
         <template v-if="tab === 'custom'">
@@ -156,12 +159,12 @@ export const FontGroup = {
           <div v-if="searching" class="mtg-grid mtg-scroll">
             <title-tile v-for="data of foundFonts" :key="data.id" :label="named(data)" :image="fontThumbnail(data)" :author="credit(data)" :selected="object.font === data.id" @pick="change(() => (object.font = data.id))" />
           </div>
-          <div v-else class="mtg-grid mtg-scroll">
+          <div v-else class="mtg-grid mtg-scroll" :class="{ 'mtg-kept': variants.length }" :style="{ '--least': leastRows(baseFonts) }">
             <title-tile v-for="data of baseFonts" :key="data.id" :label="data.name" :image="fontThumbnail(data)" :author="credit(data)" :badge="variantBadges[data.id]" :selected="baseId === data.id" @pick="change(() => (object.font = data.id))" />
           </div>
           <template v-if="variants.length && !searching">
             <h4>Variants</h4>
-            <div class="mtg-grid mtg-scroll">
+            <div class="mtg-grid mtg-scroll mtg-variants" :style="{ '--rows': variantRows(variants) }">
               <title-tile label="Default" :image="fontThumbnail(base(baseId))" :selected="object.font === baseId" @pick="change(() => (object.font = baseId))" />
               <title-tile v-for="data of variants" :key="data.id" :label="data.name" :image="fontThumbnail(data)" :author="credit(data)" :selected="object.font === data.id" @pick="change(() => (object.font = data.id))" />
             </div>
