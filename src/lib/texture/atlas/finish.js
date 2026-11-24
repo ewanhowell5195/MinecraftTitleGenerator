@@ -136,8 +136,12 @@ export function mapFaces(plan, page, options, faded) {
     }
   }
   const edges = plan.faces.filter(face => chosen.has(face.glyph) && (face.kind === "side" ? !options.sideFaces : face.kind === "front" ? faded : face.internal && !options.internalFaces))
+  for (const face of plan.faces) {
+    if (chosen.has(face.glyph)) face.bordered = false
+  }
   for (const face of edges) {
     face.page = page
+    face.bordered = face.kind !== "front"
     face.uvs = [[swatch.x, swatch.y], [swatch.x, swatch.y + SWATCH * swatch.scale], [swatch.x + SWATCH * swatch.scale, swatch.y + SWATCH * swatch.scale], [swatch.x + SWATCH * swatch.scale, swatch.y]]
   }
   return edges.length > 0

@@ -37,6 +37,7 @@ export function showLayer(entries, { ids, below }) {
       continue
     }
     hide(entry.solid, undo)
+    hide(entry.letters, undo)
     if (ids) hide(entry.holes, undo)
   }
   return () => undo.forEach(step => step())

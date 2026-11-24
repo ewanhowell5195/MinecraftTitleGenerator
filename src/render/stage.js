@@ -16,6 +16,34 @@ function mesh(buffers, material) {
   return new THREE.Mesh(geometry, material)
 }
 
+function letterFaces({ positions, uvs, plainUvs, sizes, groups, bordered }) {
+  const kept = { positions: [], uvs: [], plainUvs: plainUvs && [], sizes: sizes && [], groups: [] }
+  let start = 0
+  for (const [face, hidden] of bordered.entries()) {
+    const count = sizes?.[face] ?? 6
+    if (!hidden) {
+      const { page } = groups.find(group => start >= group.start && start < group.start + group.count)
+      if (kept.groups.at(-1)?.page !== page) kept.groups.push({ start: kept.positions.length / 3, count: 0, page })
+      kept.groups.at(-1).count += count
+      kept.positions.push(...positions.subarray(start * 3, (start + count) * 3))
+      kept.uvs.push(...uvs.subarray(start * 2, (start + count) * 2))
+      kept.plainUvs?.push(...plainUvs.subarray(start * 2, (start + count) * 2))
+      kept.sizes?.push(count)
+    }
+    start += count
+  }
+  return { ...kept, positions: new Float32Array(kept.positions), uvs: new Float32Array(kept.uvs), plainUvs: kept.plainUvs && new Float32Array(kept.plainUvs) }
+}
+
+function showLetters(entry, shown) {
+  if (shown && !entry.letters && entry.solid && entry.built?.body.bordered) {
+    entry.letters = mesh(letterFaces(entry.built.body), entry.solid.material)
+    entry.group.add(entry.letters)
+    entry.letters.updateWorldMatrix(true, false)
+  }
+  if (entry.letters) entry.letters.visible = shown
+}
+
 function discard(entry, part) {
   if (!entry[part]) return
   entry[part].geometry.dispose()
@@ -27,6 +55,7 @@ function clear(entry) {
   discard(entry, "halo")
   discard(entry, "outline")
   discard(entry, "solid")
+  discard(entry, "letters")
   discard(entry, "holes")
   for (const texture of (entry.textures ?? []).concat(entry.lights ?? [])) texture.dispose()
   for (const material of entry.materials ?? []) material.dispose()
@@ -177,6 +206,7 @@ export function createEntry() {
     outline: null,
     halo: null,
     solid: null,
+    letters: null,
     holes: null,
     body: new THREE.MeshBasicMaterial({ alphaTest: 0.5 }),
     border: new THREE.MeshBasicMaterial({ side: THREE.BackSide, depthWrite: false }),
@@ -268,7 +298,7 @@ export function createStage() {
 }
 
 export function pickEntry(entries, raycaster) {
-  const hits = Array.from(entries).filter(([, entry]) => entry.group.visible).flatMap(([id, entry]) => [entry.outline, entry.solid].filter(Boolean).flatMap(mesh => raycaster.intersectObject(mesh, false).slice(0, 1).map(hit => ({ id, solid: mesh === entry.solid, order: mesh.renderOrder, distance: hit.distance }))))
+  const hits = Array.from(entries).filter(([, entry]) => entry.group.visible).flatMap(([id, entry]) => [entry.outline, entry.solid, entry.letters].filter(mesh => mesh && mesh.visible !== false).flatMap(mesh => raycaster.intersectObject(mesh, false).slice(0, 1).map(hit => ({ id, solid: mesh !== entry.outline, order: mesh.renderOrder, distance: hit.distance }))))
   let top = null
   let nearest = Infinity
   for (const hit of hits.sort((a, b) => a.order - b.order)) {
@@ -279,10 +309,19 @@ export function pickEntry(entries, raycaster) {
   return top
 }
 
+function boundsOf({ group, holes, letters }) {
+  const bounds = new THREE.Box3()
+  group.updateWorldMatrix(false, false)
+  for (const child of group.children) {
+    if (child !== holes && child !== letters) bounds.expandByObject(child)
+  }
+  return bounds
+}
+
 export function sortEntries(entries, camera) {
   const centre = new THREE.Vector3()
   const sorted = entries.map(entry => {
-    new THREE.Box3().setFromObject(entry.group).getCenter(centre)
+    boundsOf(entry).getCenter(centre)
     return { entry, distance: centre.distanceToSquared(camera.position) }
   }).sort((a, b) => b.distance - a.distance)
   const lines = Array.from(Map.groupBy(sorted, item => item.entry.line).values()).map(words => ({ words, distance: words.reduce((sum, word) => sum + word.distance, 0) / words.length })).sort((a, b) => b.distance - a.distance)
@@ -300,9 +339,12 @@ export function sortEntries(entries, camera) {
   for (const { words } of lines) {
     for (const { entry } of words) {
       if (entry.outline) entry.outline.renderOrder = order++
-    }
-    for (const { entry } of words) {
       if (entry.solid) entry.solid.renderOrder = order++
+    }
+    // an outline reaches over the edges of the letters beside it, so those letters are painted again on top
+    for (const { entry } of words) {
+      showLetters(entry, entry !== words.at(-1).entry)
+      if (entry.letters) entry.letters.renderOrder = order++
     }
   }
 }

@@ -255,6 +255,7 @@ function toBuffers(faces, mapped, pages) {
   const groups = []
   const glyphs = []
   const solids = []
+  const bordered = []
   for (const at of order) {
     const face = faces[at]
     const { page, uvs: coords } = mapped[at]
@@ -264,6 +265,7 @@ function toBuffers(faces, mapped, pages) {
     sizes.push(face.points.length === 3 ? 3 : 6)
     glyphs.push(face.glyph)
     solids.push(face.solid)
+    bordered.push(mapped[at].bordered ? 1 : 0)
     for (const corner of face.points.length === 3 ? [0, 1, 2] : [0, 1, 2, 0, 2, 3]) {
       const point = face.points[corner]
       const coord = coords[corner]
@@ -272,7 +274,7 @@ function toBuffers(faces, mapped, pages) {
     }
     groups.at(-1).count += positions.length / 3 - start
   }
-  return { positions: new Float32Array(positions), uvs: new Float32Array(uvs), triangles: positions.length / 9, sizes: sizes.includes(3) ? Uint8Array.from(sizes) : null, groups, glyphs: Uint16Array.from(glyphs), solids }
+  return { positions: new Float32Array(positions), uvs: new Float32Array(uvs), triangles: positions.length / 9, sizes: sizes.includes(3) ? Uint8Array.from(sizes) : null, groups, glyphs: Uint16Array.from(glyphs), solids, bordered: Uint8Array.from(bordered) }
 }
 
 export function rowBottom(boxLists) {

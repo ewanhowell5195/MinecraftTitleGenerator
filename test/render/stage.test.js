@@ -291,11 +291,56 @@ describe("sortEntries", () => {
 
   const camera = new THREE.PerspectiveCamera()
 
-  test("paints far words first, outlines before solids", () => {
+  test("paints far words first, each outline under its own letters", () => {
     const near = entryAt(2, "a")
     const far = entryAt(10, "a")
     sortEntries([near, far], camera)
-    assert.deepEqual([far.outline.renderOrder, near.outline.renderOrder, far.solid.renderOrder, near.solid.renderOrder], [0, 1, 2, 3])
+    assert.deepEqual([far.outline.renderOrder, far.solid.renderOrder, near.outline.renderOrder, near.solid.renderOrder], [0, 1, 2, 3])
+  })
+
+  function lettered(z, line) {
+    const entry = entryAt(z, line)
+    entry.solid = entry.group.children[0]
+    const face = [0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0]
+    entry.built = { body: { positions: new Float32Array(face.concat(face.map(value => value + 5))), uvs: new Float32Array(24), sizes: null, groups: [{ start: 0, count: 12, page: 0 }], bordered: Uint8Array.from([1, 0]) } }
+    return entry
+  }
+
+  test("paints the letters of every word but the nearest again, over the line's outlines", () => {
+    const near = lettered(2, "a")
+    const far = lettered(10, "a")
+    sortEntries([near, far], camera)
+    assert.equal(near.letters, undefined)
+    assert.equal(far.letters.visible, true)
+    assert.equal(far.letters.renderOrder, 4)
+    const behind = new THREE.PerspectiveCamera()
+    behind.position.z = 20
+    sortEntries([near, far], behind)
+    assert.deepEqual([near.letters.visible, far.letters.visible], [true, false])
+  })
+
+  test("leaves outline coloured sides out of the letters painted again", () => {
+    const far = lettered(10, "a")
+    sortEntries([lettered(2, "a"), far], camera)
+    const { position } = far.letters.geometry.attributes
+    assert.deepEqual([position.count, position.getX(0)], [6, 5])
+    assert.deepEqual(far.letters.geometry.groups, [{ start: 0, count: 6, materialIndex: 0 }])
+  })
+
+  test("a line of one word is never painted twice", () => {
+    const entry = lettered(2, "a")
+    sortEntries([entry], camera)
+    assert.equal(entry.letters, undefined)
+  })
+
+  test("a line's holes don't bring the word that holds them closer", () => {
+    const near = entryAt(2, "a")
+    const far = entryAt(10, "a")
+    far.holes = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1))
+    far.holes.position.z = -14
+    far.group.add(far.holes)
+    sortEntries([near, far], camera)
+    assert.deepEqual([far.outline.renderOrder, near.outline.renderOrder], [0, 2])
   })
 
   test("keeps a line together, ordered by its average distance", () => {
@@ -303,7 +348,7 @@ describe("sortEntries", () => {
     const far = entryAt(10, "split")
     const between = entryAt(5, "single")
     sortEntries([between, nearest, far], camera)
-    assert.deepEqual([far.outline.renderOrder, nearest.outline.renderOrder, far.solid.renderOrder, nearest.solid.renderOrder, between.outline.renderOrder, between.solid.renderOrder], [0, 1, 2, 3, 4, 5])
+    assert.deepEqual([far.outline.renderOrder, far.solid.renderOrder, nearest.outline.renderOrder, nearest.solid.renderOrder, between.outline.renderOrder, between.solid.renderOrder], [0, 1, 2, 3, 4, 5])
   })
 
   test("the closer line goes last whatever the input order", () => {

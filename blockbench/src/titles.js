@@ -162,9 +162,9 @@ export function runtimeOf(element) {
 }
 
 function squeezeOrders(entries) {
-  const reach = entries.length * 2
+  const reach = entries.length * 3
   for (const entry of entries) {
-    for (const part of ["halo", "holes", "outline", "solid"]) {
+    for (const part of ["halo", "holes", "outline", "solid", "letters"]) {
       if (entry[part]) entry[part].renderOrder = (entry[part].renderOrder + reach + 1) / (reach * 2 + 2) - 1
     }
   }

@@ -111,6 +111,15 @@ describe("showLayer", () => {
     for (const entry of entries.values()) assert.deepEqual(look(entry), [false, false, true, true, true])
   })
 
+  test("letters painted again go with their solid", () => {
+    const { below, shown, above, entries } = titleOf()
+    for (const entry of entries.values()) entry.letters = { visible: true }
+    const restore = showLayer(entries, { ids: [2], below: [1] })
+    assert.deepEqual([below, shown, above].map(entry => entry.letters.visible), [true, true, false])
+    restore()
+    assert.equal(above.letters.visible, true)
+  })
+
   test("puts everything back", () => {
     const { entries } = titleOf()
     showLayer(entries, { ids: [2], below: [1] })()
