@@ -216,6 +216,14 @@ describe("words of one line", () => {
     assert.deepEqual(placed.map(value => value.offset[1]), [3, 3, 3])
   })
 
+  test("a twist's reach makes room at the line's scale", () => {
+    const word = createObject({ row: 0 })
+    heights[word.id] = { arc: { top: 5, bottom: 5 }, twist: { top: 4, bottom: 4 }, scaleY: 0.5 }
+    setScene(word)
+    const { offset } = placementOf(word, editorTitle, { height: 44, capHeight: 40, depth: 20, reference: 20, scale: [1, 0.5, 1], wordScale: [1, 1, 1], outlineGrow: [1, 1, 1] })
+    assert.equal(offset[1], 3)
+  })
+
   test("drop below the title by the same amount", () => {
     const first = createObject({ row: -1, group: 1 })
     const second = createObject({ row: -1, group: 1 })

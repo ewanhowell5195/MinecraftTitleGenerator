@@ -153,10 +153,6 @@ function fanCells(spans) {
   return sorted.map((span, index) => ({ from: index ? (sorted[index - 1].maxX + span.minX) / 2 : -Infinity, to: index < sorted.length - 1 ? (span.maxX + sorted[index + 1].minX) / 2 : Infinity, centre: (span.minX + span.maxX) / 2 }))
 }
 
-function scaledSpan(span, anchor, scale) {
-  return { minX: anchor + (span.minX - anchor) * scale, maxX: anchor + (span.maxX - anchor) * scale }
-}
-
 function spine(cells, pivot, x, angleAt) {
   const low = Math.min(pivot, x)
   const high = Math.max(pivot, x)
@@ -211,12 +207,13 @@ function twistParts({ twist: { ribbon, door, fan }, first, last, cells }, x, { h
   return { ribbon: ribbon.amount * twistReach(ribbon, x, first, last) * Math.PI / 180, door: angle, fan: fanAngle, ...rolled(door, x, angle, first, last, cells, back + (front - back) * (door.depth ?? 0.5)), ...fanRolled(fan, x, fanAngle, first, last, cells, ((fan.height ?? 0.5) - 0.5) * height) }
 }
 
-function twistTurn(twists, rect, line, anchor, scale, depths) {
+function twistTurn(twists, rect, line, place, scale, depths) {
   const own = (rect.minX + rect.maxX) / 2
-  const x = anchor + (own - anchor) * scale[0]
+  const x = place(own)
   const parts = twists.map(twist => twistParts(twist, x, { height: (line.maxY - line.minY) * scale[1], back: depths[0] * scale[2], front: depths[1] * scale[2] }))
   const sum = key => parts.map(part => part[key]).reduce((total, value) => total + value)
   return {
+    scale,
     ribbon: sum("ribbon"),
     door: sum("door"),
     fan: sum("fan"),
@@ -224,8 +221,8 @@ function twistTurn(twists, rect, line, anchor, scale, depths) {
     y: (line.minY + line.maxY) / 2,
     moveX: sum("moveX") / scale[0],
     moveZ: sum("moveZ") / scale[2],
-    fanX: sum("fanX") / scale[0],
-    fanY: sum("fanY") / scale[1]
+    fanX: sum("fanX"),
+    fanY: sum("fanY")
   }
 }
 
@@ -239,13 +236,14 @@ function fanned(across, up, { fan, fanX, fanY }) {
 }
 
 function turned([x, y, z], turn, [sx, sy, sz] = [1, 1, 1]) {
-  const { ribbon, door, x: pivotX, y: pivotY, moveX, moveZ } = turn
-  const [across, up] = fanned(x / sx - pivotX, y / sy - pivotY, turn)
-  const depth = z / sz * Math.cos(door) - across * Math.sin(door)
+  const { ribbon, door, x: pivotX, y: pivotY, moveX, moveZ, scale: [wide, tall, deep] } = turn
+  const [across, up] = fanned((x / sx - pivotX) * wide, (y / sy - pivotY) * tall, turn)
+  const along = z / sz * deep
+  const depth = along * Math.cos(door) - across * Math.sin(door)
   return [
-    (pivotX + moveX + across * Math.cos(door) + z / sz * Math.sin(door)) * sx,
-    (pivotY + up * Math.cos(ribbon) - depth * Math.sin(ribbon)) * sy,
-    (moveZ + up * Math.sin(ribbon) + depth * Math.cos(ribbon)) * sz
+    (pivotX + moveX + (across * Math.cos(door) + along * Math.sin(door)) / wide) * sx,
+    (pivotY + (up * Math.cos(ribbon) - depth * Math.sin(ribbon)) / tall) * sy,
+    (moveZ + (up * Math.sin(ribbon) + depth * Math.cos(ribbon)) / deep) * sz
   ]
 }
 
@@ -392,14 +390,17 @@ export function buildText(font, options) {
   const first = options.ends ? options.ends.first + offset : Math.min(...middles)
   const last = options.ends ? options.ends.last + offset : Math.max(...middles)
   const anchor = plain ? (plain.min[0] + plain.max[0]) / 2 : 0
-  const ownSpans = glyphs.map(({ rect }) => scaledSpan(rect, anchor, scale[0]))
+  const lineScale = options.lineScale ?? [1, 1, 1]
+  const stretchX = lineScale[0]
+  const place = x => (anchor + (x - anchor) * scale[0]) * stretchX
+  const ownSpans = glyphs.map(({ rect }) => ({ minX: place(rect.minX), maxX: place(rect.maxX) }))
   const lineSpans = options.spans ? options.spans.map(span => {
-    const shifted = { minX: span.minX + offset, maxX: span.maxX + offset }
-    return span.own ? scaledSpan(shifted, anchor, scale[0]) : shifted
+    const [minX, maxX] = [span.minX + offset, span.maxX + offset]
+    return span.own ? { minX: place(minX), maxX: place(maxX) } : { minX: minX * stretchX, maxX: maxX * stretchX }
   }) : ownSpans
-  const twists = [options.twist && { twist: options.twist, first, last, cells: fanCells(lineSpans) }, twisting(options.wordTwist) && { twist: options.wordTwist, first: anchor + (Math.min(...middles) - anchor) * scale[0], last: anchor + (Math.max(...middles) - anchor) * scale[0], cells: fanCells(ownSpans) }].filter(Boolean)
+  const twists = [options.twist && { twist: options.twist, first: first * stretchX, last: last * stretchX, cells: fanCells(lineSpans) }, twisting(options.wordTwist) && { twist: options.wordTwist, first: place(Math.min(...middles)), last: place(Math.max(...middles)), cells: fanCells(ownSpans) }].filter(Boolean)
   const twist = twists.length ? glyphs.map(glyph => {
-    const turn = twistTurn(twists, glyph.rect, line, anchor, scale, [depth / 2 - (options.lineDepth ?? depth), depth / 2])
+    const turn = twistTurn(twists, glyph.rect, line, place, scale.map((axis, index) => axis * lineScale[index]), [depth / 2 - (options.lineDepth ?? depth), depth / 2])
     for (const face of glyph.body) face.points = face.points.map(point => turned(point, turn))
     return { turn, rings: font.mesh ? glyphRings(glyph) : null, sources: font.autoBorder ? frameRects(glyph.boxes) : flatRects(glyph.boxes), slabs: font.autoBorder || !font.layers ? null : font.layers.map((_, layer) => flatRects(glyph.slabs?.[layer] ?? glyph.boxes)) }
   }) : null

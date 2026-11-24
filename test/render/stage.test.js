@@ -8,7 +8,7 @@ quietStorage()
 globalThis.devicePixelRatio = 1
 
 const { pickEntry, sortEntries } = await import("../../src/render/stage.js")
-const { gizmoPose, lineBounds, movedBy, placementMatrix, rotatedTo, wordMovedBy, wordPose, wordRotatedTo } = await import("../../src/render/placement.js")
+const { gizmoPose, lineBounds, movedBy, objectMatrix, placementMatrix, rotatedTo, wordMovedBy, wordPose, wordRotatedTo } = await import("../../src/render/placement.js")
 const { titleFraming } = await import("../../src/render/titleFraming.js")
 
 function tilted(overrides) {
@@ -216,6 +216,21 @@ describe("wordPose", () => {
     const value = tilted({ word: { scale: [1.5, 0.5, 2], rotate: [15, 25, -40], translate: [3, -2, 6] } })
     const { corners } = titleFraming([{ type: "top", built: wordBuilt, transform: value }])
     closeList(wordPose(value, wordBuilt, true).position, middle(corners).toArray(), 1e-4)
+  })
+})
+
+describe("a turned word on an unevenly scaled line", () => {
+  const built = builtOf([-10, 0, 0], [10, 20, 10], [-30, 0, 0], [30, 20, 10])
+
+  test("stays square and turns the way the gizmo shows", () => {
+    const value = tilted({ word: { scale: [1.5, 0.5, 2], rotate: [15, 25, -40], translate: [3, -2, 6] } })
+    const matrix = objectMatrix(value, built)
+    const columns = [0, 1, 2].map(axis => new THREE.Vector3().setFromMatrixColumn(matrix, axis))
+    for (const [axis, column] of columns.entries()) {
+      const length = value.type[axis] * value.scale[axis] * value.word.scale[axis]
+      const direction = new THREE.Vector3().setComponent(axis, 1).applyQuaternion(wordPose(value, built, true).quaternion)
+      closeList(column, direction.multiplyScalar(length).toArray(), 1e-6)
+    }
   })
 })
 

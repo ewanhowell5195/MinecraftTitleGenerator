@@ -13,6 +13,7 @@ import { hasMarks } from "../lib/font/stretchMarks.js"
 import { loadFont } from "../lib/font/font.js"
 import { sheetFolder } from "../lib/font/catalog.js"
 import { thumbnailItems } from "../lib/geometry/layout.js"
+import { TYPE_SCALES } from "../lib/geometry/placement.js"
 import { setHeights, usePlacement, usePublished } from "./objectState.js"
 import { faceOptions, lookOf } from "./objectLook.js"
 import { loadAssets, paintedLayer } from "./objectAssets.js"
@@ -26,6 +27,7 @@ import { MAX_DETAIL } from "../lib/texture/atlas/scales.js"
 import { cameraCover, coverProjection } from "./coverProjection.js"
 import { hueMatrix } from "./coverMaterial.js"
 import { platform } from "../lib/core/platform.js"
+import { sameValue } from "../lib/core/values.js"
 import { quietly } from "../lib/state/history.js"
 import { userBusy } from "../lib/state/activity.js"
 import { DEFAULT_CAP_HEIGHT, DEFAULT_HEIGHT, NO_ARC } from "../lib/geometry/rows.js"
@@ -37,7 +39,7 @@ import { effectiveScale, isCustomFont, wordKey } from "../lib/settings/settings.
 const REST = 0.5
 const SHARPEN_DELAY = 250
 
-const LAYOUT = new Set(["spacing", "kerning", "arcMode", "arcTop", "arcBottom", "arcMove", "arcCentre", "arcMarked", "stretch", "terminators", "twist", "wordTwist"])
+const LAYOUT = new Set(["spacing", "kerning", "arcMode", "arcTop", "arcBottom", "arcMove", "arcCentre", "arcMarked", "stretch", "terminators", "twist", "wordTwist", "lineScale"])
 
 function twistOf(object, k) {
   if (!object[k("twistRibbon")] && !object[k("twistDoor")] && !object[k("twistFan")]) return null
@@ -107,6 +109,9 @@ export default {
     })
     const wordScale = computed(() => [object.wordScaleX, object.wordScaleMarked && marked.value ? 1 : object.wordScaleY, object.wordScaleZ])
 
+    const twists = computed(() => ({ twist: twistOf(object, key => key), wordTwist: twistOf(object, wordKey) }))
+    const lineScale = computed(() => twists.value.twist || twists.value.wordTwist ? TYPE_SCALES[object.type].map((axis, index) => axis * meshScale.value[index]) : null)
+
     const members = computed(() => words(object, props.title))
 
     function wordShape(other) {
@@ -133,8 +138,8 @@ export default {
       arcMove: object.arcMove / 100,
       arcCentre: object.arcCentre / 100,
       arcMarked: object.arcMarked,
-      twist: twistOf(object, key => key),
-      wordTwist: twistOf(object, wordKey),
+      ...twists.value,
+      lineScale: lineScale.value,
       wordScale: wordScale.value,
       stretch: stretching.value ? effectiveScale(object)[1] : 1,
       terminators: object.terminators,
@@ -374,13 +379,13 @@ export default {
       sharpening = setTimeout(attempt, delay)
     }
 
-    function measure(arc) {
-      const known = heights[object.id]?.arc
-      if (known?.top !== arc.top || known?.bottom !== arc.bottom) setHeights(object, props.title, { arc })
+    function measure(arc, twist) {
+      const known = heights[object.id]
+      if (!sameValue(known?.arc, arc) || !sameValue(known?.twist, twist)) setHeights(object, props.title, { arc, twist })
     }
 
-    function twistedReach(text, reach) {
-      if (!text?.twist) return reach
+    function twistReach(text) {
+      if (!text?.twist) return NO_ARC
       const positions = text.body.positions
       let low = Infinity
       let high = -Infinity
@@ -388,7 +393,7 @@ export default {
         low = Math.min(low, positions[at])
         high = Math.max(high, positions[at])
       }
-      return { top: reach.top + Math.max(0, high - text.line.max[1]), bottom: reach.bottom + Math.max(0, text.line.min[1] - low) }
+      return { top: Math.max(0, high - text.line.max[1]) * wordScale.value[1], bottom: Math.max(0, text.line.min[1] - low) * wordScale.value[1] }
     }
 
     function previewFor(source, options, placed, sheet) {
@@ -408,6 +413,7 @@ export default {
       if (builtFrom?.painted === painted.value && builtFrom.source === source && builtFrom.inputsKey === inputsKey && builtFrom.final === finalShadowed.value && builtFrom.cover === coverKey.value) return
       builtFrom = { painted: painted.value, source, inputsKey, final: finalShadowed.value, cover: coverKey.value }
       let reach = null
+      let twist = NO_ARC
       try {
         const { laid } = lineFor(source, list, word, options)
         reach = laid?.reach ?? NO_ARC
@@ -431,7 +437,7 @@ export default {
           built.value = cover ? { ...buildText(source, { ...settings, paint: coverPainter(source, false, cover, bakedBases(first, cover)) }), cover, first } : cameraCover(object) ? buildText(source, { ...settings, paint: painter(source) }) : first
         }
         builtFrom.cover = cover?.key ?? null
-        reach = twistedReach(built.value, laid.reach)
+        twist = twistReach(built.value)
         const thumbnailLaid = view.previews === false ? null : thumbnailLine(source, list, word, options, laid)
         const thumbnail = thumbnailLaid ? thumbnailItems(source, thumbnailLaid.placed) : []
         preview.value = thumbnail.length ? previewFor(source, options, thumbnail, thumbnailLaid.sheet) : null
@@ -445,7 +451,7 @@ export default {
         buildError.value = err.message
         sharpen(null)
       } finally {
-        if (reach) measure(reach)
+        if (reach) measure({ top: reach.top + twist.top, bottom: reach.bottom + twist.bottom }, twist)
       }
     }
 

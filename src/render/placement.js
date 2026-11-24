@@ -47,7 +47,8 @@ function wordMatrix(value, built) {
   const word = value.word
   if (!word || !built?.body.triangles || word.scale.every(axis => axis === 1) && word.rotate.every(angle => !angle) && word.translate.every(axis => !axis)) return new THREE.Matrix4()
   const { scale, centre } = wordParts(value, built)
-  const rotation = new THREE.Matrix4().makeRotationFromEuler(euler(word.rotate))
+  const lineScale = value.type.map((axis, index) => axis * value.scale[index])
+  const rotation = new THREE.Matrix4().makeScale(...lineScale.map(axis => 1 / axis)).multiply(new THREE.Matrix4().makeRotationFromEuler(euler(word.rotate))).multiply(new THREE.Matrix4().makeScale(...lineScale))
   return around(new THREE.Matrix4().makeTranslation(...word.translate), centre, rotation).multiply(scale)
 }
 

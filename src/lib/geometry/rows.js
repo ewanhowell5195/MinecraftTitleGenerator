@@ -14,9 +14,17 @@ export const heights = editorTitle.heights
 
 export const NO_ARC = { top: 0, bottom: 0 }
 
+function tallest(object, title, measure) {
+  const reaches = [object].concat(words(object, title)).map(word => measure(title.heights[word.id] ?? {}))
+  return { top: Math.max(...reaches.map(reach => reach.top)), bottom: Math.max(...reaches.map(reach => reach.bottom)) }
+}
+
 export function lineArc(object, title) {
-  const arcs = [object].concat(words(object, title)).map(word => title.heights[word.id]?.arc ?? NO_ARC)
-  return { top: Math.max(...arcs.map(arc => arc.top)), bottom: Math.max(...arcs.map(arc => arc.bottom)) }
+  return tallest(object, title, ({ arc = NO_ARC }) => arc)
+}
+
+export function lineRoom(object, title) {
+  return tallest(object, title, ({ arc = NO_ARC, twist = NO_ARC, scaleY = 1 }) => ({ top: arc.top + twist.top * (scaleY - 1), bottom: arc.bottom + twist.bottom * (scaleY - 1) }))
 }
 
 function extent(object, title) {

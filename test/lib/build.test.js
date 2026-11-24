@@ -336,6 +336,52 @@ describe("buildText", () => {
       for (const height of [0, 1]) hinged(flat, twisted({ fan: { amount: 30, centre: 0.5, roll: true, height } }, { wordScale: scale }), height * 8, scale)
     })
 
+    describe("under an uneven scale", () => {
+      const EVERY = { ribbon: { amount: 45, centre: 0 }, door: { amount: 30, centre: 1, same: true, roll: true }, fan: { amount: 40, centre: 0.5, roll: true } }
+      const LINE_SCALE = [0.78, 1.68, 0.77]
+      const WORD_SCALE = [1.5, 0.8, 2]
+      const TOTAL = LINE_SCALE.map((axis, index) => axis * WORD_SCALE[index])
+
+      function square(positions, scale) {
+        const list = triangles(positions)
+        assert.ok(list.length)
+        for (const triangle of list) {
+          const [a, b, c] = triangle.map(point => point.map((value, axis) => value * scale[axis]))
+          const turns = [[a, b, c], [b, c, a], [c, a, b]].map(([corner, left, right]) => {
+            const [one, two] = [left, right].map(point => point.map((value, axis) => value - corner[axis]))
+            return Math.abs(one.reduce((sum, value, axis) => sum + value * two[axis], 0)) / (Math.hypot(...one) * Math.hypot(...two))
+          })
+          assert.ok(Math.min(...turns) < 1e-5, `no right angle: ${turns}`)
+        }
+      }
+
+      for (const [name, twist] of Object.entries(EVERY)) {
+        test(`a ${name} keeps every box square`, () => {
+          square(twisted({ [name]: twist }, { lineScale: LINE_SCALE }).body.positions, LINE_SCALE)
+        })
+      }
+
+      test("line and word twists together keep every box square", () => {
+        square(twisted(EVERY, { wordTwist: EVERY, lineScale: LINE_SCALE, wordScale: WORD_SCALE }).body.positions, TOTAL)
+      })
+
+      test("the outline stays square whether or not it scales", () => {
+        const built = twisted(EVERY, { lineScale: LINE_SCALE, wordScale: WORD_SCALE })
+        for (const scale of [TOTAL, LINE_SCALE, [1, 1, 1]]) square(buildOutline(built, scale).positions, TOTAL.map((axis, index) => axis / scale[index]))
+      })
+
+      test("an even scale changes nothing", () => {
+        const plain = Array.from(twisted(EVERY).body.positions)
+        for (const [at, value] of Array.from(twisted(EVERY, { lineScale: [3, 3, 3] }).body.positions).entries()) near(value, plain[at])
+      })
+
+      test("a fan hinges its characters in the line's scaled space", () => {
+        const scale = [2, 0.5, 1]
+        const flat = text(ROW, { lineScale: scale })
+        for (const height of [0, 1]) hinged(flat, twisted({ fan: { amount: 30, centre: 0.5, roll: true, height } }, { lineScale: scale }), height * 2, scale)
+      })
+    })
+
     test("a word's scale doesn't stretch the line arc's lift", () => {
       const lifted = [place(glyph("a", 4, 4, { lift: 10, lineLift: 10 }), 0)]
       const plain = text(lifted, { wordScale: [1, 2, 1] })
