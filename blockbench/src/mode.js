@@ -16,9 +16,9 @@ export function inTitleMode() {
   return !!mode && Mode.selected === mode
 }
 
-export function titlePanel(id, options, shown) {
+export function titlePanel(id, options) {
   ours.add(id)
-  return new Panel(id, { ...options, condition: () => inTitleMode() && shown() })
+  return new Panel(id, { ...options, condition: inTitleMode })
 }
 
 export function deleteTitlePanel(panel) {
@@ -35,7 +35,7 @@ function hasElementTab() {
   return !Outliner.selected.length || Group.multi_selected.length > 0 || !Outliner.selected.every(isTitle)
 }
 
-export function settleTabs(host) {
+function settleTabs(host) {
   const open = host.open_attached_panel
   if (!Condition(open.condition)) {
     left.set(host, open)

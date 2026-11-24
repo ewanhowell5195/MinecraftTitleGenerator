@@ -1,15 +1,49 @@
 export const STYLES = `
-  .mtg-panel {
-    overflow-y: auto;
-  }
-
-  .mtg-panel.filling {
+  .mtg-sections {
+    display: flex;
+    flex-direction: column;
     height: 100%;
-    container-type: size;
   }
 
-  .mtg-panel:not(.filling) {
-    max-height: 60vh;
+  .mtg-tabs {
+    display: flex;
+    flex: none;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .mtg-tab {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    padding: 10px 0 9px;
+    font-size: 0.8em;
+    line-height: 1.25;
+    color: var(--color-subtle_text);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .mtg-tab > i {
+    font-size: 20px;
+  }
+
+  .mtg-tab:hover {
+    color: var(--color-text);
+  }
+
+  .mtg-tab.open {
+    color: var(--color-accent);
+    box-shadow: inset 0 -2px var(--color-accent);
+  }
+
+  .mtg-panel {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    container-type: size;
   }
 
   .mtg-group {
