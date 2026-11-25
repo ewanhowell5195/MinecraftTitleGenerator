@@ -7,7 +7,7 @@ const ID = "minecraft_title_render"
 
 export const rendered = ref(null)
 
-const angles = new Set()
+const angles = new Map()
 
 let mode = null
 let unselected = []
@@ -27,7 +27,8 @@ function enter() {
   hidden = guides()
   for (const guide of hidden) guide.visible = false
   rendered.value = Project.uuid
-  if (releaseAngle()) angles.add(Project.uuid)
+  const released = releaseAngle()
+  if (released) angles.set(Project.uuid, released.locked)
   enterView()
 }
 
@@ -37,7 +38,8 @@ function leave() {
   for (const guide of hidden) guide.visible = true
   leaveView()
   if (Project?.uuid !== uuid) return
-  if (angles.delete(uuid)) applyAngle(Preview.selected)
+  if (angles.has(uuid)) applyAngle(Preview.selected, angles.get(uuid))
+  angles.delete(uuid)
   for (const element of unselected) {
     if (Outliner.elements.includes(element)) element.markAsSelected()
   }

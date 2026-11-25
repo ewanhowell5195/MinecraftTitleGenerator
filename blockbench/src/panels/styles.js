@@ -48,6 +48,17 @@ export const STYLES = `
     pointer-events: none;
   }
 
+  .preview .mtg-lock {
+    right: auto;
+    left: 3px;
+    user-select: none;
+  }
+
+  body.theme_borders .preview .mtg-lock {
+    right: auto;
+    left: 0;
+  }
+
   .mtg-result {
     display: flex;
     justify-content: center;

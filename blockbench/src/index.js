@@ -10,6 +10,7 @@ import { registerPanels, unregisterPanels } from "./panels/index.js"
 import { askEula } from "./panels/minecraft.js"
 import { registerRenderMode, unregisterRenderMode } from "./render/mode.js"
 import { angleClosed, angleDrawn, angleMoved, placeLater, registerAngle, unregisterAngle } from "./render/angle.js"
+import { lockDrawn, removeLocks } from "./render/lock.js"
 import { viewChanged, viewDrawn, viewTurned } from "./render/view.js"
 import { registerPasses, unregisterPasses } from "./passes.js"
 import { useBlockbench } from "./platform.js"
@@ -92,6 +93,7 @@ Plugin.register("minecraft_title_generator", {
       finished?.(renderer, shown, camera, ...rest)
       viewDrawn(camera)
       angleDrawn(camera)
+      lockDrawn(camera)
     }
   },
   onunload() {
@@ -103,6 +105,7 @@ Plugin.register("minecraft_title_generator", {
     Codecs.project.removeListener("parsed", refresh)
     unregisterRenderMode()
     unregisterAngle()
+    removeLocks()
     unregisterPanels()
     unregisterMode()
     unregisterFile()

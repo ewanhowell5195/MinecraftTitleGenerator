@@ -1,6 +1,7 @@
 import * as THREE from "three"
 import { round } from "#lib/core/maths.js"
 import { FORMAT } from "../format.js"
+import { inTitleMode } from "../mode.js"
 import { FACING } from "../placing.js"
 import { titleState } from "../titles.js"
 import { inRenderMode } from "./mode.js"
@@ -12,6 +13,8 @@ const FILLED = 0.94
 const RENDER_ANGLE = { name: "Render Angle", id: "minecraft_title_render", default: true, condition: () => Format?.id === FORMAT && !inRenderMode() }
 
 const unplaced = new Map()
+const returning = new Map()
+const suspended = new Set()
 const native = {}
 let angled = null
 let aiming = false
@@ -34,17 +37,19 @@ function useLens({ camPers, camOrtho }, lenses) {
   for (const [index, camera] of [camPers, camOrtho].entries()) Object.assign(camera, lenses[index])
 }
 
-export function applyAngle(shown, opened = null) {
+export function applyAngle(shown, locked, opened = null) {
   const state = titleState()
   const shot = shown.width && shotOf(state)
   if (!shot) return
+  if (angled && angled.shown !== shown) letGo()
   const { orthographic, lenses } = angled?.shown === shown ? angled : { orthographic: shown.isOrtho && shown.angle === null, lenses: lensOf(shown) }
   aiming = true
   aim(shown, shot, state.title.camera)
   aiming = false
   const { camera, controls } = shown
   const away = camera.position.clone().sub(shown.isOrtho ? controls.target : shot.centre)
-  angled = { shown, opened, changes: state.changes, project: Project.uuid, orthographic, lenses, away, shot, heading: headingOf(shown), pose: poseOf(shown), lens: lensKey(shown) }
+  angled = { shown, locked, opened, changes: state.changes, project: Project.uuid, orthographic, lenses, away, shot, heading: headingOf(shown), pose: poseOf(shown), lens: lensKey(shown) }
+  controls.enabled = !locked
 }
 
 function roomFor({ corners, centre }, direction, aspect) {
@@ -74,6 +79,7 @@ function letGo() {
   const { shown, orthographic, lenses } = angled
   const { position, target, zoom } = released(angled, orthographic)
   angled = null
+  shown.controls.enabled = true
   useLens(shown, lenses)
   if (shown.isOrtho === orthographic) shown.resize()
   else shown.setProjectionMode(orthographic)
@@ -88,24 +94,42 @@ function letGo() {
 function forget() {
   const { shown, lenses } = angled
   angled = null
+  shown.controls.enabled = true
   useLens(shown, lenses)
   shown.camPers.updateProjectionMatrix()
 }
 
+export function atAngle(shown) {
+  return angled?.shown === shown
+}
+
+export function isLocked(shown) {
+  return atAngle(shown) && angled.locked
+}
+
+export function unlock() {
+  angled.locked = false
+  angled.shown.controls.enabled = true
+}
+
 export function releaseAngle() {
-  if (!angled) return false
+  if (!angled) return null
+  const { locked } = angled
   letGo()
-  return true
+  return { locked }
 }
 
 export function angleMoved({ preview: shown }) {
   if (shown !== angled?.shown || aiming) return
-  if (poseOf(shown).some((value, index) => Math.abs(value - angled.pose[index]) > MOVED * Math.max(1, Math.abs(value)))) letGo()
+  if (!poseOf(shown).some((value, index) => Math.abs(value - angled.pose[index]) > MOVED * Math.max(1, Math.abs(value)))) return
+  if (angled.locked) applyAngle(shown, true, angled.opened)
+  else letGo()
 }
 
 export function angleClosed({ project }) {
   unplaced.delete(project.uuid)
   if (angled?.project !== project.uuid) return
+  returning.set(project.uuid, angled.locked)
   const { shown, orthographic } = angled
   const { position, target, zoom } = released(angled, orthographic)
   if (project.previews[shown.id]) Object.assign(project.previews[shown.id], { position: position.toArray(), target: target.toArray(), orthographic, ...(orthographic && { zoom }) })
@@ -120,20 +144,37 @@ export function placeLater({ project: { uuid, format } }) {
   if (format.id === FORMAT) unplaced.set(uuid, placeOf(Preview.selected.camera))
 }
 
+function followMode(shown) {
+  if (inTitleMode()) {
+    if (suspended.delete(Project.uuid)) applyAngle(shown, true)
+  } else if (angled?.locked) {
+    unlock()
+    suspended.add(Project.uuid)
+  }
+}
+
+function placeReturned(shown) {
+  applyAngle(shown, returning.get(Project.uuid))
+  if (angled) returning.delete(Project.uuid)
+}
+
 function placeNew(shown) {
   if (!shown.width || !shotOf(titleState())) return
   const untouched = unplaced.get(Project.uuid) === placeOf(shown.camera)
   unplaced.delete(Project.uuid)
-  if (untouched) applyAngle(shown, Undo.history.length)
+  if (untouched) applyAngle(shown, true, Undo.history.length)
 }
 
 export function angleDrawn(camera) {
-  if (inRenderMode() || camera !== Preview.selected?.camera) return
-  if (unplaced.has(Project?.uuid)) placeNew(Preview.selected)
+  if (angled && Format?.id !== FORMAT) letGo()
+  if (!Project || inRenderMode() || camera !== Preview.selected?.camera) return
+  if (unplaced.has(Project.uuid)) placeNew(Preview.selected)
+  if (returning.has(Project.uuid)) placeReturned(Preview.selected)
+  followMode(Preview.selected)
   if (!angled || angled.shown !== Preview.selected) return
-  const { shown, opened, changes, lens } = angled
+  const { shown, locked, opened, changes, lens } = angled
   const loaded = opened === Undo.history.length && changes !== titleState().changes
-  if (loaded || lens !== lensKey(shown)) applyAngle(shown, opened)
+  if (loaded || lens !== lensKey(shown)) applyAngle(shown, locked, opened)
 }
 
 export function registerAngle() {
@@ -141,7 +182,7 @@ export function registerAngle() {
   Object.assign(native, { loadAnglePreset: Preview.prototype.loadAnglePreset, setProjectionMode: Preview.prototype.setProjectionMode })
   Preview.prototype.loadAnglePreset = function(preset) {
     if (preset === RENDER_ANGLE) {
-      applyAngle(this)
+      applyAngle(this, isLocked(this))
       return this
     }
     if (angled?.shown === this) forget()
