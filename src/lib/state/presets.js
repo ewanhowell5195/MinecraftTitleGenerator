@@ -1,12 +1,13 @@
 import { encodeTitle, openableTitle, titleBody } from "../link/linkformat.js"
 import { usePresetTitle } from "../presets/savingPreset.js"
+import { EXTENSION } from "../title/titleData.js"
 import { askConfirm } from "./confirm.js"
 import { fileError } from "./notices.js"
 import { casedTitle, sharedLink, titleText } from "./scene.js"
 import { submitStats } from "./stats.js"
-import { isDefaultTitle, openTitleData, titleData } from "./titleFile.js"
+import { isDefaultTitle, openTitleData, saveTitle, titleData } from "./titleFile.js"
 
-usePresetTitle({ data: titleData, text: titleText, cased: casedTitle, submitStats })
+usePresetTitle({ data: titleData, text: titleText, cased: casedTitle, submitStats, fileType: () => `.${EXTENSION}`, saveFile: saveTitle })
 
 function showingCode(code) {
   const current = encodeTitle(titleData())

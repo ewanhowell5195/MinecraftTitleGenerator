@@ -6,7 +6,7 @@ import { namingCode, namingForShare, namingPreset, namingShared, namingSharedId,
 import { communityPreset, presetToAsk } from "#lib/state/community.js"
 import { fileError, showNotice } from "#lib/state/notices.js"
 import { addToFileMenu, removeFromFileMenu } from "../fileMenu.js"
-import { hasTitles, isCased, sourcePreset, titleFileData, titleText } from "../file.js"
+import { checkPreset, hasTitles, isCased, keepingType, saveKeeping, sourcePreset, titleFileData, titleText } from "../file.js"
 import { FORMAT } from "../format.js"
 import { sendStats } from "../stats.js"
 import { closeSharing, openSharing, published } from "./sharing.js"
@@ -128,7 +128,7 @@ export function canSavePreset() {
 }
 
 export function registerSaving() {
-  usePresetTitle({ data: titleFileData, text: titleText, cased: isCased, submitStats: () => sendStats(Project) })
+  usePresetTitle({ data: titleFileData, text: titleText, cased: isCased, submitStats: () => sendStats(Project), fileType: keepingType, saveFile: saveKeeping, check: checkPreset })
   stopNaming = watch(namingPreset, followNaming)
   saveAction = new Action("save_minecraft_title_preset", { name: "Save Title Preset", icon: "bookmark", category: "file", condition: canSavePreset, click: () => startSavingPreset() })
   shareAction = new Action("share_minecraft_title", { name: "Share Title Publicly", icon: "share", category: "file", condition: canSavePreset, click: () => startSavingPreset({ share: true }) })

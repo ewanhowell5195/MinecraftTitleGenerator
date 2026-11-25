@@ -38,18 +38,24 @@ function titles(nodes = Outliner.root) {
   return nodes.flatMap(node => isTitle(node) ? [node] : titles(node.children ?? []))
 }
 
-function otherContents() {
+function otherElements() {
   const counts = new Map()
-  function add(name, amount) {
-    if (amount) counts.set(name, (counts.get(name) ?? 0) + amount)
-  }
   for (const element of Outliner.elements) {
-    if (!isTitle(element)) add(element.title, 1)
+    if (!isTitle(element)) counts.set(element.title, (counts.get(element.title) ?? 0) + 1)
   }
-  add("Group", Group.all.length)
-  add("Collection", Collection.all.length)
-  add("Reference Image", Project.reference_images.length)
   return counts
+}
+
+function otherContents() {
+  const counts = otherElements()
+  for (const [name, { length }] of [["Group", Group.all], ["Collection", Collection.all], ["Reference Image", Project.reference_images]]) {
+    if (length) counts.set(name, length)
+  }
+  return counts
+}
+
+function listed(counts) {
+  return Array.from(counts, ([name, amount]) => `- ${amount} × ${name}`).join("\n")
 }
 
 function onlyTitles() {
@@ -225,15 +231,23 @@ function read(text) {
   return { ...data, own: own.lines?.length === data.values.length ? own : { ...own, lines: null } }
 }
 
+export function keepingType() {
+  return onlyTitles() ? `.${EXTENSION}` : ".bbmodel"
+}
+
+export function saveKeeping() {
+  if (onlyTitles()) codec.export()
+  else BarItems.save_project.click()
+}
+
 function warnOfLosses(done) {
   const counts = otherContents()
   const grouped = counts.has("Group")
   if (Texture.all.length) counts.set("Texture", Texture.all.length)
-  const list = Array.from(counts, ([name, amount]) => `- ${amount} × ${name}`).join("\n")
   Blockbench.showMessageBox({
     title: "Export Minecraft Title",
     icon: "warning",
-    message: `A Minecraft title file can only hold title texts and shapes. These will be left out:\n\n${list}${grouped ? "\n\nTitles inside groups will stay where they are." : ""}`,
+    message: `A Minecraft title file can only hold title texts and shapes. These will be left out:\n\n${listed(counts)}${grouped ? "\n\nTitles inside groups will stay where they are." : ""}`,
     buttons: ["Export", "dialog.cancel"],
     cancelIndex: 1
   }, button => {
@@ -244,6 +258,19 @@ function warnOfLosses(done) {
 function exportTitle() {
   if (onlyTitles()) codec.export()
   else warnOfLosses(() => codec.export())
+}
+
+export function checkPreset(share, proceed) {
+  const others = otherElements()
+  if (!others.size) return proceed()
+  Blockbench.showMessageBox({
+    title: share ? "Share publicly" : "Save preset",
+    message: `${share ? "Shared titles" : "Presets"} can't include anything other than title texts and shapes. This project also has:\n\n${listed(others)}\n\nSave this project as a .bbmodel file instead to keep everything.`,
+    buttons: ["Save .bbmodel", "dialog.cancel"],
+    cancelIndex: 1
+  }, button => {
+    if (button === 0) saveKeeping()
+  })
 }
 
 function save() {

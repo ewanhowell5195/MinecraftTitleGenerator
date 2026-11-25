@@ -32,7 +32,7 @@
       <Icon name="share" :size="16" />
       <span>Share</span>
     </MenuButton>
-    <MessageDialog v-if="skipped" title="Link copied" @close="skipped = 0">Links can't carry uploaded fonts, textures or overlays, so this one opens the title without {{ skipped === 1 ? "its upload" : `its ${skipped} uploads` }}. Save the title as a file to keep them.</MessageDialog>
+    <MessageDialog v-if="skipped" title="Link copied" @close="skipped = 0">Links can't carry uploaded fonts, shapes, textures or overlays, so this one opens the title without {{ skipped === 1 ? "its upload" : `its ${skipped} uploads` }}. Save the title as a .mctitle file instead to keep them.</MessageDialog>
   </div>
 </template>
 

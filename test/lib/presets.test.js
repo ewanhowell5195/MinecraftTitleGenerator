@@ -16,7 +16,8 @@ fakeTimeouts()
 
 const { watch } = await import("vue")
 const { confirming } = await import("#lib/state/confirm.js")
-watch(confirming, request => request?.answer(answer), { flush: "sync" })
+let asked = null
+watch(confirming, request => request && (asked = request).answer(answer), { flush: "sync" })
 
 const { LAYER } = await import("#lib/settings/textureDefaults.js")
 const { FILE_VERSION } = await import("#lib/settings/upgrades.js")
@@ -130,13 +131,16 @@ describe("presets", () => {
   })
 
   test("refuse titles with uploaded overlays or textures", () => {
+    answer = false
     for (const object of [createObject({ text: "upload", overlayMode: "custom", overlays: [{ ...LAYER, source: "file", file: "data:image/png;base64,AAAA" }] }), createObject({ text: "upload", textureSource: "custom", customTexture: "data:image/png;base64,AAAA" })]) {
       setTitle(object)
       fileError.value = null
       assert.equal(savePreset(), null)
       assert.match(fileError.value, /can't include uploaded/)
-      startSavingPreset()
+      startSavingPreset({ share: true })
       assert.equal(namingPreset.value, null)
+      assert.equal(asked.action, "Save .mctitle")
+      assert.match(asked.paragraphs.join(" "), /Shared titles can't include uploaded .* as a \.mctitle file/)
     }
     assert.equal(stored.get(STORAGE), undefined)
   })
