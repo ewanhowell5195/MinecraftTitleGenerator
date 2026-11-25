@@ -116,7 +116,6 @@ export function openSharing(props, onClose = null) {
     title: "Share publicly",
     width: 480,
     buttons: [],
-    cancel_on_click_outside: false,
     component: { components: { ShareForm }, data: () => ({ props }), template: `<share-form v-bind="props" />` },
     onConfirm: () => false,
     onCancel: closeSharing

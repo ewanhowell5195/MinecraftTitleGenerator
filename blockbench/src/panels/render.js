@@ -59,7 +59,6 @@ function progressDialog(cancel) {
     width: 420,
     buttons: ["dialog.cancel"],
     progress_bar: {},
-    cancel_on_click_outside: false,
     component: { data: () => ({ text }), template: `<p>{{ text }}</p>` },
     onCancel: cancel,
     onButton: cancel

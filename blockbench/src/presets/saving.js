@@ -73,7 +73,6 @@ function openForm(suggested) {
     part_order: ["component", "form"],
     component: presetToAsk(sourcePreset()) ? VotePrompt : undefined,
     buttons: namingShared.value ? ["dialog.save", "dialog.cancel"] : ["dialog.save", "Save and share", "dialog.cancel"],
-    cancel_on_click_outside: false,
     onFormChange(result) {
       const target = targetOf(result) ?? null
       if (target === chosen) return
