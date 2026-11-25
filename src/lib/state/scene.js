@@ -10,7 +10,7 @@ import { isModified, snapshot } from "../settings/settings.js"
 import { shapeName } from "../geometry/shapes.js"
 import { oneWord, wholeLine } from "../title/broadcast.js"
 import { keptObject, titleObjects } from "../title/objects.js"
-import { createTitle, freeRowOf, linesOf, wordsOf } from "../title/title.js"
+import { createTitle, freeRowOf, linesOf, versionsIn, wordsOf } from "../title/title.js"
 import { joinWords, titleLines, titleValues, trimmed } from "../link/titleLines.js"
 import { FILE_VERSION } from "../settings/upgrades.js"
 import { userBusy } from "./activity.js"
@@ -178,7 +178,7 @@ export function words(object) {
 }
 
 export function gameVersions(browsing = null) {
-  return new Set(scene.objects.flatMap(object => [object.shapeVersion, object.minecraftVersion]).concat(browsing).filter(Boolean))
+  return versionsIn(scene.objects, browsing)
 }
 
 export function lineHidden(object) {

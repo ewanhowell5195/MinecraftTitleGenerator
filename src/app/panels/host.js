@@ -1,9 +1,8 @@
 import { computed } from "vue"
-import { applyType } from "#lib/settings/defaults.js"
-import { defaultTexture, setTexture } from "#lib/settings/textureDefaults.js"
+import { placeWords } from "#lib/title/placeLine.js"
 import { downloadBlob, fileNameOf } from "#lib/core/files.js"
 import { usePanelHost } from "#lib/panels/host.js"
-import { active, bakeMatch, chooseMatch, current, currentWord, editorTitle, freeRow, gameVersions, library, lineText, noteType, scene, selection, titleFileName, words } from "#lib/state/scene.js"
+import { active, bakeMatch, chooseMatch, current, currentWord, editorTitle, gameVersions, library, lineText, noteType, scene, selection, titleFileName, words } from "#lib/state/scene.js"
 import { submitStats } from "#lib/state/stats.js"
 import { popular } from "#lib/title/popularity.js"
 import { view } from "#lib/state/view.js"
@@ -12,14 +11,7 @@ import { previews } from "../previews.js"
 
 function placeLine(type) {
   if (current.value.type === type) return
-  const { list, font } = active.value
-  const row = freeRow(type, selection.value[0])
-  for (const word of words(selection.value[0])) {
-    if (list && !word.textureVariant && word.texture === defaultTexture(list, word.type)) setTexture(word, { texture: defaultTexture(list, type) }, { before: list })
-    word.type = type
-    word.row = row
-    applyType(word, type, font)
-  }
+  placeWords(words(selection.value[0]), type, editorTitle, active.value)
   noteType(selection.value[0])
 }
 

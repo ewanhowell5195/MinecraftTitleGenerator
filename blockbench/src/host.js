@@ -4,11 +4,10 @@ import { usePanelHost } from "#lib/panels/host.js"
 import { framing, useFraming } from "#render/framing.js"
 import { round } from "#lib/core/maths.js"
 import { joinWords } from "#lib/link/titleLines.js"
-import { applyType } from "#lib/settings/defaults.js"
-import { defaultTexture, setTexture } from "#lib/settings/textureDefaults.js"
 import { oneWord, wholeLine } from "#lib/title/broadcast.js"
 import { popular } from "#lib/title/popularity.js"
-import { freeRowOf, wordsOf } from "#lib/title/title.js"
+import { placeWords } from "#lib/title/placeLine.js"
+import { versionsIn, wordsOf } from "#lib/title/title.js"
 import { isTitle } from "./elements.js"
 import { titleFileName } from "./file.js"
 import { library } from "./library.js"
@@ -72,14 +71,7 @@ function updateTransform(element) {
 function placeLine(type) {
   const settings = shownSettings(selected.value)
   if (settings.type === type) return
-  const { list, font } = runtimeOf(selected.value)
-  const row = freeRowOf(type, current(), wordsOf(settings, current()))
-  for (const word of wordsOf(settings, current())) {
-    if (list && !word.textureVariant && word.texture === defaultTexture(list, word.type)) setTexture(word, { texture: defaultTexture(list, type) }, { before: list })
-    word.type = type
-    word.row = row
-    applyType(word, type, font)
-  }
+  placeWords(wordsOf(settings, current()), type, current(), runtimeOf(selected.value))
 }
 
 function chooseMatch(object, id) {
@@ -134,6 +126,6 @@ export function registerHost() {
     fileName: fileNameOf,
     titleFileName,
     save,
-    gameVersions: browsing => new Set(current().objects.flatMap(object => [object.shapeVersion, object.minecraftVersion]).concat(browsing).filter(Boolean))
+    gameVersions: browsing => versionsIn(current().objects, browsing)
   })
 }

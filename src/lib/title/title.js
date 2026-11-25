@@ -33,3 +33,7 @@ export function freeRowOf(type, title, own = []) {
   while (used.has(row)) row += step
   return row
 }
+
+export function versionsIn(objects, browsing = null) {
+  return new Set(objects.flatMap(object => [object.shapeVersion, object.minecraftVersion]).concat(browsing).filter(Boolean))
+}
