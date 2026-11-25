@@ -1,4 +1,5 @@
 import { ref } from "vue"
+import { CAMERA_PANEL } from "../../../src/lib/panels/camera.js"
 import { isMinecraftShape } from "../../../src/lib/geometry/shapes.js"
 import { FACE_PANELS, FILTERS_PANEL, OUTLINE_PANEL } from "../../../src/lib/panels/colour.js"
 import { CREEPER_PANEL, CURVES_PANEL, SPACING_PANEL, TERMINATORS_PANEL } from "../../../src/lib/panels/font.js"
@@ -6,6 +7,7 @@ import { ARC_PANEL, GEOMETRY_PANEL } from "../../../src/lib/panels/form.js"
 import { layersPanel } from "../../../src/lib/panels/layers.js"
 import { EDGE_OVERLAYS_PANEL, OVERLAYS_PANEL } from "../../../src/lib/panels/overlays.js"
 import { PLACEMENT_PANEL } from "../../../src/lib/panels/placement.js"
+import { FRAMING_PANEL, IMAGE_PANEL, SECOND_OUTLINE_PANEL } from "../../../src/lib/panels/render.js"
 import { TEXTURE_PANEL } from "../../../src/lib/panels/texture.js"
 import { TILING_PANEL } from "../../../src/lib/panels/tiling.js"
 import { MATCH_PANEL, SCALING_PANEL } from "../../../src/lib/panels/transform.js"
@@ -14,6 +16,7 @@ import { PANELS } from "../../../src/lib/settings/defaults.js"
 import { isModified, wordKey } from "../../../src/lib/settings/settings.js"
 import { kindOf, selected, shownSettings } from "../host.js"
 import { deleteTitlePanel, titlePanel } from "../mode.js"
+import { inRenderMode, rendered } from "../render/mode.js"
 import { homeElement } from "../words.js"
 import { TitleGroup } from "./controls.js"
 import { FontGroup } from "./font.js"
@@ -49,8 +52,13 @@ const TABS = [
   { id: "form", name: "Form", icon: "deployed_code", shapes: true, panels: settings => [MATCH_PANEL, STRETCHING_PANEL, GEOMETRY_PANEL].concat(isDrawn(settings) ? [ARC_PANEL].concat(TWIST_PANELS) : []) }
 ]
 
+const RENDER_PANELS = [
+  { id: "minecraft_title_render", name: "Render", icon: "photo_camera", slot: "left_bar", groups: [FRAMING_PANEL, SECOND_OUTLINE_PANEL, IMAGE_PANEL] },
+  { id: "minecraft_title_camera", name: "Camera", icon: "videocam", slot: "right_bar", groups: [CAMERA_PANEL] }
+]
+
 const chosen = ref("text")
-let panel = null
+const panels = []
 let styles = null
 
 function placement(settings, kind) {
@@ -121,19 +129,41 @@ const TitleSections = {
   `
 }
 
+function renderSection(groups) {
+  return {
+    components: { TitleGroup },
+    data: () => ({ groups: Object.freeze(groups) }),
+    computed: {
+      project: () => rendered.value
+    },
+    template: `
+      <div class="mtg-sections">
+        <div v-if="project" :key="project" class="mtg-panel">
+          <title-group v-for="group of groups" :key="group.id" :panel="group" />
+        </div>
+      </div>
+    `
+  }
+}
+
+const PLACE = { sidebar_index: 0, float_position: [0, 0], float_size: [320, 500], height: 400 }
+
 export function registerPanels() {
   styles = Blockbench.addCSS(STYLES)
-  panel = titlePanel("minecraft_title", {
+  panels.push(titlePanel("minecraft_title", {
     name: "Title",
     icon: "text_fields",
     growable: true,
     resizable: true,
-    default_position: { slot: "left_bar", sidebar_index: 0, float_position: [0, 0], float_size: [320, 500], height: 400 },
+    default_position: { ...PLACE, slot: "left_bar" },
     component: TitleSections
-  })
+  }))
+  for (const { id, name, icon, slot, groups } of RENDER_PANELS) {
+    panels.push(new Panel(id, { name, icon, growable: true, resizable: true, default_position: { ...PLACE, slot }, condition: inRenderMode, component: renderSection(groups) }))
+  }
 }
 
 export function unregisterPanels() {
-  deleteTitlePanel(panel)
+  for (const panel of panels.splice(0)) deleteTitlePanel(panel)
   styles?.delete()
 }

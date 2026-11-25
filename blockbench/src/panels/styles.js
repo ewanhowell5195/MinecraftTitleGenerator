@@ -39,6 +39,28 @@ export const STYLES = `
     box-shadow: inset 0 -2px var(--color-accent);
   }
 
+  .mtg-frame {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  .mtg-result {
+    display: flex;
+    justify-content: center;
+    padding: 16px;
+    background: var(--color-back);
+  }
+
+  .mtg-result > canvas {
+    max-width: 100%;
+    max-height: 60vh;
+    object-fit: contain;
+  }
+
   .mtg-panel {
     flex: 1;
     min-height: 0;
@@ -104,6 +126,37 @@ export const STYLES = `
 
   .mtg-text.mtg-chosen {
     border-color: var(--color-accent);
+  }
+
+  .mtg-radios {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .mtg-radio {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px;
+    white-space: nowrap;
+    border: 1px solid var(--color-border);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .mtg-radio:hover {
+    background: var(--color-button);
+  }
+
+  .mtg-radio.selected {
+    border-color: var(--color-accent);
+  }
+
+  .mtg-radio > input {
+    flex: none;
+    margin: 0;
   }
 
   .mtg-fill {

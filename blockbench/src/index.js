@@ -8,11 +8,13 @@ import { openLibrary } from "./library.js"
 import { followElementTab, openTitleMode, registerMode, unregisterMode } from "./mode.js"
 import { registerPanels, unregisterPanels } from "./panels/index.js"
 import { askEula } from "./panels/minecraft.js"
+import { registerRenderMode, unregisterRenderMode } from "./render/mode.js"
+import { viewChanged, viewDrawn, viewTurned } from "./render/view.js"
 import { registerPasses, unregisterPasses } from "./passes.js"
 import { useBlockbench } from "./platform.js"
 import { keepCounted, registerStats, savedStats, unregisterStats } from "./stats.js"
 import { closeTitle, closeTitles, resort, settleTitle, sortTitle } from "./titles.js"
-import { keepWords } from "./undo.js"
+import { keepTitle, loadCamera } from "./undo.js"
 
 const listeners = []
 
@@ -24,9 +26,11 @@ function listen(event, action) {
 function refresh() {
   if (Project) settleTitle()
   resort()
+  viewChanged()
 }
 
 let drawn = null
+let finished = null
 let stopAsking = null
 
 Plugin.register("minecraft_title_generator", {
@@ -58,6 +62,7 @@ Plugin.register("minecraft_title_generator", {
     registerHost()
     registerStats()
     registerPasses()
+    registerRenderMode()
     registerPanels()
     stopAsking = askEula()
     for (const event of ["finished_edit", "undo", "redo", "load_project", "merge_project", "select_project"]) listen(event, refresh)
@@ -65,7 +70,9 @@ Plugin.register("minecraft_title_generator", {
     Codecs.project.on("parsed", refresh)
     listen("update_selection", followElementTab)
     listen("canvas_select", chooseClicked)
-    listen("create_undo_save", keepWords)
+    listen("update_camera_position", viewTurned)
+    listen("create_undo_save", keepTitle)
+    listen("load_undo_save", loadCamera)
     listen("load_project", () => setTimeout(() => Project && Outliner.elements.some(isTitle) && openTitleMode()))
     listen("close_project", () => Project && closeTitle(Project))
     listen("saved_state_changed", savedStats)
@@ -75,13 +82,20 @@ Plugin.register("minecraft_title_generator", {
       drawn?.(renderer, shown, camera, ...rest)
       sortTitle(camera)
     }
+    finished = scene.onAfterRender
+    scene.onAfterRender = (renderer, shown, camera, ...rest) => {
+      finished?.(renderer, shown, camera, ...rest)
+      viewDrawn(camera)
+    }
   },
   onunload() {
     scene.onBeforeRender = drawn
+    scene.onAfterRender = finished
     stopAsking()
     for (const [event, action] of listeners.splice(0)) Blockbench.removeListener(event, action)
     selected.value = null
     Codecs.project.removeListener("parsed", refresh)
+    unregisterRenderMode()
     unregisterPanels()
     unregisterMode()
     unregisterFile()

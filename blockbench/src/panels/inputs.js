@@ -1,8 +1,14 @@
+const SPAN = 1000
+
 let pickers = 0
 
 export const SliderControl = {
-  props: { label: String, value: Number, min: Number, max: Number, typedMin: { default: undefined }, typedMax: { default: undefined }, step: { type: Number, default: 1 }, steps: { type: Array, default: null }, hint: { type: String, default: "" } },
+  props: { label: String, value: Number, min: Number, max: Number, typedMin: { default: undefined }, typedMax: { default: undefined }, step: { type: Number, default: 1 }, steps: { type: Array, default: null }, log: { type: Boolean, default: false }, hint: { type: String, default: "" } },
   computed: {
+    range() {
+      if (this.log) return { min: 0, max: SPAN, step: 1 }
+      return this.steps ? { min: 0, max: this.steps.length - 1, step: 1 } : { min: this.min, max: this.max, step: this.step }
+    },
     lowest() {
       return this.typedMin === undefined ? this.min : this.typedMin
     },
@@ -10,13 +16,14 @@ export const SliderControl = {
       return this.typedMax === undefined ? this.max : this.typedMax
     },
     position() {
+      if (this.log) return Math.clamp(Math.round(Math.log(this.value / this.min) / Math.log(this.max / this.min) * SPAN), 0, SPAN)
       return this.steps ? this.nearest(this.value) : this.value
     },
     shown() {
       return +this.value.toFixed(2)
     },
     fill() {
-      const [low, high] = this.steps ? [0, this.steps.length - 1] : [this.min, this.max]
+      const { min: low, max: high } = this.range
       const share = value => Math.clamp((value - low) / (high - low) * 100, 0, 100)
       const [from, to] = [share(Math.clamp(0, low, high)), share(this.position)].sort((a, b) => a - b)
       return { "--from": `${from}%`, "--to": `${to}%` }
@@ -28,7 +35,8 @@ export const SliderControl = {
     },
     slide(event) {
       const at = event.target.valueAsNumber
-      this.$emit("change", this.steps ? this.steps[at] : at)
+      if (this.log) this.$emit("change", Math.round(this.min * (this.max / this.min) ** (at / SPAN) / this.step) * this.step)
+      else this.$emit("change", this.steps ? this.steps[at] : at)
     },
     stepped(number) {
       const base = this.lowest ?? 0
@@ -46,7 +54,7 @@ export const SliderControl = {
     <div class="mtg-slider" :title="hint">
       <label>{{ label }}</label>
       <input type="number" class="dark_bordered" :value="shown" :min="steps ? min : lowest" :max="steps ? max : highest" :step="steps ? 'any' : step" @change="typed">
-      <input type="range" class="tool" :value="position" :min="steps ? 0 : min" :max="steps ? steps.length - 1 : max" :step="steps ? 1 : step" :style="fill" @input="slide" @change="$emit('done')">
+      <input type="range" class="tool" :value="position" :min="range.min" :max="range.max" :step="range.step" :style="fill" @input="slide" @change="$emit('done')">
     </div>
   `
 }
@@ -82,6 +90,18 @@ export const SegmentsControl = {
       <ul class="form_inline_select">
         <li v-for="option of options" :key="String(option.value)" :class="{ selected: option.value === value }" :title="option.title" @click="$emit('change', option.value)">{{ option.label }}</li>
       </ul>
+    </div>
+  `
+}
+
+export const RadioControl = {
+  props: { value: {}, options: Array, label: { type: String, default: "" } },
+  template: `
+    <div class="mtg-field">
+      <label v-if="label">{{ label }}</label>
+      <div class="mtg-radios">
+        <label v-for="option of options" :key="String(option.value)" class="mtg-radio" :class="{ selected: option.value === value }" :title="option.title"><input type="radio" :checked="option.value === value" @change="$emit('change', option.value)"><span>{{ option.label }}</span></label>
+      </div>
     </div>
   `
 }
@@ -136,4 +156,4 @@ export const ColourControl = {
   template: `<div ref="holder" class="mtg-colour"></div>`
 }
 
-export const INPUTS = { SliderControl, DropdownControl, SegmentsControl, ToggleControl, NumberControl, ColourControl }
+export const INPUTS = { SliderControl, DropdownControl, SegmentsControl, RadioControl, ToggleControl, NumberControl, ColourControl }

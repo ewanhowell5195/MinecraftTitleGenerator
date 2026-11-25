@@ -1,4 +1,8 @@
 import { watch } from "vue"
+import { setCamera } from "../../src/lib/settings/camera.js"
+import { titleState } from "./titles.js"
+
+export const CAMERA = { minecraft_title_camera: true }
 
 const late = new Map()
 
@@ -6,40 +10,49 @@ let editing = null
 let quiet = 0
 let lateLabel = null
 
-export function beginEdit(elements, key) {
+function aspectsOf(target) {
+  return target === CAMERA ? CAMERA : { elements: target }
+}
+
+export function beginEdit(target, key) {
   if (editing?.key === key) return
   finishEdit()
   lateLabel = null
-  editing = { key, elements }
-  Undo.initEdit({ elements })
+  editing = { key, target }
+  Undo.initEdit(aspectsOf(target))
 }
 
 export function finishEdit(label = "Change title") {
   if (!editing) return
-  const { elements } = editing
+  const { target } = editing
   editing = null
-  Undo.finishEdit(label, { elements })
+  Undo.finishEdit(label, aspectsOf(target))
 }
 
-function settingsOf(elements) {
-  return JSON.stringify(elements.map(element => element.getUndoCopy()))
+function settingsOf(target) {
+  return JSON.stringify(target === CAMERA ? titleState().title.camera : target.map(element => element.getUndoCopy()))
 }
 
-export function edit(elements, label, change) {
+export function edit(target, label, change) {
   finishEdit()
   lateLabel = null
-  const before = settingsOf(elements)
-  Undo.initEdit({ elements })
+  const before = settingsOf(target)
+  Undo.initEdit(aspectsOf(target))
   change()
-  if (settingsOf(elements) !== before) return Undo.finishEdit(label, { elements })
+  if (settingsOf(target) !== before) return Undo.finishEdit(label, aspectsOf(target))
   Undo.cancelEdit()
   lateLabel = label
 }
 
-export function keepWords({ save, aspects }) {
+export function keepTitle({ save, aspects }) {
+  if (aspects.minecraft_title_camera) save.minecraft_title_camera = { ...titleState().title.camera }
   for (const { words } of aspects.elements ?? []) {
     for (const word of words ?? []) save.elements[word.uuid] ??= word.getUndoCopy()
   }
+}
+
+export function loadCamera({ save }) {
+  if (save.minecraft_title_camera) setCamera(titleState().title.camera, save.minecraft_title_camera)
 }
 
 export function quietly(change) {

@@ -3,10 +3,11 @@ import { host } from "../../../src/lib/panels/host.js"
 import { TYPES } from "../../../src/lib/settings/defaults.js"
 import { platform } from "../../../src/lib/core/platform.js"
 import { selectedElements } from "../host.js"
-import { beginEdit, edit, finishEdit } from "../undo.js"
+import { CAMERA, beginEdit, edit, finishEdit } from "../undo.js"
 import { GradientControl } from "./gradient.js"
 import { INPUTS } from "./inputs.js"
 import { OverlaysBlock } from "./overlays.js"
+import { FrameSizeBlock, RenderButtonsBlock } from "./render.js"
 import { CustomTextureBlock, TextureSourceBlock } from "./texture.js"
 
 const PlacementBlock = {
@@ -31,7 +32,18 @@ const PlacementBlock = {
 }
 
 const NAMES = { colour: "colour", gradient: "gradient" }
-const BLOCKS = { customTexture: CustomTextureBlock, overlays: OverlaysBlock, placement: PlacementBlock, textureSource: TextureSourceBlock }
+const BLOCKS = { customTexture: CustomTextureBlock, frameSize: FrameSizeBlock, overlays: OverlaysBlock, placement: PlacementBlock, renderButtons: RenderButtonsBlock, textureSource: TextureSourceBlock }
+
+function targetOf({ on }) {
+  if (on === "camera") return CAMERA
+  return on ? null : selectedElements()
+}
+
+function editing(panel, label, change) {
+  const target = targetOf(panel)
+  if (target) edit(target, label, change)
+  else change()
+}
 
 export const TitleControls = {
   name: "title-controls",
@@ -46,20 +58,21 @@ export const TitleControls = {
       return `Change title ${(control.label ?? NAMES[control.type] ?? (this.state.title.value || this.panel.id)).toLowerCase()}`
     },
     press(control) {
-      beginEdit(selectedElements(), this.key(control))
+      const target = targetOf(this.panel)
+      if (target) beginEdit(target, this.key(control))
     },
     change(control, value) {
       this.press(control)
       this.state.change(control, value)
     },
     done(control) {
-      finishEdit(this.label(control))
+      if (targetOf(this.panel)) finishEdit(this.label(control))
     },
     pick(control, value) {
-      edit(selectedElements(), this.label(control), () => this.state.change(control, value))
+      editing(this.panel, this.label(control), () => this.state.change(control, value))
     },
     run(control) {
-      edit(selectedElements(), control.label, () => control.press(this.state.context))
+      editing(this.panel, control.label, () => control.press(this.state.context))
     }
   },
   template: `
@@ -68,8 +81,9 @@ export const TitleControls = {
         <template v-if="state.isShown(control)">
           <p v-if="control.type === 'hint'" :key="index" class="mtg-hint">{{ state.resolved(control.text) }}</p>
           <h4 v-else-if="control.type === 'heading'" :key="index">{{ state.resolved(control.text) }}</h4>
-          <slider-control v-else-if="control.type === 'slider'" :key="index" :label="control.label" :value="state.valueOf(control)" :min="state.resolved(control.min)" :max="state.resolved(control.max)" :typed-min="state.resolved(control.typedMin)" :typed-max="state.resolved(control.typedMax)" :step="control.step" :steps="control.steps" :hint="state.resolved(control.hint)" @change="change(control, $event)" @done="done(control)" />
+          <slider-control v-else-if="control.type === 'slider'" :key="index" :label="control.label" :value="state.valueOf(control)" :min="state.resolved(control.min)" :max="state.resolved(control.max)" :typed-min="state.resolved(control.typedMin)" :typed-max="state.resolved(control.typedMax)" :step="control.step" :steps="control.steps" :log="control.log" :hint="state.resolved(control.hint)" @change="change(control, $event)" @done="done(control)" />
           <toggle-control v-else-if="control.type === 'toggle'" :key="index" :label="control.label" :hint="state.resolved(control.hint)" :value="!!state.valueOf(control)" @change="pick(control, $event)" />
+          <radio-control v-else-if="control.radio" :key="index" :label="control.label" :options="state.resolved(control.options)" :value="state.valueOf(control)" @change="pick(control, $event)" />
           <segments-control v-else-if="control.type === 'segments'" :key="index" :label="control.label" :options="state.resolved(control.options)" :value="state.valueOf(control)" @change="pick(control, $event)" />
           <dropdown-control v-else-if="control.type === 'dropdown'" :key="index" :label="control.label" :options="state.resolved(control.options)" :value="state.valueOf(control)" :title="control.tooltip" @change="pick(control, $event)" />
           <colour-control v-else-if="control.type === 'colour'" :key="index" :value="state.valueOf(control)" @change="change(control, $event)" @done="done(control)" />
@@ -93,10 +107,10 @@ export const TitleGroup = {
   },
   methods: {
     reset() {
-      edit(selectedElements(), `Reset title ${this.title.toLowerCase()}`, () => this.state.reset())
+      editing(this.panel, `Reset title ${this.title.toLowerCase()}`, () => this.state.reset())
     },
     enable(event) {
-      edit(selectedElements(), `Change title ${this.title.toLowerCase()}`, () => this.state.enable(event.target.checked))
+      editing(this.panel, `Change title ${this.title.toLowerCase()}`, () => this.state.enable(event.target.checked))
     }
   },
   template: `

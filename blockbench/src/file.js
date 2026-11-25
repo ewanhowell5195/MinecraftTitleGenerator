@@ -27,6 +27,10 @@ function keysOf(...kinds) {
   return kinds.flatMap(kind => ["X", "Y", "Z"].map(axis => kind + axis))
 }
 
+export function titleFileName() {
+  return Project.name || fileNameOf(titles().map(home => home.describe()).join(" "), "title")
+}
+
 function titles(nodes = Outliner.root) {
   return nodes.flatMap(node => isTitle(node) ? [node] : titles(node.children ?? []))
 }
@@ -215,6 +219,12 @@ function insteadOf(id, replacement) {
   hooks.push(BarItems[id].on("use", replacement))
 }
 
+export function keepCamera(changes) {
+  const { camera, ...others } = Project[KEPT]
+  Project[KEPT] = { ...others, ...(Object.keys(changes).length && { camera: changes }) }
+  Project.saved = false
+}
+
 function useCamera() {
   if (Format.id === FORMAT) setCamera(titleState().title.camera, Project[KEPT].camera)
 }
@@ -237,7 +247,7 @@ export function registerFile() {
     },
     compile,
     parse,
-    fileName: () => Project.name || fileNameOf(titles().map(home => home.describe()).join(" "), "title"),
+    fileName: titleFileName,
     afterDownload(path) {
       if (onlyTitles()) Codec.prototype.afterDownload.call(this, path)
       else Blockbench.showQuickMessage(tl("message.save_file", [path]))

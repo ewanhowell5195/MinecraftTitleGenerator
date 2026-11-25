@@ -12,6 +12,7 @@ import { LINE } from "../../src/lib/settings/settings.js"
 import { keepMatched } from "../../src/lib/title/match.js"
 import { keepTexture } from "../../src/lib/title/objects.js"
 import { createTitle } from "../../src/lib/title/title.js"
+import { framing } from "../../src/render/framing.js"
 import { FORMAT } from "./format.js"
 import { library } from "./library.js"
 import { stackEntries } from "./passes.js"
@@ -22,19 +23,23 @@ const LINE_KEYS = Array.from(LINE)
 
 const titles = new Map()
 
+let sortHeld = false
+
 function createProjectTitle(project) {
   const list = shallowRef([])
   const members = new Map()
   const scope = effectScope(true)
   const title = Object.defineProperty(createTitle(null, reactive({ render: false, previews: false, eager: false }), reactive(fullCamera())), "objects", { get: () => list.value })
-  const state = { project, title, list, members, lines: new Map(), homes: new Map(), scope, settling: false, sorted: null, stacks: null, changes: 0 }
+  title.framing = framing
+  const state = { project, title, items: null, list, members, lines: new Map(), homes: new Map(), scope, settling: false, sorted: null, stacks: null, changes: 0, stale: false }
   title.quietly = change => {
     quietly(change)
     amendLastEdit(Array.from(members.values(), member => member.element))
   }
   scope.run(() => {
     keepMatched(title)
-    watch(createTitleItems(title), items => sync(state, items), { immediate: true })
+    state.items = createTitleItems(title)
+    watch(state.items, items => sync(state, items), { immediate: true })
   })
   return state
 }
@@ -45,6 +50,8 @@ export function titleState(project = Project) {
 }
 
 function sync(state, items) {
+  state.stale = state.project !== Project
+  if (state.stale) return
   const lines = new Set()
   for (const item of items) {
     const member = state.members.get(item.id)
@@ -216,6 +223,7 @@ export function settleTitle() {
   const state = titleState()
   for (const element of state.project.elements) delete element.temp_data.awaitsWords
   refreshList(state)
+  if (state.stale) sync(state, state.items.value)
   for (const { element } of state.lines.values()) {
     for (const shown of [element].concat(element.words)) shown.preview_controller.updateTransform(shown)
   }
@@ -302,8 +310,12 @@ export function resort() {
   if (Project) Object.assign(titleState(), { sorted: null, stacks: null })
 }
 
+export function holdSort(held) {
+  sortHeld = held
+}
+
 export function sortTitle(camera) {
-  if (!Project || Format.id !== FORMAT) return
+  if (sortHeld || !Project || Format.id !== FORMAT) return
   const state = titleState()
   const seen = `${state.changes} ${camera.matrixWorld.elements.join()} ${camera.projectionMatrix.elements.join()}`
   if (state.sorted === seen) return
