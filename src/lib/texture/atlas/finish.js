@@ -90,13 +90,13 @@ function pixelRect({ x, y, sx, sy }, width, height) {
   return { x, y, width: Math.round(width * sx), height: Math.round(height * sy) }
 }
 
-function bleed(ctx, { x, y, width, height }, { top = true, bottom = true } = {}) {
+function bleed(ctx, source, { x, y, width, height }, { top = true, bottom = true } = {}) {
   const edges = [[x, y, 1, height, x - 1, y], [x + width - 1, y, 1, height, x + width, y]]
   if (top) edges.push([x, y, width, 1, x, y - 1])
   if (bottom) edges.push([x, y + height - 1, width, 1, x, y + height])
   for (const [fromX, fromY, wide, tall, toX, toY] of edges) {
     ctx.clearRect(toX, toY, wide, tall)
-    ctx.drawImage(ctx.canvas, fromX, fromY, wide, tall, toX, toY, wide, tall)
+    ctx.drawImage(source, fromX, fromY, wide, tall, toX, toY, wide, tall)
   }
 }
 
@@ -492,13 +492,15 @@ export function finishAtlas(plan, page, painted, options) {
   ctx.fillRect(swatch.x, swatch.y, SWATCH * swatch.scale, SWATCH * swatch.scale)
   if (options.fadeCurves) fadeCurves(ctx, plan.faces, options.rects, chosen, options.reach, options.limits)
 
+  // drawing a canvas onto itself makes browsers copy the whole canvas each time
+  const whole = snapshot()
   for (const block of own) {
     const { up, front, down } = page.regions.get(block.glyph)
-    bleed(ctx, pixelRect(up, block.own.width, depth), { bottom: false })
-    bleed(ctx, pixelRect(front, block.own.width, block.own.height), { top: false, bottom: false })
-    bleed(ctx, pixelRect(down, block.own.width, depth), { top: false })
+    bleed(ctx, whole, pixelRect(up, block.own.width, depth), { bottom: false })
+    bleed(ctx, whole, pixelRect(front, block.own.width, block.own.height), { top: false, bottom: false })
+    bleed(ctx, whole, pixelRect(down, block.own.width, depth), { top: false })
   }
-  for (const run of packed) bleed(ctx, page.runs.get(run))
+  for (const run of packed) bleed(ctx, whole, page.runs.get(run))
 
   const side = sideSum[3] ? hexOf(sideSum.slice(0, 3).map(value => value / sideSum[3] * options.sideBrightness / 100)) : null
   const edgeStops = stripStops
