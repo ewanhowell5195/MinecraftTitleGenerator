@@ -292,12 +292,12 @@
       <Segments v-else v-model="view" :options="VIEWS" />
       <div v-if="view === '2d'" class="view flat">
         <div v-if="flat" class="flat-image" :style="{ '--ratio': flat.ratio }">
-          <img :src="flat.url" alt="">
+          <img v-popupable="{ zoomable: true }" :src="flat.url" alt="">
           <div v-for="at of flat.guides" :key="at" class="guide" :style="{ top: `${at * 100}%` }"></div>
         </div>
         <p v-else class="hint">{{ words.empty }}</p>
       </div>
-      <LiveTitle v-else class="view" :lines="lines" :fonts="[entry]" :message="words.empty" @settled="settled" />
+      <LiveTitle v-else popup class="view" :lines="lines" :fonts="[entry]" :message="words.empty" @settled="settled" />
       <p v-if="view === '2d' && flat?.guides.length" class="hint">The dashed lines mark where the strip's own rows end. Past them, letters repeat its top or bottom row.</p>
     </template>
     <TileGrid :min="120">
@@ -354,7 +354,12 @@
     padding: 16px;
     overflow: hidden;
     container-type: size;
+  }
+
+  .flat,
+  .flat-image img {
     background: var(--checker);
+    background-position: center;
   }
 
   .flat-image {

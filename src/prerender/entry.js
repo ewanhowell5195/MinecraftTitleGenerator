@@ -6,7 +6,7 @@ import { seedCommunity } from "../lib/state/community.js"
 
 export async function renderPage(path, seed = null) {
   if (seed) seedCommunity(seed)
-  const app = createSSRApp(Root).use(router).directive("tooltip", {})
+  const app = createSSRApp(Root).use(router).directive("tooltip", {}).directive("popupable", {}).directive("popupable-group", {})
   await router.push(path)
   await router.isReady()
   const context = {}

@@ -2,7 +2,6 @@
   import Notice from "../components/Notice.vue"
   import ToggleSwitch from "../components/ToggleSwitch.vue"
   import { onBeforeUnmount, ref, watch } from "vue"
-  import { vPopupable, vPopupableGroup } from "popupable-vue"
   import { fetched } from "../lib/core/api.js"
   import { pngUrl } from "../lib/core/virtualFiles.js"
   import { fontFolder } from "../lib/font/catalog.js"

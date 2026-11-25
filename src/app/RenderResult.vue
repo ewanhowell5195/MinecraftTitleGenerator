@@ -44,6 +44,8 @@
   }
 
   onMounted(async () => {
+    props.image.setAttribute("data-popupable", "")
+    props.image.setAttribute("data-popupable-zoomable", "")
     holder.value.replaceChildren(props.image)
     size.value = sizeText((await blob).size)
   })

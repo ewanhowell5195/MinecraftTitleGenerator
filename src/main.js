@@ -1,6 +1,7 @@
 import "./platform.js"
 import { createApp } from "vue"
 import { setTooltipDefaults, vTooltip } from "easy-tooltips-vue"
+import { vPopupable, vPopupableGroup } from "popupable-vue"
 import Root from "./Root.vue"
 import { followLinks, router } from "./router.js"
 import { seedCommunity } from "./lib/state/community.js"
@@ -20,5 +21,8 @@ const seed = document.getElementById(SEED_ID)
 if (seed) seedCommunity(JSON.parse(seed.textContent))
 setTooltipDefaults({ dismiss: true })
 followLinks(document)
-const app = createApp(Root).use(router).directive("tooltip", vTooltip)
+document.addEventListener("keydown", event => {
+  if (document.querySelector(".popupable-container")) event.stopPropagation()
+})
+const app = createApp(Root).use(router).directive("tooltip", vTooltip).directive("popupable", vPopupable).directive("popupable-group", vPopupableGroup)
 router.isReady().then(() => app.mount("#app"))

@@ -1,6 +1,5 @@
 <script setup>
   import { computed, onMounted, ref, watch } from "vue"
-  import { vPopupable, vPopupableGroup } from "popupable-vue"
   import Badge from "../components/Badge.vue"
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"

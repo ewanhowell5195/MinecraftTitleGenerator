@@ -1,7 +1,6 @@
 <script setup>
   import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, toRaw, watch } from "vue"
   import * as THREE from "three"
-  import { vPopupable } from "popupable-vue"
   import ModelRenderer from "../render/ModelRenderer.js"
   import ObjectRenderer from "../render/ObjectRenderer.js"
   import { createTitleItems } from "../lib/title/items.js"

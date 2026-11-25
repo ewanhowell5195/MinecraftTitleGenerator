@@ -104,9 +104,9 @@
         <textarea v-model="body" rows="6" :maxlength="ISSUE_LIMITS.body"></textarea>
       </Field>
       <Field group label="Images" :error="imageError" :hint="`Screenshots help a lot. Up to ${ISSUE_LIMITS.images} PNG or JPEG images.`">
-        <ul v-if="images.length" class="images">
+        <ul v-if="images.length" v-popupable-group="images.length > 1 && { counter: true, thumbnails: true }" class="images">
           <li v-for="image of images" :key="image.url">
-            <img :src="image.url" alt="">
+            <img v-popupable="{ zoomable: true }" :src="image.url" alt="">
             <Button ghost class="remove" icon="close" title="Remove image" @click="removeImage(image)" />
           </li>
         </ul>
@@ -139,13 +139,13 @@
   .images li {
     position: relative;
     aspect-ratio: 1;
-    background: var(--field);
   }
 
   .images img {
     width: 100%;
     height: 100%;
     object-fit: contain;
+    background: var(--checker);
   }
 
   .remove {

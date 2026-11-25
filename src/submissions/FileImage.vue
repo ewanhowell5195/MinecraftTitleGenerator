@@ -38,14 +38,15 @@
 
 <template>
   <figure class="file-image">
-    <a class="image" :href="url" target="_blank" rel="noopener" v-tooltip="'Open full size'">
+    <div class="image">
       <div ref="box" class="room">
-        <img :src="url" :alt="name || 'The uploaded PNG'" :style="shown?.size" :class="{ waiting: !shown, smooth: shown?.scale < 1 }" @load="loaded">
+        <img v-popupable="!!shown && { zoomable: true }" :src="url" :alt="name || 'The uploaded PNG'" :style="shown?.size" :class="{ waiting: !shown, smooth: shown?.scale < 1 }" @load="loaded">
       </div>
-    </a>
+    </div>
     <figcaption>
       <span class="ellipsis" :title="name">{{ name || "Uploaded PNG" }}</span>
       <span v-if="natural" class="hint">{{ natural.width }}x{{ natural.height }}</span>
+      <a class="hint" :href="url" target="_blank" rel="noopener">Open full size</a>
     </figcaption>
   </figure>
 </template>
@@ -63,9 +64,12 @@
     position: relative;
     flex: 1;
     min-height: 96px;
+  }
+
+  .image,
+  img {
     background: var(--checker);
-    cursor: zoom-in;
-    user-select: none;
+    background-position: center;
   }
 
   .room {
@@ -99,6 +103,9 @@
 
   figcaption .hint {
     flex: none;
+  }
+
+  figcaption a {
     margin-left: auto;
   }
 </style>
