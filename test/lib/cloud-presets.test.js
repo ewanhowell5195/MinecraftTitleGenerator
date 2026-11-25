@@ -12,7 +12,7 @@ fakeTimeouts()
 const { account, refreshAccount } = await import("#lib/state/account.js")
 const { refreshUsage } = await import("#lib/state/community.js")
 const { notice } = await import("#lib/state/notices.js")
-const { addPreset, deleteSharedPreset, markShared, presets, presetsError, presetsLoading, removePreset, renamePreset, replaceTargets, replaceWith, sharePreset, unmarkShared, unsharePreset } = await import("#lib/state/presets.js")
+const { addPreset, deleteSharedPreset, markShared, presets, presetsError, presetsLoading, removePreset, renamePreset, replaceTargets, replaceWith, sharePreset, unmarkShared, unsharePreset } = await import("#lib/presets/savedPresets.js")
 
 const STORAGE = "minecraft-title-presets"
 const SOMEONE = { id: "discord:1", name: "someone", provider: "discord" }

@@ -1,4 +1,5 @@
 import { reactive, ref, watch } from "vue"
+import { readStored } from "./stored.js"
 
 export const SECTIONS = {
   text: { name: "Text", icon: "text" },
@@ -30,14 +31,6 @@ const TABS = ["section", "shapeTab", "layer", "render", "camera", "gizmo"]
 
 export function resetTabs() {
   for (const key of TABS) view[key] = DEFAULTS[key]
-}
-
-export function readStored(key) {
-  try {
-    return JSON.parse(localStorage.getItem(key))
-  } catch {
-    return null
-  }
 }
 
 export const view = reactive({ ...DEFAULTS, ...Object.fromEntries(Object.entries(readStored("minecraft-title-view") ?? {}).filter(([key]) => key in DEFAULTS)) })

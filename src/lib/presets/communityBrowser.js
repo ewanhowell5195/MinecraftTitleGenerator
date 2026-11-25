@@ -2,6 +2,7 @@ import { computed, nextTick, ref, watch } from "vue"
 import { searchWithUser, searchesUser, toggleUserSearch } from "../link/presetSearch.js"
 import { countDownload, randomCommunityPreset, voteOn } from "../state/community.js"
 import { showNotice } from "../state/notices.js"
+import { renameSharedPreset } from "./savedPresets.js"
 import { usePresetPaging } from "./presetPaging.js"
 
 const VOTED_LINGER = 700
@@ -69,7 +70,21 @@ export function useCommunityBrowser({ sort, search, active = () => true, start =
     }
   }
 
+  async function rename(preset, name) {
+    const trimmed = name.trim()
+    if (!trimmed || trimmed === preset.name) return
+    try {
+      preset.name = await renameSharedPreset(preset.id, trimmed)
+    } catch (err) {
+      showNotice(err.message)
+    }
+  }
+
+  function forget(id) {
+    results.value = results.value.filter(preset => preset.id !== id)
+  }
+
   watch(sort, () => load(0))
 
-  return { results, loading, error, sentinel, load, selected, emptyMessage, clear, pick, pickRandom, searched, searchUser, counted, vote }
+  return { results, loading, error, sentinel, load, selected, emptyMessage, clear, pick, pickRandom, searched, searchUser, counted, vote, rename, forget }
 }

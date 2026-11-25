@@ -1,7 +1,7 @@
 <script setup>
   import { ref } from "vue"
   import { showNotice } from "../lib/state/notices.js"
-  import { startSavingPreset } from "../lib/state/presets.js"
+  import { startSavingPreset } from "../lib/presets/savingPreset.js"
   import { scene } from "../lib/state/scene.js"
   import { shareLink } from "../lib/state/share.js"
   import Icon from "../components/Icon.vue"

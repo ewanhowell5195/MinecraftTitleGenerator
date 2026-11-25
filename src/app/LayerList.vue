@@ -1,7 +1,7 @@
 <script setup>
   import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
   import { isPlainClick, vLongPress } from "../components/composables/events.js"
-  import { namingForShare, namingPreset } from "../lib/state/presets.js"
+  import { namingForShare, namingPreset } from "../lib/presets/savingPreset.js"
   import { PRESETS_PATH } from "../lib/presets/presetPath.js"
   import { openPresetsPage } from "../lib/state/presetsPage.js"
   import { dropPreview, renderPreview } from "./previews.js"

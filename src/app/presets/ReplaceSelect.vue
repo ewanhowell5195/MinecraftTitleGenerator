@@ -2,7 +2,7 @@
   import { computed, onMounted } from "vue"
   import { refreshAccount } from "#lib/state/account.js"
   import { refreshUsage } from "#lib/state/community.js"
-  import { replaceTargets } from "#lib/state/presets.js"
+  import { replaceTargets } from "#lib/presets/savedPresets.js"
   import Dropdown from "#c/Dropdown.vue"
   import Notice from "#c/Notice.vue"
 

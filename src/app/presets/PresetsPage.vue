@@ -1,12 +1,12 @@
 <script setup>
   import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, watchEffect } from "vue"
   import { account, accountChanges, refreshAccount, signInProviders } from "#lib/state/account.js"
-  import { cachedCommunityPreset, managedPresets, ownPresets, presetStats, refreshUsage } from "#lib/state/community.js"
+  import { cachedCommunityPreset, managedPresets, ownPresets, refreshUsage } from "#lib/state/community.js"
   import { isPlainClick, useWindowEvents } from "#c/composables/events.js"
-  import { titleBody } from "#lib/link/linkformat.js"
-  import { notice, showNotice } from "#lib/state/notices.js"
-  import { addPreset, deleteSharedPreset, loadPreset, presets, presetsError, presetsLoading, removePreset, renamePreset, renameSharedPreset, unsharePreset } from "#lib/state/presets.js"
-  import { askConfirm, confirming } from "#lib/state/confirm.js"
+  import { notice } from "#lib/state/notices.js"
+  import { addPreset, presetsError, presetsLoading } from "#lib/presets/savedPresets.js"
+  import { loadPreset } from "#lib/state/presets.js"
+  import { confirming } from "#lib/state/confirm.js"
   import { scene } from "#lib/state/scene.js"
   import { closePresetsPage, leavePresetsForEditor, presetsPage, setPresetSearch, setPresetSort, showPresetFilters, showPreset, takeLanding } from "#lib/state/presetsPage.js"
   import { rememberTab, startingTab, usePresetAddress } from "./presetAddress.js"
@@ -27,6 +27,7 @@
   import ShareUsage from "./ShareUsage.vue"
   import TopBar from "#src/site/TopBar.vue"
   import { useCommunityBrowser } from "#lib/presets/communityBrowser.js"
+  import { useMyPresets } from "#lib/presets/myPresets.js"
   import { SORTS, ratingText, toGoText } from "#lib/presets/presetText.js"
   import { router } from "#src/router.js"
 
@@ -38,19 +39,11 @@
   const sort = computed({ get: () => presetsPage.sort, set: setPresetSort })
   const mineSearch = ref("")
   const search = computed({ get: () => tab.value === "community" ? presetsPage.search : mineSearch.value, set: value => tab.value === "community" ? setPresetSearch(value) : mineSearch.value = value })
-  const { results, loading, error, sentinel, load, selected: selectedCommunity, emptyMessage: communityMessage, clear, pick, pickRandom, searched, searchUser, counted, vote } = useCommunityBrowser({ sort, search, active: () => tab.value === "community", start: tab.value === "community" && presetsPage.id !== null ? cachedCommunityPreset(presetsPage.id) : null, shown: showCommunity })
+  const { results, loading, error, sentinel, load, selected: selectedCommunity, emptyMessage: communityMessage, clear, pick, pickRandom, searched, searchUser, counted, vote, rename: renameCommunity, forget } = useCommunityBrowser({ sort, search, active: () => tab.value === "community", start: tab.value === "community" && presetsPage.id !== null ? cachedCommunityPreset(presetsPage.id) : null, shown: showCommunity })
   const root = ref(null)
+  const { selectedCode: selectedLocalCode, stats, removing, term, shown: localShown, groups: localGroups, selected: selectedLocal, isSaved, rename: renameLocal, remove, removeShared } = useMyPresets({ search, active: () => tab.value === "mine", forgotten })
   const sharing = ref(null)
-  const removing = ref(null)
-  const stats = ref({})
-  const selectedLocalCode = ref(null)
 
-  const term = computed(() => search.value.trim())
-  const saved = computed(() => new Set(presets.value.map(preset => titleBody(preset.code))))
-  const localShown = computed(() => presets.value.filter(preset => preset.name.toLowerCase().includes(term.value.toLowerCase())))
-  const localGroups = computed(() => [{ label: "Shared", presets: localShown.value.filter(preset => preset.shared) }, { label: "Local", presets: localShown.value.filter(preset => !preset.shared) }].filter(group => group.presets.length))
-  const sharedIds = computed(() => presets.value.filter(preset => preset.shared).map(preset => preset.shared).join(","))
-  const selectedLocal = computed(() => presets.value.find(preset => preset.code === selectedLocalCode.value) ?? null)
   const selected = computed(() => tab.value === "mine" ? selectedLocal.value : selectedCommunity.value)
   const emptyMessage = computed(() => {
     if (tab.value === "community") return communityMessage.value
@@ -88,13 +81,9 @@
     searchUser(name, provider, toggling)
   }
 
-  async function loadStats() {
-    if (tab.value !== "mine" || !sharedIds.value) return
-    try {
-      stats.value = await presetStats(sharedIds.value.split(","))
-    } catch (err) {
-      console.error(err)
-    }
+  function forgotten(id) {
+    forget(id)
+    if (tab.value === "community") clearSelection()
   }
 
   async function open(preset) {
@@ -110,47 +99,6 @@
   function save(preset) {
     addPreset(preset.name, preset.code)
     counted(preset)
-  }
-
-  async function remove(preset) {
-    if (preset.shared) {
-      removing.value = preset
-      return
-    }
-    if (!await askConfirm({ title: "Delete preset", message: `Delete the preset ${preset.name}?`, action: "Delete", danger: true })) return
-    removePreset(preset)
-    selectedLocalCode.value = null
-  }
-
-  async function confirmRemove(choice) {
-    const preset = removing.value
-    removing.value = null
-    try {
-      if (choice === "local") removePreset(preset)
-      else if (choice === "unshare") await unsharePreset(preset.shared)
-      else await deleteSharedPreset(preset.shared)
-      results.value = results.value.filter(item => item.id !== preset.shared)
-      if (tab.value === "community") clearSelection()
-      else if (choice !== "unshare") selectedLocalCode.value = null
-    } catch (err) {
-      showNotice(err.message)
-    }
-  }
-
-  async function renameCommunity(preset, name) {
-    const trimmed = name.trim()
-    if (!trimmed || trimmed === preset.name) return
-    try {
-      preset.name = await renameSharedPreset(preset.id, trimmed)
-    } catch (err) {
-      showNotice(err.message)
-    }
-  }
-
-  function renameLocal(preset, name) {
-    const trimmed = name.trim()
-    if (!trimmed || trimmed === preset.name) return
-    renamePreset(preset, trimmed)
   }
 
   function removeCommunity(preset) {
@@ -193,7 +141,6 @@
       if (presetsPage.id !== null) showPreset(null)
     }
   })
-  watch([tab, sharedIds], loadStats, { immediate: true })
   watch(accountChanges, () => {
     if (tab.value === "community") load(0)
   })
@@ -277,11 +224,11 @@
           <div ref="sentinel" class="sentinel"></div>
         </div>
       </main>
-      <PresetDetail v-if="selected && tab === 'community'" class="side" :preset="selected" :searched="searched(selected)" :mine="isMine(selected)" :owned="managedPresets.includes(selected.id)" :saved="saved.has(titleBody(selected.code))" @close="clearSelection" @user="filterByUser" @open="open(selected)" @save="save(selected)" @vote="vote(selected, $event)" @rename="renameCommunity(selected, $event)" @remove="removeCommunity(selected)" />
+      <PresetDetail v-if="selected && tab === 'community'" class="side" :preset="selected" :searched="searched(selected)" :mine="isMine(selected)" :owned="managedPresets.includes(selected.id)" :saved="isSaved(selected)" @close="clearSelection" @user="filterByUser" @open="open(selected)" @save="save(selected)" @vote="vote(selected, $event)" @rename="renameCommunity(selected, $event)" @remove="removeCommunity(selected)" />
       <PresetDetail v-else-if="selected" class="side" :preset="selected" :stats="stats[selected.shared]" local @close="clearSelection" @user="filterByUser" @open="open(selected)" @rename="renameLocal(selected, $event)" @remove="remove(selected)" @share="sharing = selected" @view="viewInCommunity(selected.shared)" />
     </div>
     <SharePresetDialog v-if="sharing" :preset="sharing" @close="sharing = null" @shared="shared" />
-    <DeletePresetDialog v-if="removing" :preset="removing" :can-delete-shared="managedPresets.includes(removing.shared)" @close="removing = null" @delete="confirmRemove" />
+    <DeletePresetDialog v-if="removing" :preset="removing" :can-delete-shared="managedPresets.includes(removing.shared)" @close="removing = null" @delete="removeShared" />
     <p v-if="notice" class="toast" role="status">{{ notice }}</p>
   </div>
 </template>

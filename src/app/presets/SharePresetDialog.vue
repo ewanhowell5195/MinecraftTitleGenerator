@@ -1,9 +1,9 @@
 <script setup>
-  import { confirmReplacing, confirmSharing, replaceWith, sharePreset } from "#lib/state/presets.js"
+  import { confirmReplacing, confirmSharing, replaceWith, sharePreset } from "#lib/presets/savedPresets.js"
   import Button from "#c/Button.vue"
   import Dialog from "#c/Dialog.vue"
   import ShareFields from "./ShareFields.vue"
-  import { useShareForm } from "./shareForm.js"
+  import { useShareForm } from "#lib/presets/shareForm.js"
 
   const props = defineProps({
     preset: { type: Object, required: true }
