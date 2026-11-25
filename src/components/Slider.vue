@@ -1,6 +1,6 @@
 <script setup>
   import { computed, onUpdated, ref } from "vue"
-  import { clamp } from "../lib/core/maths.js"
+  import { nearestStep, sliderFill, sliderPosition, sliderRange, sliderValue } from "../lib/panels/slider.js"
   import NumberInput from "./NumberInput.vue"
 
   const props = defineProps({
@@ -16,14 +16,14 @@
     hint: { type: String, default: "" }
   })
 
-  const SPAN = 1000
-
   const value = defineModel({ type: Number, required: true })
   const range = ref(null)
 
+  const bounds = computed(() => sliderRange(props))
+  const fill = computed(() => sliderFill(props, value.value))
   const position = computed({
-    get: () => props.log ? clamp(Math.round(Math.log(value.value / props.min) / Math.log(props.max / props.min) * SPAN), 0, SPAN) : value.value,
-    set: at => value.value = props.log ? Math.round(props.min * (props.max / props.min) ** (at / SPAN) / props.step) * props.step : at
+    get: () => sliderPosition(props, value.value),
+    set: at => (value.value = sliderValue(props, at))
   })
 
   // the value is applied before a raised max, so the browser clamps it to the old max
@@ -31,33 +31,12 @@
     if (range.value) range.value.value = position.value
   })
 
-  function nearest(number) {
-    return props.steps.reduce((best, step, index) => Math.abs(step - number) < Math.abs(props.steps[best] - number) ? index : best, 0)
-  }
-
-  const index = computed({
-    get: () => nearest(value.value),
-    set: at => value.value = props.steps[at]
-  })
-
-  function percent(number) {
-    return clamp((number - props.min) / (props.max - props.min) * 100, 0, 100)
-  }
-
-  const fill = computed(() => {
-    if (props.steps) return { "--from": "0%", "--to": `${index.value / (props.steps.length - 1) * 100}%` }
-    if (props.log) return { "--from": "0%", "--to": `${position.value / SPAN * 100}%` }
-    const origin = percent(clamp(0, props.min, props.max))
-    const current = percent(clamp(props.min + Math.round((value.value - props.min) / props.step) * props.step, props.min, props.max))
-    return { "--from": `${Math.min(origin, current)}%`, "--to": `${Math.max(origin, current)}%` }
-  })
-
   function entered(next) {
     if (typeof next === "number") value.value = next
   }
 
   function typed(event) {
-    if (!Number.isNaN(event.target.valueAsNumber)) value.value = props.steps[nearest(event.target.valueAsNumber)]
+    if (!Number.isNaN(event.target.valueAsNumber)) value.value = props.steps[nearestStep(props.steps, event.target.valueAsNumber)]
     event.target.value = +value.value.toFixed(2)
   }
 </script>
@@ -65,14 +44,9 @@
 <template>
   <div class="slider" :class="{ inline }">
     <span class="label">{{ label }}</span>
-    <template v-if="steps">
-      <NumberInput bare class="value" :value="+value.toFixed(2)" :min="min" :max="max" step="any" :aria-label="label" @change="typed" />
-      <input class="range" type="range" v-model.number="index" min="0" :max="steps.length - 1" step="1" :style="fill" :aria-label="label">
-    </template>
-    <template v-else>
-      <NumberInput bare class="value" :model-value="value" @update:model-value="entered" :min="typedMin === undefined ? min : typedMin" :max="typedMax === undefined ? max : typedMax" :step="step" :aria-label="label" />
-      <input ref="range" class="range" type="range" v-model.number="position" :min="log ? 0 : min" :max="log ? SPAN : max" :step="log ? 1 : step" :style="fill" :aria-label="label">
-    </template>
+    <NumberInput v-if="steps" bare class="value" :value="+value.toFixed(2)" :min="min" :max="max" step="any" :aria-label="label" @change="typed" />
+    <NumberInput v-else bare class="value" :model-value="value" @update:model-value="entered" :min="typedMin === undefined ? min : typedMin" :max="typedMax === undefined ? max : typedMax" :step="step" :aria-label="label" />
+    <input ref="range" class="range" type="range" v-model.number="position" :min="bounds.min" :max="bounds.max" :step="bounds.step" :style="fill" :aria-label="label">
     <span v-if="hint" class="hint">{{ hint }}</span>
   </div>
 </template>

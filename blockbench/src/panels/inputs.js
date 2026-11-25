@@ -1,4 +1,5 @@
-const SPAN = 1000
+import { clamp } from "#lib/core/maths.js"
+import { nearestStep, sliderFill, sliderPosition, sliderRange, sliderValue } from "#lib/panels/slider.js"
 
 let pickers = 0
 
@@ -6,8 +7,7 @@ export const SliderControl = {
   props: { label: String, value: Number, min: Number, max: Number, typedMin: { default: undefined }, typedMax: { default: undefined }, step: { type: Number, default: 1 }, steps: { type: Array, default: null }, log: { type: Boolean, default: false }, hint: { type: String, default: "" } },
   computed: {
     range() {
-      if (this.log) return { min: 0, max: SPAN, step: 1 }
-      return this.steps ? { min: 0, max: this.steps.length - 1, step: 1 } : { min: this.min, max: this.max, step: this.step }
+      return sliderRange(this)
     },
     lowest() {
       return this.typedMin === undefined ? this.min : this.typedMin
@@ -16,27 +16,18 @@ export const SliderControl = {
       return this.typedMax === undefined ? this.max : this.typedMax
     },
     position() {
-      if (this.log) return Math.clamp(Math.round(Math.log(this.value / this.min) / Math.log(this.max / this.min) * SPAN), 0, SPAN)
-      return this.steps ? this.nearest(this.value) : this.value
+      return sliderPosition(this, this.value)
     },
     shown() {
       return +this.value.toFixed(2)
     },
     fill() {
-      const { min: low, max: high } = this.range
-      const share = value => Math.clamp((value - low) / (high - low) * 100, 0, 100)
-      const [from, to] = [share(Math.clamp(0, low, high)), share(this.position)].sort((a, b) => a - b)
-      return { "--from": `${from}%`, "--to": `${to}%` }
+      return sliderFill(this, this.value)
     }
   },
   methods: {
-    nearest(number) {
-      return this.steps.reduce((best, step, index) => Math.abs(step - number) < Math.abs(this.steps[best] - number) ? index : best, 0)
-    },
     slide(event) {
-      const at = event.target.valueAsNumber
-      if (this.log) this.$emit("change", Math.round(this.min * (this.max / this.min) ** (at / SPAN) / this.step) * this.step)
-      else this.$emit("change", this.steps ? this.steps[at] : at)
+      this.$emit("change", sliderValue(this, event.target.valueAsNumber))
     },
     stepped(number) {
       const base = this.lowest ?? 0
@@ -45,7 +36,7 @@ export const SliderControl = {
     },
     typed(event) {
       const number = event.target.valueAsNumber
-      if (!Number.isNaN(number)) this.$emit("change", this.steps ? this.steps[this.nearest(number)] : Math.clamp(this.stepped(number), this.lowest ?? -Infinity, this.highest ?? Infinity))
+      if (!Number.isNaN(number)) this.$emit("change", this.steps ? this.steps[nearestStep(this.steps, number)] : clamp(this.stepped(number), this.lowest ?? -Infinity, this.highest ?? Infinity))
       this.$nextTick(() => event.target.value = this.shown)
       this.$emit("done")
     }
