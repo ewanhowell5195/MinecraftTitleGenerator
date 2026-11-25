@@ -2,9 +2,9 @@ import { wordsOf } from "../title/title.js"
 import { effectiveScale } from "../settings/settings.js"
 
 const STACK = {
-  top: { scale: 1, pad: true, spacing: 1 },
-  bottom: { scale: 1.67665, pad: true, spacing: 1.67665 },
-  small: { scale: 0.43021, pad: false, spacing: 1 }
+  top: { scale: 1, spacing: 1 },
+  bottom: { scale: 1.67665, spacing: 1.67665 },
+  small: { scale: 0.43021, spacing: 1 }
 }
 
 export const DEFAULT_HEIGHT = 44
@@ -29,7 +29,7 @@ function extent(object, title) {
   const stack = STACK[object.type]
   const { height = DEFAULT_HEIGHT, capHeight = DEFAULT_CAP_HEIGHT, scaleY = effectiveScale(object)[1] } = title.heights[object.id] ?? {}
   const arc = lineArc(object, title)
-  const pad = stack.pad ? 2 * object.border * (object.scaleOutline ? scaleY : 1) : 0
+  const pad = 2 * object.border * (object.scaleOutline ? scaleY : 1)
   return stack.scale * ((capHeight + arc.top + arc.bottom) * scaleY + height - capHeight + pad)
 }
 

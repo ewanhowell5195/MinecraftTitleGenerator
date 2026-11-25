@@ -122,11 +122,11 @@ describe("rowStart scaling by type", () => {
     near(rowStart(object, editorTitle), 1.67665 * 48 + 1.67665 * 2)
   })
 
-  test("small rows scale height without outline padding or spacing scale", () => {
+  test("small rows scale height and outline padding but not row spacing", () => {
     const base = createObject({ type: "small", row: 0, border: 3 })
     const object = createObject({ type: "small", row: 1, rowSpacing: 2 })
     setScene(base, object)
-    near(rowStart(object, editorTitle), 0.43021 * 44 + 2)
+    near(rowStart(object, editorTitle), 0.43021 * 50 + 2)
   })
 
   test("types stack separately", () => {
