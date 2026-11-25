@@ -4,6 +4,7 @@ import { FORMAT } from "./format.js"
 
 export const RENDER_ORDER = "minecraft_title_render_order"
 export const SHARE = "minecraft_title_share_render_order"
+const IGNORE_SHADING = "minecraft_title_ignore_shading"
 
 const ORDINARY = { behind: -3, default: -2, in_front: 1 }
 const { onBeforeRender, onAfterRender } = THREE.Object3D.prototype
@@ -41,18 +42,28 @@ function stacksIn(nodes) {
   return nodes.filter(node => node instanceof Group).flatMap(group => ordersIn(group).length > 1 ? [group] : stacksIn(group.children))
 }
 
-function skipDepth(renderer, scene, camera, geometry, material) {
-  material.depthWrite = false
+function setShade(material, value) {
+  material.uniforms.SHADE.value = value
+  material.uniformsNeedUpdate = true
 }
 
-function restoreDepth(renderer, scene, camera, geometry, material) {
-  material.depthWrite = true
-}
-
-function draw(mesh, order, depth = true) {
+function draw(element, order, depth = true) {
+  const { mesh } = element
+  let shaded = false
   mesh.renderOrder = order
-  mesh.onBeforeRender = depth ? onBeforeRender : skipDepth
-  mesh.onAfterRender = depth ? onAfterRender : restoreDepth
+  mesh.onBeforeRender = (renderer, scene, camera, geometry, material) => {
+    if (!depth) material.depthWrite = false
+    shaded = Format.id === FORMAT && element[IGNORE_SHADING] && !!material.uniforms?.SHADE?.value
+    if (shaded) setShade(material, false)
+  }
+  mesh.onAfterRender = (renderer, scene, camera, geometry, material) => {
+    if (!depth) material.depthWrite = true
+    if (shaded) setShade(material, true)
+  }
+}
+
+function release(mesh) {
+  Object.assign(mesh, { renderOrder: 0, onBeforeRender, onAfterRender })
 }
 
 function stackEntry(group) {
@@ -68,7 +79,7 @@ function stackEntry(group) {
       set renderOrder(value) {
         order = value
         for (const [index, { elements, depth }] of passes.entries()) {
-          for (const { mesh } of elements) draw(mesh, value + (index - passes.length) / passes.length, depth)
+          for (const element of elements) draw(element, value + (index - passes.length) / passes.length, depth)
         }
       }
     }
@@ -78,7 +89,9 @@ function stackEntry(group) {
 export function stackEntries() {
   const stacks = stacksIn(Outliner.root)
   for (const element of Outliner.elements) {
-    if (!isTitle(element) && element.mesh) draw(element.mesh, ORDINARY[element.render_order] ?? ORDINARY.default)
+    if (isTitle(element) || !element.mesh) continue
+    if (element.constructor.properties[IGNORE_SHADING]) element[IGNORE_SHADING] ??= true
+    draw(element, ORDINARY[element.render_order] ?? ORDINARY.default)
   }
   return stacks.map(stackEntry)
 }
@@ -89,6 +102,9 @@ export function registerPasses() {
     new Property(Group, "number", RENDER_ORDER, { condition, inputs: { element_panel: { input: { label: "Render Order", description: "Groups next to each other are drawn from the lowest order to the highest, and each one is covered by the ones after it", type: "number" } } } }),
     new Property(Group, "boolean", SHARE, { condition, inputs: { element_panel: { input: { label: "Share Render Order", description: "Compares the render order of every group inside this one, however deep, instead of only groups next to each other", type: "checkbox" } } } })
   )
+  for (const type of [Cube, Mesh]) {
+    properties.push(new Property(type, "boolean", IGNORE_SHADING, { default: true, condition, inputs: { element_panel: { input: { label: "Ignore Shading", description: "Keeps this unshaded like titles are, even while shading is on", type: "checkbox" } } } }))
+  }
 }
 
 export function unregisterPasses() {
@@ -96,7 +112,7 @@ export function unregisterPasses() {
     for (const element of project.elements) {
       const mesh = project.nodes_3d[element.uuid]
       if (!mesh) continue
-      draw(mesh, 0)
+      release(mesh)
       if (project === Project) element.preview_controller.updateRenderOrder?.(element)
     }
   }

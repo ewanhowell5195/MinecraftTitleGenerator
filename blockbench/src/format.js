@@ -1,7 +1,6 @@
 export const FORMAT = "minecraft_title"
 
 let format = null
-let shading = null
 
 export function registerFormat({ onNew }) {
   format = new ModelFormat({
@@ -23,14 +22,6 @@ export function registerFormat({ onNew }) {
       if (!newProject(this)) return false
       onNew()
       return true
-    },
-    onActivation() {
-      shading = settings.shading.value
-      settings.shading.set(false)
-    },
-    onDeactivation() {
-      if (shading !== null) settings.shading.set(shading)
-      shading = null
     }
   })
 }
