@@ -1,5 +1,5 @@
 import { reactive } from "vue"
-import { loadLibrary } from "../../src/lib/link/titleNames.js"
+import { loadLibrary } from "#lib/link/titleNames.js"
 
 export const library = reactive({ ready: false, error: null, fonts: [], shapes: [], tileables: {} })
 

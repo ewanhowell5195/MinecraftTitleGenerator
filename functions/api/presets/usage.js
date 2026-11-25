@@ -1,3 +1,3 @@
-import { submissionUsage } from "../../../src/server/presets.js"
+import { submissionUsage } from "#server/presets.js"
 
 export const onRequestGet = submissionUsage

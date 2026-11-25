@@ -1,5 +1,5 @@
 import { ref, shallowRef } from "vue"
-import { renderFramed, renderLayers, renderVector } from "../../render/framing.js"
+import { renderFramed, renderLayers, renderVector } from "#render/framing.js"
 import { painted } from "../core/platform.js"
 import { canvasBlob } from "../core/files.js"
 import { zipOf } from "../core/zip.js"

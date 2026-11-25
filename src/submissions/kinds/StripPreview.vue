@@ -1,9 +1,9 @@
 <script setup>
   import { computed } from "vue"
-  import Dropdown from "../../components/Dropdown.vue"
-  import LiveTitle from "../../components/LiveTitle.vue"
+  import Dropdown from "#c/Dropdown.vue"
+  import LiveTitle from "#c/LiveTitle.vue"
   import { embedded } from "../submissionLink.js"
-  import { submissionExtraUrl } from "../../lib/submissions/submissionsApi.js"
+  import { submissionExtraUrl } from "#lib/submissions/submissionsApi.js"
   import { fontOptions } from "./fontOptions.js"
   import { usePreviewLine } from "./preview.js"
   import { previewFonts, stripLine } from "./strip.js"

@@ -1,10 +1,10 @@
 <script setup>
   import { computed, onMounted, ref, watch } from "vue"
-  import Dropdown from "../../components/Dropdown.vue"
-  import Field from "../../components/Field.vue"
-  import Segments from "../../components/Segments.vue"
-  import { fetched } from "../../lib/core/api.js"
-  import { TILEABLES_LIST, TILEABLE_SIDES, tileableName } from "../../lib/submissions/kinds/tileable.js"
+  import Dropdown from "#c/Dropdown.vue"
+  import Field from "#c/Field.vue"
+  import Segments from "#c/Segments.vue"
+  import { fetched } from "#lib/core/api.js"
+  import { TILEABLES_LIST, TILEABLE_SIDES, tileableName } from "#lib/submissions/kinds/tileable.js"
 
   const MODES = [{ value: "new", label: "A new tileable" }, { value: "variant", label: "A variant" }]
 

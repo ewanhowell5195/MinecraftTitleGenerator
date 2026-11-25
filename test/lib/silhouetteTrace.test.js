@@ -1,7 +1,7 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { cubesMatch, silhouetteSample } from "../../src/lib/font/silhouette.js"
-import { traceSilhouette } from "../../src/lib/font/silhouetteTrace.js"
+import { cubesMatch, silhouetteSample } from "#lib/font/silhouette.js"
+import { traceSilhouette } from "#lib/font/silhouetteTrace.js"
 
 function imageOf(width, height, coverage) {
   const data = new Uint8ClampedArray(width * height * 4)

@@ -2,11 +2,11 @@ import { afterEach, beforeEach, describe, mock, test } from "node:test"
 import assert from "node:assert/strict"
 import { atProvider, begin, calls, code, context, cookiePair, db, download, env, finishing, freshServer, list, post, remove, rename, restoreFetch, rowsEverywhere, share, shareAs, signIn, stubProvider, usageAs, usageOf, vote, withCookie } from "../helpers/presets.js"
 
-const { LIMITS } = await import("../../src/lib/core/limits.js")
-const { getPreset, submissionUsage } = await import("../../src/server/presets.js")
-const { votePreset } = await import("../../src/server/presetScores.js")
-const { accountDetails, signOut, startSignIn } = await import("../../src/server/accounts.js")
-const { addSaved, removeSaved } = await import("../../src/server/saved.js")
+const { LIMITS } = await import("#lib/core/limits.js")
+const { getPreset, submissionUsage } = await import("#server/presets.js")
+const { votePreset } = await import("#server/presetScores.js")
+const { accountDetails, signOut, startSignIn } = await import("#server/accounts.js")
+const { addSaved, removeSaved } = await import("#server/saved.js")
 
 beforeEach(freshServer)
 

@@ -1,5 +1,5 @@
-import { SUBMISSION_KINDS, checkSubmission, submissionContext } from "../../lib/submissions/kinds/index.js"
-import { EXTRA_FILE, SUBMISSION_LIMITS, sizedProblem } from "../../lib/submissions/submissions.js"
+import { SUBMISSION_KINDS, checkSubmission, submissionContext } from "#lib/submissions/kinds/index.js"
+import { EXTRA_FILE, SUBMISSION_LIMITS, sizedProblem } from "#lib/submissions/submissions.js"
 import { Refusal, bodyBytes } from "../http.js"
 import { asset, publishedFonts } from "./store.js"
 

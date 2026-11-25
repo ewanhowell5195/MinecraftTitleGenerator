@@ -6,12 +6,12 @@ stubStorage()
 forbidFetch()
 fakeTimeouts()
 
-const { typeDefaults } = await import("../../src/lib/settings/defaults.js")
-const { snapshot } = await import("../../src/lib/settings/settings.js")
-const { createObject } = await import("../../src/lib/settings/objects.js")
-const { view } = await import("../../src/lib/state/view.js")
-const { keepTexture } = await import("../../src/lib/title/objects.js")
-const { addObject, addShape, addWord, freeRow, noteType, bakeMatch, chooseMatch, current, currentWord, duplicateLine, insertWord, lineHidden, lineText, removeLine, removeObject, runtime, scene, select, selectGroup, selection, setScale, shapingWord, titleFileName, toggleLine, validSelection, wordTabs, words } = await import("../../src/lib/state/scene.js")
+const { typeDefaults } = await import("#lib/settings/defaults.js")
+const { snapshot } = await import("#lib/settings/settings.js")
+const { createObject } = await import("#lib/settings/objects.js")
+const { view } = await import("#lib/state/view.js")
+const { keepTexture } = await import("#lib/title/objects.js")
+const { addObject, addShape, addWord, freeRow, noteType, bakeMatch, chooseMatch, current, currentWord, duplicateLine, insertWord, lineHidden, lineText, removeLine, removeObject, runtime, scene, select, selectGroup, selection, setScale, shapingWord, titleFileName, toggleLine, validSelection, wordTabs, words } = await import("#lib/state/scene.js")
 const { line, setScene, texts } = await import("../helpers/scene.js")
 
 beforeEach(() => {

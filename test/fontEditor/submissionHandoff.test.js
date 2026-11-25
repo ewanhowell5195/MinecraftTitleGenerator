@@ -1,8 +1,8 @@
 import assert from "node:assert/strict"
 import { beforeEach, describe, test } from "node:test"
-import { setNavigator } from "../../src/lib/state/navigation.js"
-import { EDITOR_EDIT } from "../../src/lib/submissions/submissions.js"
-import { EDITOR_PATH, START_PATH, editingSubmission, font, openingSubmission, submissionError, takeSubmissionFont } from "../../src/fontEditor/store.js"
+import { setNavigator } from "#lib/state/navigation.js"
+import { EDITOR_EDIT } from "#lib/submissions/submissions.js"
+import { EDITOR_PATH, START_PATH, editingSubmission, font, openingSubmission, submissionError, takeSubmissionFont } from "#src/fontEditor/store.js"
 import { fakeTimeouts, quietStorage } from "../helpers/browser.js"
 
 const moves = []

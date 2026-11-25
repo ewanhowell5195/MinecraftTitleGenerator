@@ -1,11 +1,11 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { crackList, crackTriangle, crackWrap } from "../../src/lib/texture/overlays/cracks.js"
-import { edgeAlpha } from "../../src/lib/texture/overlays/edges.js"
-import { planAtlas, stripSpans } from "../../src/lib/texture/atlas/plan.js"
-import { generatedAlpha } from "../../src/lib/texture/overlays/faces.js"
-import { layerGlyph } from "../../src/lib/font/flatSheet.js"
-import { joinNeighbours } from "../../src/lib/geometry/joins.js"
+import { crackList, crackTriangle, crackWrap } from "#lib/texture/overlays/cracks.js"
+import { edgeAlpha } from "#lib/texture/overlays/edges.js"
+import { planAtlas, stripSpans } from "#lib/texture/atlas/plan.js"
+import { generatedAlpha } from "#lib/texture/overlays/faces.js"
+import { layerGlyph } from "#lib/font/flatSheet.js"
+import { joinNeighbours } from "#lib/geometry/joins.js"
 import { columnOf, glyphOf, near, picture, rowsOf, solid } from "../helpers/overlays.js"
 
 describe("edge overlays", () => {

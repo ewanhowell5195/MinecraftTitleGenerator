@@ -1,3 +1,3 @@
-import { unsharePreset } from "../../../../src/server/presets.js"
+import { unsharePreset } from "#server/presets.js"
 
 export const onRequestPost = unsharePreset

@@ -1,7 +1,7 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { curveWeights, fadeCurves, keepStrips } from "../../src/lib/texture/atlas/curveFade.js"
-import { planAtlas } from "../../src/lib/texture/atlas/plan.js"
+import { curveWeights, fadeCurves, keepStrips } from "#lib/texture/atlas/curveFade.js"
+import { planAtlas } from "#lib/texture/atlas/plan.js"
 
 const RECT = { minX: 0, maxX: 10, minY: 0, maxY: 10 }
 

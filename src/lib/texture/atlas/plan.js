@@ -1,4 +1,4 @@
-import { faceDepth } from "../../geometry/sizes.js"
+import { faceDepth } from "#lib/geometry/sizes.js"
 
 export function extent(points, axis) {
   let min = Infinity

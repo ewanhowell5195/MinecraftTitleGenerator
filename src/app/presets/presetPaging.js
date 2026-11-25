@@ -1,5 +1,5 @@
 import { onBeforeUnmount, onMounted, ref, watch } from "vue"
-import { cachedCommunity, listCommunity } from "../../lib/state/community.js"
+import { cachedCommunity, listCommunity } from "#lib/state/community.js"
 
 export function usePresetPaging({ sort, search, active, loaded }) {
   const cached = active() ? cachedCommunity({ sort: sort.value, search: search.value, offset: 0 }) : null

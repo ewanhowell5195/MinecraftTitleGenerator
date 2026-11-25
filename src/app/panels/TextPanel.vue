@@ -1,12 +1,12 @@
 <script setup>
   import { computed, nextTick, ref } from "vue"
-  import { followPointer, useReorderDrag } from "../../components/composables/reorder.js"
-  import { addWord, insertWord, removeObject, runtime, scene, select, selection, words } from "../../lib/state/scene.js"
-  import { splitWord } from "../../lib/panels/words.js"
-  import { resetPanel } from "../../lib/settings/settings.js"
-  import { splitGradients } from "../../lib/texture/wordGradients.js"
-  import Button from "../../components/Button.vue"
-  import Icon from "../../components/Icon.vue"
+  import { followPointer, useReorderDrag } from "#c/composables/reorder.js"
+  import { addWord, insertWord, removeObject, runtime, scene, select, selection, words } from "#lib/state/scene.js"
+  import { splitWord } from "#lib/panels/words.js"
+  import { resetPanel } from "#lib/settings/settings.js"
+  import { splitGradients } from "#lib/texture/wordGradients.js"
+  import Button from "#c/Button.vue"
+  import Icon from "#c/Icon.vue"
   import Panel from "../Panel.vue"
 
   const line = computed(() => words(selection.value[0]))

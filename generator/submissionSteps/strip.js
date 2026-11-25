@@ -1,5 +1,5 @@
-import { stripsOf } from "../../src/lib/font/catalog.js"
-import { stripUse } from "../../src/lib/font/strips.js"
+import { stripsOf } from "#lib/font/catalog.js"
+import { stripUse } from "#lib/font/strips.js"
 import { publishedFonts, publishedShapes } from "../fonts.js"
 
 export function prepare({ root, changed, node }) {

@@ -1,6 +1,6 @@
 <script setup>
-  import { providerLabel } from "../../lib/core/providers.js"
-  import UserName from "../../components/UserName.vue"
+  import { providerLabel } from "#lib/core/providers.js"
+  import UserName from "#c/UserName.vue"
 
   defineProps({
     name: { type: String, required: true },

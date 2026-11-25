@@ -4,10 +4,10 @@ import { quietStorage } from "../helpers/browser.js"
 
 quietStorage()
 
-const { paintLine } = await import("../../src/lib/title/items.js")
-const { decodeTitle, encodeTitle } = await import("../../src/lib/link/linkformat.js")
-const { unknownSetting } = await import("../../src/lib/link/linkKeys.js")
-const { createObject } = await import("../../src/lib/settings/objects.js")
+const { paintLine } = await import("#lib/title/items.js")
+const { decodeTitle, encodeTitle } = await import("#lib/link/linkformat.js")
+const { unknownSetting } = await import("#lib/link/linkKeys.js")
+const { createObject } = await import("#lib/settings/objects.js")
 
 function word(values) {
   return createObject({ text: "word", group: 7, ...values })

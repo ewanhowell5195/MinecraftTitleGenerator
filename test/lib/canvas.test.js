@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
-import { fadeStops, largestTexture } from "../../src/lib/texture/canvas.js"
+import { fadeStops, largestTexture } from "#lib/texture/canvas.js"
 
 describe("fadeStops", () => {
   const positions = fade => fadeStops("edge", "clear", fade).map(stop => [stop.position, stop.colour])

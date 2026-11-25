@@ -1,9 +1,9 @@
 import assert from "node:assert/strict"
 import { after, describe, test } from "node:test"
-import { blockName, blockTexturePaths, isOpaque, pngSize, usableVersions } from "../../src/lib/minecraft/minecraft.js"
-import { dropThumbnail, fitState, keepVersions, modelItems, modelThumbnail, stateList } from "../../src/lib/minecraft/minecraftModels.js"
-import { firstTile } from "../../src/lib/texture/paint/tiles.js"
-import { usePlatform } from "../../src/lib/core/platform.js"
+import { blockName, blockTexturePaths, isOpaque, pngSize, usableVersions } from "#lib/minecraft/minecraft.js"
+import { dropThumbnail, fitState, keepVersions, modelItems, modelThumbnail, stateList } from "#lib/minecraft/minecraftModels.js"
+import { firstTile } from "#lib/texture/paint/tiles.js"
+import { usePlatform } from "#lib/core/platform.js"
 
 describe("blockTexturePaths", () => {
   test("finds the modern block folder", () => {

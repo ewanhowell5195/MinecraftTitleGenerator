@@ -1,8 +1,8 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { pictureUrl } from "../../src/lib/core/pictures.js"
-import { ratingText, sharedText, toGoText, usesText, votesText } from "../../src/app/presets/presetText.js"
-import { DETAIL_SLOT, LIST_SLOT, SEARCH, TILES, VARIANTS, filled, markerPreset, presetsHtml, variantKey } from "../../src/server/presetTemplates.js"
+import { pictureUrl } from "#lib/core/pictures.js"
+import { ratingText, sharedText, toGoText, usesText, votesText } from "#src/app/presets/presetText.js"
+import { DETAIL_SLOT, LIST_SLOT, SEARCH, TILES, VARIANTS, filled, markerPreset, presetsHtml, variantKey } from "#server/presetTemplates.js"
 
 function tileTemplate(marker) {
   const rating = marker.rating === null ? "<span>Needs votes</span>" : `<span>${ratingText(marker.rating)}</span>`

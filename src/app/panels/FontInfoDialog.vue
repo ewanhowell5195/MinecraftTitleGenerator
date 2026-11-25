@@ -1,6 +1,6 @@
 <script setup>
   import { computed } from "vue"
-  import Dialog from "../../components/Dialog.vue"
+  import Dialog from "#c/Dialog.vue"
 
   const props = defineProps({
     font: { type: Object, required: true },

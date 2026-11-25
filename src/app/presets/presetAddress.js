@@ -1,10 +1,10 @@
 import { nextTick, watch } from "vue"
-import { refreshAccount } from "../../lib/state/account.js"
-import { communityPreset } from "../../lib/state/community.js"
-import { titleBody } from "../../lib/link/linkformat.js"
-import { presets, presetsLoaded, unmarkShared } from "../../lib/state/presets.js"
-import { addressHasFilters, openLinkInEditor, presetsPage, showOwnPreset, showPreset } from "../../lib/state/presetsPage.js"
-import { openSharedLink } from "../../lib/state/share.js"
+import { refreshAccount } from "#lib/state/account.js"
+import { communityPreset } from "#lib/state/community.js"
+import { titleBody } from "#lib/link/linkformat.js"
+import { presets, presetsLoaded, unmarkShared } from "#lib/state/presets.js"
+import { addressHasFilters, openLinkInEditor, presetsPage, showOwnPreset, showPreset } from "#lib/state/presetsPage.js"
+import { openSharedLink } from "#lib/state/share.js"
 
 const TAB_STORAGE = "minecraft-title-presets-tab"
 

@@ -1,5 +1,5 @@
-import { clamp } from "../../../src/lib/core/maths.js"
-import { DEFAULT_MIX, cssGradient, movedStopPositions, stopColour } from "../../../src/lib/texture/colourStops.js"
+import { clamp } from "#lib/core/maths.js"
+import { DEFAULT_MIX, cssGradient, movedStopPositions, stopColour } from "#lib/texture/colourStops.js"
 import { followDrag, sortRows } from "./drag.js"
 import { ColourControl } from "./inputs.js"
 

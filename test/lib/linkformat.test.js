@@ -1,13 +1,13 @@
 import assert from "node:assert/strict"
 import fs from "node:fs"
 import { describe, test } from "node:test"
-import { GENERATED_SETTINGS } from "../../src/lib/texture/overlays/settings.js"
-import { decodeTitle, encodeTitle, openableTitle, titleBody } from "../../src/lib/link/linkformat.js"
-import { readTitleBytes, unknownSetting, writeLines } from "../../src/lib/link/linkKeys.js"
-import { UPLOAD_KEYS } from "../../src/lib/link/uploads.js"
-import { typeDefaults } from "../../src/lib/settings/defaults.js"
-import { LAYER } from "../../src/lib/settings/textureDefaults.js"
-import { FILE_VERSION } from "../../src/lib/settings/upgrades.js"
+import { GENERATED_SETTINGS } from "#lib/texture/overlays/settings.js"
+import { decodeTitle, encodeTitle, openableTitle, titleBody } from "#lib/link/linkformat.js"
+import { readTitleBytes, unknownSetting, writeLines } from "#lib/link/linkKeys.js"
+import { UPLOAD_KEYS } from "#lib/link/uploads.js"
+import { typeDefaults } from "#lib/settings/defaults.js"
+import { LAYER } from "#lib/settings/textureDefaults.js"
+import { FILE_VERSION } from "#lib/settings/upgrades.js"
 
 const fixtures = JSON.parse(fs.readFileSync(new URL("../fixtures/links.json", import.meta.url), "utf8"))
 

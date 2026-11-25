@@ -1,4 +1,4 @@
-import { clamp } from "../../core/maths.js"
+import { clamp } from "#lib/core/maths.js"
 import { random } from "./random.js"
 
 const WAVE_START = -1024

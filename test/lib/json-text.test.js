@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { jsonText } from "../../src/lib/core/jsonText.js"
+import { jsonText } from "#lib/core/jsonText.js"
 
 test("objects always expand, however short", () => {
   assert.equal(jsonText({ flat: { border: "#000000" } }), `{\n  "flat": {\n    "border": "#000000"\n  }\n}`)

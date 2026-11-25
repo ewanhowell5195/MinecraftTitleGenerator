@@ -2,8 +2,8 @@ import assert from "node:assert/strict"
 import fs from "node:fs"
 import path from "node:path"
 import { test } from "node:test"
-import { decodePng } from "../../src/lib/core/png.js"
-import { paletteHexes, paletteOf } from "../../src/lib/texture/overlayColours.js"
+import { decodePng } from "#lib/core/png.js"
+import { paletteHexes, paletteOf } from "#lib/texture/overlayColours.js"
 
 test("every stored overlay palette matches its image, and no overlay is complex", async () => {
   for (const file of fs.readdirSync("public/fonts", { recursive: true }).filter(name => name.endsWith("textures.json"))) {

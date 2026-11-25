@@ -1,9 +1,9 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { layerValues } from "../../src/lib/settings/layers.js"
-import { FILE_VERSION } from "../../src/lib/settings/upgrades.js"
-import { createObject } from "../../src/lib/settings/objects.js"
-import { joinWords, lineWords, titleProblem, titleValues, trimmed } from "../../src/lib/link/titleLines.js"
+import { layerValues } from "#lib/settings/layers.js"
+import { FILE_VERSION } from "#lib/settings/upgrades.js"
+import { createObject } from "#lib/settings/objects.js"
+import { joinWords, lineWords, titleProblem, titleValues, trimmed } from "#lib/link/titleLines.js"
 
 describe("lineWords", () => {
   test("a line with no words is its own word", () => {

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
-import { shortcutFor } from "../../src/app/shortcuts.js"
+import { shortcutFor } from "#src/app/shortcuts.js"
 
 const PAGE = { matches: () => false }
 const FIELD = { matches: selector => selector.includes("input[type=text]") }

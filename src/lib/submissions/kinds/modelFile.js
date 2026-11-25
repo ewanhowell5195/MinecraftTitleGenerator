@@ -1,5 +1,5 @@
-import { jsonText } from "../../core/jsonText.js"
-import { MINECRAFT_SCALE, MODEL_BASELINE, elementCorners } from "../../geometry/shapes.js"
+import { jsonText } from "#lib/core/jsonText.js"
+import { MINECRAFT_SCALE, MODEL_BASELINE, elementCorners } from "#lib/geometry/shapes.js"
 
 export const MODEL_LIMITS = { elements: 1000, reach: 100 }
 

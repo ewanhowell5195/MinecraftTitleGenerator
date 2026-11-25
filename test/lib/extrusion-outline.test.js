@@ -1,7 +1,7 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { generatedAlpha } from "../../src/lib/texture/overlays/faces.js"
-import { joinNeighbours } from "../../src/lib/geometry/joins.js"
+import { generatedAlpha } from "#lib/texture/overlays/faces.js"
+import { joinNeighbours } from "#lib/geometry/joins.js"
 import { glyphOf, rowsOf } from "../helpers/overlays.js"
 
 function glyph(caster) {

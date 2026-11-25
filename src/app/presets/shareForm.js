@@ -1,6 +1,6 @@
 import { computed, ref, watch } from "vue"
-import { usage } from "../../lib/state/community.js"
-import { sharingProblem } from "../../lib/link/shareChecks.js"
+import { usage } from "#lib/state/community.js"
+import { sharingProblem } from "#lib/link/shareChecks.js"
 
 export function useShareForm(code, fallback) {
   const name = ref(fallback())

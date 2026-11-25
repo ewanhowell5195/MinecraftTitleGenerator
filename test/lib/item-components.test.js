@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
-import { fitComponents, itemControls } from "../../src/lib/minecraft/itemComponents.js"
+import { fitComponents, itemControls } from "#lib/minecraft/itemComponents.js"
 
 function model(id, extra = {}) {
   return { type: "minecraft:model", model: `minecraft:item/${id}`, ...extra }

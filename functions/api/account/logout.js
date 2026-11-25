@@ -1,3 +1,3 @@
-import { signOut } from "../../../src/server/accounts.js"
+import { signOut } from "#server/accounts.js"
 
 export const onRequestPost = signOut

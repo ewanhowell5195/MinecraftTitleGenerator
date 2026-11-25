@@ -1,8 +1,8 @@
 import assert from "node:assert/strict"
 import fs from "node:fs"
 import { describe, test } from "node:test"
-import { PAGES, SITE } from "../../src/site/pages.js"
-import { pageAt, pageFiles, shellHtml } from "../../src/site/shell.js"
+import { PAGES, SITE } from "#src/site/pages.js"
+import { pageAt, pageFiles, shellHtml } from "#src/site/shell.js"
 
 const SHELL = fs.readFileSync("index.html", "utf8")
 

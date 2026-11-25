@@ -1,5 +1,5 @@
-import { fullName } from "../../font/catalog.js"
-import { DEFAULT_STRIPS, STRIP_ANCHORS } from "../../font/strips.js"
+import { fullName } from "#lib/font/catalog.js"
+import { DEFAULT_STRIPS, STRIP_ANCHORS } from "#lib/font/strips.js"
 import { HEX_COLOUR, SUBMISSION_LIMITS, pngProblem, pngSize, textProblem } from "../submissions.js"
 import { submissionFont, texturesList } from "./fontAsset.js"
 import { STRIP_LIMITS, heightList, setIdOf, setIds, setName, sharedHeights, stripOwners, stripSet, stripTarget, targetRows } from "./stripFit.js"

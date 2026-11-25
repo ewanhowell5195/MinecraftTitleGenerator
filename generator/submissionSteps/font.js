@@ -1,6 +1,6 @@
 import fs from "node:fs"
 import path from "node:path"
-import { HOLDING_FOLDER } from "../../src/lib/submissions/kinds/fontBuild.js"
+import { HOLDING_FOLDER } from "#lib/submissions/kinds/fontBuild.js"
 import { convertFont } from "../fontConvert.js"
 
 export async function prepare({ root, changed, node }) {

@@ -1,4 +1,4 @@
-import { navigate } from "../../lib/state/navigation.js"
+import { navigate } from "#lib/state/navigation.js"
 import { WEEK_STATS, titleStats } from "../stats.js"
 
 const ID_FILTER = "id:"

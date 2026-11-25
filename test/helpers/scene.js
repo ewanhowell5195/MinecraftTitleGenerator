@@ -1,5 +1,5 @@
-import { createObject } from "../../src/lib/settings/objects.js"
-import { scene, validSelection } from "../../src/lib/state/scene.js"
+import { createObject } from "#lib/settings/objects.js"
+import { scene, validSelection } from "#lib/state/scene.js"
 
 export function setTitle(...objects) {
   scene.objects.splice(0, scene.objects.length, ...objects)

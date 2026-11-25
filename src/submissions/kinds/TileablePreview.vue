@@ -1,8 +1,8 @@
 <script setup>
   import { computed, ref, watch } from "vue"
-  import Dropdown from "../../components/Dropdown.vue"
-  import LiveTitle from "../../components/LiveTitle.vue"
-  import { DEFAULT_FONT } from "../../lib/settings/defaults.js"
+  import Dropdown from "#c/Dropdown.vue"
+  import LiveTitle from "#c/LiveTitle.vue"
+  import { DEFAULT_FONT } from "#lib/settings/defaults.js"
   import { embedded } from "../submissionLink.js"
   import { popularFontOptions } from "./fontOptions.js"
   import { fontDefaults, usePreviewLine } from "./preview.js"

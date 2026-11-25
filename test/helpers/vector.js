@@ -1,5 +1,5 @@
 import * as THREE from "three"
-import { vectorTitle } from "../../src/render/vector/title.js"
+import { vectorTitle } from "#render/vector/title.js"
 
 export const RED = [255, 0, 0]
 export const GREEN = [0, 255, 0]

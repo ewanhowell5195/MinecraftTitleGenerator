@@ -1,5 +1,5 @@
 import { PLACED_KINDS, settingsOf } from "../overlays/settings.js"
-import { remember } from "../../core/maths.js"
+import { remember } from "#lib/core/maths.js"
 
 const CACHED_URLS = 64
 

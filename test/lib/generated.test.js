@@ -1,10 +1,10 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import { createHash } from "node:crypto"
-import { GENERATED_EDGE_OVERLAYS, GENERATED_SETTINGS, PLACED_KINDS, generatedSetting, settingsOf, thumbnailLayer, toneKinds, withGenerated } from "../../src/lib/texture/overlays/settings.js"
-import { generatedAlpha } from "../../src/lib/texture/overlays/faces.js"
-import { shineOutlines, waveOutline } from "../../src/lib/texture/overlays/patterns.js"
-import { withFinalShadows } from "../../src/lib/texture/overlays/shadows.js"
+import { GENERATED_EDGE_OVERLAYS, GENERATED_SETTINGS, PLACED_KINDS, generatedSetting, settingsOf, thumbnailLayer, toneKinds, withGenerated } from "#lib/texture/overlays/settings.js"
+import { generatedAlpha } from "#lib/texture/overlays/faces.js"
+import { shineOutlines, waveOutline } from "#lib/texture/overlays/patterns.js"
+import { withFinalShadows } from "#lib/texture/overlays/shadows.js"
 import { columnOf, glyphOf, near, picture, rowsOf, solid } from "../helpers/overlays.js"
 
 function nearAll(actual, expected, tolerance) {

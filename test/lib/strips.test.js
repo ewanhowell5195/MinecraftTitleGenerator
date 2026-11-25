@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
-import { STRIP_ANCHORS, anchorShift, bandEntry, layerSlice, mergeStrips, placedStrips, stripCovers, stripPlacements, stackedStrip, stripItem, stripRange, stripRows, stripUse, stripY } from "../../src/lib/font/strips.js"
+import { STRIP_ANCHORS, anchorShift, bandEntry, layerSlice, mergeStrips, placedStrips, stripCovers, stripPlacements, stackedStrip, stripItem, stripRange, stripRows, stripUse, stripY } from "#lib/font/strips.js"
 
 const SET = { id: "set", depth: 22, baseline: 30, textures: { shared: { authors: "a", variants: { kid: { authors: "b" } } }, other: { authors: "c" } } }
 

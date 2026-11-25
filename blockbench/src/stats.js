@@ -1,5 +1,5 @@
-import { loadCounts } from "../../src/lib/title/popularity.js"
-import { minecraftStatId, titleStats } from "../../src/lib/title/statIds.js"
+import { loadCounts } from "#lib/title/popularity.js"
+import { minecraftStatId, titleStats } from "#lib/title/statIds.js"
 import { isTitle } from "./elements.js"
 import { FORMAT } from "./format.js"
 

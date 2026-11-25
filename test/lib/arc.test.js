@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { shapeLine } from "../../src/lib/geometry/shapedLine.js"
+import { shapeLine } from "#lib/geometry/shapedLine.js"
 
 const CAP = 8
 const OPEN = "┫"

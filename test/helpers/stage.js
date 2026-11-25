@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import * as THREE from "three"
-import { placementMatrix } from "../../src/render/placement.js"
+import { placementMatrix } from "#render/placement.js"
 import { close } from "./assert.js"
 
 export const BOUNDS = new THREE.Box3(new THREE.Vector3(0, 0, 0), new THREE.Vector3(10, 4, 2))

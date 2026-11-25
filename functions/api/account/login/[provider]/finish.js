@@ -1,3 +1,3 @@
-import { finishSignIn } from "../../../../../src/server/accounts.js"
+import { finishSignIn } from "#server/accounts.js"
 
 export const onRequestGet = finishSignIn

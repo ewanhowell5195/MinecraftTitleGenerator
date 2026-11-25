@@ -1,5 +1,5 @@
 import * as THREE from "three"
-import { hexOfPacked } from "../../lib/core/colour.js"
+import { hexOfPacked } from "#lib/core/colour.js"
 import { SAMPLES, titleShot } from "../render.js"
 import { colourTotals, within } from "./colours.js"
 import { coverOf } from "./cover.js"

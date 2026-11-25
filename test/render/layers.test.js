@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { matchStack, paintedLines, showLayer } from "../../src/render/layers.js"
+import { matchStack, paintedLines, showLayer } from "#render/layers.js"
 
 const CLEAR = [0, 0, 0, 0]
 const RED = [255, 0, 0, 255]

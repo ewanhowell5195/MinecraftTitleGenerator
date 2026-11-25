@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { blend } from "../../src/lib/texture/blend.js"
+import { blend } from "#lib/texture/blend.js"
 import { closeAll } from "../helpers/assert.js"
 
 const near = (actual, expected, tolerance = 1e-9) => closeAll(actual, expected, tolerance)

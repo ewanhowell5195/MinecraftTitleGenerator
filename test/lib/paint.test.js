@@ -4,12 +4,12 @@ import { quietStorage } from "../helpers/browser.js"
 
 quietStorage()
 
-const { shapeLine } = await import("../../src/lib/geometry/shapedLine.js")
-const { baseKey, lookKey, paintKey } = await import("../../src/lib/texture/paint/keys.js")
-const { stripDetail } = await import("../../src/lib/texture/paint/strip.js")
-const { lookOf } = await import("../../src/render/objectLook.js")
-const { createObject } = await import("../../src/lib/settings/objects.js")
-const { LAYER } = await import("../../src/lib/settings/textureDefaults.js")
+const { shapeLine } = await import("#lib/geometry/shapedLine.js")
+const { baseKey, lookKey, paintKey } = await import("#lib/texture/paint/keys.js")
+const { stripDetail } = await import("#lib/texture/paint/strip.js")
+const { lookOf } = await import("#render/objectLook.js")
+const { createObject } = await import("#lib/settings/objects.js")
+const { LAYER } = await import("#lib/settings/textureDefaults.js")
 
 const CAP = 8
 const PLAIN = { source: "texture", gradientAngle: 0, tileablePerCharacter: false, wordedFaces: false }

@@ -1,4 +1,4 @@
-import { clamp } from "../../lib/core/maths.js"
+import { clamp } from "#lib/core/maths.js"
 import { brightness, colourAlong, jump, majority, mixed, near, simplifyStops, tally, within } from "./colours.js"
 
 export const STEP_EDGE = 6

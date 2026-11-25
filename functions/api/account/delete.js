@@ -1,3 +1,3 @@
-import { deleteAccount } from "../../../src/server/accountDeletion.js"
+import { deleteAccount } from "#server/accountDeletion.js"
 
 export const onRequestPost = deleteAccount

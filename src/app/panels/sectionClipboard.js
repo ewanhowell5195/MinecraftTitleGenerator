@@ -1,13 +1,13 @@
 import "./host.js"
 import { reactive } from "vue"
-import { plainCopy } from "../../lib/core/values.js"
-import { customFontEntry } from "../../lib/font/customFonts.js"
-import { copiedKeys, transformKeys } from "../../lib/settings/settings.js"
-import { OVERLAY_KINDS, setTexture } from "../../lib/settings/textureDefaults.js"
-import { currentWord, shapingWord } from "../../lib/state/scene.js"
-import { FORM_SECTIONS } from "../../lib/state/view.js"
-import { host } from "../../lib/panels/host.js"
-import { panelTarget } from "../../lib/panels/panel.js"
+import { plainCopy } from "#lib/core/values.js"
+import { customFontEntry } from "#lib/font/customFonts.js"
+import { copiedKeys, transformKeys } from "#lib/settings/settings.js"
+import { OVERLAY_KINDS, setTexture } from "#lib/settings/textureDefaults.js"
+import { currentWord, shapingWord } from "#lib/state/scene.js"
+import { FORM_SECTIONS } from "#lib/state/view.js"
+import { host } from "#lib/panels/host.js"
+import { panelTarget } from "#lib/panels/panel.js"
 
 const PANELS = {
   text: ["placement"],

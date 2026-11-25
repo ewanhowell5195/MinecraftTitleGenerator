@@ -6,10 +6,10 @@ quietStorage()
 fakeTimeouts()
 
 const { reactive } = await import("vue")
-const { rowStart } = await import("../../src/lib/geometry/rows.js")
-const { editorTitle, scene, words } = await import("../../src/lib/state/scene.js")
-const { createObject } = await import("../../src/lib/settings/objects.js")
-const { createTitle, wordsOf } = await import("../../src/lib/title/title.js")
+const { rowStart } = await import("#lib/geometry/rows.js")
+const { editorTitle, scene, words } = await import("#lib/state/scene.js")
+const { createObject } = await import("#lib/settings/objects.js")
+const { createTitle, wordsOf } = await import("#lib/title/title.js")
 
 function separate(objects) {
   return createTitle(reactive(objects), { render: false, fov: 43, fixedDistance: false })

@@ -1,7 +1,7 @@
 <script setup>
-  import { confirmReplacing, confirmSharing, replaceWith, sharePreset } from "../../lib/state/presets.js"
-  import Button from "../../components/Button.vue"
-  import Dialog from "../../components/Dialog.vue"
+  import { confirmReplacing, confirmSharing, replaceWith, sharePreset } from "#lib/state/presets.js"
+  import Button from "#c/Button.vue"
+  import Dialog from "#c/Dialog.vue"
   import ShareFields from "./ShareFields.vue"
   import { useShareForm } from "./shareForm.js"
 

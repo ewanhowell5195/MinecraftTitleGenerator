@@ -1,6 +1,6 @@
 <script setup>
-  import Button from "../../components/Button.vue"
-  import Icon from "../../components/Icon.vue"
+  import Button from "#c/Button.vue"
+  import Icon from "#c/Icon.vue"
 
   defineProps({
     mine: { type: Number, default: 0 }

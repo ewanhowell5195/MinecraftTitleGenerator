@@ -1,5 +1,5 @@
 import { watch } from "vue"
-import { setCamera } from "../../src/lib/settings/camera.js"
+import { setCamera } from "#lib/settings/camera.js"
 import { titleState } from "./titles.js"
 
 export const CAMERA = { minecraft_title_camera: true }

@@ -1,14 +1,14 @@
 <script setup>
   import { computed, onBeforeUnmount, ref, watch } from "vue"
-  import { NAME_LIMIT } from "../../lib/state/presets.js"
-  import { presetLink } from "../../lib/state/presetsPage.js"
+  import { NAME_LIMIT } from "#lib/state/presets.js"
+  import { presetLink } from "#lib/state/presetsPage.js"
   import AuthorLink from "./AuthorLink.vue"
-  import Badge from "../../components/Badge.vue"
-  import Button from "../../components/Button.vue"
-  import Icon from "../../components/Icon.vue"
+  import Badge from "#c/Badge.vue"
+  import Button from "#c/Button.vue"
+  import Icon from "#c/Icon.vue"
   import PresetRating from "./PresetRating.vue"
   import TitlePicture from "./TitlePicture.vue"
-  import UserName from "../../components/UserName.vue"
+  import UserName from "#c/UserName.vue"
   import { sharedText, usesText } from "./presetText.js"
 
   const props = defineProps({

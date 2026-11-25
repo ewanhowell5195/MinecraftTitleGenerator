@@ -1,3 +1,3 @@
-import { startSignIn } from "../../../../../src/server/accounts.js"
+import { startSignIn } from "#server/accounts.js"
 
 export const onRequestGet = startSignIn

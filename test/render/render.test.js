@@ -1,9 +1,9 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import * as THREE from "three"
-import { usePlatform } from "../../src/lib/core/platform.js"
-import { aspectOf, compose, drawnTitle, fitTitle, fromAspect, minecraftLayout, outputSize } from "../../src/render/compose.js"
-import { screenBounds } from "../../src/render/render.js"
+import { usePlatform } from "#lib/core/platform.js"
+import { aspectOf, compose, drawnTitle, fitTitle, fromAspect, minecraftLayout, outputSize } from "#render/compose.js"
+import { screenBounds } from "#render/render.js"
 import { close } from "../helpers/assert.js"
 
 const SIZES = [256, 512, 1024, 2048]

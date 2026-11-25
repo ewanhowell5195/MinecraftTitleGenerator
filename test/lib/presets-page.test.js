@@ -3,9 +3,9 @@ import assert from "node:assert/strict"
 
 globalThis.location = { pathname: "/app/", origin: "https://example.test" }
 
-const { addressHasFilters, closePresetsPage, leavePresetsForEditor, openLinkInEditor, presetLink, presetsPage, readPresetPath, setPresetSearch, setPresetSort, showOwnPreset, showPreset, showPresetFilters } = await import("../../src/lib/state/presetsPage.js")
-const { sharedLink } = await import("../../src/lib/state/scene.js")
-const { navigated, setNavigator } = await import("../../src/lib/state/navigation.js")
+const { addressHasFilters, closePresetsPage, leavePresetsForEditor, openLinkInEditor, presetLink, presetsPage, readPresetPath, setPresetSearch, setPresetSort, showOwnPreset, showPreset, showPresetFilters } = await import("#lib/state/presetsPage.js")
+const { sharedLink } = await import("#lib/state/scene.js")
+const { navigated, setNavigator } = await import("#lib/state/navigation.js")
 
 function setAddress(address) {
   const { pathname, search } = new URL(address, "https://example.test")

@@ -1,8 +1,8 @@
-import { authorText } from "../../../src/lib/core/authors.js"
-import { readDataUrl } from "../../../src/lib/core/files.js"
-import { platform } from "../../../src/lib/core/platform.js"
-import { loadImage } from "../../../src/lib/font/font.js"
-import { surface } from "../../../src/lib/texture/canvas.js"
+import { authorText } from "#lib/core/authors.js"
+import { readDataUrl } from "#lib/core/files.js"
+import { platform } from "#lib/core/platform.js"
+import { loadImage } from "#lib/font/font.js"
+import { surface } from "#lib/texture/canvas.js"
 
 const KEPT_TYPES = ["image/png", "image/jpeg"]
 

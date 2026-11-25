@@ -1,6 +1,6 @@
 <script setup>
   import { onMounted, ref, watch } from "vue"
-  import { pictureUrl, previewAlt } from "../../lib/core/pictures.js"
+  import { pictureUrl, previewAlt } from "#lib/core/pictures.js"
 
   const props = defineProps({
     code: { type: String, required: true },

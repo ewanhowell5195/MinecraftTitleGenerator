@@ -1,9 +1,9 @@
-import { fontFolder, linkText, sheetOwner, stripsOf } from "../../font/catalog.js"
-import { encodeTitle } from "../../link/linkformat.js"
-import { DEFAULT_FONT } from "../../settings/defaults.js"
-import { overlayLayer } from "../../settings/textureDefaults.js"
-import { FILE_VERSION } from "../../settings/upgrades.js"
-import { stripUse } from "../../font/strips.js"
+import { fontFolder, linkText, sheetOwner, stripsOf } from "#lib/font/catalog.js"
+import { encodeTitle } from "#lib/link/linkformat.js"
+import { DEFAULT_FONT } from "#lib/settings/defaults.js"
+import { overlayLayer } from "#lib/settings/textureDefaults.js"
+import { FILE_VERSION } from "#lib/settings/upgrades.js"
+import { stripUse } from "#lib/font/strips.js"
 import { stripTarget } from "./stripFit.js"
 
 export const THUMBNAIL_KINDS = ["font", "texture", "overlay", "strip"]

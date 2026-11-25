@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { blockTints, grassColormapPixel } from "../../src/lib/minecraft/blockTints.js"
+import { blockTints, grassColormapPixel } from "#lib/minecraft/blockTints.js"
 
 const FILES = {
   "assets/minecraft/items/grass_block.json": { model: { type: "minecraft:model", model: "minecraft:block/grass_block", tints: [{ type: "minecraft:grass", temperature: 0.5, downfall: 1 }] } },

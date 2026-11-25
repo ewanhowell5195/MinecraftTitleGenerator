@@ -1,8 +1,8 @@
 import { computed, ref, watch } from "vue"
 import { image } from "../texture/assets.js"
 import { TEXTURE_TABS } from "../settings/settings.js"
-import { boxOf } from "../../render/bufferPoints.js"
-import { cameraCover, coverMembers, coverProjection } from "../../render/coverProjection.js"
+import { boxOf } from "#render/bufferPoints.js"
+import { cameraCover, coverMembers, coverProjection } from "#render/coverProjection.js"
 import { host } from "./host.js"
 import { usedTextures } from "./uploads.js"
 

@@ -1,4 +1,4 @@
-import { editSubmission, submissionDetails, withdrawSubmission } from "../../../../src/server/submissions/index.js"
+import { editSubmission, submissionDetails, withdrawSubmission } from "#server/submissions/index.js"
 
 export const onRequestGet = submissionDetails
 export const onRequestPatch = editSubmission

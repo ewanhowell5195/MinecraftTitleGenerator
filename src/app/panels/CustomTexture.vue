@@ -1,11 +1,11 @@
 <script setup>
-  import { ALIGNS, useCustomTexture } from "../../lib/panels/customTexture.js"
-  import { readImage } from "../../lib/state/imageFiles.js"
-  import Checkbox from "../../components/Checkbox.vue"
-  import Segments from "../../components/Segments.vue"
-  import Slider from "../../components/Slider.vue"
-  import UploadField from "../../components/UploadField.vue"
-  import UploadReuse from "../../components/UploadReuse.vue"
+  import { ALIGNS, useCustomTexture } from "#lib/panels/customTexture.js"
+  import { readImage } from "#lib/state/imageFiles.js"
+  import Checkbox from "#c/Checkbox.vue"
+  import Segments from "#c/Segments.vue"
+  import Slider from "#c/Slider.vue"
+  import UploadField from "#c/UploadField.vue"
+  import UploadReuse from "#c/UploadReuse.vue"
 
   const props = defineProps({
     panel: { type: Object, required: true },

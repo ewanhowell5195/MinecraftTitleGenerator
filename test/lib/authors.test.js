@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
-import { authorList, authorText } from "../../src/lib/core/authors.js"
-import { creditProblem } from "../../src/lib/submissions/submissions.js"
+import { authorList, authorText } from "#lib/core/authors.js"
+import { creditProblem } from "#lib/submissions/submissions.js"
 
 describe("author lists", () => {
   test("a list keeps its names, trimmed and without repeats", () => {

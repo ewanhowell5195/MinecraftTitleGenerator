@@ -1,5 +1,5 @@
 <script setup>
-  import Icon from "../../components/Icon.vue"
+  import Icon from "#c/Icon.vue"
 
   defineProps({
     size: { type: Number, required: true }

@@ -3,7 +3,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { test } from "node:test"
 import { PNG } from "pngjs"
-import { seeThrough, tileableImage, tileableSizeProblem } from "../../src/lib/submissions/kinds/tileable.js"
+import { seeThrough, tileableImage, tileableSizeProblem } from "#lib/submissions/kinds/tileable.js"
 
 test("published tileables follow the submission rules", () => {
   const list = JSON.parse(fs.readFileSync("public/tileables/tileables.json", "utf8"))

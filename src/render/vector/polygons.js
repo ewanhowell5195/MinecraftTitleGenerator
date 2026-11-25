@@ -1,4 +1,4 @@
-import { signedArea } from "../../lib/core/maths.js"
+import { signedArea } from "#lib/core/maths.js"
 
 const MIN_SHARED = 0.05
 const SHARED_ANGLE = 0.01

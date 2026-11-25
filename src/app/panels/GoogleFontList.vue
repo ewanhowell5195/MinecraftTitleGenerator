@@ -1,15 +1,15 @@
 <script setup>
   import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue"
-  import { openedFirst } from "../../lib/panels/opened.js"
-  import { byUsage } from "../../lib/title/popularity.js"
-  import { googleStatId } from "../../lib/title/statIds.js"
-  import { googleFontList, googlePreview, googlePreviewFamily, styleLabel, styleParts } from "../../lib/font/googleFonts.js"
-  import Dropdown from "../../components/Dropdown.vue"
-  import Slider from "../../components/Slider.vue"
-  import Toggle from "../../components/Toggle.vue"
-  import Notice from "../../components/Notice.vue"
-  import Tile from "../../components/Tile.vue"
-  import TileGrid from "../../components/TileGrid.vue"
+  import { openedFirst } from "#lib/panels/opened.js"
+  import { byUsage } from "#lib/title/popularity.js"
+  import { googleStatId } from "#lib/title/statIds.js"
+  import { googleFontList, googlePreview, googlePreviewFamily, styleLabel, styleParts } from "#lib/font/googleFonts.js"
+  import Dropdown from "#c/Dropdown.vue"
+  import Slider from "#c/Slider.vue"
+  import Toggle from "#c/Toggle.vue"
+  import Notice from "#c/Notice.vue"
+  import Tile from "#c/Tile.vue"
+  import TileGrid from "#c/TileGrid.vue"
 
   const PAGE = 60
 

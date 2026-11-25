@@ -1,6 +1,6 @@
-import { fetched } from "../../lib/core/api.js"
-import { fontFolder } from "../../lib/font/catalog.js"
-import { opaqueCells, templateScore, textureDensity } from "../../lib/submissions/submissions.js"
+import { fetched } from "#lib/core/api.js"
+import { fontFolder } from "#lib/font/catalog.js"
+import { opaqueCells, templateScore, textureDensity } from "#lib/submissions/submissions.js"
 
 const templates = new Map()
 

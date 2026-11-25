@@ -1,4 +1,4 @@
-import { signedArea } from "../../lib/core/maths.js"
+import { signedArea } from "#lib/core/maths.js"
 import { withoutCollinear } from "./union.js"
 
 const COVER_SIDE = 4096

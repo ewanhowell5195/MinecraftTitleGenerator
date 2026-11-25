@@ -1,7 +1,7 @@
-import { parseMask } from "../../src/lib/font/sheetParse.js"
-import { glyphOf, setGlyph } from "../../src/lib/font/editor/glyph.js"
-import { paint } from "../../src/lib/font/editor/painting.js"
-import { buildSheet, sheetOrder } from "../../src/lib/font/editor/sheet.js"
+import { parseMask } from "#lib/font/sheetParse.js"
+import { glyphOf, setGlyph } from "#lib/font/editor/glyph.js"
+import { paint } from "#lib/font/editor/painting.js"
+import { buildSheet, sheetOrder } from "#lib/font/editor/sheet.js"
 
 export function drawn(font, char, cells) {
   return setGlyph(font, char, paint(glyphOf(font, char), cells, true))

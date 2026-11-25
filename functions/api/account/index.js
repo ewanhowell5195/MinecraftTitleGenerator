@@ -1,3 +1,3 @@
-import { accountDetails } from "../../../src/server/accounts.js"
+import { accountDetails } from "#server/accounts.js"
 
 export const onRequestGet = accountDetails

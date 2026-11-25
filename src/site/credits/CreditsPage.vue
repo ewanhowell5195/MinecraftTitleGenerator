@@ -2,7 +2,7 @@
   import { onBeforeUnmount, onMounted, ref, watch } from "vue"
   import { useRoute } from "vue-router"
   import credits from "virtual:credits"
-  import NavTabs from "../../components/NavTabs.vue"
+  import NavTabs from "#c/NavTabs.vue"
   import { startCredits } from "./credits.js"
 
   const TABS = [{ id: "contributors", label: "Contributors" }, { id: "fonts", label: "Licensed Fonts" }]

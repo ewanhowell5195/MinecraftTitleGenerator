@@ -3,10 +3,10 @@ import assert from "node:assert/strict"
 import { code, context, db, download, env, freshServer, list, post, rename, restoreFetch, shareAs, signIn, usageAs, usageOf, vote, voteAll, withCookie } from "../helpers/presets.js"
 import { holdQuery } from "../helpers/server.js"
 
-const { LIMITS } = await import("../../src/lib/core/limits.js")
-const { claimPresets, deletePreset, getPreset, renamePreset, replacePreset, submitPreset, unsharePreset } = await import("../../src/server/presets.js")
-const { presetStats, votePreset } = await import("../../src/server/presetScores.js")
-const { addSaved, listSaved } = await import("../../src/server/saved.js")
+const { LIMITS } = await import("#lib/core/limits.js")
+const { claimPresets, deletePreset, getPreset, renamePreset, replacePreset, submitPreset, unsharePreset } = await import("#server/presets.js")
+const { presetStats, votePreset } = await import("#server/presetScores.js")
+const { addSaved, listSaved } = await import("#server/saved.js")
 
 beforeEach(freshServer)
 afterEach(restoreFetch)

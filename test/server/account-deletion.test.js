@@ -4,15 +4,15 @@ import { setTimeout as wait } from "node:timers/promises"
 import { context, holdQuery, hook, serverEnv, signIn as signInAs } from "../helpers/server.js"
 import { TEXTURES, send } from "../helpers/submissionServer.js"
 
-const { accountDetails } = await import("../../src/server/accounts.js")
-const { deleteAccount } = await import("../../src/server/accountDeletion.js")
-const { claimPresets, deletePreset, submissionUsage, submitPreset } = await import("../../src/server/presets.js")
-const { votePreset } = await import("../../src/server/presetScores.js")
-const { addSaved, listSaved, removeSaved } = await import("../../src/server/saved.js")
-const { addComment } = await import("../../src/server/submissions/comments.js")
-const { createSubmission, submissionDetails, withdrawSubmission } = await import("../../src/server/submissions/index.js")
-const { encodeTitle } = await import("../../src/lib/link/linkformat.js")
-const { FILE_VERSION } = await import("../../src/lib/settings/upgrades.js")
+const { accountDetails } = await import("#server/accounts.js")
+const { deleteAccount } = await import("#server/accountDeletion.js")
+const { claimPresets, deletePreset, submissionUsage, submitPreset } = await import("#server/presets.js")
+const { votePreset } = await import("#server/presetScores.js")
+const { addSaved, listSaved, removeSaved } = await import("#server/saved.js")
+const { addComment } = await import("#server/submissions/comments.js")
+const { createSubmission, submissionDetails, withdrawSubmission } = await import("#server/submissions/index.js")
+const { encodeTitle } = await import("#lib/link/linkformat.js")
+const { FILE_VERSION } = await import("#lib/settings/upgrades.js")
 
 let db
 let gh

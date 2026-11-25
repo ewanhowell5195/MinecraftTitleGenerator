@@ -1,7 +1,7 @@
-import { frameRect, frameSplit, framing } from "../../../src/render/framing.js"
-import { image } from "../../../src/lib/texture/assets.js"
-import { linearGradient } from "../../../src/lib/texture/canvas.js"
-import { gradientLine, gradientStops } from "../../../src/lib/texture/colourStops.js"
+import { frameRect, frameSplit, framing } from "#render/framing.js"
+import { image } from "#lib/texture/assets.js"
+import { linearGradient } from "#lib/texture/canvas.js"
+import { gradientLine, gradientStops } from "#lib/texture/colourStops.js"
 
 const CLEAR = "rgba(0, 0, 0, 0)"
 

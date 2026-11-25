@@ -1,8 +1,8 @@
 <script setup>
-  import { confirmReplacing, confirmSharing, namingCode, namingShared, namingSharedId, saveOver, savePreset, sharePreset } from "../../lib/state/presets.js"
-  import { openPresetsPage, showPreset } from "../../lib/state/presetsPage.js"
-  import Button from "../../components/Button.vue"
-  import Dialog from "../../components/Dialog.vue"
+  import { confirmReplacing, confirmSharing, namingCode, namingShared, namingSharedId, saveOver, savePreset, sharePreset } from "#lib/state/presets.js"
+  import { openPresetsPage, showPreset } from "#lib/state/presetsPage.js"
+  import Button from "#c/Button.vue"
+  import Dialog from "#c/Dialog.vue"
   import PresetVotePrompt from "./PresetVotePrompt.vue"
   import ShareFields from "./ShareFields.vue"
   import { useShareForm } from "./shareForm.js"

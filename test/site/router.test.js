@@ -1,8 +1,8 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
 import { createMemoryHistory, createRouter } from "vue-router"
-import { PAGES } from "../../src/site/pages.js"
-import { pageKey, pageRoutes, routed } from "../../src/site/routes.js"
+import { PAGES } from "#src/site/pages.js"
+import { pageKey, pageRoutes, routed } from "#src/site/routes.js"
 
 const HERE = new URL("https://mctitlegenerator.com/credits/?search=oak")
 const router = createRouter({ history: createMemoryHistory(), routes: pageRoutes(Object.fromEntries(PAGES.map(page => [page.name, {}]))) })

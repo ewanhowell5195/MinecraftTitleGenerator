@@ -1,8 +1,8 @@
 <script setup>
-  import { TYPES } from "../../lib/settings/defaults.js"
-  import { host } from "../../lib/panels/host.js"
-  import Tile from "../../components/Tile.vue"
-  import TileGrid from "../../components/TileGrid.vue"
+  import { TYPES } from "#lib/settings/defaults.js"
+  import { host } from "#lib/panels/host.js"
+  import Tile from "#c/Tile.vue"
+  import TileGrid from "#c/TileGrid.vue"
 
   const LAYERS = {
     top: ["top"],

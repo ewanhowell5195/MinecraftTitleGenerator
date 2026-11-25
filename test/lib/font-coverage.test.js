@@ -1,9 +1,9 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
 import opentype from "opentype.js"
-import { parseFontFile } from "../../src/lib/font/fontImport.js"
-import { glyphFor } from "../../src/lib/font/fontOutline.js"
-import { casedCharacters, characterGroups, codeOf, drawnCharacters, matchesSearch } from "../../src/lib/font/editor/coverage.js"
+import { parseFontFile } from "#lib/font/fontImport.js"
+import { glyphFor } from "#lib/font/fontOutline.js"
+import { casedCharacters, characterGroups, codeOf, drawnCharacters, matchesSearch } from "#lib/font/editor/coverage.js"
 
 function glyph(char, drawn = true) {
   const path = new opentype.Path()

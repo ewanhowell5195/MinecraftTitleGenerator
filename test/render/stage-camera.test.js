@@ -6,10 +6,10 @@ import { WIDE, builtOf, closeList, middle, moved, point, radians, transform } fr
 
 globalThis.devicePixelRatio = 1
 
-const { cornersOf, frameCamera, titleFraming } = await import("../../src/render/titleFraming.js")
-const { UNZOOMED, keptPan, panMatrix, pannedBy, screenExtent, zoomedAt } = await import("../../src/render/pan.js")
-const { ORBIT_FOV, orbitDollied, orbitPanned, orbitStart, orbitTurned, placeOrbit } = await import("../../src/render/orbit.js")
-const { CAMERA_PRESETS, DEFAULT_CAMERA } = await import("../../src/lib/settings/camera.js")
+const { cornersOf, frameCamera, titleFraming } = await import("#render/titleFraming.js")
+const { UNZOOMED, keptPan, panMatrix, pannedBy, screenExtent, zoomedAt } = await import("#render/pan.js")
+const { ORBIT_FOV, orbitDollied, orbitPanned, orbitStart, orbitTurned, placeOrbit } = await import("#render/orbit.js")
+const { CAMERA_PRESETS, DEFAULT_CAMERA } = await import("#lib/settings/camera.js")
 
 const DIRECTION = new THREE.Vector3(0, -Math.sin(radians(DEFAULT_CAMERA.pitch)), Math.cos(radians(DEFAULT_CAMERA.pitch)))
 

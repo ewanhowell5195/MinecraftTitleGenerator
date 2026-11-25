@@ -1,5 +1,5 @@
 import * as THREE from "three"
-import { FXAA_FRAGMENT, FXAA_VERTEX } from "../../render/fxaa.js"
+import { FXAA_FRAGMENT, FXAA_VERTEX } from "#render/fxaa.js"
 
 export function createSmoothing(renderer) {
   const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter })

@@ -1,11 +1,11 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
-import { drawnCharacters } from "../../src/lib/font/editor/coverage.js"
-import { glyphOf, isBlank } from "../../src/lib/font/editor/glyph.js"
-import { fontFromFiles } from "../../src/lib/font/editor/import.js"
-import { fontFromMinecraft, isMinecraftFont, minecraftBundle, minecraftNotes, minecraftShape, minecraftSource, readMinecraftFont, suggestedMinecraftSize, textureName } from "../../src/lib/font/minecraftFont.js"
-import { VANILLA_DEFAULT } from "../../src/lib/font/minecraftVanilla.js"
-import { minecraftTemplate, templateGlyphs } from "../../src/fontEditor/template.js"
+import { drawnCharacters } from "#lib/font/editor/coverage.js"
+import { glyphOf, isBlank } from "#lib/font/editor/glyph.js"
+import { fontFromFiles } from "#lib/font/editor/import.js"
+import { fontFromMinecraft, isMinecraftFont, minecraftBundle, minecraftNotes, minecraftShape, minecraftSource, readMinecraftFont, suggestedMinecraftSize, textureName } from "#lib/font/minecraftFont.js"
+import { VANILLA_DEFAULT } from "#lib/font/minecraftVanilla.js"
+import { minecraftTemplate, templateGlyphs } from "#src/fontEditor/template.js"
 
 const CAPITAL = ["####", "#..#", "#..#", "####", "#..#", "#..#", "#..#"]
 const LOWER = ["", "", "###", "..#", "###", "#.#", "###"]

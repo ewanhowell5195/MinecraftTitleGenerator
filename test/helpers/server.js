@@ -1,9 +1,9 @@
 import { createHmac, generateKeyPairSync } from "node:crypto"
 import fs from "node:fs"
 import { DatabaseSync } from "node:sqlite"
-import { finishSignIn, receiveSignIn, startSignIn } from "../../src/server/accounts.js"
-import { createSubmission, editSubmission, submissionDetails } from "../../src/server/submissions/index.js"
-import { receiveWebhook } from "../../src/server/submissions/webhook.js"
+import { finishSignIn, receiveSignIn, startSignIn } from "#server/accounts.js"
+import { createSubmission, editSubmission, submissionDetails } from "#server/submissions/index.js"
+import { receiveWebhook } from "#server/submissions/webhook.js"
 import { fakeGitHub } from "./fakeGitHub.js"
 import { assets } from "./site.js"
 

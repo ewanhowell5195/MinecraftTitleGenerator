@@ -1,5 +1,5 @@
 import * as THREE from "three"
-import { usePlatform } from "../../src/lib/core/platform.js"
+import { usePlatform } from "#lib/core/platform.js"
 
 const SITE = "https://mctitlegenerator.com/"
 const ABSOLUTE = /^([a-z][a-z0-9+.-]*:|\/\/)/i

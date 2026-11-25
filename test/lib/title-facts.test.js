@@ -1,7 +1,7 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { LIMITS } from "../../src/lib/core/limits.js"
-import { limitProblem, titleFacts } from "../../src/lib/link/titleFacts.js"
+import { LIMITS } from "#lib/core/limits.js"
+import { limitProblem, titleFacts } from "#lib/link/titleFacts.js"
 
 describe("limitProblem", () => {
   function words(count, text = "a") {

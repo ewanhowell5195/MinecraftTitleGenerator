@@ -1,5 +1,5 @@
 import { ref } from "vue"
-import { FRAMINGS, MINECRAFT_MODES, framing, framingModified, outlineModified, paddingScale, resetFraming, resetOutline, textureSize, textureSizes } from "../../render/framing.js"
+import { FRAMINGS, MINECRAFT_MODES, framing, framingModified, outlineModified, paddingScale, resetFraming, resetOutline, textureSize, textureSizes } from "#render/framing.js"
 import { canvasLimit } from "../texture/canvas.js"
 import { GRADIENT_MIXES } from "../texture/colourStops.js"
 import { host } from "./host.js"

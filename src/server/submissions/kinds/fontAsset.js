@@ -1,10 +1,10 @@
-import { fontFolder, fullName } from "../../../lib/font/catalog.js"
-import { GENERATED_EDGE_OVERLAYS, GENERATED_SETTINGS, withGenerated } from "../../../lib/texture/overlays/settings.js"
-import { jsonText } from "../../../lib/core/jsonText.js"
-import { titleCase } from "../../../lib/core/names.js"
-import { FACE_PANELS, overlayLayer } from "../../../lib/settings/textureDefaults.js"
-import { textureName } from "../../../lib/submissions/kinds/fontAsset.js"
-import { DEFAULT_ROLES, assetId, ownBorder } from "../../../lib/submissions/submissions.js"
+import { fontFolder, fullName } from "#lib/font/catalog.js"
+import { GENERATED_EDGE_OVERLAYS, GENERATED_SETTINGS, withGenerated } from "#lib/texture/overlays/settings.js"
+import { jsonText } from "#lib/core/jsonText.js"
+import { titleCase } from "#lib/core/names.js"
+import { FACE_PANELS, overlayLayer } from "#lib/settings/textureDefaults.js"
+import { textureName } from "#lib/submissions/kinds/fontAsset.js"
+import { DEFAULT_ROLES, assetId, ownBorder } from "#lib/submissions/submissions.js"
 
 const SECTIONS = { texture: "textures", overlay: "overlays" }
 

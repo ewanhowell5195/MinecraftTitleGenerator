@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { decodeTitle, encodeTitle } from "../../src/lib/link/linkformat.js"
-import { MAX_ANCHORS, chosenColours, mapColour, paletteHexes, paletteOf, recolour } from "../../src/lib/texture/overlayColours.js"
+import { decodeTitle, encodeTitle } from "#lib/link/linkformat.js"
+import { MAX_ANCHORS, chosenColours, mapColour, paletteHexes, paletteOf, recolour } from "#lib/texture/overlayColours.js"
 
 function pixels(colours, alpha = 255) {
   return Uint8ClampedArray.from(colours.flatMap(rgb => rgb.concat(alpha)))

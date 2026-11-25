@@ -1,4 +1,4 @@
-import { clamp } from "../../core/maths.js"
+import { clamp } from "#lib/core/maths.js"
 import { R } from "../paint/draw.js"
 
 export const SWATCH = 1

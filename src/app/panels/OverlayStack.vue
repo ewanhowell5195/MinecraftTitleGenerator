@@ -1,8 +1,8 @@
 <script setup>
-  import { usedOverlayFiles } from "../../lib/panels/uploads.js"
-  import { statScope } from "../../lib/title/statIds.js"
-  import { library } from "../../lib/state/scene.js"
-  import OverlayLayers from "../../components/OverlayLayers.vue"
+  import { usedOverlayFiles } from "#lib/panels/uploads.js"
+  import { statScope } from "#lib/title/statIds.js"
+  import { library } from "#lib/state/scene.js"
+  import OverlayLayers from "#c/OverlayLayers.vue"
 
   const props = defineProps({
     panel: { type: Object, required: true },

@@ -1,8 +1,8 @@
-import { fullName } from "../../lib/font/catalog.js"
-import { GENERATED_EDGE_OVERLAYS, withGenerated } from "../../lib/texture/overlays/settings.js"
-import { titleCase } from "../../lib/core/names.js"
-import { FACE_COLOURS, FACE_PANELS, overlayLayer } from "../../lib/settings/textureDefaults.js"
-import { textureName } from "../../lib/submissions/kinds/fontAsset.js"
+import { fullName } from "#lib/font/catalog.js"
+import { GENERATED_EDGE_OVERLAYS, withGenerated } from "#lib/texture/overlays/settings.js"
+import { titleCase } from "#lib/core/names.js"
+import { FACE_COLOURS, FACE_PANELS, overlayLayer } from "#lib/settings/textureDefaults.js"
+import { textureName } from "#lib/submissions/kinds/fontAsset.js"
 
 const FACE_LABELS = { faces: "Top and bottom faces", inner: "Inner faces", sides: "Side faces" }
 

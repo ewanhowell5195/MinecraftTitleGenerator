@@ -2,7 +2,7 @@ import { EndType, FillRule, JoinType, difference, differenceD, inflatePathsD, in
 import { placement } from "../compose.js"
 import { addToCover, visibleLoops } from "./cover.js"
 import { loopsInHundredths, number, writePath } from "./pathData.js"
-import { signedArea } from "../../lib/core/maths.js"
+import { signedArea } from "#lib/core/maths.js"
 import { boxOfPolygons, boxesOverlap, mergedByFill, sameWinding, shapeOfPolygons, shapesOverlap, sharedEdges } from "./polygons.js"
 import { stitched, unionOf } from "./union.js"
 

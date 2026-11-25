@@ -3,10 +3,10 @@ import assert from "node:assert/strict"
 import { REPO, context, hook, serverEnv, signIn } from "../helpers/server.js"
 import { TEXTURES } from "../helpers/submissionServer.js"
 
-const { accountDetails } = await import("../../src/server/accounts.js")
-const { deleteAccount } = await import("../../src/server/accountDeletion.js")
-const { addIssueComment, changeIssueStatus, createIssue, issueDetails, listIssues } = await import("../../src/server/issues/index.js")
-const { listNotifications } = await import("../../src/server/submissions/notifications.js")
+const { accountDetails } = await import("#server/accounts.js")
+const { deleteAccount } = await import("#server/accountDeletion.js")
+const { addIssueComment, changeIssueStatus, createIssue, issueDetails, listIssues } = await import("#server/issues/index.js")
+const { listNotifications } = await import("#server/submissions/notifications.js")
 
 let db
 let emails

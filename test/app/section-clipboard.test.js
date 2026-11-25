@@ -6,10 +6,10 @@ stubStorage()
 forbidFetch()
 fakeTimeouts()
 
-const { createObject } = await import("../../src/lib/settings/objects.js")
-const { runtime, select } = await import("../../src/lib/state/scene.js")
-const { view } = await import("../../src/lib/state/view.js")
-const { canPasteSection, copySection, pasteSection } = await import("../../src/app/panels/sectionClipboard.js")
+const { createObject } = await import("#lib/settings/objects.js")
+const { runtime, select } = await import("#lib/state/scene.js")
+const { view } = await import("#lib/state/view.js")
+const { canPasteSection, copySection, pasteSection } = await import("#src/app/panels/sectionClipboard.js")
 const { setScene } = await import("../helpers/scene.js")
 
 const LIST = { textures: { cracked: {}, gold: { variants: { shiny: {} } } }, overlays: { shine: {} }, edgeOverlays: {} }

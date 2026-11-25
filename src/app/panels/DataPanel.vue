@@ -1,5 +1,5 @@
 <script setup>
-  import { usePanelState } from "../../lib/panels/panel.js"
+  import { usePanelState } from "#lib/panels/panel.js"
   import Panel from "../Panel.vue"
   import DataControls from "./DataControls.vue"
 

@@ -1,6 +1,6 @@
 import { nextTick, onBeforeUnmount, ref } from "vue"
 import { dragPointer } from "./events.js"
-import { clamp } from "../../lib/core/maths.js"
+import { clamp } from "#lib/core/maths.js"
 
 export function useReorderDrag({ prevent = false, begin, point, reorder, follow, release }) {
   const dragged = ref(null)

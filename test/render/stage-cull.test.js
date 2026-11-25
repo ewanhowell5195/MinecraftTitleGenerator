@@ -6,7 +6,7 @@ import { quietStorage } from "../helpers/browser.js"
 quietStorage()
 globalThis.devicePixelRatio = 1
 
-const { createStage, cullOutlines } = await import("../../src/render/stage.js")
+const { createStage, cullOutlines } = await import("#render/stage.js")
 
 const outline = {
   positions: new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0]),

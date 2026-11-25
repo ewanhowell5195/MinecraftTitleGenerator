@@ -1,12 +1,12 @@
-import { independentLayers, layerSlices } from "../../font/flatSheet.js"
-import { fontFolder, fullOrder, sheetOwner } from "../../font/catalog.js"
-import { parseMask } from "../../font/sheetParse.js"
-import { titleCase } from "../../core/names.js"
-import { defaultBorder, defaultDepth } from "../../settings/defaults.js"
-import { stackedStrip, stripRange, stripRows, stripTag, stripUse, stripY, withDefaultStrips } from "../../font/strips.js"
+import { independentLayers, layerSlices } from "#lib/font/flatSheet.js"
+import { fontFolder, fullOrder, sheetOwner } from "#lib/font/catalog.js"
+import { parseMask } from "#lib/font/sheetParse.js"
+import { titleCase } from "#lib/core/names.js"
+import { defaultBorder, defaultDepth } from "#lib/settings/defaults.js"
+import { stackedStrip, stripRange, stripRows, stripTag, stripUse, stripY, withDefaultStrips } from "#lib/font/strips.js"
 import { SUBMISSION_LIMITS } from "../submissions.js"
 import { submissionFont } from "./fontAsset.js"
-import { decodePng } from "../../core/png.js"
+import { decodePng } from "#lib/core/png.js"
 
 export const STRIP_LIMITS = { depth: 64, height: 256, below: 64, snap: 64 }
 

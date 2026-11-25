@@ -1,3 +1,3 @@
-import { addIssueComment } from "../../../../src/server/issues/index.js"
+import { addIssueComment } from "#server/issues/index.js"
 
 export const onRequestPost = addIssueComment

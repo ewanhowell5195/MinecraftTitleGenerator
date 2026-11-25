@@ -1,4 +1,4 @@
-import { assetId } from "../../lib/submissions/submissions.js"
+import { assetId } from "#lib/submissions/submissions.js"
 import { accountKey } from "../accounts.js"
 import { GitHubError, github } from "../github.js"
 import { branchOf } from "./pulls.js"

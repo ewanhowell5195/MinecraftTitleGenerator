@@ -1,4 +1,4 @@
-import { platform } from "../../core/platform.js"
+import { platform } from "#lib/core/platform.js"
 import { pixelsOf, surface } from "../canvas.js"
 import { SWATCH } from "../atlas/pages.js"
 import { coverFit } from "./cover.js"

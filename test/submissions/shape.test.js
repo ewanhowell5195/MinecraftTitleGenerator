@@ -5,11 +5,11 @@ import { PNG } from "pngjs"
 import { pngOf } from "../helpers/png.js"
 import { publicContext } from "../helpers/site.js"
 
-const { shapeImage, shapeModel } = await import("../../src/lib/submissions/kinds/shape.js")
-const { cleanModel, cleanModelFile } = await import("../../src/lib/submissions/kinds/modelFile.js")
-const { sampleGlyph, samplePixels, silhouetteGlyph, silhouettePixels, silhouetteSample, silhouetteScale } = await import("../../src/lib/font/silhouette.js")
-const { elementCorners, modelHeight } = await import("../../src/lib/geometry/shapes.js")
-const { shapeImage: serverImage, shapeModel: serverModel } = await import("../../src/server/submissions/kinds/shape.js")
+const { shapeImage, shapeModel } = await import("#lib/submissions/kinds/shape.js")
+const { cleanModel, cleanModelFile } = await import("#lib/submissions/kinds/modelFile.js")
+const { sampleGlyph, samplePixels, silhouetteGlyph, silhouettePixels, silhouetteSample, silhouetteScale } = await import("#lib/font/silhouette.js")
+const { elementCorners, modelHeight } = await import("#lib/geometry/shapes.js")
+const { shapeImage: serverImage, shapeModel: serverModel } = await import("#server/submissions/kinds/shape.js")
 const { frontView } = await import("../../generator/modelView.js")
 
 const context = publicContext()
@@ -184,7 +184,7 @@ describe("publishing shapes", () => {
 
 describe("silhouettePixels", () => {
   test("paints the front from the PNG and the edges from the pixels next to them", async () => {
-    const { sheetLayout } = await import("../../src/lib/font/sheet.js")
+    const { sheetLayout } = await import("#lib/font/sheet.js")
     const image = PNG.sync.read(Buffer.from(silhouette(2, 3, () => true)))
     image.data.set([10, 20, 30, 255], 0)
     image.data.set([40, 50, 60, 200], (2 * 2 + 1) * 4)
@@ -202,7 +202,7 @@ describe("silhouettePixels", () => {
 
 describe("big custom shapes", () => {
   test("shrink the shape but keep every pixel in the texture", async () => {
-    const { sheetLayout } = await import("../../src/lib/font/sheet.js")
+    const { sheetLayout } = await import("#lib/font/sheet.js")
     const image = PNG.sync.read(Buffer.from(silhouette(1024, 238)))
     const scale = silhouetteScale(image)
     assert.equal(scale, 4)
@@ -217,7 +217,7 @@ describe("big custom shapes", () => {
   })
 
   test("fill the see-through pixels inside a solid block", async () => {
-    const { sheetLayout } = await import("../../src/lib/font/sheet.js")
+    const { sheetLayout } = await import("#lib/font/sheet.js")
     const image = PNG.sync.read(Buffer.from(silhouette(2, 2, (x, y) => !(x === 1 && y === 0))))
     const glyph = silhouetteGlyph(image, 2)
     assert.deepEqual(Array.from(glyph.mask), [1])
@@ -229,9 +229,9 @@ describe("big custom shapes", () => {
   })
 
   test("paint a shape whose thin edge blocks are left out inside its trimmed cell", async () => {
-    const { fontFromShapes } = await import("../../src/lib/font/editor/import.js")
-    const { parsedSheet } = await import("../../src/lib/font/editor/sheet.js")
-    const { sheetLayout } = await import("../../src/lib/font/sheet.js")
+    const { fontFromShapes } = await import("#lib/font/editor/import.js")
+    const { parsedSheet } = await import("#lib/font/editor/sheet.js")
+    const { sheetLayout } = await import("#lib/font/sheet.js")
     const image = PNG.sync.read(Buffer.from(silhouette(600, 150, (x, y) => x === 0 || x >= 3)))
     const sample = silhouetteSample(image)
     assert.equal(sample.scale, 3)

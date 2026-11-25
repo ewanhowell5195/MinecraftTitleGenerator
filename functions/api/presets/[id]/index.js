@@ -1,4 +1,4 @@
-import { deletePreset, getPreset, renamePreset, replacePreset } from "../../../../src/server/presets.js"
+import { deletePreset, getPreset, renamePreset, replacePreset } from "#server/presets.js"
 
 export const onRequestGet = getPreset
 export const onRequestPatch = renamePreset

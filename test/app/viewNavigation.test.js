@@ -6,9 +6,9 @@ import { builtOf, transform } from "../helpers/stage.js"
 globalThis.devicePixelRatio = 1
 globalThis.WheelEvent ??= { DOM_DELTA_PIXEL: 0, DOM_DELTA_LINE: 1 }
 
-const { useViewCamera } = await import("../../src/app/viewCamera.js")
-const { useViewPointer } = await import("../../src/app/viewPointer.js")
-const { UNZOOMED, keptPan, panMatrix } =await import("../../src/render/pan.js")
+const { useViewCamera } = await import("#src/app/viewCamera.js")
+const { useViewPointer } = await import("#src/app/viewPointer.js")
+const { UNZOOMED, keptPan, panMatrix } =await import("#render/pan.js")
 
 const WIDTH = 800
 const HEIGHT = 400

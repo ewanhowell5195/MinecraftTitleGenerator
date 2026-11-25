@@ -1,6 +1,6 @@
 import * as THREE from "three"
-import { boxesFor } from "../../../src/lib/geometry/boxes.js"
-import { unionBoxes } from "../../../src/lib/geometry/build.js"
+import { boxesFor } from "#lib/geometry/boxes.js"
+import { unionBoxes } from "#lib/geometry/build.js"
 
 const DIRECTIONS = [["west", "east"], ["down", "up"], ["north", "south"]]
 const OPPOSITE = { west: "east", east: "west", down: "up", up: "down", north: "south", south: "north" }

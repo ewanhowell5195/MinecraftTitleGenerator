@@ -1,9 +1,9 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
-import { beginStroke, canRedo, canUndo, cancelStroke, endStroke, font, glyph, openFont, redo, reshapeSelected, strokeTo, undo, updateGlyph } from "../../src/fontEditor/store.js"
-import { createFont } from "../../src/lib/font/editor/defaults.js"
-import { glyphOf, setGlyph } from "../../src/lib/font/editor/glyph.js"
-import { paint } from "../../src/lib/font/editor/painting.js"
+import { beginStroke, canRedo, canUndo, cancelStroke, endStroke, font, glyph, openFont, redo, reshapeSelected, strokeTo, undo, updateGlyph } from "#src/fontEditor/store.js"
+import { createFont } from "#lib/font/editor/defaults.js"
+import { glyphOf, setGlyph } from "#lib/font/editor/glyph.js"
+import { paint } from "#lib/font/editor/painting.js"
 import { fakeTimeouts } from "../helpers/browser.js"
 
 fakeTimeouts()

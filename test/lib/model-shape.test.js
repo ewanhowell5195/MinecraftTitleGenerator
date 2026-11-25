@@ -4,8 +4,8 @@ import { quietStorage } from "../helpers/browser.js"
 
 quietStorage()
 
-const { bodyOf, faceOutline, footprint, minecraftPlaced, modelQuads, placed, solidRuns, wholeCubes } = await import("../../src/lib/geometry/modelShape.js")
-const { packing } = await import("../../src/lib/texture/modelAtlas.js")
+const { bodyOf, faceOutline, footprint, minecraftPlaced, modelQuads, placed, solidRuns, wholeCubes } = await import("#lib/geometry/modelShape.js")
+const { packing } = await import("#lib/texture/modelAtlas.js")
 
 const SIZE = 16
 const SIDES = ["north", "south", "east", "west", "up", "down"]

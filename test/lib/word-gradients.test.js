@@ -1,8 +1,8 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { blend, ordered, stopColour } from "../../src/lib/texture/colourStops.js"
-import { rgbOf } from "../../src/lib/core/colour.js"
-import { refitStops, splitGradients } from "../../src/lib/texture/wordGradients.js"
+import { blend, ordered, stopColour } from "#lib/texture/colourStops.js"
+import { rgbOf } from "#lib/core/colour.js"
+import { refitStops, splitGradients } from "#lib/texture/wordGradients.js"
 
 const BLACK_WHITE = [{ colour: "#000000", position: 0 }, { colour: "#ffffff", position: 100 }]
 const glyph = { width: 10, height: 10, advance: 12, originX: 0, mask: new Uint8Array(100) }

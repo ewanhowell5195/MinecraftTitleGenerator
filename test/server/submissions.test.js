@@ -6,13 +6,13 @@ import { pngOf } from "../helpers/png.js"
 import { REPO, context, details, editForm, hook, signIn } from "../helpers/server.js"
 import { FLAT, LEGENDS, TEXTURES, WIKI, closed, db, edit, form, gh, holdGitHub, restore, send, textureServer, waiting } from "../helpers/submissionServer.js"
 
-const { accountDetails } = await import("../../src/server/accounts.js")
-const { createSubmission, listSubmissions, submissionDetails, submissionFile, withdrawSubmission } = await import("../../src/server/submissions/index.js")
-const { addComment } = await import("../../src/server/submissions/comments.js")
-const { clearNotifications, listNotifications, markNotificationsSeen } = await import("../../src/server/submissions/notifications.js")
-const { submissionProcessing } = await import("../../src/server/submissions/review.js")
-const { jsonText } = await import("../../src/lib/core/jsonText.js")
-const { decodeTitle } = await import("../../src/lib/link/linkformat.js")
+const { accountDetails } = await import("#server/accounts.js")
+const { createSubmission, listSubmissions, submissionDetails, submissionFile, withdrawSubmission } = await import("#server/submissions/index.js")
+const { addComment } = await import("#server/submissions/comments.js")
+const { clearNotifications, listNotifications, markNotificationsSeen } = await import("#server/submissions/notifications.js")
+const { submissionProcessing } = await import("#server/submissions/review.js")
+const { jsonText } = await import("#lib/core/jsonText.js")
+const { decodeTitle } = await import("#lib/link/linkformat.js")
 
 const WIKI_FLAT = PNG.sync.read(fs.readFileSync("public/fonts/minecraft-wiki/textures/flat.png"))
 

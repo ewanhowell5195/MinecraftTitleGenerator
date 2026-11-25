@@ -1,9 +1,9 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import { watch } from "vue"
-import { oneWord, wholeLine } from "../../src/lib/title/broadcast.js"
-import { createObject } from "../../src/lib/settings/objects.js"
-import { snapshot } from "../../src/lib/settings/settings.js"
+import { oneWord, wholeLine } from "#lib/title/broadcast.js"
+import { createObject } from "#lib/settings/objects.js"
+import { snapshot } from "#lib/settings/settings.js"
 
 function line() {
   return ["a", "b"].map(text => createObject({ text, group: 1 }))

@@ -1,4 +1,4 @@
-import { SUBMISSION_LIMITS } from "../../lib/submissions/submissions.js"
+import { SUBMISSION_LIMITS } from "#lib/submissions/submissions.js"
 import { USER_ROW, forgetSpareEmails, forgetUnusedUser, requireUser } from "../accounts.js"
 import { emailNotifications } from "../email.js"
 import { guarded, idParam, reply } from "../http.js"

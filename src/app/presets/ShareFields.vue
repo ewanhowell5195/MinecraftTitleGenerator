@@ -1,9 +1,9 @@
 <script setup>
   import { computed, onMounted, ref } from "vue"
-  import { NAME_LIMIT } from "../../lib/state/presets.js"
-  import Checkbox from "../../components/Checkbox.vue"
-  import Field from "../../components/Field.vue"
-  import Notice from "../../components/Notice.vue"
+  import { NAME_LIMIT } from "#lib/state/presets.js"
+  import Checkbox from "#c/Checkbox.vue"
+  import Field from "#c/Field.vue"
+  import Notice from "#c/Notice.vue"
   import ReplaceSelect from "./ReplaceSelect.vue"
   import ShareAccount from "./ShareAccount.vue"
   import ShareUsage from "./ShareUsage.vue"

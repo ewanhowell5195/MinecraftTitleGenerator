@@ -1,10 +1,10 @@
 <script setup>
   import { computed, ref, watch } from "vue"
-  import Dropdown from "../../components/Dropdown.vue"
-  import Field from "../../components/Field.vue"
-  import Segments from "../../components/Segments.vue"
-  import { fetched } from "../../lib/core/api.js"
-  import { textureName } from "../../lib/submissions/kinds/fontAsset.js"
+  import Dropdown from "#c/Dropdown.vue"
+  import Field from "#c/Field.vue"
+  import Segments from "#c/Segments.vue"
+  import { fetched } from "#lib/core/api.js"
+  import { textureName } from "#lib/submissions/kinds/fontAsset.js"
 
   defineOptions({ inheritAttrs: false })
 

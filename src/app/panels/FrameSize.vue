@@ -1,9 +1,9 @@
 <script setup>
-  import { canvasLimit } from "../../lib/texture/canvas.js"
-  import { framing, setAspect, setResolution } from "../../render/framing.js"
-  import Button from "../../components/Button.vue"
-  import Field from "../../components/Field.vue"
-  import NumberInput from "../../components/NumberInput.vue"
+  import { canvasLimit } from "#lib/texture/canvas.js"
+  import { framing, setAspect, setResolution } from "#render/framing.js"
+  import Button from "#c/Button.vue"
+  import Field from "#c/Field.vue"
+  import NumberInput from "#c/NumberInput.vue"
 
   defineProps({
     panel: { type: Object, required: true },

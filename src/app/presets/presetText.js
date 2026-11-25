@@ -1,4 +1,4 @@
-import { LIMITS } from "../../lib/core/limits.js"
+import { LIMITS } from "#lib/core/limits.js"
 
 export const SORTS = [{ value: "week", label: "Popular this week" }, { value: "popular", label: "Popular all time" }, { value: "top", label: "Top rated" }, { value: "new", label: "Newest" }, { value: "needs", label: "Needs votes" }]
 

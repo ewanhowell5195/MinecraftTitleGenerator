@@ -15,20 +15,20 @@ globalThis.fetch = async (url, options) => {
 fakeTimeouts()
 
 const { watch } = await import("vue")
-const { confirming } = await import("../../src/lib/state/confirm.js")
+const { confirming } = await import("#lib/state/confirm.js")
 watch(confirming, request => request?.answer(answer), { flush: "sync" })
 
-const { LAYER } = await import("../../src/lib/settings/textureDefaults.js")
-const { FILE_VERSION } = await import("../../src/lib/settings/upgrades.js")
-const { createObject } = await import("../../src/lib/settings/objects.js")
-const { scene, sharedLink } = await import("../../src/lib/state/scene.js")
-const { fileError } = await import("../../src/lib/state/notices.js")
-const { notice } = await import("../../src/lib/state/notices.js")
-const { decodeTitle, encodeTitle } = await import("../../src/lib/link/linkformat.js")
-const { NAME_LIMIT, addPreset, loadPreset, markShared, namingPreset, namingShared, presets, removePreset, renamePreset, savePreset, startSavingPreset } = await import("../../src/lib/state/presets.js")
+const { LAYER } = await import("#lib/settings/textureDefaults.js")
+const { FILE_VERSION } = await import("#lib/settings/upgrades.js")
+const { createObject } = await import("#lib/settings/objects.js")
+const { scene, sharedLink } = await import("#lib/state/scene.js")
+const { fileError } = await import("#lib/state/notices.js")
+const { notice } = await import("#lib/state/notices.js")
+const { decodeTitle, encodeTitle } = await import("#lib/link/linkformat.js")
+const { NAME_LIMIT, addPreset, loadPreset, markShared, namingPreset, namingShared, presets, removePreset, renamePreset, savePreset, startSavingPreset } = await import("#lib/state/presets.js")
 const { setTitle } = await import("../helpers/scene.js")
-const { accountPresets } = await import("../../src/lib/state/community.js")
-const { sharingProblem } = await import("../../src/lib/link/shareChecks.js")
+const { accountPresets } = await import("#lib/state/community.js")
+const { sharingProblem } = await import("#lib/link/shareChecks.js")
 
 const STORAGE = "minecraft-title-presets"
 

@@ -1,4 +1,4 @@
-import { SUBMISSION_LIMITS } from "../../lib/submissions/submissions.js"
+import { SUBMISSION_LIMITS } from "#lib/submissions/submissions.js"
 import { accountKey, isAdmin, requireUser, saveUser } from "../accounts.js"
 import { returnSlot, takeSlot } from "../daily.js"
 import { GitHubError, github } from "../github.js"

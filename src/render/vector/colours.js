@@ -1,4 +1,4 @@
-import { packed } from "../../lib/core/colour.js"
+import { packed } from "#lib/core/colour.js"
 
 const TOLERANCE = 2
 const HARD_EDGE = 24

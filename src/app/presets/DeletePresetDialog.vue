@@ -1,7 +1,7 @@
 <script setup>
   import { onMounted, ref } from "vue"
-  import Button from "../../components/Button.vue"
-  import Dialog from "../../components/Dialog.vue"
+  import Button from "#c/Button.vue"
+  import Dialog from "#c/Dialog.vue"
 
   defineProps({
     preset: { type: Object, required: true },

@@ -1,10 +1,10 @@
 <script setup>
   import { computed, onMounted } from "vue"
-  import { refreshAccount } from "../../lib/state/account.js"
-  import { refreshUsage } from "../../lib/state/community.js"
-  import { replaceTargets } from "../../lib/state/presets.js"
-  import Dropdown from "../../components/Dropdown.vue"
-  import Notice from "../../components/Notice.vue"
+  import { refreshAccount } from "#lib/state/account.js"
+  import { refreshUsage } from "#lib/state/community.js"
+  import { replaceTargets } from "#lib/state/presets.js"
+  import Dropdown from "#c/Dropdown.vue"
+  import Notice from "#c/Notice.vue"
 
   const props = defineProps({
     code: { type: String, required: true },

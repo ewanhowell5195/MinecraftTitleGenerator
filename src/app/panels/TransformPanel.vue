@@ -1,14 +1,14 @@
 <script setup>
   import { computed } from "vue"
-  import { MATCH_PANEL, SCALING_PANEL } from "../../lib/panels/transform.js"
-  import { usePanelState } from "../../lib/panels/panel.js"
-  import { TRANSFORM_GROUPS, TRANSFORM_LIMITS, isModified, resetTransform, transformKeys, wordKey } from "../../lib/settings/settings.js"
-  import { current, currentWord, setScale } from "../../lib/state/scene.js"
-  import Button from "../../components/Button.vue"
+  import { MATCH_PANEL, SCALING_PANEL } from "#lib/panels/transform.js"
+  import { usePanelState } from "#lib/panels/panel.js"
+  import { TRANSFORM_GROUPS, TRANSFORM_LIMITS, isModified, resetTransform, transformKeys, wordKey } from "#lib/settings/settings.js"
+  import { current, currentWord, setScale } from "#lib/state/scene.js"
+  import Button from "#c/Button.vue"
   import DataControls from "./DataControls.vue"
   import DataPanel from "./DataPanel.vue"
   import Panel from "../Panel.vue"
-  import Slider from "../../components/Slider.vue"
+  import Slider from "#c/Slider.vue"
 
   const props = defineProps({
     word: { type: Boolean, default: false }

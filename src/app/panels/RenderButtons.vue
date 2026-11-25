@@ -1,11 +1,11 @@
 <script setup>
-  import { host } from "../../lib/panels/host.js"
-  import { useRenderTask } from "../../lib/panels/renderTask.js"
-  import { framing } from "../../render/framing.js"
-  import Button from "../../components/Button.vue"
-  import Field from "../../components/Field.vue"
-  import Icon from "../../components/Icon.vue"
-  import Notice from "../../components/Notice.vue"
+  import { host } from "#lib/panels/host.js"
+  import { useRenderTask } from "#lib/panels/renderTask.js"
+  import { framing } from "#render/framing.js"
+  import Button from "#c/Button.vue"
+  import Field from "#c/Field.vue"
+  import Icon from "#c/Icon.vue"
+  import Notice from "#c/Notice.vue"
   import RenderProgress from "../RenderProgress.vue"
   import RenderResult from "../RenderResult.vue"
 

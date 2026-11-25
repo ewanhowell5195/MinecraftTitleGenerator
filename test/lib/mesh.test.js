@@ -1,12 +1,12 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
 import opentype from "opentype.js"
-import { parsedSheet } from "../../src/lib/font/editor/sheet.js"
-import { fontFromOutlines, meshOutlines, parseFontFile } from "../../src/lib/font/fontImport.js"
-import { generatedAlpha } from "../../src/lib/texture/overlays/faces.js"
-import { fillSpans } from "../../src/lib/font/fontOutline.js"
-import { fineMasks, glyphMeshes, holeFill, meshFaces, outlineShell } from "../../src/lib/font/meshGlyphs.js"
-import { faceLimits, ringWalls } from "../../src/lib/geometry/meshFaces.js"
+import { parsedSheet } from "#lib/font/editor/sheet.js"
+import { fontFromOutlines, meshOutlines, parseFontFile } from "#lib/font/fontImport.js"
+import { generatedAlpha } from "#lib/texture/overlays/faces.js"
+import { fillSpans } from "#lib/font/fontOutline.js"
+import { fineMasks, glyphMeshes, holeFill, meshFaces, outlineShell } from "#lib/font/meshGlyphs.js"
+import { faceLimits, ringWalls } from "#lib/geometry/meshFaces.js"
 
 function area(points) {
   let sum = 0

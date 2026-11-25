@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
-import { credit, fontCredit } from "../../src/lib/font/credits.js"
-import { usePlatform } from "../../src/lib/core/platform.js"
+import { credit, fontCredit } from "#lib/font/credits.js"
+import { usePlatform } from "#lib/core/platform.js"
 
 const FONTS = [{ id: "base", name: "Base Font" }, { id: "port", name: "Port Font" }]
 const LISTS = {

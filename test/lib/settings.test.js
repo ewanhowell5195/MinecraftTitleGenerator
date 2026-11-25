@@ -1,11 +1,11 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import { isReactive } from "vue"
-import { PANELS, applyType, defaultBorder, defaultDepth, defaultSpacing, fontFaces, typeDefaults } from "../../src/lib/settings/defaults.js"
-import { applyFontFaces, layerTarget, layerView, overlayFits, separateLayers } from "../../src/lib/settings/layers.js"
-import { LINE, effectiveScale, isModified, resetPanel, resetTransform, restore, snapshot, transformKeys, wordKey } from "../../src/lib/settings/settings.js"
-import { LAYER, activeOverlays, defaultOverlays, defaultTexture, overlayLayer, pinnedTextures, setTexture, shownOverlays, textureEntry } from "../../src/lib/settings/textureDefaults.js"
-import { createObject } from "../../src/lib/settings/objects.js"
+import { PANELS, applyType, defaultBorder, defaultDepth, defaultSpacing, fontFaces, typeDefaults } from "#lib/settings/defaults.js"
+import { applyFontFaces, layerTarget, layerView, overlayFits, separateLayers } from "#lib/settings/layers.js"
+import { LINE, effectiveScale, isModified, resetPanel, resetTransform, restore, snapshot, transformKeys, wordKey } from "#lib/settings/settings.js"
+import { LAYER, activeOverlays, defaultOverlays, defaultTexture, overlayLayer, pinnedTextures, setTexture, shownOverlays, textureEntry } from "#lib/settings/textureDefaults.js"
+import { createObject } from "#lib/settings/objects.js"
 
 const TOP_DEFAULTS = {
   hidden: false,

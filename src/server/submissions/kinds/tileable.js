@@ -1,7 +1,7 @@
-import { jsonText } from "../../../lib/core/jsonText.js"
-import { titleCase } from "../../../lib/core/names.js"
-import { TILEABLES_LIST, TILEABLE_FOLDER, tileableName } from "../../../lib/submissions/kinds/tileable.js"
-import { assetId } from "../../../lib/submissions/submissions.js"
+import { jsonText } from "#lib/core/jsonText.js"
+import { titleCase } from "#lib/core/names.js"
+import { TILEABLES_LIST, TILEABLE_FOLDER, tileableName } from "#lib/submissions/kinds/tileable.js"
+import { assetId } from "#lib/submissions/submissions.js"
 
 const LIST = `public${TILEABLES_LIST}`
 

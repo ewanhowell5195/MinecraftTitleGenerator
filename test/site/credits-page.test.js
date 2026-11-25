@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { licensedFontsHtml, sourceHtml } from "../../src/site/credits/build.js"
+import { licensedFontsHtml, sourceHtml } from "#src/site/credits/build.js"
 
 test("someone else's work links to its source and licence, and says it was adapted", () => {
   assert.equal(sourceHtml({ source: null, licence: null }), "")

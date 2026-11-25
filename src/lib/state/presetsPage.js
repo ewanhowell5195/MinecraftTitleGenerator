@@ -1,7 +1,7 @@
 import { reactive } from "vue"
 import { navigate, onNavigated } from "./navigation.js"
 import { PRESET_PARAM, TITLE_PARAM, replaceAddress, sharedLink } from "./scene.js"
-import { SITE } from "../../site/pages.js"
+import { SITE } from "#src/site/pages.js"
 
 export const PRESETS_PATH = "/app/presets"
 const EDITOR = "/app/"

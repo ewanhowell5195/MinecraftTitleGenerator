@@ -1,9 +1,9 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { layerTarget, layerView, separateLayers } from "../../src/lib/settings/layers.js"
-import { isModified, resetPanel } from "../../src/lib/settings/settings.js"
-import { activeOverlays, separateForDefaults, setTexture, textureFaces } from "../../src/lib/settings/textureDefaults.js"
-import { createObject } from "../../src/lib/settings/objects.js"
+import { layerTarget, layerView, separateLayers } from "#lib/settings/layers.js"
+import { isModified, resetPanel } from "#lib/settings/settings.js"
+import { activeOverlays, separateForDefaults, setTexture, textureFaces } from "#lib/settings/textureDefaults.js"
+import { createObject } from "#lib/settings/objects.js"
 
 const list = {
   overlays: { dust: {}, glow: {} },

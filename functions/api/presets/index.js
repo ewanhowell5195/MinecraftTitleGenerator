@@ -1,4 +1,4 @@
-import { listPresets, submitPreset } from "../../../src/server/presets.js"
+import { listPresets, submitPreset } from "#server/presets.js"
 
 export const onRequestGet = listPresets
 export const onRequestPost = submitPreset

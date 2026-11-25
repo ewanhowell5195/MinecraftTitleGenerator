@@ -1,5 +1,5 @@
 import { EndType, FillRule, JoinType, differenceD, inflatePathsD, intersectD, unionD } from "@countertype/clipper2-ts"
-import { packed } from "../../lib/core/colour.js"
+import { packed } from "#lib/core/colour.js"
 import { colourTotals, jump, majority, near, tally, within } from "./colours.js"
 import { BASE_SHARE, STEP_EDGE, bandedOf, denoised, drawnNear, fadedModel, flatOf, joinedBands, modelOf, paintedModel, rampsOneWay, rising, segmentsOf, smoothBands, without } from "./models.js"
 import { smoothStairs, trace } from "./trace.js"

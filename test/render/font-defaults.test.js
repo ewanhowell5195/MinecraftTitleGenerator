@@ -1,9 +1,9 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { applyFontDefaults } from "../../src/render/fontDefaults.js"
-import { loadedFont } from "../../src/lib/title/objects.js"
-import { layerTarget, separateLayers } from "../../src/lib/settings/layers.js"
-import { createObject } from "../../src/lib/settings/objects.js"
+import { applyFontDefaults } from "#render/fontDefaults.js"
+import { loadedFont } from "#lib/title/objects.js"
+import { layerTarget, separateLayers } from "#lib/settings/layers.js"
+import { createObject } from "#lib/settings/objects.js"
 
 const before = { primary: "stone", overlays: { dust: {}, glow: {} }, edgeOverlays: {}, textures: { flat: {}, stone: {} } }
 const after = { primary: "gold", overlays: { glow: {} }, edgeOverlays: {}, textures: { flat: {}, gold: {} } }

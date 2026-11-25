@@ -4,8 +4,8 @@ import { hasMarks } from "../font/stretchMarks.js"
 import { clamp, round } from "../core/maths.js"
 import { wordsOf } from "./title.js"
 import { effectiveScale } from "../settings/settings.js"
-import { lineBounds, placementMatrix } from "../../render/placement.js"
-import { frameCamera, titleFraming } from "../../render/titleFraming.js"
+import { lineBounds, placementMatrix } from "#render/placement.js"
+import { frameCamera, titleFraming } from "#render/titleFraming.js"
 
 const perspective = new THREE.PerspectiveCamera()
 const orthographic = new THREE.OrthographicCamera()

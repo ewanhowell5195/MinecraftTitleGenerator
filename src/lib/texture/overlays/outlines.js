@@ -1,5 +1,5 @@
-import { joinedMask } from "../../geometry/joins.js"
-import { clamp } from "../../core/maths.js"
+import { joinedMask } from "#lib/geometry/joins.js"
+import { clamp } from "#lib/core/maths.js"
 import { TONES } from "./settings.js"
 
 const SIDES = { top: [0, 1], bottom: [0, -1], left: [-1, 0], right: [1, 0] }

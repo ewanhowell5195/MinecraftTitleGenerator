@@ -1,9 +1,9 @@
 <script setup>
   import { ref } from "vue"
-  import { presetToAsk, voteOn } from "../../lib/state/community.js"
-  import { scene } from "../../lib/state/scene.js"
-  import Button from "../../components/Button.vue"
-  import Icon from "../../components/Icon.vue"
+  import { presetToAsk, voteOn } from "#lib/state/community.js"
+  import { scene } from "#lib/state/scene.js"
+  import Button from "#c/Button.vue"
+  import Icon from "#c/Icon.vue"
 
   const preset = presetToAsk(scene.preset)
   const vote = ref(0)

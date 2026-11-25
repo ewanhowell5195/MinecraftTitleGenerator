@@ -1,4 +1,4 @@
-import { SUBMISSION_KINDS } from "../../lib/submissions/kinds/index.js"
+import { SUBMISSION_KINDS } from "#lib/submissions/kinds/index.js"
 import { GitHubError, base64, github, repository } from "../github.js"
 import { Refusal } from "../http.js"
 import { SERVER_KINDS } from "./kinds/index.js"

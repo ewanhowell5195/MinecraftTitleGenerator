@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { quoted, unquoted } from "../../src/server/submissions/quoted.js"
+import { quoted, unquoted } from "#server/submissions/quoted.js"
 
 describe("quoted", () => {
   test("leaves plain writing readable", () => {

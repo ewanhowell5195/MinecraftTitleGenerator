@@ -1,3 +1,3 @@
-import { receiveWebhook } from "../../src/server/submissions/webhook.js"
+import { receiveWebhook } from "#server/submissions/webhook.js"
 
 export const onRequestPost = receiveWebhook

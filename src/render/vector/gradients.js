@@ -1,5 +1,5 @@
-import { hexOfPacked } from "../../lib/core/colour.js"
-import { clamp } from "../../lib/core/maths.js"
+import { hexOfPacked } from "#lib/core/colour.js"
+import { clamp } from "#lib/core/maths.js"
 import { brightness, colourAlong, mixed, simplifyStops, within } from "./colours.js"
 import { EPSILON, split, worldMap } from "./faces.js"
 

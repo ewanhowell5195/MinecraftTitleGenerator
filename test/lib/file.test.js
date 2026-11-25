@@ -15,14 +15,14 @@ globalThis.fetch = countFetch
 quietStorage()
 fakeTimeouts()
 
-const { typeDefaults } = await import("../../src/lib/settings/defaults.js")
-const { snapshot } = await import("../../src/lib/settings/settings.js")
-const { LAYER } = await import("../../src/lib/settings/textureDefaults.js")
-const { createObject } = await import("../../src/lib/settings/objects.js")
-const { keepTexture } = await import("../../src/lib/title/objects.js")
-const { runtime, scene } = await import("../../src/lib/state/scene.js")
-const { isDefaultTitle, openTitle, resetTitle, saveTitle } = await import("../../src/lib/state/titleFile.js")
-const { fileError } = await import("../../src/lib/state/notices.js")
+const { typeDefaults } = await import("#lib/settings/defaults.js")
+const { snapshot } = await import("#lib/settings/settings.js")
+const { LAYER } = await import("#lib/settings/textureDefaults.js")
+const { createObject } = await import("#lib/settings/objects.js")
+const { keepTexture } = await import("#lib/title/objects.js")
+const { runtime, scene } = await import("#lib/state/scene.js")
+const { isDefaultTitle, openTitle, resetTitle, saveTitle } = await import("#lib/state/titleFile.js")
+const { fileError } = await import("#lib/state/notices.js")
 const { setTitle: setScene } = await import("../helpers/scene.js")
 
 const REAL_FILE = { format: "minecraft-title", version: 1, lines: [{ texture: "cracked" }, { type: "bottom", matchWidth: 0, scaleX: 0.7977, words: [{ text: "title", texture: "fired", hue: 359, customBorder: true, borderColour: "#230f00" }, { text: "generator", texture: "fired", hue: 180, customBorder: true, borderColour: "#001329", customEdge: true, edgeColour: "#11467d" }] }] }

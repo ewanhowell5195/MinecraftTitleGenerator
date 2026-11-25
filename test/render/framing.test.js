@@ -13,9 +13,9 @@ function fakeElement() {
 quietStorage()
 globalThis.document = { createElement: fakeElement }
 
-const { frameBounds, framePixels, frameRect, frameSplit, framing, paddingScale, renderVector, setAspect, setResolution, textureSize, textureSizes, useFraming } = await import("../../src/render/framing.js")
-const { outputSize } = await import("../../src/render/compose.js")
-const { view, viewport } = await import("../../src/lib/state/view.js")
+const { frameBounds, framePixels, frameRect, frameSplit, framing, paddingScale, renderVector, setAspect, setResolution, textureSize, textureSizes, useFraming } = await import("#render/framing.js")
+const { outputSize } = await import("#render/compose.js")
+const { view, viewport } = await import("#lib/state/view.js")
 
 useFraming({ view, viewport })
 

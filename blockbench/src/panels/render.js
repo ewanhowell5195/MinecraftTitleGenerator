@@ -1,9 +1,9 @@
 import { ref, watch } from "vue"
-import { canvasBlob } from "../../../src/lib/core/files.js"
-import { canvasLimit } from "../../../src/lib/texture/canvas.js"
-import { host } from "../../../src/lib/panels/host.js"
-import { useRenderTask } from "../../../src/lib/panels/renderTask.js"
-import { framing, setAspect, setResolution } from "../../../src/render/framing.js"
+import { canvasBlob } from "#lib/core/files.js"
+import { canvasLimit } from "#lib/texture/canvas.js"
+import { host } from "#lib/panels/host.js"
+import { useRenderTask } from "#lib/panels/renderTask.js"
+import { framing, setAspect, setResolution } from "#render/framing.js"
 import { onlyTitlesShown } from "../render/capture.js"
 
 export const FrameSizeBlock = {

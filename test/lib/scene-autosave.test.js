@@ -15,11 +15,11 @@ globalThis.localStorage = { getItem: key => store.get(key) ?? null, setItem: wri
 forbidFetch()
 fakeTimeouts()
 
-const { snapshot } = await import("../../src/lib/settings/settings.js")
-const { FILE_VERSION } = await import("../../src/lib/settings/upgrades.js")
-const { createObject } = await import("../../src/lib/settings/objects.js")
-const { keepTexture } = await import("../../src/lib/title/objects.js")
-const { saveError, scene, select } = await import("../../src/lib/state/scene.js")
+const { snapshot } = await import("#lib/settings/settings.js")
+const { FILE_VERSION } = await import("#lib/settings/upgrades.js")
+const { createObject } = await import("#lib/settings/objects.js")
+const { keepTexture } = await import("#lib/title/objects.js")
+const { saveError, scene, select } = await import("#lib/state/scene.js")
 const { line, setScene } = await import("../helpers/scene.js")
 
 beforeEach(() => {

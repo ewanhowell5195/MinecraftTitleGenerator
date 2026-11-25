@@ -2,6 +2,13 @@
   "name": "minecraft-title-generator",
   "private": true,
   "type": "module",
+  "imports": {
+    "#c/*": "./src/components/*",
+    "#lib/*": "./src/lib/*",
+    "#render/*": "./src/render/*",
+    "#server/*": "./src/server/*",
+    "#src/*": "./src/*"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",

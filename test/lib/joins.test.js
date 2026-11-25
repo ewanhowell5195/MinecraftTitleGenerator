@@ -1,10 +1,10 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
-import { boxesFor } from "../../src/lib/geometry/boxes.js"
-import { crackList } from "../../src/lib/texture/overlays/cracks.js"
-import { edgeAlpha } from "../../src/lib/texture/overlays/edges.js"
-import { generatedAlpha } from "../../src/lib/texture/overlays/faces.js"
-import { clippedBoxes, joinNeighbours } from "../../src/lib/geometry/joins.js"
+import { boxesFor } from "#lib/geometry/boxes.js"
+import { crackList } from "#lib/texture/overlays/cracks.js"
+import { edgeAlpha } from "#lib/texture/overlays/edges.js"
+import { generatedAlpha } from "#lib/texture/overlays/faces.js"
+import { clippedBoxes, joinNeighbours } from "#lib/geometry/joins.js"
 
 function glyph(rows, placedX) {
   const width = rows[0].length

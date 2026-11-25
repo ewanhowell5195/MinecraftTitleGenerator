@@ -1,8 +1,8 @@
 import { fillPattern, surface } from "../canvas.js"
 import { MAX_DETAIL } from "../atlas/scales.js"
-import { layerCell, layerLeft } from "../../font/flatSheet.js"
-import { remember } from "../../core/maths.js"
-import { stripY } from "../../font/strips.js"
+import { layerCell, layerLeft } from "#lib/font/flatSheet.js"
+import { remember } from "#lib/core/maths.js"
+import { stripY } from "#lib/font/strips.js"
 import { CACHED_OVERLAYS, R, fillRect, into, plain } from "./draw.js"
 
 const stretchedStrips = new WeakMap()

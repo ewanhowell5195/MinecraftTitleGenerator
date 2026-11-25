@@ -1,5 +1,5 @@
-import { clamp } from "../../core/maths.js"
-import { faceLimits } from "../../geometry/meshFaces.js"
+import { clamp } from "#lib/core/maths.js"
+import { faceLimits } from "#lib/geometry/meshFaces.js"
 
 const FADE_HEIGHT_FROM = 0.5
 const LONGEST_WALK = 256

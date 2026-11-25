@@ -3,9 +3,9 @@ import assert from "node:assert/strict"
 import { batchesTogether, code, context, db, env, freshServer, list, restoreFetch, rowsEverywhere, shareAs, signIn, usageOf, vote, voteAll, withCookie } from "../helpers/presets.js"
 import { holdQuery } from "../helpers/server.js"
 
-const { LIMITS } = await import("../../src/lib/core/limits.js")
-const { getPreset, replacePreset, submissionUsage, unsharePreset } = await import("../../src/server/presets.js")
-const { addSaved, changeSaved, listSaved, removeSaved } = await import("../../src/server/saved.js")
+const { LIMITS } = await import("#lib/core/limits.js")
+const { getPreset, replacePreset, submissionUsage, unsharePreset } = await import("#server/presets.js")
+const { addSaved, changeSaved, listSaved, removeSaved } = await import("#server/saved.js")
 
 beforeEach(freshServer)
 afterEach(restoreFetch)

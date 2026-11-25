@@ -1,3 +1,3 @@
-import { countDownload } from "../../../../src/server/presetScores.js"
+import { countDownload } from "#server/presetScores.js"
 
 export const onRequestPost = countDownload

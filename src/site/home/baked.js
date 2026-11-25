@@ -1,4 +1,4 @@
-import { FXAA_FRAGMENT, FXAA_VERTEX } from "../../render/fxaa.js"
+import { FXAA_FRAGMENT, FXAA_VERTEX } from "#render/fxaa.js"
 
 export const MAX_LETTERS = 24
 

@@ -6,10 +6,10 @@ quietStorage()
 forbidFetch()
 fakeTimeouts()
 
-const { createObject } = await import("../../src/lib/settings/objects.js")
-const { editorTitle, scene } = await import("../../src/lib/state/scene.js")
-const { lineArc, rowStart } = await import("../../src/lib/geometry/rows.js")
-const { placementOf } = await import("../../src/lib/geometry/placement.js")
+const { createObject } = await import("#lib/settings/objects.js")
+const { editorTitle, scene } = await import("#lib/state/scene.js")
+const { lineArc, rowStart } = await import("#lib/geometry/rows.js")
+const { placementOf } = await import("#lib/geometry/placement.js")
 
 const { heights } = editorTitle
 

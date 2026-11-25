@@ -3,13 +3,13 @@ import assert from "node:assert/strict"
 import { batchesTogether, code, context, db, download, env, freshServer, list, post, share, usageOf, vote, voteAll } from "../helpers/presets.js"
 import { holdQuery } from "../helpers/server.js"
 
-const { LIMITS } = await import("../../src/lib/core/limits.js")
-const { checkTitle, getPreset, listPresets, submitPreset } = await import("../../src/server/presets.js")
-const { countDownload, presetStats, votePreset } = await import("../../src/server/presetScores.js")
-const { linkedPreset, linkedPresetDetails, presetDetails, presetPageDetails } = await import("../../src/server/presetPages.js")
-const { titleFacts } = await import("../../src/lib/link/titleFacts.js")
-const { encodeTitle } = await import("../../src/lib/link/linkformat.js")
-const { FILE_VERSION } = await import("../../src/lib/settings/upgrades.js")
+const { LIMITS } = await import("#lib/core/limits.js")
+const { checkTitle, getPreset, listPresets, submitPreset } = await import("#server/presets.js")
+const { countDownload, presetStats, votePreset } = await import("#server/presetScores.js")
+const { linkedPreset, linkedPresetDetails, presetDetails, presetPageDetails } = await import("#server/presetPages.js")
+const { titleFacts } = await import("#lib/link/titleFacts.js")
+const { encodeTitle } = await import("#lib/link/linkformat.js")
+const { FILE_VERSION } = await import("#lib/settings/upgrades.js")
 
 beforeEach(freshServer)
 

@@ -1,5 +1,5 @@
-import { applyType } from "../../src/lib/settings/defaults.js"
-import { freeRowOf } from "../../src/lib/title/title.js"
+import { applyType } from "#lib/settings/defaults.js"
+import { freeRowOf } from "#lib/title/title.js"
 import { convert, isCubes } from "./convert/index.js"
 import { FORMAT } from "./format.js"
 import { library } from "./library.js"

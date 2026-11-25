@@ -1,11 +1,11 @@
 import assert from "node:assert/strict"
 import fs from "node:fs"
 import { test } from "node:test"
-import { parsedSheet } from "../../src/lib/font/editor/sheet.js"
-import { fontFromOutlines, meshOutlines, parseFontFile } from "../../src/lib/font/fontImport.js"
-import { fineMasks, glyphMeshes } from "../../src/lib/font/meshGlyphs.js"
-import { generatedAlpha } from "../../src/lib/texture/overlays/faces.js"
-import { fineShapes } from "../../src/lib/texture/overlays/fineShapes.js"
+import { parsedSheet } from "#lib/font/editor/sheet.js"
+import { fontFromOutlines, meshOutlines, parseFontFile } from "#lib/font/fontImport.js"
+import { fineMasks, glyphMeshes } from "#lib/font/meshGlyphs.js"
+import { generatedAlpha } from "#lib/texture/overlays/faces.js"
+import { fineShapes } from "#lib/texture/overlays/fineShapes.js"
 
 const SCALE = 8
 

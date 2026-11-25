@@ -1,10 +1,10 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { flattenFonts, fullOrder, sheetFolder, splitCells } from "../../src/lib/font/catalog.js"
-import { hasMarks } from "../../src/lib/font/stretchMarks.js"
-import { parseMask, scanMask, shadeLevels, solidMask } from "../../src/lib/font/sheetParse.js"
-import { depthShade, drawSheet, sheetLayout } from "../../src/lib/font/sheet.js"
-import { DEFAULT_ORDER } from "../../src/lib/font/order.js"
+import { flattenFonts, fullOrder, sheetFolder, splitCells } from "#lib/font/catalog.js"
+import { hasMarks } from "#lib/font/stretchMarks.js"
+import { parseMask, scanMask, shadeLevels, solidMask } from "#lib/font/sheetParse.js"
+import { depthShade, drawSheet, sheetLayout } from "#lib/font/sheet.js"
+import { DEFAULT_ORDER } from "#lib/font/order.js"
 
 const COLOURS = { ".": [255, 255, 255], "#": [0, 0, 0], R: [255, 0, 0], G: [0, 255, 0], B: [0, 0, 255] }
 

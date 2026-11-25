@@ -1,8 +1,8 @@
 <script setup>
   import { onMounted } from "vue"
-  import { account, refreshAccount, signInProviders } from "../../lib/state/account.js"
-  import SignInButtons from "../../components/SignInButtons.vue"
-  import UserName from "../../components/UserName.vue"
+  import { account, refreshAccount, signInProviders } from "#lib/state/account.js"
+  import SignInButtons from "#c/SignInButtons.vue"
+  import UserName from "#c/UserName.vue"
 
   onMounted(() => refreshAccount())
 </script>

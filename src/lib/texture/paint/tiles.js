@@ -1,5 +1,5 @@
 import { fillPattern, surface } from "../canvas.js"
-import { remember } from "../../core/maths.js"
+import { remember } from "#lib/core/maths.js"
 import { R, fillRect, into, pixelAt, plain, stripParts } from "./draw.js"
 import { adjusted, adjustmentsOf } from "./adjust.js"
 

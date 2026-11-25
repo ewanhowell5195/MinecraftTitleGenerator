@@ -1,3 +1,3 @@
-import { claimPresets } from "../../../src/server/presets.js"
+import { claimPresets } from "#server/presets.js"
 
 export const onRequestPost = claimPresets

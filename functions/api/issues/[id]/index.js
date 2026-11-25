@@ -1,3 +1,3 @@
-import { issueDetails } from "../../../../src/server/issues/index.js"
+import { issueDetails } from "#server/issues/index.js"
 
 export const onRequestGet = issueDetails

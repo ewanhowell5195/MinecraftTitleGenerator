@@ -3,11 +3,11 @@ import assert from "node:assert/strict"
 import { context, details, hook, signIn } from "../helpers/server.js"
 import { closed, db, edit, emails, gh, holdGitHub, resend, restore, revisionOf, send, textureServer, waiting } from "../helpers/submissionServer.js"
 
-const { accountDetails } = await import("../../src/server/accounts.js")
-const { listSubmissions, submissionDetails, withdrawSubmission } = await import("../../src/server/submissions/index.js")
-const { addComment } = await import("../../src/server/submissions/comments.js")
-const { clearNotifications, listNotifications, markNotificationsSeen } = await import("../../src/server/submissions/notifications.js")
-const { reviewState, reviewSubmission } = await import("../../src/server/submissions/review.js")
+const { accountDetails } = await import("#server/accounts.js")
+const { listSubmissions, submissionDetails, withdrawSubmission } = await import("#server/submissions/index.js")
+const { addComment } = await import("#server/submissions/comments.js")
+const { clearNotifications, listNotifications, markNotificationsSeen } = await import("#server/submissions/notifications.js")
+const { reviewState, reviewSubmission } = await import("#server/submissions/review.js")
 
 beforeEach(textureServer)
 

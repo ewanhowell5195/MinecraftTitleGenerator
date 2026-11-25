@@ -1,6 +1,6 @@
 import * as THREE from "three"
-import { gizmoPose, lineBounds, placementMatrix, wordPose } from "../../src/render/placement.js"
-import { TYPE_ROTATIONS, TYPE_SCALES } from "../../src/lib/geometry/placement.js"
+import { gizmoPose, lineBounds, placementMatrix, wordPose } from "#render/placement.js"
+import { TYPE_ROTATIONS, TYPE_SCALES } from "#lib/geometry/placement.js"
 
 // the site's titles face +z, and Blockbench models face north, which is -z
 export const FACING = new THREE.Matrix4().makeRotationY(Math.PI)

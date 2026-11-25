@@ -1,7 +1,7 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import { nextTick, ref } from "vue"
-import { useLoaded, usePreviewLine } from "../../src/submissions/kinds/preview.js"
+import { useLoaded, usePreviewLine } from "#src/submissions/kinds/preview.js"
 
 function deferred() {
   const made = {}

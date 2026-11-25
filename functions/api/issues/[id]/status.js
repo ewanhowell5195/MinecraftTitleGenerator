@@ -1,3 +1,3 @@
-import { changeIssueStatus } from "../../../../src/server/issues/index.js"
+import { changeIssueStatus } from "#server/issues/index.js"
 
 export const onRequestPost = changeIssueStatus

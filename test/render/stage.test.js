@@ -7,9 +7,9 @@ import { BOUNDS, WIDE, builtOf, closeList, middle, moved, point, radians, transf
 quietStorage()
 globalThis.devicePixelRatio = 1
 
-const { pickEntry, sortEntries } = await import("../../src/render/stage.js")
-const { gizmoPose, lineBounds, movedBy, objectMatrix, placementMatrix, rotatedTo, wordMovedBy, wordPose, wordRotatedTo } = await import("../../src/render/placement.js")
-const { titleFraming } = await import("../../src/render/titleFraming.js")
+const { pickEntry, sortEntries } = await import("#render/stage.js")
+const { gizmoPose, lineBounds, movedBy, objectMatrix, placementMatrix, rotatedTo, wordMovedBy, wordPose, wordRotatedTo } = await import("#render/placement.js")
+const { titleFraming } = await import("#render/titleFraming.js")
 
 function tilted(overrides) {
   return transform({ rotation: 90, type: [0.78042, 1.67665, 0.77035], offset: [0, -40, -2], anchor: { y: "top", z: "front" }, scale: [1.5, 0.8, 1.2], rotate: [20, -35, 10], translate: [5, -3, 8], ...overrides })

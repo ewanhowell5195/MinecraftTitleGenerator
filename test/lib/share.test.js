@@ -16,13 +16,13 @@ quietStorage()
 globalThis.location = { href: "https://example.test/app/", origin: "https://example.test", pathname: "/app/", search: "" }
 fakeTimeouts()
 
-const { FILE_VERSION } = await import("../../src/lib/settings/upgrades.js")
-const { createObject } = await import("../../src/lib/settings/objects.js")
-const { scene, sharedLink } = await import("../../src/lib/state/scene.js")
-const { fileError } = await import("../../src/lib/state/notices.js")
-const { encodeTitle } = await import("../../src/lib/link/linkformat.js")
-const { openSharedLink, shareLink } = await import("../../src/lib/state/share.js")
-const { undo } = await import("../../src/lib/state/history.js")
+const { FILE_VERSION } = await import("#lib/settings/upgrades.js")
+const { createObject } = await import("#lib/settings/objects.js")
+const { scene, sharedLink } = await import("#lib/state/scene.js")
+const { fileError } = await import("#lib/state/notices.js")
+const { encodeTitle } = await import("#lib/link/linkformat.js")
+const { openSharedLink, shareLink } = await import("#lib/state/share.js")
+const { undo } = await import("#lib/state/history.js")
 const { setTitle } = await import("../helpers/scene.js")
 
 describe("sharing a title", () => {

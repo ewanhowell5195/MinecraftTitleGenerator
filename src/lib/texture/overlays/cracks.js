@@ -1,5 +1,5 @@
-import { joinedMask } from "../../geometry/joins.js"
-import { clamp } from "../../core/maths.js"
+import { joinedMask } from "#lib/geometry/joins.js"
+import { clamp } from "#lib/core/maths.js"
 import { hashed, random } from "./random.js"
 import { settingsOf } from "./settings.js"
 

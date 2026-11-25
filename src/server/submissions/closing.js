@@ -1,4 +1,4 @@
-import { publishedTitle } from "../../lib/submissions/kinds/published.js"
+import { publishedTitle } from "#lib/submissions/kinds/published.js"
 import { forgetEmail } from "../accounts.js"
 import { NOTE_LENGTH, clipped, emailing } from "./notifications.js"
 import { deleteBranch, pullLink } from "./pulls.js"

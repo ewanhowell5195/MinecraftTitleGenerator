@@ -1,4 +1,4 @@
-import { clamp } from "../../core/maths.js"
+import { clamp } from "#lib/core/maths.js"
 import { R, into, plain } from "./draw.js"
 
 export function coverBox(entry, capHeight, sheet) {

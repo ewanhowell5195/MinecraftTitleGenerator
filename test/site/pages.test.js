@@ -1,8 +1,8 @@
 import assert from "node:assert/strict"
 import fs from "node:fs"
 import { describe, test } from "node:test"
-import { PAGES, SITE } from "../../src/site/pages.js"
-import { sitemap, sitemapXml } from "../../src/server/sitemap.js"
+import { PAGES, SITE } from "#src/site/pages.js"
+import { sitemap, sitemapXml } from "#server/sitemap.js"
 
 describe("pages", () => {
   test("every page has its own name and file", () => {

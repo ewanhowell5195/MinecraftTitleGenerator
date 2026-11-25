@@ -1,8 +1,8 @@
 <script setup>
   import { computed } from "vue"
-  import Button from "../../components/Button.vue"
+  import Button from "#c/Button.vue"
   import GoldStar from "./GoldStar.vue"
-  import Icon from "../../components/Icon.vue"
+  import Icon from "#c/Icon.vue"
   import { ratingText, toGoText, votesText } from "./presetText.js"
 
   const STARS = [1, 2, 3, 4, 5]
