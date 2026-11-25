@@ -48,7 +48,7 @@
 
 <template>
   <div class="font-preview">
-    <LiveTitle :fonts="fonts" :lines="line ? [line] : []" :loading="pending" :message="problem || (!url ? 'Choose a font JSON file to preview it' : !text.trim() ? 'Type some text to preview it' : '')" />
+    <LiveTitle popup :fonts="fonts" :lines="line ? [line] : []" :loading="pending" :message="problem || (!url ? 'Choose a font JSON file to preview it' : !text.trim() ? 'Type some text to preview it' : '')" />
     <Dropdown v-if="extras.length" v-model="chosen" class="texture-pick" :options="options" label="Texture" />
   </div>
 </template>

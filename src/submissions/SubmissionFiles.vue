@@ -1,6 +1,7 @@
 <script setup>
   import Notice from "../components/Notice.vue"
   import { onBeforeUnmount, ref, watch } from "vue"
+  import { vPopupable, vPopupableGroup } from "popupable-vue"
   import { fetched } from "../lib/core/api.js"
   import { SUBMISSION_KINDS } from "../lib/submissions/kinds/index.js"
   import { submissionExtraUrl, submissionFileUrl } from "../lib/submissions/submissionsApi.js"
@@ -57,7 +58,7 @@
 </script>
 
 <template>
-  <div class="files">
+  <div v-popupable-group="files.length > 1 && { counter: true }" class="files">
     <p v-if="files.length === 0 && !problem" class="hint">No files.</p>
     <Notice v-if="problem">{{ problem }}</Notice>
     <figure v-for="file of files" :key="file.key" class="file">
@@ -66,7 +67,7 @@
         <span class="hint">{{ file.label }}<template v-if="sizes[file.key]">, {{ sizes[file.key] }}</template></span>
         <a class="hint" :href="file.url" target="_blank" rel="noopener">Open full size</a>
       </figcaption>
-      <div class="sheet"><img :src="file.url" :alt="file.name" @load="measured(file.key, $event)"></div>
+      <div class="sheet"><img v-popupable="{ title: file.name, zoomable: true }" :src="file.url" :alt="file.name" @load="measured(file.key, $event)"></div>
     </figure>
   </div>
 </template>
@@ -100,7 +101,12 @@
     display: flex;
     justify-content: center;
     overflow: auto;
+  }
+
+  .sheet,
+  .sheet img {
     background: var(--checker);
+    background-position: center;
   }
 
   .sheet img {

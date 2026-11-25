@@ -1,6 +1,7 @@
 <script setup>
   import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, toRaw, watch } from "vue"
   import * as THREE from "three"
+  import { vPopupable } from "popupable-vue"
   import ModelRenderer from "../render/ModelRenderer.js"
   import ObjectRenderer from "../render/ObjectRenderer.js"
   import { createTitleItems } from "../lib/title/items.js"
@@ -15,12 +16,14 @@
   import { OFFSCREEN_VIEW, createTitle, firstError } from "../lib/title/title.js"
 
   const NO_TILEABLES = {}
+  const POPUP_WIDTH = 4096
 
   const props = defineProps({
     lines: { type: Array, default: () => [] },
     fonts: { type: Array, required: true },
     message: { type: String, default: "" },
-    loading: { type: Boolean, default: false }
+    loading: { type: Boolean, default: false },
+    popup: { type: Boolean, default: false }
   })
 
   const emit = defineEmits(["settled"])
@@ -28,6 +31,8 @@
   const title = createTitle(reactive([]), { ...OFFSCREEN_VIEW, eager: false })
   const items = createTitleItems(title)
   const stage = ref(null)
+  const canvas = ref(null)
+  const opened = ref(false)
   const readError = ref("")
   const world = createStage()
   let renderer, camera, smoothing, observer
@@ -118,20 +123,28 @@
     const { clientWidth: width, clientHeight: height } = stage.value
     if (!width || !height) return
     size = { width, height }
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    const ratio = Math.min(window.devicePixelRatio, 2)
+    renderer.setPixelRatio(opened.value ? Math.max(ratio, POPUP_WIDTH / width) : ratio)
     renderer.setSize(width, height)
     smoothing.resize()
     fitted = null
     invalidate()
   }
 
+  function togglePopup(on) {
+    opened.value = on
+    if (!renderer) return
+    resize()
+    cancelAnimationFrame(frame)
+    draw()
+  }
+
   load(props.lines)
 
   onMounted(() => {
-    renderer = platform.createWebGLRenderer()
+    renderer = platform.createWebGLRenderer({ canvas: canvas.value, preserveDrawingBuffer: props.popup })
     smoothing = createSmoothing(renderer)
     camera = new THREE.PerspectiveCamera(title.camera.fov, 1, 1, 5000)
-    stage.value.append(renderer.domElement)
     observer = new ResizeObserver(resize)
     observer.observe(stage.value)
     resize()
@@ -155,7 +168,9 @@
 
 <template>
   <div class="render">
-    <div ref="stage" class="stage" :class="{ hidden: !shown || error }"></div>
+    <div ref="stage" class="stage" :class="{ hidden: !shown || error }">
+      <canvas ref="canvas" v-popupable="popup && shown && !error && { zoomable: true }" @popupable:open="togglePopup(true)" @popupable:close="togglePopup(false)"></canvas>
+    </div>
     <template v-for="object of title.objects" :key="object.id">
       <ModelRenderer v-if="object.customModel" :object="object" :shapes="[]" :title="title" />
       <ObjectRenderer v-else :object="object" :fonts="fonts" :tileables="NO_TILEABLES" :title="title" />
@@ -183,8 +198,9 @@
     visibility: hidden;
   }
 
-  .stage :deep(canvas) {
+  .stage canvas {
     display: block;
+    background: var(--checker);
   }
 
   .message {

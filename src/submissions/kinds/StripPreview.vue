@@ -36,5 +36,5 @@
 
 <template>
   <Dropdown v-if="options.length > 1" :model-value="font" @update:model-value="chosen = $event" :options="options" label="Preview font" searchable />
-  <LiveTitle :fonts="fonts" :lines="line ? [line] : []" :loading="pending" :message="problem || (!font ? 'Pick a font to preview it on' : !url ? 'Choose a PNG to preview it' : !text.trim() ? 'Type some text to preview it' : '')" />
+  <LiveTitle popup :fonts="fonts" :lines="line ? [line] : []" :loading="pending" :message="problem || (!font ? 'Pick a font to preview it on' : !url ? 'Choose a PNG to preview it' : !text.trim() ? 'Type some text to preview it' : '')" />
 </template>

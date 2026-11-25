@@ -20,7 +20,7 @@ export const platform = {
   asset: path => path,
   fetch: (path, ...args) => fetch(platform.asset(path), ...args),
   createCanvas: () => document.createElement("canvas"),
-  createWebGLRenderer: () => new THREE.WebGLRenderer({ antialias: false, alpha: true }),
+  createWebGLRenderer: options => new THREE.WebGLRenderer({ antialias: false, alpha: true, ...options }),
   maxTextureSize,
   decodePng: bytes => createImageBitmap(new Blob([bytes], { type: "image/png" })),
   pngUrl: bytes => URL.createObjectURL(new Blob([bytes], { type: "image/png" })),

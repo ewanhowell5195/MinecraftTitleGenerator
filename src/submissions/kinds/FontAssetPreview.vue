@@ -26,5 +26,5 @@
 </script>
 
 <template>
-  <LiveTitle :fonts="fonts" :lines="line ? [line] : []" :loading="pending" :message="problem || (!url ? 'Choose a PNG to preview it' : !text.trim() ? 'Type some text to preview it' : '')" />
+  <LiveTitle popup :fonts="fonts" :lines="line ? [line] : []" :loading="pending" :message="problem || (!url ? 'Choose a PNG to preview it' : !text.trim() ? 'Type some text to preview it' : '')" />
 </template>
