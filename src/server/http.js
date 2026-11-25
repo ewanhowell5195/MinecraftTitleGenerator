@@ -54,7 +54,7 @@ export function acceptsKey(request) {
 }
 
 export function preflight() {
-  return new Response(null, { status: 204, headers: { ...ANY_SITE, "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE", "Access-Control-Allow-Headers": "Authorization, Content-Type", "Access-Control-Max-Age": "86400" } })
+  return new Response(null, { status: 204, headers: { ...ANY_SITE, "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE", "Access-Control-Allow-Headers": "Authorization, Content-Type, X-Preset-Token", "Access-Control-Max-Age": "86400" } })
 }
 
 export function fromBlockbench(handler) {

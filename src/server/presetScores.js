@@ -1,11 +1,11 @@
 import { LIMITS } from "../lib/core/limits.js"
 import { activeUser } from "./accounts.js"
-import { INVALID, Refusal, fromBlockbench, guarded, idParam, jsonBody, reply } from "./http.js"
+import { INVALID, Refusal, fromBlockbench, idParam, jsonBody, reply } from "./http.js"
 import { MISSING, SCORES_COUNTED, STAT_COLUMNS, accountHash, dayNumber, hashedIp, rated, requirePreset } from "./presets.js"
 
 const OWN = "You can't vote on a preset you shared."
 
-export const presetStats = guarded(async ({ request, env }) => {
+export const presetStats = fromBlockbench(async ({ request, env }) => {
   const ids = (new URL(request.url).searchParams.get("ids") ?? "").split(",").filter(Boolean).map(Number)
   if (ids.length > LIMITS.savedPresets || ids.some(id => !Number.isSafeInteger(id) || id < 1)) throw new Refusal(400, INVALID)
   if (!ids.length) return reply(200, { stats: {} })

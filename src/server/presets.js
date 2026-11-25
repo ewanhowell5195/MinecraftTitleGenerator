@@ -309,7 +309,7 @@ async function refuseChange(env, id) {
   throw new Refusal(403, NOT_YOURS)
 }
 
-export const renamePreset = guarded(async context => {
+export const renamePreset = fromBlockbench(async context => {
   const { request, env } = context
   const { id, where, values } = await ownedPreset(context)
   const name = textField(await jsonBody(request), "name", "name", LIMITS.name)
@@ -323,7 +323,7 @@ export const renamePreset = guarded(async context => {
   return reply(200, { preset: rated(preset) })
 })
 
-export const replacePreset = guarded(async context => {
+export const replacePreset = fromBlockbench(async context => {
   const { request, env } = context
   const owned = await ownedPreset(context)
   const { id, user, where, values } = owned
@@ -344,7 +344,7 @@ export const replacePreset = guarded(async context => {
   return reply(200, { preset: rated(preset) })
 })
 
-export const unsharePreset = guarded(async context => {
+export const unsharePreset = fromBlockbench(async context => {
   const { request, env } = context
   const { id, where, values } = await ownedPreset(context)
   const preset = await env.DB.prepare(`UPDATE presets SET shared = 0 WHERE id = ? AND ${where} RETURNING name, code`).bind(id, ...values).first()
@@ -353,7 +353,7 @@ export const unsharePreset = guarded(async context => {
   return reply(200, { preset })
 })
 
-export const deletePreset = guarded(async context => {
+export const deletePreset = fromBlockbench(async context => {
   const { request, env } = context
   const { id, user, where, values } = await ownedPreset(context)
   const [, deleted] = await env.DB.batch(deletingPresets(env, `id = ? AND ${where}`, id, ...values).concat(forgetOldCounts(env), user ? forgetUnusedUser(env, user) : []))

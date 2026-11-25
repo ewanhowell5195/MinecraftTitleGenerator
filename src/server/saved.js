@@ -1,7 +1,7 @@
 import { LIMITS } from "../lib/core/limits.js"
 import { decodeTitle } from "../lib/link/linkformat.js"
 import { USER_ROW, forgetUnusedUser, requireUser, saveUser } from "./accounts.js"
-import { INVALID, Refusal, guarded, jsonBody, reply, textField, unpublishedName } from "./http.js"
+import { INVALID, Refusal, fromBlockbench, jsonBody, reply, textField, unpublishedName } from "./http.js"
 import { NEXT_ID, deletingPresets } from "./presets.js"
 
 const BATCH_BODY = LIMITS.savedBatch * (LIMITS.savedCode + 512)
@@ -37,13 +37,13 @@ function requireCode(body) {
   return body.code
 }
 
-export const listSaved = guarded(async context => {
+export const listSaved = fromBlockbench(async context => {
   const user = await requireUser(context, SIGNED_OUT)
   const { results } = await context.env.DB.prepare(`SELECT id, name, code, shared FROM presets WHERE user_id = ${USER_ROW} ORDER BY id`).bind(user.provider, user.providerId).all()
   return reply(200, { presets: results.map(shown) })
 })
 
-export const addSaved = guarded(async context => {
+export const addSaved = fromBlockbench(async context => {
   const { request, env } = context
   const user = await requireUser(context, SIGNED_OUT)
   const { presets } = await jsonBody(request, BATCH_BODY)
@@ -73,7 +73,7 @@ export const addSaved = guarded(async context => {
   return reply(200, { kept: kept.concat(adding.filter(code => !stored.has(code))) })
 })
 
-export const changeSaved = guarded(async context => {
+export const changeSaved = fromBlockbench(async context => {
   const { request, env } = context
   const user = await requireUser(context, SIGNED_OUT)
   const body = await jsonBody(request, LIMITS.savedCode * 2 + 512)
@@ -101,7 +101,7 @@ export const changeSaved = guarded(async context => {
   return reply(200, { changed: true })
 })
 
-export const removeSaved = guarded(async context => {
+export const removeSaved = fromBlockbench(async context => {
   const { request, env } = context
   const user = await requireUser(context, SIGNED_OUT)
   const code = requireCode(await jsonBody(request, LIMITS.savedCode + 512))

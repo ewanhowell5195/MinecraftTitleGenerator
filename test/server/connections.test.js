@@ -8,9 +8,9 @@ const { deleteAccount } = await import("#server/accountDeletion.js")
 const { connect, disconnect, listConnections } = await import("#server/connecting.js")
 const { MOST_CONNECTIONS } = await import("#server/connections.js")
 const { preflight } = await import("#server/http.js")
-const { submissionUsage, submitPreset } = await import("#server/presets.js")
+const { claimPresets, deletePreset, renamePreset, replacePreset, submissionUsage, submitPreset, unsharePreset } = await import("#server/presets.js")
 const { votePreset } = await import("#server/presetScores.js")
-const { addSaved, listSaved } = await import("#server/saved.js")
+const { addSaved, changeSaved, listSaved, removeSaved } = await import("#server/saved.js")
 
 const PATH = "/api/account/connections"
 const KEY = "a".repeat(64)
@@ -89,8 +89,8 @@ describe("connecting Blockbench", () => {
     await connecting(await signIn())
     assert.equal((await listConnections(withKey(PATH))).status, 401)
     assert.equal((await deleteAccount(withKey("/api/account/delete", KEY, { method: "POST", body: { mode: "remove" } }))).status, 401)
-    assert.equal((await listSaved(withKey("/api/saved"))).status, 401)
-    assert.equal((await addSaved(withKey("/api/saved", KEY, { method: "POST", body: { presets: [] } }))).status, 401)
+    assert.equal((await claimPresets(withKey("/api/presets/claim", KEY, { method: "POST", body: { tokens: [] } }))).status, 401)
+    assert.equal((await submitPreset(withKey("/api/presets", KEY, { method: "POST", body: { code: code([{ text: "a" }]), account: true } }))).status, 401)
   })
 
   test("a key wins over a cookie where it is accepted", async () => {
@@ -119,6 +119,30 @@ describe("connecting Blockbench", () => {
     assert.equal((await voting(own.preset.id)).status, 403)
     const usage = await (await submissionUsage(withCookie("/api/presets/usage", cookie))).json()
     assert.deepEqual(usage.votes, { [other.id]: 1 })
+  })
+
+  test("a key can list, save, change and remove the account's own presets", async () => {
+    await connecting(await signIn())
+    const saved = async () => (await (await listSaved(withKey("/api/saved"))).json()).presets
+    const [first, second] = [code([{ text: "one" }]), code([{ text: "two" }])]
+    assert.equal((await addSaved(withKey("/api/saved", KEY, { method: "POST", body: { presets: [{ name: "One", code: first }] } }))).status, 200)
+    assert.deepEqual(await saved(), [{ name: "One", code: first }])
+    assert.equal((await changeSaved(withKey("/api/saved", KEY, { method: "PATCH", body: { code: first, name: "Two", replacement: second } }))).status, 200)
+    assert.deepEqual(await saved(), [{ name: "Two", code: second }])
+    assert.equal((await removeSaved(withKey("/api/saved", KEY, { method: "DELETE", body: { code: second } }))).status, 200)
+    assert.deepEqual(await saved(), [])
+  })
+
+  test("a key can manage the account's shared presets and nobody else's", async () => {
+    const cookie = await signIn()
+    await connecting(cookie)
+    const { preset } = await shareAs(cookie, "mine")
+    const other = await share("another")
+    const at = (id, options) => withKey(`/api/presets/${id}`, KEY, { params: { id: String(id) }, ...options })
+    for (const change of [id => renamePreset(at(id, { method: "PATCH", body: { name: "Renamed" } })), id => replacePreset(at(id, { method: "PUT", body: { code: code([{ text: "new" }]), name: "Newer" } })), id => unsharePreset(at(id, { method: "POST" })), id => deletePreset(at(id, { method: "DELETE" }))]) {
+      assert.equal((await change(other.id)).status, 403)
+      assert.equal((await change(preset.id)).status, 200)
+    }
   })
 
   test("signing out in Blockbench deletes its key and leaves the others", async () => {
