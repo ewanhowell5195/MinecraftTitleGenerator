@@ -27,21 +27,32 @@ export function setting(env, name) {
   return env[name]
 }
 
-function fromAnotherSite(request) {
+export const ANY_SITE = { "Access-Control-Allow-Origin": "*" }
+
+function fromAnotherSite(request, origins) {
   const origin = request.headers.get("Origin")
-  return origin !== null && !READS.includes(request.method) && origin !== new URL(request.url).origin && !APP_ORIGINS.some(allowed => allowed.test(origin))
+  return origin !== null && !READS.includes(request.method) && origin !== new URL(request.url).origin && !origins.some(allowed => allowed.test(origin))
 }
 
-export function guarded(handler, refused = err => reply(err.status, { error: err.message }, err.headers)) {
+export function guarded(handler, { refused = err => reply(err.status, { error: err.message }, err.headers), origins = APP_ORIGINS } = {}) {
   return async context => {
     try {
-      if (fromAnotherSite(context.request)) throw new Refusal(403, "This request came from another website, so it was refused.")
+      if (fromAnotherSite(context.request, origins)) throw new Refusal(403, "This request came from another website, so it was refused.")
       if (!READS.includes(context.request.method) && isPreviewHost(new URL(context.request.url).hostname)) throw new Refusal(403, `${PREVIEW_NOTICE} Use mctitlegenerator.com for that.`)
       return await handler(context)
     } catch (err) {
       if (err instanceof Refusal) return refused(err)
       throw err
     }
+  }
+}
+
+export function fromBlockbench(handler) {
+  const answer = guarded(handler, { origins: APP_ORIGINS.concat(/^https:\/\/web\.blockbench\.net$/) })
+  return async context => {
+    const response = await answer(context)
+    for (const [name, value] of Object.entries(ANY_SITE)) response.headers.set(name, value)
+    return response
   }
 }
 

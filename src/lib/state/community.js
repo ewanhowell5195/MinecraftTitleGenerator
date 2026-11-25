@@ -322,7 +322,7 @@ export async function countDownload({ id, downloads, week }) {
   store.downloads.push(id)
   persist()
   try {
-    const { counted } = await posted(`/${id}/download`)
+    const { counted } = await request(`/${id}/download`, { method: "POST" })
     if (!counted) return null
     remember(id, { downloads: downloads + 1 })
     persist()

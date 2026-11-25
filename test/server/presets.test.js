@@ -623,8 +623,21 @@ describe("requests from other websites", () => {
   })
 
   test("anyone can read", async () => {
-    await share("a")
-    assert.equal((await listPresets(from("https://evil.test", "/api/presets"))).status, 200)
+    const { id } = await share("a")
+    for (const read of [listPresets(from("https://evil.test", "/api/presets")), listPresets(from("https://evil.test", "/api/presets?sort=random")), getPreset(from("https://evil.test", `/api/presets/${id}`, { params: { id: String(id) } }))]) {
+      const response = await read
+      assert.equal(response.status, 200)
+      assert.equal(response.headers.get("Access-Control-Allow-Origin"), "*")
+    }
+  })
+
+  test("Blockbench's website can count a download but not vote", async () => {
+    const { id } = await share("a")
+    const counted = await countDownload(from("https://web.blockbench.net", `/api/presets/${id}/download`, { method: "POST", params: { id: String(id) } }))
+    assert.equal(counted.status, 200)
+    assert.equal(counted.headers.get("Access-Control-Allow-Origin"), "*")
+    assert.equal((await voteFrom("https://web.blockbench.net", id)).status, 403)
+    assert.deepEqual(rowCounts(), { presets: 1, preset_votes: 0, preset_downloads: 1, preset_submissions: 1 })
   })
 
   function rowCounts() {

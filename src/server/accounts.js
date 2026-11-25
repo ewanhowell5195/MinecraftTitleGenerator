@@ -101,7 +101,7 @@ function leaveScript(before = "") {
 }
 
 function showingRefusals(handler) {
-  return guarded(handler, err => page(err.status, "Couldn't sign in", err.message))
+  return guarded(handler, { refused: err => page(err.status, "Couldn't sign in", err.message) })
 }
 
 async function providerJson(provider, url, options) {

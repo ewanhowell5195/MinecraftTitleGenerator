@@ -7,7 +7,7 @@ import { shareableTitle } from "../lib/link/titleFacts.js"
 import { blockedWordProblem, shortNameProblem } from "../lib/core/wording.js"
 import { USER_ROW, activeUser, currentUser, forgetUnusedUser, requireUser, saveUser } from "./accounts.js"
 import { nextDay, returnSlot, takeSlot, today } from "./daily.js"
-import { INVALID, Refusal, cachedAtEdge, canonical, guarded, hashed, idParam, jsonBody, randomToken, reply, setting, textField, unpublishedName } from "./http.js"
+import { ANY_SITE, INVALID, Refusal, cachedAtEdge, canonical, guarded, hashed, idParam, jsonBody, randomToken, reply, setting, textField, unpublishedName } from "./http.js"
 
 const SORTS = { week: "week_downloads DESC, downloads DESC, id DESC", popular: "downloads DESC, id DESC", top: "rating DESC, votes DESC, id DESC", new: "created_at DESC, id DESC", needs: "votes, id" }
 const MATCHES = "lower(name) LIKE ?1 ESCAPE '\\' OR lower(text) LIKE ?1 ESCAPE '\\'"
@@ -178,8 +178,8 @@ export const listPresets = guarded(async context => {
   const offset = Number(url.searchParams.get("offset") ?? 0)
   if (!Number.isSafeInteger(offset) || offset < 0) throw new Refusal(400, "That isn't a valid page.")
   const search = url.searchParams.get("q") ?? ""
-  if (sort === "random") return reply(200, { presets: (await randomPresets(context, searchFilter(search))).map(rated), more: false })
-  return cachedAtEdge(context, async () => reply(200, await presetList(env, { sort, search, offset })))
+  if (sort === "random") return reply(200, { presets: (await randomPresets(context, searchFilter(search))).map(rated), more: false }, ANY_SITE)
+  return cachedAtEdge(context, async () => reply(200, await presetList(env, { sort, search, offset }), ANY_SITE))
 })
 
 export const getPreset = guarded(async context => {
@@ -187,7 +187,7 @@ export const getPreset = guarded(async context => {
   return cachedAtEdge(context, async () => {
     const preset = await sharedPreset(context.env, id)
     if (!preset) throw new Refusal(404, MISSING)
-    return reply(200, { preset })
+    return reply(200, { preset }, ANY_SITE)
   })
 })
 

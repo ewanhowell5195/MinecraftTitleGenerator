@@ -1,6 +1,6 @@
 import { LIMITS } from "../lib/core/limits.js"
 import { activeUser } from "./accounts.js"
-import { INVALID, Refusal, guarded, idParam, jsonBody, reply } from "./http.js"
+import { INVALID, Refusal, fromBlockbench, guarded, idParam, jsonBody, reply } from "./http.js"
 import { MISSING, SCORES_COUNTED, STAT_COLUMNS, accountHash, dayNumber, hashedIp, rated, requirePreset } from "./presets.js"
 
 const OWN = "You can't vote on a preset you shared."
@@ -32,7 +32,7 @@ export const votePreset = guarded(async context => {
   return reply(200, { ...rated(updated.results[0]), vote: value })
 })
 
-export const countDownload = guarded(async context => {
+export const countDownload = fromBlockbench(async context => {
   const { env, params } = context
   const id = idParam(params, MISSING)
   await requirePreset(env, id, " AND shared = 1")
