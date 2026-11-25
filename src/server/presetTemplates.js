@@ -1,7 +1,7 @@
 import { PROVIDERS } from "../lib/core/providers.js"
 import { escaped } from "../lib/core/html.js"
 import { pictureUrl } from "../lib/core/pictures.js"
-import { SORTS, ratingText, sharedText, toGoText, usesText, votesText } from "../app/presets/presetText.js"
+import { SORTS, ratingText, sharedText, toGoText, usesText, votesText } from "../lib/presets/presetText.js"
 
 export const TEMPLATES = "/app/presets/templates.json"
 export const TILES = "<!--preset-tiles-->"

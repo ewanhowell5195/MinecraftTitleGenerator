@@ -1,13 +1,12 @@
 <script setup>
-  import { computed } from "vue"
   import Button from "#c/Button.vue"
   import GoldStar from "./GoldStar.vue"
   import Icon from "#c/Icon.vue"
-  import { ratingText, toGoText, votesText } from "./presetText.js"
+  import { ratingText, toGoText, upvotedText, votesText } from "#lib/presets/presetText.js"
 
   const STARS = [1, 2, 3, 4, 5]
 
-  const props = defineProps({
+  defineProps({
     rating: { type: Number, default: null },
     votes: { type: Number, required: true },
     mine: { type: Number, default: 0 },
@@ -15,8 +14,6 @@
   })
 
   const emit = defineEmits(["vote"])
-
-  const summary = computed(() => `${Math.round(props.rating * 20)}% upvoted`)
 </script>
 
 <template>
@@ -25,7 +22,7 @@
       <Button class="vote" :active="mine === 1" :aria-pressed="mine === 1" @click="emit('vote', 1)"><template #icon><Icon name="arrowUp" :size="16" /></template><span>{{ mine === 1 ? "Upvoted" : "Upvote" }}</span></Button>
       <Button class="vote" :class="{ negative: mine === -1 }" :active="mine === -1" :aria-pressed="mine === -1" @click="emit('vote', -1)"><template #icon><Icon name="arrowDown" :size="16" /></template><span>{{ mine === -1 ? "Downvoted" : "Downvote" }}</span></Button>
     </div>
-    <div v-if="rating !== null" class="result" v-tooltip="summary">
+    <div v-if="rating !== null" class="result" v-tooltip="upvotedText(rating)">
       <span class="stars" :style="{ '--rating': ratingText(rating) }" aria-hidden="true">
         <span v-for="star of STARS" :key="star" class="star" :style="{ '--star': star }">
           <Icon class="outline" name="star" :size="16" />

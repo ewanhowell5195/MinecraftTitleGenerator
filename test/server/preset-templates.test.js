@@ -1,7 +1,7 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import { pictureUrl } from "#lib/core/pictures.js"
-import { ratingText, sharedText, toGoText, usesText, votesText } from "#src/app/presets/presetText.js"
+import { ratingText, sharedText, toGoText, usesText, votesText } from "#lib/presets/presetText.js"
 import { DETAIL_SLOT, LIST_SLOT, SEARCH, TILES, VARIANTS, filled, markerPreset, presetsHtml, variantKey } from "#server/presetTemplates.js"
 
 function tileTemplate(marker) {

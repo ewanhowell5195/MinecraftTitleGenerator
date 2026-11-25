@@ -9,7 +9,7 @@
   import PresetRating from "./PresetRating.vue"
   import TitlePicture from "./TitlePicture.vue"
   import UserName from "#c/UserName.vue"
-  import { sharedText, usesText } from "./presetText.js"
+  import { sharedText, usesText } from "#lib/presets/presetText.js"
 
   const props = defineProps({
     preset: { type: Object, required: true },

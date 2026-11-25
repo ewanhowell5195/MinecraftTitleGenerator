@@ -1,4 +1,4 @@
-import { LIMITS } from "#lib/core/limits.js"
+import { LIMITS } from "../core/limits.js"
 
 export const SORTS = [{ value: "week", label: "Popular this week" }, { value: "popular", label: "Popular all time" }, { value: "top", label: "Top rated" }, { value: "new", label: "Newest" }, { value: "needs", label: "Needs votes" }]
 
@@ -13,6 +13,10 @@ export function votesToGo(votes) {
 export function toGoText(votes) {
   const count = votesToGo(votes)
   return `${count} more ${count === 1 ? "vote" : "votes"} and it gets a rating`
+}
+
+export function upvotedText(rating) {
+  return `${Math.round(rating * 20)}% upvoted`
 }
 
 export function votesText(votes) {

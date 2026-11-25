@@ -1,17 +1,15 @@
 <script setup>
   import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, watchEffect } from "vue"
   import { account, accountChanges, refreshAccount, signInProviders } from "#lib/state/account.js"
-  import { cachedCommunityPreset, countDownload, managedPresets, ownPresets, presetStats, randomCommunityPreset, refreshUsage, voteOn } from "#lib/state/community.js"
+  import { cachedCommunityPreset, managedPresets, ownPresets, presetStats, refreshUsage, voteOn } from "#lib/state/community.js"
   import { isPlainClick, useWindowEvents } from "#c/composables/events.js"
   import { titleBody } from "#lib/link/linkformat.js"
   import { notice, showNotice } from "#lib/state/notices.js"
   import { addPreset, deleteSharedPreset, loadPreset, presets, presetsError, presetsLoading, removePreset, renamePreset, renameSharedPreset, unsharePreset } from "#lib/state/presets.js"
   import { askConfirm, confirming } from "#lib/state/confirm.js"
   import { scene } from "#lib/state/scene.js"
-  import { searchWithUser, searchesUser, toggleUserSearch } from "#lib/link/presetSearch.js"
   import { closePresetsPage, leavePresetsForEditor, presetsPage, setPresetSearch, setPresetSort, showPresetFilters, showPreset, takeLanding } from "#lib/state/presetsPage.js"
   import { rememberTab, startingTab, usePresetAddress } from "./presetAddress.js"
-  import { usePresetPaging } from "./presetPaging.js"
   import AuthorLink from "./AuthorLink.vue"
   import Badge from "#c/Badge.vue"
   import Button from "#c/Button.vue"
@@ -28,7 +26,8 @@
   import UserName from "#c/UserName.vue"
   import ShareUsage from "./ShareUsage.vue"
   import TopBar from "#src/site/TopBar.vue"
-  import { SORTS, ratingText, toGoText } from "./presetText.js"
+  import { useCommunityBrowser } from "#lib/presets/communityBrowser.js"
+  import { SORTS, ratingText, toGoText } from "#lib/presets/presetText.js"
   import { router } from "#src/router.js"
 
   const TABS = [{ value: "community", label: "Community" }, { value: "mine", label: "My presets" }]
@@ -40,12 +39,11 @@
   const sort = computed({ get: () => presetsPage.sort, set: setPresetSort })
   const mineSearch = ref("")
   const search = computed({ get: () => tab.value === "community" ? presetsPage.search : mineSearch.value, set: value => tab.value === "community" ? setPresetSearch(value) : mineSearch.value = value })
-  const { results, loading, error, sentinel, load, searchNow } = usePresetPaging({ sort, search, active: () => tab.value === "community", loaded: refreshSelection })
+  const { results, loading, error, sentinel, load, selected: selectedCommunity, emptyMessage: communityMessage, clear, pick, pickRandom, searched, searchUser, counted } = useCommunityBrowser({ sort, search, active: () => tab.value === "community", start: tab.value === "community" && presetsPage.id !== null ? cachedCommunityPreset(presetsPage.id) : null, shown: showCommunity })
   const root = ref(null)
   const sharing = ref(null)
   const removing = ref(null)
   const stats = ref({})
-  const selectedCommunity = ref(tab.value === "community" && presetsPage.id !== null ? cachedCommunityPreset(presetsPage.id) : null)
   const selectedLocalCode = ref(null)
 
   const term = computed(() => search.value.trim())
@@ -55,11 +53,9 @@
   const sharedIds = computed(() => presets.value.filter(preset => preset.shared).map(preset => preset.shared).join(","))
   const selectedLocal = computed(() => presets.value.find(preset => preset.code === selectedLocalCode.value) ?? null)
   const selected = computed(() => tab.value === "mine" ? selectedLocal.value : selectedCommunity.value)
-  const authorSearched = computed(() => tab.value === "community" && !!selected.value?.author && searchesUser(presetsPage.search, selected.value.author, selected.value.authorProvider))
   const emptyMessage = computed(() => {
-    if (tab.value === "mine") return term.value ? "None of your presets match this search." : "You have no presets yet. Use File > Save preset to save the current title here."
-    if (term.value) return "No presets match this search."
-    return sort.value === "needs" ? "You have voted on everything that needs votes. Thank you!" : "Nobody has shared a preset yet. Be the first from My presets!"
+    if (tab.value === "community") return communityMessage.value
+    return term.value ? "None of your presets match this search." : "You have no presets yet. Use File > Save preset to save the current title here."
   })
   const { followAddress, followOwnShared } = usePresetAddress({ tab, results, error, selectedCommunity, selectedLocalCode, selectedLocal, clearSelection })
 
@@ -67,15 +63,8 @@
     return ownPresets.value.includes(preset.id)
   }
 
-  function refreshSelection() {
-    if (selectedCommunity.value) selectedCommunity.value = results.value.find(preset => preset.id === selectedCommunity.value.id) ?? selectedCommunity.value
-  }
-
-  function selectCommunity(preset) {
-    if (selectedCommunity.value?.id === preset.id) return clearSelection()
-    error.value = ""
-    selectedCommunity.value = preset
-    showPreset(preset.id)
+  function showCommunity(id) {
+    if (id !== null || presetsPage.id !== null || presetsPage.code !== null) showPreset(id)
   }
 
   function followed(event) {
@@ -84,9 +73,8 @@
   }
 
   function clearSelection() {
-    selectedCommunity.value = null
     selectedLocalCode.value = null
-    if (presetsPage.id !== null || presetsPage.code !== null) showPreset(null)
+    clear()
   }
 
   function selectLocal(preset) {
@@ -98,23 +86,13 @@
     const toggling = tab.value === "community"
     tab.value = "community"
     await nextTick()
-    search.value = toggling ? toggleUserSearch(search.value, name, provider) : searchWithUser(search.value, name, provider)
-    await nextTick()
-    searchNow()
+    searchUser(name, provider, toggling)
   }
 
   async function loadStats() {
     if (tab.value !== "mine" || !sharedIds.value) return
     try {
       stats.value = await presetStats(sharedIds.value.split(","))
-    } catch (err) {
-      console.error(err)
-    }
-  }
-
-  async function counted(preset) {
-    try {
-      Object.assign(preset, await countDownload(preset))
     } catch (err) {
       console.error(err)
     }
@@ -140,17 +118,6 @@
     try {
       Object.assign(preset, await voteOn(preset.id, value))
       if (sort.value === "needs") setTimeout(() => results.value = results.value.filter(item => item.id !== preset.id), VOTED_LINGER)
-    } catch (err) {
-      showNotice(err.message)
-    }
-  }
-
-  async function openRandom() {
-    try {
-      const current = selectedCommunity.value?.id ?? null
-      const preset = await randomCommunityPreset(current)
-      if (preset) selectCommunity(results.value.find(item => item.id === preset.id) ?? preset)
-      else showNotice(current === null ? "Nobody has shared a preset yet." : "There are no other presets to show yet.")
     } catch (err) {
       showNotice(err.message)
     }
@@ -212,7 +179,7 @@
     selectedLocalCode.value = null
     tab.value = "community"
     sort.value = "new"
-    selectCommunity({ ...preset, vote: 0, own: true })
+    pick({ ...preset, vote: 0, own: true })
   }
 
   function key(event) {
@@ -237,7 +204,6 @@
       if (presetsPage.id !== null) showPreset(null)
     }
   })
-  watch(sort, () => load(0))
   watch([tab, sharedIds], loadStats, { immediate: true })
   watch(accountChanges, () => {
     if (tab.value === "community") load(0)
@@ -279,7 +245,7 @@
           <input class="search" type="text" v-model="search" :placeholder="tab === 'community' ? 'Search names, text or user:name' : 'Search your presets'" aria-label="Search presets" spellcheck="false">
           <template v-if="tab === 'community'">
             <Dropdown class="sort" :options="SORTS" v-model="sort" />
-            <Button class="random" @click="openRandom"><template #icon><Icon name="dice" :size="16" /></template><span>Random</span></Button>
+            <Button class="random" @click="pickRandom"><template #icon><Icon name="dice" :size="16" /></template><span>Random</span></Button>
           </template>
         </div>
         <div class="list">
@@ -289,11 +255,11 @@
           <p v-else-if="tab === 'community' ? !results.length && !loading : !localShown.length" class="message empty-state">{{ emptyMessage }}</p>
           <p v-if="tab === 'mine' && !account && signInProviders.length" class="message empty-state">Sign in to keep your presets under your account. The presets saved in this browser, and anything shared from it, move to your account when you do.</p>
           <div v-if="tab === 'community'" class="grid">
-            <PresetTile v-for="preset of results" :key="preset.id" :code="preset.code" :fingerprint="preset.fingerprint" :name="preset.name" :selected="selected?.id === preset.id" @pick="selectCommunity(preset)">
+            <PresetTile v-for="preset of results" :key="preset.id" :code="preset.code" :fingerprint="preset.fingerprint" :name="preset.name" :selected="selected?.id === preset.id" @pick="pick(preset)">
               <div class="info">
                 <a class="name big ellipsis" :href="`/app/presets/${preset.id}`" @click="followed">{{ preset.name }}</a>
                 <Badge v-if="isMine(preset) && !preset.author" tone="accent">Shared by you</Badge>
-                <AuthorLink v-else-if="preset.author" class="author" :class="{ yours: isMine(preset) }" :name="preset.author" :provider="preset.authorProvider" :size="13" :searched="searchesUser(presetsPage.search, preset.author, preset.authorProvider)" @click.stop="filterByUser(preset.author, preset.authorProvider)" />
+                <AuthorLink v-else-if="preset.author" class="author" :class="{ yours: isMine(preset) }" :name="preset.author" :provider="preset.authorProvider" :size="13" :searched="searched(preset)" @click.stop="filterByUser(preset.author, preset.authorProvider)" />
                 <UserName v-else class="author" community :size="13" />
               </div>
               <span v-if="preset.rating !== null" class="stats rated">
@@ -322,7 +288,7 @@
           <div ref="sentinel" class="sentinel"></div>
         </div>
       </main>
-      <PresetDetail v-if="selected && tab === 'community'" class="side" :preset="selected" :searched="authorSearched" :mine="isMine(selected)" :owned="managedPresets.includes(selected.id)" :saved="saved.has(titleBody(selected.code))" @close="clearSelection" @user="filterByUser" @open="open(selected)" @save="save(selected)" @vote="vote(selected, $event)" @rename="renameCommunity(selected, $event)" @remove="removeCommunity(selected)" />
+      <PresetDetail v-if="selected && tab === 'community'" class="side" :preset="selected" :searched="searched(selected)" :mine="isMine(selected)" :owned="managedPresets.includes(selected.id)" :saved="saved.has(titleBody(selected.code))" @close="clearSelection" @user="filterByUser" @open="open(selected)" @save="save(selected)" @vote="vote(selected, $event)" @rename="renameCommunity(selected, $event)" @remove="removeCommunity(selected)" />
       <PresetDetail v-else-if="selected" class="side" :preset="selected" :stats="stats[selected.shared]" local @close="clearSelection" @user="filterByUser" @open="open(selected)" @rename="renameLocal(selected, $event)" @remove="remove(selected)" @share="sharing = selected" @view="viewInCommunity(selected.shared)" />
     </div>
     <SharePresetDialog v-if="sharing" :preset="sharing" @close="sharing = null" @shared="shared" />

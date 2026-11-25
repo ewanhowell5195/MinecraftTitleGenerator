@@ -1,9 +1,9 @@
 import { reactive } from "vue"
 import { navigate, onNavigated } from "./navigation.js"
 import { PRESET_PARAM, TITLE_PARAM, replaceAddress, sharedLink } from "./scene.js"
+import { PRESETS_PATH, presetPath } from "../presets/presetPath.js"
 import { SITE } from "#src/site/pages.js"
 
-export const PRESETS_PATH = "/app/presets"
 const EDITOR = "/app/"
 
 const FROM_EDITOR = "minecraft-title-presets-from-editor"
@@ -40,7 +40,7 @@ export function readPresetPath(path) {
 }
 
 export function presetLink(id) {
-  return `${location.origin}${PRESETS_PATH}/${id}`
+  return `${location.origin}${presetPath(id)}`
 }
 
 function syncTo(url) {
@@ -101,7 +101,7 @@ function showAddress(path, replace = presetsPage.id !== null || presetsPage.code
 }
 
 export function showPreset(id, { replace } = {}) {
-  showAddress(id === null ? PRESETS_PATH : `${PRESETS_PATH}/${id}`, replace)
+  showAddress(id === null ? PRESETS_PATH : presetPath(id), replace)
 }
 
 export function showOwnPreset(code) {
