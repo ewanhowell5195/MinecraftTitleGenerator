@@ -55,17 +55,20 @@ async function signIn() {
   const open = () => Blockbench.openLink(platform.asset(connectPath(keyHash)))
   const dialog = new Dialog("minecraft_title_sign_in", {
     title: "Sign in",
-    width: 420,
-    buttons: ["dialog.cancel"],
+    width: 480,
+    buttons: [],
     cancel_on_click_outside: false,
     component: {
       data: () => ({ code: connectCode(keyHash) }),
-      methods: { open },
+      methods: { open, cancel: stopConnecting },
       template: `
         <div class="mtg-controls mtg-sign-in">
           <p>Press Connect in your browser. The page should show this code:</p>
           <p class="mtg-code">{{ code }}</p>
-          <button class="mtg-button" @click="open"><i class="material-icons">open_in_new</i><span>Open the page again</span></button>
+          <div class="mtg-row">
+            <button class="mtg-button" @click="open"><i class="material-icons">open_in_new</i><span>Open the page again</span></button>
+            <button class="mtg-button" @click="cancel">Cancel</button>
+          </div>
         </div>
       `
     },
