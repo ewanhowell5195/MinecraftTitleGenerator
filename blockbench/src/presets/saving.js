@@ -1,11 +1,12 @@
-import { computed, watch } from "vue"
+import { watch } from "vue"
 import { platform } from "#lib/core/platform.js"
+import { sharingProblem } from "#lib/link/shareChecks.js"
 import { NAME_LIMIT, confirmReplacing, replaceTargets } from "#lib/presets/savedPresets.js"
 import { namingCode, namingPreset, namingShared, saveOver, savePreset, startSavingPreset, usePresetTitle } from "#lib/presets/savingPreset.js"
-import { useShareForm } from "#lib/presets/shareForm.js"
-import { hasTitles, isCased, titleFileData, titleText } from "../file.js"
+import { presetToAsk } from "#lib/state/community.js"
+import { fileError } from "#lib/state/notices.js"
+import { hasTitles, isCased, sourcePreset, titleFileData, titleText } from "../file.js"
 import { FORMAT } from "../format.js"
-import { DropdownControl } from "../panels/inputs.js"
 import { sendStats } from "../stats.js"
 import { VotePrompt } from "./votePrompt.js"
 
@@ -13,82 +14,75 @@ let action = null
 let dialog = null
 let stopNaming = null
 
-const SaveForm = {
-  components: { DropdownControl, VotePrompt },
-  setup() {
-    const suggested = namingPreset.value
-    const { name, error, sending, agreed, target, problem, blocked, replaceLabel, attempt } = useShareForm(() => namingCode.value, () => suggested)
-    const targets = namingShared.value ? [] : replaceTargets(namingCode.value)
-    const options = [{ value: null, label: "New preset" }].concat(targets.map(({ code, name, shared }) => ({ value: code, label: shared ? `${name} (shared)` : name })))
-    const refused = computed(() => !!target.value?.online && blocked.value)
-    const message = computed(() => error.value || target.value?.online && problem.value)
-
-    async function replace() {
-      await saveOver(target.value, name.value)
-      namingPreset.value = null
-    }
-
-    async function save() {
-      if (sending.value || refused.value) return
-      if (!target.value) savePreset(name.value)
-      else if (await confirmReplacing(target.value)) attempt(replace)
-    }
-
-    return {
-      name,
-      sending,
-      agreed,
-      target,
-      replaceLabel,
-      suggested,
-      options,
-      refused,
-      message,
-      save,
-      limit: NAME_LIMIT,
-      choose: code => (target.value = targets.find(item => item.code === code) ?? null),
-      openTerms: () => Blockbench.openLink(platform.asset("/terms/"))
-    }
-  },
-  mounted() {
-    this.$refs.field.select()
-  },
-  template: `
-    <div class="mtg-controls">
-      <vote-prompt />
-      <dropdown-control v-if="options.length > 1" label="Save as" :value="target && target.code" :options="options" @change="choose" />
-      <p v-if="target && target.online" class="mtg-warning">This also replaces the shared version in Community, at the same link. Its votes, rating and uses are reset, and that cannot be undone.</p>
-      <p v-else-if="target && target.shared" class="mtg-hint">Blockbench can't manage the shared version, so it will stay in Community as it is.</p>
-      <div class="mtg-field">
-        <label>Name</label>
-        <input ref="field" type="text" class="dark_bordered mtg-text focusable_input" v-model="name" :maxlength="limit" :placeholder="target ? target.name : suggested" spellcheck="false" @keydown.enter="save">
-      </div>
-      <label v-if="target && target.online" class="mtg-agree"><input type="checkbox" v-model="agreed"><span>I agree to the <a @click.prevent="openTerms">Terms of Service</a></span></label>
-      <p v-if="message" class="mtg-error">{{ message }}</p>
-      <button class="mtg-button primary" :disabled="sending || refused" @click="save">{{ target ? replaceLabel : "Save" }}</button>
-    </div>
-  `
-}
-
 function closeForm() {
   dialog?.hide()
   dialog?.delete()
   dialog = null
 }
 
-function followNaming(name) {
-  closeForm()
-  if (name === null) return
+function openForm(suggested) {
+  const targets = namingShared.value ? [] : replaceTargets(namingCode.value)
+  const targetOf = form => targets[Number(form.target?.slice(1))]
+  let saving = false
+  let chosen = null
+
+  async function save(form) {
+    const target = targetOf(form)
+    if (!target) return savePreset(form.name)
+    const problem = target.online && (sharingProblem(namingCode.value, form.name.trim() || target.name) ?? (form.agreed ? null : "You need to agree to the Terms of Service to replace a shared title."))
+    if (problem) return (fileError.value = problem)
+    if (!await confirmReplacing(target)) return
+    try {
+      await saveOver(target, form.name)
+      namingPreset.value = null
+    } catch (err) {
+      fileError.value = err.message
+    }
+  }
+
+  const form = {}
+  if (targets.length) form.target = { type: "select", label: "Save as", value: "new", options: Object.fromEntries([["new", "New preset"]].concat(targets.map(({ name, shared }, index) => [`t${index}`, shared ? `${name} (shared)` : name]))) }
+  form.name = { type: "text", label: "Name", value: suggested, placeholder: suggested }
+  if (targets.some(target => target.online)) {
+    form.replaces = { type: "info", text: `This also replaces the shared version in Community, at the same link. Its votes, rating and uses are reset, and that cannot be undone. Replacing it means agreeing to the [Terms of Service](${platform.asset("/terms/")}).`, condition: form => !!targetOf(form)?.online }
+    form.agreed = { type: "checkbox", label: "I agree", condition: form => !!targetOf(form)?.online }
+  }
+  if (targets.some(target => target.shared && !target.online)) form.stays = { type: "info", text: "Blockbench can't manage the shared version, so it will stay in Community as it is.", condition: form => !!targetOf(form)?.shared && !targetOf(form).online }
+
   dialog = new Dialog("minecraft_title_save_preset", {
     title: "Save preset",
     width: 460,
-    buttons: [],
+    form,
+    part_order: ["component", "form"],
+    component: presetToAsk(sourcePreset()) ? VotePrompt : undefined,
+    buttons: ["dialog.save", "dialog.cancel"],
     cancel_on_click_outside: false,
-    component: { components: { SaveForm }, template: "<save-form />" },
+    onFormChange(result) {
+      const target = targetOf(result) ?? null
+      if (target === chosen) return
+      chosen = target
+      dialog.setFormValues({ name: target?.name ?? suggested }, false)
+    },
+    onConfirm(result) {
+      if (!saving) {
+        saving = true
+        save(result).finally(() => (saving = false))
+      }
+      return false
+    },
     onCancel: () => (namingPreset.value = null),
-    onButton: () => (namingPreset.value = null)
+    onOpen() {
+      const { input } = dialog.form.form_data.name
+      input.maxLength = NAME_LIMIT
+      input.select()
+    }
   })
   dialog.show()
+}
+
+function followNaming(name) {
+  closeForm()
+  if (name !== null) openForm(name)
 }
 
 export function canSavePreset() {

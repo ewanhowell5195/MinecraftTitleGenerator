@@ -86,6 +86,10 @@ export const STYLES = `
     border: 1px solid var(--color-button);
   }
 
+  .dialog_content > .mtg-ask {
+    margin-bottom: 10px;
+  }
+
   .mtg-ask > p {
     margin: 0;
   }
@@ -302,20 +306,6 @@ export const STYLES = `
   .mtg-button.mtg-danger:hover {
     color: #ffffff;
     background: var(--color-error);
-  }
-
-  .mtg-warning {
-    margin: 0;
-    padding: 8px 10px;
-    border: 1px solid var(--color-warning);
-  }
-
-  .mtg-agree {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    user-select: none;
   }
 
   .mtg-button.big {
