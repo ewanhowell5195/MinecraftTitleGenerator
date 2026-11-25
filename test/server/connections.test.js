@@ -54,7 +54,7 @@ describe("connecting Blockbench", () => {
   test("a key signs in as the account that connected it, without its private details", async () => {
     assert.equal(await who(), null)
     assert.equal((await connecting(await signIn())).status, 201)
-    assert.deepEqual(await who(), { id: "discord:1234", name: "someone", provider: "discord", avatar: null })
+    assert.deepEqual(await who(), { id: "discord:1234", name: "someone", provider: "discord", avatar: "https://cdn.discordapp.com/embed/avatars/0.png" })
     assert.equal(await who("b".repeat(64)), null)
   })
 
@@ -138,10 +138,12 @@ describe("connecting Blockbench", () => {
     assert.equal(db.prepare("SELECT COUNT(*) AS total FROM connections").get().total, 0)
   })
 
-  test("a new username shows in Blockbench after signing in on the website", async () => {
+  test("a new username and picture show in Blockbench after signing in on the website", async () => {
     await connecting(await signIn())
-    await signIn("discord", { id: "1234", username: "renamed" })
-    assert.equal((await who()).name, "renamed")
+    await signIn("discord", { id: "1234", username: "renamed", avatar: "new" })
+    const { name, avatar } = await who()
+    assert.equal(name, "renamed")
+    assert.equal(avatar, "https://cdn.discordapp.com/avatars/1234/new.png?size=64")
   })
 
   test("a key lasts as long as it is used, and 90 days after", async () => {

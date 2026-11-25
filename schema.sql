@@ -23,7 +23,8 @@ CREATE TABLE connections (
   provider_id TEXT NOT NULL,
   name TEXT NOT NULL,
   created_at INTEGER NOT NULL,
-  used_at INTEGER NOT NULL
+  used_at INTEGER NOT NULL,
+  avatar TEXT
 );
 
 CREATE INDEX connections_by_account ON connections (provider, provider_id);

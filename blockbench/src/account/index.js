@@ -1,4 +1,4 @@
-import { onMounted, watch } from "vue"
+import { computed, onMounted, ref, watch } from "vue"
 import { CONNECT_LIFE, connectCode, connectPath } from "#lib/core/connecting.js"
 import { platform } from "#lib/core/platform.js"
 import { account, refreshAccount, signOut } from "#lib/state/account.js"
@@ -80,8 +80,10 @@ async function signIn() {
 
 export const AccountButton = {
   setup() {
+    const broken = ref(null)
+    const avatar = computed(() => account.value?.avatar && account.value.avatar !== broken.value ? account.value.avatar : null)
     onMounted(() => refreshAccount())
-    return { account }
+    return { account, avatar, broken }
   },
   methods: {
     signIn,
@@ -93,7 +95,7 @@ export const AccountButton = {
     }
   },
   template: `
-    <button v-if="account" class="mtg-button mtg-account" :title="'Signed in as ' + account.name" @click="menu"><i :class="'fab fa-' + account.provider"></i><span>{{ account.name }}</span></button>
+    <button v-if="account" class="mtg-button mtg-account" :title="'Signed in as ' + account.name" @click="menu"><img v-if="avatar" :src="avatar" alt="" referrerpolicy="no-referrer" @error="broken = avatar"><i v-else :class="'fab fa-' + account.provider"></i><span>{{ account.name }}</span></button>
     <button v-else class="mtg-button mtg-account" title="Sign in" @click="signIn"><i class="material-icons">person</i><span>Sign in</span></button>
   `
 }

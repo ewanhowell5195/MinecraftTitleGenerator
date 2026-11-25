@@ -1,7 +1,7 @@
 import { LIMITS } from "../lib/core/limits.js"
 import { ACCOUNT_CHANNEL, PROVIDERS, SIGN_IN_RETURN } from "../lib/core/providers.js"
 import { escaped } from "../lib/core/html.js"
-import { connectedUser, forgetKey, removeConnections, renameConnections, usesKey } from "./connections.js"
+import { connectedUser, forgetKey, removeConnections, updateConnections, usesKey } from "./connections.js"
 import { APP_ORIGINS, Refusal, USER_AGENT, fromBlockbench, guarded, hashed, hex, randomToken, reply, setting } from "./http.js"
 
 const SESSION_COOKIE = "session"
@@ -227,8 +227,8 @@ export const finishSignIn = showingRefusals(async ({ request, env, params }) => 
   if (!handoff || handoff.provider !== provider.id || handoff.nonce !== cookieValue(request, STATE_COOKIE)) throw new Refusal(400, "This sign-in has expired. Close this window and try again.")
   const id = `${provider.id}:${handoff.id}`
   const session = await signed(env, "session", SESSION_SECONDS, { id, name: handoff.name, provider: provider.id, avatar: handoff.avatar, email: handoff.email, issued: Date.now() })
-  const person = { name: handoff.name, email: handoff.email, provider: provider.id, providerId: handoff.id }
-  await env.DB.batch([rememberUser(env, person), renameConnections(env, person)])
+  const person = { name: handoff.name, avatar: handoff.avatar, email: handoff.email, provider: provider.id, providerId: handoff.id }
+  await env.DB.batch([rememberUser(env, person), updateConnections(env, person)])
   const response = page(200, "You're signed in", "You can close this window.", leaveScript(`new BroadcastChannel("${ACCOUNT_CHANNEL}").postMessage("changed");`))
   response.headers.append("Set-Cookie", cookie(SESSION_COOKIE, session, SESSION_SECONDS, SESSION_PATH))
   response.headers.append("Set-Cookie", cookie(STATE_COOKIE, "", 0, STATE_PATH))

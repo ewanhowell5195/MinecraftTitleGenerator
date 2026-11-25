@@ -59,6 +59,13 @@ export const STYLES = `
     width: auto;
   }
 
+  .mtg-account > img {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    margin-left: -4px;
+  }
+
   .mtg-account > i {
     flex: none;
     font-size: 18px;
