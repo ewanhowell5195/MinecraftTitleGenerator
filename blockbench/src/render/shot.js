@@ -33,6 +33,10 @@ export function headingOf({ camera, controls }) {
   return new THREE.Spherical().setFromVector3(camera.position.clone().sub(controls.target))
 }
 
+export function lensKey({ width, height, camera }) {
+  return [width, height].concat(camera.isOrthographicCamera ? [camera.left, camera.right, camera.top, camera.bottom] : camera.fov).join()
+}
+
 export function aim(shown, shot, angle, frame = null) {
   const framed = angle.fov ? new THREE.PerspectiveCamera() : new THREE.OrthographicCamera()
   frameCamera(framed, { ...shot, angle, width: shown.width, height: shown.height, frame })

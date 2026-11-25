@@ -4,7 +4,7 @@ import { FORMAT } from "../format.js"
 import { FACING } from "../placing.js"
 import { titleState } from "../titles.js"
 import { inRenderMode } from "./mode.js"
-import { aim, headingOf, shotOf } from "./shot.js"
+import { aim, headingOf, lensKey, shotOf } from "./shot.js"
 
 const MOVED = 1e-3
 const FILLED = 0.94
@@ -18,10 +18,6 @@ let aiming = false
 
 function slope(fov) {
   return Math.tan(THREE.MathUtils.degToRad(fov) / 2)
-}
-
-function sizeKey({ width, height }) {
-  return [width, height].join()
 }
 
 function poseOf({ camera, controls }) {
@@ -48,7 +44,7 @@ export function applyAngle(shown, opened = null) {
   aiming = false
   const { camera, controls } = shown
   const away = camera.position.clone().sub(shown.isOrtho ? controls.target : shot.centre)
-  angled = { shown, opened, changes: state.changes, project: Project.uuid, orthographic, lenses, away, shot, heading: headingOf(shown), pose: poseOf(shown), size: sizeKey(shown) }
+  angled = { shown, opened, changes: state.changes, project: Project.uuid, orthographic, lenses, away, shot, heading: headingOf(shown), pose: poseOf(shown), lens: lensKey(shown) }
 }
 
 function roomFor({ corners, centre }, direction, aspect) {
@@ -135,9 +131,9 @@ export function angleDrawn(camera) {
   if (inRenderMode() || camera !== Preview.selected?.camera) return
   if (unplaced.has(Project?.uuid)) placeNew(Preview.selected)
   if (!angled || angled.shown !== Preview.selected) return
-  const { shown, opened, changes, size } = angled
+  const { shown, opened, changes, lens } = angled
   const loaded = opened === Undo.history.length && changes !== titleState().changes
-  if (loaded || size !== sizeKey(shown)) applyAngle(shown, opened)
+  if (loaded || lens !== lensKey(shown)) applyAngle(shown, opened)
 }
 
 export function registerAngle() {

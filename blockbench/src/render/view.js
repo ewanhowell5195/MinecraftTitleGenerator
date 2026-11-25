@@ -8,7 +8,7 @@ import { keepCamera } from "../file.js"
 import { titleState } from "../titles.js"
 import { CAMERA, beginEdit, finishEdit } from "../undo.js"
 import { createFrame } from "./frame.js"
-import { aim, headingOf, shotOf } from "./shot.js"
+import { aim, headingOf, lensKey, shotOf } from "./shot.js"
 
 const TURN_PAUSE = 300
 const { radToDeg: degrees } = THREE.MathUtils
@@ -50,7 +50,7 @@ export function fitView() {
   fitting = true
   aim(preview, shot, state.title.camera, { rect: frameRect, bounds: frameBounds, pixels: framePixels })
   heading = headingOf(preview)
-  fitted = sizeKey()
+  fitted = lensKey(preview)
   fitting = false
 }
 
@@ -91,10 +91,6 @@ export function viewChanged() {
   fitView()
 }
 
-function sizeKey() {
-  return [preview.width, preview.height].join()
-}
-
 export function titleRect() {
   const { camera, width, height } = preview
   const key = [state.changes, width, height].concat(camera.projectionMatrix.elements, camera.matrixWorld.elements).join()
@@ -107,7 +103,7 @@ export function titleRect() {
 
 export function viewDrawn(camera) {
   if (camera !== preview?.camera) return
-  if (fitted !== sizeKey()) fitView()
+  if (fitted !== lensKey(preview)) fitView()
   frame.draw(titleRect())
 }
 
