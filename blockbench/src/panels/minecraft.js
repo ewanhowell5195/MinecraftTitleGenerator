@@ -1,9 +1,9 @@
-import { onBeforeUnmount, ref, shallowRef, watch } from "vue"
+import { shallowRef, watch } from "vue"
 import { titleCase } from "#lib/core/names.js"
 import { isMinecraftShape } from "#lib/geometry/shapes.js"
 import { EULA_URL, answerEula, eula } from "#lib/minecraft/eula.js"
 import { jar, listVersions } from "#lib/minecraft/minecraft.js"
-import { dropThumbnail, modelThumbnail } from "#lib/minecraft/minecraftModels.js"
+import { useModelPicture } from "#lib/panels/modelPicture.js"
 import { setTexture } from "#lib/settings/textureDefaults.js"
 import { isTitle } from "../elements.js"
 import { library } from "../library.js"
@@ -82,25 +82,7 @@ export const ModelTile = {
   components: { TitleTile },
   props: { kind: String, id: String, version: String, selected: Boolean },
   setup(props) {
-    const tile = ref(null)
-    const picture = ref(null)
-    let wanted = false
-    const observer = new IntersectionObserver(entries => {
-      const visible = entries.at(-1).isIntersecting
-      if (visible === wanted) return
-      wanted = visible
-      if (!visible) return dropThumbnail(props.kind, props.id, props.version)
-      modelThumbnail(props.kind, props.id, props.version).then(url => {
-        picture.value = url
-        observer.disconnect()
-      }, () => {})
-    })
-    watch(tile, shown => shown && observer.observe(shown.$el))
-    onBeforeUnmount(() => {
-      observer.disconnect()
-      if (wanted) dropThumbnail(props.kind, props.id, props.version)
-    })
-    return { label: titleCase(props.id), picture, tile }
+    return { label: titleCase(props.id), ...useModelPicture(props) }
   },
   template: `<title-tile ref="tile" :label="label" :image="picture" aspect="1 / 1" :selected="selected" @pick="$emit('pick')" />`
 }

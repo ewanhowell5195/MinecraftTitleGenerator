@@ -1,6 +1,5 @@
 <script setup>
-  import { onBeforeUnmount, onMounted, ref } from "vue"
-  import { dropThumbnail, modelThumbnail } from "../lib/minecraft/minecraftModels.js"
+  import { useModelPicture } from "../lib/panels/modelPicture.js"
   import { titleCase } from "../lib/core/names.js"
   import Tile from "../components/Tile.vue"
 
@@ -13,31 +12,7 @@
 
   const emit = defineEmits(["pick"])
 
-  const tile = ref(null)
-  const picture = ref(null)
-  let observer = null
-  let wanted = false
-
-  function seen(entries) {
-    const visible = entries.at(-1).isIntersecting
-    if (visible === wanted) return
-    wanted = visible
-    if (!visible) return dropThumbnail(props.kind, props.id, props.version)
-    modelThumbnail(props.kind, props.id, props.version).then(url => {
-      picture.value = url
-      observer.disconnect()
-    }, () => {})
-  }
-
-  onMounted(() => {
-    observer = new IntersectionObserver(seen)
-    observer.observe(tile.value.$el)
-  })
-
-  onBeforeUnmount(() => {
-    observer?.disconnect()
-    if (wanted) dropThumbnail(props.kind, props.id, props.version)
-  })
+  const { picture, tile } = useModelPicture(props)
 </script>
 
 <template>
