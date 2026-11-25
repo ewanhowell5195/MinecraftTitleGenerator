@@ -60,6 +60,10 @@ function cropped(pixels, x, y, width, height) {
   return out
 }
 
+function insidePixels(pixels, x, y, width, height) {
+  return [x, y, width, height].every(Number.isInteger) && x >= 0 && y >= 0 && width > 0 && height > 0 && x + width <= pixels.width && y + height <= pixels.height
+}
+
 function softwareCanvas() {
   const canvas = new Canvas(1, 1)
   canvas.gpu = false
@@ -80,7 +84,12 @@ function softwareCanvas() {
   }
   ctx.drawImage = (source, ...rest) => {
     pixels = null
-    return draw(rest.length === 8 && !ctx.imageSmoothingEnabled ? canvasPixels.get(source)?.() ?? source : source, ...rest)
+    const taken = rest.length === 8 && !ctx.imageSmoothingEnabled ? canvasPixels.get(source)?.() : null
+    if (!taken) return draw(source, ...rest)
+    const [x, y, width, height, ...to] = rest
+    // skia-canvas keeps a copy of everything in the ImageData for each draw
+    if (insidePixels(taken, x, y, width, height)) return draw(cropped(taken, x, y, width, height), 0, 0, width, height, ...to)
+    return draw(taken, ...rest)
   }
   ctx.getImageData = (x, y, width, height, ...rest) => {
     if (x < 0 || y < 0 || x + width > canvas.width || y + height > canvas.height) return read(x, y, width, height, ...rest)
