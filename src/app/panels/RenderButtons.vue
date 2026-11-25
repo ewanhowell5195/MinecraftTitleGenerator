@@ -18,7 +18,7 @@
 </script>
 
 <template>
-  <Button primary wide :disabled="progress !== null" @click="render"><template #icon><Icon name="camera" :size="16" /></template>
+  <Button primary big wide :disabled="progress !== null" @click="render"><template #icon><Icon name="camera" :size="20" /></template>
     <span>Render image</span>
   </Button>
   <Button wide v-if="framing.tab !== 'minecraft'" :disabled="progress !== null || saving" @click="saveVector"><template #icon><Icon name="download" :size="16" /></template>

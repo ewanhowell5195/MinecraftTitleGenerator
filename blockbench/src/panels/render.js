@@ -79,7 +79,7 @@ async function showResult(image) {
           <div class="mtg-row mtg-hint"><span class="mtg-fill">{{ dimensions }}</span><span>{{ size }}</span></div>
           <div class="mtg-row">
             <button class="mtg-button" @click="copy"><i class="material-icons">file_copy</i><span>Copy render</span></button>
-            <button class="mtg-button" @click="save"><i class="material-icons">save</i><span>Save render</span></button>
+            <button class="mtg-button primary" @click="save"><i class="material-icons">save</i><span>Save render</span></button>
           </div>
         </div>
       `
@@ -135,7 +135,7 @@ export const RenderButtonsBlock = {
   },
   template: `
     <div class="mtg-controls">
-      <button class="mtg-button confirm" :disabled="progress !== null" @click="render"><i class="material-icons">photo_camera</i><span>Render image</span></button>
+      <button class="mtg-button primary big" :disabled="progress !== null" @click="render"><i class="material-icons">photo_camera</i><span>Render image</span></button>
       <template v-if="titlesOnly">
         <button v-if="framing.tab !== 'minecraft'" class="mtg-button" :disabled="progress !== null || saving" @click="saveVector"><i class="material-icons">download</i><span>Save SVG</span></button>
         <button class="mtg-button" title="A zip with each line as its own image" :disabled="progress !== null" @click="downloadLayers"><i class="material-icons">layers</i><span>Render layers</span></button>

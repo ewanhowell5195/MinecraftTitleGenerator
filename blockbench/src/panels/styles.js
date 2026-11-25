@@ -239,6 +239,22 @@ export const STYLES = `
     color: var(--color-accent_text);
   }
 
+  .mtg-button.primary {
+    background: var(--color-accent);
+    color: var(--color-accent_text);
+  }
+
+  .mtg-button.primary:hover {
+    filter: brightness(1.15);
+  }
+
+  .mtg-button.big {
+    height: 44px;
+    font-size: 1.1em;
+    font-weight: 600;
+  }
+
+  .mtg-button:disabled,
   .mtg-button.disabled {
     opacity: 0.5;
     pointer-events: none;
