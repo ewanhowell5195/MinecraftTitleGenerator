@@ -154,6 +154,32 @@ export const STYLES = `
     width: auto;
   }
 
+  .mtg-title-bar {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 5px;
+    padding: 0 12px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .mtg-title-bar.hidden {
+    display: none;
+  }
+
+  .mtg-title-bar:hover {
+    color: var(--color-light);
+  }
+
+  .mtg-title-bar > * {
+    cursor: inherit;
+  }
+
+  body.is_mobile .mtg-title-bar > span {
+    display: none;
+  }
+
   .mtg-account > img {
     flex: none;
     width: 24px;

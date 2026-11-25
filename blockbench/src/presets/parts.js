@@ -184,7 +184,8 @@ export const PresetDetail = {
           <button class="mtg-button" @click="$emit('load')"><i class="material-icons">swap_horiz</i><span>Load preset into current project</span></button>
         </template>
         <template v-if="local">
-          <button v-if="preset.shared" class="mtg-button" @click="$emit('view')"><i class="material-icons">open_in_new</i><span>View in Community</span></button>
+          <button v-if="!preset.shared" class="mtg-button" @click="$emit('share')"><i class="material-icons">share</i><span>Share publicly</span></button>
+          <button v-else class="mtg-button" @click="$emit('view')"><i class="material-icons">open_in_new</i><span>View in Community</span></button>
         </template>
         <template v-else>
           <button v-if="!mine" class="mtg-button" :disabled="saved" @click="$emit('save')"><i class="material-icons">bookmark</i><span>{{ saved ? "In My presets" : "Save to My presets" }}</span></button>

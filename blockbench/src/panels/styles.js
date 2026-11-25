@@ -308,6 +308,61 @@ export const STYLES = `
     background: var(--color-error);
   }
 
+  .mtg-warning {
+    margin: 0;
+    padding: 8px 10px;
+    border: 1px solid var(--color-warning);
+  }
+
+  .mtg-share > p {
+    margin: 0;
+  }
+
+  .mtg-agree {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .mtg-agree a {
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .mtg-list > .mtg-usage {
+    margin-bottom: 10px;
+  }
+
+  .mtg-usage {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-subtle_text);
+    user-select: none;
+  }
+
+  .mtg-usage.full {
+    color: var(--color-error);
+  }
+
+  .mtg-pips {
+    display: flex;
+    flex: none;
+    gap: 3px;
+  }
+
+  .mtg-pips > i {
+    width: 12px;
+    height: 6px;
+    background: var(--color-button);
+  }
+
+  .mtg-pips > i.left {
+    background: var(--color-subtle_text);
+  }
+
   .mtg-button.big {
     height: 44px;
     font-size: 1.1em;

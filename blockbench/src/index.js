@@ -15,6 +15,7 @@ import { angleClosed, angleDrawn, angleMoved, placeLater, registerAngle, unregis
 import { lockDrawn, removeLocks } from "./render/lock.js"
 import { viewChanged, viewDrawn, viewTurned } from "./render/view.js"
 import { hidePresets, presetsChanged, registerPresets, unregisterPresets } from "./presets/index.js"
+import { hideTitleBar, titleBarChanged } from "./presets/titleBar.js"
 import { registerPasses, unregisterPasses } from "./passes.js"
 import { useBlockbench } from "./platform.js"
 import { keepCounted, registerStats, savedStats, unregisterStats } from "./stats.js"
@@ -79,12 +80,14 @@ Plugin.register("minecraft_title_generator", {
     for (const event of ["update_selection", "select_project", "unselect_project"]) listen(event, followSelection)
     Codecs.project.on("parsed", refresh)
     listen("update_selection", followElementTab)
+    listen("update_selection", titleBarChanged)
     for (const event of ["new_project", "setup_project"]) listen(event, placeLater)
     listen("canvas_select", chooseClicked)
     listen("update_camera_position", viewTurned)
     listen("update_camera_position", angleMoved)
     listen("unselect_project", angleClosed)
     listen("unselect_project", hidePresets)
+    listen("unselect_project", hideTitleBar)
     listen("create_undo_save", keepTitle)
     listen("load_undo_save", loadTitle)
     listen("load_project", () => setTimeout(() => Project && Outliner.elements.some(isTitle) && openTitleMode()))

@@ -49,7 +49,7 @@ async function waitForAccount(attempt) {
   Blockbench.showMessageBox({ title: "Sign in", message: "The sign-in expired before it was connected. Try again." })
 }
 
-async function signIn() {
+export async function signIn() {
   stopConnecting()
   const keyHash = await startKey()
   const open = () => Blockbench.openLink(platform.asset(connectPath(keyHash)))
