@@ -3,7 +3,7 @@
 </script>
 
 <template>
-  <LegalPage title="Privacy Policy" updated="23 November 2026" about="this policy">
+  <LegalPage title="Privacy Policy" updated="25 November 2026" about="this policy">
     <p>By using the Minecraft Title Generator, you agree that you have read and agree to this policy.</p>
     <p>This policy describes what data the title generator stores, why, how long it is kept, and how to remove it.</p>
 
@@ -23,9 +23,10 @@
     <p>Images and fonts you add yourself stay on your device, and are never included in share links or presets.</p>
 
     <h2>Signing in</h2>
-    <p>Signing in is optional. You can sign in with Discord or GitHub to keep your presets under your account, share presets under your name, and send submissions. Signing in works the same on the website and in the Blockbench plugin.</p>
+    <p>Signing in is optional. You can sign in with Discord or GitHub to keep your presets under your account, share presets under your name, and send submissions.</p>
     <p>When you sign in, I only keep your account id, username, email address and a link to your profile picture from Discord or GitHub. Nothing else from your profile is stored. The access Discord or GitHub gives the title generator is only used once to read your profile, and is not kept.</p>
-    <p>These are kept in a cookie on your device, or in Blockbench's storage when you use the plugin, so you stay signed in. Your profile picture is shown while you are signed in, and is loaded straight from Discord or GitHub. Your account id and username are only saved on my server once you save a preset to your account, share a preset while signed in, send a submission, or report an issue. Your email address is only saved on my server while you have a submission waiting for review, or while you are a reviewer. Your profile picture link is never saved on my server. Your username and profile picture are updated each time you sign in.</p>
+    <p>These are kept in a cookie on your device, so you stay signed in. Your profile picture is shown while you are signed in, and is loaded straight from Discord or GitHub. Your account id and username are only saved on my server once you save a preset to your account, share a preset while signed in, send a submission, report an issue, or connect the Blockbench plugin. Your email address is only saved on my server while you have a submission waiting for review, or while you are a reviewer. Your profile picture link is never saved on my server. Your username and profile picture are updated each time you sign in.</p>
+    <p>The Blockbench plugin signs in through the website. Blockbench makes a private key and keeps it in its storage, and my server stores a hash of the key with your account id, your username, when it was connected and when it was last used. The key only lets Blockbench use your presets and vote. Signing out in Blockbench, or disconnecting it on the <a href="/account/">Manage account</a> page, deletes this. It is also deleted once Blockbench has not used it for 90 days and someone connects Blockbench again.</p>
 
     <h2>Presets</h2>
     <p>When you are signed in, your saved presets are stored under your account so you can use them on any device. This stores each preset's name and title settings.</p>
@@ -77,7 +78,7 @@
 
     <h2>How long data is kept</h2>
     <ul>
-      <li>Your account id and username are kept until you delete your account, or until you have no presets, submissions or reports left.</li>
+      <li>Your account id and username are kept until you delete your account, or until you have no presets, submissions, reports or connected Blockbench plugins left.</li>
       <li>Reports are kept until you delete your account, or until their GitHub issue is deleted.</li>
       <li>Presets under your account and shared presets are kept until you delete them.</li>
       <li>Vote and download records are kept until the preset is deleted. Changing a shared preset's title resets them. Your own votes are deleted when you delete your account.</li>
@@ -111,7 +112,7 @@
     <h2>Removing your data</h2>
     <p>To delete your account, use the <a href="/account/">Manage account</a> page. This always deletes the presets saved to your account, your votes, and your notifications. To keep a copy of your presets, download them first.</p>
     <p>You then choose what happens to your shared presets, submissions and reports. They can stay without your username, and your shared presets keep their votes and ratings. Or they can be removed: your shared presets are deleted, your submissions are removed from my server, and withdrawn if they are waiting for review, and your reports are removed from my server. Either way, your submissions, reports and comments stay on GitHub with your username.</p>
-    <p>Signing out removes the session cookie, but does not delete anything from my server.</p>
+    <p>Signing out on the website removes the session cookie, but does not delete anything from my server. Signing out in Blockbench deletes its connection.</p>
     <p>To remove anything else, contact me through the contacts listed below.</p>
     <p>Some data cannot be removed on request:</p>
     <ul>

@@ -7,6 +7,7 @@ export const PAGE_COMPONENTS = {
   submissions: () => import("../submissions/SubmissionsApp.vue"),
   issues: () => import("../issues/IssuesApp.vue"),
   account: () => import("../submissions/SubmissionsApp.vue"),
+  connect: () => import("../submissions/SubmissionsApp.vue"),
   terms: () => import("./legal/TermsPage.vue"),
   privacy: () => import("./legal/PrivacyPage.vue"),
   "not-found": () => import("./NotFound.vue")
