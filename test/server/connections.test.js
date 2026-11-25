@@ -89,8 +89,18 @@ describe("connecting Blockbench", () => {
     await connecting(await signIn())
     assert.equal((await listConnections(withKey(PATH))).status, 401)
     assert.equal((await deleteAccount(withKey("/api/account/delete", KEY, { method: "POST", body: { mode: "remove" } }))).status, 401)
-    assert.equal((await claimPresets(withKey("/api/presets/claim", KEY, { method: "POST", body: { tokens: [] } }))).status, 401)
-    assert.equal((await submitPreset(withKey("/api/presets", KEY, { method: "POST", body: { code: code([{ text: "a" }]), account: true } }))).status, 401)
+  })
+
+  test("a key shares on its account, and moves in what was shared without one", async () => {
+    await connecting(await signIn())
+    const shared = await submitPreset(withKey("/api/presets", KEY, { method: "POST", body: { code: code([{ text: "First" }]), account: true } }))
+    assert.equal(shared.status, 201)
+    const { preset, onAccount, token } = await shared.json()
+    assert.deepEqual([preset.author, preset.authorProvider, onAccount, token], ["someone", "discord", true, undefined])
+    const loose = await (await submitPreset(context("/api/presets", { method: "POST", body: { code: code([{ text: "Second" }]) } }))).json()
+    const claimed = await claimPresets(withKey("/api/presets/claim", KEY, { method: "POST", body: { tokens: [{ id: loose.preset.id, token: loose.token }] } }))
+    assert.deepEqual(await claimed.json(), { moved: [loose.preset.id] })
+    assert.equal((await submitPreset(withKey("/api/presets", "b".repeat(64), { method: "POST", body: { code: code([{ text: "Third" }]), account: true } }))).status, 401)
   })
 
   test("a key wins over a cookie where it is accepted", async () => {
@@ -212,7 +222,9 @@ describe("connecting Blockbench", () => {
     const shown = await accountDetails(withKey("/api/account", KEY, { headers }))
     assert.equal(shown.headers.get("Access-Control-Allow-Origin"), "*")
     assert.equal((await signOut(withKey("/api/account/logout", KEY, { method: "POST", headers: { Origin: "https://evil.test" } }))).status, 403)
-    assert.equal((await submitPreset(withKey("/api/presets", KEY, { method: "POST", body: { code: code([{ text: "a" }]) }, headers }))).status, 403)
+    const shared = await submitPreset(withKey("/api/presets", KEY, { method: "POST", body: { code: code([{ text: "First" }]) }, headers }))
+    assert.deepEqual([shared.status, shared.headers.get("Access-Control-Allow-Origin")], [201, "*"])
+    assert.equal((await submitPreset(withKey("/api/presets", KEY, { method: "POST", body: { code: code([{ text: "Second" }]) }, headers: { Origin: "https://evil.test" } }))).status, 403)
     assert.equal((await signOut(withKey("/api/account/logout", KEY, { method: "POST", headers }))).status, 200)
     assert.equal(await who(), null)
   })

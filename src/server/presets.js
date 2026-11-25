@@ -249,7 +249,7 @@ async function savedShare(context, body, user, { facts, name, fingerprint }) {
   return { hidden, token, preset: results[before.length].results[0] }
 }
 
-export const submitPreset = guarded(async context => {
+export const submitPreset = fromBlockbench(async context => {
   const { request, env } = context
   const body = await jsonBody(request)
   const user = await activeUser(context)
@@ -362,7 +362,7 @@ export const deletePreset = fromBlockbench(async context => {
   return reply(200, { deleted: true })
 })
 
-export const claimPresets = guarded(async context => {
+export const claimPresets = fromBlockbench(async context => {
   const { request, env } = context
   const user = await requireUser(context, "Sign in to move these presets to your account.")
   checkWords("username", user.name)
