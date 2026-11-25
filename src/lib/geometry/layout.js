@@ -20,6 +20,11 @@ function filler(glyph, width) {
   return { ...glyph, width, mask, ...(depths ? { depths } : {}), fill: true }
 }
 
+function sizedSpace(glyph, extra) {
+  const width = Math.max(0, Math.min(glyph.width, Math.ceil(glyph.width + extra)))
+  return { ...(width < glyph.width ? filler(glyph, width) : glyph), advance: glyph.advance + extra }
+}
+
 function thumbnailable({ glyph }) {
   return !NOT_THUMBNAILS.has(baseChar(glyph.char))
 }
@@ -54,29 +59,33 @@ function wordText(font, item, raw) {
   return normalise(font.glyphs[" "] ? text : text.trim(), font.multicase)
 }
 
+export function fontSpace(font) {
+  return font?.glyphs?.[" "]?.advance ?? font?.spaceWidth ?? SPACE
+}
+
 export function lineLayout(font, words, options) {
   const spacing = options.spacing ?? 0
-  const space = font.spaceWidth ?? SPACE
+  const space = options.spaceWidth ?? fontSpace(font)
   const parts = words.map((item, word) => ({ space: item.space, chars: Array.from(wordText(font, item, options.raw), char => ({ char, word })) })).filter(part => part.chars.length)
   let chars = parts.flatMap((part, index) => index && part.space ? [{ char: " ", word: parts[index - 1].chars[0].word }].concat(part.chars) : part.chars)
   if (chars.length && (options.terminators || font.forcedTerminators) && font.glyphs[TERMINATOR_OPEN] && font.glyphs[TERMINATOR_CLOSE]) {
     const opening = chars[0].word
     const closing = chars[chars.length - 1].word
-    const gap = word => font.terminatorSpace ? [{ char: " ", width: font.terminatorSpaceWidth, word }] : []
+    const gap = word => font.terminatorSpace ? [{ char: " ", width: font.terminatorSpaceWidth ?? fontSpace(font), word, extra: 0 }] : []
     chars = [{ char: TERMINATOR_OPEN, word: opening }].concat(gap(opening), chars, gap(closing), [{ char: TERMINATOR_CLOSE, word: closing }])
   }
   const placed = []
   let pen = 0
   let last = null
   let spaces = 0
-  for (const { char, word, width } of chars) {
+  for (const { char, word, width = space, extra = space - fontSpace(font) } of chars) {
     if (char === " " && !font.glyphs[" "]) {
-      pen += width ?? space
+      pen += width
       last = null
       spaces++
       continue
     }
-    const glyph = font.glyphs[char]
+    const glyph = char === " " && extra ? sizedSpace(font.glyphs[char], extra) : font.glyphs[char]
     if (!glyph) continue
     if (last && options.kerning !== false) pen -= font.kerning[last + char] ?? 0
     if (glyph.width) {
@@ -85,6 +94,7 @@ export function lineLayout(font, words, options) {
       const edge = before ? before.x + before.glyph.width : x
       if (font.glyphs[" "]?.width && x > edge) placed.push({ glyph: filler(font.glyphs[" "], Math.ceil(x - edge)), x: edge, spaces: 0, word: before.word })
       placed.push({ glyph, x, spaces, word })
+      if (char === " " && extra > 0) placed.push({ glyph: filler(glyph, Math.ceil(extra)), x: x + glyph.width, spaces: 0, word })
       spaces = 0
     }
     pen += glyph.advance + spacing

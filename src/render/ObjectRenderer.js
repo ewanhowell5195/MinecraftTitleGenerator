@@ -37,7 +37,7 @@ import { effectiveScale, isCustomFont, wordKey } from "../lib/settings/settings.
 const REST = 0.5
 const SHARPEN_DELAY = 250
 
-const LAYOUT = new Set(["spacing", "kerning", "arcMode", "arcTop", "arcBottom", "arcMove", "arcCentre", "arcMarked", "stretch", "terminators", "twist", "wordTwist", "lineScale"])
+const LAYOUT = new Set(["spacing", "spaceWidth", "kerning", "arcMode", "arcTop", "arcBottom", "arcMove", "arcCentre", "arcMarked", "stretch", "terminators", "twist", "wordTwist", "lineScale"])
 
 function twistOf(object, k) {
   if (!object[k("twistRibbon")] && !object[k("twistDoor")] && !object[k("twistFan")]) return null
@@ -129,6 +129,7 @@ export default {
       lineDepth: typeDepth(object.depth),
       border: object.wordBorder ?? object.border,
       spacing: object.spacing,
+      spaceWidth: object.spaceWidth,
       kerning: object.kerning,
       arcMode: object.arcMode,
       arcTop: object.arcTop / 100,
@@ -203,7 +204,7 @@ export default {
     }
 
     function lineFor(source, list, word, options, use = "built") {
-      const key = JSON.stringify([list, word, options.depth, options.arcMode, options.arcTop, options.arcBottom, options.arcMove, options.arcCentre, options.arcMarked, options.stretch, options.terminators, options.spacing, options.kerning, options.fadeCurves, options.curveAngle, options.curveHeight])
+      const key = JSON.stringify([list, word, options.depth, options.arcMode, options.arcTop, options.arcBottom, options.arcMove, options.arcCentre, options.arcMarked, options.stretch, options.terminators, options.spacing, options.spaceWidth, options.kerning, options.fadeCurves, options.curveAngle, options.curveHeight])
       const known = lines[use]
       if (known?.source === source && known.key === key) return known
       lines[use] = { source, key, laid: shapeLine(source, sheet.value, list, word, options) }

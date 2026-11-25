@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { SPACE, layout, lineLayout, thumbnailItem, thumbnailItems } from "#lib/geometry/layout.js"
+import { SPACE, fontSpace, layout, lineLayout, thumbnailItem, thumbnailItems } from "#lib/geometry/layout.js"
 
 const SMILE = "\u{1F633}"
 const QUOTE = "\u{1F629}"
@@ -272,6 +272,86 @@ describe("layout spaces", () => {
 
   test("a modelled space is spaced like any other character", () => {
     assert.deepEqual(xsOf(layout(fontOf("ab "), "a b", { spacing: 4 })).at(-1), 21)
+  })
+})
+
+describe("layout word spacing", () => {
+  const modelled = withGlyphs(fontOf("ab"), { " ": glyphOf(" ", { width: 4, advance: 4, originX: 0 }) })
+
+  test("the font's space is its drawn one, then its width, then the default", () => {
+    assert.equal(fontSpace(modelled), 4)
+    assert.equal(fontSpace(fontOf("a", { spaceWidth: 14 })), 14)
+    assert.equal(fontSpace(fontOf("a")), SPACE)
+    assert.equal(fontSpace(null), SPACE)
+  })
+
+  test("uses the font's space until it is set", () => {
+    for (const font of [fontOf("ab", { spaceWidth: 14 }), fontOf("ab"), modelled]) {
+      assert.deepEqual(layout(font, "a b", { spaceWidth: null }), layout(font, "a b", {}))
+      assert.deepEqual(layout(font, "a b", { spaceWidth: fontSpace(font) }), layout(font, "a b", {}))
+    }
+  })
+
+  test("replaces the font's space", () => {
+    assert.deepEqual(xsOf(layout(fontOf("ab", { spaceWidth: 14 }), "a b", { spaceWidth: 5 })), [1, 12])
+    assert.deepEqual(xsOf(layout(fontOf("ab", { spaceWidth: 14 }), "a b", { spaceWidth: 30 })), [1, 37])
+    assert.deepEqual(xsOf(layout(fontOf("ab"), "a b", { spaceWidth: 0 })), [1, 7])
+  })
+
+  test("can be fractional", () => {
+    assert.deepEqual(xsOf(layout(fontOf("ab"), "a b", { spaceWidth: 8.5 })), [1, 15.5])
+  })
+
+  test("sets the space before a word", () => {
+    assert.deepEqual(xsOf(lineLayout(fontOf("a"), [{ text: "a", space: false }, { text: "a", space: true }], { spaceWidth: 11 })), [1, 18])
+  })
+
+  test("sets every repeated space", () => {
+    assert.deepEqual(xsOf(layout(fontOf("ab"), "a  b", { spaceWidth: 10 })), [1, 27])
+  })
+
+  test("combines with character spacing", () => {
+    assert.deepEqual(xsOf(layout(fontOf("ab"), "a b", { spacing: 4, spaceWidth: 11 })), [1, 22])
+  })
+
+  test("leaves the gap beside the terminators alone", () => {
+    for (const width of [undefined, 3]) {
+      const font = fontOf(`a${OPEN}${CLOSE}`, { terminatorSpace: true, terminatorSpaceWidth: width })
+      assert.deepEqual(xsOf(layout(font, "a", { terminators: true, spaceWidth: 30 })), xsOf(layout(font, "a", { terminators: true })))
+    }
+  })
+
+  test("leaves a modelled gap beside the terminators alone", () => {
+    const font = withGlyphs(fontOf(`a${OPEN}${CLOSE}`, { terminatorSpace: true }), { " ": modelled.glyphs[" "] })
+    assert.deepEqual(layout(font, "a", { terminators: true, spaceWidth: 30 }), layout(font, "a", { terminators: true }))
+  })
+
+  test("leaves the space between characters alone", () => {
+    assert.deepEqual(xsOf(layout(fontOf("a"), "aaa", { spacing: 2, spaceWidth: 30 })), [1, 9, 17])
+  })
+
+  test("narrows a modelled space", () => {
+    const placed = layout(modelled, "a a", { spaceWidth: 2 })
+    assert.equal(placed.at(-1).x, 9)
+    assert.ok(placed.some(item => item.glyph.char === " " && item.x === 6 && item.glyph.width === 2))
+    assert.equal(modelled.glyphs[" "].width, 4)
+  })
+
+  test("a modelled space can shrink to nothing", () => {
+    const placed = layout(modelled, "a a", { spaceWidth: 0 })
+    assert.equal(placed.at(-1).x, 7)
+    assert.ok(placed.every(item => item.glyph.char !== " " || item.glyph.fill))
+  })
+
+  test("extends a modelled space", () => {
+    const placed = layout(modelled, "a a", { spaceWidth: 12 })
+    assert.equal(placed.at(-1).x, 19)
+    assert.ok(placed.some(item => item.glyph.char === " " && item.x === 10 && item.glyph.width === 8))
+  })
+
+  test("extends a trailing modelled space", () => {
+    const last = layout(modelled, "a ", { spaceWidth: 12 }).at(-1)
+    assert.equal(last.x + last.glyph.width, 18)
   })
 })
 

@@ -28,6 +28,7 @@ const TOP_DEFAULTS = {
   clipHoles: true,
   layerWords: false,
   spacing: 0,
+  spaceWidth: null,
   kerning: true,
   arcMode: "stretch",
   arcTop: 0,
@@ -398,9 +399,10 @@ describe("resetPanel", () => {
   })
 
   test("spacing combines the font and the type", () => {
-    const object = createObject({ type: "small", spacing: 9, kerning: false })
+    const object = createObject({ type: "small", spacing: 9, spaceWidth: 4, kerning: false })
     resetPanel(object, "spacing", { font: { characterSpacing: 1 } })
     assert.equal(object.spacing, 3)
+    assert.equal(object.spaceWidth, null)
     assert.equal(object.kerning, true)
   })
 

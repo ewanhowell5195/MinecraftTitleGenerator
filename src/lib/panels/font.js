@@ -1,3 +1,4 @@
+import { fontSpace } from "../geometry/layout.js"
 import { isCustomFont } from "../settings/settings.js"
 
 export const CURVES_PANEL = {
@@ -34,6 +35,7 @@ export const SPACING_PANEL = {
   title: "Spacing",
   controls: [
     { type: "slider", key: "spacing", label: "Character spacing", min: -6, max: 20, step: 0.1 },
+    { type: "slider", key: "spaceWidth", label: "Word spacing", min: 0, max: (get, { font }) => Math.max(40, fontSpace(font) * 2), step: 0.1, read: (get, { font }) => get("spaceWidth") ?? fontSpace(font) },
     { type: "toggle", key: "kerning", label: "Kerning", shown: (get, { font }) => Object.keys(font?.kerning ?? {}).length > 0 }
   ]
 }

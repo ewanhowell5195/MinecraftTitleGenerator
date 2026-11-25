@@ -28,6 +28,7 @@ export function applyFontDefaults(object, loaded, textures, before, quietly) {
       }
       for (const target of layerViews(object, "overlays")) target.overlays = target.overlays.filter(layer => layer.source === "file" || textures.overlays[layer.overlay])
       object.spacing = defaultSpacing(object.type, loaded)
+      object.spaceWidth = null
       object.depth = defaultDepth(loaded)
       object.border = defaultBorder(object.type, loaded)
       object.wordDepth = null

@@ -131,6 +131,22 @@ describe("a panel's state", () => {
     assert.deepEqual([object.depth, object.wordDepth, state.valueOf(depth)], [30, 12, 12])
   })
 
+  test("word spacing shows the font's own space until it is set", () => {
+    const object = edit()
+    const spacing = control(SPACING_PANEL, "spaceWidth")
+    const state = open(SPACING_PANEL)
+    active.value = { font: { ...FONT, spaceWidth: 14 }, list: LIST }
+    assert.equal(state.valueOf(spacing), 14)
+    active.value = { font: { ...FONT, spaceWidth: 16 }, list: LIST }
+    assert.equal(state.valueOf(spacing), 16)
+    state.change(spacing, 5)
+    assert.equal(object.spaceWidth, 5)
+    assert.equal(state.valueOf(spacing), 5)
+    state.reset()
+    assert.equal(object.spaceWidth, null)
+    assert.equal(state.valueOf(spacing), 16)
+  })
+
   test("a switched off panel can be turned on", () => {
     const object = edit({ internalFaces: false })
     const state = open(FACE_PANELS[1])
