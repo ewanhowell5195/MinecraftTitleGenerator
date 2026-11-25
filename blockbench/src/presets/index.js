@@ -1,20 +1,27 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { useCommunityBrowser } from "#lib/presets/communityBrowser.js"
+import { useMyPresets } from "#lib/presets/myPresets.js"
 import { SORTS } from "#lib/presets/presetText.js"
-import { ownPresets, refreshUsage } from "#lib/state/community.js"
-import { notice } from "#lib/state/notices.js"
+import { addPreset, presetsError, presetsLoading } from "#lib/presets/savedPresets.js"
+import { startSavingPreset } from "#lib/presets/savingPreset.js"
+import { account, accountChanges } from "#lib/state/account.js"
+import { communityPreset, managedPresets, ownPresets, refreshUsage } from "#lib/state/community.js"
+import { showNotice } from "#lib/state/notices.js"
 import { AccountButton } from "../account/index.js"
 import { isBlank, openPreset, replaceWithPreset } from "../file.js"
 import { FORMAT } from "../format.js"
 import { hidePanels, putFirst, showPanels } from "../mode.js"
-import { DropdownControl } from "../panels/inputs.js"
+import { DropdownControl, SegmentsControl } from "../panels/inputs.js"
 import { stashSelection } from "../selection.js"
 import { inDevelopment } from "../stats.js"
-import { PresetDetail, PresetTile } from "./parts.js"
+import { registerAsking, unregisterAsking } from "./asking.js"
+import { PresetDetail, PresetTile, SavedTile } from "./parts.js"
+import { canSavePreset, registerSaving, unregisterSaving } from "./saving.js"
 import { STYLES } from "./styles.js"
 
 const ID = "minecraft_title_presets"
-const LEAST_TOOLS = 620
+const LEAST_TOOLS = 800
+const TABS = [{ value: "community", label: "Community" }, { value: "mine", label: "My presets" }]
 
 const opened = ref(false)
 const shown = ref(false)
@@ -23,28 +30,99 @@ const blank = computed(() => changes.value > 0 && inPresets() && isBlank())
 
 let mode = null
 let styles = null
-let stopNotices = null
 let restoreSelection = null
 
 const PresetBrowser = {
-  components: { AccountButton, DropdownControl, PresetDetail, PresetTile },
+  components: { AccountButton, DropdownControl, PresetDetail, PresetTile, SavedTile, SegmentsControl },
   setup() {
     const sort = ref(SORTS[0].value)
-    const search = ref("")
-    const browser = useCommunityBrowser({ sort, search })
+    const tab = ref("community")
+    const searches = ref({ community: "", mine: "" })
+    const search = computed({ get: () => searches.value[tab.value], set: value => (searches.value[tab.value] = value) })
+    const inCommunity = () => tab.value === "community"
+    const { selected: communitySelected, rename: renameCommunity, vote, ...browser } = useCommunityBrowser({ sort, search, active: inCommunity })
+    const mine = useMyPresets({ search, active: () => tab.value === "mine", forgotten })
+    const selected = computed(() => inCommunity() ? communitySelected.value : mine.selected.value)
+    const savable = computed(() => changes.value > 0 && inPresets() && canSavePreset())
     const list = ref(null)
     const tools = ref(null)
     const space = ref(0)
     const raised = computed(() => !Blockbench.isMobile && space.value >= LEAST_TOOLS)
     const observer = new ResizeObserver(measureSpace)
 
+    function namePlaceholder() {
+      tools.value.querySelector(".search_bar > input").placeholder = inCommunity() ? "Search names, text or user:name" : "Search your presets"
+    }
+
     function measureSpace() {
       const modes = document.getElementById("mode_selector")
       if (modes && shown.value) space.value = modes.getBoundingClientRect().left - Interface.center_screen.getBoundingClientRect().left
     }
 
+    function forgotten(id) {
+      browser.forget(id)
+      if (inCommunity()) browser.clear()
+    }
+
+    function clear() {
+      if (inCommunity()) browser.clear()
+      else mine.selectedCode.value = null
+    }
+
+    function pickMine({ code }) {
+      mine.selectedCode.value = mine.selectedCode.value === code ? null : code
+    }
+
+    function rename(name) {
+      if (inCommunity()) renameCommunity(selected.value, name)
+      else mine.rename(selected.value, name)
+    }
+
+    function remove() {
+      const { id, name } = selected.value
+      if (inCommunity()) mine.removing.value = { name, shared: id }
+      else mine.remove(selected.value)
+    }
+
+    function keep() {
+      const preset = selected.value
+      addPreset(preset.name, preset.code)
+      if (!inDevelopment()) browser.counted(preset)
+    }
+
+    async function view() {
+      const { shared: id } = selected.value
+      try {
+        const preset = await communityPreset(id)
+        tab.value = "community"
+        await nextTick()
+        if (communitySelected.value?.id !== id) browser.pick(preset)
+      } catch (err) {
+        showNotice(err.message)
+      }
+    }
+
+    async function byUser(name, provider) {
+      const toggling = inCommunity()
+      tab.value = "community"
+      await nextTick()
+      browser.searchUser(name, provider, toggling)
+    }
+
+    function askRemoving(preset) {
+      if (!preset) return
+      const choices = managedPresets.value.includes(preset.shared) ? ["unshare", "full"] : ["local"]
+      const buttons = { unshare: "Delete from Community", full: "Fully delete", local: "Delete my preset only" }
+      const message = choices.length > 1 ? "is shared publicly. Deleting it from Community moves it back to your presets, and it keeps its votes and uses if you share it again. Fully deleting it removes it for good." : "is also shared publicly. Blockbench can't manage it, so it will stay in Community."
+      Blockbench.showMessageBox({ title: "Delete preset", message: `${preset.name} ${message}`, buttons: choices.map(choice => buttons[choice]).concat("dialog.cancel"), confirmIndex: 0, cancelIndex: choices.length, width: 560 }, button => {
+        if (choices[button]) mine.removeShared(choices[button])
+        else mine.removing.value = null
+      })
+    }
+
     function use(open) {
-      const preset = browser.selected.value
+      const preset = selected.value
+      const counts = inCommunity()
       try {
         open(preset)
       } catch (err) {
@@ -52,7 +130,7 @@ const PresetBrowser = {
         Blockbench.showMessageBox({ title: `Couldn't open ${preset.name}`, message: err.message })
         return
       }
-      if (!inDevelopment()) browser.counted(preset)
+      if (counts && !inDevelopment()) browser.counted(preset)
     }
 
     async function showSelected() {
@@ -61,7 +139,7 @@ const PresetBrowser = {
     }
 
     function key({ key }) {
-      if (key === "Escape" && inPresets() && !Dialog.open && browser.selected.value) browser.clear()
+      if (key === "Escape" && inPresets() && !Dialog.open && selected.value) clear()
     }
 
     let scrolled = 0
@@ -75,9 +153,18 @@ const PresetBrowser = {
 
     watch(shown, keepScroll, { flush: "sync" })
     watch(shown, () => nextTick(measureSpace))
-    watch(browser.selected, showSelected)
+    watch(selected, showSelected)
+    watch(mine.removing, askRemoving)
+    watch(tab, value => {
+      namePlaceholder()
+      list.value.scrollTop = 0
+      mine.selectedCode.value = null
+      if (value === "community") browser.load(0)
+      else browser.clear()
+    })
+    watch(accountChanges, () => inCommunity() && browser.load(0))
     onMounted(() => {
-      tools.value.querySelector("input").placeholder = "Search names, text or user:name"
+      namePlaceholder()
       refreshUsage()
       browser.load(0)
       measureSpace()
@@ -89,28 +176,82 @@ const PresetBrowser = {
       observer.disconnect()
       removeEventListener("keydown", key)
     })
-    return { ...browser, list, tools, space, raised, isMine: preset => ownPresets.value.includes(preset.id), sort, search, sorts: SORTS, blank, open: () => use(openPreset), loadInto: () => use(replaceWithPreset) }
+    return {
+      ...browser,
+      account,
+      blank,
+      byUser,
+      clear,
+      groups: mine.groups,
+      isMine: preset => ownPresets.value.includes(preset.id),
+      isOwned: preset => managedPresets.value.includes(preset.id),
+      isSaved: mine.isSaved,
+      keep,
+      list,
+      loadInto: () => use(replaceWithPreset),
+      open: () => use(openPreset),
+      pickMine,
+      presetsError,
+      presetsLoading,
+      raised,
+      remove,
+      rename,
+      savable,
+      savePreset: () => startSavingPreset(),
+      search,
+      selected,
+      selectedCode: mine.selectedCode,
+      shown: mine.shown,
+      sort,
+      sorts: SORTS,
+      space,
+      stats: mine.stats,
+      tab,
+      tabs: TABS,
+      tools,
+      view,
+      vote
+    }
   },
   template: `
     <div class="mtg-presets" :class="{ open: selected, raised }">
       <div class="mtg-browse">
         <div ref="tools" class="mtg-row mtg-tools" :style="raised ? { width: space + 'px' } : null">
+          <div class="mtg-which"><segments-control :value="tab" :options="tabs" @change="tab = $event" /></div>
           <search-bar class="mtg-fill" v-model="search" />
-          <div class="mtg-sort"><dropdown-control :value="sort" :options="sorts" @change="sort = $event" /></div>
-          <button class="mtg-button mtg-random" @click="pickRandom"><i class="material-icons">casino</i><span>Random</span></button>
+          <template v-if="tab === 'community'">
+            <div class="mtg-sort"><dropdown-control :value="sort" :options="sorts" @change="sort = $event" /></div>
+            <button class="mtg-button mtg-random" @click="pickRandom"><i class="material-icons">casino</i><span>Random</span></button>
+          </template>
+          <button v-else class="mtg-button mtg-random" :disabled="!savable" title="Save the current title as a preset" @click="savePreset"><i class="material-icons">bookmark</i><span>Save preset</span></button>
           <account-button />
         </div>
         <div ref="list" class="mtg-list">
-          <p v-if="error" class="mtg-error">{{ error }}</p>
-          <p v-else-if="!results.length && !loading" class="mtg-hint">{{ emptyMessage }}</p>
-          <div class="mtg-preset-grid">
-            <preset-tile v-for="preset of results" :key="preset.id" :preset="preset" :selected="!!selected && selected.id === preset.id" :searched="searched(preset)" :mine="isMine(preset)" @vote="vote(preset, $event)" @pick="pick(preset)" @user="searchUser" />
-          </div>
-          <p v-if="loading" class="mtg-hint">Loading presets</p>
+          <template v-if="tab === 'community'">
+            <p v-if="error" class="mtg-error">{{ error }}</p>
+            <p v-else-if="!results.length && !loading" class="mtg-hint">{{ emptyMessage }}</p>
+            <div class="mtg-preset-grid">
+              <preset-tile v-for="preset of results" :key="preset.id" :preset="preset" :selected="!!selected && selected.id === preset.id" :searched="searched(preset)" :mine="isMine(preset)" @vote="vote(preset, $event)" @pick="pick(preset)" @user="byUser" />
+            </div>
+            <p v-if="loading" class="mtg-hint">Loading presets</p>
+          </template>
+          <template v-else>
+            <p v-if="presetsError" class="mtg-error">{{ presetsError }}</p>
+            <p v-else-if="presetsLoading" class="mtg-hint">Loading your presets</p>
+            <p v-else-if="!shown.length" class="mtg-hint">{{ search.trim() ? "None of your presets match this search." : "You have no presets yet. Use Save preset to save the current title here." }}</p>
+            <p v-if="!account" class="mtg-hint">Sign in to keep your presets under your account. The presets saved in Blockbench move to your account when you do.</p>
+            <section v-for="group of groups" :key="group.label" class="mtg-saved">
+              <h3>{{ group.label }}</h3>
+              <div class="mtg-preset-grid">
+                <saved-tile v-for="preset of group.presets" :key="preset.code" :preset="preset" :selected="selectedCode === preset.code" :stats="stats[preset.shared]" @pick="pickMine(preset)" />
+              </div>
+            </section>
+          </template>
           <div ref="sentinel" class="mtg-more"></div>
         </div>
       </div>
-      <preset-detail v-if="selected" :preset="selected" :searched="searched(selected)" :mine="isMine(selected)" @vote="vote(selected, $event)" :blank="blank" @user="searchUser" @open="open" @load="loadInto" @close="clear" />
+      <preset-detail v-if="selected && tab === 'community'" key="community" :preset="selected" :searched="searched(selected)" :mine="isMine(selected)" :owned="isOwned(selected)" :saved="isSaved(selected)" :blank="blank" @vote="vote(selected, $event)" @user="byUser" @open="open" @load="loadInto" @save="keep" @rename="rename" @remove="remove" @close="clear" />
+      <preset-detail v-else-if="selected" key="mine" local :preset="selected" :stats="stats[selected.shared]" :blank="blank" @user="byUser" @open="open" @load="loadInto" @view="view" @rename="rename" @remove="remove" @close="clear" />
     </div>
   `
 }
@@ -145,7 +286,8 @@ function leave() {
 
 export function registerPresets() {
   styles = Blockbench.addCSS(STYLES)
-  stopNotices = watch(notice, text => text && Blockbench.showQuickMessage(text, 3000))
+  registerAsking()
+  registerSaving()
   mode = new Mode(ID, {
     name: "Presets",
     icon: "auto_awesome_mosaic",
@@ -173,6 +315,7 @@ export function unregisterPresets() {
   screen.remove()
   mode = null
   opened.value = false
-  stopNotices()
+  unregisterSaving()
+  unregisterAsking()
   styles.delete()
 }

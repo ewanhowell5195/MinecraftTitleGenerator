@@ -2,6 +2,7 @@ import { platform } from "#lib/core/platform.js"
 import { pictureUrl, previewAlt } from "#lib/core/pictures.js"
 import { providerLabel } from "#lib/core/providers.js"
 import { presetPath } from "#lib/presets/presetPath.js"
+import { NAME_LIMIT } from "#lib/presets/savedPresets.js"
 import { ratingText, sharedText, toGoText, upvotedText, usesText, votesText } from "#lib/presets/presetText.js"
 
 const PresetPicture = {
@@ -83,10 +84,42 @@ export const PresetTile = {
   `
 }
 
+export const SavedTile = {
+  components: { PresetPicture },
+  props: { preset: Object, selected: Boolean, stats: Object },
+  methods: { ratingText },
+  template: `
+    <div class="mtg-preset" :class="{ selected }" @click="$emit('pick')">
+      <preset-picture :preset="preset" />
+      <div class="mtg-row">
+        <strong class="mtg-fill mtg-cut">{{ preset.name }}</strong>
+        <span v-if="preset.inBrowser" class="mtg-mark" title="Your account is full, so this is only saved in Blockbench">Blockbench only</span>
+        <template v-if="stats">
+          <span class="mtg-uses" title="Uses"><i class="material-icons">download</i>{{ stats.downloads }}</span>
+          <span v-if="stats.rating !== null" class="mtg-uses"><i class="material-icons mtg-gold">star</i>{{ ratingText(stats.rating) }}</span>
+        </template>
+      </div>
+    </div>
+  `
+}
+
 export const PresetDetail = {
   components: { PresetAuthor, PresetPicture, VoteButtons },
-  props: { preset: Object, searched: Boolean, mine: Boolean, blank: Boolean },
-  data: () => ({ stars: [1, 2, 3, 4, 5] }),
+  props: { preset: Object, local: Boolean, stats: Object, searched: Boolean, mine: Boolean, owned: Boolean, saved: Boolean, blank: Boolean },
+  data: () => ({ stars: [1, 2, 3, 4, 5], renaming: false, limit: NAME_LIMIT }),
+  computed: {
+    figures() {
+      return this.local ? this.stats : this.preset
+    },
+    pictured() {
+      return this.local ? { code: this.preset.code, name: this.preset.name } : this.preset
+    }
+  },
+  watch: {
+    "preset.code"() {
+      this.renaming = false
+    }
+  },
   methods: {
     ratingText,
     sharedText,
@@ -95,7 +128,18 @@ export const PresetDetail = {
     usesText,
     votesText,
     filled(star) {
-      return { width: `${Math.min(Math.max(ratingText(this.preset.rating) - star + 1, 0), 1) * 100}%` }
+      return { width: `${Math.min(Math.max(ratingText(this.figures.rating) - star + 1, 0), 1) * 100}%` }
+    },
+    async rename() {
+      this.renaming = true
+      await this.$nextTick()
+      this.$refs.name.focus()
+      this.$refs.name.select()
+    },
+    renamed(event) {
+      if (!this.renaming) return
+      this.renaming = false
+      this.$emit("rename", event.target.value)
     },
     async copyLink() {
       try {
@@ -109,27 +153,44 @@ export const PresetDetail = {
   template: `
     <div class="mtg-detail">
       <div class="mtg-close"><div class="tool" title="Close this preset" @click="$emit('close')"><i class="material-icons">close</i></div></div>
-      <preset-picture :preset="preset" />
-      <div class="mtg-heading"><h2>{{ preset.name }}</h2><span v-if="mine" class="mtg-yours">Shared by you</span></div>
-      <vote-buttons v-if="!mine" named :vote="preset.vote" @vote="$emit('vote', $event)" />
-      <div v-if="preset.rating !== null" class="mtg-rating" :title="upvotedText(preset.rating)">
-        <span class="mtg-stars"><span v-for="star of stars" :key="star" class="mtg-star"><i class="material-icons">star</i><i class="material-icons" :style="filled(star)">star</i></span></span>
-        <strong>{{ ratingText(preset.rating) }}</strong>
-        <span class="mtg-hint">{{ votesText(preset.votes) }}</span>
+      <preset-picture :preset="pictured" />
+      <div class="mtg-heading">
+        <input v-if="renaming" ref="name" type="text" class="dark_bordered mtg-rename" :value="preset.name" :maxlength="limit" spellcheck="false" @blur="renamed" @keydown.enter="$event.target.blur()" @keydown.esc.stop="renaming = false">
+        <h2 v-else>{{ preset.name }}</h2>
+        <div v-if="(local || owned) && !renaming" class="tool" :title="'Rename ' + preset.name" @click="rename"><i class="material-icons">edit</i></div>
+        <span class="mtg-fill"></span>
+        <span v-if="local && preset.inBrowser" class="mtg-mark" title="Your account is full, so this is only saved in Blockbench">Blockbench only</span>
+        <span v-if="local && preset.shared" class="mtg-yours">Shared publicly</span>
+        <span v-else-if="mine" class="mtg-yours">Shared by you</span>
       </div>
-      <p v-else class="mtg-hint">{{ toGoText(preset.votes) }}</p>
-      <div class="mtg-facts mtg-hint">
-        <span>{{ usesText(preset) }}</span>
-        <span>Shared {{ sharedText(preset.createdAt) }}</span>
-        <span v-if="preset.author || !mine" class="mtg-by">By <preset-author :preset="preset" :searched="searched" @user="(...user) => $emit('user', ...user)" /></span>
-      </div>
+      <template v-if="figures">
+        <vote-buttons v-if="!mine && !local" named :vote="preset.vote" @vote="$emit('vote', $event)" />
+        <div v-if="figures.rating !== null" class="mtg-rating" :title="upvotedText(figures.rating)">
+          <span class="mtg-stars"><span v-for="star of stars" :key="star" class="mtg-star"><i class="material-icons">star</i><i class="material-icons" :style="filled(star)">star</i></span></span>
+          <strong>{{ ratingText(figures.rating) }}</strong>
+          <span class="mtg-hint">{{ votesText(figures.votes) }}</span>
+        </div>
+        <p v-else class="mtg-hint">{{ toGoText(figures.votes) }}</p>
+        <div class="mtg-facts mtg-hint">
+          <span>{{ usesText(figures) }}</span>
+          <span>Shared {{ sharedText(figures.createdAt) }}</span>
+          <span v-if="figures.author || !local && !mine" class="mtg-by">By <preset-author :preset="figures" :searched="searched" @user="(...user) => $emit('user', ...user)" /></span>
+        </div>
+      </template>
       <div class="mtg-actions">
         <button v-if="blank" class="mtg-button primary" @click="$emit('load')"><i class="material-icons">text_fields</i><span>Open preset</span></button>
         <template v-else>
           <button class="mtg-button primary" @click="$emit('open')"><i class="material-icons">add</i><span>Open preset as new project</span></button>
           <button class="mtg-button" @click="$emit('load')"><i class="material-icons">swap_horiz</i><span>Load preset into current project</span></button>
         </template>
-        <button class="mtg-button" @click="copyLink"><i class="material-icons">link</i><span>Copy link</span></button>
+        <template v-if="local">
+          <button v-if="preset.shared" class="mtg-button" @click="$emit('view')"><i class="material-icons">open_in_new</i><span>View in Community</span></button>
+        </template>
+        <template v-else>
+          <button v-if="!mine" class="mtg-button" :disabled="saved" @click="$emit('save')"><i class="material-icons">bookmark</i><span>{{ saved ? "In My presets" : "Save to My presets" }}</span></button>
+          <button class="mtg-button" @click="copyLink"><i class="material-icons">link</i><span>Copy link</span></button>
+        </template>
+        <button v-if="local || owned" class="mtg-button mtg-danger" @click="$emit('remove')"><i class="material-icons">delete</i><span>Delete</span></button>
       </div>
     </div>
   `

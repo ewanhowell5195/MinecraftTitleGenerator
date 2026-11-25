@@ -2,7 +2,7 @@ import * as THREE from "three"
 import { fileNameOf } from "#lib/core/files.js"
 import { round } from "#lib/core/maths.js"
 import { openableTitle } from "#lib/link/linkformat.js"
-import { titleValues } from "#lib/link/titleLines.js"
+import { joinWords, titleValues } from "#lib/link/titleLines.js"
 import { setCamera } from "#lib/settings/camera.js"
 import { isDefaultTitle } from "#lib/title/defaultTitle.js"
 import { EXTENSION, fileData, presetSource, readTitle, trimUnused } from "#lib/title/titleData.js"
@@ -11,7 +11,7 @@ import { FORMAT } from "./format.js"
 import { openTitleMode } from "./mode.js"
 import { lineTransform, nativeLine, nativePosition, nativeTurn, nativeWordRotation } from "./placing.js"
 import { countedInFile, restoreCounted } from "./stats.js"
-import { lineOf, memberOf, settleTitle, titleState } from "./titles.js"
+import { lineOf, memberOf, runtimeOf, settleTitle, titleState } from "./titles.js"
 import { KEPT, WHOLE, finishEdit, quietly } from "./undo.js"
 import { familyOf, homeElement } from "./words.js"
 
@@ -93,18 +93,41 @@ function keptLine(home) {
   return { ...keptOf(home), ...(words.some(word => Object.keys(word).length) && { words }) }
 }
 
-function compile() {
+export function titleFileData() {
   const { title } = titleState()
   const homes = titles()
   const values = new Map(homes.flatMap(home => {
     const place = placed(home)
     return wordsIn(home).map(settings => [settings, rounded({ ...settings, ...place })])
   }))
-  const lines = homes.map(keptLine)
+  return fileData(homes.map(wordsIn), title.camera, settings => trimUnused(values.get(settings), title))
+}
+
+function shownTexts(home) {
+  return (home.words.length ? home.words : [home]).filter(({ settings }) => !settings.hidden && settings.shape === null)
+}
+
+export function hasTitles() {
+  return titles().length > 0
+}
+
+export function titleText() {
+  return titles().map(home => {
+    const words = shownTexts(home)
+    return joinWords(words.map(({ settings }) => settings), settings => settings.text.trim())
+  }).filter(Boolean).join(" ")
+}
+
+export function isCased() {
+  return titles().some(home => shownTexts(home).some(element => runtimeOf(element).font?.multicase))
+}
+
+function compile() {
+  const lines = titles().map(keptLine)
   const counted = countedInFile()
   const own = { ...(lines.some(line => Object.keys(line).length) && { lines }), ...(counted.length && { counted }) }
   const { preset } = Project[KEPT]
-  const data = { ...fileData(homes.map(wordsIn), title.camera, settings => trimUnused(values.get(settings), title)), ...(preset && { preset }), ...(Object.keys(own).length && { blockbench: own }) }
+  const data = { ...titleFileData(), ...(preset && { preset }), ...(Object.keys(own).length && { blockbench: own }) }
   return JSON.stringify(data, null, 2)
 }
 
@@ -169,7 +192,7 @@ function parse({ own, ...data }) {
 
 function readPreset({ code, id, name }) {
   const title = openableTitle(code)
-  return { values: titleValues(title), camera: title.camera, preset: { id, name } }
+  return { values: titleValues(title), camera: title.camera, preset: id === undefined ? null : { id, name } }
 }
 
 function nameAfter({ name }) {

@@ -299,6 +299,25 @@ export const STYLES = `
     box-shadow: inset 0 0 0 1px var(--color-error);
   }
 
+  .mtg-button.mtg-danger:hover {
+    color: #ffffff;
+    background: var(--color-error);
+  }
+
+  .mtg-warning {
+    margin: 0;
+    padding: 8px 10px;
+    border: 1px solid var(--color-warning);
+  }
+
+  .mtg-agree {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+  }
+
   .mtg-button.big {
     height: 44px;
     font-size: 1.1em;

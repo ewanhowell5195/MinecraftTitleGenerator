@@ -1,5 +1,6 @@
 import * as THREE from "three"
 import { useApi } from "#lib/core/api.js"
+import { usePlace } from "#lib/core/place.js"
 import { usePlatform } from "#lib/core/platform.js"
 import { keyHeaders } from "./account/key.js"
 
@@ -31,6 +32,7 @@ function createWebGLRenderer() {
 
 export function useBlockbench() {
   useApi(SITE, keyHeaders)
+  usePlace("Blockbench")
   usePlatform({
     createWebGLRenderer,
     asset: path => ABSOLUTE.test(path) ? path : `${SITE}/${path.replace(/^\//, "")}`,
