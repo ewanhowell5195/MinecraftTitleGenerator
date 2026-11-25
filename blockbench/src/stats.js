@@ -1,9 +1,9 @@
 import { loadCounts } from "#lib/title/popularity.js"
+import { STATS_API, postStats } from "#lib/title/postStats.js"
 import { minecraftStatId, titleStats } from "#lib/title/statIds.js"
 import { isTitle } from "./elements.js"
 import { FORMAT } from "./format.js"
 
-const API = "https://api.wynem.com"
 const HEADERS = { source: "blockbench" }
 const COUNTED = "minecraft_title_counted"
 
@@ -38,8 +38,7 @@ export async function sendStats(project, objects = settingsIn(project)) {
   if (!keys.length) return
   project[COUNTED] = countedIn(project).concat(keys)
   try {
-    const response = await fetch(`${API}/minecrafttitlegenerator/stats`, { method: "POST", headers: { ...HEADERS, "Content-Type": "application/json" }, body: JSON.stringify(stats) })
-    if (!response.ok) throw new Error(`failed to submit the title stats: ${response.status}`)
+    await postStats(stats, HEADERS)
   } catch (err) {
     project[COUNTED] = countedIn(project).filter(key => !keys.includes(key))
     console.error(err)
@@ -64,7 +63,7 @@ export function keepCounted({ model }) {
 
 export function registerStats() {
   property = new Property(ModelProject, "array", COUNTED, { condition: { formats: [FORMAT] } })
-  loadCounts(`${API}/blockbench/minecrafttitlegenerator/stats`, { headers: HEADERS }).catch(err => console.error(err))
+  loadCounts(`${STATS_API}/blockbench/minecrafttitlegenerator/stats`, { headers: HEADERS }).catch(err => console.error(err))
 }
 
 export function unregisterStats() {

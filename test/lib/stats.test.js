@@ -16,6 +16,7 @@ globalThis.fetch = stubFetch
 const { statScope } = await import("#lib/title/statIds.js")
 const { loadStats } = await import("#lib/state/stats.js")
 const { byUsage, popular } = await import("#lib/title/popularity.js")
+const { postStats } = await import("#lib/title/postStats.js")
 
 function statsOf(entries) {
   return { ok: true, status: 200, json: async () => entries }
@@ -106,5 +107,20 @@ describe("statScope", () => {
   test("keeps the font's own id for published fonts and uploads", () => {
     assert.equal(statScope({ font: "minecraft-ten", customFont: null }, "minecraft-ten"), "minecraft-ten")
     assert.equal(statScope({ font: "custom-abc", customFont: { kind: "outline", data: "data:font/ttf;base64," } }, "custom-abc"), "custom-abc")
+  })
+})
+
+describe("posting stats", () => {
+  test("sends them as JSON with any extra headers", async () => {
+    response = { ok: true, status: 200 }
+    await postStats({ ids: ["a"] }, { source: "blockbench" })
+    const { url, options } = requests.at(-1)
+    assert.equal(url, "https://api.wynem.com/minecrafttitlegenerator/stats")
+    assert.deepEqual(options, { method: "POST", headers: { source: "blockbench", "Content-Type": "application/json" }, body: JSON.stringify({ ids: ["a"] }) })
+  })
+
+  test("fails when they are refused", async () => {
+    response = { ok: false, status: 503 }
+    await assert.rejects(postStats({ ids: ["a"] }), /503/)
   })
 })
