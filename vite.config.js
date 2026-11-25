@@ -7,7 +7,7 @@ import { creditPeople, creditsHtml } from "./src/site/credits/build.js"
 import { stripNames } from "./src/site/home/stripNames.js"
 import { escaped } from "./src/lib/core/html.js"
 import { dataScript, shareTags, withoutShareTags } from "./src/lib/core/head.js"
-import { linkedCode, linkedTitleDetails, presetDetails } from "./src/server/presetPages.js"
+import { linkedCode, linkedPreset, linkedPresetDetails, linkedTitleDetails, presetDetails } from "./src/server/presetPages.js"
 import { pageAt, pageFiles, shellHtml } from "./src/site/shell.js"
 import { prerender } from "./src/prerender/build.js"
 import { googleFonts } from "./src/server/googleFonts.js"
@@ -28,16 +28,22 @@ const PRESET_PAGE = /^\/app\/presets(?:\/(\d+))?\/?$/
 const APP_PAGE = /^\/app\/(index\.html)?$/
 const LOCAL_API = { "/api/google-fonts": googleFonts }
 
+async function livePreset(id) {
+  const response = await fetch(`${LIVE}/api/presets/${id}`)
+  if (response.status === 404) return null
+  if (!response.ok) throw new Error(`preset ${id} could not be read from ${LIVE}: ${response.status}`)
+  return (await response.json()).preset
+}
+
 async function pageDetails(url) {
-  const preset = url.pathname.match(PRESET_PAGE)
-  if (!preset && !APP_PAGE.test(url.pathname)) return null
-  const code = preset?.[1] ? null : linkedCode(url)
-  if (code) return linkedTitleDetails(url, code, preset ? "/app/presets" : "/app/")
-  if (!preset) return null
-  const id = preset[1] ? Number(preset[1]) : null
-  const response = id ? await fetch(`${LIVE}/api/presets/${id}`) : null
-  if (response && !response.ok && response.status !== 404) throw new Error(`preset ${id} could not be read from ${LIVE}: ${response.status}`)
-  return presetDetails(url.origin, response?.ok ? (await response.json()).preset : null, id)
+  const page = url.pathname.match(PRESET_PAGE)
+  if (!page && !APP_PAGE.test(url.pathname)) return null
+  const code = page?.[1] ? null : linkedCode(url)
+  if (code) return linkedTitleDetails(url, code, page ? "/app/presets" : "/app/")
+  const id = page ? Number(page[1] ?? 0) : linkedPreset(url)
+  const preset = id ? await livePreset(id) : null
+  if (page) return presetDetails(url.origin, preset, id || null)
+  return preset && linkedPresetDetails(url, preset)
 }
 
 function withDetails(html, details) {
