@@ -267,6 +267,10 @@ export const STYLES = `
     user-select: none;
   }
 
+  .mtg-button > i {
+    margin: 0;
+  }
+
   .mtg-button:hover {
     background: var(--color-accent);
     color: var(--color-accent_text);
@@ -283,9 +287,9 @@ export const STYLES = `
 
   .mtg-button.voted,
   .mtg-button.voted:hover {
-    color: var(--color-accent);
-    background: color-mix(in srgb, var(--color-accent) 14%, transparent);
-    box-shadow: inset 0 0 0 1px var(--color-accent);
+    color: var(--color-confirm);
+    background: color-mix(in srgb, var(--color-confirm) 14%, transparent);
+    box-shadow: inset 0 0 0 1px var(--color-confirm);
   }
 
   .mtg-button.voted.negative,

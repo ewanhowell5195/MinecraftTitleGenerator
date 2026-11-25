@@ -48,8 +48,9 @@ export const STYLES = `
     padding: 0 16px 0 20px;
   }
 
-  .mtg-presets.raised .mtg-list {
-    padding-top: 12px;
+  .mtg-presets.raised .mtg-list,
+  .mtg-presets.raised .mtg-detail {
+    padding-top: 0;
   }
 
   .mtg-presets.raised .mtg-tools .mtg-button,
@@ -188,7 +189,7 @@ export const STYLES = `
   }
 
   .mtg-preset:hover {
-    background: var(--color-button);
+    background: color-mix(in srgb, var(--color-back), var(--color-button) 30%);
   }
 
   .mtg-preset.selected {
