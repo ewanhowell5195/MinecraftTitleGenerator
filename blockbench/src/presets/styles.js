@@ -587,14 +587,17 @@ export const STYLES = `
   }
 
   .mtg-actions {
-    display: flex;
-    flex-wrap: wrap;
+    --least: 260px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--least)), 1fr));
     gap: 8px;
   }
 
+  .mtg-actions:has(> :nth-child(4)) {
+    --least: max(260px, 34%);
+  }
+
   .mtg-actions > .mtg-button {
-    flex: 1 1 260px;
-    width: auto;
     white-space: nowrap;
   }
 
