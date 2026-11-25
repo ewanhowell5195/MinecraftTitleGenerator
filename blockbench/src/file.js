@@ -7,6 +7,7 @@ import { setCamera } from "#lib/settings/camera.js"
 import { isDefaultTitle } from "#lib/title/defaultTitle.js"
 import { EXTENSION, fileData, presetSource, readTitle, trimUnused } from "#lib/title/titleData.js"
 import { isTitle, types } from "./elements.js"
+import { addToFileMenu, removeFromFileMenu } from "./fileMenu.js"
 import { FORMAT } from "./format.js"
 import { openTitleMode } from "./mode.js"
 import { lineTransform, nativeLine, nativePosition, nativeTurn, nativeWordRotation } from "./placing.js"
@@ -333,7 +334,7 @@ export function registerFile() {
   Object.defineProperty(Formats[FORMAT], "codec", { configurable: true, enumerable: true, get: () => onlyTitles() ? codec : Codecs.project })
   action = new Action("export_minecraft_title", { name: "Export Minecraft Title", icon: "text_fields", category: "file", condition: () => Format?.id === FORMAT && Outliner.elements.some(isTitle), click: exportTitle })
   codec.export_action = action
-  MenuBar.menus.file.addAction(action, "export.0")
+  addToFileMenu(action)
   insteadOf("export_over", saveAll)
   insteadOf("save_project", whenOnlyTitles(save))
   insteadOf("save_project_as", whenOnlyTitles(() => codec.export()))
@@ -347,7 +348,7 @@ export function unregisterFile() {
   Codecs.project.removeListener("parsed", useCamera)
   BarItems.save_project_incremental.condition = incremental
   for (const hook of hooks.splice(0)) hook.delete()
-  action.delete()
+  removeFromFileMenu(action)
   codec.delete()
   property.delete()
 }

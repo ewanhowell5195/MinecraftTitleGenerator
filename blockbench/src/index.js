@@ -3,6 +3,7 @@ import { addText, registerActions, unregisterActions } from "./actions.js"
 import { chooseClicked } from "./clicks.js"
 import { isTitle, registerElements, unregisterElements } from "./elements.js"
 import { registerFile, unregisterFile } from "./file.js"
+import { registerFileMenu, unregisterFileMenu } from "./fileMenu.js"
 import { registerFormat, unregisterFormat } from "./format.js"
 import { followSelection, registerHost, selected } from "./host.js"
 import { openLibrary } from "./library.js"
@@ -61,6 +62,7 @@ Plugin.register("minecraft_title_generator", {
         addText("Minecraft")
       }
     })
+    registerFileMenu()
     registerFile()
     registerMode()
     registerAccount()
@@ -117,6 +119,7 @@ Plugin.register("minecraft_title_generator", {
     unregisterAccount()
     unregisterMode()
     unregisterFile()
+    unregisterFileMenu()
     closeTitles()
     unregisterActions()
     unregisterFormat()
