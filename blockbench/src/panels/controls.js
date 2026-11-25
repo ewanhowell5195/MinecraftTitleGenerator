@@ -4,6 +4,7 @@ import { groupState, usePanelState } from "#lib/panels/panel.js"
 import { usePickFloor } from "#lib/panels/pickFloor.js"
 import { selectedElements } from "../host.js"
 import { CAMERA, beginEdit, edit, finishEdit } from "../undo.js"
+import { openFontBrowser } from "./fontBrowser.js"
 import { GradientControl } from "./gradient.js"
 import { INPUTS, iconOf } from "./inputs.js"
 import { DownloadProgress, VersionControl } from "./minecraft.js"
@@ -110,6 +111,10 @@ export const TitleControls = {
         Blockbench.showQuickMessage(err.message, 3000)
       }
     },
+    browse(control) {
+      const { browsed, search, shownFont, tab } = this.state.context.state
+      openFontBrowser({ kind: tab.value, current: shownFont.value, search, pick: font => this.act(control, () => browsed(font)) })
+    },
     search(value) {
       this.state.context.state.search.value = value
     }
@@ -143,6 +148,11 @@ export const TitleControls = {
           <button v-else-if="control.type === 'button'" :key="index" class="mtg-button" :class="{ primary: control.primary, big: control.big }" :title="control.tooltip || control.hint" :disabled="state.resolved(control.disabled)" @click="run(control)"><template v-if="control.icon"><i class="material-icons">{{ icon(control.icon) }}</i><span>{{ control.label }}</span></template><template v-else>{{ control.label }}</template></button>
           <number-control v-else-if="control.type === 'number'" :key="control.id" :label="control.label" :value="state.valueOf(control)" :min="control.min" :disabled="state.resolved(control.disabled)" @change="pick(control, $event)" />
           <pair-control v-else-if="control.type === 'pair'" :key="index" :control="control" />
+          <div v-else-if="control.type === 'search' && control.browse" :key="index" class="mtg-row">
+            <search-bar v-if="!state.resolved(control.hidden)" class="mtg-fill" :value="state.context.state.search.value" @input="search($event)" />
+            <div v-else class="mtg-fill"></div>
+            <div class="tool" :title="control.browse.title" @click="browse(control)"><i class="material-icons">view_list</i></div>
+          </div>
           <search-bar v-else-if="control.type === 'search' && !state.resolved(control.hidden)" :key="index" :value="state.context.state.search.value" @input="search($event)" />
           <title-tiles v-else-if="control.type === 'tiles'" :key="index" :control="control" :state="state" @pick="tile => act(control, () => tile.pick(state.context))" />
           <layer-rows v-else-if="control.type === 'layerRows'" :key="index" :control="control" :state="state" @act="action => act(control, action)" @move="(from, to) => slide(control, () => control.move(from, to, state.context))" @done="done(control)" />

@@ -1,32 +1,10 @@
-<script>
-  const sampleText = ref("")
-  const sorting = reactive({ google: "usage", published: "usage" })
-  const filters = reactive({ categories: [], variable: false })
-</script>
-
 <script setup>
-  import { computed, nextTick, onBeforeUnmount, reactive, ref, shallowRef, watch } from "vue"
-  import { fontCredit } from "#lib/font/credits.js"
-  import { fullName } from "#lib/font/catalog.js"
-  import { fontSample } from "#lib/font/fontSamples.js"
-  import { googleFontList, googlePreview, googlePreviewFamily } from "#lib/font/googleFonts.js"
-  import { library } from "#lib/state/scene.js"
-  import { byUsage, popular } from "#lib/title/popularity.js"
-  import { googleStatId } from "#lib/title/statIds.js"
-  import { fontThumbnail } from "#lib/font/thumbnailUrls.js"
-  import { openedFirst } from "#lib/panels/opened.js"
+  import { DEFAULT_SAMPLE, fontBrowserTitle, useFontBrowser } from "#lib/panels/fontBrowser.js"
   import Button from "#c/Button.vue"
   import Checkbox from "#c/Checkbox.vue"
   import Dialog from "#c/Dialog.vue"
   import Dropdown from "#c/Dropdown.vue"
   import Notice from "#c/Notice.vue"
-
-  const DEFAULT_SAMPLE = "Minecraft"
-  const PAGE = 40
-  const SORTS = {
-    google: [{ value: "usage", label: "Popular here" }, { value: "google", label: "Popular on Google" }, { value: "trending", label: "Trending" }, { value: "newest", label: "Newest" }, { value: "name", label: "Name" }, { value: "random", label: "Random" }],
-    published: [{ value: "usage", label: "Popular" }, { value: "name", label: "Name" }, { value: "random", label: "Random" }]
-  }
 
   const props = defineProps({
     kind: { type: String, required: true },
@@ -35,162 +13,50 @@
 
   const emit = defineEmits(["pick", "close"])
   const search = defineModel("search", { type: String, default: "" })
-
-  const google = props.kind === "google"
-  const opened = props.current
-  const typed = ref(sampleText.value)
-  const text = computed(() => sampleText.value.trim() || DEFAULT_SAMPLE)
-  const googleFonts = ref([])
-  const error = ref("")
-  const limit = ref(PAGE)
-  const list = ref(null)
-  const more = ref(null)
-  const samples = reactive({})
-  const randomOrder = shallowRef(new Map())
-  const visible = new Set()
-  let typing = null
-
-  const entries = computed(() => {
-    if (google) return googleFonts.value.map(font => ({ id: font.family, label: font.family, author: font.designers.join(", "), font, stat: googleStatId(font.family), words: [font.family, font.category].concat(font.designers) }))
-    return library.fonts.map(font => ({ id: font.id, label: fullName(font, library.fonts), author: fontCredit(font, library.fonts), font, stat: font.id, words: [font.id, fullName(font, library.fonts)] }))
-  })
-  const categories = computed(() => Array.from(new Set(googleFonts.value.map(font => font.category))).sort())
-  const filtered = computed(() => google && (filters.categories.length > 0 || filters.variable))
-  const found = computed(() => {
-    const term = search.value.trim().toLowerCase()
-    return entries.value.filter(entry => (!term || entry.words.some(word => word.toLowerCase().includes(term))) && (!google || (!filters.categories.length || filters.categories.includes(entry.font.category)) && (!filters.variable || entry.font.weights)))
-  })
-  const sorted = computed(() => {
-    const sort = sorting[props.kind]
-    const items = found.value
-    if (sort === "random") return items.slice().sort((a, b) => randomOrder.value.get(a.id) - randomOrder.value.get(b.id))
-    if (sort === "name") return items.slice().sort((a, b) => a.label.localeCompare(b.label))
-    if (sort === "google") return items.slice().sort((a, b) => a.font.popularity - b.font.popularity)
-    if (sort === "trending") return items.slice().sort((a, b) => a.font.trending - b.font.trending)
-    if (sort === "newest") return items.slice().sort((a, b) => b.font.added.localeCompare(a.font.added))
-    return google ? byUsage(items, entry => entry.stat) : popular(items, entry => entry.stat, entry => entry.label)
-  })
-  const ordered = computed(() => openedFirst(sorted.value, entry => entry.id === opened))
-  const shown = computed(() => ordered.value.slice(0, limit.value))
-  const byId = computed(() => new Map(entries.value.map(entry => [entry.id, entry])))
-
-  function sampleKey(id) {
-    return `${id}\n${text.value}`
-  }
-
-  function requestSample(entry) {
-    const key = sampleKey(entry.id)
-    if (key in samples) return
-    samples[key] = undefined
-    if (google) googlePreview(entry.font, text.value).then(() => (samples[key] = true), () => (samples[key] = false))
-    else fontSample(entry.font, library.fonts, text.value).then(url => (samples[key] = url), () => (samples[key] = false))
-  }
-
-  function toggleCategory(category, on) {
-    filters.categories = on ? filters.categories.concat(category) : filters.categories.filter(item => item !== category)
-  }
-
-  function clearFilters() {
-    filters.categories = []
-    filters.variable = false
-  }
+  const { categories, chosenCategories, clearFilters, count, error, filtered, google, hasMore, list, loading, more, observe, previewFamily, sampleOf, shown, sort, sorts, text, thumbnail, toggleCategory, typed, variable } = useFontBrowser({ kind: props.kind, current: props.current, search })
 
   function pick(entry) {
     emit("pick", entry.font)
     emit("close")
   }
-
-  const rows = new IntersectionObserver(observed => {
-    for (const item of observed) {
-      const id = item.target.dataset.id
-      if (item.isIntersecting) {
-        visible.add(id)
-        requestSample(byId.value.get(id))
-      } else {
-        visible.delete(id)
-      }
-    }
-  }, { rootMargin: "200px 0px" })
-
-  const paging = new IntersectionObserver(observed => {
-    if (observed.some(item => item.isIntersecting)) limit.value += PAGE
-  }, { rootMargin: "400px 0px" })
-
-  function observe(element) {
-    if (element) rows.observe(element)
-  }
-
-  watch(typed, value => {
-    clearTimeout(typing)
-    typing = setTimeout(() => (sampleText.value = value), 250)
-  })
-
-  watch(text, () => {
-    for (const id of visible) requestSample(byId.value.get(id))
-  })
-
-  watch(() => [sorting[props.kind], entries.value], ([sort]) => {
-    if (sort === "random") randomOrder.value = new Map(entries.value.map(entry => [entry.id, Math.random()]))
-  }, { immediate: true })
-
-  watch(() => [search.value, sorting[props.kind], filters.categories, filters.variable], async () => {
-    limit.value = PAGE
-    await nextTick()
-    if (list.value) list.value.scrollTop = 0
-  })
-
-  watch(more, (element, before) => {
-    if (before) paging.unobserve(before)
-    if (element) paging.observe(element)
-  })
-
-  if (google) {
-    googleFontList().then(fonts => (googleFonts.value = fonts), err => (error.value = `Couldn't load Google Fonts: ${err.message}`))
-  }
-
-  onBeforeUnmount(() => {
-    clearTimeout(typing)
-    rows.disconnect()
-    paging.disconnect()
-  })
 </script>
 
 <template>
-  <Dialog :title="google ? 'Google Fonts' : 'All fonts'" close-title="Close" large tall dismissable @close="emit('close')">
+  <Dialog :title="fontBrowserTitle(kind)" close-title="Close" large tall dismissable @close="emit('close')">
     <div class="browser">
       <div class="bar">
         <input type="text" v-model="search" :placeholder="google ? 'Search Google Fonts' : 'Search fonts'" aria-label="Search fonts" spellcheck="false">
         <input type="text" v-model="typed" :placeholder="`Preview text: ${DEFAULT_SAMPLE}`" aria-label="Preview text" spellcheck="false">
-        <Dropdown class="sort" :options="SORTS[kind]" v-model="sorting[kind]" />
+        <Dropdown class="sort" :options="sorts" v-model="sort" />
       </div>
       <div class="body">
         <aside v-if="google" class="filters">
           <div class="group">
             <span class="label">Category</span>
-            <Checkbox v-for="category of categories" :key="category" :label="category" :model-value="filters.categories.includes(category)" @update:model-value="toggleCategory(category, $event)" />
+            <Checkbox v-for="category of categories" :key="category" :label="category" :model-value="chosenCategories.includes(category)" @update:model-value="toggleCategory(category, $event)" />
           </div>
           <div class="group">
             <span class="label">Technology</span>
-            <Checkbox label="Variable" v-model="filters.variable" />
+            <Checkbox label="Variable" v-model="variable" />
           </div>
           <Button v-if="filtered" wide @click="clearFilters">Clear filters</Button>
         </aside>
         <div ref="list" class="list scroll">
           <Notice v-if="error">{{ error }}</Notice>
-          <p v-else-if="google && !googleFonts.length" class="hint">Loading fonts...</p>
+          <p v-else-if="loading" class="hint">Loading fonts...</p>
           <template v-else>
-            <p class="hint count">{{ found.length === 1 ? "1 font" : `${found.length.toLocaleString()} fonts` }}</p>
+            <p class="hint count">{{ count }}</p>
             <button v-for="entry of shown" :key="entry.id" :ref="observe" type="button" class="font" :class="{ selected: entry.id === current }" :data-id="entry.id" @click="pick(entry)">
               <span class="meta">
                 <span class="name">{{ entry.label }}</span>
                 <span v-if="entry.author" class="hint ellipsis">{{ entry.author }}</span>
-                <span v-if="google" class="hint tags">{{ entry.font.weights ? "Variable" : entry.font.styles.length === 1 ? "1 style" : `${entry.font.styles.length} styles` }}</span>
+                <span v-if="google" class="hint tags">{{ entry.styles }}</span>
               </span>
-              <span v-if="google" class="sample text" :class="{ shown: samples[sampleKey(entry.id)] }" :style="{ fontFamily: googlePreviewFamily(entry.id, text) }">{{ text }}</span>
-              <span v-else-if="samples[sampleKey(entry.id)] === null" class="sample hint">This font has none of these characters</span>
-              <span v-else class="sample picture"><img :src="samples[sampleKey(entry.id)] || fontThumbnail(entry.font)" alt=""></span>
+              <span v-if="google" class="sample text" :class="{ shown: sampleOf(entry) }" :style="{ fontFamily: previewFamily(entry) }">{{ text }}</span>
+              <span v-else-if="sampleOf(entry) === null" class="sample hint">This font has none of these characters</span>
+              <span v-else class="sample picture"><img :src="sampleOf(entry) || thumbnail(entry)" alt=""></span>
             </button>
-            <div v-if="shown.length < ordered.length" ref="more" class="more"></div>
+            <div v-if="hasMore" ref="more" class="more"></div>
           </template>
         </div>
       </div>

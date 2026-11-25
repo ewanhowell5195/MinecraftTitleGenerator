@@ -12,6 +12,7 @@ import { deleteTitlePanel, titlePanel } from "../mode.js"
 import { inRenderMode, rendered } from "../render/mode.js"
 import { homeElement } from "../words.js"
 import { TitleGroup } from "./controls.js"
+import { closeFontBrowser } from "./fontBrowser.js"
 import { STYLES } from "./styles.js"
 import { FontNote, TitleWords } from "./words.js"
 
@@ -159,6 +160,7 @@ export function registerPanels() {
 }
 
 export function unregisterPanels() {
+  closeFontBrowser()
   for (const panel of panels.splice(0)) deleteTitlePanel(panel)
   styles?.delete()
 }

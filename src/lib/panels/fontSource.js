@@ -33,6 +33,7 @@ function useFontSource() {
   const customNote = ref(null)
   const loading = ref(false)
   const usingCustom = computed(() => isCustomFont(object.value.font) && !!object.value.customFont)
+  const shownFont = computed(() => tab.value !== "google" ? object.value.font : usingCustom.value ? object.value.customFont.google : null)
   const uploaded = computed(() => !!object.value.customFont && !object.value.customFont.google)
   const imported = computed(() => uploaded.value && object.value.customFont.kind !== "json")
   const squares = computed(() => object.value.customFont?.kind === "outline" && !object.value.customFont.mesh)
@@ -185,7 +186,7 @@ function useFontSource() {
     return badges
   })
 
-  return { applyCustom, baseFonts, baseId, browsed, browsing, changeImport, chooseTab, clearCustom, customError, customImage, customName, customNote, customUnit, entry, font, foundFonts, googleLoading, imported, loading, modified, object, opened, pickGoogle, reset, reusable, search, searchable, searching, squares, tab, upload, uploaded, usingCustom, variantBadges, variants }
+  return { applyCustom, baseFonts, baseId, browsed, browsing, changeImport, chooseTab, clearCustom, customError, customImage, customName, customNote, customUnit, entry, font, foundFonts, googleLoading, imported, loading, modified, object, opened, pickGoogle, reset, reusable, search, searchable, searching, shownFont, squares, tab, upload, uploaded, usingCustom, variantBadges, variants }
 }
 
 const FILES = ".json,.png,.ttf,.otf,.woff,.woff2,application/json,image/png,font/ttf,font/otf,font/woff,font/woff2"
