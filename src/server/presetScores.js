@@ -13,7 +13,7 @@ export const presetStats = guarded(async ({ request, env }) => {
   return reply(200, { stats: Object.fromEntries(results.map(row => [row.id, rated(row)])) })
 })
 
-export const votePreset = guarded(async context => {
+export const votePreset = fromBlockbench(async context => {
   const { request, env, params } = context
   const id = idParam(params, MISSING)
   const { value } = await jsonBody(request)

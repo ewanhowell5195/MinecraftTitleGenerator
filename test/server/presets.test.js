@@ -631,13 +631,16 @@ describe("requests from other websites", () => {
     }
   })
 
-  test("Blockbench's website can count a download but not vote", async () => {
+  test("Blockbench's website can count a download and vote, but not share", async () => {
     const { id } = await share("a")
     const counted = await countDownload(from("https://web.blockbench.net", `/api/presets/${id}/download`, { method: "POST", params: { id: String(id) } }))
     assert.equal(counted.status, 200)
     assert.equal(counted.headers.get("Access-Control-Allow-Origin"), "*")
-    assert.equal((await voteFrom("https://web.blockbench.net", id)).status, 403)
-    assert.deepEqual(rowCounts(), { presets: 1, preset_votes: 0, preset_downloads: 1, preset_submissions: 1 })
+    const voted = await voteFrom("https://web.blockbench.net", id)
+    assert.equal(voted.status, 200)
+    assert.equal(voted.headers.get("Access-Control-Allow-Origin"), "*")
+    assert.equal((await submitPreset(from("https://web.blockbench.net", "/api/presets", { method: "POST", body: { code: code([{ text: "b" }]) } }))).status, 403)
+    assert.deepEqual(rowCounts(), { presets: 1, preset_votes: 1, preset_downloads: 1, preset_submissions: 1 })
   })
 
   function rowCounts() {

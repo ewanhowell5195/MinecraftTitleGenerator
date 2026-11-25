@@ -9,6 +9,7 @@ const { connect, disconnect, listConnections } = await import("#server/connectin
 const { MOST_CONNECTIONS } = await import("#server/connections.js")
 const { preflight } = await import("#server/http.js")
 const { submissionUsage, submitPreset } = await import("#server/presets.js")
+const { votePreset } = await import("#server/presetScores.js")
 const { addSaved, listSaved } = await import("#server/saved.js")
 
 const PATH = "/api/account/connections"
@@ -106,6 +107,18 @@ describe("connecting Blockbench", () => {
     const usage = await (await submissionUsage(withKey("/api/presets/usage"))).json()
     assert.deepEqual(usage.owned, [shared.preset.id])
     assert.equal(usage.used, 1)
+  })
+
+  test("a vote with a key is the account's, and can't be on its own preset", async () => {
+    const cookie = await signIn()
+    await connecting(cookie)
+    const other = await share("another")
+    const own = await shareAs(cookie, "mine")
+    const voting = id => votePreset(withKey(`/api/presets/${id}/vote`, KEY, { method: "POST", body: { value: 1 }, params: { id: String(id) } }))
+    assert.equal((await voting(other.id)).status, 200)
+    assert.equal((await voting(own.preset.id)).status, 403)
+    const usage = await (await submissionUsage(withCookie("/api/presets/usage", cookie))).json()
+    assert.deepEqual(usage.votes, { [other.id]: 1 })
   })
 
   test("signing out in Blockbench deletes its key and leaves the others", async () => {
