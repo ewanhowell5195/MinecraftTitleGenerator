@@ -20,9 +20,30 @@ function filler(glyph, width) {
   return { ...glyph, width, mask, ...(depths ? { depths } : {}), fill: true }
 }
 
+function cropped(glyph, crop, width) {
+  function cut(pixels) {
+    const out = new Uint8Array(width * glyph.height)
+    for (let row = 0; row < glyph.height; row++) out.set(pixels.subarray(row * glyph.width + crop, row * glyph.width + crop + width), row * width)
+    return out
+  }
+  return { ...glyph, width, mask: cut(glyph.mask), ...(glyph.depths && { depths: cut(glyph.depths) }), crop }
+}
+
 function sizedSpace(glyph, extra) {
-  const width = Math.max(0, Math.min(glyph.width, Math.ceil(glyph.width + extra)))
-  return { ...(width < glyph.width ? filler(glyph, width) : glyph), advance: glyph.advance + extra }
+  const width = glyph.width + extra
+  const kept = Math.min(glyph.width, Math.ceil(width))
+  if (kept <= 0) return []
+  const left = Math.ceil(kept / 2)
+  const right = kept - left
+  const pieces = [{ glyph: cropped(glyph, 0, left), x: 0 }]
+  if (extra > 0) pieces.push({ glyph: filler(glyph, Math.ceil(extra)), x: left })
+  if (right) pieces.push({ glyph: cropped(glyph, glyph.width - right, right), x: width - right })
+  return pieces
+}
+
+function piecesOf(glyph, extra) {
+  if (!glyph.width) return []
+  return extra ? sizedSpace(glyph, extra) : [{ glyph, x: 0 }]
 }
 
 function thumbnailable({ glyph }) {
@@ -85,19 +106,20 @@ export function lineLayout(font, words, options) {
       spaces++
       continue
     }
-    const glyph = char === " " && extra ? sizedSpace(font.glyphs[char], extra) : font.glyphs[char]
+    const glyph = font.glyphs[char]
     if (!glyph) continue
+    const added = char === " " ? extra : 0
+    const pieces = piecesOf(glyph, added)
     if (last && options.kerning !== false) pen -= font.kerning[last + char] ?? 0
-    if (glyph.width) {
+    if (pieces.length) {
       const x = pen + glyph.originX
       const before = placed[placed.length - 1]
       const edge = before ? before.x + before.glyph.width : x
       if (font.glyphs[" "]?.width && x > edge) placed.push({ glyph: filler(font.glyphs[" "], Math.ceil(x - edge)), x: edge, spaces: 0, word: before.word })
-      placed.push({ glyph, x, spaces, word })
-      if (char === " " && extra > 0) placed.push({ glyph: filler(glyph, Math.ceil(extra)), x: x + glyph.width, spaces: 0, word })
+      for (const piece of pieces) placed.push({ glyph: piece.glyph, x: x + piece.x, spaces, word })
       spaces = 0
     }
-    pen += glyph.advance + spacing
+    pen += glyph.advance + added + spacing
     last = char
   }
   return placed

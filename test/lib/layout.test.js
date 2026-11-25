@@ -333,7 +333,7 @@ describe("layout word spacing", () => {
   test("narrows a modelled space", () => {
     const placed = layout(modelled, "a a", { spaceWidth: 2 })
     assert.equal(placed.at(-1).x, 9)
-    assert.ok(placed.some(item => item.glyph.char === " " && item.x === 6 && item.glyph.width === 2))
+    assert.deepEqual(placed.filter(item => item.glyph.crop !== undefined).map(item => [item.x, item.glyph.width, item.glyph.crop]), [[6, 1, 0], [7, 1, 3]])
     assert.equal(modelled.glyphs[" "].width, 4)
   })
 
@@ -346,7 +346,17 @@ describe("layout word spacing", () => {
   test("extends a modelled space", () => {
     const placed = layout(modelled, "a a", { spaceWidth: 12 })
     assert.equal(placed.at(-1).x, 19)
-    assert.ok(placed.some(item => item.glyph.char === " " && item.x === 10 && item.glyph.width === 8))
+    assert.deepEqual(placed.filter(item => item.x >= 6 && item.x < 18).map(item => [item.x, item.glyph.width, item.glyph.crop ?? null, !!item.glyph.fill]), [[6, 2, 0, false], [8, 8, null, true], [16, 2, 2, false]])
+  })
+
+  test("keeps both ends of a modelled space and repeats its middle", () => {
+    const drawn = withGlyphs(fontOf("a"), { " ": glyphOf(" ", { width: 4, height: 1, advance: 4, originX: 0, mask: new Uint8Array([1, 2, 3, 4]) }) })
+    const columns = size => layout(drawn, "a ", { spaceWidth: size }).filter(item => item.x >= 6).flatMap(item => Array.from(item.glyph.mask))
+    assert.deepEqual(columns(4), [1, 2, 3, 4])
+    assert.deepEqual(columns(7), [1, 2, 3, 3, 3, 3, 4])
+    assert.deepEqual(columns(3), [1, 2, 4])
+    assert.deepEqual(columns(2), [1, 4])
+    assert.deepEqual(columns(1), [1])
   })
 
   test("extends a trailing modelled space", () => {
