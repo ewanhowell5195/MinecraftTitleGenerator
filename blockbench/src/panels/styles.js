@@ -595,6 +595,7 @@ export const STYLES = `
 
   .mtg-placement > img {
     grid-area: 1 / 1;
+    position: relative;
     width: 100%;
   }
 
