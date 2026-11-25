@@ -63,7 +63,7 @@
   const minecraftLine = computed(() => isMinecraftShape(currentWord.value?.shape))
   const tabs = computed(() => SECTION_TABS.filter(tab => shapeLine.value ? !TEXT_SECTIONS.has(tab.id) && !(minecraftLine.value && GAME_TEXTURED.has(tab.id)) : !SHAPE_SECTIONS.has(tab.id)))
 
-  watch(shapeLine, value => {
+  watch([shapeLine, () => view.section], ([value]) => {
     if (value && TEXT_SECTIONS.has(view.section)) view.section = "shape"
     else if (!value && SHAPE_SECTIONS.has(view.section)) view.section = "text"
   }, { immediate: true })

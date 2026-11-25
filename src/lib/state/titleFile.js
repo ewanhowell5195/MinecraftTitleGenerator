@@ -67,12 +67,12 @@ function showObjects(objects, camera, preset = null) {
   setCamera(scene.camera, camera)
   scene.preset = preset
   Object.assign(scene, validSelection(objects, null, null))
+  resetTabs()
   fileError.value = null
   titleLoads.value++
 }
 
 export function resetTitle() {
-  resetTabs()
   showObjects([createObject()])
 }
 
