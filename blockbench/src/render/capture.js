@@ -5,7 +5,8 @@ import { renderPasses, renderTitle } from "#render/render.js"
 import { vectorTitle } from "#render/vector/title.js"
 import { isTitle } from "../elements.js"
 import { elementOf, holdSort, sortTitle, titleState } from "../titles.js"
-import { pointsOf, titleRect, viewCamera, viewSize } from "./view.js"
+import { pointsOf } from "./shot.js"
+import { titleRect, viewCamera, viewSize } from "./view.js"
 
 export function onlyTitlesShown() {
   return !Outliner.elements.some(element => !isTitle(element) && element.visibility && element.mesh && pointsOf(element.mesh)?.count)

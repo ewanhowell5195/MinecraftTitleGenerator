@@ -9,6 +9,7 @@ import { followElementTab, openTitleMode, registerMode, unregisterMode } from ".
 import { registerPanels, unregisterPanels } from "./panels/index.js"
 import { askEula } from "./panels/minecraft.js"
 import { registerRenderMode, unregisterRenderMode } from "./render/mode.js"
+import { angleClosed, angleDrawn, angleMoved, placeLater, registerAngle, unregisterAngle } from "./render/angle.js"
 import { viewChanged, viewDrawn, viewTurned } from "./render/view.js"
 import { registerPasses, unregisterPasses } from "./passes.js"
 import { useBlockbench } from "./platform.js"
@@ -63,14 +64,18 @@ Plugin.register("minecraft_title_generator", {
     registerStats()
     registerPasses()
     registerRenderMode()
+    registerAngle()
     registerPanels()
     stopAsking = askEula()
     for (const event of ["finished_edit", "undo", "redo", "load_project", "merge_project", "select_project"]) listen(event, refresh)
     for (const event of ["update_selection", "select_project", "unselect_project"]) listen(event, followSelection)
     Codecs.project.on("parsed", refresh)
     listen("update_selection", followElementTab)
+    for (const event of ["new_project", "setup_project"]) listen(event, placeLater)
     listen("canvas_select", chooseClicked)
     listen("update_camera_position", viewTurned)
+    listen("update_camera_position", angleMoved)
+    listen("unselect_project", angleClosed)
     listen("create_undo_save", keepTitle)
     listen("load_undo_save", loadCamera)
     listen("load_project", () => setTimeout(() => Project && Outliner.elements.some(isTitle) && openTitleMode()))
@@ -86,6 +91,7 @@ Plugin.register("minecraft_title_generator", {
     scene.onAfterRender = (renderer, shown, camera, ...rest) => {
       finished?.(renderer, shown, camera, ...rest)
       viewDrawn(camera)
+      angleDrawn(camera)
     }
   },
   onunload() {
@@ -96,6 +102,7 @@ Plugin.register("minecraft_title_generator", {
     selected.value = null
     Codecs.project.removeListener("parsed", refresh)
     unregisterRenderMode()
+    unregisterAngle()
     unregisterPanels()
     unregisterMode()
     unregisterFile()

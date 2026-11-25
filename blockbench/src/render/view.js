@@ -4,15 +4,12 @@ import { clamp, round } from "#lib/core/maths.js"
 import { cameraChanges } from "#lib/settings/camera.js"
 import { frameBounds, framePixels, frameRect, framing } from "#render/framing.js"
 import { screenBounds } from "#render/render.js"
-import { frameCamera, titleFraming } from "#render/titleFraming.js"
 import { keepCamera } from "../file.js"
-import { FACING } from "../placing.js"
 import { titleState } from "../titles.js"
 import { CAMERA, beginEdit, finishEdit } from "../undo.js"
 import { createFrame } from "./frame.js"
+import { aim, headingOf, shotOf } from "./shot.js"
 
-const FACING_TURN = new THREE.Quaternion().setFromRotationMatrix(FACING)
-const FORWARD = new THREE.Vector3(0, 0, -1)
 const TURN_PAUSE = 300
 const { radToDeg: degrees } = THREE.MathUtils
 
@@ -39,57 +36,20 @@ export function viewSize() {
   return new THREE.Vector2(preview.width, preview.height)
 }
 
-export function pointsOf(mesh) {
-  return mesh.isMesh && (mesh.userData.extent ?? mesh.geometry.attributes.position) || null
-}
-
-function shownPoints() {
-  const points = []
-  Project.model_3d.traverseVisible(mesh => {
-    const position = pointsOf(mesh)
-    if (!position) return
-    const matrix = FACING.clone().multiply(mesh.matrixWorld)
-    for (let index = 0; index < position.count; index++) points.push(new THREE.Vector3().fromBufferAttribute(position, index).applyMatrix4(matrix))
-  })
-  return points
-}
-
-function shotOf() {
-  const { fixedDistance } = state.title.camera
-  const key = [state.changes, fixedDistance].join()
+function currentShot() {
+  const key = [state.changes, state.title.camera.fixedDistance].join()
   if (shot?.key === key) return shot
-  Project.model_3d.updateMatrixWorld(true)
-  const corners = shownPoints()
-  if (!corners.length) return null
-  const box = new THREE.Box3().setFromPoints(corners)
-  const { anchor = box, reach = null } = titleFraming(state.items.value, fixedDistance) ?? {}
-  return { key, anchor, corners, size: box.getSize(new THREE.Vector3()).length(), reach }
-}
-
-function headingOf() {
-  return new THREE.Spherical().setFromVector3(preview.camera.position.clone().sub(preview.controls.target))
+  const current = shotOf(state)
+  return current && { ...current, key }
 }
 
 export function fitView() {
   if (!preview?.width) return
-  shot = shotOf()
+  shot = currentShot()
   if (!shot) return
   fitting = true
-  const angle = state.title.camera
-  const framed = angle.fov ? new THREE.PerspectiveCamera() : new THREE.OrthographicCamera()
-  frameCamera(framed, { ...shot, angle, width: preview.width, height: preview.height, frame: { rect: frameRect, bounds: frameBounds, pixels: framePixels } })
-  if (preview.isOrtho === !!angle.fov || preview.angle !== null) preview.setProjectionMode(!angle.fov)
-  const { camera, controls } = preview
-  camera.position.copy(framed.position).applyMatrix4(FACING)
-  camera.quaternion.copy(FACING_TURN).multiply(framed.quaternion)
-  const distance = Math.min(framed.position.distanceTo(shot.anchor.getCenter(new THREE.Vector3())), controls.maxDistance * 0.9)
-  controls.target.copy(FORWARD).applyQuaternion(camera.quaternion).multiplyScalar(distance).add(camera.position)
-  if (angle.fov) Object.assign(camera, { fov: framed.fov, aspect: framed.aspect, near: framed.near, far: framed.far, view: { ...framed.view } })
-  else Object.assign(camera, { left: framed.left, right: framed.right, top: framed.top, bottom: framed.bottom, near: framed.near, far: framed.far, zoom: 1 })
-  camera.updateProjectionMatrix()
-  controls.update()
-  camera.updateMatrixWorld(true)
-  heading = headingOf()
+  aim(preview, shot, state.title.camera, { rect: frameRect, bounds: frameBounds, pixels: framePixels })
+  heading = headingOf(preview)
   fitted = sizeKey()
   fitting = false
 }
@@ -116,7 +76,7 @@ function release() {
 
 export function viewTurned({ preview: turned }) {
   if (!preview || turned !== preview || fitting || !heading) return
-  const { theta, phi } = headingOf()
+  const { theta, phi } = headingOf(preview)
   const { camera } = state.title
   beginEdit(CAMERA, "camera-turn")
   waitForTurn()

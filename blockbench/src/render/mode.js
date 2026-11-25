@@ -1,10 +1,13 @@
 import { ref } from "vue"
 import { FORMAT } from "../format.js"
+import { applyAngle, releaseAngle } from "./angle.js"
 import { enterView, leaveView } from "./view.js"
 
 const ID = "minecraft_title_render"
 
 export const rendered = ref(null)
+
+const angles = new Set()
 
 let mode = null
 let unselected = []
@@ -24,14 +27,17 @@ function enter() {
   hidden = guides()
   for (const guide of hidden) guide.visible = false
   rendered.value = Project.uuid
+  if (releaseAngle()) angles.add(Project.uuid)
   enterView()
 }
 
 function leave() {
+  const uuid = rendered.value
   rendered.value = null
   for (const guide of hidden) guide.visible = true
   leaveView()
-  if (!Project) return
+  if (Project?.uuid !== uuid) return
+  if (angles.delete(uuid)) applyAngle(Preview.selected)
   for (const element of unselected) {
     if (Outliner.elements.includes(element)) element.markAsSelected()
   }
