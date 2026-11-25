@@ -1,6 +1,7 @@
 import { computed, ref, watch } from "vue"
 import { apiCall, jsonOptions } from "../core/api.js"
 import { LIMITS } from "../core/limits.js"
+import { thisPlace } from "../core/place.js"
 import { showNotice } from "./notices.js"
 import { account, onSignedIn, onSignedInOrOut, refreshAccount } from "./account.js"
 import { saveStore, store } from "./communityStore.js"
@@ -244,7 +245,7 @@ async function moveTokensToAccount() {
     }
     forgetLists()
     persist()
-    if (moved) showNotice(`Moved ${moved} shared ${moved === 1 ? "preset" : "presets"} from this browser to your account.`)
+    if (moved) showNotice(`Moved ${moved} shared ${moved === 1 ? "preset" : "presets"} from ${thisPlace()} to your account.`)
   } catch (err) {
     console.error(err)
   }

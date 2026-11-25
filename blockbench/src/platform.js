@@ -32,7 +32,7 @@ function createWebGLRenderer() {
 
 export function useBlockbench() {
   useApi(SITE, keyHeaders)
-  usePlace("Blockbench")
+  usePlace("Blockbench", "from Blockbench")
   usePlatform({
     createWebGLRenderer,
     asset: path => ABSOLUTE.test(path) ? path : `${SITE}/${path.replace(/^\//, "")}`,

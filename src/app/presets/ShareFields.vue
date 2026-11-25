@@ -1,6 +1,7 @@
 <script setup>
   import { computed, onMounted, ref } from "vue"
   import { NAME_LIMIT } from "#lib/presets/savedPresets.js"
+  import { SHARE_INTRO } from "#lib/presets/sharing.js"
   import Checkbox from "#c/Checkbox.vue"
   import Field from "#c/Field.vue"
   import Notice from "#c/Notice.vue"
@@ -36,7 +37,7 @@
     <input ref="field" type="text" v-model="name" :maxlength="NAME_LIMIT" :placeholder="placeholder" spellcheck="false">
   </Field>
   <template v-if="fresh">
-    <p v-if="intro" class="hint">Share your title so other people can find it in the community presets and use it for themselves.</p>
+    <p v-if="intro" class="hint">{{ SHARE_INTRO }}</p>
     <ShareAccount />
   </template>
   <Checkbox v-if="shareable" v-model="agreed">I agree to the <a href="/terms/" target="_blank" rel="noopener">Terms of Service</a></Checkbox>

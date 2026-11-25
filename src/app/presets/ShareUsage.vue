@@ -1,21 +1,15 @@
 <script setup>
-  import { computed, onMounted } from "vue"
-  import { refreshUsage, usage } from "#lib/state/community.js"
+  import { useShareUsage } from "#lib/presets/sharing.js"
 
-  const left = computed(() => usage.value && Math.max(0, usage.value.limit - usage.value.used))
-  const full = computed(() => usage.value && !left.value)
-  const reset = computed(() => usage.value && new Date(usage.value.resetsAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }))
-
-  onMounted(refreshUsage)
+  const { counted, full, text, pips } = useShareUsage()
 </script>
 
 <template>
-  <div v-if="usage && !usage.unlimited" class="usage" :class="{ full }" role="status">
+  <div v-if="counted" class="usage" :class="{ full }" role="status">
     <span class="pips" aria-hidden="true">
-      <i v-for="pip of usage.limit" :key="pip" :class="{ left: pip <= left }"></i>
+      <i v-for="(left, index) of pips" :key="index" :class="{ left }"></i>
     </span>
-    <span v-if="full">No shares left today. You can share more after {{ reset }}.</span>
-    <span v-else>{{ left }} of {{ usage.limit }} shares left today</span>
+    <span>{{ text }}</span>
   </div>
 </template>
 

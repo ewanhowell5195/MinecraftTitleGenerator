@@ -1,5 +1,6 @@
 <script setup>
-  import { confirmReplacing, confirmSharing, replaceWith, sharePreset } from "#lib/presets/savedPresets.js"
+  import { confirmReplacing, confirmSharing } from "#lib/presets/savedPresets.js"
+  import { publishPreset } from "#lib/presets/sharing.js"
   import Button from "#c/Button.vue"
   import Dialog from "#c/Dialog.vue"
   import ShareFields from "./ShareFields.vue"
@@ -14,7 +15,7 @@
   const { name, error, sending, agreed, target, problem, blocked, replaceLabel, attempt } = useShareForm(() => props.preset.code, () => props.preset.name)
 
   async function publish() {
-    emit("shared", target.value ? (await replaceWith(target.value, props.preset.code, name.value)).online : await sharePreset(props.preset, name.value))
+    emit("shared", await publishPreset(props.preset, target.value, name.value))
   }
 
   async function send() {

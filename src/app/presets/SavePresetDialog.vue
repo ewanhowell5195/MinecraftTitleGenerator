@@ -1,6 +1,7 @@
 <script setup>
-  import { confirmReplacing, confirmSharing, sharePreset } from "#lib/presets/savedPresets.js"
+  import { confirmReplacing, confirmSharing } from "#lib/presets/savedPresets.js"
   import { namingCode, namingShared, namingSharedId, saveOver, savePreset } from "#lib/presets/savingPreset.js"
+  import { saveThenShare } from "#lib/presets/sharing.js"
   import { openPresetsPage, showPreset } from "#lib/state/presetsPage.js"
   import Button from "#c/Button.vue"
   import Dialog from "#c/Dialog.vue"
@@ -34,22 +35,14 @@
     else if (await confirmReplacing(target.value)) attempt(replace)
   }
 
-  async function shareSaved(preset) {
-    try {
-      return await sharePreset(preset, preset.name)
-    } catch (err) {
-      throw new Error(`Your preset was saved, but it could not be shared. ${err.message}`)
-    }
-  }
-
-  async function saveThenShare() {
-    const preset = target.value ? (await saveOver(target.value, name.value)).preset : savePreset(name.value, { keepOpen: true })
-    if (preset) view((await shareSaved(preset)).id)
+  async function share() {
+    const shared = await saveThenShare(target.value, name.value)
+    if (shared) view(shared.id)
     else emit("close")
   }
 
   async function saveAndShare() {
-    if (await confirmSharing(name.value.trim() || props.suggested)) attempt(saveThenShare)
+    if (await confirmSharing(name.value.trim() || props.suggested)) attempt(share)
   }
 
   function submit() {
