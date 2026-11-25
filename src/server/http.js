@@ -47,9 +47,20 @@ export function guarded(handler, { refused = err => reply(err.status, { error: e
   }
 }
 
+const keyed = new WeakSet()
+
+export function acceptsKey(request) {
+  return keyed.has(request)
+}
+
+export function preflight() {
+  return new Response(null, { status: 204, headers: { ...ANY_SITE, "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE", "Access-Control-Allow-Headers": "Authorization, Content-Type", "Access-Control-Max-Age": "86400" } })
+}
+
 export function fromBlockbench(handler) {
   const answer = guarded(handler, { origins: APP_ORIGINS.concat(/^https:\/\/web\.blockbench\.net$/) })
   return async context => {
+    keyed.add(context.request)
     const response = await answer(context)
     for (const [name, value] of Object.entries(ANY_SITE)) response.headers.set(name, value)
     return response

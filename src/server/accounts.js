@@ -1,7 +1,8 @@
 import { LIMITS } from "../lib/core/limits.js"
 import { ACCOUNT_CHANNEL, PROVIDERS, SIGN_IN_RETURN } from "../lib/core/providers.js"
 import { escaped } from "../lib/core/html.js"
-import { APP_ORIGINS, Refusal, USER_AGENT, guarded, hashed, hex, randomToken, reply, setting } from "./http.js"
+import { connectedUser, forgetKey, removeConnections, renameConnections, usesKey } from "./connections.js"
+import { APP_ORIGINS, Refusal, USER_AGENT, fromBlockbench, guarded, hashed, hex, randomToken, reply, setting } from "./http.js"
 
 const SESSION_COOKIE = "session"
 const SESSION_PATH = "/api"
@@ -126,7 +127,9 @@ function shownUser(user) {
 
 export const USER_ROW = "(SELECT id FROM users WHERE provider = ? AND provider_id = ?)"
 
-async function signedInUser({ request, env }) {
+async function signedInUser(context) {
+  const { request, env } = context
+  if (usesKey(request)) return connectedUser(context)
   const session = await verified(env, "session", cookieValue(request, SESSION_COOKIE))
   return session && { id: session.id, name: session.name, provider: session.provider, avatar: session.avatar ?? null, email: session.email, issued: session.issued ?? 0, providerId: session.id.slice(session.provider.length + 1) }
 }
@@ -162,7 +165,8 @@ export async function forgetSessions(env, user) {
   const now = Date.now()
   return [
     env.DB.prepare("INSERT INTO deleted_accounts (account_hash, deleted_at) VALUES (?, ?) ON CONFLICT (account_hash) DO UPDATE SET deleted_at = excluded.deleted_at").bind(await accountKey(env, "deleted", user), now),
-    env.DB.prepare("DELETE FROM deleted_accounts WHERE deleted_at < ?").bind(now - SESSION_SECONDS * 1000)
+    env.DB.prepare("DELETE FROM deleted_accounts WHERE deleted_at < ?").bind(now - SESSION_SECONDS * 1000),
+    removeConnections(env, user)
   ]
 }
 
@@ -223,7 +227,8 @@ export const finishSignIn = showingRefusals(async ({ request, env, params }) => 
   if (!handoff || handoff.provider !== provider.id || handoff.nonce !== cookieValue(request, STATE_COOKIE)) throw new Refusal(400, "This sign-in has expired. Close this window and try again.")
   const id = `${provider.id}:${handoff.id}`
   const session = await signed(env, "session", SESSION_SECONDS, { id, name: handoff.name, provider: provider.id, avatar: handoff.avatar, email: handoff.email, issued: Date.now() })
-  await rememberUser(env, { name: handoff.name, email: handoff.email, provider: provider.id, providerId: handoff.id }).run()
+  const person = { name: handoff.name, email: handoff.email, provider: provider.id, providerId: handoff.id }
+  await env.DB.batch([rememberUser(env, person), renameConnections(env, person)])
   const response = page(200, "You're signed in", "You can close this window.", leaveScript(`new BroadcastChannel("${ACCOUNT_CHANNEL}").postMessage("changed");`))
   response.headers.append("Set-Cookie", cookie(SESSION_COOKIE, session, SESSION_SECONDS, SESSION_PATH))
   response.headers.append("Set-Cookie", cookie(STATE_COOKIE, "", 0, STATE_PATH))
@@ -235,10 +240,11 @@ async function submissionCounts(env, user, admin) {
   return { unread: row?.unread ?? 0, notifications: row?.notifications ?? 0, submissions: row?.submissions ?? 0, waiting: row?.waiting ?? 0, issues: row?.issues ?? 0 }
 }
 
-export const accountDetails = guarded(async context => {
+export const accountDetails = fromBlockbench(async context => {
   const providers = PROVIDERS.map(({ id }) => id).filter(id => context.env[`${id.toUpperCase()}_CLIENT_ID`])
   const user = await signedInUser(context)
   if (user && await deletedSince(context.env, user)) return reply(200, { user: null, providers }, { "Set-Cookie": clearedSession() })
+  if (usesKey(context.request)) return reply(200, { user: shownUser(user), providers })
   const admin = !!user && await isAdmin(context.env, user)
   return reply(200, { user: user && { ...shownUser(user), ...await submissionCounts(context.env, user, admin), admin }, providers })
 })
@@ -247,4 +253,7 @@ export function clearedSession() {
   return cookie(SESSION_COOKIE, "", 0, SESSION_PATH)
 }
 
-export const signOut = guarded(async () => reply(200, { user: null }, { "Set-Cookie": clearedSession() }))
+export const signOut = fromBlockbench(async context => {
+  if (usesKey(context.request)) await forgetKey(context)
+  return reply(200, { user: null }, { "Set-Cookie": clearedSession() })
+})

@@ -353,8 +353,7 @@ describe("accounts", () => {
     }
     await signIn("discord", { id: "1", username: "new" })
     env.DB.prepare = realPrepare
-    assert.equal(changed.length, 1)
-    assert.match(changed[0], /^UPDATE users/)
+    assert.deepEqual(changed.map(sql => sql.split(" ")[1]), ["users", "connections"])
     assert.deepEqual((await list("?sort=new")).presets.map(preset => preset.author), ["new", "new"])
   })
 

@@ -7,7 +7,7 @@ import { shareableTitle } from "../lib/link/titleFacts.js"
 import { blockedWordProblem, shortNameProblem } from "../lib/core/wording.js"
 import { USER_ROW, activeUser, currentUser, forgetUnusedUser, requireUser, saveUser } from "./accounts.js"
 import { nextDay, returnSlot, takeSlot, today } from "./daily.js"
-import { ANY_SITE, INVALID, Refusal, cachedAtEdge, canonical, guarded, hashed, idParam, jsonBody, randomToken, reply, setting, textField, unpublishedName } from "./http.js"
+import { ANY_SITE, INVALID, Refusal, cachedAtEdge, canonical, fromBlockbench, guarded, hashed, idParam, jsonBody, randomToken, reply, setting, textField, unpublishedName } from "./http.js"
 
 const SORTS = { week: "week_downloads DESC, downloads DESC, id DESC", popular: "downloads DESC, id DESC", top: "rating DESC, votes DESC, id DESC", new: "created_at DESC, id DESC", needs: "votes, id" }
 const MATCHES = "lower(name) LIKE ?1 ESCAPE '\\' OR lower(text) LIKE ?1 ESCAPE '\\'"
@@ -380,7 +380,7 @@ export const claimPresets = guarded(async context => {
   return reply(200, { moved })
 })
 
-export const submissionUsage = guarded(async context => {
+export const submissionUsage = fromBlockbench(async context => {
   const user = await currentUser(context)
   const ip = await hashedIp(context)
   const { env } = context

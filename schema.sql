@@ -17,6 +17,17 @@ CREATE TABLE deleted_accounts (
   deleted_at INTEGER NOT NULL
 );
 
+CREATE TABLE connections (
+  key_hash TEXT PRIMARY KEY,
+  provider TEXT NOT NULL,
+  provider_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  used_at INTEGER NOT NULL
+);
+
+CREATE INDEX connections_by_account ON connections (provider, provider_id);
+
 CREATE TABLE presets (
   id INTEGER PRIMARY KEY,
   code TEXT NOT NULL,
