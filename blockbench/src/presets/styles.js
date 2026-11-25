@@ -219,6 +219,44 @@ export const STYLES = `
     margin: 0 0 12px;
   }
 
+  .mtg-empty,
+  .mtg-list > p.mtg-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 70%;
+    margin: 0;
+    text-align: center;
+    color: var(--color-subtle_text);
+  }
+
+  .mtg-empty > i {
+    max-width: none;
+    margin-bottom: 4px;
+    font-size: 40px;
+  }
+
+  .mtg-empty > strong {
+    font-size: 16px;
+    color: var(--color-text);
+  }
+
+  .mtg-tools > .mtg-usage {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 240px;
+    margin: 0 6px;
+    font-size: 14px;
+  }
+
+  .mtg-tools > .mtg-usage > span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .mtg-preset-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(100%, clamp(320px, 30cqi, 420px)), 1fr));
@@ -594,6 +632,10 @@ export const STYLES = `
 
     .mtg-presets:not(.raised) .mtg-which .form_inline_select > li {
       flex: 1;
+    }
+
+    .mtg-presets:not(.raised) .mtg-tools > .mtg-usage {
+      margin: 0 auto 0 0;
     }
 
     .mtg-presets:not(.raised) .mtg-sort {

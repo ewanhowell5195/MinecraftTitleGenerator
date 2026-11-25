@@ -99,7 +99,7 @@ export const AccountButton = {
   },
   template: `
     <button v-if="account" class="mtg-button mtg-account" :title="'Signed in as ' + account.name" @click="menu"><img v-if="avatar" :src="avatar" alt="" referrerpolicy="no-referrer" @error="broken = avatar"><i v-else :class="'fab fa-' + account.provider"></i><span>{{ account.name }}</span></button>
-    <button v-else class="mtg-button mtg-account" title="Sign in" @click="signIn"><i class="material-icons">person</i><span>Sign in</span></button>
+    <button v-else class="mtg-button mtg-account" title="Sign in to keep your presets under your account. The presets saved in Blockbench, and anything shared from it, move to your account when you do." @click="signIn"><i class="material-icons">person</i><span>Sign in</span></button>
   `
 }
 

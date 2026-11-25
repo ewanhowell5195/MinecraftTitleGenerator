@@ -3,7 +3,7 @@ import { useCommunityBrowser } from "#lib/presets/communityBrowser.js"
 import { useMyPresets } from "#lib/presets/myPresets.js"
 import { SORTS } from "#lib/presets/presetText.js"
 import { addPreset, presetsError, presetsLoading } from "#lib/presets/savedPresets.js"
-import { account, accountChanges } from "#lib/state/account.js"
+import { accountChanges } from "#lib/state/account.js"
 import { communityPreset, managedPresets, ownPresets, refreshUsage } from "#lib/state/community.js"
 import { showNotice } from "#lib/state/notices.js"
 import { AccountButton } from "../account/index.js"
@@ -191,7 +191,6 @@ const PresetBrowser = {
     })
     return {
       ...browser,
-      account,
       blank,
       byUser,
       clear,
@@ -235,23 +234,27 @@ const PresetBrowser = {
             <div class="mtg-sort"><dropdown-control :value="sort" :options="sorts" @change="sort = $event" /></div>
             <button class="mtg-button mtg-random" @click="pickRandom"><i class="material-icons">casino</i><span>Random</span></button>
           </template>
+          <share-usage v-else />
           <account-button />
         </div>
         <div ref="list" class="mtg-list">
           <template v-if="tab === 'community'">
             <p v-if="error" class="mtg-error">{{ error }}</p>
-            <p v-else-if="!results.length && !loading" class="mtg-hint">{{ emptyMessage }}</p>
+            <p v-else-if="!results.length && !loading" class="mtg-empty">{{ emptyMessage }}</p>
             <div class="mtg-preset-grid">
               <preset-tile v-for="preset of results" :key="preset.id" :preset="preset" :selected="!!selected && selected.id === preset.id" :searched="searched(preset)" :mine="isMine(preset)" @vote="vote(preset, $event)" @pick="pick(preset)" @user="byUser" />
             </div>
-            <p v-if="loading" class="mtg-hint">Loading presets</p>
+            <p v-if="loading" :class="results.length ? 'mtg-hint' : 'mtg-empty'">Loading presets</p>
           </template>
           <template v-else>
             <p v-if="presetsError" class="mtg-error">{{ presetsError }}</p>
-            <p v-else-if="presetsLoading" class="mtg-hint">Loading your presets</p>
-            <p v-else-if="!shown.length" class="mtg-hint">{{ search.trim() ? "None of your presets match this search." : "You have no presets yet. Use Save or share in the title bar to save the current title here." }}</p>
-            <p v-if="!account" class="mtg-hint">Sign in to keep your presets under your account. The presets saved in Blockbench, and anything shared from it, move to your account when you do.</p>
-            <share-usage />
+            <p v-else-if="presetsLoading" class="mtg-empty">Loading your presets</p>
+            <p v-else-if="!shown.length && search.trim()" class="mtg-empty">None of your presets match this search.</p>
+            <div v-else-if="!shown.length" class="mtg-empty">
+              <i class="material-icons">bookmark</i>
+              <strong>No presets yet</strong>
+              <span>Use Save or share in the title bar to save the current title here.</span>
+            </div>
             <section v-for="group of groups" :key="group.label" class="mtg-saved">
               <h3>{{ group.label }}</h3>
               <div class="mtg-preset-grid">

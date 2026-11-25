@@ -16,7 +16,7 @@ let closed = null
 export const ShareUsage = {
   setup: () => useShareUsage(),
   template: `
-    <div v-if="counted" class="mtg-usage" :class="{ full }"><span class="mtg-pips"><i v-for="(left, index) of pips" :key="index" :class="{ left }"></i></span><span>{{ text }}</span></div>
+    <div v-if="counted" class="mtg-usage" :class="{ full }" :title="text"><span class="mtg-pips"><i v-for="(left, index) of pips" :key="index" :class="{ left }"></i></span><span>{{ text }}</span></div>
   `
 }
 

@@ -331,10 +331,6 @@ export const STYLES = `
     cursor: pointer;
   }
 
-  .mtg-list > .mtg-usage {
-    margin-bottom: 10px;
-  }
-
   .mtg-usage {
     display: flex;
     align-items: center;
