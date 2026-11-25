@@ -1,6 +1,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { useCommunityBrowser } from "#lib/presets/communityBrowser.js"
 import { SORTS } from "#lib/presets/presetText.js"
+import { ownPresets, refreshUsage } from "#lib/state/community.js"
 import { notice } from "#lib/state/notices.js"
 import { AccountButton } from "../account/index.js"
 import { isBlank, openPreset, replaceWithPreset } from "../file.js"
@@ -13,6 +14,7 @@ import { PresetDetail, PresetTile } from "./parts.js"
 import { STYLES } from "./styles.js"
 
 const ID = "minecraft_title_presets"
+const LEAST_TOOLS = 620
 
 const opened = ref(false)
 const shown = ref(false)
@@ -31,6 +33,15 @@ const PresetBrowser = {
     const search = ref("")
     const browser = useCommunityBrowser({ sort, search })
     const list = ref(null)
+    const tools = ref(null)
+    const space = ref(0)
+    const raised = computed(() => !Blockbench.isMobile && space.value >= LEAST_TOOLS)
+    const observer = new ResizeObserver(measureSpace)
+
+    function measureSpace() {
+      const modes = document.getElementById("mode_selector")
+      if (modes && shown.value) space.value = modes.getBoundingClientRect().left - Interface.center_screen.getBoundingClientRect().left
+    }
 
     function use(open) {
       const preset = browser.selected.value
@@ -63,18 +74,27 @@ const PresetBrowser = {
     }
 
     watch(shown, keepScroll, { flush: "sync" })
+    watch(shown, () => nextTick(measureSpace))
     watch(browser.selected, showSelected)
     onMounted(() => {
+      tools.value.querySelector("input").placeholder = "Search names, text or user:name"
+      refreshUsage()
       browser.load(0)
+      measureSpace()
+      observer.observe(Interface.center_screen)
+      if (!Blockbench.isMobile) observer.observe(document.getElementById("mode_selector"))
       addEventListener("keydown", key)
     })
-    onBeforeUnmount(() => removeEventListener("keydown", key))
-    return { ...browser, list, sort, search, sorts: SORTS, blank, open: () => use(openPreset), loadInto: () => use(replaceWithPreset) }
+    onBeforeUnmount(() => {
+      observer.disconnect()
+      removeEventListener("keydown", key)
+    })
+    return { ...browser, list, tools, space, raised, isMine: preset => ownPresets.value.includes(preset.id), sort, search, sorts: SORTS, blank, open: () => use(openPreset), loadInto: () => use(replaceWithPreset) }
   },
   template: `
-    <div class="mtg-presets" :class="{ open: selected }">
+    <div class="mtg-presets" :class="{ open: selected, raised }">
       <div class="mtg-browse">
-        <div class="mtg-row">
+        <div ref="tools" class="mtg-row mtg-tools" :style="raised ? { width: space + 'px' } : null">
           <search-bar class="mtg-fill" v-model="search" />
           <div class="mtg-sort"><dropdown-control :value="sort" :options="sorts" @change="sort = $event" /></div>
           <button class="mtg-button mtg-random" @click="pickRandom"><i class="material-icons">casino</i><span>Random</span></button>
@@ -84,13 +104,13 @@ const PresetBrowser = {
           <p v-if="error" class="mtg-error">{{ error }}</p>
           <p v-else-if="!results.length && !loading" class="mtg-hint">{{ emptyMessage }}</p>
           <div class="mtg-preset-grid">
-            <preset-tile v-for="preset of results" :key="preset.id" :preset="preset" :selected="!!selected && selected.id === preset.id" :searched="searched(preset)" @pick="pick(preset)" @user="searchUser" />
+            <preset-tile v-for="preset of results" :key="preset.id" :preset="preset" :selected="!!selected && selected.id === preset.id" :searched="searched(preset)" :mine="isMine(preset)" @pick="pick(preset)" @user="searchUser" />
           </div>
           <p v-if="loading" class="mtg-hint">Loading presets</p>
           <div ref="sentinel" class="mtg-more"></div>
         </div>
       </div>
-      <preset-detail v-if="selected" :preset="selected" :searched="searched(selected)" :blank="blank" @user="searchUser" @open="open" @load="loadInto" @close="clear" />
+      <preset-detail v-if="selected" :preset="selected" :searched="searched(selected)" :mine="isMine(selected)" :blank="blank" @user="searchUser" @open="open" @load="loadInto" @close="clear" />
     </div>
   `
 }

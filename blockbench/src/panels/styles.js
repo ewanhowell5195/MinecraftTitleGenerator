@@ -59,11 +59,14 @@ export const STYLES = `
     left: 0;
   }
 
+  .mtg-checker {
+    background: var(--color-dark) conic-gradient(var(--color-ui) 25%, transparent 0 50%, var(--color-ui) 0 75%, transparent 0) 0 0 / 16px 16px;
+  }
+
   .mtg-result {
     display: flex;
     justify-content: center;
     padding: 16px;
-    background: var(--color-back);
   }
 
   .mtg-result > canvas {

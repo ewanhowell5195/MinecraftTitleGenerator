@@ -22,8 +22,8 @@ const PresetPicture = {
     }
   },
   template: `
-    <div class="mtg-picture">
-      <img v-if="!failed" v-show="loaded" :src="source" :alt="alt" @load="loaded = true" @error="failed = true">
+    <div class="mtg-picture mtg-checker">
+      <img v-if="!failed" :class="{ waiting: !loaded }" loading="lazy" :src="source" :alt="alt" @load="loaded = true" @error="failed = true">
       <span v-if="failed" class="mtg-hint">Can't show this title</span>
       <span v-else-if="!loaded" class="mtg-hint">Loading</span>
     </div>
@@ -31,7 +31,7 @@ const PresetPicture = {
 }
 
 const PresetAuthor = {
-  props: { preset: Object, searched: Boolean },
+  props: { preset: Object, searched: Boolean, yours: Boolean },
   computed: {
     title() {
       const { author, authorProvider } = this.preset
@@ -39,14 +39,14 @@ const PresetAuthor = {
     }
   },
   template: `
-    <span v-if="preset.author" class="mtg-author mtg-link" :title="title" @click.stop="$emit('user', preset.author, preset.authorProvider)"><i :class="'fab fa-' + preset.authorProvider"></i><span>{{ preset.author }}</span></span>
+    <span v-if="preset.author" class="mtg-author mtg-link" :class="{ yours }" :title="title" @click.stop="$emit('user', preset.author, preset.authorProvider)"><i :class="'fab fa-' + preset.authorProvider"></i><span>{{ preset.author }}</span></span>
     <span v-else class="mtg-author"><i class="material-icons">groups</i><span>Community</span></span>
   `
 }
 
 export const PresetTile = {
   components: { PresetAuthor, PresetPicture },
-  props: { preset: Object, selected: Boolean, searched: Boolean },
+  props: { preset: Object, selected: Boolean, searched: Boolean, mine: Boolean },
   methods: { ratingText, toGoText, votesText },
   template: `
     <div class="mtg-preset" :class="{ selected }" @click="$emit('pick')">
@@ -54,10 +54,11 @@ export const PresetTile = {
       <div class="mtg-row">
         <div class="mtg-about">
           <strong>{{ preset.name }}</strong>
-          <preset-author :preset="preset" :searched="searched" @user="(...user) => $emit('user', ...user)" />
+          <span v-if="mine && !preset.author" class="mtg-yours">Shared by you</span>
+          <preset-author v-else :preset="preset" :searched="searched" :yours="mine" @user="(...user) => $emit('user', ...user)" />
         </div>
         <span v-if="preset.rating !== null" class="mtg-rating" :title="votesText(preset.votes)"><i class="material-icons">star</i>{{ ratingText(preset.rating) }}</span>
-        <span v-else class="mtg-hint" :title="toGoText(preset.votes)">Needs votes</span>
+        <span v-else class="mtg-needs" :title="toGoText(preset.votes)">Needs votes</span>
       </div>
     </div>
   `
@@ -65,7 +66,7 @@ export const PresetTile = {
 
 export const PresetDetail = {
   components: { PresetAuthor, PresetPicture },
-  props: { preset: Object, searched: Boolean, blank: Boolean },
+  props: { preset: Object, searched: Boolean, mine: Boolean, blank: Boolean },
   data: () => ({ stars: [1, 2, 3, 4, 5] }),
   methods: {
     ratingText,
@@ -90,9 +91,9 @@ export const PresetDetail = {
     <div class="mtg-detail">
       <div class="mtg-close"><div class="tool" title="Close this preset" @click="$emit('close')"><i class="material-icons">close</i></div></div>
       <preset-picture :preset="preset" />
-      <h2>{{ preset.name }}</h2>
+      <div class="mtg-heading"><h2>{{ preset.name }}</h2><span v-if="mine" class="mtg-yours">Shared by you</span></div>
       <div v-if="preset.rating !== null" class="mtg-rating" :title="upvotedText(preset.rating)">
-        <span v-for="star of stars" :key="star" class="mtg-star"><i class="material-icons">star</i><i class="material-icons" :style="filled(star)">star</i></span>
+        <span class="mtg-stars"><span v-for="star of stars" :key="star" class="mtg-star"><i class="material-icons">star</i><i class="material-icons" :style="filled(star)">star</i></span></span>
         <strong>{{ ratingText(preset.rating) }}</strong>
         <span class="mtg-hint">{{ votesText(preset.votes) }}</span>
       </div>
@@ -100,7 +101,7 @@ export const PresetDetail = {
       <div class="mtg-facts mtg-hint">
         <span>{{ usesText(preset) }}</span>
         <span>Shared {{ sharedText(preset.createdAt) }}</span>
-        <span class="mtg-by">By <preset-author :preset="preset" :searched="searched" @user="(...user) => $emit('user', ...user)" /></span>
+        <span v-if="preset.author || !mine" class="mtg-by">By <preset-author :preset="preset" :searched="searched" @user="(...user) => $emit('user', ...user)" /></span>
       </div>
       <div class="mtg-actions">
         <button v-if="blank" class="mtg-button primary" @click="$emit('load')"><i class="material-icons">text_fields</i><span>Open preset</span></button>

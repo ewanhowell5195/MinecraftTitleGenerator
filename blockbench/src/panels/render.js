@@ -36,7 +36,7 @@ async function showResult(image) {
       },
       template: `
         <div class="mtg-controls">
-          <div ref="holder" class="mtg-result"></div>
+          <div ref="holder" class="mtg-result mtg-checker"></div>
           <div class="mtg-row mtg-hint"><span class="mtg-fill">{{ dimensions }}</span><span>{{ size }}</span></div>
           <div class="mtg-row">
             <button class="mtg-button" @click="copy"><i class="material-icons">file_copy</i><span>Copy render</span></button>
