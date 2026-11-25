@@ -367,3 +367,7 @@ input[type="checkbox"]:checked {
 .tab-bar.tab-style-slide > .tab-bar-button:focus-visible {
   border-radius: 0;
 }
+
+.popupable-clone-layer {
+  background: var(--checker);
+}

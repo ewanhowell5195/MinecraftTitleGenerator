@@ -1,5 +1,6 @@
 <script setup>
   import { computed, onMounted, ref, watch } from "vue"
+  import { vPopupable, vPopupableGroup } from "popupable-vue"
   import Badge from "../components/Badge.vue"
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
@@ -79,9 +80,9 @@
         <span>Reported by <UserName v-if="item.ownerName" :name="item.ownerName" :provider="item.ownerProvider" /><template v-else>a deleted account</template>, {{ dateTime(item.createdAt) }}</span>
       </p>
       <blockquote class="notes">{{ item.body }}</blockquote>
-      <ul v-if="images.length" class="images">
+      <ul v-if="images.length" v-popupable-group="images.length > 1 && { counter: true, thumbnails: true }" class="images">
         <li v-for="(image, index) of images" :key="image.url">
-          <a :href="image.url" target="_blank" rel="noopener"><img :src="image.url" :alt="`Image ${index + 1}`"></a>
+          <a :href="image.url" target="_blank" rel="noopener"><img v-popupable="{ zoomable: true }" :src="image.url" :alt="`Image ${index + 1}`" @click.prevent></a>
         </li>
       </ul>
     </section>
@@ -136,13 +137,13 @@
 
   .images a {
     display: block;
-    aspect-ratio: 16 / 10;
-    background: var(--card);
   }
 
   .images img {
+    display: block;
     width: 100%;
-    height: 100%;
+    aspect-ratio: 16 / 10;
     object-fit: contain;
+    background: var(--checker);
   }
 </style>
