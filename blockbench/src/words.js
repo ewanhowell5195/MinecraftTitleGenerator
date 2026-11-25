@@ -1,7 +1,6 @@
-import { splitWord } from "#lib/panels/words.js"
+import { wordParts } from "#lib/panels/words.js"
 import { isModified, restore, snapshot } from "#lib/settings/settings.js"
 import { keepTexture } from "#lib/title/objects.js"
-import { splitGradients } from "#lib/texture/wordGradients.js"
 import { types } from "./elements.js"
 import { runtimeOf, settleTitle } from "./titles.js"
 import { finishEdit, quietly } from "./undo.js"
@@ -69,17 +68,16 @@ export function addWord(element) {
 
 export function splitAt(element, start, end) {
   const { settings } = element
-  const parts = splitWord(settings, start, end)
-  if (!parts) return null
   const line = element.line ? element.line.words.map(word => word.settings) : [settings]
-  const gradients = splitGradients(runtimeOf(element).font, line, settings, parts)
+  const parts = wordParts(runtimeOf(element).font, line, settings, start, end)
+  if (!parts) return null
   return restructure(element, "Split title word", home => {
     const first = element.line ? element : open(home)
     let last = first
     let target = first
-    for (const [index, { text, spaceBefore, picked }] of parts.entries()) {
-      if (index) last = insertAfter(last, { text, spaceBefore, ...gradients[index] })
-      else Object.assign(first.settings, { text }, gradients[0])
+    for (const [index, { values, picked }] of parts.entries()) {
+      if (index) last = insertAfter(last, values)
+      else Object.assign(first.settings, values)
       if (picked) target = last
     }
     return target

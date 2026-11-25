@@ -1,3 +1,4 @@
+import { joinLabel, wordPlaceholder, wordsHint } from "#lib/panels/words.js"
 import { kindOf, selected, selectedElements } from "../host.js"
 import { titleState } from "../titles.js"
 import { beginEdit, edit, finishEdit } from "../undo.js"
@@ -10,7 +11,7 @@ let lastWord = null
 
 export const TitleWords = {
   components: INPUTS,
-  data: () => ({ TARGETS }),
+  data: () => ({ TARGETS, hint: wordsHint("Add word") }),
   computed: {
     home: () => selected.value && homeElement(selected.value),
     kind: () => selected.value && kindOf(selected.value),
@@ -31,6 +32,8 @@ export const TitleWords = {
     }
   },
   methods: {
+    joinLabel,
+    placeholder: wordPlaceholder,
     target(kind) {
       const word = kind === "word" && (this.words.find(({ uuid }) => uuid === lastWord) ?? this.words[0])
       this.choose(word || this.home)
@@ -79,13 +82,13 @@ export const TitleWords = {
       <div class="mtg-controls">
         <segments-control v-if="several" :options="TARGETS" :value="kind" @change="target" />
         <div v-for="(word, index) of words" :key="word.uuid" class="mtg-row mtg-word">
-          <div v-if="index" class="tool" :class="{ enabled: !word.settings.spaceBefore }" :title="word.settings.spaceBefore ? 'Join words' : 'Add space'" @click="space(word)"><i class="material-icons">{{ word.settings.spaceBefore ? "space_bar" : "link" }}</i></div>
+          <div v-if="index" class="tool" :class="{ enabled: !word.settings.spaceBefore }" :title="joinLabel(word.settings)" @click="space(word)"><i class="material-icons">{{ word.settings.spaceBefore ? "space_bar" : "link" }}</i></div>
           <span v-else-if="several" class="mtg-space"></span>
-          <input ref="fields" type="text" class="dark_bordered mtg-text" :class="{ 'mtg-chosen': kind === 'word' && word === current }" :value="word.settings.text" :placeholder="several ? 'word' : 'Type your title'" spellcheck="false" @focus="focus(word)" @input="type($event, word)" @change="done" @blur="done" @keydown.delete="backspace($event, word)">
+          <input ref="fields" type="text" class="dark_bordered mtg-text" :class="{ 'mtg-chosen': kind === 'word' && word === current }" :value="word.settings.text" :placeholder="placeholder(several)" spellcheck="false" @focus="focus(word)" @input="type($event, word)" @change="done" @blur="done" @keydown.delete="backspace($event, word)">
           <div v-if="several" class="tool" title="Remove this word" @click="remove(word)"><i class="material-icons">clear</i></div>
         </div>
         <button class="mtg-button" @mousedown.prevent @click="add">Add word</button>
-        <p class="mtg-hint">Each word gets its own texture. Highlight part of a word and press Add word to split it off.</p>
+        <p class="mtg-hint">{{ hint }}</p>
       </div>
     </section>
   `

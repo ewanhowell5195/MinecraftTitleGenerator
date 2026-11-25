@@ -2,15 +2,14 @@
   import { computed, nextTick, ref } from "vue"
   import { followPointer, useReorderDrag } from "#c/composables/reorder.js"
   import { addWord, insertWord, removeObject, runtime, scene, select, selection, words } from "#lib/state/scene.js"
-  import { splitWord } from "#lib/panels/words.js"
+  import { joinLabel, wordParts, wordPlaceholder, wordsHint } from "#lib/panels/words.js"
   import { resetPanel } from "#lib/settings/settings.js"
-  import { splitGradients } from "#lib/texture/wordGradients.js"
   import Button from "#c/Button.vue"
   import Icon from "#c/Icon.vue"
   import Panel from "../Panel.vue"
 
   const line = computed(() => words(selection.value[0]))
-  const placeholder = computed(() => line.value.length > 1 ? "word" : "Type your title")
+  const placeholder = computed(() => wordPlaceholder(line.value.length > 1))
   const modified = computed(() => line.value.length > 1 && line.value.some((word, index) => word.hidden || index > 0 && !word.spaceBefore))
   const fields = {}
   let picked = null
@@ -44,14 +43,13 @@
   }
 
   function split({ word, start, end }) {
-    const parts = splitWord(word, start, end)
+    const parts = wordParts(runtime[word.id]?.font, line.value, word, start, end)
     if (!parts) return false
-    const gradients = splitGradients(runtime[word.id]?.font, line.value, word, parts)
     let last = word
     let target = word
-    for (const [index, { text, spaceBefore, picked }] of parts.entries()) {
-      if (index) last = insertWord(last, { text, spaceBefore, ...gradients[index] })
-      else Object.assign(word, { text }, gradients[0])
+    for (const [index, { values, picked }] of parts.entries()) {
+      if (index) last = insertWord(last, values)
+      else Object.assign(word, values)
       if (picked) target = last
     }
     select(target)
@@ -121,7 +119,7 @@
   <Panel title="Words" :modified="modified" @reset="reset">
     <div ref="box" class="line" :class="{ single: line.length < 2, dragging: dragged !== null }">
       <template v-for="(word, index) of line" :key="word.id">
-        <button v-if="index" class="join" :class="{ joined: !word.spaceBefore }" @click="word.spaceBefore = !word.spaceBefore" :aria-pressed="!word.spaceBefore" v-tooltip="word.spaceBefore ? 'Join words' : 'Add space'" :aria-label="word.spaceBefore ? 'Join words' : 'Add space'">
+        <button v-if="index" class="join" :class="{ joined: !word.spaceBefore }" @click="word.spaceBefore = !word.spaceBefore" :aria-pressed="!word.spaceBefore" v-tooltip="joinLabel(word)" :aria-label="joinLabel(word)">
           <Icon :name="word.spaceBefore ? 'space' : 'link'" :size="14" />
         </button>
         <label :ref="el => (chips[word.id] = el)" class="chip" :class="{ chosen: chosen(word), dragged: dragged === word.id, hidden: word.hidden, cased: multicase(word) }" :data-value="word.text || placeholder">
@@ -139,7 +137,7 @@
       </template>
       <Button ghost class="add" icon="plus" title="Add word" @mousedown="capture" @click="add" />
     </div>
-    <p class="hint">Each word gets its own texture. Highlight part of a word and press + to split it off.</p>
+    <p class="hint">{{ wordsHint("+") }}</p>
   </Panel>
 </template>
 
