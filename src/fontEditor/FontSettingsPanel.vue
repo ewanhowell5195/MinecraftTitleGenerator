@@ -73,6 +73,7 @@
   const warning = ref(null)
   const templateError = ref("")
   const loadingTemplate = ref(false)
+  const spacing = computed(() => SPACING.filter(item => item.key !== "spaceWidth" || !font.value.defineSpace))
   const layered = computed(() => !!fontLayers(font.value))
   const published = shallowRef([])
   const listError = ref("")
@@ -263,7 +264,7 @@
       <h3>Spacing and shape</h3>
       <p class="hint">These are in pixels, not squares.</p>
       <div class="numbers">
-        <Field v-for="item of SPACING" :key="item.key" group :label="item.label" :label-for="`font-${item.key}`">
+        <Field v-for="item of spacing" :key="item.key" group :label="item.label" :label-for="`font-${item.key}`">
           <NumberInput :id="`font-${item.key}`" :min="item.min" :value="font[item.key]" @input="setNumber(item.key, $event, item.min ?? -1000)" @change="setNumber(item.key, $event, item.min ?? -1000)">
             <template v-if="font[item.key] !== item.fallback" #action><Button ghost v-tooltip="`Reset to ${item.fallback}`" :aria-label="`Reset ${item.label.toLowerCase()} to ${item.fallback}`" @click="setField(item.key, item.fallback, false)"><template #icon><Icon name="reset" :size="16" /></template></Button></template>
           </NumberInput>
