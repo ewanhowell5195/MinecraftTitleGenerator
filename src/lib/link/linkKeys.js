@@ -310,7 +310,8 @@ const KEYS = [
   ["internalMix", GRADIENT_MIX],
   ["sideMix", GRADIENT_MIX],
   ["edgeMix", GRADIENT_MIX],
-  ["spaceWidth", NUMBER]
+  ["spaceWidth", NUMBER],
+  ["terminatorSpace", NUMBER]
 ]
 
 const IDS = new Map(KEYS.map(([key], index) => [key, index + 1]))

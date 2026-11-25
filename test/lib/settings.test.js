@@ -29,6 +29,7 @@ const TOP_DEFAULTS = {
   layerWords: false,
   spacing: 0,
   spaceWidth: null,
+  terminatorSpace: null,
   kerning: true,
   arcMode: "stretch",
   arcTop: 0,
@@ -399,10 +400,11 @@ describe("resetPanel", () => {
   })
 
   test("spacing combines the font and the type", () => {
-    const object = createObject({ type: "small", spacing: 9, spaceWidth: 4, kerning: false })
+    const object = createObject({ type: "small", spacing: 9, spaceWidth: 4, terminatorSpace: 7, kerning: false })
     resetPanel(object, "spacing", { font: { characterSpacing: 1 } })
     assert.equal(object.spacing, 3)
     assert.equal(object.spaceWidth, null)
+    assert.equal(object.terminatorSpace, null)
     assert.equal(object.kerning, true)
   })
 

@@ -1,4 +1,4 @@
-import { fontSpace } from "../geometry/layout.js"
+import { fontSpace, fontTerminatorSpace, hasTerminators } from "../geometry/layout.js"
 import { isCustomFont } from "../settings/settings.js"
 
 export const CURVES_PANEL = {
@@ -24,7 +24,7 @@ export const CREEPER_PANEL = {
 export const TERMINATORS_PANEL = {
   id: "terminators",
   title: "Terminators",
-  shown: (get, { font }) => font && font.glyphs["┫"] && font.glyphs["┣"] && !font.forcedTerminators,
+  shown: (get, { font }) => hasTerminators(font) && !font.forcedTerminators,
   controls: [
     { type: "toggle", key: "terminators", label: "Line terminators", hint: "Adds the end pieces either side of the text" }
   ]
@@ -36,6 +36,7 @@ export const SPACING_PANEL = {
   controls: [
     { type: "slider", key: "spacing", label: "Character spacing", min: -6, max: 20, step: 0.1 },
     { type: "slider", key: "spaceWidth", label: "Word spacing", min: 0, max: (get, { font }) => Math.max(40, fontSpace(font) * 2), step: 0.1, read: (get, { font }) => get("spaceWidth") ?? fontSpace(font) },
+    { type: "slider", key: "terminatorSpace", label: "Terminator spacing", min: 0, max: (get, { font }) => Math.max(40, fontTerminatorSpace(font) * 2), step: 0.1, read: (get, { font }) => get("terminatorSpace") ?? fontTerminatorSpace(font), shown: (get, { font }) => hasTerminators(font) && (get("terminators") || !!font.forcedTerminators) },
     { type: "toggle", key: "kerning", label: "Kerning", shown: (get, { font }) => Object.keys(font?.kerning ?? {}).length > 0 }
   ]
 }

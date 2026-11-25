@@ -2,7 +2,7 @@ import { PANELS, TILING_KEYS, TYPED_KEYS, TYPES, TYPE_KEYS, applyType, defaultBo
 import { plainCopy, sameValue } from "../core/values.js"
 import { FACE_PANELS, defaultTexture, textureFaces } from "./textureDefaults.js"
 
-export const LINE = new Set(["font", "customFont", "fadeCurves", "curveAngle", "curveHeight", "terminators", "type", "row", "rowSpacing", "depth", "depthAnchor", "border", "clipHoles", "layerWords", "spacing", "spaceWidth", "kerning", "arcMode", "arcTop", "arcBottom", "arcMove", "arcCentre", "arcMarked", "twistRibbon", "twistRibbonCentre", "twistRibbonMirror", "twistDoor", "twistDoorCentre", "twistDoorSame", "twistDoorRoll", "twistDoorDepth", "twistFan", "twistFanCentre", "twistFanRoll", "twistFanHeight"].concat(Object.keys(PANELS.transform())))
+export const LINE = new Set(["font", "customFont", "fadeCurves", "curveAngle", "curveHeight", "terminators", "type", "row", "rowSpacing", "depth", "depthAnchor", "border", "clipHoles", "layerWords", "spacing", "spaceWidth", "terminatorSpace", "kerning", "arcMode", "arcTop", "arcBottom", "arcMove", "arcCentre", "arcMarked", "twistRibbon", "twistRibbonCentre", "twistRibbonMirror", "twistDoor", "twistDoorCentre", "twistDoorSame", "twistDoorRoll", "twistDoorDepth", "twistFan", "twistFanCentre", "twistFanRoll", "twistFanHeight"].concat(Object.keys(PANELS.transform())))
 
 const KEYS = Object.keys(objectDefaults())
 

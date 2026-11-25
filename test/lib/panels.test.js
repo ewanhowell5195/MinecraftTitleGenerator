@@ -147,6 +147,27 @@ describe("a panel's state", () => {
     assert.equal(state.valueOf(spacing), 16)
   })
 
+  test("terminator spacing shows the font's own gap until it is set, and only with terminators", () => {
+    const object = edit({ terminators: true })
+    const spacing = control(SPACING_PANEL, "terminatorSpace")
+    const state = open(SPACING_PANEL)
+    const ends = { glyphs: { ...FONT.glyphs, "┫": {}, "┣": {} } }
+    active.value = { font: { ...FONT, ...ends, terminatorSpace: true, terminatorSpaceWidth: 3 }, list: LIST }
+    assert.equal(state.valueOf(spacing), 3)
+    active.value = { font: { ...FONT, ...ends, terminatorSpace: false, terminatorSpaceWidth: 3 }, list: LIST }
+    assert.equal(state.valueOf(spacing), 0)
+    state.change(spacing, 5)
+    assert.equal(object.terminatorSpace, 5)
+    assert.equal(state.valueOf(spacing), 5)
+    assert.equal(state.isShown(spacing), true)
+    object.terminators = false
+    assert.equal(state.isShown(spacing), false)
+    active.value = { font: { ...FONT, ...ends, forcedTerminators: true }, list: LIST }
+    assert.equal(state.isShown(spacing), true)
+    active.value = { font: FONT, list: LIST }
+    assert.equal(state.isShown(spacing), false)
+  })
+
   test("a switched off panel can be turned on", () => {
     const object = edit({ internalFaces: false })
     const state = open(FACE_PANELS[1])

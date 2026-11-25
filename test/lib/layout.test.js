@@ -1,6 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { SPACE, fontSpace, layout, lineLayout, thumbnailItem, thumbnailItems } from "#lib/geometry/layout.js"
+import { SPACE, fontSpace, fontTerminatorSpace, layout, lineLayout, thumbnailItem, thumbnailItems } from "#lib/geometry/layout.js"
 
 const SMILE = "\u{1F633}"
 const QUOTE = "\u{1F629}"
@@ -362,6 +362,56 @@ describe("layout word spacing", () => {
   test("extends a trailing modelled space", () => {
     const last = layout(modelled, "a ", { spaceWidth: 12 }).at(-1)
     assert.equal(last.x + last.glyph.width, 18)
+  })
+})
+
+describe("layout terminator spacing", () => {
+  const ends = `a${OPEN}${CLOSE}`
+  const space = glyphOf(" ", { width: 4, advance: 4, originX: 0 })
+  const spaced = (font, terminatorSpace) => layout(font, "a", { terminators: true, terminatorSpace })
+
+  test("the font's own gap is its terminator width, then its space, and none when it is off", () => {
+    assert.equal(fontTerminatorSpace(fontOf(ends, { terminatorSpace: true, terminatorSpaceWidth: 3 })), 3)
+    assert.equal(fontTerminatorSpace(fontOf(ends, { terminatorSpace: true, spaceWidth: 14 })), 14)
+    assert.equal(fontTerminatorSpace(fontOf(ends, { terminatorSpace: true })), SPACE)
+    assert.equal(fontTerminatorSpace(fontOf(ends, { terminatorSpaceWidth: 3 })), 0)
+    assert.equal(fontTerminatorSpace(withGlyphs(fontOf(ends, { terminatorSpace: true, terminatorSpaceWidth: 3 }), { " ": space })), 4)
+    assert.equal(fontTerminatorSpace(null), 0)
+  })
+
+  test("uses the font's gap until it is set", () => {
+    const fonts = [fontOf(ends), fontOf(ends, { terminatorSpace: true }), fontOf(ends, { terminatorSpace: true, terminatorSpaceWidth: 3 }), withGlyphs(fontOf(ends, { terminatorSpace: true }), { " ": space })]
+    for (const font of fonts) {
+      assert.deepEqual(spaced(font, null), spaced(font, undefined))
+      assert.deepEqual(spaced(font, fontTerminatorSpace(font)), spaced(font, undefined))
+    }
+  })
+
+  test("sets the gap either side", () => {
+    for (const font of [fontOf(ends), fontOf(ends, { terminatorSpace: true, terminatorSpaceWidth: 3 })]) {
+      assert.deepEqual(xsOf(spaced(font, 5)), [1, 12, 23])
+      assert.deepEqual(xsOf(spaced(font, 0.5)), [1, 7.5, 14])
+      assert.deepEqual(xsOf(spaced(font, 0)), [1, 7, 13])
+    }
+  })
+
+  test("leaves the spaces between words alone", () => {
+    const gaps = terminatorSpace => {
+      const placed = layout(fontOf(ends), "a a", { terminators: true, terminatorSpace })
+      return placed[2].x - placed[1].x
+    }
+    assert.equal(gaps(20), gaps(0))
+  })
+
+  test("resizes a modelled gap and can remove it", () => {
+    const font = withGlyphs(fontOf(ends, { terminatorSpace: true }), { " ": space })
+    assert.equal(spaced(font, 10).at(-1).x, spaced(font, 4).at(-1).x + 12)
+    assert.deepEqual(charsOf(spaced(font, 0)).filter(char => char !== " "), [OPEN, "a", CLOSE])
+    assert.ok(spaced(font, 0).every(item => item.glyph.char !== " " || item.glyph.fill))
+  })
+
+  test("does nothing without terminators", () => {
+    assert.deepEqual(layout(fontOf(ends), "a", { terminatorSpace: 20 }), layout(fontOf(ends), "a", {}))
   })
 })
 

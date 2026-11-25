@@ -52,7 +52,7 @@ function spans(font, line, word, parts, options) {
 export function splitGradients(font, line, word, parts) {
   const gradients = gradientsOf(word)
   if (!font || !gradients.length) return parts.map(() => ({}))
-  const ranges = spans(font, line, word, parts, { spacing: word.spacing, spaceWidth: word.spaceWidth, kerning: word.kerning, terminators: word.terminators })
+  const ranges = spans(font, line, word, parts, { spacing: word.spacing, spaceWidth: word.spaceWidth, terminatorSpace: word.terminatorSpace, kerning: word.kerning, terminators: word.terminators })
   const known = ranges.filter(Boolean)
   if (!known.length) return parts.map(() => ({}))
   const left = Math.min(...known.map(range => range.left))

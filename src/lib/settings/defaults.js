@@ -82,6 +82,7 @@ export const PANELS = {
   spacing: () => ({
     spacing: 0,
     spaceWidth: null,
+    terminatorSpace: null,
     kerning: true
   }),
   arc: () => ({

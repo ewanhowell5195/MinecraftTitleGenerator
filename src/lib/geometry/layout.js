@@ -84,16 +84,30 @@ export function fontSpace(font) {
   return font?.glyphs?.[" "]?.advance ?? font?.spaceWidth ?? SPACE
 }
 
+export function hasTerminators(font) {
+  return !!font?.glyphs[TERMINATOR_OPEN] && !!font.glyphs[TERMINATOR_CLOSE]
+}
+
+export function fontTerminatorSpace(font) {
+  if (!font?.terminatorSpace) return 0
+  return font.glyphs?.[" "] ? fontSpace(font) : font.terminatorSpaceWidth ?? fontSpace(font)
+}
+
+function terminatorGap(font, { terminatorSpace = null }, word) {
+  if (terminatorSpace === null ? !font.terminatorSpace : terminatorSpace <= 0) return []
+  const width = terminatorSpace ?? fontTerminatorSpace(font)
+  return [{ char: " ", width, word, extra: width - fontSpace(font) }]
+}
+
 export function lineLayout(font, words, options) {
   const spacing = options.spacing ?? 0
   const space = options.spaceWidth ?? fontSpace(font)
   const parts = words.map((item, word) => ({ space: item.space, chars: Array.from(wordText(font, item, options.raw), char => ({ char, word })) })).filter(part => part.chars.length)
   let chars = parts.flatMap((part, index) => index && part.space ? [{ char: " ", word: parts[index - 1].chars[0].word }].concat(part.chars) : part.chars)
-  if (chars.length && (options.terminators || font.forcedTerminators) && font.glyphs[TERMINATOR_OPEN] && font.glyphs[TERMINATOR_CLOSE]) {
+  if (chars.length && (options.terminators || font.forcedTerminators) && hasTerminators(font)) {
     const opening = chars[0].word
     const closing = chars[chars.length - 1].word
-    const gap = word => font.terminatorSpace ? [{ char: " ", width: font.terminatorSpaceWidth ?? fontSpace(font), word, extra: 0 }] : []
-    chars = [{ char: TERMINATOR_OPEN, word: opening }].concat(gap(opening), chars, gap(closing), [{ char: TERMINATOR_CLOSE, word: closing }])
+    chars = [{ char: TERMINATOR_OPEN, word: opening }].concat(terminatorGap(font, options, opening), chars, terminatorGap(font, options, closing), [{ char: TERMINATOR_CLOSE, word: closing }])
   }
   const placed = []
   let pen = 0

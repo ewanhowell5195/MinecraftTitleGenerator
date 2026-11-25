@@ -49,10 +49,11 @@ describe("font defaults", () => {
     assert.equal(object.texture, "gold")
   })
 
-  test("word spacing goes back to the new font's", () => {
-    const object = layered({ spaceWidth: 5 })
+  test("word and terminator spacing go back to the new font's", () => {
+    const object = layered({ spaceWidth: 5, terminatorSpace: 3 })
     switchFont(object)
     assert.equal(object.spaceWidth, null)
+    assert.equal(object.terminatorSpace, null)
   })
 
   test("a texture the new font also has is kept", () => {
