@@ -479,14 +479,8 @@ export const STYLES = `
     user-select: none;
   }
 
-  .mtg-group .form_inline_select {
-    flex-wrap: nowrap;
-  }
-
   .mtg-group .form_inline_select > li {
     padding-inline: 4px;
-    overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
     user-select: none;
   }
