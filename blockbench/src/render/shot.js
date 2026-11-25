@@ -33,6 +33,14 @@ export function headingOf({ camera, controls }) {
   return new THREE.Spherical().setFromVector3(camera.position.clone().sub(controls.target))
 }
 
+// Blockbench sizes its gizmos by the zoom, with the bounds Preview.resize gives the viewport
+function boundsOf({ left, right, top, bottom }, { width }) {
+  const zoom = width / 40 / (right - left)
+  const [centreX, centreY] = [(left + right) / 2, (top + bottom) / 2]
+  const [halfX, halfY] = [(right - left) / 2 * zoom, (top - bottom) / 2 * zoom]
+  return { left: centreX - halfX, right: centreX + halfX, top: centreY + halfY, bottom: centreY - halfY, zoom }
+}
+
 export function lensKey({ width, height, camera }) {
   return [width, height].concat(camera.isOrthographicCamera ? [camera.left, camera.right, camera.top, camera.bottom] : camera.fov).join()
 }
@@ -47,7 +55,7 @@ export function aim(shown, shot, angle, frame = null) {
   const distance = framed.position.distanceTo(shot.anchor.getCenter(new THREE.Vector3()))
   controls.target.copy(FORWARD).applyQuaternion(camera.quaternion).multiplyScalar(Math.min(distance, controls.maxDistance * 0.9)).add(camera.position)
   if (angle.fov) Object.assign(camera, { fov: framed.fov, aspect: framed.aspect, near: framed.near, far: framed.far, view: { ...framed.view } })
-  else Object.assign(camera, { left: framed.left, right: framed.right, top: framed.top, bottom: framed.bottom, near: framed.near, far: framed.far, zoom: 1 })
+  else Object.assign(camera, boundsOf(framed, shown), { near: framed.near, far: framed.far })
   camera.updateProjectionMatrix()
   controls.update()
   camera.updateMatrixWorld(true)
