@@ -160,7 +160,6 @@ function buildCubes(element, frame, name, made, line, order) {
   const parts = built.parts?.()
 
   function add(cube, group) {
-    cube.visibility = !element.settings.hidden
     cube.addTo(group).init()
     made.elements.push(cube)
   }
@@ -202,7 +201,6 @@ function buildMesh(element, frame, name, made, line, order) {
 
   function add(options, group) {
     const mesh = makeMesh(options)
-    mesh.visibility = !element.settings.hidden
     mesh.addTo(group).init()
     made.elements.push(mesh)
   }
@@ -240,20 +238,29 @@ function hullFaces({ centre, half, quaternion, axes, members }) {
 
 const BUILDERS = { cubes: buildCubes, mesh: buildMesh }
 
+function buildPiece(element, kind, frame, name, made, group, order) {
+  const own = { groups: [group], elements: [], textures: made.textures }
+  BUILDERS[kind](element, frame, name, own, group, order)
+  if (element.settings.hidden) for (const node of own.groups.concat(own.elements)) node.visibility = false
+  made.groups.push(...own.groups.slice(1))
+  made.elements.push(...own.elements)
+}
+
 function buildLine(element, kind, made) {
   const name = element.name || "title"
   if (!element.words.length) {
     const frame = frameOf(element)
-    BUILDERS[kind](element, frame, name, made, newLine(name, frame.origin, element, made.groups, angles(frame.rotation)), OUTLINE_ORDER)
+    buildPiece(element, kind, frame, name, made, newLine(name, frame.origin, element, made.groups, angles(frame.rotation)), OUTLINE_ORDER)
     return
   }
   const frame = lineFrame(element)
   const line = newLine(name, frame.origin, element, made.groups, angles(frame.rotation))
+  line.visibility = element.words.some(word => !word.settings.hidden)
   const order = farthestFirst(element.words)
   for (const word of element.words) {
     const own = wordFrame(word, frame)
     const group = newGroup(word.name || "word", own.origin, line, made.groups, angles(own.rotation))
-    BUILDERS[kind](word, own, word.name || "word", made, group, OUTLINE_ORDER * (order.length - order.indexOf(word)))
+    buildPiece(word, kind, own, word.name || "word", made, group, OUTLINE_ORDER * (order.length - order.indexOf(word)))
   }
 }
 
