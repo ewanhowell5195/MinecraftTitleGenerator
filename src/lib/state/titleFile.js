@@ -1,25 +1,19 @@
 import { fontTextures } from "../texture/assets.js"
-import { cameraChanges, setCamera } from "../settings/camera.js"
-import { defaultBorder, defaultDepth, defaultSpacing, fontFaces, typeDefaults } from "../settings/defaults.js"
+import { setCamera } from "../settings/camera.js"
 import { loadFont, loadFontList } from "../font/font.js"
 import { readTitleObjects, titleObjects } from "../title/objects.js"
+import { hasDefaultSettings, isDefaultCamera, isDefaultTitle as isDefault } from "../title/defaultTitle.js"
 import { EXTENSION, fileData, readTitle, trimUnused } from "../title/titleData.js"
 import { fileError } from "./notices.js"
 import { createObject } from "../settings/objects.js"
-import { editorTitle, lines, presetSource, runtime, scene, titleFileName, validSelection } from "./scene.js"
+import { editorTitle, lines, presetSource, scene, titleFileName, validSelection } from "./scene.js"
 import { isCustomFont } from "../settings/settings.js"
-import { defaultTexture } from "../settings/textureDefaults.js"
-import { sameValue } from "../core/values.js"
 import { submitStats } from "./stats.js"
 import { downloadBlob } from "../core/files.js"
 import { resetTabs, titleLoads } from "./view.js"
 
 function trim(object) {
   return trimUnused(object, editorTitle)
-}
-
-function sameSettings(a, b) {
-  return Array.from(new Set(Object.keys(a).concat(Object.keys(b)))).every(key => sameValue(a[key], b[key]))
 }
 
 export function titleData() {
@@ -34,24 +28,12 @@ export function saveTitle() {
   fileError.value = null
 }
 
-function titleReference(list, font) {
-  return { ...typeDefaults("top"), texture: defaultTexture(list, "top"), spacing: defaultSpacing("top", font), depth: defaultDepth(font), border: defaultBorder("top", font), ...fontFaces("top", font) }
-}
-
-function defaultCamera() {
-  return !Object.keys(cameraChanges(scene.camera)).length
-}
-
 export function isDefaultTitle() {
-  if (scene.objects.length !== 1 || !defaultCamera()) return false
-  const object = scene.objects[0]
-  const { list, font } = runtime[object.id] ?? {}
-  if (!list || !font) return false
-  return sameSettings(trim(object), trim(titleReference(list, font)))
+  return isDefault(editorTitle)
 }
 
 export async function untouchedTitle() {
-  if (scene.objects.length !== 1 || !defaultCamera()) return false
+  if (scene.objects.length !== 1 || !isDefaultCamera(scene)) return false
   if (isDefaultTitle()) return true
   const object = scene.objects[0]
   if (object.shape !== null || isCustomFont(object.font)) return false
@@ -59,7 +41,7 @@ export async function untouchedTitle() {
   const entry = fonts.find(item => item.id === object.font)
   if (!entry) return false
   const font = await loadFont(entry, fonts)
-  return sameSettings(trim(object), trim(titleReference(await fontTextures(font.sheetFolder, font.strips), font)))
+  return hasDefaultSettings(object, editorTitle, await fontTextures(font.sheetFolder, font.strips), font)
 }
 
 function showObjects(objects, camera, preset = null) {
