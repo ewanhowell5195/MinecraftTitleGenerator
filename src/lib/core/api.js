@@ -1,7 +1,9 @@
 let site = ""
+let headersOf = () => ({})
 
-export function useApi(address) {
+export function useApi(address, headers) {
   site = address
+  headersOf = headers
 }
 
 export function jsonOptions(method, body) {
@@ -9,7 +11,7 @@ export function jsonOptions(method, body) {
 }
 
 export async function apiCall(url, options, unavailable, signedOut) {
-  const response = await fetch(site + url, options)
+  const response = await fetch(site + url, { ...options, headers: { ...options?.headers, ...headersOf() } })
   const body = await response.json().catch(() => null)
   if (response.ok && body) return body
   if (response.status === 401) signedOut()

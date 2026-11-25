@@ -2,6 +2,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { useCommunityBrowser } from "#lib/presets/communityBrowser.js"
 import { SORTS } from "#lib/presets/presetText.js"
 import { notice } from "#lib/state/notices.js"
+import { AccountButton } from "../account/index.js"
 import { isBlank, openPreset, replaceWithPreset } from "../file.js"
 import { FORMAT } from "../format.js"
 import { hidePanels, putFirst, showPanels } from "../mode.js"
@@ -24,7 +25,7 @@ let stopNotices = null
 let restoreSelection = null
 
 const PresetBrowser = {
-  components: { DropdownControl, PresetDetail, PresetTile },
+  components: { AccountButton, DropdownControl, PresetDetail, PresetTile },
   setup() {
     const sort = ref(SORTS[0].value)
     const search = ref("")
@@ -77,6 +78,7 @@ const PresetBrowser = {
           <search-bar class="mtg-fill" v-model="search" />
           <div class="mtg-sort"><dropdown-control :value="sort" :options="sorts" @change="sort = $event" /></div>
           <button class="mtg-button mtg-random" @click="pickRandom"><i class="material-icons">casino</i><span>Random</span></button>
+          <account-button />
         </div>
         <div ref="list" class="mtg-list">
           <p v-if="error" class="mtg-error">{{ error }}</p>

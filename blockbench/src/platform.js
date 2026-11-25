@@ -1,6 +1,7 @@
 import * as THREE from "three"
 import { useApi } from "#lib/core/api.js"
 import { usePlatform } from "#lib/core/platform.js"
+import { keyHeaders } from "./account/key.js"
 
 const SITE = "https://mctitlegenerator.com"
 const ABSOLUTE = /^([a-z][a-z0-9+.-]*:|\/\/)/i
@@ -29,7 +30,7 @@ function createWebGLRenderer() {
 }
 
 export function useBlockbench() {
-  useApi(SITE)
+  useApi(SITE, keyHeaders)
   usePlatform({
     createWebGLRenderer,
     asset: path => ABSOLUTE.test(path) ? path : `${SITE}/${path.replace(/^\//, "")}`,

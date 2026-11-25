@@ -53,9 +53,35 @@ export const STYLES = `
     width: 190px;
   }
 
+  .mtg-presets .mtg-account,
   .mtg-presets .mtg-random {
     flex: none;
     width: auto;
+  }
+
+  .mtg-account > i {
+    flex: none;
+    font-size: 18px;
+  }
+
+  .mtg-account > span {
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mtg-sign-in > p {
+    margin: 0;
+  }
+
+  .mtg-sign-in > .mtg-code {
+    padding: 12px;
+    font-size: 1.8em;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-align: center;
+    background: var(--color-back);
   }
 
   .mtg-list {
@@ -261,6 +287,11 @@ export const STYLES = `
     .mtg-sort {
       flex: 1;
       width: auto;
+      min-width: 0;
+    }
+
+    .mtg-account > span {
+      display: none;
     }
   }
 

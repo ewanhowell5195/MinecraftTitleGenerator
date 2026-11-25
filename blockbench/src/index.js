@@ -1,3 +1,4 @@
+import { registerAccount, unregisterAccount } from "./account/index.js"
 import { addText, registerActions, unregisterActions } from "./actions.js"
 import { chooseClicked } from "./clicks.js"
 import { isTitle, registerElements, unregisterElements } from "./elements.js"
@@ -62,6 +63,7 @@ Plugin.register("minecraft_title_generator", {
     })
     registerFile()
     registerMode()
+    registerAccount()
     registerPresets()
     registerActions()
     registerHost()
@@ -112,6 +114,7 @@ Plugin.register("minecraft_title_generator", {
     removeLocks()
     unregisterPanels()
     unregisterPresets()
+    unregisterAccount()
     unregisterMode()
     unregisterFile()
     closeTitles()
