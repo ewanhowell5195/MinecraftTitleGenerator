@@ -3,6 +3,7 @@ import { GENERATED_EDGE_OVERLAYS, withGenerated } from "#lib/texture/overlays/se
 import { titleCase } from "#lib/core/names.js"
 import { FACE_COLOURS, FACE_PANELS, overlayLayer } from "#lib/settings/textureDefaults.js"
 import { textureName } from "#lib/submissions/kinds/fontAsset.js"
+import { overlayLook } from "#lib/submissions/kinds/published.js"
 
 const FACE_LABELS = { faces: "Top and bottom faces", inner: "Inner faces", sides: "Side faces" }
 
@@ -40,7 +41,7 @@ function fontAsset(kind) {
   return {
     file: "PNG",
     line(item, file, text) {
-      if (kind === "overlay") return { text, font: item.target, textureSource: "premade", texture: "flat", overlayMode: "custom", overlays: [{ ...overlayLayer(null), source: "file", file }] }
+      if (kind === "overlay") return { text, font: item.target, textureSource: "premade", texture: "flat", ...overlayLook({ ...overlayLayer(null), source: "file", file }) }
       return { text, font: item.target, textureSource: "custom", customTexture: file, customTextureMode: "standard", customBorder: true, borderColour: item.details.border, ...layered(item.details) }
     },
     summary(item, fonts) {

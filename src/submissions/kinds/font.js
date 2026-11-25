@@ -1,5 +1,6 @@
 import { customFontId } from "#lib/font/customFonts.js"
 import { overlayLayer } from "#lib/settings/textureDefaults.js"
+import { overlayLook } from "#lib/submissions/kinds/published.js"
 
 const IMPORT_HEIGHT = 40
 const KIND_NAMES = { flat: "Flat texture", texture: "Textures", overlay: "Overlays", strip: "Strips" }
@@ -25,7 +26,7 @@ export const font = {
     return { text, font: customFontId(source), customFont: source }
   },
   dressed(line, extra, image) {
-    if (extra.kind === "overlay") return { ...line, overlayMode: "custom", overlays: [{ ...overlayLayer(null), source: "file", file: image }] }
+    if (extra.kind === "overlay") return { ...line, ...overlayLook({ ...overlayLayer(null), source: "file", file: image }) }
     return { ...line, textureSource: "custom", customTexture: image, customTextureMode: extra.kind === "strip" ? "strip" : "standard", customBorder: true, borderColour: extra.border ?? "#000000" }
   },
   title(item, fonts) {
