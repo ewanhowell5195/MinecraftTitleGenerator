@@ -1,6 +1,6 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { useCommunityBrowser } from "#lib/presets/communityBrowser.js"
-import { useMyPresets } from "#lib/presets/myPresets.js"
+import { MINE_SORTS, useMyPresets } from "#lib/presets/myPresets.js"
 import { SORTS } from "#lib/presets/presetText.js"
 import { addPreset, presetsError, presetsLoading } from "#lib/presets/savedPresets.js"
 import { accountChanges } from "#lib/state/account.js"
@@ -200,6 +200,8 @@ const PresetBrowser = {
       isSaved: mine.isSaved,
       keep,
       list,
+      mineSort: mine.sort,
+      mineSorts: MINE_SORTS,
       loadInto: () => use(replaceWithPreset),
       open: () => use(openPreset),
       pickMine,
@@ -234,7 +236,10 @@ const PresetBrowser = {
             <div class="mtg-sort"><dropdown-control :value="sort" :options="sorts" @change="sort = $event" /></div>
             <button class="mtg-button mtg-random" @click="pickRandom"><i class="material-icons">casino</i><span>Random</span></button>
           </template>
-          <share-usage v-else />
+          <template v-else>
+            <div class="mtg-sort mtg-short-sort"><dropdown-control :value="mineSort" :options="mineSorts" @change="mineSort = $event" /></div>
+            <share-usage />
+          </template>
           <account-button />
         </div>
         <div ref="list" class="mtg-list">

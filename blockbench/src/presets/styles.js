@@ -148,6 +148,14 @@ export const STYLES = `
     width: 200px;
   }
 
+  .mtg-short-sort {
+    width: 120px;
+  }
+
+  .mtg-tools > .search_bar {
+    min-width: 140px;
+  }
+
   .mtg-presets .mtg-account,
   .mtg-presets .mtg-random {
     flex: none;
@@ -604,6 +612,12 @@ export const STYLES = `
   @container mtg-screen (max-width: 1420px) {
     .mtg-presets.open {
       grid-template-columns: 720px minmax(0, 1fr);
+    }
+  }
+
+  @container mtg-screen (max-width: 1300px) {
+    .mtg-presets.raised .mtg-tools > .mtg-usage > span:last-child {
+      display: none;
     }
   }
 

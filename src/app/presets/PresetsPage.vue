@@ -27,7 +27,7 @@
   import ShareUsage from "./ShareUsage.vue"
   import TopBar from "#src/site/TopBar.vue"
   import { useCommunityBrowser } from "#lib/presets/communityBrowser.js"
-  import { useMyPresets } from "#lib/presets/myPresets.js"
+  import { MINE_SORTS, useMyPresets } from "#lib/presets/myPresets.js"
   import { SORTS, ratingText, toGoText } from "#lib/presets/presetText.js"
   import { router } from "#src/router.js"
 
@@ -41,7 +41,7 @@
   const search = computed({ get: () => tab.value === "community" ? presetsPage.search : mineSearch.value, set: value => tab.value === "community" ? setPresetSearch(value) : mineSearch.value = value })
   const { results, loading, error, sentinel, load, selected: selectedCommunity, emptyMessage: communityMessage, clear, pick, pickRandom, searched, searchUser, counted, vote, rename: renameCommunity, forget } = useCommunityBrowser({ sort, search, active: () => tab.value === "community", start: tab.value === "community" && presetsPage.id !== null ? cachedCommunityPreset(presetsPage.id) : null, shown: showCommunity })
   const root = ref(null)
-  const { selectedCode: selectedLocalCode, stats, removing, term, shown: localShown, groups: localGroups, selected: selectedLocal, isSaved, rename: renameLocal, remove, removeShared } = useMyPresets({ search, active: () => tab.value === "mine", forgotten })
+  const { sort: mineSort, selectedCode: selectedLocalCode, stats, removing, term, shown: localShown, groups: localGroups, selected: selectedLocal, isSaved, rename: renameLocal, remove, removeShared } = useMyPresets({ search, active: () => tab.value === "mine", forgotten })
   const sharing = ref(null)
 
   const selected = computed(() => tab.value === "mine" ? selectedLocal.value : selectedCommunity.value)
@@ -183,6 +183,7 @@
             <Dropdown class="sort" :options="SORTS" v-model="sort" />
             <Button class="random" @click="pickRandom"><template #icon><Icon name="dice" :size="16" /></template><span>Random</span></Button>
           </template>
+          <Dropdown v-else class="sort" :options="MINE_SORTS" v-model="mineSort" />
         </div>
         <div class="list">
           <Notice v-if="error" class="spaced">{{ error }}</Notice>

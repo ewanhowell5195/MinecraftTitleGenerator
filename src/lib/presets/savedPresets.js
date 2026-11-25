@@ -1,5 +1,6 @@
 import { ref, watch } from "vue"
 import { LIMITS } from "../core/limits.js"
+import { byName } from "../core/names.js"
 import { inThisPlace, thisPlace } from "../core/place.js"
 import { shortNameProblem } from "../core/wording.js"
 import { titleBody } from "../link/linkformat.js"
@@ -217,7 +218,7 @@ export function replaceTargets(code) {
   const managed = new Set(managedPresets.value)
   const existing = savedWithCode(code)
   const targets = presets.value.filter(preset => titleBody(preset.code) !== titleBody(code) && (!existing || managed.has(preset.shared))).map(preset => ({ name: preset.name, code: preset.code, shared: preset.shared, online: managed.has(preset.shared) }))
-  return targets.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true }))
+  return targets.sort(byName)
 }
 
 export async function replaceWith(target, code, name) {

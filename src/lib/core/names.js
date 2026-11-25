@@ -1,3 +1,7 @@
+export function byName(a, b) {
+  return a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true })
+}
+
 export function titleCase(id) {
   return id.replace(/_|-/g, " ").replace(/\w\S*/g, word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
 }
