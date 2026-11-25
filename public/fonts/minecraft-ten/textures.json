@@ -274,6 +274,9 @@
       "name": "Glass (Tempered)",
       "authors": ["B1tseK"],
       "palette": ["#ffffff", "#ceddec"]
+    },
+    "meteors": {
+      "authors": ["alimano"]
     }
   },
   "primary": "cracked",
