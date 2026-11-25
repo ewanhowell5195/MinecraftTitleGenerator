@@ -214,7 +214,7 @@
         <NavTabs v-model="tab" :tabs="tabs" />
         <CommentThread v-show="tab === 'comments'" :id="item.id" :comments="comments" :can-comment="item.mine || reviewer" @update="comments = $event" />
         <CharacterGrid v-if="item.kind === 'font'" v-show="tab === 'characters'" :url="submissionFileUrl(item)" :texture="gridTexture" />
-        <SubmissionFiles v-show="tab === 'files'" :item="item" />
+        <SubmissionFiles v-show="tab === 'files'" :item="item" :fonts="fonts" />
       </section>
     </template>
   </template>
