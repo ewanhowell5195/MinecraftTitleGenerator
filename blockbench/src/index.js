@@ -12,11 +12,12 @@ import { registerRenderMode, unregisterRenderMode } from "./render/mode.js"
 import { angleClosed, angleDrawn, angleMoved, placeLater, registerAngle, unregisterAngle } from "./render/angle.js"
 import { lockDrawn, removeLocks } from "./render/lock.js"
 import { viewChanged, viewDrawn, viewTurned } from "./render/view.js"
+import { hidePresets, presetsChanged, registerPresets, unregisterPresets } from "./presets/index.js"
 import { registerPasses, unregisterPasses } from "./passes.js"
 import { useBlockbench } from "./platform.js"
 import { keepCounted, registerStats, savedStats, unregisterStats } from "./stats.js"
 import { closeTitle, closeTitles, resort, settleTitle, sortTitle } from "./titles.js"
-import { keepTitle, loadCamera } from "./undo.js"
+import { keepTitle, loadTitle } from "./undo.js"
 
 const listeners = []
 
@@ -29,6 +30,7 @@ function refresh() {
   if (Project) settleTitle()
   resort()
   viewChanged()
+  presetsChanged()
 }
 
 let drawn = null
@@ -60,6 +62,7 @@ Plugin.register("minecraft_title_generator", {
     })
     registerFile()
     registerMode()
+    registerPresets()
     registerActions()
     registerHost()
     registerStats()
@@ -77,8 +80,9 @@ Plugin.register("minecraft_title_generator", {
     listen("update_camera_position", viewTurned)
     listen("update_camera_position", angleMoved)
     listen("unselect_project", angleClosed)
+    listen("unselect_project", hidePresets)
     listen("create_undo_save", keepTitle)
-    listen("load_undo_save", loadCamera)
+    listen("load_undo_save", loadTitle)
     listen("load_project", () => setTimeout(() => Project && Outliner.elements.some(isTitle) && openTitleMode()))
     listen("close_project", () => Project && closeTitle(Project))
     listen("saved_state_changed", savedStats)
@@ -107,6 +111,7 @@ Plugin.register("minecraft_title_generator", {
     unregisterAngle()
     removeLocks()
     unregisterPanels()
+    unregisterPresets()
     unregisterMode()
     unregisterFile()
     closeTitles()

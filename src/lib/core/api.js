@@ -1,9 +1,15 @@
+let site = ""
+
+export function useApi(address) {
+  site = address
+}
+
 export function jsonOptions(method, body) {
   return { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body ?? {}) }
 }
 
 export async function apiCall(url, options, unavailable, signedOut) {
-  const response = await fetch(url, options)
+  const response = await fetch(site + url, options)
   const body = await response.json().catch(() => null)
   if (response.ok && body) return body
   if (response.status === 401) signedOut()

@@ -3,6 +3,8 @@ import { setCamera } from "#lib/settings/camera.js"
 import { titleState } from "./titles.js"
 
 export const CAMERA = { minecraft_title_camera: true }
+export const KEPT = "minecraft_title"
+export const WHOLE = { ...CAMERA, minecraft_title_kept: true }
 
 const late = new Map()
 
@@ -46,13 +48,15 @@ export function edit(target, label, change) {
 
 export function keepTitle({ save, aspects }) {
   if (aspects.minecraft_title_camera) save.minecraft_title_camera = { ...titleState().title.camera }
+  if (aspects.minecraft_title_kept) save.minecraft_title_kept = { ...Project[KEPT] }
   for (const { words } of aspects.elements ?? []) {
     for (const word of words ?? []) save.elements[word.uuid] ??= word.getUndoCopy()
   }
 }
 
-export function loadCamera({ save }) {
+export function loadTitle({ save }) {
   if (save.minecraft_title_camera) setCamera(titleState().title.camera, save.minecraft_title_camera)
+  if (save.minecraft_title_kept) Project[KEPT] = { ...save.minecraft_title_kept }
 }
 
 export function quietly(change) {

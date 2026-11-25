@@ -53,21 +53,21 @@ export function followElementTab() {
   updateInterfacePanels()
 }
 
-function hidePanels() {
+export function hidePanels(kept = []) {
   for (const [id, panel] of Object.entries(Panels)) {
-    if (ours.has(id) || KEPT_PANELS.includes(id)) continue
+    if (ours.has(id) || kept.includes(id)) continue
     hidden.set(panel, panel.condition)
     panel.condition = () => false
   }
 }
 
-function showPanels() {
+export function showPanels() {
   for (const [panel, condition] of hidden) panel.condition = condition
   hidden.clear()
 }
 
-function putFirst() {
-  const modes = { [ID]: mode, ...Modes.options }
+export function putFirst(id) {
+  const modes = { [id]: Modes.options[id], ...Modes.options }
   for (const id of Object.keys(Modes.options)) Vue.delete(Modes.options, id)
   for (const [id, option] of Object.entries(modes)) Vue.set(Modes.options, id, option)
 }
@@ -84,7 +84,7 @@ export function registerMode() {
     condition: { formats: [FORMAT] },
     onSelect() {
       Modes.edit = true
-      hidePanels()
+      hidePanels(KEPT_PANELS)
     },
     onUnselect() {
       Modes.edit = false
@@ -93,7 +93,7 @@ export function registerMode() {
   })
   elementCondition = Panels.element.condition
   Panels.element.condition = () => Condition(elementCondition) && hasElementTab()
-  putFirst()
+  putFirst(ID)
 }
 
 export function unregisterMode() {

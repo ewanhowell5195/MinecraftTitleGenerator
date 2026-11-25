@@ -1,7 +1,8 @@
 import * as THREE from "three"
+import { useApi } from "#lib/core/api.js"
 import { usePlatform } from "#lib/core/platform.js"
 
-const SITE = "https://mctitlegenerator.com/"
+const SITE = "https://mctitlegenerator.com"
 const ABSOLUTE = /^([a-z][a-z0-9+.-]*:|\/\/)/i
 
 const timers = new Set()
@@ -28,9 +29,10 @@ function createWebGLRenderer() {
 }
 
 export function useBlockbench() {
+  useApi(SITE)
   usePlatform({
     createWebGLRenderer,
-    asset: path => ABSOLUTE.test(path) ? path : SITE + path.replace(/^\//, ""),
+    asset: path => ABSOLUTE.test(path) ? path : `${SITE}/${path.replace(/^\//, "")}`,
     frame(callback) {
       if (!document.hidden) return requestAnimationFrame(callback)
       const timer = setTimeout(callback, 16)

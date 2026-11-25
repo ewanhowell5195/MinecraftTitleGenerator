@@ -1,5 +1,6 @@
 import { ref } from "vue"
 import { FORMAT } from "../format.js"
+import { stashSelection } from "../selection.js"
 import { applyAngle, releaseAngle } from "./angle.js"
 import { enterView, leaveView } from "./view.js"
 
@@ -10,7 +11,7 @@ export const rendered = ref(null)
 const angles = new Map()
 
 let mode = null
-let unselected = []
+let restoreSelection = null
 let hidden = []
 
 export function inRenderMode() {
@@ -22,8 +23,7 @@ function guides() {
 }
 
 function enter() {
-  unselected = Outliner.selected.slice()
-  unselectAllElements()
+  restoreSelection = stashSelection()
   hidden = guides()
   for (const guide of hidden) guide.visible = false
   rendered.value = Project.uuid
@@ -40,10 +40,7 @@ function leave() {
   if (Project?.uuid !== uuid) return
   if (angles.has(uuid)) applyAngle(Preview.selected, angles.get(uuid))
   angles.delete(uuid)
-  for (const element of unselected) {
-    if (Outliner.elements.includes(element)) element.markAsSelected()
-  }
-  updateSelection()
+  restoreSelection()
 }
 
 export function registerRenderMode() {

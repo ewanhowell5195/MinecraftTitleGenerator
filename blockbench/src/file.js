@@ -1,7 +1,10 @@
 import * as THREE from "three"
 import { fileNameOf } from "#lib/core/files.js"
 import { round } from "#lib/core/maths.js"
+import { openableTitle } from "#lib/link/linkformat.js"
+import { titleValues } from "#lib/link/titleLines.js"
 import { setCamera } from "#lib/settings/camera.js"
+import { isDefaultTitle } from "#lib/title/defaultTitle.js"
 import { EXTENSION, fileData, readTitle, trimUnused } from "#lib/title/titleData.js"
 import { isTitle, types } from "./elements.js"
 import { FORMAT } from "./format.js"
@@ -9,10 +12,9 @@ import { openTitleMode } from "./mode.js"
 import { lineTransform, nativeLine, nativePosition, nativeTurn, nativeWordRotation } from "./placing.js"
 import { countedInFile, restoreCounted } from "./stats.js"
 import { lineOf, memberOf, settleTitle, titleState } from "./titles.js"
-import { quietly } from "./undo.js"
-import { homeElement } from "./words.js"
+import { KEPT, WHOLE, finishEdit, quietly } from "./undo.js"
+import { familyOf, homeElement } from "./words.js"
 
-const KEPT = "minecraft_title"
 const LINE_MOVES = keysOf("translate", "rotation")
 const MOVES = LINE_MOVES.concat(keysOf("wordTranslate", "wordRotation"))
 const UNPLACED = Object.fromEntries(LINE_MOVES.map(key => [key, 0]))
@@ -51,6 +53,13 @@ function otherContents() {
 
 function onlyTitles() {
   return !!Project && Format.id === FORMAT && Outliner.elements.length > 0 && !otherContents().size
+}
+
+export function isBlank() {
+  if (Texture.all.length || otherContents().size) return false
+  const homes = titles()
+  if (homes.length > 1) return false
+  return homes.every(home => !home.words.length && isDefaultTitle(titleState().title, rounded({ ...home.settings, ...placed(home) })))
 }
 
 function titlePath() {
@@ -99,7 +108,7 @@ function compile() {
   return JSON.stringify(data, null, 2)
 }
 
-function show(element, values, { name, locked }, parent) {
+function place(element, values, { name, locked }, parent) {
   element.useSettings({ ...values, ...UNPLACED, group: null, matchWidth: null })
   element.locked = !!locked
   element.visibility = !values.hidden
@@ -112,7 +121,7 @@ function addWord(values, own, home) {
   word.position.replace(nativePosition(values))
   word.rotation.replace(nativeWordRotation(values))
   word.scale.replace([values.wordScaleX, values.wordScaleY, values.wordScaleZ])
-  show(word, values, own, home)
+  place(word, values, own, home)
   return word
 }
 
@@ -126,7 +135,7 @@ function addLine(words, own) {
   home.rotation.replace(rotation)
   home.scale.replace([first.scaleX, first.scaleY, first.scaleZ])
   if (grouped) home.temp_data.awaitsWords = true
-  show(home, { ...first, hidden, ...(grouped && { text: "" }) }, own, "root")
+  place(home, { ...first, hidden, ...(grouped && { text: "" }) }, own, "root")
   if (!grouped) return [home]
   const added = words.map((word, index) => addWord({ ...word, hidden: word.hidden && !hidden }, own.words?.[index] ?? {}, home))
   home.isOpen = true
@@ -134,11 +143,9 @@ function addLine(words, own) {
   return added
 }
 
-function parse({ values, camera, preset, own }) {
-  const { title } = titleState()
-  setCamera(title.camera, camera)
+function show({ values, camera, preset }, own = {}) {
+  setCamera(titleState().title.camera, camera)
   Project[KEPT] = { ...(camera && { camera }), ...(preset && { preset }) }
-  restoreCounted(own.counted)
   const lines = values.map((words, index) => addLine(words, own.lines?.[index] ?? {}))
   settleTitle()
   quietly(() => {
@@ -149,8 +156,43 @@ function parse({ values, camera, preset, own }) {
     }
   })
   unselectAllElements()
-  homeElement(lines[0][0]).select()
+  const homes = lines.map(([first]) => homeElement(first))
+  homes[0].select()
+  return homes
+}
+
+function parse({ own, ...data }) {
+  restoreCounted(own.counted)
+  show(data, own)
   openTitleMode()
+}
+
+function readPreset({ code, id, name }) {
+  const title = openableTitle(code)
+  return { values: titleValues(title), camera: title.camera, preset: { id, name } }
+}
+
+function nameAfter({ name }) {
+  Project.name = name.replace(/[\\/:*?"<>|]/g, "").trim()
+}
+
+export function openPreset(preset) {
+  const data = readPreset(preset)
+  setupProject(Formats[FORMAT])
+  nameAfter(preset)
+  parse({ ...data, own: {} })
+}
+
+export function replaceWithPreset(preset) {
+  const data = readPreset(preset)
+  if (isBlank() && !Project.name) nameAfter(preset)
+  openTitleMode()
+  finishEdit()
+  const old = titles()
+  Undo.initEdit({ outliner: true, elements: old.flatMap(familyOf), selection: true, ...WHOLE })
+  for (const home of old) home.remove()
+  const homes = show(data)
+  Undo.finishEdit("Use title preset", { outliner: true, elements: homes.flatMap(familyOf), selection: true, ...WHOLE })
 }
 
 function read(text) {
