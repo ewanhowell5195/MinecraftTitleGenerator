@@ -1,12 +1,29 @@
 import { onBeforeUnmount, ref, watch } from "vue"
 import { canvasBlob } from "#lib/core/files.js"
 import { host } from "#lib/panels/host.js"
+import { useVotePrompt } from "#lib/presets/votePrompt.js"
+import { forgetPreset, sourcePreset } from "../file.js"
 
 function sizeText(bytes) {
   return bytes > 1048576 ? `${Math.round(bytes / 1048576 * 100) / 100} MB` : `${Math.round(bytes / 1024)} KB`
 }
 
 let shown = null
+
+const VotePrompt = {
+  setup: () => useVotePrompt(sourcePreset(), forgetPreset),
+  template: `
+    <div v-if="preset" class="mtg-ask">
+      <p v-if="vote">Thanks for voting on {{ preset.name }}!</p>
+      <p v-else-if="error" class="mtg-error">{{ error }}</p>
+      <p v-else>Made from the <strong>{{ preset.name }}</strong> preset. Was it a good one?</p>
+      <div v-if="!vote" class="mtg-row">
+        <button class="mtg-button" @click="cast(1)"><i class="material-icons">arrow_upward</i><span>Upvote</span></button>
+        <button class="mtg-button" @click="cast(-1)"><i class="material-icons">arrow_downward</i><span>Downvote</span></button>
+      </div>
+    </div>
+  `
+}
 
 async function showResult(image) {
   shown?.delete()
@@ -17,6 +34,7 @@ async function showResult(image) {
     width: 900,
     buttons: [],
     component: {
+      components: { VotePrompt },
       data: () => ({ dimensions: `${image.width} × ${image.height}`, size: sizeText(blob.size) }),
       mounted() {
         this.$refs.holder.append(image)
@@ -38,6 +56,7 @@ async function showResult(image) {
         <div class="mtg-controls">
           <div ref="holder" class="mtg-result mtg-checker"></div>
           <div class="mtg-row mtg-hint"><span class="mtg-fill">{{ dimensions }}</span><span>{{ size }}</span></div>
+          <vote-prompt />
           <div class="mtg-row">
             <button class="mtg-button" @click="copy"><i class="material-icons">file_copy</i><span>Copy render</span></button>
             <button class="mtg-button primary" @click="save"><i class="material-icons">save</i><span>Save render</span></button>

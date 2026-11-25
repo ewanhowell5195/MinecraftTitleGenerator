@@ -104,13 +104,13 @@ const PresetBrowser = {
           <p v-if="error" class="mtg-error">{{ error }}</p>
           <p v-else-if="!results.length && !loading" class="mtg-hint">{{ emptyMessage }}</p>
           <div class="mtg-preset-grid">
-            <preset-tile v-for="preset of results" :key="preset.id" :preset="preset" :selected="!!selected && selected.id === preset.id" :searched="searched(preset)" :mine="isMine(preset)" @pick="pick(preset)" @user="searchUser" />
+            <preset-tile v-for="preset of results" :key="preset.id" :preset="preset" :selected="!!selected && selected.id === preset.id" :searched="searched(preset)" :mine="isMine(preset)" @vote="vote(preset, $event)" @pick="pick(preset)" @user="searchUser" />
           </div>
           <p v-if="loading" class="mtg-hint">Loading presets</p>
           <div ref="sentinel" class="mtg-more"></div>
         </div>
       </div>
-      <preset-detail v-if="selected" :preset="selected" :searched="searched(selected)" :mine="isMine(selected)" :blank="blank" @user="searchUser" @open="open" @load="loadInto" @close="clear" />
+      <preset-detail v-if="selected" :preset="selected" :searched="searched(selected)" :mine="isMine(selected)" @vote="vote(selected, $event)" :blank="blank" @user="searchUser" @open="open" @load="loadInto" @close="clear" />
     </div>
   `
 }

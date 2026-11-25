@@ -44,8 +44,26 @@ const PresetAuthor = {
   `
 }
 
+const VoteButtons = {
+  props: { vote: Number, named: Boolean },
+  computed: {
+    up() {
+      return this.vote === 1 ? "Upvoted" : "Upvote"
+    },
+    down() {
+      return this.vote === -1 ? "Downvoted" : "Downvote"
+    }
+  },
+  template: `
+    <div class="mtg-votes" :class="{ named }" @click.stop>
+      <button class="mtg-button" :class="{ voted: vote === 1 }" :title="up" @click="$emit('vote', 1)"><i class="material-icons">arrow_upward</i><span v-if="named">{{ up }}</span></button>
+      <button class="mtg-button" :class="{ voted: vote === -1, negative: vote === -1 }" :title="down" @click="$emit('vote', -1)"><i class="material-icons">arrow_downward</i><span v-if="named">{{ down }}</span></button>
+    </div>
+  `
+}
+
 export const PresetTile = {
-  components: { PresetAuthor, PresetPicture },
+  components: { PresetAuthor, PresetPicture, VoteButtons },
   props: { preset: Object, selected: Boolean, searched: Boolean, mine: Boolean },
   methods: { ratingText, toGoText, votesText },
   template: `
@@ -59,13 +77,14 @@ export const PresetTile = {
         </div>
         <span v-if="preset.rating !== null" class="mtg-rating" :title="votesText(preset.votes)"><i class="material-icons">star</i>{{ ratingText(preset.rating) }}</span>
         <span v-else class="mtg-needs" :title="toGoText(preset.votes)">Needs votes</span>
+        <vote-buttons v-if="!mine" :vote="preset.vote" @vote="$emit('vote', $event)" />
       </div>
     </div>
   `
 }
 
 export const PresetDetail = {
-  components: { PresetAuthor, PresetPicture },
+  components: { PresetAuthor, PresetPicture, VoteButtons },
   props: { preset: Object, searched: Boolean, mine: Boolean, blank: Boolean },
   data: () => ({ stars: [1, 2, 3, 4, 5] }),
   methods: {
@@ -92,6 +111,7 @@ export const PresetDetail = {
       <div class="mtg-close"><div class="tool" title="Close this preset" @click="$emit('close')"><i class="material-icons">close</i></div></div>
       <preset-picture :preset="preset" />
       <div class="mtg-heading"><h2>{{ preset.name }}</h2><span v-if="mine" class="mtg-yours">Shared by you</span></div>
+      <vote-buttons v-if="!mine" named :vote="preset.vote" @vote="$emit('vote', $event)" />
       <div v-if="preset.rating !== null" class="mtg-rating" :title="upvotedText(preset.rating)">
         <span class="mtg-stars"><span v-for="star of stars" :key="star" class="mtg-star"><i class="material-icons">star</i><i class="material-icons" :style="filled(star)">star</i></span></span>
         <strong>{{ ratingText(preset.rating) }}</strong>

@@ -75,6 +75,25 @@ export const STYLES = `
     object-fit: contain;
   }
 
+  .mtg-ask {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 16px;
+    min-height: 54px;
+    padding: 10px 12px;
+    border: 1px solid var(--color-button);
+  }
+
+  .mtg-ask > p {
+    margin: 0;
+  }
+
+  .mtg-ask .mtg-button {
+    width: auto;
+  }
+
   .mtg-panel {
     flex: 1;
     min-height: 0;
@@ -260,6 +279,20 @@ export const STYLES = `
 
   .mtg-button.primary:hover {
     filter: brightness(1.15);
+  }
+
+  .mtg-button.voted,
+  .mtg-button.voted:hover {
+    color: var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+    box-shadow: inset 0 0 0 1px var(--color-accent);
+  }
+
+  .mtg-button.voted.negative,
+  .mtg-button.voted.negative:hover {
+    color: var(--color-error);
+    background: color-mix(in srgb, var(--color-error) 14%, transparent);
+    box-shadow: inset 0 0 0 1px var(--color-error);
   }
 
   .mtg-button.big {

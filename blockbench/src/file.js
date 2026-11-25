@@ -5,7 +5,7 @@ import { openableTitle } from "#lib/link/linkformat.js"
 import { titleValues } from "#lib/link/titleLines.js"
 import { setCamera } from "#lib/settings/camera.js"
 import { isDefaultTitle } from "#lib/title/defaultTitle.js"
-import { EXTENSION, fileData, readTitle, trimUnused } from "#lib/title/titleData.js"
+import { EXTENSION, fileData, presetSource, readTitle, trimUnused } from "#lib/title/titleData.js"
 import { isTitle, types } from "./elements.js"
 import { FORMAT } from "./format.js"
 import { openTitleMode } from "./mode.js"
@@ -259,6 +259,17 @@ function whenOnlyTitles(replacement) {
 
 function insteadOf(id, replacement) {
   hooks.push(BarItems[id].on("use", replacement))
+}
+
+export function sourcePreset() {
+  return presetSource(Project[KEPT]?.preset)
+}
+
+export function forgetPreset({ id }) {
+  if (sourcePreset()?.id !== id) return
+  const { preset, ...others } = Project[KEPT]
+  Project[KEPT] = others
+  Project.saved = false
 }
 
 export function keepCamera(changes) {

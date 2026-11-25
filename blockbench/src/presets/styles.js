@@ -279,6 +279,28 @@ export const STYLES = `
     background: color-mix(in srgb, var(--color-accent) 14%, transparent);
   }
 
+  .mtg-votes {
+    display: flex;
+    flex: none;
+    gap: 4px;
+  }
+
+  .mtg-presets .mtg-votes > .mtg-button {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+  }
+
+  .mtg-presets .mtg-votes.named {
+    gap: 8px;
+  }
+
+  .mtg-presets .mtg-votes.named > .mtg-button {
+    flex: 1;
+    width: auto;
+    height: 36px;
+  }
+
   .mtg-needs {
     flex: none;
     font-size: 12px;
