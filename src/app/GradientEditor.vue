@@ -1,16 +1,14 @@
 <script setup>
-  import { computed, onBeforeUnmount, ref, watch } from "vue"
+  import { computed, onBeforeUnmount, ref } from "vue"
   import { trackPointer } from "../components/composables/events.js"
-  import { DEFAULT_MIX, cssGradient, movedStopPositions, stopColour } from "../lib/texture/colourStops.js"
+  import { DEFAULT_MIX } from "../lib/texture/colourStops.js"
+  import { useGradientStops } from "../lib/panels/gradientStops.js"
   import { clamp } from "../lib/core/maths.js"
   import { useListReorder } from "../components/composables/reorder.js"
   import Button from "../components/Button.vue"
   import ColourPicker from "../components/ColourPicker.vue"
   import Icon from "../components/Icon.vue"
   import NumberInput from "../components/NumberInput.vue"
-
-  const REMOVE_DISTANCE = 28
-  const ENDS = { 0: ["Top", "Bottom"], 90: ["Right", "Left"], 180: ["Bottom", "Top"], 270: ["Left", "Right"], 360: ["Top", "Bottom"] }
 
   const props = defineProps({
     smooth: { type: Boolean, default: true },
@@ -21,56 +19,23 @@
 
   const stops = defineModel({ type: Array, required: true })
   const track = ref(null)
-  const selected = ref(0)
-  const removing = ref(false)
-  const typing = ref(false)
-  const order = ref(sortedStops())
-  let drag = null
+  let stopDrag = null
 
-  const ends = computed(() => ENDS[props.angle] ?? ["Start", "End"])
-  const background = computed(() => cssGradient(stops.value, props.smooth, "to right", props.mix))
-
+  const { add, background, beginSort, drag, drop, endSort, ends, hold, order, removable, remove, removing, selected, sortTo, type } = useGradientStops({ stops: () => stops.value, props })
   const stop = computed(() => stops.value[selected.value] ?? null)
-  const removable = computed(() => stops.value.length > props.min)
-
-  function colourAt(position) {
-    return stopColour(stops.value.map(stop => ({ colour: stop.colour, position: clamp(stop.position, 0, 100) })).sort((a, b) => a.position - b.position), position, props.mix)
-  }
-
-  function positionAt(x) {
-    const rect = track.value.getBoundingClientRect()
-    return Math.round(clamp((x - rect.left) / rect.width, 0, 1) * 100)
-  }
 
   function begin(index, event) {
     if (event.button !== 0) return
-    selected.value = index
-    drag = { index, top: track.value.getBoundingClientRect().bottom, stop: trackPointer(move, end) }
-    removing.value = false
+    hold(index)
+    stopDrag = trackPointer(moved => drag(index, track.value, moved), () => {
+      drop(index)
+      stopDrag = null
+    })
     event.preventDefault()
   }
 
-  function add(event) {
-    if (event.button !== 0) return
-    const position = positionAt(event.clientX)
-    stops.value.push({ colour: colourAt(position), position })
-    begin(stops.value.length - 1, event)
-  }
-
-  function move(event) {
-    stops.value[drag.index].position = positionAt(event.clientX)
-    removing.value = removable.value && event.clientY - drag.top > REMOVE_DISTANCE
-  }
-
-  function remove(index) {
-    if (!removable.value) return
-    stops.value.splice(index, 1)
-  }
-
-  function end() {
-    if (removing.value) remove(drag.index)
-    removing.value = false
-    drag = null
+  function insert(event) {
+    if (event.button === 0) begin(add(track.value, event), event)
   }
 
   function nudge(event, by) {
@@ -81,55 +46,17 @@
     if (typeof next === "number") stops.value[index].position = next
   }
 
-  function sortedStops() {
-    return Array.from(stops.value.keys()).sort((a, b) => stops.value[a].position - stops.value[b].position)
-  }
-
-  function finishTyping() {
-    typing.value = false
-    order.value = sortedStops()
-  }
-
   const box = ref(null)
   const rows = []
-  const { dragged, press } = useListReorder({ box, rows, ids: () => order.value, begin: beginSort, move: sortTo, release })
+  const { dragged, press } = useListReorder({ box, rows, ids: () => order.value, begin: beginSort, move: sortTo, release: (sort, active) => endSort(active) })
 
-  function beginSort(index) {
-    selected.value = index
-    const sorted = sortedStops()
-    return { sorted, from: sorted.indexOf(index), positions: sorted.map(item => stops.value[item].position) }
-  }
-
-  function sortTo(sort, to) {
-    const next = sort.sorted.slice()
-    next.splice(to, 0, next.splice(sort.from, 1)[0])
-    order.value = next
-    movedStopPositions(sort.positions, sort.from, to).forEach((position, slot) => stops.value[next[slot]].position = position)
-  }
-
-  function release(sort, active) {
-    if (!active) return
-    selected.value = order.value.indexOf(sort.id)
-    stops.value.splice(0, stops.value.length, ...order.value.map(index => stops.value[index]))
-    order.value = sortedStops()
-  }
-
-  watch(() => stops.value.length, length => {
-    if (selected.value >= length) selected.value = length - 1
-    order.value = sortedStops()
-  })
-
-  watch(() => stops.value.map(stop => stop.position).join(), () => {
-    if (!typing.value && dragged.value === null) order.value = sortedStops()
-  })
-
-  onBeforeUnmount(() => drag?.stop())
+  onBeforeUnmount(() => stopDrag?.())
 </script>
 
 <template>
   <div class="gradient-editor">
     <div class="bar" :style="{ background }"></div>
-    <div class="track" ref="track" @pointerdown.self="add" v-tooltip="{ text: 'Click to add a colour, drag a colour down to remove it', anchor: 'cursor-x' }">
+    <div class="track" ref="track" @pointerdown.self="insert" v-tooltip="{ text: 'Click to add a colour, drag a colour down to remove it', anchor: 'cursor-x' }">
       <button v-for="(item, index) of stops" :key="index" class="stop" :class="{ selected: index === selected, removing: removing && index === selected }" :style="{ left: `${item.position}%` }" @pointerdown="begin(index, $event)" @keydown.left.prevent="nudge($event, -1)" @keydown.right.prevent="nudge($event, 1)" @keydown.delete.prevent="remove(index)" @focus="selected = index" :aria-label="`Colour at ${item.position}%`">
         <span :style="{ background: item.colour }"></span>
       </button>
@@ -143,7 +70,7 @@
         <span v-if="stops.length > 1" class="grip" @pointerdown="press($event, index)"><Icon name="grip" :size="14" /></span>
         <ColourPicker class="grow" v-model="stops[index].colour" />
         <label class="location" v-tooltip="'Location'">
-          <NumberInput :model-value="stops[index].position" @update:model-value="locate(index, $event)" aria-label="Location" min="0" max="100" step="1" @focus="typing = true" @blur="finishTyping" />
+          <NumberInput :model-value="stops[index].position" @update:model-value="locate(index, $event)" aria-label="Location" min="0" max="100" step="1" @focus="type(true)" @blur="type(false)" />
           <span>%</span>
         </label>
         <Button ghost icon="trash" title="Remove colour" :disabled="!removable" @click="remove(index)" />

@@ -1,102 +1,71 @@
+import { ref } from "vue"
 import { clamp } from "#lib/core/maths.js"
-import { DEFAULT_MIX, cssGradient, movedStopPositions, stopColour } from "#lib/texture/colourStops.js"
+import { useGradientStops } from "#lib/panels/gradientStops.js"
+import { DEFAULT_MIX } from "#lib/texture/colourStops.js"
 import { followDrag, sortRows } from "./drag.js"
 import { ColourControl } from "./inputs.js"
-
-const REMOVE_DISTANCE = 28
-const ENDS = { 0: ["Top", "Bottom"], 90: ["Right", "Left"], 180: ["Bottom", "Top"], 270: ["Left", "Right"], 360: ["Top", "Bottom"] }
 
 export const GradientControl = {
   components: { ColourControl },
   props: { value: Array, smooth: { type: Boolean, default: true }, mix: { type: String, default: DEFAULT_MIX }, angle: { type: Number, default: 0 }, min: { type: Number, default: 2 } },
-  data: () => ({ selected: 0, removing: false, sorting: null }),
-  computed: {
-    ends() {
-      return ENDS[this.angle] ?? ["Start", "End"]
-    },
-    background() {
-      return cssGradient(this.value, this.smooth, "to right", this.mix)
-    },
-    removable() {
-      return this.value.length > this.min
-    },
-    order() {
-      return this.sorting ?? this.sorted()
-    }
-  },
-  watch: {
-    "value.length"(length) {
-      if (this.selected >= length) this.selected = length - 1
-    }
-  },
-  methods: {
-    sorted() {
-      return Array.from(this.value.keys()).sort((a, b) => this.value[a].position - this.value[b].position)
-    },
-    change(action) {
-      this.$emit("press")
+  setup(props, { emit }) {
+    const track = ref(null)
+    const rows = ref(null)
+
+    function change(action) {
+      emit("press")
       action()
-    },
-    positionAt(x) {
-      const { left, width } = this.$refs.track.getBoundingClientRect()
-      return Math.round(clamp((x - left) / width, 0, 1) * 100)
-    },
-    begin(index, event) {
+    }
+
+    const gradient = useGradientStops({ stops: () => props.value, props, change })
+
+    function begin(index, event) {
       if (event.button !== 0) return
       event.preventDefault()
-      this.selected = index
-      this.removing = false
-      const { bottom } = this.$refs.track.getBoundingClientRect()
-      followDrag(({ clientX, clientY }) => {
-        this.change(() => (this.value[index].position = this.positionAt(clientX)))
-        this.removing = this.removable && clientY - bottom > REMOVE_DISTANCE
-      }, () => {
-        if (this.removing) this.change(() => this.value.splice(index, 1))
-        this.removing = false
-        this.$emit("done")
+      gradient.hold(index)
+      followDrag(moved => gradient.drag(index, track.value, moved), () => {
+        gradient.drop(index)
+        emit("done")
       })
-    },
-    add(event) {
-      if (event.button !== 0) return
-      const position = this.positionAt(event.clientX)
-      const stops = this.value.map(stop => ({ ...stop })).sort((a, b) => a.position - b.position)
-      this.change(() => this.value.push({ colour: stopColour(stops, position, this.mix), position }))
-      this.begin(this.value.length - 1, event)
-    },
-    remove(index) {
-      this.change(() => this.value.splice(index, 1))
-      this.$emit("done")
-    },
-    recolour(index, colour) {
-      this.change(() => (this.value[index].colour = colour))
-    },
-    locate(index, event) {
+    }
+
+    function add(event) {
+      if (event.button === 0) begin(gradient.add(track.value, event), event)
+    }
+
+    function remove(index) {
+      gradient.remove(index)
+      emit("done")
+    }
+
+    function recolour(index, colour) {
+      change(() => (props.value[index].colour = colour))
+    }
+
+    function locate(index, event) {
       const number = event.target.valueAsNumber
-      if (!Number.isNaN(number)) this.change(() => (this.value[index].position = Math.round(clamp(number, 0, 100))))
-      event.target.value = this.value[index].position
-      this.$emit("done")
-    },
-    sort(event, from) {
-      const order = this.sorted()
-      const positions = order.map(index => this.value[index].position)
-      this.selected = order[from]
-      let next = order
-      sortRows(event, this.$refs.rows, from, {
-        move: (at, to) => this.change(() => {
-          next = order.slice()
-          next.splice(to, 0, next.splice(from, 1)[0])
-          this.sorting = next
-          movedStopPositions(positions, from, to).forEach((position, slot) => (this.value[next[slot]].position = position))
-        }),
-        end: () => {
-          this.sorting = null
-          if (next === order) return
-          this.change(() => this.value.splice(0, this.value.length, ...next.map(index => this.value[index])))
-          this.selected = next.indexOf(this.selected)
-          this.$emit("done")
+      if (!Number.isNaN(number)) change(() => (props.value[index].position = Math.round(clamp(number, 0, 100))))
+      event.target.value = props.value[index].position
+      emit("done")
+    }
+
+    function sort(event, from) {
+      if (event.button !== 0) return
+      const held = gradient.beginSort(gradient.order.value[from])
+      let moved = false
+      sortRows(event, rows.value, from, {
+        move(at, to) {
+          moved = true
+          gradient.sortTo(held, to)
+        },
+        end() {
+          gradient.endSort(moved)
+          if (moved) emit("done")
         }
       })
     }
+
+    return { ...gradient, add, begin, locate, recolour, remove, rows, sort, track }
   },
   template: `
     <div class="mtg-gradient">
