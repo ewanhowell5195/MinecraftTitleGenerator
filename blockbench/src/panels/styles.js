@@ -440,6 +440,7 @@ export const STYLES = `
 
   .mtg-controls .tool.disabled {
     opacity: 0.4;
+    pointer-events: none;
   }
 
   .mtg-controls > .mtg-slider .tool {
