@@ -11,6 +11,7 @@ import { shapeName } from "../geometry/shapes.js"
 import { oneWord, wholeLine } from "../title/broadcast.js"
 import { keptObject, titleObjects } from "../title/objects.js"
 import { createTitle, freeRowOf, linesOf, versionsIn, wordsOf } from "../title/title.js"
+import { presetSource } from "../title/titleData.js"
 import { joinWords, titleLines, titleValues, trimmed } from "../link/titleLines.js"
 import { FILE_VERSION } from "../settings/upgrades.js"
 import { userBusy } from "./activity.js"
@@ -31,10 +32,6 @@ export function validSelection(objects, selected, selectedGroup) {
 
 export function lines() {
   return linesOf(scene.objects)
-}
-
-export function presetSource(value) {
-  return Number.isInteger(value?.id) && typeof value.name === "string" ? { id: value.id, name: value.name } : null
 }
 
 function stored(objects, { selected, selectedGroup, camera, preset = null }, version, values) {

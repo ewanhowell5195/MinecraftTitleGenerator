@@ -85,8 +85,12 @@ function parse(text) {
   }
 }
 
+export function presetSource(value) {
+  return Number.isInteger(value?.id) && typeof value.name === "string" ? { id: value.id, name: value.name } : null
+}
+
 export function readTitle(text) {
   const data = parse(text)
   if (data?.format !== FORMAT) throw new Error("this isn't a Minecraft title file")
-  return { values: titleValues(data), camera: data.camera, preset: data.preset }
+  return { values: titleValues(data), camera: data.camera, preset: presetSource(data.preset) }
 }

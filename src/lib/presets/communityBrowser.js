@@ -1,8 +1,10 @@
 import { computed, nextTick, ref, watch } from "vue"
 import { searchWithUser, searchesUser, toggleUserSearch } from "../link/presetSearch.js"
-import { countDownload, randomCommunityPreset } from "../state/community.js"
+import { countDownload, randomCommunityPreset, voteOn } from "../state/community.js"
 import { showNotice } from "../state/notices.js"
 import { usePresetPaging } from "./presetPaging.js"
+
+const VOTED_LINGER = 700
 
 export function useCommunityBrowser({ sort, search, active = () => true, start = null, shown = () => {} }) {
   const selected = ref(start)
@@ -57,7 +59,17 @@ export function useCommunityBrowser({ sort, search, active = () => true, start =
     }
   }
 
+  async function vote(preset, value) {
+    if (preset.vote === value) return
+    try {
+      Object.assign(preset, await voteOn(preset.id, value))
+      if (sort.value === "needs") setTimeout(() => results.value = results.value.filter(item => item.id !== preset.id), VOTED_LINGER)
+    } catch (err) {
+      showNotice(err.message)
+    }
+  }
+
   watch(sort, () => load(0))
 
-  return { results, loading, error, sentinel, load, selected, emptyMessage, clear, pick, pickRandom, searched, searchUser, counted }
+  return { results, loading, error, sentinel, load, selected, emptyMessage, clear, pick, pickRandom, searched, searchUser, counted, vote }
 }

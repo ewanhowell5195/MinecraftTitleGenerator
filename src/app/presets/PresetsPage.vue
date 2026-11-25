@@ -1,7 +1,7 @@
 <script setup>
   import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, watchEffect } from "vue"
   import { account, accountChanges, refreshAccount, signInProviders } from "#lib/state/account.js"
-  import { cachedCommunityPreset, managedPresets, ownPresets, presetStats, refreshUsage, voteOn } from "#lib/state/community.js"
+  import { cachedCommunityPreset, managedPresets, ownPresets, presetStats, refreshUsage } from "#lib/state/community.js"
   import { isPlainClick, useWindowEvents } from "#c/composables/events.js"
   import { titleBody } from "#lib/link/linkformat.js"
   import { notice, showNotice } from "#lib/state/notices.js"
@@ -31,7 +31,6 @@
   import { router } from "#src/router.js"
 
   const TABS = [{ value: "community", label: "Community" }, { value: "mine", label: "My presets" }]
-  const VOTED_LINGER = 700
   const EDITOR_TITLE = "Minecraft Title Generator"
 
   const landed = takeLanding()
@@ -39,7 +38,7 @@
   const sort = computed({ get: () => presetsPage.sort, set: setPresetSort })
   const mineSearch = ref("")
   const search = computed({ get: () => tab.value === "community" ? presetsPage.search : mineSearch.value, set: value => tab.value === "community" ? setPresetSearch(value) : mineSearch.value = value })
-  const { results, loading, error, sentinel, load, selected: selectedCommunity, emptyMessage: communityMessage, clear, pick, pickRandom, searched, searchUser, counted } = useCommunityBrowser({ sort, search, active: () => tab.value === "community", start: tab.value === "community" && presetsPage.id !== null ? cachedCommunityPreset(presetsPage.id) : null, shown: showCommunity })
+  const { results, loading, error, sentinel, load, selected: selectedCommunity, emptyMessage: communityMessage, clear, pick, pickRandom, searched, searchUser, counted, vote } = useCommunityBrowser({ sort, search, active: () => tab.value === "community", start: tab.value === "community" && presetsPage.id !== null ? cachedCommunityPreset(presetsPage.id) : null, shown: showCommunity })
   const root = ref(null)
   const sharing = ref(null)
   const removing = ref(null)
@@ -111,16 +110,6 @@
   function save(preset) {
     addPreset(preset.name, preset.code)
     counted(preset)
-  }
-
-  async function vote(preset, value) {
-    if (preset.vote === value) return
-    try {
-      Object.assign(preset, await voteOn(preset.id, value))
-      if (sort.value === "needs") setTimeout(() => results.value = results.value.filter(item => item.id !== preset.id), VOTED_LINGER)
-    } catch (err) {
-      showNotice(err.message)
-    }
   }
 
   async function remove(preset) {

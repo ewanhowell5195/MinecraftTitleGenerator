@@ -1,23 +1,12 @@
 <script setup>
-  import { ref } from "vue"
-  import { presetToAsk, voteOn } from "#lib/state/community.js"
+  import { useVotePrompt } from "#lib/presets/votePrompt.js"
   import { scene } from "#lib/state/scene.js"
   import Button from "#c/Button.vue"
   import Icon from "#c/Icon.vue"
 
-  const preset = presetToAsk(scene.preset)
-  const vote = ref(0)
-  const error = ref("")
-
-  async function cast(value) {
-    error.value = ""
-    try {
-      vote.value = (await voteOn(preset.id, value)).vote
-      if (scene.preset?.id === preset.id) scene.preset = null
-    } catch (err) {
-      error.value = err.message
-    }
-  }
+  const { preset, vote, error, cast } = useVotePrompt(scene.preset, ({ id }) => {
+    if (scene.preset?.id === id) scene.preset = null
+  })
 </script>
 
 <template>

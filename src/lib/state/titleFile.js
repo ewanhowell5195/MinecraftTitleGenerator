@@ -6,7 +6,7 @@ import { hasDefaultSettings, isDefaultCamera, isDefaultTitle as isDefault } from
 import { EXTENSION, fileData, readTitle, trimUnused } from "../title/titleData.js"
 import { fileError } from "./notices.js"
 import { createObject } from "../settings/objects.js"
-import { editorTitle, lines, presetSource, scene, titleFileName, validSelection } from "./scene.js"
+import { editorTitle, lines, scene, titleFileName, validSelection } from "./scene.js"
 import { isCustomFont } from "../settings/settings.js"
 import { submitStats } from "./stats.js"
 import { downloadBlob } from "../core/files.js"
@@ -64,14 +64,14 @@ export function openTitleData(data) {
 
 export function openTitleText(text) {
   const { values, camera, preset } = readTitle(text)
-  showObjects(titleObjects(values), camera, presetSource(preset))
+  showObjects(titleObjects(values), camera, preset)
 }
 
 export async function openTitle(file, allow = () => true) {
   try {
     const { values, camera, preset } = readTitle(await file.text())
     if (!await allow()) return
-    showObjects(titleObjects(values), camera, presetSource(preset))
+    showObjects(titleObjects(values), camera, preset)
   } catch (err) {
     fileError.value = `Couldn't open ${file.name}: ${err.message}`
   }
