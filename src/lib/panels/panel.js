@@ -47,6 +47,28 @@ function settingsTarget(panel) {
   return { object: computed(() => host[panel.on]), font, list, layer: computed(() => 0), modified: computed(() => false), reset: null, k: key => key }
 }
 
+export function controlState(context) {
+  function resolved(value) {
+    return typeof value === "function" ? value(context.get, context) : value
+  }
+
+  function valueOf(control) {
+    if (control.read) return control.read(context.get, context)
+    return control.fallback ? context.get(control.key) ?? context.object[control.key] : context.get(control.key)
+  }
+
+  function change(control, value) {
+    if (control.write) control.write(value, context)
+    else context.set(control.key, value)
+  }
+
+  return { context, resolved, valueOf, change, isShown: item => !item.shown || !!item.shown(context.get, context) }
+}
+
+export function groupState(state, { setup }) {
+  return setup ? controlState(Object.create(state.context, { state: { value: setup(state.context) } })) : state
+}
+
 export function usePanelState(panel, word = false) {
   const target = panel.on ? settingsTarget(panel) : usePanel(word ? wordKey(panel.id) : panel.id, word)
   const { k } = target
@@ -75,27 +97,10 @@ export function usePanelState(panel, word = false) {
     reset: () => target.reset()
   }
   context.state = panel.setup?.(context) ?? null
-
-  function resolved(value) {
-    return typeof value === "function" ? value(context.get, context) : value
-  }
-
-  function valueOf(control) {
-    if (control.read) return control.read(context.get, context)
-    return control.fallback ? context.get(control.key) ?? context.object[control.key] : context.get(control.key)
-  }
-
-  function change(control, value) {
-    if (control.write) control.write(value, context)
-    else context.set(control.key, value)
-  }
+  const { resolved } = controlState(context)
 
   return {
-    context,
-    resolved,
-    valueOf,
-    change,
-    isShown: item => !item.shown || !!item.shown(context.get, context),
+    ...controlState(context),
     title: computed(() => resolved(panel.title) ?? ""),
     shown: computed(() => !panel.shown || !!panel.shown(context.get, context)),
     modified: computed(() => panel.modified ? panel.modified(context.get, context) : context.modified),

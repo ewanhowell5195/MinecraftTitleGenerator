@@ -2,13 +2,52 @@ import { computed, toRaw, watch } from "vue"
 import { keyed } from "../core/keyed.js"
 import { overlayFits } from "../settings/layers.js"
 import { OVERLAY_KINDS, activeOverlays, defaultOverlays } from "../settings/textureDefaults.js"
+import { statScope } from "../title/statIds.js"
+import { host } from "./host.js"
+import { OVERLAY_CONTROLS } from "./overlayControls.js"
+import { useOverlayLayers } from "./overlayLayers.js"
 import { layerShown, usedLayers } from "./panel.js"
+import { usedOverlayFiles } from "./uploads.js"
 
 const MODES = [{ value: "default", label: "Default" }, { value: "custom", label: "Custom" }]
 const remembered = keyed()
 
 function overlaysPanel({ id, title, hint }) {
   const modeKey = OVERLAY_KINDS[id]
+
+  function useLayers(context) {
+    const { available, edit, layers, selected, shownLayer } = context.state
+    const props = {
+      get layers() {
+        return layers.value
+      },
+      get available() {
+        return available.value
+      },
+      get font() {
+        return context.font
+      },
+      get statScope() {
+        return statScope(context.object, context.font?.id)
+      },
+      get fonts() {
+        return host.library.fonts
+      },
+      get shownLayer() {
+        return shownLayer.value
+      },
+      get sideFaces() {
+        return !!(context.object.internalFaces || context.object.sideFaces)
+      },
+      get reuse() {
+        return usedOverlayFiles()
+      },
+      edit,
+      edge: id === "edgeOverlays",
+      files: true
+    }
+    return { ...useOverlayLayers(props, selected, host.popular), props, selected }
+  }
 
   function setup(context) {
     const shownLayer = layerShown("overlays")
@@ -49,6 +88,7 @@ function overlaysPanel({ id, title, hint }) {
   return {
     id,
     title,
+    subject: "overlays",
     setup,
     reset(context) {
       context.reset()
@@ -59,7 +99,7 @@ function overlaysPanel({ id, title, hint }) {
       { type: "segments", key: modeKey, options: MODES, write: (mode, { state }) => state.pickMode(mode) },
       { type: "hint", text: hint, shown: () => !!hint },
       { type: "hint", text: "The overlays this texture comes with. Editing switches to Custom.", shown: get => get(modeKey) === "default" },
-      { type: "block", name: "overlays" }
+      { type: "group", setup: useLayers, controls: OVERLAY_CONTROLS }
     ]
   }
 }

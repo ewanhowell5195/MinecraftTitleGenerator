@@ -1,8 +1,10 @@
 import { before, beforeEach, describe, test } from "node:test"
 import assert from "node:assert/strict"
+import fs from "node:fs"
 import { computed, effectScope, reactive, ref, shallowRef } from "vue"
 import { CAMERA_PANEL } from "#lib/panels/camera.js"
 import { FACE_PANELS, FILTERS_PANEL, OUTLINE_PANEL } from "#lib/panels/colour.js"
+import { CONTROLS, checkControls } from "#lib/panels/controls.js"
 import { CREEPER_PANEL, CURVES_PANEL, SPACING_PANEL, TERMINATORS_PANEL } from "#lib/panels/font.js"
 import { ARC_PANEL, GEOMETRY_PANEL } from "#lib/panels/form.js"
 import { usePanelHost } from "#lib/panels/host.js"
@@ -11,6 +13,8 @@ import { EDGE_OVERLAYS_PANEL, OVERLAYS_PANEL } from "#lib/panels/overlays.js"
 import { useOverlayLayers } from "#lib/panels/overlayLayers.js"
 import { usePanelState } from "#lib/panels/panel.js"
 import { PLACEMENT_PANEL } from "#lib/panels/placement.js"
+import { RENDER_PANELS, SECTION_PANELS, sectionFits, sectionPanels } from "#lib/panels/sections.js"
+import { nearestStep, sliderFill, sliderPosition, sliderValue } from "#lib/panels/slider.js"
 import { TILING_PANEL } from "#lib/panels/tiling.js"
 import { TWIST_PANELS } from "#lib/panels/twists.js"
 import { splitWord } from "#lib/panels/words.js"
@@ -35,7 +39,7 @@ const title = createTitle([], { render: false })
 let scope
 
 function flat(controls) {
-  return controls.flatMap(control => control.controls ? flat(control.controls) : [control])
+  return Array.isArray(controls) ? controls.flatMap(control => control.controls ? flat(control.controls) : [control]) : []
 }
 
 function keysOf(panel) {
@@ -92,6 +96,73 @@ describe("panel definitions", () => {
       const own = keysOf(panel).filter(key => !["clipHoles", "layerWords", "arcGradient"].includes(key))
       assert.deepEqual(own.map(wordKey).filter(key => !(key in known)), [])
     }
+  })
+})
+
+describe("controls", () => {
+  const source = path => fs.readFileSync(new URL(`../../${path}`, import.meta.url), "utf8")
+  const drawn = { website: source("src/app/panels/DataControls.vue"), plugin: source("blockbench/src/panels/controls.js") }
+
+  for (const type of CONTROLS) {
+    test(`both apps draw a ${type}`, () => {
+      for (const [app, code] of Object.entries(drawn)) assert.ok(code.includes(`control.type === '${type}'`), `the ${app} has no ${type}`)
+    })
+  }
+
+  test("every panel is made of controls that can be drawn", () => {
+    for (const panel of Object.values(SECTION_PANELS).flat().concat(RENDER_PANELS, CAMERA_PANEL)) {
+      const checked = controls => {
+        if (!Array.isArray(controls)) return
+        checkControls(panel.id, controls, { renderOutput: {} })
+        for (const control of controls) checked(control.controls)
+      }
+      checked(panel.controls)
+    }
+  })
+
+  test("a control that can't be drawn is an error", () => {
+    assert.throws(() => checkControls("font", [{ type: "knob" }], {}), /font panel has a knob control/)
+    assert.throws(() => checkControls("image", [{ type: "block", name: "extra" }], {}), /image panel has a extra control/)
+  })
+})
+
+describe("sections", () => {
+  const fitting = shape => Object.keys(SECTION_PANELS).filter(id => sectionFits(id, shape))
+
+  test("text has no shape sections", () => {
+    assert.deepEqual(fitting(null), ["text", "font", "texture", "colour", "overlays", "form"])
+  })
+
+  test("shapes have no text sections, and Minecraft's own bring their texture", () => {
+    assert.deepEqual(fitting("creeper"), ["shape", "placement", "texture", "colour", "overlays", "form"])
+    assert.deepEqual(fitting("minecraft.block/stone"), ["shape", "placement", "colour", "form"])
+  })
+
+  test("shapes only have their geometry to form", () => {
+    assert.deepEqual(sectionPanels("form", "creeper"), [GEOMETRY_PANEL])
+    assert.deepEqual(sectionPanels("form", null), FORM)
+  })
+})
+
+describe("sliders", () => {
+  const plain = { min: -50, max: 150, step: 1 }
+  const log = { min: 0.1, max: 10, step: 0.1, log: true }
+  const stepped = { min: 1, max: 100, steps: [1, 5, 100] }
+
+  test("a stepped slider stands on its nearest step", () => {
+    assert.equal(nearestStep(stepped.steps, 40), 1)
+    assert.deepEqual([sliderPosition(stepped, 70), sliderValue(stepped, 2)], [2, 100])
+  })
+
+  test("a log slider has its middle halfway along", () => {
+    assert.equal(sliderPosition(log, 1), 500)
+    assert.equal(sliderValue(log, 500), 1)
+  })
+
+  test("the fill starts from zero", () => {
+    assert.deepEqual(sliderFill(plain, 50), { "--from": "25%", "--to": "50%" })
+    assert.deepEqual(sliderFill(plain, -50), { "--from": "0%", "--to": "25%" })
+    assert.deepEqual(sliderFill(stepped, 5), { "--from": "0%", "--to": "50%" })
   })
 })
 

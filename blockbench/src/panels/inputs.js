@@ -1,7 +1,14 @@
 import { clamp } from "#lib/core/maths.js"
 import { nearestStep, sliderFill, sliderPosition, sliderRange, sliderValue } from "#lib/panels/slider.js"
 
+const ICONS = { camera: "photo_camera", copy: "content_copy", download: "download", eye: "visibility", hidden: "visibility_off", layers: "layers", plus: "add", trash: "delete" }
+
 let pickers = 0
+
+export function iconOf(name) {
+  if (!ICONS[name]) throw new Error(`there is no Blockbench icon for ${name}`)
+  return ICONS[name]
+}
 
 export const SliderControl = {
   props: { label: String, value: Number, min: Number, max: Number, typedMin: { default: undefined }, typedMax: { default: undefined }, step: { type: Number, default: 1 }, steps: { type: Array, default: null }, log: { type: Boolean, default: false }, hint: { type: String, default: "" } },

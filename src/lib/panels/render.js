@@ -1,8 +1,9 @@
 import { ref } from "vue"
-import { FRAMINGS, MINECRAFT_MODES, framing, framingModified, outlineModified, paddingScale, resetFraming, resetOutline, textureSize, textureSizes } from "#render/framing.js"
+import { FRAMINGS, MINECRAFT_MODES, framing, framingModified, outlineModified, paddingScale, resetFraming, resetOutline, setAspect, setResolution, textureSize, textureSizes } from "#render/framing.js"
 import { canvasLimit } from "../texture/canvas.js"
 import { GRADIENT_MIXES } from "../texture/colourStops.js"
 import { host } from "./host.js"
+import { useRenderTask } from "./renderTask.js"
 
 const PRESETS = [{ value: 1024, label: "1K" }, { value: 2048, label: "2K" }, { value: 4096, label: "4K" }, { value: 8192, label: "8K" }]
 
@@ -32,6 +33,35 @@ function setCustomResolution(value, { object }) {
   object.customResolution = value
 }
 
+function side(key, label, write) {
+  return { label, max: canvasLimit, read: () => framing[key], write: value => write(key, value) }
+}
+
+const FRAME_SIZE = {
+  type: "group",
+  shown: get => get("tab") === "custom",
+  controls: [
+    { type: "pair", label: "Size", between: "\u00d7", sides: [side("width", "Width", setResolution), side("height", "Height", setResolution)], link: { title: "Link width and height", read: () => framing.linked, toggle: () => (framing.linked = !framing.linked) } },
+    { type: "pair", label: "Aspect ratio", between: ":", sides: [side("aspectWidth", "Aspect width", setAspect), side("aspectHeight", "Aspect height", setAspect)] }
+  ]
+}
+
+const busy = (get, { state }) => state.progress.value !== null
+const layered = () => host.layered?.() ?? true
+
+const RENDER_OUTPUT = {
+  type: "group",
+  setup: useRenderTask,
+  controls: [
+    { type: "button", label: "Render image", icon: "camera", primary: true, big: true, press: ({ state }) => state.render(), disabled: busy },
+    { type: "button", label: "Save SVG", icon: "download", press: ({ state }) => state.saveVector(), disabled: (get, context) => busy(get, context) || context.state.saving.value, shown: () => outsideMinecraft() && layered() },
+    { type: "button", label: "Render layers", icon: "layers", hint: "A zip with each line as its own image", press: ({ state }) => state.downloadLayers(), disabled: busy, shown: layered },
+    { type: "hint", text: "SVGs and layers can only be made when nothing but title texts and shapes is shown.", shown: () => !layered() },
+    { type: "notice", text: (get, { state }) => state.failed.value, shown: (get, { state }) => !!state.failed.value },
+    { type: "block", name: "renderOutput" }
+  ]
+}
+
 export const FRAMING_PANEL = {
   id: "framing",
   on: "framing",
@@ -40,7 +70,7 @@ export const FRAMING_PANEL = {
   reset: resetFraming,
   controls: [
     { type: "segments", key: "tab", options: FRAMINGS },
-    { type: "block", name: "frameSize", shown: get => get("tab") === "custom" },
+    FRAME_SIZE,
     { type: "dropdown", key: "mode", label: "Texture mode", options: MINECRAFT_MODES, shown: inMinecraft },
     { type: "toggle", key: "backgroundEnabled", label: "Background", shown: outsideMinecraft },
     { type: "gradient", key: "backgroundStops", smooth: get => get("backgroundSmooth"), mix: get => get("backgroundMix"), angle: get => get("backgroundAngle"), min: 1, shown: background },
@@ -76,6 +106,6 @@ export const IMAGE_PANEL = {
     { type: "slider", key: "resolution", label: "Size", min: 128, max: canvasLimit, log: true, write: setCustomResolution, shown: (get, { state }) => outsideMinecraft() && state.value },
     { type: "hint", text: "The longer side of the title, in pixels. The final size may differ slightly.", shown: outsideMinecraft },
     { type: "toggle", key: "antialias", label: "Antialiasing", hint: "Smoother edges, renders take longer" },
-    { type: "block", name: "renderButtons" }
+    RENDER_OUTPUT
   ]
 }

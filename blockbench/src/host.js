@@ -11,7 +11,7 @@ import { versionsIn, wordsOf } from "#lib/title/title.js"
 import { isTitle } from "./elements.js"
 import { titleFileName } from "./file.js"
 import { library } from "./library.js"
-import { viewport } from "./render/capture.js"
+import { onlyTitlesShown, viewport } from "./render/capture.js"
 import { renderView } from "./render/view.js"
 import { sendStats } from "./stats.js"
 import { elementOf, runtimeOf, titleState } from "./titles.js"
@@ -118,6 +118,7 @@ export function registerHost() {
     words: object => wordsOf(object, current()),
     lineText: object => joinWords(wordsOf(object, current()), word => elementOf(word)?.describe() ?? ""),
     preview: () => null,
+    layered: onlyTitlesShown,
     placeLine,
     chooseMatch,
     bakeMatch,

@@ -1,12 +1,17 @@
 <script setup>
+  import { provide } from "vue"
   import { usePanelState } from "#lib/panels/panel.js"
   import Panel from "../Panel.vue"
   import DataControls from "./DataControls.vue"
+  import RenderOutput from "./RenderOutput.vue"
+  import { BLOCKS } from "./blocks.js"
 
   const props = defineProps({
     panel: { type: Object, required: true },
     word: { type: Boolean, default: false }
   })
+
+  provide(BLOCKS, { renderOutput: RenderOutput })
 
   const state = usePanelState(props.panel, props.word)
   const { enable, enabled, modified, reset, shown, title } = state

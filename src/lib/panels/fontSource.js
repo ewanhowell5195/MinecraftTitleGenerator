@@ -6,17 +6,22 @@ import { loadImage } from "../font/font.js"
 import { isCustomFont } from "../settings/settings.js"
 import { readDataUrl } from "../core/files.js"
 import { googleFontSource } from "../font/googleFonts.js"
+import { fontCredit } from "../font/credits.js"
+import { fontThumbnail } from "../font/thumbnailUrls.js"
+import { GOOGLE_FONTS } from "./googleFontList.js"
 import { host } from "./host.js"
 import { SEARCH_ABOVE, useOpened } from "./opened.js"
 import { usePanel } from "./panel.js"
+import { leastRows, variantRows } from "./pickFloor.js"
 import { usedFonts } from "./uploads.js"
 
-export const FONT_TABS = [{ value: "published", label: "All fonts" }, { value: "google", label: "Google Fonts" }, { value: "custom", label: "Custom" }]
+const FONT_TABS = [{ value: "published", label: "All fonts" }, { value: "google", label: "Google Fonts" }, { value: "custom", label: "Custom" }]
 const IMPORT_HEIGHT = 40
 export const BUILDS = [{ value: false, label: "Cubes" }, { value: true, label: "Mesh" }]
 const publishedFonts = new Map()
 
-export function useFontSource() {
+function useFontSource() {
+  const browsing = ref(false)
   const browsedPicks = ref(0)
   const { object, font, modified, reset } = usePanel("font")
   const tab = ref(tabOf(object.value))
@@ -180,5 +185,88 @@ export function useFontSource() {
     return badges
   })
 
-  return { applyCustom, baseFonts, baseId, browsed, changeImport, chooseTab, clearCustom, customError, customImage, customName, customNote, customUnit, entry, font, foundFonts, googleLoading, imported, loading, modified, object, opened, pickGoogle, reset, reusable, search, searchable, searching, squares, tab, upload, uploaded, usingCustom, variantBadges, variants }
+  return { applyCustom, baseFonts, baseId, browsed, browsing, changeImport, chooseTab, clearCustom, customError, customImage, customName, customNote, customUnit, entry, font, foundFonts, googleLoading, imported, loading, modified, object, opened, pickGoogle, reset, reusable, search, searchable, searching, squares, tab, upload, uploaded, usingCustom, variantBadges, variants }
+}
+
+const FILES = ".json,.png,.ttf,.otf,.woff,.woff2,application/json,image/png,font/ttf,font/otf,font/woff,font/woff2"
+
+const inTab = tab => (get, { state }) => state.tab.value === tab
+const published = inTab("published")
+const google = inTab("google")
+const custom = inTab("custom")
+const importing = (get, context) => custom(get, context) && context.state.imported.value && context.state.usingCustom.value
+const listing = (get, context) => published(get, context) && !context.state.searching.value
+const varied = (get, context) => listing(get, context) && context.state.variants.value.length > 0
+const squared = (get, context) => importing(get, context) && context.state.squares.value
+
+function fontTile({ object }, data, values) {
+  return { key: data.id, image: fontThumbnail(data), author: fontCredit(data, host.library.fonts), selected: object.font === data.id, pick: () => (object.font = data.id), ...values }
+}
+
+function foundTiles(get, context) {
+  return context.state.foundFonts.value.map(data => fontTile(context, data, { label: fullName(data, host.library.fonts) }))
+}
+
+function baseTiles(get, context) {
+  const { baseFonts, baseId, variantBadges } = context.state
+  return baseFonts.value.map(data => fontTile(context, data, { label: data.name, badge: variantBadges.value[data.id], selected: baseId.value === data.id }))
+}
+
+function variantTiles(get, context) {
+  const { baseId, variants } = context.state
+  const base = host.library.fonts.find(item => item.id === baseId.value) ?? { id: baseId.value }
+  return [fontTile(context, base, { label: "Default", author: undefined })].concat(variants.value.map(data => fontTile(context, data, { label: data.name })))
+}
+
+function browse(title) {
+  return { title, open: ({ state }) => (state.browsing.value = true) }
+}
+
+function size(key, label, shown) {
+  return { type: "number", id: key, label, min: 1, read: get => get("customFont")[key] ?? 1, write: (value, { state }) => state.changeImport(key, value), disabled: (get, { state }) => state.loading.value, shown }
+}
+
+export const FONT_PANEL = {
+  id: "font",
+  title: "Font",
+  setup: useFontSource,
+  controls: [
+    {
+      type: "picker",
+      pick: (get, context) => !custom(get, context),
+      peek: (get, context) => !custom(get, context),
+      floor: published,
+      watch: (get, { state }) => [state.tab.value, state.variants.value.length, state.search.value],
+      controls: [
+        { type: "segments", options: FONT_TABS, read: (get, { state }) => state.tab.value, write: (tab, { state }) => state.chooseTab(tab) },
+        {
+          type: "upload",
+          accept: FILES,
+          multiple: true,
+          view(get, { state }) {
+            const { customImage, customName, customUnit, loading, reusable, uploaded } = state
+            return { label: loading.value ? "Loading..." : uploaded.value ? "Replace font" : "Choose a font file", empty: "No font uploaded", disabled: loading.value, clearable: uploaded.value, back: reusable.value.length > 0, preview: uploaded.value ? { image: customImage.value, unit: customUnit.value, name: customName.value || get("customFont").fileName } : null }
+          },
+          files: (files, { state }) => state.upload(files),
+          clear: ({ state }) => state.clearCustom(),
+          shown: custom
+        },
+        { type: "notice", text: (get, { state }) => state.customError.value, shown: (get, context) => custom(get, context) && !!context.state.customError.value },
+        { type: "hint", text: "A JSON from the font editor, a Minecraft ascii.png, a resource pack font JSON chosen together with its PNGs, or a .ttf, .otf, .woff or .woff2 font.", shown: (get, context) => custom(get, context) && !context.state.customError.value },
+        { type: "hint", text: (get, { state }) => state.customNote.value.text, shown: (get, context) => custom(get, context) && !context.state.customError.value && !!context.state.customNote.value?.text && context.state.customNote.value.data === get("customFont")?.data },
+        { type: "segments", label: "Build from", options: BUILDS, hint: get => get("customFont").mesh ? "Smooth edges that follow the font's own curves." : "Pixel cubes, like the other fonts.", read: get => !!get("customFont").mesh, write: (mesh, { state }) => state.changeImport("mesh", mesh), shown: (get, context) => importing(get, context) && get("customFont").kind === "outline" },
+        { type: "row", grid: true, controls: [size("height", "Height in pixels"), size("density", "Square size", squared)], shown: importing },
+        { type: "hint", text: "Square size is how many pixels each square is. 4 gives chunky squares like Minecraft Ten. Fonts drawn on a pixel grid keep their own.", shown: squared },
+        { type: "reuse", items: (get, { state }) => state.reusable.value, pick: (source, { state }) => state.applyCustom(source), shown: custom },
+        { type: "search", placeholder: "Search Google Fonts", browse: browse("Browse Google Fonts"), shown: google },
+        { type: "notice", text: (get, { state }) => state.customError.value, shown: (get, context) => google(get, context) && !!context.state.customError.value },
+        { ...GOOGLE_FONTS, shown: google },
+        { type: "search", placeholder: "Search fonts", browse: browse("Browse fonts"), hidden: (get, { state }) => !state.searchable.value, shown: published },
+        { type: "tiles", scroll: true, items: foundTiles, shown: (get, context) => published(get, context) && context.state.searching.value },
+        { type: "tiles", scroll: true, kept: (get, { state }) => state.variants.value.length > 0, least: (get, { state }) => leastRows(state.baseFonts.value), items: baseTiles, shown: listing },
+        { type: "heading", text: "Variants", shown: varied },
+        { type: "tiles", scroll: true, rows: (get, { state }) => variantRows(state.variants.value), items: variantTiles, shown: varied }
+      ]
+    }
+  ]
 }

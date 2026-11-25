@@ -1,19 +1,21 @@
 import { computed, ref, shallowRef, watch } from "vue"
+import { titleCase } from "../core/names.js"
 import { EulaDeclined } from "../minecraft/eula.js"
 import { latestRelease } from "../minecraft/minecraft.js"
 import { fitComponents, itemControls } from "../minecraft/itemComponents.js"
 import { blockStates, fitState, itemDefinition, keepVersions, modelList } from "../minecraft/minecraftModels.js"
 import { CUSTOM_SHAPE, isMinecraftShape, minecraftShape, minecraftShapeParts } from "../geometry/shapes.js"
 import { silhouetteMesh } from "../font/customFonts.js"
+import { BUILDS } from "./fontSource.js"
 import { host } from "./host.js"
 import { usePanel } from "./panel.js"
 import { usedShapes } from "./uploads.js"
 
-export const SHAPE_SOURCES = [{ value: "premade", label: "Premade" }, { value: "minecraft", label: "Minecraft" }, { value: "custom", label: "Custom" }]
-export const SHAPE_KINDS = [{ value: "block", label: "Blocks" }, { value: "item", label: "Items" }]
+const SHAPE_SOURCES = [{ value: "premade", label: "Premade" }, { value: "minecraft", label: "Minecraft" }, { value: "custom", label: "Custom" }]
+const SHAPE_KINDS = [{ value: "block", label: "Blocks" }, { value: "item", label: "Items" }]
 const STARTING_SHAPES = { block: "cobblestone", item: "diamond_sword" }
 
-export function useShapeSource() {
+function useShapeSource() {
   const { object } = usePanel("shape")
   const minecraft = isMinecraftShape(object.value.shape)
   const source = ref(object.value.shape === CUSTOM_SHAPE ? "custom" : minecraft ? "minecraft" : "premade")
@@ -147,4 +149,81 @@ export function useShapeSource() {
   watch(kind, pickStarting)
 
   return { chooseVersion, clearPng, componentsCustomised, componentsShown, controls, customised, failed, kind, models, object, pick, pickPng, reusable, search, setBuild, setState, shown, source, states, version }
+}
+
+const SEARCHABLE_OPTIONS = 12
+
+const from = source => (get, { state }) => state.source.value === source
+const custom = from("custom")
+const shaped = get => get("shape") === CUSTOM_SHAPE
+const minecraft = (get, { state }) => state.source.value === "minecraft"
+const listed = (get, context) => minecraft(get, context) && !!context.state.models.value
+const filled = (get, context) => listed(get, context) && context.state.models.value[context.state.kind.value].length > 0
+
+function premadeTiles(get, { object }) {
+  return host.library.shapes.map(shape => ({ key: shape.id, label: shape.name, image: `${shape.folder}/thumbnails/flat.png`, aspect: "4 / 3", author: shape.authors, selected: get("shape") === shape.id, pick: () => (object.shape = shape.id) }))
+}
+
+function modelTiles(get, { state }) {
+  const [kind, version] = [state.kind.value, state.version.value]
+  return state.shown.value.map(id => ({ key: `${version}/${kind}/${id}`, label: titleCase(id), model: { kind, id, version }, selected: get("shape") === minecraftShape(kind, id) && get("shapeVersion") === version, pick: () => state.pick(id) }))
+}
+
+function stateControls(get, { state }) {
+  return state.states.value.map(({ name, value, values }) => ({ type: "dropdown", id: name, label: titleCase(name), options: values.map(option => ({ value: option, label: titleCase(option) })), read: () => get("blockState")[name] ?? value, write: picked => state.setState(name, picked) }))
+}
+
+const CONTROL_TYPES = { select: "dropdown", toggle: "toggle" }
+
+function componentControls(get, { object, state }) {
+  return state.controls.value.map(control => ({
+    type: CONTROL_TYPES[control.type] ?? "colour",
+    id: control.key,
+    label: control.label,
+    options: control.options,
+    searchable: control.options?.length > SEARCHABLE_OPTIONS,
+    wide: control.type === "toggle",
+    read: () => control.value,
+    write: value => (object.itemComponents = control.choose(value))
+  }))
+}
+
+export const SHAPE_PANEL = {
+  id: "shape",
+  title: "Shape",
+  setup: useShapeSource,
+  modified: () => false,
+  controls: [
+    {
+      type: "picker",
+      pick: minecraft,
+      boxed: (get, context) => !custom(get, context),
+      floor: () => false,
+      controls: [
+        { type: "segments", options: SHAPE_SOURCES, read: (get, { state }) => state.source.value, write: (value, { state }) => (state.source.value = value) },
+        { type: "tiles", items: premadeTiles, shown: from("premade") },
+        {
+          type: "upload",
+          accept: "image/*",
+          view: (get, { state }) => ({ label: shaped(get) ? "Replace image" : "Choose an image", empty: "No image chosen", image: shaped(get) ? get("customFont")?.data : null, clearable: shaped(get), back: state.reusable.value.length > 0 }),
+          pick: (data, { state }) => state.pickPng(data),
+          clear: ({ state }) => state.clearPng(),
+          shown: custom
+        },
+        { type: "hint", text: "The solid pixels make the shape, pushed out like a letter, and the image paints its front.", shown: custom },
+        { type: "segments", label: "Build from", options: BUILDS, hint: get => get("customFont").mesh ? "Smooth edges that follow the outline of the image." : "Pixel cubes, like the letters.", read: get => !!get("customFont").mesh, write: (mesh, { state }) => state.setBuild(mesh), shown: (get, context) => custom(get, context) && shaped(get) && !!get("customFont") },
+        { type: "reuse", items: (get, { state }) => state.reusable.value, pick: (data, { state }) => state.pickPng(data), shown: custom },
+        { type: "version", read: (get, { state }) => state.version.value, write: (version, { state }) => state.chooseVersion(version), shown: (get, context) => minecraft(get, context) && !!context.state.version.value },
+        { type: "notice", text: (get, { state }) => state.failed.value, shown: (get, context) => minecraft(get, context) && !!context.state.failed.value },
+        { type: "segments", options: SHAPE_KINDS, read: (get, { state }) => state.kind.value, write: (kind, { state }) => (state.kind.value = kind), shown: listed },
+        { type: "hint", text: (get, { state }) => `Minecraft ${state.version.value} has no ${state.kind.value === "block" ? "blockstates" : "item definitions"} to pick from.`, shown: (get, context) => listed(get, context) && !filled(get, context) },
+        { type: "search", placeholder: (get, { state }) => state.kind.value === "block" ? "Search blocks" : "Search items", shown: filled },
+        { type: "tiles", scroll: true, items: modelTiles, shown: filled },
+        { type: "toggle", label: "Customise blockstate", read: (get, { state }) => state.customised.value, write: (on, { state }) => (state.customised.value = on), shown: (get, context) => listed(get, context) && context.state.states.value.length > 0 },
+        { type: "stack", grid: true, controls: stateControls, shown: (get, context) => listed(get, context) && context.state.states.value.length > 0 && !!get("blockState") },
+        { type: "toggle", label: "Customise components", read: (get, { state }) => state.componentsCustomised.value, write: (on, { state }) => (state.componentsCustomised.value = on), shown: (get, context) => listed(get, context) && context.state.componentsShown.value },
+        { type: "stack", grid: true, controls: componentControls, shown: (get, context) => listed(get, context) && context.state.componentsShown.value && !!get("itemComponents") }
+      ]
+    }
+  ]
 }

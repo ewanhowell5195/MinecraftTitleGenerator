@@ -7,6 +7,7 @@ import { submitStats } from "#lib/state/stats.js"
 import { popular } from "#lib/title/popularity.js"
 import { view } from "#lib/state/view.js"
 import { framing } from "#render/framing.js"
+import { holdCentre } from "../centreDot.js"
 import { previews } from "../previews.js"
 
 function placeLine(type) {
@@ -33,6 +34,7 @@ usePanelHost({
   layer,
   words,
   lineText,
+  guide: holdCentre,
   preview: object => previews[object.id],
   placeLine,
   chooseMatch,

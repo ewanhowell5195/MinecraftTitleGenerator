@@ -8,9 +8,9 @@ import { usedTextures } from "./uploads.js"
 
 const CUSTOM_MODES = [{ value: "standard", label: "Standard" }, { value: "tileable", label: "Tileable" }, { value: "strip", label: "Strip" }, { value: "cover", label: "Cover" }]
 const SAME_SHAPE = 0.01
-export const ALIGNS = [{ value: "title", label: "Title" }, { value: "camera", label: "Camera" }]
+const ALIGNS = [{ value: "title", label: "Title" }, { value: "camera", label: "Camera" }]
 
-export function useCustomTexture(context) {
+function useCustomTexture(context) {
   const object = computed(() => context.object)
   const font = computed(() => context.font)
   const flatSize = ref(null)
@@ -87,4 +87,37 @@ export function useCustomTexture(context) {
   }, { immediate: true })
 
   return { coverX, coverY, fitsFont, font, modeHint, modes, object, overflow, pickCustom, reusable, reuse, sharing }
+}
+
+const uploaded = get => !!get("customTexture")
+const inMode = (get, mode) => uploaded(get) && get("customTextureMode") === mode
+const covering = get => inMode(get, "cover")
+
+function position(axis, label, still) {
+  return { type: "slider", id: axis, label, min: 0, max: 100, read: (get, { state }) => state[axis].value, write: (value, { state }) => (state[axis].value = value), shown: (get, { state }) => covering(get) && state.overflow.value !== still && state.overflow.value !== "none" }
+}
+
+export const CUSTOM_TEXTURE = {
+  type: "group",
+  setup: useCustomTexture,
+  shown: get => get("textureSource") === "custom",
+  controls: [
+    {
+      type: "upload",
+      accept: "image/*",
+      view: (get, { state }) => ({ label: uploaded(get) ? "Replace texture" : "Choose an image", empty: "No texture uploaded", image: get("customTexture"), clearable: uploaded(get), back: state.reusable.value.length > 0 }),
+      pick: (data, { state }) => state.pickCustom(data),
+      clear: ({ set }) => set("customTexture", null)
+    },
+    { type: "segments", key: "customTextureMode", label: "Use as", options: (get, { state }) => state.modes.value, shown: uploaded },
+    { type: "hint", text: (get, { state }) => state.modeHint.value, bad: (get, { state }) => get("customTextureMode") === "standard" && !state.fitsFont.value, shown: uploaded },
+    { type: "toggle", key: "customStripPerCharacter", label: "Restart on each character", hint: "Starts the strip again from the left of every character, instead of running it along the whole line.", check: true, shown: get => inMode(get, "strip") },
+    { type: "segments", key: "customCoverAlign", label: "Align to", options: ALIGNS, shown: covering },
+    { type: "toggle", key: "customCoverSpan", label: "Span with other lines using this image", check: true, shown: (get, { state }) => covering(get) && state.sharing.value },
+    position("coverX", "Horizontal position", "y"),
+    position("coverY", "Vertical position", "x"),
+    { type: "hint", text: "An image is tiled across the letters, or you can use it as a strip or stretch it over the line.", shown: (get, { font }) => !uploaded(get) && !!font?.mesh },
+    { type: "hint", text: "An image the shape of this font's flat texture is painted onto the letters. Anything else is tiled, or you can use it as a strip or stretch it over the line.", shown: (get, { font }) => !uploaded(get) && !font?.mesh },
+    { type: "reuse", items: (get, { state }) => state.reusable.value, pick: (value, { state }) => state.reuse(value) }
+  ]
 }

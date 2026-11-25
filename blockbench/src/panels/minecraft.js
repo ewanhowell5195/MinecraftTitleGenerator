@@ -8,7 +8,7 @@ import { setTexture } from "#lib/settings/textureDefaults.js"
 import { isTitle } from "../elements.js"
 import { library } from "../library.js"
 import { edit } from "../undo.js"
-import { TitleTile } from "./tiles.js"
+import { TitleTile } from "./tile.js"
 
 const AGREEMENT = `you need to agree to the [Minecraft End User License Agreement (EULA)](${EULA_URL}).`
 const QUESTIONS = {

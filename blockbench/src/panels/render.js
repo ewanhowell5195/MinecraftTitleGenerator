@@ -1,45 +1,6 @@
-import { ref, watch } from "vue"
+import { onBeforeUnmount, ref, watch } from "vue"
 import { canvasBlob } from "#lib/core/files.js"
-import { canvasLimit } from "#lib/texture/canvas.js"
 import { host } from "#lib/panels/host.js"
-import { useRenderTask } from "#lib/panels/renderTask.js"
-import { framing, setAspect, setResolution } from "#render/framing.js"
-import { onlyTitlesShown } from "../render/capture.js"
-
-export const FrameSizeBlock = {
-  data: () => ({ framing, max: canvasLimit() }),
-  methods: {
-    resize(key, event) {
-      setResolution(key, event.target.value)
-      event.target.value = framing[key]
-    },
-    reshape(key, event) {
-      setAspect(key, event.target.value)
-      event.target.value = framing[key]
-    }
-  },
-  template: `
-    <div class="mtg-controls">
-      <div class="mtg-field">
-        <label>Size</label>
-        <div class="mtg-row">
-          <input type="number" class="dark_bordered mtg-fill" min="1" :max="max" :value="framing.width" @change="resize('width', $event)">
-          <span class="mtg-hint">×</span>
-          <input type="number" class="dark_bordered mtg-fill" min="1" :max="max" :value="framing.height" @change="resize('height', $event)">
-          <div class="tool" :class="{ enabled: framing.linked }" title="Link width and height" @click="framing.linked = !framing.linked"><i class="material-icons">link</i></div>
-        </div>
-      </div>
-      <div class="mtg-field">
-        <label>Aspect ratio</label>
-        <div class="mtg-row">
-          <input type="number" class="dark_bordered mtg-fill" min="1" :max="max" :value="framing.aspectWidth" @change="reshape('aspectWidth', $event)">
-          <span class="mtg-hint">:</span>
-          <input type="number" class="dark_bordered mtg-fill" min="1" :max="max" :value="framing.aspectHeight" @change="reshape('aspectHeight', $event)">
-        </div>
-      </div>
-    </div>
-  `
-}
 
 function sizeText(bytes) {
   return bytes > 1048576 ? `${Math.round(bytes / 1048576 * 100) / 100} MB` : `${Math.round(bytes / 1024)} KB`
@@ -113,11 +74,10 @@ function progressDialog(cancel) {
   }
 }
 
-export const RenderButtonsBlock = {
-  setup() {
-    const task = useRenderTask()
-    const { cancel, downloadLayers, failed, layer, layerNames, progress, render, result, saveVector, saving } = task
-    const titlesOnly = ref(onlyTitlesShown())
+export const RenderOutput = {
+  props: { panel: Object, context: Object },
+  setup({ context }) {
+    const { cancel, layer, layerNames, progress, result } = context.state
     let showing = null
     watch(progress, (value, was) => {
       if (was === null) showing = progressDialog(cancel)
@@ -128,20 +88,7 @@ export const RenderButtonsBlock = {
     })
     watch([progress, layer, layerNames], ([value, at, names]) => showing?.update(value, at, names))
     watch(result, image => image && showResult(image))
-    return { cancel, downloadLayers, failed, framing, progress, render, saveVector, saving, titlesOnly }
-  },
-  beforeDestroy() {
-    this.cancel()
-  },
-  template: `
-    <div class="mtg-controls">
-      <button class="mtg-button primary big" :disabled="progress !== null" @click="render"><i class="material-icons">photo_camera</i><span>Render image</span></button>
-      <template v-if="titlesOnly">
-        <button v-if="framing.tab !== 'minecraft'" class="mtg-button" :disabled="progress !== null || saving" @click="saveVector"><i class="material-icons">download</i><span>Save SVG</span></button>
-        <button class="mtg-button" title="A zip with each line as its own image" :disabled="progress !== null" @click="downloadLayers"><i class="material-icons">layers</i><span>Render layers</span></button>
-      </template>
-      <p v-else class="mtg-hint">SVGs and layers can only be made when nothing but title texts and shapes is shown.</p>
-      <p v-if="failed" class="mtg-error">{{ failed }}</p>
-    </div>
-  `
+    onBeforeUnmount(cancel)
+    return () => null
+  }
 }

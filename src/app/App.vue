@@ -21,7 +21,7 @@
   import { useWindowEvents } from "../components/composables/events.js"
   import { saveTitle } from "../lib/state/titleFile.js"
   import { loadFontList } from "../lib/font/font.js"
-  import { isMinecraftShape, isModelShape, loadShapeList } from "../lib/geometry/shapes.js"
+  import { isModelShape, loadShapeList } from "../lib/geometry/shapes.js"
   import { createTitleItems } from "../lib/title/items.js"
   import { redo, undo } from "../lib/state/history.js"
   import { shortcutFor } from "./shortcuts.js"
@@ -32,13 +32,11 @@
   import { openSharedLink } from "../lib/state/share.js"
   import { openSubmissionLink } from "../submissions/submissionLink.js"
   import { loadStats } from "../lib/state/stats.js"
+  import { sectionFits } from "../lib/panels/sections.js"
   import { SECTIONS, FORM_SECTIONS, view } from "../lib/state/view.js"
 
   const SECTION_TABS = Object.entries(SECTIONS).map(([id, { name, icon }]) => ({ id, label: name, icon }))
-  const TEXT_SECTIONS = new Set(["text", "font"])
-  const GAME_TEXTURED = new Set(["texture", "overlays"])
   const LINE_SECTIONS = new Set(["text", "font", "placement"])
-  const SHAPE_SECTIONS = new Set(["shape", "placement"])
 
   if (!SECTIONS[view.section]) view.section = "text"
 
@@ -60,16 +58,10 @@
   const status = computed(() => error.value ?? fileError.value ?? saveError.value ?? active.value.error)
   const editing = computed(() => !view.render && !view.camera && scene.objects.length > 0)
   const shapeLine = computed(() => currentWord.value?.shape != null)
-  const minecraftLine = computed(() => isMinecraftShape(currentWord.value?.shape))
-  const tabs = computed(() => SECTION_TABS.filter(tab => shapeLine.value ? !TEXT_SECTIONS.has(tab.id) && !(minecraftLine.value && GAME_TEXTURED.has(tab.id)) : !SHAPE_SECTIONS.has(tab.id)))
+  const tabs = computed(() => SECTION_TABS.filter(tab => sectionFits(tab.id, currentWord.value?.shape ?? null)))
 
-  watch([shapeLine, () => view.section], ([value]) => {
-    if (value && TEXT_SECTIONS.has(view.section)) view.section = "shape"
-    else if (!value && SHAPE_SECTIONS.has(view.section)) view.section = "text"
-  }, { immediate: true })
-
-  watch(minecraftLine, value => {
-    if (value && GAME_TEXTURED.has(view.section)) view.section = "shape"
+  watch([tabs, () => view.section], ([shown]) => {
+    if (!shown.some(tab => tab.id === view.section)) view.section = shapeLine.value ? "shape" : "text"
   }, { immediate: true })
 
   const sectionMenu = ref(null)
