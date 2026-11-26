@@ -1,4 +1,4 @@
-import { FillRule, intersectD } from "@countertype/clipper2-ts"
+import { FillRule, intersectD } from "../../geometry/clipper.js"
 import { fadeStops, fillPattern, linearGradient, surface } from "../canvas.js"
 import { hexOf, packed as packedColour, rgbOf } from "#lib/core/colour.js"
 import { gradientStops, stopColour } from "../colourStops.js"

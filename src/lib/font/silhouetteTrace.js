@@ -1,4 +1,4 @@
-import { ClipType, FillRule, PolyTreeD, booleanOpDWithPolyTree } from "@countertype/clipper2-ts"
+import { ClipType, FillRule, PolyTreeD, booleanOpDWithPolyTree } from "../geometry/clipper.js"
 import { inkBox } from "./silhouette.js"
 
 const THRESHOLD = 128

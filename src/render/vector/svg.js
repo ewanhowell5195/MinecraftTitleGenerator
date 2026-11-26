@@ -1,4 +1,4 @@
-import { EndType, FillRule, JoinType, difference, differenceD, inflatePathsD, intersectD, union, unionD } from "@countertype/clipper2-ts"
+import { EndType, FillRule, JoinType, difference, differenceD, inflatePathsD, intersectD, union, unionD } from "../../lib/geometry/clipper.js"
 import { placement } from "../compose.js"
 import { addToCover, visibleLoops } from "./cover.js"
 import { loopsInHundredths, number, writePath } from "./pathData.js"
@@ -66,7 +66,7 @@ export function entriesOf({ base, layers, joins, covers }, { bleed, output, tota
 
 function filledArea(polygons) {
   if (polygons.every(polygon => signedArea(polygon) > 0)) return polygons
-  return fromPaths(unionD(toPaths(polygons), FillRule.NonZero, SEAM_PRECISION))
+  return fromPaths(unionD(toPaths(polygons), null, FillRule.NonZero))
 }
 
 function withoutSpikes(loop) {

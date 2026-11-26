@@ -1,4 +1,4 @@
-import { ClipType } from "@countertype/clipper2-ts"
+import { ClipType } from "./clipper.js"
 import { ringsOf, solve, triangulated } from "./clip.js"
 
 const FAR = 1e6

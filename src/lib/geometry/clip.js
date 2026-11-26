@@ -1,4 +1,4 @@
-import { ClipType, FillRule, PolyTreeD, booleanOpDWithPolyTree } from "@countertype/clipper2-ts"
+import { ClipType, FillRule, PolyTreeD, booleanOpDWithPolyTree } from "./clipper.js"
 import { ShapeUtils, Vector2 } from "three"
 import { signedArea } from "../core/maths.js"
 
