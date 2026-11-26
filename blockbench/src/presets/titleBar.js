@@ -3,13 +3,6 @@ import { canSavePreset } from "./saving.js"
 
 let button = null
 
-function openMenu() {
-  new Menu([
-    { name: "Save preset", icon: "bookmark", click: () => startSavingPreset() },
-    { name: "Share publicly", icon: "share", click: () => startSavingPreset({ share: true }) }
-  ]).open(button)
-}
-
 export function titleBarChanged() {
   button.classList.toggle("hidden", !canSavePreset())
 }
@@ -19,9 +12,9 @@ export function hideTitleBar() {
 }
 
 export function registerTitleBar() {
-  button = Interface.createElement("div", { class: "mtg-title-bar", title: "Save or share this title" })
-  button.innerHTML = "<i class='material-icons'>bookmark</i><span>Save or share</span><i class='material-icons'>arrow_drop_down</i>"
-  button.addEventListener("click", openMenu)
+  button = Interface.createElement("div", { class: "mtg-title-bar", title: "Save this title as a preset" })
+  button.innerHTML = "<i class='material-icons'>bookmark</i><span>Save preset</span>"
+  button.addEventListener("click", () => startSavingPreset())
   const next = Blockbench.isMobile ? MenuBar.mode_switcher_button : document.getElementById("windows_window_menu")
   next.before(button)
   titleBarChanged()

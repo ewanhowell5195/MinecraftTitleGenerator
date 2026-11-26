@@ -268,7 +268,7 @@ const PresetBrowser = {
             <div v-else-if="!shown.length" class="mtg-empty">
               <i class="material-icons">bookmark</i>
               <strong>No presets yet</strong>
-              <span>Use Save or share in the title bar to save the current title here.</span>
+              <span>Use Save preset in the title bar to save the current title here.</span>
             </div>
             <section v-for="group of groups" :key="group.label" class="mtg-saved">
               <h3>{{ group.label }}</h3>
