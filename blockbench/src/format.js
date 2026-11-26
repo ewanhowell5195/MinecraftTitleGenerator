@@ -1,8 +1,12 @@
+import { STYLES, startPage } from "./startPage.js"
+
 export const FORMAT = "minecraft_title"
 
 let format = null
+let styles = null
 
 export function registerFormat({ onNew }) {
+  styles = Blockbench.addCSS(STYLES)
   format = new ModelFormat({
     id: FORMAT,
     name: "Minecraft Title",
@@ -22,11 +26,14 @@ export function registerFormat({ onNew }) {
       if (!newProject(this)) return false
       onNew()
       return true
-    }
+    },
+    format_page: { component: startPage({ create: () => format.new() }) }
   })
 }
 
 export function unregisterFormat() {
   format?.delete()
   format = null
+  styles?.delete()
+  styles = null
 }

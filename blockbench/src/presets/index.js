@@ -292,6 +292,10 @@ function enter() {
   hidePanels()
 }
 
+export function openPresets() {
+  mode.select()
+}
+
 export function presetsChanged() {
   if (!inPresets()) return
   shown.value = true
