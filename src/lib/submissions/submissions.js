@@ -1,6 +1,6 @@
 import { AUTHOR_LIMITS, authorList } from "../core/authors.js"
 import { PNG_SIDE } from "../core/png.js"
-import { blockedWordProblem } from "../core/wording.js"
+import { blockedWordProblem } from "../core/blockedWords.js"
 
 export const SUBMISSION_LIMITS = { name: 40, notes: 500, link: 300, fileBytes: 1900000, totalBytes: 12000000, extraFiles: 24, side: PNG_SIDE, perDay: 10, listed: 100, notifications: 50, comment: 2000, comments: 200, commentsPerDay: 50 }
 

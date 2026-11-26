@@ -8,7 +8,8 @@ const HERE = fileURLToPath(new URL("./", import.meta.url))
 const NOTHING = "\0nothing"
 const WOFF2 = "woff2-encoder/dist/decompress.js"
 const WASM = /"data:application\/octet-stream;base64,([A-Za-z0-9+/=]+)"/
-const STARTUP = "let C=new Promise(A=>{I({onRuntimeInitialized(){A(this)}})});"
+const BLOCKED_WORDS = path.join(HERE, "../src/lib/core/blockedWords.js")
+const STARTUP ="let C=new Promise(A=>{I({onRuntimeInitialized(){A(this)}})});"
 const dev = process.argv.includes("--dev")
 
 const withoutNode = {
@@ -16,6 +17,11 @@ const withoutNode = {
   enforce: "pre",
   resolveId: id => id.startsWith("node:") ? NOTHING : null,
   load: id => id === NOTHING ? "export default {}" : null
+}
+
+const serverWordCheck = {
+  name: "server-word-check",
+  load: id => path.normalize(id) === BLOCKED_WORDS ? "export function blockedWordProblem() { return null }" : null
 }
 
 const packedWoff2 = {
@@ -80,7 +86,7 @@ await build({
   root: HERE,
   publicDir: false,
   logLevel: "warn",
-  plugins: [withoutNode, packedWoff2].concat(dev ? [] : [compactStrings]),
+  plugins: [withoutNode, serverWordCheck, packedWoff2].concat(dev ? [] : [compactStrings]),
   define: { "process.env.NODE_ENV": JSON.stringify("production") },
   build: {
     outDir: path.join(HERE, "dist"),
