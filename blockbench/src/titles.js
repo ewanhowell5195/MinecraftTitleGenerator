@@ -86,6 +86,7 @@ function place(member, item) {
   if (!transform) return
   member.pivot.copy(pivotOf(item))
   const { group } = member.entry
+  member.site.copy(group.matrix)
   group.matrix.premultiply(FACING).premultiply(new THREE.Matrix4().makeTranslation(-member.pivot.x, -member.pivot.y, -member.pivot.z))
   if (member.element.line) {
     member.centre.copy(wordCentre(item, member.pivot))
@@ -251,7 +252,7 @@ export function attach() {
 function start(state, element) {
   const { settings } = element
   if (state.members.has(settings.id)) return
-  const member = { element, state, entry: createEntry(), pivot: new THREE.Vector3(), centre: new THREE.Vector3(), body: null, box: null, item: null, scope: null }
+  const member = { element, state, entry: createEntry(), site: new THREE.Matrix4(), pivot: new THREE.Vector3(), centre: new THREE.Vector3(), body: null, box: null, item: null, scope: null }
   for (const material of ["body", "border", "rim", "clip"]) drawWithCubes(member.entry[material])
   state.members.set(settings.id, member)
   state.list.value = state.list.value.concat(settings)

@@ -11,6 +11,7 @@ import { followElementTab, openTitleMode, registerMode, unregisterMode } from ".
 import { registerPanels, unregisterPanels } from "./panels/index.js"
 import { askEula } from "./panels/minecraft.js"
 import { registerRenderMode, unregisterRenderMode } from "./render/mode.js"
+import { addCentreGuide, placeCentreGuide, removeCentreGuide } from "./render/centreGuide.js"
 import { angleClosed, angleDrawn, angleMoved, placeLater, registerAngle, unregisterAngle } from "./render/angle.js"
 import { lockDrawn, removeLocks } from "./render/lock.js"
 import { viewChanged, viewDrawn, viewTurned } from "./render/view.js"
@@ -75,6 +76,7 @@ Plugin.register("minecraft_title_generator", {
     registerRenderMode()
     registerAngle()
     registerPanels()
+    addCentreGuide()
     stopAsking = askEula()
     for (const event of ["finished_edit", "undo", "redo", "load_project", "merge_project", "select_project"]) listen(event, refresh)
     for (const event of ["update_selection", "select_project", "unselect_project"]) listen(event, followSelection)
@@ -98,6 +100,7 @@ Plugin.register("minecraft_title_generator", {
     scene.onBeforeRender = (renderer, shown, camera, ...rest) => {
       drawn?.(renderer, shown, camera, ...rest)
       sortTitle(camera)
+      placeCentreGuide()
     }
     finished = scene.onAfterRender
     scene.onAfterRender = (renderer, shown, camera, ...rest) => {
@@ -117,6 +120,7 @@ Plugin.register("minecraft_title_generator", {
     unregisterRenderMode()
     unregisterAngle()
     removeLocks()
+    removeCentreGuide()
     unregisterPanels()
     unregisterPresets()
     unregisterAccount()

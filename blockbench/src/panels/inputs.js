@@ -52,7 +52,7 @@ export const SliderControl = {
     <div class="mtg-slider" :title="hint">
       <label>{{ label }}</label>
       <input type="number" class="dark_bordered" :value="shown" :min="steps ? min : lowest" :max="steps ? max : highest" :step="steps ? 'any' : step" @change="typed">
-      <input type="range" class="tool" :value="position" :min="range.min" :max="range.max" :step="range.step" :style="fill" @input="slide" @change="$emit('done')">
+      <input type="range" class="tool" :value="position" :min="range.min" :max="range.max" :step="range.step" :style="fill" @pointerdown="$emit('press')" @input="slide" @change="$emit('done')">
     </div>
   `
 }

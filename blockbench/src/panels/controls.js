@@ -3,6 +3,7 @@ import { fontInfoTitle } from "#lib/panels/fontInfo.js"
 import { readImageFile } from "#lib/panels/imageUpload.js"
 import { groupState, usePanelState } from "#lib/panels/panel.js"
 import { usePickFloor } from "#lib/panels/pickFloor.js"
+import { holdCentre } from "#render/centreGuide.js"
 import { selectedElements } from "../host.js"
 import { CAMERA, beginEdit, edit, finishEdit } from "../undo.js"
 import { openFontBrowser } from "./fontBrowser.js"
@@ -81,6 +82,9 @@ export const TitleControls = {
       const target = targetOf(this.panel)
       if (target) beginEdit(target, this.key(control))
     },
+    hold(control) {
+      if (control.guide === "centre") holdCentre(this.panel.id, this.state.context.word)
+    },
     slide(control, action) {
       if (!control.local) this.press(control)
       action()
@@ -133,7 +137,7 @@ export const TitleControls = {
             <div v-if="state.resolved(control.modified)" class="tool" title="Reset" @click="act(control, () => control.reset(state.context))"><i class="material-icons">replay</i></div>
           </div>
           <h4 v-else-if="control.type === 'heading'" :key="index">{{ state.resolved(control.text) }}</h4>
-          <slider-control v-else-if="control.type === 'slider'" :key="control.id || index" :label="control.label" :value="state.valueOf(control)" :min="state.resolved(control.min)" :max="state.resolved(control.max)" :typed-min="state.resolved(control.typedMin)" :typed-max="state.resolved(control.typedMax)" :step="control.step" :steps="control.steps" :log="control.log" :hint="state.resolved(control.hint)" @change="change(control, $event)" @done="done(control)" />
+          <slider-control v-else-if="control.type === 'slider'" :key="control.id || index" :label="control.label" :value="state.valueOf(control)" :min="state.resolved(control.min)" :max="state.resolved(control.max)" :typed-min="state.resolved(control.typedMin)" :typed-max="state.resolved(control.typedMax)" :step="control.step" :steps="control.steps" :log="control.log" :hint="state.resolved(control.hint)" @press="hold(control)" @change="change(control, $event)" @done="done(control)" />
           <toggle-control v-else-if="control.type === 'toggle'" :key="control.id || index" :label="control.label" :hint="state.resolved(control.hint)" :value="!!state.valueOf(control)" @change="pick(control, $event)" />
           <radio-control v-else-if="control.radio" :key="index" :label="control.label" :options="state.resolved(control.options)" :value="state.valueOf(control)" @change="pick(control, $event)" />
           <segments-control v-else-if="control.type === 'segments'" :key="index" :label="control.label" :hint="state.resolved(control.hint)" :options="state.resolved(control.options)" :value="state.valueOf(control)" @change="pick(control, $event)" />
