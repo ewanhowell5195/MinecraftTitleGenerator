@@ -3,6 +3,7 @@ import { LIMITS } from "../lib/core/limits.js"
 import { decodeTitle } from "../lib/link/linkformat.js"
 import { capitalWords } from "../lib/core/names.js"
 import { parseSearch } from "../lib/link/presetSearch.js"
+import { upgradeLine } from "../lib/settings/upgrades.js"
 import { shareableTitle } from "../lib/link/titleFacts.js"
 import { blockedWordProblem, shortNameProblem } from "../lib/core/wording.js"
 import { USER_ROW, activeUser, currentUser, forgetUnusedUser, requireUser, saveUser } from "./accounts.js"
@@ -31,9 +32,10 @@ function scoresCounted(voters = "") {
 export const SCORES_COUNTED = scoresCounted()
 
 function titleFingerprint(code) {
-  const { lines, camera } = decodeTitle(code)
+  const { version, lines, camera } = decodeTitle(code)
+  const upgraded = lines.map(line => upgradeLine(line, version))
   const changes = cameraChanges(camera)
-  return hashed(JSON.stringify(canonical(Object.keys(changes).length ? { lines, camera: fullCamera(changes) } : lines)))
+  return hashed(JSON.stringify(canonical(Object.keys(changes).length ? { lines: upgraded, camera: fullCamera(changes) } : upgraded)))
 }
 
 function network(ip) {

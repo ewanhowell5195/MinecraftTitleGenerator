@@ -659,6 +659,14 @@ describe("exact duplicates", () => {
     assert.equal(second.id, first.preset.id)
   })
 
+  test("an older title is the same as itself opened and upgraded", async () => {
+    const old = [{ text: "same" }, { text: "under", type: "bottom", matchWidth: 0 }]
+    const first = await post({ code: encodeTitle({ version: 2, lines: old }).code })
+    const second = await post({ code: code([old[0], { ...old[1], matchBottom: false }]) }, "other")
+    assert.equal(second.status, 409)
+    assert.equal(second.id, first.preset.id)
+  })
+
   test("a different name doesn't make it a different title", async () => {
     await post({ code: code([{ text: "same" }]), name: "One" })
     assert.equal((await post({ code: code([{ text: "same" }]), name: "Two" }, "other")).status, 409)
