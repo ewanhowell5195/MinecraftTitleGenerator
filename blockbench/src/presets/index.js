@@ -7,6 +7,7 @@ import { accountChanges } from "#lib/state/account.js"
 import { communityPreset, managedPresets, ownPresets, refreshUsage } from "#lib/state/community.js"
 import { showNotice } from "#lib/state/notices.js"
 import { AccountButton } from "../account/index.js"
+import { finishBrowsing } from "../browsing.js"
 import { isBlank, openPreset, replaceWithPreset } from "../file.js"
 import { FORMAT } from "../format.js"
 import { hidePanels, putFirst, showPanels } from "../mode.js"
@@ -55,9 +56,16 @@ const PresetBrowser = {
       tools.value.querySelector(".search_bar > input").placeholder = inCommunity() ? "Search names, text or user:name" : "Search your presets"
     }
 
+    let watched = null
     function measureSpace() {
       const modes = document.getElementById("mode_selector")
-      if (modes && shown.value) space.value = modes.getBoundingClientRect().left - Interface.center_screen.getBoundingClientRect().left
+      if (modes !== watched) {
+        if (watched) observer.unobserve(watched)
+        if (modes) observer.observe(modes)
+        watched = modes
+      }
+      const centre = Interface.center_screen.getBoundingClientRect()
+      if (shown.value) space.value = (modes ? modes.getBoundingClientRect().left : centre.right) - centre.left
     }
 
     function forgotten(id) {
@@ -182,7 +190,6 @@ const PresetBrowser = {
       browser.load(0)
       measureSpace()
       observer.observe(Interface.center_screen)
-      if (!Blockbench.isMobile) observer.observe(document.getElementById("mode_selector"))
       addEventListener("keydown", key)
     })
     onBeforeUnmount(() => {
@@ -202,7 +209,10 @@ const PresetBrowser = {
       list,
       mineSort: mine.sort,
       mineSorts: MINE_SORTS,
-      loadInto: () => use(replaceWithPreset),
+      loadInto: () => use(preset => {
+        replaceWithPreset(preset)
+        finishBrowsing()
+      }),
       open: () => use(openPreset),
       pickMine,
       presetsError,

@@ -1,5 +1,5 @@
 import { platform } from "#lib/core/platform.js"
-import { openPresets } from "./presets/index.js"
+import { startBrowsing } from "./browsing.js"
 
 const LINKS = [
   { text: "Website", path: "/", icon: "language", colour: "#33E38E" },
@@ -97,9 +97,7 @@ export function startPage({ create }) {
     data: () => ({ links: LINKS.map(link => ({ ...link, url: platform.asset(link.path), icon: Blockbench.getIconNode(link.icon, link.colour).outerHTML })), tips: TIPS }),
     methods: {
       create,
-      presets() {
-        if (create()) openPresets()
-      },
+      presets: startBrowsing,
       open(url) {
         Blockbench.openLink(url)
       }

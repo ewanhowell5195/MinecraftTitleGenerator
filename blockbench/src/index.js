@@ -1,5 +1,6 @@
 import { registerAccount, unregisterAccount } from "./account/index.js"
 import { addText, registerActions, unregisterActions } from "./actions.js"
+import { forgetBrowsing, registerBrowsing, unregisterBrowsing } from "./browsing.js"
 import { chooseClicked } from "./clicks.js"
 import { isTitle, registerElements, unregisterElements } from "./elements.js"
 import { registerFile, unregisterFile } from "./file.js"
@@ -76,6 +77,7 @@ Plugin.register("minecraft_title_generator", {
     registerRenderMode()
     registerAngle()
     registerPanels()
+    registerBrowsing()
     addCentreGuide()
     stopAsking = askEula()
     for (const event of ["finished_edit", "undo", "redo", "load_project", "merge_project", "select_project"]) listen(event, refresh)
@@ -94,6 +96,7 @@ Plugin.register("minecraft_title_generator", {
     listen("load_undo_save", loadTitle)
     listen("load_project", () => setTimeout(() => Project && Outliner.elements.some(isTitle) && openTitleMode()))
     listen("close_project", () => Project && closeTitle(Project))
+    listen("close_project", forgetBrowsing)
     listen("saved_state_changed", savedStats)
     listen("save_project", keepCounted)
     drawn = scene.onBeforeRender
@@ -117,6 +120,7 @@ Plugin.register("minecraft_title_generator", {
     for (const [event, action] of listeners.splice(0)) Blockbench.removeListener(event, action)
     selected.value = null
     Codecs.project.removeListener("parsed", refresh)
+    unregisterBrowsing()
     unregisterRenderMode()
     unregisterAngle()
     removeLocks()
