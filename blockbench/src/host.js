@@ -4,7 +4,8 @@ import { usePanelHost } from "#lib/panels/host.js"
 import { framing, useFraming } from "#render/framing.js"
 import { round } from "#lib/core/maths.js"
 import { joinWords } from "#lib/link/titleLines.js"
-import { oneWord, wholeLine } from "#lib/title/broadcast.js"
+import { LINE } from "#lib/settings/settings.js"
+import { alongside, oneWord, wholeLine } from "#lib/title/broadcast.js"
 import { popular } from "#lib/title/popularity.js"
 import { placeWords } from "#lib/title/placeLine.js"
 import { versionsIn, wordsOf } from "#lib/title/title.js"
@@ -18,19 +19,32 @@ import { elementOf, runtimeOf, titleState } from "./titles.js"
 import { familyOf, homeElement } from "./words.js"
 
 export const selected = shallowRef(null)
+export const chosen = shallowRef([])
 const edited = shallowRef(null)
 const SAVES = { png: "buffer", svg: "text", zip: "zip" }
 
 let title = null
 
+function sameList(a, b) {
+  return a.length === b.length && a.every((item, index) => item === b[index])
+}
+
 export function followSelection() {
-  selected.value = Project ? Outliner.selected.find(isTitle) ?? null : null
+  const titles = Project ? Outliner.selected.filter(isTitle) : []
+  selected.value = titles[0] ?? null
   if (!selected.value) return
+  const lines = new Set(titles.filter(element => !element.isWord))
+  const list = titles.filter(element => element === selected.value || !element.isWord || !lines.has(element.line))
+  if (!sameList(list, chosen.value)) chosen.value = list
   edited.value = selected.value
 }
 
 export function selectedElements() {
-  return selected.value ? familyOf(selected.value) : []
+  return Array.from(new Set(chosen.value.flatMap(familyOf)))
+}
+
+export function allWords() {
+  return chosen.value.every(element => element.isWord)
 }
 
 export function kindOf(element) {
@@ -47,10 +61,26 @@ export function shownSettings(element) {
   return element.isWord ? element.settings : wordsIn(element)[0] ?? element.settings
 }
 
+function reachedBy(element, key) {
+  const words = wordsIn(element)
+  if (element.isWord) return LINE.has(key) ? words : [element.settings]
+  return words.length ? words : [element.settings]
+}
+
 function settingsFor(element) {
   const [first] = wordsIn(element)
+  if (chosen.value.length > 1) {
+    const own = element.isWord ? element.settings : first ?? element.settings
+    return alongside(own, key => key === "text" ? [own] : Array.from(new Set(chosen.value.flatMap(each => reachedBy(each, key)))))
+  }
   if (!first) return element.settings
   return element.isWord ? oneWord(element.settings, () => wordsIn(element)) : wholeLine(first, () => wordsIn(element))
+}
+
+function wordSettingsFor(element) {
+  const own = shownSettings(element)
+  if (chosen.value.length < 2 || !allWords()) return own
+  return alongside(own, key => key === "text" ? [own] : chosen.value.map(word => word.settings))
 }
 
 function current() {
@@ -69,9 +99,10 @@ function updateTransform(element) {
 }
 
 function placeLine(type) {
-  const settings = shownSettings(selected.value)
-  if (settings.type === type) return
-  placeWords(wordsOf(settings, current()), type, current(), runtimeOf(selected.value))
+  for (const home of new Set(chosen.value.map(homeElement))) {
+    const settings = shownSettings(home)
+    if (settings.type !== type) placeWords(wordsOf(settings, current()), type, current(), runtimeOf(home))
+  }
 }
 
 function chooseMatch(object, id) {
@@ -97,7 +128,7 @@ function bakeMatch(object) {
 export function registerHost() {
   useFraming({ view: renderView, viewport })
   const shown = computed(() => edited.value && settingsFor(edited.value))
-  const currentWord = computed(() => edited.value && shownSettings(edited.value))
+  const currentWord = computed(() => edited.value && wordSettingsFor(edited.value))
   const line = computed(() => edited.value && (wordsIn(edited.value)[0] ?? edited.value.settings))
   const layer = shallowRef(0)
   usePanelHost({

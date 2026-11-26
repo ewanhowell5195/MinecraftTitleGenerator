@@ -7,7 +7,7 @@ import { SHAPE_PANEL } from "#lib/panels/shapeSource.js"
 import { MATCH_PANEL, SCALING_PANEL } from "#lib/panels/transform.js"
 import { PANELS } from "#lib/settings/defaults.js"
 import { isModified, wordKey } from "#lib/settings/settings.js"
-import { kindOf, selected, shownSettings } from "../host.js"
+import { allWords, chosen as chosenElements, kindOf, selected, shownSettings } from "../host.js"
 import { deleteTitlePanel, titlePanel } from "../mode.js"
 import { inRenderMode, rendered } from "../render/mode.js"
 import { homeElement } from "../words.js"
@@ -28,7 +28,7 @@ const STRETCHING_PANEL = {
   }
 }
 
-const UNSELECTED = { shape: null }
+const UNSELECTED = [null]
 
 const TABS = [
   { id: "text", name: "Text", icon: "text_fields", groups: () => ["title-words"], panels: lineOnly },
@@ -55,25 +55,39 @@ function lineOnly(panels, kind) {
   return kind === "word" ? [] : panels
 }
 
+function chosenShapes() {
+  return Array.from(new Set(chosenElements.value.map(element => shownSettings(element).shape)))
+}
+
+function chosenKind() {
+  if (allWords()) return "word"
+  return kindOf(chosenElements.value.find(element => !element.isWord))
+}
+
+function sharedPanels(id, shapes) {
+  const [first, ...rest] = shapes.map(shape => sectionPanels(id, shape) ?? [])
+  return first.filter(panel => rest.every(list => list.includes(panel)))
+}
+
 function section({ id, shapes, groups, panels }) {
   return {
     components: { FontNote, TitleGroup, TitleWords },
     computed: {
       element: () => selected.value,
-      settings: () => selected.value && shownSettings(selected.value),
-      kind: () => selected.value && kindOf(selected.value),
-      home: () => selected.value && homeElement(selected.value).uuid,
+      shapes: () => selected.value && chosenShapes(),
+      kind: () => selected.value && chosenKind(),
+      home: () => selected.value && chosenElements.value.map(element => homeElement(element).uuid).join(),
       word() {
         return !!shapes && this.kind === "word"
       },
       applies() {
-        return !!this.element && sectionFits(id, this.settings.shape)
+        return !!this.element && this.shapes.every(shape => sectionFits(id, shape))
       },
       groups() {
         return groups?.(this.kind) ?? []
       },
       panels() {
-        const own = sectionPanels(id, this.settings.shape)
+        const own = sharedPanels(id, this.shapes)
         return Object.freeze(panels?.(own, this.kind) ?? own)
       }
     },
@@ -100,8 +114,8 @@ const TitleSections = {
   computed: {
     element: () => selected.value,
     tabs() {
-      const settings = this.element ? shownSettings(this.element) : UNSELECTED
-      return TABS.filter(({ id }) => sectionFits(id, settings.shape))
+      const shapes = this.element ? chosenShapes() : UNSELECTED
+      return TABS.filter(({ id, groups }) => shapes.every(shape => sectionFits(id, shape)) && (shapes.length < 2 || !!groups || sharedPanels(id, shapes).length > 0))
     },
     open() {
       return this.tabs.find(({ id }) => id === chosen.value) ?? this.tabs[0]
