@@ -66,7 +66,7 @@ export function entriesOf({ base, layers, joins, covers }, { bleed, output, tota
 
 function filledArea(polygons) {
   if (polygons.every(polygon => signedArea(polygon) > 0)) return polygons
-  return fromPaths(unionD(toPaths(polygons), null, FillRule.NonZero))
+  return fromPaths(unionD(toPaths(polygons), null, FillRule.NonZero, SEAM_PRECISION))
 }
 
 function withoutSpikes(loop) {
