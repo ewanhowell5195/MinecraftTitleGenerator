@@ -1,4 +1,5 @@
 import * as THREE from "three"
+import { reachable } from "./reach.js"
 
 let textureSize = null
 
@@ -18,7 +19,7 @@ export const platform = {
   cachedFont: (name, load) => load(),
   coverWorker: null,
   asset: path => path,
-  fetch: (path, ...args) => fetch(platform.asset(path), ...args),
+  fetch: (path, ...args) => reachable(fetch(platform.asset(path), ...args)),
   createCanvas: () => document.createElement("canvas"),
   createWebGLRenderer: options => new THREE.WebGLRenderer({ antialias: false, alpha: true, ...options }),
   maxTextureSize,

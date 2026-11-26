@@ -45,8 +45,32 @@ describe("apiCall", () => {
   })
 
   test("falls back to the unavailable message when the reply has no error", async () => {
+    replyWith(404, "<html>")
+    await assert.rejects(apiCall("/api", undefined, "Not available", () => {}), err => err.message === "Not available (404)." && err.status === 404 && err.id === undefined)
+  })
+
+  test("a server error page means the site can't be reached", async () => {
     replyWith(502, "<html>")
-    await assert.rejects(apiCall("/api", undefined, "Not available", () => {}), err => err.message === "Not available (502)." && err.status === 502 && err.id === undefined)
+    await assert.rejects(apiCall("/api", undefined, "Not available", () => {}), err => err.unreachable && /can't be reached/.test(err.message))
+  })
+
+  test("a server error with its own message keeps it", async () => {
+    replyWith(500, '{"error":"Database is busy."}')
+    await assert.rejects(apiCall("/api", undefined, "Not available", () => {}), err => !err.unreachable && err.message === "Database is busy.")
+  })
+
+  test("a failed request means the site can't be reached", async () => {
+    globalThis.fetch = async () => {
+      throw new TypeError("Failed to fetch")
+    }
+    await assert.rejects(apiCall("/api", undefined, "Not available", () => {}), err => err.unreachable && err.cause.message === "Failed to fetch")
+  })
+
+  test("an aborted request stays aborted", async () => {
+    globalThis.fetch = async () => {
+      throw new DOMException("The operation was aborted.", "AbortError")
+    }
+    await assert.rejects(apiCall("/api", undefined, "Not available", () => {}), err => err.name === "AbortError")
   })
 
   test("an OK reply that isn't JSON fails too", async () => {

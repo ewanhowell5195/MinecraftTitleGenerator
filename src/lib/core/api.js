@@ -1,3 +1,5 @@
+import { sent, unreachable } from "./reach.js"
+
 let site = ""
 let headersOf = () => ({})
 
@@ -11,10 +13,11 @@ export function jsonOptions(method, body) {
 }
 
 export async function apiCall(url, options, unavailable, signedOut) {
-  const response = await fetch(site + url, { ...options, headers: { ...options?.headers, ...headersOf() } })
+  const response = await sent(fetch(site + url, { ...options, headers: { ...options?.headers, ...headersOf() } }))
   const body = await response.json().catch(() => null)
   if (response.ok && body) return body
   if (response.status === 401) signedOut()
+  if (response.status >= 500 && !body?.error) throw unreachable(new Error(`${url} answered ${response.status}`))
   const error = new Error(body?.error ?? `${unavailable} (${response.status}).`)
   error.status = response.status
   error.id = body?.id
