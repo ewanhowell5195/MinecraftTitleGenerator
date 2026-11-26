@@ -1,7 +1,7 @@
 import { shallowRef, watch } from "vue"
 import { titleCase } from "#lib/core/names.js"
 import { isMinecraftShape } from "#lib/geometry/shapes.js"
-import { EULA_URL, answerEula, eula } from "#lib/minecraft/eula.js"
+import { answerEula, eula } from "#lib/minecraft/eula.js"
 import { jar, listVersions } from "#lib/minecraft/minecraft.js"
 import { useModelPicture } from "#lib/panels/modelPicture.js"
 import { setTexture } from "#lib/settings/textureDefaults.js"
@@ -10,11 +10,7 @@ import { library } from "../library.js"
 import { edit } from "../undo.js"
 import { TitleTile } from "./tile.js"
 
-const AGREEMENT = `you need to agree to the [Minecraft End User License Agreement (EULA)](${EULA_URL}).`
-const QUESTIONS = {
-  shapes: `The Minecraft shapes are the game's own block and item models, downloaded straight from Mojang. To use them, ${AGREEMENT}\n\nChoosing No keeps you on the premade shapes.`,
-  tileables: `The Minecraft textures in Tileables are the game's own block textures, downloaded straight from Mojang. To use them, ${AGREEMENT}\n\nChoosing No uses the premade checkerboard instead, and Tileables will open on Premade from now on.`
-}
+const EULA_KEY = "minecraft_title_generator"
 
 function decline() {
   const usesTexture = settings => settings.textureSource === "tileable" && settings.tileableSource === "minecraft"
@@ -28,11 +24,10 @@ function decline() {
   })
 }
 
-function ask() {
-  Blockbench.showMessageBox({ title: "Minecraft EULA", message: QUESTIONS[eula.reason], buttons: ["I agree", "No"], confirm: 0, cancel: 1 }, answer => {
-    if (answer !== 0) decline()
-    answerEula(answer === 0)
-  })
+async function ask() {
+  const agreed = await MinecraftEULA.promptUser(EULA_KEY)
+  if (!agreed) decline()
+  answerEula(agreed)
 }
 
 export function askEula() {
