@@ -7,7 +7,8 @@ import { registerFile, unregisterFile } from "./file.js"
 import { registerFileMenu, unregisterFileMenu } from "./fileMenu.js"
 import { registerFormat, unregisterFormat } from "./format.js"
 import { followSelection, registerHost, selected } from "./host.js"
-import { openLibrary } from "./library.js"
+import { closeLibrary, watchConnection } from "./library.js"
+import { followProject, leftProject, registerOffline, unregisterOffline } from "./offline.js"
 import { followElementTab, openTitleMode, registerMode, unregisterMode } from "./mode.js"
 import { registerPanels, unregisterPanels } from "./panels/index.js"
 import { askEula } from "./panels/minecraft.js"
@@ -57,7 +58,7 @@ Plugin.register("minecraft_title_generator", {
   bug_tracker: "https://github.com/ewanhowell5195/MinecraftTitleGenerator/issues",
   onload() {
     useBlockbench()
-    openLibrary()
+    watchConnection()
     registerElements()
     registerFormat({
       onNew() {
@@ -78,10 +79,13 @@ Plugin.register("minecraft_title_generator", {
     registerAngle()
     registerPanels()
     registerBrowsing()
+    registerOffline()
     addCentreGuide()
     stopAsking = askEula()
     for (const event of ["finished_edit", "undo", "redo", "load_project", "merge_project", "select_project"]) listen(event, refresh)
     for (const event of ["update_selection", "select_project", "unselect_project"]) listen(event, followSelection)
+    for (const event of ["select_project", "setup_project"]) listen(event, followProject)
+    listen("unselect_project", leftProject)
     Codecs.project.on("parsed", refresh)
     listen("update_selection", followElementTab)
     listen("update_selection", titleBarChanged)
@@ -121,6 +125,8 @@ Plugin.register("minecraft_title_generator", {
     selected.value = null
     Codecs.project.removeListener("parsed", refresh)
     unregisterBrowsing()
+    unregisterOffline()
+    closeLibrary()
     unregisterRenderMode()
     unregisterAngle()
     removeLocks()

@@ -1,5 +1,7 @@
 import { platform } from "#lib/core/platform.js"
 import { startBrowsing } from "./browsing.js"
+import { libraryFailed } from "./library.js"
+import { OfflineNotice } from "./offline.js"
 
 const LINKS = [
   { text: "Website", path: "/", icon: "language", colour: "#33E38E" },
@@ -30,6 +32,12 @@ export const STYLES = `
   }
   .mtg-start > content {
     overflow-y: auto;
+  }
+  .mtg-start > .mtg-offline {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0 16px;
   }
   .mtg-start-links {
     display: flex;
@@ -85,6 +93,10 @@ export const STYLES = `
     margin: 0;
     user-select: none;
   }
+  .mtg-start-buttons > button:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
   .mtg-start-buttons > button > i {
     vertical-align: bottom;
     margin-right: 3px;
@@ -94,6 +106,8 @@ export const STYLES = `
 
 export function startPage({ create }) {
   return {
+    components: { OfflineNotice },
+    setup: () => ({ failed: libraryFailed }),
     data: () => ({ links: LINKS.map(link => ({ ...link, url: platform.asset(link.path), icon: Blockbench.getIconNode(link.icon, link.colour).outerHTML })), tips: TIPS }),
     methods: {
       create,
@@ -106,7 +120,8 @@ export function startPage({ create }) {
       <div class="mtg-start">
         <p class="format_description">Make Minecraft styled titles that you can render in high quality.</p>
         <p class="format_target"><b>Target</b>: <span>Logos</span> <span>Renders</span> <span>Thumbnails</span></p>
-        <content class="markdown">
+        <offline-notice v-if="failed()" />
+        <content v-else class="markdown">
           <h3>Good to know</h3>
           <ul>
             <li v-for="tip in tips" v-html="tip"></li>
@@ -119,8 +134,8 @@ export function startPage({ create }) {
           </a>
         </div>
         <div class="mtg-start-buttons">
-          <button @click="presets"><i class="material-icons">auto_awesome_mosaic</i> Start from a Preset</button>
-          <button id="create_new_model_button" @click="create"><i class="material-icons">arrow_forward</i> Create New Title</button>
+          <button :disabled="failed()" @click="presets"><i class="material-icons">auto_awesome_mosaic</i> Start from a Preset</button>
+          <button id="create_new_model_button" :disabled="failed()" @click="create"><i class="material-icons">arrow_forward</i> Create New Title</button>
         </div>
       </div>
     `

@@ -1,4 +1,5 @@
 import { FORMAT } from "./format.js"
+import { whenLibrary } from "./offline.js"
 import { openPresets } from "./presets/index.js"
 import { placeLater } from "./render/angle.js"
 
@@ -29,10 +30,12 @@ function redraw() {
 }
 
 export function startBrowsing() {
-  if (!newProject(Formats[FORMAT])) return
-  browsing.add(Project.uuid)
-  redraw()
-  openPresets()
+  whenLibrary(() => {
+    if (!newProject(Formats[FORMAT])) return
+    browsing.add(Project.uuid)
+    redraw()
+    openPresets()
+  })
 }
 
 export function finishBrowsing() {

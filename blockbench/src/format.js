@@ -1,3 +1,4 @@
+import { whenLibrary } from "./offline.js"
 import { STYLES, startPage } from "./startPage.js"
 
 export const FORMAT = "minecraft_title"
@@ -23,9 +24,11 @@ export function registerFormat({ onNew }) {
     centered_grid: true,
     per_texture_uv_size: true,
     new() {
-      if (!newProject(this)) return false
-      onNew()
-      return true
+      return whenLibrary(() => {
+        if (!newProject(format)) return false
+        onNew()
+        return true
+      })
     },
     format_page: { component: startPage({ create: () => format.new() }) }
   })

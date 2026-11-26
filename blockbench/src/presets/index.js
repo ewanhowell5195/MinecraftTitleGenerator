@@ -254,7 +254,12 @@ const PresetBrowser = {
         </div>
         <div ref="list" class="mtg-list">
           <template v-if="tab === 'community'">
-            <p v-if="error" class="mtg-error">{{ error }}</p>
+            <div v-if="error" class="mtg-empty">
+              <i class="material-icons">cloud_off</i>
+              <strong>Presets couldn't be loaded</strong>
+              <span>{{ error }}</span>
+              <button class="mtg-button" @click="load(0)"><i class="material-icons">refresh</i><span>Try again</span></button>
+            </div>
             <p v-else-if="!results.length && !loading" class="mtg-empty">{{ emptyMessage }}</p>
             <div class="mtg-preset-grid">
               <preset-tile v-for="preset of results" :key="preset.id" :preset="preset" :selected="!!selected && selected.id === preset.id" :searched="searched(preset)" :mine="isMine(preset)" @vote="vote(preset, $event)" @pick="pick(preset)" @user="byUser" />
