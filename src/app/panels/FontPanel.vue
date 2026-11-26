@@ -1,5 +1,6 @@
 <script setup>
   import { ref } from "vue"
+  import { fontInfoTitle } from "#lib/panels/fontInfo.js"
   import { FONT_PANEL } from "#lib/panels/fontSource.js"
   import { usePanelState } from "#lib/panels/panel.js"
   import Button from "#c/Button.vue"
@@ -11,7 +12,7 @@
   const info = ref(false)
   const state = usePanelState(FONT_PANEL)
   const { modified, reset, title } = state
-  const { browsed, browsing, customName, entry, font, search, shownFont, tab } = state.context.state
+  const { browsed, browsing, font, search, shownFont, tab } = state.context.state
 </script>
 
 <template>
@@ -19,7 +20,7 @@
     <template #actions>
       <Button ghost icon="info" title="Font info and characters" :disabled="!font" @click="info = true" />
     </template>
-    <FontInfoDialog v-if="info && font" :font="font" :title="entry?.name || customName || 'Font'" @close="info = false" />
+    <FontInfoDialog v-if="info && font" :font="font" :title="fontInfoTitle(state.context.state)" @close="info = false" />
     <FontBrowser v-if="browsing" v-model:search="search" :kind="tab" :current="shownFont" @pick="browsed" @close="browsing = false" />
     <DataControls :panel="FONT_PANEL" :state="state" :controls="FONT_PANEL.controls" />
   </Panel>

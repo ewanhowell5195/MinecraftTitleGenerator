@@ -1,10 +1,12 @@
 import { checkControls } from "#lib/panels/controls.js"
+import { fontInfoTitle } from "#lib/panels/fontInfo.js"
 import { readImageFile } from "#lib/panels/imageUpload.js"
 import { groupState, usePanelState } from "#lib/panels/panel.js"
 import { usePickFloor } from "#lib/panels/pickFloor.js"
 import { selectedElements } from "../host.js"
 import { CAMERA, beginEdit, edit, finishEdit } from "../undo.js"
 import { openFontBrowser } from "./fontBrowser.js"
+import { openFontInfo } from "./fontInfo.js"
 import { GradientControl } from "./gradient.js"
 import { INPUTS, iconOf } from "./inputs.js"
 import { DownloadProgress, VersionControl } from "./minecraft.js"
@@ -187,6 +189,10 @@ export const TitleGroup = {
     },
     enable(event) {
       editing(this.panel, `Change title ${this.title.toLowerCase()}`, () => this.state.enable(event.target.checked))
+    },
+    fontInfo() {
+      const fonts = this.state.context.state
+      if (fonts.font.value) openFontInfo(fontInfoTitle(fonts), fonts.font.value)
     }
   },
   template: `
@@ -194,6 +200,7 @@ export const TitleGroup = {
       <div v-if="title" class="mtg-head">
         <h3>{{ title }}</h3>
         <div v-if="modified" class="tool" title="Reset" @click="reset"><i class="material-icons">replay</i></div>
+        <div v-if="panel.id === 'font'" class="tool" :class="{ disabled: !state.context.state.font.value }" title="Font info and characters" @click="fontInfo"><i class="material-icons">info</i></div>
         <input v-if="enabled !== null" type="checkbox" :checked="enabled" @change="enable">
       </div>
       <title-controls v-if="enabled !== false" :panel="panel" :state="state" :controls="panel.controls" />

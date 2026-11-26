@@ -134,6 +134,39 @@ export const STYLES = `
 
   .mtg-head > .tool {
     cursor: pointer;
+    user-select: none;
+  }
+
+  .mtg-head > .tool.disabled {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  .mtg-font-info {
+    padding-bottom: 8px;
+  }
+
+  .mtg-font-info > p {
+    margin: 0 0 10px;
+    color: var(--color-text);
+  }
+
+  .mtg-font-info > h4 {
+    margin: 0 0 6px;
+    font-size: 1em;
+    color: var(--color-subtle_text);
+  }
+
+  .mtg-characters {
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 10px;
+    font-family: var(--font-code);
+    line-height: 1.7;
+    word-break: break-all;
+    color: var(--color-text);
+    background-color: var(--color-back);
+    user-select: text;
   }
 
   .mtg-controls {

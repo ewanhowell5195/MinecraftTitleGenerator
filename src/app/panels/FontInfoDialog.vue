@@ -1,5 +1,6 @@
 <script setup>
   import { computed } from "vue"
+  import { fontCharacters } from "#lib/panels/fontInfo.js"
   import Dialog from "#c/Dialog.vue"
 
   const props = defineProps({
@@ -9,10 +10,7 @@
 
   defineEmits(["close"])
 
-  const characters = computed(() => {
-    const rank = char => /[a-z]/i.test(char) ? 0 : /\d/.test(char) ? 1 : 2
-    return Object.keys(props.font.glyphs).filter(char => !/[\u{1F629}\u{1F633}]/u.test(char)).sort((a, b) => rank(a) - rank(b) || a.localeCompare(b)).join(" ")
-  })
+  const characters = computed(() => fontCharacters(props.font))
 </script>
 
 <template>
