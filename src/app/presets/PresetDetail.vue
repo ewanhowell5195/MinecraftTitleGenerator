@@ -1,7 +1,7 @@
 <script setup>
-  import { computed, onBeforeUnmount, ref, watch } from "vue"
+  import { onBeforeUnmount, ref, watch } from "vue"
+  import { copyPresetLink, usePresetDetail } from "#lib/presets/presetDetail.js"
   import { NAME_LIMIT } from "#lib/presets/savedPresets.js"
-  import { presetLink } from "#lib/state/presetsPage.js"
   import AuthorLink from "./AuthorLink.vue"
   import Badge from "#c/Badge.vue"
   import Button from "#c/Button.vue"
@@ -9,7 +9,6 @@
   import PresetRating from "./PresetRating.vue"
   import TitlePicture from "./TitlePicture.vue"
   import UserName from "#c/UserName.vue"
-  import { sharedText, usesText } from "#lib/presets/presetText.js"
 
   const props = defineProps({
     preset: { type: Object, required: true },
@@ -23,7 +22,7 @@
 
   const emit = defineEmits(["close", "open", "save", "vote", "rename", "remove", "share", "view", "user"])
 
-  const renaming = ref(false)
+  const { renaming, figures, uses, sharedOn, finishRenaming } = usePresetDetail(props, name => emit("rename", name))
   const copyMessage = ref("")
   let copying = null
 
@@ -34,16 +33,6 @@
     }
   }
 
-  const figures = computed(() => props.local ? props.stats : props.preset)
-  const uses = computed(() => usesText(figures.value))
-  const sharedOn = computed(() => sharedText(figures.value.createdAt))
-
-  function finishRenaming(event) {
-    if (!renaming.value) return
-    renaming.value = false
-    emit("rename", event.target.value)
-  }
-
   function showCopyMessage(text) {
     copyMessage.value = text
     clearTimeout(copying)
@@ -51,17 +40,10 @@
   }
 
   async function copyLink() {
-    try {
-      await navigator.clipboard.writeText(presetLink(props.preset.id))
-      showCopyMessage("Link copied")
-    } catch (err) {
-      console.error(err)
-      showCopyMessage("Could not copy")
-    }
+    showCopyMessage(await copyPresetLink(props.preset.id))
   }
 
   watch(() => props.preset.code, () => {
-    renaming.value = false
     copyMessage.value = ""
     clearTimeout(copying)
   })

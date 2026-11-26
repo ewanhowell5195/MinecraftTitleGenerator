@@ -1,9 +1,8 @@
-import { platform } from "#lib/core/platform.js"
 import { pictureUrl, previewAlt } from "#lib/core/pictures.js"
 import { providerLabel } from "#lib/core/providers.js"
-import { presetPath } from "#lib/presets/presetPath.js"
+import { copyPresetLink, usePresetDetail } from "#lib/presets/presetDetail.js"
 import { NAME_LIMIT } from "#lib/presets/savedPresets.js"
-import { ratingText, sharedText, toGoText, upvotedText, usesText, votesText } from "#lib/presets/presetText.js"
+import { ratingText, toGoText, upvotedText, votesText } from "#lib/presets/presetText.js"
 
 const PresetPicture = {
   props: { preset: Object },
@@ -106,26 +105,19 @@ export const SavedTile = {
 export const PresetDetail = {
   components: { PresetAuthor, PresetPicture, VoteButtons },
   props: { preset: Object, local: Boolean, stats: Object, searched: Boolean, mine: Boolean, owned: Boolean, saved: Boolean, blank: Boolean },
-  data: () => ({ stars: [1, 2, 3, 4, 5], renaming: false, limit: NAME_LIMIT }),
+  setup(props, { emit }) {
+    return usePresetDetail(props, name => emit("rename", name))
+  },
+  data: () => ({ stars: [1, 2, 3, 4, 5], limit: NAME_LIMIT }),
   computed: {
-    figures() {
-      return this.local ? this.stats : this.preset
-    },
     pictured() {
       return this.local ? { code: this.preset.code, name: this.preset.name } : this.preset
     }
   },
-  watch: {
-    "preset.code"() {
-      this.renaming = false
-    }
-  },
   methods: {
     ratingText,
-    sharedText,
     toGoText,
     upvotedText,
-    usesText,
     votesText,
     filled(star) {
       return { width: `${Math.min(Math.max(ratingText(this.figures.rating) - star + 1, 0), 1) * 100}%` }
@@ -136,18 +128,8 @@ export const PresetDetail = {
       this.$refs.name.focus()
       this.$refs.name.select()
     },
-    renamed(event) {
-      if (!this.renaming) return
-      this.renaming = false
-      this.$emit("rename", event.target.value)
-    },
     async copyLink() {
-      try {
-        await navigator.clipboard.writeText(platform.asset(presetPath(this.preset.id)))
-        Blockbench.showQuickMessage("Link copied")
-      } catch (err) {
-        Blockbench.showQuickMessage(`Could not copy: ${err.message}`, 3000)
-      }
+      Blockbench.showQuickMessage(await copyPresetLink(this.preset.id), 3000)
     }
   },
   template: `
@@ -155,7 +137,7 @@ export const PresetDetail = {
       <div class="mtg-close"><div class="tool" title="Close this preset" @click="$emit('close')"><i class="material-icons">close</i></div></div>
       <preset-picture :preset="pictured" />
       <div class="mtg-heading">
-        <input v-if="renaming" ref="name" type="text" class="dark_bordered mtg-rename" :value="preset.name" :maxlength="limit" spellcheck="false" @blur="renamed" @keydown.enter="$event.target.blur()" @keydown.esc.stop="renaming = false">
+        <input v-if="renaming" ref="name" type="text" class="dark_bordered mtg-rename" :value="preset.name" :maxlength="limit" spellcheck="false" @blur="finishRenaming" @keydown.enter="$event.target.blur()" @keydown.esc.stop="renaming = false">
         <h2 v-else>{{ preset.name }}</h2>
         <div v-if="(local || owned) && !renaming" class="tool" :title="'Rename ' + preset.name" @click="rename"><i class="material-icons">edit</i></div>
         <span class="mtg-fill"></span>
@@ -172,8 +154,8 @@ export const PresetDetail = {
         </div>
         <p v-else class="mtg-hint">{{ toGoText(figures.votes) }}</p>
         <div class="mtg-facts mtg-hint">
-          <span>{{ usesText(figures) }}</span>
-          <span>Shared {{ sharedText(figures.createdAt) }}</span>
+          <span>{{ uses }}</span>
+          <span>Shared {{ sharedOn }}</span>
           <span v-if="figures.author || !local && !mine" class="mtg-by">By <preset-author :preset="figures" :searched="searched" @user="(...user) => $emit('user', ...user)" /></span>
         </div>
       </template>

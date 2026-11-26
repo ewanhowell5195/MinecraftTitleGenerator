@@ -1,11 +1,7 @@
 import { onBeforeUnmount, ref, watch } from "vue"
-import { canvasBlob } from "#lib/core/files.js"
+import { canvasBlob, copyImage, sizeText } from "#lib/core/files.js"
 import { host } from "#lib/panels/host.js"
 import { VotePrompt } from "../presets/votePrompt.js"
-
-function sizeText(bytes) {
-  return bytes > 1048576 ? `${Math.round(bytes / 1048576 * 100) / 100} MB` : `${Math.round(bytes / 1024)} KB`
-}
 
 let shown = null
 
@@ -25,12 +21,7 @@ async function showResult(image) {
       },
       methods: {
         async copy() {
-          try {
-            await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })])
-            Blockbench.showQuickMessage("Copied to clipboard")
-          } catch (err) {
-            Blockbench.showQuickMessage(`Could not copy: ${err.message}`, 3000)
-          }
+          Blockbench.showQuickMessage(await copyImage(blob), 3000)
         },
         save() {
           host.save(name, blob)

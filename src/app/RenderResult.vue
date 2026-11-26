@@ -1,6 +1,6 @@
 <script setup>
   import { onBeforeUnmount, onMounted, ref } from "vue"
-  import { canvasBlob, downloadBlob } from "../lib/core/files.js"
+  import { canvasBlob, copyImage, downloadBlob, sizeText } from "../lib/core/files.js"
   import Button from "../components/Button.vue"
   import Icon from "../components/Icon.vue"
   import Dialog from "../components/Dialog.vue"
@@ -18,10 +18,6 @@
   const notice = ref("")
   let noticing = null
 
-  function sizeText(bytes) {
-    return bytes > 1048576 ? `${Math.round(bytes / 1048576 * 100) / 100} MB` : `${Math.round(bytes / 1024)} KB`
-  }
-
   const blob = canvasBlob(props.image)
 
   function flash(text) {
@@ -31,12 +27,7 @@
   }
 
   async function copy() {
-    try {
-      await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })])
-      flash("Copied to clipboard")
-    } catch (err) {
-      flash(`Could not copy: ${err.message}`)
-    }
+    flash(await copyImage(blob))
   }
 
   async function save() {

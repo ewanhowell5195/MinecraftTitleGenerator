@@ -39,10 +39,6 @@ export function readPresetPath(path) {
   return { open: true, id: Number.isSafeInteger(id) && id > 0 ? id : null }
 }
 
-export function presetLink(id) {
-  return `${location.origin}${presetPath(id)}`
-}
-
 function syncTo(url) {
   const { open, id } = readPresetPath(url.pathname)
   const code = open && id === null ? url.searchParams.get(TITLE_PARAM) : null

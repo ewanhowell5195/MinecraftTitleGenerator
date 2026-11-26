@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 
 globalThis.location = { pathname: "/app/", search: "", origin: "https://example.test" }
 
-const { addressHasFilters, closePresetsPage, leavePresetsForEditor, openLinkInEditor, presetLink, presetsPage, readPresetPath, setPresetSearch, setPresetSort, showOwnPreset, showPreset, showPresetFilters } = await import("#lib/state/presetsPage.js")
+const { addressHasFilters, closePresetsPage, leavePresetsForEditor, openLinkInEditor, presetsPage, readPresetPath, setPresetSearch, setPresetSort, showOwnPreset, showPreset, showPresetFilters } = await import("#lib/state/presetsPage.js")
 const { sharedLink } = await import("#lib/state/scene.js")
 const { navigated, setNavigator } = await import("#lib/state/navigation.js")
 
@@ -41,10 +41,6 @@ describe("preset addresses", () => {
       assert.deepEqual(readPresetPath(path), expected)
     })
   }
-
-  test("links use the current site", () => {
-    assert.equal(presetLink(12), "https://example.test/app/presets/12")
-  })
 
   test("an unshared preset keeps its code in the address", () => {
     pushed.length = 0
