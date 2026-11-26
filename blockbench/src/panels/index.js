@@ -2,14 +2,16 @@ import { ref } from "vue"
 import { CAMERA_PANEL } from "#lib/panels/camera.js"
 import { CREEPER_PANEL } from "#lib/panels/font.js"
 import { FONT_PANEL } from "#lib/panels/fontSource.js"
+import { canCopySection, canPasteSection, copySection, pasteSection } from "#lib/panels/sectionClipboard.js"
 import { RENDER_PANELS, SECTION_PANELS, sectionFits, sectionPanels } from "#lib/panels/sections.js"
 import { SHAPE_PANEL } from "#lib/panels/shapeSource.js"
 import { MATCH_PANEL, SCALING_PANEL } from "#lib/panels/transform.js"
 import { PANELS } from "#lib/settings/defaults.js"
 import { isModified, wordKey } from "#lib/settings/settings.js"
-import { allWords, chosen as chosenElements, kindOf, selected, shownSettings } from "../host.js"
+import { allWords, chosen as chosenElements, kindOf, selected, selectedElements, shownSettings } from "../host.js"
 import { deleteTitlePanel, titlePanel } from "../mode.js"
 import { inRenderMode, rendered } from "../render/mode.js"
+import { edit } from "../undo.js"
 import { homeElement } from "../words.js"
 import { TitleGroup } from "./controls.js"
 import { closeFontBrowser } from "./fontBrowser.js"
@@ -31,13 +33,13 @@ const STRETCHING_PANEL = {
 const UNSELECTED = [null]
 
 const TABS = [
-  { id: "text", name: "Text", icon: "text_fields", groups: () => ["title-words"], panels: lineOnly },
-  { id: "shape", name: "Shape", icon: "interests", panels: () => SECTION_PANELS.shape.concat(SECTION_PANELS.placement) },
-  { id: "font", name: "Font", icon: "font_download", groups: kind => kind === "word" ? ["font-note"] : [], panels: (panels, kind) => kind === "word" ? [CREEPER_PANEL] : panels },
-  { id: "texture", name: "Texture", icon: "texture" },
-  { id: "colour", name: "Color", icon: "palette" },
-  { id: "overlays", name: "Overlay", icon: "layers" },
-  { id: "form", name: "Form", icon: "deployed_code", shapes: true, panels: panels => [MATCH_PANEL, STRETCHING_PANEL].concat(panels) }
+  { id: "text", name: "Text", icon: "text_fields", copies: "text", groups: () => ["title-words"], panels: lineOnly },
+  { id: "shape", name: "Shape", icon: "interests", copies: "placement", panels: () => SECTION_PANELS.shape.concat(SECTION_PANELS.placement) },
+  { id: "font", name: "Font", icon: "font_download", copies: "font", groups: kind => kind === "word" ? ["font-note"] : [], panels: (panels, kind) => kind === "word" ? [CREEPER_PANEL] : panels },
+  { id: "texture", name: "Texture", icon: "texture", copies: "texture" },
+  { id: "colour", name: "Color", icon: "palette", copies: "colour" },
+  { id: "overlays", name: "Overlay", icon: "layers", copies: "overlays" },
+  { id: "form", name: "Form", icon: "deployed_code", copies: "form", shapes: true, panels: panels => [MATCH_PANEL, STRETCHING_PANEL].concat(panels) }
 ]
 
 const RENDER_TABS = [
@@ -62,6 +64,20 @@ function chosenShapes() {
 function chosenKind() {
   if (allWords()) return "word"
   return kindOf(chosenElements.value.find(element => !element.isWord))
+}
+
+function clipboardPlace(section) {
+  return { word: section === "form" && chosenKind() === "word", shape: shownSettings(selected.value).shape }
+}
+
+function openTabMenu(tab, event) {
+  const section = tab.copies
+  const place = clipboardPlace(section)
+  if (!canCopySection(section, place)) return
+  const name = tab.name.toLowerCase()
+  const items = [{ name: `Copy ${name} settings`, icon: "content_copy", click: () => copySection(section, place) }]
+  if (canPasteSection(section, place)) items.push({ name: `Paste ${name} settings`, icon: "content_paste", click: () => edit(selectedElements(), `Paste title ${name} settings`, () => pasteSection(section, place)) })
+  new Menu(items).open(event)
 }
 
 function sharedPanels(id, shapes) {
@@ -127,12 +143,13 @@ const TitleSections = {
   methods: {
     choose({ id }) {
       chosen.value = id
-    }
+    },
+    menu: openTabMenu
   },
   template: `
     <div class="mtg-sections">
       <div v-if="element" class="mtg-tabs">
-        <div v-for="tab of tabs" :key="tab.id" class="mtg-tab" :class="{ open: tab === open }" @click="choose(tab)"><i class="material-icons">{{ tab.icon }}</i>{{ tab.name }}</div>
+        <div v-for="tab of tabs" :key="tab.id" class="mtg-tab" :class="{ open: tab === open }" @click="choose(tab)" @contextmenu.prevent="menu(tab, $event)"><i class="material-icons">{{ tab.icon }}</i>{{ tab.name }}</div>
       </div>
       <keep-alive><component :is="section" :key="open.id" /></keep-alive>
     </div>
