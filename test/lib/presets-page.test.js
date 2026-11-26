@@ -1,7 +1,7 @@
 import { afterEach, describe, test } from "node:test"
 import assert from "node:assert/strict"
 
-globalThis.location = { pathname: "/app/", origin: "https://example.test" }
+globalThis.location = { pathname: "/app/", search: "", origin: "https://example.test" }
 
 const { addressHasFilters, closePresetsPage, leavePresetsForEditor, openLinkInEditor, presetLink, presetsPage, readPresetPath, setPresetSearch, setPresetSort, showOwnPreset, showPreset, showPresetFilters } = await import("#lib/state/presetsPage.js")
 const { sharedLink } = await import("#lib/state/scene.js")
@@ -71,6 +71,17 @@ describe("preset addresses", () => {
     showPreset(12, { replace: true })
     assert.equal(presetsPage.id, 12)
     assert.deepEqual(pushed, [])
+  })
+
+  test("picking another preset keeps the linked one in the history", () => {
+    setAddress("/app/presets/5")
+    navigated({ fullPath: "/app/presets/5", path: "/app/presets/5", meta: { name: "app" } }, { fullPath: "/", path: "/", meta: { name: "home" } })
+    pushed.length = 0
+    showPreset(6)
+    showPreset(7)
+    showPreset(null)
+    assert.deepEqual(pushed, ["/app/presets/6"])
+    assert.equal(location.pathname, "/app/presets")
   })
 
   test("a sort other than the default goes in the address", () => {

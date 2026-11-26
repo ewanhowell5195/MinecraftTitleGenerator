@@ -96,7 +96,15 @@ export function openPresetsPage() {
   go(PRESETS_PATH, false)
 }
 
-function showAddress(path, replace = presetsPage.id !== null || presetsPage.code !== null) {
+let picked = null
+
+function entryOf(path) {
+  const url = new URL(path, location.origin)
+  return `${url.pathname}?${url.searchParams.get(TITLE_PARAM) ?? ""}`
+}
+
+function showAddress(path, replace = (presetsPage.id !== null || presetsPage.code !== null) && entryOf(`${location.pathname}${location.search}`) === picked) {
+  picked = entryOf(path)
   go(path, replace)
 }
 
