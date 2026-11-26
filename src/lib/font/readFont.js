@@ -1,10 +1,11 @@
 import { inflateSync } from "three/addons/libs/fflate.module.js"
-import { CFF_EXPERT, CFF_EXPERT_SUBSET, CFF_ISO_ADOBE, CFF_STANDARD_ENCODING, CFF_STANDARD_STRINGS, MAC_ENCODINGS, MAC_ENGLISH, MAC_LANGUAGE_ENCODINGS, MAC_LANGUAGES, MAC_SCRIPT_ENCODINGS, NAME_PROPERTIES, WINDOWS_ENGLISH, WINDOWS_LANGUAGES } from "./fontTables.js"
+import { MAC_ENGLISH, MAC_LANGUAGES, MAC_OTHER_LANGUAGES, MAC_ROMAN, NAME_PROPERTIES, WINDOWS_ENGLISH, WINDOWS_LANGUAGES } from "./fontTables.js"
 
 const MAX_CALL_DEPTH = 10
 const PHANTOM_POINTS = 4
 const TRUETYPE = "\0\u0001\0\0"
 const UTF16 = "utf-16"
+const ROMAN = "macintosh"
 
 function tagAt(view, at) {
   let tag = ""
@@ -145,7 +146,6 @@ class Path {
 class Glyph {
   constructor(index, build = null, outlinePoints = false) {
     this.index = index
-    this.unicodes = []
     this._build = build
     this._outlinePoints = outlinePoints
     this._path = build ? null : new Path()
@@ -223,11 +223,11 @@ function coordinate(view, cursor, flag, previous, shortBit, sameBit) {
 }
 
 function readGlyf(glyph, view, start) {
-  glyph.numberOfContours = view.getInt16(start)
+  const contours = view.getInt16(start)
   const cursor = { at: start + 10 }
-  if (glyph.numberOfContours > 0) {
+  if (contours > 0) {
     const ends = []
-    for (let i = 0; i < glyph.numberOfContours; i++) {
+    for (let i = 0; i < contours; i++) {
       ends.push(view.getUint16(cursor.at))
       cursor.at += 2
     }
@@ -252,7 +252,7 @@ function readGlyf(glyph, view, start) {
     let y = 0
     for (const [i, point] of points.entries()) y = point.y = coordinate(view, cursor, flags[i], y, 4, 32)
     glyph.points = points
-  } else if (glyph.numberOfContours === 0) {
+  } else if (contours === 0) {
     glyph.points = []
   } else {
     glyph.isComposite = true
@@ -311,7 +311,7 @@ function compositePath(font, glyph) {
         if (!part.points) continue
         let transform = component
         if (component.matchedPoints !== undefined) {
-          if (component.matchedPoints[0] > glyph.points.length - 1 || component.matchedPoints[1] > part.points.length - 1) throw new Error(`Matched points out of range in ${glyph.name}`)
+          if (component.matchedPoints[0] > glyph.points.length - 1 || component.matchedPoints[1] > part.points.length - 1) throw new Error("Matched points out of range")
           const first = glyph.points[component.matchedPoints[0]]
           transform = { xScale: component.xScale, scale01: component.scale01, scale10: component.scale10, yScale: component.yScale, dx: 0, dy: 0 }
           const second = transformPoints([part.points[component.matchedPoints[1]]], transform)[0]
@@ -347,7 +347,6 @@ function readLoca(view, start, count, short) {
 }
 
 function readCmap(view, start) {
-  if (view.getUint16(start) !== 0) throw new Error("cmap table version should be 0.")
   const count = view.getUint16(start + 2)
   let offset = -1
   let platformId = null
@@ -374,8 +373,9 @@ function readCmap(view, start) {
     const language = view.getUint16(at + 4) - 1
     const bytes = Array.from(bytesOf(view, at + 6, at + 6 + length))
     Object.assign(map, bytes)
-    const table = MAC_ENCODINGS[platformId === 0 ? UTF16 : platformId === 1 ? MAC_LANGUAGE_ENCODINGS[language] || MAC_SCRIPT_ENCODINGS[encodingId] : platformId === 3 && (encodingId === 1 || encodingId === 10) ? UTF16 : undefined]
-    for (let i = 0; i < table.length; i++) map[table.charCodeAt(i)] = bytes[128 + i]
+    if (textEncoding(platformId, encodingId, language) === ROMAN) {
+      for (let i = 0; i < MAC_ROMAN.length; i++) map[MAC_ROMAN.charCodeAt(i)] = bytes[128 + i]
+    }
   } else if (format === 12 || format === 13) {
     const groups = view.getUint32(at + 12)
     for (let group = 0; group < groups; group++) {
@@ -412,19 +412,19 @@ function readCmap(view, start) {
 
 function textEncoding(platformID, encodingID, languageID) {
   if (platformID === 0) return UTF16
-  if (platformID === 1) return MAC_LANGUAGE_ENCODINGS[languageID] || MAC_SCRIPT_ENCODINGS[encodingID]
+  if (platformID === 1) return encodingID === 0 && !MAC_OTHER_LANGUAGES.has(languageID) ? ROMAN : undefined
   if (platformID === 3 && (encodingID === 1 || encodingID === 10)) return UTF16
   return undefined
 }
 
-function languageCode(platformID, languageID, ltag) {
-  if (platformID === 0) return languageID === 65535 ? "und" : ltag ? ltag[languageID] : undefined
+function languageCode(platformID, languageID) {
+  if (platformID === 0) return languageID === 65535 ? "und" : undefined
   if (platformID === 1) return MAC_LANGUAGES.has(languageID) ? languageID === MAC_ENGLISH ? "en" : `1:${languageID}` : undefined
   if (platformID === 3) return WINDOWS_LANGUAGES.has(languageID) ? languageID === WINDOWS_ENGLISH ? "en" : `3:${languageID}` : undefined
   return undefined
 }
 
-function readNames(view, start, ltag) {
+function readNames(view, start) {
   const names = {}
   const count = view.getUint16(start + 2)
   const strings = start + view.getUint16(start + 4)
@@ -437,7 +437,7 @@ function readNames(view, start, ltag) {
     const property = NAME_PROPERTIES[nameID] || nameID
     const length = view.getUint16(at + 8)
     const offset = strings + view.getUint16(at + 10)
-    const language = languageCode(platformID, languageID, ltag)
+    const language = languageCode(platformID, languageID)
     const encoding = textEncoding(platformID, encodingID, languageID)
     const platform = ["unicode", "macintosh", "reserved", "windows"][platformID]
     if (encoding === undefined || language === undefined || platform === undefined) continue
@@ -446,11 +446,11 @@ function readNames(view, start, ltag) {
       const units = []
       for (let j = 0; j < length / 2; j++) units[j] = view.getUint16(offset + j * 2)
       text = String.fromCharCode.apply(null, units)
-    } else if (MAC_ENCODINGS[encoding] !== undefined) {
+    } else {
       text = ""
       for (let j = 0; j < length; j++) {
         const byte = view.getUint8(offset + j)
-        text += byte <= 127 ? String.fromCharCode(byte) : MAC_ENCODINGS[encoding][byte & 127]
+        text += byte <= 127 ? String.fromCharCode(byte) : MAC_ROMAN[byte & 127]
       }
     }
     if (!text) continue
@@ -461,57 +461,21 @@ function readNames(view, start, ltag) {
   return names
 }
 
-function readLtag(view, start) {
-  if (view.getUint32(start) !== 1) throw new Error("Unsupported ltag table version.")
-  const count = view.getUint32(start + 8)
-  return Array.from({ length: count }, (_, i) => {
-    const offset = start + view.getUint16(start + 12 + i * 4)
-    const length = view.getUint16(start + 14 + i * 4)
-    let tag = ""
-    for (let j = offset; j < offset + length; j++) tag += String.fromCharCode(view.getInt8(j))
-    return tag
-  })
-}
-
-function nameById(names, id, allowed = []) {
-  if (id < 256 && id in NAME_PROPERTIES) {
-    if (allowed.length && !allowed.includes(id)) return undefined
-    id = NAME_PROPERTIES[id]
-  }
-  for (const platform in names) {
-    for (const key in names[platform]) {
-      if (key === id || parseInt(key) === id) return names[platform][key]
-    }
-  }
-  return undefined
-}
-
-function readFvar(view, start, names) {
-  if (view.getUint32(start) !== 65536) throw new Error("Unsupported fvar table version.")
+function readFvar(view, start) {
   const offset = view.getUint16(start + 4)
-  const axisCount = view.getUint16(start + 8)
   const axisSize = view.getUint16(start + 10)
-  const instanceCount = view.getUint16(start + 12)
-  const instanceSize = view.getUint16(start + 14)
-  const axes = Array.from({ length: axisCount }, (_, i) => {
-    const at = start + offset + i * axisSize
-    return { tag: tagAt(view, at), minValue: fixedAt(view, at + 4), defaultValue: fixedAt(view, at + 8), maxValue: fixedAt(view, at + 12) }
-  })
-  const instances = Array.from({ length: instanceCount }, (_, i) => {
-    const at = start + offset + axisCount * axisSize + i * instanceSize
-    const coordinates = {}
-    for (const [index, axis] of axes.entries()) coordinates[axis.tag] = fixedAt(view, at + 4 + index * 4)
-    return { name: nameById(names, view.getUint16(at), [2, 17]), coordinates }
-  })
-  return { axes, instances }
+  return {
+    axes: Array.from({ length: view.getUint16(start + 8) }, (_, i) => {
+      const at = start + offset + i * axisSize
+      return { tag: tagAt(view, at), minValue: fixedAt(view, at + 4), defaultValue: fixedAt(view, at + 8), maxValue: fixedAt(view, at + 12) }
+    })
+  }
 }
 
-function readAvar(view, start, fvar) {
-  const axisCount = view.getUint16(start + 6)
-  if (axisCount !== fvar.axes.length) throw new Error("avar axis count must correspond to fvar axis count")
+function readAvar(view, start) {
   let at = start + 8
   return {
-    axisSegmentMaps: Array.from({ length: axisCount }, () => {
+    axisSegmentMaps: Array.from({ length: view.getUint16(start + 6) }, () => {
       const count = view.getUint16(at)
       at += 2
       const axisValueMaps = Array.from({ length: count }, (_, i) => ({ fromCoordinate: f2dot14(view, at + i * 4), toCoordinate: f2dot14(view, at + i * 4 + 2) }))
@@ -695,11 +659,6 @@ function readHvar(view, start) {
 class Variation {
   constructor(font) {
     this.font = font
-    const defaults = Object.fromEntries(font.tables.fvar.axes.map(axis => [axis.tag, axis.defaultValue]))
-    const instances = font.tables.fvar.instances
-    let instance = instances.findIndex(entry => Object.keys(defaults).every(axis => entry.coordinates[axis] === defaults[axis]))
-    if (instance < 0) instance = instances.findIndex(entry => entry.name && entry.name.en === "Regular")
-    this.defaults = instance > -1 ? { ...instances[instance].coordinates } : this.padded(defaults)
   }
 
   padded(coords) {
@@ -867,20 +826,12 @@ class Variation {
 
   getTransform(glyph, coords) {
     if (Number.isInteger(glyph)) glyph = this.font.glyphs.get(glyph)
-    const blend = glyph.getBlendPath
-    const hasPoints = !!(glyph.points && glyph.points.length)
+    coords ??= {}
     let result = glyph
-    if (blend || hasPoints) {
-      coords ??= { ...this.defaults }
-      if (hasPoints) {
-        const variations = this.font.tables.gvar && this.font.tables.gvar.glyphVariations[glyph.index]
-        if (variations) {
-          const points = this.applyTuples(variations, glyph.points, coords, glyph)
-          result = variant(glyph, points, outlinePath(points))
-        }
-      } else if (blend) {
-        result = variant(glyph, undefined, glyph.getBlendPath(coords))
-      }
+    const variations = glyph.points && glyph.points.length && this.font.tables.gvar.glyphVariations[glyph.index]
+    if (variations) {
+      const points = this.applyTuples(variations, glyph.points, coords, glyph)
+      result = variant(glyph, points, outlinePath(points))
     }
     if (this.font.tables.hvar) {
       glyph._advanceWidth ??= glyph.advanceWidth
@@ -890,7 +841,6 @@ class Variation {
   }
 
   adjustment(index, coords) {
-    coords ??= { ...this.defaults }
     const table = this.font.tables.hvar
     if (!table.itemVariationStore) throw new Error(`trying to get variation adjustment from table "${table}" which does not have an itemVariationStore`)
     const size = table.advanceWidth && table.advanceWidth.map.length
@@ -909,7 +859,6 @@ class Variation {
   }
 
   blendVector(store, index, coords) {
-    coords ??= { ...this.defaults }
     const data = store.itemVariationSubtables[index]
     const normal = this.normalized(coords)
     return data.regionIndexes.map(region => {
@@ -934,18 +883,17 @@ function variant(glyph, points, path) {
   const copy = new Glyph(glyph.index)
   copy._path = path
   if ("advanceWidth" in glyph) copy.advanceWidth = glyph.advanceWidth
-  copy.points = points === undefined ? glyph.points : points
+  copy.points = points
   return copy
 }
 
-function cffIndex(view, start, version = 1) {
-  const count = version > 1 ? view.getUint32(start) : view.getUint16(start)
-  const countLength = version > 1 ? 4 : 2
-  if (count === 0) return { objects: [], endOffset: start + countLength }
-  const size = view.getUint8(start + countLength)
-  const objectOffset = start + (count + 1) * size + countLength
+function cffIndex(view, start) {
+  const count = view.getUint16(start)
+  if (count === 0) return { objects: [], endOffset: start + 2 }
+  const size = view.getUint8(start + 2)
+  const objectOffset = start + (count + 1) * size + 2
   const offsets = []
-  let at = start + countLength + 1
+  let at = start + 3
   for (let i = 0; i <= count; i++) {
     let value = 0
     for (let j = 0; j < size; j++) value = (value << 8) + view.getUint8(at + j)
@@ -955,29 +903,18 @@ function cffIndex(view, start, version = 1) {
   return { objects: offsets.slice(0, -1).map((offset, i) => bytesOf(view, objectOffset + offset, objectOffset + offsets[i + 1])), endOffset: objectOffset + offsets[count] }
 }
 
-function asText(bytes) {
-  return String.fromCharCode(...bytes)
-}
-
 function subroutineBias(subrs) {
   return subrs.length < 1240 ? 107 : subrs.length < 33900 ? 1131 : 32768
 }
 
-function cffDict(view, start, size, version) {
+function cffDict(view, start, size) {
   const entries = {}
   let operands = []
   let at = start
-  const operandStart = version < 2 ? 22 : 28
   while (at - start < size) {
     let op = view.getUint8(at++)
-    if (op < operandStart) {
+    if (op < 22) {
       if (op === 12) op = 1200 + view.getUint8(at++)
-      if (version > 1 && op === 23) {
-        const blends = operands.pop()
-        while (operands.length > blends) operands.pop()
-        continue
-      }
-      if (Object.prototype.hasOwnProperty.call(entries, op) && !isNaN(entries[op])) throw new Error(`Object [object Object] already has key ${op}`)
       entries[op] = operands.length === 1 ? operands[0] : operands
       operands = []
     } else if (op === 28) {
@@ -1010,10 +947,6 @@ function cffDict(view, start, size, version) {
   return entries
 }
 
-function cffString(strings, index) {
-  return index <= 390 ? CFF_STANDARD_STRINGS[index] : strings ? strings[index - 391] : undefined
-}
-
 function dictValue(dict, op, fallback) {
   return dict[op] !== undefined ? dict[op] : fallback !== undefined ? fallback : null
 }
@@ -1025,88 +958,32 @@ function dictPair(dict, op, fallback) {
   })
 }
 
-function topDicts(view, start, objects, strings, version) {
+function topDicts(view, start, objects) {
   return objects.map(bytes => {
     const data = new DataView(new Uint8Array(bytes).buffer)
-    const raw = cffDict(data, 0, data.byteLength, version)
+    const raw = cffDict(data, 0, data.byteLength)
     const top = { _subrs: [], _subrsBias: 0, _defaultWidthX: 0, _nominalWidthX: 0 }
-    top.charStrings = dictValue(raw, 17, version > 1 ? undefined : 0)
+    top.charStrings = dictValue(raw, 17, 0)
     top.fdArray = dictValue(raw, 1236)
     top.fdSelect = dictValue(raw, 1237)
-    if (version > 1) {
-      top.vstore = dictValue(raw, 24)
-      return top
-    }
     top.paintType = dictValue(raw, 1205, 0)
-    top.strokeWidth = dictValue(raw, 1208, 0)
-    top.charset = dictValue(raw, 15, 0)
-    top.private = dictPair(raw, 18, [0, 0])
-    top.ros = [0, 1].map(j => {
-      const value = raw[1230] !== undefined ? raw[1230][j] : undefined
-      return cffString(strings, value !== undefined ? value : null)
-    })
-    const [privateSize, privateOffset] = top.private
+    top.cid = Array.isArray(raw[1230]) && raw[1230].length >= 2
+    const [privateSize, privateOffset] = dictPair(raw, 18, [0, 0])
     if (privateSize !== 0 && privateOffset !== 0) {
-      const own = cffDict(view, privateOffset + start, privateSize, version)
+      const own = cffDict(view, privateOffset + start, privateSize)
       top._defaultWidthX = dictValue(own, 20, 0)
       top._nominalWidthX = dictValue(own, 21, 0)
       const subrs = dictValue(own, 19, 0)
       if (subrs !== 0) {
-        top._subrs = cffIndex(view, privateOffset + subrs + start, version).objects
+        top._subrs = cffIndex(view, privateOffset + subrs + start).objects
         top._subrsBias = subroutineBias(top._subrs)
       }
-      top._privateDict = { subrs }
     }
     return top
   })
 }
 
-function fontDicts(view, start, objects) {
-  return objects.map(bytes => {
-    const data = new DataView(new Uint8Array(bytes).buffer)
-    const [size, offset] = dictPair(cffDict(data, 0, data.byteLength, 2), 18, [0, 0])
-    const dict = {}
-    if (size !== 0 && offset !== 0) {
-      const own = cffDict(view, offset + start, size, 2)
-      const subrs = dictValue(own, 19)
-      if (subrs) {
-        dict._subrs = cffIndex(view, offset + subrs + start, 2).objects
-        dict._subrsBias = subroutineBias(dict._subrs)
-      }
-      dict._privateDict = { vsindex: dictValue(own, 22, 0) }
-    }
-    return dict
-  })
-}
-
-function readCharset(view, start, glyphCount, strings, cid) {
-  const charset = [".notdef"]
-  const format = view.getUint8(start)
-  let at = start + 1
-  const last = glyphCount - 1
-  if (format === 0) {
-    for (let i = 0; i < last; i++) {
-      const sid = view.getUint16(at)
-      at += 2
-      charset.push(cid ? sid : cffString(strings, sid) || sid)
-    }
-  } else if (format === 1 || format === 2) {
-    while (charset.length <= last) {
-      let sid = view.getUint16(at)
-      const count = format === 1 ? view.getUint8(at + 2) : view.getUint16(at + 2)
-      at += format === 1 ? 3 : 4
-      for (let i = 0; i <= count; i++) {
-        charset.push(cid ? `cid${`00000${sid}`.slice(-5)}` : cffString(strings, sid) || sid)
-        sid++
-      }
-    }
-  } else {
-    throw new Error(`Unknown charset format ${format}`)
-  }
-  return charset
-}
-
-function readFdSelect(view, start, glyphCount, fdCount, version) {
+function readFdSelect(view, start, glyphCount, fdCount) {
   const select = []
   const format = view.getUint8(start)
   if (format === 0) {
@@ -1115,23 +992,16 @@ function readFdSelect(view, start, glyphCount, fdCount, version) {
       if (index >= fdCount) throw new Error(`CFF table CID Font FDSelect has bad FD index value ${index} (FD count ${fdCount})`)
       select.push(index)
     }
-  } else if (format === 3 || version > 1 && format === 4) {
-    const wide = format === 4
-    let at = start + 1
-    const read = long => {
-      const value = long ? view.getUint32(at) : view.getUint16(at)
-      at += long ? 4 : 2
-      return value
-    }
-    const ranges = read(wide)
-    let first = read(wide)
+  } else if (format === 3) {
+    const ranges = view.getUint16(start + 1)
+    let first = view.getUint16(start + 3)
     if (first !== 0) throw new Error(`CFF Table CID Font FDSelect format ${format} range has bad initial GID ${first}`)
     let next
     for (let range = 0; range < ranges; range++) {
-      const index = wide ? read(false) : view.getUint8(at++)
-      next = read(wide)
+      const index = view.getUint8(start + 5 + range * 3)
+      next = view.getUint16(start + 6 + range * 3)
       if (index >= fdCount) throw new Error(`CFF table CID Font FDSelect has bad FD index value ${index} (FD count ${fdCount})`)
-      if (next > glyphCount) throw new Error(`CFF Table CID Font FDSelect format ${version} range has bad GID ${next}`)
+      if (next > glyphCount) throw new Error(`CFF Table CID Font FDSelect format 1 range has bad GID ${next}`)
       for (; first < next; first++) select.push(index)
       first = next
     }
@@ -1142,8 +1012,8 @@ function readFdSelect(view, start, glyphCount, fdCount, version) {
   return select
 }
 
-function charstringPath(font, glyph, code, version, coords) {
-  const cff = font.tables.cff2 || font.tables.cff
+function charstringPath(font, glyph, code) {
+  const cff = font.tables.cff
   const path = new Path()
   const stack = []
   let stems = 0
@@ -1156,27 +1026,17 @@ function charstringPath(font, glyph, code, version, coords) {
   let nominalWidth = cff.topDict._nominalWidthX
   let subrs
   let subrsBias
-  let vsindex = 0
-  let vstore = []
-  let blendVector
-  coords = coords || font.variation && { ...font.variation.defaults }
-  glyph.getBlendPath ??= variationCoords => charstringPath(font, glyph, code, version, variationCoords)
-  if (font.isCIDFont || version > 1) {
+  if (font.isCIDFont) {
     const fd = cff.topDict._fdArray[cff.topDict._fdSelect ? cff.topDict._fdSelect[glyph.index] : 0]
     subrs = fd._subrs
     subrsBias = fd._subrsBias
-    if (version > 1) {
-      vstore = cff.topDict._vstore
-      vsindex = fd._privateDict.vsindex
-    } else {
-      defaultWidth = fd._defaultWidthX
-      nominalWidth = fd._nominalWidthX
-    }
+    defaultWidth = fd._defaultWidthX
+    nominalWidth = fd._nominalWidthX
   } else {
     subrs = cff.topDict._subrs
     subrsBias = cff.topDict._subrsBias
   }
-  const stroked = (font.tables.cff && font.tables.cff.topDict && font.tables.cff.topDict.paintType || 0) === 2
+  const stroked = (cff.topDict.paintType || 0) === 2
   let width = defaultWidth
   function contour(toX, toY) {
     if (open && !stroked) path.close()
@@ -1237,7 +1097,7 @@ function charstringPath(font, glyph, code, version, coords) {
           depth--
         }
       } else if (v === 11) {
-        if (version <= 1) return
+        return
       } else if (v === 12) {
         v = bytes[i++]
         if (v === 35) {
@@ -1303,38 +1163,7 @@ function charstringPath(font, glyph, code, version, coords) {
           stack.length = 0
         }
       } else if (v === 14) {
-        if (version > 1) continue
-        if (stack.length >= 4) {
-          const accent = CFF_STANDARD_ENCODING[stack.pop()]
-          const base = CFF_STANDARD_ENCODING[stack.pop()]
-          const ady = stack.pop()
-          const adx = stack.pop()
-          if (accent && base) {
-            glyph.isComposite = true
-            glyph.components = []
-            const accentIndex = font.cffCharset.indexOf(accent)
-            const baseIndex = font.cffCharset.indexOf(base)
-            glyph.components.push({ glyphIndex: baseIndex, dx: 0, dy: 0 })
-            glyph.components.push({ glyphIndex: accentIndex, dx: adx, dy: ady })
-            path.commands.push(...font.glyphs.get(baseIndex).path.commands)
-            const shifted = JSON.parse(JSON.stringify(font.glyphs.get(accentIndex).path.commands))
-            for (const command of shifted) {
-              if (command.type !== "Z") {
-                command.x += adx
-                command.y += ady
-              }
-              if (command.type === "Q" || command.type === "C") {
-                command.x1 += adx
-                command.y1 += ady
-              }
-              if (command.type === "C") {
-                command.x2 += adx
-                command.y2 += ady
-              }
-            }
-            path.commands.push(...shifted)
-          }
-        } else if (stack.length > 0 && !haveWidth) {
+        if (stack.length > 0 && stack.length < 4 && !haveWidth) {
           width = stack.shift() + nominalWidth
           haveWidth = true
         }
@@ -1342,24 +1171,6 @@ function charstringPath(font, glyph, code, version, coords) {
           path.close()
           open = false
         }
-      } else if (v === 15) {
-        if (version >= 2) vsindex = stack.pop()
-      } else if (v === 16) {
-        if (version < 2) continue
-        if (!blendVector) blendVector = font.variation && coords && font.variation.blendVector(vstore, vsindex, coords)
-        const n = stack.pop()
-        const axisCount = blendVector ? blendVector.length : vstore.itemVariationSubtables[vsindex].regionIndexes.length
-        let deltaCount = n * axisCount
-        let delta = stack.length - deltaCount
-        const deltaIndex = delta - n
-        if (blendVector) {
-          for (let k = 0; k < n; k++) {
-            let sum = stack[deltaIndex + k]
-            for (let j = 0; j < axisCount; j++) sum += blendVector[j] * stack[delta++]
-            stack[deltaIndex + k] = sum
-          }
-        }
-        while (deltaCount--) stack.pop()
       } else if (v === 19 || v === 20) {
         hints()
         i += stems + 7 >> 3
@@ -1467,73 +1278,35 @@ function charstringPath(font, glyph, code, version, coords) {
     }
   }
   run(code)
-  if (font.variation && coords) {
-    for (const command of path.commands) {
-      for (const key of Object.keys(command)) {
-        if (key !== "type") command[key] = Math.round(command[key])
-      }
-    }
-  }
   if (haveWidth) glyph.advanceWidth = width
   return path
 }
 
 function readCff(font, view, start) {
   const major = view.getUint8(start)
-  if (major > 2) throw new Error(`Unsupported CFF table version ${major}.${view.getUint8(start + 1)}`)
-  const table = {}
-  if (major === 2) font.tables.cff2 = table
-  else font.tables.cff = table
-  const headerSize = view.getUint8(start + 2)
-  let top
-  let strings = null
-  if (major > 1) {
-    const length = view.getUint16(start + 3)
-    const globals = cffIndex(view, start + headerSize + length, major)
-    font.gsubrs = globals.objects
-    top = topDicts(view, 0, [bytesOf(view, start + headerSize, start + headerSize + length)], undefined, major)[0]
-  } else {
-    const names = cffIndex(view, start + 4)
-    const tops = cffIndex(view, names.endOffset)
-    const stringIndex = cffIndex(view, tops.endOffset)
-    strings = stringIndex.objects.map(asText)
-    font.gsubrs = cffIndex(view, stringIndex.endOffset).objects
-    const all = topDicts(view, start, tops.objects, strings, major)
-    if (all.length !== 1) throw new Error(`CFF table has too many fonts in 'FontSet' - count of fonts NameIndex.length = ${all.length}`)
-    top = all[0]
-  }
+  if (major !== 1) throw new Error(`CFF table version ${major}.${view.getUint8(start + 1)} isn't supported`)
+  const names = cffIndex(view, start + 4)
+  const tops = cffIndex(view, names.endOffset)
+  const strings = cffIndex(view, tops.endOffset)
+  font.gsubrs = cffIndex(view, strings.endOffset).objects
   font.gsubrsBias = subroutineBias(font.gsubrs)
-  table.topDict = top
-  if (major < 2 && top.ros[0] !== undefined && top.ros[1] !== undefined) font.isCIDFont = true
-  if (major > 1) {
-    if (!top.fdArray) throw new Error("This is a CFF2 font, but FDArray information is missing")
-    top._fdArray = fontDicts(view, start, cffIndex(view, start + top.fdArray, major).objects)
-    if (top.fdSelect) top._fdSelect = readFdSelect(view, start + top.fdSelect, font.numGlyphs, top._fdArray.length, major)
-  } else if (font.isCIDFont) {
+  const all = topDicts(view, start, tops.objects)
+  if (all.length !== 1) throw new Error(`CFF table has too many fonts in 'FontSet' - count of fonts NameIndex.length = ${all.length}`)
+  const top = all[0]
+  font.tables.cff = { topDict: top }
+  if (top.cid) {
+    font.isCIDFont = true
     if (top.fdArray === 0 || top.fdSelect === 0) throw new Error("Font is marked as a CID font, but FDArray and/or FDSelect information is missing")
-    top._fdArray = topDicts(view, start, cffIndex(view, top.fdArray + start).objects, strings, major)
-    top._fdSelect = readFdSelect(view, top.fdSelect + start, font.numGlyphs, top._fdArray.length, major)
+    top._fdArray = topDicts(view, start, cffIndex(view, top.fdArray + start).objects)
+    top._fdSelect = readFdSelect(view, top.fdSelect + start, font.numGlyphs, top._fdArray.length)
   }
-  if (major < 2) {
-    const privateAt = start + top.private[1]
-    const own = cffDict(view, privateAt, top.private[0], major)
-    const subrs = dictValue(own, 19, 0)
-    if (subrs !== 0) cffIndex(view, privateAt + subrs)
-  }
-  const charstrings = cffIndex(view, start + top.charStrings, major).objects
-  if (major < 2) {
-    font.cffCharset = top.charset === 0 ? CFF_ISO_ADOBE : top.charset === 1 ? CFF_EXPERT : top.charset === 2 ? CFF_EXPERT_SUBSET : readCharset(view, start + top.charset, charstrings.length, strings, font.isCIDFont)
-  }
-  font.glyphs = new Glyphs(charstrings.map((code, i) => {
-    const glyph = new Glyph(i, () => charstringPath(font, glyph, code, major))
+  font.glyphs = new Glyphs(cffIndex(view, start + top.charStrings).objects.map((code, i) => {
+    const glyph = new Glyph(i, () => charstringPath(font, glyph, code))
     return glyph
   }))
-  if (top.vstore) top._vstore = readItemStore(view, start + top.vstore + 2)
 }
 
 function gposLayout(view, start) {
-  const version = view.getUint16(start) + view.getUint16(start + 2) / 1 / 10
-  if (version !== 1 && version !== 1.1) throw new Error(`Unsupported GPOS table version ${version}`)
   const pointer = (base, at) => {
     const offset = view.getUint16(at)
     return offset > 0 ? base + offset : null
@@ -1555,9 +1328,7 @@ function gposLayout(view, start) {
   const lookups = lookupsAt === null ? [] : Array.from({ length: view.getUint16(lookupsAt) }, (_, i) => {
     const lookupAt = pointer(lookupsAt, lookupsAt + 2 + i * 2)
     if (lookupAt === null) return undefined
-    const lookupType = view.getUint16(lookupAt)
-    if (lookupType < 1 || lookupType > 9) throw new Error(`GPOS/GSUB lookup type ${lookupType} unknown.`)
-    return { lookupType, subtables: Array.from({ length: view.getUint16(lookupAt + 4) }, (_, j) => pointer(lookupAt, lookupAt + 6 + j * 2)) }
+    return { lookupType: view.getUint16(lookupAt), subtables: Array.from({ length: view.getUint16(lookupAt + 4) }, (_, j) => pointer(lookupAt, lookupAt + 6 + j * 2)) }
   })
   return { view, scripts, features, lookups }
 }
@@ -1699,21 +1470,9 @@ function gposKerning(lookups, left, right) {
 
 function readKern(view, start) {
   const pairs = {}
-  const version = view.getUint16(start)
-  let at
-  let count
-  if (version === 0) {
-    if (view.getUint16(start + 4) !== 0) throw new Error("Unsupported kern sub-table version.")
-    count = view.getUint16(start + 10)
-    at = start + 18
-  } else if (version === 1) {
-    if ((view.getUint16(start + 12) & 255) !== 0) return pairs
-    count = view.getUint16(start + 16)
-    at = start + 24
-  } else {
-    throw new Error(`Unsupported kern table version (${version}).`)
-  }
-  for (let i = 0; i < count; i++) pairs[`${view.getUint16(at + i * 6)},${view.getUint16(at + i * 6 + 2)}`] = view.getInt16(at + i * 6 + 4)
+  if (view.getUint16(start) !== 0 || view.getUint16(start + 4) !== 0) return pairs
+  const count = view.getUint16(start + 10)
+  for (let i = 0; i < count; i++) pairs[`${view.getUint16(start + 18 + i * 6)},${view.getUint16(start + 20 + i * 6)}`] = view.getInt16(start + 22 + i * 6)
   return pairs
 }
 
@@ -1750,34 +1509,18 @@ export function readFont(buffer) {
   if (buffer.constructor !== ArrayBuffer) buffer = new Uint8Array(buffer).buffer
   const view = new DataView(buffer)
   const signature = tagAt(view, 0)
-  let outlines
-  if (signature === TRUETYPE || signature === "true" || signature === "typ1") outlines = "truetype"
-  else if (signature === "OTTO") outlines = "cff"
-  else if (signature === "wOFF") {
-    const flavor = tagAt(view, 4)
-    if (flavor === TRUETYPE) outlines = "truetype"
-    else if (flavor === "OTTO") outlines = "cff"
-    else throw new Error(`Unsupported OpenType flavor ${signature}`)
-  } else if (signature === "wOF2") {
-    throw new Error("WOFF2 require an external decompressor library")
-  } else {
-    throw new Error(`Unsupported OpenType signature ${signature}`)
-  }
+  if (![TRUETYPE, "true", "typ1", "OTTO", "wOFF"].includes(signature)) throw new Error(`Unsupported OpenType signature ${signature}`)
   const entries = new Map(tableEntries(view, signature).map(entry => [entry.tag, entry]))
   const open = tag => {
     const entry = entries.get(tag)
     if (!entry) throw new TypeError(`this font has no ${tag} table`)
     return tableData(view, entry)
   }
-  const font = { outlinesFormat: outlines, tables: {}, resolving: new Set() }
-  let map = null
-  if (entries.has("cmap")) {
-    const { view: data, at } = open("cmap")
-    map = readCmap(data, at)
-    font.tables.cmap = { glyphIndexMap: map }
-  }
+  const font = { tables: {}, resolving: new Set() }
+  const cmap = open("cmap")
+  const map = readCmap(cmap.view, cmap.at)
+  font.tables.cmap = { glyphIndexMap: map }
   const head = open("head")
-  if (head.view.getUint32(head.at + 12) !== 1594834165) throw new Error("Font header has wrong magic number.")
   font.unitsPerEm = head.view.getUint16(head.at + 18)
   const shortLoca = head.view.getInt16(head.at + 50) === 0
   if (entries.has("hhea")) {
@@ -1792,9 +1535,7 @@ export function readFont(buffer) {
     const { view: data, at } = open("OS/2")
     font.tables.os2 = data.getUint16(at) >= 2 ? { sCapHeight: data.getInt16(at + 88) } : {}
   }
-  const ltag = entries.has("ltag") ? readLtag(open("ltag").view, open("ltag").at) : undefined
-  const names = open("name")
-  font.names = readNames(names.view, names.at, ltag)
+  font.names = entries.has("name") ? readNames(open("name").view, open("name").at) : {}
   if (entries.has("glyf") && entries.has("loca")) {
     const loca = open("loca")
     const glyf = open("glyf")
@@ -1802,28 +1543,16 @@ export function readFont(buffer) {
   } else if (entries.has("CFF ")) {
     const cff = open("CFF ")
     readCff(font, cff.view, cff.at)
-  } else if (entries.has("CFF2")) {
-    const cff = open("CFF2")
-    readCff(font, cff.view, cff.at)
   } else {
-    throw new Error("Font doesn't contain TrueType, CFF or CFF2 outlines.")
+    throw new Error("Font doesn't contain TrueType or CFF outlines.")
   }
   const hmtx = open("hmtx")
   let advance
   for (let i = 0; i < font.numGlyphs; i++) {
     if (i < font.numberOfHMetrics) advance = hmtx.view.getUint16(hmtx.at + i * 4)
     const glyph = font.glyphs.get(i)
-    if (!glyph) throw new TypeError(`this font has no glyph ${i} for its horizontal metrics`)
-    glyph.advanceWidth = advance
+    if (glyph) glyph.advanceWidth = advance
   }
-  if (!map) throw new TypeError("this font has no cmap table")
-  for (const code in map) {
-    const glyph = font.glyphs.get(map[code])
-    if (!glyph) throw new TypeError(`this font maps a character to a missing glyph ${map[code]}`)
-    if (!glyph.unicodes.length) glyph.unicode = parseInt(code)
-    glyph.unicodes.push(parseInt(code))
-  }
-  if (!font.cffCharset && !entries.has("post")) throw new TypeError("this font has no post table")
   font.kerningPairs = entries.has("kern") ? readKern(open("kern").view, open("kern").at) : {}
   if (entries.has("GPOS")) {
     const gpos = open("GPOS")
@@ -1831,7 +1560,7 @@ export function readFont(buffer) {
   }
   if (entries.has("fvar")) {
     const fvar = open("fvar")
-    font.tables.fvar = readFvar(fvar.view, fvar.at, font.names)
+    font.tables.fvar = readFvar(fvar.view, fvar.at)
   }
   if (entries.has("gvar")) {
     const gvar = open("gvar")
@@ -1839,13 +1568,13 @@ export function readFont(buffer) {
   }
   if (entries.has("avar")) {
     const avar = open("avar")
-    font.tables.avar = readAvar(avar.view, avar.at, font.tables.fvar)
+    font.tables.avar = readAvar(avar.view, avar.at)
   }
   if (entries.has("HVAR")) {
     const hvar = open("HVAR")
     font.tables.hvar = readHvar(hvar.view, hvar.at)
   }
-  if (font.tables.fvar && (font.tables.gvar || font.tables.cff2)) font.variation = new Variation(font)
+  if (font.tables.fvar && font.tables.gvar) font.variation = new Variation(font)
   font.charToGlyphIndex = char => map[char.codePointAt(0)] || 0
   font.charToGlyph = char => font.glyphs.get(font.charToGlyphIndex(char)) || font.glyphs.get(0)
   font.getKerningValue = (left, right) => {

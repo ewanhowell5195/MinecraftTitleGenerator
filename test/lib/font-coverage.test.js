@@ -45,12 +45,12 @@ describe("characters a font draws", () => {
   test("a closing curly quote stands in for a missing straight one", async () => {
     const source = await fontOf(["’", "x"].map(char => glyph(char)))
     assert.deepEqual(await drawnCharacters(source), ["'", "x"])
-    assert.equal(glyphFor(source, "'").unicode, 0x2019)
+    assert.equal(glyphFor(source, "'").index, source.charToGlyphIndex("’"))
   })
 
   test("a straight quote is used over a curly one when the font has both", async () => {
     const source = await fontOf(["'", "’"].map(char => glyph(char)))
-    assert.equal(glyphFor(source, "'").unicode, 0x27)
+    assert.equal(glyphFor(source, "'").index, source.charToGlyphIndex("'"))
   })
 
   test("keeps only the letters a single case would use", () => {
