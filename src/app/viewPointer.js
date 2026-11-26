@@ -1,7 +1,7 @@
 import * as THREE from "three"
 import { ref } from "vue"
 import { scene as title, select } from "../lib/state/scene.js"
-import { FORM_SECTIONS, view } from "../lib/state/view.js"
+import { view } from "../lib/state/view.js"
 import { pickEntry } from "../render/stage.js"
 import { orbitTurned } from "../render/orbit.js"
 
@@ -75,7 +75,7 @@ export function useViewPointer(rig, { orbit, orbiting, navigable, isFramed, zoom
   }
 
   function pickText(event) {
-    if (FORM_SECTIONS.has(view.section) || view.render || rig.controls.axis || !pressed || Math.hypot(event.clientX - pressed.x, event.clientY - pressed.y) > CLICK_DISTANCE) return
+    if (view.render || rig.controls.axis || !pressed || Math.hypot(event.clientX - pressed.x, event.clientY - pressed.y) > CLICK_DISTANCE) return
     const raycaster = new THREE.Raycaster()
     raycaster.setFromCamera(clipPoint(event), rig.camera)
     const id = pickEntry(entries, raycaster)
