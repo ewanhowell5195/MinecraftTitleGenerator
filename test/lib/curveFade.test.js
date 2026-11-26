@@ -1,5 +1,6 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
+import { usePlatform } from "#lib/core/platform.js"
 import { curveWeights, fadeCurves, keepStrips } from "#lib/texture/atlas/curveFade.js"
 import { planAtlas } from "#lib/texture/atlas/plan.js"
 
@@ -9,11 +10,34 @@ function wall(kind, [px, py], [qx, qy], uvs) {
   return { kind, mesh: true, internal: false, glyph: 0, points: [[px, py, -2], [px, py, 2], [qx, qy, 2], [qx, qy, -2]], uvs }
 }
 
+function fakeCanvas() {
+  const canvas = { width: 0, height: 0 }
+  let ctx = null
+  canvas.getContext = () => ctx ??= contextOf(canvas)
+  return canvas
+}
+
 function painted(width, height) {
+  const canvas = fakeCanvas()
+  Object.assign(canvas, { width, height })
+  return canvas.getContext("2d")
+}
+
+usePlatform({ createCanvas: fakeCanvas })
+
+function contextOf(canvas) {
+  const { width, height } = canvas
   const data = new Uint8ClampedArray(width * height * 4)
   return {
     data,
-    canvas: { width, height },
+    canvas,
+    clearRect(x0, y0, w, h) {
+      for (let y = y0; y < y0 + h; y++) data.fill(0, (y * width + x0) * 4, (y * width + x0 + w) * 4)
+    },
+    drawImage(source, sx, sy, w, h, dx, dy) {
+      const from = source.getContext("2d").data
+      for (let y = 0; y < h; y++) data.set(from.subarray(((sy + y) * source.width + sx) * 4, ((sy + y) * source.width + sx + w) * 4), ((dy + y) * width + dx) * 4)
+    },
     fill(x0, y0, x1, y1, colour) {
       for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) data.set(colour, (y * width + x) * 4)
     },

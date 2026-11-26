@@ -1,5 +1,6 @@
 import { clamp } from "#lib/core/maths.js"
 import { faceLimits } from "#lib/geometry/meshFaces.js"
+import { surface } from "../canvas.js"
 
 const FADE_HEIGHT_FROM = 0.5
 const LONGEST_WALK = 256
@@ -86,17 +87,32 @@ function sampler(image, uvs, [front, back]) {
 
 const unfaded = new WeakMap()
 
+function stripsOf(ctx, rects) {
+  const sized = rects.map(({ x, y, width, height }) => ({ x, y, width: Math.max(1, width), height: Math.max(1, height) }))
+  const copy = surface(Math.max(1, ...sized.map(rect => rect.width)), Math.max(1, sized.reduce((total, rect) => total + rect.height, 0)))
+  let top = 0
+  const strips = sized.map(rect => {
+    copy.ctx.drawImage(ctx.canvas, rect.x, rect.y, rect.width, rect.height, 0, top, rect.width, rect.height)
+    top += rect.height
+    return { rect, top: top - rect.height }
+  })
+  return { canvas: copy.canvas, strips }
+}
+
 export function keepStrips(ctx, rects, fading) {
   const kept = unfaded.get(ctx.canvas)
-  if (kept) for (const [rect, image] of kept) ctx.putImageData(image, rect.x, rect.y)
-  else if (fading) unfaded.set(ctx.canvas, rects.map(rect => [rect, ctx.getImageData(rect.x, rect.y, Math.max(1, rect.width), Math.max(1, rect.height))]))
+  if (kept) {
+    for (const { rect: { x, y, width, height }, top } of kept.strips) {
+      ctx.clearRect(x, y, width, height)
+      ctx.drawImage(kept.canvas, 0, top, width, height, x, y, width, height)
+    }
+  } else if (fading) unfaded.set(ctx.canvas, stripsOf(ctx, rects))
 }
 
 export function fadeCurves(ctx, faces, rects, chosen, reach, limits = faceLimits({ faded: true })) {
   const walls = faces.filter(face => face.mesh && face.uvs && chosen.has(face.glyph) && face.kind !== "front" && face.kind !== "back")
   const byGlyph = Map.groupBy(walls, face => face.glyph)
-  const image = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height)
-  const dirty = { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity }
+  const groups = []
   for (const [glyph, list] of byGlyph) {
     const starting = new Map(list.map(face => [pointKey(face.points[0]), face]))
     const ending = new Map(list.map(face => [pointKey(face.points[3]), face]))
@@ -115,8 +131,15 @@ export function fadeCurves(ctx, faces, rects, chosen, reach, limits = faceLimits
       const found = beyond(face, starting, ending, reach * SHORT_FACE)
       if (!found) continue
       const [next, front, back] = found
-      jobs.push({ face, atStart, atEnd, target: sampler(image, next.uvs, [front, back]) })
+      jobs.push({ face, atStart, atEnd, next, ends: [front, back] })
     }
+    if (jobs.length) groups.push({ jobs, claimed, columnKey })
+  }
+  if (!groups.length) return
+  const image = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height)
+  const dirty = { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity }
+  for (const { jobs, claimed, columnKey } of groups) {
+    for (const job of jobs) job.target = sampler(image, job.next.uvs, job.ends)
     for (const { face, atStart, atEnd, target } of jobs) {
       const [[uStart, vFront], [, vBack], , [uEnd]] = face.uvs
       const owned = column => column >= Math.ceil(Math.min(uStart, uEnd) - 0.5) && column < Math.ceil(Math.max(uStart, uEnd) - 0.5)
