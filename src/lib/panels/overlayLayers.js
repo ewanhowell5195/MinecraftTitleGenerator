@@ -33,7 +33,7 @@ export function useOverlayLayers(props, selected, popular) {
   const textured = computed(() => overlays.value.some(ofKind("texture")) || layer.value?.source === "premade" && !generated.value)
   const kinds = computed(() => KINDS.filter(item => (item.value !== "generated" || !props.font?.model) && (item.value !== "texture" || textured.value) && (item.value !== "file" || props.files)))
   const kind = computed(() => !layer.value ? kinds.value.find(item => item.value === pending.value)?.value ?? kinds.value[0].value : layer.value.source === "file" ? "file" : generated.value ? "generated" : "texture")
-  const opened = useOpened(() => layer.value?.overlay ?? null, () => [selected.value, kind.value, props.font?.id, props.statScope])
+  const opened = useOpened(() => layer.value?.overlay ?? null, [() => selected.value, () => kind.value, () => props.font?.id, () => props.statScope])
   const shown = computed(() => openedFirst(overlays.value.filter(ofKind(kind.value)), ([id]) => id === opened.value))
   const settings = computed(() => GENERATED_SETTINGS[generated.value] ?? [])
   const shownSettings = computed(() => {

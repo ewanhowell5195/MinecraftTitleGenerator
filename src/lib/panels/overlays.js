@@ -78,7 +78,7 @@ function overlaysPanel({ id, title, hint }) {
       object[modeKey] = mode
     }
 
-    watch(() => [context.object.id, context.object.textureSource, context.object.texture, context.object.textureVariant], () => {
+    watch([() => context.object.id, () => context.object.textureSource, () => context.object.texture, () => context.object.textureVariant], () => {
       selected.value = 0
     })
 

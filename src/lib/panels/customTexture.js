@@ -76,7 +76,7 @@ function useCustomTexture(context) {
     for (const key of TEXTURE_TABS.custom) object.value[key] = source[key]
   }
 
-  watch(() => [object.value.customTexture, font.value?.sheetFolder], async ([data, folder]) => {
+  watch([() => object.value.customTexture, () => font.value?.sheetFolder], async ([data, folder]) => {
     customSize.value = null
     flatSize.value = null
     if (!data || !folder) return

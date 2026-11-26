@@ -17,7 +17,7 @@ function useTileSize(context) {
 
   const tiled = computed(() => isTiled(context))
 
-  watch(() => [tiled.value, object.value.textureSource, object.value.customTexture, object.value.tileableSource, object.value.tileable, object.value.tileableVariant, object.value.minecraftTexture, object.value.minecraftVersion, host.library.tileables], async () => {
+  watch([tiled, () => object.value.textureSource, () => object.value.customTexture, () => object.value.tileableSource, () => object.value.tileable, () => object.value.tileableVariant, () => object.value.minecraftTexture, () => object.value.minecraftVersion, () => host.library.tileables], async () => {
     const target = object.value
     if (!tiled.value) return
     if (target.textureSource === "tileable" && target.tileableSource !== "minecraft" && !host.library.tileables[target.tileable]) return

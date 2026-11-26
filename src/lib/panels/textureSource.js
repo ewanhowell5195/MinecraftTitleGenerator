@@ -27,7 +27,7 @@ export function useTextureSource(context) {
   const pending = shallowRef(null)
   let blocksRequest = 0
 
-  const opened = useOpened(() => ({ ...object.value }), () => [object.value.id, font.value?.id, object.value.textureSource, object.value.tileableSource])
+  const opened = useOpened(() => ({ ...object.value }), [() => object.value.id, () => font.value?.id, () => object.value.textureSource, () => object.value.tileableSource])
   const usingMinecraft = computed(() => object.value.textureSource === "tileable" && object.value.tileableSource === "minecraft")
   const waiting = computed(() => pending.value?.target === viewed(object.value) ? pending.value.values : null)
   const textures = computed(() => {
@@ -149,7 +149,7 @@ export function useTextureSource(context) {
     }
   }
 
-  watch(() => [usingMinecraft.value, object.value.minecraftVersion], async () => {
+  watch([usingMinecraft, () => object.value.minecraftVersion], async () => {
     if (!usingMinecraft.value || !object.value.minecraftVersion) return
     const request = ++blocksRequest
     blocks.value = null

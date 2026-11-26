@@ -110,7 +110,7 @@ function useShapeSource() {
     object.value.blockState = { ...object.value.blockState, [name]: value }
   }
 
-  watch(() => [object.value.shape, object.value.shapeVersion], async ([shape, shapeVersion]) => {
+  watch([() => object.value.shape, () => object.value.shapeVersion], async ([shape, shapeVersion]) => {
     const request = ++stateRequest
     states.value = []
     definition.value = null

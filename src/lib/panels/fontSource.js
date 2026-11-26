@@ -39,7 +39,7 @@ function useFontSource() {
   const squares = computed(() => object.value.customFont?.kind === "outline" && !object.value.customFont.mesh)
   const entry = computed(() => host.library.fonts.find(item => item.id === object.value.font))
   const baseId = computed(() => entry.value?.variant ?? object.value.font)
-  const opened = useOpened(() => ({ base: baseId.value, font: object.value.font, google: object.value.customFont?.google ?? null }), () => [tab.value, object.value.id, browsedPicks.value])
+  const opened = useOpened(() => ({ base: baseId.value, font: object.value.font, google: object.value.customFont?.google ?? null }), [() => tab.value, () => object.value.id, () => browsedPicks.value])
   const baseFonts = computed(() => host.popular(host.library.fonts.filter(item => !item.variant), item => item.id, item => item.name, [opened.value.base, DEFAULT_FONT]))
   const variants = computed(() => host.popular(host.library.fonts.filter(item => item.variant === baseId.value), item => item.id, item => item.name, [opened.value.font]))
   const search = ref("")
@@ -172,7 +172,7 @@ function useFontSource() {
     if (token === reuseToken) reusable.value = shown
   }, { immediate: true })
 
-  watch(() => [object.value.id, isCustomFont(object.value.font)], ([id], [previous]) => {
+  watch([() => object.value.id, () => isCustomFont(object.value.font)], ([id], [previous]) => {
     customError.value = ""
     if (id === previous && tab.value === "custom" && !object.value.customFont) return
     tab.value = tabOf(object.value)

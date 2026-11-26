@@ -129,11 +129,11 @@ export function useFontBrowser({ kind, current, search }) {
     for (const id of visible) requestSample(byId.value.get(id))
   })
 
-  watch(() => [sort.value, entries.value], ([by]) => {
+  watch([sort, entries], ([by]) => {
     if (by === "random") randomOrder.value = new Map(entries.value.map(entry => [entry.id, Math.random()]))
   }, { immediate: true })
 
-  watch(() => [search.value, sort.value, filters.categories, filters.variable], async () => {
+  watch([search, sort, () => filters.categories, () => filters.variable], async () => {
     limit.value = PAGE
     await nextTick()
     if (list.value) list.value.scrollTop = 0
