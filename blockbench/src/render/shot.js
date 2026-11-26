@@ -9,13 +9,24 @@ export function pointsOf(mesh) {
   return mesh.isMesh && (mesh.userData.extent ?? mesh.geometry.attributes.position) || null
 }
 
-function shownPoints() {
+const measured = new WeakMap()
+
+function meshPoints(mesh, position) {
+  const key = mesh.matrixWorld.elements.join()
+  const known = measured.get(mesh)
+  if (known?.position === position && known.version === position.version && known.key === key) return known.points
+  const matrix = FACING.clone().multiply(mesh.matrixWorld)
   const points = []
+  for (let index = 0; index < position.count; index++) points.push(new THREE.Vector3().fromBufferAttribute(position, index).applyMatrix4(matrix))
+  measured.set(mesh, { position, version: position.version, key, points })
+  return points
+}
+
+function shownPoints() {
+  let points = []
   Project.model_3d.traverseVisible(mesh => {
     const position = pointsOf(mesh)
-    if (!position) return
-    const matrix = FACING.clone().multiply(mesh.matrixWorld)
-    for (let index = 0; index < position.count; index++) points.push(new THREE.Vector3().fromBufferAttribute(position, index).applyMatrix4(matrix))
+    if (position) points = points.concat(meshPoints(mesh, position))
   })
   return points
 }
