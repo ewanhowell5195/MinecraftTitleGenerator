@@ -173,8 +173,8 @@ export function angleDrawn(camera) {
   followMode(Preview.selected)
   if (!angled || angled.shown !== Preview.selected) return
   const { shown, locked, opened, changes, lens } = angled
-  const loaded = opened === Undo.history.length && changes !== titleState().changes
-  if (loaded || lens !== lensKey(shown)) applyAngle(shown, locked, opened)
+  const changed = changes !== titleState().changes && (locked || opened === Undo.history.length)
+  if (changed || lens !== lensKey(shown)) applyAngle(shown, locked, opened)
 }
 
 export function registerAngle() {
