@@ -27,7 +27,7 @@
   import ShareUsage from "./ShareUsage.vue"
   import TopBar from "#src/site/TopBar.vue"
   import { useCommunityBrowser } from "#lib/presets/communityBrowser.js"
-  import { MINE_SORTS, useMyPresets } from "#lib/presets/myPresets.js"
+  import { MINE_FILTERS, MINE_SORTS, useMyPresets } from "#lib/presets/myPresets.js"
   import { SORTS, ratingText, toGoText } from "#lib/presets/presetText.js"
   import { router } from "#src/router.js"
 
@@ -41,13 +41,13 @@
   const search = computed({ get: () => tab.value === "community" ? presetsPage.search : mineSearch.value, set: value => tab.value === "community" ? setPresetSearch(value) : mineSearch.value = value })
   const { results, loading, error, sentinel, load, selected: selectedCommunity, emptyMessage: communityMessage, clear, pick, pickRandom, searched, searchUser, counted, vote, rename: renameCommunity, forget } = useCommunityBrowser({ sort, search, active: () => tab.value === "community", start: tab.value === "community" && presetsPage.id !== null ? cachedCommunityPreset(presetsPage.id) : null, shown: showCommunity })
   const root = ref(null)
-  const { sort: mineSort, selectedCode: selectedLocalCode, stats, removing, term, shown: localShown, groups: localGroups, selected: selectedLocal, isSaved, rename: renameLocal, remove, removeShared } = useMyPresets({ search, active: () => tab.value === "mine", forgotten })
+  const { sort: mineSort, filter: mineFilter, selectedCode: selectedLocalCode, stats, removing, shown: localShown, emptyNote, selected: selectedLocal, isSaved, rename: renameLocal, remove, removeShared } = useMyPresets({ search, active: () => tab.value === "mine", forgotten })
   const sharing = ref(null)
 
   const selected = computed(() => tab.value === "mine" ? selectedLocal.value : selectedCommunity.value)
   const emptyMessage = computed(() => {
     if (tab.value === "community") return communityMessage.value
-    return term.value ? "None of your presets match this search." : "You have no presets yet. Use File > Save preset to save the current title here."
+    return emptyNote.value ?? "You have no presets yet. Use File > Save preset to save the current title here."
   })
   const { followAddress, followOwnShared } = usePresetAddress({ tab, results, error, selectedCommunity, selectedLocalCode, selectedLocal, clearSelection })
 
@@ -183,7 +183,10 @@
             <Dropdown class="sort" :options="SORTS" v-model="sort" />
             <Button class="random" @click="pickRandom"><template #icon><Icon name="dice" :size="16" /></template><span>Random</span></Button>
           </template>
-          <Dropdown v-else class="sort" :options="MINE_SORTS" v-model="mineSort" />
+          <template v-else>
+            <Dropdown class="sort" :options="MINE_FILTERS" v-model="mineFilter" />
+            <Dropdown class="sort" :options="MINE_SORTS" v-model="mineSort" />
+          </template>
         </div>
         <div class="list">
           <Notice v-if="error" class="spaced">{{ error }}</Notice>
@@ -207,19 +210,16 @@
             </PresetTile>
           </div>
           <template v-else>
-            <section v-for="group of localGroups" :key="group.label" class="group">
-              <h2>{{ group.label }}</h2>
-              <div class="grid">
-                <PresetTile v-for="preset of group.presets" :key="preset.code" :code="preset.code" :name="preset.name" :selected="selectedLocalCode === preset.code" @pick="selectLocal(preset)">
-                  <strong class="ellipsis">{{ preset.name }}</strong>
-                  <Badge v-if="preset.inBrowser" v-tooltip="'Your account is full, so this is only saved in this browser'">This browser only</Badge>
-                  <span v-if="stats[preset.shared]" class="stats">
-                    <span v-tooltip="'Uses'"><Icon name="download" :size="13" />{{ stats[preset.shared].downloads }}</span>
-                    <span v-if="stats[preset.shared].rating !== null"><GoldStar :size="13" />{{ stats[preset.shared].rating.toFixed(1) }}</span>
-                  </span>
-                </PresetTile>
-              </div>
-            </section>
+            <div class="grid">
+              <PresetTile v-for="preset of localShown" :key="preset.code" :code="preset.code" :name="preset.name" :selected="selectedLocalCode === preset.code" @pick="selectLocal(preset)">
+                <strong class="ellipsis">{{ preset.name }}</strong>
+                <Badge v-if="preset.inBrowser" v-tooltip="'Your account is full, so this is only saved in this browser'">This browser only</Badge>
+                <span v-if="stats[preset.shared]" class="stats">
+                  <span v-tooltip="'Uses'"><Icon name="download" :size="13" />{{ stats[preset.shared].downloads }}</span>
+                  <span v-if="stats[preset.shared].rating !== null"><GoldStar :size="13" />{{ stats[preset.shared].rating.toFixed(1) }}</span>
+                </span>
+              </PresetTile>
+            </div>
           </template>
           <p v-if="tab === 'community' && loading" class="message loading empty-state">Loading presets</p>
           <div ref="sentinel" class="sentinel"></div>
@@ -315,16 +315,6 @@
 
   .message.loading {
     margin: 12px 0 0;
-  }
-
-  .group + .group {
-    margin-top: 24px;
-  }
-
-  h2 {
-    margin: 0 0 10px;
-    font-size: var(--font-lg);
-    font-weight: 600;
   }
 
   .grid {

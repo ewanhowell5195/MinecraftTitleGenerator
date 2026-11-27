@@ -401,18 +401,6 @@ export const STYLES = `
     height: 36px;
   }
 
-  .mtg-saved + .mtg-saved {
-    margin-top: 24px;
-  }
-
-  .mtg-saved > h3 {
-    margin: 0 0 10px;
-    font-family: inherit;
-    font-size: 15px;
-    font-weight: 600;
-    line-height: 1.4;
-  }
-
   .mtg-cut {
     overflow: hidden;
     text-overflow: ellipsis;

@@ -7,24 +7,24 @@ import { showNotice } from "../state/notices.js"
 import { deleteSharedPreset, presets, removePreset, renamePreset, unsharePreset } from "./savedPresets.js"
 
 export const MINE_SORTS = [{ value: "new", label: "Newest" }, { value: "name", label: "Name" }]
+export const MINE_FILTERS = [{ value: "all", label: "All" }, { value: "shared", label: "Shared" }, { value: "unshared", label: "Not shared" }]
 
 const sort = ref(MINE_SORTS[0].value)
+const filter = ref(MINE_FILTERS[0].value)
 
 export function useMyPresets({ search, active, forgotten }) {
   const selectedCode = ref(null)
   const stats = ref({})
   const removing = ref(null)
   const term = computed(() => search.value.trim().toLowerCase())
-  const shown = computed(() => presets.value.filter(preset => preset.name.toLowerCase().includes(term.value)))
-  const sorted = computed(() => sort.value === "name" ? shown.value.slice().sort(byName) : shown.value.slice().reverse().sort((a, b) => sharedAt(b) - sharedAt(a)))
-  const groups = computed(() => [{ label: "Shared", presets: sorted.value.filter(preset => preset.shared) }, { label: "Local", presets: sorted.value.filter(preset => !preset.shared) }].filter(group => group.presets.length))
+  const shown = computed(() => {
+    const matched = presets.value.filter(preset => preset.name.toLowerCase().includes(term.value) && (filter.value === "all" || !!preset.shared === (filter.value === "shared")))
+    return sort.value === "name" ? matched.sort(byName) : matched.reverse()
+  })
+  const emptyNote = computed(() => !presets.value.length ? null : term.value ? "None of your presets match this search." : filter.value === "shared" ? "You haven't shared any presets yet." : filter.value === "unshared" ? "All of your presets are shared." : null)
   const selected = computed(() => presets.value.find(preset => preset.code === selectedCode.value) ?? null)
   const saved = computed(() => new Set(presets.value.map(preset => titleBody(preset.code))))
   const sharedIds = computed(() => presets.value.filter(preset => preset.shared).map(preset => preset.shared).join(","))
-
-  function sharedAt({ shared }) {
-    return stats.value[shared]?.createdAt ?? 0
-  }
 
   async function loadStats() {
     if (!active() || !sharedIds.value) return
@@ -70,5 +70,5 @@ export function useMyPresets({ search, active, forgotten }) {
 
   watch([active, sharedIds], loadStats, { immediate: true })
 
-  return { sort, selectedCode, stats, removing, term, shown, groups, selected, isSaved, rename, remove, removeShared }
+  return { sort, filter, selectedCode, stats, removing, term, shown, emptyNote, selected, isSaved, rename, remove, removeShared }
 }

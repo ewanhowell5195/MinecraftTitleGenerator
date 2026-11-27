@@ -1,6 +1,6 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { useCommunityBrowser } from "#lib/presets/communityBrowser.js"
-import { MINE_SORTS, useMyPresets } from "#lib/presets/myPresets.js"
+import { MINE_FILTERS, MINE_SORTS, useMyPresets } from "#lib/presets/myPresets.js"
 import { SORTS } from "#lib/presets/presetText.js"
 import { addPreset, presetsError, presetsLoading } from "#lib/presets/savedPresets.js"
 import { accountChanges } from "#lib/state/account.js"
@@ -201,12 +201,14 @@ const PresetBrowser = {
       blank,
       byUser,
       clear,
-      groups: mine.groups,
+      emptyNote: mine.emptyNote,
       isMine: preset => ownPresets.value.includes(preset.id),
       isOwned: preset => managedPresets.value.includes(preset.id),
       isSaved: mine.isSaved,
       keep,
       list,
+      mineFilter: mine.filter,
+      mineFilters: MINE_FILTERS,
       mineSort: mine.sort,
       mineSorts: MINE_SORTS,
       loadInto: () => use(preset => {
@@ -247,6 +249,7 @@ const PresetBrowser = {
             <button class="mtg-button mtg-random" @click="pickRandom"><i class="material-icons">casino</i><span>Random</span></button>
           </template>
           <template v-else>
+            <div class="mtg-sort mtg-short-sort"><dropdown-control :value="mineFilter" :options="mineFilters" @change="mineFilter = $event" /></div>
             <div class="mtg-sort mtg-short-sort"><dropdown-control :value="mineSort" :options="mineSorts" @change="mineSort = $event" /></div>
             <share-usage />
           </template>
@@ -269,18 +272,15 @@ const PresetBrowser = {
           <template v-else>
             <p v-if="presetsError" class="mtg-error">{{ presetsError }}</p>
             <p v-else-if="presetsLoading" class="mtg-empty">Loading your presets</p>
-            <p v-else-if="!shown.length && search.trim()" class="mtg-empty">None of your presets match this search.</p>
+            <p v-else-if="!shown.length && emptyNote" class="mtg-empty">{{ emptyNote }}</p>
             <div v-else-if="!shown.length" class="mtg-empty">
               <i class="material-icons">bookmark</i>
               <strong>No presets yet</strong>
               <span>Use Save preset in the title bar to save the current title here.</span>
             </div>
-            <section v-for="group of groups" :key="group.label" class="mtg-saved">
-              <h3>{{ group.label }}</h3>
-              <div class="mtg-preset-grid">
-                <saved-tile v-for="preset of group.presets" :key="preset.code" :preset="preset" :selected="selectedCode === preset.code" :stats="stats[preset.shared]" @pick="pickMine(preset)" />
-              </div>
-            </section>
+            <div class="mtg-preset-grid">
+              <saved-tile v-for="preset of shown" :key="preset.code" :preset="preset" :selected="selectedCode === preset.code" :stats="stats[preset.shared]" @pick="pickMine(preset)" />
+            </div>
           </template>
           <div ref="sentinel" class="mtg-more"></div>
         </div>
