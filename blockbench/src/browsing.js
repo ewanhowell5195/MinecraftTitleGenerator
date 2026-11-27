@@ -17,6 +17,10 @@ export function isBrowsing() {
   return !!Project && browsing.has(Project.uuid)
 }
 
+export function onlyBrowsing(project) {
+  return browsing.has(project.uuid)
+}
+
 function blocked(item) {
   if (item instanceof Mode) return item.id !== PRESETS
   if (item.category === "file") return !KEPT_FILE.includes(item.id)

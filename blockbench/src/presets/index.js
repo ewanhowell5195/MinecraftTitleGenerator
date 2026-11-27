@@ -7,7 +7,7 @@ import { accountChanges } from "#lib/state/account.js"
 import { communityPreset, managedPresets, ownPresets, refreshUsage } from "#lib/state/community.js"
 import { showNotice } from "#lib/state/notices.js"
 import { AccountButton } from "../account/index.js"
-import { finishBrowsing } from "../browsing.js"
+import { finishBrowsing, onlyBrowsing } from "../browsing.js"
 import { addPresetTitles, isBlank, openPreset } from "../file.js"
 import { FORMAT } from "../format.js"
 import { hidePanels, isSelected, leaveMode, putFirst, showPanels } from "../mode.js"
@@ -19,6 +19,7 @@ import { PresetDetail, PresetTile, SavedTile } from "./parts.js"
 import { registerSaving, unregisterSaving } from "./saving.js"
 import { ShareUsage, openSharing, published } from "./sharing.js"
 import { STYLES } from "./styles.js"
+import { dressTabs } from "./tab.js"
 import { registerTitleBar, unregisterTitleBar } from "./titleBar.js"
 
 const ID = "minecraft_title_presets"
@@ -34,6 +35,7 @@ let mode = null
 let styles = null
 let restoreSelection = null
 let stopPublished = null
+let undressTabs = null
 
 const PresetBrowser = {
   components: { AccountButton, DropdownControl, PresetDetail, PresetTile, SavedTile, SegmentsControl, ShareUsage },
@@ -347,11 +349,13 @@ export function registerPresets() {
   })
   putFirst(ID)
   stopPublished = watch(published, followPublished)
+  undressTabs = dressTabs(project => project.mode === ID && onlyBrowsing(project), "Minecraft Title Presets", mode.icon)
 }
 
 export function unregisterPresets() {
   leaveMode(mode, ID)
   stopPublished()
+  undressTabs()
   Vue.delete(Modes.options, ID)
   const screen = mode.vue.$el.parentNode
   mode.vue.$destroy()
