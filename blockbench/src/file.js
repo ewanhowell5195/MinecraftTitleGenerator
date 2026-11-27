@@ -176,6 +176,10 @@ function addLine(words, own) {
 function show({ values, camera, preset }, own = {}) {
   setCamera(titleState().title.camera, camera)
   Project[KEPT] = { ...(camera && { camera }), ...(preset && { preset }) }
+  return addLines(values, own)
+}
+
+function addLines(values, own = {}) {
   const lines = values.map((words, index) => addLine(words, own.lines?.[index] ?? {}))
   settleTitle()
   quietly(() => {
@@ -213,16 +217,17 @@ export function openPreset(preset) {
   parse({ ...data, own: {} })
 }
 
-export function replaceWithPreset(preset) {
+export function addPresetTitles(preset) {
   const data = readPreset(preset)
-  if (isBlank() && !Project.name) nameAfter(preset)
+  const blank = isBlank()
+  if (blank && !Project.name) nameAfter(preset)
   openTitleMode()
   finishEdit()
-  const old = titles()
-  Undo.initEdit({ outliner: true, elements: old.flatMap(familyOf), selection: true, ...WHOLE })
-  for (const home of old) home.remove()
-  const homes = show(data)
-  Undo.finishEdit("Use title preset", { outliner: true, elements: homes.flatMap(familyOf), selection: true, ...WHOLE })
+  const starter = blank ? titles() : []
+  Undo.initEdit({ outliner: true, elements: starter.flatMap(familyOf), selection: true, ...WHOLE })
+  for (const home of starter) home.remove()
+  const homes = blank ? show(data) : addLines(data.values)
+  Undo.finishEdit("Add title preset", { outliner: true, elements: homes.flatMap(familyOf), selection: true, ...WHOLE })
 }
 
 function read(text) {

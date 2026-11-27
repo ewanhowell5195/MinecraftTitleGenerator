@@ -8,7 +8,7 @@ import { communityPreset, managedPresets, ownPresets, refreshUsage } from "#lib/
 import { showNotice } from "#lib/state/notices.js"
 import { AccountButton } from "../account/index.js"
 import { finishBrowsing } from "../browsing.js"
-import { isBlank, openPreset, replaceWithPreset } from "../file.js"
+import { addPresetTitles, isBlank, openPreset } from "../file.js"
 import { FORMAT } from "../format.js"
 import { hidePanels, isSelected, leaveMode, putFirst, showPanels } from "../mode.js"
 import { DropdownControl, SegmentsControl } from "../panels/inputs.js"
@@ -210,7 +210,7 @@ const PresetBrowser = {
       mineSort: mine.sort,
       mineSorts: MINE_SORTS,
       loadInto: () => use(preset => {
-        replaceWithPreset(preset)
+        addPresetTitles(preset)
         finishBrowsing()
       }),
       open: () => use(openPreset),

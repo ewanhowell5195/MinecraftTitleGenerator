@@ -163,7 +163,7 @@ export const PresetDetail = {
         <button v-if="blank" class="mtg-button primary" @click="$emit('load')"><i class="material-icons">text_fields</i><span>Open preset</span></button>
         <template v-else>
           <button class="mtg-button primary" @click="$emit('open')"><i class="material-icons">add</i><span>Open preset as new project</span></button>
-          <button class="mtg-button" @click="$emit('load')"><i class="material-icons">swap_horiz</i><span>Load preset into current project</span></button>
+          <button class="mtg-button" @click="$emit('load')"><i class="material-icons">library_add</i><span>Add preset to current project</span></button>
         </template>
         <template v-if="local">
           <button v-if="!preset.shared" class="mtg-button" @click="$emit('share')"><i class="material-icons">share</i><span>Share publicly</span></button>
