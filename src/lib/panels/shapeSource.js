@@ -9,7 +9,7 @@ import { silhouetteMesh } from "../font/customFonts.js"
 import { BUILDS } from "./fontSource.js"
 import { host } from "./host.js"
 import { usePanel } from "./panel.js"
-import { usedShapes } from "./uploads.js"
+import { reuseRow, usedShapes } from "./uploads.js"
 
 const SHAPE_SOURCES = [{ value: "premade", label: "Premade" }, { value: "minecraft", label: "Minecraft" }, { value: "custom", label: "Custom" }]
 const SHAPE_KINDS = [{ value: "block", label: "Blocks" }, { value: "item", label: "Items" }]
@@ -212,7 +212,7 @@ export const SHAPE_PANEL = {
         },
         { type: "hint", text: "The solid pixels make the shape, pushed out like a letter, and the image paints its front.", shown: custom },
         { type: "segments", label: "Build from", options: BUILDS, hint: get => get("customFont").mesh ? "Smooth edges that follow the outline of the image." : "Pixel cubes, like the letters.", read: get => !!get("customFont").mesh, write: (mesh, { state }) => state.setBuild(mesh), shown: (get, context) => custom(get, context) && shaped(get) && !!get("customFont") },
-        { type: "reuse", items: (get, { state }) => state.reusable.value, pick: (data, { state }) => state.pickPng(data), shown: custom },
+        reuseRow((data, { state }) => state.pickPng(data), custom),
         { type: "version", read: (get, { state }) => state.version.value, write: (version, { state }) => state.chooseVersion(version), shown: (get, context) => minecraft(get, context) && !!context.state.version.value },
         { type: "notice", text: (get, { state }) => state.failed.value, shown: (get, context) => minecraft(get, context) && !!context.state.failed.value },
         { type: "segments", options: SHAPE_KINDS, read: (get, { state }) => state.kind.value, write: (kind, { state }) => (state.kind.value = kind), shown: listed },

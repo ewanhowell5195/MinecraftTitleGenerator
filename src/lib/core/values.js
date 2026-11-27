@@ -4,6 +4,10 @@ export function sameValue(a, b) {
   return JSON.stringify(a) === JSON.stringify(b)
 }
 
+export function withoutKeys(object, keys) {
+  return Object.fromEntries(Object.entries(object).filter(([key]) => !keys.includes(key)))
+}
+
 export function plainCopy(value) {
   if (typeof value === "number") return Number.isFinite(value) ? value : null
   if (Array.isArray(value)) return value.map(item => item === undefined || typeof item === "function" ? null : plainCopy(item))

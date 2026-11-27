@@ -55,6 +55,10 @@ export function activeOverlays(list, object, kind, layer = 0) {
   return object[OVERLAY_KINDS[kind]] === "custom" ? object[kind] : defaultOverlays(list, object, kind, layer)
 }
 
+export function knownOverlays(overlays, textures) {
+  return overlays.filter(layer => layer.source === "file" || textures.overlays[layer.overlay])
+}
+
 export function shownOverlays(list, object, kind, layer = 0) {
   return activeOverlays(list, object, kind, layer).filter(entry => !entry.hidden)
 }

@@ -17,7 +17,7 @@ let accountRequest = null
 let accountChecked = false
 let channel = null
 
-function called(url, options) {
+export function communityCall(url, options) {
   return apiCall(url, options, "The community presets aren't available right now", () => refreshAccount(true))
 }
 
@@ -54,7 +54,7 @@ export function refreshAccount(force = false) {
 
 async function fetchAccount() {
   try {
-    const { user, providers = [] } = await called(ACCOUNT_API)
+    const { user, providers = [] } = await communityCall(ACCOUNT_API)
     const wasSignedIn = !!store.account
     const changed = store.account?.id !== user?.id
     accountChecked = true
@@ -82,14 +82,14 @@ export function signIn(provider) {
 }
 
 export async function deleteAccount(mode) {
-  await called(`${ACCOUNT_API}/delete`, jsonOptions("POST", { mode }))
+  await communityCall(`${ACCOUNT_API}/delete`, jsonOptions("POST", { mode }))
   await fetchAccount()
   announceAccountChange()
 }
 
 export async function signOut() {
   try {
-    await called(`${ACCOUNT_API}/logout`, { method: "POST" })
+    await communityCall(`${ACCOUNT_API}/logout`, { method: "POST" })
     await fetchAccount()
     announceAccountChange()
   } catch (err) {

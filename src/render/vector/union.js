@@ -1,4 +1,4 @@
-import { clamp } from "#lib/core/maths.js"
+import { clamp, pointKey } from "#lib/core/maths.js"
 import { area, sameWinding } from "./polygons.js"
 
 const WELD = 1
@@ -122,10 +122,6 @@ function cutsBetween(a, b, c, d) {
   const along = ([x, y], [ox, oy], dx, dy) => ((x - ox) * dx + (y - oy) * dy) / (dx * dx + dy * dy)
   const between = (point, start, dx, dy) => along(point, start, dx, dy) > 0 && along(point, start, dx, dy) < 1
   return [[c, d].filter(point => between(point, a, ux, uy)), [a, b].filter(point => between(point, c, vx, vy))]
-}
-
-function pointKey([x, y]) {
-  return `${x},${y}`
 }
 
 function cutAtCrossings(edges) {

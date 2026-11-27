@@ -10,9 +10,13 @@ export function extent(points, axis) {
   return { min, max, size: Math.max(1, Math.round(max - min)) }
 }
 
+function levelled(face, kind) {
+  return { face, span: extent(face.points, 0), level: extent(face.points, 1)[kind === "top" ? "max" : "min"] }
+}
+
 export function stripOwners(faces, kind) {
   const outward = kind === "top" ? -1 : 1
-  const list = faces.filter(face => face.kind === kind && !face.internal).map(face => ({ face, span: extent(face.points, 0), level: extent(face.points, 1)[kind === "top" ? "max" : "min"] })).sort((a, b) => (a.level - b.level) * outward)
+  const list = faces.filter(face => face.kind === kind && !face.internal).map(face => levelled(face, kind)).sort((a, b) => (a.level - b.level) * outward)
   const taken = []
   const extras = []
   for (const item of list) {
@@ -23,7 +27,7 @@ export function stripOwners(faces, kind) {
 }
 
 function joinLevels(faces, kind) {
-  const items = faces.filter(face => !face.run).map(face => ({ face, span: extent(face.points, 0), level: extent(face.points, 1)[kind === "top" ? "max" : "min"] })).sort((a, b) => a.level - b.level || a.span.min - b.span.min)
+  const items = faces.filter(face => !face.run).map(face => levelled(face, kind)).sort((a, b) => a.level - b.level || a.span.min - b.span.min)
   let last = null
   for (const item of items) {
     if (last && last.level === item.level && last.face.layer === item.face.layer && item.span.min <= last.max) {

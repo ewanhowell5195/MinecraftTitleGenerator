@@ -1,6 +1,7 @@
 import * as THREE from "three"
 import { boxesFor } from "#lib/geometry/boxes.js"
 import { unionBoxes } from "#lib/geometry/build.js"
+import { corners } from "#lib/geometry/modelShape.js"
 
 const DIRECTIONS = [["west", "east"], ["down", "up"], ["north", "south"]]
 const OPPOSITE = { west: "east", east: "west", down: "up", up: "down", north: "south", south: "north" }
@@ -9,16 +10,7 @@ const SAME = 1e-4
 const SAME_TEXEL = 0.02
 const OPAQUE = 128
 
-const round = value => Math.roundTo(value, 4)
-
-function cornersOf(direction, [x1, y1, z1], [x2, y2, z2]) {
-  if (direction === "north") return [[x2, y2, z1], [x1, y2, z1], [x1, y1, z1], [x2, y1, z1]]
-  if (direction === "south") return [[x1, y2, z2], [x2, y2, z2], [x2, y1, z2], [x1, y1, z2]]
-  if (direction === "east") return [[x2, y2, z2], [x2, y2, z1], [x2, y1, z1], [x2, y1, z2]]
-  if (direction === "west") return [[x1, y2, z1], [x1, y2, z2], [x1, y1, z2], [x1, y1, z1]]
-  if (direction === "up") return [[x1, y2, z1], [x2, y2, z1], [x2, y2, z2], [x1, y2, z2]]
-  return [[x1, y1, z2], [x2, y1, z2], [x2, y1, z1], [x1, y1, z1]]
-}
+export const round = value => Math.roundTo(value, 4)
 
 function directionOf(normal, axes) {
   const along = axes.map(axis => normal.dot(axis))
@@ -35,7 +27,7 @@ function faceUv(quad, corners) {
   throw new Error("A face of this title has a slanted texture, so it can't be made from cubes")
 }
 
-function rotationOf(quaternion) {
+export function angles(quaternion) {
   const euler = new THREE.Euler().setFromQuaternion(quaternion, Format.euler_order)
   return [euler.x, euler.y, euler.z].map(angle => round(Math.radToDeg(angle)))
 }
@@ -61,15 +53,15 @@ export function makeCube({ name, box: { centre, half, quaternion, axes, members 
     from: inverted ? high : low,
     to: inverted ? low : high,
     origin: (turned ? middle : space.pivot).toArray().map(round),
-    rotation: turned ? rotationOf(unturned) : [0, 0, 0],
+    rotation: turned ? angles(unturned) : [0, 0, 0],
     autouv: 0,
     box_uv: false
   })
   for (const face of Object.values(cube.faces)) face.extend({ texture: null, uv: [0, 0, 0, 0] })
   for (const quad of members) {
     const direction = directionOf(quad.normal, axes)
-    const corners = cornersOf(direction, half.map(value => -value), half).map(corner => new THREE.Vector3(...corner).applyQuaternion(quaternion).add(centre))
-    cube.faces[inverted ? OPPOSITE[direction] : direction].extend(paint(quad, corners))
+    const points = corners(direction, half.map(value => -value), half).map(corner => new THREE.Vector3(...corner).applyQuaternion(quaternion).add(centre))
+    cube.faces[inverted ? OPPOSITE[direction] : direction].extend(paint(quad, points))
   }
   return cube
 }
@@ -107,6 +99,10 @@ function sameTexels(a, b) {
   return a.page === b.page && listed(a) === listed(b)
 }
 
+export function reachAlong({ axes, half }, direction) {
+  return axes.reduce((sum, axis, index) => sum + Math.abs(axis.dot(direction)) * half[index], 0)
+}
+
 export function wholeSides(box, quads) {
   const members = []
   const extras = []
@@ -114,10 +110,9 @@ export function wholeSides(box, quads) {
     const [first, ...others] = found.sort((a, b) => areaOf(b) - areaOf(a))
     const normal = normalOf(first)
     const map = mapOf(first)
-    const reach = box.axes.reduce((sum, axis, index) => sum + Math.abs(axis.dot(normal)) * box.half[index], 0)
-    const middle = box.centre.clone().addScaledVector(normal, reach)
+    const middle = box.centre.clone().addScaledVector(normal, reachAlong(box, normal))
     const edges = [1, 3].map(corner => first.points[corner].clone().sub(first.points[0]).normalize())
-    const spans = edges.map(edge => box.axes.reduce((sum, axis, index) => sum + Math.abs(axis.dot(edge)) * box.half[index], 0))
+    const spans = edges.map(edge => reachAlong(box, edge))
     const points = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([s, t]) => middle.clone().addScaledVector(edges[0], s * spans[0]).addScaledVector(edges[1], t * spans[1]))
     const fixed = others.length > 0 && others.every(quad => sameTexels(first, quad))
     members.push({ ...first, points, normal, uvs: fixed ? first.uvs : points.map(map) })

@@ -1,4 +1,4 @@
-import { clamp } from "#lib/core/maths.js"
+import { clamp, pointKey } from "#lib/core/maths.js"
 import { faceLimits } from "#lib/geometry/meshFaces.js"
 import { surface } from "../canvas.js"
 
@@ -11,10 +11,6 @@ const SHORT_FACE = 0.25
 function easedOut(value, [from, to]) {
   const amount = clamp((value - from) / (to - from), 0, 1)
   return 1 - amount * amount * (3 - 2 * amount)
-}
-
-function pointKey([x, y]) {
-  return `${x},${y}`
 }
 
 function slope(face) {

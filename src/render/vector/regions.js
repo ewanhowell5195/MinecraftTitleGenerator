@@ -1,4 +1,4 @@
-import { EndType, FillRule, JoinType, differenceD, inflatePathsD, intersectD, unionD } from "../../lib/geometry/clipper.js"
+import { EndType, FillRule, JoinType, differenceD, fromPaths, inflatePathsD, intersectD, toPaths, unionD } from "../../lib/geometry/clipper.js"
 import { packed } from "#lib/core/colour.js"
 import { colourTotals, jump, majority, near, tally, within } from "./colours.js"
 import { BASE_SHARE, STEP_EDGE, bandedOf, denoised, drawnNear, fadedModel, flatOf, joinedBands, modelOf, paintedModel, rampsOneWay, rising, segmentsOf, smoothBands, without } from "./models.js"
@@ -20,14 +20,6 @@ const TEXEL_INSET = 0.02
 const LEFTOVER_SHARE = 0.05
 const CROSS_REACH = 1
 const CUT_UNDER = 0.25
-
-function asPaths(polygons) {
-  return polygons.map(polygon => polygon.map(([x, y]) => ({ x, y })))
-}
-
-function asPolygons(paths) {
-  return paths.map(path => path.map(({ x, y }) => [x, y]))
-}
 
 function islandsOf(loops) {
   const within = (loop, other) => loop !== other && insidePolygons([other], loop[0][0], loop[0][1])
@@ -283,38 +275,38 @@ export function analyse(image, rect, mask = null, outline = null) {
   const overlayOutlines = new Map()
   function overlayOutline(label) {
     const part = label & ~exactPart(label)
-    if (!overlayOutlines.has(part)) overlayOutlines.set(part, asPaths(shapeOf(Array.from(regions).filter(([other]) => (other & ~exactPart(other)) === part).flatMap(([, list]) => list), true)))
+    if (!overlayOutlines.has(part)) overlayOutlines.set(part, toPaths(shapeOf(Array.from(regions).filter(([other]) => (other & ~exactPart(other)) === part).flatMap(([, list]) => list), true)))
     return overlayOutlines.get(part)
   }
   function faceShape() {
     const box = [[rect.left, rect.top], [rect.right, rect.top], [rect.right, rect.bottom], [rect.left, rect.bottom]]
     const edge = transparent ? null : outline
-    return intersectD(asPaths([box]), asPaths(edge ?? shapeOf(solid, false)), edge ? FillRule.NonZero : FillRule.EvenOdd, CUT_PRECISION)
+    return intersectD(toPaths([box]), toPaths(edge ?? shapeOf(solid, false)), edge ? FillRule.NonZero : FillRule.EvenOdd, CUT_PRECISION)
   }
   function labelShape(label, skip = -1) {
     let cut = faceShape()
-    for (const bit of exactBits.filter(bit => label & 1 << bit && bit !== skip)) cut = intersectD(cut, asPaths(image.crackShapes.get(bit).shape), FillRule.NonZero, CUT_PRECISION)
+    for (const bit of exactBits.filter(bit => label & 1 << bit && bit !== skip)) cut = intersectD(cut, toPaths(image.crackShapes.get(bit).shape), FillRule.NonZero, CUT_PRECISION)
     for (const bit of faceBits) {
-      if (!((label | (absorbed.get(label) ?? 0)) & 1 << bit)) cut = differenceD(cut, asPaths(image.crackShapes.get(bit).shape), FillRule.NonZero, CUT_PRECISION)
+      if (!((label | (absorbed.get(label) ?? 0)) & 1 << bit)) cut = differenceD(cut, toPaths(image.crackShapes.get(bit).shape), FillRule.NonZero, CUT_PRECISION)
     }
     if (label & ~exactPart(label)) cut = intersectD(cut, overlayOutline(label), FillRule.NonZero, CUT_PRECISION)
     return cut
   }
   function nearPixels(list) {
-    return inflatePathsD(asPaths(shapeOf(list, false)), CROSS_REACH, JoinType.Miter, EndType.Polygon, 2, CUT_PRECISION)
+    return inflatePathsD(toPaths(shapeOf(list, false)), CROSS_REACH, JoinType.Miter, EndType.Polygon, 2, CUT_PRECISION)
   }
   function exactCut(label, region) {
     if (!isExact(label)) return null
     let cut = labelShape(label)
     const near = nearPixels(region)
     for (const bit of exactBits.filter(bit => label & 1 << bit)) {
-      let across = differenceD(intersectD(labelShape(label, bit), near, FillRule.NonZero, CUT_PRECISION), asPaths(image.crackShapes.get(bit).shape), FillRule.NonZero, CUT_PRECISION)
+      let across = differenceD(intersectD(labelShape(label, bit), near, FillRule.NonZero, CUT_PRECISION), toPaths(image.crackShapes.get(bit).shape), FillRule.NonZero, CUT_PRECISION)
       const part = label & ~exactPart(label)
       const claimed = Array.from(regions).filter(([other]) => !(other & 1 << bit) && (other & ~exactPart(other)) === part).flatMap(([, list]) => list)
       if (claimed.length) across = differenceD(across, nearPixels(claimed), FillRule.NonZero, CUT_PRECISION)
       if (across.length) cut = unionD(cut, across, FillRule.NonZero, CUT_PRECISION)
     }
-    return cut.length ? asPolygons(cut) : null
+    return cut.length ? fromPaths(cut) : null
   }
 
   function centreIn(polygons, pixel) {
@@ -347,7 +339,7 @@ export function analyse(image, rect, mask = null, outline = null) {
     const group = exactPart(label)
     if (cut) {
       const tones = exactBits.filter(bit => label & 1 << bit).map(bit => image.crackShapes.get(bit).tones).find(list => list.length)
-      const pieces = tones ? tones.map(tone => asPolygons(intersectD(asPaths(cut), asPaths(tone), FillRule.NonZero, CUT_PRECISION))) : [cut]
+      const pieces = tones ? tones.map(tone => fromPaths(intersectD(toPaths(cut), toPaths(tone), FillRule.NonZero, CUT_PRECISION))) : [cut]
       let rest = region
       for (const [index, piece] of pieces.entries()) {
         const own = index === pieces.length - 1 ? rest : rest.filter(pixel => centreIn(piece, pixel))
@@ -363,7 +355,7 @@ export function analyse(image, rect, mask = null, outline = null) {
       continue
     }
     const part = decompose(region, true, label, knownModel(region, true))
-    const shape = !part.banded && faceBits.length ? asPolygons(labelShape(label)) : []
+    const shape = !part.banded && faceBits.length ? fromPaths(labelShape(label)) : []
     const straddling = shape.length ? part.layers.filter(layer => layer.pixels.every(pixel => !wholeIn(shape, pixel))) : []
     const matched = (part.base.matched ?? []).concat(straddling.flatMap(layer => layer.pixels))
     painted.push({ ...part.base, pixels: matched, smooth: anySoft && !part.banded, group, depth: overlaysOf(label), ...(shape.length && { cut: shape }) }, ...part.layers.filter(layer => !straddling.includes(layer)).map(layer => ({ ...layer, group, depth: overlaysOf(label) })))
@@ -381,15 +373,15 @@ export function analyse(image, rect, mask = null, outline = null) {
     const high = after ? after.other.strip.from + (after.at > index ? 1 : 0) : axis[0] ? height : width
     const strip = axis[0] ? [[rect.left, rect.top + low], [rect.right, rect.top + low], [rect.right, rect.top + high], [rect.left, rect.top + high]] : [[rect.left + low, rect.top], [rect.left + high, rect.top], [rect.left + high, rect.bottom], [rect.left + low, rect.bottom]]
     if (!outlines.has(layer.bandLabel)) outlines.set(layer.bandLabel, labelShape(layer.bandLabel))
-    const cut = intersectD(asPaths([strip]), outlines.get(layer.bandLabel), FillRule.NonZero, CUT_PRECISION)
-    if (cut.length) layer.cut = asPolygons(cut)
+    const cut = intersectD(toPaths([strip]), outlines.get(layer.bandLabel), FillRule.NonZero, CUT_PRECISION)
+    if (cut.length) layer.cut = fromPaths(cut)
   }
   let above = []
   for (const layer of layers.toReversed()) {
     if (!layer.cut) continue
-    const shape = asPaths(layer.cut)
+    const shape = toPaths(layer.cut)
     const hidden = above.length ? intersectD(inflatePathsD(shape, CUT_UNDER, JoinType.Miter, EndType.Polygon, 2, CUT_PRECISION), above, FillRule.NonZero, CUT_PRECISION) : []
-    if (hidden.length) layer.cut = asPolygons(unionD(shape, hidden, FillRule.NonZero, CUT_PRECISION))
+    if (hidden.length) layer.cut = fromPaths(unionD(shape, hidden, FillRule.NonZero, CUT_PRECISION))
     above = above.length ? unionD(above, shape, FillRule.NonZero, CUT_PRECISION) : shape
   }
   const owner = new Int32Array(width * height).fill(HOLE)

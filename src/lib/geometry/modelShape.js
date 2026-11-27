@@ -4,7 +4,7 @@ import { MINECRAFT_SCALE, MODEL_BASELINE, rotated } from "./shapes.js"
 const NEAR = 1e-3
 const WALL_SIDES = ["east", "west", "up", "down"]
 
-function corners(side, [x1, y1, z1], [x2, y2, z2]) {
+export function corners(side, [x1, y1, z1], [x2, y2, z2]) {
   if (side === "north") return [[x2, y2, z1], [x1, y2, z1], [x1, y1, z1], [x2, y1, z1]]
   if (side === "south") return [[x1, y2, z2], [x2, y2, z2], [x2, y1, z2], [x1, y1, z2]]
   if (side === "east") return [[x2, y2, z2], [x2, y2, z1], [x2, y1, z1], [x2, y1, z2]]

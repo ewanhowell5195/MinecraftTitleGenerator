@@ -15,6 +15,10 @@ function used(collect, keyOf = value => value) {
   return Array.from(found.values())
 }
 
+export function reuseRow(pick, shown) {
+  return { type: "reuse", items: (get, { state }) => state.reusable.value, pick, shown }
+}
+
 export function usedTextures() {
   return used(object => settingsOf(object).filter(settings => settings.customTexture), settings => settings.customTexture).map(item => ({ ...item, value: item.value.customTexture, source: item.value }))
 }

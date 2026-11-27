@@ -1,9 +1,9 @@
 import { computed, ref, watch } from "vue"
-import { apiCall, jsonOptions } from "../core/api.js"
+import { jsonOptions } from "../core/api.js"
 import { LIMITS } from "../core/limits.js"
 import { thisPlace } from "../core/place.js"
 import { showNotice } from "./notices.js"
-import { account, onSignedIn, onSignedInOrOut, refreshAccount } from "./account.js"
+import { account, communityCall, onSignedIn, onSignedInOrOut } from "./account.js"
 import { saveStore, store } from "./communityStore.js"
 
 const API = "/api/presets"
@@ -42,12 +42,8 @@ function persist() {
   saveStore()
 }
 
-function called(url, options) {
-  return apiCall(url, options, "The community presets aren't available right now", () => refreshAccount(true))
-}
-
 function request(path, options) {
-  return called(`${API}${path}`, options)
+  return communityCall(`${API}${path}`, options)
 }
 
 function posted(path, body) {
@@ -239,7 +235,7 @@ async function moveTokensToAccount() {
     let moved = 0
     for (let start = 0; start < ids.length; start += LIMITS.claimBatch) {
       const batch = ids.slice(start, start + LIMITS.claimBatch)
-      const reply = await called(`${API}/claim`, jsonOptions("POST", { tokens: batch.map(id => ({ id, token: store.tokens[id] })) }))
+      const reply = await communityCall(`${API}/claim`, jsonOptions("POST", { tokens: batch.map(id => ({ id, token: store.tokens[id] })) }))
       moved += reply.moved.length
       forgetTokens(batch)
     }

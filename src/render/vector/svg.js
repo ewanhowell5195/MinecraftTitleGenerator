@@ -1,4 +1,4 @@
-import { EndType, FillRule, JoinType, difference, differenceD, inflatePathsD, intersectD, union, unionD } from "../../lib/geometry/clipper.js"
+import { EndType, FillRule, JoinType, difference, differenceD, fromPaths, inflatePathsD, intersectD, toPaths, union, unionD } from "../../lib/geometry/clipper.js"
 import { placement } from "../compose.js"
 import { addToCover, visibleLoops } from "./cover.js"
 import { loopsInHundredths, number, writePath } from "./pathData.js"
@@ -31,13 +31,6 @@ function stripsAlong(segments, width) {
   })
 }
 
-function toPaths(polygons) {
-  return polygons.map(polygon => polygon.map(([x, y]) => ({ x, y })))
-}
-
-function fromPaths(paths) {
-  return paths.map(path => path.map(({ x, y }) => [x, y]))
-}
 
 function outwardWound(polygons) {
   if (!polygons.length) return polygons

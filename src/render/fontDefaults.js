@@ -1,7 +1,7 @@
 import { keepTexture, loadedFont } from "../lib/title/objects.js"
 import { defaultBorder, defaultDepth, defaultSpacing, fontFaces } from "../lib/settings/defaults.js"
 import { applyFontFaces, isSeparate, layerView } from "../lib/settings/layers.js"
-import { defaultTexture, separateForDefaults, setTexture } from "../lib/settings/textureDefaults.js"
+import { defaultTexture, knownOverlays, separateForDefaults, setTexture } from "../lib/settings/textureDefaults.js"
 import { sameValue } from "../lib/core/values.js"
 
 const loadedFaces = new WeakMap()
@@ -26,7 +26,7 @@ export function applyFontDefaults(object, loaded, textures, before, quietly) {
         if (target.textureSource === "premade" || unfitting) setTexture(target, unfitting ? { ...values, textureSource: "premade" } : values, { before, after: textures })
         else Object.assign(target, values)
       }
-      for (const target of layerViews(object, "overlays")) target.overlays = target.overlays.filter(layer => layer.source === "file" || textures.overlays[layer.overlay])
+      for (const target of layerViews(object, "overlays")) target.overlays = knownOverlays(target.overlays, textures)
       object.spacing = defaultSpacing(object.type, loaded)
       object.spaceWidth = null
       object.terminatorSpace = null

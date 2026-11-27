@@ -1,4 +1,4 @@
-import { rectangles } from "./rectangles.js"
+import { maskReader, rectangles } from "./rectangles.js"
 
 function stretches(from, to, open) {
   const found = []
@@ -11,7 +11,7 @@ function stretches(from, to, open) {
 }
 
 export function boxesFor(mask, width, height, originX = 0, originY = 0) {
-  const at = (x, y) => x >= 0 && y >= 0 && x < width && y < height && mask[y * width + x] === 1
+  const at = maskReader(mask, width, height)
   return rectangles(mask, width, height).map(([x, y, w, h]) => {
     const moved = (found, origin) => found.map(ends => ends.map(end => end + origin))
     return {

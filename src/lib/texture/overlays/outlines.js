@@ -1,4 +1,5 @@
 import { joinedMask } from "#lib/geometry/joins.js"
+import { maskReader } from "#lib/geometry/rectangles.js"
 import { clamp } from "#lib/core/maths.js"
 import { TONES } from "./settings.js"
 
@@ -40,7 +41,7 @@ function distances(mask, width, height) {
 function twoTonePixels(glyph, kind, settings) {
   const { width, height, mask } = glyph
   const out = new Float32Array(width * height)
-  const at = (i, j) => i >= 0 && j >= 0 && i < width && j < height && mask[j * width + i] === 1
+  const at = maskReader(mask, width, height)
   const from = 1
   const reach = Math.ceil(settings.thickness)
   const dist = distances(mask, width, height)
@@ -144,7 +145,7 @@ function spilled(own, mask, width, height) {
 function pixels(glyph, kind, settings) {
   const { width, height, mask } = glyph
   const out = new Float32Array(width * height)
-  const at = (i, j) => i >= 0 && j >= 0 && i < width && j < height && mask[j * width + i] === 1
+  const at = maskReader(mask, width, height)
   if (kind === "corners") {
     const { size, inset } = settings
     for (let j = 0; j < height; j++) {

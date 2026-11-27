@@ -4,7 +4,7 @@ import { TEXTURE_TABS } from "../settings/settings.js"
 import { boxOf } from "#render/bufferPoints.js"
 import { cameraCover, coverMembers, coverProjection } from "#render/coverProjection.js"
 import { host } from "./host.js"
-import { usedTextures } from "./uploads.js"
+import { reuseRow, usedTextures } from "./uploads.js"
 
 const CUSTOM_MODES = [{ value: "standard", label: "Standard" }, { value: "tileable", label: "Tileable" }, { value: "strip", label: "Strip" }, { value: "cover", label: "Cover" }]
 const SAME_SHAPE = 0.01
@@ -118,6 +118,6 @@ export const CUSTOM_TEXTURE = {
     position("coverY", "Vertical position", "x"),
     { type: "hint", text: "An image is tiled across the letters, or you can use it as a strip or stretch it over the line.", shown: (get, { font }) => !uploaded(get) && !!font?.mesh },
     { type: "hint", text: "An image the shape of this font's flat texture is painted onto the letters. Anything else is tiled, or you can use it as a strip or stretch it over the line.", shown: (get, { font }) => !uploaded(get) && !font?.mesh },
-    { type: "reuse", items: (get, { state }) => state.reusable.value, pick: (value, { state }) => state.reuse(value) }
+    reuseRow((value, { state }) => state.reuse(value))
   ]
 }

@@ -38,9 +38,7 @@ export function yOfRow(font, glyph, row) {
   return glyph.above + font.height - 1 - row
 }
 
-export function rowOfY(font, glyph, y) {
-  return glyph.above + font.height - 1 - y
-}
+export const rowOfY = yOfRow
 
 export function isBlank(glyph) {
   return !glyph.rows.some(hasInk)

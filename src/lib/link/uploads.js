@@ -1,4 +1,5 @@
 import { isCustomFont } from "../settings/settings.js"
+import { withoutKeys } from "../core/values.js"
 import { LAYERS } from "../settings/textureDefaults.js"
 import { CUSTOM_SHAPE, FALLBACK_SHAPE } from "../geometry/shapes.js"
 
@@ -19,7 +20,7 @@ export function countUploads(entry) {
 }
 
 function layerWithoutUploads(layer) {
-  const stripped = Object.fromEntries(Object.entries(layer).filter(([key]) => !UPLOAD_KEYS.includes(key)))
+  const stripped = withoutKeys(layer, UPLOAD_KEYS)
   if (layer.textureSource === "custom") delete stripped.textureSource
   for (const key of LAYERS) {
     if (layer[key]) stripped[key] = layer[key].filter(overlay => overlay.source !== "file").map(({ file, ...overlay }) => overlay)

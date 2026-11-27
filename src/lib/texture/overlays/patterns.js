@@ -183,12 +183,10 @@ function waveCurve(points, shape, from, to) {
   return [[from, height(from)]].concat(inside, [[to, height(to)]])
 }
 
-export function waveOutline(glyph, settings) {
-  if (settings.pixelation) return null
+function waveFrame(glyph, settings) {
   const { width, height } = glyph
   const capTop = settings.capHeight - glyph.top
   const middle = settings.capHeight / 2
-  const level = settings.level / 100 * settings.capHeight
   const turn = settings.angle * Math.PI / 180
   const cos = Math.round(Math.cos(turn) * 1e9) / 1e9
   const sin = Math.round(Math.sin(turn) * 1e9) / 1e9
@@ -196,12 +194,18 @@ export function waveOutline(glyph, settings) {
   const centre = (start + end) / 2
   const along = (x, down) => (x - settings.horizontalOffset - centre) * cos + (down - middle) * sin + centre - settings.offset
   const across = (x, down) => middle - (x - settings.horizontalOffset - centre) * sin + (down - middle) * cos
+  const corners = [[glyph.placedX, capTop], [glyph.placedX + width, capTop], [glyph.placedX, capTop + height], [glyph.placedX + width, capTop + height]]
+  return { capTop, middle, level: settings.level / 100 * settings.capHeight, cos, sin, centre, along, across, corners }
+}
+
+export function waveOutline(glyph, settings) {
+  if (settings.pixelation) return null
+  const { capTop, middle, level, cos, sin, centre, along, across, corners } = waveFrame(glyph, settings)
   function local([a, c]) {
     const shifted = a - centre + settings.offset
     const raised = c - middle
     return [shifted * cos - raised * sin + settings.horizontalOffset + centre - glyph.placedX, shifted * sin + raised * cos + middle - capTop]
   }
-  const corners = [[glyph.placedX, capTop], [glyph.placedX + width, capTop], [glyph.placedX, capTop + height], [glyph.placedX + width, capTop + height]]
   const alongs = corners.map(([x, down]) => along(x, down))
   const acrosses = corners.map(([x, down]) => across(x, down))
   const from = Math.min(...alongs) - 1
@@ -217,18 +221,10 @@ export function waveFill(glyph, settings, scale, fine) {
   const columns = width * scale
   const rows = height * scale
   const out = new Float32Array(columns * rows)
-  const capTop = settings.capHeight - glyph.top
-  const middle = settings.capHeight / 2
   const block = settings.pixelation
-  const level = settings.level / 100 * settings.capHeight
-  const turn = settings.angle * Math.PI / 180
-  const cos = Math.round(Math.cos(turn) * 1e9) / 1e9
-  const sin = Math.round(Math.sin(turn) * 1e9) / 1e9
-  const [start, end] = glyph.lineSpan ?? [0, 0]
-  const centre = (start + end) / 2
-  const along = (x, down) => (x - settings.horizontalOffset - centre) * cos + (down - middle) * sin + centre - settings.offset
-  const across = (x, down) => middle - (x - settings.horizontalOffset - centre) * sin + (down - middle) * cos
-  const corners = [[glyph.placedX, capTop], [glyph.placedX + width, capTop], [glyph.placedX, capTop + height], [glyph.placedX + width, capTop + height]].map(([x, down]) => along(x, down))
+  const frame = waveFrame(glyph, settings)
+  const { capTop, middle, level, sin, along, across } = frame
+  const corners = frame.corners.map(([x, down]) => along(x, down))
   const solid = (sx, sy) => fine ? fine[(rows - 1 - sy) * columns + sx] : mask[(height - 1 - Math.floor(sy / scale)) * width + Math.floor(sx / scale)]
   if (!block) {
     const points = wavePoints(Math.min(...corners) - 1, Math.max(...corners) + 1, settings)

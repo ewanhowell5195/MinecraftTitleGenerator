@@ -2,7 +2,7 @@ import { deflateSync, inflateSync } from "three/addons/libs/fflate.module.js"
 import { cameraChanges } from "../settings/camera.js"
 import { opens, readTitleBytes, unknownSetting, writeLines } from "./linkKeys.js"
 import { LINE } from "../settings/settings.js"
-import { sameValue } from "../core/values.js"
+import { sameValue, withoutKeys } from "../core/values.js"
 import { FILE_VERSION, upgradeLine } from "../settings/upgrades.js"
 import { countUploads, withoutUploads } from "./uploads.js"
 
@@ -27,7 +27,7 @@ export function hoisted(line) {
   const [first, ...rest] = line.words
   const shared = Object.keys(first).filter(key => !lineKey(key) && rest.every(word => key in word && sameValue(word[key], first[key])))
   if (!shared.length) return line
-  return { ...line, ...Object.fromEntries(shared.map(key => [key, first[key]])), words: line.words.map(word => Object.fromEntries(Object.entries(word).filter(([key]) => !shared.includes(key)))) }
+  return { ...line, ...Object.fromEntries(shared.map(key => [key, first[key]])), words: line.words.map(word => withoutKeys(word, shared)) }
 }
 
 export function lowered(line) {

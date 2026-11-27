@@ -4,6 +4,7 @@ import { thumbnail, thumbnailHeight } from "../font/thumbnailUrls.js"
 import { BLEND_OPTIONS } from "../settings/defaults.js"
 import { generatedSetting } from "../texture/overlays/settings.js"
 import { COLOUR_HINTS, COLOUR_MODES } from "./overlayLayers.js"
+import { reuseRow } from "./uploads.js"
 
 const editing = (get, { state }) => !!state.layer.value
 const complex = (get, { state }) => state.palette.value.complex
@@ -65,7 +66,7 @@ export const OVERLAY_CONTROLS = [
   { type: "segments", options: (get, { state }) => state.kinds.value, read: (get, { state }) => state.kind.value, write: (kind, { state }) => state.pickKind(kind), shown: (get, { state }) => !state.props.edge && state.kinds.value.length > 1 },
   { type: "tiles", scroll: true, short: true, min: (get, { state }) => state.props.tileMin ?? null, items: tiles, shown: (get, context) => !ofFile(get, context) },
   { type: "upload", accept: "image/*", view: (get, { state }) => ({ label: state.layer.value?.file ? "Replace image" : "Choose an image", empty: "No file selected", image: state.layer.value?.file }), pick: (data, { state }) => state.pickFile(data), shown: ofFile },
-  { type: "reuse", items: (get, { state }) => state.reusable.value, pick: (value, { state }) => state.pickFile(value), shown: ofFile },
+  reuseRow((value, { state }) => state.pickFile(value), ofFile),
   { type: "group", controls: settings, shown: editing },
   layerValue("blend", { type: "dropdown", label: "Blend mode", options: BLEND_OPTIONS, shown: editing }),
   {

@@ -1,4 +1,5 @@
 import { PANELS } from "./defaults.js"
+import { withoutKeys } from "../core/values.js"
 
 const LAYER_GROUPS = {
   texture: Object.keys(PANELS.texture()),
@@ -61,7 +62,7 @@ export function separateLayers(object, group, on, count, fits = null) {
   if (on) {
     object.layerSettings = Array.from({ length: count - 1 }, (_, index) => ({ ...object.layerSettings[index], ...Object.fromEntries(keys.map(key => [key, kept(copied(object[key]), key, index + 1)])) }))
     for (const key of keys) object[key] = kept(object[key], key, 0)
-  } else object.layerSettings = object.layerSettings.map(layer => Object.fromEntries(Object.entries(layer).filter(([key]) => !keys.includes(key))))
+  } else object.layerSettings = object.layerSettings.map(layer => withoutKeys(layer, keys))
   object[SEPARATE_KEYS[group]] = on
   if (!Object.keys(LAYER_GROUPS).some(name => isSeparate(object, name))) object.layerSettings = []
 }

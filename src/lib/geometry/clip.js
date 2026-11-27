@@ -1,4 +1,4 @@
-import { ClipType, FillRule, PolyTreeD, booleanOpDWithPolyTree } from "./clipper.js"
+import { ClipType, FillRule, PolyTreeD, booleanOpDWithPolyTree, toPaths } from "./clipper.js"
 import { ShapeUtils, Vector2 } from "three"
 import { signedArea } from "../core/maths.js"
 
@@ -9,10 +9,6 @@ export const SIMPLIFY = 0.01
 
 function oriented(ring, clockwise) {
   return signedArea(ring) < 0 === clockwise ? ring : ring.slice().reverse()
-}
-
-export function toPath(ring) {
-  return ring.map(([x, y]) => ({ x, y }))
 }
 
 function shapesOf(tree) {
@@ -35,7 +31,7 @@ function shapesOf(tree) {
 
 export function solve(clipType, subject, clip = null) {
   const tree = new PolyTreeD()
-  booleanOpDWithPolyTree(clipType, subject.map(toPath), clip && clip.map(toPath), tree, FillRule.NonZero, PRECISION)
+  booleanOpDWithPolyTree(clipType, toPaths(subject), clip && toPaths(clip), tree, FillRule.NonZero, PRECISION)
   return shapesOf(tree)
 }
 

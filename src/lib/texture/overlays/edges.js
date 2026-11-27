@@ -8,8 +8,8 @@ function edgeRuns(glyph, side) {
   const row = side === "up" ? height - 1 : 0
   const joined = joinedMask(glyph, 1)
   const continues = column => !!joined && joined.mask[(row + 1) * joined.width + column + 1] === 1
-  if (glyph.fine?.edgeRuns) return glyph.fine.edgeRuns(side).map(([from, to]) => [from, to, continues(Math.floor(from) - 1), continues(Math.ceil(to))])
-  if (glyph.edgeSpans) return glyph.edgeSpans[side].map(([from, to]) => [from, to, continues(Math.floor(from) - 1), continues(Math.ceil(to))])
+  const spans = glyph.fine?.edgeRuns ? glyph.fine.edgeRuns(side) : glyph.edgeSpans?.[side]
+  if (spans) return spans.map(([from, to]) => [from, to, continues(Math.floor(from) - 1), continues(Math.ceil(to))])
   const list = []
   for (let start = 0; start < width;) {
     if (!mask[row * width + start]) {

@@ -32,8 +32,12 @@ function independent(acrosses, ups) {
   return acrosses.filter((across, index) => reached.has(index)).concat(ups.filter((up, index) => !blocked.has(index)))
 }
 
+export function maskReader(mask, width, height) {
+  return (x, y) => x >= 0 && y >= 0 && x < width && y < height && mask[y * width + x] === 1
+}
+
 export function rectangles(mask, width, height) {
-  const at = (x, y) => x >= 0 && y >= 0 && x < width && y < height && mask[y * width + x] === 1
+  const at = maskReader(mask, width, height)
   const floors = new Uint8Array(width * (height + 1))
   const walls = new Uint8Array((width + 1) * height)
   const inner = new Map()

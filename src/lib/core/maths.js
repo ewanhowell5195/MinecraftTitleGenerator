@@ -15,6 +15,10 @@ export function round(value, places) {
   return Math.round(value * factor) / factor
 }
 
+export function pointKey([x, y]) {
+  return `${x},${y}`
+}
+
 export function radians(degrees) {
   return degrees * Math.PI / 180
 }

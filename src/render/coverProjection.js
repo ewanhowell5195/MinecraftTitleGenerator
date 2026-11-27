@@ -1,4 +1,5 @@
 import * as THREE from "three"
+import { round } from "../lib/core/maths.js"
 import { wordsOf } from "../lib/title/title.js"
 import { objectMatrix } from "./placement.js"
 import { cameraPoint, cameraPose, titleFraming } from "./titleFraming.js"
@@ -12,9 +13,7 @@ export function coverMembers(object, title) {
   return title.objects.filter(other => other === object || cameraCover(other) && other.customCoverSpan && other.customTexture === object.customTexture && !other.hidden)
 }
 
-function rounded(value) {
-  return Math.round(value * 1e6) / 1e6
-}
+const rounded = value => round(value, 6)
 
 export function coverProjection(object, title, built, transform) {
   const stateOf = other => other === object ? { built, transform } : title.runtime[other.id] ?? {}

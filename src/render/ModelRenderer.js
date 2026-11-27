@@ -11,7 +11,7 @@ import { usePlacement, usePublished } from "./objectState.js"
 import { NO_ARC } from "../lib/geometry/rows.js"
 import { keepTexture, loadedFont } from "../lib/title/objects.js"
 import { effectiveScale } from "../lib/settings/settings.js"
-import { defaultTexture, setTexture, shownOverlays, textureEntry } from "../lib/settings/textureDefaults.js"
+import { defaultTexture, knownOverlays, setTexture, shownOverlays, textureEntry } from "../lib/settings/textureDefaults.js"
 import { minecraftQuads } from "../lib/minecraft/minecraftModels.js"
 import { definitionPalette } from "../lib/texture/overlayColours.js"
 import { CUSTOM_SHAPE, MODEL_BASELINE, SHAPE_TEXTURE, isMinecraftShape, minecraftShapeParts, modelHeight, shapeName, shapeOf } from "../lib/geometry/shapes.js"
@@ -111,7 +111,7 @@ export default {
       if (!keepTexture.has(object) && loadedFont.get(object) !== entry.id) {
         props.title.quietly(() => {
           setTexture(object, { textureSource: "premade", texture: defaultTexture(textures, object.type), textureVariant: null })
-          object.overlays = object.overlays.filter(layer => layer.source === "file" || textures.overlays[layer.overlay])
+          object.overlays = knownOverlays(object.overlays, textures)
         })
       } else if (object.texture === null || object.textureSource !== "premade") props.title.quietly(() => setTexture(object, { textureSource: "premade", texture: object.texture ?? defaultTexture(textures, object.type) }))
       keepTexture.delete(object)

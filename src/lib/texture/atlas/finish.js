@@ -1,4 +1,4 @@
-import { FillRule, intersectD } from "../../geometry/clipper.js"
+import { FillRule, fromPaths, intersectD, toPaths } from "../../geometry/clipper.js"
 import { fadeStops, fillPattern, linearGradient, surface } from "../canvas.js"
 import { hexOf, packed as packedColour, rgbOf } from "#lib/core/colour.js"
 import { gradientStops, stopColour } from "../colourStops.js"
@@ -19,7 +19,7 @@ const drawnLineCache = new WeakMap()
 function clippedTo(polygons, [left, top, right, bottom]) {
   if (!polygons.length) return polygons
   const box = [{ x: left, y: top }, { x: right, y: top }, { x: right, y: bottom }, { x: left, y: bottom }]
-  return intersectD(polygons.map(points => points.map(([x, y]) => ({ x, y }))), [box], FillRule.NonZero, CLIP_PRECISION).map(path => path.map(({ x, y }) => [x, y]))
+  return fromPaths(intersectD(toPaths(polygons), [box], FillRule.NonZero, CLIP_PRECISION))
 }
 
 function totalsOf(canvas) {

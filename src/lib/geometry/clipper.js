@@ -4,6 +4,14 @@ import { ClipperOffset, EndType, JoinType } from "@countertype/clipper2-ts/dist/
 
 export { ClipType, EndType, FillRule, JoinType, PolyTreeD }
 
+export function toPaths(polygons) {
+  return polygons.map(polygon => polygon.map(([x, y]) => ({ x, y })))
+}
+
+export function fromPaths(paths) {
+  return paths.map(path => path.map(({ x, y }) => [x, y]))
+}
+
 function booleanOp(clipType, subject, clip, fillRule) {
   const solution = []
   const clipper = new Clipper64()

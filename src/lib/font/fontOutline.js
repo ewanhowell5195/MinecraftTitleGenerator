@@ -1,4 +1,4 @@
-import { highest, lowest, mostCommon } from "../core/maths.js"
+import { highest, lowest, mostCommon, round } from "../core/maths.js"
 import { CREEPER, OPENING_QUOTE } from "./order.js"
 
 const CURVE_STEPS = 16
@@ -159,15 +159,11 @@ function measuredLines(font) {
   return { top, base: heaviest(bottoms, y => y < top / 2) ?? 0 }
 }
 
-function snapped(value) {
-  return Math.round(value * 1e6) / 1e6
-}
-
 export function fillSpans(edges, y, scale = 1) {
   const crossings = []
   for (const [x0, y0, x1, y1] of edges) {
     if (y0 <= y === y1 <= y) continue
-    crossings.push([snapped((x0 + (y - y0) / (y1 - y0) * (x1 - x0)) * scale), y1 > y0 ? 1 : -1])
+    crossings.push([round((x0 + (y - y0) / (y1 - y0) * (x1 - x0)) * scale, 6),y1 > y0 ? 1 : -1])
   }
   crossings.sort((a, b) => a[0] - b[0])
   const spans = []

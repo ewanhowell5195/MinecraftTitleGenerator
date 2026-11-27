@@ -13,7 +13,7 @@ import { host } from "./host.js"
 import { SEARCH_ABOVE, useOpened } from "./opened.js"
 import { usePanel } from "./panel.js"
 import { leastRows, variantRows } from "./pickFloor.js"
-import { usedFonts } from "./uploads.js"
+import { reuseRow, usedFonts } from "./uploads.js"
 
 const FONT_TABS = [{ value: "published", label: "All fonts" }, { value: "google", label: "Google Fonts" }, { value: "custom", label: "Custom" }]
 const IMPORT_HEIGHT = 40
@@ -258,7 +258,7 @@ export const FONT_PANEL = {
         { type: "segments", label: "Build from", options: BUILDS, hint: get => get("customFont").mesh ? "Smooth edges that follow the font's own curves." : "Pixel cubes, like the other fonts.", read: get => !!get("customFont").mesh, write: (mesh, { state }) => state.changeImport("mesh", mesh), shown: (get, context) => importing(get, context) && get("customFont").kind === "outline" },
         { type: "row", grid: true, controls: [size("height", "Height in pixels"), size("density", "Square size", squared)], shown: importing },
         { type: "hint", text: "Square size is how many pixels each square is. 4 gives chunky squares like Minecraft Ten. Fonts drawn on a pixel grid keep their own.", shown: squared },
-        { type: "reuse", items: (get, { state }) => state.reusable.value, pick: (source, { state }) => state.applyCustom(source), shown: custom },
+        reuseRow((source, { state }) => state.applyCustom(source), custom),
         { type: "search", placeholder: "Search Google Fonts", browse: browse("Browse Google Fonts"), shown: google },
         { type: "notice", text: (get, { state }) => state.customError.value, shown: (get, context) => google(get, context) && !!context.state.customError.value },
         { ...GOOGLE_FONTS, shown: google },

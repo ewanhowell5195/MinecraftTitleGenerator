@@ -1,10 +1,10 @@
-import { ClipType, EndType, JoinType, inflatePathsD, simplifyPathsD } from "./clipper.js"
-import { ARC_TOLERANCE, MITER_LIMIT, PRECISION, SIMPLIFY, ringsOf, solve, toPath, triangulated } from "./clip.js"
+import { ClipType, EndType, JoinType, inflatePathsD, simplifyPathsD, toPaths } from "./clipper.js"
+import { ARC_TOLERANCE, MITER_LIMIT, PRECISION, SIMPLIFY, ringsOf, solve, triangulated } from "./clip.js"
 
 function grown(rings, [sx, sy], [rx, ry]) {
   const normal = solve(ClipType.Union, rings.map(ring => ring.map(([px, py]) => [px * sx / rx, py * sy / ry])))
   const paths = ringsOf(normal).map(ring => ring.slice().reverse())
-  const inflated = inflatePathsD(simplifyPathsD(paths.map(toPath), SIMPLIFY), 1, JoinType.Miter, EndType.Polygon, MITER_LIMIT, PRECISION, ARC_TOLERANCE)
+  const inflated = inflatePathsD(simplifyPathsD(toPaths(paths), SIMPLIFY), 1, JoinType.Miter, EndType.Polygon, MITER_LIMIT, PRECISION, ARC_TOLERANCE)
   return solve(ClipType.Union, inflated.map(path => path.map(point => [point.x * rx, point.y * ry])))
 }
 

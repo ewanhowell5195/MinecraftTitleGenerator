@@ -7,15 +7,13 @@ import { FACING } from "../placing.js"
 import { sendStats } from "../stats.js"
 import { lineOf, memberOf, runtimeOf } from "../titles.js"
 import { familyOf } from "../words.js"
-import { allSides, hullOf, makeCube, sharedTurn, swatchPaint, texturedPaint, wholeSides } from "./cubes.js"
+import { allSides, angles, hullOf, makeCube, reachAlong, round, sharedTurn, swatchPaint, texturedPaint, wholeSides } from "./cubes.js"
 import { makeMesh } from "./mesh.js"
 import { boxesOf, facesOf, solidBox, solidPoints } from "./quads.js"
 
 const STILL = new THREE.Quaternion()
 const OUTLINE_ORDER = -1
 const VIEWER = new THREE.Vector3(0, -166, -302)
-
-const round = value => Math.roundTo(value, 4)
 
 function piecesOf(element) {
   return element.words.length ? element.words : [element]
@@ -78,11 +76,6 @@ function lineFrame(element) {
 
 function farthestFirst(words) {
   return words.slice().sort((a, b) => b.mesh.position.distanceTo(VIEWER) - a.mesh.position.distanceTo(VIEWER))
-}
-
-function angles(quaternion) {
-  const euler = new THREE.Euler().setFromQuaternion(quaternion, Format.euler_order)
-  return [euler.x, euler.y, euler.z].map(angle => round(Math.radToDeg(angle)))
 }
 
 function makeTextures(name, pages, made) {
@@ -228,8 +221,7 @@ function buildMesh(element, frame, name, made, line, order) {
 function hullFaces({ centre, half, quaternion, axes, members }) {
   return members.map(({ normal }) => {
     const [across, up] = axes.map((axis, index) => ({ axis, half: half[index] })).filter(({ axis }) => Math.abs(axis.dot(normal)) < 0.5)
-    const reach = axes.reduce((sum, axis, index) => sum + Math.abs(axis.dot(normal)) * half[index], 0)
-    const middle = centre.clone().addScaledVector(normal, reach)
+    const middle = centre.clone().addScaledVector(normal, reachAlong({ axes, half }, normal))
     const points = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => middle.clone().addScaledVector(across.axis, a * across.half).addScaledVector(up.axis, b * up.half))
     const facing = points[1].clone().sub(points[0]).cross(points[3].clone().sub(points[0])).dot(normal)
     return { points: facing > 0 ? points : points.reverse() }

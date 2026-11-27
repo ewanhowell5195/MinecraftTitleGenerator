@@ -1,4 +1,4 @@
-import { ClipType, FillRule, PolyTreeD, booleanOpDWithPolyTree } from "../geometry/clipper.js"
+import { ClipType, FillRule, PolyTreeD, booleanOpDWithPolyTree, toPaths } from "../geometry/clipper.js"
 import { inkBox } from "./silhouette.js"
 
 const THRESHOLD = 128
@@ -150,7 +150,7 @@ function area(ring) {
 
 function resolved(rings) {
   const tree = new PolyTreeD()
-  booleanOpDWithPolyTree(ClipType.Union, rings.map(ring => ring.map(([x, y]) => ({ x, y }))), null, tree, FillRule.EvenOdd, PRECISION)
+  booleanOpDWithPolyTree(ClipType.Union, toPaths(rings), null, tree, FillRule.EvenOdd, PRECISION)
   const contours = []
   function visit(node) {
     for (let at = 0; at < node.count; at++) {
