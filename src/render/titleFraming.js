@@ -1,6 +1,6 @@
 import * as THREE from "three"
 import { DEFAULT_CAMERA } from "../lib/settings/camera.js"
-import { radians } from "../lib/core/maths.js"
+import { toRad } from "../lib/core/maths.js"
 import { boxOf, opaquePoints, pointsOf } from "./bufferPoints.js"
 import { lineBounds, objectMatrix, placementMatrix } from "./placement.js"
 
@@ -60,8 +60,8 @@ export function cornersOf(box) {
 }
 
 function cameraDirection({ pitch, yaw }) {
-  const up = radians(pitch)
-  const around = radians(yaw)
+  const up = toRad(pitch)
+  const around = toRad(yaw)
   return new THREE.Vector3(Math.sin(around) * Math.cos(up), -Math.sin(up), Math.cos(around) * Math.cos(up))
 }
 
@@ -81,9 +81,9 @@ export function cameraPose(camera, { anchor, corners, size, angle = DEFAULT_CAME
   const distance = orthographic ? size * 2 : Math.max((reach ?? widest) / Math.tan(fov * Math.PI / 360) + front, clearance)
   camera.position.copy(target).addScaledVector(direction, distance)
   camera.lookAt(target)
-  if (!orthographic) camera.rotateX(radians(angle.tilt))
+  if (!orthographic) camera.rotateX(toRad(angle.tilt))
   camera.updateMatrixWorld(true)
-  return { distance, orthographic, lens: orthographic ? Math.cos(radians(angle.tilt)) : 1, inverse: camera.matrixWorld.clone().invert() }
+  return { distance, orthographic, lens: orthographic ? Math.cos(toRad(angle.tilt)) : 1, inverse: camera.matrixWorld.clone().invert() }
 }
 
 export function cameraPoint({ orthographic, lens }, local) {

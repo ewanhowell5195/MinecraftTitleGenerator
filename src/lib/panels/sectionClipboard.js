@@ -1,7 +1,7 @@
 import { reactive } from "vue"
 import { plainCopy } from "../core/values.js"
 import { customFontEntry } from "../font/customFonts.js"
-import { copiedKeys, transformKeys } from "../settings/settings.js"
+import { copiedKeys, transformKeys, wordKey } from "../settings/settings.js"
 import { OVERLAY_KINDS, setTexture } from "../settings/textureDefaults.js"
 import { host } from "./host.js"
 import { panelTarget } from "./panel.js"
@@ -62,7 +62,7 @@ function panelPart(name, word = false) {
 }
 
 function partsOf(section, { word, shape }) {
-  if (section === "form") return (shape !== null ? ["geometry"] : FORM).map(name => panelPart(word ? `word${name[0].toUpperCase()}${name.slice(1)}` : name, word))
+  if (section === "form") return (shape !== null ? ["geometry"] : FORM).map(name => panelPart(word ? wordKey(name) : name, word))
   if (section === "transform") return TRANSFORM.map(group => ({ name: `transform ${group}`, object: panelTarget("transform", word).object, keys: transformKeys(group, word) }))
   return (PANELS[section] ?? []).map(name => panelPart(name))
 }

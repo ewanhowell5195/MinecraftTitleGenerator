@@ -1,5 +1,5 @@
 import { clamp } from "#lib/core/maths.js"
-import { R, into, plain } from "./draw.js"
+import { R, into, plain, stripParts } from "./draw.js"
 
 export function coverBox(entry, capHeight, sheet) {
   const baseline = entry.top + entry.glyph.top
@@ -41,13 +41,9 @@ export function paintCover(ctx, entries, look, image, capHeight, sheet) {
     const fit = coverFit(coverBox(entry, capHeight, sheet), image, look.customCoverX, look.customCoverY)
     into(ctx, entry, "front")
     drawFront(ctx, image, fit, [entry.x, entry.top, entry.width, entry.height])
-    if (entry.upHeight) {
-      into(ctx, entry, "up")
-      drawRow(ctx, image, fit, entry.top + 0.5, [entry.x, entry.up, entry.width, entry.upHeight])
-    }
-    if (entry.downHeight) {
-      into(ctx, entry, "down")
-      drawRow(ctx, image, fit, entry.top + entry.height - 0.5, [entry.x, entry.down, entry.width, entry.downHeight])
+    for (const [part, rect] of stripParts(entry)) {
+      into(ctx, entry, part)
+      drawRow(ctx, image, fit, part === "up" ? entry.top + 0.5 : entry.top + entry.height - 0.5, rect)
     }
   }
   plain(ctx)

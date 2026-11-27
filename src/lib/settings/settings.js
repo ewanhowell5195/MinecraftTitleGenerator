@@ -1,4 +1,4 @@
-import { PANELS, TILING_KEYS, TYPED_KEYS, TYPES, TYPE_KEYS, applyType, defaultBorder, defaultDepth, defaultSpacing, objectDefaults, stops, typed } from "./defaults.js"
+import { PANELS, TILING_KEYS, TYPED_KEYS, TYPES, TYPE_KEYS, applyType, defaultBorder, defaultDepth, defaultSpacing, objectDefaults, stops, typed, wordKey } from "./defaults.js"
 import { plainCopy, sameValue } from "../core/values.js"
 import { FACE_PANELS, defaultTexture, textureFaces } from "./textureDefaults.js"
 
@@ -73,9 +73,7 @@ export function isModified(object, name, context = {}, keys = panelKeys(object, 
   return keys.some(key => !sameValue(probe[key], object[key]))
 }
 
-export function wordKey(key) {
-  return `word${key[0].toUpperCase()}${key.slice(1)}`
-}
+export { wordKey }
 
 export function transformKeys(group, word) {
   return word ? TRANSFORM_GROUPS[group].map(wordKey).filter(key => key in PANELS.wordTransform()) : TRANSFORM_GROUPS[group]

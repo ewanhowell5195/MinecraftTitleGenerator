@@ -1,5 +1,5 @@
 import { gradientLine, gradientStops } from "../colourStops.js"
-import { fillRect, gradientFill, into, plain } from "./draw.js"
+import { fillRect, gradientFill, into, plain, stripParts } from "./draw.js"
 
 function edgeFill(ctx, [x0, y0], [x1, y1], y, stops) {
   const dx = x1 - x0
@@ -27,15 +27,10 @@ export function paintGradient(ctx, entries, look, capHeight, sheet) {
     into(ctx, entry, "front")
     ctx.fillStyle = gradientFill(ctx, from, to, stops)
     fillRect(ctx, [entry.x, entry.top, entry.width, entry.height])
-    if (entry.upHeight) {
-      into(ctx, entry, "up")
-      ctx.fillStyle = edgeFill(ctx, from, to, top, stops)
-      fillRect(ctx, [entry.x, entry.up, entry.width, entry.upHeight])
-    }
-    if (entry.downHeight) {
-      into(ctx, entry, "down")
-      ctx.fillStyle = edgeFill(ctx, from, to, bottom, stops)
-      fillRect(ctx, [entry.x, entry.down, entry.width, entry.downHeight])
+    for (const [part, rect] of stripParts(entry)) {
+      into(ctx, entry, part)
+      ctx.fillStyle = edgeFill(ctx, from, to, part === "up" ? top : bottom, stops)
+      fillRect(ctx, rect)
     }
   }
   plain(ctx)

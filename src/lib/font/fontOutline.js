@@ -63,7 +63,7 @@ export function flatten(glyph, stepLength = 0) {
   return contours
 }
 
-export function pixelGrid(glyphs, cap, base = 0) {
+export function gridRows(glyphs, cap, base, most, slack) {
   const values = []
   for (const glyph of glyphs) {
     const points = glyph.path.commands.filter(command => command.x !== undefined)
@@ -72,11 +72,16 @@ export function pixelGrid(glyphs, cap, base = 0) {
     const left = lowest(points.map(command => command.x))
     for (const command of points) values.push(command.x - left, command.y - base)
   }
-  for (let count = 3; count <= 64; count++) {
+  for (let count = 3; count <= most; count++) {
     const unit = cap / count
-    if (values.every(value => Math.abs(value - Math.round(value / unit) * unit) <= 1)) return unit
+    if (values.every(value => Math.abs(value - Math.round(value / unit) * unit) <= slack(unit))) return count
   }
   return null
+}
+
+export function pixelGrid(glyphs, cap, base = 0) {
+  const rows = gridRows(glyphs, cap, base, 64, () => 1)
+  return rows && cap / rows
 }
 
 export function gridShift(glyph, unit, scale) {

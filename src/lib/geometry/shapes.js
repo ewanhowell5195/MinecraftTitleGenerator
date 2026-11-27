@@ -1,4 +1,4 @@
-import { round } from "../core/maths.js"
+import { round, toRad } from "../core/maths.js"
 import { titleCase } from "../core/names.js"
 import { platform } from "../core/platform.js"
 
@@ -16,7 +16,7 @@ function multiplied(a, b) {
 }
 
 function rotationMatrix({ x = 0, y = 0, z = 0, rescale = false }) {
-  const [cx, sx, cy, sy, cz, sz] = [x, y, z].flatMap(angle => [Math.cos(angle * Math.PI / 180), Math.sin(angle * Math.PI / 180)])
+  const [cx, sx, cy, sy, cz, sz] = [x, y, z].flatMap(angle => [Math.cos(toRad(angle)), Math.sin(toRad(angle))])
   const matrix = multiplied([[cz, -sz, 0], [sz, cz, 0], [0, 0, 1]], multiplied([[cy, 0, sy], [0, 1, 0], [-sy, 0, cy]], [[1, 0, 0], [0, cx, -sx], [0, sx, cx]]))
   if (!rescale) return matrix
   const scale = [0, 1, 2].map(column => 1 / Math.max(...matrix.map(row => Math.abs(row[column]))))

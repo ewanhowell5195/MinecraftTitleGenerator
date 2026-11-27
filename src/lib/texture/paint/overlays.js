@@ -184,9 +184,22 @@ export function labelIndexes(layers) {
   return indexes
 }
 
-export function wrapsOf(sheet, layers, indexes, band, independent) {
+function ownGlyph(sheet, band, independent) {
   const layered = layeredGlyphs(sheet, band, independent)
-  const own = glyph => layered?.get(glyph.char) ?? glyph
+  return glyph => layered?.get(glyph.char) ?? glyph
+}
+
+function alphaFace(alpha, width, height, layer) {
+  const mask = surface(width, height)
+  const image = mask.ctx.createImageData(width, height)
+  image.data.fill(255)
+  for (let index = 0; index < alpha.length; index++) image.data[index * 4 + 3] = alpha[index] * 255
+  mask.ctx.putImageData(image, 0, 0)
+  return colourOverlay(mask, layer).canvas
+}
+
+export function wrapsOf(sheet, layers, indexes, band, independent) {
+  const own = ownGlyph(sheet, band, independent)
   return layers.filter(({ layer, source }) => WRAPPED_KINDS.has(source.generated) && layer.opacity).map(({ layer }) => ({
     blend: layer.blend,
     opacity: layer.opacity / 100,
@@ -196,13 +209,7 @@ export function wrapsOf(sheet, layers, indexes, band, independent) {
     front: glyph => crackList(own(glyph), layer).map(crackTriangle),
     face(glyph, side, line, from, width, depth, scale) {
       const alpha = crackWrap(own(glyph), layer, side, line, from, width, depth, scale, scale > R)
-      if (!alpha) return null
-      const mask = surface(width * scale, depth * scale)
-      const image = mask.ctx.createImageData(width * scale, depth * scale)
-      image.data.fill(255)
-      for (let index = 0; index < alpha.length; index++) image.data[index * 4 + 3] = alpha[index] * 255
-      mask.ctx.putImageData(image, 0, 0)
-      return colourOverlay(mask, layer).canvas
+      return alpha && alphaFace(alpha, width * scale, depth * scale, layer)
     }
   }))
 }
@@ -220,8 +227,7 @@ const EXACT_SHAPES = {
 }
 
 export function exactShapesOf(sheet, layers, indexes, capHeight, band, independent) {
-  const layered = layeredGlyphs(sheet, band, independent)
-  const own = glyph => layered?.get(glyph.char) ?? glyph
+  const own = ownGlyph(sheet, band, independent)
   return layers.filter(({ layer, source }) => EXACT_SHAPES[source.generated] && layer.opacity && indexes.has(layer)).map(({ layer, source }) => {
     const tones = toneKinds(source.generated)
     return {
@@ -233,20 +239,11 @@ export function exactShapesOf(sheet, layers, indexes, capHeight, band, independe
 }
 
 export function edgeFacesOf(sheet, layers, band, independent) {
-  const layered = layeredGlyphs(sheet, band, independent)
-  const own = glyph => layered?.get(glyph.char) ?? glyph
+  const own = ownGlyph(sheet, band, independent)
   return layers.filter(({ layer }) => layer.opacity).map(({ layer, generated }) => ({
     blend: layer.blend,
     opacity: layer.opacity / 100,
-    face(glyph, side, line, from, width, depth, scale) {
-      const alpha = edgeAlpha(own(glyph), side, generated, layer, depth, scale, scale > R, { line, from, width })
-      const mask = surface(width * scale, depth * scale)
-      const image = mask.ctx.createImageData(width * scale, depth * scale)
-      image.data.fill(255)
-      for (let index = 0; index < alpha.length; index++) image.data[index * 4 + 3] = alpha[index] * 255
-      mask.ctx.putImageData(image, 0, 0)
-      return colourOverlay(mask, layer).canvas
-    }
+    face: (glyph, side, line, from, width, depth, scale) => alphaFace(edgeAlpha(own(glyph), side, generated, layer, depth, scale, scale > R, { line, from, width }), width * scale, depth * scale, layer)
   }))
 }
 

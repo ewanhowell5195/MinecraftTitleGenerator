@@ -1,4 +1,5 @@
 import { ClipType } from "./clipper.js"
+import { toRad } from "../core/maths.js"
 import { ringsOf, solve, triangulated } from "./clip.js"
 
 const FAR = 1e6
@@ -59,8 +60,8 @@ const FADED_BAND = 1.5
 const STEEPEST = Math.PI / 2 - 0.001
 
 export function faceLimits({ faded = false, sides = false, angle = FACE_ANGLE } = {}) {
-  const slope = Math.min(STEEPEST, angle * Math.PI / 180)
-  const steep = FACE_ANGLE * Math.PI / 180
+  const slope = Math.min(STEEPEST, toRad(angle))
+  const steep = toRad(FACE_ANGLE)
   if (!faded) return { slope, band: 1, sidesFrom: steep }
   const fadeFrom = Math.max(0, slope - FADE_SPREAD)
   return { slope: Math.min(STEEPEST, slope + FADE_SPREAD), band: FADED_BAND, fadeFrom, sidesFrom: sides ? Math.min(steep, fadeFrom) : steep }

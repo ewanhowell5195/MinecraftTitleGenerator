@@ -1,4 +1,5 @@
 import * as THREE from "three"
+import { toRad } from "../lib/core/maths.js"
 
 const VERTEX = `
 varying vec2 vUv;
@@ -76,7 +77,7 @@ export function coverMaterial() {
 }
 
 export function hueMatrix({ hue, saturation }) {
-  const turn = hue * Math.PI / 180
+  const turn = toRad(hue)
   const c = Math.cos(turn)
   const s = Math.sin(turn)
   const amount = saturation / 100

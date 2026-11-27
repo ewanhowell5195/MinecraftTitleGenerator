@@ -19,7 +19,7 @@ export function pointKey([x, y]) {
   return `${x},${y}`
 }
 
-export function radians(degrees) {
+export function toRad(degrees) {
   return degrees * Math.PI / 180
 }
 

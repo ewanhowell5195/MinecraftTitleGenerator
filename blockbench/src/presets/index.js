@@ -10,7 +10,7 @@ import { AccountButton } from "../account/index.js"
 import { finishBrowsing } from "../browsing.js"
 import { isBlank, openPreset, replaceWithPreset } from "../file.js"
 import { FORMAT } from "../format.js"
-import { hidePanels, putFirst, showPanels } from "../mode.js"
+import { hidePanels, isSelected, leaveMode, putFirst, showPanels } from "../mode.js"
 import { DropdownControl, SegmentsControl } from "../panels/inputs.js"
 import { stashSelection } from "../selection.js"
 import { inDevelopment } from "../stats.js"
@@ -292,7 +292,7 @@ const PresetBrowser = {
 }
 
 function inPresets() {
-  return !!mode && Mode.selected === mode
+  return isSelected(mode)
 }
 
 function followPublished(preset) {
@@ -350,10 +350,7 @@ export function registerPresets() {
 }
 
 export function unregisterPresets() {
-  if (inPresets()) Modes.options.edit.select()
-  for (const project of ModelProject.all) {
-    if (project.mode === ID) project.mode = "edit"
-  }
+  leaveMode(mode, ID)
   stopPublished()
   Vue.delete(Modes.options, ID)
   const screen = mode.vue.$el.parentNode

@@ -1,3 +1,5 @@
+import { toRad } from "#lib/core/maths.js"
+
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5))
 const SHADOW_QUALITY = { draft: { scale: 1, samples: 4, subrows: 1 }, preview: { scale: 4, samples: 8, subrows: 1 }, final: { scale: 8, samples: 64, subrows: 2 } }
 let shadowQuality = "preview"
@@ -174,7 +176,7 @@ export function shadow(glyph, settings, target) {
       }
     }
   }
-  const turn = settings.angle * Math.PI / 180
+  const turn = toRad(settings.angle)
   for (let sample = 0; sample < samples; sample++) {
     const spread = samples > 1 ? light * Math.sqrt((sample + 0.5) / samples) : 0
     const around = sample * GOLDEN_ANGLE

@@ -1,4 +1,4 @@
-import { clamp } from "#lib/core/maths.js"
+import { clamp, toRad } from "#lib/core/maths.js"
 import { random } from "./random.js"
 
 const WAVE_START = -1024
@@ -23,8 +23,8 @@ export function shine(glyph, kind, settings, scale, fine) {
   const arc = glyph.arc ?? { top: 0, bottom: 0 }
   const { capHeight, width: band } = settings
   const period = band + settings.gap
-  const sin = Math.sin(settings.angle * Math.PI / 180)
-  const cos = Math.cos(settings.angle * Math.PI / 180)
+  const sin = Math.sin(toRad(settings.angle))
+  const cos = Math.cos(toRad(settings.angle))
   const start = glyph.placedX * sin + 18.75 + settings.offset
   const position = (x, down) => start + x * sin - down * cos
   const corners = [[0, capHeight - glyph.top], [width, capHeight - glyph.top], [0, capHeight - glyph.bottom], [width, capHeight - glyph.bottom]].map(([x, down]) => position(x, down))
@@ -64,8 +64,8 @@ export function shineOutlines(glyph, kind, settings) {
   const { capHeight, width: band } = settings
   const capTop = capHeight - glyph.top
   const period = band + settings.gap
-  const sin = Math.sin(settings.angle * Math.PI / 180)
-  const cos = Math.cos(settings.angle * Math.PI / 180)
+  const sin = Math.sin(toRad(settings.angle))
+  const cos = Math.cos(toRad(settings.angle))
   const start = glyph.placedX * sin + 18.75 + settings.offset
   const position = ([x, y]) => start + x * sin - (capTop + y) * cos
   const fade = settings.fade / 100
@@ -187,7 +187,7 @@ function waveFrame(glyph, settings) {
   const { width, height } = glyph
   const capTop = settings.capHeight - glyph.top
   const middle = settings.capHeight / 2
-  const turn = settings.angle * Math.PI / 180
+  const turn = toRad(settings.angle)
   const cos = Math.round(Math.cos(turn) * 1e9) / 1e9
   const sin = Math.round(Math.sin(turn) * 1e9) / 1e9
   const [start, end] = glyph.lineSpan ?? [0, 0]

@@ -1,7 +1,7 @@
 import * as THREE from "three"
 import { analyse, contains, maskOf } from "./regions.js"
 import { signedArea } from "#lib/core/maths.js"
-import { boxOfPolygons, boxesOverlap } from "./polygons.js"
+import { boxOfPolygons, boxesOverlap, pruned } from "./polygons.js"
 
 export const EPSILON = 1e-4
 export const PLANE_ERROR = 1e-2
@@ -277,18 +277,9 @@ export function withinConvex(polygon, piece) {
 }
 
 function withoutBacktracks(points) {
-  const kept = points.slice()
-  for (let index = 0; index < kept.length && kept.length > 2;) {
-    const [px, py] = kept[(index + kept.length - 1) % kept.length]
-    const [x, y] = kept[index]
-    const [nx, ny] = kept[(index + 1) % kept.length]
+  return pruned(points, 2, ([px, py], [x, y], [nx, ny]) => {
     const cross = (x - px) * (ny - y) - (y - py) * (nx - x)
     const dot = (x - px) * (nx - x) + (y - py) * (ny - y)
-    const flat = Math.abs(cross) <= BACKTRACK * Math.hypot(x - px, y - py) * Math.hypot(nx - x, ny - y)
-    if (x === px && y === py || flat && dot <= 0) {
-      kept.splice(index, 1)
-      index = Math.max(0, index - 1)
-    } else index++
-  }
-  return kept
+    return x === px && y === py || Math.abs(cross) <= BACKTRACK * Math.hypot(x - px, y - py) * Math.hypot(nx - x, ny - y) && dot <= 0
+  })
 }

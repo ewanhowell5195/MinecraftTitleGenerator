@@ -3,7 +3,7 @@ import { placement } from "../compose.js"
 import { addToCover, visibleLoops } from "./cover.js"
 import { loopsInHundredths, number, writePath } from "./pathData.js"
 import { signedArea } from "#lib/core/maths.js"
-import { boxOfPolygons, boxesOverlap, mergedByFill, sameWinding, shapeOfPolygons, shapesOverlap, sharedEdges } from "./polygons.js"
+import { boxOfPolygons, boxesOverlap, mergedByFill, pruned, sameWinding, shapeOfPolygons, shapesOverlap, sharedEdges } from "./polygons.js"
 import { stitched, unionOf } from "./union.js"
 
 const SEAM_PRECISION = 4
@@ -63,20 +63,11 @@ function filledArea(polygons) {
 }
 
 function withoutSpikes(loop) {
-  const points = loop.slice()
-  for (let index = 0; index < points.length && points.length > 3;) {
-    const [bx, by] = points[(index + points.length - 1) % points.length]
-    const [x, y] = points[index]
-    const [ax, ay] = points[(index + 1) % points.length]
+  return pruned(loop, 3, ([bx, by], [x, y], [ax, ay]) => {
     const outward = Math.hypot(bx - x, by - y)
     const back = Math.hypot(ax - x, ay - y)
-    const folded = (bx - x) * (ax - x) + (by - y) * (ay - y) > 0 && Math.abs((bx - x) * (ay - y) - (by - y) * (ax - x)) <= SPIKE_WIDTH * Math.max(outward, back)
-    if (!outward || !back || folded) {
-      points.splice(index, 1)
-      index = Math.max(0, index - 1)
-    } else index++
-  }
-  return points
+    return !outward || !back || (bx - x) * (ax - x) + (by - y) * (ay - y) > 0 && Math.abs((bx - x) * (ay - y) - (by - y) * (ax - x)) <= SPIKE_WIDTH * Math.max(outward, back)
+  })
 }
 
 function pathMarkup(fill, loops) {

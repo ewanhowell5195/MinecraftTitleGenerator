@@ -1,5 +1,5 @@
 import { hexOf, rgbOf } from "../core/colour.js"
-import { clamp } from "../core/maths.js"
+import { clamp, toRad } from "../core/maths.js"
 
 const MIX_STEPS = 24
 const VIVID_FLOOR = 0.6
@@ -128,8 +128,8 @@ export function cssGradient(stops, smooth, direction, mode = DEFAULT_MIX) {
 }
 
 export function gradientDirection(angle) {
-  const radians = angle * Math.PI / 180
-  return { dx: -Math.sin(radians), dy: Math.cos(radians) }
+  const turn = toRad(angle)
+  return { dx: -Math.sin(turn), dy: Math.cos(turn) }
 }
 
 export function gradientReach({ dx, dy }, width, height) {

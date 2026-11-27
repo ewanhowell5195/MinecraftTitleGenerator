@@ -12,55 +12,71 @@ const premade = get => get("textureSource") === "premade"
 const tileable = get => get("textureSource") === "tileable"
 const minecraft = (get, { state }) => state.usingMinecraft.value
 const published = (get, { state }) => tileable(get) && !state.usingMinecraft.value
-const searchingTextures = (get, { state }) => premade(get) && state.searchingTextures.value
-const listingTextures = (get, { state }) => premade(get) && !state.searchingTextures.value
-const searchingTileables = (get, context) => published(get, context) && context.state.searchingTileables.value
-const listingTileables = (get, context) => published(get, context) && !context.state.searchingTileables.value
-const variedTextures = (get, context) => listingTextures(get, context) && context.state.textureVariants.value.length > 0
-const variedTileables = (get, context) => listingTileables(get, context) && context.state.tileableVariants.value.length > 0
 
-function textureTile({ font, state }, id, data, values) {
-  return {
-    key: id,
-    unit: thumbnailHeight(font),
-    image: thumbnail(font, id, state.shownLayer.value),
-    download: { label: "Download texture", path: `${data.folder ?? font?.sheetFolder}/textures/${id}.png`, name: `${id}.png` },
-    ...values
-  }
+const TEXTURES = {
+  key: "texture",
+  list: "textures",
+  found: "foundTextures",
+  searching: "searchingTextures",
+  tile: ({ font, state }, id, variant, data, parent, values) => {
+    const name = variant ?? id
+    const folder = (variant ? { ...parent, ...data } : data).folder ?? font?.sheetFolder
+    return { key: name, unit: thumbnailHeight(font), image: thumbnail(font, name, state.shownLayer.value), download: { label: "Download texture", path: `${folder}/textures/${name}.png`, name: `${name}.png` }, ...values }
+  },
+  author: ({ font }, data, parent) => credit(data, font?.id, host.library.fonts, parent),
+  parent: ({ list, object }) => list.textures[object.texture],
+  pick: ({ state }, id, variant) => state.pickTexture(id, variant),
+  pickVariant: ({ state }, variant) => state.pickVariant(variant)
 }
 
-function foundTextures(get, context) {
-  const { font, object, state } = context
-  return state.foundTextures.value.map(({ id, variant, data, parent }) => textureTile(context, variant ?? id, variant ? { ...parent, ...data } : data, {
+const TILEABLES = {
+  key: "tileable",
+  list: "tileables",
+  found: "foundTileables",
+  searching: "searchingTileables",
+  patterns: true,
+  tile: (context, id, variant, data, parent, values) => {
+    const url = tileableUrl(host.library.tileables, id, variant)
+    return { key: variant ?? id, aspect: PATTERN, pattern: url, download: { label: "Download tileable", path: url, name: `${variant ?? id}.png` }, ...values }
+  },
+  author: (context, data, parent) => data.authors ?? parent?.authors,
+  parent: ({ object }) => host.library.tileables[object.tileable],
+  pick: ({ state }, id, variant) => state.pickTileable(id, variant),
+  pickVariant: ({ state, object }, variant) => state.pickTileable(object.tileable, variant)
+}
+
+function found(kind) {
+  return (get, context) => context.state[kind.found].value.map(({ id, variant, data, parent }) => kind.tile(context, id, variant, data, parent, {
     key: `${id}/${variant ?? ""}`,
     label: data.name ?? titleCase(variant ?? id),
-    author: variant ? credit(data, font?.id, host.library.fonts, parent) : credit(data, font?.id, host.library.fonts),
-    selected: object.texture === id && (object.textureVariant ?? null) === variant,
-    pick: () => state.pickTexture(id, variant)
+    author: kind.author(context, data, variant ? parent : null),
+    selected: context.object[kind.key] === id && (context.object[`${kind.key}Variant`] ?? null) === variant,
+    pick: () => kind.pick(context, id, variant)
   }))
 }
 
-function textures(get, context) {
-  const { font, object, state } = context
-  return state.textures.value.map(([id, data]) => textureTile(context, id, data, {
+function listed(kind) {
+  return (get, context) => context.state[kind.list].value.map(([id, data]) => kind.tile(context, id, null, data, null, {
     label: label(id, data),
-    author: credit(data, font?.id, host.library.fonts),
+    author: kind.author(context, data, null),
     badge: variantBadge(data),
-    selected: object.texture === id,
-    pick: () => state.pickTexture(id, null)
+    selected: context.object[kind.key] === id,
+    pick: () => kind.pick(context, id, null)
   }))
 }
 
-function textureVariants(get, context) {
-  const { font, list, object, state } = context
-  const parent = list.textures[object.texture]
-  const base = textureTile(context, object.texture, parent, { key: "", label: parent.name ?? titleCase(object.texture), selected: !object.textureVariant, pick: () => state.pickVariant(null) })
-  return [base].concat(state.textureVariants.value.map(([id, data]) => textureTile(context, id, { ...parent, ...data }, {
-    label: data.name ?? titleCase(id),
-    author: credit(data, font?.id, host.library.fonts, parent),
-    selected: object.textureVariant === id,
-    pick: () => state.pickVariant(id)
-  })))
+function variants(kind) {
+  return (get, context) => {
+    const id = context.object[kind.key]
+    const parent = kind.parent(context)
+    const base = kind.tile(context, id, null, parent, null, { key: "", label: parent.name ?? titleCase(id), selected: !context.object[`${kind.key}Variant`], pick: () => kind.pickVariant(context, null) })
+    return [base].concat(context.state[`${kind.key}Variants`].value.map(([variant, data]) => kind.tile(context, id, variant, data, parent, {
+      label: data.name ?? titleCase(variant),
+      author: kind.author(context, data, parent),
+      selected: context.object[`${kind.key}Variant`] === variant,
+      pick: () => kind.pickVariant(context, variant)
+    })))
+  }
 }
 
 function blocks(get, { object, state }) {
@@ -76,44 +92,22 @@ function blocks(get, { object, state }) {
   }))
 }
 
-function tileableTile(id, variant, values) {
-  const url = tileableUrl(host.library.tileables, id, variant)
-  return { key: variant ?? id, aspect: PATTERN, pattern: url, download: { label: "Download tileable", path: url, name: `${variant ?? id}.png` }, ...values }
-}
-
-function foundTileables(get, { object, state }) {
-  return state.foundTileables.value.map(({ id, variant, data, parent }) => tileableTile(id, variant, {
-    key: `${id}/${variant ?? ""}`,
-    label: data.name ?? titleCase(variant ?? id),
-    author: data.authors ?? parent.authors,
-    selected: object.tileable === id && (object.tileableVariant ?? null) === variant,
-    pick: () => state.pickTileable(id, variant)
-  }))
-}
-
-function tileables(get, { object, state }) {
-  return state.tileables.value.map(([id, data]) => tileableTile(id, null, {
-    label: label(id, data),
-    author: data.authors,
-    badge: variantBadge(data),
-    selected: object.tileable === id,
-    pick: () => state.pickTileable(id, null)
-  }))
-}
-
-function tileableVariants(get, { object, state }) {
-  const parent = host.library.tileables[object.tileable]
-  const base = tileableTile(object.tileable, null, { key: "", label: parent.name, selected: !object.tileableVariant, pick: () => state.pickTileable(object.tileable, null) })
-  return [base].concat(state.tileableVariants.value.map(([id, data]) => tileableTile(object.tileable, id, {
-    label: data.name,
-    author: data.authors ?? parent.authors,
-    selected: object.tileableVariant === id,
-    pick: () => state.pickTileable(object.tileable, id)
-  })))
-}
-
 function search(entries, shown) {
   return { type: "search", placeholder: "Search textures", shown: (get, context) => shown(get, context) && context.state.searchable(context.state[entries].value) }
+}
+
+function kindRows(kind, shown) {
+  const variantList = `${kind.key}Variants`
+  const searching = (get, context) => shown(get, context) && context.state[kind.searching].value
+  const listing = (get, context) => shown(get, context) && !context.state[kind.searching].value
+  const varied = (get, context) => listing(get, context) && context.state[variantList].value.length > 0
+  return [
+    search(kind.list, shown),
+    { type: "tiles", scroll: true, items: found(kind), shown: searching },
+    { type: "tiles", scroll: true, patterns: kind.patterns, kept: (get, { state }) => state[variantList].value.length > 0, least: (get, { state }) => leastRows(state[kind.list].value), items: listed(kind), shown: listing },
+    { type: "heading", text: "Variants", shown: varied },
+    { type: "tiles", scroll: true, patterns: kind.patterns, rows: (get, { state }) => variantRows(state[variantList].value), items: variants(kind), shown: varied }
+  ]
 }
 
 export const TEXTURE_PICKER = {
@@ -123,22 +117,13 @@ export const TEXTURE_PICKER = {
   watch: (get, { state }) => [get("textureSource"), state.usingMinecraft.value, state.textureVariants.value.length, state.tileableVariants.value.length, state.search.value],
   controls: [
     { type: "segments", options: (get, { state }) => state.sources.value, read: (get, { state }) => state.waiting.value?.textureSource ?? get("textureSource"), write: (value, { state }) => state.chooseSource(value), shown: (get, { state }) => state.sources.value.length > 1 },
-    { type: "download", shown: (get, { state }) => !!state.waiting.value },
-    search("textures", premade),
-    { type: "tiles", scroll: true, items: foundTextures, shown: searchingTextures },
-    { type: "tiles", scroll: true, kept: (get, { state }) => state.textureVariants.value.length > 0, least: (get, { state }) => leastRows(state.textures.value), items: textures, shown: listingTextures },
-    { type: "heading", text: "Variants", shown: variedTextures },
-    { type: "tiles", scroll: true, rows: (get, { state }) => variantRows(state.textureVariants.value), items: textureVariants, shown: variedTextures },
+    { type: "download", shown: (get, { state }) => !!state.waiting.value }
+  ].concat(kindRows(TEXTURES, premade), [
     { type: "segments", options: TILEABLE_SOURCES, read: (get, { state }) => state.waiting.value?.tileableSource ?? get("tileableSource"), write: (value, { state }) => state.chooseTileables(value), shown: tileable },
     { type: "version", read: get => get("minecraftVersion"), write: (version, { state }) => state.chooseVersion(version), shown: minecraft },
     { type: "notice", text: (get, { state }) => state.blocksError.value, shown: (get, context) => minecraft(get, context) && !!context.state.blocksError.value },
     { type: "hint", text: "This version has no block textures without transparency.", shown: (get, context) => minecraft(get, context) && !context.state.blocksError.value && !!context.state.blocks.value && !context.state.blockEntries.value.length },
     search("blockEntries", minecraft),
-    { type: "tiles", scroll: true, items: blocks, shown: (get, context) => minecraft(get, context) && context.state.blockEntries.value.length > 0 },
-    search("tileables", published),
-    { type: "tiles", scroll: true, items: foundTileables, shown: searchingTileables },
-    { type: "tiles", scroll: true, patterns: true, kept: (get, { state }) => state.tileableVariants.value.length > 0, least: (get, { state }) => leastRows(state.tileables.value), items: tileables, shown: listingTileables },
-    { type: "heading", text: "Variants", shown: variedTileables },
-    { type: "tiles", scroll: true, patterns: true, rows: (get, { state }) => variantRows(state.tileableVariants.value), items: tileableVariants, shown: variedTileables }
-  ]
+    { type: "tiles", scroll: true, items: blocks, shown: (get, context) => minecraft(get, context) && context.state.blockEntries.value.length > 0 }
+  ], kindRows(TILEABLES, published))
 }

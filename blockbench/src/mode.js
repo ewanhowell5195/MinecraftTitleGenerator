@@ -12,8 +12,19 @@ const left = new Map()
 let elementCondition = null
 let elementShown = true
 
+export function isSelected(own) {
+  return !!own && Mode.selected === own
+}
+
+export function leaveMode(own, id) {
+  if (isSelected(own)) Modes.options.edit.select()
+  for (const project of ModelProject.all) {
+    if (project.mode === id) project.mode = "edit"
+  }
+}
+
 export function inTitleMode() {
-  return !!mode && Mode.selected === mode
+  return isSelected(mode)
 }
 
 export function titlePanel(id, options) {
@@ -97,10 +108,7 @@ export function registerMode() {
 }
 
 export function unregisterMode() {
-  if (inTitleMode()) Modes.options.edit.select()
-  for (const project of ModelProject.all) {
-    if (project.mode === ID) project.mode = "edit"
-  }
+  leaveMode(mode, ID)
   Panels.element.condition = elementCondition
   left.clear()
   Vue.delete(Modes.options, ID)

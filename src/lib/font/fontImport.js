@@ -1,7 +1,7 @@
 import { MULTICASE_CHARACTERS } from "./editor/characters.js"
 import { DEFAULT_SPACE_WIDTH } from "./editor/defaults.js"
 import { fontFromShapes } from "./editor/import.js"
-import { flatten, glyphFor, gridShift, lineUnits, pixelGrid, rasterise } from "./fontOutline.js"
+import { flatten, glyphFor, gridRows, gridShift, lineUnits, pixelGrid, rasterise } from "./fontOutline.js"
 import { readFont } from "./readFont.js"
 
 const SAMPLE_LETTERS = Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
@@ -96,22 +96,6 @@ function strokeRuns(shape) {
   return runs
 }
 
-function letterRows(glyphs, units, base) {
-  const values = []
-  for (const glyph of glyphs) {
-    const points = glyph.path.commands.filter(command => command.x !== undefined)
-    if (!points.length) continue
-    if (glyph.path.commands.some(command => command.type === "Q" || command.type === "C")) return null
-    const left = Math.min(...points.map(command => command.x))
-    for (const command of points) values.push(command.x - left, command.y - base)
-  }
-  for (let count = 3; count <= MOST_PIXEL_ROWS; count++) {
-    const unit = units / count
-    if (values.every(value => Math.abs(value - Math.round(value / unit) * unit) <= unit * PIXEL_SLACK)) return count
-  }
-  return null
-}
-
 function nearestSquare(rows) {
   return Math.max(1, Math.ceil(SUGGESTED_PIXELS / rows - 0.5))
 }
@@ -120,7 +104,7 @@ export function suggestedSize(source) {
   const { top, base } = lineUnits(source)
   const units = top - base
   const glyphs = SAMPLE_LETTERS.map(char => glyphFor(source, char)).filter(Boolean)
-  const rows = letterRows(glyphs, units, base)
+  const rows = gridRows(glyphs, units, base, MOST_PIXEL_ROWS, unit => unit * PIXEL_SLACK)
   if (rows) return { rows, square: nearestSquare(rows), pixel: true }
   const scale = STROKE_ROWS / units
   const capitals = SAMPLE_LETTERS.filter(char => char === char.toUpperCase()).map(char => glyphFor(source, char)).filter(Boolean)

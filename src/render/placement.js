@@ -1,9 +1,9 @@
 import * as THREE from "three"
-import { radians, round } from "../lib/core/maths.js"
+import { round, toRad } from "../lib/core/maths.js"
 import { boxOf } from "./bufferPoints.js"
 
 function euler(degrees) {
-  return new THREE.Euler(...degrees.map(radians))
+  return new THREE.Euler(...degrees.map(toRad))
 }
 
 function around(matrix, point, transform) {
@@ -22,7 +22,7 @@ function anchorOf(value, bounds, centre) {
 }
 
 export function placementMatrix(value, bounds) {
-  const placement = new THREE.Matrix4().makeRotationX(radians(value.rotation))
+  const placement = new THREE.Matrix4().makeRotationX(toRad(value.rotation))
   const base = placement.clone().multiply(new THREE.Matrix4().makeTranslation(...value.offset)).multiply(new THREE.Matrix4().makeScale(...value.type))
   const centre = bounds ? bounds.getCenter(new THREE.Vector3()) : new THREE.Vector3()
   const anchor = bounds ? anchorOf(value, bounds, centre) : centre.clone()
@@ -61,7 +61,7 @@ function wrap(degrees) {
 }
 
 function orientation(rotate, rotation) {
-  return new THREE.Quaternion().setFromEuler(euler(rotate)).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), radians(rotation)))
+  return new THREE.Quaternion().setFromEuler(euler(rotate)).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), toRad(rotation)))
 }
 
 export function gizmoPose(value, bounds) {
@@ -108,7 +108,7 @@ export function wordRotatedTo(value, quaternion) {
 }
 
 export function rotatedTo(value, quaternion) {
-  const placement = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), radians(value.rotation))
+  const placement = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), toRad(value.rotation))
   const rotate = nearestAngles(quaternion.clone().multiply(placement.invert()), value.rotate)
   const world = new THREE.Vector3(...value.translate).applyQuaternion(orientation(value.rotate, value.rotation))
   const translate = limited(world.applyQuaternion(orientation(rotate, value.rotation).invert()).toArray())

@@ -10,6 +10,17 @@ export function area(polygon) {
   return Math.abs(signedArea(polygon))
 }
 
+export function pruned(points, least, drop) {
+  const kept = points.slice()
+  for (let index = 0; index < kept.length && kept.length > least;) {
+    if (drop(kept[(index + kept.length - 1) % kept.length], kept[index], kept[(index + 1) % kept.length])) {
+      kept.splice(index, 1)
+      index = Math.max(0, index - 1)
+    } else index++
+  }
+  return kept
+}
+
 export function sameWinding(polygon) {
   return signedArea(polygon) < 0 ? polygon.toReversed() : polygon
 }

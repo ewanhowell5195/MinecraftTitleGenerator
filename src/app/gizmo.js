@@ -1,4 +1,5 @@
 import * as THREE from "three"
+import { toRad } from "#lib/core/maths.js"
 
 const COLOURS = { X: "#fd3043", Y: "#26ec45", Z: "#2d5ee8" }
 const PLANES = { YZ: "X", XZ: "Y", XY: "Z" }
@@ -13,7 +14,7 @@ const MIN_OPEN = 0.3
 const MOVED_DEPTH = 0.1
 const POINTING = 0.05
 const MIN_LENGTH = 0.35
-const MIN_SPREAD = 35 * Math.PI / 180
+const MIN_SPREAD = toRad(35)
 const RING_SPAN = { X: ["Y", "Z"], Y: ["Z", "X"], Z: ["X", "Y"] }
 
 function shaft(from, to, radius) {

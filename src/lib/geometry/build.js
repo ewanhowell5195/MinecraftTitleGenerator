@@ -7,7 +7,7 @@ import { layoutPages, pageGroups } from "../texture/atlas/pages.js"
 import { planAtlas, stripSpans } from "../texture/atlas/plan.js"
 import { faceLimits } from "./meshFaces.js"
 import { REGION_KINDS, detailOf, regionScales } from "../texture/atlas/scales.js"
-import { clamp, remember } from "../core/maths.js"
+import { clamp, remember, toRad } from "../core/maths.js"
 import { baseChar } from "../font/order.js"
 import { defaultDepth } from "../settings/defaults.js"
 import { edgeReach } from "./sizes.js"
@@ -170,7 +170,7 @@ function spine(cells, pivot, x, angleAt) {
 }
 
 function twistAngle(part, x, first, last) {
-  return -part.amount * twistReach(part, x, first, last) * Math.PI / 180
+  return toRad(-part.amount * twistReach(part, x, first, last))
 }
 
 function rolled(door, x, angle, first, last, cells, hinge) {
@@ -204,7 +204,7 @@ function plainBounds(glyphs) {
 function twistParts({ twist: { ribbon, door, fan }, first, last, cells }, x, { height, back, front }) {
   const angle = twistAngle(door, x, first, last)
   const fanAngle = twistAngle(fan, x, first, last)
-  return { ribbon: ribbon.amount * twistReach(ribbon, x, first, last) * Math.PI / 180, door: angle, fan: fanAngle, ...rolled(door, x, angle, first, last, cells, back + (front - back) * (door.depth ?? 0.5)), ...fanRolled(fan, x, fanAngle, first, last, cells, ((fan.height ?? 0.5) - 0.5) * height) }
+  return { ribbon: toRad(ribbon.amount * twistReach(ribbon, x, first, last)), door: angle, fan: fanAngle, ...rolled(door, x, angle, first, last, cells, back + (front - back) * (door.depth ?? 0.5)), ...fanRolled(fan, x, fanAngle, first, last, cells, ((fan.height ?? 0.5) - 0.5) * height) }
 }
 
 function twistTurn(twists, rect, line, place, scale, depths) {

@@ -1,3 +1,4 @@
+import { toRad } from "../core/maths.js"
 import { swatchUvs } from "./build.js"
 import { MINECRAFT_SCALE, MODEL_BASELINE, rotated } from "./shapes.js"
 
@@ -39,8 +40,8 @@ export function modelQuads(model, { width, height }) {
 
 export function minecraftPlaced(quads, turn) {
   const minY = Math.min(...quads.flatMap(quad => quad.points.map(point => point[1])))
-  const cos = Math.round(Math.cos(turn * Math.PI / 180))
-  const sin = Math.round(Math.sin(turn * Math.PI / 180))
+  const cos = Math.round(Math.cos(toRad(turn)))
+  const sin = Math.round(Math.sin(toRad(turn)))
   return quads.map(quad => ({ ...quad, points: quad.points.map(([x, y, z]) => [(x * cos + z * sin) * MINECRAFT_SCALE, (y - minY) * MINECRAFT_SCALE + MODEL_BASELINE, (z * cos - x * sin) * MINECRAFT_SCALE]) }))
 }
 

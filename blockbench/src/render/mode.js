@@ -1,5 +1,6 @@
 import { ref } from "vue"
 import { FORMAT } from "../format.js"
+import { isSelected, leaveMode } from "../mode.js"
 import { stashSelection } from "../selection.js"
 import { applyAngle, releaseAngle } from "./angle.js"
 import { enterView, leaveView } from "./view.js"
@@ -15,7 +16,7 @@ let restoreSelection = null
 let hidden = []
 
 export function inRenderMode() {
-  return !!mode && Mode.selected === mode
+  return isSelected(mode)
 }
 
 function guides() {
@@ -58,10 +59,7 @@ export function registerRenderMode() {
 }
 
 export function unregisterRenderMode() {
-  if (inRenderMode()) Modes.options.edit.select()
-  for (const project of ModelProject.all) {
-    if (project.mode === ID) project.mode = "edit"
-  }
+  leaveMode(mode, ID)
   Vue.delete(Modes.options, ID)
   mode = null
 }

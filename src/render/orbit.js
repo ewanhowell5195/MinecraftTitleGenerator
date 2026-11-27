@@ -1,7 +1,7 @@
 import * as THREE from "three"
-import { clamp, radians } from "../lib/core/maths.js"
+import { clamp, toRad } from "../lib/core/maths.js"
 
-const PITCH_LIMIT = radians(89)
+const PITCH_LIMIT = toRad(89)
 const ORBIT_FILL = 0.94
 const DOLLY_LIMITS = [0.05, 20]
 

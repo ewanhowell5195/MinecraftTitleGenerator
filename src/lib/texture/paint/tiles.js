@@ -1,5 +1,5 @@
 import { fillPattern, surface } from "../canvas.js"
-import { remember } from "#lib/core/maths.js"
+import { remember, toRad } from "#lib/core/maths.js"
 import { R, fillRect, into, pixelAt, plain, stripParts } from "./draw.js"
 import { adjusted, adjustmentsOf } from "./adjust.js"
 
@@ -22,7 +22,7 @@ function random(x, y, z) {
 function drawTile(ctx, tile, x, y, w, h, rotation, mirror) {
   ctx.save()
   ctx.translate(x + w / 2, y + h / 2)
-  ctx.rotate(rotation * Math.PI / 180)
+  ctx.rotate(toRad(rotation))
   if (mirror) ctx.scale(-1, 1)
   ctx.drawImage(tile, -w / 2, -h / 2, w, h)
   ctx.restore()
@@ -105,13 +105,9 @@ export function paintTiles(ctx, entries, look, image, capHeight) {
   }
   if (look.tileableTileEdges) {
     for (const [index, entry] of entries.entries()) {
-      if (entry.upHeight) {
-        into(ctx, entry, "up")
-        region([entry.x, entry.up, entry.width, entry.upHeight], entry.up * R, seedOf(index, 1), originOf(entry))
-      }
-      if (entry.downHeight) {
-        into(ctx, entry, "down")
-        region([entry.x, entry.down, entry.width, entry.downHeight], entry.down * R, seedOf(index, 2), originOf(entry))
+      for (const [part, rect] of stripParts(entry)) {
+        into(ctx, entry, part)
+        region(rect, rect[1] * R, seedOf(index, part === "up" ? 1 : 2), originOf(entry))
       }
     }
     plain(ctx)

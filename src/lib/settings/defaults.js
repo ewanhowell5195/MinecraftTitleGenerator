@@ -29,6 +29,14 @@ export function stops(type) {
   return TYPES[type].stops.map(([colour, position]) => ({ colour, position }))
 }
 
+export function wordKey(key) {
+  return `word${key[0].toUpperCase()}${key.slice(1)}`
+}
+
+function worded(panel, skip = []) {
+  return Object.fromEntries(Object.entries(panel()).filter(([key]) => !skip.includes(key)).map(([key, value]) => [wordKey(key), value]))
+}
+
 function tiling() {
   return {
     tileableScale: 2,
@@ -135,46 +143,11 @@ export const PANELS = {
     wordDepth: null,
     wordBorder: null
   }),
-  wordArc: () => ({
-    wordArcMode: "stretch",
-    wordArcTop: 0,
-    wordArcBottom: 0,
-    wordArcMove: 0,
-    wordArcCentre: 50,
-    wordArcMarked: true
-  }),
-  wordRibbon: () => ({
-    wordTwistRibbon: 0,
-    wordTwistRibbonCentre: 50,
-    wordTwistRibbonMirror: false
-  }),
-  wordWrap: () => ({
-    wordTwistDoor: 0,
-    wordTwistDoorCentre: 50,
-    wordTwistDoorSame: false,
-    wordTwistDoorRoll: true,
-    wordTwistDoorDepth: 50
-  }),
-  wordFan: () => ({
-    wordTwistFan: 0,
-    wordTwistFanCentre: 50,
-    wordTwistFanRoll: true,
-    wordTwistFanHeight: 50
-  }),
-  wordTransform: () => ({
-    wordScaleX: 1,
-    wordScaleY: 1,
-    wordLinkScale: null,
-    wordScaleZ: 1,
-    wordScaleMarked: false,
-    wordScaleOutline: false,
-    wordRotationX: 0,
-    wordRotationY: 0,
-    wordRotationZ: 0,
-    wordTranslateX: 0,
-    wordTranslateY: 0,
-    wordTranslateZ: 0
-  }),
+  wordArc: () => worded(PANELS.arc, ["arcGradient"]),
+  wordRibbon: () => worded(PANELS.ribbon),
+  wordWrap: () => worded(PANELS.wrap),
+  wordFan: () => worded(PANELS.fan),
+  wordTransform: () => worded(PANELS.transform, ["matchWidth", "matchBottom", "matchScaleY", "matchScale", "matchOffset"]),
   texture: () => ({
     textureSource: "premade",
     texture: null,

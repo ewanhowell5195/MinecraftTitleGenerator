@@ -141,81 +141,54 @@ function outlineBoxes(built, part, outline, matrix) {
   })
 }
 
-function buildCubes(element, frame, name, made, line, order) {
-  const { item } = memberOf(element)
-  const { built, outline } = item
+function buildElements(element, kind, frame, name, made, line, order) {
+  const { built, outline } = memberOf(element).item
   const { matrix, size, origin } = frame
   const pages = built.pages.map(page => page.texture)
   const textures = makeTextures(name, pages, made.textures)
-  const faces = facesOf(built.body, matrix, pages)
+  const parts = built.parts?.()
+  const own = built.chars?.length > 1
+  const cubes = kind === "cubes"
   const paint = texturedPaint(textures)
-  const letters = []
-  const parts = built.parts?.()
 
-  function add(cube, group) {
-    cube.addTo(group).init()
-    made.elements.push(cube)
+  function add(node, group) {
+    node.addTo(group).init()
+    made.elements.push(node)
   }
 
-  for (const [glyph, members] of Map.groupBy(faces, face => face.glyph)) {
-    const boxes = boxesIn(members, parts?.[glyph].turn, matrix)
-    const char = baseChar(built.chars?.[glyph] ?? "")
-    const turn = sharedTurn(boxes)
-    const middle = new THREE.Box3().setFromPoints(members.flatMap(face => face.points)).getCenter(new THREE.Vector3())
-    const own = built.chars?.length > 1
-    const turned = own && turn
-    const space = { centre: turned ? middle : new THREE.Vector3(), turn: turned ? turn : STILL, origin, pivot: own ? middle.clone().add(origin) : origin }
-    const group = own ? newGroup(nameOf(char), space.pivot, line, made.groups, turn ? angles(turn) : [0, 0, 0]) : line
-    for (const box of boxes) add(makeCube({ name: own ? nameOf(char) : name, box, space, paint }), group)
-    letters.push({ glyph, boxes, group, space })
-  }
-
-  if (!outline?.triangles || !built.swatch || built.border <= 0) return line
-  const swatch = swatchPaint(textures[0], pages[0], built.swatch)
-  for (const { glyph, boxes, group, space } of letters) {
-    const hull = built.runs ? hullOf(boxes, hullReach(built, outline, size), pages) : outlineBoxes(built, parts[glyph], outline, matrix)
-    const outer = newOutline(space.pivot, group, made.groups, order)
-    for (const box of hull) add(makeCube({ name: "outline", box, space, inverted: true, paint: swatch }), outer)
-  }
-  return line
-}
-
-function hullReach(built, outline, size) {
-  return outline.scale.map((axis, index) => built.border * size.getComponent(index) / axis)
-}
-
-function buildMesh(element, frame, name, made, line, order) {
-  const { item } = memberOf(element)
-  const { built, outline } = item
-  const { matrix, size, origin } = frame
-  const pages = built.pages.map(page => page.texture)
-  const textures = makeTextures(name, pages, made.textures)
-  const faces = facesOf(built.body, matrix, pages)
-
-  function add(options, group) {
-    const mesh = makeMesh(options)
-    mesh.addTo(group).init()
-    made.elements.push(mesh)
-  }
-
-  const letters = Array.from(Map.groupBy(faces, face => face.glyph), ([glyph, members]) => {
-    const char = baseChar(built.chars?.[glyph] ?? "")
+  const letters = Array.from(Map.groupBy(facesOf(built.body, matrix, pages), face => face.glyph), ([glyph, members]) => {
+    const letter = own ? nameOf(baseChar(built.chars?.[glyph] ?? "")) : name
     const centre = new THREE.Box3().setFromPoints(members.flatMap(face => face.points)).getCenter(new THREE.Vector3())
-    const own = built.chars?.length > 1
-    const letter = own ? nameOf(char) : name
-    const pivot = centre.clone().add(origin)
-    const group = own ? newGroup(letter, pivot, line, made.groups) : line
-    add({ name: letter, faces: members, centre, origin, textures }, group)
-    return { glyph, members, centre, pivot, group }
+    if (!cubes) {
+      const pivot = centre.clone().add(origin)
+      const group = own ? newGroup(letter, pivot, line, made.groups) : line
+      add(makeMesh({ name: letter, faces: members, centre, origin, textures }), group)
+      return { glyph, members, centre, pivot, group }
+    }
+    const boxes = boxesIn(members, parts?.[glyph].turn, matrix)
+    const turn = sharedTurn(boxes)
+    const turned = own && turn
+    const space = { centre: turned ? centre : new THREE.Vector3(), turn: turned ? turn : STILL, origin, pivot: own ? centre.clone().add(origin) : origin }
+    const group = own ? newGroup(letter, space.pivot, line, made.groups, turn ? angles(turn) : [0, 0, 0]) : line
+    for (const box of boxes) add(makeCube({ name: letter, box, space, paint }), group)
+    return { glyph, boxes, group, space, pivot: space.pivot }
   })
-  if (!outline?.triangles || !built.swatch || built.border <= 0) return line
+
+  if (!outline?.triangles || !built.swatch || built.border <= 0) return
+  const reach = outline.scale.map((axis, index) => built.border * size.getComponent(index) / axis)
+  const swatch = swatchPaint(textures[0], pages[0], built.swatch)
   const [u, v] = [built.swatch[0] * pages[0].width, (1 - built.swatch[1]) * pages[0].height]
-  const parts = built.parts?.()
-  for (const { glyph, members, centre, pivot, group } of letters) {
-    const shell = built.runs ? hullOf(boxesOf(members), hullReach(built, outline, size), pages).flatMap(hullFaces) : facesOf(buildPartOutline(built, parts[glyph], outline.scale), outlineMatrix(outline, matrix), pages)
-    add({ name: "outline", faces: shell.map(face => ({ ...face, page: 0, points: face.points.toReversed(), uvs: face.points.map(() => [u, v]) })), centre, origin, textures }, newOutline(pivot, group, made.groups, order))
+  for (const { glyph, members, boxes, centre, space, pivot, group } of letters) {
+    const hull = built.runs && hullOf(boxes ?? boxesOf(members), reach, pages)
+    if (cubes) {
+      const outer = newOutline(pivot, group, made.groups, order)
+      for (const box of hull || outlineBoxes(built, parts[glyph], outline, matrix)) add(makeCube({ name: "outline", box, space, inverted: true, paint: swatch }), outer)
+      continue
+    }
+    const shell = hull ? hull.flatMap(hullFaces) : facesOf(buildPartOutline(built, parts[glyph], outline.scale), outlineMatrix(outline, matrix), pages)
+    const outer = newOutline(pivot, group, made.groups, order)
+    add(makeMesh({ name: "outline", faces: shell.map(face => ({ ...face, page: 0, points: face.points.toReversed(), uvs: face.points.map(() => [u, v]) })), centre, origin, textures }), outer)
   }
-  return line
 }
 
 function hullFaces({ centre, half, quaternion, axes, members }) {
@@ -228,11 +201,9 @@ function hullFaces({ centre, half, quaternion, axes, members }) {
   })
 }
 
-const BUILDERS = { cubes: buildCubes, mesh: buildMesh }
-
 function buildPiece(element, kind, frame, name, made, group, order) {
   const own = { groups: [group], elements: [], textures: made.textures }
-  BUILDERS[kind](element, frame, name, own, group, order)
+  buildElements(element, kind, frame, name, own, group, order)
   if (element.settings.hidden) for (const node of own.groups.concat(own.elements)) node.visibility = false
   made.groups.push(...own.groups.slice(1))
   made.elements.push(...own.elements)
